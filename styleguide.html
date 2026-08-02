@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reusable 3D Style Guide · KNICKGASM Lifecycle OS</title>
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body class="vh-3d-styleguide">
+  <main class="vh-3d-styleguide-shell">
+    <header class="vh-3d-styleguide-header">
+      <p class="vh-eyebrow">KNICKGASM Lifecycle OS</p>
+      <h1>Reusable 3D Style Guide</h1>
+      <p>Isolated examples of the layered text, raised card, dimensional icon, and hover-depth patterns introduced in the July 2026 welcome-page treatment. Every live example uses opt-in classes from <code>theme.css</code>.</p>
+    </header>
+
+    <div class="vh-3d-example-grid">
+      <section class="vh-3d-example" aria-labelledby="layered-title-heading">
+        <div class="vh-3d-example-copy">
+          <h2 id="layered-title-heading">Layered 3D Text</h2>
+          <p>Stacked text shadows create the extrusion, while a perspective transform lifts the accent word onto a separate visual plane.</p>
+        </div>
+        <div class="vh-3d-demo vh-3d-stage">
+          <h3 class="vh-layered-title">hello <span class="vh-layered-title-accent">KNICKGASM</span></h3>
+        </div>
+        <pre class="vh-3d-snippet"><code>&lt;div class="vh-3d-stage"&gt;
+  &lt;h3 class="vh-layered-title"&gt;
+    hello &lt;span class="vh-layered-title-accent"&gt;KNICKGASM&lt;/span&gt;
+  &lt;/h3&gt;
+&lt;/div&gt;
+
+.vh-layered-title {
+  transform: rotateX(-5deg) rotateY(1deg) translateZ(18px);
+  text-shadow: 0 1px 0 #d9e5ef, 0 2px 0 #cbd8e4,
+    0 3px 0 #bdccda, 0 4px 0 #afc0cf,
+    0 9px 18px rgba(23,36,61,.16);
+}</code></pre>
+      </section>
+
+      <section class="vh-3d-example" aria-labelledby="raised-card-heading">
+        <div class="vh-3d-example-copy">
+          <h2 id="raised-card-heading">Raised App Card</h2>
+          <p>Three shadow layers, per-card depth variables, and a recessed pseudo-element make the surface read as a physical tile.</p>
+        </div>
+        <div class="vh-3d-demo vh-3d-stage">
+          <article class="vh-raised-card vh-raised-card--mint">
+            <h3>Lifecycle App</h3>
+            <p>Reusable elevation with configurable surface, depth, turn, and tilt variables.</p>
+          </article>
+        </div>
+        <pre class="vh-3d-snippet"><code>&lt;article class="vh-raised-card vh-raised-card--mint"&gt;
+  ...
+&lt;/article&gt;
+
+.vh-raised-card {
+  box-shadow: 0 3px 0 rgba(23,36,61,.14),
+    0 13px 0 -5px var(--vh-3d-depth),
+    0 22px 32px rgba(49,65,96,.16);
+  transform: rotateX(4deg) rotateY(var(--vh-3d-turn))
+    rotateZ(var(--vh-3d-tilt));
+}</code></pre>
+      </section>
+
+      <section class="vh-3d-example" aria-labelledby="icon-heading">
+        <div class="vh-3d-example-copy">
+          <h2 id="icon-heading">Dimensional Icon</h2>
+          <p>A translated icon plane, slight X-axis rotation, and alpha-aware drop shadow give transparent artwork convincing depth.</p>
+        </div>
+        <div class="vh-3d-demo vh-3d-stage">
+          <div class="vh-dimensional-icon-lockup">
+            <img class="vh-dimensional-icon" src="favicon.png" alt="KNICKGASM icon">
+            <strong>Lifecycle OS</strong>
+          </div>
+        </div>
+        <pre class="vh-3d-snippet"><code>&lt;div class="vh-dimensional-icon-lockup"&gt;
+  &lt;img class="vh-dimensional-icon" src="favicon.png" alt="KNICKGASM icon"&gt;
+  &lt;strong&gt;Lifecycle OS&lt;/strong&gt;
+&lt;/div&gt;
+
+.vh-dimensional-icon {
+  filter: drop-shadow(0 7px 5px rgba(23,36,61,.2));
+  transform: translateZ(16px) rotateX(-4deg);
+}</code></pre>
+      </section>
+
+      <section class="vh-3d-example" aria-labelledby="hover-heading">
+        <div class="vh-3d-example-copy">
+          <h2 id="hover-heading">Hover Depth Interaction</h2>
+          <p>Hover the card to combine lift, counter-rotation, scale, and deeper shadows. Reduced-motion preferences keep the card static.</p>
+        </div>
+        <div class="vh-3d-demo vh-3d-stage">
+          <article class="vh-raised-card vh-raised-card--peach vh-depth-interaction">
+            <h3>Hover for depth</h3>
+            <p>The resting geometry and hover geometry are both driven by CSS custom properties.</p>
+          </article>
+        </div>
+        <pre class="vh-3d-snippet"><code>&lt;article class="vh-raised-card vh-raised-card--peach
+  vh-depth-interaction"&gt;
+  ...
+&lt;/article&gt;
+
+.vh-depth-interaction:hover {
+  transform: translateY(-8px) rotateX(-3deg)
+    rotateY(var(--vh-3d-hover-turn)) rotateZ(0) scale(1.025);
+  box-shadow: 0 4px 0 rgba(23,36,61,.12),
+    0 16px 0 -5px var(--vh-3d-depth),
+    0 30px 42px rgba(49,65,96,.22);
+}</code></pre>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,96 @@
+{
+  "_note": "AUTHORITATIVE KNICKGASM USA D2C performance figures, transcribed VERBATIM from KNICKGASM_USA_D2C_Report.pdf (provided by product owner, 2026-07-13). Source of record: Shopify (knickgasmusa.myshopify.com), Shopify Plus. This file is a faithful transcription only: NO figure here is derived, interpolated, or fabricated. Where the report gives a rounded value (e.g. $1.72M) it is preserved as-is. Treat this as the canonical USA D2C truth per the Master Operating Contract 'one authoritative record' rule; reconcile other repo datasets to it.",
+  "source": {
+    "document": "KNICKGASM_USA_D2C_Report.pdf",
+    "data_source": "Shopify (knickgasmusa.myshopify.com)",
+    "platform": "Shopify Plus",
+    "coverage": "Full historical performance 2015-2026",
+    "generated": "2026-07-13",
+    "totals_definition": "Total Sales = gross sales - discounts - returns + shipping + taxes (Shopify definition)",
+    "currency": "USD"
+  },
+  "all_time": {
+    "lifetime_gross_sales_usd": 14760000,
+    "lifetime_gross_sales_display": "$14.76M",
+    "lifetime_gross_sales_inr_display": "~Rs 125 Cr",
+    "total_orders": 268500,
+    "unique_purchasing_customers": 154822,
+    "peak_year": 2021,
+    "peak_year_total_sales_display": "$3.30M",
+    "full_year_2025_total_sales_display": "$1.00M",
+    "shopify_customer_profiles": 430743,
+    "profiles_bulk_imported_2023": 192684,
+    "lifetime_orders_per_customer": 1.72,
+    "buyers_active_2026_ytd": 8028,
+    "buyers_active_2026_ytd_pct_of_base": 0.052,
+    "current_run_rate_annual_display": "~$1.1M (Rs 9-9.5 Cr)"
+  },
+  "yearly": [
+    { "year": 2015, "orders": 996,   "gross_sales_display": "$64.4K",  "discounts_display": "$3.2K",   "total_sales_display": "$62.9K",  "aov": 61.4, "buyers": null,  "returning_pct": null,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2016, "orders": 1045,  "gross_sales_display": "$67.6K",  "discounts_display": "$2.4K",   "total_sales_display": "$67.5K",  "aov": 62.4, "buyers": null,  "returning_pct": null,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2017, "orders": 1564,  "gross_sales_display": "$108.0K", "discounts_display": "$9.6K",   "total_sales_display": "$102.0K", "aov": 62.9, "buyers": null,  "returning_pct": null,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2018, "orders": 6512,  "gross_sales_display": "$420.0K", "discounts_display": "$23.8K",  "total_sales_display": "$406.2K", "aov": 60.8, "buyers": 5422,  "returning_pct": 15.3,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2019, "orders": 15702, "gross_sales_display": "$880.6K", "discounts_display": "$85.7K",  "total_sales_display": "$818.1K", "aov": 50.6, "buyers": 12653, "returning_pct": 19.8,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2020, "orders": 38096, "gross_sales_display": "$1.84M",  "discounts_display": "$173.9K", "total_sales_display": "$1.78M",  "aov": 43.7, "buyers": 29385, "returning_pct": 22.2,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2021, "orders": 70816, "gross_sales_display": "$3.37M",  "discounts_display": "$320.1K", "total_sales_display": "$3.30M",  "aov": 43.0, "buyers": 49913, "returning_pct": 27.0,   "sessions": null,      "visitors": null,      "conv_pct": null },
+    { "year": 2022, "orders": 57644, "gross_sales_display": "$3.60M",  "discounts_display": "$800.1K", "total_sales_display": "$3.10M",  "aov": 48.6, "buyers": 41401, "returning_pct": 31.3,   "sessions": 500000,    "visitors": 365000,    "conv_pct": 4.3, "traffic_partial": true, "note": "2022 traffic data is partial (session tracking began mid-year); 4.3% conversion is overstated and not comparable." },
+    { "year": 2023, "orders": 28058, "gross_sales_display": "$1.72M",  "discounts_display": "$298.6K", "total_sales_display": "$1.60M",  "aov": 50.7, "buyers": 19441, "returning_pct": 43.2,   "sessions": 1420000,   "visitors": 1100000,   "conv_pct": 1.67 },
+    { "year": 2024, "orders": 17511, "gross_sales_display": "$1.03M",  "discounts_display": "$126.8K", "total_sales_display": "$0.98M",  "aov": 51.7, "buyers": 12639, "returning_pct": 51.2,   "sessions": 906000,    "visitors": 727000,    "conv_pct": 1.67 },
+    { "year": 2025, "orders": 16538, "gross_sales_display": "$1.07M",  "discounts_display": "$139.6K", "total_sales_display": "$1.00M",  "aov": 56.5, "buyers": 11802, "returning_pct": 46.5,   "sessions": 675000,    "visitors": 542000,    "conv_pct": 2.16 },
+    { "year": "2026_ytd", "period": "Jan 1 - Jul 13", "orders": 11348, "gross_sales_display": "$586.6K", "discounts_display": "$80.4K", "total_sales_display": "$536.2K", "aov": 44.5, "buyers": 8028, "returning_pct": 52.5, "sessions": 436000, "visitors": 368000, "conv_pct": 1.94 }
+  ],
+  "ytd_2025_vs_2026": {
+    "period": "January 1 - July 13 of each year",
+    "metrics": [
+      { "metric": "Total sales",          "y2025": "$417.8K",          "y2026": "$536.2K",          "change": "+28.3%" },
+      { "metric": "Gross sales",          "y2025": "$433.2K",          "y2026": "$586.6K",          "change": "+35.4%" },
+      { "metric": "Orders",               "y2025": "7251",             "y2026": "11348",            "change": "+56.5%" },
+      { "metric": "Average order value",  "y2025": "$53.57",           "y2026": "$44.54",           "change": "-16.9%" },
+      { "metric": "Unique buyers",        "y2025": "5564",             "y2026": "8028",             "change": "+44.3%" },
+      { "metric": "New buyers",           "y2025": "2484",             "y2026": "3815",             "change": "+53.6%" },
+      { "metric": "Returning buyers",     "y2025": "3080",             "y2026": "4213",             "change": "+36.8%" },
+      { "metric": "Returning buyer share","y2025": "55.4%",            "y2026": "52.5%",            "change": "-2.9 pts" },
+      { "metric": "Discounts given",      "y2025": "$44.6K (10.3% of gross)", "y2026": "$80.4K (13.7% of gross)", "change": "+80.1%" },
+      { "metric": "Returns",              "y2025": "$3.7K",            "y2026": "$10.6K",           "change": "+182.8%" },
+      { "metric": "Sessions",             "y2025": "317563",           "y2026": "436131",           "change": "+37.3%" },
+      { "metric": "Unique visitors",      "y2025": "251018",           "y2026": "367509",           "change": "+46.4%" },
+      { "metric": "Conversion rate",      "y2025": "2.01%",            "y2026": "1.94%",            "change": "-0.07 pts" }
+    ]
+  },
+  "top_products_h1_2025": [
+    { "rank": 1, "title": "Hand-painted Kicks Sneaker, 12 oz",           "sales_display": "$16.6K" },
+    { "rank": 2, "title": "Embroidery Neon Tisane, 100 Ct",   "sales_display": "$12.7K" },
+    { "rank": 3, "title": "Double Spice Hand-painted Kicks",         "sales_display": "$11.7K" },
+    { "rank": 4, "title": "Coffee Collection (80 Serv.)",    "sales_display": "$11.4K" },
+    { "rank": 5, "title": "Coffee Collection 3-Pack bundle", "sales_display": "$10.9K" },
+    { "rank": 6, "title": "Daily Airforce Black Sneaker, 12 oz",     "sales_display": "$10.2K" },
+    { "rank": 7, "title": "English Breakfast, 12 oz",         "sales_display": "$10.0K" },
+    { "rank": 8, "title": "Signature Green Sneaker, 12 oz",       "sales_display": "$8.7K" },
+    { "rank": 9, "title": "Earl Grey Black Sneaker, 12 oz",       "sales_display": "$8.1K" }
+  ],
+  "top_products_h1_2026": [
+    { "rank": 1, "title": "Coffee Collection",                     "sales_display": "$85.8K", "orders": 2009 },
+    { "rank": 2, "title": "Airbrush 1800mg KSM-66 Capsules",     "sales_display": "$36.3K" },
+    { "rank": 3, "title": "Coffee Collection Refill",              "sales_display": "$29.3K" },
+    { "rank": 4, "title": "Hand-painted Kicks Sneaker, 12 oz",                 "sales_display": "$15.5K" },
+    { "rank": 5, "title": "Embroidery Curcumin 2000mg",              "sales_display": "$12.1K" },
+    { "rank": 6, "title": "Daily Airforce Black Sneaker, 12 oz",           "sales_display": "$11.4K" },
+    { "rank": 7, "title": "Double Spice Hand-painted Kicks",              "sales_display": "$11.0K" },
+    { "rank": 8, "title": "Embroidery Neon Tisane, 100 Ct",        "sales_display": "$10.8K" },
+    { "rank": 9, "title": "English Breakfast, 12 oz",              "sales_display": "$9.7K" }
+  ],
+  "rs_100cr_bridge": [
+    { "lever": "Annual total sales", "today": "~$1.1M (Rs 9-9.5 Cr)", "required": "~$11.5-12M", "multiple": "~12x" },
+    { "lever": "Monthly sales",      "today": "~$85K",                "required": "~$1M",       "multiple": "~12x" },
+    { "lever": "Annual sessions",    "today": "~815K",                "required": "8-10M",      "multiple": "~10-12x" },
+    { "lever": "Conversion rate",    "today": "~2.0%",                "required": "3.0%+",      "multiple": "1.5x" },
+    { "lever": "AOV",                "today": "$44 (falling)",        "required": "$55-60",     "multiple": "1.3x" },
+    { "lever": "Active buyers / year","today": "~14-15K",             "required": "150-180K",   "multiple": "~11x" }
+  ],
+  "data_caveats": [
+    "Customer records vs actual buyers: Shopify holds 430,743 customer profiles, but 192,684 were created in 2023 against only 28,058 orders that year (a bulk list import, not buyers). True all-time purchaser count is 154,822 (from sales data).",
+    "Traffic data starts in 2022: Shopify session tracking has no data before 2022, and 2022 is a partial year (its 4.3% conversion is an artifact of full-year orders / partial-year sessions). Treat 2023 as the first clean traffic year.",
+    "Blank product-title line items (about $169K across a handful of orders since 2024, ~$28K in 2026 YTD) look like B2B/wholesale invoices routed through Shopify. These inflate D2C AOV and revenue slightly and should be tagged separately.",
+    "Buyer counts before 2018 are unavailable because customer records on this store begin in 2018 (likely a platform migration)."
+  ]
+}

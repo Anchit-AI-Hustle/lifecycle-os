@@ -1,0 +1,1295 @@
+{
+  "market": "US",
+  "month": "2026-07",
+  "scenario": "C",
+  "generated_from": "brand_assets (origin-validated)",
+  "store": "https://knickgasm.com",
+  "slots": [
+    {
+      "date": "2026-07-02",
+      "segment": "Champions",
+      "play": "Reward, do not discount",
+      "event": null,
+      "sku_key": "spiderman_af1",
+      "product": "India's Original Hand-painted Kicks, 100 ct",
+      "price": "$22.49",
+      "cta_url": "https://knickgasm.com/products/indias-original-hand-painted-kicks-sneaker-100-sneaker-bags",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/100_TB-31_4fb347b1-a1d5-4b72-93f8-0bc9a112e688.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Champions (top RFM: recent, frequent, high value).",
+        "what": "Loyalty reward on the hero everyday SKU, no discount.",
+        "how": "Reward-not-discount play; premium editorial voice; single CTA to the bestseller they already buy.",
+        "hypothesis": "Recognition + effortless restock lifts repeat rate more than a markdown that trains discount-waiting.",
+        "expected": "Higher repeat-purchase rate and AOV vs a discounted control."
+      },
+      "collections": [
+        "kicks-sneakers"
+      ],
+      "collection_cta": {
+        "slug": "kicks-sneakers",
+        "title": "Kicks Sneakers",
+        "url": "https://knickgasm.com/collections/kicks-sneakers"
+      },
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "The kicks you keep coming back to",
+          "preview": "A quiet thank-you, from the detailing table to your pair.",
+          "file": "mailers/usa-july/2026-07-02_champions_indias-original-hand-painted-kicks-100-ct_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · AIDA",
+          "framework": "aida",
+          "subject": "Your morning colorway, restocked",
+          "preview": "The 100 count, so the pot is never empty.",
+          "file": "mailers/usa-july/2026-07-02_champions_indias-original-hand-painted-kicks-100-ct_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "The kicks you keep coming back to",
+          "preview": "A quiet thank-you, from the detailing table to your pair.",
+          "file": "mailers/usa-july/2026-07-02_champions_indias-original-hand-painted-kicks-100-ct_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · AIDA",
+          "framework": "aida",
+          "subject": "Your morning colorway, restocked",
+          "preview": "The 100 count, so the pot is never empty.",
+          "file": "mailers/usa-july/2026-07-02_champions_indias-original-hand-painted-kicks-100-ct_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-02_champions_indias-original-hand-painted-kicks-100-ct_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "For the ones who lace-up with us daily. Your everyday kicks, hand-painted at origin and shipped studio-fresh.",
+            "headline": "India's Original Hand-painted Kicks, 100 ct",
+            "description": "Spicy, Bold & Vibrant",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "For the ones who lace-up with us daily ($22.49)",
+            "hook": "Your everyday kicks, hand-painted at origin and shipped garde…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "India's Original Hand-painted Kicks,…",
+              "For the ones who lace-up with u…",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Your everyday kicks, hand-painted at origin and shipped studio-fresh.",
+              "Spicy, Bold & Vibrant. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-02_champions_indias-original-hand-painted-kicks-100-ct_lp.html",
+        "title": "India's Original Hand-painted Kicks, 100 ct · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-05",
+      "segment": "Loyal",
+      "play": "Editorial origin story",
+      "event": null,
+      "sku_key": "rope_laces_af1",
+      "product": "Castleton Jordan Second Flush",
+      "price": "$20.99",
+      "cta_url": "https://knickgasm.com/products/castleton-classic-jordan-second-flush-black-sneaker-dj-354",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Copy_of_castleton-half_11zon_d5872785-939e-486e-9018-feca5a2c94ca.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Loyal (frequent buyers, story-receptive).",
+        "what": "Depth-first editorial on a premium one-of-one.",
+        "how": "Editorial tone over promo; origin narrative; PDP CTA.",
+        "hypothesis": "Loyalists trade up on provenance storytelling, not price.",
+        "expected": "Category expansion into premium hand-painted; higher AOV."
+      },
+      "collections": [],
+      "collection_cta": null,
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · FAB",
+          "framework": "fab",
+          "subject": "A second flush worth slowing down for",
+          "preview": "Castleton, muscatel, and the season that makes it.",
+          "file": "mailers/usa-july/2026-07-05_loyal_castleton-jordan-second-flush_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "Muscatel, from one hillside",
+          "preview": "The Castleton second flush is here.",
+          "file": "mailers/usa-july/2026-07-05_loyal_castleton-jordan-second-flush_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · FAB",
+          "framework": "fab",
+          "subject": "A second flush worth slowing down for",
+          "preview": "Castleton, muscatel, and the season that makes it.",
+          "file": "mailers/usa-july/2026-07-05_loyal_castleton-jordan-second-flush_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "Muscatel, from one hillside",
+          "preview": "The Castleton second flush is here.",
+          "file": "mailers/usa-july/2026-07-05_loyal_castleton-jordan-second-flush_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-05_loyal_castleton-jordan-second-flush_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "The Jordan of high summer. Second-flush panel from the Castleton studio, picked at its muscatel peak.",
+            "headline": "Castleton Jordan Second Flush",
+            "description": "Crisp, Mellow & Toasty",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "The Jordan of high summer ($20.99)",
+            "hook": "Second-flush panel from the Castleton studio, picked at its…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Castleton Jordan Second F…",
+              "The Jordan of high summer",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Second-flush panel from the Castleton studio, picked at its muscatel peak.",
+              "Crisp, Mellow & Toasty. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-05_loyal_castleton-jordan-second-flush_lp.html",
+        "title": "Castleton Jordan Second Flush · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-08",
+      "segment": "New",
+      "play": "Guide the second step",
+      "event": null,
+      "sku_key": "care_kit",
+      "product": "Assorted Lace Sets Sampler, 20 Designs",
+      "price": "$17.49",
+      "cta_url": "https://knickgasm.com/collections/samplers",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Assorted-Samler-20-Varinats_front.png",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "New (first-order, low familiarity).",
+        "what": "Second-step education via the sampler.",
+        "how": "Teach crafting + suggest breadth; collection CTA to samplers.",
+        "hypothesis": "Guided discovery raises second-order rate for new buyers.",
+        "expected": "Higher new-to-repeat conversion within 30 days."
+      },
+      "collections": [
+        "samplers"
+      ],
+      "collection_cta": {
+        "slug": "samplers",
+        "title": "Samplers",
+        "url": "https://knickgasm.com/collections/samplers"
+      },
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · AIDA",
+          "framework": "aida",
+          "subject": "Not sure what to lace-up next?",
+          "preview": "Twenty designs, one easy way to find yours.",
+          "file": "mailers/usa-july/2026-07-08_new_assorted-sneaker-bags-sampler-20-designs_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "Twenty sneakers, one sampler",
+          "preview": "The easiest way to find your colorway.",
+          "file": "mailers/usa-july/2026-07-08_new_assorted-sneaker-bags-sampler-20-designs_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · AIDA",
+          "framework": "aida",
+          "subject": "Not sure what to lace-up next?",
+          "preview": "Twenty designs, one easy way to find yours.",
+          "file": "mailers/usa-july/2026-07-08_new_assorted-sneaker-bags-sampler-20-designs_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "Twenty sneakers, one sampler",
+          "preview": "The easiest way to find your colorway.",
+          "file": "mailers/usa-july/2026-07-08_new_assorted-sneaker-bags-sampler-20-designs_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-08_new_assorted-sneaker-bags-sampler-20-designs_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "Find your everyday pair. Twenty one-of-one designs in one sampler, so the next favorite finds you.",
+            "headline": "Assorted Lace Sets Sampler, 20 Designs",
+            "description": "20 one-of-one designs in o…",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "Find your everyday pair ($17.49)",
+            "hook": "Twenty one-of-one designs in one sampler, so the next fa…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Assorted Lace Sets Sampler, 20…",
+              "Find your everyday pair",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Twenty one-of-one designs in one sampler, so the next favorite finds you.",
+              "20 one-of-one designs in one box. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-08_new_assorted-sneaker-bags-sampler-20-designs_lp.html",
+        "title": "Assorted Lace Sets Sampler, 20 Designs · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-11",
+      "segment": "Promising",
+      "play": "Show the next step",
+      "event": null,
+      "sku_key": "jordan1_golf",
+      "product": "Signature Green Sneaker, 12 oz",
+      "price": "$27.49",
+      "cta_url": "https://knickgasm.com/products/signature-green-sneaker-hand-painted-12oz",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Signature_green_tea_f953d287-3e7a-4973-9957-5e6e8bd22130.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Promising (building frequency, one category).",
+        "what": "Continuity into a second category (green).",
+        "how": "Show the next step in the ritual; PDP CTA.",
+        "hypothesis": "Cross-category nudges deepen habit and frequency.",
+        "expected": "More multi-category buyers; higher 60-day frequency."
+      },
+      "collections": [],
+      "collection_cta": null,
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "The green sneaker that tastes like the hills",
+          "preview": "High-altitude panel, clean and bright.",
+          "file": "mailers/usa-july/2026-07-11_promising_signature-green-sneaker-12-oz_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · 4Ps",
+          "framework": "fourps",
+          "subject": "Bright, clean, high-grown green",
+          "preview": "From the Signature studios to your afternoon.",
+          "file": "mailers/usa-july/2026-07-11_promising_signature-green-sneaker-12-oz_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "The green sneaker that tastes like the hills",
+          "preview": "High-altitude panel, clean and bright.",
+          "file": "mailers/usa-july/2026-07-11_promising_signature-green-sneaker-12-oz_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · 4Ps",
+          "framework": "fourps",
+          "subject": "Bright, clean, high-grown green",
+          "preview": "From the Signature studios to your afternoon.",
+          "file": "mailers/usa-july/2026-07-11_promising_signature-green-sneaker-12-oz_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-11_promising_signature-green-sneaker-12-oz_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "A brighter afternoon pair. High-grown Signature green, light-bodied and clean, for the mid-day reset.",
+            "headline": "Signature Green Sneaker, 12 oz",
+            "description": "Earthy, Smooth & Refreshing",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "A brighter afternoon pair ($27.49)",
+            "hook": "High-grown Signature green, light-bodied and clean, for the…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Signature Green Sneaker, 12 oz",
+              "A brighter afternoon pair",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "High-grown Signature green, light-bodied and clean, for the mid-day reset.",
+              "Earthy, Smooth & Refreshing. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-11_promising_signature-green-sneaker-12-oz_lp.html",
+        "title": "Signature Green Sneaker, 12 oz · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-14",
+      "segment": "Need-Attention",
+      "play": "Soft re-engagement",
+      "event": "National Streetwear Month (Aug) ramp",
+      "sku_key": "demon_slayer_af1",
+      "product": "Embroidery Neon Themed Sneaker, 100 ct",
+      "price": "$17.49",
+      "cta_url": "https://knickgasm.com/products/embroidery-neon-themed-sneaker-100-sneaker-bags",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Organic_Embroidery_Ginger_Front.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Need-Attention (cooling engagement, no discount yet).",
+        "what": "Soft re-engagement on a comforting themed, tied to Aug Streetwear Month.",
+        "how": "Warm, no-pressure voice; no aggressive offer; PDP CTA.",
+        "hypothesis": "A gentle seasonal reason to return re-warms lapsing engagers without training discounts.",
+        "expected": "Recovered open/click and re-engagement before deeper lapse."
+      },
+      "collections": [],
+      "collection_cta": null,
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "A warmer, steadier pair for August",
+          "preview": "Embroidery and neon, ahead of Streetwear Month.",
+          "file": "mailers/usa-july/2026-07-14_need-attention_embroidery-neon-themed-sneaker-100-ct_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · AIDA",
+          "framework": "aida",
+          "subject": "Golden, warming, scuff-resistant",
+          "preview": "Embroidery neon, for a calmer evening.",
+          "file": "mailers/usa-july/2026-07-14_need-attention_embroidery-neon-themed-sneaker-100-ct_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "A warmer, steadier pair for August",
+          "preview": "Embroidery and neon, ahead of Streetwear Month.",
+          "file": "mailers/usa-july/2026-07-14_need-attention_embroidery-neon-themed-sneaker-100-ct_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · AIDA",
+          "framework": "aida",
+          "subject": "Golden, warming, scuff-resistant",
+          "preview": "Embroidery neon, for a calmer evening.",
+          "file": "mailers/usa-july/2026-07-14_need-attention_embroidery-neon-themed-sneaker-100-ct_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-14_need-attention_embroidery-neon-themed-sneaker-100-ct_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "Steady the day, one pair at a time. Embroidery and neon, a warming, scuff-resistant ritual as Streetwear Month nears.",
+            "headline": "Embroidery Neon Themed Sneaker, 100 ct",
+            "description": "Spicy, Earthy & Warm",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "Steady the day, one pair at a time ($17.49)",
+            "hook": "Embroidery and neon, a warming, scuff-resistant ritual as Wel…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Embroidery Neon Themed Sneaker, 1…",
+              "Steady the day, one pair at a…",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Embroidery and neon, a warming, scuff-resistant ritual as Streetwear Month nears.",
+              "Spicy, Earthy & Warm. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-14_need-attention_embroidery-neon-themed-sneaker-100-ct_lp.html",
+        "title": "Embroidery Neon Themed Sneaker, 100 ct · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-16",
+      "segment": "Loyal",
+      "play": "Match-day ritual",
+      "event": "FIFA World Cup Final, Jul 19 @ MetLife (3pm ET)",
+      "sku_key": "taylor_af1",
+      "product": "English Breakfast Black Sneaker, 12 oz",
+      "price": "$17.99",
+      "cta_url": "https://knickgasm.com/products/classic-english-breakfast-black-hand-painted-sneaker-12oz",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/English_Breakfast.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Loyal (high-engagement, event-responsive).",
+        "what": "Timely tie-in to the Jul 19 World Cup Final at MetLife.",
+        "how": "Cultural-moment weave, kept light; PDP CTA.",
+        "hypothesis": "A relevant real-world moment lifts open + click for engaged cohorts.",
+        "expected": "Above-baseline engagement on the match-day send."
+      },
+      "collections": [],
+      "collection_cta": null,
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "A proper pair for the big final",
+          "preview": "English Breakfast, crafted for Sunday's match.",
+          "file": "mailers/usa-july/2026-07-16_loyal_english-breakfast-black-sneaker-12-oz_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Sunday's final, one strong pot",
+          "preview": "English Breakfast for the World Cup Final.",
+          "file": "mailers/usa-july/2026-07-16_loyal_english-breakfast-black-sneaker-12-oz_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "A proper pair for the big final",
+          "preview": "English Breakfast, crafted for Sunday's match.",
+          "file": "mailers/usa-july/2026-07-16_loyal_english-breakfast-black-sneaker-12-oz_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Sunday's final, one strong pot",
+          "preview": "English Breakfast for the World Cup Final.",
+          "file": "mailers/usa-july/2026-07-16_loyal_english-breakfast-black-sneaker-12-oz_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-16_loyal_english-breakfast-black-sneaker-12-oz_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "Craft for the final whistle. A brisk, full-bodied English Breakfast for Sunday's World Cup Final.",
+            "headline": "English Breakfast Black Sneaker, 12 oz",
+            "description": "Rich, Malty & Robust",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "Craft for the final whistle ($17.99)",
+            "hook": "A brisk, full-bodied English Breakfast for Sunday's World C…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "English Breakfast Black Sneaker,…",
+              "Craft for the final whistle",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "A brisk, full-bodied English Breakfast for Sunday's World Cup Final.",
+              "Rich, Malty & Robust. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-16_loyal_english-breakfast-black-sneaker-12-oz_lp.html",
+        "title": "English Breakfast Black Sneaker, 12 oz · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-18",
+      "segment": "Champions",
+      "play": "Event tie-in",
+      "event": "National Ice Cream Day, Jul 19",
+      "sku_key": "manutd_af1",
+      "product": "India's Original Hand-painted Kicks, 12 oz",
+      "price": "$22.49",
+      "cta_url": "https://knickgasm.com/products/indias-original-hand-painted-kicks-sneaker-hand-painted-12oz",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Original_chai_ba5f65d4-7560-4423-b25a-c09cd33e7172.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Champions (playful, high-affinity).",
+        "what": "Recipe-led tie-in to Jul 19 National Ice Cream Day.",
+        "how": "Usage-occasion content (iced-kicks affogato); PDP CTA to hand-painted.",
+        "hypothesis": "Novel summer usage occasions drive incremental purchase from best customers.",
+        "expected": "Incremental hand-painted units + strong click on the recipe."
+      },
+      "collections": [
+        "kicks-sneakers"
+      ],
+      "collection_cta": {
+        "slug": "kicks-sneakers",
+        "title": "Kicks Sneakers",
+        "url": "https://knickgasm.com/collections/kicks-sneakers"
+      },
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "Kicks, over ice, with a scoop",
+          "preview": "An iced-kicks affogato for Ice Cream Day.",
+          "file": "mailers/usa-july/2026-07-18_champions_indias-original-hand-painted-kicks-12-oz_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · AIDA",
+          "framework": "aida",
+          "subject": "An iced-kicks treat for Sunday",
+          "preview": "Hand-painted kicks + a scoop = Ice Cream Day, done.",
+          "file": "mailers/usa-july/2026-07-18_champions_indias-original-hand-painted-kicks-12-oz_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "Kicks, over ice, with a scoop",
+          "preview": "An iced-kicks affogato for Ice Cream Day.",
+          "file": "mailers/usa-july/2026-07-18_champions_indias-original-hand-painted-kicks-12-oz_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · AIDA",
+          "framework": "aida",
+          "subject": "An iced-kicks treat for Sunday",
+          "preview": "Hand-painted kicks + a scoop = Ice Cream Day, done.",
+          "file": "mailers/usa-july/2026-07-18_champions_indias-original-hand-painted-kicks-12-oz_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-18_champions_indias-original-hand-painted-kicks-12-oz_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "Turn your kicks into dessert. Craft it strong, pour it over ice cream, this Sunday is Ice Cream Day.",
+            "headline": "India's Original Hand-painted Kicks, 12 oz",
+            "description": "Spicy, Bold & Vibrant",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "Turn your kicks into dessert ($22.49)",
+            "hook": "Craft it strong, pour it over ice cream, this Sunday is Ice…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "India's Original Hand-painted Kicks,…",
+              "Turn your kicks into dessert",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Craft it strong, pour it over ice cream, this Sunday is Ice Cream Day.",
+              "Spicy, Bold & Vibrant. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-18_champions_indias-original-hand-painted-kicks-12-oz_lp.html",
+        "title": "India's Original Hand-painted Kicks, 12 oz · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-19",
+      "segment": "New",
+      "play": "Iced-sneaker how-to",
+      "event": "National Ice Cream Day, Jul 19",
+      "sku_key": "care_kit",
+      "product": "Assorted Lace Sets Sampler, 20 Designs",
+      "price": "$17.49",
+      "cta_url": "https://knickgasm.com/collections/samplers",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Assorted-Samler-20-Varinats_front.png",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "New (summer entry point).",
+        "what": "Iced-sneaker/cold-craft education tied to the Jul 19 summer moment.",
+        "how": "How-to content lowers the trial barrier; samplers collection CTA.",
+        "hypothesis": "Seasonal usage education raises trial and second order for new buyers.",
+        "expected": "Higher sampler attach + repeat within 30 days."
+      },
+      "collections": [
+        "samplers"
+      ],
+      "collection_cta": {
+        "slug": "samplers",
+        "title": "Samplers",
+        "url": "https://knickgasm.com/collections/samplers"
+      },
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Your first pitcher of bling kicks",
+          "preview": "Twenty designs to craft cold this week.",
+          "file": "mailers/usa-july/2026-07-19_new_assorted-sneaker-bags-sampler-20-designs_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "Bling kicks, twenty ways",
+          "preview": "One sampler, a summer of cold craft.",
+          "file": "mailers/usa-july/2026-07-19_new_assorted-sneaker-bags-sampler-20-designs_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Your first pitcher of bling kicks",
+          "preview": "Twenty designs to craft cold this week.",
+          "file": "mailers/usa-july/2026-07-19_new_assorted-sneaker-bags-sampler-20-designs_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "Bling kicks, twenty ways",
+          "preview": "One sampler, a summer of cold craft.",
+          "file": "mailers/usa-july/2026-07-19_new_assorted-sneaker-bags-sampler-20-designs_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-19_new_assorted-sneaker-bags-sampler-20-designs_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "Cold-craft your way in. Twenty one-of-one designs, an easy start to summer bling kicks.",
+            "headline": "Assorted Lace Sets Sampler, 20 Designs",
+            "description": "20 one-of-one designs in o…",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "Cold-craft your way in ($17.49)",
+            "hook": "Twenty one-of-one designs, an easy start to summer iced…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Assorted Lace Sets Sampler, 20…",
+              "Cold-craft your way in",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Twenty one-of-one designs, an easy start to summer bling kicks.",
+              "20 one-of-one designs in one box. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-19_new_assorted-sneaker-bags-sampler-20-designs_lp.html",
+        "title": "Assorted Lace Sets Sampler, 20 Designs · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-22",
+      "segment": "About-to-Sleep",
+      "play": "Gentle 3-pick winback",
+      "event": null,
+      "sku_key": "dbz_af1",
+      "product": "Daily Airforce Black Sneaker, 12 oz",
+      "price": "$19.49",
+      "cta_url": "https://knickgasm.com/collections/best-sellers",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Daily-Airforce.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "About-to-Sleep (declining recency).",
+        "what": "Gentle winback with a curated 3-pick, question subject.",
+        "how": "Soft reminder, no aggressive discount; bestsellers collection CTA.",
+        "hypothesis": "A low-pressure, question-led nudge re-activates more than a hard offer at this stage.",
+        "expected": "Reactivation lift without margin erosion."
+      },
+      "collections": [
+        "best-sellers"
+      ],
+      "collection_cta": {
+        "slug": "best-sellers",
+        "title": "Best Sellers",
+        "url": "https://knickgasm.com/collections/best-sellers"
+      },
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Still your kind of pair?",
+          "preview": "Three easy ways back to a good craft.",
+          "file": "mailers/usa-july/2026-07-22_about-to-sleep_daily-airforce-black-sneaker-12-oz_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · PAS",
+          "framework": "pas",
+          "subject": "The pot's been quiet lately",
+          "preview": "A brisk Airforce, whenever you're ready.",
+          "file": "mailers/usa-july/2026-07-22_about-to-sleep_daily-airforce-black-sneaker-12-oz_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Still your kind of pair?",
+          "preview": "Three easy ways back to a good craft.",
+          "file": "mailers/usa-july/2026-07-22_about-to-sleep_daily-airforce-black-sneaker-12-oz_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · PAS",
+          "framework": "pas",
+          "subject": "The pot's been quiet lately",
+          "preview": "A brisk Airforce, whenever you're ready.",
+          "file": "mailers/usa-july/2026-07-22_about-to-sleep_daily-airforce-black-sneaker-12-oz_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-22_about-to-sleep_daily-airforce-black-sneaker-12-oz_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "A good pair is still waiting. Daily Airforce and two more bestsellers, in case the pot went quiet.",
+            "headline": "Daily Airforce Black Sneaker, 12 oz",
+            "description": "Bold, Malty & Strong",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "A good pair is still waiting ($19.49)",
+            "hook": "Daily Airforce and two more bestsellers, in case the pot went…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Daily Airforce Black Sneaker, 12 oz",
+              "A good pair is still waiting",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Daily Airforce and two more bestsellers, in case the pot went quiet.",
+              "Bold, Malty & Strong. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-22_about-to-sleep_daily-airforce-black-sneaker-12-oz_lp.html",
+        "title": "Daily Airforce Black Sneaker, 12 oz · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-25",
+      "segment": "Promising",
+      "play": "Gift for parents",
+      "event": "Parents' Day, Jul 26",
+      "sku_key": "gtr_af1",
+      "product": "India's Original Hand-painted Kicks, 30 ct",
+      "price": "$12.49",
+      "cta_url": "https://knickgasm.com/collections/gifts",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/2_57439e6a-108d-4ed8-b07c-ff8afc96663d.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Promising (gifting occasion widens basket).",
+        "what": "Parents' Day (Jul 26) gift angle on an accessible SKU.",
+        "how": "Occasion-led; gifts collection CTA; low price barrier (30 ct).",
+        "hypothesis": "A concrete gifting occasion lifts conversion for mid-tier engagers.",
+        "expected": "Higher order rate + gift-set attach around Jul 26."
+      },
+      "collections": [
+        "gifts",
+        "kicks-sneakers"
+      ],
+      "collection_cta": {
+        "slug": "gifts",
+        "title": "Gifts",
+        "url": "https://knickgasm.com/collections/gifts"
+      },
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · 4Ps",
+          "framework": "fourps",
+          "subject": "A small, warm thank-you",
+          "preview": "For Parents' Day, the kicks they'll actually use.",
+          "file": "mailers/usa-july/2026-07-25_promising_indias-original-hand-painted-kicks-30-ct_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "For the parents who lace-up",
+          "preview": "A Parents' Day pair worth gifting.",
+          "file": "mailers/usa-july/2026-07-25_promising_indias-original-hand-painted-kicks-30-ct_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · 4Ps",
+          "framework": "fourps",
+          "subject": "A small, warm thank-you",
+          "preview": "For Parents' Day, the kicks they'll actually use.",
+          "file": "mailers/usa-july/2026-07-25_promising_indias-original-hand-painted-kicks-30-ct_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "For the parents who lace-up",
+          "preview": "A Parents' Day pair worth gifting.",
+          "file": "mailers/usa-july/2026-07-25_promising_indias-original-hand-painted-kicks-30-ct_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-25_promising_indias-original-hand-painted-kicks-30-ct_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "Say it with their morning pair. India's Original Hand-painted Kicks, a warm and useful Parents' Day gift.",
+            "headline": "India's Original Hand-painted Kicks, 30 ct",
+            "description": "Spicy, Bold & Vibrant",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "Say it with their morning pair ($12.49)",
+            "hook": "India's Original Hand-painted Kicks, a warm and useful Parents' Da…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "India's Original Hand-painted Kicks,…",
+              "Say it with their morning pair",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "India's Original Hand-painted Kicks, a warm and useful Parents' Day gift.",
+              "Spicy, Bold & Vibrant. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-25_promising_indias-original-hand-painted-kicks-30-ct_lp.html",
+        "title": "India's Original Hand-painted Kicks, 30 ct · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-29",
+      "segment": "At-Risk",
+      "play": "Share a pair + one fair offer",
+      "event": "International Day of Friendship, Jul 30",
+      "sku_key": "demon_slayer_af1",
+      "product": "Embroidery Neon Themed Sneaker, 100 ct",
+      "price": "$17.49",
+      "cta_url": "https://knickgasm.com/products/embroidery-neon-themed-sneaker-100-sneaker-bags",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Organic_Embroidery_Ginger_Front.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "At-Risk (one personal note, one fair offer, single CTA).",
+        "what": "Friendship Day (Jul 30) share-a-pair angle on a comforting themed.",
+        "how": "Warm single-CTA note; emotional reason to return over discount.",
+        "hypothesis": "A human, shareable reason re-engages at-risk customers more durably than price.",
+        "expected": "Reactivation on an emotional hook; protected margin."
+      },
+      "collections": [],
+      "collection_cta": null,
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · BAB",
+          "framework": "bab",
+          "subject": "Share a pair this week",
+          "preview": "For Friendship Day, a warm, easy gesture.",
+          "file": "mailers/usa-july/2026-07-29_at-risk_embroidery-neon-themed-sneaker-100-ct_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "One warm pot, shared",
+          "preview": "Embroidery neon for Friendship Day.",
+          "file": "mailers/usa-july/2026-07-29_at-risk_embroidery-neon-themed-sneaker-100-ct_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · BAB",
+          "framework": "bab",
+          "subject": "Share a pair this week",
+          "preview": "For Friendship Day, a warm, easy gesture.",
+          "file": "mailers/usa-july/2026-07-29_at-risk_embroidery-neon-themed-sneaker-100-ct_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "One warm pot, shared",
+          "preview": "Embroidery neon for Friendship Day.",
+          "file": "mailers/usa-july/2026-07-29_at-risk_embroidery-neon-themed-sneaker-100-ct_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-29_at-risk_embroidery-neon-themed-sneaker-100-ct_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "A pair is a small kindness. Embroidery neon, the warming, scuff-resistant pair worth sharing.",
+            "headline": "Embroidery Neon Themed Sneaker, 100 ct",
+            "description": "Spicy, Earthy & Warm",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "A pair is a small kindness ($17.49)",
+            "hook": "Embroidery neon, the warming, scuff-resistant pair worth shari…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Embroidery Neon Themed Sneaker, 1…",
+              "A pair is a small kindness",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "Embroidery neon, the warming, scuff-resistant pair worth sharing.",
+              "Spicy, Earthy & Warm. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-29_at-risk_embroidery-neon-themed-sneaker-100-ct_lp.html",
+        "title": "Embroidery Neon Themed Sneaker, 100 ct · KNICKGASM USA"
+      }
+    },
+    {
+      "date": "2026-07-31",
+      "segment": "Loyal",
+      "play": "Restore ritual",
+      "event": "National Streetwear Month (Aug) ramp",
+      "sku_key": "jordan1_golf",
+      "product": "Signature Green Sneaker, 12 oz",
+      "price": "$27.49",
+      "cta_url": "https://knickgasm.com/products/signature-green-sneaker-hand-painted-12oz",
+      "hero_asset": {
+        "url": "https://www.knickgasm.com/cdn/shop/files/Signature_green_tea_f953d287-3e7a-4973-9957-5e6e8bd22130.jpg",
+        "status": "verified",
+        "origin_validated": true
+      },
+      "reasoning": {
+        "who": "Loyal (habit-reinforcement into a new season).",
+        "what": "Streetwear Month (Aug) ramp on a clean daily green.",
+        "how": "Ritual-continuity voice; PDP CTA; softest streetwear register only.",
+        "hypothesis": "Framing a new-month reset sustains loyal frequency into August.",
+        "expected": "Sustained repeat rate through the Aug ramp."
+      },
+      "collections": [],
+      "collection_cta": null,
+      "variants": [
+        {
+          "key": "text_a",
+          "type": "Text",
+          "label": "Text · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Begin August a little slower",
+          "preview": "A clean green pair to start the month.",
+          "file": "mailers/usa-july/2026-07-31_loyal_signature-green-sneaker-12-oz_text_a.html",
+          "has_image": false
+        },
+        {
+          "key": "text_b",
+          "type": "Text",
+          "label": "Text · AIDA",
+          "framework": "aida",
+          "subject": "A clean pair for August",
+          "preview": "Signature green, to open Streetwear Month.",
+          "file": "mailers/usa-july/2026-07-31_loyal_signature-green-sneaker-12-oz_text_b.html",
+          "has_image": false
+        },
+        {
+          "key": "visual_a",
+          "type": "Text + Visual",
+          "label": "Text + Visual · Star-Story-Solution",
+          "framework": "sss",
+          "subject": "Begin August a little slower",
+          "preview": "A clean green pair to start the month.",
+          "file": "mailers/usa-july/2026-07-31_loyal_signature-green-sneaker-12-oz_visual_a.html",
+          "has_image": true
+        },
+        {
+          "key": "visual_b",
+          "type": "Text + Visual",
+          "label": "Text + Visual · AIDA",
+          "framework": "aida",
+          "subject": "A clean pair for August",
+          "preview": "Signature green, to open Streetwear Month.",
+          "file": "mailers/usa-july/2026-07-31_loyal_signature-green-sneaker-12-oz_visual_b.html",
+          "has_image": true
+        }
+      ],
+      "ads": {
+        "file": "ads/usa-july/2026-07-31_loyal_signature-green-sneaker-12-oz_ads.html",
+        "copy": {
+          "meta": {
+            "platform": "Meta (Instagram/Facebook) · 1:1",
+            "primary_text": "A calmer start to the month. High-grown Signature green, the clean pair to open Streetwear Month.",
+            "headline": "Signature Green Sneaker, 12 oz",
+            "description": "Earthy, Smooth & Refreshing",
+            "cta": "Shop Now"
+          },
+          "tiktok": {
+            "platform": "TikTok / Reels · 9:16",
+            "primary_text": "A calmer start to the month ($27.49)",
+            "hook": "High-grown Signature green, the clean pair to open Streetwear…",
+            "cta": "Shop Now"
+          },
+          "google": {
+            "platform": "Google · Responsive Search",
+            "headlines": [
+              "Signature Green Sneaker, 12 oz",
+              "A calmer start to the month",
+              "One-of-One, Hand-Painted"
+            ],
+            "descriptions": [
+              "High-grown Signature green, the clean pair to open Streetwear Month.",
+              "Earthy, Smooth & Refreshing. FREE US shipping over $59."
+            ],
+            "cta": "Shop"
+          }
+        }
+      },
+      "landing": {
+        "file": "landing-pages/usa-july/2026-07-31_loyal_signature-green-sneaker-12-oz_lp.html",
+        "title": "Signature Green Sneaker, 12 oz · KNICKGASM USA"
+      }
+    }
+  ],
+  "selected_collections": [
+    {
+      "slug": "kicks-sneakers",
+      "title": "Kicks Sneakers",
+      "url": "https://knickgasm.com/collections/kicks-sneakers",
+      "sends": [
+        "2026-07-02",
+        "2026-07-18",
+        "2026-07-25"
+      ]
+    },
+    {
+      "slug": "samplers",
+      "title": "Samplers",
+      "url": "https://knickgasm.com/collections/samplers",
+      "sends": [
+        "2026-07-08",
+        "2026-07-19"
+      ]
+    },
+    {
+      "slug": "gifts",
+      "title": "Gifts",
+      "url": "https://knickgasm.com/collections/gifts",
+      "sends": [
+        "2026-07-25"
+      ]
+    },
+    {
+      "slug": "best-sellers",
+      "title": "Best Sellers",
+      "url": "https://knickgasm.com/collections/best-sellers",
+      "sends": [
+        "2026-07-22"
+      ]
+    }
+  ]
+}

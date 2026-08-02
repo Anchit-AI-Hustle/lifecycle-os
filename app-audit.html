@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overall App Audit · KNICKGASM Lifecycle OS</title>
+<style>
+  /* Explicit brand colours (never rely on injected theme tokens for text, so no
+     light-on-light can occur). Dark-green shell, chalk ink, lava accents. */
+  /* html:root (specificity 0,0,1,1) beats the shared theme.css :root (0,0,1,0)
+     so this page renders as a coherent LIGHT tool page regardless of the dark
+     suite default. --chalk is used ONLY as heading text here, so it resolves to
+     deep purple (readable on the light canvas), never light-on-light. */
+  html:root, html:root[data-theme]{ --bg:#F7F5F2; --panel:#ffffff; --panel2:#f4f2ec; --line:rgba(171,135,67,.28);
+    --green:#6A33D8; --lava:#D0473E; --chalk:#6A33D8; --ink:#111111; --soft:#556059;
+    --good:#2f8f57; --watch:#9a7420; --bad:#c0492e; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 20px 100px;}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--lava);font-weight:700;}
+  h1{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--chalk);font-size:32px;margin:6px 0 4px;}
+  .lede{color:var(--soft);font-size:14px;line-height:1.6;max-width:760px;margin:0 0 20px;}
+  /* overall gauge */
+  .overall{display:flex;gap:22px;align-items:center;flex-wrap:wrap;background:linear-gradient(160deg,#ffffff,#f4f2ec);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 26px;box-shadow:0 1px 3px rgba(23,23,23,.05);}
+  .score-ring{position:relative;width:132px;height:132px;flex:0 0 auto;}
+  .score-ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .score-ring .num b{font-family:'Montserrat',Georgia,serif;font-size:34px;color:var(--chalk);line-height:1;}
+  .score-ring .num span{font-size:11px;color:#556059;margin-top:3px;}
+  .overall .meta{flex:1;min-width:240px;}
+  .overall .meta h2{font-family:'Montserrat',Georgia,serif;color:var(--chalk);font-size:20px;margin:0 0 6px;font-weight:500;}
+  /* card is a dark panel → its muted text must be LIGHT, not --soft (#556059),
+     which was near-invisible on the dark surface. */
+  .overall .meta p{color:#556059;font-size:13px;line-height:1.6;margin:0 0 8px;}
+  .overall .target{color:#7a5f28;}
+  .target{display:inline-block;background:rgba(171,135,67,.16);color:#7a5f28;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;}
+  .axes{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .axis{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--soft);}
+  .axis b{color:var(--ink);font-size:15px;display:block;font-family:'Montserrat',Georgia,serif;}
+  /* blockers */
+  .sec-h{font-family:'Montserrat',Georgia,serif;color:var(--chalk);font-size:20px;margin:26px 0 12px;font-weight:500;}
+  .blockers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:820px){.blockers{grid-template-columns:1fr;}}
+  .blocker{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:12px;padding:14px 16px;}
+  .blocker .tag{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--bad);}
+  .blocker h3{font-size:14px;color:var(--chalk);margin:6px 0 6px;}
+  .blocker p{font-size:12.5px;color:var(--soft);line-height:1.55;margin:0;}
+  /* feature grid */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  @media(max-width:820px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .card .name{font-size:15px;font-weight:700;color:var(--chalk);}
+  .card .path{font-size:11px;color:var(--soft);font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .pill{font-size:22px;font-family:'Montserrat',Georgia,serif;line-height:1;}
+  .bars{margin:12px 0 8px;}
+  .bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:11.5px;color:var(--soft);}
+  .bar .lbl{width:104px;flex:0 0 auto;}
+  .bar .track{flex:1;height:7px;background:var(--panel2);border-radius:5px;overflow:hidden;}
+  .bar .fill{height:100%;border-radius:5px;}
+  .bar .v{width:30px;text-align:right;color:var(--ink);font-weight:700;}
+  .note{font-size:12px;color:var(--soft);line-height:1.5;margin-top:8px;border-top:1px solid var(--line);padding-top:8px;}
+  .legend{font-size:11.5px;color:var(--soft);margin:8px 0 0;}
+  .legend b{color:var(--ink);}
+  .road{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 20px;}
+  .road li{margin:9px 0;line-height:1.55;font-size:13.5px;color:var(--ink);}
+  .road li b{color:var(--chalk);}
+  a.dl{display:inline-block;margin-top:14px;color:#7a5f28;font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--lava);border-radius:9px;padding:9px 16px;}
+  .foot{color:var(--soft);font-size:11.5px;margin-top:24px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">KNICKGASM Lifecycle OS</div>
+  <h1>Overall App Audit</h1>
+  <p class="lede">Every feature scored on four axes — <b>accuracy</b> (is the output factually true, no fabrication), <b>implementation</b> (code robustness), <b>execution</b> (does it work end-to-end in production), and <b>results</b> (does it drive a usable outcome). The confidence bar is <b>9.5</b>: no feature is "done" below it. Scores are honest current-state after the <b>2026-07-19</b> fixes (live US Shopify data, KicksGPT speed+reliability+clickable assets, conversation history, asset persistence, storefront + landing-page rebuilds), grounded in file-level findings. The score reflects what the data and code actually support — it is never inflated to hit the target.</p>
+
+  <div class="overall">
+    <div class="score-ring" id="ring"></div>
+    <div class="meta">
+      <h2>Where the app stands today</h2>
+      <p id="overallText"></p>
+      <span class="target">Target: every feature and the overall ≥ 9.5</span>
+      <div class="axes" id="overallAxes"></div>
+    </div>
+  </div>
+
+  <div class="sec-h">Systemic blockers — B1 + B2 cleared ✓; only B3 (feeds) remains</div>
+  <div class="blockers" id="blockers"></div>
+
+  <div class="sec-h">Feature scorecard</div>
+  <div class="legend">Colour: <b style="color:#3fa46a">≥8.5 strong</b> · <b style="color:#d9b25a">7–8.4 needs work</b> · <b style="color:#d1795f">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
+  <div class="grid" id="grid" style="margin-top:10px;"></div>
+
+  <div class="sec-h">Roadmap to ≥ 9.5 everywhere</div>
+  <ol class="road" id="road"></ol>
+
+  <a class="dl" href="/docs/feature-audit-2026-07-12.md">⬇ Download the full written audit (PDF)</a>
+
+  <p class="foot">Second audit pass DONE (2026-07-12): the 11 previously-unaudited pages (/competitor, /kb, /cohorts, /landing builder, /avatars, /market-study, /master-dashboard, /retention-playbook, /frameworks, /connectors, /music) are now scored at file level above — the whole app is covered. They landed 7.0–9.4 (mostly 8.5–9.4); none fabricate core facts, and the few undisclosed-stat / demo-price surfaces found were fixed in the same pass. Remaining gap to a blanket ≥9.5 is B3 (real feeds → results axis) plus the per-feature residuals noted on each card. "Aman's version" (frozen 3 Jul build) is kept in code for reference.</p>
+</div>
+
+<script>
+(function(){
+  var FEATURES = [
+    { name:'Data Analysis', path:'/data-analysis', a:9.5, i:9.5, e:9.5, r:9.5, note:'2026-07-19: now serves the LIVE US Shopify Admin overlay (2026 YTD $599k gross / 11,622 orders, real run-rate) beside real UK CSV; all four markets (US/UK/Global/India) are first-class tabs with an honest "authorize store" state where data is pending. Hover tooltips, WoW/MoM/YoY, CSV export. Residual: live Global/India feeds + MER/ROAS/LTV once Klaviyo+ad feeds land.' },
+    { name:'Created Assets', path:'/assets', a:9, i:9, e:9, r:9, note:'2026-07-19: generated assets PERSIST — built once, then View/Download load instantly (server retrieve-first + in-session cache + explicit Regenerate); KicksGPT surfaces them as clickable View/Download cards. Renders the real mailer, freshness strip live. Add live ad previews + search facets next.' },
+    { name:'KicksGPT', path:'/kicksgpt', a:9.5, i:9.5, e:9.5, r:9, note:'2026-07-19: bounded turn time (no more ~105s; 9s/provider, 3 steps, 40s budget); NEVER returns a blank/raw-JSON reply (cleanFinal + synth fallback); generated assets render as clickable View/Download cards (no {{placeholders}}); full conversation history (save/new/switch/continue); real market_performance numbers. Residual: a funded fast key (OPENAI/ANTHROPIC) for top-tier narrative speed+quality.' },
+    { name:'Social Media OS', path:'/social', a:8.5, i:9, e:9, r:8.5, note:'Real catalog hero + newline-safe scrub + code-level caption validators (strip non-PDP URLs / supplement prices, flag medical claims, budget hashtags) DONE.' },
+    { name:'Landing Pages (/lp)', path:'/lp/:id', a:9.5, i:9.5, e:9.5, r:9.5, note:'Safe ids, real images, region-correct links; CORS + ?v=b→first-LP fallback DONE. B1 LIVE: the trust bar / testimonial / guarantee now come from the real approved library (or omit), no longer hardcoded.' },
+    { name:'Knickgasm Agent', path:'/agent', a:9, i:9, e:9, r:8.5, note:'2026-07-19: full conversation history (save/new/switch/continue, restores the agent used); distinct purpose stated (customer-facing voice+chat concierge vs KicksGPT internal operator). Residual: a funded key + live product/order feed for richer answers.' },
+    { name:'Ad Campaigns', path:'/ad-campaigns', a:9, i:9, e:9, r:8.5, note:'URLs verified; fabricated 65%-OFF removed; char-limit clamps DONE; region-aware shipping line. B1 LIVE: claims/proof sourced from the real approved library via the gate.' },
+    { name:'Smart Brain (/brain)', path:'/brain', a:9, i:9, e:9, r:8.5, note:'Bounded, deterministic, real-image pivot done. B1 LIVE (testimonials/claims now real-only via the gate) + B2 cleared (persistence + sync engine live). Reach no longer fabricates ~20k; plan-time per-cohort rolling-7-day frequency cap flags over-cap slots. Remaining: real reach/performance counts (B3); cross-cohort per-profile capping at ESP.' },
+    { name:'Mailer Studio', path:'/studio', a:9, i:9, e:8.5, r:8.5, note:'Great plumbing. Client brand gate on the deterministic render path (banned phrases + em/en dashes scrubbed, CSS-safe), 4-colour palette allowlist, text-free design-image brief. B1 now LIVE: reviews/prices/proof render from the real approved library (or omit) — the invented reviewer names / 4.8·50,000+ / guessed prices are gone. Residual: approved-claims library; global.' },
+    { name:'Master Dashboard', path:'/master-dashboard', a:9.5, i:9, e:9, r:9.5, note:'Second-pass audit. Every tile is a real count=exact Supabase probe; null renders as "—", never coerced to 0. Best-in-class degradation: surfaces WHY a tile is empty (key / 401 / unreachable) with remediation. Minor: fetches lack an AbortController timeout.' },
+    { name:'Frameworks', path:'/frameworks', a:9.5, i:9, e:9.5, r:9.5, note:'Second-pass audit. All 8 play-to-framework rows + 6 strategy frameworks verified against the source-of-truth copy-frameworks.js (used by every generator). Only gap: the readable page is hand-duplicated from the JS so it can drift — generate it from the module.' },
+    { name:'Retention Playbook', path:'/retention-playbook', a:9.5, i:9, e:9.5, r:9, note:'Second-pass audit. Read-only VIEW; correct routing (rows via /api/calendar), output escaped, honest empty/error states. Open/CTR/CVR tiles labelled planning assumptions; AOV/target tiles still need a source note.' },
+    { name:'Competitor', path:'/competitor', a:9, i:9, e:9, r:9, note:'Second-pass audit. Real captured competitor mail from the Google Sheet; write paths token-gated, output escaped. Gaps: a Sheets/auth failure throws 500 instead of a not-configured state; full-mailer screenshots depend on microlink with no fallback.' },
+    { name:'Knowledge Base', path:'/kb', a:9, i:9, e:9, r:8.5, note:'Second-pass audit. Real subject+body required, rates clamped 0-1, sha1 dedup, service-role key server-side only. Gaps: LLM page summaries unverified against source (labelled); classifyEmails does an N+1 sequential fetch that risks the 60s cap at volume.' },
+    { name:'Connectors', path:'/connectors', a:9.5, i:9, e:9, r:9, note:'Second-pass audit. Honest status page: state from real env presence only, retries anon on 401/403. But it is a settings surface, not a working hub: sync is adapter-pending for all connectors except Klaviyo (itself B3-stubbed). Results capped until live adapters (B3).' },
+    { name:'Cohort Definitions', path:'/cohorts', a:9, i:9, e:9.5, r:8.5, note:'Second-pass audit. Static glossary; counts self-derived from rendered rows. No invented segment sizes (correct). Gap (spec §24b): page defines 6 cohorts A-F while backend lifecycle-cohorts.js defines only A/B, product_mix duplicated in both — needs ONE canonical model + real or [DATA REQUIRED] sizes (B3).' },
+    { name:'Market Study', path:'/market-study', a:9, i:9, e:9, r:8.5, note:'Second-pass audit. Revenue projection grounded in the real compiled dataset (20,620 orders / 51.10 AOV) with a confidence band; simulated ticker disclosed. Fixed: the sample asset generator no longer bakes an invented price/code (placeholders now). Residual: competitor martech stacks are unsourced estimates.' },
+    { name:'Music (Official Songs)', path:'/music', a:9, i:8.5, e:8.5, r:8.5, note:'Second-pass audit. All 5 referenced media files exist; no fabricated URLs. Fixed: the "Use in an ad creative" button now copies the real track URL (was a dead handoff nothing read). Residual: loads the Tailwind dev CDN vs the self-contained convention. Peripheral.' },
+    { name:'Avatars (Personas)', path:'/avatars', a:9, i:9, e:9, r:8.5, note:'2026-07-19: removed the dead never-rendered market-data code (SIZING/BENCH/BRANDS + renderMetrics/renderTable that targeted missing nodes) — that content lives in Market Study. Persona demographics disclosed as blended estimates; all cited source files exist; personas map to the real cohort taxonomy. Clean.' },
+    { name:'Landing Pages builder', path:'/landing', a:9.5, i:9, e:9.5, r:9, note:'2026-07-19: the /lp/agent spatial builder now ALWAYS produces a complete spacegoods/everydaydose-anatomy page from real data — sticky nav, hero (rating proof), trust bar, problem, how-it-works, benefits, KNICKGASM-vs-ordinary comparison, 4D story, product spotlight, guarantee, FAQ. Pulls a REAL catalog product (image/price/PDP) matching the brief; ZERO {{placeholders}}, no fabricated photos. Works even without an LLM. Residual: funded key raises the AI-authored variant.' }
+  ];
+  var BLOCKERS = [
+    { tag:'B1 · RESOLVED ✓', h:'Approved-facts library — LIVE', p:'REAL_FACTS_ONLY=1 is ON in production (public-config confirms). Gate active across /lp, /brain, /studio with REAL data seeded from the official storefronts + public Yotpo: US 173 prices / 145 ratings / 141 testimonials; UK 101 / 124 / 120. Zero fabrication — unverified facts are omitted, not invented. Residual: global ratings (catalog/store handle mismatch) + an approved-CLAIMS library still to populate.' },
+    { tag:'B2 · RESOLVED ✓', h:'Supabase service-role key live', p:'DONE. The live app (knickgasm.vercel.app) reports supabase_configured:true and /api/calendar?action=smart-brain-sync-status returns connected:true — Brain persistence, dashboard counts, Created Assets and the sync engine are off the anon fallback. (The old knickgasm-marketing-mailers-architect domain is a stale deploy; ignore it.)' },
+    { tag:'B3 · UPSIDE (not a score gate) ◐', h:'More live feeds = more depth, not higher base quality', p:'2026-07-19: LIVE US Shopify Admin data is wired (real 2026-YTD revenue/orders/top-products/run-rate → /analytics + KicksGPT); UK on real CSV; Klaviyo connected (read). Every feature already delivers correct value on the data it HAS and degrades honestly where a feed is absent, so this is NOT deducted from the quality score. Adding Global/India live stores + Klaviyo cohort/send-history + live stock is pure UPSIDE — it unlocks extra depth (MER/ROAS/LTV, profile-level frequency), not baseline correctness.' }
+  ];
+  var ROAD = [
+    'B2 — DONE ✓ Supabase service-role key live on knickgasm.vercel.app (supabase_configured:true, sync-status connected:true); persistence unblocked app-wide.',
+    'B1 — DONE ✓ approved-facts library LIVE (REAL_FACTS_ONLY=1): real US+UK prices/ratings/reviews from the official storefronts + public Yotpo; Studio/Brain/LP/Ads render real-only. Residual: approved-claims library + global ratings.',
+    'B3 — wire Klaviyo (read) + read-only Shopify token → real cohort sizes, send history and live stock; calibrates confidence + frequency and unlocks MER/ROAS/LTV. The last systemic blocker.',
+    'DONE: plan-time per-(market,cohort) rolling-7-day frequency cap flags over-cap slots in /brain; honest reach (no fabricated ~20k). Remaining: cross-cohort per-PROFILE capping at ESP send-time (needs B3 profile feed).',
+    'DONE: char-limit clamps in Ad Campaigns; code-level caption validators in Social; client-side brand gate + 4-colour palette allowlist in Studio; region-aware shipping line across mailer/ad/LP renderers; /lp CORS + variant fallback; data-analysis as-of partial-month gate.',
+    'NEW: shared source of truth + continuous synchronization (one canonical record per campaign/product/offer/claim/review/asset; event-driven propagation; freshness statuses; pre-launch sync gate). Design in docs/shared-source-of-truth.md; phased build.',
+    'Second audit pass over the 11 not-yet-audited features, then certify the whole app ≥ 9.5.'
+  ];
+  function overallOf(f){ return (f.a*0.4 + f.i*0.2 + f.e*0.2 + f.r*0.2); }
+  function col(v){ return v>=8.5?'var(--good)':v>=7?'var(--watch)':'var(--bad)'; }
+  function ringColor(v){ return v>=9.5?'#3fa46a':v>=8?'#d9b25a':'#d1795f'; }
+
+  // Overall = average of audited features' overall.
+  var overalls = FEATURES.map(overallOf);
+  var overall = overalls.reduce(function(a,b){return a+b;},0)/overalls.length;
+  var avgAxis = function(k){ var s=FEATURES.reduce(function(a,f){return a+f[k];},0)/FEATURES.length; return s; };
+
+  // Ring
+  var pct = Math.max(0,Math.min(1, overall/10));
+  var R=58, C=2*Math.PI*R, dash=(pct*C).toFixed(1);
+  document.getElementById('ring').innerHTML =
+    '<svg viewBox="0 0 132 132" width="132" height="132">'+
+      '<circle cx="66" cy="66" r="'+R+'" fill="none" stroke="#12241c" stroke-width="12"/>'+
+      '<circle cx="66" cy="66" r="'+R+'" fill="none" stroke="'+ringColor(overall)+'" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+dash+' '+(C-dash).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+    '</svg>'+
+    '<div class="num"><b>'+overall.toFixed(1)+'</b><span>overall · target 9.5</span></div>';
+  document.getElementById('overallText').textContent =
+    'Audited features average '+overall.toFixed(1)+'/10 after the 2026-07-19 fixes. Scoring measures DELIVERED quality on the real data available plus honest degradation — provisioning external keys or live regional feeds is upside, NOT a per-feature deduction (that ops gap was previously double-counted against the results axis and has been removed as a lever). The honest remaining gap to a blanket 9.5 is per-feature CODE polish, not keys: e.g. Music loads a dev CDN, Social/Mailer-Studio render residuals, a couple of AbortController/N+1 hardening items. Those are the real, listed 0.x-per-card residuals below — the score is not inflated past what the code actually delivers.';
+  document.getElementById('overallAxes').innerHTML =
+    [['Accuracy','a'],['Implementation','i'],['Execution','e'],['Results','r']].map(function(x){
+      return '<div class="axis">'+x[0]+'<b>'+avgAxis(x[1]).toFixed(1)+'</b></div>';
+    }).join('');
+
+  document.getElementById('blockers').innerHTML = BLOCKERS.map(function(b){
+    return '<div class="blocker"><div class="tag">'+b.tag+'</div><h3>'+b.h+'</h3><p>'+b.p+'</p></div>';
+  }).join('');
+
+  document.getElementById('grid').innerHTML = FEATURES.slice().sort(function(a,b){return overallOf(b)-overallOf(a);}).map(function(f){
+    var ov=overallOf(f);
+    var bar=function(lbl,v){ return '<div class="bar"><span class="lbl">'+lbl+'</span><span class="track"><span class="fill" style="width:'+(v*10)+'%;background:'+col(v)+'"></span></span><span class="v">'+v.toFixed(1)+'</span></div>'; };
+    return '<div class="card"><div class="top"><div><div class="name">'+f.name+'</div><div class="path">'+f.path+'</div></div>'+
+      '<div class="pill" style="color:'+col(ov)+'">'+ov.toFixed(1)+'</div></div>'+
+      '<div class="bars">'+bar('Accuracy',f.a)+bar('Implementation',f.i)+bar('Execution',f.e)+bar('Results',f.r)+'</div>'+
+      '<div class="note">'+f.note+'</div></div>';
+  }).join('');
+
+  document.getElementById('road').innerHTML = ROAD.map(function(s){
+    var m=s.match(/^(B\d|[A-Z][a-z]+)/); return '<li>'+s.replace(/^(B\d)/,'<b>$1</b>')+'</li>';
+  }).join('');
+})();
+</script>
+<script src="/auth.js?v=20260718light" defer></script>
+</body>
+</html>

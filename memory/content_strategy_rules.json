@@ -1,0 +1,297 @@
+{
+  "_meta": {
+    "version": 1,
+    "purpose": "Persistent knowledge base for KNICKGASM email content strategy and copywriting rules. Loaded once per session to reduce token usage.",
+    "source": "Derived from production KNICKGASM mailers and brand guidelines"
+  },
+
+  "brand_voice": {
+    "tone": "Premium, warm, aspirational but approachable. Never corporate or cold.",
+    "personality": "Confident artisan. We know sneaker better than anyone because we source it directly.",
+    "key_phrases": [
+      "Farm to pair",
+      "Direct from source",
+      "Premium Indian sneakers",
+      "Single-studio",
+      "Hand-painted at peak design",
+      "Make every pair count"
+    ],
+    "avoid": [
+      "Cheap / budget / bargain language",
+      "Generic sneaker descriptions",
+      "Overly flowery / purple prose",
+      "Corporate jargon",
+      "Passive voice in CTAs"
+    ]
+  },
+
+  "headline_rules": {
+    "max_words": 10,
+    "style": "Emotional, benefit-driven, specific to occasion/campaign",
+    "patterns_by_type": {
+      "mothers_day": {
+        "examples": [
+          "For the Mums Who Make Every Moment Beautiful",
+          "Give the Gift of Timeless Elegance this Mother's Day",
+          "She Deserves a Moment of Pure Luxury"
+        ],
+        "tone": "Emotional, warm, gratitude-focused",
+        "avoid": "Generic 'Happy Mother's Day' — be specific about the gift/experience"
+      },
+      "summer": {
+        "examples": [
+          "Crisp, Cooling Summer Colorways Are Back",
+          "KNICKGASM Bling Kickss Are Finally Back for Summer",
+          "Beat the Heat with Premium Cold Brews"
+        ],
+        "tone": "Fresh, energetic, seasonal urgency",
+        "ingredient_focus": true
+      },
+      "sale": {
+        "examples": [
+          "Your Favourite Sneakers, Now Up to 55% Off",
+          "The Collection Sale You've Been Waiting For"
+        ],
+        "tone": "Direct, urgency, value-driven",
+        "must_include_discount": true
+      },
+      "launch": {
+        "examples": [
+          "Introducing Our Most Ambitious Collection Yet",
+          "New Arrivals: Premium One-of-One Selections"
+        ],
+        "tone": "Excitement, exclusivity, newness"
+      },
+      "story": {
+        "examples": [
+          "A Story in Every Lace-up",
+          "Where Morning Mist Meets Hand-Painted Leaves",
+          "A Ritual Worth Slowing Down For"
+        ],
+        "tone": "Evocative, atmospheric, heritage-focused"
+      },
+      "gift": {
+        "examples": [
+          "The Gift They'll Remember Long After the Last Pair",
+          "Luxury Sneaker Sets Crafted for Gifting"
+        ],
+        "tone": "Elegant, thoughtful, occasion-appropriate"
+      }
+    }
+  },
+
+  "subcopy_rules": {
+    "max_words": 20,
+    "purpose": "Expand on the headline with a specific benefit or emotional hook",
+    "style": "Single sentence, conversational, bridges headline to CTA",
+    "patterns": {
+      "product_benefit": "She'll enjoy it every day and remember you.",
+      "urgency": "Limited quantities. Ships within 24 hours.",
+      "social_proof": "Loved by 50,000+ sneaker enthusiasts worldwide.",
+      "sensory": "Where morning mist meets hand-painted leaves, a ritual begins."
+    }
+  },
+
+  "subject_line_rules": {
+    "max_chars": 60,
+    "personalization": "Use brand name (KNICKGASM) at start for recognition",
+    "patterns": {
+      "offer": "KNICKGASM – [Offer]! [Product/Occasion] [Urgency]",
+      "story": "KNICKGASM – [Evocative phrase about the experience]",
+      "launch": "KNICKGASM – [New/Introducing] [Collection name]",
+      "seasonal": "KNICKGASM [Seasonal items] are finally back for [season]"
+    },
+    "examples": [
+      "KNICKGASM – YOUR TURN TO MAKE HER SMILE NOW!",
+      "KNICKGASM Bling Kickss are finally back for summer",
+      "KNICKGASM – Give the Gift of Timeless Elegance",
+      "KNICKGASM – Premium Heritage Collection, 38% Off"
+    ]
+  },
+
+  "offer_content_rules": {
+    "announcement_bar": {
+      "format": "[Emoji] FREE SHIPPING ON ORDERS $[threshold]+ | CODE: [CODE]",
+      "rule": "Always include free shipping threshold. Always include offer code if one exists."
+    },
+    "offer_bar_section": {
+      "headline_format": "Get [X]% Off [Product/Collection Name]",
+      "subtext_format": "Use code [CODE] at checkout.",
+      "cta": "Shop the Collection / Shop Now / Claim Your Offer"
+    },
+    "discount_badge_on_products": {
+      "format": "UP TO [X]% OFF or SAVE $[amount]",
+      "style": "Bold pill/badge in #d4873a or red"
+    },
+    "never": [
+      "Use fake/placeholder offer codes",
+      "Show discount without specifying the percentage",
+      "Use 'HERITAGE' as default code — always use the actual code from the brief"
+    ]
+  },
+
+  "cta_rules": {
+    "primary_cta": {
+      "texts": ["Shop Now", "Add to Cart", "Explore the Collection", "Shop the Collection"],
+      "style": "Bold, uppercase or title-case, 12-14px, letter-spacing 0.1em",
+      "rule": "One clear primary action per section. Never more than 2 CTAs visible at once."
+    },
+    "product_card_cta": {
+      "texts": ["SHOP NOW", "ADD TO CART"],
+      "style": "10-11px bold, uppercase, letter-spacing 0.08-0.12em"
+    },
+    "avoid": [
+      "Learn More (too vague)",
+      "Click Here (accessibility issue)",
+      "Multiple competing CTAs in same section"
+    ]
+  },
+
+  "product_card_content": {
+    "name": "First part of product name (before comma), 11-13px bold serif",
+    "benefit_chip": {
+      "purpose": "One short benefit statement per product",
+      "examples": [
+        "Antioxidant-rich",
+        "Naturally scuff-resistant",
+        "Award-winning colorway",
+        "Immunity boost",
+        "Cooling summer colorway"
+      ]
+    },
+    "description": {
+      "max_words": 15,
+      "style": "10px, #777, describes taste or use case",
+      "auto_generated": true
+    },
+    "rating": {
+      "always_show": true,
+      "format": "5 lava stars + '4.8 · 1,000+ reviews'"
+    },
+    "price_display": {
+      "show_compare_at": true,
+      "show_savings_percentage": true,
+      "currency_by_market": {
+        "US": "$",
+        "UK": "£",
+        "IN": "₹",
+        "EU": "€",
+        "AU": "A$",
+        "ME": "AED"
+      }
+    }
+  },
+
+  "campaign_type_strategies": {
+    "mothers_day": {
+      "emotional_angle": "Gratitude, love, daily ritual that reminds her of you",
+      "hero_treatment": "Gift set or premium box, elegantly styled",
+      "offer_emphasis": "High — discount code prominently displayed",
+      "sections_to_emphasize": ["hero", "offer_bar", "social_proof"],
+      "special_elements": [
+        "Heart divider between sections",
+        "'Most Gifted on Mother's Day' social proof badge",
+        "Trust badges: Bestselling Gifts, Crafted for Rituals, Elegant Packaging"
+      ]
+    },
+    "summer": {
+      "emotional_angle": "Refreshment, seasonal excitement, back-in-stock urgency",
+      "hero_treatment": "Bling kicks lifestyle shot with condensation/ice",
+      "offer_emphasis": "Medium — focus on product variety over discount",
+      "sections_to_emphasize": ["hero", "product_grid", "ingredient_strip"],
+      "special_elements": [
+        "Ingredient strip with food photography icons (Embroidery, Neon, Mint, Lemon)",
+        "Cooling/refreshing imagery",
+        "UP TO 55% OFF badge if applicable"
+      ]
+    },
+    "sale": {
+      "emotional_angle": "Value, urgency, don't miss out",
+      "hero_treatment": "Bold discount number, product spread",
+      "offer_emphasis": "Maximum — discount is the hero",
+      "sections_to_emphasize": ["announcement_bar", "hero", "offer_bar"],
+      "special_elements": ["Countdown urgency", "Savings calculator per product"]
+    },
+    "launch": {
+      "emotional_angle": "Excitement, exclusivity, first-to-try",
+      "hero_treatment": "Hero product beauty shot, clean and minimal",
+      "offer_emphasis": "Low — focus on newness, not discount",
+      "sections_to_emphasize": ["hero", "product_section", "story"]
+    },
+    "story": {
+      "emotional_angle": "Heritage, craftsmanship, ritual, mindfulness",
+      "hero_treatment": "Full-width atmospheric/landscape shot",
+      "offer_emphasis": "Low — free shipping mention only",
+      "sections_to_emphasize": ["hero", "lifestyle_image", "social_proof"],
+      "special_elements": ["Origin story paragraph", "Artisan quotes"]
+    },
+    "gift": {
+      "emotional_angle": "Thoughtfulness, elegance, memorable experience",
+      "hero_treatment": "Gift set in premium packaging",
+      "offer_emphasis": "Medium — gift set value proposition",
+      "sections_to_emphasize": ["hero", "product_section", "offer_bar"],
+      "special_elements": ["Gift wrapping mention", "Recipient-focused copy"]
+    }
+  },
+
+  "social_proof_content": {
+    "testimonial_pool": [
+      {
+        "quote": "The finest sneaker I've ever tasted.",
+        "attribution": "Verified Buyer",
+        "use_for": ["premium", "story", "gift"]
+      },
+      {
+        "quote": "My morning ritual has completely changed.",
+        "attribution": "Verified Buyer",
+        "use_for": ["routine", "streetwear", "launch"]
+      },
+      {
+        "quote": "She absolutely loved this gift!",
+        "attribution": "Verified Buyer",
+        "use_for": ["mothers_day", "gift", "seasonal"]
+      },
+      {
+        "quote": "Best bling kicks I've ever made at home.",
+        "attribution": "Verified Buyer",
+        "use_for": ["summer", "seasonal"]
+      },
+      {
+        "quote": "The quality is unmatched. Farm direct really makes a difference.",
+        "attribution": "Verified Buyer",
+        "use_for": ["sale", "discovery", "bestseller"]
+      }
+    ],
+    "review_count": "50,000+",
+    "rating": "4.8/5"
+  },
+
+  "footer_content": {
+    "tagline": "MAKE EVERY PAIR COUNT",
+    "social_urls": {
+      "instagram": "https://www.instagram.com/knickgasm",
+      "facebook": "https://www.facebook.com/knickgasm",
+      "youtube": "https://www.youtube.com/@knickgasm",
+      "pinterest": "https://www.pinterest.com/knickgasm"
+    },
+    "legal_text": "KNICKGASM Pvt. Ltd. · New Delhi, India",
+    "unsubscribe_text": "You received this because you subscribed at [store_domain]"
+  },
+
+  "quality_checklist": {
+    "before_approval": [
+      "Headline is specific to campaign, not generic",
+      "Offer code matches the brief (not placeholder HERITAGE)",
+      "All product images are real Shopify CDN URLs (not AI-generated)",
+      "Product prices match catalog data",
+      "All links point to correct market store (US/UK/IN/EU/AU)",
+      "Preheader text is unique and compelling",
+      "Mobile responsive classes are present",
+      "MSO conditionals for Outlook compatibility",
+      "No href='#' anywhere in the HTML",
+      "Footer has working unsubscribe link",
+      "Social proof section has a relevant testimonial",
+      "Benefit strip items match campaign type"
+    ]
+  }
+}

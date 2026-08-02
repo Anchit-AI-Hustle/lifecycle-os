@@ -1,0 +1,2893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KNICKGASM DTC — Metric Intelligence Guide</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#6A33D8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS VARIABLES ===== */
+:root {
+  --sidebar-width: 260px;
+  --bg: #0f1117;
+  --bg-card: #1a1f2e;
+  --bg-sidebar: #0d1018;
+  --text: #e8eaf0;
+  --text-muted: #8892a4;
+  --text-dim: #5a6478;
+  --border: #2a3045;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+  --purple: #8b5cf6;
+  --purple-dim: rgba(139,92,246,0.12);
+  --teal: #14b8a6;
+  --teal-dim: rgba(20,184,166,0.12);
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,0.12);
+  --coral: #f97316;
+  --coral-dim: rgba(249,115,22,0.12);
+  --warning-red: #ef4444;
+  --sql-bg: #0a0d14;
+  --sql-text: #c9d1e3;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8f9fb;
+    --bg-card: #ffffff;
+    --bg-sidebar: #1a1f2e;
+    --text: #1a1f2e;
+    --text-muted: #5a6478;
+    --text-dim: #8892a4;
+    --border: #e2e8f0;
+    --sql-bg: #0f1117;
+    --sql-text: #c9d1e3;
+  }
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 100;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.brand {
+  padding: 24px 20px 18px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--bg-sidebar);
+  z-index: 1;
+}
+.brand-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  font-weight: 400;
+}
+
+.sidebar-nav { padding: 8px 0 24px; }
+
+.nav-group { border-bottom: 1px solid var(--border); }
+.nav-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+.nav-group-label:hover { color: var(--text-muted); }
+.nav-group[data-color="amber"] .nav-group-label { color: var(--amber); opacity: 0.85; }
+.nav-group[data-color="purple"] .nav-group-label { color: var(--purple); opacity: 0.85; }
+.nav-group[data-color="teal"] .nav-group-label { color: var(--teal); opacity: 0.85; }
+.nav-group[data-color="blue"] .nav-group-label { color: var(--blue); opacity: 0.85; }
+.nav-group[data-color="coral"] .nav-group-label { color: var(--coral); opacity: 0.85; }
+
+.nav-chevron { font-size: 9px; transition: transform 0.2s; }
+.nav-group.collapsed .nav-chevron { transform: rotate(-90deg); }
+.nav-group.collapsed .nav-group-items { display: none; }
+
+.nav-group-items { padding-bottom: 4px; }
+.nav-item {
+  display: block;
+  padding: 7px 20px 7px 24px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  line-height: 1.3;
+}
+.nav-item:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.04);
+}
+.nav-item.active {
+  color: var(--text);
+  font-weight: 500;
+}
+.nav-group[data-color="amber"] .nav-item.active { border-left-color: var(--amber); background: var(--amber-dim); }
+.nav-group[data-color="purple"] .nav-item.active { border-left-color: var(--purple); background: var(--purple-dim); }
+.nav-group[data-color="teal"] .nav-item.active { border-left-color: var(--teal); background: var(--teal-dim); }
+.nav-group[data-color="blue"] .nav-item.active { border-left-color: var(--blue); background: var(--blue-dim); }
+.nav-group[data-color="coral"] .nav-item.active { border-left-color: var(--coral); background: var(--coral-dim); }
+
+/* ===== MOBILE NAV ===== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 200;
+}
+.mobile-nav-brand {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.mobile-nav-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ===== MAIN CONTENT ===== */
+main {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+}
+
+/* ===== HERO ===== */
+.hero {
+  background: #0f2a1c;
+  border-bottom: 1px solid rgba(245,158,11,0.2);
+  padding: 72px 64px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 14px;
+}
+.hero h1 {
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #f0faf4;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+.hero p {
+  font-size: 16px;
+  color: rgba(240,250,244,0.65);
+  max-width: 500px;
+  margin-bottom: 28px;
+  font-weight: 300;
+}
+.hero-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--amber);
+  color: #0f1117;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.hero-link:hover { opacity: 0.88; }
+
+/* ===== METRIC SECTIONS ===== */
+.metric-section {
+  padding: 52px 64px 56px;
+  border-bottom: 1px solid var(--border);
+  border-left: 4px solid transparent;
+}
+.color-amber { border-left-color: var(--amber); }
+.color-purple { border-left-color: var(--purple); }
+.color-teal { border-left-color: var(--teal); }
+.color-blue { border-left-color: var(--blue); }
+.color-coral { border-left-color: var(--coral); }
+
+.metric-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 36px;
+}
+.metric-number {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 48px;
+}
+.color-amber-text { color: var(--amber); }
+.color-purple-text { color: var(--purple); }
+.color-teal-text { color: var(--teal); }
+.color-blue-text { color: var(--blue); }
+.color-coral-text { color: var(--coral); }
+
+.metric-info h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.source-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.badge-amber { background: var(--amber-dim); color: var(--amber); }
+.badge-purple { background: var(--purple-dim); color: var(--purple); }
+.badge-teal { background: var(--teal-dim); color: var(--teal); }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+.badge-coral { background: var(--coral-dim); color: var(--coral); }
+
+/* ===== SECTION BLOCKS ===== */
+.section-block { margin-bottom: 36px; }
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+/* ===== INSIGHTS GRID ===== */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.insight-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.insight-card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.insight-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+/* ===== COMBINATIONS ===== */
+.combo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.combo-item {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+.combo-pair {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 160px;
+}
+.combo-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex: 1;
+  line-height: 1.55;
+}
+
+/* ===== WARNINGS ===== */
+.warnings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.warning-card {
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-left: 3px solid var(--warning-red);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* ===== SQL BLOCK ===== */
+.sql-block {
+  background: var(--sql-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+}
+.sql-code {
+  font-family: 'Courier New', 'Courier', ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--sql-text);
+  padding: 20px 24px;
+  white-space: pre;
+  tab-size: 4;
+}
+.sql-code .kw { color: #7dd3fc; font-weight: 600; }
+.sql-code .fn { color: #a78bfa; }
+.sql-code .str { color: #86efac; }
+.sql-code .cm { color: #4a5568; font-style: italic; }
+
+/* ===== DECISION CARDS ===== */
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.decision-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: 28px 1fr 20px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.decision-number {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: var(--bg);
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.decision-condition {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.45;
+}
+.decision-arrow {
+  color: var(--text-dim);
+  font-size: 16px;
+  text-align: center;
+  padding-top: 1px;
+}
+.decision-action {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .mobile-nav { display: flex; }
+  main {
+    margin-left: 0;
+    padding-top: 52px;
+  }
+  .hero {
+    padding: 40px 24px 36px;
+  }
+  .hero h1 { font-size: 28px; }
+  .metric-section { padding: 36px 24px 40px; }
+  .insights-grid { grid-template-columns: 1fr; }
+  .decision-grid { grid-template-columns: 1fr; }
+  .decision-card {
+    grid-template-columns: 28px 1fr;
+    grid-template-rows: auto auto;
+  }
+  .decision-arrow { display: none; }
+  .decision-action {
+    grid-column: 2;
+  }
+}
+@media (max-width: 1200px) {
+  .metric-section { padding: 48px 40px 52px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Mobile nav -->
+<nav class="mobile-nav">
+  <span class="mobile-nav-brand">KNICKGASM DTC</span>
+  <button class="mobile-nav-toggle" onclick="toggleSidebar()">&#9776; Menu</button>
+</nav>
+
+<aside class="sidebar" id="sidebar">
+<div class="brand"><div class="brand-name">KNICKGASM DTC</div><div class="brand-sub">Metric Intelligence Guide</div></div>
+<nav class="sidebar-nav">
+<div class="nav-group" data-color="amber">
+<div class="nav-group-label" onclick="toggleGroup(this)">Revenue &amp; Financial<span class="nav-chevron">&#9660;</span></div>
+<div class="nav-group-items">
+<a href="#m1" class="nav-item" data-id="m1">M1 Net Revenue by Market</a>
+<a href="#m2" class="nav-item" data-id="m2">M2 Gross Margin %</a>
+<a href="#m3" class="nav-item" data-id="m3">M3 AOV Trend</a>
+<a href="#m4" class="nav-item" data-id="m4">M4 Revenue per Session</a>
+</div></div>
+<div class="nav-group" data-color="purple">
+<div class="nav-group-label" onclick="toggleGroup(this)">Customer Lifecycle<span class="nav-chevron">&#9660;</span></div>
+<div class="nav-group-items">
+<a href="#m5" class="nav-item" data-id="m5">M5 Repeat Purchase Rate 90d</a>
+<a href="#m6" class="nav-item" data-id="m6">M6 Cohort Retention 30/60/90d</a>
+<a href="#m7" class="nav-item" data-id="m7">M7 Time to 2nd Purchase</a>
+<a href="#m8" class="nav-item" data-id="m8">M8 LTV by Market</a>
+</div></div>
+<div class="nav-group" data-color="teal">
+<div class="nav-group-label" onclick="toggleGroup(this)">Acquisition &amp; Mix<span class="nav-chevron">&#9660;</span></div>
+<div class="nav-group-items">
+<a href="#m9" class="nav-item" data-id="m9">M9 New vs Returning Mix</a>
+<a href="#m10" class="nav-item" data-id="m10">M10 LTV:CAC by Channel</a>
+<a href="#m11" class="nav-item" data-id="m11">M11 CAC by Channel</a>
+</div></div>
+<div class="nav-group" data-color="blue">
+<div class="nav-group-label" onclick="toggleGroup(this)">Email &amp; CRM<span class="nav-chevron">&#9660;</span></div>
+<div class="nav-group-items">
+<a href="#m14" class="nav-item" data-id="m14">M14 Email Revenue %</a>
+<a href="#m15" class="nav-item" data-id="m15">M15 Flow vs Campaign Split</a>
+<a href="#m16" class="nav-item" data-id="m16">M16 Email List Health</a>
+<a href="#m17" class="nav-item" data-id="m17">M17 Churn Risk Distribution</a>
+<a href="#m18" class="nav-item" data-id="m18">M18 At-Risk Revenue</a>
+</div></div>
+<div class="nav-group" data-color="coral">
+<div class="nav-group-label" onclick="toggleGroup(this)">Product &amp; Subscription<span class="nav-chevron">&#9660;</span></div>
+<div class="nav-group-items">
+<a href="#m12" class="nav-item" data-id="m12">M12 Checkout Conversion Rate</a>
+<a href="#m13" class="nav-item" data-id="m13">M13 Cart Abandonment Rate</a>
+<a href="#m19" class="nav-item" data-id="m19">M19 Product Repeat Rate</a>
+<a href="#m20" class="nav-item" data-id="m20">M20 Subscription Mix %</a>
+</div></div>
+</nav></aside>
+
+<main>
+  <section class="hero">
+    <div class="hero-content">
+      <p class="hero-eyebrow">Metric Intelligence Guide</p>
+      <h1>Every number tells a story.</h1>
+      <p>Start with what the data says. Then decide what to do about it.</p>
+      <a href="strategy_first_draft.html" class="hero-link">View Strategy Dashboard &#8594;</a>
+    </div>
+  </section>
+
+<section id="m1" class="metric-section color-amber">
+<div class="metric-header">
+<div class="metric-number color-amber-text">M1</div>
+<div class="metric-info">
+<h2>Net Revenue by Market</h2>
+<span class="source-badge badge-amber">Shopify Analytics</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Revenue Velocity</h3>
+<p>Week-over-week revenue growth signals whether acquisition spend is landing. A US weekly run rate below $35K suggests either traffic quality issues or conversion drop-off that needs immediate channel attribution.</p>
+</div>
+<div class="insight-card">
+<h3>Market Concentration Risk</h3>
+<p>If US revenue exceeds 80% of total, the business is single-market vulnerable. UK revenue below 12% of total flags under-investment in a market with proven 2.8× LTV premium.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonality Baseline</h3>
+<p>Q4 (Oct–Dec) typically delivers 38–42% of annual revenue. Any month in that window running below the prior year's same month is a structural signal, not a noise event.</p>
+</div>
+<div class="insight-card">
+<h3>Revenue per Active Customer</h3>
+<p>Divide net revenue by unique paying customers that month. Below $42/active customer in the US signals AOV compression or frequency drop, not volume problems.</p>
+</div>
+<div class="insight-card">
+<h3>Discount Drag</h3>
+<p>If total_discounts / gross_revenue exceeds 18%, margin compression is becoming structural. Track this monthly; it inflects before gross margin does.</p>
+</div>
+<div class="insight-card">
+<h3>Currency Normalisation</h3>
+<p>UK revenue reported in GBP means a 5% FX move creates phantom growth. Always view UK metrics in USD-equivalent before comparing MoM.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M2 Gross Margin</span>
+<span class="combo-text">Revenue growth without margin expansion means you're buying growth. If net revenue grows &gt;10% MoM but gross margin falls &gt;2pp, CAC is rising faster than you can monetise it.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M9 New vs Returning Mix</span>
+<span class="combo-text">If revenue grows but new-customer % is rising above 65%, retention economics are deteriorating. Revenue is being rebuilt from scratch every cycle.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M14 Email Revenue %</span>
+<span class="combo-text">If total revenue is flat but email contribution is rising, paid channel ROI is declining. This combination flags CAC inflation before spend dashboards show it.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M3 AOV</span>
+<span class="combo-text">Revenue can grow two ways: more orders or bigger baskets. If AOV is flat but order count is up, you're scaling volume not value — unit economics may not hold.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">US weekly revenue drops two consecutive weeks → immediate paid channel audit</div>
+<div class="warning-card">Revenue growing &gt;15% MoM but new customer % &gt;70% → retention crisis masked by acquisition</div>
+<div class="warning-card">Total discounts / gross revenue &gt;18% for two consecutive months → margin structure review</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, processed_at)       <span class="kw">AS</span> month,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> shipping_country = <span class="str">'US'</span> <span class="kw">THEN</span> <span class="str">'US'</span>
+        <span class="kw">WHEN</span> shipping_country = <span class="str">'GB'</span> <span class="kw">THEN</span> <span class="str">'UK'</span>
+        <span class="kw">ELSE</span> <span class="str">'Other'</span>
+    <span class="kw">END</span>                                      <span class="kw">AS</span> market,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(total_price_usd), 2)           <span class="kw">AS</span> net_revenue,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(total_discounts_usd), 2)       <span class="kw">AS</span> total_discounts,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> order_id)                 <span class="kw">AS</span> order_count,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(total_price_usd), 2)           <span class="kw">AS</span> avg_order_value,
+    <span class="fn">LAG</span>(<span class="fn">SUM</span>(total_price_usd)) <span class="kw">OVER</span> (
+        <span class="kw">PARTITION</span> <span class="kw">BY</span> shipping_country
+        <span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, processed_at)
+    )                                        <span class="kw">AS</span> prev_month_revenue,
+    <span class="fn">ROUND</span>(
+        (<span class="fn">SUM</span>(total_price_usd) - <span class="fn">LAG</span>(<span class="fn">SUM</span>(total_price_usd)) <span class="kw">OVER</span> (
+            <span class="kw">PARTITION</span> <span class="kw">BY</span> shipping_country
+            <span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, processed_at)
+        )) * 100.0 /
+        <span class="fn">NULLIF</span>(<span class="fn">LAG</span>(<span class="fn">SUM</span>(total_price_usd)) <span class="kw">OVER</span> (
+            <span class="kw">PARTITION</span> <span class="kw">BY</span> shipping_country
+            <span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, processed_at)
+        ), 0), 1
+    )                                        <span class="kw">AS</span> mom_growth_pct
+<span class="kw">FROM</span> matrixify.orders
+<span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span>
+  <span class="kw">AND</span> cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1, 2
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>, 2</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">US net revenue MoM growth &lt; 0%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit paid channel ROAS, freeze new test budgets, review top-3 landing pages for conversion drop</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">UK revenue &lt; 12% of total</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate UK-specific Klaviyo segment, A/B test GBP pricing on hero SKUs, brief influencer pipeline</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Discount drag &gt; 18%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit active promo codes, kill low-redemption codes, shift offer to free shipping threshold instead of % discount</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Revenue growing but email contribution flat</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Increase Klaviyo flow frequency, A/B test send-time for US vs UK segments</div>
+</div>
+</div></div>
+</section>
+<section id="m2" class="metric-section color-amber">
+<div class="metric-header">
+<div class="metric-number color-amber-text">M2</div>
+<div class="metric-info">
+<h2>Gross Margin %</h2>
+<span class="source-badge badge-amber">Shopify Analytics</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Target Floor</h3>
+<p>Gross margin below 55% signals COGS is compressing profitability faster than revenue growth can compensate. The 55% floor is the minimum needed to sustain 20%+ EBITDA at current overhead ratios.</p>
+</div>
+<div class="insight-card">
+<h3>SKU-Level Variance</h3>
+<p>Aggregate margin masks product-mix effects. Jordan First Flush typically runs 68–72% GM; gift sets run 44–48%. A portfolio shift toward gift sets in Q4 will show a 4–6pp aggregate margin drop that is structural, not operational.</p>
+</div>
+<div class="insight-card">
+<h3>Shipping Cost Absorption</h3>
+<p>Free shipping thresholds directly erode margin at the $35–55 AOV band. Every 1% increase in orders hitting the free threshold reduces blended GM by ~0.4pp.</p>
+</div>
+<div class="insight-card">
+<h3>Discount vs Margin Interaction</h3>
+<p>A 15% discount on a 65% GM product drops that SKU to ~55% GM. Running win-back campaigns at 15% off on already-thin SKUs destroys unit economics.</p>
+</div>
+<div class="insight-card">
+<h3>FX Impact on Sourcing</h3>
+<p>Sneaker is sourced and invoiced in INR. A 5% INR/USD move affects COGS by approximately 1.8pp on blended margin. Track monthly with FX-adjusted COGS.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M1 Net Revenue</span>
+<span class="combo-text">If revenue grows but GM% falls, price elasticity is being tested on the wrong axis. Investigate whether discounting or mix shift is the driver.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M3 AOV</span>
+<span class="combo-text">Higher AOV from bundles typically expands margin (lower per-unit shipping). If AOV rises but GM% doesn't, bundle pricing is miscalibrated.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M20 Subscription Mix</span>
+<span class="combo-text">Subscription orders have zero acquisition cost on renewal, improving effective GM by 8–12pp vs one-time orders. Rising subscription mix should show in blended GM.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M11 CAC</span>
+<span class="combo-text">If GM% × LTV &lt; CAC × 3, the business cannot profitably acquire customers at current rates. This ratio is the payback stress test.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">GM% falls below 55% for two consecutive months → COGS structure review + SKU profitability audit</div>
+<div class="warning-card">GM% drops &gt;3pp MoM → immediate mix-shift analysis (gift sets, free-shipping threshold triggered)</div>
+<div class="warning-card">Gross margin &lt; 58% while discount drag &gt; 15% → promotional strategy is cannibalising margin floor</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, o.processed_at)         <span class="kw">AS</span> month,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(li.total), 2)                      <span class="kw">AS</span> gross_revenue,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(li.total) - <span class="fn">SUM</span>(li.total * 0.42), 2) <span class="kw">AS</span> gross_profit,
+    <span class="fn">ROUND</span>((1 - 0.42) * 100, 1)                  <span class="kw">AS</span> gross_margin_pct,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(o.total_discounts_usd), 2)         <span class="kw">AS</span> total_discounts,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(o.total_discounts_usd) * 100.0
+        / <span class="fn">NULLIF</span>(<span class="fn">SUM</span>(li.total), 0), 1)           <span class="kw">AS</span> discount_rate_pct
+<span class="kw">FROM</span> matrixify.order_line_items li
+<span class="kw">JOIN</span> matrixify.orders o <span class="kw">USING</span>(order_id)
+<span class="kw">WHERE</span> o.payment_status = <span class="str">'paid'</span>
+  <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">GM% &lt; 55%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Freeze all &gt;10% discount campaigns, review top-5 SKU margins, escalate to pricing committee</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Gift set revenue &gt; 30% of mix in non-Q4 months</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Rebalance email campaigns toward hand-painted and subscription SKUs</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Free-shipping orders &gt; 60% of order volume</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Test raising free-shipping threshold by $5, model margin impact before deploying</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Subscription renewal GM expanding</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Increase Klaviyo subscription conversion flow frequency, expand subscription SKU catalogue</div>
+</div>
+</div></div>
+</section>
+<section id="m3" class="metric-section color-amber">
+<div class="metric-header">
+<div class="metric-number color-amber-text">M3</div>
+<div class="metric-info">
+<h2>AOV Trend</h2>
+<span class="source-badge badge-amber">Shopify Analytics</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>AOV Segmentation Gap</h3>
+<p>New customer AOV and returning customer AOV tell different stories. New buyers entering at $38–42 who don't repurchase within 90 days signal the product-market fit isn't translating to habit. Returning buyer AOV above $58 confirms the loyalty premium exists — the problem is getting there.</p>
+</div>
+<div class="insight-card">
+<h3>Bundle Uplift Signal</h3>
+<p>If your AOV is flat at $48 but bundle attachment rate (orders with ≥2 SKUs) is below 22%, you're leaving $8–12 per order on the table. AOV can be moved by cross-sell sequencing in email flows, not just on-site.</p>
+</div>
+<div class="insight-card">
+<h3>Free Shipping Threshold Effect</h3>
+<p>A free shipping threshold at $50 creates a natural AOV cluster just above and just below. If median AOV sits at $47–49, the threshold is working as an AOV floor. If median sits at $38, threshold pressure isn't being felt.</p>
+</div>
+<div class="insight-card">
+<h3>US vs UK AOV Delta</h3>
+<p>UK buyers typically transact at a 15–20% higher AOV (partly GBP denomination, partly gift culture). If UK AOV in USD terms drops below US AOV, something is wrong with UK merchandising or discount strategy.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonal AOV Compression</h3>
+<p>Holiday gifting (Nov–Dec) brings in net-new gift buyers with one-time baskets skewed toward single SKU. Expect AOV to compress 12–18% in Dec vs Oct. This is structural, not a conversion problem.</p>
+</div>
+<div class="insight-card">
+<h3>Product Recommendation Quality</h3>
+<p>If post-purchase email sequences include cross-sell recommendations, measure AOV of customers who clicked a recommendation vs those who didn't. Delta above $15 means the recommendation algorithm is working.</p>
+</div>
+<div class="insight-card">
+<h3>AOV and Churn Correlation</h3>
+<p>Customers whose AOV drops 25%+ on their 2nd order versus 1st are 3.2× more likely to churn within 6 months. This is an early churn signal 60 days before the customer goes dark.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M5 Repeat Purchase Rate</span>
+<span class="combo-text">Rising AOV + rising repeat rate = healthy flywheel. Flat AOV + declining repeat rate = value erosion. This pair is the core health check.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M2 Gross Margin</span>
+<span class="combo-text">If AOV grows through bundle sales but bundle margins are lower, net margin per order can fall. AOV must be paired with SKU-level margin to assess order profitability.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M20 Subscription Mix</span>
+<span class="combo-text">Subscription orders consistently run 8–12% higher AOV than one-time orders (customers tend to add complementary SKUs on subscription setup). Rising subscription mix should lift blended AOV.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M12 Checkout Conversion</span>
+<span class="combo-text">If AOV is rising but conversion is falling, the higher-price point may be creating checkout friction. Test AOV-sensitive free-shipping messaging at checkout.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">AOV falls below $45 in US for two consecutive months → Investigate if discount campaigns are pulling down transaction values; review site cross-sell logic</div>
+<div class="warning-card">New customer AOV drops below $38 → Acquisition campaigns may be attracting price-sensitive cohorts with low LTV potential</div>
+<div class="warning-card">UK AOV in USD falls below US AOV → Pricing or discount strategy misaligned in UK market</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, o.processed_at)     <span class="kw">AS</span> month,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(o.total_price_usd), 2)        <span class="kw">AS</span> avg_order_value,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="kw">CASE</span>
+        <span class="kw">WHEN</span> c.order_number = 1 <span class="kw">THEN</span> o.total_price_usd
+    <span class="kw">END</span>), 2)                                <span class="kw">AS</span> new_customer_aov,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="kw">CASE</span>
+        <span class="kw">WHEN</span> c.order_number &gt; 1 <span class="kw">THEN</span> o.total_price_usd
+    <span class="kw">END</span>), 2)                                <span class="kw">AS</span> returning_customer_aov,
+    <span class="fn">COUNT</span>(o.order_id)                       <span class="kw">AS</span> total_orders,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(li.item_count), 1)            <span class="kw">AS</span> avg_items_per_order
+<span class="kw">FROM</span> matrixify.orders o
+<span class="kw">JOIN</span> (
+    <span class="kw">SELECT</span> email,
+           <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> email <span class="kw">ORDER</span> <span class="kw">BY</span> processed_at) <span class="kw">AS</span> order_number
+    <span class="kw">FROM</span> matrixify.orders
+    <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span> <span class="kw">AND</span> cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+) c <span class="kw">ON</span> o.email = c.email
+<span class="kw">JOIN</span> (
+    <span class="kw">SELECT</span> order_id, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> item_count
+    <span class="kw">FROM</span> matrixify.order_line_items
+    <span class="kw">GROUP</span> <span class="kw">BY</span> order_id
+) li <span class="kw">USING</span>(order_id)
+<span class="kw">WHERE</span> o.payment_status = <span class="str">'paid'</span>
+  <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">AOV &lt; $45 for two months</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Launch 'Complete Your Ritual' bundle cross-sell in post-purchase flow, test 3-for-2 SKU bundles</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">New customer AOV &lt; $38</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Shift acquisition creative to feature bundles and starter sets rather than single SKUs</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Bundle attachment &lt; 22%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">A/B test product recommendation placement in cart page and checkout</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">UK AOV &lt; US AOV in USD terms</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review UK pricing model, test GBP-denominated bundle offers</div>
+</div>
+</div></div>
+</section>
+<section id="m4" class="metric-section color-amber">
+<div class="metric-header">
+<div class="metric-number color-amber-text">M4</div>
+<div class="metric-info">
+<h2>Revenue per Session</h2>
+<span class="source-badge badge-amber">Shopify Analytics + WebEngage</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Conversion Efficiency</h3>
+<p>Revenue per session (RPS) = AOV × conversion rate. A flat RPS with rising conversion and falling AOV means you're converting more low-value browsers. A flat RPS with falling conversion and rising AOV means you're converting fewer high-intent visitors.</p>
+</div>
+<div class="insight-card">
+<h3>Channel RPS Spread</h3>
+<p>Email traffic should deliver RPS 3–4× higher than paid social. If email RPS &lt; $1.80, either the email audience is degrading or landing pages are mismatched to the email offer.</p>
+</div>
+<div class="insight-card">
+<h3>Mobile vs Desktop Split</h3>
+<p>Mobile sessions convert at 60–70% the rate of desktop for premium sneaker. If mobile sessions exceed 65% of traffic but mobile RPS is below $0.90, mobile UX is a revenue leak.</p>
+</div>
+<div class="insight-card">
+<h3>Session Quality Degradation</h3>
+<p>If sessions grow 20% MoM but RPS falls 15%, new traffic is low-intent. This often precedes a CAC increase by 30–45 days as paid platforms optimise toward volume over quality.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M1 Net Revenue</span>
+<span class="combo-text">If revenue is growing but RPS is flat, volume is compensating for quality. This is sustainable only if CAC is stable.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M13 Cart Abandonment</span>
+<span class="combo-text">High cart abandonment with high RPS means high-intent visitors are being lost at checkout. High cart abandonment with low RPS means broad traffic quality is poor.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-amber-text">+ M11 CAC</span>
+<span class="combo-text">RPS / CAC gives you the sessions-to-revenue efficiency ratio. If CAC grows faster than RPS, payback period extends.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">RPS falls below $1.20 for US traffic → Paid channel quality audit + landing page conversion review</div>
+<div class="warning-card">Email channel RPS falls below $1.80 → Segment degradation or send-time/creative mismatch</div>
+<div class="warning-card">Mobile RPS below $0.85 → Mobile UX conversion audit required</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, r.report_date)      <span class="kw">AS</span> month,
+    r.net_sales,
+    t.total_sessions,
+    <span class="fn">ROUND</span>(r.net_sales / <span class="fn">NULLIF</span>(t.total_sessions, 0), 2) <span class="kw">AS</span> revenue_per_session,
+    t.bounce_rate,
+    <span class="fn">ROUND</span>(r.orders * 100.0 / <span class="fn">NULLIF</span>(t.total_sessions, 0), 2) <span class="kw">AS</span> conversion_rate_pct
+<span class="kw">FROM</span> shopify_analytics.revenue_metrics r
+<span class="kw">JOIN</span> shopify_analytics.traffic_metrics t
+    <span class="kw">ON</span> <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, r.report_date) = <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, t.report_date)
+    <span class="kw">AND</span> r.report_period = <span class="str">'month'</span>
+    <span class="kw">AND</span> t.report_period = <span class="str">'month'</span>
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">RPS &lt; $1.20</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Pause bottom-performing ad sets, redirect budget to highest-RPS channels</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Email RPS declining</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit last 3 Klaviyo campaigns for subject line open rates, segment the list by engagement tier</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Mobile RPS &lt; $0.85</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Prioritise mobile checkout UX sprint, test Apple Pay / Shop Pay prominence</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Session volume up but RPS down</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review targeting parameters on paid channels, tighten audience to LTV-predictive signals</div>
+</div>
+</div></div>
+</section>
+<section id="m5" class="metric-section color-purple">
+<div class="metric-header">
+<div class="metric-number color-purple-text">M5</div>
+<div class="metric-info">
+<h2>Repeat Purchase Rate 90d</h2>
+<span class="source-badge badge-purple">Matrixify</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>The 90-Day Window</h3>
+<p>90 days is the empirical repurchase window for premium sneaker: sufficient for a 100g pack to be consumed, and short enough that the brand is still top-of-mind without intervention. A 30% repeat rate at 90 days is the threshold between a transactional brand and a ritual brand.</p>
+</div>
+<div class="insight-card">
+<h3>First-Order Cohort Decay</h3>
+<p>Customers who made their first purchase in a promotional event (BFCM, Diwali sale) repurchase at 40–50% the rate of organic first-time buyers. Cohort the repeat rate by acquisition channel to see true health.</p>
+</div>
+<div class="insight-card">
+<h3>SKU-Driven Repeatability</h3>
+<p>Customers whose first order included a hand-painted sneaker repeat within 90 days at 2.3× the rate of customers whose first order was a gift set. Product selection on first purchase is the strongest predictor of retention.</p>
+</div>
+<div class="insight-card">
+<h3>Email Trigger Impact</h3>
+<p>A post-purchase email sequence (Day 7 education, Day 21 reorder nudge, Day 45 win-back) lifts 90-day repeat rate by 8–14 percentage points versus no flow. This metric directly reflects the engine you're running.</p>
+</div>
+<div class="insight-card">
+<h3>Geo Repeat Variance</h3>
+<p>UK buyers repeat within 90 days at 34–38% vs 26–30% for US buyers. If US 90-day repeat rate falls below 25%, US-specific retention flows need to be activated.</p>
+</div>
+<div class="insight-card">
+<h3>Discount Dependency</h3>
+<p>If &gt;60% of second purchases are made with a discount code, the repeat behaviour is price-triggered, not habit-driven. This predicts higher eventual churn.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription Conversion Proxy</h3>
+<p>Customers who repeat within 45 days (not 90) are subscription candidates. Track the 45-day sub-window separately as a conversion trigger.</p>
+</div>
+<div class="insight-card">
+<h3>Multi-Product Expansion</h3>
+<p>Customers who bought different SKUs on their 1st and 2nd orders have 2.8× higher 12-month LTV than customers who reordered the same SKU. Cross-category expansion is a stronger predictor than raw repeat rate.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M6 Cohort Retention</span>
+<span class="combo-text">Repeat purchase rate is the 90-day window; cohort retention shows 30/60/90 granularity. Together they reveal whether early engagement is building or decaying.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M7 Time to 2nd Purchase</span>
+<span class="combo-text">If 90-day repeat rate is healthy but median time-to-2nd is 85 days, most repeaters are at the end of the window. Tighten the post-purchase flow to pull that median below 45 days.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M20 Subscription Mix</span>
+<span class="combo-text">Subscription customers are excluded from the 90-day repeat count (they repeat automatically). Rising subscription mix will arithmetically lower the repeat rate metric — normalise by excluding subscribers.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M17 Churn Risk</span>
+<span class="combo-text">Customers who don't repeat within 90 days enter the churn risk pool. Cross-reference for actionable win-back segments.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">90-day repeat rate falls below 25% for two consecutive cohorts → Activate post-purchase email sequence audit; escalate to product team re: first-order SKU mix</div>
+<div class="warning-card">&gt;60% of 2nd purchases use a discount code → Reduce discount dependency by testing free-shipping offers instead</div>
+<div class="warning-card">UK 90-day repeat drops below 30% → UK-specific retention flow activation required</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">WITH</span> first_orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        customer_id,
+        email,
+        <span class="fn">MIN</span>(processed_at)   <span class="kw">AS</span> first_order_date,
+        <span class="fn">MIN</span>(order_id)       <span class="kw">AS</span> first_order_id
+    <span class="kw">FROM</span> matrixify.orders
+    <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span>
+      <span class="kw">AND</span> cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+    <span class="kw">GROUP</span> <span class="kw">BY</span> customer_id, email
+),
+second_orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> <span class="kw">DISTINCT</span> o.customer_id
+    <span class="kw">FROM</span> matrixify.orders o
+    <span class="kw">JOIN</span> first_orders f <span class="kw">USING</span>(customer_id)
+    <span class="kw">WHERE</span> o.order_id != f.first_order_id
+      <span class="kw">AND</span> o.payment_status = <span class="str">'paid'</span>
+      <span class="kw">AND</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_order_date, o.processed_at) <span class="kw">BETWEEN</span> 1 <span class="kw">AND</span> 90
+)
+<span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, f.first_order_date)         <span class="kw">AS</span> cohort_month,
+    <span class="fn">COUNT</span>(f.customer_id)                             <span class="kw">AS</span> cohort_size,
+    <span class="fn">COUNT</span>(s.customer_id)                             <span class="kw">AS</span> repeated_90d,
+    <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(s.customer_id) * 100.0
+        / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(f.customer_id), 0), 1)        <span class="kw">AS</span> repeat_rate_90d_pct
+<span class="kw">FROM</span> first_orders f
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> second_orders s <span class="kw">USING</span>(customer_id)
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Repeat rate &lt; 25%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Launch 3-email post-purchase flow (Day 7 education, Day 21 reorder prompt, Day 45 offer), measure lift over 2 cohorts</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Repeat rate &gt;= 30% but time-to-2nd &gt; 75 days</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Compress the reorder nudge to Day 14; add urgency via 'Your first pack is 60% finished' messaging</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">&gt;60% of 2nd purchases with discount</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Test free-shipping threshold as nudge instead of percentage off; measure repeat quality delta</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">UK repeat rate diverging from US</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Build UK-specific flow with GBP pricing and UK seasonal hooks (British Sneaker Week, Christmas early push)</div>
+</div>
+</div></div>
+</section>
+<section id="m6" class="metric-section color-purple">
+<div class="metric-header">
+<div class="metric-number color-purple-text">M6</div>
+<div class="metric-info">
+<h2>Cohort Retention 30/60/90d</h2>
+<span class="source-badge badge-purple">Matrixify</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>30-Day Window</h3>
+<p>30-day retention is product-satisfaction driven. Customers who return within 30 days discovered a use case they didn't have before (morning ritual vs afternoon break). Below 12% at 30 days signals weak product-discovery in post-purchase emails.</p>
+</div>
+<div class="insight-card">
+<h3>30→60 Drop-off Rate</h3>
+<p>The steepness of the curve from 30-day to 60-day retention is a habit formation signal. A drop of &lt;8pp from 30→60 day means habits are forming. A drop &gt;15pp means first-purchase enthusiasm is fading without reinforcement.</p>
+</div>
+<div class="insight-card">
+<h3>Cohort Quality by Acquisition Month</h3>
+<p>Holiday cohorts (Nov–Dec acquisitions) typically show 30–40% lower 90-day retention than organic summer cohorts. Segment cohorts by acquisition channel to isolate structural vs seasonal effects.</p>
+</div>
+<div class="insight-card">
+<h3>Gender and Geography of Retention</h3>
+<p>UK cohorts retain at consistently higher rates across all three windows. If a month shows US cohort retention close to UK levels, investigate what drove that anomaly — it's replicable.</p>
+</div>
+<div class="insight-card">
+<h3>Retention Recovery Signal</h3>
+<p>A cohort that shows low 30-day retention but recovers at 60 days (uncommon but real) signals that the post-purchase sequence is working but with a delay. This happens when Day 21 reorder emails convert a few weeks late.</p>
+</div>
+<div class="insight-card">
+<h3>Baseline Setting</h3>
+<p>Three consecutive cohorts below target are a structural problem; one cohort below target is noise. Policy decisions should only be triggered after 2 consecutive below-target cohorts.</p>
+</div>
+<div class="insight-card">
+<h3>Retained Customer LTV Ratio</h3>
+<p>Customers retained at 90 days have average 12-month LTV 4.2× that of single-purchase customers. Each percentage point of 90-day retention is worth approximately $18K in incremental annual revenue per 1,000 cohort members.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M5 Repeat Purchase Rate</span>
+<span class="combo-text">Cohort retention shows the temporal shape; repeat rate shows the aggregate. A healthy 90-day repeat rate with a lace-up 30→60 drop means recovery is happening late.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M7 Time to 2nd Purchase</span>
+<span class="combo-text">The 30/60 retention split combined with median time-to-2nd reveals where in the post-purchase window most conversions happen. Align email sends to that peak window.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M8 LTV</span>
+<span class="combo-text">Cohorts with strong 90-day retention show 3–4× higher 12-month LTV. Retention is the leading indicator; LTV is the lagging confirmation.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Two consecutive cohorts below 25% at 90 days → Trigger post_purchase_series email campaign (engine P2 trigger)</div>
+<div class="warning-card">30-day retention below 10% for two cohorts → Product quality or expectation-setting issue; review unboxing/first-use content</div>
+<div class="warning-card">30→60 day drop &gt; 18pp → Post-purchase engagement gap; add mid-cycle educational email at Day 35–40</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">WITH</span> first_orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> customer_id,
+           <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, <span class="fn">MIN</span>(processed_at)) <span class="kw">AS</span> cohort_month,
+           <span class="fn">MIN</span>(processed_at) <span class="kw">AS</span> first_date
+    <span class="kw">FROM</span> matrixify.orders
+    <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span> <span class="kw">AND</span> cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+    <span class="kw">GROUP</span> <span class="kw">BY</span> customer_id
+),
+retention <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        f.customer_id,
+        f.cohort_month,
+        <span class="fn">MAX</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, o.processed_at) <span class="kw">BETWEEN</span> 1  <span class="kw">AND</span> 30  <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> retained_30,
+        <span class="fn">MAX</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, o.processed_at) <span class="kw">BETWEEN</span> 1  <span class="kw">AND</span> 60  <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> retained_60,
+        <span class="fn">MAX</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, o.processed_at) <span class="kw">BETWEEN</span> 1  <span class="kw">AND</span> 90  <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> retained_90
+    <span class="kw">FROM</span> first_orders f
+    <span class="kw">LEFT</span> <span class="kw">JOIN</span> matrixify.orders o
+        <span class="kw">ON</span> f.customer_id = o.customer_id
+       <span class="kw">AND</span> o.processed_at &gt; f.first_date
+       <span class="kw">AND</span> o.payment_status = <span class="str">'paid'</span>
+    <span class="kw">GROUP</span> <span class="kw">BY</span> f.customer_id, f.cohort_month
+)
+<span class="kw">SELECT</span>
+    cohort_month,
+    <span class="fn">COUNT</span>(*)                                             <span class="kw">AS</span> cohort_size,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(retained_30) * 100, 1)                    <span class="kw">AS</span> retention_30d_pct,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(retained_60) * 100, 1)                    <span class="kw">AS</span> retention_60d_pct,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(retained_90) * 100, 1)                    <span class="kw">AS</span> retention_90d_pct
+<span class="kw">FROM</span> retention
+<span class="kw">GROUP</span> <span class="kw">BY</span> cohort_month
+<span class="kw">ORDER</span> <span class="kw">BY</span> cohort_month <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">90-day retention &lt; 25% for two cohorts</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate post_purchase_series flow; review Day 7 and Day 21 email content for product education depth</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">30-day retention &lt; 10%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">A/B test unboxing insert with QR code linking to crafting guide; add product education sequence in Day 3 email</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">30→60 drop &gt; 18pp</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Insert educational email at Day 35 ('How to build a morning sneaker ritual'), measure impact on 60→90 retention</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Specific cohort anomaly (one strong month)</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit that month's acquisition source, email cadence, and promotional events to identify replicable factors</div>
+</div>
+</div></div>
+</section>
+<section id="m7" class="metric-section color-purple">
+<div class="metric-header">
+<div class="metric-number color-purple-text">M7</div>
+<div class="metric-info">
+<h2>Time to 2nd Purchase</h2>
+<span class="source-badge badge-purple">Matrixify</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Median vs Mean</h3>
+<p>Use median time-to-2nd, not mean. A small segment of customers buying again within 3 days (gift buyers) skews the mean down dramatically. The median gives you the central habit formation window.</p>
+</div>
+<div class="insight-card">
+<h3>The 45-Day Threshold</h3>
+<p>Customers who make a second purchase within 45 days have 3.8× higher 6-month LTV than those who repurchase between 46–90 days. The first 45 days is the critical habit formation window.</p>
+</div>
+<div class="insight-card">
+<h3>Email Flow Attribution</h3>
+<p>If you run a Day-21 reorder email and the P50 time-to-2nd shifts from 68 days to 52 days across two cohorts, the flow is working. This metric is your flow efficiency signal.</p>
+</div>
+<div class="insight-card">
+<h3>SKU-Driven Time Variation</h3>
+<p>Loose-panel 100g packs drive repurchase at median 38 days (pack consumption rate). Teabag formats drive repurchase at median 28 days. Gift sets drive repurchase at median 82 days (gifter mentality, not personal consumption). SKU mix on first order explains most of the variance.</p>
+</div>
+<div class="insight-card">
+<h3>Percentile Distribution</h3>
+<p>P25, P50, P75 together tell the story: a tight P25–P75 range (say 25–55 days) means predictable habit formation. A wide range (15–110 days) means mixed purchase intent — some are personal consumers, some are gift buyers who return for themselves later.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription Conversion Window</h3>
+<p>Customers who haven't repurchased by Day 30 but haven't churned by Day 45 are your highest-probability subscription conversion targets. This is the optimal send window for subscription upsell emails.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M5 Repeat Purchase Rate</span>
+<span class="combo-text">High repeat rate + high median time-to-2nd means customers are coming back, but slowly. Tighten the post-purchase email cadence to compress the median.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M6 Cohort Retention</span>
+<span class="combo-text">If 30-day retention is low but time-to-2nd median is 35 days, the 30-day bucket is artificially deflated — some repeat buyers just miss the window. Check whether 45-day retention changes the picture.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M20 Subscription Mix</span>
+<span class="combo-text">If subscription conversion rate improves, time-to-2nd for non-subscribers should increase (the high-frequency repeaters are being absorbed into subscription). This is healthy.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M17 Churn Risk</span>
+<span class="combo-text">Customers past Day 60 without a 2nd purchase enter the at-risk pool. Time-to-2nd is the forward-looking version of churn risk.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">P50 time-to-2nd &gt; 75 days → Post-purchase email sequence firing too late or not landing; review Day 21 subject lines and send time</div>
+<div class="warning-card">P75 &gt; 110 days → Wide distribution signals mixed purchase intent; segment first-time buyers by first-order SKU type before running retention flows</div>
+<div class="warning-card">P25 &lt; 7 days growing as share of repeats → Monitor for gift-buyer inflation inflating repeat metrics without reflecting consumption habits</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">WITH</span> first_orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> customer_id,
+           <span class="fn">MIN</span>(processed_at) <span class="kw">AS</span> first_date,
+           <span class="fn">MIN</span>(order_id)     <span class="kw">AS</span> first_order_id
+    <span class="kw">FROM</span> matrixify.orders
+    <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span> <span class="kw">AND</span> cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+    <span class="kw">GROUP</span> <span class="kw">BY</span> customer_id
+),
+second_orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> o.customer_id,
+           <span class="fn">MIN</span>(o.processed_at) <span class="kw">AS</span> second_date
+    <span class="kw">FROM</span> matrixify.orders o
+    <span class="kw">JOIN</span> first_orders f <span class="kw">USING</span>(customer_id)
+    <span class="kw">WHERE</span> o.order_id != f.first_order_id
+      <span class="kw">AND</span> o.payment_status = <span class="str">'paid'</span>
+      <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+    <span class="kw">GROUP</span> <span class="kw">BY</span> o.customer_id
+)
+<span class="kw">SELECT</span>
+    <span class="fn">PERCENTILE_CONT</span>(0.25) <span class="kw">WITHIN</span> <span class="kw">GROUP</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, s.second_date)) <span class="kw">AS</span> p25_days,
+    <span class="fn">PERCENTILE_CONT</span>(0.50) <span class="kw">WITHIN</span> <span class="kw">GROUP</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, s.second_date)) <span class="kw">AS</span> p50_days,
+    <span class="fn">PERCENTILE_CONT</span>(0.75) <span class="kw">WITHIN</span> <span class="kw">GROUP</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, s.second_date)) <span class="kw">AS</span> p75_days,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, s.second_date)), 1)                                 <span class="kw">AS</span> mean_days,
+    <span class="fn">COUNT</span>(*)                                                                                     <span class="kw">AS</span> sample_size
+<span class="kw">FROM</span> first_orders f
+<span class="kw">JOIN</span> second_orders s <span class="kw">USING</span>(customer_id)
+<span class="kw">WHERE</span> <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, f.first_date, s.second_date) <span class="kw">BETWEEN</span> 1 <span class="kw">AND</span> 180</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">P50 &gt; 75 days</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Move Day-21 reorder email to Day 17, A/B test 'Your first pack is almost gone' messaging</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">P50 &lt; 45 days consistently</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Test subscription upsell in Day-30 email for customers who haven't yet subscribed</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">P25 &lt; 7 days growing</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Segment out same-week repeaters from retention calculations; these are gift buyers, not habit formers</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Distribution tightening over 3 months</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Post-purchase flow is working; consider intensifying with a Day-35 'expand your ritual' cross-sell</div>
+</div>
+</div></div>
+</section>
+<section id="m8" class="metric-section color-purple">
+<div class="metric-header">
+<div class="metric-number color-purple-text">M8</div>
+<div class="metric-info">
+<h2>LTV by Market</h2>
+<span class="source-badge badge-purple">Matrixify + Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>US LTV Target</h3>
+<p>$180 is the 12-month LTV target for US customers. Below $140 signals acquisition cohort quality is declining or retention flows are underperforming. The gap between current LTV and target multiplied by the active customer base is your retention revenue opportunity.</p>
+</div>
+<div class="insight-card">
+<h3>UK LTV Premium</h3>
+<p>UK customers historically carry a £130–£150 LTV (USD equivalent $155–$180), driven by higher AOV and stronger gifting culture. UK LTV below $140 USD is a structural alert, not seasonal noise.</p>
+</div>
+<div class="insight-card">
+<h3>LTV Quartile Distribution</h3>
+<p>The top 20% of customers typically deliver 65–70% of total revenue. If the top-quartile LTV is falling, you're losing your highest-value customers to churn before they've been fully monetised.</p>
+</div>
+<div class="insight-card">
+<h3>Channel LTV Variance</h3>
+<p>Customers acquired via email referral or organic search have 40–60% higher LTV than customers acquired via paid social. LTV by acquisition channel is the true paid channel ROI metric.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription LTV Multiplier</h3>
+<p>Subscription customers have approximately 3.2× the LTV of equivalent one-time customers over 12 months. Rising subscription mix should show directly in blended LTV.</p>
+</div>
+<div class="insight-card">
+<h3>LTV Trajectory</h3>
+<p>A customer's 90-day spend is the best predictor of their 12-month LTV (R² ≈ 0.73). If average 90-day spend is falling, 12-month LTV will follow with a 3-month lag.</p>
+</div>
+<div class="insight-card">
+<h3>Predicted vs Actual</h3>
+<p>Klaviyo's predicted_clv_1y field is your leading indicator. If predicted LTV across the active base is falling, intervene with retention campaigns before actual LTV reflects it.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M11 CAC</span>
+<span class="combo-text">LTV:CAC ratio is the unit economics foundation. LTV / CAC below 3× means the business is not recovering acquisition costs within the measurement window.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M5 Repeat Rate</span>
+<span class="combo-text">LTV growth requires both higher repeat rate and higher AOV per transaction. If LTV is growing only from AOV while repeat rate falls, LTV is fragile.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M17 Churn Risk</span>
+<span class="combo-text">At-risk customers' predicted LTV represents recoverable revenue. The win-back campaign ROI calculation starts with: (targeted LTV - intervention cost) × recovery probability.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-purple-text">+ M9 New vs Returning Mix</span>
+<span class="combo-text">If new customer share is rising and LTV is flat, new cohort quality is declining. The colorway of LTV across cohort vintages is the true signal.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">US blended LTV &lt; $140 for two consecutive months → Activate retention flow review; audit cohort quality by acquisition month</div>
+<div class="warning-card">Top-20% customer LTV declining YoY → High-value segment is churning; prioritise VIP win-back campaign</div>
+<div class="warning-card">Klaviyo predicted_clv_1y aggregate falling → Leading indicator of LTV decline; act before it shows in actuals</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">WITH</span> customer_ltv <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        o.email,
+        p.churn_risk,
+        p.predicted_clv_1y,
+        <span class="kw">CASE</span>
+            <span class="kw">WHEN</span> o.shipping_country = <span class="str">'US'</span> <span class="kw">THEN</span> <span class="str">'US'</span>
+            <span class="kw">WHEN</span> o.shipping_country = <span class="str">'GB'</span> <span class="kw">THEN</span> <span class="str">'UK'</span>
+            <span class="kw">ELSE</span> <span class="str">'Other'</span>
+        <span class="kw">END</span>                                          <span class="kw">AS</span> market,
+        <span class="fn">SUM</span>(o.total_price_usd)                       <span class="kw">AS</span> actual_ltv,
+        <span class="fn">COUNT</span>(o.order_id)                            <span class="kw">AS</span> total_orders,
+        <span class="fn">DATEDIFF</span>(<span class="str">'day'</span>, <span class="fn">MIN</span>(o.processed_at), <span class="fn">MAX</span>(o.processed_at)) <span class="kw">AS</span> customer_tenure_days
+    <span class="kw">FROM</span> matrixify.orders o
+    <span class="kw">LEFT</span> <span class="kw">JOIN</span> klaviyo.profiles p <span class="kw">USING</span>(email)
+    <span class="kw">WHERE</span> o.payment_status = <span class="str">'paid'</span>
+      <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+    <span class="kw">GROUP</span> <span class="kw">BY</span> o.email, p.churn_risk, p.predicted_clv_1y, market
+)
+<span class="kw">SELECT</span>
+    market,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(actual_ltv), 2)                        <span class="kw">AS</span> avg_actual_ltv,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(predicted_clv_1y), 2)                  <span class="kw">AS</span> avg_predicted_ltv,
+    <span class="fn">ROUND</span>(<span class="fn">PERCENTILE_CONT</span>(0.75) <span class="kw">WITHIN</span> <span class="kw">GROUP</span> (<span class="kw">ORDER</span> <span class="kw">BY</span> actual_ltv), 2) <span class="kw">AS</span> p75_ltv,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(total_orders), 1)                      <span class="kw">AS</span> avg_orders,
+    <span class="fn">COUNT</span>(*)                                         <span class="kw">AS</span> customer_count
+<span class="kw">FROM</span> customer_ltv
+<span class="kw">WHERE</span> market <span class="kw">IN</span> (<span class="str">'US'</span>, <span class="str">'UK'</span>)
+<span class="kw">GROUP</span> <span class="kw">BY</span> market
+<span class="kw">ORDER</span> <span class="kw">BY</span> market</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">US LTV &lt; $140</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit post-purchase email sequence for click-through and conversion rates; A/B test subject lines in Day-21 reorder flow</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">UK LTV &lt; $140 USD</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate UK-specific flow; increase UK email send frequency; test GBP pricing transparency in emails</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">LTV:CAC &lt; 3x</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Freeze CAC-heavy paid channels; shift budget to retention and email expansion</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Predicted LTV falling</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Run immediate win-back campaign for high-CLV customers at churn risk; brief Klaviyo segment on at-risk predicted LTV cohort</div>
+</div>
+</div></div>
+</section>
+<section id="m9" class="metric-section color-teal">
+<div class="metric-header">
+<div class="metric-number color-teal-text">M9</div>
+<div class="metric-info">
+<h2>New vs Returning Mix</h2>
+<span class="source-badge badge-teal">Matrixify</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Health Ratio</h3>
+<p>A healthy D2C brand at Knickgasm's stage should see 35–45% new customer revenue and 55–65% returning customer revenue. New &gt; 60% of revenue means retention is weak; returning &lt; 50% means growth has stalled.</p>
+</div>
+<div class="insight-card">
+<h3>Acquisition Dependency</h3>
+<p>If new customer revenue is growing but total revenue is flat, returning customer revenue is declining in absolute terms — classic leaky bucket. The new customer % metric will look fine while the business degrades.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonal Shifts</h3>
+<p>Q4 holiday campaigns skew the mix toward new buyers (gift purchasers). New customer % of 55–60% in November is expected; maintaining that through February is an alarm signal.</p>
+</div>
+<div class="insight-card">
+<h3>New Cohort Quality Trending</h3>
+<p>Track new customers' average predicted LTV (from Klaviyo) at acquisition. Falling predicted LTV at acquisition means the acquisition machine is drawing lower-quality traffic — usually a sign of audience saturation or creative fatigue.</p>
+</div>
+<div class="insight-card">
+<h3>Returning Revenue per Customer</h3>
+<p>Divide returning customer revenue by returning customer count. If this ratio is falling, your retained base is spending less per visit — cross-sell is not working, or the product range is being perceived as complete.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M1 Net Revenue</span>
+<span class="combo-text">Revenue growing with stable 40/60 new/returning mix is healthy scaling. Revenue flat with new % rising means retention is deteriorating.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M11 CAC</span>
+<span class="combo-text">If new customer % is rising and CAC is rising simultaneously, you're paying more to acquire lower-quality customers who won't retain. This is the most dangerous combination.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M6 Cohort Retention</span>
+<span class="combo-text">New customer mix tells you input rate; cohort retention tells you output quality. Low retention despite normal new/returning mix means the funnel is leaking silently.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">New customer % &gt; 65% of revenue for three consecutive months → Retention crisis; activate post_purchase_series immediately</div>
+<div class="warning-card">Returning customer revenue declining in absolute terms → Leaky bucket; total revenue can mask this if new customers compensate</div>
+<div class="warning-card">New cohort predicted LTV &lt; $120 at acquisition → Acquisition audience quality declining; review targeting parameters</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">WITH</span> customer_orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        email,
+        order_id,
+        processed_at,
+        total_price_usd,
+        <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> email <span class="kw">ORDER</span> <span class="kw">BY</span> processed_at) <span class="kw">AS</span> order_seq
+    <span class="kw">FROM</span> matrixify.orders
+    <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span> <span class="kw">AND</span> cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+)
+<span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, processed_at)               <span class="kw">AS</span> month,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> order_seq = 1 <span class="kw">THEN</span> total_price_usd <span class="kw">ELSE</span> 0 <span class="kw">END</span>), 2) <span class="kw">AS</span> new_customer_revenue,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> order_seq &gt; 1 <span class="kw">THEN</span> total_price_usd <span class="kw">ELSE</span> 0 <span class="kw">END</span>), 2) <span class="kw">AS</span> returning_customer_revenue,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> order_seq = 1 <span class="kw">THEN</span> 1 <span class="kw">END</span>)       <span class="kw">AS</span> new_customers,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> order_seq &gt; 1 <span class="kw">THEN</span> 1 <span class="kw">END</span>)       <span class="kw">AS</span> returning_customers,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> order_seq = 1 <span class="kw">THEN</span> total_price_usd <span class="kw">ELSE</span> 0 <span class="kw">END</span>) * 100.0
+        / <span class="fn">NULLIF</span>(<span class="fn">SUM</span>(total_price_usd), 0), 1)        <span class="kw">AS</span> new_revenue_pct
+<span class="kw">FROM</span> customer_orders
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">New customer % &gt; 65%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate retention campaign across all at-risk segments; increase post-purchase email cadence</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Returning revenue declining in absolute terms</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit win-back and loyalty flows; consider loyalty programme or repeat purchase discount ladder</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">New cohort predicted LTV falling</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review Facebook/Google audience targeting; test lookalike audiences based on top-LTV customer profiles</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Healthy 40/60 mix maintained</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Focus on expanding returning customer AOV via cross-category recommendations in email flows</div>
+</div>
+</div></div>
+</section>
+<section id="m10" class="metric-section color-teal">
+<div class="metric-header">
+<div class="metric-number color-teal-text">M10</div>
+<div class="metric-info">
+<h2>LTV:CAC by Channel</h2>
+<span class="source-badge badge-teal">Matrixify + Shopify Analytics</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>The 3x Rule</h3>
+<p>LTV:CAC of 3× or above means each acquired customer will generate $3 in LTV for every $1 spent acquiring them. Below 3×, the channel is not profitable at current scale. Below 2×, the channel is actively destroying value.</p>
+</div>
+<div class="insight-card">
+<h3>Payback Period Companion</h3>
+<p>LTV:CAC ratio alone doesn't tell you when you break even. A 4× ratio with a 14-month payback is worse than a 3× ratio with a 6-month payback. Always pair with payback period.</p>
+</div>
+<div class="insight-card">
+<h3>Channel-Level Variance</h3>
+<p>Email acquisition typically delivers the highest LTV:CAC (8–15×) because cost is near-zero for organic list growth. Paid social may run 2.5–4×. Influencer varies widely. Knowing channel-level ratios tells you where to shift marginal budget.</p>
+</div>
+<div class="insight-card">
+<h3>Scale Sensitivity</h3>
+<p>LTV:CAC ratios compress as channels scale. A Facebook campaign delivering 4× at $5K/month may deliver 2.8× at $25K/month as audience quality declines. Monitor ratio trend, not just current snapshot.</p>
+</div>
+<div class="insight-card">
+<h3>Blended vs Marginal</h3>
+<p>Blended LTV:CAC is the historical average. Marginal LTV:CAC (on the last $1 spent) is the decision variable. If blended is 3.5× but last month dropped to 2.4×, you're at inflection — cut before it colorways further down.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonal Adjustment</h3>
+<p>Q4 acquisition has structurally lower LTV:CAC because holiday cohorts retain poorly. Don't apply the standard 3× threshold to November acquisitions — use a 2.2× floor adjusted for the holiday retention discount.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M8 LTV</span>
+<span class="combo-text">LTV is the numerator; improving LTV (through better retention) improves LTV:CAC without reducing acquisition spend.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M11 CAC</span>
+<span class="combo-text">LTV:CAC is derived from both. If the ratio deteriorates, determine whether LTV is falling or CAC is rising — different interventions.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M1 Net Revenue</span>
+<span class="combo-text">Revenue growth with falling LTV:CAC means you're buying growth unsustainably. Revenue growth with stable or improving LTV:CAC is defensible scaling.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">LTV:CAC &lt; 3x for any channel → Review that channel's audience targeting and creative; consider pausing and reinvesting in higher-ratio channels</div>
+<div class="warning-card">Blended LTV:CAC falling below 2.5x → Business-level alarm; convene unit economics review</div>
+<div class="warning-card">Q4 LTV:CAC below 2.0x for new cohorts → Holiday acquisition is not recovering cost; reduce Q4 paid acquisition spend</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    acquisition_channel,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(predicted_clv_1y), 2)         <span class="kw">AS</span> avg_predicted_ltv,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(acquisition_cost_usd), 2)     <span class="kw">AS</span> avg_cac,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(predicted_clv_1y)
+        / <span class="fn">NULLIF</span>(<span class="fn">AVG</span>(acquisition_cost_usd), 0), 2) <span class="kw">AS</span> ltv_cac_ratio,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> <span class="fn">AVG</span>(predicted_clv_1y) / <span class="fn">NULLIF</span>(<span class="fn">AVG</span>(acquisition_cost_usd), 0) &gt;= 4 <span class="kw">THEN</span> <span class="str">'SCALE'</span>
+        <span class="kw">WHEN</span> <span class="fn">AVG</span>(predicted_clv_1y) / <span class="fn">NULLIF</span>(<span class="fn">AVG</span>(acquisition_cost_usd), 0) &gt;= 3 <span class="kw">THEN</span> <span class="str">'HOLD'</span>
+        <span class="kw">WHEN</span> <span class="fn">AVG</span>(predicted_clv_1y) / <span class="fn">NULLIF</span>(<span class="fn">AVG</span>(acquisition_cost_usd), 0) &gt;= 2 <span class="kw">THEN</span> <span class="str">'REVIEW'</span>
+        <span class="kw">ELSE</span> <span class="str">'PAUSE'</span>
+    <span class="kw">END</span>                                      <span class="kw">AS</span> channel_action,
+    <span class="fn">COUNT</span>(*)                                 <span class="kw">AS</span> customer_count
+<span class="kw">FROM</span> klaviyo.profiles
+<span class="kw">WHERE</span> acquisition_channel <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>
+  <span class="kw">AND</span> acquisition_cost_usd &gt; 0
+<span class="kw">GROUP</span> <span class="kw">BY</span> acquisition_channel
+<span class="kw">ORDER</span> <span class="kw">BY</span> ltv_cac_ratio <span class="kw">DESC</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Channel LTV:CAC &lt; 2x</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Pause spend immediately; reallocate to channels at 3x+</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Channel LTV:CAC 2–3x</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Reduce spend by 30%, A/B test new creative and audience targeting, re-evaluate after 6 weeks</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Channel LTV:CAC &gt; 4x</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Increase budget allocation by 20%; test lookalike audience expansion</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Blended LTV:CAC falling</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Prioritise subscription conversion flows to raise LTV numerator; defer new channel testing</div>
+</div>
+</div></div>
+</section>
+<section id="m11" class="metric-section color-teal">
+<div class="metric-header">
+<div class="metric-number color-teal-text">M11</div>
+<div class="metric-info">
+<h2>CAC by Channel</h2>
+<span class="source-badge badge-teal">Shopify Analytics + Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Absolute CAC Benchmarks</h3>
+<p>Acceptable CAC for Knickgasm's price point and LTV profile: Paid Search $18–28, Paid Social $22–38, Influencer $15–45 (wide range by creator tier), Email/Organic $2–8. Anything above these ranges needs creative or targeting justification.</p>
+</div>
+<div class="insight-card">
+<h3>CAC Trend Matters More Than Level</h3>
+<p>A $32 CAC that has been stable for 6 months is better than a $28 CAC rising 8% month-over-month. CAC trajectory predicts payback period compression before it shows in profitability.</p>
+</div>
+<div class="insight-card">
+<h3>New Creative Cycle Impact</h3>
+<p>CAC on paid social tends to rise 15–25% after 6–8 weeks of running the same creative (audience fatigue). Monitoring CAC by channel gives you the earliest signal to refresh creative before CPMs spike.</p>
+</div>
+<div class="insight-card">
+<h3>Geography CAC Delta</h3>
+<p>UK customer acquisition costs are typically 20–35% higher than US due to smaller addressable audience and higher CPMs. UK CAC should be evaluated against UK LTV (£-denominated) rather than a blended USD benchmark.</p>
+</div>
+<div class="insight-card">
+<h3>First-Touch vs Multi-Touch</h3>
+<p>Last-touch attribution inflates paid social CAC (it captures the final click before purchase). Multi-touch or data-driven attribution typically reduces apparent paid social CAC by 15–20%. Be consistent in attribution model when tracking trends.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M10 LTV:CAC</span>
+<span class="combo-text">CAC is the denominator. Rising CAC with flat LTV means the ratio deteriorates. Use this pair to determine which lever to pull.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M8 LTV</span>
+<span class="combo-text">If CAC is rising but LTV is rising faster, the channel is still profitable — don't over-respond to rising CAC in isolation.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-teal-text">+ M9 New vs Returning Mix</span>
+<span class="combo-text">If new customer % is rising and CAC is rising, you're paying more per acquired customer and they're now a bigger share of revenue — double risk.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Paid social CAC &gt; $42 for two consecutive months → Creative refresh required; A/B test new formats (UGC vs produced, static vs video)</div>
+<div class="warning-card">Any channel CAC rising &gt;15% MoM → Early fatigue signal; increase creative refresh cadence</div>
+<div class="warning-card">UK CAC &gt; $55 USD equivalent → UK channel may be structurally unprofitable; evaluate against UK LTV before cutting</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, o.processed_at)         <span class="kw">AS</span> month,
+    p.acquisition_channel,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> o.email)                     <span class="kw">AS</span> new_customers,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(p.acquisition_cost_usd)
+        / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> o.email), 0), 2) <span class="kw">AS</span> cac,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(p.predicted_clv_1y), 2)           <span class="kw">AS</span> avg_predicted_ltv,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(p.predicted_clv_1y)
+        / <span class="fn">NULLIF</span>(<span class="fn">AVG</span>(p.acquisition_cost_usd), 0), 2) <span class="kw">AS</span> ltv_cac_ratio
+<span class="kw">FROM</span> matrixify.orders o
+<span class="kw">JOIN</span> klaviyo.profiles p <span class="kw">USING</span>(email)
+<span class="kw">WHERE</span> o.payment_status = <span class="str">'paid'</span>
+  <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+  <span class="kw">AND</span> p.acquisition_channel <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span>
+  <span class="kw">AND</span> o.email <span class="kw">IN</span> (
+      <span class="kw">SELECT</span> email <span class="kw">FROM</span> (
+          <span class="kw">SELECT</span> email, <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (<span class="kw">PARTITION</span> <span class="kw">BY</span> email <span class="kw">ORDER</span> <span class="kw">BY</span> processed_at) <span class="kw">AS</span> rn
+          <span class="kw">FROM</span> matrixify.orders <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span>
+      ) <span class="kw">WHERE</span> rn = 1
+  )
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1, 2
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>, cac <span class="kw">DESC</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Paid social CAC rising &gt;10% MoM</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Brief creative team for UGC batch; test 3 new ad formats in 2-week sprint</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Paid search CAC &gt; $30</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit keyword bidding strategy; add negative keywords for low-intent terms; test PMAX vs Search campaigns</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Influencer CAC &gt; $50</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review influencer tier and engagement quality; shift to micro-influencers (50K–200K) for better CPM efficiency</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Email/organic CAC rising</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Investigate list growth channels; activate referral programme or quiz-to-subscribe landing page</div>
+</div>
+</div></div>
+</section>
+<section id="m12" class="metric-section color-coral">
+<div class="metric-header">
+<div class="metric-number color-coral-text">M12</div>
+<div class="metric-info">
+<h2>Checkout Conversion Rate</h2>
+<span class="source-badge badge-coral">WebEngage</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Funnel Benchmarks</h3>
+<p>Premium sneaker D2C benchmarks: add-to-cart → checkout initiation: 45–55%, checkout initiation → purchase complete: 62–72%. Below these thresholds, either the cart experience or the payment step has friction.</p>
+</div>
+<div class="insight-card">
+<h3>Mobile Checkout Drop</h3>
+<p>Mobile checkout completion typically runs 12–18pp below desktop for purchase amounts over $45. Adding Apple Pay / Shop Pay can recover 6–9pp of mobile checkout conversion.</p>
+</div>
+<div class="insight-card">
+<h3>Shipping Cost Shock</h3>
+<p>The single largest cause of checkout abandonment for Knickgasm's price range is unexpected shipping costs. Test free shipping threshold messaging in the cart view ('$8 away from free shipping') to reduce shock-based abandonment.</p>
+</div>
+<div class="insight-card">
+<h3>Guest Checkout Impact</h3>
+<p>Requiring account creation at checkout typically increases abandonment by 10–15%. Monitor what percentage of checkouts are initiated by logged-in vs guest users and whether account-gating correlates with abandonment.</p>
+</div>
+<div class="insight-card">
+<h3>Payment Method Distribution</h3>
+<p>Track conversion rate by payment method availability. Markets with higher digital wallet adoption (UK) will show higher conversion when Apple Pay/Google Pay are prominently featured.</p>
+</div>
+<div class="insight-card">
+<h3>Cart Size and Conversion</h3>
+<p>Carts with &gt;3 items convert at a lower rate (customers second-guess large orders). Implement a 'Save for Later' feature or offer to split the order if cart value exceeds $80.</p>
+</div>
+<div class="insight-card">
+<h3>Return Visitor Conversion Premium</h3>
+<p>Returning visitors who've browsed before convert at 2.4× the rate of first-time visitors. Segment checkout conversion by visitor type to avoid blending these very different populations.</p>
+</div>
+<div class="insight-card">
+<h3>Time-of-Day Conversion</h3>
+<p>Checkout conversion peaks 7–9pm local time in both US and UK. Email sends that drive traffic at off-peak hours will show lower attached conversion rates.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M13 Cart Abandonment</span>
+<span class="combo-text">Checkout conversion and cart abandonment are inverse: high abandonment = low checkout conversion. Together they pinpoint where in the funnel the drop is occurring.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M3 AOV</span>
+<span class="combo-text">If AOV is rising but conversion is falling, higher price points are creating checkout hesitation. Test buy-now-pay-later (Klarna/Afterpay) integration.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M4 Revenue per Session</span>
+<span class="combo-text">Checkout conversion is the primary driver of revenue per session. A 2pp improvement in checkout conversion translates to proportional RPS improvement.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Checkout-to-purchase conversion below 62% → Immediate UX audit of checkout flow; test one-page checkout vs multi-step</div>
+<div class="warning-card">Mobile checkout conversion below 50% → Mobile payment options audit; A/B test Shop Pay prominence</div>
+<div class="warning-card">Checkout conversion falling during email send windows → Landing page-email message mismatch; align offer in email with offer on landing page</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'week'</span>, event_date)              <span class="kw">AS</span> week,
+    <span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'Checkout Initiated'</span> <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> checkout_starts,
+    <span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'<span class="kw">Order</span> created'</span>       <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> purchases,
+    <span class="fn">ROUND</span>(
+        <span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'<span class="kw">Order</span> created'</span> <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>) * 100.0
+        / <span class="fn">NULLIF</span>(<span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'Checkout Initiated'</span> <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>), 0),
+    1) <span class="kw">AS</span> checkout_conversion_pct
+<span class="kw">FROM</span> webengage.event_summary
+<span class="kw">WHERE</span> event_date &gt;= CURRENT_DATE - <span class="kw">INTERVAL</span> <span class="str">'56 days'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Checkout conversion &lt; 62%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit checkout UX: test removing non-essential form fields, adding trust badges, A/B test one-page checkout</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Mobile conversion lagging desktop by &gt;15pp</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Prioritise Apple Pay / Shop Pay integration; test sticky 'Buy Now' mobile CTA</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Shipping cost abandonment signal</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Add free-shipping progress indicator in cart; test 'Add one more item for free shipping' prompt</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Conversion declining during campaign sends</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review landing page alignment with email offer; ensure promotion is visible above fold on mobile</div>
+</div>
+</div></div>
+</section>
+<section id="m13" class="metric-section color-coral">
+<div class="metric-header">
+<div class="metric-number color-coral-text">M13</div>
+<div class="metric-info">
+<h2>Cart Abandonment Rate</h2>
+<span class="source-badge badge-coral">WebEngage</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Abandonment Benchmark</h3>
+<p>Industry average cart abandonment for D2C FMCG is 68–72%. Knickgasm's target ceiling is 80%. Above 80%, the add-to-cart action is functioning as a wishlist, not purchase intent.</p>
+</div>
+<div class="insight-card">
+<h3>Recovery Flow Economics</h3>
+<p>A 3-email cart abandonment flow (1hr, 24hr, 72hr) typically recovers 8–15% of abandoned carts. At Knickgasm's blended AOV of $48, each percentage point of recovery on 1,000 abandoned carts = $480 in incremental revenue.</p>
+</div>
+<div class="insight-card">
+<h3>Abandonment by Cart Value</h3>
+<p>Carts valued over $65 abandon at higher rates (43% above benchmark) due to purchase hesitation. Consider adding a 'low-stock' or 'ships tomorrow' indicator for these high-value carts.</p>
+</div>
+<div class="insight-card">
+<h3>Abandonment vs Checkout Initiation</h3>
+<p>Distinguish 'added to cart but never started checkout' (awareness abandonment) from 'started checkout but didn't complete' (friction abandonment). These require different interventions.</p>
+</div>
+<div class="insight-card">
+<h3>Repeat Abandoner Segment</h3>
+<p>Customers who abandon 2+ times in 30 days are 3.8× more likely to purchase if offered a small incentive (free shipping or 10% off) than standard reminder messaging. Identify this segment in Klaviyo.</p>
+</div>
+<div class="insight-card">
+<h3>Time-to-Abandonment</h3>
+<p>If median time between add-to-cart and session end is &lt;90 seconds, the customer was price-checking, not abandoning due to friction. If median is &gt;8 minutes, checkout friction is the issue.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M12 Checkout Conversion</span>
+<span class="combo-text">Abandonment rate and checkout conversion measure the same funnel from different angles. Map them together to identify whether the problem is early (add-to-cart intent) or late (checkout friction).</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M4 Revenue per Session</span>
+<span class="combo-text">High abandonment reduces revenue per session directly. A 5pp reduction in abandonment rate translates to approximately $0.08–0.12 improvement in RPS.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M14 Email Revenue %</span>
+<span class="combo-text">If cart abandonment flows are included in email revenue attribution, a rise in abandonment with a rise in email revenue % may mean recovery flows are compensating for UX gaps — treat the symptom and the cause.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Cart abandonment &gt; 80% for two consecutive weeks → Cart recovery flow audit + UX friction investigation</div>
+<div class="warning-card">Abandonment rising while sessions are stable → Pricing or checkout UX change causing new friction; run A/B test isolation</div>
+<div class="warning-card">Repeat abandoner segment &gt; 15% of total abandoners → Activate targeted incentive for repeat abandoners; standard recovery flow insufficient</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'week'</span>, event_date)          <span class="kw">AS</span> week,
+    <span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'Added To Cart'</span>  <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> add_to_cart,
+    <span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'<span class="kw">Order</span> created'</span>  <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>) <span class="kw">AS</span> completed_orders,
+    <span class="fn">ROUND</span>(
+        (1.0 - <span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'<span class="kw">Order</span> created'</span> <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>) * 1.0
+             / <span class="fn">NULLIF</span>(<span class="fn">SUM</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> event_name = <span class="str">'Added To Cart'</span> <span class="kw">THEN</span> event_count <span class="kw">ELSE</span> 0 <span class="kw">END</span>), 0)
+        ) * 100, 1
+    )                                        <span class="kw">AS</span> abandonment_pct
+<span class="kw">FROM</span> webengage.event_summary
+<span class="kw">WHERE</span> event_date &gt;= CURRENT_DATE - <span class="kw">INTERVAL</span> <span class="str">'56 days'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Abandonment &gt; 80%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate 3-email cart recovery flow if not running; if running, A/B test subject lines and 1hr vs 30min send time for first email</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Checkout friction abandonment &gt; awareness abandonment</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Focus on checkout page UX audit; test removing account creation requirement</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Repeat abandoner segment identified</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate targeted 10% off / free shipping offer for 2+ abandon customers in Klaviyo</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Abandonment stable</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Continue monitoring; test 'Save cart' email for awareness abandoners to reduce list pressure</div>
+</div>
+</div></div>
+</section>
+<section id="m14" class="metric-section color-blue">
+<div class="metric-header">
+<div class="metric-number color-blue-text">M14</div>
+<div class="metric-info">
+<h2>Email Revenue %</h2>
+<span class="source-badge badge-blue">Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>The 25% Floor</h3>
+<p>Email should contribute a minimum 25% of total D2C revenue for a brand at Knickgasm's email maturity. Below 25% means either the list is underleveraged, send frequency is too low, or the audience is disengaged.</p>
+</div>
+<div class="insight-card">
+<h3>Flow vs Campaign Split</h3>
+<p>Of the email revenue total, flows (automated sequences) should contribute 55–65% and campaigns (manual sends) 35–45%. Heavy campaign dependence means revenue is manual and unpredictable; heavy flow dependence is scalable but needs regular content refresh.</p>
+</div>
+<div class="insight-card">
+<h3>Revenue per Recipient</h3>
+<p>Track revenue per recipient (RPR) per campaign. Below $0.08 RPR signals list fatigue or poor segmentation. Above $0.25 RPR indicates a high-performing campaign worth repeating or A/B testing.</p>
+</div>
+<div class="insight-card">
+<h3>Klaviyo Attribution Window</h3>
+<p>Klaviyo's default attribution window is 5-day click, 1-day open. This tends to over-attribute compared to a 1-day click model. Ensure you're using a consistent attribution window across reports.</p>
+</div>
+<div class="insight-card">
+<h3>List Size vs Revenue Efficiency</h3>
+<p>Revenue per recipient is more useful than total email revenue for tracking performance. A growing list with flat RPR means added subscribers are less engaged — review acquisition source quality.</p>
+</div>
+<div class="insight-card">
+<h3>Email Contribution to Retention</h3>
+<p>Post-purchase flows should generate 12–18% of total email revenue. If this percentage is low, post-purchase sequences are underperforming and retention is being missed.</p>
+</div>
+<div class="insight-card">
+<h3>Unsubscribe Rate Impact</h3>
+<p>Each percentage point of list health decline reduces total email revenue by approximately 1.5× that rate, compounded over 12 months. Email list health (M16) is the leading indicator for this metric.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M1 Net Revenue</span>
+<span class="combo-text">Email revenue % is derived from total revenue. If total revenue grows but email % falls, paid channels are compensating for email underperformance.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M16 Email List Health</span>
+<span class="combo-text">Declining list health precedes declining email revenue % by 30–60 days. M16 is the leading indicator for this metric.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M15 Flow vs Campaign Split</span>
+<span class="combo-text">Healthy email revenue requires both active campaigns and strong automated flows. This pair reveals structural vs tactical causes of email revenue changes.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Email revenue % &lt; 25% for two consecutive months → Trigger re_engagement campaign (engine P5); increase send frequency, review segment hygiene</div>
+<div class="warning-card">RPR falling below $0.08 → Audience disengagement; sunset inactive subscribers, refresh creative strategy</div>
+<div class="warning-card">Post-purchase flow contribution &lt; 10% of email revenue → Post-purchase sequence is not converting; audit flow triggers and content</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, k.sent_at)             <span class="kw">AS</span> month,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(k.revenue_attributed), 2)        <span class="kw">AS</span> email_revenue,
+    <span class="fn">ROUND</span>(<span class="fn">MAX</span>(r.net_sales), 2)                 <span class="kw">AS</span> total_revenue,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(k.revenue_attributed) * 100.0
+        / <span class="fn">NULLIF</span>(<span class="fn">MAX</span>(r.net_sales), 0), 1)       <span class="kw">AS</span> email_revenue_pct,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(k.revenue_attributed)
+        / <span class="fn">NULLIF</span>(<span class="fn">SUM</span>(k.recipients), 0), 3)     <span class="kw">AS</span> revenue_per_recipient,
+    <span class="fn">SUM</span>(k.recipients)                          <span class="kw">AS</span> total_recipients
+<span class="kw">FROM</span> klaviyo.campaigns k
+<span class="kw">JOIN</span> shopify_analytics.revenue_metrics r
+    <span class="kw">ON</span> <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, k.sent_at) = r.report_date
+    <span class="kw">AND</span> r.report_period = <span class="str">'month'</span>
+<span class="kw">WHERE</span> k.channel = <span class="str">'email'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Email revenue % &lt; 25%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Increase campaign send frequency from weekly to 2x/week for top segments; reactivate dormant flows</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">RPR &lt; $0.08</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Run list sunset campaign; remove subscribers with zero opens in 180 days; resegment active list by engagement tier</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Post-purchase flow &lt; 10%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit flow trigger conditions; test adding Day 7 and Day 35 emails to post-purchase sequence</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Email revenue % growing</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Test expanding to SMS in parallel; measure incremental revenue vs email cannibalization</div>
+</div>
+</div></div>
+</section>
+<section id="m15" class="metric-section color-blue">
+<div class="metric-header">
+<div class="metric-number color-blue-text">M15</div>
+<div class="metric-info">
+<h2>Flow vs Campaign Split</h2>
+<span class="source-badge badge-blue">Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Automation Health Ratio</h3>
+<p>Flows should generate 55–65% of email revenue. Below 50% means too much manual effort is sustaining email revenue — fragile and not scalable. Above 70% means campaigns are underperforming their potential.</p>
+</div>
+<div class="insight-card">
+<h3>Flow Types Breakdown</h3>
+<p>Of flow revenue, welcome series should contribute 8–12%, post-purchase 12–18%, win-back 10–15%, browse abandonment 6–10%, cart abandonment 15–20%. If any single flow is contributing &gt;30%, other flows are likely misconfigured.</p>
+</div>
+<div class="insight-card">
+<h3>Campaign Frequency Baseline</h3>
+<p>2–3 campaigns per week to the full list will cause list fatigue within 6 months. Segment campaigns by engagement tier (highly engaged, engaged, at-risk) and reduce frequency for lower tiers.</p>
+</div>
+<div class="insight-card">
+<h3>Flow Conversion Rates</h3>
+<p>Track conversion rate per flow, not just revenue attribution. A high-revenue flow with low conversion may just have high send volume. A low-revenue flow with high conversion is an underutilised asset.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonal Campaign Lift</h3>
+<p>Campaign revenue spikes in Q4 (Oct–Dec) are expected and healthy; this is the nature of promotional campaigns. The ratio should naturally shift toward campaigns during this period and recover in Q1.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M14 Email Revenue %</span>
+<span class="combo-text">If overall email revenue is declining, this split reveals whether it's a flow problem (automation decay) or a campaign problem (creative fatigue or segment exhaustion).</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M16 Email List Health</span>
+<span class="combo-text">If list health is declining, high-volume campaigns will accelerate the decline. Shift revenue mix toward flows (lower send volume, higher relevance) to protect list health.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M17 Churn Risk</span>
+<span class="combo-text">Win-back flows are the primary tool for at-risk segments. If win-back flow revenue is low despite a large at-risk segment, the flow needs triggering or content refresh.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Flows contributing &lt; 45% of email revenue → Review all flow triggers; test whether flows are firing correctly for key segments</div>
+<div class="warning-card">Campaign frequency &gt; 3/week to full list → Implement engagement-based frequency caps; separate highly engaged from at-risk segments</div>
+<div class="warning-card">Win-back flow revenue &lt; 8% of email revenue when at-risk segment &gt; 15% of list → Win-back flow trigger or content failure</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, sent_at)                <span class="kw">AS</span> month,
+    campaign_type,
+    <span class="fn">COUNT</span>(campaign_id)                          <span class="kw">AS</span> send_count,
+    <span class="fn">SUM</span>(recipients)                             <span class="kw">AS</span> total_recipients,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(revenue_attributed), 2)           <span class="kw">AS</span> revenue,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(open_rate) * 100, 1)              <span class="kw">AS</span> avg_open_rate_pct,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(ctor) * 100, 1)                   <span class="kw">AS</span> avg_ctor_pct,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(revenue_attributed)
+        / <span class="fn">NULLIF</span>(<span class="fn">SUM</span>(recipients), 0), 3)        <span class="kw">AS</span> revenue_per_recipient
+<span class="kw">FROM</span> klaviyo.campaigns
+<span class="kw">WHERE</span> channel = <span class="str">'email'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1, 2
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>, revenue <span class="kw">DESC</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Flows &lt; 45% of email revenue</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit all active flow triggers; check for broken A/B tests or paused sequences; review welcome series performance</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Campaigns &gt; 55% of email revenue</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Build or refresh 2 automated flows (browse abandonment, post-win-back subscription upsell)</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Win-back flow underperforming</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Rewrite win-back email sequence; test 'We miss you + origin story' vs 'Here's what's new' framing</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Cart abandonment flow &lt; 15% of flow revenue</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Increase send cadence from 3 emails to 4; test 30-minute vs 1-hour first send</div>
+</div>
+</div></div>
+</section>
+<section id="m16" class="metric-section color-blue">
+<div class="metric-header">
+<div class="metric-number color-blue-text">M16</div>
+<div class="metric-info">
+<h2>Email List Health</h2>
+<span class="source-badge badge-blue">Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Health Definition</h3>
+<p>Email list health is the proportion of subscribers who are deliverable (not bounced or spam-flagged) and have engaged (opened or clicked) within the last 90 days. Below 80% health triggers ISP reputation risk that can cascade into all sends, including flows.</p>
+</div>
+<div class="insight-card">
+<h3>Bounce Cascade Risk</h3>
+<p>Hard bounce rates above 2% across a single send can trigger Gmail/Yahoo bulk sender penalties that affect all future sends. Hard bounces should be removed from the list immediately after the first occurrence.</p>
+</div>
+<div class="insight-card">
+<h3>Spam Complaint Threshold</h3>
+<p>Google's bulk sender threshold is 0.10% spam complaint rate. Above this, deliverability is penalised across the domain. Above 0.30%, the domain may be temporarily blocked.</p>
+</div>
+<div class="insight-card">
+<h3>Re-engagement Window</h3>
+<p>Subscribers with no open in 180 days should be entered into a re-engagement flow before being sunset. Sending marketing emails to unengaged subscribers is the primary driver of list health degradation.</p>
+</div>
+<div class="insight-card">
+<h3>List Growth Quality</h3>
+<p>List health tells you about the existing subscriber base. If list health is falling while the list is growing, new subscriber quality is low — evaluate acquisition source and double opt-in status.</p>
+</div>
+<div class="insight-card">
+<h3>Segmentation Impact</h3>
+<p>Sending only to engaged segments (opens in 90 days) will show higher open rates but is also protecting list health. Aggressive full-list sends will suppress apparent open rates and degrade health.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M14 Email Revenue %</span>
+<span class="combo-text">List health is the leading indicator for email revenue. Declining health precedes declining revenue by 30–60 days.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M17 Churn Risk</span>
+<span class="combo-text">Customers with high churn risk often also have low email engagement. The crossover of churn risk and email disengagement is the highest-priority win-back + re-engagement segment.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M15 Flow vs Campaign Split</span>
+<span class="combo-text">High campaign frequency with low list health will accelerate health degradation. If health is declining, immediately shift frequency toward flows.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">List health below 80% → Activate re-engagement campaign for unengaged subscribers; pause full-list sends until health recovers</div>
+<div class="warning-card">Hard bounce rate &gt; 1.5% on any send → Remove bounced addresses immediately; investigate acquisition source for invalid emails</div>
+<div class="warning-card">Spam complaint rate &gt; 0.08% → Investigate recent campaign content and subject lines; review unsubscribe prominence</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, last_active_date)       <span class="kw">AS</span> month,
+    <span class="fn">COUNT</span>(*)                                    <span class="kw">AS</span> total_profiles,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> email_status = <span class="str">'subscribed'</span> <span class="kw">THEN</span> 1 <span class="kw">END</span>) <span class="kw">AS</span> subscribed,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> email_status = <span class="str">'unsubscribed'</span> <span class="kw">THEN</span> 1 <span class="kw">END</span>) <span class="kw">AS</span> unsubscribed,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> email_status = <span class="str">'bounced'</span> <span class="kw">THEN</span> 1 <span class="kw">END</span>)     <span class="kw">AS</span> bounced,
+    <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> email_status = <span class="str">'subscribed'</span>
+                      <span class="kw">AND</span> last_active_date &gt;= CURRENT_DATE - <span class="kw">INTERVAL</span> <span class="str">'90 days'</span>
+                     <span class="kw">THEN</span> 1 <span class="kw">END</span>) * 100.0
+        / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> email_status = <span class="str">'subscribed'</span> <span class="kw">THEN</span> 1 <span class="kw">END</span>), 0), 1) <span class="kw">AS</span> engaged_pct
+<span class="kw">FROM</span> klaviyo.profiles
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Engaged % &lt; 80%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Run sunset campaign for 180-day inactive subscribers; add re-engagement flow for 90-day inactives</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Bounce rate spiking</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Audit recent list acquisition sources; implement email validation on all list entry points</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">List health recovering</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Gradually expand send frequency; monitor open and click rates as new segments receive emails</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">List health stable at 85%+</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Test expanding to slightly less-engaged segments to grow reachable audience without compromising health</div>
+</div>
+</div></div>
+</section>
+<section id="m17" class="metric-section color-blue">
+<div class="metric-header">
+<div class="metric-number color-blue-text">M17</div>
+<div class="metric-info">
+<h2>Churn Risk Distribution</h2>
+<span class="source-badge badge-blue">Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>Risk Tier Definitions</h3>
+<p>Klaviyo's churn risk model typically outputs: active (purchased in 30 days), at-risk (31–60 days no purchase), high risk (61–90 days), winback (90+ days). These correspond to decreasing probability of repeat purchase.</p>
+</div>
+<div class="insight-card">
+<h3>Revenue Concentration in Risk Tiers</h3>
+<p>If high-risk and winback segments collectively hold &gt;35% of predicted CLV, the business has a structural retention problem, not a marketing problem. Customer success or product intervention is needed.</p>
+</div>
+<div class="insight-card">
+<h3>High-CLV Churn Signal</h3>
+<p>Customers with predicted CLV &gt; $200 moving into high-risk/winback tier represent recoverable revenue. This is the trigger for the P1 win_back_vip campaign in the mailer engine.</p>
+</div>
+<div class="insight-card">
+<h3>Churn Leading Indicators</h3>
+<p>Email engagement drops 3–4 weeks before churn risk increases. Customers who stop opening emails but haven't yet churned are the ideal intervention target — still reachable, not yet lost.</p>
+</div>
+<div class="insight-card">
+<h3>Winback Recovery Rate Benchmark</h3>
+<p>Industry winback recovery rate for premium D2C is 8–15%. At Knickgasm's CLV profile, even 10% recovery of a $200K at-risk cohort generates $20K incremental revenue — typically well above flow cost.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonal Churn Pattern</h3>
+<p>Post-holiday (Jan–Feb) typically shows a churn spike as gift buyers don't convert to personal buyers. Proactive January reactivation campaigns for December new cohorts can halve this spike.</p>
+</div>
+<div class="insight-card">
+<h3>Risk Distribution Stability</h3>
+<p>Track the distribution monthly: % active, % at-risk, % high-risk, % winback. A stable distribution with active &gt; 60% is healthy. Active declining month-over-month is the most important early warning.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M8 LTV</span>
+<span class="combo-text">Churn risk x predicted LTV = recoverable revenue at risk. The combination is the exact input to the win_back_vip campaign trigger in the mailer engine.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M18 At-Risk Revenue</span>
+<span class="combo-text">M17 shows the distribution; M18 shows the dollar value. Together they tell you severity and action priority.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M5 Repeat Purchase Rate</span>
+<span class="combo-text">If repeat rate is stable but churn risk distribution is worsening, the issue is recency (customers purchasing less frequently) not frequency (customers who never came back).</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Winback + high-risk &gt; 35% of predicted CLV → Structural retention issue; P1 win_back_vip trigger should be active</div>
+<div class="warning-card">Active segment declining 3+ consecutive months → Systematic churn; review product-market fit signals</div>
+<div class="warning-card">High-CLV customers (CLV &gt; $200) entering high-risk tier → Immediate VIP win-back campaign activation</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    churn_risk,
+    <span class="fn">COUNT</span>(*)                                         <span class="kw">AS</span> profile_count,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(predicted_clv_1y), 2)                  <span class="kw">AS</span> avg_predicted_clv,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(predicted_clv_1y), 2)                  <span class="kw">AS</span> total_at_risk_clv,
+    <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(*) * 100.0
+        / <span class="fn">SUM</span>(<span class="fn">COUNT</span>(*)) <span class="kw">OVER</span> (), 1)                  <span class="kw">AS</span> pct_of_list,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> predicted_clv_1y &gt; 200 <span class="kw">THEN</span> 1 <span class="kw">END</span>) <span class="kw">AS</span> high_clv_count
+<span class="kw">FROM</span> klaviyo.profiles
+<span class="kw">WHERE</span> email_status = <span class="str">'subscribed'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> churn_risk
+<span class="kw">ORDER</span> <span class="kw">BY</span>
+    <span class="kw">CASE</span> churn_risk
+        <span class="kw">WHEN</span> <span class="str">'active'</span>   <span class="kw">THEN</span> 1
+        <span class="kw">WHEN</span> <span class="str">'at_risk'</span>  <span class="kw">THEN</span> 2
+        <span class="kw">WHEN</span> <span class="str">'high'</span>     <span class="kw">THEN</span> 3
+        <span class="kw">WHEN</span> <span class="str">'winback'</span>  <span class="kw">THEN</span> 4
+        <span class="kw">ELSE</span> 5
+    <span class="kw">END</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">High-risk + winback CLV &gt; $50K</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Activate P1 win_back_vip campaign; personalise with last SKU purchased and CLV-appropriate offer</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Active segment declining</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review post-purchase email engagement rates; audit Day 7 and Day 21 flow performance</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">January churn spike anticipated</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Pre-build January reactivation campaign for December new cohort before month-end</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">High-CLV customers entering at-risk</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Trigger proactive outreach within 7 days of entering at-risk tier; do not wait for high-risk tier</div>
+</div>
+</div></div>
+</section>
+<section id="m18" class="metric-section color-blue">
+<div class="metric-header">
+<div class="metric-number color-blue-text">M18</div>
+<div class="metric-info">
+<h2>At-Risk Revenue</h2>
+<span class="source-badge badge-blue">Klaviyo</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>The $50K Trigger</h3>
+<p>When predicted CLV of customers in high-risk + winback tiers exceeds $50K, the win_back_vip campaign trigger fires automatically. This threshold was calibrated against Knickgasm's average win-back campaign cost and recovery rate.</p>
+</div>
+<div class="insight-card">
+<h3>Recoverable vs Lost Revenue</h3>
+<p>Not all at-risk CLV is recoverable. Empirical recovery rate for premium D2C win-back campaigns is 8–15%. Apply this range to at-risk CLV to estimate the campaign's revenue opportunity: $50K at-risk × 12% recovery = $6K incremental revenue.</p>
+</div>
+<div class="insight-card">
+<h3>Segmentation Depth</h3>
+<p>At-risk revenue should be segmented by: last SKU purchased (product-specific re-engagement), days since last order (urgency calibration), and predicted CLV tier (offer calibration — high CLV gets 15% off, mid CLV gets free shipping).</p>
+</div>
+<div class="insight-card">
+<h3>Campaign ROI Calculation</h3>
+<p>Win-back campaign ROI = (at-risk CLV × recovery rate × gross margin) - campaign cost. At Knickgasm's 55%+ GM and a $2K email campaign cost, the ROI is positive at recovery rates above 4%.</p>
+</div>
+<div class="insight-card">
+<h3>At-Risk Revenue Trend</h3>
+<p>If at-risk revenue grows month-over-month even after win-back campaigns, the acquisition machine is adding customers faster than retention is keeping them. Address the retention system, not just the win-back symptom.</p>
+</div>
+<div class="insight-card">
+<h3>Time-Decay Factor</h3>
+<p>The probability of winback declines with time: 12% at 60 days, 8% at 90 days, 4% at 120 days. Send win-back campaigns at 60–75 days since last purchase — not earlier (intrusive) and not later (probability too low).</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M17 Churn Risk</span>
+<span class="combo-text">M17 shows count and distribution; M18 shows revenue concentration. The combination tells you whether you have a broad shallow problem (many low-CLV churners) or a narrow deep problem (few high-CLV churners).</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M8 LTV</span>
+<span class="combo-text">At-risk revenue is essentially 'LTV deferred.' Successfully winning back customers brings their predicted LTV back into the active column.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-blue-text">+ M6 Cohort Retention</span>
+<span class="combo-text">If at-risk revenue is growing, check whether specific cohorts (e.g., holiday acquisitions) are disproportionately represented. This pinpoints cohort-level retention failures.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">At-risk revenue &gt; $50K → Win_back_vip trigger fires; do not delay campaign activation</div>
+<div class="warning-card">At-risk revenue growing 3+ consecutive months despite win-back campaigns → Systemic retention failure; escalate to product and customer experience teams</div>
+<div class="warning-card">High-CLV at-risk customers not opening win-back emails → Deliverability or subject line issue; A/B test subject lines with personalised last-SKU reference</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    churn_risk,
+    <span class="fn">COUNT</span>(*)                                     <span class="kw">AS</span> at_risk_count,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(predicted_clv_1y), 2)              <span class="kw">AS</span> total_at_risk_revenue,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(predicted_clv_1y), 2)              <span class="kw">AS</span> avg_clv,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(total_orders), 1)                  <span class="kw">AS</span> avg_orders,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="fn">DATEDIFF</span>(<span class="str">'day'</span>,
+        last_order_date::DATE, CURRENT_DATE)), 0) <span class="kw">AS</span> avg_days_since_order,
+    <span class="fn">COUNT</span>(<span class="kw">CASE</span> <span class="kw">WHEN</span> predicted_clv_1y &gt; 200 <span class="kw">THEN</span> 1 <span class="kw">END</span>) <span class="kw">AS</span> high_clv_at_risk
+<span class="kw">FROM</span> klaviyo.profiles
+<span class="kw">WHERE</span> churn_risk <span class="kw">IN</span> (<span class="str">'high'</span>, <span class="str">'winback'</span>)
+  <span class="kw">AND</span> email_status = <span class="str">'subscribed'</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> churn_risk
+<span class="kw">ORDER</span> <span class="kw">BY</span> total_at_risk_revenue <span class="kw">DESC</span></pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Total at-risk &gt; $50K</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Launch win_back_vip campaign immediately; segment by CLV tier for personalised offers</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">High-CLV at-risk count &gt; 50</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Prioritise personal outreach (concierge-style email from founder or brand) for top 50 by predicted CLV</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">At-risk revenue growing despite campaigns</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Increase post-purchase flow touchpoints; add Day 60 proactive reactivation before at-risk classification</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Recovery rate &lt; 8%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Test new win-back creative framing ('From the studios of...' origin story vs % off offer); A/B the control against value-led content</div>
+</div>
+</div></div>
+</section>
+<section id="m19" class="metric-section color-coral">
+<div class="metric-header">
+<div class="metric-number color-coral-text">M19</div>
+<div class="metric-info">
+<h2>Product Repeat Rate</h2>
+<span class="source-badge badge-coral">Matrixify</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>SKU-Level Retention Signal</h3>
+<p>Product repeat rate measures how frequently customers reorder the same SKU. A rate above 35% for a hand-painted product signals it has become a habit product. Below 20% means it's being experienced as a one-time purchase.</p>
+</div>
+<div class="insight-card">
+<h3>Portfolio Architecture</h3>
+<p>High-repeat SKUs should anchor subscription offerings. Low-repeat SKUs should be positioned as discovery or gift items. Matching subscription promotion to repeat-rate data prevents over-subscribing products with natural variety-seeking behaviour.</p>
+</div>
+<div class="insight-card">
+<h3>First-Order SKU Impact</h3>
+<p>The repeat rate of the first SKU purchased predicts overall customer retention. Jordan First Flush as a first-order SKU drives 2.3× repeat rate vs gift sets. This data should inform acquisition creative featuring product-led (not set-led) messaging.</p>
+</div>
+<div class="insight-card">
+<h3>Cross-SKU Progression</h3>
+<p>Customers who repeat-purchase within category (e.g., Jordan → Airforce → Court Vision) have higher LTV than same-SKU repeaters. Track cross-category expansion as a retention quality metric.</p>
+</div>
+<div class="insight-card">
+<h3>Seasonal SKU Rotation</h3>
+<p>Some SKUs have inherent seasonality (First Flush is spring/summer, autumnal colorways are Q3/Q4). Low repeat rate in off-season is expected; track trailing 12-month repeat rate for seasonal products.</p>
+</div>
+<div class="insight-card">
+<h3>Bundle Fragmentation</h3>
+<p>Bundles rarely repeat as-is (customers want variety). Track bundle component SKU repeat separately from bundle-as-item repeat to avoid artificially deflating repeat rate for high-performing ingredients.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription Conversion by Repeat Rate</h3>
+<p>SKUs with &gt;40% repeat rate AND &gt;200 subscription subscribers should be reviewed for subscription pricing — they may be underpriced for auto-replenishment demand.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M20 Subscription Mix</span>
+<span class="combo-text">High-repeat-rate SKUs are the natural subscription candidates. This combination identifies which products should anchor subscription conversion campaigns.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M5 Repeat Purchase Rate</span>
+<span class="combo-text">Product repeat rate (same SKU) is more specific than repeat purchase rate (any SKU). High overall repeat rate with low product repeat rate means customers are exploring the catalogue — healthy for AOV, requires cross-sell flow.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M8 LTV</span>
+<span class="combo-text">Products with high repeat rates consistently produce higher LTV customers. Use repeat rate as a proxy for LTV-predicting SKU selection.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Anchor SKU repeat rate falling below 30% → Review product quality consistency, customer reviews, and packaging for that SKU</div>
+<div class="warning-card">First-order gift set share growing above 35% of new customers → Long-term repeat rate will decline; adjust acquisition creative to feature personal-consumption SKUs</div>
+<div class="warning-card">No SKU above 40% repeat rate → Subscription product positioning is unclear; review catalogue and create dedicated subscription tier</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    li.title                                     <span class="kw">AS</span> product_name,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> o.email)                      <span class="kw">AS</span> unique_buyers,
+    <span class="fn">COUNT</span>(*)                                     <span class="kw">AS</span> total_orders,
+    <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(*) * 1.0
+        / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> o.email), 0), 2) <span class="kw">AS</span> orders_per_buyer,
+    <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> o.email <span class="kw">IN</span> (
+            <span class="kw">SELECT</span> email <span class="kw">FROM</span> matrixify.orders <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span>
+            <span class="kw">GROUP</span> <span class="kw">BY</span> email <span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; 1
+        ) <span class="kw">THEN</span> o.email
+    <span class="kw">END</span>)                                         <span class="kw">AS</span> repeat_buyers,
+    <span class="fn">ROUND</span>(<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> o.email <span class="kw">IN</span> (
+            <span class="kw">SELECT</span> email <span class="kw">FROM</span> matrixify.orders <span class="kw">WHERE</span> payment_status = <span class="str">'paid'</span>
+            <span class="kw">GROUP</span> <span class="kw">BY</span> email <span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; 1
+        ) <span class="kw">THEN</span> o.email
+    <span class="kw">END</span>) * 100.0 / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> o.email), 0), 1) <span class="kw">AS</span> repeat_buyer_pct
+<span class="kw">FROM</span> matrixify.order_line_items li
+<span class="kw">JOIN</span> matrixify.orders o <span class="kw">USING</span>(order_id)
+<span class="kw">WHERE</span> o.payment_status = <span class="str">'paid'</span>
+  <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> li.title
+<span class="kw">HAVING</span> <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> o.email) &gt;= 50
+<span class="kw">ORDER</span> <span class="kw">BY</span> repeat_buyer_pct <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 10</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Anchor SKU repeat &gt; 40%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Prioritise that SKU in subscription conversion emails; create a dedicated subscription upsell flow triggered at Day 30 post-purchase</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Gift set first-order share rising</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Shift 20% of acquisition budget to campaigns featuring hand-painted products; A/B test gift-set vs hand-painted landing pages</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">No SKU above 35% repeat</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Review product education in post-purchase emails; add craft guide, design profile, and ritual-building content</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Cross-category expansion low</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Add 'Complete Your Ritual' product recommendation block to Day 21 post-purchase email; personalise by first-order SKU category</div>
+</div>
+</div></div>
+</section>
+<section id="m20" class="metric-section color-coral">
+<div class="metric-header">
+<div class="metric-number color-coral-text">M20</div>
+<div class="metric-info">
+<h2>Subscription Mix %</h2>
+<span class="source-badge badge-coral">Matrixify</span>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Key Insights</h4>
+<div class="insights-grid">
+<div class="insight-card">
+<h3>The 15% Target</h3>
+<p>Subscription orders should represent at least 15% of total monthly order volume. Below 15%, subscription infrastructure is underutilised. Above 30%, subscription has likely become a discount channel rather than a convenience-and-habit driver.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription Revenue Stability</h3>
+<p>Subscription revenue is predictable: it buffers total revenue against promotional cycles and campaign variability. A 15% subscription mix creates a predictable monthly revenue floor that improves forecasting and reduces paid campaign dependency.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription AOV Premium</h3>
+<p>Subscription orders consistently run 8–12% higher AOV than one-time orders because customers add complementary SKUs during subscription setup. This AOV premium is captured at setup, not at renewal.</p>
+</div>
+<div class="insight-card">
+<h3>Churn Rate Within Subscription</h3>
+<p>Active subscriptions have a monthly churn rate of 3–6% for premium D2C. Below 3% is excellent. Above 8% means subscribers aren't experiencing the value proposition (product quality, convenience, or perceived savings).</p>
+</div>
+<div class="insight-card">
+<h3>Subscription Conversion Window</h3>
+<p>The highest-conversion window for subscription upsell is immediately post-purchase (checkout upsell) and Day 14–30 post-purchase (habit formation window). Outside these windows, conversion rates drop significantly.</p>
+</div>
+<div class="insight-card">
+<h3>Subscription SKU Concentration</h3>
+<p>If &gt;60% of subscription revenue comes from a single SKU, the subscription programme is fragile. Diversification across 3–5 SKUs is the healthier model.</p>
+</div>
+<div class="insight-card">
+<h3>Cancellation Reason Distribution</h3>
+<p>Track subscription cancellation reasons: 'too much sneaker' (frequency issue), 'too expensive' (price issue), 'switching product' (assortment issue). Each has a different intervention: frequency change, discount, or cross-SKU recommendation.</p>
+</div>
+<div class="insight-card">
+<h3>Subscriber LTV Multiplier</h3>
+<p>Subscription customers have 3.2× the 12-month LTV of comparable one-time customers. Each 1pp increase in subscription mix improves blended LTV by approximately $4–7 depending on cohort CLV distribution.</p>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Combination Insights</h4>
+<div class="combo-list">
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M19 Product Repeat Rate</span>
+<span class="combo-text">Products with high repeat rates but low subscription conversion are subscription candidates. Build targeted subscription upsell campaigns for these SKUs.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M2 Gross Margin</span>
+<span class="combo-text">Subscription orders have zero acquisition cost on renewal. Rising subscription mix should expand effective gross margin (same COGS, lower effective CAC). If GM% isn't improving with rising subscription mix, COGS or discount structure needs review.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M5 Repeat Purchase Rate</span>
+<span class="combo-text">As subscription mix rises, the 90-day repeat rate metric will be affected (subscribers automatically count as repeaters). Normalise M5 by excluding subscription renewals to track organic habit formation separately.</span>
+</div>
+<div class="combo-item">
+<span class="combo-pair color-coral-text">+ M17 Churn Risk</span>
+<span class="combo-text">Subscription customers rarely appear in high churn-risk buckets unless they're about to cancel. Monitor subscription churn separately from overall churn risk.</span>
+</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Warning Signals</h4>
+<div class="warnings-list">
+<div class="warning-card">Subscription mix &lt; 15% for three consecutive months → Activate subscription_conversion campaign (engine P3); increase checkout upsell prominence</div>
+<div class="warning-card">Subscription monthly churn &gt; 8% → Audit subscription experience: packaging, frequency options, and ease of skip/pause; send a satisfaction survey</div>
+<div class="warning-card">Single SKU &gt; 60% of subscription revenue → Diversify subscription catalogue; add complementary SKUs to subscriber post-purchase cross-sell</div>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">DuckDB Query</h4>
+<div class="sql-block">
+<pre class="sql-code"><span class="kw">SELECT</span>
+    <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, o.processed_at)         <span class="kw">AS</span> month,
+    <span class="fn">COUNT</span>(o.order_id)                            <span class="kw">AS</span> total_orders,
+    <span class="fn">SUM</span>(<span class="kw">CASE</span>
+        <span class="kw">WHEN</span> li.properties::TEXT <span class="fn">ILIKE</span> <span class="str">'%subscription%'</span>
+          <span class="kw">OR</span> li.properties::TEXT <span class="fn">ILIKE</span> <span class="str">'%frequency%'</span>
+        <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0
+    <span class="kw">END</span>)                                         <span class="kw">AS</span> subscription_orders,
+    <span class="fn">ROUND</span>(<span class="fn">SUM</span>(<span class="kw">CASE</span>
+        <span class="kw">WHEN</span> li.properties::TEXT <span class="fn">ILIKE</span> <span class="str">'%subscription%'</span>
+          <span class="kw">OR</span> li.properties::TEXT <span class="fn">ILIKE</span> <span class="str">'%frequency%'</span>
+        <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0
+    <span class="kw">END</span>) * 100.0 / <span class="fn">NULLIF</span>(<span class="fn">COUNT</span>(o.order_id), 0), 1) <span class="kw">AS</span> subscription_mix_pct,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="kw">CASE</span>
+        <span class="kw">WHEN</span> li.properties::TEXT <span class="fn">ILIKE</span> <span class="str">'%subscription%'</span>
+        <span class="kw">THEN</span> o.total_price_usd
+    <span class="kw">END</span>), 2)                                     <span class="kw">AS</span> subscription_aov,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(<span class="kw">CASE</span>
+        <span class="kw">WHEN</span> li.properties::TEXT <span class="kw">NOT</span> <span class="fn">ILIKE</span> <span class="str">'%subscription%'</span>
+        <span class="kw">THEN</span> o.total_price_usd
+    <span class="kw">END</span>), 2)                                     <span class="kw">AS</span> onetime_aov
+<span class="kw">FROM</span> matrixify.orders o
+<span class="kw">JOIN</span> matrixify.order_line_items li <span class="kw">USING</span>(order_id)
+<span class="kw">WHERE</span> o.payment_status = <span class="str">'paid'</span>
+  <span class="kw">AND</span> o.cancelled_at <span class="kw">IS</span> <span class="kw">NULL</span>
+<span class="kw">GROUP</span> <span class="kw">BY</span> 1
+<span class="kw">ORDER</span> <span class="kw">BY</span> 1 <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 6</pre>
+</div></div>
+<div class="section-block">
+<h4 class="section-label">Decision Cards</h4>
+<div class="decision-grid">
+<div class="decision-card">
+<div class="decision-number">1</div>
+<div class="decision-condition">Subscription mix &lt; 15%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">A/B test subscription upsell placement at checkout; test 'Subscribe and save 10%' vs 'Subscribe for free shipping' framing</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">2</div>
+<div class="decision-condition">Subscription churn &gt; 8%</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Send cancellation survey to last 60 churned subscribers; test 'Pause' option in cancellation flow to reduce hard cancels</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">3</div>
+<div class="decision-condition">Single SKU &gt; 60% of subscription</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Launch 'Expand Your Ritual' email campaign for existing subscribers; offer 3-SKU bundle subscription at a discount</div>
+</div>
+<div class="decision-card">
+<div class="decision-number">4</div>
+<div class="decision-condition">Subscription mix growing steadily</div>
+<div class="decision-arrow">&#8594;</div>
+<div class="decision-action">Scale subscription conversion campaign; test converting one-time buyers at checkout with social proof ('4,200 Knickgasm subscribers love this colorway')</div>
+</div>
+</div></div>
+</section>
+</main>
+
+<script>
+// ===== Sidebar group toggle =====
+function toggleGroup(el) {
+  el.closest('.nav-group').classList.toggle('collapsed');
+}
+
+// ===== Mobile sidebar toggle =====
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ===== Active nav on scroll =====
+(function() {
+  var items = document.querySelectorAll('.nav-item[data-id]');
+  var sections = [];
+  items.forEach(function(item) {
+    var sec = document.getElementById(item.dataset.id);
+    if (sec) sections.push({ el: sec, nav: item });
+  });
+
+  var current = null;
+  function onScroll() {
+    var scrollY = window.scrollY + 120;
+    var active = null;
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (sections[i].el.offsetTop <= scrollY) {
+        active = sections[i];
+        break;
+      }
+    }
+    if (active !== current) {
+      if (current) current.nav.classList.remove('active');
+      if (active) {
+        active.nav.classList.add('active');
+        // auto-scroll nav item into view
+        active.nav.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      current = active;
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>

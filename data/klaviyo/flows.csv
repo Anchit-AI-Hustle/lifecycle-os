@@ -1,0 +1,6 @@
+flow_id,name,status,trigger_type,created,updated,recipients,delivered,opens,clicks,unsubscribes,revenue_attributed
+flow_836666,Welcome Series,live,metric,2022-06-01 00:00:00,2024-01-01 00:00:00,68722,39234,12755,1175,150,33705.71
+flow_645361,Abandoned Cart,live,metric,2022-06-01 00:00:00,2024-01-01 00:00:00,61721,62730,8390,2688,152,51810.87
+flow_894439,Post-Purchase,live,metric,2022-06-01 00:00:00,2024-01-01 00:00:00,28852,28469,16181,2733,162,41347.56
+flow_431099,Win-Back,live,metric,2022-06-01 00:00:00,2024-01-01 00:00:00,35269,23835,17004,1990,131,59000.7
+flow_366647,Browse Abandon,live,metric,2022-06-01 00:00:00,2024-01-01 00:00:00,73543,28529,21772,1571,94,71189.21

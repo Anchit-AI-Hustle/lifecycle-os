@@ -1,0 +1,13 @@
+{
+  "appId": "com.knickgasm.lifecycleos",
+  "appName": "KNICKGASM Lifecycle OS",
+  "webDir": "www",
+  "server": {
+    "url": "https://knickgasm.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "backgroundColor": "#0a1410",
+  "ios": { "contentInset": "always", "limitsNavigationsToAppBoundDomains": false },
+  "android": { "backgroundColor": "#0a1410", "allowMixedContent": false }
+}

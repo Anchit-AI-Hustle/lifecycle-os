@@ -1,0 +1,27 @@
+{
+  "name": "KNICKGASM Lifecycle OS",
+  "short_name": "Lifecycle OS",
+  "description": "D2C retention dashboard + 30-day marketing calendar + mailer creator. One workflow from data → plan → mailers.",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/?source=pwa",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#F7F5F2",
+  "theme_color": "#6A33D8",
+  "categories": ["business", "productivity", "marketing"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Dashboard",      "url": "/dashboard.html", "description": "Retention analytics + charts" },
+    { "name": "Calendar",       "url": "/calendar.html",  "description": "30-day marketing calendar" },
+    { "name": "Mailer Studio",  "url": "/studio",         "description": "Generate KNICKGASM emails" }
+  ]
+}

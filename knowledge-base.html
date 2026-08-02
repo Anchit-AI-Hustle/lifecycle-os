@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knowledge Base · KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260718light" defer></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:#ffffff;color:#111111;min-height:100vh}
+  .wrap{max-width:1200px;margin:0 auto;padding:28px 24px 60px}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.22em;color:#D0473E;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block}
+  h1{font-family:'Lora',serif;font-size:34px;font-weight:600;letter-spacing:-.02em}
+  h1 em{font-style:italic;color:#D0473E}
+  .sub{color:#556059;font-size:14px;line-height:1.6;margin-top:8px;max-width:820px}
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-top:22px;flex-wrap:wrap}
+  .tab{padding:9px 18px;border-radius:8px;font-size:13.5px;font-weight:600;color:#556059;background:transparent;border:1px solid rgba(171,135,67,.18);cursor:pointer;font-family:inherit;transition:all .14s}
+  .tab:hover{color:#111111}
+  .tab.active{color:#ffffff;background:#D0473E;border-color:#D0473E}
+  .subtabs{display:flex;gap:6px;margin-top:14px}
+  .subtab{padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;color:#556059;background:transparent;border:none;cursor:pointer;font-family:inherit}
+  .subtab:hover{color:#111111}
+  .subtab.active{color:#111111;background:rgba(171,135,67,.16)}
+  .region-chip{padding:6px 12px;border-radius:99px;background:#ffffff;border:1px solid rgba(171,135,67,.22);color:#556059;font-size:11.5px;cursor:pointer;font-family:inherit}
+  .region-chip.active{background:#D0473E;color:#ffffff;border-color:#D0473E}
+  /* Files tab list */
+  .kb-file-row{display:flex;gap:14px;align-items:center;background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .kb-file-row .ic{font-size:18px;line-height:1}
+  .kb-file-row .meta-line{font-size:11px;color:#556059;margin-top:2px}
+  .kb-file-row .pill{display:inline-block;background:rgba(171,135,67,.14);color:#556059;font-size:10.5px;padding:1px 7px;border-radius:99px;margin-right:4px}
+  .kb-upload{background:rgba(171,135,67,.04);border:1px dashed rgba(171,135,67,.3);border-radius:12px;padding:18px 22px;margin-bottom:16px}
+  .kb-upload select,.kb-upload input{background:#ffffff;border:1px solid rgba(171,135,67,.3);border-radius:9px;color:#111111;padding:8px 11px;font-family:inherit;font-size:13px}
+  .kb-upload .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .panel{margin-top:22px}
+  /* gallery */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+  .card{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .18s,border-color .18s}
+  .card:hover{transform:translateY(-3px);border-color:#D0473E}
+  .card .frame{height:170px;background:#fff;overflow:hidden;position:relative}
+  .card .frame iframe{width:200%;height:340px;border:0;transform:scale(.5);transform-origin:top left;pointer-events:none}
+  .card .meta{padding:12px 14px}
+  .card .brand{font-weight:700;font-size:14px;color:#111111}
+  .card .subj{font-size:12px;color:#556059;margin-top:3px;line-height:1.4;max-height:34px;overflow:hidden}
+  .card .date{font-size:10.5px;color:#48524c;margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+  .chip{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:rgba(171,135,67,.14);color:#7a5f28;margin-top:6px}
+  .count{font-size:12px;color:#48524c;margin:0 0 14px}
+  /* empty state */
+  .empty-kb{background:#ffffff;border:1px dashed rgba(171,135,67,.3);border-radius:14px;padding:40px 32px;text-align:center}
+  .empty-kb h3{font-family:'Lora',serif;font-size:20px;color:#111111;font-weight:600;margin-bottom:8px}
+  .empty-kb p{color:#556059;font-size:13.5px;line-height:1.6;max-width:560px;margin:0 auto 18px}
+  .kb-cta{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:9px;background:#D0473E;color:#ffffff;font-weight:600;font-size:13px;text-decoration:none}
+  .kb-cta.ghost{background:transparent;border:1px solid rgba(171,135,67,.4);color:#111111}
+  .loading{color:#556059;font-size:13px;padding:30px;text-align:center}
+  /* modal */
+  #kbm{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px)}
+  #kbm.open{display:flex}
+  .kbm-card{background:#ffffff;border:1px solid rgba(171,135,67,.25);border-radius:14px;width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+  .kbm-h{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid rgba(171,135,67,.18)}
+  .kbm-h .t{font-weight:600;color:#111111;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kbm-act{padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;border:1px solid rgba(171,135,67,.4);background:transparent;color:#111111;cursor:pointer;text-decoration:none}
+  .kbm-body{overflow:auto;padding:0;background:#fff}
+  .kbm-body iframe{width:100%;height:70vh;border:0;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow"><span class="dot"></span> Knowledge Base · KNICKGASM</div>
+  <h1>KNICKGASM <em>Knowledge Base</em></h1>
+  <p class="sub">A growing library of KNICKGASM's own mailers, ads, and landing pages — to reference, reuse, and seed future campaign creation. Competitors live in their own section under <a href="/competitor-benchmarking.html#mailers" style="color:#D0473E">Competitor Benchmarking</a>. Pick a channel.</p>
+
+  <!-- Brand Knowledge Base — the canonical brand truth (voice, catalog, offers,
+       cohorts, creative rules, market intel). Static markdown under knowledge/brand/,
+       narrated in the Growth Book. -->
+  <div style="margin-top:20px;background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:14px;padding:18px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-family:'Lora',serif;font-size:18px;color:#111111;font-weight:600">Brand Knowledge Base</div>
+      <a href="/research" style="display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:9px;background:#D0473E;color:#ffffff;font-weight:700;font-size:12.5px;text-decoration:none">Open the Growth Book →</a>
+    </div>
+    <p style="color:#556059;font-size:13px;line-height:1.6;margin-bottom:14px;max-width:820px">The canonical KNICKGASM truth every tool reads from — brand voice and palette, the product catalog, offers and subscription mechanics, the cohort dictionary, landing-page and creative rules, and the market-intelligence summary.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px" id="brandKbGrid">
+      <a class="bkb" href="/knowledge/brand/01-brand-foundation.md">📖 Brand Foundation<span>Story, voice, palette, lexicon</span></a>
+      <a class="bkb" href="/knowledge/brand/02-product-catalog.md">🫖 Product Catalog<span>Categories, hero products, URLs</span></a>
+      <a class="bkb" href="/knowledge/brand/03-lifecycle-cohorts.md">👥 Lifecycle Cohorts<span>RFM, engagement, lifecycle, avatars</span></a>
+      <a class="bkb" href="/knowledge/brand/04-offers-and-mechanics.md">🎁 Offers &amp; Mechanics<span>Subscription, gifting, discount rules</span></a>
+      <a class="bkb" href="/knowledge/brand/05-landing-pages-and-creative.md">🖼 Landing Pages &amp; Creative<span>/lp contract, presell matrix, rules</span></a>
+      <a class="bkb" href="/knowledge/brand/06-market-intelligence-summary.md">📊 Market Intelligence<span>US/UK headlines, data engine</span></a>
+      <a class="bkb" href="/research">🌱 Growth Book<span>The full narrative, live performance</span></a>
+    </div>
+  </div>
+  <style>
+    .bkb{display:block;background:#ffffff;border:1px solid rgba(171,135,67,.2);border-radius:10px;padding:12px 14px;color:#111111;text-decoration:none;font-size:13.5px;font-weight:600;transition:border-color .15s}
+    .bkb:hover{border-color:#D0473E}
+    .bkb span{display:block;color:#556059;font-size:11.5px;font-weight:400;margin-top:3px}
+  </style>
+
+  <div class="subtabs" id="chanTabs">
+    <button class="subtab" data-chan="mailers">✉ Mailers</button>
+    <button class="subtab" data-chan="meta">▼ Meta Ads</button>
+    <button class="subtab" data-chan="google">G Google Ads</button>
+    <button class="subtab" data-chan="tiktok">♪ TikTok Ads</button>
+    <button class="subtab" data-chan="landing">▦ Landing Pages</button>
+  </div>
+
+  <!-- Region filter — applies to all KNICKGASM + Competitor channels. -->
+  <div id="kbRegions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
+    <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#48524c; font-weight:600; align-self:center; margin-right:8px">Region</span>
+    <button class="region-chip active" data-region="">All</button>
+    <button class="region-chip" data-region="US">US</button>
+    <button class="region-chip" data-region="UK">UK</button>
+    <button class="region-chip" data-region="Global">Global</button>
+    <button class="region-chip" data-region="IN">India</button>
+  </div>
+
+  <!-- Unified "Add to knowledge base" bar — shown for BOTH KNICKGASM and
+       Competitors. Uploads/ingests are tagged with the active source
+       (knickgasm|competitor) + active channel + region so they land in the
+       right bucket. Three independent inputs: files, folder, URL. -->
+  <div id="kbAddBar" style="margin-top:18px; background:#ffffff; border:1px solid rgba(171,135,67,.18); border-radius:14px; padding:16px 18px">
+    <div id="kbAddCtx" style="font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#48524c; font-weight:600; margin-bottom:12px">Add to knowledge base</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+      <label class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">
+        <input id="kbAddFile" type="file" multiple style="display:none">⬆ Upload files
+      </label>
+      <label class="kb-cta ghost" style="cursor:pointer; font-family:inherit">
+        <input id="kbAddFolder" type="file" webkitdirectory directory multiple style="display:none">📁 Upload folder
+      </label>
+      <span style="color:#48524c; font-size:12px">or</span>
+      <input id="kbAddUrl" type="url" placeholder="Paste a URL — blog, tweet, article, landing page…" style="flex:1; min-width:240px; background:#ffffff; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#111111; padding:10px 12px; font-family:inherit; font-size:13px">
+      <button id="kbAddUrlBtn" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Ingest URL with AI</button>
+    </div>
+    <div id="kbAddStatus" style="font-size:12.5px; color:#556059; min-height:16px; margin-top:10px"></div>
+  </div>
+
+  <div class="panel" id="panel"></div>
+</div>
+
+<!-- Preview modal -->
+<div id="kbm" aria-hidden="true">
+  <div class="kbm-card">
+    <div class="kbm-h">
+      <span class="t" id="kbm-title"></span>
+      <button class="kbm-act" id="kbm-dl">Download .html</button>
+      <button class="kbm-act" id="kbm-close">×</button>
+    </div>
+    <div class="kbm-body"><iframe id="kbm-frame" sandbox=""></iframe></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const API='/api/competitor';
+  const $=(id)=>document.getElementById(id);
+  const esc=(s)=>(s||'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtDate=(iso)=>{const d=new Date(iso);return isNaN(d)?(iso||'—'):d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});};
+  // KNICKGASM-only knowledge base. The source is always 'knickgasm' now — competitor
+  // assets live on competitor-benchmarking.html. src is kept in state so the
+  // shared render/ingest logic below needs no further changes.
+  const state={src:'knickgasm',chan:'mailers',region:'',emails:null,knowledge:null,files:null};
+  const htmlCache={};
+  // Sub-channels that show the email/ad library. The Mailers channel reuses
+  // the existing competitor sync; Meta/Google/TikTok/Landing are placeholders
+  // until per-channel capture lands — they render empty states pointing at
+  // the right place to seed/capture them.
+  const CHANNELS = ['mailers','meta','google','tiktok','landing'];
+
+  function setActive(){
+    state.src='knickgasm'; // KNICKGASM-only page
+    document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.classList.toggle('active',b.dataset.chan===state.chan));
+    // Update the add-bar context label so it's clear WHERE uploads land.
+    const chanName = ({mailers:'Mailers',meta:'Meta Ads',google:'Google Ads',tiktok:'TikTok Ads',landing:'Landing Pages'})[state.chan] || state.chan;
+    const ctx = document.getElementById('kbAddCtx');
+    if (ctx) ctx.textContent = `Add to knowledge base → KNICKGASM · ${chanName}${state.region ? ' · ' + state.region : ''}`;
+    // Hash schema: #<chan>[/<region>]
+    let h = state.chan;
+    if (state.region) h += '/' + state.region;
+    location.hash = h;
+  }
+
+  // ─── Top KNICKGASM emails: list + bulk import ─────────────────────────
+  state.topEmails = null;
+  async function fetchTopEmails(force){
+    if(state.topEmails && !force) return state.topEmails;
+    try{ const r=await fetch('/api/kb?action=top-emails&limit=200'); const d=await r.json(); state.topEmails = d.items||[]; }
+    catch{ state.topEmails=[]; }
+    return state.topEmails;
+  }
+  function fmtPct(v){ if(v==null) return '—'; return (Number(v)*100).toFixed(1)+'%'; }
+  function fmtRev(v){ if(v==null) return '—'; const n=Number(v); if(!isFinite(n)) return '—'; return n.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}); }
+  function renderTopEmails(p, items){
+    const importBlock = `
+      <details style="background:#ffffff; border:1px solid rgba(171,135,67,.18); border-radius:12px; padding:14px 18px; margin-bottom:18px">
+        <summary style="cursor:pointer; font-weight:600; color:#111111; font-size:13.5px">⬆ Import top emails (paste JSON or CSV)</summary>
+        <p style="font-size:12.5px; color:#556059; margin:10px 0">
+          Each row needs at minimum <code style="color:#D0473E">subject</code> and <code style="color:#D0473E">body_text</code>. Optional:
+          <code style="color:#D0473E">sent_at, preheader, market, segment, campaign_type, open_rate, click_rate, conversion_rate, revenue, send_count, tags, notes</code>.
+          Rates can be 0–1 or 0–100 (auto-detected).
+        </p>
+        <textarea id="kbTopPaste" rows="8" placeholder='[
+  {"subject":"One-of-One Jordan — 25% off this week", "body_text":"Hand-painted, studio-fresh in 72 hours…", "market":"US", "campaign_type":"Sale", "open_rate":0.42, "click_rate":0.08, "revenue":12500, "send_count":50000}
+]' style="width:100%; background:#ffffff; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#111111; padding:10px 12px; font-family:monospace; font-size:12px"></textarea>
+        <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap">
+          <button id="kbTopImport" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Import</button>
+          <span id="kbTopStatus" style="font-size:12.5px; color:#556059"></span>
+        </div>
+      </details>`;
+    if(!items.length){
+      p.innerHTML = importBlock + emptyState(
+        'No top KNICKGASM emails seeded yet',
+        'Feed the historical winners (min 50 with metrics) above — open rate, CTR, revenue. They become style + voice anchors for every new mailer the Studio generates.',
+        '', ''
+      );
+    } else {
+      p.innerHTML = importBlock +
+        `<p class="count">${items.length} top mailers seeded · sorted by recency</p>
+         <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px" id="kbTopGrid"></div>`;
+      document.getElementById('kbTopGrid').innerHTML = items.map(it=>{
+        const tags=(it.tags||[]).slice(0,4).map(t=>'<span class="chip">'+esc(t)+'</span>').join(' ');
+        return `<div class="card" style="cursor:auto; padding:14px 16px">
+          <div style="font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:#48524c; font-weight:700; margin-bottom:4px">${esc(it.market||'—')} · ${esc(it.campaign_type||'—')} · ${esc(fmtDate(it.sent_at||it.added_at))}</div>
+          <div class="brand" style="font-size:14px">${esc(it.subject)}</div>
+          ${it.preheader?'<div style="font-size:12px; color:#556059; margin-top:3px">'+esc(it.preheader)+'</div>':''}
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:10px; padding:10px 0; border-top:1px solid rgba(171,135,67,.08); border-bottom:1px solid rgba(171,135,67,.08)">
+            <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">Open</div><div style="color:#111111; font-weight:600; font-size:13px">${fmtPct(it.open_rate)}</div></div>
+            <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">CTR</div><div style="color:#111111; font-weight:600; font-size:13px">${fmtPct(it.click_rate)}</div></div>
+            <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">Revenue</div><div style="color:#D0473E; font-weight:600; font-size:13px">${fmtRev(it.revenue)}</div></div>
+          </div>
+          ${it.body_text?'<p style="color:#556059; font-size:12px; line-height:1.55; margin-top:8px; max-height:80px; overflow:hidden">'+esc(it.body_text.slice(0,280))+(it.body_text.length>280?'…':'')+'</p>':''}
+          ${tags?'<div style="margin-top:8px">'+tags+'</div>':''}
+        </div>`;
+      }).join('');
+    }
+    // Wire the importer
+    document.getElementById('kbTopImport').addEventListener('click', importTopEmails);
+  }
+  async function importTopEmails(){
+    const ta=document.getElementById('kbTopPaste'), status=document.getElementById('kbTopStatus'), btn=document.getElementById('kbTopImport');
+    const raw=(ta.value||'').trim();
+    if(!raw){ status.textContent='Paste JSON or CSV first.'; return; }
+    let items;
+    try{ items = JSON.parse(raw); if(!Array.isArray(items)) items=[items]; }
+    catch{ items = parseCsv(raw); }
+    if(!items || !items.length){ status.textContent='Could not parse — JSON array or CSV with headers expected.'; return; }
+    btn.disabled=true; btn.style.opacity='0.6'; status.textContent='Importing '+items.length+' rows…';
+    try{
+      const r=await fetch('/api/kb?action=top-emails&bulk=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})});
+      const d=await r.json();
+      if(!r.ok || !d.ok){ status.textContent='Failed: '+(d.error||r.statusText); return; }
+      status.textContent='Imported '+d.inserted+(d.rejected?(' · skipped '+d.rejected+' (missing subject/body_text)'):'');
+      ta.value='';
+      await fetchTopEmails(true);
+      if(state.src==='knickgasm' && state.chan==='mailers') render();
+    }catch(err){ status.textContent='Error: '+err.message; }
+    finally{ btn.disabled=false; btn.style.opacity=''; }
+  }
+  // Minimal CSV → array of objects (header row, comma separator, quoted-fields supported)
+  function parseCsv(text){
+    const lines = text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2) return null;
+    const splitRow = (line) => {
+      const out=[]; let cur='', q=false;
+      for(let i=0;i<line.length;i++){ const c=line[i];
+        if(c==='"'){ if(q && line[i+1]==='"'){ cur+='"'; i++; } else q=!q; }
+        else if(c===',' && !q){ out.push(cur); cur=''; }
+        else cur+=c;
+      } out.push(cur); return out.map(s=>s.trim());
+    };
+    const headers = splitRow(lines[0]).map(h=>h.toLowerCase());
+    return lines.slice(1).map(line=>{
+      const cols=splitRow(line); const obj={};
+      headers.forEach((h,i)=>{ if(cols[i]!==undefined && cols[i]!=='') obj[h]=cols[i]; });
+      return obj;
+    });
+  }
+
+  // ─── Add-bar wiring (file / folder / URL — tagged to active bucket) ──
+  $('kbAddFile').addEventListener('change', (e)=>{ if(e.target.files?.length) uploadToKb(e.target.files); });
+  $('kbAddFolder').addEventListener('change', (e)=>{ if(e.target.files?.length) uploadToKb(e.target.files); });
+  $('kbAddUrlBtn').addEventListener('click', ingestUrl);
+  $('kbAddUrl').addEventListener('keydown', (e)=>{ if(e.key==='Enter') ingestUrl(); });
+
+  // (legacy renderManual retained below but unused — kept to avoid breaking refs)
+  function renderManual(p){
+    const items=state.knowledge||[];
+    if(!items.length){ p.innerHTML=emptyState('Nothing in the knowledge base yet','Paste any blog post, tweet, article, or video URL above. AI fetches the page, extracts the key points, and stores it here so Mailer Studio + Ad Campaigns can use it as context.','',''); return; }
+    p.innerHTML = `<p class="count">${items.length} sources ingested · click any to read the summary</p>
+      <div style="display:flex; flex-direction:column; gap:12px" id="kbList"></div>`;
+    document.getElementById('kbList').innerHTML = items.map(it=>{
+      const tags=(it.tags||[]).slice(0,5).map(t=>'<span class="chip">'+esc(t)+'</span>').join(' ');
+      const kp=(it.key_points||[]).slice(0,4).map(k=>'<li style="margin:3px 0">'+esc(k)+'</li>').join('');
+      return `<div class="card" style="cursor:auto; padding:16px 18px">
+        <div style="display:flex; justify-content:space-between; align-items:start; gap:12px">
+          <div style="flex:1; min-width:0">
+            <div style="font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:#48524c; font-weight:700; margin-bottom:4px">${esc(it.source_type||'web')} · ${esc(fmtDate(it.added_at))}</div>
+            <div class="brand" style="font-size:15px">${esc(it.title||it.url)}</div>
+            ${it.author?'<div style="font-size:11.5px; color:#556059; margin-top:2px">by '+esc(it.author)+'</div>':''}
+          </div>
+          <a href="${esc(it.url)}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none; flex-shrink:0">Open ↗</a>
+        </div>
+        ${it.summary?'<p style="color:#556059; font-size:13px; line-height:1.55; margin-top:10px">'+esc(it.summary)+'</p>':'<p style="color:#48524c; font-style:italic; font-size:12.5px; margin-top:10px">Status: '+esc(it.status||'pending')+'</p>'}
+        ${kp?'<ul style="margin-top:8px; padding-left:18px; color:#556059; font-size:12.5px">'+kp+'</ul>':''}
+        ${tags?'<div style="margin-top:8px">'+tags+'</div>':''}
+      </div>`;
+    }).join('');
+  }
+
+  async function fetchEmails(){
+    if(state.emails)return state.emails;
+    try{const r=await fetch(API+'?action=list');const d=await r.json();state.emails=d.emails||[];}catch{state.emails=[];}
+    return state.emails;
+  }
+
+  function emptyState(title,body,ctaLabel,ctaHref){
+    return `<div class="empty-kb"><h3>${esc(title)}</h3><p>${body}</p>${ctaHref?`<a class="kb-cta" href="${ctaHref}">${esc(ctaLabel)} →</a>`:''}</div>`;
+  }
+
+  // Channel-specific copy used for empty states so each panel still feels
+  // intentional even before the per-channel data lands.
+  const CHANNEL_META = {
+    mailers: { name: 'Mailers',      icon: '✉', dest: '/calendar.html',         destLabel: 'Open Marketing Mailers' },
+    meta:    { name: 'Meta Ads',     icon: '▼', dest: '/ad-campaigns.html#meta', destLabel: 'Open Meta Ads' },
+    google:  { name: 'Google Ads',   icon: 'G', dest: '/ad-campaigns.html#google', destLabel: 'Open Google Ads' },
+    tiktok:  { name: 'TikTok Ads',   icon: '♪', dest: '/ad-campaigns.html#tiktok', destLabel: 'Open TikTok Ads' },
+    landing: { name: 'Landing Pages',icon: '▦', dest: '/landing-pages.html',     destLabel: 'Open Landing Pages' },
+  };
+
+  // ── Live KNICKGASM ad libraries — the SAME deep-link picking Competitor
+  //    Benchmarking uses (adSources), with the brand pinned to KNICKGASM. Meta is
+  //    searched by advertiser name, Google by KNICKGASM's verified per-region
+  //    domain, TikTok by advertiser name + region. Per-region KNICKGASM domains:
+  //    US knickgasm.com · UK knickgasm.com · Global knickgasm.com · IN knickgasm.in.
+  const KNICKGASM_DOMAINS = { US: 'knickgasm.com', UK: 'knickgasm.com', Global: 'knickgasm.com', IN: 'knickgasm.in' };
+  const REGION_LABELS = { US: 'United States', UK: 'United Kingdom', Global: 'Global', IN: 'India' };
+  // Meta/TikTok expect ISO country codes; UK => GB, Global => worldwide.
+  const AD_COUNTRY = { US: 'US', UK: 'GB', IN: 'IN' };
+  const TT_SUPPORTED = ['GB','DE','FR','IT','ES','NL','IE','SE','DK','FI','NO','PL','AT','BE','PT','GR','CZ','RO','HU','CH'];
+  const AD_TABS = ['meta', 'google', 'tiktok'];
+  const KNICKGASM_AD_NOTE = {
+    meta:   'Live <b>KNICKGASM Meta (Facebook + Instagram)</b> ads via the free <b>Meta Ad Library</b>, searched by advertiser name. Open any region tile pre-filtered.',
+    google: "Live <b>KNICKGASM Google</b> ads (Search, Display, YouTube) via the free <b>Google Ads Transparency Center</b>, matched by KNICKGASM's verified per-region domain.",
+    tiktok: 'Live <b>KNICKGASM TikTok</b> ads via the free <b>TikTok Commercial Content Library</b>, searched by advertiser name and region (library covers EEA/UK).',
+  };
+  // Returns [meta, google, tiktok] deep-link entries for KNICKGASM in one region,
+  // built exactly like competitor-benchmarking.html adSources().
+  function knickgasmAdSources(region) {
+    const name = 'Knickgasm';
+    const domain = KNICKGASM_DOMAINS[region] || 'knickgasm.com';
+    const country = AD_COUNTRY[region] || 'ALL'; // Global / All => ALL
+    const metaParams = new URLSearchParams({ active_status: 'all', ad_type: 'all', country, q: name, search_type: 'keyword_unordered', media_type: 'all' });
+    const metaUrl = 'https://www.facebook.com/ads/library/?' + metaParams;
+    const googleParams = new URLSearchParams({ region: AD_COUNTRY[region] || 'anywhere' });
+    googleParams.set('domain', domain);
+    const googleUrl = 'https://adstransparency.google.com/?' + googleParams;
+    const ttEnd = Date.now();
+    const ttStart = ttEnd - 1000 * 60 * 60 * 24 * 30;   // last 30 days (TikTok rejects very wide windows)
+    const ttRegion = TT_SUPPORTED.includes(country) ? country : 'all';
+    // adv_name LOWERCASE + TikTok's exact param order (adv_name, adv_biz_ids,
+    // query_type, then sort_type).
+    const ttName = String(name).toLowerCase();
+    const tiktokUrl = 'https://library.tiktok.com/ads?region=' + ttRegion +
+      '&start_time=' + ttStart + '&end_time=' + ttEnd +
+      '&adv_name=' + encodeURIComponent(ttName) + '&adv_biz_ids=&query_type=1' +
+      '&sort_type=last_shown_date,desc';
+    // PiPiADS covers TikTok ads worldwide (incl. US/IN), unlike the EEA/UK-only
+    // official library — better for Knickgasm's markets.
+    const pipiadsUrl = 'https://www.pipiads.com/ad-search?is_participle=false&plat_type=1&search_type=1' +
+      '&extend_keywords=' + encodeURIComponent(JSON.stringify([{ type: 1, keyword: ttName }])) +
+      '&sort=2&sort_type=desc&current_page=1';
+    return [
+      { label: 'Meta Ad Library', url: metaUrl, hint: 'name: ' + name + ' · ' + (country === 'ALL' ? 'worldwide' : country) },
+      { label: 'Google Ads Transparency', url: googleUrl, hint: 'domain: ' + domain },
+      { label: 'TikTok Content Library', url: tiktokUrl, hint: 'name: ' + name + ' · ' + (ttRegion === 'all' ? 'worldwide (library covers EEA/UK only)' : ttRegion) },
+    ];
+  }
+
+  async function render(){
+    setActive();
+    loadBucketFiles();            // refresh "in this bucket" list in the add-bar
+    const p=$('panel');
+    const meta = CHANNEL_META[state.chan];
+
+    // ── Competitor → Mailers (live: captured competitor emails) ─
+    if(state.src==='competitor' && state.chan==='mailers'){
+      p.innerHTML='<div class="loading">Loading captured competitor mailers…</div>';
+      const emails=await fetchEmails();
+      const filtered = state.region ? emails.filter(e => regionOfBrand(e.brand) === state.region) : emails;
+      if(!filtered.length){p.innerHTML=emptyState('No mailers captured yet'+(state.region?(' for '+state.region):''),'Competitor emails captured into the monitored inbox will appear here as a visual design library.','Open Competitor Benchmarking','/competitor-benchmarking.html');return;}
+      p.innerHTML=`<p class="count">${filtered.length} competitor mailers archived${state.region?(' · '+state.region):''} · click any to preview</p><div class="grid" id="grid"></div>`;
+      $('grid').innerHTML=filtered.map(e=>`
+        <div class="card" data-id="${esc(e.id)}">
+          <div class="frame" data-frame="${esc(e.id)}"></div>
+          <div class="meta"><div class="brand">${esc(e.brand)}</div><div class="subj">${esc(e.subject)}</div><div class="date">${esc(fmtDate(e.receivedAt))}</div>${e.promoCodes&&e.promoCodes!=='None'?`<span class="chip">🏷 ${esc(e.promoCodes.split(',')[0])}</span>`:''}</div>
+        </div>`).join('');
+      $('grid').querySelectorAll('.card').forEach(c=>{
+        c.addEventListener('click',()=>openPreview(c.dataset.id));
+        lazyThumb(c.dataset.id);
+      });
+      return;
+    }
+
+    // ── KNICKGASM → Mailers (live: hand-seeded top emails) ─────────
+    if(state.src==='knickgasm' && state.chan==='mailers'){
+      p.innerHTML='<div class="loading">Loading top KNICKGASM mailers…</div>';
+      const items = await fetchTopEmails();
+      const filtered = state.region ? items.filter(x => x.market === state.region) : items;
+      renderTopEmails(p, filtered);
+      return;
+    }
+
+    // ── KNICKGASM → Meta / Google / TikTok ads (live deep-link libraries) ─
+    // Picks KNICKGASM's live ad data the same way Competitor Benchmarking picks
+    // competitor ads: a per-region deep link into each platform's free public
+    // ad library. One tile per region (or just the selected region).
+    if(state.src==='knickgasm' && AD_TABS.includes(state.chan)){
+      const idx = AD_TABS.indexOf(state.chan);
+      const regions = state.region ? [state.region] : ['US','UK','Global','IN'];
+      const tiles = regions.map(rg=>{
+        const s = knickgasmAdSources(rg)[idx];
+        return `<a class="bkb" href="${s.url}" target="_blank" rel="noopener">${meta.icon} KNICKGASM ${esc(meta.name)} · ${esc(REGION_LABELS[rg]||rg)} ↗<span>${esc(s.hint)}</span></a>`;
+      }).join('');
+      p.innerHTML = `<p class="count">${KNICKGASM_AD_NOTE[state.chan]}</p>`
+        + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px">${tiles}</div>`
+        + `<p style="font-size:12px;color:#48524c;margin-top:16px">Google and TikTok do not expose a free structured ad feed, so each tile opens the official free library pre-filtered for KNICKGASM. Build new creatives in the ad generator, then archive them here via the add bar above.</p>`
+        + `<div style="margin-top:12px"><a class="kb-cta" href="${meta.dest}">${esc(meta.destLabel)} →</a></div>`;
+      return;
+    }
+
+    // ── Everything else: scaffolded empty state per channel ─────
+    const who = state.src==='knickgasm' ? 'KNICKGASM' : 'Competitor';
+    p.innerHTML = emptyState(
+      `${meta.icon} ${who} ${meta.name}${state.region?(' · '+state.region):''}`,
+      state.src==='knickgasm'
+        ? `Your ${meta.name.toLowerCase()} will live here as a brand-locked reference for future generation. The creation flow is one click away — build them there, archive them here.`
+        : `Captured competitor ${meta.name.toLowerCase()} will be archived here once per-channel capture lands (mirroring the mailer pipeline). For now, browse live in Competitor Benchmarking.`,
+      state.src==='knickgasm' ? meta.destLabel : 'Open Competitor Benchmarking',
+      state.src==='knickgasm' ? meta.dest : '/competitor-benchmarking.html'
+    );
+  }
+
+  // Quick heuristic: tag a brand to a region. Real region attribution comes
+  // from competitor_brands once we hook the captured mailers to it.
+  function regionOfBrand(brand) {
+    if (!brand) return null;
+    const UK = ['Leather Works','Moreiarty','Yogi Europe','Bird & Colorway','Clipper','Teapigs','Whittard','Craft Sneaker','Newby','Pact Coffee','Grind','Origin Coffee','Square Mile','Workshop Coffee','MyProtein','Holland & Barrett','Bulk','Vitabiotics','Healthspan','Solgar UK','Wild Nutrition','Innermost','Vitl'];
+    if (UK.some((u) => brand.toLowerCase().includes(u.toLowerCase()))) return 'UK';
+    return 'US';
+  }
+
+  function fmtBytes(n){if(!n)return '0 B';const u=['B','KB','MB','GB'];let i=0,v=n;while(v>=1024&&i<u.length-1){v/=1024;i++;}return v.toFixed(v<10?1:0)+' '+u[i];}
+
+  // ─── Unified "Add to knowledge base" bar ──────────────────────────
+  // Everything uploaded/ingested is tagged with category = "<src>-<chan>"
+  // (e.g. "knickgasm-landing", "competitor-meta") + the active region, so it
+  // lands in the right bucket and shows under that source+channel.
+  function bucketCategory(){ return state.src + '-' + state.chan; }
+
+  async function getSb() {
+    const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
+    const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
+    if (!sbUrl || !anon) return null;
+    for (let i=0; i<50 && !window.supabase; i++) await new Promise(r=>setTimeout(r,60));
+    if (!window.supabase) {
+      const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      await new Promise((res,rej)=>{s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+    }
+    return { sb: window.supabase.createClient(sbUrl, anon), sbUrl, anon };
+  }
+
+  async function uploadToKb(fileList) {
+    const status = $('kbAddStatus');
+    const ctx = await getSb();
+    if (!ctx) { status.textContent = 'Supabase not configured.'; return; }
+    const { sb } = ctx;
+    const category = bucketCategory();
+    const region = state.region || null;
+    let done=0, total=fileList.length, failed=0;
+    for (const f of fileList) {
+      status.textContent = `Uploading ${++done}/${total}: ${f.name}…`;
+      // Preserve folder structure in the path when a folder was picked.
+      const rel = (f.webkitRelativePath || f.name).replace(/[^\w./\-]+/g,'_');
+      const path = `${category}/${Date.now()}_${rel}`;
+      try {
+        const { error: upErr } = await sb.storage.from('knowledge-base').upload(path, f, { upsert:false, contentType: f.type||'application/octet-stream' });
+        if (upErr) throw upErr;
+        const pub = sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
+        const { error: rowErr } = await sb.from('kb_files').insert({ storage_path:path, file_name:f.name, mime_type:f.type||'application/octet-stream', size_bytes:f.size, category, region, public_url:pub, uploaded_by:'dashboard' });
+        if (rowErr) throw rowErr;
+      } catch (err) { failed++; console.warn('[kb] upload', f.name, err.message); }
+    }
+    status.textContent = failed ? `Done. ${total-failed} uploaded, ${failed} failed.` : `Uploaded ${total} file${total>1?'s':''} to ${category}.`;
+    loadBucketFiles();
+  }
+
+  async function ingestUrl() {
+    const urlEl=$('kbAddUrl'), status=$('kbAddStatus'), btn=$('kbAddUrlBtn');
+    const url=(urlEl.value||'').trim();
+    if(!url){ status.textContent='Paste a URL first.'; return; }
+    btn.disabled=true; const o=btn.textContent; btn.textContent='Ingesting… (5-15s)';
+    status.textContent='Fetching + summarizing…';
+    try{
+      const tags=[state.src, state.chan]; if(state.region) tags.push(state.region.toLowerCase());
+      const r=await fetch('/api/kb?action=ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,tags,added_by:'dashboard'})});
+      const d=await r.json();
+      if(!r.ok||!d.ok){ status.textContent='Failed: '+(d.error||r.statusText); return; }
+      status.textContent='Added: '+(d.title||url);
+      urlEl.value='';
+      loadBucketFiles();
+    }catch(err){ status.textContent='Error: '+err.message; }
+    finally{ btn.disabled=false; btn.textContent=o; }
+  }
+
+  // List both uploaded files (kb_files) AND ingested URLs (kb_knowledge) for
+  // the current src+chan bucket, shown inside the add-bar.
+  async function loadBucketFiles() {
+    let host = $('kbAddFilesList');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'kbAddFilesList';
+      host.style.marginTop = '12px';
+      $('kbAddBar').appendChild(host);
+    }
+    const category = bucketCategory();
+    try {
+      const ctx = await getSb(); if (!ctx) { host.innerHTML=''; return; }
+      const { sbUrl, anon } = ctx;
+      const hdr = { apikey: anon, Authorization: `Bearer ${anon}` };
+      const [fr, kr] = await Promise.all([
+        fetch(`${sbUrl}/rest/v1/kb_files?select=*&category=eq.${encodeURIComponent(category)}&order=uploaded_at.desc&limit=100`, { headers: hdr }).then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetch(`${sbUrl}/rest/v1/kb_knowledge?select=id,url,title,summary,tags,added_at&order=added_at.desc&limit=100`, { headers: hdr }).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      ]);
+      // Filter ingested URLs to this bucket by tag match (src + chan).
+      const urls = (kr||[]).filter(k => Array.isArray(k.tags) && k.tags.includes(state.src) && k.tags.includes(state.chan));
+      const rows = [];
+      (fr||[]).forEach(f=>{
+        const ic=(f.mime_type||'').startsWith('image/')?'🖼':f.mime_type==='application/pdf'?'📄':/(sheet|csv|xlsx)/i.test(f.mime_type||f.file_name||'')?'📊':(f.mime_type||'').startsWith('video/')?'🎬':'📎';
+        rows.push(`<div class="kb-file-row"><div class="ic">${ic}</div><div style="flex:1;min-width:0"><div style="font-weight:600;color:#111111;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.file_name)}</div><div class="meta-line">${f.region?'<span class="pill">'+esc(f.region)+'</span>':''}${fmtBytes(f.size_bytes||0)} · ${new Date(f.uploaded_at).toLocaleDateString()}</div></div><a href="${esc(f.public_url||'#')}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none">Open ↗</a></div>`);
+      });
+      urls.forEach(k=>{
+        rows.push(`<div class="kb-file-row"><div class="ic">🔗</div><div style="flex:1;min-width:0"><div style="font-weight:600;color:#111111;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.title||k.url)}</div><div class="meta-line">${esc((k.summary||'').slice(0,90))}</div></div><a href="${esc(k.url)}" target="_blank" rel="noopener" class="kbm-act" style="text-decoration:none">Open ↗</a></div>`);
+      });
+      host.innerHTML = rows.length
+        ? `<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#48524c;font-weight:600;margin:4px 0 8px">In this bucket (${rows.length})</div>` + rows.join('')
+        : '';
+    } catch { host.innerHTML=''; }
+  }
+
+  async function loadHtml(id){
+    if(htmlCache[id]!==undefined)return htmlCache[id];
+    try{const r=await fetch(API+'?action=html&id='+encodeURIComponent(id));const d=await r.json();htmlCache[id]=(d&&typeof d.html==='string')?d.html:'';}catch{htmlCache[id]='';}
+    return htmlCache[id];
+  }
+  async function lazyThumb(id){
+    const html=await loadHtml(id);
+    const f=document.querySelector(`[data-frame="${CSS.escape(id)}"]`);
+    if(f&&html){const fr=document.createElement('iframe');fr.setAttribute('sandbox','');fr.srcdoc=html;f.appendChild(fr);}
+  }
+
+  const modal=$('kbm');
+  async function openPreview(id){
+    const e=(state.emails||[]).find(x=>x.id===id);
+    $('kbm-title').textContent=e?`${e.brand} — ${e.subject}`:'Email';
+    const html=await loadHtml(id);
+    $('kbm-frame').srcdoc=html||'<p style="font-family:sans-serif;padding:20px">Raw HTML not stored for this email.</p>';
+    $('kbm-dl').onclick=()=>{if(!html)return;const b=new Blob([html],{type:'text/html'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=(e?e.brand:'email').replace(/[^\w]+/g,'_')+'.html';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
+    modal.classList.add('open');modal.setAttribute('aria-hidden','false');
+  }
+  function closeModal(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');$('kbm-frame').srcdoc='';}
+  $('kbm-close').addEventListener('click',closeModal);
+  modal.addEventListener('click',(e)=>{if(e.target===modal)closeModal();});
+  document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
+
+  document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.addEventListener('click',()=>{state.chan=b.dataset.chan;render();}));
+  document.querySelectorAll('#kbRegions .region-chip').forEach(b=>b.addEventListener('click',()=>{
+    state.region = b.dataset.region;
+    document.querySelectorAll('#kbRegions .region-chip').forEach(x=>x.classList.toggle('active', x===b));
+    render();
+  }));
+
+  // Deep-link parser. New schema: #<chan>[/<region>]. Back-compat: legacy
+  // #knickgasm-<chan> / #competitor-<chan> still resolve to the channel; legacy
+  // #manual/#files/#ads → mailers/meta.
+  (function initFromHash(){
+    const raw=(location.hash||'').replace('#','');
+    if(!raw) return;
+    const [main, region] = raw.split('/');
+    if (main==='manual' || main==='files') { state.chan='mailers'; }
+    else {
+      // strip a legacy "knickgasm-"/"competitor-" source prefix if present
+      let chan = main.replace(/^(knickgasm|competitor)-/, '');
+      if (chan === 'ads') chan = 'meta';
+      state.chan = CHANNELS.includes(chan) ? chan : 'mailers';
+    }
+    if (region && ['US','UK','Global','India'].includes(region)) {
+      state.region = region;
+      document.querySelectorAll('#kbRegions .region-chip').forEach(x => x.classList.toggle('active', x.dataset.region === region));
+    }
+  })();
+  render();
+})();
+</script>
+</body>
+</html>

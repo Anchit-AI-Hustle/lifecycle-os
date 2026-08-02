@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connectors — KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#6A33D8">
+<style>
+  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--muted:#48524c}
+  *{box-sizing:border-box} body{margin:0;background:#ffffff;color:#111111;font-family:Inter,system-ui,Arial,sans-serif;padding:28px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
+  .eyebrow{color:var(--lava);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+  h1{font-family:Georgia,serif;font-size:38px;line-height:1.05;margin:8px 0 10px}
+  p{color:#556059;line-height:1.55}
+  .btn{border:0;border-radius:10px;background:var(--lava);color:#ffffff;padding:10px 14px;font-weight:800;cursor:pointer}
+  .btn.secondary{background:transparent;color:#111111;border:1px solid rgba(171,135,67,.35)}
+  .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:12px;padding:10px 14px;font-size:13px}
+  .chip b{font-size:20px;color:#111111;display:block;font-variant-numeric:tabular-nums}
+  .cat{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--lava);font-weight:800;margin:22px 0 10px}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .conn{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .conn .h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .conn .nm{font-size:16px;font-weight:800;color:#111111}
+  .conn .pv{font-size:11px;color:#48524c}
+  .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+  .st.connected{background:rgba(29,107,69,.3);color:#0a7d33}
+  .st.partial{background:rgba(171,135,67,.16);color:#7a5f28}
+  .st.not_connected{background:rgba(180,60,60,.22);color:#e89a9a}
+  .pill{display:inline-block;border:1px solid rgba(171,135,67,.3);border-radius:999px;padding:2px 8px;margin:1px 2px 1px 0;font-size:11px;color:#7a5f28}
+  .pill.miss{border-color:rgba(232,154,154,.4);color:#e89a9a}
+  .k{font-size:10px;color:#48524c;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
+  .setup{font-size:12px;color:#556059;line-height:1.5;background:#f4f2ec;border:1px solid rgba(171,135,67,.12);border-radius:10px;padding:10px}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
+  .lastsync{font-size:11px;color:#48524c}
+  a{color:var(--lava)}
+  .banner{border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px}
+  .banner.err{background:rgba(180,60,60,.14);border:1px solid rgba(180,60,60,.5);color:#111111}
+  .banner.info{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.4);color:#111111}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(max-width:820px){.cards{grid-template-columns:1fr}h1{font-size:28px}}
+</style>
+<script src="/auth.js?v=20260718light" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">KNICKGASM Lifecycle OS · Settings</div>
+      <h1>Connectors</h1>
+      <p>Connection status is checked server-side against real environment variables — never faked. Missing credentials show an honest Not Connected state with the exact setup steps. Secrets are set in Vercel and never exposed to the browser.</p>
+    </div>
+    <button class="btn secondary" id="reload-btn">Reload</button>
+  </div>
+  <div id="banner"></div>
+  <div class="summary" id="summary"></div>
+  <div id="content"><p><span class="spinner"></span> Loading connectors…</p></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var API = "/api/brain";
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  function timeago(iso){ if(!iso) return "never"; try{ var d=new Date(iso); var s=Math.floor((Date.now()-d.getTime())/1000); if(s<60)return s+"s ago"; if(s<3600)return Math.floor(s/60)+"m ago"; if(s<86400)return Math.floor(s/3600)+"h ago"; return Math.floor(s/86400)+"d ago"; }catch(e){return "";} }
+  var CAT_LABEL = { competitive:"Competitive Intelligence", ads:"Ad Platforms", commerce:"Commerce", email:"Email / Lifecycle", analytics:"Analytics", generation:"AI Generation", utility:"Utility & Storage", other:"Other" };
+  var stLabel = { connected:"Connected", partial:"Partial", not_connected:"Not Connected" };
+
+  function card(c){
+    var h = '<div class="conn" data-id="'+esc(c.id)+'">';
+    h += '<div class="h"><div><div class="nm">'+esc(c.name)+'</div><div class="pv">'+esc(c.provider||c.category)+(c.include_in_daily_job?' · in daily job':'')+'</div></div><span class="st '+esc(c.state)+'">'+esc(stLabel[c.state]||c.state)+'</span></div>';
+
+    if((c.supported_data_types||[]).length){
+      h += '<div><div class="k">Data types</div>'+c.supported_data_types.map(function(t){return '<span class="pill">'+esc(t)+'</span>';}).join('')+'</div>';
+    }
+    // env vars — required, with missing highlighted
+    if((c.required_env_vars||[]).length){
+      h += '<div><div class="k">Required env</div>'+c.required_env_vars.map(function(v){
+        var miss = (c.missing_env_vars||[]).indexOf(v)>=0;
+        return '<span class="pill'+(miss?' miss':'')+'">'+esc(v)+(miss?' ✕':' ✓')+'</span>';
+      }).join('')+'</div>';
+    }
+    if(c.state!=="connected" && c.setup_instructions){
+      h += '<div class="setup"><b>Setup:</b> '+esc(c.setup_instructions)+(c.docs_url?(' <a href="'+esc(c.docs_url)+'" target="_blank" rel="noopener">Docs →</a>'):'')+'</div>';
+    } else if (c.docs_url){
+      h += '<div class="k"><a href="'+esc(c.docs_url)+'" target="_blank" rel="noopener">Documentation →</a></div>';
+    }
+
+    h += '<div class="foot"><span class="lastsync">Last sync: '+esc(timeago(c.last_sync_at))+(c.last_status?(' · '+esc(c.last_status)):'')+'</span>';
+    h += '<button class="btn sm sync" data-id="'+esc(c.id)+'">Sync now</button></div>';
+    if(c.last_message){ h += '<div class="lastsync" style="opacity:.8">'+esc(c.last_message)+'</div>'; }
+    h += '</div>';
+    return h;
+  }
+
+  function render(d){
+    var s = d.summary||{};
+    $("summary").innerHTML =
+      '<div class="chip"><b>'+(s.connected||0)+'</b> Connected</div>'+
+      '<div class="chip"><b>'+(s.partial||0)+'</b> Partial</div>'+
+      '<div class="chip"><b>'+(s.not_connected||0)+'</b> Not connected</div>'+
+      '<div class="chip"><b>'+(s.total||0)+'</b> Total'+(s.persisted?'':' <span style="color:#e89a9a;font-size:11px">(fallback — migration not applied)</span>')+'</div>';
+
+    var groups = {};
+    (d.connectors||[]).forEach(function(c){ (groups[c.category]=groups[c.category]||[]).push(c); });
+    var order = ["competitive","ads","commerce","email","analytics","generation","utility","other"];
+    var html = "";
+    order.forEach(function(cat){
+      if(!groups[cat]) return;
+      html += '<div class="cat">'+esc(CAT_LABEL[cat]||cat)+'</div><div class="cards">'+groups[cat].map(card).join('')+'</div>';
+    });
+    $("content").innerHTML = html;
+
+    Array.prototype.forEach.call(document.querySelectorAll(".sync"), function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-id"); var t = btn.textContent;
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+        fetch(API+"?action=os-connector-sync&id="+encodeURIComponent(id),{method:"POST"}).then(function(r){return r.json();}).then(function(j){
+          btn.disabled=false; btn.textContent=t;
+          if(j.ok){ $("banner").innerHTML='<div class="banner info"><b>'+esc(id)+':</b> '+esc(j.status)+' — '+esc(j.message||"")+'</div>'; load(); }
+          else { $("banner").innerHTML='<div class="banner err">Sync failed: '+esc(j.error||"")+'</div>'; }
+        }).catch(function(e){ btn.disabled=false; btn.textContent=t; $("banner").innerHTML='<div class="banner err">Sync failed: '+esc(e.message)+'</div>'; });
+      });
+    });
+  }
+
+  function load(){
+    $("banner").innerHTML="";
+    fetch(API+"?action=os-connectors").then(function(r){return r.json();}).then(function(j){
+      if(!j.ok) throw new Error(j.error||"failed");
+      render(j);
+    }).catch(function(e){
+      $("content").innerHTML = '<div class="banner err">Could not load connectors: '+esc(e.message)+'. Ensure SUPABASE env vars are set; the registry seeds from supabase/migrations/20260706_lifecycle_os_backbone.sql.</div>';
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    $("reload-btn").addEventListener("click", load);
+    load();
+  });
+})();
+</script>
+</body>
+</html>

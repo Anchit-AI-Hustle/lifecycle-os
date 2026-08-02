@@ -1,0 +1,152 @@
+# Mobile Builds — produces downloadable binaries for the KNICKGASM Lifecycle OS super app.
+#
+# Publishes to the fixed release tag `mobile-latest`, so these links are stable:
+#   Android APK : https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os.apk
+#   iOS IPA     : https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os-ios-unsigned.ipa
+#
+# The apps are Capacitor WebView shells over the live deployment (server.url in
+# capacitor.config.json), so binaries stay current automatically — the app renders
+# whatever is in production. Re-run this workflow only when the native shell changes.
+#
+# The Android APK is a debug-signed build: directly installable on any Android device
+# ("install from unknown sources"). The iOS build is unsigned: sideload it with
+# AltStore/Sideloadly, or sign it with an Apple developer certificate for TestFlight.
+
+name: Mobile Builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'ios/**'
+      - 'capacitor.config.json'
+      - 'mobile-shell/**'
+      - '.github/workflows/mobile-builds.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          # @capacitor/cli 8.x hard-requires Node >=22 (not just a warning —
+          # `cap sync` refuses to run under 20). The rest of the repo targets
+          # Node 20 (package.json engines) — this workflow is the one place
+          # pinned to 22 for the Capacitor CLI's sake.
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # @capacitor/android 8.x generates capacitor.build.gradle targeting
+          # JavaVersion 21 (bumped from 17 by `cap sync` below) — must match.
+          java-version: '21'
+
+      - run: npm ci
+
+      - name: cap sync android
+        # Regenerates android/capacitor-cordova-android-plugins (gitignored —
+        # gradlew fails without it) and the plugin list from node_modules.
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Rename artifact
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk knickgasm-lifecycle-os.apk
+
+      - name: Publish to the mobile-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create mobile-latest \
+            --title "KNICKGASM Lifecycle OS — mobile builds (latest)" \
+            --notes "Auto-published by the Mobile Builds workflow. The apps render the live deployment, so they stay current without rebuilds. Android: install the APK directly. iOS: unsigned IPA — sideload or sign for TestFlight." \
+            || true
+          # GitHub's release API returns transient 503s; the build is fine, so retry
+          # the upload with backoff instead of failing the whole job on a blip.
+          for i in 1 2 3 4 5; do
+            gh release upload mobile-latest knickgasm-lifecycle-os.apk --clobber && exit 0
+            echo "upload attempt $i failed (likely a transient GitHub 503) — retrying in $((i*15))s"
+            sleep $((i*15))
+          done
+          echo "release upload still failing after retries"; exit 1
+
+  ios:
+    name: iOS unsigned IPA
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          # @capacitor/cli 8.x hard-requires Node >=22 (not just a warning —
+          # `cap sync` refuses to run under 20). The rest of the repo targets
+          # Node 20 (package.json engines) — this workflow is the one place
+          # pinned to 22 for the Capacitor CLI's sake.
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: cap add ios (regenerate native platform)
+        # ios/ is intentionally NOT committed — keeping Swift (AppDelegate.swift) and
+        # the Ruby Podfile out of the repo is what stops CodeQL from erroring on
+        # unbuildable Swift/Ruby. The iOS shell is a pure derivative of
+        # capacitor.config.json (server.url -> live site), so regenerate it fresh from
+        # node_modules for each build. `|| true` no-ops if it already exists.
+        run: npx cap add ios || true
+
+      - name: cap sync ios
+        # Resolves Swift Package Manager dependencies (Capacitor 8 iOS uses SPM,
+        # not CocoaPods) and keeps the plugin list in sync.
+        run: npx cap sync ios
+
+      # NOTE: no `pod install` — Capacitor 8 iOS is Swift Package Manager. A fresh
+      # `cap add ios` produces App.xcodeproj + CapApp-SPM/Package.swift and NO
+      # Podfile / .xcworkspace, so we build the .xcodeproj directly and let
+      # xcodebuild resolve the SPM packages.
+      - name: Build (no code signing)
+        working-directory: ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App \
+            -configuration Release -sdk iphoneos \
+            -derivedDataPath build \
+            -clonedSourcePackagesDirPath build/SourcePackages \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry knickgasm-lifecycle-os-ios-unsigned.ipa Payload
+
+      - name: Publish to the mobile-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create mobile-latest \
+            --title "KNICKGASM Lifecycle OS — mobile builds (latest)" \
+            --notes "Auto-published by the Mobile Builds workflow." \
+            || true
+          # Retry the upload past transient GitHub 503s (see the Android job).
+          for i in 1 2 3 4 5; do
+            gh release upload mobile-latest knickgasm-lifecycle-os-ios-unsigned.ipa --clobber && exit 0
+            echo "upload attempt $i failed (likely a transient GitHub 503) — retrying in $((i*15))s"
+            sleep $((i*15))
+          done
+          echo "release upload still failing after retries"; exit 1

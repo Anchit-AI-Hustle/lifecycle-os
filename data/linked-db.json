@@ -1,0 +1,9 @@
+{
+  "_comment": "The provided linked DB for the Smart Brain. Public URL + anon key only (safe to commit — same values are served to browsers). To relink to a different DB, replace these values or set SMART_BRAIN_SUPABASE_URL / SMART_BRAIN_SUPABASE_KEY in Vercel env, which take precedence. Harden: add SUPABASE_SERVICE_ROLE_KEY in Vercel env and tighten the allow_all RLS policies.",
+  "provider": "supabase",
+  "project_ref": "gubbckgjujwqodghcavv",
+  "url": "https://gubbckgjujwqodghcavv.supabase.co",
+  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmJja2dqdWp3cW9kZ2hjYXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk3MzksImV4cCI6MjA5Njc3NTczOX0.mJikSp_K1j7kV3THCYq8Z8PNf2Q7eJMwsY9iphRZWFg",
+  "schema": "public",
+  "table_prefix": "smart_"
+}

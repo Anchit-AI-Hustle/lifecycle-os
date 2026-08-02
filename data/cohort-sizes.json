@@ -1,0 +1,27 @@
+{
+  "_note": "Authoritative real cohort sizing for KNICKGASM. Source: Full Cohort Sizing Report pulled 2026-07-11 (Shopify ShopifyQL/GraphQL live counts; affinity cohorts need Klaviyo product-type filters). The customer export CSV is only a small sample, NOT the base. Total customer base is approx 430,000 (818 = 0.19%, 2330 = 0.54%, 8510 = 1.98%, 32496 = 7.55% all reconcile to ~430k). Sizes here are the real audience counts the calendar/export should use; replace pending ones with live Klaviyo counts when available.",
+  "pulled": "2026-07-11",
+  "base_total_est": 430000,
+  "store": {
+    "aov_90d": 42.73,
+    "currency": "USD",
+    "abandoned_checkouts_7d": 83
+  },
+  "cohorts": [
+    { "key": "post_purchase_0_14",   "label": "Post-Purchase 0-14d",              "size": 818,   "pct": 0.0019, "status": "live",           "send_date": "2026-07-11", "match": ["post purchase", "post-purchase", "postpurchase", "new order"] },
+    { "key": "new_subscribers_30d",  "label": "New Subscribers <=30d, 0 orders",  "size": 177,   "pct": 0.0004, "status": "live",           "send_date": "2026-07-18", "match": ["new subscriber", "new sub", "nurture", "non-buyer", "non buyer"] },
+    { "key": "vip_high",             "label": "VIP HIGH tier, active 90d",        "size": 2330,  "pct": 0.0054, "status": "live",           "send_date": "2026-07-14", "match": ["vip", "champion", "high tier", "high-ltv"] },
+    { "key": "single_origin",        "label": "Premium / Single-Origin",          "size": 58,    "pct": 0.0001, "status": "live",           "send_date": "2026-07-22", "match": ["one of one", "one-of-one", "single origin", "premium"] },
+    { "key": "high_aov_gifting",     "label": "High-AOV / Gifting (broad)",       "size": 32496, "pct": 0.0755, "status": "live_broad",     "send_date": "2026-07-30", "match": ["gift", "gifting", "high aov", "high-aov"] },
+    { "key": "winback_120_365",      "label": "Winback 120-365d",                 "size": 8510,  "pct": 0.0198, "status": "live",           "send_date": "2026-07-26", "match": ["winback", "win-back", "win back", "lapsed", "at-risk", "at risk"] },
+    { "key": "repeat_subscribed",    "label": "Repeat buyers, subscribed",        "size": 1720,  "pct": 0.0040, "status": "live",           "send_date": "2026-07-21", "match": ["repeat", "loyal", "subscribe"] },
+    { "key": "cart_recovery",        "label": "Cart Recovery (abandoned 7d)",     "size": 83,    "pct": null,   "status": "live",           "send_date": "2026-07-19", "match": ["cart", "abandon", "recovery"] },
+    { "key": "replenishment_chai_black", "label": "Replenishment 55-95d Kicks/Black", "size": 0, "pct": 0,      "status": "empty_or_klaviyo", "send_date": "2026-07-23", "match": ["replenishment"] },
+    { "key": "chai_affinity",        "label": "Kicks Affinity",                    "size": null,  "pct": null,   "status": "klaviyo_pending", "send_date": "2026-07-13", "match": ["kicks affinity"] },
+    { "key": "black_affinity",       "label": "Black Sneaker Affinity",               "size": null,  "pct": null,   "status": "klaviyo_pending", "send_date": "2026-07-20", "match": ["black sneaker affinity", "black affinity"] },
+    { "key": "wellness_herbal_affinity", "label": "Streetwear / Themed Affinity",   "size": null,  "pct": null,   "status": "klaviyo_pending", "send_date": "2026-07-15", "match": ["themed affinity", "streetwear affinity"] },
+    { "key": "green_affinity",       "label": "Green Sneaker Affinity",               "size": null,  "pct": null,   "status": "klaviyo_pending", "send_date": "2026-07-17", "match": ["green sneaker affinity", "green affinity"] },
+    { "key": "iced_summer_affinity", "label": "Iced / Summer Affinity",           "size": null,  "pct": null,   "status": "klaviyo_pending", "send_date": "2026-07-25", "match": ["iced", "summer affinity"] },
+    { "key": "black_no_green_herbal","label": "Black buyers, no Green/Themed",    "size": null,  "pct": null,   "status": "klaviyo_pending", "send_date": "2026-07-16", "match": ["black buyers"] }
+  ]
+}

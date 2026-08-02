@@ -1,0 +1,55 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request: {}
+# Least-privilege token: these jobs only read the checked-out repo.
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: HTML smoke test
+        run: |
+          test -f knickgasm_mailer_architect_v34.html
+          node -e "const fs=require('fs');const s=fs.readFileSync('knickgasm_mailer_architect_v34.html','utf8');if(!s.includes('<!DOCTYPE html>'))process.exit(1);console.log('v34 OK ('+s.length+' bytes)')"
+      - name: JS syntax check (api / lib / workers / scripts + shared shells)
+        run: |
+          set -e
+          for f in $(find api lib workers scripts -name '*.js'); do node --check "$f"; done
+          for f in auth.js sw.js chart-enhance.js table-sort.js; do [ -f "$f" ] && node --check "$f"; done
+          echo "All JS parses cleanly"
+      - name: Function-count guard (Hobby cap = 12)
+        # Vercel counts every non-_shared file under api/ as a Serverless Function.
+        # The vercel.json "functions" map is OPTIONAL per-function config, so a file
+        # need not appear there — the only hard limit is the count (12 on Hobby).
+        run: |
+          node -e "const cp=require('child_process');const files=cp.execSync(\"find api -name '*.js' -not -path '*/_shared/*'\").toString().trim().split('\n').filter(Boolean);if(files.length>12){console.error('FAIL: '+files.length+' function files exceeds Hobby cap of 12:\n  '+files.join('\n  '));process.exit(1);}console.log('OK: '+files.length+'/12 Serverless Function files (Hobby cap = 12)');"
+      - name: Build catalog
+        run: npm run build
+
+  e2e:
+    name: Visual + invariant tests (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Build catalog
+        run: npm run build
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright suite
+        run: npx playwright test --reporter=list
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: tests/report/
+          retention-days: 7

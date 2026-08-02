@@ -1,0 +1,27 @@
+# Auto-sync production: every push/merge to final-product is merged into
+# main immediately, so the Vercel production deployment (which tracks main)
+# always ships without any manual step.
+name: Sync main (production) with final-product
+
+on:
+  push:
+    branches: [final-product]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Merge final-product into main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin final-product
+          git merge --no-edit origin/final-product
+          git push origin main

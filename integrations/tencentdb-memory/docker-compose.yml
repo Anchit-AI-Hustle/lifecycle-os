@@ -1,0 +1,43 @@
+# Runs the TencentDB-Agent-Memory "Hermes" gateway as a standalone HTTP service
+# on :8420. The MCP bridge (mcp-server.mjs, launched by Claude) talks to it.
+#
+#   cp gateway.env.example gateway.env   # fill in TDAI_LLM_API_KEY
+#   docker compose up -d                 # clone + install + start the gateway
+#   curl localhost:8420/health           # -> {"status":"ok",...}
+#
+# The repo is cloned INSIDE a named volume on first boot and reused after, so the
+# image stays generic and the SQLite memory persists across restarts.
+services:
+  tdai-gateway:
+    image: node:22-bookworm
+    working_dir: /app
+    env_file: [gateway.env]
+    ports:
+      - "8420:8420"
+    volumes:
+      - tdai_src:/app
+      - tdai_data:/data
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        if [ ! -d /app/.git ]; then
+          echo "[gateway] cloning TencentDB-Agent-Memory ..."
+          git clone --depth 1 https://github.com/TencentCloud/TencentDB-Agent-Memory.git /app
+        fi
+        echo "[gateway] installing deps ..."
+        npm install --no-audit --no-fund
+        echo "[gateway] starting on :$${MEMORY_TENCENTDB_GATEWAY_PORT:-8420} ..."
+        exec node --import tsx src/gateway/server.ts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "curl -fsS localhost:8420/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+volumes:
+  tdai_src:
+  tdai_data:

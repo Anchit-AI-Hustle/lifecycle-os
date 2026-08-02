@@ -1,0 +1,64 @@
+{
+  "_doc": "Content Intelligence config layer (framework Sections 2-3). Single source of truth; do not hardcode these per-component. Consumed by api/_shared/content-core.js. Editing here changes behaviour; product facts always come from approved repo data + official regional KNICKGASM pages, never from imported conversations.",
+  "imported_agents": [
+    {
+      "agentId": "daily_blog_agent",
+      "agentName": "daily_blog_agent",
+      "repositoryPaths": ["knowledge/agents/daily-blog-agent/conversation.md", "knowledge/agents/daily-blog-agent/requirements.md"],
+      "importStatus": "not_found",
+      "note": "Export the ChatGPT conversation into the repositoryPaths above to enable parsing."
+    },
+    {
+      "agentId": "knickgasm_creator_plan",
+      "agentName": "knickgasm_creator_plan",
+      "repositoryPaths": ["knowledge/agents/knickgasm-creator-plan/conversation.md", "knowledge/agents/knickgasm-creator-plan/requirements.md"],
+      "importStatus": "not_found",
+      "note": "Export the ChatGPT conversation into the repositoryPaths above to enable parsing."
+    }
+  ],
+  "daily_blog_agent": {
+    "enabled": true,
+    "markets": ["US", "UK", "Global"],
+    "publicationCadence": "calendar_driven",
+    "requiredOutputFormat": "shopify_body_html",
+    "seoQualityGate": 9.5,
+    "overallQualityGate": 9.5,
+    "requireIterativeRevision": true,
+    "requireMediaPackage": true,
+    "requireShopifyPublishingAdapter": true,
+    "allowDummyShopifyMode": true
+  },
+  "creator_plan": {
+    "enabled": true,
+    "channels": ["tiktok_us", "tiktok_uk", "instagram_reels"],
+    "publicationCadence": "calendar_driven",
+    "overallQualityGate": 9.5,
+    "requireIterativeRevision": true,
+    "requireFreshTrendInput": false,
+    "requireCreativeNoveltyCheck": true,
+    "requireCompleteVideoPrompt": true
+  },
+  "social_post_generator": {
+    "enabled": true,
+    "channels": ["instagram_feed", "instagram_carousel", "instagram_reels", "instagram_stories", "tiktok", "facebook", "linkedin", "pinterest", "x", "youtube_shorts"],
+    "requireChannelSpecificCopy": true,
+    "requireAssetMapping": true,
+    "requireCharacterValidation": true,
+    "requireHashtagValidation": true,
+    "requireComplianceValidation": true,
+    "requirePreview": true,
+    "requireApprovalBeforePublishing": true,
+    "maxHashtags": { "instagram_feed": 12, "instagram_reels": 8, "tiktok": 6, "pinterest": 8, "x": 3, "linkedin": 5, "facebook": 3, "youtube_shorts": 6 },
+    "charLimits": { "x": 280, "instagram_caption": 2200, "pinterest_title": 100, "pinterest_description": 500, "youtube_title": 100 }
+  },
+  "exhausted_creative_patterns": [
+    { "patternId": "court", "patternName": "Courtroom / trial", "reason": "Overused device", "status": "avoid" },
+    { "patternId": "ranking", "patternName": "Ranking / tier list", "reason": "Overused device", "status": "cooldown" },
+    { "patternId": "investigation", "patternName": "Investigation / expose", "reason": "Overused device", "status": "avoid" },
+    { "patternId": "fictional_dept", "patternName": "Fictional department", "reason": "Overused device", "status": "avoid" },
+    { "patternId": "quiz", "patternName": "Personality quiz", "reason": "Overused device", "status": "cooldown" },
+    { "patternId": "apology", "patternName": "Apology format", "reason": "Overused device", "status": "avoid" },
+    { "patternId": "group_chat", "patternName": "Group chat", "reason": "Overused device", "status": "cooldown" },
+    { "patternId": "taste_test", "patternName": "Generic taste test", "reason": "Overused device", "status": "cooldown" }
+  ]
+}

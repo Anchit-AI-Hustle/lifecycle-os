@@ -1,0 +1,50 @@
+{
+  "name": "knickgasm-lifecycle-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KNICKGASM Lifecycle OS — Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
+  "engines": {
+    "node": ">=20.x"
+  },
+  "scripts": {
+    "build": "node scripts/build-catalog.js && node scripts/build-website-designs.js",
+    "preflight": "bash scripts/preflight-credentials.sh",
+    "migrate:domains": "node scripts/migrate-domains.js",
+    "migrate:oauth": "node scripts/migrate-oauth.js",
+    "scrape:catalog": "node scripts/scrape-catalog.js",
+    "dev": "node -e \"require('http').createServer().listen(3001)\"",
+    "export:complete": "node scripts/export-complete.js",
+    "deploy": "vercel --prod",
+    "test": "playwright test",
+    "test:scenarios": "node scripts/_test-scenarios.js && node scripts/_test-scenarios-brain.js",
+    "test:ui": "playwright test --ui",
+    "test:install": "playwright install",
+    "subscribe": "node workers/auto-subscribe.js",
+    "collect:ads": "node workers/collect-ads.js",
+    "collect:landing": "node workers/collect-landing.js",
+    "collect:wayback": "node workers/collect-wayback.js",
+    "seed:products": "node scripts/seed-smart-products.js",
+    "seed:assets": "node scripts/seed-brand-assets.js",
+    "build:july": "node scripts/build-july-mailers.js && node scripts/build-july-studio.js",
+    "build:ads-snapshot": "node scripts/build-ads-live-snapshot.js",
+    "mobile:sync": "cap sync",
+    "mobile:android": "cap sync android && cd android && ./gradlew assembleDebug",
+    "mobile:android:open": "cap open android",
+    "mobile:ios:open": "cap open ios"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.2",
+    "@playwright/test": "^1.61.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/ios": "^8.4.2",
+    "@vercel/speed-insights": "^2.0.0",
+    "google-auth-library": "^10.7.0",
+    "googleapis": "^173.0.0",
+    "imapflow": "^1.4.8",
+    "mailparser": "^3.9.14",
+    "xlsx-js-style": "^1.2.0"
+  }
+}

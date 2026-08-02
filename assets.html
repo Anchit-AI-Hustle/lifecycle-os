@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNICKGASM · Created Assets</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260718light" defer></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
+  @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+  .page-head { margin-bottom: 8px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #D0473E; font-weight: 600; margin-bottom: 10px; }
+  h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color: #D0473E; }
+  .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
+
+  /* Controls */
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 20px 0 14px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 12px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.25);
+    border-radius: 99px; padding: 7px 14px; cursor: pointer; font-family: inherit; transition: all .14s; white-space: nowrap; }
+  .chip:hover { border-color: #D0473E; color: #111111; }
+  .chip.active { color: #ffffff; background: #D0473E; border-color: #D0473E; }
+  .chip .n { opacity: 0.7; font-weight: 700; margin-left: 3px; }
+  .spacer { flex: 1; }
+  .search { display: flex; align-items: center; gap: 7px; background: #ffffff; border: 1px solid rgba(171,135,67,0.25);
+    border-radius: 10px; padding: 8px 12px; min-width: 200px; }
+  .search input { flex: 1; background: transparent; border: none; outline: none; color: #111111; font-family: inherit; font-size: 13px; }
+  .scope { display: flex; gap: 6px; }
+  .btn { font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 14px; cursor: pointer; border: 1px solid rgba(171,135,67,0.3); background: transparent; color: #556059; }
+  .btn:hover { border-color: #D0473E; }
+
+  /* Asset grid */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+  .asset { background: linear-gradient(160deg, #ffffff, #0c1814); border: 1px solid rgba(171,135,67,0.18);
+    border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: transform .14s, border-color .14s; }
+  .asset:hover { transform: translateY(-2px); border-color: rgba(171,135,67,0.4); }
+  .asset .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top center; background: #fff; display: block; border-bottom: 1px solid rgba(171,135,67,0.12); }
+  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: #33473d; font-size: 30px; background: #ffffff; }
+  /* Live mailer/landing preview: render the real HTML, scaled to card width, so
+     the card shows the ACTUAL rendered mailer — not a raw product photo. */
+  .asset .thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/10; overflow: hidden; background: #fff; border-bottom: 1px solid rgba(171,135,67,0.12); }
+  .asset .thumb-wrap iframe { position: absolute; top: 0; left: 0; border: 0; width: 250%; height: 250%; transform: scale(0.4); transform-origin: top left; pointer-events: none; background: #fff; }
+  .asset .thumb-wrap .thumb-open { position: absolute; inset: 0; z-index: 2; }
+  .asset .pad { padding: 13px 14px 12px; display: flex; flex-direction: column; flex: 1; }
+  .asset .name { font-size: 13.5px; font-weight: 600; color: #111111; line-height: 1.35; margin-bottom: 5px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .asset .meta { font-size: 11px; color: #556059; margin-bottom: 11px; flex: 1; }
+  .tag { font-size: 9.5px; padding: 2px 7px; border-radius: 99px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 5px; }
+  .tag.mailer { background: rgba(171,135,67,0.16); color: #7a5f28; }
+  .tag.ad { background: rgba(59,130,246,0.14); color: #1d4ed8; }
+  .tag.landing { background: rgba(22,163,74,0.16); color: #0a7d33; }
+  .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .abtn { flex: 1; min-width: 62px; text-align: center; font-family: inherit; font-size: 11.5px; font-weight: 600;
+    color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.28); border-radius: 8px; padding: 7px 8px; cursor: pointer; text-decoration: none; transition: all .12s; }
+  .abtn:hover { border-color: #D0473E; color: #111111; background: rgba(171,135,67,0.06); }
+  .abtn.primary { color: #ffffff; background: #D0473E; border-color: #D0473E; }
+
+  .empty { grid-column: 1 / -1; font-size: 13px; color: #48524c; padding: 40px 4px; text-align: center; }
+  .src { font-size: 11px; color: #48524c; margin: 22px 0 0; }
+  .src b { color: #556059; }
+
+  /* Toast */
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: #ffffff; border: 1px solid rgba(171,135,67,0.4); color: #111111; font-size: 13px; font-weight: 600;
+    padding: 11px 18px; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.5); opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 9600; max-width: 90vw; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Lifecycle OS</div>
+    <h1>Created <em>Assets</em></h1>
+    <p class="sub">Every mailer, ad and landing page this suite has produced — filter, search, preview, clone, or copy a ready-to-run AI prompt for any of them.</p>
+  </div>
+
+  <div class="controls">
+    <div class="tabs" id="tabs">
+      <button class="chip active" data-type="all">All <span class="n" data-tabn="all"></span></button>
+      <button class="chip" data-type="mailer">Mailers <span class="n" data-tabn="mailer"></span></button>
+      <button class="chip" data-type="ad">Ads <span class="n" data-tabn="ad"></span></button>
+      <button class="chip" data-type="landing">Landing Pages <span class="n" data-tabn="landing"></span></button>
+    </div>
+    <div class="spacer"></div>
+    <label class="search">🔍<input id="q" type="search" placeholder="Search name, market, tag…" autocomplete="off"></label>
+    <div class="scope">
+      <button class="chip active" data-scope="mine">Mine</button>
+      <button class="chip" data-scope="all">Everyone</button>
+    </div>
+    <button class="btn" id="refresh">↻</button>
+  </div>
+
+  <div id="syncStrip" hidden style="margin:0 0 14px;padding:9px 14px;border:1px solid rgba(171,135,67,0.25);border-radius:10px;font-size:12.5px;align-items:center;gap:10px;background:#ffffff;color:#556059"></div>
+
+  <div class="grid" id="grid"><div class="empty">Loading…</div></div>
+
+  <p class="src" id="srcline">Reading from <b>your browser</b> — connecting to the shared database…</p>
+</div>
+<div id="toast"></div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => (s == null ? '' : String(s)).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtDate = (d) => { try { return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch { return ''; } };
+  const now = () => new Date().toISOString();
+
+  let SCOPE = 'mine', TYPE = 'all', Q = '';
+  let ITEMS = [];               // unified asset list
+  const byId = {};              // id → item (for action lookups)
+  let usingLocal = false;
+
+  const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
+  const myEmail  = () => { const u = (window.LifecycleAuth && window.LifecycleAuth.user) || null; return (u && u.email) || ''; };
+
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600); }
+  function copyText(txt, okMsg) {
+    const done = (ok) => toast(ok ? (okMsg || 'Copied to clipboard') : 'Could not copy — see console');
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); return; } } catch (_) {}
+    try { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); } catch (_) { console.log(txt); done(false); }
+  }
+
+  function waitForClient(ms) {
+    return new Promise((resolve) => { const t0 = Date.now(); (function poll() {
+      if (sbClient()) return resolve(true);
+      if (Date.now() - t0 > ms) return resolve(false);
+      setTimeout(poll, 150);
+    })(); });
+  }
+
+  // ─── Portable, role-primed AI prompts (paste into Claude / Gemini / ChatGPT) ───
+  // Mirrors api/_shared/master-prompt.js so the copied prompt is brand-locked and
+  // self-contained. Each ends with a SELF-CHECK so the model QAs its own output.
+  const REGION = {
+    US:{store:'knickgasm.com',cur:'$'}, UK:{store:'knickgasm.com',cur:'£'}, IN:{store:'knickgasm.com',cur:'₹'},
+    EU:{store:'knickgasm.com',cur:'€'}, AU:{store:'knickgasm.com',cur:'A$'}, Global:{store:'knickgasm.com',cur:'$'}
+  };
+  function brandBlock() {
+    return [
+      'BRAND RULES (strict — obey exactly):',
+      '- Palette, ONLY these four: deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2.',
+      "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
+      '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
+      "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      '- KNICKGASM: premium Indian heritage sneaker · B-Corp · one-of-one · studio-fresh within 72 hours of drop.'
+    ].join('\n');
+  }
+  function head(role, market) {
+    const f = REGION[market] || REGION.US;
+    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + f.store + ', currency ' + f.cur + ' — all prices/copy in ' + f.cur + ').\n\n' + brandBlock() + '\n\n';
+  }
+  const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft (off-palette colours, banned phrases, wrong fonts, wrong currency), fix them, and return ONLY the corrected final output.';
+
+  function buildPrompt(item) {
+    const r = item.raw || {}, market = item.market || r.region || 'US';
+    if (item.kind === 'landing') {
+      const channel = r.channel || 'landing';
+      return head('You are a senior D2C conversion copywriter + front-end developer for KNICKGASM.', market) + [
+        'Build a COMPLETE, production-ready, single-file responsive HTML landing page that converts ' + channel + ' traffic.',
+        '',
+        'PAGE BRIEF:',
+        '- Hero headline: ' + (r.hero || item.name || '(write a strong, specific one)'),
+        '- Sub-headline: ' + (r.sub || '(write a supporting line)'),
+        '- Offer: ' + (r.offer || '(sell on quality, provenance and ritual — no forced discount)'),
+        r.notes ? '- Extra notes / story: ' + r.notes : '',
+        '- Channel intent: ' + channel + ' — mobile-first, one clear primary CTA.',
+        '',
+        'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof / testimonials; FAQ; final CTA; footer; sticky mobile CTA.',
+        'OUTPUT: return ONLY the full HTML document (from <!doctype html> to </html>), inline CSS, no external dependencies, no commentary.'
+      ].filter(Boolean).join('\n') + SELF_CHECK;
+    }
+    if (item.kind === 'ad') {
+      const platform = (r.channel || 'meta').toUpperCase();
+      return head('You are a senior paid-social creative director + performance copywriter for KNICKGASM.', market) + [
+        'Produce a scroll-stopping ' + platform + ' ad creative package.',
+        '',
+        'AD BRIEF:',
+        '- Concept / product: ' + (item.name || '(pick a hero SKU and a single emotional end-state)'),
+        r.headline ? '- Existing headline to improve on: ' + r.headline : '',
+        r.offer ? '- Offer: ' + r.offer : '',
+        r.hook ? '- Hook direction: ' + r.hook : '',
+        '',
+        'DELIVER, clearly labelled:',
+        '1) 3 headline options (≤6 words) leading with the emotional end-state, never an ingredient list.',
+        '2) Primary text (≤125 chars) + a 1-line description + a strong CTA.',
+        '3) An IMAGE-GENERATION PROMPT for a photoreal lifestyle scene: brand palette, gallery-print/8K sharpness, soft natural light, shallow depth of field; KNICKGASM box shows a lava botanical illustration only with NO readable lettering; NO logos, NO watermarks, NO garbled text.',
+        '4) Which cohort/audience this is aimed at and why.',
+        'OUTPUT: clean sections, ready to paste into the ' + platform + ' ad builder. No preamble.'
+      ].filter(Boolean).join('\n') + SELF_CHECK;
+    }
+    // mailer
+    return head('You are a senior lifecycle-email creative director + front-end email developer for KNICKGASM.', market) + [
+      'Build a COMPLETE, production-ready, responsive HTML marketing email (compact, ~1200–1500px tall, two scrolls max).',
+      '',
+      'EMAIL BRIEF:',
+      '- Campaign: ' + (r.campaign_title || item.name || '(name it)'),
+      r.type ? '- Type / moment: ' + r.type : '',
+      r.brief ? '- Brief / story: ' + r.brief : '- Brief: write a warm, sensory, story-driven campaign around origin + ritual.',
+      '',
+      'REQUIRED STRUCTURE: preheader; branded header; hero (headline + sub + CTA + product image placeholder); story/benefit block; product block with price + CTA; a tiny personal-story testimonial; secondary CTA; footer with unsubscribe.',
+      'Use table-based, inbox-safe HTML with inline CSS. OUTPUT: return ONLY the full HTML document, no commentary.'
+    ].filter(Boolean).join('\n') + SELF_CHECK;
+  }
+
+  // ─── localStorage sources (carry the fuller objects needed to clone/prompt) ──
+  function localMailers() {
+    try { return (JSON.parse(localStorage.getItem('vhd_logs') || '[]')).map((e) => ({
+      kind: 'mailer', name: (e._full && e._full.campaign_title) || e.prompt || '(mailer)',
+      market: (e.markets && e.markets[0]) || (e._full && e._full.primary_market) || '', tag: e.type || '',
+      created_at: e.date || new Date(e.id || Date.now()).toISOString(), email: e.userEmail || '',
+      html: (e._full && (e._full.variant_a_html || e._full.email_html || (e._full.assets && e._full.assets.email && e._full.assets.email.html) || e._full.html)) || '',
+      image: (e._full && (e._full.hero_image_url || e._full.thumbnail_url || e._full.hero_product_image)) || '',
+      raw: { campaign_title: (e._full && e._full.campaign_title) || e.prompt || '', type: e.type || '', market: (e.markets && e.markets[0]) || '', brief: e.prompt || (e._full && e._full.brief) || '' }
+    })); } catch { return []; }
+  }
+  function localAds() {
+    try { const s = JSON.parse(localStorage.getItem('knickgasm-ads-v1') || '{}'); const out = [];
+      ['google','meta','tiktok'].forEach((ch) => (s[ch] || []).forEach((c) => out.push({
+        kind: 'ad', name: c.name || '(ad)', market: c.market || '', tag: ch, channel: ch, image: c.image || '',
+        created_at: new Date(parseInt((c.id || '').toString().slice(0, 8), 36) || Date.now()).toISOString(), email: '',
+        raw: { channel: ch, market: c.market || '', headline: c.overlay_headline || c.headline || '', offer: c.offer || '', hook: c.hook || '', primary: c.primary || '' }
+      })));
+      return out; } catch { return []; }
+  }
+  function localLanding() {
+    const out = [];
+    ['mailers','meta','google','tiktok'].forEach((ch) => { try {
+      (JSON.parse(localStorage.getItem('lp-' + ch) || '[]')).forEach((p) => out.push({
+        kind: 'landing', name: p.hero || '(landing page)', market: p.region || '', tag: ch === 'mailers' ? 'mailer' : ch,
+        offer: p.offer || '', created_at: p.created_at || now(), email: '',
+        raw: { hero: p.hero || '', sub: p.sub || '', offer: p.offer || '', notes: p.notes || '', region: p.region || '', channel: ch === 'mailers' ? 'mailer' : ch }
+      }));
+    } catch {} });
+    return out;
+  }
+
+  async function sbFetch(table, map) {
+    const sb = sbClient(); if (!sb) return null;
+    try { const { data, error } = await sb.from(table).select('*').order('created_at', { ascending: false }).limit(500);
+      if (error) { console.warn('[assets] ' + table + ':', error.message); return null; }
+      return (data || []).map(map);
+    } catch (e) { console.warn('[assets] ' + table + ' error:', e && e.message); return null; }
+  }
+
+  const key = (it) => [it.kind, (it.name || '').toLowerCase(), it.market || '', it.tag || '', it.offer || ''].join('|');
+  function mergeDedup(remote, local) {
+    const seen = new Set(), out = [];
+    (remote || []).concat(local || []).forEach((it) => { const k = key(it); if (seen.has(k)) return; seen.add(k); out.push(it); });
+    return out;
+  }
+
+  async function buildAll() {
+    const haveClient = await waitForClient(4000);
+    usingLocal = false;
+
+    let mRemote = haveClient ? await sbFetch('mailers_generated', (d) => ({
+      kind: 'mailer', name: d.campaign_title || d.prompt_short || '(mailer)', market: d.primary_market || '', tag: d.campaign_type || '',
+      created_at: d.created_at, email: d.user_email || '',
+      html: d.variant_a_html || (d.market_mailers && (() => { try { const mm = typeof d.market_mailers === 'string' ? JSON.parse(d.market_mailers) : d.market_mailers; const m = mm && (mm[d.primary_market] || mm[Object.keys(mm)[0]]); return (m && (m.A || m.a)) || ''; } catch { return ''; } })()) || '',
+      image: d.thumbnail_url || d.canvas_image_url || d.hero_image_url || d.hero_product_image || '',
+      raw: { campaign_title: d.campaign_title || '', type: d.campaign_type || '', market: d.primary_market || '', brief: d.prompt || d.prompt_short || d.brief || '' }
+    })) : null;
+    if (mRemote === null) { usingLocal = true; mRemote = []; }
+
+    let aRemote = haveClient ? await sbFetch('ads_generated', (d) => ({
+      kind: 'ad', name: d.name || '(ad)', market: d.market || '', tag: d.channel || '', channel: d.channel || '', image: d.creative_url || '',
+      created_at: d.created_at, email: d.user_email || '',
+      raw: { channel: d.channel || 'meta', market: d.market || '', headline: d.overlay_headline || d.headline || '', offer: d.offer || '', hook: d.hook || '', primary: d.primary || '' }
+    })) : null;
+    if (aRemote === null) { usingLocal = true; aRemote = []; }
+
+    let lRemote = haveClient ? await sbFetch('landing_pages_generated', (d) => ({
+      kind: 'landing', name: d.hero || d.name || '(landing page)', market: d.market || '', tag: d.paired_with || '', offer: d.offer || '',
+      created_at: d.created_at, email: d.user_email || '',
+      raw: { hero: d.hero || '', sub: d.sub || '', offer: d.offer || '', notes: d.notes || '', region: d.market || '', channel: (d.paired_with === 'mailer' ? 'mailer' : d.paired_with) || 'mailer' }
+    })) : null;
+    if (lRemote === null) { usingLocal = true; lRemote = []; }
+
+    ITEMS = [].concat(
+      mergeDedup(mRemote, localMailers()),
+      mergeDedup(aRemote, localAds()),
+      mergeDedup(lRemote, localLanding())
+    ).map((it, i) => { it._id = it.kind + '_' + i; byId[it._id] = it; return it; });
+
+    ITEMS = applyScope(ITEMS);
+    ITEMS.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }
+
+  function applyScope(rows) {
+    if (SCOPE === 'all') return rows;
+    const me = myEmail(); if (!me) return rows;
+    return rows.filter((r) => !r.email || r.email === me);
+  }
+
+  function counts() {
+    const c = { all: ITEMS.length, mailer: 0, ad: 0, landing: 0 };
+    ITEMS.forEach((it) => { c[it.kind]++; });
+    return c;
+  }
+
+  function render() {
+    const c = counts();
+    Object.keys(c).forEach((k) => { const el = document.querySelector('[data-tabn="' + k + '"]'); if (el) el.textContent = c[k]; });
+    const q = Q.trim().toLowerCase();
+    const rows = ITEMS.filter((it) => (TYPE === 'all' || it.kind === TYPE))
+      .filter((it) => !q || [it.name, it.market, it.tag].join(' ').toLowerCase().includes(q));
+    const grid = $('#grid');
+    if (!rows.length) { grid.innerHTML = '<div class="empty">No assets here yet. Generate some in the Studio, Ad Campaigns or Landing Pages — they show up here to preview, clone and re-prompt.</div>'; return; }
+    grid.innerHTML = rows.map((it) => {
+      // A mailer/landing card should preview the ACTUAL rendered document. When we
+      // hold its HTML, render it live in a scaled iframe (the real mailer), not the
+      // raw product photo. Ads (which ARE an image) still show their creative image;
+      // otherwise fall back to a brand glyph placeholder.
+      let thumb, hasView = false;
+      if (it.html && (it.kind === 'mailer' || it.kind === 'landing')) {
+        thumb = '<div class="thumb-wrap"><iframe sandbox srcdoc="' + esc(it.html) + '" loading="lazy" title="preview"></iframe>'
+          + '<button class="thumb-open" data-act="view" data-id="' + it._id + '" aria-label="Open preview"></button></div>';
+        hasView = true;
+      } else if (it.kind === 'ad' && it.image) {
+        thumb = '<img class="thumb" src="' + esc(it.image) + '" alt="" loading="lazy">';
+      } else {
+        thumb = '<div class="thumb ph">' + (it.kind === 'mailer' ? '✉' : it.kind === 'ad' ? '📣' : '🖥') + '</div>';
+      }
+      const meta = [it.market, fmtDate(it.created_at)].filter(Boolean).join(' · ');
+      const previewBtn = hasView
+        ? '<button class="abtn" data-act="view" data-id="' + it._id + '">Preview</button>'
+        : '<a class="abtn" href="' + esc(it.kind === 'mailer' ? '/studio' : it.kind === 'ad' ? '/ads' : '/landing') + '" target="_blank" rel="noopener">Open in tool</a>';
+      return '<div class="asset">' + thumb +
+        '<div class="pad">' +
+          '<div class="name">' + esc(it.name) + '</div>' +
+          '<div class="meta"><span class="tag ' + it.kind + '">' + (it.kind === 'landing' ? 'Landing' : it.kind === 'ad' ? esc(it.tag || 'Ad') : 'Mailer') + '</span>' + esc(meta) + '</div>' +
+          '<div class="acts">' +
+            previewBtn +
+            '<button class="abtn" data-act="clone" data-id="' + it._id + '">⧉ Clone</button>' +
+            '<button class="abtn primary" data-act="prompt" data-id="' + it._id + '">📋 AI prompt</button>' +
+          '</div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  // ─── Clone: duplicate into the right local library (local-first, like /landing) ──
+  function cloneItem(it) {
+    const r = it.raw || {};
+    if (it.kind === 'landing') {
+      const ch = r.channel === 'mailer' ? 'mailers' : (r.channel || 'mailers');
+      const k = 'lp-' + ch, list = JSON.parse(localStorage.getItem(k) || '[]');
+      list.unshift({ ...r, channel: ch, hero: (r.hero || it.name || 'Untitled') + ' (Copy)', created_at: now() });
+      localStorage.setItem(k, JSON.stringify(list.slice(0, 50)));
+    } else if (it.kind === 'ad') {
+      const s = JSON.parse(localStorage.getItem('knickgasm-ads-v1') || '{}'); const ch = r.channel || 'meta';
+      s[ch] = s[ch] || [];
+      s[ch].unshift({ ...r, name: (it.name || 'Ad') + ' (Copy)', image: it.image || '', id: Date.now().toString(36), market: r.market || it.market || '' });
+      localStorage.setItem('knickgasm-ads-v1', JSON.stringify(s));
+    } else {
+      const logs = JSON.parse(localStorage.getItem('vhd_logs') || '[]');
+      logs.unshift({ id: Date.now(), date: now(), prompt: r.brief || it.name || '', type: r.type || '', markets: [r.market || it.market || ''],
+        _full: { campaign_title: (r.campaign_title || it.name || 'Mailer') + ' (Copy)', primary_market: r.market || it.market || '' } });
+      localStorage.setItem('vhd_logs', JSON.stringify(logs.slice(0, 100)));
+    }
+  }
+
+  // Event delegation for asset actions.
+  $('#grid').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]'); if (!btn) return;
+    const it = byId[btn.dataset.id]; if (!it) return;
+    if (btn.dataset.act === 'view') {
+      // Open the real rendered document in a new tab via a Blob URL (no srcdoc size
+      // limit, exactly what ships). Falls back to the product image if no HTML.
+      if (it.html) {
+        const url = URL.createObjectURL(new Blob([it.html], { type: 'text/html' }));
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } else if (it.image) { window.open(it.image, '_blank', 'noopener'); }
+      return;
+    }
+    if (btn.dataset.act === 'prompt') { copyText(buildPrompt(it), '📋 AI prompt copied — paste into Claude, Gemini or ChatGPT.'); return; }
+    if (btn.dataset.act === 'clone') {
+      try { cloneItem(it); } catch (err) { toast('Clone failed: ' + (err && err.message || err)); return; }
+      toast('⧉ Cloned "' + (it.name || 'asset') + '" — reloading library…');
+      await buildAll(); render();
+    }
+  });
+
+  // Controls
+  document.querySelectorAll('[data-type]').forEach((c) => c.addEventListener('click', () => {
+    document.querySelectorAll('[data-type]').forEach((x) => x.classList.toggle('active', x === c));
+    TYPE = c.dataset.type; render();
+  }));
+  document.querySelectorAll('[data-scope]').forEach((c) => c.addEventListener('click', async () => {
+    document.querySelectorAll('[data-scope]').forEach((x) => x.classList.toggle('active', x === c));
+    SCOPE = c.dataset.scope; await buildAll(); render();
+  }));
+  $('#q').addEventListener('input', (e) => { Q = e.target.value || ''; render(); });
+  $('#refresh').addEventListener('click', async () => { await buildAll(); render(); toast('Refreshed'); });
+
+  // Shared-source-of-truth freshness (spec §24b): surface the sync engine's
+  // per-campaign freshness so the reviewer can see when a shipped asset is stale
+  // against its canonical source. Additive + fail-quiet — never blocks the grid.
+  async function loadSync() {
+    const strip = $('#syncStrip'); if (!strip) return;
+    try {
+      const r = await fetch('/api/calendar?action=smart-brain-sync-status').then((x) => x.json()).catch(() => null);
+      if (!r || !r.ok || !r.connected) { strip.hidden = true; return; }
+      const total = r.count || 0, stale = r.stale || 0;
+      if (!total) { strip.hidden = true; return; }
+      const dot = stale > 0 ? '#d9b25a' : '#3fa46a';
+      const label = stale > 0
+        ? ('<b style="color:#111111">' + stale + ' of ' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' need regeneration — a source fact changed since they were built'
+           + ' <span style="color:#d9b25a">(STALE)</span>')
+        : ('<b style="color:#111111">' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' tracked, all current against source');
+      strip.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:' + dot + ';display:inline-block;flex:0 0 auto"></span>'
+        + '<span>Source sync · ' + label + '</span>'
+        + '<span style="margin-left:auto;color:#8a8a8a;font-size:11px">one canonical record, many views</span>';
+      strip.style.display = 'flex'; strip.hidden = false;
+    } catch (_) { strip.hidden = true; }
+  }
+
+  async function load() {
+    $('#grid').innerHTML = '<div class="empty">Loading…</div>';
+    await buildAll(); render();
+    $('#srcline').innerHTML = usingLocal
+      ? 'Some assets are read from <b>this browser only</b> (the shared DB table may be empty or not migrated yet). Clones are always saved locally first.'
+      : 'Reading from the <b>shared database</b> (+ this browser).' + (myEmail() ? '' : ' Sign in to filter to just your assets.');
+    loadSync();
+  }
+  load();
+})();
+</script>
+</body>
+</html>

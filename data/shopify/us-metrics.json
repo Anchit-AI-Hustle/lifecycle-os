@@ -1,0 +1,53 @@
+{
+  "source": "Shopify Admin — knickgasmusa.myshopify.com (ShopifyQL)",
+  "snapshot_date": "2026-07-19",
+  "window": "trailing 30 days",
+  "note": "Live Shopify Admin analytics snapshot. The Vercel runtime has no Shopify Admin credentials, so this file is refreshed out-of-band (via the connected Shopify MCP) and read by the website-designs CRO layer. US store only (the connected store); connect the UK/Global stores for regional numbers.",
+  "funnel": {
+    "sessions": 50499,
+    "cart_additions": 2263,
+    "reached_checkout": 4138,
+    "completed_checkout": 947,
+    "conversion_rate": 0.0188
+  },
+  "sales": { "orders": 1716, "total_sales": 72725.31, "average_order_value": 41.29 },
+  "customers": { "customers": 1670, "returning_customers": 1067, "returning_customer_rate": 0.639 },
+  "derived": { "add_to_cart_rate": 0.0448, "checkout_completion_rate": 0.2288 },
+  "design_justifications": [
+    {
+      "decision": "Above-the-fold hero: single clear value promise + one primary CTA (Z-pattern), no competing links",
+      "metric": "conversion_rate",
+      "current": "1.87%",
+      "why": "Only 947 of 50,499 sessions convert; a diffuse above-the-fold is the first leak.",
+      "how": "One promise, one CTA, trust proof in view within 1.5s reduces bounce and lifts session-to-order."
+    },
+    {
+      "decision": "Product grid: contain-fit imagery, visible price + category filter, fast first paint",
+      "metric": "add_to_cart_rate",
+      "current": "4.5%",
+      "why": "Only 2,263 of 50,499 sessions add to cart — discovery/consideration is the biggest drop-off.",
+      "how": "Scannable cards, price up front and category filtering shorten time-to-product and raise cart adds."
+    },
+    {
+      "decision": "PDP: facts grid (paint, design notes, format, pairs), reviews, sticky Add-to-cart CTA",
+      "metric": "checkout_completion_rate",
+      "current": "22.9%",
+      "why": "4,138 reach checkout but only 947 complete — friction/uncertainty at decision time.",
+      "how": "Answering objections on the PDP (facts + proof) and a persistent CTA carry more reachers to purchase."
+    },
+    {
+      "decision": "Bundles + free-shipping threshold set just above current AOV",
+      "metric": "average_order_value",
+      "current": "$41.29",
+      "why": "Raising basket size compounds revenue at the same traffic and conversion.",
+      "how": "A threshold ~10-15% above AOV plus curated bundles nudges add-on units."
+    },
+    {
+      "decision": "Subscription / replenishment anchor + post-purchase second-order nudge",
+      "metric": "returning_customer_rate",
+      "current": "63.9%",
+      "why": "The returning base is already the volume driver; protecting and deepening it defends revenue.",
+      "how": "Subscribe-and-save on the PDP and replenishment timing lift repeat order rate and LTV."
+    }
+  ]
+}

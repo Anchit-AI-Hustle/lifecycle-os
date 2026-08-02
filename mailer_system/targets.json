@@ -1,0 +1,14 @@
+{
+  "retention_90d_min": 0.30,
+  "subscription_mix_min": 0.15,
+  "email_revenue_pct_min": 0.25,
+  "cart_abandonment_max": 0.80,
+  "at_risk_revenue_trigger": 50000,
+  "churn_high_clv_threshold": 200,
+  "churn_days_since_order": 60,
+  "email_list_health_min": 0.80,
+  "ltv_us_target": 180,
+  "ltv_uk_target": 150,
+  "aov_us_target": 55,
+  "gross_margin_min": 0.55
+}

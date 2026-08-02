@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ad Campaigns Master Dashboard — KNICKGASM USA</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  :root{
+    --green:#6A33D8; --lava:#D0473E; --lava-deep:#7a5a1e; --ink:#111111; --chalk:#F7F5F2;
+    --bg:#F3EEE2; --surface:#ffffff; --surface-2:#F7F5F2; --line:#E3D8BF; --line-strong:#CBB98C;
+    /* Contrast tokens — every pair below is dark-on-light and clears WCAG-AA
+       (>=4.5:1) on --surface and --surface-2. --dim was #5c6b60 (4.9:1) and is
+       now #3D4A42 (8.2:1); lava text only ever uses the deep lava. */
+    --text:#1F2A23; --dim:#3D4A42; --head:#6A33D8;
+    --good:#0E5C36; --good-bg:#DCEDE3; --warn:#6E4A0C; --warn-bg:#F7ECD2; --bad:#7A2718; --bad-bg:#F7DED6;
+    --live:#0E5C36; --live-bg:#D6EBDD;
+    --shadow:0 4px 16px rgba(0,74,43,.08);
+    --sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+    --serif:'Montserrat','Raleway',Georgia,serif;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  /* Body weight 500 (was 400): clearly readable without looking heavy. */
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;font-weight:500;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:1320px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-family:var(--serif);font-weight:700;color:var(--head);font-size:30px;margin:0}
+  h2{font-family:var(--serif);font-weight:700;color:var(--head);font-size:21px;margin:22px 0 8px}
+  h3{font-family:var(--serif);font-weight:700;color:var(--head);font-size:17px;margin:14px 0 6px}
+  .lede{color:var(--dim);margin:6px 0 0;max-width:86ch;font-size:14.5px;font-weight:500}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--lava-deep);margin:16px 0 8px}
+  .tabs{display:flex;flex-wrap:wrap;gap:2px;margin:18px 0 4px;border-bottom:2px solid var(--line-strong)}
+  .tabs button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--dim);font-family:inherit;font-weight:700;font-size:13.5px;padding:10px 14px;cursor:pointer;margin-bottom:-2px}
+  .tabs button.on{color:var(--green);border-bottom-color:var(--lava)}
+  .panel{display:none}.panel.on{display:block}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:8px 0}
+  .sc{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--lava);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow)}
+  .sc .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+  .sc .v{font-family:var(--serif);font-size:23px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums}
+  .sc .s{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .frame{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:16px;box-shadow:var(--shadow);margin:10px 0}
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:11px;box-shadow:var(--shadow);margin:8px 0;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:13px;background:var(--surface);white-space:nowrap}
+  th,td{padding:8px 11px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.3px;font-weight:500;color:var(--text)}
+  th{background:var(--green);color:#fff;font-family:var(--sans);font-weight:700;font-size:11.5px;position:sticky;top:0;cursor:pointer;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
+  td:first-child{color:var(--ink);font-weight:600;max-width:330px;white-space:normal}
+  /* Text cells wrap so a long value can never overlap the next column; numeric
+     (right-aligned) cells stay on one line so figures stay scannable. */
+  td{white-space:normal;max-width:520px}
+  td[style*="text-align:right"]{white-space:nowrap;max-width:none}
+  tbody tr:nth-child(even) td{background:var(--surface-2)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid transparent;vertical-align:middle}
+  .chip.good{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+  .chip.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+  .chip.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+  .chip.dim{background:var(--surface-2);color:var(--dim);border-color:var(--line-strong)}
+  .note{font-size:12.5px;color:var(--dim);margin:8px 0}
+  .empty{padding:22px;text-align:center;color:var(--dim);background:var(--surface);border:1px dashed var(--line-strong);border-radius:11px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:12px 0 6px;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow)}
+  .bar label{font-size:12px;color:var(--dim);font-weight:600;display:flex;flex-direction:column;gap:4px}
+  select,input[type=search]{font-family:inherit;font-size:13px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--surface-2);color:var(--ink)}
+  a{color:var(--green)}
+  .linkrow{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line)}
+  .linkrow:last-child{border-bottom:0}
+  .linkrow .t{flex:1;min-width:0}
+  .linkrow .t b{color:var(--ink);font-size:13.5px}
+  .linkrow .t .m{font-size:12px;color:var(--dim);margin-top:2px}
+  .btn{display:inline-block;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:7px 14px;font-weight:700;font-size:12.5px;text-decoration:none;white-space:nowrap}
+  .btn.ghost{background:transparent;color:var(--green)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:900px){.two{grid-template-columns:1fr}}
+  .learn{border-left:4px solid var(--lava);background:var(--surface);border-radius:0 11px 11px 0;padding:12px 16px;margin:10px 0;box-shadow:var(--shadow)}
+  .learn b{color:var(--head)}
+  .learn .src{font-family:var(--mono);font-size:10.5px;color:var(--lava-deep);text-transform:uppercase;letter-spacing:.06em}
+  ul.tight{margin:6px 0;padding-left:20px}
+  ul.tight li{margin:4px 0;font-size:13.5px}
+  .funnel .stage{display:grid;grid-template-columns:180px 1fr 1fr;gap:10px;padding:8px 6px;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
+  .funnel .stage .lab{font-weight:700;color:var(--ink)}
+  .funnel .hdr{font-family:var(--mono);font-size:11px;text-transform:uppercase;color:var(--dim)}
+  details.kbd{background:var(--surface);border:1px solid var(--line);border-radius:11px;margin:8px 0;box-shadow:var(--shadow)}
+  details.kbd summary{cursor:pointer;padding:12px 16px;font-family:var(--serif);font-weight:700;font-size:16px;color:var(--head)}
+  details.kbd summary .ov{display:block;font-family:var(--sans);font-weight:400;font-size:12.5px;color:var(--dim);margin-top:2px}
+  details.kbd .kbd-b{padding:0 16px 14px;font-size:13.5px}
+  details.kbd .kbd-b ul{margin:6px 0;padding-left:20px}
+  details.kbd .kbd-b li{margin:5px 0}
+
+  /* ── Live / Calendar / Tracker ─────────────────────────────────────────── */
+  .livebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:11px 15px;box-shadow:var(--shadow);margin:12px 0}
+  .pulse{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px;color:var(--live)}
+  .pulse i{width:9px;height:9px;border-radius:50%;background:var(--live);display:inline-block;animation:pl 1.6s ease-in-out infinite}
+  @keyframes pl{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.82)}}
+  .srcchip{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--dim)}
+  /* Duration tiles — ALWAYS visible above every chart. */
+  .rangetiles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+  .rangetiles .rt{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--line-strong);background:var(--surface-2);color:var(--dim)}
+  .rangetiles .rt:hover{border-color:var(--lava);color:var(--head)}
+  .rangetiles .rt.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .rangetiles .rtlab{font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lava-deep);margin-right:4px}
+  .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow);margin:10px 0}
+  .chartcard h3{margin:0 0 2px}
+  .chartcard .sub{font-size:12.5px;color:var(--dim);margin:0 0 10px}
+  .chartcard svg{display:block;width:100%;height:auto;overflow:visible}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+  .cal .dow{font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--dim);text-align:center;padding:4px 0}
+  .cal .cell{min-height:86px;border:1px solid var(--line);border-radius:9px;padding:7px 8px;background:var(--surface);position:relative}
+  .cal .cell.pad{background:transparent;border:0}
+  .cal .cell.past{background:var(--surface)}
+  .cal .cell.today{border:2px solid var(--live);background:var(--live-bg);box-shadow:0 0 0 3px rgba(14,92,54,.10)}
+  .cal .cell.future{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 7px,#F4EDDC 7px,#F4EDDC 14px)}
+  .cal .cell .dn{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--head)}
+  .cal .cell .sp{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--head);margin-top:3px}
+  .cal .cell .mt{font-size:10.5px;color:var(--dim);font-weight:600;line-height:1.35}
+  .cal .cell .lv{position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--live);animation:pl 1.6s ease-in-out infinite}
+  .cal .cell .fu{font-size:10.5px;color:var(--dim);font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0;font-size:12px;color:var(--dim);font-weight:600}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:3px;border:1px solid var(--line-strong);display:inline-block}
+  /* Chip filter bars and horizontal distribution bars, matching the UGC
+     dashboard's scannable pattern. White surface, green fill, no dark panels. */
+  .chipbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:12px 0 4px}
+  .chipbar .cb{background:var(--surface);border:1px solid var(--line-strong);border-radius:999px;color:var(--dim);
+    font-family:var(--sans);font-weight:700;font-size:12px;padding:6px 13px;cursor:pointer;line-height:1.2}
+  .chipbar .cb:hover{border-color:var(--lava);color:var(--head)}
+  .chipbar .cb.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .chipbar .cblab{font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lava-deep);margin-right:3px}
+  .dist{margin:6px 0 2px}
+  .dist .row{display:grid;grid-template-columns:minmax(150px,26%) 1fr auto;gap:11px;align-items:center;padding:5px 0}
+  .dist .lb{font-size:12.5px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dist .tr{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;height:18px;overflow:hidden}
+  .dist .fl{height:100%;background:var(--green);border-radius:5px 0 0 5px;min-width:2px}
+  .dist .fl.alt{background:var(--lava-deep)}
+  .dist .vl{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums;min-width:82px;text-align:right}
+  /* Account cards: equal size, aligned, one per account, light surface only. */
+  .acctgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin:8px 0}
+  .acard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--green);border-radius:11px;
+    padding:15px 17px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:7px}
+  .acard.traffic{border-left-color:var(--lava-deep)}
+  .acard.dimmed{border-left-color:var(--line-strong);background:var(--surface-2)}
+  .acard h4{margin:0;font-family:var(--serif);font-size:16.5px;font-weight:700;color:var(--head)}
+  .acard .id{font-family:var(--mono);font-size:11px;color:var(--dim);font-weight:600}
+  .acard .use{font-size:13px;color:var(--ink);font-weight:600}
+  .acard .why{font-size:12.5px;color:var(--dim);margin:0}
+  .acard .mx{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:auto;padding-top:9px;border-top:1px solid var(--line)}
+  .acard .mx div{min-width:0}
+  .acard .mx .k{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+  .acard .mx .v{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums}
+  .notice{background:var(--warn-bg);border:1px solid var(--warn);border-left:4px solid var(--warn);border-radius:9px;padding:11px 14px;margin:10px 0;font-size:13px;color:#4A3208;font-weight:500}
+  .notice b{color:#3A2706}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ad Campaigns Master Dashboard</h1>
+  <p class="lede">The single knowledge base + performance dashboard for the USA paid program (Target + Costco): every KT email, spend sheet, social update, sheet/deck link, platform data source and creative learning in one place. Every figure is sourced from the KT files or a live connector read; nothing is fabricated. <a href="/ads-dashboard">Open the live Snowflake Ads Analysis</a> for warehouse-fresh rows.</p>
+
+  <div class="tabs" id="tabs">
+    <button data-p="live" class="on">Live Now</button>
+    <button data-p="calendar">Calendar</button>
+    <button data-p="tracker">Tracker</button>
+    <button data-p="accounts">Accounts</button>
+    <button data-p="sop">SOP</button>
+    <button data-p="overview">Overview</button>
+    <button data-p="campaigns">Campaigns &amp; Ads</button>
+    <button data-p="creative">Creative Intel</button>
+    <button data-p="organic">Organic &amp; UGC</button>
+    <button data-p="kb">Knowledge Base</button>
+    <button data-p="ops">Ops &amp; Data Sources</button>
+  </div>
+
+  <div class="panel on" id="p-live">
+    <div class="livebar">
+      <span class="pulse" id="live-pulse"><i></i> <span id="live-pulse-t">Checking the ad account…</span></span>
+      <span>
+        <span class="srcchip" id="live-src">source: —</span>
+        <span class="srcchip" id="live-upd">updated: —</span>
+        <button class="btn ghost" id="live-refresh" style="cursor:pointer;font-family:inherit">Refresh now</button>
+      </span>
+    </div>
+    <div class="chipbar" id="live-acct-chips"></div>
+    <div class="cards" id="live-cards"><div class="empty">Loading…</div></div>
+    <div id="live-acct-split"></div>
+    <div id="live-notice"></div>
+    <div class="chartcard">
+      <h3>Daily spend &amp; delivery</h3>
+      <p class="sub" id="live-chart-sub">Per-day actuals from the ad account.</p>
+      <div class="rangetiles" id="rt-spend"></div>
+      <div id="chart-spend"></div>
+    </div>
+    <p class="eyebrow">Live now — ad level (is it delivering yet?)</p>
+    <div class="bar">
+      <label>Status<select id="lv-status"><option value="">All</option><option value="live">live</option><option value="starting">starting</option><option value="not_live_yet">not live yet</option></select></label>
+      <label>Search<input type="search" id="lv-q" placeholder="ad, ad set, campaign…"></label>
+    </div>
+    <div class="tbl-wrap" id="live-ads"><div class="empty">Loading…</div></div>
+    <p class="note" id="live-ads-note"></p>
+  </div>
+
+  <div class="panel" id="p-calendar">
+    <div class="bar">
+      <label>Month<select id="cal-month"></select></label>
+      <label>&nbsp;<button class="apply" id="cal-today" style="cursor:pointer;font-family:inherit;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px">Jump to today</button></label>
+      <span class="srcchip" id="cal-src">source: —</span>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--surface)"></i> Past day — actuals</span>
+      <span><i style="background:var(--live-bg);border-color:var(--live)"></i> Today — live, partial day</span>
+      <span><i style="background:#F4EDDC"></i> Future — planned only, no figures</span>
+      <span><i style="background:var(--live);border-radius:50%"></i> ads delivering</span>
+    </div>
+    <div class="cal" id="cal-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
+    <div class="cards" id="cal-cards" style="margin-top:14px"></div>
+    <p class="eyebrow">Day detail</p>
+    <div class="frame" id="cal-detail"><p class="note">Click any day in the grid to see what ran that day.</p></div>
+  </div>
+
+  <div class="panel" id="p-tracker">
+    <p class="eyebrow">Campaign tracker — every campaign, its window, status and efficiency</p>
+    <div class="cards" id="trk-cards"></div>
+    <div class="bar">
+      <label>Status<select id="trk-status"><option value="">All</option><option value="live">live today</option><option value="ended">ended</option></select></label>
+      <label>Account<select id="trk-acct"><option value="">Both accounts</option><option value="dtc">DTC — own site</option><option value="retail">Target / Costco — retail</option></select></label>
+      <label>Search<input type="search" id="trk-q" placeholder="campaign…"></label>
+      <label>Sort<select id="trk-sort"><option value="spend">Spend</option><option value="ctr">CTR</option><option value="cpc">CPC</option><option value="last_day">Last active day</option></select></label>
+    </div>
+    <div class="tbl-wrap" id="trk-tbl"><div class="empty">Loading…</div></div>
+    <p class="note" id="trk-note"></p>
+    <div class="chartcard">
+      <h3>Spend by campaign</h3>
+      <p class="sub">Ranked, filtered by the controls above.</p>
+      <div class="rangetiles" id="rt-camp"></div>
+      <div id="chart-camp"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-accounts">
+    <p class="eyebrow">The ad-account studio — what each account is, what it is for, and what it can be judged on</p>
+    <div class="cards" id="acct-cards"></div>
+    <div class="notice" id="acct-kpi-note"></div>
+    <div class="chipbar" id="acct-filters"></div>
+    <div id="acct-live"></div>
+    <p class="eyebrow">Every feed in the warehouse</p>
+    <div class="tbl-wrap" id="acct-tbl"><div class="empty">Loading…</div></div>
+    <p class="note" id="acct-note"></p>
+    <p class="eyebrow">Retail funnel — the only way the Target programme can be measured</p>
+    <div class="notice" id="rf-note"></div>
+    <div class="cards" id="rf-cards"></div>
+    <div class="tbl-wrap" id="rf-tbl"><div class="empty">Loading…</div></div>
+    <p class="note" id="rf-caveat"></p>
+    <p class="eyebrow">Account detail</p>
+    <div id="acct-detail"></div>
+  </div>
+
+  <div class="panel" id="p-sop">
+    <div id="sop-head"><div class="empty">Loading…</div></div>
+    <div id="sop-body"></div>
+  </div>
+
+  <div class="panel" id="p-overview">
+    <p class="eyebrow">Paid spend — May to 20 Jul 2026 (source: KT workbook)</p>
+    <div class="cards" id="ov-cards"><div class="empty">Loading…</div></div>
+    <div class="two">
+      <div>
+        <p class="eyebrow">Spend by month</p>
+        <div class="tbl-wrap" id="ov-months"></div>
+        <p class="eyebrow">Spend by objective (Meta · Target account · 125 ads)</p>
+        <div class="tbl-wrap" id="ov-objectives"></div>
+      </div>
+      <div>
+        <p class="eyebrow">Portfolio verdicts (data-grounded)</p>
+        <div id="ov-verdicts"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="p-campaigns">
+    <p class="eyebrow">Campaign rollup — 13 Meta campaigns (Target account, to 20 Jul)</p>
+    <div class="tbl-wrap" id="camp-tbl"></div>
+    <div class="bar">
+      <label>Objective<select id="f-obj"><option value="">All</option><option>Sales</option><option>Traffic</option><option>Awareness</option><option>Engagement</option></select></label>
+      <label>Delivery<select id="f-status"><option value="">All</option><option value="active">active</option><option value="inactive">inactive</option><option value="not_delivering">not_delivering</option></select></label>
+      <label>Search<input type="search" id="f-q" placeholder="ad, ad set, campaign…"></label>
+      <label>Sort<select id="f-sort"><option value="spend">Spend</option><option value="cost_per_result">Cost / result</option><option value="ctr">CTR</option><option value="cpc">CPC</option><option value="thumb_stop">Thumb stop</option></select></label>
+      <a class="btn ghost" id="dl-json" href="/data/ads/target-ads-meta-2026-07-20.json" download>Download ad rows (JSON)</a>
+    </div>
+    <div class="tbl-wrap" id="ads-tbl"><div class="empty">Loading…</div></div>
+    <p class="note" id="ads-count"></p>
+  </div>
+
+  <div class="panel" id="p-creative">
+    <p class="eyebrow">Benchmarks from the KT data (use these to judge any new ad)</p>
+    <div class="tbl-wrap" id="bm-tbl"></div>
+    <div class="two">
+      <div>
+        <p class="eyebrow">Top 10 by efficiency (spend ≥ $100)</p>
+        <div class="tbl-wrap" id="top-tbl"></div>
+      </div>
+      <div>
+        <p class="eyebrow">Worst 10 by efficiency (spend ≥ $100)</p>
+        <div class="tbl-wrap" id="worst-tbl"></div>
+      </div>
+    </div>
+    <p class="eyebrow">Creative learnings (each cites its source)</p>
+    <div id="learnings"></div>
+  </div>
+
+  <div class="panel" id="p-organic">
+    <p class="eyebrow">Organic performance — Apr to 17 Jul 2026 (source: Social Update deck)</p>
+    <div class="cards" id="org-cards"></div>
+    <div class="tbl-wrap" id="org-months"></div>
+    <div class="two">
+      <div>
+        <p class="eyebrow">Top creators (reach · skip rate · retention)</p>
+        <div class="tbl-wrap" id="org-creators"></div>
+        <p class="eyebrow">UGC live content by bucket (June · JoinBrands)</p>
+        <div class="tbl-wrap" id="org-ugc"></div>
+      </div>
+      <div>
+        <p class="eyebrow">Instagram retention funnel — May vs June</p>
+        <div class="frame funnel" id="org-funnel"></div>
+        <p class="note" id="org-funnel-note"></p>
+      </div>
+    </div>
+    <div class="frame" id="org-next"></div>
+  </div>
+
+  <div class="panel" id="p-kb">
+    <div class="notice" style="background:var(--live-bg);border-color:var(--live);border-left-color:var(--live);color:#0B3D24">
+      <b>The final SOP for ad campaigns is the standing procedure</b> — scoring, nomenclature, landing pages, the 26 tracker columns, the three-level UGC flow, budgets and turnaround.
+      It has its own tab: <a href="#sop" id="kb-to-sop" style="font-weight:700">open the SOP tab</a>. The master tracking sheet is the source of truth over every document here.
+    </div>
+    <p class="eyebrow">The complete knowledge — overview first, expand any section for the details</p>
+    <div class="frame" id="kb-exec"><div class="empty">Loading…</div></div>
+    <div id="kb-full"></div>
+    <p class="eyebrow">Link registry — single-click access to every referenced sheet, deck, folder and platform</p>
+    <div class="bar">
+      <label>Group<select id="kb-group"><option value="">All groups</option></select></label>
+      <label>Status<select id="kb-status"><option value="">All</option><option value="verified">verified (live in Drive/platform)</option><option value="from-email">from email URL</option><option value="from-deck">from deck</option><option value="pending-access">pending access</option></select></label>
+      <label>Search<input type="search" id="kb-q" placeholder="title, owner…"></label>
+    </div>
+    <div class="frame" id="kb-links"><div class="empty">Loading…</div></div>
+    <p class="eyebrow">People — who owns what</p>
+    <div class="tbl-wrap" id="kb-people"></div>
+    <p class="eyebrow">Open gaps &amp; risks</p>
+    <div id="kb-gaps"></div>
+  </div>
+
+  <div class="panel" id="p-ops">
+    <p class="eyebrow">Platform status (live connector reads, 25 Jul 2026)</p>
+    <div id="ops-platforms"></div>
+    <p class="eyebrow">UGC dashboard automation — runbook</p>
+    <div class="frame" id="ops-ugc"></div>
+    <p class="eyebrow">Costco dark-post launch — configuration of record</p>
+    <div class="frame" id="ops-costco"></div>
+    <p class="eyebrow">Consultant data request — deliverables &amp; priority explorations</p>
+    <div class="frame" id="ops-datareq"></div>
+  </div>
+</div>
+
+<script src="/auth.js"></script>
+<script src="/table-sort.js"></script>
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  // Escapes single quotes too - rendered HTML uses single-quoted attributes
+  // (CodeQL: incomplete HTML attribute sanitization otherwise).
+  function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+  function money(v){return v==null?"—":"$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:2});}
+  function money0(v){return v==null?"—":"$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:0});}
+  function intf(v){return v==null?"—":Math.round(Number(v)).toLocaleString("en-US");}
+  function pct(v){return v==null?"—":Number(v).toLocaleString("en-US",{maximumFractionDigits:2})+"%";}
+  // Compact date for dense tables ("2026-05-01" -> "1 May"); keeps the ISO value
+  // in data-sort-value so header sorting stays chronological.
+  var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function shortDay(iso){
+    if(!iso) return "—";
+    var p=String(iso).split("-"); if(p.length<3) return String(iso);
+    return String(+p[2])+" "+(MON[+p[1]-1]||p[1]);
+  }
+  function pad(n,w){ n=String(Math.abs(Math.trunc(Number(n)||0))); while(n.length<w) n="0"+n; return n; }
+  function fallbackDay(){ return (SNAP&&SNAP.today&&SNAP.today.date)||new Date().toISOString().slice(0,10); }
+  // Rebuilds "YYYY-MM" from parsed integers — nothing from the original string
+  // survives, so DOM-sourced values can never reach the markup verbatim.
+  function monthKey(v){
+    var mm=/^(\d{4})-(\d{2})$/.exec(String(v||""));
+    if(!mm) return monthKey(fallbackDay().slice(0,7));
+    var y=Number(mm[1]), mo=Number(mm[2]);
+    if(!(y>=2000&&y<=2100)||!(mo>=1&&mo<=12)) return monthKey(fallbackDay().slice(0,7));
+    return pad(y,4)+"-"+pad(mo,2);
+  }
+  // Same contract for a full day key ("YYYY-MM-DD"); returns null when invalid.
+  function dayKey(v){
+    var mm=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v||""));
+    if(!mm) return null;
+    var y=Number(mm[1]), mo=Number(mm[2]), d=Number(mm[3]);
+    if(!(y>=2000&&y<=2100)||!(mo>=1&&mo<=12)||!(d>=1&&d<=31)) return null;
+    return pad(y,4)+"-"+pad(mo,2)+"-"+pad(d,2);
+  }
+  // Every table is sortable (clickable headers, table-sort.js) + filterable
+  // (a row-filter box injected above the scroll wrapper).
+  function table(head,rows){
+    return "<table data-sortable data-filterable><thead><tr>"+head.map(function(h){return "<th style='text-align:"+(h.r?"right":"left")+"'>"+esc(h.t)+"</th>";}).join("")+
+      "</tr></thead><tbody>"+rows.map(function(r){return "<tr>"+r.map(function(c,i){return "<td style='text-align:"+(head[i]&&head[i].r?"right":"left")+"'>"+c+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table>";
+  }
+  var KB=null, ADS=null, SNAP=null, LIVE=null, RANGE=30, CAMPRANGE='all';
+  var REG=null, ACCTLIVE=null, LVACCT='', RETAIL=null;
+
+  // ── Charts: dependency-free inline SVG. Every chart is preceded by ALWAYS
+  // visible duration tiles (7D/14D/30D/60D/All) wired through rangeTiles().
+  function rangeTiles(host, opts, current, onPick){
+    var el=$(host); if(!el) return;
+    el.innerHTML="<span class='rtlab'>Duration</span>"+opts.map(function(o){
+      return "<button class='rt"+(String(o.v)===String(current)?" on":"")+"' data-v='"+esc(o.v)+"' type='button'>"+esc(o.t)+"</button>";
+    }).join("");
+    el.onclick=function(e){var b=e.target.closest("button[data-v]"); if(!b)return; onPick(b.dataset.v);};
+  }
+  function lineChart(hostSel, rows, key, label, fmt){
+    var el=$(hostSel); if(!el) return;
+    if(!rows||!rows.length){el.innerHTML="<div class='empty'>No data for this duration.</div>";return;}
+    var W=1000,H=230,PL=58,PR=14,PT=14,PB=30;
+    var vals=rows.map(function(r){return Number(r[key])||0;});
+    var max=Math.max.apply(null,vals)||1, iw=W-PL-PR, ih=H-PT-PB;
+    var bw=iw/rows.length;
+    var bars=rows.map(function(r,i){
+      var v=Number(r[key])||0, h=Math.max(1,v/max*ih), x=PL+i*bw, y=PT+ih-h;
+      var isToday=r.rel==="today"||(SNAP&&r.date===SNAP.today&&false);
+      return "<rect x='"+(x+bw*0.12).toFixed(1)+"' y='"+y.toFixed(1)+"' width='"+(bw*0.76).toFixed(1)+"' height='"+h.toFixed(1)+
+        "' rx='2' fill='"+(isToday?"#0E5C36":"#6A33D8")+"' opacity='"+(isToday?1:0.86)+"'><title>"+esc(r.date)+": "+esc(fmt(v))+"</title></rect>";
+    }).join("");
+    var ticks=[0,0.5,1].map(function(f){
+      var y=PT+ih-f*ih;
+      return "<line x1='"+PL+"' y1='"+y.toFixed(1)+"' x2='"+(W-PR)+"' y2='"+y.toFixed(1)+"' stroke='#E3D8BF' stroke-width='1'/>"+
+        "<text x='"+(PL-8)+"' y='"+(y+4).toFixed(1)+"' text-anchor='end' font-size='11' font-weight='600' fill='#3D4A42' font-family='ui-monospace,monospace'>"+esc(fmt(max*f))+"</text>";
+    }).join("");
+    // Label every step-th day plus the last day — but drop the last label when
+    // it would collide with the preceding step label (they overlapped before).
+    var step=Math.ceil(rows.length/8), lastIdx=rows.length-1;
+    var lastStep=Math.floor(lastIdx/step)*step;
+    var showLast=(lastIdx-lastStep)>=Math.max(1,Math.ceil(step*0.6));
+    var xlab=rows.map(function(r,i){
+      var isStep=(i%step===0), isLast=(i===lastIdx);
+      if(!(isStep||(isLast&&showLast))) return "";
+      if(isStep&&isLast&&!showLast) return "";
+      return "<text x='"+(PL+i*bw+bw/2).toFixed(1)+"' y='"+(H-9)+"' text-anchor='middle' font-size='10.5' font-weight='600' fill='#3D4A42' font-family='ui-monospace,monospace'>"+esc(String(r.date).slice(5))+"</text>";
+    }).join("");
+    el.innerHTML="<svg viewBox='0 0 "+W+" "+H+"' role='img' aria-label='"+esc(label)+"'>"+ticks+bars+xlab+"</svg>";
+  }
+  function barChart(hostSel, items, fmt){
+    var el=$(hostSel); if(!el) return;
+    if(!items||!items.length){el.innerHTML="<div class='empty'>Nothing to chart.</div>";return;}
+    var max=Math.max.apply(null,items.map(function(i){return i.v;}))||1;
+    el.innerHTML=items.slice(0,12).map(function(i){
+      var w=Math.round(i.v/max*100);
+      return "<div class='barrow'><span class='lab' title='"+esc(i.k)+"'>"+esc(i.k)+"</span><span class='track'><span class='fill' style='width:"+w+"%'></span></span><span class='val'>"+esc(fmt(i.v))+"</span></div>";
+    }).join("");
+  }
+
+  function verdictChip(cpr, objective){
+    if(cpr==null) return "<span class='chip dim'>n/a</span>";
+    if(objective==="Sales"){ if(cpr<=0.85) return "<span class='chip good'>beats $0.80-0.85 bench</span>"; if(cpr<=1.2) return "<span class='chip warn'>near bench</span>"; return "<span class='chip bad'>above bench</span>"; }
+    if(objective==="Traffic"){ if(cpr<=0.15) return "<span class='chip good'>beats $0.13 bench</span>"; if(cpr<=0.25) return "<span class='chip warn'>near bench</span>"; return "<span class='chip bad'>above bench</span>"; }
+    return "<span class='chip dim'>"+esc(objective)+"</span>";
+  }
+
+  // ── LIVE NOW ───────────────────────────────────────────────────────────────
+  // Real-time read of the Meta ad account: Meta Marketing API when configured,
+  // else the Snowflake per-day mirror (which carries the current partial day),
+  // else the committed snapshot, always labelled with which one is in play.
+  function seriesFor(days){
+    var rows=(SNAP&&SNAP.daily)||[];
+    if(days==='all') return rows.slice();
+    return rows.slice(-Number(days));
+  }
+  function drawSpendChart(){
+    var rows=(LIVE&&LIVE.daily&&LIVE.daily.length?LIVE.daily:seriesFor(RANGE));
+    if(RANGE!=='all'&&LIVE&&LIVE.daily&&LIVE.daily.length) rows=rows.slice(-Number(RANGE));
+    lineChart("#chart-spend", rows.map(function(r){return {date:r.date||r.day,spend:r.spend,rel:r.rel};}), 'spend', 'Daily spend', money0);
+    var el=$("#live-chart-sub");
+    if(el) el.textContent=(rows.length?rows[0].date||rows[0].day:"")+" to "+(rows.length?rows[rows.length-1].date||rows[rows.length-1].day:"")+
+      " · "+rows.length+" days · today is a partial day and rises through the day.";
+  }
+  function renderLive(res){
+    LIVE=LIVE||{}; LIVE.today=res; // kept so the status/search filters can re-render without refetching
+    var connected=res&&res.ok&&res.connected;
+    var t=$("#live-pulse-t"), p=$("#live-pulse");
+    if(connected){
+      p.style.color="var(--live)";
+      t.textContent=res.live_count+" ads delivering right now · "+res.campaigns+" campaigns live";
+    } else {
+      p.style.color="var(--warn)";
+      t.textContent="Live source not connected — showing the committed snapshot ("+((SNAP&&SNAP.captured_at)||"")+")";
+    }
+    $("#live-src").textContent="source: "+(connected?res.source:((SNAP&&SNAP.source&&"snapshot")||"snapshot"));
+    $("#live-upd").textContent="updated: "+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    var day=(connected?res.day:(SNAP&&SNAP.today&&SNAP.today.date))||"";
+    var tot=connected?res.totals:(SNAP&&SNAP.today?{spend:SNAP.today.spend_so_far,impressions:SNAP.today.impressions,link_clicks:SNAP.today.link_clicks}:{spend:0,impressions:0,link_clicks:0});
+    var liveN=connected?res.live_count:(SNAP&&SNAP.today?SNAP.today.ads_live:0);
+    var ctr=tot.impressions?(tot.link_clicks/tot.impressions*100):null;
+    var yest=(SNAP&&SNAP.daily&&SNAP.daily.length>1)?SNAP.daily[SNAP.daily.length-2]:null;
+    $("#live-cards").innerHTML=
+      "<div class='sc' style='border-left-color:var(--live)'><div class='k'>Ads delivering today</div><div class='v'>"+intf(liveN)+"</div><div class='s'>"+esc(day)+" · partial day</div></div>"+
+      "<div class='sc'><div class='k'>Spend so far today</div><div class='v'>"+money(tot.spend)+"</div><div class='s'>"+(connected&&res.pacing_pct!=null?res.pacing_pct+"% of the $"+intf(res.budget_cap)+" cap":"vs cap — set budgets in Ops")+"</div></div>"+
+      "<div class='sc'><div class='k'>Impressions today</div><div class='v'>"+intf(tot.impressions)+"</div><div class='s'>link clicks "+intf(tot.link_clicks)+"</div></div>"+
+      "<div class='sc'><div class='k'>CTR today</div><div class='v'>"+(ctr==null?"—":pct(ctr))+"</div><div class='s'>"+(connected&&res.cpc!=null?"CPC "+money(res.cpc):"")+"</div></div>"+
+      "<div class='sc'><div class='k'>Yesterday (full day)</div><div class='v'>"+(yest?money0(yest.spend):"—")+"</div><div class='s'>"+(yest?intf(yest.impressions)+" impressions":"")+"</div></div>";
+    renderLiveAccounts(res, connected);
+    if(!connected){
+      $("#live-notice").innerHTML="<div class='notice'><b>Not reading the ad account live right now.</b> "+
+        esc((res&&res.hint)||"")+" The figures above are the committed snapshot captured "+esc((SNAP&&SNAP.captured_at)||"")+
+        " from "+esc((SNAP&&SNAP.source)||"")+" — never invented."+
+        (res&&res.would_query?"<br><br><code style='font-family:var(--mono);font-size:11px;white-space:pre-wrap;display:block;margin-top:6px;color:#3A2706'>"+esc(res.would_query)+"</code>":"")+"</div>";
+    } else { $("#live-notice").innerHTML=""; }
+    renderLiveAds(res);
+    drawSpendChart();
+  }
+  // The two live US accounts, side by side. Never blended into one ROAS: only the
+  // DTC account can attribute a sale, so a combined figure would be meaningless.
+  function renderLiveAccounts(res, connected){
+    var rows = (connected && res && res.accounts && res.accounts.length)
+      ? res.accounts.map(function(a){
+          return {id:a.source_id,label:a.label||a.account,kpi:a.kpi,used_for:a.used_for,
+            spend:a.spend,impressions:a.impressions,link_clicks:a.link_clicks,
+            campaigns:a.campaigns,ads:a.ads_live,ctr:a.ctr,cpc:a.cpc,cpm:a.cpm,src:'live'};
+        })
+      : Object.keys((SNAP&&SNAP.today&&SNAP.today.by_account)||{}).map(function(k){
+          var t=SNAP.today.by_account[k];
+          var meta=(SNAP.accounts||[]).filter(function(a){return a.key===k;})[0]||{};
+          return {id:k,label:meta.account||k,kpi:meta.kpi,used_for:meta.used_for,
+            spend:t.spend,impressions:t.impressions,link_clicks:t.link_clicks,
+            campaigns:t.campaigns,ads:t.ads_live,
+            ctr:t.impressions?(100*t.link_clicks/t.impressions):null,
+            cpc:t.link_clicks?(t.spend/t.link_clicks):null,
+            cpm:t.impressions?(1000*t.spend/t.impressions):null,src:'snapshot'};
+        });
+    if(!rows.length){ $("#live-acct-split").innerHTML=""; $("#live-acct-chips").innerHTML=""; return; }
+    rows.sort(function(a,b){return (b.spend||0)-(a.spend||0);});
+    $("#live-acct-chips").innerHTML="<span class='cblab'>Account</span>"+
+      "<button class='cb"+(LVACCT===''?" on":"")+"' data-lva=''>Both accounts</button>"+
+      rows.map(function(a){return "<button class='cb"+(LVACCT===a.id?" on":"")+"' data-lva='"+esc(a.id)+"'>"+esc(a.id==='dtc'?'DTC — own site':(a.id==='retail'?'Target / Costco':a.label))+"</button>";}).join("");
+    var max=rows[0].spend||1;
+    $("#live-acct-split").innerHTML="<div class='chartcard'><h3>Today by account</h3>"+
+      "<p class='sub'>"+esc(rows[0].src==='live'?"Live from the ad accounts.":"From the committed snapshot at capture.")+" Each account is scored on what it can measure.</p>"+
+      "<div class='acctgrid'>"+rows.map(function(a){
+        var m2 = a.kpi==='roas'
+          ? {k:'CTR today', v:a.ctr!=null?pct(a.ctr):"—"}
+          : {k:'CTR today', v:a.ctr!=null?pct(a.ctr):"—"};
+        return "<div class='acard"+(a.kpi==='traffic'?" traffic":"")+"'>"+
+          "<h4>"+esc(a.label)+"</h4>"+
+          "<div class='id'>"+intf(a.ads)+" ads · "+intf(a.campaigns)+" campaigns "+(a.kpi?kpiChip(a.kpi):"")+"</div>"+
+          (a.used_for?"<div class='use'>"+esc(a.used_for)+"</div>":"")+
+          "<div class='mx'><div><div class='k'>Spend today</div><div class='v'>"+money(a.spend)+"</div></div>"+
+          "<div><div class='k'>"+esc(m2.k)+"</div><div class='v'>"+m2.v+"</div></div>"+
+          "<div><div class='k'>CPC</div><div class='v'>"+(a.cpc!=null?money(a.cpc):"—")+"</div></div></div>"+
+          "</div>";
+      }).join("")+"</div>"+
+      "<div class='dist' style='margin-top:12px'>"+rows.map(function(a){
+        return "<div class='row'><div class='lb'>"+esc(a.label)+"</div>"+
+          "<div class='tr'><div class='fl"+(a.kpi==='traffic'?" alt":"")+"' style='width:"+Math.max(1,Math.round(100*(a.spend||0)/max))+"%'></div></div>"+
+          "<div class='vl'>"+money(a.spend)+"</div></div>";
+      }).join("")+"</div></div>";
+  }
+  function renderLiveAds(res){
+    var rows=(res&&res.ads)||[];
+    if(!rows.length){
+      $("#live-ads").innerHTML="<div class='empty'>No ad-level rows for today from a live source. Connect Meta or Snowflake (Ops tab) to see per-ad delivery status.</div>";
+      $("#live-ads-note").textContent="";
+      return;
+    }
+    var st=$("#lv-status").value, q=($("#lv-q").value||"").toLowerCase();
+    var f=rows.filter(function(r){
+      if(st&&r.status!==st)return false;
+      if(LVACCT&&r.source_id&&r.source_id!==LVACCT)return false;
+      if(q&&((r.ad||"")+" "+(r.adset||"")+" "+(r.campaign||"")).toLowerCase().indexOf(q)<0)return false;
+      return true;
+    }).sort(function(a,b){return (b.spend||0)-(a.spend||0);});
+    $("#live-ads").innerHTML=table(
+      [{t:"Ad"},{t:"Account"},{t:"Campaign"},{t:"Status"},{t:"Spend today",r:1},{t:"Impressions",r:1},{t:"Link clicks",r:1},{t:"CTR",r:1}],
+      f.slice(0,200).map(function(r){
+        var chip=r.status==="live"?"<span class='chip good'>live</span>":r.status==="starting"?"<span class='chip warn'>starting</span>":"<span class='chip dim'>not live yet</span>";
+        var ac=r.source_id?"<span class='chip "+(r.source_id==='dtc'?'good':'warn')+"'>"+esc(r.source_id==='dtc'?'DTC':'retail')+"</span>":"—";
+        return [esc(r.ad),ac,esc(r.campaign),chip,money(r.spend),intf(r.impressions),intf(r.link_clicks),r.ctr!=null?pct(r.ctr):"—"];
+      }));
+    $("#live-ads-note").textContent=f.length+" of "+rows.length+" ads · live = delivering impressions today · starting = spend recorded but no impressions yet · not live yet = no delivery today.";
+  }
+  // Reads JSON but never lets a non-JSON response (a 404 HTML page from a
+  // static preview, an auth redirect) surface as a raw parse error.
+  function getJSON(url){
+    return fetch(url,{cache:"no-store"}).then(function(r){
+      return r.text().then(function(t){
+        try { return JSON.parse(t); }
+        catch(_){ return {ok:false,connected:false,__unreachable:true,status:r.status,
+          hint:"The live endpoint /api/brain?action=ads-live is not reachable from here (HTTP "+r.status+"). On the deployed app it returns JSON; in a static preview there is no serverless function."}; }
+      });
+    });
+  }
+  function loadLive(){
+    getJSON("/api/brain?action=ads-live&op=today")
+      .then(function(res){ renderLive(res); })
+      .catch(function(e){ renderLive({ok:false,connected:false,hint:"Could not reach the live endpoint: "+e.message}); });
+    getJSON("/api/brain?action=ads-live&op=daily")
+      .then(function(res){ if(res&&res.ok&&res.rows&&res.rows.length){ LIVE=LIVE||{}; LIVE.daily=res.rows.map(function(r){return {date:r.day,spend:r.spend,impressions:r.impressions,link_clicks:r.link_clicks};}); drawSpendChart(); renderCalendar(); } })
+      .catch(function(){});
+  }
+
+  // ── CALENDAR ───────────────────────────────────────────────────────────────
+  function monthOptions(){
+    var months=[]; (SNAP&&SNAP.daily||[]).forEach(function(d){var m=d.date.slice(0,7); if(months.indexOf(m)<0)months.push(m);});
+    var t=(SNAP&&SNAP.today&&SNAP.today.date)||new Date().toISOString().slice(0,10);
+    if(months.indexOf(t.slice(0,7))<0) months.push(t.slice(0,7));
+    // one month ahead so future/planned days are reachable
+    var last=months[months.length-1], y=+last.slice(0,4), mo=+last.slice(5,7);
+    var nx=new Date(Date.UTC(y,mo,1)).toISOString().slice(0,7);
+    if(months.indexOf(nx)<0) months.push(nx);
+    var sel=$("#cal-month");
+    sel.innerHTML=months.map(function(m){
+      var d=new Date(m+"-01T12:00:00Z");
+      return "<option value='"+m+"'>"+d.toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'})+"</option>";
+    }).join("");
+    sel.value=t.slice(0,7);
+  }
+  function renderCalendar(){
+    // The month comes from a <select>, i.e. DOM text. Rather than guard the
+    // string, the month key is REBUILT from two parsed integers, so the value
+    // that reaches innerHTML cannot carry any character other than digits and
+    // the hyphen we add ourselves. An unparseable value falls back to today.
+    var m=monthKey($("#cal-month").value);
+    var today=(SNAP&&SNAP.today&&SNAP.today.date)||"";
+    var byDay={}; (SNAP&&SNAP.daily||[]).forEach(function(d){byDay[d.date]=d;});
+    if(LIVE&&LIVE.daily) LIVE.daily.forEach(function(d){ byDay[d.date]=Object.assign({},byDay[d.date]||{date:d.date},d); });
+    var y=+m.slice(0,4), mo=+m.slice(5,7);
+    var first=new Date(Date.UTC(y,mo-1,1)), dim=new Date(Date.UTC(y,mo,0)).getUTCDate(), lead=first.getUTCDay();
+    var html=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(function(d){return "<div class='dow'>"+d+"</div>";}).join("");
+    for(var i=0;i<lead;i++) html+="<div class='cell pad'></div>";
+    var monthSpend=0, monthImpr=0, activeDays=0;
+    for(var d=1;d<=dim;d++){
+      var iso=m+"-"+String(d).padStart(2,"0");
+      var rel=iso<today?"past":(iso===today?"today":"future");
+      var r=byDay[iso];
+      if(r){monthSpend+=Number(r.spend)||0;monthImpr+=Number(r.impressions)||0;if((Number(r.spend)||0)>0)activeDays++;}
+      var safeIso=/^\d{4}-\d{2}-\d{2}$/.test(iso)?iso:"1970-01-01";
+      html+="<div class='cell "+rel+"' data-d='"+safeIso+"' style='cursor:"+(r?"pointer":"default")+"'>"+
+        "<div class='dn'>"+d+(rel==="today"?" · TODAY":"")+"</div>"+
+        (r&&r.ads_live?"<span class='lv' title='ads delivering'></span>":"")+
+        (r?("<div class='sp'>"+money0(r.spend)+"</div><div class='mt'>"+(r.ads_live!=null?intf(r.ads_live)+" ads · ":"")+intf(r.impressions)+" impr</div>")
+          :(rel==="future"?"<div class='fu' style='margin-top:8px'>planned<br>no figures</div>":"<div class='mt' style='margin-top:8px'>no data</div>"))+
+        "</div>";
+    }
+    $("#cal-grid").innerHTML=html;
+    $("#cal-cards").innerHTML=
+      "<div class='sc'><div class='k'>Month spend</div><div class='v'>"+money0(monthSpend)+"</div><div class='s'>"+activeDays+" days with delivery</div></div>"+
+      "<div class='sc'><div class='k'>Month impressions</div><div class='v'>"+intf(monthImpr)+"</div></div>"+
+      "<div class='sc'><div class='k'>Avg spend / active day</div><div class='v'>"+(activeDays?money0(monthSpend/activeDays):"—")+"</div></div>";
+    $("#cal-src").textContent="source: "+((LIVE&&LIVE.daily&&LIVE.daily.length)?"live ad account":"snapshot "+((SNAP&&SNAP.captured_at)||""));
+  }
+  function calDetail(v){
+    // The day key arrives from a cell's data-d attribute (DOM text). dayKey()
+    // rebuilds it from parsed integers and returns null when it is not a real
+    // date, so nothing from the original string can reach innerHTML.
+    var iso=dayKey(v);
+    if(!iso) return;
+    var byDay={}; (SNAP&&SNAP.daily||[]).forEach(function(d){byDay[d.date]=d;});
+    var r=byDay[iso], today=(SNAP&&SNAP.today&&SNAP.today.date)||"";
+    if(!r){
+      $("#cal-detail").innerHTML="<p class='note'>"+(iso>today
+        ? "<b>"+esc(iso)+"</b> is a future day. Future days carry planned campaigns only — no performance figures are shown, because none exist yet."
+        : "<b>"+esc(iso)+"</b> has no rows in the ad account for this window.")+"</p>";
+      return;
+    }
+    var camps=(SNAP&&SNAP.campaigns||[]).filter(function(c){return c.first_day<=iso&&c.last_day>=iso;})
+      .sort(function(a,b){return b.spend-a.spend;});
+    $("#cal-detail").innerHTML="<h3 style='margin-top:0'>"+esc(new Date(iso+"T12:00:00Z").toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}))+
+      (iso===today?" <span class='chip good'>live today</span>":"")+"</h3>"+
+      "<div class='cards' style='margin:8px 0'>"+
+        "<div class='sc'><div class='k'>Spend</div><div class='v'>"+money(r.spend)+"</div></div>"+
+        "<div class='sc'><div class='k'>Ads delivering</div><div class='v'>"+intf(r.ads_live)+"</div></div>"+
+        "<div class='sc'><div class='k'>Impressions</div><div class='v'>"+intf(r.impressions)+"</div></div>"+
+        "<div class='sc'><div class='k'>Link clicks</div><div class='v'>"+intf(r.link_clicks)+"</div></div>"+
+        "<div class='sc'><div class='k'>CTR</div><div class='v'>"+(r.impressions?pct(r.link_clicks/r.impressions*100):"—")+"</div></div>"+
+      "</div>"+
+      "<p class='eyebrow'>Campaigns whose flight window covers this day ("+camps.length+")</p>"+
+      "<div class='tbl-wrap'>"+table([{t:"Campaign"},{t:"Window"},{t:"Ads",r:1},{t:"Window spend",r:1},{t:"Status"}],
+        camps.map(function(c){return [esc(c.campaign),esc(c.first_day+" → "+c.last_day),intf(c.ads),money0(c.spend),
+          c.live_today?"<span class='chip good'>live today</span>":"<span class='chip dim'>ended</span>"];}))+"</div>"+
+      "<p class='note'>Per-day spend is the account total for that date. Campaign rows show each campaign's full flight window and its window total — the warehouse mirror does not split a campaign's spend per day at this grain.</p>";
+  }
+
+  // ── ACCOUNTS ───────────────────────────────────────────────────────────────
+  // KNICKGASM runs several accounts per platform and they are NOT comparable on one
+  // KPI: the DTC and Google accounts carry a pixel or Google conversion, so ROAS
+  // is real, while the retail and Amazon accounts send shoppers to target.com,
+  // Instacart or amazon.com and can never attribute a sale. This tab states that
+  // for each account rather than leaving a reader to read a structural zero as a
+  // failure. The registry comes from adAccounts() in ads-snowflake-core, emitted
+  // to /data/ads/ad-accounts.json at build so the tab renders with no backend.
+  var ACCTFILTER={status:'live',platform:''};
+  function acctById(id){ return ((REG&&REG.accounts)||[]).filter(function(a){return a.id===id;})[0]||null; }
+  function kpiChip(k){
+    return k==='roas'
+      ? "<span class='chip good'>judged on ROAS</span>"
+      : "<span class='chip warn'>judged on traffic</span>";
+  }
+  function statusChip(st){
+    if(st==='live') return "<span class='chip good'>live</span>";
+    if(st==='paused') return "<span class='chip warn'>paused</span>";
+    if(st==='superseded') return "<span class='chip dim'>superseded</span>";
+    if(st==='stale') return "<span class='chip dim'>stale</span>";
+    return "<span class='chip dim'>archive</span>";
+  }
+  // Spend actually observed for an account, from whichever source we have. The
+  // snapshot covers the two live US Meta accounts; the live API (when connected)
+  // covers whatever the registry query returned.
+  function acctObserved(id){
+    var live=(ACCTLIVE&&ACCTLIVE.rows||[]).filter(function(r){return r.id===id;})[0];
+    if(live&&live.in_window) return {spend:live.spend,impressions:live.impressions,link_clicks:live.link_clicks,
+      campaigns:live.campaigns,ads:live.ads,revenue:live.revenue,roas:live.roas,src:'live'};
+    var sn=(SNAP&&SNAP.accounts||[]).filter(function(a){return a.key===id;})[0];
+    if(sn) return {spend:sn.spend,impressions:sn.impressions,link_clicks:sn.link_clicks,
+      campaigns:sn.campaigns_in_window,ads:null,revenue:sn.revenue,roas:sn.roas,src:'snapshot'};
+    return null;
+  }
+  function renderAccounts(){
+    var reg=(REG&&REG.accounts)||[];
+    if(!reg.length){ $("#acct-tbl").innerHTML="<div class='empty'>Account registry not loaded.</div>"; return; }
+    var live=reg.filter(function(a){return a.status==='live';});
+    var byPlat={}; reg.forEach(function(a){byPlat[a.platform]=(byPlat[a.platform]||0)+1;});
+    var distinct=(REG.counts&&REG.counts.distinct_accounts)||reg.length;
+    $("#acct-cards").innerHTML=
+      "<div class='sc'><div class='k'>Ad accounts</div><div class='v'>"+intf(distinct)+"</div><div class='s'>"+intf(reg.length)+" warehouse feeds</div></div>"+
+      "<div class='sc' style='border-left-color:var(--live)'><div class='k'>Live feeds</div><div class='v'>"+intf(live.length)+"</div><div class='s'>current enough to report from</div></div>"+
+      "<div class='sc'><div class='k'>Judged on ROAS</div><div class='v'>"+intf(reg.filter(function(a){return a.kpi==='roas';}).length)+"</div><div class='s'>pixel or Google conversion tracked</div></div>"+
+      "<div class='sc' style='border-left-color:var(--lava-deep)'><div class='k'>Judged on traffic</div><div class='v'>"+intf(reg.filter(function(a){return a.kpi==='traffic';}).length)+"</div><div class='s'>third-party checkout, no attribution</div></div>"+
+      "<div class='sc'><div class='k'>Platforms</div><div class='v'>"+Object.keys(byPlat).length+"</div><div class='s'>"+esc(Object.keys(byPlat).map(function(k){return k+" "+byPlat[k];}).join(" · "))+"</div></div>";
+    $("#acct-kpi-note").innerHTML="<b>Two kinds of account, two kinds of scorecard.</b> "+
+      esc((REG.kpis&&REG.kpis.roas)||"")+" "+esc((REG.kpis&&REG.kpis.traffic)||"");
+
+    // Chip filters, UGC-dashboard style.
+    var plats=[''].concat(Object.keys(byPlat));
+    var sts=['live','all','paused','superseded','stale','archive'];
+    $("#acct-filters").innerHTML=
+      "<span class='cblab'>Status</span>"+sts.map(function(x){
+        return "<button class='cb"+(ACCTFILTER.status===x?" on":"")+"' data-af='status' data-v='"+esc(x)+"'>"+esc(x==='all'?'All':x)+"</button>";}).join("")+
+      "<span class='cblab' style='margin-left:10px'>Platform</span>"+plats.map(function(x){
+        return "<button class='cb"+(ACCTFILTER.platform===x?" on":"")+"' data-af='platform' data-v='"+esc(x)+"'>"+esc(x||'All')+"</button>";}).join("");
+
+    // Live-account cards with the observed figures we actually have.
+    var liveCards=live.map(function(a){
+      var o=acctObserved(a.id);
+      var m1=o?money0(o.spend):"—", m1k="Spend observed";
+      var m2 = a.kpi==='roas'
+        ? {k:'ROAS', v:(o&&o.roas!=null)?o.roas+"x":"—"}
+        : {k:'CTR', v:(o&&o.impressions)?pct(100*o.link_clicks/o.impressions):"—"};
+      var m3 = a.kpi==='roas'
+        ? {k:'Revenue', v:(o&&o.revenue!=null)?money0(o.revenue):"—"}
+        : {k:'CPC', v:(o&&o.link_clicks)?money(o.spend/o.link_clicks):"—"};
+      return "<div class='acard"+(a.kpi==='traffic'?" traffic":"")+"'>"+
+        "<h4>"+esc(a.label)+"</h4>"+
+        "<div class='id'>"+esc(a.platform.toUpperCase())+" · "+esc(a.region)+" · "+esc(a.account_id||"—")+" · fresh to "+esc(a.fresh_to)+" "+statusChip(a.status)+" "+kpiChip(a.kpi)+"</div>"+
+        "<div class='use'>"+esc(a.used_for)+"</div>"+
+        "<p class='why'>"+esc(a.purpose)+"</p>"+
+        (a.attribution_note?"<p class='why' style='color:var(--warn)'><b>Attribution.</b> "+esc(a.attribution_note)+"</p>":"")+
+        "<div class='mx'><div><div class='k'>"+esc(m1k)+"</div><div class='v'>"+m1+"</div></div>"+
+        "<div><div class='k'>"+esc(m2.k)+"</div><div class='v'>"+m2.v+"</div></div>"+
+        "<div><div class='k'>"+esc(m3.k)+"</div><div class='v'>"+m3.v+"</div></div></div>"+
+        (o?"<div class='id'>"+esc(o.src==='live'?"live warehouse read":"committed snapshot")+(o.campaigns!=null?" · "+intf(o.campaigns)+" campaigns":"")+"</div>":
+            "<div class='id'>no observed rows in the loaded window</div>")+
+        "</div>";
+    }).join("");
+    $("#acct-live").innerHTML="<p class='eyebrow'>Live accounts — what each is delivering</p><div class='acctgrid'>"+liveCards+"</div>";
+
+    var rows=reg.filter(function(a){
+      if(ACCTFILTER.status!=='all'&&a.status!==ACCTFILTER.status)return false;
+      if(ACCTFILTER.platform&&a.platform!==ACCTFILTER.platform)return false;
+      return true;
+    });
+    $("#acct-tbl").innerHTML=table(
+      [{t:"Account"},{t:"Platform"},{t:"Region"},{t:"Account id"},{t:"Status"},{t:"Judged on"},{t:"Fresh to"},{t:"Campaigns",r:1},{t:"Spend on record",r:1},{t:"Warehouse table"}],
+      rows.map(function(a){
+        var v=a.verified||{};
+        return ["<a href='#' data-acct='"+esc(a.id)+"'>"+esc(a.label)+"</a>",esc(a.platform),esc(a.region),
+          "<span style='font-family:var(--mono)'>"+esc(a.account_id||"—")+"</span>",statusChip(a.status),kpiChip(a.kpi),
+          "<span data-sort-value='"+esc(a.fresh_to)+"'>"+esc(shortDay(a.fresh_to))+"</span>",
+          v.campaigns!=null?intf(v.campaigns):"—",
+          v.spend!=null?money0(v.spend)+(a.currency&&a.currency!=='USD'?" <span class='chip dim'>"+esc(a.currency)+"</span>":""):"—",
+          "<span style='font-family:var(--mono);font-size:11px'>"+esc(a.table)+"</span>"];
+      }));
+    $("#acct-note").textContent=rows.length+" of "+reg.length+" feeds. Spend on record is the whole-feed lifetime figure read from the warehouse when the registry was written, in that account's own currency — India and UK figures are INR and GBP and must never be summed with the USD accounts. Click an account name for the full description.";
+    // Spend comparison across the live accounts, in USD only so the bars mean something.
+    var usd=live.filter(function(a){return (a.currency||'USD')==='USD'&&a.verified&&a.verified.spend;})
+      .sort(function(x,y){return y.verified.spend-x.verified.spend;});
+    $("#acct-detail").innerHTML="<div class='chartcard'><h3>Lifetime spend on record — USD accounts</h3>"+
+      "<p class='sub'>Whole-feed totals. UK and India accounts are excluded because they report in GBP and INR.</p>"+
+      "<div class='dist'>"+usd.map(function(a){
+        var max=usd[0].verified.spend;
+        return "<div class='row'><div class='lb' title='"+esc(a.label)+"'>"+esc(a.label)+"</div>"+
+          "<div class='tr'><div class='fl"+(a.kpi==='traffic'?" alt":"")+"' style='width:"+Math.max(1,Math.round(100*a.verified.spend/max))+"%'></div></div>"+
+          "<div class='vl'>"+money0(a.verified.spend)+"</div></div>";
+      }).join("")+"</div>"+
+      "<p class='note'>Green = the account can attribute a sale. Lava = third-party checkout, so spend buys traffic and reach only.</p></div>";
+  }
+  function acctDetail(id){
+    var a=acctById(id); if(!a) return;
+    var v=a.verified||{};
+    $("#acct-detail").innerHTML="<div class='frame'>"+
+      "<h3 style='margin-top:0'>"+esc(a.label)+" "+statusChip(a.status)+" "+kpiChip(a.kpi)+"</h3>"+
+      "<p style='font-size:13.5px'><b>Used for.</b> "+esc(a.used_for)+"</p>"+
+      "<p style='font-size:13.5px'>"+esc(a.purpose)+"</p>"+
+      (a.attribution_note?"<div class='notice'><b>Attribution.</b> "+esc(a.attribution_note)+"</div>":"")+
+      (a.stale_note?"<div class='notice'><b>Freshness.</b> "+esc(a.stale_note)+"</div>":"")+
+      table([{t:"Field"},{t:"Value"}],[
+        ["Platform",esc(a.platform)+" · "+esc(a.region)],
+        ["Account id","<span style='font-family:var(--mono)'>"+esc(a.account_id||"—")+"</span>"],
+        ["Currency",esc(a.currency||'USD')],
+        ["Warehouse table","<span style='font-family:var(--mono);font-size:11.5px'>"+esc(a.table)+"</span>"],
+        ["Schema",esc(a.schema)],
+        ["Data fresh to",esc(a.fresh_to)+(a.partial_day?" (includes the current partial day)":"")],
+        ["Attribution",esc(a.attribution)],
+        ["Rows on record",v.rows!=null?intf(v.rows):"—"],
+        ["Date range",(v.first_day||"—")+" → "+(v.last_day||"—")],
+        ["Campaigns / ads",(v.campaigns!=null?intf(v.campaigns):"—")+" / "+(v.ads!=null?intf(v.ads):"—")],
+        ["Spend on record",v.spend!=null?money0(v.spend)+" "+esc(a.currency||'USD'):"—"],
+      ])+
+      (v.note?"<p class='note'>"+esc(v.note)+"</p>":"")+
+      "<p class='note'>Read live from the warehouse on "+esc((REG&&REG.captured_at)||"")+". Registry source: adAccounts() in api/_shared/ads-snowflake-core.js.</p></div>";
+    $("#acct-detail").scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  // The Meta retail account records zero purchases because its shoppers check out
+  // inside Target. The measurement lives one schema over, in MAPLEMONK1: Target's
+  // own Roundel platform (which DOES report attributed sales, matched by Target to
+  // the basket) and TARGET_SALES, the real store-level sell-through. Reading spend
+  // from MAPLEMONK against outcomes in MAPLEMONK1 is the only honest answer to
+  // "is retail working", which is why both schemas are needed.
+  function renderRetailFunnel(){
+    // Live warehouse read when available, else the committed snapshot — the same
+    // honest-fallback rule the rest of the page follows.
+    var f=RETAIL||(SNAP&&SNAP.retail_funnel)||null;
+    var live=!!RETAIL;
+    if(!f){ $("#rf-tbl").innerHTML="<div class='empty'>Retail funnel data not loaded.</div>"; return; }
+    var t=f.totals||{};
+    $("#rf-note").innerHTML="<b>Why this section exists.</b> The Target/Costco Meta account cannot attribute a sale, so judged on its own it can only ever look like cost. Target reports the outcome instead: Roundel matches ads to baskets, and TARGET_SALES carries the dollars actually rung up across Target stores.";
+    $("#rf-cards").innerHTML=
+      "<div class='sc' style='border-left-color:var(--lava-deep)'><div class='k'>Retail ad spend</div><div class='v'>"+money0(t.total_retail_spend||0)+"</div><div class='s'>Meta "+money0(t.meta_spend||0)+" + Roundel "+money0(t.roundel_spend||0)+"</div></div>"+
+      "<div class='sc'><div class='k'>Roundel attributed sales</div><div class='v'>"+money0(t.roundel_attr_sales||0)+"</div><div class='s'>ROAS "+(t.roundel_roas!=null?t.roundel_roas+"x":"—")+" · Target-matched</div></div>"+
+      "<div class='sc' style='border-left-color:var(--live)'><div class='k'>Target sell-through</div><div class='v'>"+money0(t.target_sell_through||0)+"</div><div class='s'>"+intf(t.target_units||0)+" units rung up in store</div></div>"+
+      "<div class='sc'><div class='k'>Sell-through per ad dollar</div><div class='v'>"+(t.sell_through_per_dollar!=null?t.sell_through_per_dollar+"x":"—")+"</div><div class='s'>blended, not causal</div></div>";
+    $("#rf-tbl").innerHTML=table(
+      [{t:"Period"},{t:"Meta retail spend",r:1},{t:"Roundel spend",r:1},{t:"Total spend",r:1},{t:"Roundel attr. sales",r:1},{t:"Roundel ROAS",r:1},{t:"Target sell-through",r:1},{t:"Units",r:1},{t:"Stores",r:1},{t:"Sell-through / $",r:1}],
+      (f.rows||[]).map(function(r){
+        return ["<span data-sort-value='"+esc(r.period)+"'>"+esc(monthLabel(r.period))+"</span>",
+          money0(r.meta_spend),money0(r.roundel_spend),money0(r.total_retail_spend),
+          money0(r.roundel_attr_sales),r.roundel_roas!=null?r.roundel_roas+"x":"—",
+          money0(r.target_sell_through),intf(r.target_units),intf(r.target_stores),
+          r.sell_through_per_dollar!=null?r.sell_through_per_dollar+"x":"—"];
+      }));
+    $("#rf-caveat").textContent=(f.caveat||"")+" Source: "+(live?"live warehouse read":"committed snapshot "+((SNAP&&SNAP.captured_at)||""))+
+      " — "+((f.tables&&[f.tables.meta,f.tables.roundel,f.tables.sales].join(" · "))||"")+
+      ". Target sell-through runs to 2026-07-23; Roundel ads to 2026-07-22.";
+  }
+  function monthLabel(iso){
+    if(!/^\d{4}-\d{2}/.test(String(iso||""))) return String(iso||"");
+    var d=new Date(String(iso).slice(0,7)+"-01T12:00:00Z");
+    return d.toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+  }
+  function loadRetailFunnel(){
+    getJSON("/api/brain?action=ads-snowflake&op=retail-funnel&since=2026-05-01")
+      .then(function(res){ if(res&&res.ok&&res.rows){ RETAIL=res; } renderRetailFunnel(); })
+      .catch(function(){ renderRetailFunnel(); });
+  }
+  function loadAccountsLive(){
+    getJSON("/api/brain?action=ads-snowflake&op=accounts&since=2026-05-01")
+      .then(function(res){ if(res&&res.ok&&res.rows&&res.rows.length){ ACCTLIVE=res; renderAccounts(); } })
+      .catch(function(){});
+  }
+
+  // ── TRACKER ────────────────────────────────────────────────────────────────
+  // Both live US accounts now come from the snapshot, each already carrying the
+  // metrics its own account can support (revenue and ROAS only where a pixel
+  // fires). The retail rows used to be the KT workbook snapshot because the
+  // account was believed to be absent from the warehouse; it is not.
+  function trackerRows(){
+    var today=(SNAP&&SNAP.today&&SNAP.today.date)||"";
+    return (SNAP&&SNAP.campaigns||[]).map(function(c){
+      var a=(SNAP.accounts||[]).filter(function(x){return x.key===c.account;})[0];
+      return Object.assign({},c,{
+        live_today: c.last_day===today,
+        account_label:(a&&a.account)||c.account_name||c.account,
+      });
+    });
+  }
+  function renderTracker(){
+    var all=trackerRows();
+    var st=$("#trk-status").value, ac=$("#trk-acct").value, q=($("#trk-q").value||"").toLowerCase(), sort=$("#trk-sort").value;
+    var rows=all.filter(function(r){
+      if(st==='live'&&!r.live_today)return false;
+      if(st==='ended'&&r.live_today)return false;
+      if(ac&&r.account!==ac)return false;
+      if(q&&String(r.campaign).toLowerCase().indexOf(q)<0)return false;
+      return true;
+    });
+    var asc=(sort==='cpc');
+    rows.sort(function(a,b){
+      if(sort==='last_day') return String(b.last_day||"").localeCompare(String(a.last_day||""));
+      var x=a[sort],y=b[sort]; if(x==null)return 1; if(y==null)return -1; return asc?x-y:y-x;
+    });
+    var live=all.filter(function(r){return r.live_today;});
+    var dtc=(SNAP&&SNAP.accounts||[]).filter(function(a){return a.key==='dtc';})[0]||{};
+    var rt=(SNAP&&SNAP.accounts||[]).filter(function(a){return a.key==='retail';})[0]||{};
+    var win=(SNAP&&SNAP.window)||{};
+    $("#trk-cards").innerHTML=
+      "<div class='sc' style='border-left-color:var(--live)'><div class='k'>Campaigns live on the last day</div><div class='v'>"+intf(live.length)+"</div><div class='s'>"+esc((SNAP&&SNAP.today&&SNAP.today.date)||"")+" · partial day</div></div>"+
+      "<div class='sc'><div class='k'>Tracked campaigns</div><div class='v'>"+intf(all.length)+"</div><div class='s'>"+intf(dtc.campaigns_in_window||0)+" DTC + "+intf(rt.campaigns_in_window||0)+" retail</div></div>"+
+      "<div class='sc'><div class='k'>DTC spend</div><div class='v'>"+money0(dtc.spend||0)+"</div><div class='s'>ROAS "+(dtc.roas!=null?dtc.roas+"x":"—")+" · CPA "+(dtc.cpa!=null?money(dtc.cpa):"—")+"</div></div>"+
+      "<div class='sc' style='border-left-color:var(--lava-deep)'><div class='k'>Target / Costco spend</div><div class='v'>"+money0(rt.spend||0)+"</div><div class='s'>CTR "+(rt.ctr!=null?pct(rt.ctr):"—")+" · CPC "+(rt.cpc!=null?money(rt.cpc):"—")+" · no ROAS by design</div></div>"+
+      "<div class='sc'><div class='k'>Combined spend</div><div class='v'>"+money0((SNAP&&SNAP.totals&&SNAP.totals.spend)||0)+"</div><div class='s'>"+esc((win.since||"")+" → "+(win.until||""))+"</div></div>";
+    $("#trk-tbl").innerHTML=table(
+      [{t:"Campaign"},{t:"Account"},{t:"Objective"},{t:"Flight window"},{t:"Status"},{t:"Ads",r:1},{t:"Spend",r:1},{t:"Impressions",r:1},{t:"CTR",r:1},{t:"CPC",r:1},{t:"CPM",r:1},{t:"Revenue",r:1},{t:"ROAS",r:1},{t:"CPA",r:1}],
+      rows.map(function(r){
+        var chip=r.live_today?"<span class='chip good'>live</span>":"<span class='chip dim'>ended</span>";
+        var na="<span class='chip dim' title='This account cannot attribute a sale — checkout happens on target.com, Instacart or in store, so no KNICKGASM pixel fires.'>n/a</span>";
+        return [esc(r.campaign),
+          "<span class='chip "+(r.account==='dtc'?'good':'warn')+"'>"+esc(r.account==='dtc'?'DTC':'retail')+"</span>",
+          esc(String(r.objective||"").replace("OUTCOME_","").toLowerCase()),
+          "<span data-sort-value='"+esc(r.first_day||"")+"'>"+esc(shortDay(r.first_day)+" → "+shortDay(r.last_day))+"</span>",
+          chip,intf(r.ads),money(r.spend),intf(r.impressions),
+          r.ctr!=null?pct(r.ctr):"—",r.cpc!=null?money(r.cpc):"—",r.cpm!=null?money(r.cpm):"—",
+          r.revenue!=null?money0(r.revenue):na,
+          r.roas!=null?r.roas+"x":na,
+          r.cpa!=null?money(r.cpa):na];
+      }));
+    $("#trk-note").textContent=rows.length+" of "+all.length+" campaigns, both live US Meta accounts, "+
+      (win.since||"")+" to "+(win.until||"")+". Revenue, ROAS and CPA are shown only for the DTC account, which is the one with a pixel on the landing page. The retail account shows n/a rather than zero: its shoppers check out on target.com, Instacart or in store, so a sale can never be attributed back to the ad, and a 0.00x ROAS there would be a measurement artefact, not a result. Judge retail on CTR, CPC, CPM and reach.";
+    barChart("#chart-camp", rows.slice(0,12).map(function(r){return {k:r.campaign,v:r.spend};}), money0);
+  }
+
+  // ── SOP (the final standing procedure) ─────────────────────────────────────
+  function renderSOP(){
+    var s=KB.sop;
+    if(!s){$("#sop-head").innerHTML="<div class='empty'>SOP not present in the knowledge base.</div>";return;}
+    $("#sop-head").innerHTML=
+      "<div class='frame'><h2 style='margin-top:0'>"+esc(s.title)+" <span class='chip good'>"+esc(s.status)+"</span></h2>"+
+      "<p style='font-size:13.5px'><b>Scope.</b> "+esc(s.scope)+"</p>"+
+      "<p style='font-size:13.5px'><b>Authority.</b> "+esc(s.authority)+"</p>"+
+      "<p style='margin-top:12px'>"+
+        "<a class='btn' href='"+esc(s.master_sheet)+"' target='_blank' rel='noopener' style='margin-right:8px'>Open the master tracking sheet ↗</a>"+
+        "<a class='btn ghost' href='"+esc(s.local_copies.sop_pdf)+"' target='_blank' rel='noopener' style='margin-right:8px'>SOP PDF</a>"+
+        "<a class='btn ghost' href='"+esc(s.local_copies.tracker_xlsx)+"' target='_blank' rel='noopener'>Tracker XLSX</a></p></div>";
+    function sec(title, overview, body, open){
+      return "<details class='kbd'"+(open?" open":"")+"><summary>"+esc(title)+"<span class='ov'>"+esc(overview)+"</span></summary><div class='kbd-b'>"+body+"</div></details>";
+    }
+    var h="";
+    h+=sec("The nine sheet tabs and who owns each","The SOP carries the process; the sheet carries the data.",
+      "<div class='tbl-wrap'>"+table([{t:"Tab"},{t:"What it holds"},{t:"Who works in it"}],
+        s.tabs.map(function(t){return [esc(t.tab),esc(t.holds),esc(t.owner)];}))+"</div>"+
+      "<div class='tbl-wrap'>"+table([{t:"Row"},{t:"Contents"},{t:"Editable"}],
+        s.row_layout.map(function(r){return [esc(r.row),esc(r.contents),r.editable?"<span class='chip good'>yes</span>":"<span class='chip dim'>no</span>"];}))+"</div>"+
+      "<p class='note'>"+esc(s.formula_columns)+"</p>", true);
+    h+=sec("Scoring — how a creative earns spend","Score out of 100 per organic post, view-penalised, then thresholded per platform.",
+      "<p style='font-size:13.5px'><b>TikTok.</b> <code style='font-family:var(--mono);font-size:11.5px'>"+esc(s.scoring.formulas.tiktok)+"</code></p>"+
+      "<p style='font-size:13.5px'><b>Instagram.</b> <code style='font-family:var(--mono);font-size:11.5px'>"+esc(s.scoring.formulas.instagram)+"</code></p>"+
+      "<div class='tbl-wrap'>"+table([{t:"Score"},{t:"Label"},{t:"What it means"}],
+        s.scoring.bands.map(function(b){return [esc(b.score),"<b>"+esc(b.label)+"</b>",esc(b.meaning)];}))+"</div>"+
+      "<p class='eyebrow'>Weights</p><div class='tbl-wrap'>"+table([{t:"Platform"},{t:"Metric"},{t:"Weight",r:1},{t:"Why"}],
+        s.scoring.tiktok_weights.map(function(w){return ["TikTok",esc(w.metric),esc(w.weight),esc(w.why)];})
+        .concat(s.scoring.instagram_weights.map(function(w){return ["Instagram",esc(w.metric),esc(w.weight),esc(w.why)];})))+"</div>"+
+      "<p class='eyebrow'>Thresholds</p><div class='tbl-wrap'>"+table([{t:"Platform"},{t:"Label"},{t:"Condition"}],
+        s.scoring.thresholds.map(function(t){return [esc(t.platform),"<b>"+esc(t.label)+"</b>",esc(t.condition)];}))+"</div>"+
+      "<div class='notice'><b>The 6-second rule.</b> "+esc(s.scoring.six_second_rule)+"</div>"+
+      "<p class='eyebrow'>View penalties — a high percentage on a small sample is not evidence</p><div class='tbl-wrap'>"+
+        table([{t:"Platform"},{t:"Organic views"},{t:"Multiplier",r:1},{t:"Why"}],
+        s.scoring.view_penalties.map(function(v){return [esc(v.platform),esc(v.views),esc(v.multiplier),esc(v.why)];}))+"</div>"+
+      "<p class='eyebrow'>Run status — only one column is an instruction</p><p class='note'>"+esc(s.scoring.run_status.note)+"</p>"+
+      "<div class='tbl-wrap'>"+table([{t:"Ads Activated value"},{t:"Meaning"},{t:"Agency action"}],
+        s.scoring.run_status.values.map(function(v){return ["<b>"+esc(v.value)+"</b>",esc(v.meaning),esc(v.action)];}))+"</div>");
+    h+=sec("Nomenclature — the standard the agency builds to","One syntax everywhere; the platform name and the UTM value are the same string.",
+      "<p style='font-size:13.5px'>"+esc(s.nomenclature.principle)+"</p>"+
+      "<p style='font-size:13.5px'><b>Character set.</b> "+esc(s.nomenclature.character_set)+"</p>"+
+      "<div class='tbl-wrap'>"+table([{t:"What"},{t:"Syntax"},{t:"Example"}],
+        s.nomenclature.patterns.map(function(p){return [esc(p.what),"<span style='font-family:var(--mono)'>"+esc(p.syntax)+"</span>","<span style='font-family:var(--mono);font-size:11.5px'>"+esc(p.example)+"</span>"];}))+"</div>"+
+      "<p class='note'><b>Macros.</b> "+esc(s.nomenclature.macros)+"</p>"+
+      "<p class='note'>"+esc(s.nomenclature.costco_note)+"</p>"+
+      "<p class='eyebrow'>Rules and what breaks if ignored</p><div class='tbl-wrap'>"+
+        table([{t:"#",r:1},{t:"Rule"},{t:"Consequence if broken"}],
+        s.nomenclature.rules.map(function(r){return [esc(r.n),"<b>"+esc(r.rule)+"</b>",esc(r.consequence)];}))+"</div>"+
+      "<p class='eyebrow'>Permitted token values</p><div class='tbl-wrap'>"+
+        table([{t:"Token"},{t:"Permitted values"}],
+        Object.keys(s.nomenclature.tokens).map(function(k){return ["<b>"+esc(k)+"</b>","<span style='font-family:var(--mono);font-size:11.5px'>"+esc(s.nomenclature.tokens[k])+"</span>"];}))+"</div>");
+    h+=sec("Landing pages — where UGC traffic goes","A dedicated PageDeck page per content angle; the page is the attribution.",
+      "<p style='font-size:13.5px'>"+esc(s.landing_pages.principle)+"</p>"+
+      "<div class='tbl-wrap'>"+table([{t:"Content bucket"},{t:"Page"},{t:"Visitors",r:1},{t:"Page views",r:1},{t:"Avg view",r:1},{t:"External clicks",r:1},{t:"CTR",r:1}],
+        s.landing_pages.pages.map(function(p){
+          var link=p.url?"<a href='"+esc(p.url)+"' target='_blank' rel='noopener'>"+esc(p.slug)+"</a>":esc(p.slug);
+          return [esc(p.bucket),link,p.visitors!=null?intf(p.visitors):"—",p.page_views!=null?intf(p.page_views):"—",
+            esc(p.avg_view||"—"),p.external_clicks!=null?intf(p.external_clicks):"—",esc(p.ctr||(p.note?"":"—"))];}))+"</div>"+
+      "<div class='notice'><b>Conversion gap.</b> "+esc(s.landing_pages.conversion_gap)+"</div>"+
+      "<p class='note'>"+esc(s.landing_pages.reconciliation)+"</p>"+
+      "<ul class='tight'>"+s.landing_pages.open_items.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>");
+    h+=sec("The 26 campaign columns and who fills each","Identical on all four channel tabs, in this order.",
+      "<div class='tbl-wrap'>"+table([{t:"#",r:1},{t:"Column"},{t:"Provided by"}],
+        s.campaign_tab_columns.map(function(c){return [esc(c.n),"<b>"+esc(c.column)+"</b>",esc(c.by)];}))+"</div>");
+    h+=sec("The UGC flow — three levels","Vinya's team owns the data, Anchit owns the decision, the agency owns the build.",
+      s.ugc_flow.map(function(l){
+        return "<div class='learn'><b>"+esc(l.level)+"</b>"+
+          "<div style='font-size:13px;margin-top:4px'><b>Owns:</b> "+esc(l.owns)+"</div>"+
+          "<div style='font-size:13px;margin-top:3px'><b>Function:</b> "+esc(l.function)+"</div>"+
+          "<div style='font-size:13px;margin-top:3px'><b>Note:</b> "+esc(l.dependency)+"</div></div>";}).join(""));
+    h+=sec("Budget, and what a row needs before it can be built","No verbal budgets; a row without a budget is not ready to build.",
+      "<div class='tbl-wrap'>"+table([{t:"Channel"},{t:"Budget provided by"}],
+        s.budgets.ownership.map(function(b){return [esc(b.channel),esc(b.by)];}))+"</div>"+
+      "<p class='note'>"+esc(s.budgets.rules)+"</p>"+
+      "<div class='notice'><b>Target spend cap.</b> "+esc(s.budgets.target_cap)+"</div>"+
+      "<p class='eyebrow'>Required before build</p><ul class='tight'>"+
+        s.required_before_build.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>");
+    h+=sec("The automation — video id to ad code","The chain that joins organic performance to paid performance automatically.",
+      "<p style='font-family:var(--mono);font-size:13px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px'>"+esc(s.automation.chain)+"</p>"+
+      "<p style='font-size:13.5px'>"+esc(s.automation.how)+"</p>"+
+      "<p class='eyebrow'>What the chain makes measurable</p><ul class='tight'>"+
+        s.automation.makes_measurable.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>"+
+      "<div class='notice'>"+esc(s.automation.warning)+"</div>"+
+      "<p class='note'>"+esc(s.automation.acq_subsource)+"</p>");
+    h+=sec("Reporting and turnaround","Built paused; spend begins only after Level 2 clearance and row approval.",
+      "<div class='tbl-wrap'>"+table([{t:"Step"},{t:"Owner"},{t:"Timing"}],
+        s.turnaround.map(function(t){return [esc(t.step),esc(t.owner),"<b>"+esc(t.timing)+"</b>"];}))+"</div>"+
+      "<p class='note'>"+esc(s.standing_conditions.build_state)+"</p>");
+    h+=sec("Standing conditions","Handles, cohort direction, channel and product.",
+      "<p style='font-size:13.5px'><b>Handles.</b> "+esc(s.standing_conditions.handles)+"</p>"+
+      "<div class='tbl-wrap'>"+table([{t:"Cohort"},{t:"Creative emphasis"}],
+        s.standing_conditions.cohort_direction.map(function(c){return [esc(c.cohort),esc(c.emphasis)];}))+"</div>"+
+      "<div class='tbl-wrap'>"+table([{t:"Channel"},{t:"Product"},{t:"Destination"}],
+        s.standing_conditions.channel_product.map(function(c){return [esc(c.channel),esc(c.product),esc(c.destination)];}))+"</div>"+
+      "<p class='note'><b>Corrections.</b> "+esc(s.standing_conditions.corrections)+"</p>");
+    $("#sop-body").innerHTML=h;
+  }
+
+  function renderOverview(){
+    var s=KB.spend, o=KB.objective_rollup;
+    var salesObj=o.filter(function(x){return x.objective==="Sales";})[0]||{};
+    $("#ov-cards").innerHTML=
+      "<div class='sc'><div class='k'>Total paid spend (May→20 Jul)</div><div class='v'>"+money0(s.total)+"</div><div class='s'>Meta "+money0(s.meta_total)+" · TikTok "+money0(s.tiktok_total)+"</div></div>"+
+      "<div class='sc'><div class='k'>Meta ads tracked</div><div class='v'>125</div><div class='s'>13 campaigns · Target account</div></div>"+
+      "<div class='sc'><div class='k'>Sales objective spend</div><div class='v'>"+money0(salesObj.spend)+"</div><div class='s'>"+intf(salesObj.results)+" initiate-checkouts</div></div>"+
+      "<div class='sc'><div class='k'>Sales cost / result</div><div class='v'>"+money(salesObj.cost_per_result)+"</div><div class='s'>blended, all Sales ads</div></div>"+
+      "<div class='sc'><div class='k'>Organic views (Apr→17 Jul)</div><div class='v'>3.59M</div><div class='s'>reach 1.58M · creator cost $150,956</div></div>";
+    $("#ov-months").innerHTML=table(
+      [{t:"Month"},{t:"Total",r:1},{t:"Meta",r:1},{t:"TikTok",r:1}],
+      s.months.map(function(m){return [esc(m.month),money(m.total),money(m.meta),money(m.tiktok)];}));
+    $("#ov-objectives").innerHTML=table(
+      [{t:"Objective"},{t:"Spend",r:1},{t:"Ads",r:1},{t:"CTR",r:1},{t:"CPC",r:1},{t:"Cost/result",r:1}],
+      o.map(function(x){return [esc(x.objective),money(x.spend),intf(x.ads),pct(x.ctr),money(x.cpc),money(x.cost_per_result)];}));
+    var v=[
+      ["good","Sales engine clears bench","In-house statics deliver $0.80 per initiate-checkout at 4.85% CTR; influencer page-deck runs $0.73. The scaled winners (menopause, grail-drop, GLP-1 angles) hold $0.62-0.86 at $2k-3k spend each."],
+      ["good","Cheapest clicks: JoinBrands UGC traffic","12.18% CTR at $0.07 CPC ($1,311 spend). JB-UGC-4-irish: 16.4% CTR, $0.05 CPC, 0.676 thumb-stop."],
+      ["bad","Awareness is the drag","All 10 worst ads (spend ≥ $100) are Awareness/unscored social: CTR 0.03-0.10%, CPC $2-9. $3,344 spent for 1,164 clicks."],
+      ["warn","July TikTok reads $0","Meta ran $23,485 in July (to 20th) while TikTok shows zero in the tracker; confirm paused vs unreported."],
+      ["warn","Organic July tracking low","293K views to 17 Jul vs 2.14M in June; hook quality (skip rate 45.3%) was the June unlock — keep identity-first hooks."]
+    ];
+    $("#ov-verdicts").innerHTML=v.map(function(x){return "<div class='learn'><span class='chip "+x[0]+"'>"+(x[0]==="good"?"working":x[0]==="bad"?"fix":"watch")+"</span> <b>"+esc(x[1])+"</b><div style='font-size:13.5px;margin-top:4px'>"+esc(x[2])+"</div></div>";}).join("");
+  }
+
+  function renderCampaigns(){
+    $("#camp-tbl").innerHTML=table(
+      [{t:"Campaign"},{t:"Objective"},{t:"Spend",r:1},{t:"Ads",r:1},{t:"Impressions",r:1},{t:"Clicks",r:1},{t:"CTR",r:1},{t:"CPC",r:1},{t:"Results",r:1},{t:"Cost/result",r:1},{t:"Verdict"}],
+      KB.campaign_rollup.map(function(c){return [esc(c.campaign),esc(c.objective),money(c.spend),intf(c.ads),intf(c.impressions),intf(c.clicks),pct(c.ctr),money(c.cpc),intf(c.results),money(c.cost_per_result),verdictChip(c.cost_per_result,c.objective)];}));
+    renderAds();
+  }
+  function renderAds(){
+    if(!ADS) return;
+    var obj=$("#f-obj").value, st=$("#f-status").value, q=($("#f-q").value||"").toLowerCase(), sort=$("#f-sort").value;
+    var rows=ADS.filter(function(r){
+      if(obj&&r.objective!==obj)return false;
+      if(st&&r.status!==st)return false;
+      if(q&&((r.ad||"")+" "+(r.adset||"")+" "+(r.campaign||"")).toLowerCase().indexOf(q)<0)return false;
+      return true;
+    });
+    var asc=(sort==="cost_per_result"||sort==="cpc");
+    rows.sort(function(a,b){var x=a[sort],y=b[sort];if(x==null)return 1;if(y==null)return -1;return asc?(x-y):(y-x);});
+    $("#ads-tbl").innerHTML=table(
+      [{t:"Ad"},{t:"Ad set"},{t:"Objective"},{t:"Delivery"},{t:"Spend",r:1},{t:"Impr.",r:1},{t:"Clicks",r:1},{t:"CTR",r:1},{t:"CPC",r:1},{t:"Results",r:1},{t:"Cost/result",r:1},{t:"Thumb stop",r:1},{t:"Verdict"}],
+      rows.slice(0,150).map(function(r){return [esc(r.ad),esc(r.adset),esc(r.objective),
+        "<span class='chip "+(r.status==="active"?"good":"dim")+"'>"+esc(r.status)+"</span>",
+        money(r.spend),intf(r.impressions),intf(r.clicks),pct(r.ctr),money(r.cpc),intf(r.results),money(r.cost_per_result),
+        (r.thumb_stop!=null&&r.thumb_stop>0?Number(r.thumb_stop).toFixed(3):"—"),verdictChip(r.cost_per_result,r.objective)];}));
+    $("#ads-count").textContent=rows.length+" of "+ADS.length+" ads shown (max 150 rendered) · reporting window ends 20 Jul 2026 · Sales results = initiate checkout, Traffic = link clicks, Awareness = reach.";
+  }
+
+  function renderCreative(){
+    $("#bm-tbl").innerHTML=table(
+      [{t:"Segment"},{t:"CTR",r:1},{t:"CPC",r:1},{t:"Cost / key result",r:1},{t:"Note"}],
+      KB.benchmarks.map(function(b){
+        var key=b.cost_per_initiate_checkout_usd!=null?money(b.cost_per_initiate_checkout_usd)+" /IC":(b.cost_per_link_click_usd!=null?money(b.cost_per_link_click_usd)+" /click":(b.cpm_usd!=null?money(b.cpm_usd)+" CPM":(b.thumb_stop_min!=null?b.thumb_stop_min+"–"+b.thumb_stop_max+" TSR":(b.cpr_usd_june!=null?money(b.cpr_usd_june)+" /reach (Jun)":"—"))));
+        return [esc(b.segment),b.ctr_pct!=null?pct(b.ctr_pct):"—",b.cpc_usd!=null?money(b.cpc_usd):"—",key,esc(b.warning||b.note||"")];}));
+    function adsMini(list){return table(
+      [{t:"Ad"},{t:"Spend",r:1},{t:"CTR",r:1},{t:"CPC",r:1},{t:"Cost/result",r:1}],
+      list.map(function(a){return [esc(a.ad)+"<div style='font-size:11px;color:var(--dim)'>"+esc(a.adset)+"</div>",money(a.spend),pct(a.ctr),money(a.cpc),money(a.cost_per_result)];}));}
+    $("#top-tbl").innerHTML=adsMini(KB.top_ads_by_efficiency);
+    $("#worst-tbl").innerHTML=adsMini(KB.worst_ads_by_efficiency);
+    $("#learnings").innerHTML=KB.creative_learnings.map(function(l){
+      return "<div class='learn'><b>"+esc(l.title)+"</b><div style='font-size:13.5px;margin:4px 0'>"+esc(l.detail)+"</div><span class='src'>source: "+esc(l.source)+"</span></div>";}).join("");
+  }
+
+  function renderOrganic(){
+    var og=KB.organic, t=og.totals;
+    $("#org-cards").innerHTML=
+      "<div class='sc'><div class='k'>Total views</div><div class='v'>"+intf(t.views)+"</div></div>"+
+      "<div class='sc'><div class='k'>Total reach</div><div class='v'>"+intf(t.reach)+"</div></div>"+
+      "<div class='sc'><div class='k'>Influencers</div><div class='v'>"+t.influencer_count+"</div><div class='s'>cost "+money0(t.influencer_cost_usd)+"</div></div>"+
+      "<div class='sc'><div class='k'>UGC videos</div><div class='v'>"+t.ugc_videos+"</div><div class='s'>cost "+money0(t.ugc_cost_usd)+" (parked for 400)</div></div>"+
+      "<div class='sc'><div class='k'>Total creator cost</div><div class='v'>"+money0(t.total_creator_cost_usd)+"</div><div class='s'>utilized so far $69,948</div></div>";
+    $("#org-months").innerHTML=table(
+      [{t:"Month"},{t:"Views",r:1},{t:"Reach",r:1},{t:"IG reach",r:1},{t:"TikTok reach",r:1},{t:"FB reach",r:1},{t:"Influencers"},{t:"Influencer cost",r:1},{t:"Organic CPR",r:1},{t:"UGC videos",r:1}],
+      og.months.map(function(m){return [esc(m.month),intf(m.views),intf(m.reach),intf(m.platform_reach.instagram),intf(m.platform_reach.tiktok),intf(m.platform_reach.facebook),esc(m.influencers),money0(m.influencer_cost_usd),money(m.organic_cpr_usd),m.ugc_videos?intf(m.ugc_videos):"—"];}));
+    $("#org-creators").innerHTML=table(
+      [{t:"Creator"},{t:"Followers",r:1},{t:"Reach",r:1},{t:"Skip rate",r:1},{t:"Product at",r:1},{t:"Post-reveal retention",r:1},{t:"AWT",r:1}],
+      og.top_creators.map(function(c){return [esc(c.name),esc(c.followers),esc(c.reach),pct(c.skip_rate_pct),pct(c.product_at_pct),pct(c.post_reveal_retention_pct),c.awt_sec+"s"];}));
+    var u=og.ugc_june_buckets;
+    $("#org-ugc").innerHTML=table(
+      [{t:"Bucket"},{t:"Live pieces",r:1}],
+      [["Target shelf showdown",intf(u.target_shelf)],["Grail-Drop",intf(u.grail-drop)],["Over 40",intf(u.over_40)],["Gummies vs coffee",intf(u.gummies_vs_coffee)],["Taste",intf(u.taste)],["Countering mushroom-coffee trend",intf(u.countering_mushroom)],["<b>Total live (June)</b>","<b>"+intf(u.total_live)+"</b> (TikTok "+intf(u.tiktok)+" · IG "+intf(u.instagram)+" · YT "+intf(u.youtube)+")"]]);
+    $("#org-funnel").innerHTML="<div class='stage'><span class='hdr'>Stage</span><span class='hdr'>May</span><span class='hdr'>June</span></div>"+
+      og.retention_funnel.stages.map(function(s){return "<div class='stage'><span class='lab'>"+esc(s.stage)+"</span><span>"+esc(s.may)+"</span><span>"+esc(s.june)+"</span></div>";}).join("");
+    $("#org-funnel-note").textContent=og.retention_funnel.headline;
+    $("#org-next").innerHTML="<h3>Next line-up</h3><p style='font-size:13.5px'>"+esc(og.next_lineup)+"</p><h3>Competitor share-driving themes</h3><p style='font-size:13.5px'>"+esc(og.competitor_share_themes)+"</p>";
+  }
+
+  // The KB tab carries the ENTIRE compiled knowledge: an executive overview,
+  // then every content area as an expandable overview+details section, then
+  // the link registry, people and gaps.
+  function renderKBFull(){
+    var t=KB.organic.totals;
+    $("#kb-exec").innerHTML="<h3 style='margin-top:0'>Executive overview</h3><p style='font-size:13.5px;margin:6px 0'>"+esc(KB.executive_overview||"")+"</p>"+
+      "<p class='note'>Sources: "+KB.kt_sources.map(function(s){return esc(s.label);}).join(" · ")+" · compiled "+esc(KB.version)+"</p>";
+    function sec(title, overview, bodyHtml, open){
+      return "<details class='kbd'"+(open?" open":"")+"><summary>"+esc(title)+"<span class='ov'>"+esc(overview)+"</span></summary><div class='kbd-b'>"+bodyHtml+"</div></details>";
+    }
+    var html="";
+    (KB.narratives||[]).forEach(function(n){
+      html+=sec(n.title+" ("+n.period+")", n.overview,
+        "<ul>"+n.details.map(function(d){return "<li>"+esc(d)+"</li>";}).join("")+"</ul>");
+    });
+    html+=sec("Paid spend & campaign performance","Total $"+Number(KB.spend.total).toLocaleString("en-US")+" May to 20 Jul; Sales blended $0.86 per initiate-checkout; Awareness is the drag.",
+      "<div class='tbl-wrap'>"+table([{t:"Month"},{t:"Total",r:1},{t:"Meta",r:1},{t:"TikTok",r:1}],KB.spend.months.map(function(m){return [esc(m.month),money(m.total),money(m.meta),money(m.tiktok)];}))+"</div>"+
+      "<div class='tbl-wrap'>"+table([{t:"Objective"},{t:"Spend",r:1},{t:"Ads",r:1},{t:"CTR",r:1},{t:"CPC",r:1},{t:"Cost/result",r:1}],KB.objective_rollup.map(function(x){return [esc(x.objective),money(x.spend),intf(x.ads),pct(x.ctr),money(x.cpc),money(x.cost_per_result)];}))+"</div>"+
+      "<p class='note'>Full 13-campaign rollup and all 125 ad rows: Campaigns &amp; Ads tab.</p>");
+    html+=sec("Benchmarks","The reference numbers every new ad is judged against, derived from the KT workbook.",
+      "<ul>"+KB.benchmarks.map(function(b){
+        var key=b.cost_per_initiate_checkout_usd!=null?money(b.cost_per_initiate_checkout_usd)+" per initiate-checkout":(b.cost_per_link_click_usd!=null?money(b.cost_per_link_click_usd)+" per link click":(b.cpm_usd!=null?money(b.cpm_usd)+" CPM":(b.thumb_stop_min!=null?b.thumb_stop_min+"-"+b.thumb_stop_max+" thumb-stop":(b.cpr_usd_june!=null?money(b.cpr_usd_june)+" per organic reach (Jun)":""))));
+        return "<li><b>"+esc(b.segment)+"</b>: "+esc(key)+(b.ctr_pct!=null?" · CTR "+b.ctr_pct+"% · CPC "+money(b.cpc_usd):"")+(b.warning?" — "+esc(b.warning):"")+"</li>";
+      }).join("")+"</ul>");
+    html+=sec("Creative learnings","Eight data-grounded lessons on hooks, formats and angles, each citing its source.",
+      "<ul>"+KB.creative_learnings.map(function(l){return "<li><b>"+esc(l.title)+"</b> — "+esc(l.detail)+" <span style='font-family:var(--mono);font-size:10.5px;color:var(--lava-deep)'>["+esc(l.source)+"]</span></li>";}).join("")+"</ul>");
+    html+=sec("Organic & UGC","3.59M views · 1.58M reach Apr to 17 Jul · "+t.influencer_count+" influencers · "+t.ugc_videos+" UGC videos · $"+Number(t.total_creator_cost_usd).toLocaleString("en-US")+" creator cost.",
+      "<ul>"+KB.organic.months.map(function(m){return "<li><b>"+esc(m.month)+"</b>: "+intf(m.views)+" views · "+intf(m.reach)+" reach · influencers "+esc(m.influencers)+" at "+money0(m.influencer_cost_usd)+" (CPR "+money(m.organic_cpr_usd)+")</li>";}).join("")+
+      "<li><b>Funnel</b>: "+esc(KB.organic.retention_funnel.headline)+"</li>"+
+      "<li><b>Next line-up</b>: "+esc(KB.organic.next_lineup)+"</li></ul>"+
+      "<p class='note'>Creator table, UGC buckets and the full May-vs-June funnel: Organic &amp; UGC tab.</p>");
+    html+=sec("Ops runbooks","UGC dashboard automation · Costco dark-post launch · consultant data request.",
+      "<ul><li><b>UGC dashboard automation</b> — "+esc(KB.ops.ugc_dashboard_automation.summary)+" Owners: "+esc(KB.ops.ugc_dashboard_automation.owners.automation)+" (automation), "+esc(KB.ops.ugc_dashboard_automation.owners.ads_next_step)+" (ads), "+esc(KB.ops.ugc_dashboard_automation.owners.output_validation)+" (validation).</li>"+
+      "<li><b>Costco launch</b> — "+esc(KB.ops.costco_launch.summary)+" "+esc(KB.ops.costco_launch.creatives)+" Objective "+esc(KB.ops.costco_launch.objective)+", $"+KB.ops.costco_launch.daily_budget_usd+"/day.</li>"+
+      "<li><b>Data request</b> — "+esc(KB.ops.data_request.summary)+"</li></ul>"+
+      "<p class='note'>Full prerequisites, open items and priority explorations: Ops &amp; Data Sources tab.</p>");
+    html+=sec("Platform data sources","Snowflake, Supabase, Klaviyo, Shopify, Vercel, GitHub — status and the facts that matter, live-verified 25 Jul.",
+      "<ul>"+KB.platforms.map(function(p){return "<li><b>"+esc(p.name)+"</b> ("+esc(p.status)+"): "+esc(p.details[0])+"</li>";}).join("")+"</ul>"+
+      "<p class='note'>All verified table names, row counts and links: Ops &amp; Data Sources tab.</p>");
+    $("#kb-full").innerHTML=html;
+  }
+  function renderKB(){
+    renderKBFull();
+    var groups=[]; KB.links.forEach(function(l){ if(groups.indexOf(l.group)<0) groups.push(l.group); });
+    $("#kb-group").innerHTML="<option value=''>All groups</option>"+groups.map(function(g){return "<option>"+esc(g)+"</option>";}).join("");
+    function draw(){
+      var g=$("#kb-group").value, st=$("#kb-status").value, q=($("#kb-q").value||"").toLowerCase();
+      var list=KB.links.filter(function(l){
+        if(g&&l.group!==g)return false; if(st&&l.status!==st)return false;
+        if(q&&((l.title||"")+" "+(l.owner||"")).toLowerCase().indexOf(q)<0)return false; return true;});
+      var byGroup={}; list.forEach(function(l){ (byGroup[l.group]=byGroup[l.group]||[]).push(l); });
+      $("#kb-links").innerHTML=Object.keys(byGroup).map(function(gr){
+        return "<h3>"+esc(gr)+"</h3>"+byGroup[gr].map(function(l){
+          var chip=l.status==="verified"?"<span class='chip good'>verified</span>":l.status==="pending-access"?"<span class='chip warn'>pending access</span>":"<span class='chip dim'>"+esc(l.status)+"</span>";
+          var btn=l.url?"<a class='btn' href='"+esc(l.url)+"' target='_blank' rel='noopener'>Open ↗</a>":"<span class='chip warn'>ask "+esc((l.owner||"owner").split("/")[0])+"</span>";
+          return "<div class='linkrow'><div class='t'><b>"+esc(l.title)+"</b> "+chip+"<div class='m'>Owner: "+esc(l.owner||"—")+(l.note?" · "+esc(l.note):"")+"</div></div>"+btn+"</div>";
+        }).join("");
+      }).join("")||"<div class='empty'>No links match.</div>";
+    }
+    ["kb-group","kb-status"].forEach(function(id){document.getElementById(id).addEventListener("change",draw);});
+    document.getElementById("kb-q").addEventListener("input",draw);
+    draw();
+    $("#kb-people").innerHTML=table([{t:"Person"},{t:"Owns"}],KB.people.map(function(p){return [esc(p.name),esc(p.role)];}));
+    $("#kb-gaps").innerHTML=KB.gaps.map(function(g){
+      var cls=g.severity==="high"?"bad":g.severity==="medium"?"warn":"dim";
+      return "<div class='learn'><span class='chip "+cls+"'>"+esc(g.severity)+"</span> <span style='font-size:13.5px'>"+esc(g.item)+"</span></div>";}).join("");
+  }
+
+  function renderOps(){
+    $("#ops-platforms").innerHTML=KB.platforms.map(function(p){
+      var ok=/connected|deployed|active/.test(p.status);
+      return "<div class='frame'><h3 style='margin-top:0'>"+esc(p.name)+" <span class='chip "+(ok?"good":"warn")+"'>"+esc(p.status)+"</span></h3>"+
+        "<ul class='tight'>"+p.details.map(function(d){return "<li>"+esc(d)+"</li>";}).join("")+"</ul>"+
+        (p.links?"<p>"+p.links.map(function(u){return "<a class='btn ghost' style='margin-right:8px' href='"+esc(u)+"' target='_blank' rel='noopener'>"+esc(u.replace(/^https:\/\//,"").slice(0,52))+"…↗</a>";}).join("")+"</p>":"")+"</div>";
+    }).join("");
+    var ug=KB.ops.ugc_dashboard_automation;
+    $("#ops-ugc").innerHTML="<p style='font-size:13.5px'>"+esc(ug.summary)+"</p><ul class='tight'>"+ug.prerequisites.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>"+
+      "<p class='note'>Automation: "+esc(ug.owners.automation)+" · Ads next step: "+esc(ug.owners.ads_next_step)+" · Output validation: "+esc(ug.owners.output_validation)+"</p><p class='note'>"+esc(ug.status)+"</p>";
+    var co=KB.ops.costco_launch;
+    $("#ops-costco").innerHTML="<p style='font-size:13.5px'>"+esc(co.summary)+"</p><ul class='tight'>"+
+      "<li>Creatives: "+esc(co.creatives)+"</li><li>Landing page: <a href='"+esc(co.landing_page)+"' target='_blank' rel='noopener'>"+esc(co.landing_page)+"</a></li>"+
+      "<li>Objective: "+esc(co.objective)+" · Daily budget: $"+co.daily_budget_usd+"</li></ul>"+
+      "<p class='eyebrow'>Open items</p><ul class='tight'>"+co.open_items.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>"+
+      "<p class='note'>Creatives: "+esc(co.owners.creatives)+" · Meta account access: "+esc(co.owners.meta_account_access)+" · Execution: "+esc(co.owners.execution)+"</p>";
+    var dr=KB.ops.data_request;
+    $("#ops-datareq").innerHTML="<p style='font-size:13.5px'>"+esc(dr.summary)+"</p>"+
+      "<p class='eyebrow'>Deliverables confirmed in-thread</p><ul class='tight'>"+dr.deliverables_confirmed.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>"+
+      "<p class='eyebrow'>Priority explorations</p><ul class='tight'>"+dr.priority_explorations.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ul>";
+  }
+
+  document.getElementById("tabs").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-p]"); if(!b)return;
+    document.querySelectorAll("#tabs button").forEach(function(x){x.classList.toggle("on",x===b);});
+    document.querySelectorAll(".panel").forEach(function(x){x.classList.toggle("on",x.id==="p-"+b.dataset.p);});
+    if(history.replaceState) history.replaceState(null,"","#"+b.dataset.p);
+  });
+  ["f-obj","f-status","f-sort"].forEach(function(id){document.getElementById(id).addEventListener("change",renderAds);});
+  document.getElementById("f-q").addEventListener("input",renderAds);
+  ["lv-status"].forEach(function(id){document.getElementById(id).addEventListener("change",function(){renderLiveAds(LIVE&&LIVE.today);});});
+  document.getElementById("lv-q").addEventListener("input",function(){renderLiveAds(LIVE&&LIVE.today);});
+  document.getElementById("live-refresh").addEventListener("click",loadLive);
+  document.getElementById("cal-month").addEventListener("change",renderCalendar);
+  document.getElementById("cal-today").addEventListener("click",function(){
+    var t=(SNAP&&SNAP.today&&SNAP.today.date)||""; if(t){$("#cal-month").value=t.slice(0,7);renderCalendar();calDetail(t);} });
+  document.getElementById("cal-grid").addEventListener("click",function(e){
+    var c=e.target.closest(".cell[data-d]"); if(c)calDetail(c.dataset.d); });
+  ["trk-status","trk-acct","trk-sort"].forEach(function(id){document.getElementById(id).addEventListener("change",renderTracker);});
+  document.getElementById("trk-q").addEventListener("input",renderTracker);
+  document.getElementById("live-acct-chips").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-lva]"); if(!b)return;
+    LVACCT=b.getAttribute("data-lva")||"";
+    renderLive(LIVE&&LIVE.today?LIVE.today:{ok:false,connected:false});
+  });
+  document.getElementById("acct-filters").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-af]"); if(!b)return;
+    ACCTFILTER[b.getAttribute("data-af")]=b.getAttribute("data-v")||"";
+    renderAccounts();
+  });
+  document.getElementById("acct-tbl").addEventListener("click",function(e){
+    var a=e.target.closest("a[data-acct]"); if(!a)return;
+    e.preventDefault(); acctDetail(a.getAttribute("data-acct"));
+  });
+
+  // Duration tiles are rendered immediately (never hidden, never conditional).
+  var SPEND_TILES=[{v:7,t:"7D"},{v:14,t:"14D"},{v:30,t:"30D"},{v:60,t:"60D"},{v:"all",t:"All"}];
+  function pickSpendRange(v){ RANGE=v; drawSpendTiles(); drawSpendChart(); }
+  function drawSpendTiles(){ rangeTiles("#rt-spend",SPEND_TILES,RANGE,pickSpendRange); }
+  drawSpendTiles();
+  rangeTiles("#rt-camp",[{v:"all",t:"Full window"}],CAMPRANGE,function(){});
+
+  Promise.all([
+    fetch("/data/ads/master-kb.json",{cache:"no-store"}).then(function(r){return r.json();}),
+    fetch("/data/ads/target-ads-meta-2026-07-20.json",{cache:"no-store"}).then(function(r){return r.json();}),
+    fetch("/data/ads/ads-live-snapshot.json",{cache:"no-store"}).then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch("/data/ads/ad-accounts.json",{cache:"no-store"}).then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(res){
+    KB=res[0]; ADS=res[1]; SNAP=res[2]; REG=res[3];
+    renderOverview(); renderCampaigns(); renderCreative(); renderOrganic(); renderKB(); renderOps(); renderSOP();
+    if(SNAP){ monthOptions(); renderCalendar(); renderTracker(); drawSpendChart(); if(SNAP.today&&SNAP.today.date) calDetail(SNAP.today.date); }
+    if(REG){ renderAccounts(); loadAccountsLive(); }
+    loadRetailFunnel();
+    loadLive();
+    // Auto-refresh the live view every 90s so "is it live yet" stays current.
+    setInterval(function(){ if(document.querySelector("#tabs button[data-p='live']").classList.contains("on")) loadLive(); },90000);
+    var h=(location.hash||"").replace(/[^a-z]/gi,"");
+    if(h){var b=document.querySelector("#tabs button[data-p='"+h+"']"); if(b)b.click();}
+  }).catch(function(e){
+    $("#live-cards").innerHTML="<div class='empty'>Could not load the ads data files — "+esc(e.message)+"</div>";
+  });
+})();
+</script>
+</body>
+</html>

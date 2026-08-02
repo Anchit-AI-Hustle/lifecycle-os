@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading Campaign | KNICKGASM</title>
+  <!-- Load Supabase Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="margin: 0; padding: 0; background: #F7F5F2;">
+  <div id="loader" style="font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 100px 24px; color: #6A33D8;">
+    <div style="font-size: 24px; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.05em;">KNICKGASM</div>
+    <div style="font-size: 14px; color: #D0473E;">Retrieving campaign variant...</div>
+  </div>
+
+  <script>
+    async function init() {
+      const loader = document.getElementById('loader');
+
+      // 1. Extract query parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const theme = urlParams.get('theme');
+      const variant = urlParams.get('variant');
+
+      if (!theme || !variant) {
+        loader.innerHTML = `
+          <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Initialization Error</div>
+          <div style="font-size: 14px; color: #666;">Missing parameters. URL must include <strong>theme</strong> and <strong>variant</strong> (e.g. ?theme=mother-day&variant=A).</div>
+        `;
+        return;
+      }
+
+      try {
+        // 2. Fetch public Supabase configuration
+        const configRes = await fetch('/api/public-config');
+        if (!configRes.ok) throw new Error('Failed to fetch public config');
+        const config = await configRes.json();
+
+        const supabaseUrl = config.supabase.url;
+        const supabaseAnonKey = config.supabase.anonKey;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+          loader.innerHTML = `
+            <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Configuration Error</div>
+            <div style="font-size: 14px; color: #666;">Supabase keys are missing in public-config. Ensure environment variables are loaded.</div>
+          `;
+          return;
+        }
+
+        // 3. Initialize Supabase
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        // 4. Fetch the raw HTML campaign variant based on slugs
+        const { data: campaign, error } = await supabaseClient
+          .from('campaign_variants')
+          .select('html_content, themes!inner(theme_name)')
+          .eq('themes.theme_name', theme)
+          .eq('variant_type', variant.toUpperCase())
+          .maybeSingle();
+
+        if (error) {
+          console.error(error);
+          loader.innerHTML = `
+            <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Database Error</div>
+            <div style="font-size: 14px; color: #666;">${error.message}</div>
+          `;
+          return;
+        }
+
+        if (!campaign || !campaign.html_content) {
+          loader.innerHTML = `
+            <div style="font-size: 20px; font-weight: 600; color: #D0473E; margin-bottom: 8px;">Campaign Variant Not Found</div>
+            <div style="font-size: 14px; color: #666;">No variant matches the path: <strong>${theme}</strong> (${variant.toUpperCase()}).</div>
+          `;
+          return;
+        }
+
+        // 5. Replace entire document with the raw campaign HTML
+        document.open();
+        document.write(campaign.html_content);
+        document.close();
+
+      } catch (err) {
+        console.error(err);
+        loader.innerHTML = `
+          <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Connection Error</div>
+          <div style="font-size: 14px; color: #666;">${err.message || err}</div>
+        `;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

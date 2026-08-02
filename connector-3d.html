@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spatial Store Connector · KNICKGASM</title>
+<meta name="description" content="Region-routed, Meta-lander-aware spatial storefront powered by the Knickgasm3DConnectorEngine.">
+<style>
+  @font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");font-display:swap;}
+  :root{
+    --v-deep-purple:#6A33D8; --v-lava:#D0473E; --v-ink:#111111; --v-chalk:#F7F5F2;
+    --v-font-heading:'Montserrat','Raleway',Georgia,serif;
+    --v-font-body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--v-chalk);color:var(--v-ink);font-family:var(--v-font-body);-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+  .util{background:var(--v-deep-purple);color:var(--v-chalk);text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;padding:11px 16px;}
+  header.brand{text-align:center;padding:20px 0 6px;}
+  header.brand img{width:140px;height:auto;margin:0 auto;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px 64px;}
+  h1{font-family:var(--v-font-heading);font-size:38px;line-height:1.1;margin:18px 0 6px;color:var(--v-deep-purple);}
+  .lede{font-size:15px;color:#3a4a40;max-width:640px;margin:0 0 24px;}
+
+  /* Engine status panel */
+  .panel{border:1px solid rgba(0,74,43,.18);border-radius:14px;background:#fff;padding:18px 20px;margin:18px 0 26px;}
+  .panel h2{font-family:var(--v-font-heading);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--v-lava);margin:0 0 14px;}
+  .grid-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .stat{background:var(--v-chalk);border-radius:10px;padding:12px 14px;}
+  .stat .k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7a6a48;}
+  .stat .v{font-size:16px;font-weight:700;color:var(--v-ink);margin-top:4px;word-break:break-word;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;padding:3px 9px;border-radius:999px;}
+  .pill.on{background:var(--v-deep-purple);color:var(--v-chalk);}
+  .pill.off{background:#e7e0d0;color:#6a5c3f;}
+  .swatches{display:flex;gap:8px;margin-top:6px;}
+  .sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.12);}
+
+  /* Controls */
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px;}
+  .controls .lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7a6a48;margin-right:2px;}
+  .btn{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1.5px solid var(--v-deep-purple);color:var(--v-deep-purple);background:#fff;}
+  .btn.sel{background:var(--v-deep-purple);color:var(--v-chalk);}
+  .btn.lava{border-color:var(--v-lava);color:var(--v-ink);}
+  .btn.lava.sel{background:var(--v-lava);}
+
+  /* Product cards - spatial (progressive-enhancement tilt) */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;perspective:1200px;}
+  .card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid rgba(0,74,43,.12);transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d;}
+  body.enh-3d .card:hover{transform:translateZ(24px) rotateX(3deg) rotateY(-3deg);box-shadow:0 24px 48px -20px rgba(0,74,43,.4);}
+  .card .imgwrap{aspect-ratio:1/1;background:var(--v-chalk);}
+  .card .body{padding:12px 14px 16px;}
+  .card .title{font-size:14px;font-weight:700;line-height:1.3;min-height:36px;}
+  .card .price{margin-top:6px;font-weight:700;color:var(--v-deep-purple);}
+  .card .cta{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;color:var(--v-chalk);background:var(--v-deep-purple);border-radius:7px;padding:8px 14px;text-decoration:none;}
+
+  /* Meta checkout - isolated single product, friction stripped */
+  .checkout{display:grid;grid-template-columns:1fr 1fr;gap:26px;background:#fff;border-radius:16px;overflow:hidden;border:1px solid rgba(0,74,43,.14);}
+  .checkout .media{background:var(--v-chalk);}
+  .checkout .info{padding:30px 28px;}
+  .checkout .eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--v-lava);}
+  .checkout h3{font-family:var(--v-font-heading);font-size:30px;line-height:1.1;color:var(--v-deep-purple);margin:10px 0;}
+  .checkout .price{font-size:22px;font-weight:700;margin:8px 0 4px;}
+  .checkout .cta{display:inline-block;margin-top:16px;background:var(--v-deep-purple);color:var(--v-chalk);font-weight:700;padding:15px 34px;border-radius:9px;text-decoration:none;font-size:15px;}
+  .checkout .proof{margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#6a5c3f;}
+  .note{font-size:12px;color:#7a6a48;margin-top:10px;}
+  .err{background:#fff;border:1px solid var(--v-lava);border-radius:12px;padding:18px;color:#6a4a1a;}
+  .skeleton{opacity:.55;}
+  @media(max-width:720px){.checkout{grid-template-columns:1fr;} h1{font-size:30px;}}
+</style>
+</head>
+<body>
+  <div class="util" id="util">Region routing and Meta lander detection by the Knickgasm3DConnectorEngine</div>
+  <header class="brand"><img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
+
+  <div class="wrap">
+    <h1 id="headline">Spatial Store Connector</h1>
+    <p class="lede" id="lede">One engine resolves your region, detects Meta Ads landers, sources the catalog Shopify first, and lays out either the full store or a friction stripped spatial checkout.</p>
+
+    <div class="controls">
+      <span class="lbl">Region</span>
+      <a class="btn" data-region="us">US</a>
+      <a class="btn" data-region="uk">UK</a>
+      <a class="btn" data-region="global">Global</a>
+      <span class="lbl" style="margin-left:14px;">Traffic</span>
+      <a class="btn lava" data-meta="0">Storefront</a>
+      <a class="btn lava" data-meta="1">Meta lander</a>
+    </div>
+    <p class="note">Live Meta landers are auto detected on the knickgasm.com and knickgasm.com hosts. Off those hosts, use the toggle above to preview the isolated checkout.</p>
+
+    <div class="panel">
+      <h2>Engine state</h2>
+      <div class="grid-status" id="status">
+        <div class="stat"><div class="k">Status</div><div class="v" id="s-status">booting</div></div>
+        <div class="stat"><div class="k">Region</div><div class="v" id="s-region">-</div></div>
+        <div class="stat"><div class="k">isMetaLander</div><div class="v" id="s-meta">-</div></div>
+        <div class="stat"><div class="k">Viewport</div><div class="v" id="s-viewport">-</div></div>
+        <div class="stat"><div class="k">Render mode</div><div class="v" id="s-render">-</div></div>
+        <div class="stat"><div class="k">Catalog source</div><div class="v" id="s-source">-</div></div>
+        <div class="stat"><div class="k">Brand tokens</div><div class="v"><div class="swatches" id="s-swatches"></div></div></div>
+      </div>
+    </div>
+
+    <div id="main"></div>
+  </div>
+
+  <!-- The engine: generated from knickgasm-3d-connector-engine.ts, dropped in as a plain global. -->
+  <script src="/knickgasm-3d-connector-engine.js"></script>
+  <script>
+  (function(){
+    var V = window.Knickgasm3D;
+    var main = document.getElementById('main');
+    if(!V || !V.Knickgasm3DConnectorEngine){
+      main.innerHTML = '<div class="err">The connector engine failed to load.</div>';
+      return;
+    }
+
+    var q = new URLSearchParams(location.search);
+    var region = (q.get('region') || 'us').toLowerCase();
+    if(['us','uk','global'].indexOf(region) < 0) region = 'us';
+    var simulateMeta = q.get('meta') === '1';
+    var handle = q.get('handle') || '';
+
+    // Reflect the active control selection.
+    document.querySelectorAll('[data-region]').forEach(function(a){
+      var on = a.getAttribute('data-region') === region;
+      a.classList.toggle('sel', on);
+      var p = new URLSearchParams(location.search); p.set('region', a.getAttribute('data-region'));
+      a.href = location.pathname + '?' + p.toString();
+    });
+    document.querySelectorAll('[data-meta]').forEach(function(a){
+      var on = (a.getAttribute('data-meta') === '1') === simulateMeta;
+      a.classList.toggle('sel', on);
+      var p = new URLSearchParams(location.search); p.set('meta', a.getAttribute('data-meta'));
+      a.href = location.pathname + '?' + p.toString();
+    });
+
+    // Progressive enhancement: tilt cards only when the engine says 3D is safe.
+    var reduced = V.prefersReducedMotion();
+    var renderMode = V.decideRenderMode({ enable3D:true }, reduced);
+    if(renderMode === '3d') document.body.classList.add('enh-3d');
+
+    // Boot the engine, forcing the chosen region, and simulate the lander host
+    // when previewing off the real try.knickgasm.* domains.
+    var engine = new V.Knickgasm3DConnectorEngine({ forcedRegion: region, enable3D: true });
+    var cfg = V.__regions[region];
+    var host = simulateMeta ? cfg.tryHost : cfg.storefrontHost;
+    var path = simulateMeta && handle ? '/' + handle : (location.pathname);
+    engine.updateRoute(host, path);
+
+    render();
+    engine.init({ catalogLimit: 24 }).then(render).catch(function(){ render(); });
+
+    function setText(id, t){ document.getElementById(id).textContent = t; }
+
+    function render(){
+      var st = engine.getState();
+      var cat = engine.getCatalog();
+      setText('s-status', st.status);
+      setText('s-region', st.region.code + ' (' + st.region.currency + ')');
+      var mp = document.getElementById('s-meta');
+      mp.innerHTML = '<span class="pill ' + (st.isMetaLander?'on':'off') + '">' + (st.isMetaLander?'true':'false') + '</span>';
+      setText('s-viewport', st.viewport.mode);
+      setText('s-render', st.renderMode);
+      setText('s-source', cat.length ? (cat[0].source || 'catalog') : (st.status==='loading'?'loading':'none'));
+
+      var sw = document.getElementById('s-swatches'); sw.innerHTML = '';
+      var pal = st.brand.palette;
+      [pal.forestGreen, pal.lava, pal.ink, pal.chalk].forEach(function(c){
+        var d = document.createElement('div'); d.className='sw'; d.style.background=c; d.title=c; sw.appendChild(d);
+      });
+
+      // Utility bar copy adapts to the resolved mode.
+      document.getElementById('util').textContent = st.isMetaLander
+        ? 'Meta lander detected. Global exploration removed for a single spatial checkout.'
+        : 'Region routing and Meta lander detection by the Knickgasm3DConnectorEngine';
+
+      if(st.status === 'loading'){ main.innerHTML = skeleton(); return; }
+      if(st.status === 'error'){ main.innerHTML = '<div class="err">Catalog could not be resolved from any source (Storefront API, products.json, or the built catalog JSON).</div>'; return; }
+
+      if(st.viewport.mode === 'meta_checkout') main.innerHTML = renderCheckout(engine, st, cat);
+      else main.innerHTML = renderStore(st, cat);
+    }
+
+    function money(p){ return p.price || ''; }
+
+    function renderStore(st, cat){
+      if(!cat.length) return '<div class="err">No products available for this region yet.</div>';
+      var cards = cat.map(function(p){
+        var img = p.image ? '<div class="imgwrap"><img loading="lazy" src="'+p.image+'" alt="'+esc(p.title)+'"></div>' : '<div class="imgwrap"></div>';
+        return '<div class="card">'+img+'<div class="body"><div class="title">'+esc(p.title)+'</div>'+
+          (p.price?'<div class="price">'+esc(p.price)+'</div>':'')+
+          '<a class="cta" href="'+p.url+'" target="_blank" rel="noopener">View product</a></div></div>';
+      }).join('');
+      return '<div class="cards">'+cards+'</div>';
+    }
+
+    function renderCheckout(engine, st, cat){
+      var p = engine.getIsolatedProduct() || cat[0];
+      if(!p) return '<div class="err">No product resolved for this lander. Append &handle=your-product-handle to isolate one.</div>';
+      var media = p.image ? '<div class="media"><img src="'+p.image+'" alt="'+esc(p.title)+'"></div>' : '<div class="media"></div>';
+      return '<div class="checkout">'+media+
+        '<div class="info">'+
+          '<div class="eyebrow">One pair, chosen for you</div>'+
+          '<h3>'+esc(p.title)+'</h3>'+
+          (p.price?'<div class="price">'+esc(p.price)+'</div>':'')+
+          '<p class="lede" style="margin:8px 0 0;">A single spatial checkout, stripped of the full store, so the path from tap to pair is short.</p>'+
+          '<a class="cta" href="'+p.url+'" target="_blank" rel="noopener">Add to cart</a>'+
+          '<div class="proof">Rated 4.9 of 5 by 250,000 plus reviewers</div>'+
+        '</div></div>';
+    }
+
+    function skeleton(){
+      var one = '<div class="card skeleton"><div class="imgwrap"></div><div class="body"><div class="title">Loading</div></div></div>';
+      return '<div class="cards">'+one+one+one+one+'</div>';
+    }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  })();
+  </script>
+</body>
+</html>

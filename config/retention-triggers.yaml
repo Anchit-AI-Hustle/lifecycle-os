@@ -1,0 +1,210 @@
+# KNICKGASM Lifecycle OS — Retention Triggers
+# Automated webhook triggers + segmentation logic for the lifecycle engine.
+# Condition expressions reference fields from schemas/cohort-profile.json.
+# Verified to parse with: python3 -c "import yaml; yaml.safe_load(open('config/retention-triggers.yaml'))"
+
+version: "1.0.0"
+
+defaults:
+  base_url: "https://knickgasm.vercel.app"
+  timezone: "America/New_York"
+  webhook_method: "POST"
+  webhook_auth_header: "X-Lifecycle-Secret"
+  dedupe_window_hours: 24
+  quiet_hours:
+    start: "21:00"
+    end: "08:00"
+  default_throttle: "1_per_profile_per_72h"
+  default_priority: 50
+  channels_enabled:
+    - email
+    - sms
+    - push
+
+triggers:
+  - id: high_risk_churn_signal
+    name: "High-Risk Churn Intercept"
+    description: >-
+      Fires when a previously active or VIP profile crosses a high churn-risk
+      threshold with no recent order. Routes to a retention offer + human review.
+    when:
+      all:
+        - "churn_risk >= 0.7"
+        - "lifecycle_stage in ['ACTIVE','VIP','RISK']"
+        - "days_since_last_order >= 45"
+        - "engagement_level in ['low','dormant']"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/calendar?action=trigger-mailer"
+        payload:
+          template: "churn_intercept"
+          profile_id: "{{identity.profile_id}}"
+          rfm_segment: "{{lifecycle_health.rfm_segment}}"
+          churn_risk: "{{lifecycle_health.churn_risk}}"
+          offer: "adaptogen_ritual_15pct"
+          escalate_review: true
+    channel: email
+    throttle: "1_per_profile_per_14d"
+    priority: 95
+
+  - id: subscription_step_skip_coffee
+    name: "Subscription Step / Swap by Coffee Type"
+    description: >-
+      When a subscriber signals a skip or a delivery is too soon/late for their
+      coffee cadence, offer pause-or-swap instead of cancel (retention valve).
+    when:
+      all:
+        - "purchase_mode in ['subscription','mixed']"
+        - "subscription_status in ['active','paused']"
+        - "'coffee' in categories"
+        - "churn_risk >= 0.4"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/klaviyo?op=track-event"
+        payload:
+          event: "sub_step_skip_offer"
+          profile_id: "{{identity.profile_id}}"
+          options:
+            - "skip_next"
+            - "swap_airbrush_coffee"
+            - "adjust_cadence"
+          suppress_cancel_cta: true
+    channel: email
+    throttle: "1_per_profile_per_30d"
+    priority: 80
+
+  - id: localized_regional_promo
+    name: "Localized Regional Promo"
+    description: >-
+      Region-aware promotional push aligning product vector and hook to the
+      profile's US region per the regional matrix.
+    when:
+      all:
+        - "region in ['northeast','west_coast','south_southeast','midwest']"
+        - "engagement_level in ['high','medium']"
+        - "churn_risk < 0.5"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/calendar?action=generate"
+        payload:
+          template: "regional_promo"
+          profile_id: "{{identity.profile_id}}"
+          region: "{{geography.region}}"
+          product_vector_map:
+            northeast: "single_origin_plus_adaptogen"
+            west_coast: "functional_focus_blends"
+            south_southeast: "functional_starter_kit"
+            midwest: "replenishment_staples_and_gifts"
+    channel: email
+    throttle: "1_per_profile_per_21d"
+    priority: 55
+
+  - id: second_order_nudge
+    name: "Second-Order Nudge"
+    description: >-
+      Converts first-time buyers into repeat purchasers with social proof and a
+      subscribe-and-save framing before the first-bag churn cliff.
+    when:
+      all:
+        - "order_count == 1"
+        - "purchase_mode == 'one_time'"
+        - "days_since_last_order >= 14"
+        - "days_since_last_order <= 40"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/calendar?action=trigger-mailer"
+        payload:
+          template: "second_order_nudge"
+          profile_id: "{{identity.profile_id}}"
+          proof: "reviews_ugc"
+          offer: "subscribe_and_save_first_refill"
+    channel: email
+    throttle: "1_per_profile_per_45d"
+    priority: 70
+
+  - id: vip_early_access
+    name: "VIP Early Access"
+    description: >-
+      Gives Champions / VIP profiles exclusive early access to limited drops.
+      Status-driven, no discount (protects the premium halo).
+    when:
+      all:
+        - "lifecycle_stage == 'VIP'"
+        - "rfm_segment in ['Champions','Loyal']"
+        - "churn_risk < 0.3"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/calendar?action=trigger-mailer"
+        payload:
+          template: "vip_early_access"
+          profile_id: "{{identity.profile_id}}"
+          drop: "single_estate_limited"
+          discount: false
+          window_hours: 48
+    channel: email
+    throttle: "1_per_profile_per_30d"
+    priority: 85
+
+  - id: winback_sequence
+    name: "Win-Back Sequence"
+    description: >-
+      Multi-step reactivation for lapsed/hibernating profiles with a decent
+      reactivation likelihood. Escalating incentive across the sequence.
+    when:
+      all:
+        - "lifecycle_stage == 'LAPSED'"
+        - "rfm_segment in ['At-Risk','Hibernating','Lost','About-to-Sleep']"
+        - "days_since_last_order >= 90"
+        - "reactivation_likelihood >= 0.3"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/calendar?action=generate"
+        payload:
+          template: "winback_sequence"
+          profile_id: "{{identity.profile_id}}"
+          sequence:
+            - step: 1
+              message: "we_miss_you_story"
+              offer: none
+            - step: 2
+              message: "whats_new_adaptogen"
+              offer: "free_sample_with_order"
+            - step: 3
+              message: "final_winback"
+              offer: "comeback_20pct"
+          days_between_steps: 5
+    channel: email
+    throttle: "1_sequence_per_profile_per_120d"
+    priority: 75
+
+  - id: replenishment_reminder
+    name: "Replenishment Reminder"
+    description: >-
+      Predictive replenishment nudge timed to expected consumption for coffee /
+      supplement buyers, before they run out and drift.
+    when:
+      all:
+        - "categories_any_of: ['coffee','supplements']"
+        - "purchase_mode in ['one_time','mixed']"
+        - "days_since_last_order >= 25"
+        - "days_since_last_order <= 38"
+        - "churn_risk < 0.6"
+    action:
+      webhook:
+        method: "POST"
+        url_template: "{base_url}/api/klaviyo?op=track-event"
+        payload:
+          event: "replenishment_due"
+          profile_id: "{{identity.profile_id}}"
+          reorder_cta: true
+          convert_to_subscription: true
+          estimated_days_supply: 30
+    channel: sms
+    throttle: "1_per_profile_per_30d"
+    priority: 60

@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Machine Room — A Complete Lesson on Paid Ads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E1116;
+  --panel:#161B22;
+  --panel-2:#1D242E;
+  --paper:#F5F7FA;
+  --paper-card:#FFFFFF;
+  --line-dark:rgba(255,255,255,.10);
+  --line-light:#E4E8EE;
+  --text:#E9EDF3;
+  --text-dim:#9AA6B6;
+  --text-ink:#141A22;
+  --text-ink-dim:#5B6675;
+  --amber:#FFB020;
+  --amber-soft:#FFD98A;
+  --google:#4285F4;
+  --meta:#3B82F6;
+  --tiktok-a:#25F4EE;
+  --tiktok-b:#FE2C55;
+  --up:#22C883;
+  --down:#FF5C6C;
+  --radius:14px;
+  --maxw:1120px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--ink);
+  color:var(--text);
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+.mono{font-family:'JetBrains Mono',monospace}
+h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;line-height:1.05;letter-spacing:-.02em;font-weight:700}
+a{color:inherit}
+::selection{background:var(--amber);color:#241a00}
+
+/* ---------- CONSOLE FRAME ---------- */
+.progress-track{position:fixed;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.06);z-index:100}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--amber-soft));box-shadow:0 0 12px rgba(255,176,32,.6)}
+
+header.console{
+  position:sticky;top:0;z-index:90;
+  background:rgba(14,17,22,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line-dark);
+}
+.console-inner{max-width:var(--maxw);margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px}
+.brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.brand-dot{width:11px;height:11px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px rgba(255,176,32,.18);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(255,176,32,.18)}50%{box-shadow:0 0 0 6px rgba(255,176,32,.04)}}
+.brand b{font-family:'Bricolage Grotesque';font-size:.95rem;letter-spacing:-.01em}
+.brand span{font-size:.66rem;color:var(--text-dim);letter-spacing:.14em;text-transform:uppercase;display:block;margin-top:-2px}
+nav.jump{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+nav.jump a{
+  font-family:'JetBrains Mono';font-size:.7rem;color:var(--text-dim);
+  padding:6px 11px;border-radius:8px;text-decoration:none;transition:.2s;white-space:nowrap;
+}
+nav.jump a:hover,nav.jump a.active{color:var(--ink);background:var(--amber)}
+@media(max-width:860px){nav.jump{display:none}}
+
+/* ---------- LAYOUT ---------- */
+section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
+.eyebrow{font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--amber)}
+.lead{font-size:clamp(1.05rem,2vw,1.22rem);color:var(--text-dim);max-width:60ch;line-height:1.6}
+
+/* ---------- HERO ---------- */
+.hero{padding-top:60px;padding-bottom:40px;position:relative}
+.hero-grid{position:absolute;inset:0;
+  background-image:linear-gradient(var(--line-dark) 1px,transparent 1px),linear-gradient(90deg,var(--line-dark) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 75%);opacity:.5;z-index:0}
+.hero>*{position:relative;z-index:1}
+.hero h1{font-size:clamp(2.7rem,7.5vw,5.6rem);font-weight:800;letter-spacing:-.035em;max-width:15ch}
+.hero h1 em{font-style:normal;color:var(--amber);position:relative}
+.hero .lead{margin-top:22px}
+.stat-strip{display:flex;gap:34px;flex-wrap:wrap;margin-top:34px;padding-top:26px;border-top:1px solid var(--line-dark)}
+.stat-strip .s b{font-family:'Bricolage Grotesque';font-size:1.9rem;color:var(--text);display:block;letter-spacing:-.02em}
+.stat-strip .s span{font-family:'JetBrains Mono';font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+
+/* ---------- AUCTION SIM ---------- */
+.sim{background:var(--panel);border:1px solid var(--line-dark);border-radius:var(--radius);padding:26px;margin-top:40px}
+.sim-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.sim-head h3{font-size:1.15rem}
+.sim-head .tag{font-family:'JetBrains Mono';font-size:.66rem;color:var(--tiktok-a);border:1px solid rgba(37,244,238,.3);padding:3px 9px;border-radius:20px;letter-spacing:.08em}
+.btn{
+  font-family:'JetBrains Mono';font-size:.78rem;font-weight:500;cursor:pointer;
+  background:var(--amber);color:#241a00;border:none;padding:10px 18px;border-radius:9px;
+  transition:transform .15s,box-shadow .15s;letter-spacing:.03em;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,176,32,.35)}
+.btn:focus-visible{outline:2px solid var(--amber-soft);outline-offset:3px}
+.btn.ghost{background:transparent;color:var(--amber);border:1px solid rgba(255,176,32,.4)}
+.btn.ghost:hover{background:rgba(255,176,32,.1);box-shadow:none}
+.bidder{display:grid;grid-template-columns:130px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-bottom:1px dashed var(--line-dark)}
+.bidder:last-child{border-bottom:none}
+.bidder .who{font-family:'JetBrains Mono';font-size:.82rem}
+.bidder .who small{display:block;color:var(--text-dim);font-size:.68rem}
+.bar-wrap{background:rgba(255,255,255,.05);border-radius:6px;height:26px;position:relative;overflow:hidden}
+.bar{height:100%;border-radius:6px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1);background:linear-gradient(90deg,#3a4553,#5a6a80);display:flex;align-items:center;justify-content:flex-end;padding-right:9px}
+.bar.win{background:linear-gradient(90deg,var(--amber),var(--amber-soft))}
+.bar b{font-family:'JetBrains Mono';font-size:.72rem;color:#fff}
+.bar.win b{color:#241a00}
+.rank{font-family:'JetBrains Mono';font-size:.9rem;color:var(--text-dim);min-width:38px;text-align:right}
+.rank.win{color:var(--amber);font-weight:700}
+.sim-result{margin-top:18px;padding:14px 16px;background:var(--panel-2);border-radius:10px;border-left:3px solid var(--amber);font-size:.9rem}
+.sim-result .mono{color:var(--amber)}
+
+/* ---------- LIGHT CARD SECTIONS ---------- */
+.paper-block{background:var(--paper);color:var(--text-ink)}
+.paper-block .eyebrow{color:#B67400}
+.paper-block .eyebrow::before{background:#B67400}
+.paper-block h2{color:var(--text-ink);font-size:clamp(2rem,4.4vw,3.1rem);max-width:16ch}
+.paper-block .lead{color:var(--text-ink-dim)}
+.paper-block p{color:#38414d}
+
+.card{background:var(--paper-card);border:1px solid var(--line-light);border-radius:var(--radius);padding:26px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:760px){.grid-2,.grid-3{grid-template-columns:1fr}}
+.card h3{color:var(--text-ink);font-size:1.2rem;margin-bottom:8px}
+.card p{font-size:.94rem}
+.card .ic{font-family:'JetBrains Mono';font-size:.7rem;color:#B67400;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+
+/* ---------- FLOWCHART ---------- */
+.flow{display:flex;flex-direction:column;align-items:center;gap:0;margin:8px 0}
+.node{
+  background:var(--paper-card);border:1.5px solid var(--text-ink);border-radius:11px;
+  padding:13px 20px;text-align:center;font-weight:600;font-size:.9rem;color:var(--text-ink);
+  max-width:440px;box-shadow:3px 3px 0 rgba(20,26,34,.9);
+}
+.node small{display:block;font-weight:400;color:var(--text-ink-dim);font-size:.76rem;margin-top:3px}
+.node.accent{background:var(--amber);border-color:#241a00;box-shadow:3px 3px 0 #241a00}
+.node.pill{border-radius:40px}
+.node.diamond{background:#141A22;color:#fff;border-color:#141A22;box-shadow:3px 3px 0 rgba(0,0,0,.25);border-radius:11px}
+.arrow{width:2px;height:26px;background:var(--text-ink);position:relative;margin:2px 0}
+.arrow::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--text-ink)}
+.arrow.lbl::before{content:attr(data-l);position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono';font-size:.66rem;color:var(--text-ink-dim);white-space:nowrap}
+.branch{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;width:100%}
+.branch-col{display:flex;flex-direction:column;align-items:center}
+.branch-col .lbl{font-family:'JetBrains Mono';font-size:.66rem;color:#B67400;margin-bottom:6px;letter-spacing:.05em}
+
+/* ---------- METRICS DECODER ---------- */
+.metric-row{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:15px 0;border-bottom:1px solid var(--line-light);align-items:start}
+.metric-row:last-child{border-bottom:none}
+.metric-row .abbr{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.3rem;color:var(--text-ink)}
+.metric-row .abbr small{display:block;font-family:'JetBrains Mono';font-weight:400;font-size:.64rem;color:#B67400;letter-spacing:.05em;margin-top:2px}
+.metric-row .def{font-size:.92rem;color:#38414d}
+.metric-row .def .formula{font-family:'JetBrains Mono';font-size:.78rem;background:#EEF1F5;padding:2px 8px;border-radius:5px;color:#1c2530;display:inline-block;margin-top:6px}
+
+/* ---------- CALCULATOR ---------- */
+.calc{background:var(--panel);border:1px solid var(--line-dark);border-radius:var(--radius);padding:26px;margin-top:26px}
+.calc-in{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+.field label{font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:6px}
+.field input{
+  width:100%;background:var(--panel-2);border:1px solid var(--line-dark);border-radius:9px;
+  padding:11px 12px;color:var(--text);font-family:'JetBrains Mono';font-size:.95rem;
+}
+.field input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,176,32,.14)}
+.calc-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}
+.out-cell{background:var(--panel-2);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--line-dark)}
+.out-cell b{font-family:'JetBrains Mono';font-size:1.35rem;color:var(--amber);display:block}
+.out-cell span{font-family:'JetBrains Mono';font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--text-dim)}
+.out-cell.roas b{color:var(--up)}
+
+/* ---------- PLATFORM MODULES ---------- */
+.pmod{border-radius:var(--radius);padding:2px;margin-top:0}
+.pmod-inner{background:var(--panel);border-radius:calc(var(--radius) - 2px);padding:30px}
+.pmod-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.pmod-badge{font-family:'JetBrains Mono';font-size:.66rem;padding:5px 12px;border-radius:30px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+.pmod h2{color:#fff;font-size:clamp(1.9rem,4vw,2.7rem)}
+.pmod .role{font-family:'JetBrains Mono';font-size:.8rem;letter-spacing:.05em}
+.pg .pmod-badge{background:rgba(66,133,244,.16);color:#8AB4F8;border:1px solid rgba(66,133,244,.4)}
+.pg .role{color:#8AB4F8}
+.pg{background:linear-gradient(135deg,rgba(66,133,244,.5),rgba(52,168,83,.35),rgba(251,188,5,.35))}
+.pm .pmod-badge{background:rgba(59,130,246,.16);color:#93C5FD;border:1px solid rgba(59,130,246,.4)}
+.pm .role{color:#93C5FD}
+.pm{background:linear-gradient(135deg,rgba(59,130,246,.6),rgba(139,92,246,.4))}
+.pt .pmod-badge{background:rgba(37,244,238,.14);color:var(--tiktok-a);border:1px solid rgba(37,244,238,.4)}
+.pt .role{color:var(--tiktok-a)}
+.pt{background:linear-gradient(135deg,var(--tiktok-b),#7c1d3a,var(--tiktok-a))}
+.pmod p{color:var(--text-dim);font-size:.95rem}
+.pmod h4{color:#fff;font-size:1.05rem;margin:22px 0 10px}
+.spec{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:680px){.spec{grid-template-columns:1fr}}
+.spec-item{background:var(--panel-2);border-radius:10px;padding:15px;border:1px solid var(--line-dark)}
+.spec-item .k{font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.spec-item .v{font-size:.88rem;color:var(--text-dim)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.chip{font-family:'JetBrains Mono';font-size:.72rem;background:var(--panel-2);border:1px solid var(--line-dark);color:var(--text);padding:6px 11px;border-radius:8px}
+
+/* structure diagram (nested) */
+.struct{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.struct-lvl{border-radius:10px;padding:12px 15px;font-family:'JetBrains Mono';font-size:.82rem}
+.struct-lvl b{font-size:.9rem}
+.struct-lvl small{color:var(--text-dim);display:block;font-family:'Inter';font-size:.78rem;margin-top:2px}
+.l1{background:rgba(255,176,32,.14);border:1px solid rgba(255,176,32,.4);color:var(--amber-soft);margin-left:0}
+.l2{background:rgba(255,255,255,.05);border:1px solid var(--line-dark);color:var(--text);margin-left:26px}
+.l3{background:rgba(255,255,255,.03);border:1px solid var(--line-dark);color:var(--text-dim);margin-left:52px}
+
+/* ---------- DECISION TREE INTERACTIVE ---------- */
+.dtree{background:var(--paper-card);border:1px solid var(--line-light);border-radius:var(--radius);padding:28px;margin-top:24px}
+.dtree .q{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.3rem;color:var(--text-ink);margin-bottom:18px}
+.opts{display:grid;gap:10px}
+.opt{
+  text-align:left;background:#F5F7FA;border:1.5px solid var(--line-light);border-radius:11px;
+  padding:14px 16px;cursor:pointer;font-size:.92rem;color:var(--text-ink);font-family:'Inter';
+  transition:.16s;display:flex;align-items:center;gap:12px;
+}
+.opt:hover{border-color:var(--amber);background:#FFF8EC;transform:translateX(4px)}
+.opt:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.opt .n{font-family:'JetBrains Mono';font-size:.72rem;color:#B67400;border:1px solid #E4C994;border-radius:6px;padding:3px 7px;flex-shrink:0}
+.dtree-result{padding:22px;border-radius:12px;background:#141A22;color:#fff;margin-top:8px}
+.dtree-result h4{color:var(--amber);font-size:1.4rem;margin-bottom:8px}
+.dtree-result p{color:#C4CDD9;font-size:.92rem}
+.dtree-bar{display:flex;gap:6px;margin-bottom:20px}
+.dtree-bar .seg{flex:1;height:5px;border-radius:3px;background:var(--line-light)}
+.dtree-bar .seg.on{background:var(--amber)}
+
+/* ---------- COMPARISON TABLE ---------- */
+.tbl-wrap{overflow-x:auto;margin-top:24px;border-radius:var(--radius);border:1px solid var(--line-light)}
+table.cmp{width:100%;border-collapse:collapse;background:var(--paper-card);min-width:640px}
+table.cmp th,table.cmp td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--line-light);font-size:.88rem;color:#38414d;vertical-align:top}
+table.cmp thead th{font-family:'JetBrains Mono';font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-ink);background:#EEF1F5;position:sticky;top:0}
+table.cmp tbody th{font-weight:600;color:var(--text-ink);font-family:'Inter';background:#FAFBFC}
+table.cmp td.g{border-top:3px solid var(--google)}
+.cmp .colhead{display:flex;align-items:center;gap:8px}
+.dotc{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* ---------- GLOSSARY ---------- */
+.gloss-search{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line-dark);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'JetBrains Mono';font-size:.85rem;margin-bottom:22px}
+.gloss-search:focus{outline:none;border-color:var(--amber)}
+.gloss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.term{background:var(--panel);border:1px solid var(--line-dark);border-radius:11px;padding:15px}
+.term b{font-family:'JetBrains Mono';color:var(--amber);font-size:.85rem;display:block;margin-bottom:5px}
+.term p{font-size:.82rem;color:var(--text-dim)}
+
+/* ---------- CALLOUT ---------- */
+.callout{background:var(--panel-2);border-left:3px solid var(--amber);border-radius:0 12px 12px 0;padding:18px 20px;margin:22px 0}
+.callout .lab{font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.callout p{font-size:.92rem;color:var(--text-dim)}
+.paper-block .callout{background:#FFF8EC;border-color:#B67400}
+.paper-block .callout .lab{color:#B67400}
+.paper-block .callout p{color:#5a4a2a}
+
+/* ---------- FOOTER ---------- */
+footer{max-width:var(--maxw);margin:0 auto;padding:50px 22px 70px;border-top:1px solid var(--line-dark);color:var(--text-dim);font-size:.85rem}
+footer b{color:var(--text);font-family:'Bricolage Grotesque'}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+
+.section-num{font-family:'JetBrains Mono';font-size:.72rem;color:var(--text-dim);letter-spacing:.1em}
+.divider-line{height:1px;background:var(--line-dark);max-width:var(--maxw);margin:0 auto}
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="prog"></div></div>
+
+<header class="console">
+  <div class="console-inner">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div><b>THE MACHINE ROOM</b><span>Paid Ads · Field Manual</span></div>
+    </div>
+    <nav class="jump" id="jumpnav">
+      <a href="#fundamentals">Fundamentals</a>
+      <a href="#google">Google</a>
+      <a href="#meta">Meta</a>
+      <a href="#tiktok">TikTok</a>
+      <a href="#strategy">Strategy</a>
+      <a href="#measure">Measurement</a>
+      <a href="#cheatsheet">Cheat Sheet</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="top">
+  <div class="hero-grid"></div>
+  <div class="eyebrow">The complete lesson · 7 modules</div>
+  <h1>The machine that turns <em>money</em> into customers.</h1>
+  <p class="lead">Every ad platform on earth is the same machine wearing different clothes: an <b style="color:var(--text)">auction</b> that sells attention, a <b style="color:var(--text)">funnel</b> that warms strangers into buyers, and a <b style="color:var(--text)">feedback loop</b> that rewards whoever feeds it the best signal. Learn the machine once and every dashboard makes sense. Let's open the hood.</p>
+
+  <div class="stat-strip">
+    <div class="s"><b>&lt;100ms</b><span>Time an ad auction takes</span></div>
+    <div class="s"><b>Bid × Quality</b><span>What actually wins</span></div>
+    <div class="s"><b>Creative</b><span>The biggest lever in 2026</span></div>
+    <div class="s"><b>ROAS</b><span>The number that matters</span></div>
+  </div>
+
+  <!-- LIVE AUCTION SIM -->
+  <div class="sim" id="sim">
+    <div class="sim-head">
+      <h3>Live auction — watch the machine decide</h3>
+      <span class="tag">▸ INTERACTIVE</span>
+    </div>
+    <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:18px">Four advertisers want the same slot. The platform does <b style="color:var(--text)">not</b> just pick the highest bid — it ranks them by <span class="mono" style="color:var(--amber)">Bid × Quality Score</span>. Hit run and see who wins, and what they actually pay.</p>
+    <div id="bidders"></div>
+    <div class="sim-result" id="simResult"></div>
+    <div style="margin-top:18px"><button class="btn" id="runAuction">↻ Run a new auction</button></div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ================= FUNDAMENTALS ================= -->
+<section class="paper-block reveal" id="fundamentals" style="max-width:none;padding-left:0;padding-right:0">
+  <div style="max-width:var(--maxw);margin:0 auto;padding:0 22px">
+    <div class="section-num" style="color:#B67400">MODULE 01</div>
+    <div class="eyebrow">The physics of every ad platform</div>
+    <h2>Three ideas run everything: the auction, the funnel, the metrics.</h2>
+    <p class="lead" style="margin-top:18px">Google, Meta and TikTok feel different because their <em>surfaces</em> differ. Underneath, they share the same engine. Master these three and you can walk into any ad account and know what you're looking at.</p>
+
+    <!-- 1. THE AUCTION -->
+    <h3 style="color:var(--text-ink);font-size:1.5rem;margin-top:46px;margin-bottom:6px">1 · The auction — how the slot gets sold</h3>
+    <p style="max-width:64ch">You never buy a fixed price. You enter a real-time auction that runs the instant a page loads or a feed scrolls. But bid alone doesn't win — platforms protect the user experience, so a <b>relevant, high-quality ad can beat a higher bid.</b> That's the single most important idea in paid media.</p>
+
+    <div class="grid-2" style="margin-top:24px">
+      <div class="card">
+        <div class="ic">The winning formula</div>
+        <h3>Ad Rank = Bid × Quality</h3>
+        <p>On Google it's <span class="mono" style="background:#EEF1F5;padding:1px 6px;border-radius:4px;font-size:.8rem">Bid × Quality Score</span> (+ ad assets). On Meta &amp; TikTok it's <span class="mono" style="background:#EEF1F5;padding:1px 6px;border-radius:4px;font-size:.8rem">Bid × Estimated Action Rate × Ad Quality</span>. Quality is how likely the user is to click / convert / not be annoyed. A great ad literally lowers your cost.</p>
+      </div>
+      <div class="card">
+        <div class="ic">What you actually pay</div>
+        <h3>Second-price logic</h3>
+        <p>You usually pay just enough to beat the advertiser ranked below you — not your full bid. So bidding high isn't "wasting money"; it sets your <em>ceiling</em>, not your price. Improve quality and you can win the same slot for less.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div class="ic">Flowchart · one impression, start to finish</div>
+      <div class="flow">
+        <div class="node accent">User loads a page / scrolls a feed</div>
+        <div class="arrow"></div>
+        <div class="node">Platform finds every eligible ad<small>matches targeting, budget, schedule</small></div>
+        <div class="arrow"></div>
+        <div class="node diamond">Score each: Bid × Quality × Est. action rate</div>
+        <div class="arrow" ></div>
+        <div class="node">Rank by score, apply floors &amp; policy</div>
+        <div class="arrow"></div>
+        <div class="branch">
+          <div class="branch-col">
+            <div class="lbl">Highest rank</div>
+            <div class="node pill accent">Winner shown</div>
+            <div class="arrow lbl" style="margin-top:8px"></div>
+            <div class="node" style="font-size:.82rem">Charged second-price CPC/CPM</div>
+          </div>
+          <div class="branch-col">
+            <div class="lbl">Everyone else</div>
+            <div class="node pill">Not shown · $0 spent</div>
+            <div class="arrow" style="margin-top:8px"></div>
+            <div class="node" style="font-size:.82rem">Waits for the next auction</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:26px">
+        <div class="lab">Operator takeaway</div>
+        <p>You don't optimize "the bid." You optimize <b>quality × relevance × creative</b>, because that's the multiplier that moves your cost without spending a rupee more. Bad creative is an invisible tax on every click.</p>
+      </div>
+    </div>
+
+    <!-- 2. THE FUNNEL -->
+    <h3 style="color:var(--text-ink);font-size:1.5rem;margin-top:52px;margin-bottom:6px">2 · The funnel — strangers don't buy on sight</h3>
+    <p style="max-width:64ch">Almost nobody buys the first time they meet you. The funnel is just a map of <b>temperature</b>: cold strangers at the top, warm considerers in the middle, hot ready-to-buy at the bottom. Each stage needs a different <em>objective</em>, <em>audience</em>, <em>creative</em>, and <em>metric</em>. Judging a top-funnel ad by bottom-funnel ROAS is the most common way to kill a good campaign.</p>
+
+    <div class="card" style="margin-top:24px">
+      <div class="grid-3">
+        <div>
+          <div class="ic" style="color:var(--tiktok-b)">TOFU · Top</div>
+          <h3 style="font-size:1.05rem">Awareness</h3>
+          <p style="font-size:.86rem"><b>Job:</b> get discovered by cold strangers.<br><b>Audience:</b> broad / interest / lookalike.<br><b>Creative:</b> scroll-stopping hooks, story.<br><b>Watch:</b> CPM, reach, hook rate, 3-sec views.</p>
+        </div>
+        <div>
+          <div class="ic" style="color:#B67400">MOFU · Middle</div>
+          <h3 style="font-size:1.05rem">Consideration</h3>
+          <p style="font-size:.86rem"><b>Job:</b> earn trust, get engagement.<br><b>Audience:</b> engagers, video viewers, visitors.<br><b>Creative:</b> proof, reviews, demo, education.<br><b>Watch:</b> CTR, landing views, add-to-cart.</p>
+        </div>
+        <div>
+          <div class="ic" style="color:var(--up)">BOFU · Bottom</div>
+          <h3 style="font-size:1.05rem">Conversion</h3>
+          <p style="font-size:.86rem"><b>Job:</b> close the ready-to-buy.<br><b>Audience:</b> cart abandoners, high-intent, brand search.<br><b>Creative:</b> offer, urgency, guarantee.<br><b>Watch:</b> ROAS, CPA, conversion rate.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. THE METRICS -->
+    <h3 style="color:var(--text-ink);font-size:1.5rem;margin-top:52px;margin-bottom:6px">3 · The metrics — the language of the machine</h3>
+    <p style="max-width:64ch">Every dashboard is the same eight or nine numbers rearranged. Here's the decoder. Read left to right and the whole funnel is one chain of division.</p>
+
+    <div class="card" style="margin-top:22px">
+      <div class="metric-row"><div class="abbr">CPM<small>cost per mille</small></div><div class="def">What it costs to show your ad 1,000 times. The price of attention. <span class="formula">(Spend ÷ Impressions) × 1000</span></div></div>
+      <div class="metric-row"><div class="abbr">CTR<small>click-thru rate</small></div><div class="def">Of the people who saw it, the % who clicked. Your creative &amp; targeting report card. <span class="formula">Clicks ÷ Impressions</span></div></div>
+      <div class="metric-row"><div class="abbr">CPC<small>cost per click</small></div><div class="def">What you pay for one visit. Falls when CTR &amp; quality rise. <span class="formula">Spend ÷ Clicks</span></div></div>
+      <div class="metric-row"><div class="abbr">CVR<small>conversion rate</small></div><div class="def">Of clickers, the % who bought / signed up. This is your <em>landing page &amp; offer</em>, not the ad. <span class="formula">Conversions ÷ Clicks</span></div></div>
+      <div class="metric-row"><div class="abbr">CPA<small>cost per acquisition</small></div><div class="def">What one customer costs you. Also called CAC. <span class="formula">Spend ÷ Conversions</span></div></div>
+      <div class="metric-row"><div class="abbr">AOV<small>avg order value</small></div><div class="def">Average rupees per order. Raise this and every other number gets easier. <span class="formula">Revenue ÷ Orders</span></div></div>
+      <div class="metric-row"><div class="abbr">ROAS<small>return on ad spend</small></div><div class="def">Revenue for every ₹1 spent. The headline number. <span class="formula">Revenue ÷ Ad Spend</span></div></div>
+      <div class="metric-row"><div class="abbr">MER<small>marketing efficiency ratio</small></div><div class="def"><em>Blended</em> ROAS across all channels = total revenue ÷ total spend. The truth number when platforms over-claim credit. <span class="formula">Total Revenue ÷ Total Spend</span></div></div>
+    </div>
+
+    <div class="callout">
+      <div class="lab">The number that saves accounts · Break-even ROAS</div>
+      <p>ROAS of 3 sounds great — until your margin is 25%. Your <b>break-even ROAS = 1 ÷ contribution margin</b>. At 40% margin you break even at 2.5×; anything above is profit. Never chase a ROAS target without knowing your break-even first. Try it in the calculator below.</p>
+    </div>
+
+    <!-- CALCULATOR -->
+    <div class="calc" style="color:var(--text)">
+      <div class="sim-head"><h3 style="color:#fff">Metrics calculator — type real numbers, watch the chain</h3><span class="tag" style="color:var(--amber);border-color:rgba(255,176,32,.4)">▸ LIVE</span></div>
+      <div class="calc-in">
+        <div class="field"><label>Ad Spend (₹)</label><input type="number" id="i_spend" value="50000"></div>
+        <div class="field"><label>Impressions</label><input type="number" id="i_impr" value="1200000"></div>
+        <div class="field"><label>Clicks</label><input type="number" id="i_clicks" value="18000"></div>
+        <div class="field"><label>Orders</label><input type="number" id="i_orders" value="540"></div>
+        <div class="field"><label>Revenue (₹)</label><input type="number" id="i_rev" value="162000"></div>
+        <div class="field"><label>Margin (%)</label><input type="number" id="i_margin" value="45"></div>
+      </div>
+      <div class="calc-out">
+        <div class="out-cell"><b id="o_cpm">—</b><span>CPM</span></div>
+        <div class="out-cell"><b id="o_ctr">—</b><span>CTR</span></div>
+        <div class="out-cell"><b id="o_cpc">—</b><span>CPC</span></div>
+        <div class="out-cell"><b id="o_cvr">—</b><span>CVR</span></div>
+        <div class="out-cell"><b id="o_cpa">—</b><span>CPA</span></div>
+        <div class="out-cell"><b id="o_aov">—</b><span>AOV</span></div>
+        <div class="out-cell roas"><b id="o_roas">—</b><span>ROAS</span></div>
+        <div class="out-cell"><b id="o_be">—</b><span>Break-even ROAS</span></div>
+      </div>
+      <p id="verdict" style="margin-top:16px;font-family:'JetBrains Mono';font-size:.85rem"></p>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ================= GOOGLE ================= -->
+<section class="reveal" id="google">
+  <div class="section-num">MODULE 02</div>
+  <div class="eyebrow">The intent engine</div>
+  <div class="pmod pg" style="margin-top:14px">
+    <div class="pmod-inner">
+      <div class="pmod-head">
+        <span class="pmod-badge">Google Ads</span>
+        <span class="role">// captures demand that already exists</span>
+      </div>
+      <h2>Google catches people at the exact moment they're looking.</h2>
+      <p style="margin-top:14px;max-width:66ch">Meta and TikTok <em>create</em> demand by interrupting. Google <em>drops</em> demand that's already there — someone typed "best coffee collection uk" and told you precisely what they want. That intent is why Google converts higher and costs more per click. You're not convincing anyone to want it; you're making sure you're the one they find.</p>
+
+      <h4>The surfaces — one account, many networks</h4>
+      <div class="chips">
+        <span class="chip">🔎 Search</span><span class="chip">🛒 Shopping</span><span class="chip">📺 YouTube</span>
+        <span class="chip">🖼 Display (GDN)</span><span class="chip">✨ Demand Gen</span><span class="chip">🤖 Performance Max</span>
+      </div>
+
+      <h4>Campaign types &amp; when to reach for each</h4>
+      <div class="spec">
+        <div class="spec-item"><div class="k">Search</div><div class="v">Text ads on results pages. Highest intent. Your bread-and-butter for demand capture: brand defense, non-brand keywords, competitor terms.</div></div>
+        <div class="spec-item"><div class="k">Shopping</div><div class="v">Product image + price pulled from a Merchant Center feed. Essential for ecommerce — it's the visual grid at the top of product searches.</div></div>
+        <div class="spec-item"><div class="k">Performance Max</div><div class="v">Goal-in, AI runs every network at once from one asset group + audience signals. Powerful but a black box — feed it great assets and clean conversion data.</div></div>
+        <div class="spec-item"><div class="k">Demand Gen</div><div class="v">Visual, social-style ads across YouTube, Discover &amp; Gmail. Google's answer to Meta/TikTok for top-funnel discovery. (Replaced Discovery campaigns.)</div></div>
+        <div class="spec-item"><div class="k">YouTube / Video</div><div class="v">Skippable, non-skippable, bumper, in-feed. Awareness &amp; consideration at scale with sight-sound-motion.</div></div>
+        <div class="spec-item"><div class="k">Display</div><div class="v">Banners across 2M+ sites. Cheap reach &amp; retargeting; low intent, so guard against junk placements with exclusions.</div></div>
+      </div>
+
+      <h4>Account structure — the nesting doll</h4>
+      <div class="struct">
+        <div class="struct-lvl l1"><b>ACCOUNT</b><small>billing, conversion tracking, everything lives here</small></div>
+        <div class="struct-lvl l2"><b>CAMPAIGN</b><small>one budget · network · geography · bid strategy · goal</small></div>
+        <div class="struct-lvl l3"><b>AD GROUP</b><small>one tight theme of keywords + the ads that match them</small></div>
+        <div class="struct-lvl l3" style="margin-left:78px"><b>KEYWORDS + ADS</b><small>the actual search terms you bid on and the copy people see</small></div>
+      </div>
+
+      <h4>Keywords &amp; match types — the intent dial</h4>
+      <p>Match type controls how loosely Google interprets a keyword. Loosen for reach, tighten for control.</p>
+      <div class="spec" style="margin-top:12px">
+        <div class="spec-item"><div class="k">Broad match</div><div class="v"><span class="mono">coffee collection</span> → any related search Google guesses. Max reach, needs heavy negatives + smart bidding to stay clean.</div></div>
+        <div class="spec-item"><div class="k">Phrase match</div><div class="v"><span class="mono">"coffee collection"</span> → searches containing that meaning. The balanced default.</div></div>
+        <div class="spec-item"><div class="k">Exact match</div><div class="v"><span class="mono">[coffee collection]</span> → that intent only. Tightest control, highest intent, least volume.</div></div>
+        <div class="spec-item"><div class="k">Negative keywords</div><div class="v">The unsung hero. Block "free", "jobs", "recipe" etc. Mine the search-terms report weekly or bleed budget on junk.</div></div>
+      </div>
+
+      <h4>Smart Bidding — hand the algorithm a goal, not a bid</h4>
+      <div class="spec">
+        <div class="spec-item"><div class="k">Maximize Conversions / tCPA</div><div class="v">Get the most conversions, or hit a target cost per conversion. Lead-gen default.</div></div>
+        <div class="spec-item"><div class="k">Max Conversion Value / tROAS</div><div class="v">Optimize for revenue, or hit a target return. Ecommerce default — but it needs value data flowing in.</div></div>
+      </div>
+
+      <div class="callout">
+        <div class="lab">Flowchart · which Google campaign should this be?</div>
+        <div class="flow" style="margin-top:14px">
+          <div class="node diamond">What's the goal?</div>
+          <div class="arrow"></div>
+          <div class="branch">
+            <div class="branch-col"><div class="lbl">Someone's searching</div><div class="node pill" style="background:#1D242E;color:#fff;border-color:#1D242E;box-shadow:3px 3px 0 rgba(0,0,0,.3)">Sell products → Shopping / PMax</div><div class="arrow"></div><div class="node" style="background:#1D242E;color:#fff;border-color:#1D242E;box-shadow:3px 3px 0 rgba(0,0,0,.3);font-size:.82rem">Sell a service → Search</div></div>
+            <div class="branch-col"><div class="lbl">Nobody's searching yet</div><div class="node pill" style="background:#1D242E;color:#fff;border-color:#1D242E;box-shadow:3px 3px 0 rgba(0,0,0,.3)">Discovery / awareness → Demand Gen / YouTube</div><div class="arrow"></div><div class="node" style="background:#1D242E;color:#fff;border-color:#1D242E;box-shadow:3px 3px 0 rgba(0,0,0,.3);font-size:.82rem">Win back visitors → Display retargeting</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= META ================= -->
+<section class="reveal" id="meta">
+  <div class="section-num">MODULE 03</div>
+  <div class="eyebrow">The demand-generation engine</div>
+  <div class="pmod pm" style="margin-top:14px">
+    <div class="pmod-inner">
+      <div class="pmod-head">
+        <span class="pmod-badge">Meta Ads</span>
+        <span class="role">// Facebook + Instagram · creates demand with creative</span>
+      </div>
+      <h2>Meta finds buyers who weren't looking — using the creative as the targeting.</h2>
+      <p style="margin-top:14px;max-width:66ch">On Meta, nobody asked to see your ad. You interrupt a scroll and earn the next half-second. For a decade the game was surgical audience targeting; today the algorithm is so good at finding buyers that the winning play is <b>broad targeting + relentless creative testing.</b> Your creative now does the targeting — the hook decides who stops.</p>
+
+      <h4>Structure — the three-layer stack</h4>
+      <div class="struct">
+        <div class="struct-lvl l1"><b>CAMPAIGN</b><small>the objective + budget (Advantage+ / CBO shares budget across ad sets automatically)</small></div>
+        <div class="struct-lvl l2"><b>AD SET</b><small>who (audience), where (placements), the optimization event, budget if ABO</small></div>
+        <div class="struct-lvl l3"><b>AD</b><small>the creative — image, video, carousel. Where campaigns are actually won or lost.</small></div>
+      </div>
+
+      <h4>Objectives (ODAX) — pick the outcome, the algorithm optimizes for it</h4>
+      <div class="chips">
+        <span class="chip">Awareness</span><span class="chip">Traffic</span><span class="chip">Engagement</span>
+        <span class="chip">Leads</span><span class="chip">App Promotion</span><span class="chip" style="border-color:var(--amber);color:var(--amber)">Sales ★</span>
+      </div>
+      <p style="margin-top:10px;font-size:.86rem">Whatever you choose, Meta shows your ad to people <em>likely to take that action</em>. Choose "Traffic" and you'll get cheap clickers who never buy. Choose "Sales" and optimize for purchase — always optimize for the action closest to money that you have enough volume to feed.</p>
+
+      <h4>Targeting — from surgical to broad</h4>
+      <div class="spec">
+        <div class="spec-item"><div class="k">Core audiences</div><div class="v">Age, location, interests, behaviors. Still useful, but increasingly the algorithm beats manual picks.</div></div>
+        <div class="spec-item"><div class="k">Custom audiences</div><div class="v">Your own data: site visitors (via Pixel/CAPI), customer lists, video viewers, page engagers. The retargeting fuel.</div></div>
+        <div class="spec-item"><div class="k">Lookalikes</div><div class="v">"Find more people like my buyers." Seed it with your best customers, not all traffic.</div></div>
+        <div class="spec-item"><div class="k">Advantage+ (broad)</div><div class="v">Hand Meta minimal constraints and let AI find buyers. The modern default for prospecting when creative volume is high.</div></div>
+      </div>
+
+      <h4>The Learning Phase — the rule that trips everyone</h4>
+      <p>A new ad set is "learning" until it gets roughly <b>50 optimization events (e.g. purchases) in a week.</b> Until it exits, performance is unstable. So: don't split budget into tiny fragmented ad sets, and <b>don't edit a live ad set constantly</b> — every meaningful change resets learning. Patience is a performance setting.</p>
+
+      <h4>Signal — Pixel + Conversions API</h4>
+      <p>After iOS 14 / ATT wrecked browser tracking, you need the <b>Pixel (browser) + Conversions API (server)</b> feeding events back to Meta. Weak signal = the algorithm optimizes blind = wasted spend. This is plumbing, but it's the plumbing everything else depends on.</p>
+
+      <div class="callout">
+        <div class="lab">The 2026 truth</div>
+        <p>Targeting is 80% solved by the algorithm; <b>creative is the lever you still control.</b> Winning Meta accounts test many creatives per week — hooks, angles, formats, UGC vs. polished — and let the auction pick. Treat creative like a portfolio of bets, not a monthly deliverable.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TIKTOK ================= -->
+<section class="reveal" id="tiktok">
+  <div class="section-num">MODULE 04</div>
+  <div class="eyebrow">The entertainment engine</div>
+  <div class="pmod pt" style="margin-top:14px">
+    <div class="pmod-inner">
+      <div class="pmod-head">
+        <span class="pmod-badge">TikTok Ads</span>
+        <span class="role">// entertainment-first · sound-on · native or die</span>
+      </div>
+      <h2>On TikTok, the ad that looks like an ad loses. Make a TikTok, not a commercial.</h2>
+      <p style="margin-top:14px;max-width:66ch">TikTok's own motto — <em>"Don't make ads, make TikToks"</em> — is the whole strategy. The feed is entertainment, sound-on, native. A polished 16:9 brand film gets scrolled in half a second; a raw, hook-first, phone-shot clip that <em>feels</em> like organic content wins. And because content decays fast here, TikTok is a game of <b>creative velocity</b> — volume and freshness beat perfection.</p>
+
+      <h4>Structure — mirrors Meta</h4>
+      <div class="struct">
+        <div class="struct-lvl l1"><b>CAMPAIGN</b><small>objective + budget</small></div>
+        <div class="struct-lvl l2"><b>AD GROUP</b><small>targeting, placement, budget, bid, optimization goal</small></div>
+        <div class="struct-lvl l3"><b>AD</b><small>the video — usually 9:16, sound-on, hook in the first 3 seconds</small></div>
+      </div>
+
+      <h4>Ad formats — Spark Ads are the cheat code</h4>
+      <div class="spec">
+        <div class="spec-item"><div class="k">In-Feed Ads</div><div class="v">Native videos in the For You feed. The workhorse format.</div></div>
+        <div class="spec-item"><div class="k">Spark Ads ★</div><div class="v">Boost a real organic post (yours or a creator's) as an ad. Keeps likes/comments/social proof → consistently the top performer. Start here.</div></div>
+        <div class="spec-item"><div class="k">TopView / Takeover</div><div class="v">Premium first-thing-you-see placements. Big reach, big budgets, awareness plays.</div></div>
+        <div class="spec-item"><div class="k">Shop / Collection</div><div class="v">Shoppable formats + TikTok Shop for in-app purchase. Closing the loop from entertainment to checkout.</div></div>
+      </div>
+
+      <h4>Targeting &amp; automation</h4>
+      <div class="spec">
+        <div class="spec-item"><div class="k">Interests &amp; behaviors</div><div class="v">Based on what people watch, like, and engage with — richer than stated interests.</div></div>
+        <div class="spec-item"><div class="k">Custom &amp; lookalike</div><div class="v">Same idea as Meta — upload data, retarget engagers, expand from best customers.</div></div>
+        <div class="spec-item"><div class="k">Smart Performance Campaign</div><div class="v">TikTok's fully-automated PMax-equivalent: give assets + goal, it handles targeting &amp; bidding.</div></div>
+        <div class="spec-item"><div class="k">Creative-led expansion</div><div class="v">Keep targeting broad and let the video decide who it resonates with. The hook is your real targeting layer.</div></div>
+      </div>
+
+      <div class="callout">
+        <div class="lab">The 3-second law</div>
+        <p>You have ~3 seconds before the thumb moves. Lead with the hook — the payoff, the problem, the pattern-break — <b>never</b> a slow logo intro. Use trending sounds, native captions, real faces. Creative fatigue hits faster than Meta, so refresh constantly. On TikTok, the media buyer's job is 20% buying and 80% keeping the creative pipeline full.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ================= STRATEGY ================= -->
+<section class="paper-block reveal" id="strategy" style="max-width:none;padding-left:0;padding-right:0">
+  <div style="max-width:var(--maxw);margin:0 auto;padding:0 22px">
+    <div class="section-num" style="color:#B67400">MODULE 05</div>
+    <div class="eyebrow">Putting the three together</div>
+    <h2>You don't pick a platform. You build a system where they feed each other.</h2>
+    <p class="lead" style="margin-top:18px">The real journey isn't linear: someone sees a TikTok, gets retargeted on Instagram, then Googles your brand and buys. Each platform played a role. The mistake is judging them in isolation. Here's how operators actually allocate.</p>
+
+    <!-- DECISION TREE INTERACTIVE -->
+    <div class="dtree" id="dtree">
+      <div class="dtree-bar"><div class="seg on"></div><div class="seg"></div><div class="seg"></div></div>
+      <div id="dtreeBody"></div>
+    </div>
+
+    <!-- COMPARISON TABLE -->
+    <h3 style="color:var(--text-ink);font-size:1.4rem;margin-top:52px;margin-bottom:4px">The platforms, side by side</h3>
+    <div class="tbl-wrap">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th><span class="colhead"><span class="dotc" style="background:var(--google)"></span>Google</span></th>
+            <th><span class="colhead"><span class="dotc" style="background:var(--meta)"></span>Meta</span></th>
+            <th><span class="colhead"><span class="dotc" style="background:var(--tiktok-b)"></span>TikTok</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th>Core job</th><td>Capture existing demand</td><td>Generate demand</td><td>Generate demand via entertainment</td></tr>
+          <tr><th>Intent level</th><td>High — they're searching</td><td>Low–mid — they're scrolling</td><td>Low — they're being entertained</td></tr>
+          <tr><th>Targeting driver</th><td>Keywords &amp; intent</td><td>Algorithm + creative + data</td><td>Creative + behavior</td></tr>
+          <tr><th>The #1 lever</th><td>Keywords, feed &amp; bid strategy</td><td>Creative volume</td><td>Creative velocity &amp; hooks</td></tr>
+          <tr><th>Typical CPC</th><td>Highest (you pay for intent)</td><td>Mid</td><td>Lowest (cheap reach)</td></tr>
+          <tr><th>Best for</th><td>Bottom-funnel, ecommerce, services, brand defense</td><td>Full-funnel DTC, retargeting</td><td>Top-funnel discovery, younger reach, virality</td></tr>
+          <tr><th>Creative style</th><td>Text, product feed, some video</td><td>Polished + UGC mix</td><td>Raw, native, sound-on</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BUDGET -->
+    <h3 style="color:var(--text-ink);font-size:1.4rem;margin-top:52px;margin-bottom:4px">How to split the budget</h3>
+    <div class="grid-2" style="margin-top:18px">
+      <div class="card">
+        <div class="ic">Rule of thumb · 70 / 20 / 10</div>
+        <h3>Protect the proven, fund the future</h3>
+        <p><b>70%</b> into what already works (usually demand capture + your best channel). <b>20%</b> into scaling promising bets. <b>10%</b> into pure experiments — new platforms, new creative angles, new audiences. This keeps you profitable today without going blind tomorrow.</p>
+      </div>
+      <div class="card">
+        <div class="ic">Where to start with limited budget</div>
+        <h3>Start where the intent is</h3>
+        <p>Small budget? Begin at the <b>bottom of the funnel</b> — brand search + retargeting — because it converts cheapest and proves the machine works. Then expand up-funnel into Meta/TikTok prospecting once you can afford to warm cold audiences. Mind the floors: Meta ≈ ₹1.5k+/day per ad set, TikTok ≈ ₹1.5k+/day/campaign, Google Search ₹800+/day for real signal.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="lab">The full-funnel loop</div>
+      <div class="flow" style="margin-top:14px">
+        <div class="node accent">TikTok / Meta prospecting<small>create demand · cold audiences</small></div>
+        <div class="arrow lbl" data-l="warms them up"></div>
+        <div class="node">Meta / TikTok retargeting<small>re-engage visitors &amp; cart abandoners</small></div>
+        <div class="arrow lbl" data-l="pushes to buy"></div>
+        <div class="node">Google brand + non-brand search<small>catch them when they look you up</small></div>
+        <div class="arrow lbl" data-l="feeds data back"></div>
+        <div class="node diamond">Purchase → signal returns to every platform</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ================= MEASUREMENT ================= -->
+<section class="reveal" id="measure">
+  <div class="section-num">MODULE 06</div>
+  <div class="eyebrow">The part most people get wrong</div>
+  <h2 style="color:#fff;font-size:clamp(2rem,4.4vw,3rem);max-width:18ch">If you add up every platform's ROAS, you get a number bigger than reality.</h2>
+  <p class="lead" style="margin-top:18px">Every platform claims credit for the same sale. Meta says it drove it, Google says it drove it, TikTok says it drove it — so in-platform ROAS is <b style="color:var(--text)">always inflated</b>. Growing spend on "reported" numbers is how brands quietly go broke. Here's the measurement stack that keeps you honest.</p>
+
+  <div class="grid-2" style="margin-top:30px">
+    <div class="spec-item"><div class="k">Blended ROAS / MER</div><div class="v" style="font-size:.9rem">Total revenue ÷ total ad spend, across everything. Can't be gamed by attribution. Watch this trend more than any single platform's number.</div></div>
+    <div class="spec-item"><div class="k">Incrementality tests</div><div class="v" style="font-size:.9rem">Turn a channel off in some geos (holdout) and measure the real lift. Answers the only question that matters: "would this sale have happened anyway?"</div></div>
+    <div class="spec-item"><div class="k">Post-purchase survey</div><div class="v" style="font-size:.9rem">"How did you hear about us?" at checkout. Low-tech, attribution-proof, and often the truest read on top-of-funnel platforms like TikTok.</div></div>
+    <div class="spec-item"><div class="k">Attribution windows</div><div class="v" style="font-size:.9rem">Know what you're counting: a 7-day-click / 1-day-view purchase is a very different claim than a view-through. Compare like with like across platforms.</div></div>
+    <div class="spec-item"><div class="k">MMM (media mix modeling)</div><div class="v" style="font-size:.9rem">Statistical model of how each channel drives sales over time. For bigger budgets — the privacy-proof successor to cookie tracking.</div></div>
+    <div class="spec-item"><div class="k">First-party data + CAPI</div><div class="v" style="font-size:.9rem">Server-side event tracking is now mandatory infrastructure. Better signal in → better optimization out → lower costs. Not optional.</div></div>
+  </div>
+
+  <div class="callout">
+    <div class="lab">The testing loop · how growth actually compounds</div>
+    <div class="flow" style="margin-top:14px">
+      <div class="node accent" style="background:var(--amber);color:#241a00">Hypothesis<small>"UGC hook beats studio hook"</small></div>
+      <div class="arrow"></div>
+      <div class="node" style="background:#1D242E;color:#fff;border-color:#1D242E;box-shadow:3px 3px 0 rgba(0,0,0,.3)">Test<small>one variable, enough budget &amp; time to reach significance</small></div>
+      <div class="arrow"></div>
+      <div class="node diamond">Read the result — did it beat control?</div>
+      <div class="arrow"></div>
+      <div class="branch">
+        <div class="branch-col"><div class="lbl" style="color:var(--up)">Winner</div><div class="node" style="background:#1D242E;color:#fff;border-color:var(--up);box-shadow:3px 3px 0 rgba(0,0,0,.3)">Scale it &amp; make it the new control</div></div>
+        <div class="branch-col"><div class="lbl" style="color:var(--down)">Loser</div><div class="node" style="background:#1D242E;color:#fff;border-color:var(--down);box-shadow:3px 3px 0 rgba(0,0,0,.3)">Kill it, keep the learning</div></div>
+      </div>
+    </div>
+    <p style="margin-top:20px">Prioritize what to test with <b>ICE</b> — Impact × Confidence × Ease. And remember the hierarchy of leverage: <b>offer &amp; product &gt; creative &gt; targeting &gt; bid &amp; budget.</b> Most people obsess over the last two and ignore the first two, where the real money is.</p>
+  </div>
+</section>
+
+<div class="divider-line"></div>
+
+<!-- ================= CHEAT SHEET ================= -->
+<section class="reveal" id="cheatsheet">
+  <div class="section-num">MODULE 07</div>
+  <div class="eyebrow">The whole language, in one place</div>
+  <h2 style="color:#fff;font-size:clamp(2rem,4.4vw,3rem)">Cheat sheet</h2>
+  <p class="lead" style="margin-top:14px;margin-bottom:6px">Search it. Every term you'll meet in a dashboard.</p>
+  <input class="gloss-search" id="glossSearch" placeholder="⌕ filter terms… (try 'ROAS', 'pixel', 'lookalike')" aria-label="Filter glossary">
+  <div class="gloss-grid" id="glossGrid"></div>
+
+  <div style="margin-top:56px;padding:30px;background:var(--panel);border:1px solid var(--line-dark);border-radius:var(--radius)">
+    <div class="ic" style="color:var(--amber);font-family:'JetBrains Mono';font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px">The whole lesson in 8 lines</div>
+    <div style="display:grid;gap:11px;font-size:.95rem;color:var(--text-dim)">
+      <div>① Every platform is an <b style="color:var(--text)">auction</b> that ranks ads by <b style="color:var(--text)">bid × quality</b>, not bid alone.</div>
+      <div>② Strangers don't buy on sight — match objective, audience &amp; creative to <b style="color:var(--text)">funnel temperature</b>.</div>
+      <div>③ <b style="color:var(--text)">Google</b> captures demand (intent). <b style="color:var(--text)">Meta</b> &amp; <b style="color:var(--text)">TikTok</b> create it (interruption &amp; entertainment).</div>
+      <div>④ In 2026, <b style="color:var(--text)">creative is the lever.</b> Algorithms handle most of the targeting.</div>
+      <div>⑤ Feed the machine clean <b style="color:var(--text)">conversion signal</b> (Pixel + CAPI) or it optimizes blind.</div>
+      <div>⑥ Know your <b style="color:var(--text)">break-even ROAS</b> before you chase any ROAS target.</div>
+      <div>⑦ Trust <b style="color:var(--text)">blended ROAS &amp; incrementality</b>, never a single platform's self-reported number.</div>
+      <div>⑧ Growth = a <b style="color:var(--text)">testing loop</b>: hypothesize, test one variable, scale winners, kill losers, repeat.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <b style="font-size:1.1rem;display:block;margin-bottom:8px">The Machine Room</b>
+  A complete field manual for Google, Meta &amp; TikTok advertising. Concepts are durable; specific platform feature names and minimum budgets shift — always sanity-check current specs inside each ad manager before you spend. Now go feed the machine. ↑ <a href="#top" style="color:var(--amber);text-decoration:none">Back to top</a>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- SCROLL PROGRESS ---------- */
+  var prog=document.getElementById('prog');
+  function onScroll(){
+    var h=document.documentElement;
+    var scrolled=(h.scrollTop)/(h.scrollHeight-h.clientHeight);
+    prog.style.width=(scrolled*100)+'%';
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+  /* ---------- NAV ACTIVE STATE ---------- */
+  var navLinks=[].slice.call(document.querySelectorAll('#jumpnav a'));
+  var sections=navLinks.map(function(a){return document.querySelector(a.getAttribute('href'));});
+  var navObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var id='#'+e.target.id;
+        navLinks.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')===id);});
+      }
+    });
+  },{rootMargin:'-45% 0px -50% 0px'});
+  sections.forEach(function(s){if(s)navObs.observe(s);});
+
+  /* ---------- REVEAL ---------- */
+  var revObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');revObs.unobserve(e.target);}});
+  },{threshold:.08});
+  document.querySelectorAll('.reveal').forEach(function(el){revObs.observe(el);});
+
+  /* ---------- AUCTION SIMULATOR ---------- */
+  var names=[
+    {n:'BrewCo',s:'premium sneaker brand'},
+    {n:'DailyGrind',s:'coffee subscription'},
+    {n:'ZenLeaf',s:'streetwear startup'},
+    {n:'MorningLabs',s:'D2C supplements'},
+    {n:'RootHerbal',s:'ayurveda brand'},
+    {n:'PeakBrew',s:'functional drinks'}
+  ];
+  var bidC=document.getElementById('bidders');
+  var resEl=document.getElementById('simResult');
+  function rnd(min,max){return Math.random()*(max-min)+min;}
+  function runAuction(){
+    var pool=names.slice().sort(function(){return Math.random()-.5;}).slice(0,4);
+    var arr=pool.map(function(p){
+      var bid=+rnd(20,80).toFixed(0);
+      var qs=+rnd(3,10).toFixed(1);
+      return {n:p.n,s:p.s,bid:bid,qs:qs,rank:+(bid*qs).toFixed(0)};
+    });
+    arr.sort(function(a,b){return b.rank-a.rank;});
+    var maxRank=arr[0].rank;
+    bidC.innerHTML='';
+    arr.forEach(function(a,i){
+      var win=i===0;
+      var row=document.createElement('div');row.className='bidder';
+      row.innerHTML='<div class="who">'+a.n+'<small>bid ₹'+a.bid+' · QS '+a.qs+'</small></div>'+
+        '<div class="bar-wrap"><div class="bar'+(win?' win':'')+'" style="width:0"><b>'+a.rank+'</b></div></div>'+
+        '<div class="rank'+(win?' win':'')+'">'+(win?'★ #1':'#'+(i+1))+'</div>';
+      bidC.appendChild(row);
+      var bar=row.querySelector('.bar');
+      requestAnimationFrame(function(){setTimeout(function(){bar.style.width=Math.max(8,(a.rank/maxRank*100))+'%';},60+i*90);});
+    });
+    var w=arr[0],runnerUp=arr[1];
+    var cpc=Math.min(w.bid,(runnerUp.rank/w.qs)+1).toFixed(1);
+    setTimeout(function(){
+      resEl.innerHTML='<b style="color:#fff">'+w.n+'</b> wins the slot with the highest Ad Rank ('+
+        '<span class="mono">'+w.bid+' × '+w.qs+' = '+w.rank+'</span>) — even though it '+
+        (w.bid===Math.max.apply(null,arr.map(function(x){return x.bid;}))?'also had the top bid.':'did <b style="color:var(--amber)">not</b> have the highest bid. Quality carried it.')+
+        ' It only pays <span class="mono">₹'+cpc+'/click</span> — just enough to beat #2, not its full ₹'+w.bid+' bid.';
+    },700);
+  }
+  document.getElementById('runAuction').addEventListener('click',runAuction);
+  runAuction();
+
+  /* ---------- METRICS CALCULATOR ---------- */
+  var ids=['i_spend','i_impr','i_clicks','i_orders','i_rev','i_margin'];
+  function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+  function fmt(v,d){if(!isFinite(v)||isNaN(v))return '—';return v.toLocaleString('en-IN',{maximumFractionDigits:d||0});}
+  function calc(){
+    var spend=num('i_spend'),impr=num('i_impr'),clicks=num('i_clicks'),orders=num('i_orders'),rev=num('i_rev'),margin=num('i_margin');
+    var cpm=impr?spend/impr*1000:0;
+    var ctr=impr?clicks/impr*100:0;
+    var cpc=clicks?spend/clicks:0;
+    var cvr=clicks?orders/clicks*100:0;
+    var cpa=orders?spend/orders:0;
+    var aov=orders?rev/orders:0;
+    var roas=spend?rev/spend:0;
+    var be=margin?100/margin:0;
+    document.getElementById('o_cpm').textContent='₹'+fmt(cpm,0);
+    document.getElementById('o_ctr').textContent=fmt(ctr,2)+'%';
+    document.getElementById('o_cpc').textContent='₹'+fmt(cpc,1);
+    document.getElementById('o_cvr').textContent=fmt(cvr,2)+'%';
+    document.getElementById('o_cpa').textContent='₹'+fmt(cpa,0);
+    document.getElementById('o_aov').textContent='₹'+fmt(aov,0);
+    document.getElementById('o_roas').textContent=fmt(roas,2)+'×';
+    document.getElementById('o_be').textContent=fmt(be,2)+'×';
+    var v=document.getElementById('verdict');
+    if(!spend||!margin){v.textContent='';return;}
+    if(roas>=be){
+      var profit=(rev*margin/100)-spend;
+      v.innerHTML='<span style="color:var(--up)">▲ PROFITABLE</span> — ROAS '+fmt(roas,2)+'× clears your break-even of '+fmt(be,2)+'×. Est. gross profit after ad spend: ₹'+fmt(profit,0)+'. Scale it.';
+    }else{
+      v.innerHTML='<span style="color:var(--down)">▼ UNDERWATER</span> — ROAS '+fmt(roas,2)+'× is below your '+fmt(be,2)+'× break-even. You lose money on every sale. Fix creative/CVR/AOV or cut it.';
+    }
+  }
+  ids.forEach(function(id){document.getElementById(id).addEventListener('input',calc);});
+  calc();
+
+  /* ---------- DECISION TREE ---------- */
+  var tree={
+    start:{q:"What's your #1 goal right now?",opts:[
+      {t:"Get sales from people ready to buy",go:"intent"},
+      {t:"Build awareness for something new",go:"aware"},
+      {t:"Win back people who already visited",go:"retarget"}
+    ]},
+    intent:{q:"Are people actively searching for what you sell?",opts:[
+      {t:"Yes — there's search demand for it",go:"r_search"},
+      {t:"No — it's an impulse / discovery product",go:"r_social"}
+    ]},
+    aware:{q:"Who are you trying to reach?",opts:[
+      {t:"Younger, trend-driven, entertainment-first",go:"r_tiktok"},
+      {t:"Broad consumer audience, visual product",go:"r_meta"},
+      {t:"People researching on Google / YouTube",go:"r_demandgen"}
+    ]},
+    retarget:{q:"Where did most of your visitors first come from?",opts:[
+      {t:"Social feeds (IG / FB / TikTok)",go:"r_socialrt"},
+      {t:"Search / all over the web",go:"r_googlert"}
+    ]},
+    /* results */
+    r_search:{result:true,h:"Google Search",p:"You have intent — capture it. Start with brand + high-intent non-brand keywords on Search, layer Shopping/PMax if you sell products. Cheapest path to a first profitable rupee."},
+    r_social:{result:true,h:"Meta + TikTok",p:"No search demand means you must create it. Lead with creative-first prospecting on Meta &amp; TikTok, then retarget. Google's role here is just catching the brand searches your ads generate."},
+    r_tiktok:{result:true,h:"TikTok (Spark Ads first)",p:"Native, sound-on, hook in 3 seconds. Boost strong organic/creator posts as Spark Ads and keep the creative pipeline full — velocity beats polish here."},
+    r_meta:{result:true,h:"Meta (broad + creative volume)",p:"Advantage+ prospecting with many creative variations. Let the algorithm find buyers; your job is feeding it hooks and angles to test."},
+    r_demandgen:{result:true,h:"Google Demand Gen + YouTube",p:"Visual, social-style Google inventory across YouTube, Discover &amp; Gmail — awareness for people already in Google's ecosystem, with Google's conversion data underneath."},
+    r_socialrt:{result:true,h:"Meta / TikTok retargeting",p:"Build custom audiences from your Pixel/CAPI — site visitors, video viewers, cart abandoners — and serve proof + offer creative. Cheapest, highest-ROAS spend you'll run."},
+    r_googlert:{result:true,h:"Google retargeting + brand search",p:"Display/PMax remarketing to warm visitors, and always-on brand Search so you're there the moment they look you up. Defends the demand you already paid to create."}
+  };
+  var dtreeBody=document.getElementById('dtreeBody');
+  var dtreeBar=document.querySelector('.dtree-bar');
+  function renderTree(key,step){
+    var node=tree[key];
+    var segs=dtreeBar.querySelectorAll('.seg');
+    segs.forEach(function(s,i){s.classList.toggle('on',i<step);});
+    if(node.result){
+      dtreeBody.innerHTML='<div class="dtree-result"><h4>→ '+node.h+'</h4><p>'+node.p+'</p></div>'+
+        '<button class="btn ghost" id="dtreeReset" style="margin-top:16px">↺ Start over</button>';
+      document.getElementById('dtreeReset').addEventListener('click',function(){renderTree('start',1);});
+      return;
+    }
+    var html='<div class="q">'+node.q+'</div><div class="opts">';
+    node.opts.forEach(function(o,i){
+      html+='<button class="opt" data-go="'+o.go+'"><span class="n">'+(i+1)+'</span>'+o.t+'</button>';
+    });
+    html+='</div>';
+    dtreeBody.innerHTML=html;
+    dtreeBody.querySelectorAll('.opt').forEach(function(b){
+      b.addEventListener('click',function(){renderTree(b.getAttribute('data-go'),step+1);});
+    });
+  }
+  renderTree('start',1);
+
+  /* ---------- GLOSSARY ---------- */
+  var terms=[
+    ['Impression','One time your ad was shown. The raw unit of reach.'],
+    ['Reach','Unique people who saw your ad (vs. total impressions).'],
+    ['Frequency','Avg times each person saw it. Too high = fatigue &amp; wasted spend.'],
+    ['CPM','Cost per 1,000 impressions — the price of attention.'],
+    ['CTR','Click-through rate = clicks ÷ impressions. Creative report card.'],
+    ['CPC','Cost per click. Falls as quality &amp; CTR rise.'],
+    ['CVR','Conversion rate = conversions ÷ clicks. Your landing page &amp; offer.'],
+    ['CPA / CAC','Cost to acquire one customer = spend ÷ conversions.'],
+    ['AOV','Average order value = revenue ÷ orders.'],
+    ['LTV','Lifetime value — total profit from a customer over time.'],
+    ['ROAS','Return on ad spend = revenue ÷ spend. The headline number.'],
+    ['MER','Marketing efficiency ratio — blended ROAS across all channels.'],
+    ['Break-even ROAS','1 ÷ contribution margin. The ROAS where you stop losing money.'],
+    ['Quality Score','Google\'s 1–10 rating of ad relevance, expected CTR &amp; landing page.'],
+    ['Ad Rank','Bid × Quality (+assets). Decides who wins the auction.'],
+    ['Ad Group','Google: a tight cluster of keywords + matching ads.'],
+    ['Match type','How loosely Google reads a keyword: broad / phrase / exact.'],
+    ['Negative keyword','A term you block so you don\'t pay for irrelevant searches.'],
+    ['Smart Bidding','Google\'s AI bidding to a goal: tCPA, tROAS, Max Conv.'],
+    ['PMax','Performance Max — one AI campaign across all Google inventory.'],
+    ['Demand Gen','Google\'s visual, social-style top-funnel campaign type.'],
+    ['Merchant Center','Where your product feed lives to power Shopping ads.'],
+    ['Ad Set','Meta: the audience + placement + budget layer.'],
+    ['ODAX','Meta\'s objective framework — pick the outcome to optimize for.'],
+    ['Learning Phase','Meta needs ~50 events/week per ad set to stabilize.'],
+    ['Lookalike','An audience modeled on your best existing customers.'],
+    ['Custom Audience','Your own data: visitors, lists, engagers — for retargeting.'],
+    ['Advantage+','Meta\'s AI-driven broad targeting &amp; automated campaigns.'],
+    ['Pixel','Browser tag that sends conversion events back to the platform.'],
+    ['CAPI','Conversions API — server-side event tracking. Now essential.'],
+    ['Spark Ads','TikTok: boost a real organic post as an ad. Top performer.'],
+    ['In-Feed','TikTok\'s native video ad in the For You feed.'],
+    ['SPC','Smart Performance Campaign — TikTok\'s automated PMax equivalent.'],
+    ['Hook','The first ~3 seconds that stop the scroll. Wins or loses the ad.'],
+    ['Attribution','Assigning credit for a sale to the ads that touched it.'],
+    ['Incrementality','The real lift an ad caused vs. sales that\'d happen anyway.'],
+    ['MMM','Media mix modeling — statistical, privacy-proof measurement.'],
+    ['ICE','Impact × Confidence × Ease — how to prioritize what to test.'],
+    ['CBO / ABO','Budget set at campaign level (CBO) vs. ad-set level (ABO).'],
+    ['Creative fatigue','When an ad decays from overexposure and CTR drops.']
+  ];
+  var glossGrid=document.getElementById('glossGrid');
+  function renderGloss(filter){
+    var f=(filter||'').toLowerCase();
+    glossGrid.innerHTML='';
+    terms.filter(function(t){return t[0].toLowerCase().indexOf(f)>-1||t[1].toLowerCase().indexOf(f)>-1;})
+    .forEach(function(t){
+      var d=document.createElement('div');d.className='term';
+      d.innerHTML='<b>'+t[0]+'</b><p>'+t[1]+'</p>';
+      glossGrid.appendChild(d);
+    });
+    if(!glossGrid.children.length){glossGrid.innerHTML='<p style="color:var(--text-dim);font-family:JetBrains Mono;font-size:.85rem">No term matches "'+filter+'".</p>';}
+  }
+  document.getElementById('glossSearch').addEventListener('input',function(e){renderGloss(e.target.value);});
+  renderGloss('');
+
+})();
+</script>
+</body>
+</html>

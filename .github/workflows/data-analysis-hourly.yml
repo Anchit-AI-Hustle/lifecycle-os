@@ -1,0 +1,58 @@
+name: Hourly Data Analysis & Anomaly Alerts
+
+# Runs the unified Data Analysis control plane once per hour. The persisted
+# alert settings can reduce the effective cadence to 2/4/6/12/24 hours without
+# changing this workflow; the API returns a clean cadence_not_due response.
+#
+# Required GitHub Actions secrets:
+#   CRON_SECRET  — same value as the Vercel CRON_SECRET environment variable
+#   APP_BASE_URL — required production Lifecycle OS origin, e.g. https://your-domain
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Ignore the saved cadence and run now'
+        type: boolean
+        default: true
+  schedule:
+    - cron: '7 * * * *'
+
+concurrency:
+  group: hourly-data-analysis
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+    steps:
+      - name: Run source-backed analysis and anomaly delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_BASE_URL repo secret is not set." >&2
+            exit 1
+          fi
+          BASE="${APP_BASE_URL%/}"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET repo secret is not set." >&2
+            exit 1
+          fi
+
+          FORCE=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            FORCE=true
+          fi
+
+          curl --fail-with-body --retry 2 --retry-delay 5 -sS \
+            -X POST "$BASE/api/public-config?action=data-analysis" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            --data "{\"op\":\"run-hourly\",\"force\":$FORCE}"

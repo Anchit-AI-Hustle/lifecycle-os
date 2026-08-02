@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Landing Pages · KNICKGASM Lifecycle OS</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#6A33D8">
+  <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="/auth.js?v=20260718light" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+    @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #7a5f28; font-weight: 600; margin-bottom: 10px; }
+    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
+    h1 { font-family: 'Lora', serif; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
+    h1 em { font-style: italic; color: #D0473E; }
+    .sub { color: #556059; font-size: 13.5px; margin-top: 6px; max-width: 800px; line-height: 1.6; }
+
+    .tabs { display: inline-flex; gap: 4px; margin: 22px 0 18px; padding: 4px; background: #ffffff; border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; flex-wrap: wrap; }
+    .tab { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #556059; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
+    .tab:hover { color: #111111; }
+    .tab.active { color: #6A33D8; background: rgba(171,135,67,0.16); }
+
+    .panel { display: none; margin-top: 18px; }
+    .panel.active { display: block; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 18px; }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card { background: #ffffff; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; padding: 18px 20px; }
+    .card h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; color: #111111; margin-bottom: 6px; }
+    .card .meta { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; margin-bottom: 12px; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; font-weight: 600; margin-bottom: 6px; }
+    .field input, .field select, .field textarea {
+      width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.22); border-radius: 9px;
+      color: #111111; padding: 10px 12px; font-size: 13.5px; font-family: inherit;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #D0473E; }
+    .field textarea { resize: vertical; min-height: 90px; }
+
+    .regions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .region-chip { padding: 7px 13px; border-radius: 99px; background: #ffffff; border: 1px solid rgba(171,135,67,0.22); color: #556059; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .region-chip.active { background: #D0473E; color: #ffffff; border-color: #D0473E; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
+    .btn-solid { background: #D0473E; color: #ffffff; border: 0; }
+    .btn-solid:hover { opacity: 0.92; }
+    .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
+    .btn-ghost:hover { border-color: #D0473E; color: #111111; }
+
+    .pill { display: inline-block; background: rgba(171,135,67,0.14); color: #7a5f28; font-size: 11px; padding: 3px 9px; border-radius: 99px; margin: 2px; }
+
+    .lp-list { display: flex; flex-direction: column; gap: 10px; }
+    .lp-row { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #ffffff; border: 1px solid rgba(171,135,67,0.14); border-radius: 12px; }
+    .lp-row .body { flex: 1; min-width: 0; }
+    .lp-row .name { font-size: 13.5px; font-weight: 600; color: #111111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lp-row .meta-row { font-size: 11.5px; color: #556059; margin-top: 3px; }
+    .lp-row .region-tag { background: rgba(171,135,67,0.14); color: #7a5f28; font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
+    .lp-btn { font-family: inherit; font-size: 11.5px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.3); border-radius: 7px; padding: 5px 11px; cursor: pointer; }
+    .lp-btn:hover { border-color: #D0473E; color: #111111; }
+    .empty { padding: 30px; text-align: center; color: #48524c; font-size: 13px; background: rgba(171,135,67,0.04); border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
+
+    .channel-info { background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; font-size: 12.5px; color: #556059; line-height: 1.55; }
+    .channel-info b { color: #7a5f28; }
+
+    .status { font-size: 12.5px; color: #556059; min-height: 16px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow"><span class="dot"></span> Landing Pages</div>
+  <h1>Landing Pages <em>for every channel</em></h1>
+  <p class="sub">
+    One brand-locked landing-page system that serves every channel: mailers, Meta ads, Google ads, TikTok ads. Pick a channel below, choose a region, and either link to an existing asset or write a fresh brief — the page is generated in the same brand system as the email or ad that drives traffic to it.
+  </p>
+
+  <!-- Embedded KPI Dashboard -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <div class="label" style="margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600;">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #7a5f28; text-decoration: none;">Open real analysis →</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Total LP Views</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">45,821</div>
+        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 12% vs prior</div>
+      </div>
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Avg Bounce Rate</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">42.4%</div>
+        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↓ 2.1% vs prior</div>
+      </div>
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Avg LP Conv. Rate</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">3.8%</div>
+        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 0.5% vs prior</div>
+      </div>
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Top Converting LP</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">Jordan First Flush</div>
+        <div style="font-size: 10px; color: #556059; margin-top: 4px;">6.2% CVR (Search)</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="tabs" id="tabs">
+    <button class="tab" data-tab="mailers">✉ For Mailers</button>
+    <button class="tab" data-tab="meta">▼ For Meta Ads</button>
+    <button class="tab" data-tab="google">G For Google Ads</button>
+    <button class="tab" data-tab="tiktok">♪ For TikTok Ads</button>
+    <button class="tab" data-tab="threed">◆ 3D Templates</button>
+    <button class="tab" data-tab="pagedeck">PageDeck Benchmarks</button>
+    <button class="tab" data-tab="discover">Discover Benchmarks</button>
+  </div>
+
+  <!-- ─── For Mailers ────────────────────────────────────────────── -->
+  <section class="panel" id="panel-mailers">
+    <div class="channel-info">
+      Pair every mailer with a landing page that continues the email's narrative. Same hero, same offer, deeper product context, one CTA. Linked back to the mailer so the brief feeds both surfaces.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For Mailer</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked mailer</label>
+          <select data-form="mailers" name="linked_asset"><option value="">— pick a mailer or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="mailers">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Hero headline</label>
+          <input type="text" data-form="mailers" name="hero" placeholder="The exact promise the email made — repeat it">
+        </div>
+        <div class="field"><label>Sub-headline</label>
+          <input type="text" data-form="mailers" name="sub" placeholder="One line of reassurance or detail">
+        </div>
+        <div class="field"><label>Offer / promo code</label>
+          <input type="text" data-form="mailers" name="offer" placeholder="FLASH25 · 25% off this week">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="mailers" name="notes" placeholder="Who this lands for · what they should do · why now"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="mailers">✨ Generate landing page</button>
+        <div class="status" data-status="mailers"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For Mailers</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="mailers"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── For Meta Ads ───────────────────────────────────────────── -->
+  <section class="panel" id="panel-meta">
+    <div class="channel-info">
+      Meta-friendly landing pages: fast above-the-fold load, mobile-first, one CTA. <b>Match the ad's image + headline exactly</b> so the click-through doesn't feel like a different brand.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For Meta Ad</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked Meta campaign</label>
+          <select data-form="meta" name="linked_asset"><option value="">— pick a Meta campaign or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="meta">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Hero headline (≤40 chars, matches ad)</label>
+          <input type="text" data-form="meta" name="hero" maxlength="40">
+        </div>
+        <div class="field"><label>Primary text / value prop</label>
+          <input type="text" data-form="meta" name="sub" placeholder="One sentence — the ad's promise">
+        </div>
+        <div class="field"><label>Offer / promo code</label>
+          <input type="text" data-form="meta" name="offer">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="meta" name="notes" placeholder="Audience · placements · objective · why this offer for them"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="meta">✨ Generate landing page</button>
+        <div class="status" data-status="meta"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For Meta</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="meta"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── For Google Ads ─────────────────────────────────────────── -->
+  <section class="panel" id="panel-google">
+    <div class="channel-info">
+      Google-friendly landing pages: <b>match the search intent exactly</b>. If the keyword is "jordan first flush", the H1 should say "Jordan First Flush". Quality Score rewards this.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For Google Ad</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked Google campaign</label>
+          <select data-form="google" name="linked_asset"><option value="">— pick a Google campaign or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="google">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Target keyword(s)</label>
+          <input type="text" data-form="google" name="hero" placeholder="jordan first flush, one-of-one sneaker">
+        </div>
+        <div class="field"><label>Headline (matches keyword)</label>
+          <input type="text" data-form="google" name="sub" maxlength="30">
+        </div>
+        <div class="field"><label>Offer / discount</label>
+          <input type="text" data-form="google" name="offer">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="google" name="notes" placeholder="Match type · search intent · expected CVR"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="google">✨ Generate landing page</button>
+        <div class="status" data-status="google"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For Google</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="google"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── For TikTok Ads ─────────────────────────────────────────── -->
+  <section class="panel" id="panel-tiktok">
+    <div class="channel-info">
+      TikTok pages need to <b>feel native to the video</b>. Open with social-proof + the exact same hook as the creative. Mobile only. Bold typography. UGC over polish.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">New landing page · For TikTok Ad</div>
+        <h3>Brief the page</h3>
+        <div class="field"><label>Linked TikTok creative</label>
+          <select data-form="tiktok" name="linked_asset"><option value="">— pick a TikTok creative or leave blank —</option></select>
+        </div>
+        <div class="field"><label>Region</label>
+          <div class="regions" data-regions="tiktok">
+            <button class="region-chip" data-region="US">US</button>
+            <button class="region-chip" data-region="UK">UK</button>
+            <button class="region-chip" data-region="Global">Global</button>
+            <button class="region-chip" data-region="India">India</button>
+          </div>
+        </div>
+        <div class="field"><label>Hook (matches video opener)</label>
+          <input type="text" data-form="tiktok" name="hero" placeholder="POV: you finally found a sneaker that actually wakes you up">
+        </div>
+        <div class="field"><label>Top creator quote / social proof</label>
+          <input type="text" data-form="tiktok" name="sub">
+        </div>
+        <div class="field"><label>Offer / promo code</label>
+          <input type="text" data-form="tiktok" name="offer">
+        </div>
+        <div class="field"><label>Brief notes</label>
+          <textarea data-form="tiktok" name="notes" placeholder="Creator handle · hashtag · audience"></textarea>
+        </div>
+        <button class="btn btn-solid" data-create="tiktok">✨ Generate landing page</button>
+        <div class="status" data-status="tiktok"></div>
+      </div>
+      <div class="card">
+        <div class="meta">Existing pages · For TikTok</div>
+        <h3>Library</h3>
+        <div class="lp-list" data-list="tiktok"></div>
+      </div>
+    </div>
+  </section>
+  </section>
+
+  <!-- ─── PageDeck Benchmarks ─────────────────────────────────────────── -->
+  <section class="panel" id="panel-pagedeck">
+    <div class="channel-info">
+      Browse top converting eCommerce landing pages tracked via <b>PageDeck</b>. Use these for structural inspiration, A/B test hypotheses, and offer positioning.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">PageDeck Intel</div>
+        <h3>Top Competitors</h3>
+        <ul style="list-style: none; padding: 0; margin-top: 12px; color: #556059; font-size: 13px; line-height: 1.8;">
+          <li><b>Magic Spoon</b> - High-contrast CTA blocks, bundle-first offers</li>
+          <li><b>Athletic Greens</b> - Deep social proof, medical authority sections</li>
+          <li><b>Olipop</b> - Ingredients transparency, design comparison matrices</li>
+          <li><b>Jones Road</b> - Quiz-driven funnels, educational advertorials</li>
+        </ul>
+        <button class="btn btn-ghost" style="margin-top: 16px;">View Full Tear-downs →</button>
+      </div>
+      <div class="card">
+        <div class="meta">Performance</div>
+        <h3>Winning Page Structures</h3>
+        <div style="margin-top: 12px; font-size: 13px; color: #556059;">
+          <p style="font-size:11px;color:#7a5f28;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns — not measured on KNICKGASM data</p>
+          <p>Placing the "Us vs Them" comparison table above the fold on mobile is a widely used conversion pattern worth testing.</p>
+          <p style="margin-top: 8px;"><b>Trend:</b> "Listicle" style advertorials are common on Meta traffic.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Discover Benchmarks ─────────────────────────────────────────── -->
+  <section class="panel" id="panel-discover">
+    <div class="channel-info">
+      <b>Discover</b> emerging DTC brand strategies and new landing page mechanics across the ecosystem before they become industry standard.
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">Discover Radar</div>
+        <h3>Emerging Trends</h3>
+        <div style="margin-top: 12px; font-size: 13px; color: #556059; line-height: 1.6;">
+          <p style="font-size:11px;color:#7a5f28;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns to test — not measured KNICKGASM figures</p>
+          <p>• <b>Micro-animations</b> on Add-to-Cart buttons.</p>
+          <p>• <b>Interactive pricing sliders</b> for subscription tiers.</p>
+          <p>• <b>Video-first hero sections</b> shot natively on iPhone for TikTok traffic.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 3D Templates (Knickgasm3DConnectorEngine) ──────────────────── -->
+  <section class="panel" id="panel-threed">
+    <div class="channel-info">
+      <b>3D landing templates</b> — powered by the Knickgasm3DConnectorEngine. Each renders as a continuous WebGL scene of floating product panels with an automatic fast 2D fallback for mobile / reduced-motion / crawler traffic. Meta-ads landers (knickgasm.com, knickgasm.com) auto-collapse to a single-product spatial checkout. Live catalog and pricing come from Shopify; historical metrics from the Snowflake to Supabase mirror.
+    </div>
+    <div style="border:1px solid rgba(171,135,67,.18);border-radius:16px;overflow:hidden;background:#07100d;margin-bottom:16px">
+      <div data-knickgasm3d data-region="us" id="lp-threed-preview" style="width:100%;height:360px"></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="meta">Template · Spatial Checkout</div>
+        <h3>Meta Lander — Single-Product Orbit</h3>
+        <div style="margin-top:12px;font-size:13px;color:#556059;line-height:1.6">
+          <p>One isolated product/bundle floating front-and-centre, glassmorphic add-to-cart panel, all exploration chrome removed. Built for try.knickgasm.* ad traffic.</p>
+          <p style="color:#6b7770">Renders at <code>/lp/:id</code> via the engine; falls back to a fast 2D checkout card.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="meta">Template · Store Constellation</div>
+        <h3>Full Store — Product Constellation</h3>
+        <div style="margin-top:12px;font-size:13px;color:#556059;line-height:1.6">
+          <p>Products arranged as a slow-orbiting spatial constellation of brand-cloned panels. For editorial / brand landers where exploration matters more than one CTA.</p>
+          <p style="color:#6b7770">Region-aware (US / UK / Global); live theme colours + Montserrat / Instrument Sans injected into the scene.</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px"><a href="/official-designs" style="color:#7a5f28;font-weight:700;text-decoration:none">Open the full Official Website Designs showcase →</a></div>
+  </section>
+
+</div>
+
+<script type="module">
+  // Live-preview the 3D template when the tab is first shown.
+  let lp3dMounted = false;
+  async function mountLp3D() {
+    if (lp3dMounted) return; lp3dMounted = true;
+    try {
+      const { mountKnickgasm3D } = await import('/assets/knickgasm3d-bridge.js');
+      const el = document.getElementById('lp-threed-preview');
+      if (el) mountKnickgasm3D(el, { region: 'us' });
+    } catch (e) { lp3dMounted = false; }
+  }
+  const threedTab = document.querySelector('#tabs .tab[data-tab="threed"]');
+  if (threedTab) threedTab.addEventListener('click', mountLp3D);
+</script>
+
+<script>
+(function () {
+  const $$ = (sel, root) => [...(root||document).querySelectorAll(sel)];
+  const $  = (sel, root) => (root||document).querySelector(sel);
+  const esc = (s) => (s||'').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Tolerant JSON parse — some providers wrap the JSON in ```json fences or
+  // add a prose prefix. Falls back to brace-slice extraction.
+  const safeJson = (t) => {
+    if (t && typeof t === 'object') return t;
+    const s = String(t || '');
+    try { return JSON.parse(s); } catch (_) {}
+    const stripped = s.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+    try { return JSON.parse(stripped); } catch (_) {}
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a !== -1 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (_) {} }
+    return null;
+  };
+
+  // ─── Supabase persistence (reuse the client auth.js booted) ─────────
+  const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
+  const sbUser   = () => (window.LifecycleAuth && window.LifecycleAuth.user) || null;
+  async function persistLanding(channel, form) {
+    const sb = sbClient(); if (!sb) return;
+    try {
+      const u = sbUser() || {};
+      const row = {
+        user_name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || '',
+        user_email: u.email || '',
+        paired_with: channel === 'mailers' ? 'mailer' : channel,
+        name: form.hero || '', market: form.region || '',
+        hero: form.hero || '', sub: form.sub || '', offer: form.offer || '', notes: form.notes || '',
+        payload: form, origin: location.origin || ''
+      };
+      const { error } = await sb.from('landing_pages_generated').insert([row]);
+      if (error) console.warn('[landing] supabase insert failed:', error.message);
+    } catch (e) { console.warn('[landing] persist error:', e && e.message); }
+  }
+
+  // ─── Inject "Generate from prompt" bar into each channel form ────
+  // One bar per panel, placed right after the H3 "Brief the page" header.
+  // Calls /api/ai/generate with mode=autofill + surface=lp-<channel>.
+  const PROMPT_HINT = {
+    mailers: 'e.g. Build the landing page for our "One-of-One Jordan — 25% off this week" mailer to US best-customers',
+    meta:    'e.g. Page for our Meta Advantage+ retargeting ad to lapsed UK buyers — kicks bundle, free shipping over £40',
+    google:  'e.g. Search ad page for keyword "jordan first flush" — US buyers, match the search intent',
+    tiktok:  'e.g. UGC creator drop landing page — hook is "POV: morning coffee crash", US Gen-Z audience',
+  };
+  ['mailers','meta','google','tiktok'].forEach((channel) => {
+    const panel = document.getElementById('panel-' + channel);
+    if (!panel) return;
+    const card = panel.querySelector('.card');
+    const h3 = card?.querySelector('h3');
+    if (!h3) return;
+    const bar = document.createElement('div');
+    bar.className = 'ai-bar';
+    bar.dataset.surface = 'lp-' + (channel === 'mailers' ? 'mailer' : channel);
+    bar.dataset.channel = channel;
+    bar.innerHTML = `
+      <label>✨ Or describe the landing page in plain English — AI fills every field below</label>
+      <textarea data-ai-prompt placeholder="${PROMPT_HINT[channel]}"></textarea>
+      <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample landing page whose structure & voice to mirror" style="width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.22);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px;font-family:inherit;margin-top:8px">
+      <div style="display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button>
+        <span data-ai-status class="status" style="margin-top:0"></span>
+      </div>`;
+    h3.parentNode.insertBefore(bar, h3.nextSibling);
+  });
+
+  // Add inline styles for the bar (kept here so we don't have to edit the <style> block).
+  if (!document.getElementById('lp-ai-bar-style')) {
+    const s = document.createElement('style'); s.id = 'lp-ai-bar-style';
+    s.textContent = `
+      .ai-bar{background:rgba(171,135,67,0.06);border:1px solid rgba(171,135,67,0.22);border-radius:10px;padding:12px 14px;margin:0 0 14px}
+      .ai-bar label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:#7a5f28;font-weight:600;margin-bottom:6px}
+      .ai-bar textarea{width:100%;min-height:64px;background:#ffffff;border:1px solid rgba(171,135,67,0.22);border-radius:8px;color:#111111;padding:9px 11px;font-size:13px;font-family:inherit;resize:vertical}
+      .ai-bar textarea:focus{outline:none;border-color:#D0473E}
+    `;
+    document.head.appendChild(s);
+  }
+
+  // ─── Tab switching ─────────────────────────────────────────────
+  const tabs = $$('#tabs .tab');
+  const panels = $$('.panel');
+  function showTab(key) {
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === key));
+    panels.forEach((p) => p.classList.toggle('active', p.id === 'panel-' + key));
+    if (location.hash.replace('#','') !== key) history.replaceState(null, '', '#' + key);
+  }
+  tabs.forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  window.addEventListener('hashchange', () => showTab((location.hash||'#mailers').replace('#','')));
+
+  // ─── Region chip selection (per-channel) ───────────────────────
+  const selectedRegion = { mailers: 'US', meta: 'US', google: 'US', tiktok: 'US' };
+  $$('.regions').forEach((grp) => {
+    const channel = grp.dataset.regions;
+    const chips = $$('.region-chip', grp);
+    const setActive = (r) => chips.forEach((c) => c.classList.toggle('active', c.dataset.region === r));
+    setActive(selectedRegion[channel]);
+    chips.forEach((c) => c.addEventListener('click', () => { selectedRegion[channel] = c.dataset.region; setActive(c.dataset.region); }));
+  });
+
+  // ─── Real landing-page generator (deterministic, on-brand HTML) ───────
+  // Builds a complete, self-contained landing page from the brief fields.
+  // No server endpoint needed — assembled in the browser from a brand template.
+  const STORE_BASE = { US:'https://knickgasm.com', UK:'https://knickgasm.com', IN:'https://knickgasm.com', EU:'https://knickgasm.com', AU:'https://knickgasm.com', ME:'https://knickgasm.com', Global:'https://knickgasm.com' };
+  function buildLandingHTML(f) {
+    const region = f.region || f.market || 'US';
+    const base = STORE_BASE[region] || STORE_BASE.US;
+    const hero = f.hero || 'Lace-up the moment';
+    const sub = f.sub || 'Single-studio, studio-fresh sneaker — picked and packed within 72 hours of drop.';
+    const offer = f.offer || '';
+    const notes = f.notes || '';
+    const codeMatch = offer.match(/\b([A-Z0-9]{4,15})\b/);
+    const code = codeMatch ? codeMatch[1] : '';
+    const e = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    const props = [
+      ['Single-studio', 'Sourced from one studio, never blended from anonymous lots.'],
+      ['Studio-fresh in 72h', 'Picked and packed within 72 hours, so the pair tastes alive.'],
+      ['B-Corp craft', 'Ethically sourced, fairly made, certified to a higher standard.'],
+    ];
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(hero)} · KNICKGASM</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#111111;background:#F7F5F2;line-height:1.5}
+  .bar{background:#111111;color:#F7F5F2;text-align:center;font-size:13px;padding:9px 14px;letter-spacing:.04em}
+  .bar b{color:#D0473E}
+  header{background:#6A33D8;color:#F7F5F2;text-align:center;padding:18px}
+  header .wm{font-family:Georgia,serif;font-weight:700;letter-spacing:.35em;font-size:18px}
+  .hero{background:#6A33D8;color:#F7F5F2;text-align:center;padding:54px 22px 64px;position:relative}
+  .hero h1{font-family:Georgia,serif;font-weight:600;font-size:clamp(30px,6vw,52px);line-height:1.08;max-width:760px;margin:0 auto 16px}
+  .hero p{font-size:clamp(15px,2.4vw,19px);color:rgba(251,245,234,.85);max-width:560px;margin:0 auto 26px}
+  .cta{display:inline-block;background:#D0473E;color:#ffffff;font-weight:700;text-decoration:none;padding:15px 34px;border-radius:999px;font-size:16px}
+  .props{display:flex;gap:18px;max-width:980px;margin:-32px auto 0;padding:0 22px;flex-wrap:wrap}
+  .prop{flex:1;min-width:220px;background:#fff;border:1px solid rgba(171,135,67,.25);border-radius:14px;padding:22px}
+  .prop h3{font-family:Georgia,serif;color:#6A33D8;font-size:19px;margin-bottom:7px}
+  .prop p{font-size:14px;color:#4a4a4a}
+  .offer{background:#D0473E;color:#ffffff;text-align:center;margin:48px auto 0;max-width:980px;border-radius:16px;padding:34px 22px}
+  .offer h2{font-family:Georgia,serif;font-size:28px;margin-bottom:8px}
+  .code{display:inline-block;background:#ffffff;color:#111111;font-weight:700;letter-spacing:.15em;padding:8px 18px;border-radius:8px;margin-top:10px}
+  .story{max-width:680px;margin:46px auto;padding:0 22px;text-align:center;color:#3a3a3a;font-size:16px}
+  footer{background:#111111;color:rgba(251,245,234,.7);text-align:center;padding:30px 22px;font-size:13px;margin-top:40px}
+  .foot-cta{margin:26px auto 0}
+</style></head><body>
+${offer ? `<div class="bar">${e(offer)}${code ? ` · code <b>${e(code)}</b>` : ''}</div>` : ''}
+<header><div class="wm">V A H D A M</div></header>
+<section class="hero">
+  <h1>${e(hero)}</h1>
+  <p>${e(sub)}</p>
+  <a class="cta" href="${e(base)}/collections/best-sellers">Shop studio-fresh sneaker</a>
+</section>
+<section class="props">
+  ${props.map((p) => `<div class="prop"><h3>${e(p[0])}</h3><p>${e(p[1])}</p></div>`).join('')}
+</section>
+${offer ? `<section class="offer"><h2>${e(offer)}</h2>${code ? `<div class="code">${e(code)}</div>` : ''}<div class="foot-cta"><a class="cta" href="${e(base)}/collections/best-sellers">Claim the offer</a></div></section>` : ''}
+${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">There is a moment when the right pair does more than warm your hands. Begin your ritual with one-of-one sneakers, laced in heritage and picked at the peak of the season.</p>`}
+<footer>KNICKGASM · Single-studio · B-Corp certified · Studio-fresh in 72 hours<br>This page was generated by KNICKGASM Lifecycle OS for the ${e(region)} market.</footer>
+</body></html>`;
+  }
+  // Ask the server for a full, mobile-first, brand-gated AI landing page.
+  // Falls back to the deterministic brand template on ANY failure so Generate
+  // always produces output. Sets f._ai so the UI can say how it was made.
+  async function generateLandingHTML(f) {
+    try {
+      const r = await fetch('/api/ai/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'landing_page', channel: f.channel, region: f.region, hero: f.hero, sub: f.sub, offer: f.offer, notes: f.notes }),
+      });
+      const d = await r.json().catch(() => null);
+      let html = d && (d.text || d.html);
+      if (r.ok && html) {
+        html = String(html).replace(/^\s*```(?:html)?\s*/i, '').replace(/```\s*$/, '').trim();
+        if (/<!doctype|<\/html>|<body/i.test(html)) { f._ai = true; return html; }
+      }
+    } catch (_) {}
+    f._ai = false;
+    return buildLandingHTML(f);
+  }
+
+  // Inline preview modal (iframe) — renders the full page IN THE PAGE so output
+  // always appears, even when popup blockers would kill a new tab. Built lazily
+  // on first use. Buttons: Download, Open in new tab, Copy AI prompt, Close.
+  let _lpModal = null;
+  function ensureLandingModal() {
+    if (_lpModal) return _lpModal;
+    if (!document.getElementById('lp-preview-style')) {
+      const s = document.createElement('style'); s.id = 'lp-preview-style';
+      s.textContent = `
+        #lp-preview{position:fixed;inset:0;z-index:10000;display:none;background:rgba(6,12,9,.72);backdrop-filter:blur(3px);padding:24px}
+        #lp-preview.open{display:flex}
+        #lp-preview .pm-card{margin:auto;width:min(1040px,100%);height:100%;max-height:92vh;background:#ffffff;border:1px solid rgba(171,135,67,.28);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+        #lp-preview .pm-head{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(171,135,67,.18);flex-wrap:wrap}
+        #lp-preview .pm-title{font-size:13px;font-weight:600;color:#111111;flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        #lp-preview iframe{flex:1;width:100%;border:0;background:#F7F5F2}
+        #lp-preview .lp-btn{white-space:nowrap}
+        #lp-preview .pm-close{background:transparent;border:0;color:#556059;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px}
+      `;
+      document.head.appendChild(s);
+    }
+    const m = document.createElement('div');
+    m.id = 'lp-preview';
+    m.innerHTML = `
+      <div class="pm-card">
+        <div class="pm-head">
+          <span class="pm-title" data-pm-title>Landing page preview</span>
+          <button class="lp-btn" type="button" data-pm-download>⬇ Download HTML</button>
+          <button class="lp-btn" type="button" data-pm-newtab>↗ Open in new tab</button>
+          <button class="lp-btn" type="button" data-pm-prompt>📋 Copy AI prompt</button>
+          <button class="pm-close" type="button" data-pm-close aria-label="Close">×</button>
+        </div>
+        <iframe data-pm-frame title="Landing page preview" sandbox="allow-same-origin"></iframe>
+      </div>`;
+    document.body.appendChild(m);
+    const close = () => m.classList.remove('open');
+    m.addEventListener('click', (ev) => { if (ev.target === m || ev.target.closest('[data-pm-close]')) close(); });
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') close(); });
+    _lpModal = m;
+    return m;
+  }
+  function openLandingPreview(f) {
+    try {
+      const html = (f && f._html) || buildLandingHTML(f);
+      const m = ensureLandingModal();
+      m.querySelector('[data-pm-frame]').srcdoc = html;
+      m.querySelector('[data-pm-title]').textContent = (f.hero || 'Landing page') + ' · ' + (f.region || 'US');
+      m.querySelector('[data-pm-download]').onclick = () => downloadLanding(f);
+      m.querySelector('[data-pm-prompt]').onclick = (ev) => copyText(buildLandingPrompt(f), ev.target);
+      m.querySelector('[data-pm-newtab]').onclick = () => {
+        try { const b = new Blob([html], { type: 'text/html' }); const u = URL.createObjectURL(b); window.open(u, '_blank'); setTimeout(() => URL.revokeObjectURL(u), 60000); } catch (_) {}
+      };
+      m.classList.add('open');
+    } catch (e) { console.warn('[landing] preview failed:', e && e.message); }
+  }
+  function downloadLanding(f) {
+    const html = (f && f._html) || buildLandingHTML(f);
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'knickgasm-landing-' + (f.region || 'US') + '-' + (f.hero || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+
+  // ─── Portable AI prompt — copy-paste into ChatGPT / Gemini / Claude ───
+  // Every generated page also ships a complete, self-contained external prompt
+  // so the user can reproduce a perfect page in any chatbot. (The app itself
+  // builds the page on free tiers; this is the "bring your own model" output.)
+  function buildLandingPrompt(f) {
+    f = f || {};
+    var region = f.region || f.market || 'US';
+    var channel = f.channel || 'landing';
+    return [
+      'You are a senior D2C conversion copywriter and front-end developer for KNICKGASM — premium Indian heritage sneaker (B-Corp, one-of-one, studio-fresh within 72 hours of drop).',
+      'Build a COMPLETE, production-ready, single-file responsive HTML landing page that converts ' + channel + ' traffic in the ' + region + ' market.',
+      '',
+      'BRAND RULES (strict):',
+      '- Colour palette ONLY: deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2.',
+      '- Headings in a Montserrat / serif stack; body in a Instrument Sans / sans-serif stack.',
+      '- Voice: warm, sensory, story-driven, premium. Prefer words like ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
+      "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      '- Currency in all copy must match the ' + region + ' market.',
+      '',
+      'PAGE BRIEF:',
+      '- Hero headline: ' + (f.hero || '(write a strong, specific one)'),
+      '- Sub-headline: ' + (f.sub || '(write a supporting line)'),
+      '- Offer: ' + (f.offer || '(no explicit discount — sell on quality, provenance and ritual)'),
+      f.notes ? '- Extra notes / story: ' + f.notes : '',
+      '- Channel intent: ' + channel + ' — mobile-first, one clear primary CTA, match how this channel\'s visitors arrive.',
+      '',
+      'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof / testimonials; FAQ; final CTA; footer; plus a sticky mobile CTA.',
+      'OUTPUT: return ONLY the full HTML document (from <!doctype html> to </html>) with inline CSS and no external dependencies. No commentary before or after.'
+    ].filter(Boolean).join('\n');
+  }
+  function copyText(txt, statusEl) {
+    function done(ok) { if (statusEl) statusEl.textContent = ok ? '✓ AI prompt copied — paste it into ChatGPT, Gemini or Claude.' : 'Could not copy automatically — see console.'; if (!ok) console.log('[landing] AI prompt:\n' + txt); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(function () { done(true); }, function () { done(false); }); return; }
+    } catch (_) {}
+    try { var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); } catch (_) { done(false); }
+  }
+
+  // ─── Generate handler — builds a real landing page, previews + saves it ───
+  $$('[data-create]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const channel = btn.dataset.create;
+      const form = $$('[data-form="' + channel + '"]').reduce((acc, el) => { acc[el.name] = el.value; return acc; }, {});
+      form.channel = channel;
+      form.region = selectedRegion[channel];
+      const status = $('[data-status="' + channel + '"]');
+      if (!form.hero) { status.textContent = 'Add a hero headline first.'; return; }
+      btn.disabled = true;
+      status.textContent = 'Writing your landing page with AI…';
+      try {
+        // 1) Ask the server for a full, mobile-first, brand-gated AI page.
+        //    2) Fall back to the deterministic brand template on any failure, so
+        //    the button ALWAYS produces output. Store the HTML on the entry so
+        //    preview + download + library re-open the exact page.
+        form._html = await generateLandingHTML(form);
+        const key = 'lp-' + channel;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.unshift({ ...form, created_at: new Date().toISOString() });
+        localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+        persistLanding(channel, form);
+        openLandingPreview(form);
+        loadLibrary(channel);
+        var encForm = encodeURIComponent(JSON.stringify(form));
+        var howMade = form._ai ? 'AI-written, mobile-first' : 'brand template (AI unavailable, used the built-in template)';
+        status.innerHTML = 'Landing page generated (' + howMade + ') — preview opened below (download or open in a new tab from there), saved to your library. ' +
+          '<button type="button" class="lp-btn" data-lp-prompt="' + encForm + '">📋 Copy AI prompt</button> to recreate it in ChatGPT / Gemini / Claude.';
+      } catch (err) {
+        status.textContent = 'Error: ' + (err && err.message || err);
+      }
+      btn.disabled = false;
+    });
+  });
+
+  // Library Preview / Download buttons (event-delegated).
+  document.addEventListener('click', (e) => {
+    const pv = e.target.closest('[data-lp-preview]');
+    if (pv) { try { openLandingPreview(JSON.parse(decodeURIComponent(pv.dataset.lpPreview))); } catch (_) {} return; }
+    const dl = e.target.closest('[data-lp-download]');
+    if (dl) { try { downloadLanding(JSON.parse(decodeURIComponent(dl.dataset.lpDownload))); } catch (_) {} return; }
+    const pr = e.target.closest('[data-lp-prompt]');
+    if (pr) { try { copyText(buildLandingPrompt(JSON.parse(decodeURIComponent(pr.dataset.lpPrompt))), pr.closest('.lp-row') ? pr.closest('.lp-row').querySelector('.meta-row') : null); } catch (_) {} return; }
+    // Clone: duplicate a saved page into a fresh editable library entry (local-first).
+    const cl = e.target.closest('[data-lp-clone]');
+    if (cl) {
+      try {
+        const src = JSON.parse(decodeURIComponent(cl.dataset.lpClone));
+        const channel = cl.dataset.lpChannel;
+        const key = 'lp-' + channel;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        const copy = { ...src, channel, hero: (src.hero || 'Untitled') + ' (Copy)', created_at: new Date().toISOString() };
+        list.unshift(copy);
+        localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+        loadLibrary(channel);
+        const meta = cl.closest('.lp-row') ? cl.closest('.lp-row').querySelector('.meta-row') : null;
+        if (meta) meta.textContent = '✓ Cloned — see the new "(Copy)" entry at the top of the library.';
+      } catch (_) {}
+      return;
+    }
+    // Empty-state "Load a sample page" — makes Preview/Clone/Copy-prompt
+    // discoverable immediately, without waiting on an AI generation.
+    const smp = e.target.closest('[data-lp-sample]');
+    if (smp) {
+      const channel = smp.dataset.lpSample;
+      const key = 'lp-' + channel;
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      list.unshift({
+        hero: 'Lace-up into stillness — Signature Green', sub: 'A quiet morning ritual, studio-fresh in 72 hours.',
+        offer: 'Free sample box with your first order', notes: 'Sample page — try Preview, Clone and Copy AI prompt below.',
+        region: 'US', channel, created_at: new Date().toISOString(),
+      });
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+      loadLibrary(channel);
+      return;
+    }
+  });
+
+  // ─── Library renderer (merges Supabase cross-device rows + localStorage) ───
+  // localStorage is per-origin, so pages briefed on a different domain/device
+  // only appear once we also read the shared Supabase table.
+  function renderLibrary(channel, rows) {
+    const list = $('[data-list="' + channel + '"]');
+    if (!list) return;
+    if (!rows.length) {
+      list.innerHTML = '<div class="empty">No pages yet for ' + channel + '. Brief one on the left to start — every saved page gets ' +
+        '<b>Preview</b>, <b>Download</b>, <b>⧉ Clone</b> and <b>📋 Copy AI prompt</b> buttons.<br><br>' +
+        '<button type="button" class="lp-btn" data-lp-sample="' + channel + '">✦ Load a sample page to try it now</button></div>';
+      return;
+    }
+    list.innerHTML = rows.map((p) => {
+      const enc = encodeURIComponent(JSON.stringify({ hero: p.hero, sub: p.sub, offer: p.offer, notes: p.notes, region: p.region }));
+      return `
+      <div class="lp-row">
+        <div class="body">
+          <div class="name">${esc(p.hero || '(no headline)')}</div>
+          <div class="meta-row"><span class="region-tag">${esc(p.region || '—')}</span> · ${esc(p.offer || 'no offer')} · ${p.created_at ? new Date(p.created_at).toLocaleDateString() : ''}</div>
+          <div class="meta-row" style="margin-top:7px;display:flex;gap:8px">
+            <button class="lp-btn" type="button" data-lp-preview="${enc}">Preview</button>
+            <button class="lp-btn" type="button" data-lp-download="${enc}">Download HTML</button>
+            <button class="lp-btn" type="button" data-lp-clone="${enc}" data-lp-channel="${channel}">⧉ Clone</button>
+            <button class="lp-btn" type="button" data-lp-prompt="${enc}">📋 Copy AI prompt</button>
+          </div>
+        </div>
+      </div>`; }).join('');
+  }
+  async function loadLibrary(channel) {
+    const local = JSON.parse(localStorage.getItem('lp-' + channel) || '[]');
+    // Render local immediately so the UI is never blank while Supabase loads.
+    renderLibrary(channel, local);
+    const sb = sbClient(); if (!sb) return;
+    try {
+      const paired = channel === 'mailers' ? 'mailer' : channel;
+      const { data, error } = await sb.from('landing_pages_generated')
+        .select('hero,sub,offer,notes,market,created_at')
+        .eq('paired_with', paired)
+        .order('created_at', { ascending: false }).limit(100);
+      if (error) { console.warn('[landing] library fetch:', error.message); return; }
+      const remote = (data || []).map((d) => ({ hero: d.hero, sub: d.sub, offer: d.offer, notes: d.notes, region: d.market, created_at: d.created_at }));
+      // Merge remote + local, dedupe by hero+offer, newest first.
+      const seen = new Set(); const merged = [];
+      [...remote, ...local].forEach((p) => {
+        const k = (p.hero || '') + '|' + (p.offer || '');
+        if (seen.has(k)) return; seen.add(k); merged.push(p);
+      });
+      merged.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      renderLibrary(channel, merged);
+    } catch (e) { console.warn('[landing] library error:', e && e.message); }
+  }
+  // Re-render once auth.js has booted its Supabase client (poll briefly).
+  (function awaitClient() {
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries++;
+      if (sbClient() || tries > 25) { clearInterval(iv); ['mailers','meta','google','tiktok'].forEach(loadLibrary); }
+    }, 200);
+  })();
+  ['mailers','meta','google','tiktok'].forEach(loadLibrary);
+
+  // ─── Autofill from prompt: POST /api/ai/generate?mode=autofill ──
+  $$('.ai-bar [data-ai-fill]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const bar = btn.closest('.ai-bar');
+      const channel = bar.dataset.channel;             // mailers | meta | google | tiktok
+      const surface = bar.dataset.surface;             // lp-mailer | lp-meta | lp-google | lp-tiktok
+      const promptEl = bar.querySelector('[data-ai-prompt]');
+      const refEl = bar.querySelector('[data-ai-ref]');
+      const status = bar.querySelector('[data-ai-status]');
+      const prompt = (promptEl.value || '').trim();
+      const reference_url = (refEl?.value || '').trim();
+      if (!prompt) { status.textContent = 'Type what you want first.'; return; }
+      const region = selectedRegion[channel] || 'US';
+      const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
+      status.textContent = '';
+      try {
+        const r = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: region, region }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
+        const fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
+        let filled = 0;
+        ['hero','sub','offer','notes'].forEach((k) => {
+          const el = $('[data-form="' + channel + '"][name="' + k + '"]');
+          if (el && fields[k] !== undefined) { el.value = String(fields[k]); filled++; }
+        });
+        status.textContent = filled ? `Filled ${filled} fields — review and Generate landing page below.` : 'No matching fields returned. Try a more specific prompt.';
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = orig;
+      }
+    });
+  });
+
+  // Initial tab from hash
+  const initial = (location.hash || '#mailers').replace('#','');
+  showTab(['mailers','meta','google','tiktok'].includes(initial) ? initial : 'mailers');
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,117 @@
+{
+  "_doc": "KNICKGASM UK lifecycle product-type facts. Single source of truth for the lifecycle calendar + mailer builder (api/_shared/lifecycle-*.js). Locked from lifecycle-campaigns/2026-07-03_week1/facts.md — nothing outside that file may be claimed as fact. Committed on purpose (data/catalog/ is gitignored build output; this is hand-curated).",
+  "store": {
+    "base_url": "https://knickgasm.com",
+    "product_url_pattern": "https://knickgasm.com/products/{handle}",
+    "currency": "GBP",
+    "currency_symbol": "£"
+  },
+  "types": {
+    "tb": {
+      "label": "Sneakers & Botanicals",
+      "purchase_mode": "one_time_only",
+      "notes": "ONE-TIME purchase only — never use subscription language for T&B. Full list (75 SKUs) lives in the store CSV export / data-catalog pipeline (products_export_uk.csv → data/catalog/products_uk.json); the heroes below are the verified subset for lifecycle sends. Compare-at (was) prices are live store values — citing them is honest, not an invented discount.",
+      "products": [
+        {
+          "title": "Airforce Spice Hand-painted Kicks, 200g hand-painted",
+          "handle": "airforce-spice-hand-painted-kicks-sneaker",
+          "price_gbp": 12.99,
+          "compare_at_gbp": 14.99,
+          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/products/airforcechaispicedbt_11zon.jpg?v=1675673061"
+        },
+        {
+          "title": "Signature Green Sneaker, 100g hand-painted",
+          "handle": "signature-green-sneaker-3-53oz-100g",
+          "price_gbp": 5.99,
+          "compare_at_gbp": 15.99,
+          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/products/signaturegreentea_11zon_2.jpg?v=1675673283"
+        },
+        {
+          "title": "Earl Grey Black Sneaker, 100 lace sets",
+          "handle": "earl-grey-black-sneaker-bags-100-sneaker-bags",
+          "price_gbp": 17.99,
+          "compare_at_gbp": 25.99,
+          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Earl-grey_ed481d66-3b90-4a08-94a3-2ba4cb94ae5c.jpg?v=1758099441"
+        },
+        {
+          "title": "Pastel Mint Citrus Green Sneaker, 200g",
+          "handle": "pastel-mint-citrus-green-sneaker",
+          "price_gbp": 15.99,
+          "compare_at_gbp": 17.99,
+          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/products/pastelmintcitrusgreentea_11zon.jpg?v=1675673420"
+        },
+        {
+          "title": "Assorted Hand-painted Sampler, 10 sneakers",
+          "handle": "assorted-panel-sneakers",
+          "price_gbp": 12.99,
+          "compare_at_gbp": 23.99,
+          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/files/71d5z4TlNaL._AC_SL1500.jpg?v=1682503156"
+        },
+        {
+          "title": "Embroidery Airbrush Themed Tisane, 100 bags",
+          "handle": "embroidery-airbrush-themed-sneaker-tisane-100-sneaker-bags",
+          "price_gbp": 24.99,
+          "compare_at_gbp": 34.99,
+          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/files/81zl0PJEMoL._AC_SL1500.jpg?v=1684996616"
+        }
+      ]
+    },
+    "coffee": {
+      "label": "Coffee Collection",
+      "purchase_mode": "subscription_priority",
+      "notes": "One-time OR subscription — SUBSCRIPTION IS THE PRIORITY CTA. Exact pricing below, do not alter. No product image available; use typographic hero with a drop-in slot for a product shot.",
+      "handle": "coffee-collection",
+      "handle_verified": false,
+      "handle_note": "BEST GUESS — verify against the live store before send.",
+      "collection_slug": "coffee",
+      "collection_slug_note": "Fallback destination if the product handle 404s.",
+      "packs": [
+        {
+          "key": "pack_1",
+          "label": "Pack of 1",
+          "one_time_gbp": 49.99,
+          "subscription_gbp": 29.99
+        },
+        {
+          "key": "pack_3",
+          "label": "Pack of 3",
+          "one_time_gbp": 99.99,
+          "subscription_gbp": 59.99,
+          "b2g1_framing": "£59.99 = 2 × £29.99 — buy two packs, the third is free (B2G1)."
+        }
+      ],
+      "gifts": [
+        "Electric Frother",
+        "Recipe Booklet",
+        "Plantable Paper",
+        "Colorway Bean Pouch",
+        "Mystery Gift (5 Lace Sets)",
+        "Wooden Scoop",
+        "Stainless Steel Straw"
+      ],
+      "gifts_note": "7 free gifts with EVERY order — both one-time and subscription.",
+      "sub_gift_value_per_year_gbp": 105,
+      "sub_gift_hook": "Subscription-only hook: gifts worth more than £105 across the year, arriving with refills."
+    },
+    "supplements": {
+      "label": "Supplements",
+      "purchase_mode": "subscription_priority",
+      "zero_purchase_history": true,
+      "notes": "Just launched, zero buyers yet — a truthful 'be among the first' angle is allowed. One-time OR subscription; SUBSCRIPTION IS THE PRIORITY CTA. No pricing provided — NEVER state a price; CTA to product page only. No images — typographic treatment.",
+      "products": [
+        {
+          "title": "Embroidery Curcumin 1800 MG",
+          "handle": "embroidery-curcumin",
+          "handle_verified": false,
+          "handle_note": "BEST GUESS — verify against the live store before send."
+        },
+        {
+          "title": "Green Burner",
+          "handle": "green-burner",
+          "handle_verified": false,
+          "handle_note": "BEST GUESS — verify against the live store before send."
+        }
+      ]
+    }
+  }
+}

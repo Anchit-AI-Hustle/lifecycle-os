@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Access Issues — Shopify Access & App Audit — KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260718light" defer></script>
+<style>
+  /* Light theme, dark text — WCAG-safe contrast throughout (no light text on light bg). */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+  @media (max-width: 620px) { .wrap { padding: 20px 16px 60px; } }
+
+  .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #7a5f28; font-weight: 700; margin-bottom: 10px; }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #6A33D8; }
+  h1 { font-family: 'Lora', serif; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; color: #111111; }
+  h1 em { font-style: italic; color: #7a5f28; }
+  .sub { color: #556059; font-size: 13.5px; margin-top: 6px; max-width: 820px; line-height: 1.6; }
+
+  .banner { display: flex; gap: 12px; align-items: flex-start; background: #6A33D8; color: #F7F5F2; border-radius: 14px; padding: 16px 20px; margin: 20px 0; }
+  .banner .ic { font-size: 20px; line-height: 1; }
+  .banner b { color: #ffffff; }
+  .banner p { color: #eaf1ec; font-size: 13px; line-height: 1.55; margin-top: 2px; }
+  .banner code { color: #F7F5F2; background: rgba(251,245,234,0.16); }
+
+  h2 { font-family: 'Lora', serif; font-size: 20px; font-weight: 600; color: #111111; margin: 30px 0 4px; }
+  .h2sub { color: #556059; font-size: 12.5px; margin-bottom: 14px; }
+
+  .card { background: #ffffff; border: 1px solid rgba(171,135,67,0.20); border-radius: 14px; padding: 18px 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+  .drop { border: 1px dashed rgba(171,135,67,0.4); border-radius: 12px; padding: 14px; background: rgba(171,135,67,0.04); }
+  .drop label { display: block; font-size: 12px; font-weight: 700; color: #111111; margin-bottom: 4px; }
+  .drop .hint { font-size: 11.5px; color: #556059; margin-bottom: 8px; line-height: 1.45; }
+  .drop input[type=file] { font-size: 12px; color: #111111; width: 100%; }
+  .drop .loaded { font-size: 11.5px; color: #0a7d33; font-weight: 600; margin-top: 6px; min-height: 15px; }
+
+  textarea, input[type=text] { width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.28); border-radius: 9px; color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit; }
+  textarea { resize: vertical; min-height: 70px; }
+  textarea::placeholder, input::placeholder { color: #8a938c; }
+  label.fl { display:block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #48524c; font-weight: 700; margin: 12px 0 6px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 11px 18px; border-radius: 10px; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
+  .btn-solid { background: #6A33D8; color: #F7F5F2; }
+  .btn-solid:hover { background: #013a22; }
+  .btn-lava { background: #D0473E; color: #ffffff; }
+  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.4); color: #556059; }
+  .btn-ghost:hover { border-color: #D0473E; color: #111111; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
+
+  .kpi { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 12px; padding: 14px 16px; }
+  .kpi .lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 700; }
+  .kpi .val { font-size: 26px; font-weight: 800; color: #111111; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .val.warn { color: #b45309; }
+  .kpi .val.bad { color: #b91c1c; }
+  .kpi .val.good { color: #0a7d33; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(171,135,67,0.14); color: #111111; vertical-align: top; }
+  th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #48524c; font-weight: 700; background: rgba(171,135,67,0.05); position: sticky; top: 0; }
+  td.muted { color: #556059; }
+  .tbl-scroll { overflow-x: auto; border: 1px solid rgba(171,135,67,0.16); border-radius: 12px; }
+
+  .finding { border: 1px solid rgba(171,135,67,0.2); border-left-width: 4px; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: #ffffff; }
+  .finding.sev-high { border-left-color: #b91c1c; }
+  .finding.sev-med { border-left-color: #b45309; }
+  .finding.sev-low { border-left-color: #7a5f28; }
+  .finding .ttl { font-weight: 700; color: #111111; font-size: 13.5px; }
+  .finding .sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; padding: 2px 8px; border-radius: 99px; margin-left: 8px; }
+  .sev-high .sev { background: #fde2e2; color: #b91c1c; }
+  .sev-med .sev { background: #fdecd2; color: #b45309; }
+  .sev-low .sev { background: #efe6cf; color: #7a5f28; }
+  .finding .row { font-size: 12.5px; margin-top: 6px; line-height: 1.5; }
+  .finding .row b { color: #48524c; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; display: inline-block; min-width: 128px; }
+  .finding .row.obs b { color: #0a7d33; }
+  .finding .row.inf b { color: #7a5f28; }
+  .finding .row.miss b { color: #b45309; }
+  .finding .row.rec b { color: #6A33D8; }
+  .finding .row span { color: #333d37; }
+
+  .tag { display: inline-block; background: rgba(171,135,67,0.14); color: #7a5f28; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin: 2px 3px 2px 0; }
+  .empty { padding: 22px; text-align: center; color: #48524c; font-size: 13px; background: rgba(171,135,67,0.04); border: 1px dashed rgba(171,135,67,0.22); border-radius: 12px; }
+  .hidden { display: none; }
+  code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(23,23,23,0.06); color: #111111; padding: 1px 5px; border-radius: 5px; }
+  details { margin-top: 12px; }
+  details summary { cursor: pointer; font-weight: 700; color: #6A33D8; font-size: 13px; }
+  details .policy { font-size: 12px; color: #333d37; line-height: 1.6; margin-top: 10px; white-space: pre-wrap; background: rgba(171,135,67,0.05); border: 1px solid rgba(171,135,67,0.16); border-radius: 10px; padding: 14px 16px; }
+  .modelnote { font-size: 12px; color: #556059; margin-top: 8px; line-height: 1.55; }
+  .status { font-size: 12.5px; color: #556059; margin-left: 4px; min-height: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow"><span class="dot"></span> Governance · Access Issues</div>
+  <h1>Shopify access &amp; app <em>audit</em></h1>
+  <p class="sub">
+    A strictly read-only audit of who can reach the US Shopify store and which apps are installed, run entirely in your browser. Load the Shopify user, role, group, and activity CSV exports plus your app register and business context. Nothing is uploaded, no Shopify tool is called, and no change can be made to the account. The tool aggregates the evidence, derives effective access, and produces findings and recommendations for a human to approve and implement.
+  </p>
+
+  <div class="banner">
+    <div class="ic">&#128274;</div>
+    <div>
+      <b>Read-only by architecture, not by promise.</b>
+      <p>This feature has no Shopify write path: it runs client-side over evidence you provide, never authenticates to the store, never issues a GraphQL mutation, and never requests a <code>write_*</code> scope. Remediation stays outside this tool: it emits recommendations only. See the governing policy at the bottom of the page.</p>
+    </div>
+  </div>
+
+  <!-- ── 1. Operating model ─────────────────────────────────────────── -->
+  <h2>1 · Operating model</h2>
+  <div class="h2sub">Choose how the evidence was collected. Model A is the default and gives the strongest no-change guarantee.</div>
+  <div class="grid-2">
+    <div class="card">
+      <div style="font-weight:700;color:#6A33D8;margin-bottom:4px">Model A — Offline audit (recommended)</div>
+      <div class="modelnote">An authorized administrator exports the CSVs and captures read-only app, billing, and login evidence. This tool reads that evidence and produces findings only. Claude never holds a live Shopify capability. This page implements Model A.</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;color:#7a5f28;margin-bottom:4px">Model B — Controlled live read-only</div>
+      <div class="modelnote">Shopify CLI / official AI Toolkit with read_* scopes only, no <code>--allow-mutations</code>, allow-listed query files, query logging. Run externally; paste the resulting JSON here as evidence. This tool does not perform Model B connections itself.</div>
+    </div>
+  </div>
+
+  <!-- ── 2. Evidence intake ─────────────────────────────────────────── -->
+  <h2>2 · Evidence intake</h2>
+  <div class="h2sub">All parsing happens locally in your browser. Column names are matched flexibly to the Shopify export headers.</div>
+  <div class="grid-3">
+    <div class="drop">
+      <label>User CSV <span style="color:#b91c1c">*</span></label>
+      <div class="hint">Settings → Users → Export. One row per user-role-store; aggregated by user ID.</div>
+      <input type="file" accept=".csv" data-kind="users">
+      <div class="loaded" data-loaded="users"></div>
+    </div>
+    <div class="drop">
+      <label>Role CSV</label>
+      <div class="hint">Settings → Users → Roles → Export. Each permission and app per role.</div>
+      <input type="file" accept=".csv" data-kind="roles">
+      <div class="loaded" data-loaded="roles"></div>
+    </div>
+    <div class="drop">
+      <label>Group CSV</label>
+      <div class="hint">Plus orgs: Settings → Users → Groups → Export. Maps groups to roles and stores.</div>
+      <input type="file" accept=".csv" data-kind="groups">
+      <div class="loaded" data-loaded="groups"></div>
+    </div>
+    <div class="drop">
+      <label>User activity log CSV</label>
+      <div class="hint">Settings → Users → Security → activity log (up to 6 months of access changes).</div>
+      <input type="file" accept=".csv" data-kind="activity">
+      <div class="loaded" data-loaded="activity"></div>
+    </div>
+    <div class="drop">
+      <label>Apps register CSV / JSON</label>
+      <div class="hint">Settings → Apps. Columns like app, developer, owner, purpose, permissions, last_activity, plan, monthly_cost (per month), usage_cost (per month), external_billed (per YEAR), category.</div>
+      <input type="file" accept=".csv,.json" data-kind="apps">
+      <div class="loaded" data-loaded="apps"></div>
+    </div>
+    <div class="drop">
+      <label>Login history JSON</label>
+      <div class="hint">Per-user recent sessions (date, ip, location, browser). Optional.</div>
+      <input type="file" accept=".json,.csv" data-kind="logins">
+      <div class="loaded" data-loaded="logins"></div>
+    </div>
+  </div>
+
+  <label class="fl">Business context (HR roster, agency list, contracts, departures) — one line each: <code>email, team, sponsor, status</code></label>
+  <textarea id="hrNotes" placeholder="jane@knickgasm.com, Retention, A. Tandon, active&#10;dev@agency.com, External Agency (contract ended 2026-05), none, departed"></textarea>
+
+  <div class="actions">
+    <button class="btn btn-solid" id="runBtn">Run read-only audit</button>
+    <button class="btn btn-ghost" id="sampleBtn">Load sample data</button>
+    <button class="btn btn-ghost" id="clearBtn">Clear</button>
+    <span class="status" id="runStatus"></span>
+  </div>
+
+  <!-- ── 3. Findings ────────────────────────────────────────────────── -->
+  <div id="report" class="hidden">
+    <h2>3 · Summary</h2>
+    <div class="grid-3" id="kpis"></div>
+
+    <h2>4 · Users &amp; effective access</h2>
+    <div class="h2sub">Rows aggregated by user ID; permissions are the union across assigned roles.</div>
+    <div class="tbl-scroll"><table id="userTable"></table></div>
+
+    <h2>5 · Access findings</h2>
+    <div class="h2sub">Unnecessary users and excessive permissions. Each finding separates observed fact, inference, missing evidence, and recommendation.</div>
+    <div id="accessFindings"></div>
+
+    <h2>6 · Application register</h2>
+    <div class="tbl-scroll"><table id="appTable"></table></div>
+
+    <h2>7 · App findings</h2>
+    <div class="h2sub">Unused apps, duplicate functionality, security concerns.</div>
+    <div id="appFindings"></div>
+
+    <h2>8 · Avoidable cost</h2>
+    <div class="h2sub">Annual run-rate of apps flagged unused, duplicate, or tied to departed seats. Externally billed subscriptions must be confirmed with finance.</div>
+    <div id="costBlock"></div>
+
+    <div class="actions">
+      <button class="btn btn-lava" id="narrativeBtn">Generate executive narrative (AI, read-only)</button>
+      <button class="btn btn-ghost" id="exportBtn">Download report (JSON)</button>
+      <button class="btn btn-ghost" id="printBtn">Print / save PDF</button>
+      <span class="status" id="narrStatus"></span>
+    </div>
+    <div id="narrative" class="card hidden" style="margin-top:12px;white-space:pre-wrap;font-size:13px;color:#111111;line-height:1.6"></div>
+  </div>
+
+  <!-- ── Governing policy ───────────────────────────────────────────── -->
+  <details>
+    <summary>Governing read-only policy (applied to any AI step)</summary>
+    <div class="policy" id="policyText"></div>
+  </details>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Evidence store ────────────────────────────────────────────────
+  var EV = { users: null, roles: null, groups: null, activity: null, apps: null, logins: null };
+
+  var POLICY = [
+    "You are conducting a strictly read-only Shopify access and application audit.",
+    "1. Never execute a GraphQL mutation.",
+    "2. Never use or recommend the --allow-mutations flag.",
+    "3. Never request or use a write_* Shopify API scope.",
+    "4. Never invite, suspend, reactivate, edit, or remove a user.",
+    "5. Never create, change, install, uninstall, activate, or deactivate an app.",
+    "6. Never modify roles, groups, permissions, themes, scripts, pixels, functions, settings, billing, payments, domains, or authentication.",
+    "7. Use only supplied CSV, JSON, invoice, screenshot, HR, vendor, and contract evidence.",
+    "8. Clearly separate observed fact, inferred finding, missing evidence, and recommended action.",
+    "9. Do not guess missing team, agency, purpose, activity, cost, or business-justification information.",
+    "10. Produce findings and recommendations only. Do not remediate them.",
+    "11. Stop and report if any tool requests a mutation, write scope, change confirmation, or Save action."
+  ].join("\n");
+  document.getElementById("policyText").textContent = POLICY;
+
+  // ── Minimal robust CSV parser (quoted fields, commas, newlines) ────
+  function parseCSV(text) {
+    var rows = [], row = [], cur = "", q = false, i = 0, c;
+    text = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    for (; i < text.length; i++) {
+      c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else { q = false; } }
+        else cur += c;
+      } else {
+        if (c === '"') q = true;
+        else if (c === ",") { row.push(cur); cur = ""; }
+        else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+        else cur += c;
+      }
+    }
+    if (cur.length || row.length) { row.push(cur); rows.push(row); }
+    if (!rows.length) return { headers: [], rows: [] };
+    var headers = rows.shift().map(function (h) { return String(h).trim(); });
+    var objs = rows.filter(function (r) { return r.some(function (x) { return String(x).trim() !== ""; }); })
+      .map(function (r) {
+        var o = {}; headers.forEach(function (h, idx) { o[h] = (r[idx] == null ? "" : String(r[idx]).trim()); }); return o;
+      });
+    return { headers: headers, rows: objs };
+  }
+
+  // Flexible column getter: find first header matching any candidate (case/space-insensitive).
+  function pick(obj, candidates) {
+    var keys = Object.keys(obj);
+    for (var j = 0; j < candidates.length; j++) {
+      var want = candidates[j].toLowerCase().replace(/[^a-z0-9]/g, "");
+      for (var k = 0; k < keys.length; k++) {
+        if (keys[k].toLowerCase().replace(/[^a-z0-9]/g, "") === want) return obj[keys[k]];
+      }
+    }
+    // loose contains match
+    for (var j2 = 0; j2 < candidates.length; j2++) {
+      var w2 = candidates[j2].toLowerCase().replace(/[^a-z0-9]/g, "");
+      for (var k2 = 0; k2 < keys.length; k2++) {
+        if (keys[k2].toLowerCase().replace(/[^a-z0-9]/g, "").indexOf(w2) >= 0) return obj[keys[k2]];
+      }
+    }
+    return "";
+  }
+
+  function num(v) { var n = parseFloat(String(v).replace(/[^0-9.\-]/g, "")); return isFinite(n) ? n : 0; }
+  function daysAgo(dateStr) {
+    if (!dateStr) return null;
+    var t = Date.parse(dateStr); if (isNaN(t)) return null;
+    return Math.floor((Date.now() - t) / 86400000);
+  }
+  function truthyBool(v) { return /^(true|yes|y|enabled|on|active|1)$/i.test(String(v).trim()); }
+
+  // ── Build the analysis model from evidence ─────────────────────────
+  function buildModel() {
+    var m = { users: [], apps: [], hr: {}, warnings: [] };
+
+    // HR context
+    (document.getElementById("hrNotes").value || "").split("\n").forEach(function (line) {
+      var p = line.split(",").map(function (x) { return x.trim(); });
+      if (p[0] && p[0].indexOf("@") > 0) m.hr[p[0].toLowerCase()] = { team: p[1] || "", sponsor: p[2] || "", status: (p[3] || "").toLowerCase() };
+    });
+
+    // Roles → permission/app map
+    var roleMap = {};
+    if (EV.roles) {
+      EV.roles.rows.forEach(function (r) {
+        var rn = pick(r, ["role", "role name", "name"]);
+        if (!rn) return;
+        if (!roleMap[rn]) roleMap[rn] = { permissions: {}, apps: {} };
+        var perm = pick(r, ["permission", "permissions", "capability"]);
+        var app = pick(r, ["app", "application", "app name"]);
+        String(perm).split(/[;|]/).forEach(function (p) { p = p.trim(); if (p) roleMap[rn].permissions[p] = 1; });
+        String(app).split(/[;|]/).forEach(function (a) { a = a.trim(); if (a) roleMap[rn].apps[a] = 1; });
+      });
+    }
+
+    // Users → aggregate by id/email
+    if (EV.users) {
+      var byUser = {};
+      EV.users.rows.forEach(function (r) {
+        var id = pick(r, ["user id", "id", "staff id"]) || pick(r, ["email", "login email"]);
+        var email = (pick(r, ["email", "login email", "login"]) || "").toLowerCase();
+        var key = id || email; if (!key) return;
+        if (!byUser[key]) {
+          byUser[key] = {
+            id: id || email, name: pick(r, ["name", "full name"]), email: email,
+            accountType: pick(r, ["account type", "type", "user type"]),
+            status: pick(r, ["status", "account status"]),
+            twofa: pick(r, ["2fa", "two factor", "two-step", "twostep", "2 step"]),
+            roles: {}, groups: {}, stores: {}, assignedAt: pick(r, ["assignment date", "assigned", "created", "date added"])
+          };
+        }
+        var role = pick(r, ["role", "role name"]); if (role) byUser[key].roles[role] = 1;
+        var grp = pick(r, ["group", "group name"]); if (grp) byUser[key].groups[grp] = 1;
+        var store = pick(r, ["store", "shop", "stores"]); if (store) byUser[key].stores[store] = 1;
+      });
+      Object.keys(byUser).forEach(function (k) {
+        var u = byUser[k];
+        u.roles = Object.keys(u.roles); u.groups = Object.keys(u.groups); u.stores = Object.keys(u.stores);
+        // Effective permissions = union across roles
+        var perms = {}, appAccess = {};
+        u.roles.forEach(function (rn) {
+          if (roleMap[rn]) { Object.keys(roleMap[rn].permissions).forEach(function (p) { perms[p] = 1; }); Object.keys(roleMap[rn].apps).forEach(function (a) { appAccess[a] = 1; }); }
+        });
+        u.permissions = Object.keys(perms); u.appAccess = Object.keys(appAccess);
+        m.users.push(u);
+      });
+    } else {
+      m.warnings.push("No User CSV provided — user access findings are unavailable.");
+    }
+
+    // Apps register (CSV or JSON)
+    if (EV.apps) {
+      var appRows = EV.apps.rows || EV.apps; // JSON array or parsed CSV rows
+      (Array.isArray(appRows) ? appRows : []).forEach(function (r) {
+        m.apps.push({
+          name: pick(r, ["app", "app name", "name"]),
+          developer: pick(r, ["developer", "vendor", "publisher"]),
+          owner: pick(r, ["owner", "internal owner", "business owner"]),
+          purpose: pick(r, ["purpose", "business purpose", "description"]),
+          category: pick(r, ["category", "capability", "function"]),
+          permissions: pick(r, ["permissions", "scopes", "data access"]),
+          lastActivity: pick(r, ["last activity", "recent activity", "last active", "last used"]),
+          plan: pick(r, ["plan", "tier"]),
+          monthly: num(pick(r, ["monthly cost", "monthly", "recurring", "price"])),
+          usage: num(pick(r, ["usage cost", "usage", "usage charges"])),
+          external: num(pick(r, ["external billed", "external", "vendor billed", "offplatform"])),
+          extensions: pick(r, ["extensions", "active extensions", "pixels", "functions"])
+        });
+      });
+    } else {
+      m.warnings.push("No Apps register provided — app findings are unavailable.");
+    }
+
+    return m;
+  }
+
+  // ── Rule engine ────────────────────────────────────────────────────
+  var ADMIN_PERM = /admin|manage users|manage apps|manage billing|manage settings|payments|payouts|manage domains|full/i;
+  var EDIT_PERM = /edit|delete|create|write|manage|refund|cancel/i;
+  var CS_ROLE = /support|customer service|cs|helpdesk|concierge/i;
+  var MKT_ROLE = /market|content|social|seo|campaign/i;
+  var DEV_ROLE = /developer|dev|engineer|technical/i;
+  var REPORT_ROLE = /report|analyt|read.?only|viewer|finance/i;
+  var GENERIC_EMAIL = /^(admin|info|team|support|shop|store|sales|hello|contact|no-?reply)@/i;
+  var TRIAL_APP = /trial|test|dev|demo|migrat|staging|sandbox/i;
+
+  function sev(s) { return s; }
+
+  function accessFindings(m) {
+    var out = [];
+    // duplicate accounts by name/email
+    var byName = {}, byEmail = {};
+    m.users.forEach(function (u) { if (u.name) (byName[u.name.toLowerCase()] = byName[u.name.toLowerCase()] || []).push(u); if (u.email) (byEmail[u.email] = byEmail[u.email] || []).push(u); });
+
+    m.users.forEach(function (u) {
+      var hr = m.hr[u.email] || null;
+      var permStr = (u.permissions.join(" ") + " " + u.roles.join(" "));
+      var roleStr = u.roles.join(" ");
+
+      // Unnecessary users
+      if (/inactive|disabled|suspended|deactivat/i.test(u.status)) {
+        out.push(F("high", "Inactive account still present: " + (u.name || u.email),
+          "Status = '" + u.status + "'.", "Inactive accounts are attack surface and license cost.", hr ? "" : "No HR/sponsor record supplied for this user.",
+          "Confirm departure and remove access, or reactivate with justification."));
+      }
+      if (/pending|invited/i.test(u.status)) {
+        out.push(F("med", "Pending invitation: " + (u.email),
+          "Status = '" + u.status + "'.", "", "No current business purpose confirmed for the invite.",
+          "Revoke if not needed within the onboarding window."));
+      }
+      if (hr && /departed|ended|terminated|left|former/.test(hr.status)) {
+        out.push(F("high", "Access retained after departure: " + (u.name || u.email),
+          "HR context marks this person as '" + hr.status + "' but the account exists.", "", "",
+          "Remove access immediately; verify no shared credentials remain."));
+      }
+      if (GENERIC_EMAIL.test(u.email) && !u.name) {
+        out.push(F("high", "Generic / shared login: " + u.email,
+          "Address matches a shared-mailbox pattern and has no personal name.", "Shared logins break attribution and 2FA accountability.", "Owner of this mailbox not identified.",
+          "Replace with named individual accounts; disable the shared login."));
+      }
+      if (byEmail[u.email] && byEmail[u.email].length > 1) {
+        out.push(F("med", "Duplicate account for " + u.email,
+          "Email appears on " + byEmail[u.email].length + " distinct user records.", "", "Justification for multiple accounts not supplied.",
+          "Consolidate to one account unless duplication is documented."));
+      }
+      if (/collaborator|partner|agency|external/i.test(u.accountType) && hr && /ended|departed/.test(hr.status)) {
+        out.push(F("high", "Agency collaborator after engagement end: " + (u.name || u.email),
+          "Account type '" + u.accountType + "' and HR marks engagement '" + hr.status + "'.", "", "",
+          "Remove collaborator access; confirm no lingering API/app ownership."));
+      }
+
+      // Excessive permissions
+      if (ADMIN_PERM.test(permStr) && (CS_ROLE.test(roleStr) || MKT_ROLE.test(roleStr) || REPORT_ROLE.test(roleStr))) {
+        out.push(F("high", "Excessive admin-level access: " + (u.name || u.email),
+          "Roles [" + u.roles.join(", ") + "] grant admin/settings/billing/payment permissions.",
+          "Function appears to be support/marketing/reporting, which should not manage apps, users, billing, or payments.",
+          hr ? "" : "Role responsibility not confirmed by a manager.",
+          "Down-scope to a least-privilege role matching the actual job function."));
+      }
+      if (REPORT_ROLE.test(roleStr) && EDIT_PERM.test(u.permissions.join(" "))) {
+        out.push(F("med", "Reporting/analytics user with edit rights: " + (u.name || u.email),
+          "Role set [" + u.roles.join(", ") + "] includes edit/delete/manage permissions.", "Reporting users typically need read-only.", "",
+          "Restrict to read-only reporting permissions."));
+      }
+      if (DEV_ROLE.test(roleStr) && u.stores.length > 1) {
+        out.push(F("med", "Developer with multi-store access: " + (u.name || u.email),
+          "Assigned to stores: " + u.stores.join(", ") + ".", "Broad multi-store access may exceed the task scope.", "Need for each store not documented.",
+          "Limit to the specific store(s) required; prefer US-only where applicable."));
+      }
+      if (/collaborator|partner|agency|external/i.test(u.accountType) && u.stores.length > 1) {
+        out.push(F("med", "External agency with all-store access: " + (u.name || u.email),
+          "Account type '" + u.accountType + "' spans stores: " + u.stores.join(", ") + ".", "External parties should be scoped to the engaged store only.", "",
+          "Restrict to US-store-only access."));
+      }
+      if (u.roles.length > 1 && ADMIN_PERM.test(permStr)) {
+        out.push(F("low", "Combined roles broaden effective access: " + (u.name || u.email),
+          "Multiple roles [" + u.roles.join(", ") + "] combine into admin-level effective permissions.", "Union of roles may exceed intended access.", "",
+          "Review whether the combined permission set is intended."));
+      }
+      // 2FA
+      if (u.twofa && !truthyBool(u.twofa)) {
+        out.push(F("med", "Two-factor not enabled: " + (u.name || u.email),
+          "2FA field = '" + u.twofa + "'.", "", "", "Require 2FA before retaining access."));
+      }
+      if (!hr && u.email) {
+        out.push(F("low", "No business sponsor on record: " + (u.name || u.email),
+          "User exists in Shopify.", "", "No HR/manager/contract sponsor supplied in business context.",
+          "Obtain a manager or contract-owner attestation, or remove."));
+      }
+    });
+    return out;
+  }
+
+  function appFindings(m) {
+    var out = [];
+    // group by category for duplicates
+    var cats = {};
+    m.apps.forEach(function (a) {
+      var reason = [];
+      var la = daysAgo(a.lastActivity);
+      // Unused signals
+      var noOwner = !a.owner, noPurpose = !a.purpose, stale = (la != null && la > 30) || /never|none|n\/a/i.test(a.lastActivity);
+      var noExt = !a.extensions || /none|no|0/i.test(a.extensions);
+      var trial = TRIAL_APP.test(a.name + " " + a.plan + " " + a.purpose);
+      var paid = (a.monthly + a.usage + a.external) > 0;
+      var unusedScore = [noOwner, noPurpose, stale, noExt, trial].filter(Boolean).length;
+      if (unusedScore >= 3) {
+        out.push(F(paid ? "med" : "low", "Possibly unused app: " + a.name,
+          [(noOwner ? "no internal owner" : ""), (noPurpose ? "no documented purpose" : ""), (stale ? "no activity in 30+ days (" + (a.lastActivity || "n/a") + ")" : ""), (noExt ? "no active extensions/pixels/functions" : ""), (trial ? "trial/dev/test naming" : "")].filter(Boolean).join("; ") + ".",
+          "Multiple unused signals present.", "Activity tracking for Shopify-built apps is limited; confirm with the owner.",
+          paid ? ("Confirm with owner; if truly unused, remove to save " + money(annual(a)) + "/yr.") : "Confirm with owner; if unused, uninstall."));
+      }
+      // Security
+      if (/write_|payment|checkout|read_customers|read_orders|customer|staff/i.test(a.permissions) && !a.owner) {
+        out.push(F("high", "Broad data access without an owner: " + a.name,
+          "Permissions '" + (a.permissions || "?") + "' but no internal owner recorded.", "Sensitive scope with no accountable owner is a security risk.", "Owner and business justification missing.",
+          "Assign an owner and review scopes, or remove."));
+      }
+      if (!a.developer || /custom|unknown|private/i.test(a.developer)) {
+        out.push(F("med", "Unknown / custom app: " + a.name,
+          "Developer = '" + (a.developer || "blank") + "'.", "Custom or unattributed apps often hold broad, unmonitored access.", "Technical owner not confirmed.",
+          "Identify the technical owner; review endpoints and scopes; remove if orphaned."));
+      }
+      if (/write_/i.test(a.permissions)) {
+        out.push(F("low", "Write permissions held: " + a.name,
+          "Scope string includes a write_* permission.", "Write scopes should be justified for an audited store.", "Whether the write scope is actively used is unknown.",
+          "Confirm the write scope is required; otherwise request a read-only integration."));
+      }
+      var cat = (a.category || a.name).toLowerCase();
+      (cats[cat] = cats[cat] || []).push(a.name);
+    });
+    // duplicate functionality
+    Object.keys(cats).forEach(function (c) {
+      if (cats[c].length > 1) {
+        out.push(F("med", "Duplicate functionality — " + c,
+          "Multiple apps cover the same capability: " + cats[c].join(", ") + ".", "Overlapping apps raise cost and data-sprawl risk.", "Relative usage/integration of each not fully known.",
+          "Compare owner, usage, integrations, cost, and removal risk; consolidate to one."));
+      }
+    });
+    return out;
+  }
+
+  // monthly_cost + usage_cost are MONTHLY (annualized x12); external_billed is
+  // the ANNUAL external-subscription amount (added as-is, not x12).
+  function annual(a) { return a.monthly * 12 + a.usage * 12 + a.external; }
+  function money(n) { return "$" + (Math.round(n * 100) / 100).toLocaleString(); }
+
+  function costBlock(m) {
+    var flagged = m.apps.filter(function (a) {
+      var la = daysAgo(a.lastActivity);
+      var stale = (la != null && la > 30) || /never|none/i.test(a.lastActivity);
+      var trial = TRIAL_APP.test(a.name + " " + a.plan);
+      return (a.monthly + a.usage + a.external) > 0 && (stale || trial || !a.owner);
+    });
+    var total = flagged.reduce(function (s, a) { return s + annual(a); }, 0);
+    var rows = flagged.map(function (a) {
+      return "<tr><td>" + esc(a.name) + "</td><td class='muted'>" + esc(a.plan || "-") + "</td><td>" + money(a.monthly * 12) + "</td><td>" + money(a.usage * 12) + "</td><td>" + money(a.external) + "</td><td><b>" + money(annual(a)) + "</b></td></tr>";
+    }).join("");
+    return { total: total, count: flagged.length, html:
+      "<div class='card'><div style='font-size:13px;color:#556059;margin-bottom:10px'>Potential avoidable annual run-rate across " + flagged.length + " flagged app(s): <b style='color:#b45309;font-size:16px'>" + money(total) + "</b>. Externally-billed lines require finance confirmation.</div>" +
+      (flagged.length ? "<div class='tbl-scroll'><table><tr><th>App</th><th>Plan</th><th>Recurring/yr</th><th>Usage/yr</th><th>External/yr</th><th>Annual</th></tr>" + rows + "</table></div>" : "<div class='empty'>No paid apps flagged as avoidable from the supplied evidence.</div>") + "</div>" };
+  }
+
+  function F(severity, title, observed, inferred, missing, rec) {
+    return { severity: severity, title: title, observed: observed, inferred: inferred, missing: missing, rec: rec };
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+
+  function renderFinding(f) {
+    var cls = f.severity === "high" ? "sev-high" : f.severity === "med" ? "sev-med" : "sev-low";
+    var rows = "";
+    if (f.observed) rows += "<div class='row obs'><b>Observed fact</b><span>" + esc(f.observed) + "</span></div>";
+    if (f.inferred) rows += "<div class='row inf'><b>Inferred finding</b><span>" + esc(f.inferred) + "</span></div>";
+    if (f.missing) rows += "<div class='row miss'><b>Missing evidence</b><span>" + esc(f.missing) + "</span></div>";
+    if (f.rec) rows += "<div class='row rec'><b>Recommended action</b><span>" + esc(f.rec) + "</span></div>";
+    return "<div class='finding " + cls + "'><div class='ttl'>" + esc(f.title) + "<span class='sev'>" + f.severity + "</span></div>" + rows + "</div>";
+  }
+
+  var lastReport = null;
+
+  function run() {
+    var status = document.getElementById("runStatus");
+    if (!EV.users && !EV.apps) { status.textContent = "Load at least the User CSV or an Apps register to run the audit."; return; }
+    status.textContent = "Analyzing evidence locally…";
+    var m = buildModel();
+    var af = accessFindings(m), pf = appFindings(m), cb = costBlock(m);
+
+    // KPIs
+    var adminCount = m.users.filter(function (u) { return ADMIN_PERM.test(u.permissions.join(" ") + " " + u.roles.join(" ")); }).length;
+    var no2fa = m.users.filter(function (u) { return u.twofa && !truthyBool(u.twofa); }).length;
+    var highs = af.concat(pf).filter(function (f) { return f.severity === "high"; }).length;
+    var kpis = [
+      ["Users audited", m.users.length, ""],
+      ["Admin-level users", adminCount, adminCount > 3 ? "warn" : ""],
+      ["Users without 2FA", no2fa, no2fa ? "bad" : "good"],
+      ["Apps installed", m.apps.length, ""],
+      ["High-severity findings", highs, highs ? "bad" : "good"],
+      ["Avoidable /yr", money(cb.total), cb.total ? "warn" : "good"]
+    ];
+    document.getElementById("kpis").innerHTML = kpis.map(function (k) {
+      return "<div class='kpi'><div class='lab'>" + esc(k[0]) + "</div><div class='val " + k[2] + "'>" + esc(k[1]) + "</div></div>";
+    }).join("");
+
+    // User table
+    if (m.users.length) {
+      var ut = "<tr><th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>2FA</th><th>Roles</th><th>Stores</th><th>Effective permissions</th></tr>";
+      ut += m.users.map(function (u) {
+        return "<tr><td>" + esc(u.name || "-") + "</td><td class='muted'>" + esc(u.email) + "</td><td>" + esc(u.accountType || "-") + "</td><td>" + esc(u.status || "-") +
+          "</td><td>" + (u.twofa ? (truthyBool(u.twofa) ? "&#10003;" : "&#10007;") : "?") + "</td><td>" + esc(u.roles.join(", ") || "-") +
+          "</td><td>" + esc(u.stores.join(", ") || "-") + "</td><td class='muted'>" + esc(u.permissions.slice(0, 8).join(", ") + (u.permissions.length > 8 ? " …(+" + (u.permissions.length - 8) + ")" : "")) + "</td></tr>";
+      }).join("");
+      document.getElementById("userTable").innerHTML = ut;
+    } else { document.getElementById("userTable").innerHTML = "<tr><td class='muted'>No User CSV supplied.</td></tr>"; }
+
+    // App table
+    if (m.apps.length) {
+      var at = "<tr><th>App</th><th>Developer</th><th>Owner</th><th>Category</th><th>Last activity</th><th>Permissions</th><th>Annual</th></tr>";
+      at += m.apps.map(function (a) {
+        return "<tr><td>" + esc(a.name) + "</td><td class='muted'>" + esc(a.developer || "-") + "</td><td>" + esc(a.owner || "&#8212;") +
+          "</td><td>" + esc(a.category || "-") + "</td><td class='muted'>" + esc(a.lastActivity || "-") + "</td><td class='muted'>" + esc(a.permissions || "-") + "</td><td>" + money(annual(a)) + "</td></tr>";
+      }).join("");
+      document.getElementById("appTable").innerHTML = at;
+    } else { document.getElementById("appTable").innerHTML = "<tr><td class='muted'>No Apps register supplied.</td></tr>"; }
+
+    document.getElementById("accessFindings").innerHTML = af.length ? af.map(renderFinding).join("") : "<div class='empty'>No access findings from the supplied evidence.</div>";
+    document.getElementById("appFindings").innerHTML = pf.length ? pf.map(renderFinding).join("") : "<div class='empty'>No app findings from the supplied evidence.</div>";
+    document.getElementById("costBlock").innerHTML = cb.html;
+
+    if (m.warnings.length) status.textContent = "Done. Note: " + m.warnings.join(" ");
+    else status.textContent = "Done. " + (af.length + pf.length) + " finding(s).";
+
+    lastReport = { generatedAt: new Date().toISOString(), users: m.users, apps: m.apps, accessFindings: af, appFindings: pf, cost: { total: cb.total, count: cb.count }, warnings: m.warnings };
+    document.getElementById("report").classList.remove("hidden");
+    document.getElementById("report").scrollIntoView({ behavior: "smooth" });
+  }
+
+  // ── File intake ────────────────────────────────────────────────────
+  document.querySelectorAll('input[type=file]').forEach(function (inp) {
+    inp.addEventListener("change", function () {
+      var kind = inp.getAttribute("data-kind"), file = inp.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var txt = String(reader.result || "");
+          if (/\.json$/i.test(file.name)) { EV[kind] = JSON.parse(txt); }
+          else { EV[kind] = parseCSV(txt); }
+          var n = EV[kind] && EV[kind].rows ? EV[kind].rows.length : (Array.isArray(EV[kind]) ? EV[kind].length : 0);
+          document.querySelector('[data-loaded="' + kind + '"]').textContent = "Loaded " + file.name + " — " + n + " row(s), parsed locally.";
+        } catch (e) {
+          document.querySelector('[data-loaded="' + kind + '"]').textContent = "Parse error: " + e.message;
+          document.querySelector('[data-loaded="' + kind + '"]').style.color = "#b91c1c";
+        }
+      };
+      reader.readAsText(file);
+    });
+  });
+
+  document.getElementById("runBtn").addEventListener("click", run);
+  document.getElementById("clearBtn").addEventListener("click", function () {
+    EV = { users: null, roles: null, groups: null, activity: null, apps: null, logins: null };
+    document.querySelectorAll('[data-loaded]').forEach(function (el) { el.textContent = ""; });
+    document.querySelectorAll('input[type=file]').forEach(function (i) { i.value = ""; });
+    document.getElementById("hrNotes").value = "";
+    document.getElementById("report").classList.add("hidden");
+    document.getElementById("runStatus").textContent = "";
+  });
+
+  document.getElementById("sampleBtn").addEventListener("click", function () {
+    EV.users = parseCSV("User ID,Name,Login email,Account type,Status,2FA status,Role,Group,Store,Assignment date\n1,Anchit Tandon,anchit@knickgasm.com,Staff,Active,Enabled,Administrator,Leadership,us.myshopify.com,2024-01-10\n2,CS Agent,support@knickgasm.com,Staff,Active,Disabled,Customer Service;Manage apps,Support,us.myshopify.com,2025-03-01\n3,Old Dev,dev@agency.com,Collaborator,Active,Enabled,Developer,External,us.myshopify.com,2024-06-01\n3,Old Dev,dev@agency.com,Collaborator,Active,Enabled,Developer,External,uk.myshopify.com,2024-06-01\n4,Marketing Lead,mkt@knickgasm.com,Staff,Active,Enabled,Marketing;Payments,Marketing,us.myshopify.com,2025-02-01\n5,,info@knickgasm.com,Staff,Active,Disabled,Administrator,,us.myshopify.com,2023-09-01");
+    EV.roles = parseCSV("Role,Permission,App\nAdministrator,Manage users;Manage apps;Manage billing;Manage settings;Payments,All\nCustomer Service,View orders;Edit orders;View customers,Gorgias\nDeveloper,Edit themes;Manage apps;View orders,\nMarketing,View reports;Edit discounts,Klaviyo\nPayments,Manage payments;View payouts,");
+    EV.apps = parseCSV("App,Developer,Owner,Purpose,Category,Permissions,Last activity,Plan,Monthly cost,Usage cost,External billed\nKlaviyo,Klaviyo,Marketing Lead,Email + SMS,email,read_customers;read_orders,2026-07-15,Growth,60,0,0\nGorgias,Gorgias,CS Agent,Helpdesk,support,read_customers;write_orders,2026-07-16,Basic,50,0,0\nJudge.me,Judgeme,,Reviews,reviews,read_products,2026-07-10,Free,0,0,0\nYotpo,Yotpo,,Reviews,reviews,read_customers;write_customers,2025-11-01,Premium,119,0,0\nOldFeed,Custom,,,,write_products;read_orders,2025-01-01,Pro,40,10,0\nTestApp Dev,,,,,read_products,never,Trial,0,0,0");
+    document.querySelector('[data-loaded="users"]').textContent = "Sample users loaded.";
+    document.querySelector('[data-loaded="roles"]').textContent = "Sample roles loaded.";
+    document.querySelector('[data-loaded="apps"]').textContent = "Sample apps loaded.";
+    document.getElementById("hrNotes").value = "dev@agency.com, External Agency (contract ended 2026-05), none, departed\nanchit@knickgasm.com, Leadership, self, active";
+    document.getElementById("runStatus").textContent = "Sample data loaded — click Run.";
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    if (!lastReport) return;
+    var blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: "application/json" });
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "knickgasm-access-audit.json"; a.click();
+  });
+  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
+
+  // Optional AI executive narrative — posts the LOCALLY-derived findings only.
+  document.getElementById("narrativeBtn").addEventListener("click", async function () {
+    if (!lastReport) return;
+    var st = document.getElementById("narrStatus"), box = document.getElementById("narrative");
+    st.textContent = "Generating (read-only summary)…";
+    try {
+      var res = await fetch("/api/brain?action=access-narrative", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report: lastReport })
+      });
+      var j = await res.json();
+      if (j && j.narrative) { box.textContent = j.narrative; box.classList.remove("hidden"); st.textContent = ""; }
+      else { st.textContent = (j && j.error) ? j.error : "No narrative returned (LLM provider may be unset). The findings above are complete on their own."; }
+    } catch (e) { st.textContent = "Narrative unavailable: " + e.message + " — findings above are complete."; }
+  });
+})();
+</script>
+</body>
+</html>

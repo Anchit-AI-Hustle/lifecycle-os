@@ -1,0 +1,15 @@
+{
+  "name": "knickgasm-tencentdb-memory-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MCP bridge exposing TencentDB-Agent-Memory (Hermes REST gateway) as Claude memory tools. Zero runtime dependencies.",
+  "type": "module",
+  "bin": { "tencentdb-memory-mcp": "./mcp-server.mjs" },
+  "scripts": {
+    "start": "node mcp-server.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "gateway:up": "docker compose up -d",
+    "gateway:down": "docker compose down"
+  },
+  "engines": { "node": ">=18" }
+}

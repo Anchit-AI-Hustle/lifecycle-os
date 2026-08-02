@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KicksGPT — KNICKGASM's brand intelligence</title>
+<style>
+  /* Brand-green canvas, consistent with the shared dark shell (theme.css).
+     Background is always violet/dark green; text is chalk/white + lava. */
+  /* NOTE: --panel2 is a SURFACE. It must map to a dark surface token — NOT to
+     theme.css's --soft, which theme.css defines as a light DIM-TEXT colour
+     (#556059). Mapping a surface to it produced light bubbles with light --ink
+     text (unreadable). --card is the theme's card surface (#ffffff, dark). */
+  :root { --green:#6A33D8; --lava:#D0473E; --chalk:#F7F5F2; --canvas:var(--bg,#6A33D8); --panel:var(--surface,#075C39); --panel2:var(--card,#ffffff); --ink:var(--vh-ink,#F7F5F2); --dim:var(--ink-dim,#E4CF94); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--canvas); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--ink); }
+  .shell { max-width:920px; margin:0 auto; padding:26px 18px 150px; }
+  .kicker { font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--lava); font-weight:700; }
+  h1 { font-family:'Montserrat','Raleway',Georgia,serif; color:var(--green); font-size:34px; margin:6px 0 2px; letter-spacing:-.01em; }
+  h1 .bot { color:var(--lava); }
+  .sub { color:var(--dim); font-size:14px; margin-bottom:16px; }
+  .toprow { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  .market { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--dim); }
+  .market select { border:1px solid rgba(171,135,67,.45); border-radius:9px; padding:6px 10px; font-family:inherit; font-size:13px; background:var(--panel2); color:var(--ink); }
+  .pill { font-size:11.5px; padding:4px 11px; border-radius:999px; font-weight:700; }
+  .pill.on { background:rgba(0,74,43,.55); color:var(--chalk); }
+  .pill.off { background:rgba(171,135,67,.18); color:var(--lava); }
+  .suggest { display:flex; gap:9px; flex-wrap:wrap; margin:6px 0 18px; }
+  .schip { border:1.5px solid var(--lava); background:var(--panel2); color:var(--ink); padding:8px 14px; border-radius:999px; font-size:12.5px; cursor:pointer; transition:all .16s; }
+  .schip:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,74,43,.16); background:var(--green); color:var(--chalk); border-color:var(--green); }
+  .chat { background:var(--panel); border:1px solid rgba(171,135,67,.35); border-radius:18px; min-height:440px; max-height:70vh; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:16px; }
+  .msg { max-width:84%; padding:14px 18px; border-radius:16px; font-size:14.5px; line-height:1.62; animation:pop .32s ease; }
+  @keyframes pop { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+  .msg.user { align-self:flex-end; background:var(--green); color:var(--chalk); border-bottom-right-radius:5px; }
+  .msg.bot { align-self:flex-start; background:var(--panel2); color:var(--ink); border:1px solid rgba(171,135,67,.3); border-bottom-left-radius:5px; }
+  .msg.bot a { color:var(--lava); font-weight:600; }
+  .msg.bot p { margin:.5em 0; } .msg.bot p:first-child { margin-top:0; } .msg.bot p:last-child { margin-bottom:0; }
+  .msg.bot code { background:rgba(171,135,67,.14); padding:1px 5px; border-radius:5px; font-size:13px; }
+  .msg.bot ul { margin:.4em 0; padding-left:1.2em; }
+  .msg.bot .hd { display:block; font-weight:700; color:var(--lava); margin:.7em 0 .25em; }
+  .msg.bot table { border-collapse:collapse; margin:.5em 0; font-size:13px; width:100%; }
+  .msg.bot th, .msg.bot td { border:1px solid rgba(171,135,67,.35); padding:5px 9px; text-align:left; }
+  .msg.bot th { background:rgba(171,135,67,.12); color:var(--lava); }
+  .tools { align-self:flex-start; max-width:84%; font-size:12px; }
+  .tools summary { cursor:pointer; color:var(--lava); font-weight:700; list-style:none; display:inline-flex; align-items:center; gap:6px; }
+  .tools summary::-webkit-details-marker { display:none; }
+  .toolitem { background:var(--panel); border:1px solid rgba(171,135,67,.3); border-left:3px solid var(--lava); border-radius:9px; padding:8px 11px; margin:7px 0; }
+  .toolitem .tname { font-weight:700; color:var(--lava); }
+  .toolitem .targs { color:var(--dim); }
+  .toolitem pre { margin:6px 0 0; white-space:pre-wrap; word-break:break-word; background:rgba(0,0,0,.25); padding:7px 9px; border-radius:7px; font-size:11.5px; max-height:160px; overflow:auto; }
+  .toolchip { display:inline-flex; align-items:center; gap:5px; background:rgba(171,135,67,.12); color:var(--lava); border-radius:999px; padding:2px 9px; margin:2px 4px 2px 0; font-size:11px; font-weight:700; }
+  .typing { align-self:flex-start; color:var(--dim); font-size:13px; font-style:italic; }
+  .inputrow { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(transparent, var(--canvas) 32%); padding:18px; }
+  @media (min-width:961px){ .inputrow{ left:var(--lsb-w,248px); } }
+  .inputbox { max-width:900px; margin:0 auto; display:flex; gap:10px; background:var(--panel); border:1.5px solid var(--lava); border-radius:16px; padding:10px 12px; box-shadow:0 14px 40px rgba(0,0,0,.4); }
+  .inputbox input { flex:1; border:none; outline:none; font-size:15px; font-family:inherit; background:transparent; color:var(--ink); }
+  .btn { border:none; border-radius:11px; padding:11px 18px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:transform .15s; }
+  .btn:hover { transform:translateY(-1px); }
+  .btn.send { background:var(--lava); color:var(--canvas); }
+  .foot { max-width:900px; margin:7px auto 0; font-size:11px; color:var(--dim); text-align:center; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="kicker">KNICKGASM · Brand Intelligence <span style="background:#7c2d12;color:#fde68a;border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">INTERNAL · TEAM ONLY</span></div>
+  <h1>Kicks<span class="bot">GPT</span></h1>
+  <div class="sub">An internal tool for the KNICKGASM growth and retention team, not customer-facing. Your brand's own AI: it doesn't just chat, it operates the growth stack, analytics, calendar, campaign generation, competitor intel, and Klaviyo lifecycle. Laced in your own data.</div>
+
+  <div class="toprow">
+    <span class="market">Market
+      <select id="market">
+        <option>US</option><option>UK</option><option>IN</option><option>EU</option><option>AU</option><option>Global</option>
+      </select>
+    </span>
+    <span class="pill" id="klaviyoPill">Klaviyo: …</span>
+  </div>
+
+  <div class="suggest" id="suggest"></div>
+  <div class="chat" id="chat"></div>
+</div>
+
+<div class="inputrow">
+  <div class="inputbox">
+    <input id="q" placeholder="Ask me to analyze, plan, generate, or check Klaviyo — e.g. “what's our best cohort and plan a winback campaign”" autocomplete="off">
+    <button class="btn send" id="send">Send</button>
+  </div>
+  <div class="foot">KicksGPT runs real tools on KNICKGASM data. It never invents figures — if data isn't connected, it tells you what to set.</div>
+</div>
+
+<script src="/auth.js?v=20260718light" defer></script>
+<script src="/chat-history.js"></script>
+<style>
+  .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
+  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.4);background:rgba(171,135,67,.12);color:var(--lava,#D0473E);cursor:pointer}
+  .cbtn:hover{background:rgba(171,135,67,.22)}
+  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:#0b2c1c;border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.4)}
+  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#e8f0ea}
+  .hitem:hover{background:rgba(171,135,67,.14)} .hitem.on{background:rgba(171,135,67,.22)}
+  .htitle{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hdel{background:none;border:0;color:#cdbf9a;cursor:pointer;font-size:12px} .hdel:hover{color:#ff9d8a}
+  .hempty{padding:14px;color:#cdbf9a;font-size:12px;text-align:center}
+  .assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:6px 0 4px}
+  .acard{background:rgba(4,32,20,.5);border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:12px 13px}
+  .acard .akind{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--lava,#D0473E);font-weight:800}
+  .acard .alabel{font-size:13px;color:#eaf2ec;margin:4px 0 9px;font-weight:600;line-height:1.3}
+  .acard .arow{display:flex;gap:7px}
+  .abtn{flex:1;text-align:center;font-size:11px;font-weight:700;padding:7px 8px;border-radius:8px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:#f0e6cf;cursor:pointer;text-decoration:none}
+  .abtn:hover{background:rgba(171,135,67,.26)}
+</style>
+<script>
+(function(){
+  'use strict';
+  var API = '/api/brain';
+  var CH = (typeof VHChat === 'function') ? VHChat('kicksgpt') : null;
+  var history = [];
+  var chatEl = document.getElementById('chat');
+  var qEl = document.getElementById('q');
+  var marketEl = document.getElementById('market');
+
+  var SUGGESTIONS = [
+    'What is our highest-value customer cohort right now?',
+    'Show the next 14 days of the marketing calendar',
+    'How are competitors emailing this month?',
+    'Plan and generate a winback campaign for lapsed sneaker drinkers',
+    'What audiences and segments do we have in Klaviyo?',
+    'Summarize this week’s analysis with the top angles that work'
+  ];
+
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // Minimal, safe markdown: paragraphs, bullets, headings, tables, bold, inline code, links.
+  function md(t){
+    var s = escapeHtml(t);
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.replace(/(^|[\s(])(https?:\/\/[^\s)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Headings become their own block even when the model writes them flush
+    // against the next line (### Title\n- bullet …).
+    s = s.replace(/^(#{1,4}\s.+)$/gm, '\n$1\n');
+    var cells = function(l){ return l.replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|').map(function(c){ return c.trim(); }); };
+    var blocks = s.split(/\n{2,}/).map(function(b){
+      // GFM-style table: header row, |---| separator, body rows.
+      var rows = b.split(/\n/).filter(function(l){ return l.trim(); });
+      if(rows.length >= 2 && /^\s*\|.*\|\s*$/.test(rows[0]) && /^\s*\|[\s:|-]+\|\s*$/.test(rows[1])){
+        var html = '<table><thead><tr>' + cells(rows[0]).map(function(c){ return '<th>'+c+'</th>'; }).join('') + '</tr></thead><tbody>';
+        rows.slice(2).forEach(function(l){ if(/\|/.test(l)) html += '<tr>' + cells(l).map(function(c){ return '<td>'+c+'</td>'; }).join('') + '</tr>'; });
+        return html + '</tbody></table>';
+      }
+      if(/^\s*#{1,4}\s+/.test(b)){
+        return b.split(/\n/).map(function(l){
+          var h = l.match(/^\s*#{1,4}\s+(.*)$/);
+          return h ? '<span class="hd">'+h[1]+'</span>' : l;
+        }).join('<br>');
+      }
+      if(/^\s*([-*]|\d+\.)\s+/.test(b)){
+        var items = b.split(/\n/).filter(function(l){return l.trim();}).map(function(l){ return '<li>'+l.replace(/^\s*([-*]|\d+\.)\s+/,'')+'</li>'; }).join('');
+        return '<ul>'+items+'</ul>';
+      }
+      return '<p>'+b.replace(/\n/g,'<br>')+'</p>';
+    });
+    return blocks.join('');
+  }
+
+  function addUser(text){ var d=document.createElement('div'); d.className='msg user'; d.textContent=text; chatEl.appendChild(d); scroll(); }
+  function addBot(text){ var d=document.createElement('div'); d.className='msg bot'; d.innerHTML=md(text); chatEl.appendChild(d); scroll(); return d; }
+  function scroll(){ chatEl.scrollTop=chatEl.scrollHeight; }
+
+  function addTools(steps){
+    if(!steps || !steps.length) return;
+    var det=document.createElement('details'); det.className='tools'; det.open=false;
+    var chips = steps.map(function(s){ return '<span class="toolchip">⚙ '+escapeHtml(s.tool)+'</span>'; }).join('');
+    var sum=document.createElement('summary'); sum.innerHTML='▸ Ran '+steps.length+' tool'+(steps.length>1?'s':'')+'  '+chips; det.appendChild(sum);
+    steps.forEach(function(s){
+      var it=document.createElement('div'); it.className='toolitem';
+      it.innerHTML='<div><span class="tname">'+escapeHtml(s.tool)+'</span> <span class="targs">'+escapeHtml(JSON.stringify(s.args||{}))+'</span></div><pre>'+escapeHtml(typeof s.summary==='string'?s.summary:JSON.stringify(s.summary))+'</pre>';
+      det.appendChild(it);
+    });
+    chatEl.appendChild(det); scroll();
+  }
+
+  // Real generated assets → clickable View (opens the rendered asset) + Download.
+  function addAssets(assets){
+    if(!assets || !assets.length) return;
+    var wrap=document.createElement('div'); wrap.className='assets';
+    assets.forEach(function(a, i){
+      var card=document.createElement('div'); card.className='acard';
+      var safeLabel=escapeHtml(a.label||('Asset '+(i+1)));
+      var kind=escapeHtml((a.kind||'asset').toUpperCase());
+      var row=document.createElement('div'); row.className='arow';
+      card.innerHTML='<div class="akind">'+kind+'</div><div class="alabel">'+safeLabel+'</div>';
+      function fileName(ext){ return (a.label||a.kind||'asset').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)+'.'+ext; }
+      var viewBtn=document.createElement('a'); viewBtn.className='abtn'; viewBtn.textContent='👁 View'; viewBtn.target='_blank'; viewBtn.rel='noopener';
+      var dlBtn=document.createElement('a'); dlBtn.className='abtn'; dlBtn.textContent='⬇ Download';
+      if(a.html){
+        var blob=new Blob([a.html],{type:'text/html'}); var u=URL.createObjectURL(blob);
+        viewBtn.href=u; dlBtn.href=u; dlBtn.download=fileName('html');
+      } else if(a.url){
+        viewBtn.href=a.url; dlBtn.href=a.url; dlBtn.download=fileName((a.kind==='image'?'png':'html'));
+      }
+      row.appendChild(viewBtn); row.appendChild(dlBtn); card.appendChild(row);
+      wrap.appendChild(card);
+    });
+    chatEl.appendChild(wrap); scroll();
+  }
+
+  function renderSuggestions(){
+    var box=document.getElementById('suggest'); box.innerHTML='';
+    SUGGESTIONS.forEach(function(s){ var b=document.createElement('button'); b.className='schip'; b.textContent=s; b.onclick=function(){ qEl.value=s; ask(); }; box.appendChild(b); });
+  }
+
+  async function ask(){
+    var msg=qEl.value.trim(); if(!msg) return;
+    qEl.value=''; addUser(msg); history.push({role:'user',content:msg});
+    if(CH) CH.append('user', msg);
+    var t=document.createElement('div'); t.className='typing'; chatEl.appendChild(t); scroll();
+    var t0=Date.now();
+    var PHASES=['reading your data','running the tools','checking benchmarks','composing the answer'];
+    var tick=setInterval(function(){
+      var secs=Math.round((Date.now()-t0)/1000);
+      t.textContent='KicksGPT is '+PHASES[Math.min(Math.floor(secs/6),PHASES.length-1)]+'… '+secs+'s';
+    },1000);
+    t.textContent='KicksGPT is '+PHASES[0]+'…';
+    try{
+      var r=await fetch(API+'?action=brand-chat',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({message:msg, history:history.slice(-12), market:marketEl.value})});
+      var j=await r.json();
+      clearInterval(tick); t.remove();
+      if(j.ok){
+        addTools(j.steps);
+        var reply=j.reply||'(no response)';
+        addBot(reply);
+        addAssets(j.assets);
+        history.push({role:'agent',content:reply});
+        if(CH) CH.append('agent', reply, { steps:(j.steps&&j.steps.length)?j.steps:undefined, assets:(j.assets&&j.assets.length)?j.assets:undefined });
+      } else {
+        var em='Something went wrong: '+(j.error||'unknown')+'.';
+        addBot(em); if(CH) CH.append('agent', em);
+      }
+    }catch(e){ clearInterval(tick); t.remove(); addBot('I could not reach the brain just now — please try again in a moment.'); }
+  }
+
+  document.getElementById('send').onclick=ask;
+  qEl.addEventListener('keydown',function(e){ if(e.key==='Enter') ask(); });
+
+  // Klaviyo connection pill + greeting
+  fetch(API+'?action=brand-tools').then(function(r){return r.json();}).then(function(j){
+    var pill=document.getElementById('klaviyoPill');
+    if(j && j.klaviyo_connected){ pill.className='pill on'; pill.textContent='Klaviyo: connected'; }
+    else { pill.className='pill off'; pill.textContent='Klaviyo: scaffolded (set KLAVIYO_API_KEY)'; }
+  }).catch(function(){});
+
+  var GREETING = 'Namaste — I’m **KicksGPT**, KNICKGASM’s brand intelligence. Ask me to analyze the business, read the calendar, generate a campaign, check competitors, or work your Klaviyo lifecycle. I’ll run the real tools and show my work.';
+  function greet(){ addBot(GREETING); }
+
+  // ── Conversation history (saved locally; new / switch / continue) ──────────
+  function buildConvoBar(){
+    if(!CH || !chatEl || !chatEl.parentNode) return;
+    var bar=document.createElement('div'); bar.className='convobar';
+    bar.innerHTML='<button id="newChat" class="cbtn">＋ New chat</button><button id="histToggle" class="cbtn">🕘 History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
+    chatEl.parentNode.insertBefore(bar, chatEl);
+    document.getElementById('newChat').onclick=function(){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); renderHist(); };
+    document.getElementById('histToggle').onclick=function(){ var p=document.getElementById('histPanel'); p.style.display=(p.style.display==='none'?'block':'none'); renderHist(); };
+    document.addEventListener('click',function(e){ var p=document.getElementById('histPanel'); if(p&&p.style.display==='block'&&!e.target.closest('.convobar')) p.style.display='none'; });
+  }
+  function renderHist(){
+    var p=document.getElementById('histPanel'); if(!p) return;
+    var items=CH.list();
+    if(!items.length){ p.innerHTML='<div class="hempty">No saved conversations yet.</div>'; return; }
+    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escapeHtml(c.title||'New chat')+'</span><button class="hdel" data-del="'+c.id+'" title="Delete">✕</button></div>'; }).join('');
+    p.querySelectorAll('.hitem').forEach(function(el){ el.addEventListener('click',function(e){ if(e.target.closest('[data-del]'))return; loadConvo(el.getAttribute('data-id')); }); });
+    p.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click',function(e){ e.stopPropagation(); CH.remove(b.getAttribute('data-del')); if(!CH.current()){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); } renderHist(); }); });
+  }
+  function replay(convo){
+    chatEl.innerHTML=''; history=[];
+    var msgs=(convo&&convo.messages)||[];
+    if(!msgs.length){ greet(); return; }
+    msgs.forEach(function(m){
+      if(m.role==='user'){ addUser(m.text); history.push({role:'user',content:m.text}); }
+      else { if(m.steps) addTools(m.steps); addBot(m.text); if(m.assets) addAssets(m.assets); history.push({role:'agent',content:m.text}); }
+    });
+  }
+  function loadConvo(id){ var c=CH.setCurrent(id); if(c){ replay(c); var p=document.getElementById('histPanel'); if(p)p.style.display='none'; } }
+
+  renderSuggestions();
+  if(CH){
+    buildConvoBar();
+    var lastC = CH.current() || CH.last();
+    if(lastC){ CH.setCurrent(lastC.id); replay(lastC); }
+    else { CH.create(); greet(); }
+  } else { greet(); }
+})();
+</script>
+</body>
+</html>
