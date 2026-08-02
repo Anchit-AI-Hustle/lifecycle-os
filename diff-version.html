@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIFF-VERSION - Frozen 3 Jul 2026 Build - KNICKGASM Lifecycle OS</title>
+<link rel="icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+  :root{
+    --violet:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
+    --bg:#F7F5F2; --surface:#ffffff; --line:#e3d8c2; --soft:#5c5347; --chip:#f0e7d3;
+    --head:#6A33D8; --accent:#D0473E;
+  }
+  @media (prefers-color-scheme: dark){:root{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}}
+  :root[data-theme="dark"]{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}
+  :root[data-theme="light"]{--bg:#F7F5F2;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--ink:#111111;--head:#6A33D8;--accent:#D0473E;--chip:#f0e7d3;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
+  .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
+  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--head);margin:0;text-wrap:balance;}
+  h1{font-size:32px;} h2{font-size:21px;margin-top:2px;} h3{font-size:16px;}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--accent);font-weight:700;}
+  p.lede{color:var(--soft);max-width:74ch;margin:6px 0 0;}
+  .frozen-banner{display:flex;gap:12px;align-items:flex-start;background:var(--chip);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin:22px 0;}
+  .frozen-banner .ico{font-size:20px;line-height:1;}
+  .frozen-banner .t{font-size:13.5px;color:var(--ink);}
+  .frozen-banner b{color:var(--head);}
+  .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;border:1px solid var(--line);}
+  .chip.frozen{background:#efe3c9;color:#7a5a12;border-color:#e0cfa3;}
+  @media (prefers-color-scheme:dark){.chip.frozen{background:#332913;color:#d9b768;border-color:#4a3a1a;}}
+  :root[data-theme="dark"] .chip.frozen{background:#332913;color:#d9b768;border-color:#4a3a1a;}
+  .section-h{display:flex;align-items:baseline;gap:10px;margin:30px 0 6px;flex-wrap:wrap;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:14px 0;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:flex;flex-direction:column;}
+  .card .name{font-weight:700;color:var(--head);font-size:15px;}
+  .card .d{color:var(--soft);font-size:13px;margin-top:8px;flex:1;}
+  .card .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  a.btn{display:inline-block;text-decoration:none;background:var(--violet);color:#F7F5F2;border-radius:6px;padding:7px 13px;font-size:12.5px;font-weight:700;border:1px solid var(--violet);}
+  a.btn:hover{background:#013a22;}
+  a.btn.ghost{background:transparent;color:var(--head);border-color:var(--line);}
+  a.btn.ghost:hover{border-color:var(--accent);}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{color:var(--soft);text-transform:uppercase;letter-spacing:.06em;font-size:11px;}
+  td a{color:var(--head);text-decoration-color:var(--accent);font-weight:600;}
+  .learn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:12px 0;}
+  .learn .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+  .learn .st{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:5px;padding:2px 8px;}
+  .st.ported{background:#e7f0e9;color:#6A33D8;} .st.kept{background:#f0e7d3;color:#7a5a12;} .st.doc{background:var(--chip);color:var(--soft);}
+  @media (prefers-color-scheme:dark){.st.ported{background:#1d3326;color:#9fd0ae;}}
+  :root[data-theme="dark"] .st.ported{background:#1d3326;color:#9fd0ae;}
+  .learn .d{color:var(--soft);font-size:13px;margin-top:7px;}
+  .learn .name{font-weight:700;color:var(--head);}
+  .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:30px;padding-top:14px;}
+  a{color:var(--head);text-decoration-color:var(--accent);}
+  code{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:12px;background:var(--chip);padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">KNICKGASM Lifecycle OS - Archive</span>
+  <h1>DIFF-VERSION <span class="chip frozen">FROZEN</span></h1>
+  <p class="lede">A read-only snapshot of everything built on Friday 3 July 2026, the day the Lifecycle OS V2 came together. These pages and emails are preserved byte for byte as they were at the close of that day and are never edited again. They stand as the reference point the rest of the app is measured against: what we learned here has been carried forward into the live build, while this version stays exactly as it was.</p>
+
+  <div class="frozen-banner">
+    <span class="ico">&#10052;</span>
+    <span class="t"><b>Frozen and unchanged.</b> Captured at commit <code>2096289</code> (Merge PR #64, end of the 3 Jul 2026 build). Nothing in this section is modified when the live app changes. To compare the two approaches, open a frozen page here and its live counterpart from the main menu side by side.</span>
+  </div>
+
+  <div class="section-h"><h2>Frozen pages</h2><span class="chip frozen">read-only</span></div>
+  <p class="lede">The three V2 consoles as first shipped. Each opens the exact Friday build. The live, evolving versions live under their normal menu entries.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="name">Mailer Calendar <span class="chip frozen">3 Jul</span></div>
+      <div class="d">The cohort-native lifecycle calendar console, first cut. Explicit Generate, two engagement cohorts, per-slot mailer build.</div>
+      <div class="acts">
+        <a class="btn" href="/diff-version/pages/mailer-calendar.html">Open frozen</a>
+        <a class="btn ghost" href="/mailer-calendar">Live version</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="name">UK Non-Engagers Hub <span class="chip frozen">3 Jul</span></div>
+      <div class="d">The campaign hub for the two dormant UK audiences, with the week-1 send plan and the first email variations.</div>
+      <div class="acts">
+        <a class="btn" href="/diff-version/pages/uk-non-engagers.html">Open frozen</a>
+        <a class="btn ghost" href="/uk-non-engagers">Live version</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="name">Social Media OS <span class="chip frozen">3 Jul</span></div>
+      <div class="d">The first social console, the 7-agent daily pipeline across Instagram, Meta, TikTok, LinkedIn, X and blogs.</div>
+      <div class="acts">
+        <a class="btn" href="/diff-version/pages/social-media.html">Open frozen</a>
+        <a class="btn ghost" href="/social">Live version</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-h"><h2>Frozen week-1 email campaign</h2><span class="chip frozen">read-only</span></div>
+  <p class="lede">The first lifecycle campaign, 3 sends per cohort across Jul 3, 6 and 9, each with a variation. Klaviyo paste-ready HTML, exactly as authored that day. <a href="/diff-version/emails/strategy.md">Strategy doc</a> &middot; <a href="/diff-version/emails/facts.md">Locked facts</a>.</p>
+  <table>
+    <thead><tr><th>Date</th><th>Cohort</th><th>Play</th><th>Variation A</th><th>Variation B</th></tr></thead>
+    <tbody>
+      <tr><td>Thu 3 Jul</td><td>A &middot; Non-Buyers</td><td>Brand/origin story, coffee intro</td><td><a href="/diff-version/emails/2026-07-03_cohortA_story-intro-coffee.html">Open</a></td><td><a href="/diff-version/emails/2026-07-03_cohortA_story-intro-coffee_v2.html">Open</a></td></tr>
+      <tr><td>Thu 3 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Warm win-back, Wimbledon</td><td><a href="/diff-version/emails/2026-07-03_cohortB_winback-wimbledon.html">Open</a></td><td><a href="/diff-version/emails/2026-07-03_cohortB_winback-wimbledon_v2.html">Open</a></td></tr>
+      <tr><td>Sun 6 Jul</td><td>A &middot; Non-Buyers</td><td>Gifts unboxing, subscription value</td><td><a href="/diff-version/emails/2026-07-06_cohortA_gifts-unboxing-subscription.html">Open</a></td><td><a href="/diff-version/emails/2026-07-06_cohortA_gifts-unboxing-subscription_v2.html">Open</a></td></tr>
+      <tr><td>Sun 6 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Coffee launch for sneaker-lovers</td><td><a href="/diff-version/emails/2026-07-06_cohortB_coffee-launch-sneaker-lovers.html">Open</a></td><td><a href="/diff-version/emails/2026-07-06_cohortB_coffee-launch-sneaker-lovers_v2.html">Open</a></td></tr>
+      <tr><td>Wed 9 Jul</td><td>A &middot; Non-Buyers</td><td>B2G1 Pack-of-3 offer</td><td><a href="/diff-version/emails/2026-07-09_cohortA_pack-of-3-offer.html">Open</a></td><td><a href="/diff-version/emails/2026-07-09_cohortA_pack-of-3-offer_v2.html">Open</a></td></tr>
+      <tr><td>Wed 9 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Supplements launch</td><td><a href="/diff-version/emails/2026-07-09_cohortB_supplements-launch.html">Open</a></td><td><a href="/diff-version/emails/2026-07-09_cohortB_supplements-launch_v2.html">Open</a></td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-h"><h2>What we compared, and what we carried forward</h2></div>
+  <p class="lede">The full side-by-side of this build's logic and approach against the rest of the app is in <a href="/diff-version/comparison">the comparison doc</a>. The learnings worth acting on are summarised here, with what happened to each.</p>
+
+  <div class="learn">
+    <div class="top"><span class="name">Deterministic slot planning (stableIndex, no random)</span><span class="st ported">carried forward</span></div>
+    <div class="d">The Friday planner rotated plays and products with a stable hash so the same inputs always produce the same plan. This pattern was already extended into the Plan Calendar asset picker and stays the standard for every generator.</div>
+  </div>
+  <div class="learn">
+    <div class="top"><span class="name">Never clobber a built mailer (status guard on upsert)</span><span class="st ported">carried forward</span></div>
+    <div class="d">Persistence only overwrites slots that are not yet <code>built</code>. This guard is the model the live lifecycle persistence follows so human-approved work is never lost on a re-plan.</div>
+  </div>
+  <div class="learn">
+    <div class="top"><span class="name">Brand gate reuse (one sanitizer, not three copies)</span><span class="st ported">carried forward</span></div>
+    <div class="d">The Friday mailer builder called the shared <code>sanitizeBrand()</code> / banned-phrase check rather than duplicating the list. The live app now routes all generated copy through that single gate, extended with the no-em-dash and no-founder-voice rules.</div>
+  </div>
+  <div class="learn">
+    <div class="top"><span class="name">Higher token ceiling for full-mailer JSON</span><span class="st ported">carried forward</span></div>
+    <div class="d">Friday's builder truncated at a low token cap. The live builders raised the ceiling and added a JSON-repair safety net, so mailer generation no longer fails mid-object.</div>
+  </div>
+  <div class="learn">
+    <div class="top"><span class="name">Cohort-native calendar, parallel to the RFM plan</span><span class="st doc">by design</span></div>
+    <div class="d">The Friday build kept the lifecycle calendar separate from the V1 RFM Plan Calendar rather than merging them. That separation held up and is preserved: the two are the Draft 1 / Draft 2 pair described in the Cohorts dashboard.</div>
+  </div>
+  <div class="learn">
+    <div class="top"><span class="name">Headers and footers baked into email HTML</span><span class="st kept">superseded live</span></div>
+    <div class="d">The frozen emails carry their own header and footer. The live program strips these so the copy pastes cleanly into Klaviyo templates. The frozen versions keep the original full-document form on purpose, as the record of the first approach.</div>
+  </div>
+
+  <p class="note">This archive exists so the first day's thinking stays legible and comparable. It is intentionally immutable. If you need to change how any of these features behave, edit the live version reachable from the main menu, not the frozen copy here.</p>
+</div>
+<script defer src="/auth.js"></script>
+</body>
+</html>

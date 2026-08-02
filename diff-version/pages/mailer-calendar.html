@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNICKGASM · Lifecycle Calendar (UK Cohorts)</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/auth.js?v=20260617" defer></script>
+<script src="/table-sort.js?v=20260530b" defer></script>
+<!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<script>
+  // Guarded so the page still boots if the Tailwind CDN is unreachable.
+  if (window.tailwind) {
+    tailwind.config = { theme: { extend: {
+      colors: {
+        bg: { DEFAULT:'#0a1410', soft:'#0f1d18', card:'#142822' },
+        ink: { DEFAULT:'#e8ede9', dim:'#9aaaa1', mute:'#5d6e64' },
+        green: { DEFAULT:'#6A33D8', bright:'#16a34a' },
+        lava: { DEFAULT:'#D0473E' }, chalk: '#F7F5F2',
+      },
+      fontFamily: { sans:['Inter','sans-serif'], mono:['"JetBrains Mono"','monospace'] },
+    }}};
+  }
+</script>
+<style>
+  body { background:#0a1410; color:#e8ede9; font-family:'Inter',sans-serif; }
+  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#5d6e64; font-weight:500; }
+  .card { background:#0f1d18; border:1px solid rgba(171,135,67,0.18); border-radius:12px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:99px; }
+  .b-UK { background:rgba(234,88,12,0.15); color:#fdba74; }
+  .co-A { background:rgba(59,130,246,0.12); color:#93c5fd; }
+  .co-B { background:rgba(34,197,94,0.12); color:#86efac; }
+  .pt-coffee      { background:rgba(171,135,67,0.18); color:#D0473E; }
+  .pt-tb          { background:rgba(34,197,94,0.12); color:#86efac; }
+  .pt-supplements { background:rgba(168,85,247,0.12); color:#d8b4fe; }
+  .pm-one  { color:#fdba74; }
+  .pm-sub  { color:#86efac; }
+  .st-built { background:rgba(22,163,74,0.18); color:#86efac; }
+  .st-planned { background:rgba(148,163,184,0.12); color:#cbd5e1; }
+  .day { background:#0f1d18; border:1px solid rgba(171,135,67,0.18); border-radius:10px; padding:10px; min-height:96px; transition: border-color .15s; }
+  .day:hover { border-color:rgba(171,135,67,0.35); cursor:pointer; }
+  .day.festival { border-color: rgba(171,135,67,0.45); background: rgba(171,135,67,0.04); }
+  .day-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:#9aaaa1; }
+  .day-fest { font-size:9px; color:#D0473E; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-top:2px; }
+  .entry { font-size:10px; line-height:1.25; padding:3px 5px; margin-top:4px; border-radius:4px; background:#142822; }
+  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; }
+  .filter-chip.active { background:#D0473E; color:#0a1410; border-color:#D0473E; }
+  .filter-chip:disabled { opacity:0.85; cursor:default; }
+  .cohort-check { display:flex; align-items:center; gap:7px; font-size:12px; color:#9aaaa1; cursor:pointer; padding:4px 0; }
+  .cohort-check input { accent-color:#D0473E; width:14px; height:14px; }
+  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#5d6e64; padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.18); text-align:left; }
+  td { padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.06); font-size:12.5px; vertical-align:top; }
+  tr:hover td { background:rgba(171,135,67,0.04); }
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-backdrop.open { display:flex; }
+  .modal-card { background:#0f1d18; border:1px solid rgba(171,135,67,0.3); border-radius:12px; max-width:920px; width:100%; max-height:90vh; overflow-y:auto; }
+  iframe.preview { width:100%; min-height:560px; background:#F7F5F2; border:0; border-radius:8px; }
+  input[type="date"], input[type="number"] { color-scheme: dark; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="border-b border-lava/15 px-6 py-4 sticky bg-bg/95 backdrop-blur z-30" style="top:var(--ltb-h,0px)">
+  <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-3">
+    <div>
+      <div class="text-[10px] uppercase tracking-widest text-lava font-bold">KNICKGASM</div>
+      <div class="text-chalk font-semibold text-base">Lifecycle Calendar · UK engagement cohorts</div>
+    </div>
+    <div class="flex-1"></div>
+    <a href="/plan" class="text-[11px] uppercase tracking-wider text-lava hover:text-chalk">RFM calendar →</a>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-6 space-y-6">
+
+  <!-- Program rules banner -->
+  <section class="card p-4">
+    <div class="label mb-2">Program rules (hard-coded)</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] leading-relaxed text-ink-dim">
+      <div class="p-3 bg-bg-card rounded-lg border border-lava/10"><b class="text-chalk">Sneakers &amp; Botanicals</b><br>One-time purchase only — no subscription language, ever.</div>
+      <div class="p-3 bg-bg-card rounded-lg border border-lava/10"><b class="text-chalk">Coffee Collection</b><br>Subscription-priority CTA. Pack of 1: £29.99 sub / £49.99 one-time. Pack of 3: £59.99 sub (B2G1) / £99.99.</div>
+      <div class="p-3 bg-bg-card rounded-lg border border-lava/10"><b class="text-chalk">Supplements</b><br>Just launched, subscription-priority. Never priced in copy. No founder voice anywhere.</div>
+    </div>
+  </section>
+
+  <!-- Controls -->
+  <section class="card p-4">
+    <div class="flex flex-wrap items-end gap-5">
+      <div>
+        <div class="label">Market</div>
+        <div class="flex gap-1.5 mt-2">
+          <button class="filter-chip active" disabled title="This program is UK-only (knickgasm.com)">UK</button>
+        </div>
+      </div>
+      <div>
+        <div class="label">Cohorts</div>
+        <div class="mt-1" id="cohortChecks">
+          <label class="cohort-check"><input type="checkbox" value="non_buyers_non_engagers" checked> <span class="pill co-A">A</span> Non-Buyers / Non-Engagers</label>
+          <label class="cohort-check"><input type="checkbox" value="tb_buyers_non_engagers" checked> <span class="pill co-B">B</span> T&amp;B Buyers / Non-Engagers</label>
+        </div>
+      </div>
+      <div>
+        <div class="label">Start date</div>
+        <input id="startInput" type="date" class="mt-2 px-2 py-1.5 text-sm bg-bg-card border border-lava/20 rounded text-ink">
+      </div>
+      <div>
+        <div class="label">Sends / cohort / week</div>
+        <input id="cadenceInput" type="number" min="1" max="7" value="2" class="mt-2 w-16 px-2 py-1.5 text-sm bg-bg-card border border-lava/20 rounded text-ink">
+      </div>
+      <div>
+        <div class="label">Plan window</div>
+        <div class="flex gap-1.5 mt-2" id="daysChips">
+          <button class="filter-chip" data-days="14">14d</button>
+          <button class="filter-chip active" data-days="30">30d</button>
+          <button class="filter-chip" data-days="45">45d</button>
+        </div>
+      </div>
+      <div class="flex-1"></div>
+      <button id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90">⚡ Generate Calendar</button>
+    </div>
+    <div id="planMeta" class="mt-3 text-[11px] text-ink-mute font-mono">No plan yet — pick a start date and click Generate Calendar. Nothing runs automatically.</div>
+  </section>
+
+  <!-- Calendar grid -->
+  <section id="gridSection" style="display:none">
+    <div class="flex items-end justify-between mb-3">
+      <div>
+        <h2 class="text-lg font-bold tracking-tight">Calendar</h2>
+        <p class="text-xs text-ink-dim mt-1">Each day shows the planned cohort sends (09:00 UTC). Click a day to jump to its rows.</p>
+      </div>
+      <div class="flex gap-3 text-[11px] text-ink-mute">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:rgba(171,135,67,0.45);"></span> Festival</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#93c5fd;"></span> Cohort A</span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#86efac;"></span> Cohort B</span>
+      </div>
+    </div>
+    <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+  </section>
+
+  <!-- Table view -->
+  <section class="card p-4" id="tableSection" style="display:none">
+    <div class="flex items-end justify-between mb-3">
+      <div>
+        <h2 class="text-lg font-bold tracking-tight">All planned sends</h2>
+        <p class="text-xs text-ink-dim mt-1">Build Mailer runs ONE brand-gated LLM call and renders the play&#39;s template (never founder voice).</p>
+      </div>
+      <input id="planSearch" type="text" placeholder="Filter…" class="text-xs bg-bg-card border border-lava/20 rounded px-3 py-1.5 text-ink w-56">
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[1000px]" data-sortable>
+        <thead><tr>
+          <th data-sort="date">Date</th><th>Cohort</th><th>Play</th><th>Product type</th><th>Mode</th><th>Hero</th><th>Subject hint</th><th>Festival</th><th data-no-sort></th>
+        </tr></thead>
+        <tbody id="planTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Mailer preview modal -->
+<div id="mailerModal" class="modal-backdrop">
+  <div class="modal-card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h2 class="text-lg font-semibold" id="mailerTitle">Mailer preview</h2>
+        <p class="text-xs text-ink-dim" id="mailerSubtitle"></p>
+      </div>
+      <button class="text-ink-mute hover:text-ink text-2xl leading-none" id="mailerClose">×</button>
+    </div>
+    <div id="mailerBody"><div class="text-ink-mute text-center py-8">…</div></div>
+    <div class="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-lava/15">
+      <div id="copyStatus" class="text-[11px] text-ink-mute"></div>
+      <div class="flex gap-2">
+        <button id="btnCopyHtml" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none">Copy HTML</button>
+        <button id="btnDownload" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none">↓ Download</button>
+        <button id="btnDone" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded bg-lava text-bg font-semibold">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+const COHORT_SHORT = { non_buyers_non_engagers: 'A', tb_buyers_non_engagers: 'B' };
+const STATE = { days: 30, plan: [], currentMailer: null, currentEntry: null };
+
+// Start date defaults to today — but it is ALWAYS posted explicitly so the
+// server never silently substitutes its own clock.
+$('startInput').value = new Date().toISOString().slice(0, 10);
+
+function escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function selectedCohorts() {
+  return $$('#cohortChecks input:checked').map((c) => c.value);
+}
+
+async function generatePlan() {
+  const cohorts = selectedCohorts();
+  if (!cohorts.length) { $('planMeta').innerHTML = '<span class="text-red-400">Pick at least one cohort.</span>'; return; }
+  const btn = $('btnGenerate');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  $('planMeta').textContent = 'Planning deterministically (no LLM call at this step)…';
+  try {
+    const res = await fetch('/api/calendar?action=lifecycle-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        start_date: $('startInput').value,
+        days: STATE.days,
+        cohorts,
+        cadence_per_week: +$('cadenceInput').value || 2,
+        market: 'UK',
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'generation failed');
+    STATE.plan = data.plan || [];
+    const persistNote = data.persisted
+      ? 'saved to Supabase (built mailers untouched)'
+      : 'NOT persisted (' + ((data.persistence && data.persistence.reason) || 'no Supabase') + ') — plan is in-memory only';
+    $('planMeta').textContent =
+      'Generated ' + data.total_sends_planned + ' sends · ' + data.start_date + ' +' + data.days + 'd · cadence ' +
+      data.cadence_per_week + '/wk · ' + persistNote;
+    $('gridSection').style.display = '';
+    $('tableSection').style.display = '';
+    renderCalendar(data.start_date, data.days);
+    renderTable();
+  } catch (e) {
+    $('planMeta').innerHTML = '<span class="text-red-400">Failed: ' + escAttr(e.message || e) + '</span>';
+  } finally {
+    btn.disabled = false; btn.textContent = '⚡ Generate Calendar';
+  }
+}
+
+function renderCalendar(startStr, days) {
+  const start = new Date(startStr + 'T00:00:00Z');
+  const offset = start.getUTCDay();
+  const gridStart = new Date(start);
+  gridStart.setUTCDate(gridStart.getUTCDate() - offset);
+
+  const cells = [];
+  const total = Math.ceil((days + offset) / 7) * 7;
+  for (let i = 0; i < total; i++) {
+    const day = new Date(gridStart);
+    day.setUTCDate(gridStart.getUTCDate() + i);
+    const ds = day.toISOString().slice(0, 10);
+    const entriesForDay = STATE.plan.filter((p) => p.date === ds);
+    const festival = (entriesForDay.find((p) => p.festival) || {}).festival;
+    const inPlan = day >= start && day < new Date(start.getTime() + days * 86400000);
+
+    cells.push(
+      '<div class="day ' + (festival ? 'festival' : '') + (!inPlan ? ' opacity-40' : '') + '" data-date="' + ds + '">' +
+        '<div class="flex items-start justify-between">' +
+          '<div class="day-num">' + day.getUTCDate() + '</div>' +
+          '<div class="text-[9px] text-ink-mute">' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getUTCDay()] + '</div>' +
+        '</div>' +
+        (festival ? '<div class="day-fest">★ ' + escAttr(festival) + '</div>' : '') +
+        entriesForDay.map((e) =>
+          '<div class="entry"><span class="pill co-' + COHORT_SHORT[e.cohort_key] + '">' + COHORT_SHORT[e.cohort_key] + '</span> ' +
+          escAttr(e.play_key.replace(/_/g, ' ')) + ' · ' + escAttr(e.product_type) + '</div>'
+        ).join('') +
+      '</div>'
+    );
+  }
+  $('calendarGrid').innerHTML = cells.join('');
+  $$('#calendarGrid .day').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      const ds = cell.dataset.date;
+      const list = STATE.plan.filter((p) => p.date === ds);
+      if (!list.length) return;
+      const row = document.querySelector('#planTable tr[data-id="' + list[0].id + '"]');
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+}
+
+function renderTable(filter) {
+  const f = String(filter || '').toLowerCase();
+  const rows = STATE.plan.filter((p) =>
+    !f || [p.cohort_label, p.play_key, p.product_type, p.hero_product, p.subject_hint, p.festival, p.date]
+      .join(' ').toLowerCase().includes(f)
+  );
+  if (!rows.length) {
+    $('planTable').innerHTML = '<tr><td colspan="9" class="text-center text-ink-mute py-8">No entries match.</td></tr>';
+    return;
+  }
+  $('planTable').innerHTML = rows.map((p) =>
+    '<tr data-id="' + escAttr(p.id) + '">' +
+      '<td class="font-mono text-[11px]">' + p.date + '<div class="text-[10px] text-ink-mute">09:00 UTC</div></td>' +
+      '<td><span class="pill co-' + COHORT_SHORT[p.cohort_key] + '">' + COHORT_SHORT[p.cohort_key] + '</span><div class="text-[10px] text-ink-mute mt-1">' + escAttr(p.cohort_label) + '</div></td>' +
+      '<td class="text-[12px]">' + escAttr(p.play_key.replace(/_/g, ' ')) + '<div class="text-[10px] text-ink-mute">' + escAttr(p.template_style || '') + '</div></td>' +
+      '<td><span class="pill pt-' + escAttr(p.product_type) + '">' + escAttr(p.product_type) + '</span></td>' +
+      '<td class="text-[11px] ' + (p.purchase_mode === 'one_time_only' ? 'pm-one' : 'pm-sub') + '">' + (p.purchase_mode === 'one_time_only' ? 'one-time' : 'sub-first') + '</td>' +
+      '<td class="text-[12px] max-w-[220px]">' + escAttr(p.hero_product || '') + (p.hero_price ? '<div class="text-[10px] text-ink-mute">' + escAttr(p.hero_price) + '</div>' : '') + (p.handle_verified === false ? '<div class="text-[10px] text-yellow-500">handle unverified</div>' : '') + '</td>' +
+      '<td class="text-[12px] max-w-[240px]">' + escAttr(p.subject_hint || '') + '</td>' +
+      '<td class="text-[11px]">' + (p.festival ? '★ ' + escAttr(p.festival) : '—') + '</td>' +
+      '<td><button data-build="' + escAttr(p.id) + '" class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-lava/20 text-lava hover:bg-lava hover:text-bg whitespace-nowrap">Build Mailer →</button></td>' +
+    '</tr>'
+  ).join('');
+  $$('#planTable [data-build]').forEach((b) => b.addEventListener('click', () => {
+    const entry = STATE.plan.find((p) => p.id === b.dataset.build);
+    if (entry) buildMailer(entry);
+  }));
+}
+
+async function buildMailer(entry) {
+  STATE.currentEntry = entry;
+  STATE.currentMailer = null;
+  $('mailerTitle').textContent = entry.date + ' · ' + entry.cohort_label;
+  $('mailerSubtitle').textContent = entry.play_key.replace(/_/g, ' ') + ' · ' + entry.product_type + ' · ' + (entry.purchase_mode === 'one_time_only' ? 'one-time only' : 'subscription-first');
+  $('mailerBody').innerHTML = '<div class="text-ink-mute text-center py-8">Writing copy (one LLM call) and rendering the brand template…</div>';
+  $('btnCopyHtml').style.display = 'none';
+  $('btnDownload').style.display = 'none';
+  $('copyStatus').textContent = '';
+  $('mailerModal').classList.add('open');
+  try {
+    const res = await fetch('/api/calendar?action=lifecycle-build-mailer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: entry.id, entry }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    if (!data.ok || !data.mailer) throw new Error(data.error || 'build failed');
+    STATE.currentMailer = data.mailer;
+    const m = data.mailer;
+    const persistNote = data.persisted ? 'Saved — slot marked built.' : 'Not persisted (' + ((data.persistence && data.persistence.reason) || 'no Supabase') + ') — copy or download it now.';
+    $('mailerBody').innerHTML =
+      '<div class="text-xs text-ink-dim mb-1">Subject: <b class="text-chalk">' + escAttr(m.subject_line) + '</b></div>' +
+      '<div class="text-xs text-ink-dim mb-2">Preheader: ' + escAttr(m.preview_text || '') + ' · CTA → <a class="text-lava hover:underline" target="_blank" rel="noopener" href="' + escAttr(m.cta_url) + '">' + escAttr(m.cta_url) + '</a></div>' +
+      '<iframe class="preview" srcdoc="' + escAttr(m.html) + '"></iframe>' +
+      (m.creative && m.creative.image ? '<div class="text-[11px] text-ink-mute mt-2">Hero creative (' + escAttr(m.creative.provider || '') + '): <a class="text-lava hover:underline" target="_blank" rel="noopener" href="' + escAttr(m.creative.image) + '">open image ↗</a> — drop it into the Klaviyo image slot.</div>' : '') +
+      '<div class="text-[11px] text-ink-mute mt-2">' + escAttr(persistNote) + (m.generated_by ? ' · written by ' + escAttr(m.generated_by) : '') + '</div>';
+    $('btnCopyHtml').style.display = '';
+    $('btnDownload').style.display = '';
+  } catch (e) {
+    $('mailerBody').innerHTML = '<div class="text-red-400 text-center py-8">Build failed: ' + escAttr(e.message || e) + '</div>';
+  }
+}
+
+// Copy + download — same Blob / clipboard pattern as landing-pages.html.
+function copyText(txt, statusEl) {
+  function done(ok) { if (statusEl) statusEl.textContent = ok ? '✓ HTML copied — paste it into Klaviyo.' : 'Could not copy automatically — see console.'; if (!ok) console.log('[lifecycle] mailer HTML:\n' + txt); }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(function () { done(true); }, function () { done(false); }); return; }
+  } catch (_) {}
+  try { var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); } catch (_) { done(false); }
+}
+
+$('btnCopyHtml').addEventListener('click', () => {
+  if (STATE.currentMailer) copyText(STATE.currentMailer.html, $('copyStatus'));
+});
+
+$('btnDownload').addEventListener('click', () => {
+  if (!STATE.currentMailer) return;
+  const html = STATE.currentMailer.html;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'knickgasm-lifecycle-' + String((STATE.currentEntry && STATE.currentEntry.id) || 'mailer').replace(/[^a-z0-9_-]/gi, '') + '.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+});
+
+function closeMailer() { $('mailerModal').classList.remove('open'); }
+$('mailerClose').addEventListener('click', closeMailer);
+$('btnDone').addEventListener('click', closeMailer);
+
+$('daysChips').addEventListener('click', (e) => {
+  if (!e.target.dataset.days) return;
+  $$('#daysChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+  STATE.days = +e.target.dataset.days;
+});
+$('btnGenerate').addEventListener('click', generatePlan);
+$('planSearch').addEventListener('input', (e) => renderTable(e.target.value));
+
+// Deliberately NO auto-generate on load: this program only plans when a human
+// clicks Generate Calendar (unlike calendar.html, which auto-fires).
+</script>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNICKGASM Automated Calendar Creation — Presentation</title>
+<style>
+  :root { --green:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2; --mut:#6f8278; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#07120d; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--chalk); overflow:hidden; }
+  .slide { position:absolute; inset:0; display:none; padding:5vh 6vw; flex-direction:column; justify-content:center; background:radial-gradient(1100px 600px at 80% -10%, rgba(171,135,67,.12), transparent), #07120d; }
+  .slide.on { display:flex; animation:in .45s ease; }
+  @keyframes in { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+  .eyebrow { font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:var(--lava); font-weight:700; margin-bottom:14px; }
+  h1 { font-family:'Montserrat','Raleway',Georgia,serif; font-size:clamp(30px,4.6vw,54px); margin:0 0 14px; line-height:1.12; font-weight:700; }
+  h1 em { color:var(--lava); font-style:italic; }
+  p.lead { font-size:clamp(14px,1.5vw,18px); color:#cdd8d2; max-width:880px; line-height:1.7; margin:0 0 18px; }
+  .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:14px; }
+  .box { background:rgba(15,29,24,.85); border:1px solid rgba(171,135,67,.3); border-radius:14px; padding:18px; }
+  .box b { color:var(--lava); display:block; margin-bottom:7px; font-size:13px; letter-spacing:.05em; text-transform:uppercase; }
+  .box div, .box li { font-size:13.5px; color:#cdd8d2; line-height:1.65; }
+  .box ul { margin:0; padding-left:17px; }
+  .nav { position:fixed; bottom:18px; right:22px; display:flex; gap:8px; align-items:center; z-index:10; font-size:12px; color:var(--mut); }
+  .nav button { background:rgba(171,135,67,.15); color:var(--chalk); border:1px solid rgba(171,135,67,.4); border-radius:8px; width:38px; height:34px; cursor:pointer; font-size:15px; }
+  svg text { font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; }
+  .svgwrap { margin-top:14px; }
+  .kpi { font-family:'Montserrat',Georgia,serif; font-size:clamp(26px,3vw,40px); color:var(--chalk); }
+  .small { font-size:11.5px; color:var(--mut); margin-top:10px; }
+  table.t { border-collapse:collapse; width:100%; max-width:980px; font-size:13.5px; margin-top:8px; }
+  table.t th { color:var(--lava); text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.08em; padding:9px 12px; border-bottom:1px solid rgba(171,135,67,.4); }
+  table.t td { padding:10px 12px; border-bottom:1px solid rgba(171,135,67,.15); color:#cdd8d2; line-height:1.5; }
+
+/* vh-table-align: data-table column alignment — header cells sit over their
+   columns (table-layout:fixed, equal width), the first column (row labels) is
+   left-aligned and every other column is centered. Scoped to tables that have
+   <th> so layout tables are never affected; element-level so a page's own
+   table.<class> alignment still wins. */
+table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+</style>
+</head>
+<body>
+
+<!-- 1 · TITLE -->
+<section class="slide on">
+  <div class="eyebrow">KNICKGASM · Internal Platform → SaaS Candidate</div>
+  <h1>Lifecycle OS <em>Automated Calendar Creation</em></h1>
+  <p class="lead">One system that knows everything we ever ran, watches every competitor, plans the next 90 days, generates every asset — mailers, Google/Meta/TikTok ads, landing pages — and talks to our customers in a human voice. Humans verify; the brain executes.</p>
+  <div class="cols">
+    <div class="box"><b>Status</b><div>Live at <u>/brain</u> · DB-linked · daily cron running · phase-2 (live push) excluded by design</div></div>
+    <div class="box"><b>Built on</b><div>Existing Lifecycle OS shell · Supabase linked DB · 6-provider LLM cascade · zero new infra cost</div></div>
+    <div class="box"><b>This deck</b><div>Why → What → Flows → Voice agents → Accuracy plan → Impact hypothesis → Recommendations → Asset approach → Go-live → SaaS path</div></div>
+  </div>
+</section>
+
+<!-- 2 · WHY -->
+<section class="slide">
+  <div class="eyebrow">Why · bandwidth &amp; resource utilisation</div>
+  <h1>The marketing team's week, <em>before and after</em></h1>
+  <table class="t">
+    <tr><th>Task</th><th>Manual today</th><th>With Automated Calendar Creation</th><th>Saved</th></tr>
+    <tr><td>Performance digging across channels</td><td>~6 h/wk in sheets &amp; dashboards</td><td>Daily auto-analysis + chat console</td><td>~5.5 h</td></tr>
+    <tr><td>Campaign calendar planning</td><td>~4 h/wk, gut-driven, monthly horizon</td><td>90-day rolling, data-driven, self-reviewing daily</td><td>~3.5 h</td></tr>
+    <tr><td>Mailer + ad + LP creation</td><td>~2 days per campaign set</td><td>Complete funnel set in &lt;60 s, on-brand by construction</td><td>~85%</td></tr>
+    <tr><td>Competitor monitoring</td><td>Ad-hoc inbox digging</td><td>Continuous isolated stream + signals</td><td>~2 h</td></tr>
+    <tr><td>Customer education (telecalling)</td><td>Headcount-limited, timezone-limited</td><td>Voice agents — 24×7, every market, zero marginal cost</td><td>∞ scale</td></tr>
+  </table>
+  <p class="small">Humans move from production to verification: the weekly recalibration + approve/reject queue is the whole job. Bandwidth shifts to strategy.</p>
+</section>
+
+<!-- 3 · ARCHITECTURE -->
+<section class="slide">
+  <div class="eyebrow">What it is · module map</div>
+  <h1>Six modules, <em>clean contracts</em></h1>
+  <div class="svgwrap">
+  <svg viewBox="0 0 1180 430" width="100%" style="max-height:60vh">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#D0473E"/></marker></defs>
+    <!-- linked DB -->
+    <rect x="20" y="150" width="180" height="120" rx="14" fill="#0f1d18" stroke="#D0473E" stroke-width="1.5"/>
+    <text x="110" y="190" fill="#D0473E" font-size="13" text-anchor="middle" font-weight="700">LINKED DB</text>
+    <text x="110" y="212" fill="#cdd8d2" font-size="11" text-anchor="middle">catalog · campaigns · creatives</text>
+    <text x="110" y="230" fill="#cdd8d2" font-size="11" text-anchor="middle">metrics · users · sales history</text>
+    <text x="110" y="248" fill="#6f8278" font-size="10" text-anchor="middle">smart_* · Supabase</text>
+    <!-- KB + Analysis -->
+    <rect x="280" y="60" width="190" height="84" rx="12" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/>
+    <text x="375" y="95" fill="#F7F5F2" font-size="13" text-anchor="middle" font-weight="700">1 · Knowledge Base</text>
+    <text x="375" y="116" fill="#9aaaa1" font-size="10.5" text-anchor="middle">creative-level index · what worked</text>
+    <rect x="280" y="170" width="190" height="84" rx="12" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/>
+    <text x="375" y="205" fill="#F7F5F2" font-size="13" text-anchor="middle" font-weight="700">2 · Analysis Engine</text>
+    <text x="375" y="226" fill="#9aaaa1" font-size="10.5" text-anchor="middle">thresholds · cohorts · daily sync</text>
+    <rect x="280" y="290" width="190" height="84" rx="12" fill="#101a22" stroke="#3b6e8f"/>
+    <text x="375" y="322" fill="#7fb6d9" font-size="13" text-anchor="middle" font-weight="700">3 · Competitor Stream</text>
+    <text x="375" y="343" fill="#5d7f95" font-size="10.5" text-anchor="middle">ISOLATED · advisory signals only</text>
+    <!-- Calendar -->
+    <rect x="540" y="150" width="200" height="120" rx="14" fill="#0f1d18" stroke="#D0473E" stroke-width="1.5"/>
+    <text x="640" y="188" fill="#F7F5F2" font-size="14" text-anchor="middle" font-weight="700">4 · Calendar Intelligence</text>
+    <text x="640" y="210" fill="#9aaaa1" font-size="10.5" text-anchor="middle">90-day rolling · festivals auto-found</text>
+    <text x="640" y="228" fill="#9aaaa1" font-size="10.5" text-anchor="middle">daily self-review · MVT loop</text>
+    <text x="640" y="246" fill="#9aaaa1" font-size="10.5" text-anchor="middle">human feedback applied</text>
+    <!-- Generation -->
+    <rect x="810" y="60" width="190" height="150" rx="12" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/>
+    <text x="905" y="92" fill="#F7F5F2" font-size="13" text-anchor="middle" font-weight="700">5 · Generation Engine</text>
+    <text x="905" y="114" fill="#9aaaa1" font-size="10.5" text-anchor="middle">HTML mailers · Google RSA</text>
+    <text x="905" y="132" fill="#9aaaa1" font-size="10.5" text-anchor="middle">Meta · TikTok · landing pages</text>
+    <text x="905" y="150" fill="#9aaaa1" font-size="10.5" text-anchor="middle">funnels · audiences · retargeting</text>
+    <text x="905" y="172" fill="#D0473E" font-size="10.5" text-anchor="middle" font-weight="700">platform-ready objects</text>
+    <text x="905" y="190" fill="#6f8278" font-size="10">→ phase-2 push plugs in here</text>
+    <!-- Review -->
+    <rect x="810" y="240" width="190" height="110" rx="12" fill="#1d150f" stroke="#D0473E" stroke-width="1.5"/>
+    <text x="905" y="272" fill="#F7F5F2" font-size="13" text-anchor="middle" font-weight="700">6 · Human Review</text>
+    <text x="905" y="294" fill="#9aaaa1" font-size="10.5" text-anchor="middle">every campaign verified at launch</text>
+    <text x="905" y="312" fill="#9aaaa1" font-size="10.5" text-anchor="middle">confidence grows → load drops</text>
+    <text x="905" y="330" fill="#e0a13d" font-size="10.5" text-anchor="middle" font-weight="700">hard weekly recalibration gate</text>
+    <!-- Agents -->
+    <rect x="1060" y="150" width="100" height="120" rx="12" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/>
+    <text x="1110" y="195" fill="#F7F5F2" font-size="12" text-anchor="middle" font-weight="700">Voice</text>
+    <text x="1110" y="212" fill="#F7F5F2" font-size="12" text-anchor="middle" font-weight="700">Agents</text>
+    <text x="1110" y="234" fill="#9aaaa1" font-size="9.5" text-anchor="middle">Shopify embed</text>
+    <!-- arrows -->
+    <line x1="200" y1="180" x2="280" y2="110" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="200" y1="210" x2="280" y2="210" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="470" y1="110" x2="540" y2="180" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="470" y1="210" x2="540" y2="210" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="470" y1="330" x2="540" y2="250" stroke="#3b6e8f" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+    <text x="505" y="300" fill="#5d7f95" font-size="9.5">advisory</text>
+    <line x1="740" y1="190" x2="810" y2="135" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="905" y1="210" x2="905" y2="240" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <line x1="1000" y1="210" x2="1060" y2="210" stroke="#D0473E" stroke-width="1.4" marker-end="url(#ar)"/>
+    <path d="M 905 350 Q 905 400 640 400 Q 375 400 375 260" stroke="#D0473E" stroke-width="1.2" stroke-dasharray="5 4" fill="none" marker-end="url(#ar)"/>
+    <text x="640" y="392" fill="#6f8278" font-size="10" text-anchor="middle">approvals + MVT results feed back into analysis &amp; calendar weights</text>
+  </svg>
+  </div>
+</section>
+
+<!-- 4 · LOOP -->
+<section class="slide">
+  <div class="eyebrow">Flows · the operating loop</div>
+  <h1>Daily is automated. <em>Weekly is human.</em></h1>
+  <div class="svgwrap">
+  <svg viewBox="0 0 1180 350" width="100%" style="max-height:56vh">
+    <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#D0473E"/></marker></defs>
+    <text x="20" y="36" fill="#D0473E" font-size="13" font-weight="700" letter-spacing="2">DAILY · 03:30 UTC CRON · NO HUMANS</text>
+    <g>
+      <rect x="20" y="60" width="170" height="66" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="105" y="88" fill="#F7F5F2" font-size="11.5" text-anchor="middle">re-extract festivals &amp;</text><text x="105" y="105" fill="#F7F5F2" font-size="11.5" text-anchor="middle">sales peaks from history</text>
+      <rect x="230" y="60" width="170" height="66" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="315" y="83" fill="#F7F5F2" font-size="11.5" text-anchor="middle">full re-analysis vs DB:</text><text x="315" y="99" fill="#F7F5F2" font-size="11.5" text-anchor="middle">never follow the calendar</text><text x="315" y="115" fill="#F7F5F2" font-size="11.5" text-anchor="middle">blindly — update it</text>
+      <rect x="440" y="60" width="170" height="66" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="525" y="83" fill="#F7F5F2" font-size="11.5" text-anchor="middle">apply human feedback,</text><text x="525" y="99" fill="#F7F5F2" font-size="11.5" text-anchor="middle">swap weak angles,</text><text x="525" y="115" fill="#F7F5F2" font-size="11.5" text-anchor="middle">extend 90-day horizon</text>
+      <rect x="650" y="60" width="170" height="66" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="735" y="83" fill="#F7F5F2" font-size="11.5" text-anchor="middle">fold MVT winners into</text><text x="735" y="99" fill="#F7F5F2" font-size="11.5" text-anchor="middle">learned weights +</text><text x="735" y="115" fill="#F7F5F2" font-size="11.5" text-anchor="middle">competitor signals</text>
+      <rect x="860" y="60" width="170" height="66" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="945" y="83" fill="#F7F5F2" font-size="11.5" text-anchor="middle">generate complete asset</text><text x="945" y="99" fill="#F7F5F2" font-size="11.5" text-anchor="middle">sets for approved slots</text><text x="945" y="115" fill="#F7F5F2" font-size="11.5" text-anchor="middle">due ≤3 days</text>
+      <line x1="190" y1="93" x2="230" y2="93" stroke="#D0473E" stroke-width="1.5" marker-end="url(#a2)"/>
+      <line x1="400" y1="93" x2="440" y2="93" stroke="#D0473E" stroke-width="1.5" marker-end="url(#a2)"/>
+      <line x1="610" y1="93" x2="650" y2="93" stroke="#D0473E" stroke-width="1.5" marker-end="url(#a2)"/>
+      <line x1="820" y1="93" x2="860" y2="93" stroke="#D0473E" stroke-width="1.5" marker-end="url(#a2)"/>
+    </g>
+    <line x1="945" y1="126" x2="945" y2="200" stroke="#D0473E" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="20" y="190" fill="#e0a13d" font-size="13" font-weight="700" letter-spacing="2">HUMAN GATE</text>
+    <rect x="860" y="200" width="170" height="76" rx="11" fill="#1d150f" stroke="#D0473E" stroke-width="1.6"/>
+    <text x="945" y="228" fill="#F7F5F2" font-size="11.5" text-anchor="middle" font-weight="700">REVIEW QUEUE</text>
+    <text x="945" y="246" fill="#9aaaa1" font-size="10.5" text-anchor="middle">approve → FINAL</text>
+    <text x="945" y="262" fill="#9aaaa1" font-size="10.5" text-anchor="middle">reject → reasons feed back</text>
+    <rect x="20" y="210" width="300" height="66" rx="11" fill="#1d150f" stroke="#e0a13d" stroke-width="1.6"/>
+    <text x="170" y="236" fill="#F7F5F2" font-size="12" text-anchor="middle" font-weight="700">WEEKLY RECALIBRATION (hard minimum)</text>
+    <text x="170" y="256" fill="#9aaaa1" font-size="10.5" text-anchor="middle">human reviews calendar + cohorts + thresholds;</text>
+    <text x="170" y="270" fill="#9aaaa1" font-size="10.5" text-anchor="middle">&gt;7 days old ⇒ ALL auto-approval hard-blocked</text>
+    <line x1="320" y1="243" x2="860" y2="243" stroke="#e0a13d" stroke-width="1.3" stroke-dasharray="6 4" marker-end="url(#a2)"/>
+    <text x="580" y="233" fill="#8a7344" font-size="10" text-anchor="middle">gates auto-approval · adjusts thresholds &amp; weights</text>
+  </svg>
+  </div>
+</section>
+
+<!-- 5 · CONSOLE MOCK -->
+<section class="slide">
+  <div class="eyebrow">Feature · the LLM-style console</div>
+  <h1>Operate it like <em>ChatGPT</em>, grounded in live data</h1>
+  <div class="svgwrap">
+  <svg viewBox="0 0 1100 380" width="100%" style="max-height:56vh">
+    <rect x="0" y="0" width="1100" height="380" rx="16" fill="#0b1813" stroke="rgba(171,135,67,.4)"/>
+    <rect x="0" y="0" width="1100" height="46" rx="16" fill="#0f1d18"/>
+    <circle cx="26" cy="23" r="6" fill="#D0473E"/><text x="44" y="28" fill="#F7F5F2" font-size="13" font-weight="700">Automated Calendar Creation · Console</text>
+    <text x="1080" y="28" fill="#6f8278" font-size="11" text-anchor="end">Linked DB: connected · pending review: 4</text>
+    <g font-size="11"><text x="30" y="70" fill="#6f8278">⌘ Console</text><text x="110" y="70" fill="#6f8278">Today</text><text x="160" y="70" fill="#6f8278">Calendar</text><text x="225" y="70" fill="#6f8278">Library</text><text x="282" y="70" fill="#6f8278">Cohorts</text><text x="340" y="70" fill="#6f8278">Assets</text><text x="395" y="70" fill="#6f8278">Review</text><text x="450" y="70" fill="#6f8278">Agents</text></g>
+    <rect x="560" y="92" width="500" height="44" rx="12" fill="#6A33D8"/>
+    <text x="580" y="119" fill="#F7F5F2" font-size="12.5">Why is TikTok underperforming and what should we change?</text>
+    <rect x="40" y="152" width="640" height="150" rx="12" fill="#13241d" stroke="rgba(171,135,67,.3)"/>
+    <text x="60" y="180" fill="#cdd8d2" font-size="12">TikTok averages ROAS 0.68 vs threshold 1.3 — only 2 of 12 campaigns passed.</text>
+    <text x="60" y="202" fill="#cdd8d2" font-size="12">The 'discount' angle drags it down (-38% vs 'origin-story'). Today's review already</text>
+    <text x="60" y="224" fill="#cdd8d2" font-size="12">swapped 3 upcoming TikTok slots to 'origin-story' + UGC hook format.</text>
+    <text x="60" y="246" fill="#cdd8d2" font-size="12">Suggestion: cap TikTok UK budget until confidence ≥0.6; keep US exploratory slots.</text>
+    <text x="60" y="278" fill="#D0473E" font-size="11.5">→ Approve the change in Calendar, or say "do it" and I'll record the feedback.</text>
+    <rect x="40" y="322" width="940" height="40" rx="10" fill="#0c1a14" stroke="rgba(171,135,67,.35)"/>
+    <text x="58" y="347" fill="#5d6e64" font-size="12">Ask the brain…</text>
+    <rect x="990" y="322" width="70" height="40" rx="10" fill="#D0473E"/><text x="1025" y="347" fill="#0a1410" font-size="12.5" text-anchor="middle" font-weight="700">Ask</text>
+  </svg>
+  </div>
+  <p class="small">Real screen: /brain → Console. Every answer is grounded in the day's analysis, calendar state and recalibration status — not generic LLM text.</p>
+</section>
+
+<!-- 6 · CALENDAR MOCK -->
+<section class="slide">
+  <div class="eyebrow">Feature · calendar intelligence</div>
+  <h1>A 90-day plan that <em>argues for itself</em></h1>
+  <div class="svgwrap">
+  <svg viewBox="0 0 1100 330" width="100%" style="max-height:50vh">
+    <rect x="0" y="0" width="1100" height="330" rx="16" fill="#0b1813" stroke="rgba(171,135,67,.4)"/>
+    <g font-size="10.5" fill="#D0473E" font-weight="700"><text x="30" y="40">DATE</text><text x="110" y="40">MKT</text><text x="170" y="40">CHANNEL</text><text x="290" y="40">THEME / ANGLE</text><text x="560" y="40">WHY (RATIONALE)</text><text x="930" y="40">STATUS</text><text x="1010" y="40">ACT</text></g>
+    <g font-size="11.5" fill="#cdd8d2">
+      <text x="30" y="78">Jun 15</text><text x="110" y="78">US</text><text x="170" y="78" font-weight="700" fill="#F7F5F2">email</text><text x="290" y="78">Father's Day · gifting</text><text x="560" y="78" fill="#9aaaa1">festival w8 (auto-detected ×2.49) · VIP Ritualists</text><rect x="925" y="64" width="62" height="20" rx="10" fill="rgba(171,135,67,.15)"/><text x="956" y="78" fill="#D0473E" font-size="10" text-anchor="middle">tentative</text><text x="1010" y="78" fill="#81c784">✓ ✗ ⚡ ✎</text>
+      <text x="30" y="112">Jun 15</text><text x="110" y="112">US</text><text x="170" y="112" font-weight="700" fill="#F7F5F2">landing_email</text><text x="290" y="112">LP — Father's Day</text><text x="560" y="112" fill="#9aaaa1">conversion LP paired to same-day mailer</text><rect x="925" y="98" width="62" height="20" rx="10" fill="rgba(171,135,67,.15)"/><text x="956" y="112" fill="#D0473E" font-size="10" text-anchor="middle">tentative</text><text x="1010" y="112" fill="#81c784">✓ ✗ ⚡ ✎</text>
+      <text x="30" y="146">Jun 16</text><text x="110" y="146">UK</text><text x="170" y="146" font-weight="700" fill="#F7F5F2">meta</text><text x="290" y="146">One-of-One · origin-story</text><text x="560" y="146" fill="#9aaaa1">competitor field promo-heavy → differentiate on story</text><rect x="925" y="132" width="62" height="20" rx="10" fill="rgba(76,175,80,.15)"/><text x="956" y="146" fill="#81c784" font-size="10" text-anchor="middle">approved</text><text x="1010" y="146" fill="#81c784">⚡</text>
+      <text x="30" y="180">Jun 17</text><text x="110" y="180">US</text><text x="170" y="180" font-weight="700" fill="#F7F5F2">google</text><text x="290" y="180">Streetwear Reset · ritual</text><text x="560" y="180" fill="#9aaaa1">seeded by c_041 (rev $9.4k, passed thresholds)</text><rect x="925" y="166" width="62" height="20" rx="10" fill="rgba(33,150,243,.15)"/><text x="956" y="180" fill="#64b5f6" font-size="10" text-anchor="middle">generated</text><text x="1010" y="180"></text>
+      <text x="30" y="214">Jun 19</text><text x="110" y="214">US</text><text x="170" y="214" font-weight="700" fill="#F7F5F2">google · RT</text><text x="290" y="214">Retargeting — ritual wave</text><text x="560" y="214" fill="#9aaaa1">auto follow-up: engaged-viewers 14d, excl. purchasers</text><rect x="925" y="200" width="62" height="20" rx="10" fill="rgba(171,135,67,.15)"/><text x="956" y="214" fill="#D0473E" font-size="10" text-anchor="middle">tentative</text><text x="1010" y="214" fill="#81c784">✓ ✗</text>
+      <text x="30" y="248">Jun 20</text><text x="110" y="248">UK</text><text x="170" y="248" font-weight="700" fill="#F7F5F2">tiktok</text><text x="290" y="248">Kicks Stories · origin-story</text><text x="560" y="248" fill="#9aaaa1">angle auto-swapped today: 'discount' fell out of top-4</text><rect x="925" y="234" width="62" height="20" rx="10" fill="rgba(171,135,67,.15)"/><text x="956" y="248" fill="#D0473E" font-size="10" text-anchor="middle">tentative</text><text x="1010" y="248" fill="#81c784">✓ ✗ ⚡ ✎</text>
+    </g>
+    <rect x="30" y="276" width="1040" height="36" rx="9" fill="rgba(46,125,50,.1)" stroke="rgba(76,175,80,.4)"/>
+    <text x="48" y="299" fill="#a5d6a7" font-size="11.5">Daily review 06:00 IST — 3 changes: angle swap ×2 (data), slot skipped ×1 (your feedback “too promo-heavy for VIPs” applied)</text>
+  </svg>
+  </div>
+</section>
+
+<!-- 7 · GENERATION -->
+<section class="slide">
+  <div class="eyebrow">Feature · generation engine</div>
+  <h1>One approval → a <em>complete funnel</em></h1>
+  <div class="svgwrap">
+  <svg viewBox="0 0 1180 300" width="100%" style="max-height:46vh">
+    <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#D0473E"/></marker></defs>
+    <rect x="20" y="100" width="150" height="80" rx="12" fill="#1d150f" stroke="#D0473E" stroke-width="1.5"/>
+    <text x="95" y="135" fill="#F7F5F2" font-size="12.5" text-anchor="middle" font-weight="700">Approved slot</text>
+    <text x="95" y="155" fill="#9aaaa1" font-size="10.5" text-anchor="middle">cohort + angle + theme</text>
+    <g>
+      <rect x="240" y="20" width="180" height="64" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="330" y="46" fill="#F7F5F2" font-size="11.5" text-anchor="middle" font-weight="700">STAGE 1 · CREATIVE</text><text x="330" y="66" fill="#9aaaa1" font-size="10" text-anchor="middle">ad copy / mailer · attention</text>
+      <rect x="240" y="110" width="180" height="64" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="330" y="136" fill="#F7F5F2" font-size="11.5" text-anchor="middle" font-weight="700">STAGE 2 · LANDING</text><text x="330" y="156" fill="#9aaaa1" font-size="10" text-anchor="middle">CRO page + voice-agent entry</text>
+      <rect x="240" y="200" width="180" height="64" rx="11" fill="#0f1d18" stroke="rgba(171,135,67,.5)"/><text x="330" y="226" fill="#F7F5F2" font-size="11.5" text-anchor="middle" font-weight="700">STAGE 3 · FOLLOW-UP</text><text x="330" y="246" fill="#9aaaa1" font-size="10" text-anchor="middle">mailer: recover / repeat</text>
+    </g>
+    <line x1="170" y1="140" x2="240" y2="52" stroke="#D0473E" stroke-width="1.3" marker-end="url(#a3)"/>
+    <line x1="170" y1="140" x2="240" y2="142" stroke="#D0473E" stroke-width="1.3" marker-end="url(#a3)"/>
+    <line x1="170" y1="140" x2="240" y2="232" stroke="#D0473E" stroke-width="1.3" marker-end="url(#a3)"/>
+    <g font-size="10.5">
+      <rect x="490" y="14" width="200" height="56" rx="10" fill="#0f1d18" stroke="rgba(171,135,67,.4)"/><text x="590" y="38" fill="#F7F5F2" text-anchor="middle" font-weight="700">HTML mailer (brand-locked)</text><text x="590" y="56" fill="#9aaaa1" text-anchor="middle">palette · Montserrat · banned-phrase scrub</text>
+      <rect x="490" y="80" width="200" height="56" rx="10" fill="#0f1d18" stroke="rgba(171,135,67,.4)"/><text x="590" y="104" fill="#F7F5F2" text-anchor="middle" font-weight="700">Google RSA · Meta · TikTok</text><text x="590" y="122" fill="#9aaaa1" text-anchor="middle">12 headlines · briefs · UGC scripts</text>
+      <rect x="490" y="146" width="200" height="56" rx="10" fill="#0f1d18" stroke="rgba(171,135,67,.4)"/><text x="590" y="170" fill="#F7F5F2" text-anchor="middle" font-weight="700">Landing pages ×2</text><text x="590" y="188" fill="#9aaaa1" text-anchor="middle">for mailers AND for ads</text>
+      <rect x="490" y="212" width="200" height="56" rx="10" fill="#0f1d18" stroke="rgba(171,135,67,.4)"/><text x="590" y="236" fill="#F7F5F2" text-anchor="middle" font-weight="700">Audience specs</text><text x="590" y="254" fill="#9aaaa1" text-anchor="middle">retargeting 14d · lookalike 1-3%</text>
+    </g>
+    <line x1="420" y1="142" x2="490" y2="142" stroke="#D0473E" stroke-width="1.4" marker-end="url(#a3)"/>
+    <rect x="780" y="80" width="200" height="120" rx="12" fill="#0f1d18" stroke="#D0473E" stroke-width="1.6"/>
+    <text x="880" y="112" fill="#D0473E" font-size="12.5" text-anchor="middle" font-weight="700">PLATFORM-READY OBJECTS</text>
+    <text x="880" y="134" fill="#cdd8d2" font-size="10.5" text-anchor="middle">klaviyo · google_ads · meta_ads</text>
+    <text x="880" y="151" fill="#cdd8d2" font-size="10.5" text-anchor="middle">tiktok_ads · landing</text>
+    <text x="880" y="175" fill="#6f8278" font-size="10" text-anchor="middle">stored as JSON, schema-matched —</text>
+    <text x="880" y="190" fill="#6f8278" font-size="10" text-anchor="middle">phase-2 push needs zero refactor</text>
+    <line x1="690" y1="140" x2="780" y2="140" stroke="#D0473E" stroke-width="1.4" marker-end="url(#a3)"/>
+    <rect x="1040" y="100" width="120" height="80" rx="12" fill="#1d150f" stroke="#e0a13d" stroke-width="1.5"/>
+    <text x="1100" y="135" fill="#F7F5F2" font-size="11.5" text-anchor="middle" font-weight="700">Human review</text>
+    <text x="1100" y="155" fill="#9aaaa1" font-size="10" text-anchor="middle">→ FINAL</text>
+    <line x1="980" y1="140" x2="1040" y2="140" stroke="#D0473E" stroke-width="1.4" marker-end="url(#a3)"/>
+  </svg>
+  </div>
+</section>
+
+<!-- 8 · VOICE AGENT -->
+<section class="slide">
+  <div class="eyebrow">Feature · voice agents (the telecalling substitute)</div>
+  <h1>Telecalling held <em>ROAS 3.5–4</em>. Campaigns fluctuated. This is why.</h1>
+  <p class="lead">Value justification is conversational — duration, benefits, per-pair math are hard to land in static text. The agents reproduce the telecalling mode at zero marginal cost: brand-level "Knickgasm", product-level "Coffee Collection Expert", collection-level guides — voice in, voice out, honest by design.</p>
+  <div class="cols">
+    <div class="box" style="grid-column:span 2">
+      <svg viewBox="0 0 560 210" width="100%">
+        <rect x="0" y="0" width="560" height="210" rx="14" fill="#F7F5F2"/>
+        <rect x="0" y="0" width="560" height="40" rx="14" fill="#6A33D8"/>
+        <text x="20" y="25" fill="#F7F5F2" font-size="12" font-weight="700">🍃 Coffee Collection Expert</text><text x="540" y="25" fill="#D0473E" font-size="10" text-anchor="end">voice &amp; chat · honest answers</text>
+        <rect x="300" y="54" width="240" height="34" rx="10" fill="#6A33D8"/>
+        <text x="316" y="75" fill="#F7F5F2" font-size="10.5">Is it worth ₹2,000? When will I feel it?</text>
+        <rect x="20" y="98" width="380" height="74" rx="10" fill="#fff" stroke="#D0473E66"/>
+        <text x="34" y="118" fill="#111111" font-size="10.5">Honest answer: 2–4 weeks of a daily pair — adaptogens build, they don't hit.</text>
+        <text x="34" y="135" fill="#111111" font-size="10.5">Per serving it's about ₹40 vs ₹350 at a café, packed at origin days after</text>
+        <text x="34" y="152" fill="#111111" font-size="10.5">drop. If your goal is calmer focus, this fits. Want the crafting ritual?</text>
+        <circle cx="40" cy="192" r="11" fill="#c0392b"/><text x="40" y="196" fill="#fff" font-size="10" text-anchor="middle">🎙</text>
+        <text x="60" y="196" fill="#6b6b6b" font-size="9.5">listening… (hands-free mode)</text>
+      </svg>
+    </div>
+    <div class="box"><b>Deploy anywhere</b><div>One script tag on Shopify — theme, collection or product template. <code style="color:#D0473E">data-agent="agent_chai_collection"</code> routes to the right specialist. Mailers + landing pages deep-link to /agent.</div></div>
+    <div class="box"><b>Knowledge</b><div>Catalog-scoped per agent + scraped official knickgasm.com product pages + brand KB. New collection agent = pick catalog slice, done.</div></div>
+  </div>
+</section>
+
+<!-- 9 · ACCURACY -->
+<section class="slide">
+  <div class="eyebrow">Trust · accuracy testing criteria &amp; improvement plan</div>
+  <h1>How we know it's <em>right</em> — and how it gets better</h1>
+  <table class="t">
+    <tr><th>Surface</th><th>Acceptance criteria (launch)</th><th>Measured by</th><th>Improvement loop</th></tr>
+    <tr><td>Analysis engine</td><td>Library scores reproducible from raw metrics; pass-rate 20–60% (filter is meaningful)</td><td>Spot audits vs SQL; smart_brain_runs logs</td><td>Weekly recalibration adjusts thresholds</td></tr>
+    <tr><td>Calendar</td><td>≥80% of tentative slots approved without edits after week 2</td><td>approve/reject ratio in smart_feedback</td><td>Rejections suppress angles; MVT winners boost weights</td></tr>
+    <tr><td>Generated assets</td><td>100% brand-compliant (palette/fonts/banned phrases — enforced in code); ≥70% human approval w/o edits</td><td>Review queue decisions + notes</td><td>Rejection notes fed into next generation prompt</td></tr>
+    <tr><td>Voice agents</td><td>0 medical claims · 0 banned phrases (scrubbed in code) · ≥85% question-resolution sampled weekly</td><td>Transcript audit (smart_agent_messages)</td><td>Persona + knowledge updates; flagged replies → prompt fixes</td></tr>
+    <tr><td>System</td><td>Daily cron success ≥99%; recalibration never &gt;7d (hard-blocked otherwise)</td><td>smart_brain_runs + OVERDUE banner</td><td>Confidence model relaxes review load only on proof</td></tr>
+  </table>
+  <p class="small">A/B at the system level once live: brain-planned vs human-planned weeks, same budget — the MVT loop already records per-variant outcomes.</p>
+</section>
+
+<!-- 10 · IMPACT -->
+<section class="slide">
+  <div class="eyebrow">Impact hypothesis</div>
+  <h1>What we expect it to <em>move</em></h1>
+  <div class="cols">
+    <div class="box"><b>Bandwidth</b><div class="kpi">−70%</div><div>production hours per campaign set; team shifts to verification + strategy</div></div>
+    <div class="box"><b>Send-to-plan latency</b><div class="kpi">90 days → daily</div><div>rolling plan, re-validated every morning against fresh data</div></div>
+    <div class="box"><b>Creative win-rate</b><div class="kpi">+20–30%</div><div>only threshold-passing hooks/angles seed new campaigns; MVT compounds</div></div>
+    <div class="box"><b>Education channel ROAS</b><div class="kpi">~3.5×</div><div>voice agents replicate the telecalling mode that consistently held 3.5–4 while campaigns fluctuated</div></div>
+    <div class="box"><b>Cost</b><div class="kpi">~$0</div><div>free-tier DB + existing Vercel + free LLM tiers in cascade; ElevenLabs optional</div></div>
+    <div class="box"><b>Risk</b><div class="kpi">Gated</div><div>every campaign human-verified at launch; weekly human recalibration is a hard system gate</div></div>
+  </div>
+  <p class="small">Hypotheses, to be validated against the accuracy plan on slide 9 — the system itself records the evidence (runs, decisions, MVT outcomes).</p>
+</section>
+
+<!-- 11 · GO-LIVE -->
+<section class="slide">
+  <div class="eyebrow">Go-live plan</div>
+  <h1>From today to <em>autopilot</em></h1>
+  <div class="cols">
+    <div class="box"><b>Week 0 · now (done)</b><ul><li>Automated Calendar Creation live at /brain on the linked DB (synthetic 24-mo history)</li><li>Daily cron + review queue + voice agents + Shopify widget ready</li></ul></div>
+    <div class="box"><b>Week 1 · real data</b><ul><li>Point linked DB at real exports (Shopify/Klaviyo/ads) — same schema, swap rows</li><li>Harden: service-role key + tight RLS</li><li>First human recalibration; validate cohorts vs known RFM</li></ul></div>
+    <div class="box"><b>Week 2–3 · shadow mode</b><ul><li>Brain plans + generates; team ships manually from generated assets</li><li>Measure approval-without-edit rate; tune thresholds weekly</li><li>Embed agents on 1–2 Shopify PDPs (airbrush first), watch transcripts</li></ul></div>
+    <div class="box"><b>Week 4+ · phase 2</b><ul><li>Klaviyo/WebEngage + Google/Meta/TikTok push adapters on the stored campaign objects</li><li>Real performance flows back into smart_campaign_metrics — loop fully closed</li><li>Flip launch_mode off as confidence crosses 0.85</li></ul></div>
+  </div>
+</section>
+
+<!-- 12 · RECOMMENDATIONS -->
+<section class="slide">
+  <div class="eyebrow">Recommendations · what the data says to do</div>
+  <h1>Where to point the <em>Automated Calendar</em></h1>
+  <p class="lead">Read straight from the live US and UK exports ($1.12M / 20,620 orders US, £818K / 25,001 orders UK). Six plays, each wired to a metric the system already tracks.</p>
+  <div class="cols">
+    <div class="box"><b>1 · Lift the Jan to Jul trough</b><div>Revenue is front-loaded into the Nov/Dec gifting window. The growth job is the off-season: subscription and replenishment on the Coffee Collection franchise (the #1 revenue SKU) build the recurring base.</div></div>
+    <div class="box"><b>2 · Defend the returning base</b><div>Returning-customer rate is 46% US, 36% UK. Protect it with lifecycle flows; the Q4 acquisition spike leaks to churn without a strong second-order nudge.</div></div>
+    <div class="box"><b>3 · Fix AOV compression</b><div>US AOV fell from ~$58 to ~$41 as orders rose, a discount-led, smaller basket. Set free-shipping thresholds just above current AOV, add bundle logic and subscription anchors.</div></div>
+    <div class="box"><b>4 · Ring-fence discounting</b><div>Discounted AOV sits well below full price. Reserve offers for the winback and curious-switcher cohorts; protect full-margin buyers from trained discounts.</div></div>
+    <div class="box"><b>5 · Cross-grade the habit categories</b><div>Kicks and everyday black drive frequency (unit leaders); coffee and functional supplements drive AOV and subscription. Route frequent buyers into the coffee reorder rhythm.</div></div>
+    <div class="box"><b>6 · Send on the strong days</b><div>Weight primary sends and paid pushes to the top two revenue days of the week; keep the weakest day for light re-engagement.</div></div>
+  </div>
+  <p class="small">Every play maps to a cohort the calendar already plans against and a metric it already logs, so the recommendation and its measurement live in the same system.</p>
+</section>
+
+<!-- 13 · ASSET APPROACH -->
+<section class="slide">
+  <div class="eyebrow">Recommendations · the approach every asset follows</div>
+  <h1>How every asset gets <em>built</em></h1>
+  <p class="lead">One approach across mailers, landing pages, ads and everything else: plan the slot from data, write two diverging framework directions, gate on brand, pre-build so it just loads, and keep a human in the loop.</p>
+  <table class="t">
+    <tr><th>Asset</th><th>What gets generated</th><th>The rule</th></tr>
+    <tr><td>Mailers</td><td>4 variants: 2 Text and 2 Text + Visual, each labelled by copy framework (AIDA, Star-Story-Solution, and so on)</td><td>Two diverging framework directions per slot; real catalog hero image; Klaviyo-ready HTML</td></tr>
+    <tr><td>Landing pages</td><td>An A/B pair, served at /lp/:id and ?v=b</td><td>A is proof-led with a generated hero; B is story-led with the real product photo</td></tr>
+    <tr><td>Ads (Meta / Google / TikTok)</td><td>A/B per platform: product-led and benefit-led</td><td>Distinct copy per variant; text-free images (diffusion cannot spell); composed platform-native</td></tr>
+    <tr><td>All assets</td><td>Copy and creative pre-built per calendar slot and persisted to load instantly</td><td>Brand-gated in code (four-colour palette, Montserrat / Instrument Sans, banned phrases, no em dashes); human verifies, approves, ships</td></tr>
+  </table>
+  <p class="small">The bar is the UK Non-Engagers hub: bespoke, distinct per variant, already generated to just load. All three calendars now generate to that bar.</p>
+</section>
+
+<!-- 14 · SAAS -->
+<section class="slide">
+  <div class="eyebrow">Where this goes</div>
+  <h1>KNICKGASM first. <em>SaaS later.</em></h1>
+  <p class="lead">Nothing in the brain is KNICKGASM-specific by code — brand kit, thresholds, catalog, agents and calendars are all rows in a database. Multi-tenancy is "one linked DB per brand" away. The wedge: D2C brands with scattered campaign history, no analyst bandwidth, and a price-justification problem — exactly what we solved for ourselves.</p>
+  <div class="cols">
+    <div class="box"><b>Productizable today</b><div>config-driven modules · platform-ready output schema · embeddable agents · HITL workflow</div></div>
+    <div class="box"><b>Needed for SaaS</b><div>tenant auth &amp; isolation · data connectors (Shopify/Klaviyo/Meta OAuth) · billing · SOC2 posture</div></div>
+    <div class="box"><b>Pricing instinct</b><div>per-brand platform fee + per-generated-campaign or per-agent-conversation usage</div></div>
+  </div>
+  <p class="lead" style="margin-top:22px;color:var(--lava)">Live: <u>/brain</u> · <u>/agent</u> · this deck: <u>/deck</u></p>
+</section>
+
+<div class="nav"><span id="pg"></span><button id="prev">←</button><button id="next">→</button></div>
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide')),i=0;
+  function show(n){ i=(n+slides.length)%slides.length; slides.forEach(function(s,k){s.classList.toggle('on',k===i);}); document.getElementById('pg').textContent=(i+1)+' / '+slides.length; }
+  document.getElementById('prev').onclick=function(){show(i-1);};
+  document.getElementById('next').onclick=function(){show(i+1);};
+  document.addEventListener('keydown',function(e){ if(e.key==='ArrowRight'||e.key===' ')show(i+1); if(e.key==='ArrowLeft')show(i-1); });
+  show(0);
+})();
+</script>
+</body>
+</html>

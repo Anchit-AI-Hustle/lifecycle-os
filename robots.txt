@@ -1,0 +1,9 @@
+# KNICKGASM Lifecycle OS — internal growth/lifecycle operations tool.
+# This is a private, sign-in-gated application, not a public website.
+# Do not index or crawl any of it (the live customer store is knickgasm.com).
+User-agent: *
+Disallow: /
+# Legal pages must stay fetchable (Google OAuth branding verification checks
+# the privacy policy + terms URLs, and they carry no private data).
+Allow: /privacy.html
+Allow: /terms.html

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design Intelligence — KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<script src="/data/design-intelligence.js" defer></script>
+<script src="/auth.js?v=20260718light" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:#ffffff;color:#111111;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 70px}
+  .eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#7a5f28;font-weight:800;margin-bottom:10px}
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:#6A33D8}
+  h1{font-family:'Lora',serif;font-size:32px;font-weight:600;color:#111111}
+  h1 em{font-style:italic;color:#7a5f28}
+  .sub{color:#556059;font-size:13.5px;margin-top:6px;max-width:820px;line-height:1.6}
+  h2{font-family:'Lora',serif;font-size:22px;color:#111111;margin:34px 0 4px}
+  .h2sub{color:#556059;font-size:12.5px;margin-bottom:14px}
+  /* sources */
+  .srcgrid{display:grid;grid-template-columns:1fr;gap:10px}
+  .src{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#fff;border:1px solid rgba(171,135,67,.2);border-radius:12px;padding:12px 14px}
+  .src .nm{font-weight:700;color:#111111;font-size:14px}
+  .src .note{color:#556059;font-size:12px;margin-top:2px}
+  .src .tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#7a5f28;background:rgba(171,135,67,.14);padding:2px 8px;border-radius:99px;white-space:nowrap}
+  .src a{color:#7a5f28;font-weight:700;text-decoration:none;font-size:12.5px;white-space:nowrap}
+  /* variation cards */
+  .vgrid{display:grid;grid-template-columns:1fr;gap:14px}
+  .vcard{background:#fff;border:1px solid rgba(171,135,67,.22);border-left-width:4px;border-left-color:#6A33D8;border-radius:14px;padding:16px 18px}
+  .vcard .vh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .vcard .vn{font-family:'Lora',serif;font-size:18px;color:#111111}
+  .vcard .vb{font-size:11px;color:#7a5f28;font-weight:700}
+  .vcard .row{font-size:12.5px;line-height:1.5;margin-top:7px;color:#333d37}
+  .vcard .row b{color:#48524c;text-transform:uppercase;font-size:10px;letter-spacing:.06em;display:inline-block;min-width:64px}
+  .num{display:inline-block;width:22px;height:22px;border-radius:50%;background:#6A33D8;color:#F7F5F2;text-align:center;line-height:22px;font-size:12px;font-weight:800;margin-right:6px}
+  .note{font-size:12px;color:#556059;background:rgba(171,135,67,.05);border:1px solid rgba(171,135,67,.16);border-radius:10px;padding:12px 14px;margin-top:14px;line-height:1.6}
+  .note b{color:#111111}
+  a.back{color:#7a5f28;font-weight:700;text-decoration:none;font-size:13px}
+  @media (min-width:721px){ .srcgrid{grid-template-columns:1fr 1fr} .vgrid{grid-template-columns:1fr 1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow"><span class="dot"></span> Research &amp; Benchmark · Design Intelligence</div>
+  <h1>Trending, conversion-first <em>design directives</em></h1>
+  <p class="sub">Studied from the leading design + ad-library platforms and grounded in current (2026) conversion research, these are the design variations to pull from when generating mailers, landing pages, and paid ads in the calendar. Each asset type below carries 3-4 variations — layout, hook, proof placement and CTA. These are synthesised patterns, not copies of any competitor's creative, and every generated asset still obeys the KNICKGASM brand system and zero-fabrication rules.</p>
+
+  <h2>Source platforms</h2>
+  <div class="h2sub">Where the intelligence comes from, by asset type.</div>
+  <div class="srcgrid" id="sources"></div>
+
+  <div id="assets"></div>
+
+  <div class="note">
+    <b>How this feeds generation.</b> The same directives power asset generation: the calendar / studios request a design variation per asset, and the generator injects that directive into its prompt (see <code>data/design-intelligence.js</code> → <code>directivePrompt()</code>). So each mailer, landing page, and Google / Meta / TikTok ad can be produced in 3-4 on-trend variations to pick from.
+    <div style="margin-top:8px"><a class="back" href="/competitor-benchmarking.html">← Back to Competitor Benchmarking</a></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});}
+  function render(){
+    var D=window.__DESIGN_INTEL; if(!D){ setTimeout(render,80); return; }
+    // Sources
+    document.getElementById('sources').innerHTML=D.SOURCES.map(function(s){
+      var labels=(s.covers||[]).map(function(k){var a=D.ASSETS.filter(function(x){return x.key===k;})[0];return a?a.label:k;}).join(', ');
+      var ext=/^https?:/.test(s.url);
+      return '<div class="src"><div><div class="nm">'+esc(s.name)+'</div><div class="note">'+esc(s.note)+'</div></div>'
+        +'<div style="text-align:right"><span class="tag">'+esc(labels)+'</span><br><a href="'+esc(s.url)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>Open →</a></div></div>';
+    }).join('');
+    // Assets → 3-4 variations each
+    document.getElementById('assets').innerHTML=D.ASSETS.map(function(a){
+      var vs=D.variationsFor(a.key);
+      var cards=vs.map(function(v,i){
+        return '<div class="vcard"><div class="vh"><span class="num">'+(i+1)+'</span><span class="vn">'+esc(v.name)+'</span><span class="vb">'+esc(v.bestFor)+'</span></div>'
+          +'<div class="row"><b>Layout</b> '+esc(v.layout)+'</div>'
+          +'<div class="row"><b>Hook</b> '+esc(v.hook)+'</div>'
+          +'<div class="row"><b>Proof</b> '+esc(v.proof)+'</div>'
+          +'<div class="row"><b>CTA</b> '+esc(v.cta)+'</div></div>';
+      }).join('');
+      return '<h2>'+esc(a.label)+'</h2><div class="h2sub">'+vs.length+' design variations</div><div class="vgrid">'+cards+'</div>';
+    }).join('');
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',render); else render();
+})();
+</script>
+</body>
+</html>

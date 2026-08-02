@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en" data-theme="green">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retention Playbook — KNICKGASM Lifecycle OS</title>
+<style>
+  :root{
+    --knickgasm-green:#6A33D8; --knickgasm-lava:#D0473E; --knickgasm-ink:#111111; --knickgasm-chalk:#F7F5F2;
+    --font-head:"Montserrat",Georgia,"Times New Roman",serif;
+    --font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+    --bg:#06120d; --panel:#0b1a13; --hair:rgba(171,135,67,.22); --muted:#556059; --lava:var(--knickgasm-lava);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#111111;font-family:var(--font-body);line-height:1.55}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+  h1,h2,h3,.eyebrow{font-family:var(--font-head)}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--lava);font-weight:700}
+  .num{font-variant-numeric:tabular-nums}
+  section{padding:26px 0}
+  h1{font-size:clamp(26px,4vw,40px);color:#6A33D8;margin:8px 0 6px;text-wrap:balance}
+  .lede{color:var(--muted);max-width:70ch;margin:0}
+  .card{background:var(--panel);border:1px solid var(--hair);border-radius:14px;padding:16px 18px}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0 6px}
+  @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .tile .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .tile .v{font-family:var(--font-head);font-size:23px;color:#D0473E;margin-top:6px}
+  .tile .d{font-size:12px;color:var(--muted);margin-top:2px}
+  .filters{display:flex;flex-direction:column;gap:8px;margin:16px 0 10px}
+  .frow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .frow>.lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px;min-width:74px}
+  .chip{border:1px solid rgba(171,135,67,.4);background:transparent;color:#111111;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+  .chip:hover{border-color:var(--lava);color:#6A33D8}
+  .chip.on{background:var(--knickgasm-green);color:#fff;border-color:var(--lava)}
+  .cnt{color:#48524c;font-size:12px;margin-left:6px}
+  .tblscroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px}
+  th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair);white-space:nowrap}
+  td{padding:12px 12px;border-bottom:1px solid rgba(171,135,67,.12);vertical-align:top}
+  td.obj{font-weight:600;color:#111111;max-width:220px}
+  td .sub{color:var(--muted);font-size:12px}
+  .pill{display:inline-block;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:#7a5f28}
+  .slotbadge{display:inline-block;background:#2a2411;color:#7a5f28;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+  .note{color:var(--muted);font-size:12.5px}
+</style>
+<script src="/auth.js?v=20260718light" defer></script>
+</head>
+<body>
+<main class="wrap">
+  <section>
+    <div class="eyebrow">KNICKGASM Lifecycle OS · Plan</div>
+    <h1>The Retention Revenue Playbook</h1>
+    <p class="lede">A rolling, segmented send plan built backward from the daily revenue target: up to three mutually exclusive cohort mailers per day, frequency-safe, matched to the moment a subscriber reaches for the kit. Filter by region, duration, and catalog, exactly like the Automated Calendar.</p>
+
+    <div class="stats">
+      <div class="card tile"><div class="k">Daily revenue target</div><div class="v num">$1,000 to $1,500</div><div class="d">~24 to 36 orders/day</div></div>
+      <div class="card tile"><div class="k">Avg order value</div><div class="v num">$42 to $43</div><div class="d">bundle-led basket</div></div>
+      <div class="card tile"><div class="k">Daily active reach</div><div class="v num">~111,000</div><div class="d">3 sends of ~37k</div></div>
+      <div class="card tile"><div class="k">Open / CTR / CVR</div><div class="v num">50-75% · 1-2% · 3%</div><div class="d">planning assumptions</div></div>
+      <div class="card tile"><div class="k">Frequency cap</div><div class="v num">2 to 3 / wk</div><div class="d">per subscriber</div></div>
+    </div>
+    <p class="note">Capacity note: ~111k profiles at 2 sends/week is ~31,700 deliveries/day, so days reduce or delay when eligibility is short (a cohort is never forced to size). The percentages above are planning assumptions, replaced with validated medians once live ESP data is wired.</p>
+  </section>
+
+  <section class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between">
+      <div style="flex:1;min-width:240px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="engdot" style="width:9px;height:9px;border-radius:50%;background:#0a7d33;display:inline-block"></span>
+          <b style="color:#111111">Agentic engine</b>
+          <span id="engstatus" class="note">idle</span>
+        </div>
+        <div id="engbar" style="height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;display:none"><i style="display:block;height:100%;width:38%;background:linear-gradient(90deg,#1d6b45,#0a7d33)"></i></div>
+        <div id="engmsg" class="note" style="margin-top:6px">Plan a fresh calendar and write its content for the region selected below, without leaving this screen. Heavy generation runs in the background, so the filters stay responsive.</div>
+      </div>
+      <button id="syncbtn" class="chip" style="background:var(--knickgasm-green);color:#fff;border-color:var(--lava);padding:9px 18px;font-size:13px" onclick="runAgenticSync()">Run Agentic Sync</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <h2 style="margin:0">Segmented calendar</h2>
+      <a class="chip" href="/brain">Open in Automated Calendar →</a>
+    </div>
+    <div class="filters">
+      <div class="frow"><span class="lbl">Region</span>
+        <button class="chip" data-mkt="all" onclick="toggleMkt('all')">All</button>
+        <button class="chip on" data-mkt="US" onclick="toggleMkt('US')">US</button>
+        <button class="chip" data-mkt="UK" onclick="toggleMkt('UK')">UK</button>
+        <button class="chip" data-mkt="Global" onclick="toggleMkt('Global')">Global</button>
+        <button class="chip" data-mkt="India" onclick="toggleMkt('India')">India</button>
+      </div>
+      <div class="frow"><span class="lbl">Duration</span>
+        <button class="chip" data-dur="7" onclick="setDur(7)">Next 7 days</button>
+        <button class="chip" data-dur="30" onclick="setDur(30)">30 days</button>
+        <button class="chip" data-dur="60" onclick="setDur(60)">60 days</button>
+        <button class="chip on" data-dur="90" onclick="setDur(90)">90 days</button>
+        <button class="chip" data-dur="all" onclick="setDur('all')">All</button>
+      </div>
+      <div class="frow"><span class="lbl">Catalog</span>
+        <button class="chip on" data-cat="sneaker" onclick="toggleCat('sneaker')">Sneakers &amp; Botanicals</button>
+        <button class="chip on" data-cat="coffee" onclick="toggleCat('coffee')">Coffee Collection</button>
+        <button class="chip on" data-cat="supplement" onclick="toggleCat('supplement')">Supplements</button>
+        <span class="cnt" id="cnt"></span>
+      </div>
+    </div>
+    <div class="tblscroll">
+      <table>
+        <thead><tr><th>Date</th><th>Region</th><th>Cohort</th><th>Objective · Hero</th><th>Channels</th><th>Reach</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="6" class="note">Loading the plan…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">Rows come from the live Automated Calendar plan. Full per-slot mailers, ads and landing pages are built and downloaded from <a href="/brain" style="color:#0a7d33">the Automated Calendar</a>.</p>
+  </section>
+</main>
+
+<script>
+(function(){
+  // Plan rows come from the calendar router (smart-brain-plan lives on /api/calendar,
+  // NOT /api/brain — the latter returns "Unknown action", which left this table
+  // empty). The agentic sync below fires /api/brain?action=agentic-run separately.
+  var API='/api/calendar'; var PLAN=[];
+  var SELECTED_MKT=new Set(['US']); var SELECTED_DAYS=90; var SELECTED_CAT=new Set(['sneaker','coffee','supplement']);
+  function $(id){return document.getElementById(id);}
+  function mktKey(m){var s=String(m||'').toLowerCase();if(s.indexOf('uk')===0)return 'UK';if(s.indexOf('us')===0)return 'US';if(/^in|india/.test(s))return 'India';if(/global|eu|au|me|row|rest/.test(s))return 'Global';return (m||'').toUpperCase();}
+  function mktVisible(e){return SELECTED_MKT.size===0||SELECTED_MKT.has(mktKey(e.market));}
+  function durVisible(e){if(SELECTED_DAYS==='all')return true;var t=new Date().toISOString().slice(0,10);var end=new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10);return !e.date||(e.date>=t&&e.date<=end);}
+  function catBucket(e){var hp=e.heroProduct||{};var s=((hp.title||hp.name||'')+' '+(hp.category||hp.type||'')+' '+(e.theme||'')).toLowerCase();if(/coffee|cold craft|espresso|latte/.test(s))return 'coffee';if(/supplement|capsule|tablet|gummies|gummy|curcumin|\d+\s*mg|ksm-?66|magnesium|probiotic|collagen|shilajit/.test(s))return 'supplement';return 'sneaker';}
+  function catVisible(e){return SELECTED_CAT.size===0||SELECTED_CAT.has(catBucket(e));}
+  function slotVisible(e){return mktVisible(e)&&durVisible(e)&&catVisible(e);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  window.toggleMkt=function(m){if(m==='all')SELECTED_MKT.clear();else{if(SELECTED_MKT.has(m))SELECTED_MKT.delete(m);else SELECTED_MKT.add(m);}document.querySelectorAll('[data-mkt]').forEach(function(b){var k=b.dataset.mkt;b.classList.toggle('on',k==='all'?SELECTED_MKT.size===0:SELECTED_MKT.has(k));});render();};
+  window.setDur=function(d){SELECTED_DAYS=(d==='all')?'all':Number(d);document.querySelectorAll('[data-dur]').forEach(function(b){b.classList.toggle('on',String(b.dataset.dur)===String(d));});render();};
+  window.toggleCat=function(c){if(SELECTED_CAT.has(c)){if(SELECTED_CAT.size===1)return;SELECTED_CAT.delete(c);}else SELECTED_CAT.add(c);document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.toggle('on',SELECTED_CAT.has(b.dataset.cat));});render();};
+  function render(){
+    var shown=PLAN.filter(slotVisible);
+    var cc=$('cnt'); if(cc) cc.textContent='Showing '+shown.length+' of '+PLAN.length+' sends'+(SELECTED_DAYS==='all'?'':' · next '+SELECTED_DAYS+' days');
+    if(!PLAN.length){ $('rows').innerHTML='<tr><td colspan="6" class="note">No plan yet. Click <b>Run Agentic Sync</b> above to build one (or open the Automated Calendar).</td></tr>'; return; }
+    if(!shown.length){ $('rows').innerHTML='<tr><td colspan="6" class="note">No sends for the selected region + duration + catalog. Widen a filter.</td></tr>'; return; }
+    $('rows').innerHTML=shown.map(function(e){
+      var reach=e.reach&&e.reach.planned_recipients?Number(e.reach.planned_recipients).toLocaleString():'—';
+      return '<tr>'+
+        '<td>'+esc(e.date)+(e.mailer_total>1?'<br><span class="slotbadge">MAILER '+e.mailer_index+'/'+e.mailer_total+'</span>':'')+'</td>'+
+        '<td><b>'+esc(e.market)+'</b></td>'+
+        '<td>'+esc(e.cohort&&e.cohort.name||'')+'<div class="sub">'+((e.cohort&&e.cohort.size)!=null?esc(e.cohort.size)+' profiles':'')+'</div></td>'+
+        '<td class="obj">'+esc(e.objective||'')+'<div class="sub">'+esc((e.heroProduct&&e.heroProduct.title)||'')+'</div></td>'+
+        '<td>'+((e.channels||[]).map(function(c){return '<span class="pill">'+esc(c)+'</span>';}).join(''))+'</td>'+
+        '<td class="num">'+reach+'</td>'+
+      '</tr>';
+    }).join('');
+  }
+  function load(){
+    fetch(API+'?action=smart-brain-plan').then(function(r){return r.json();}).then(function(j){
+      PLAN=(j&&j.entries)||[]; render();
+    }).catch(function(e){ $('rows').innerHTML='<tr><td colspan="6" class="note">Could not load the plan: '+esc(e.message)+'</td></tr>'; });
+  }
+  // Region for the agentic run comes from the region chips (single source of truth).
+  function agenticMarket(){ var m=Array.from(SELECTED_MKT)[0]||'US'; return ({US:'US',UK:'UK',Global:'GLOBAL',India:'IN'})[m]||'US'; }
+  // Command-and-control: trigger the full agentic flow (plan the calendar + write
+  // content) right from the Playbook. The heavy run is async on /api/brain; when it
+  // returns we re-pull the plan table (the static-page equivalent of router.refresh).
+  window.runAgenticSync=function(){
+    var btn=$('syncbtn'), st=$('engstatus'), dot=$('engdot'), bar=$('engbar'), msg=$('engmsg');
+    if(btn){ btn.disabled=true; btn.textContent='Running…'; }
+    if(dot) dot.style.background='#7a5f28';
+    if(st) st.textContent='running · '+agenticMarket();
+    if(bar) bar.style.display='';
+    if(msg) msg.textContent='Inspecting data, calculating funnel math, planning the calendar and writing content…';
+    fetch('/api/brain?action=agentic-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({market:agenticMarket(),tier:'maxpower',withCreatives:false})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.ok) throw new Error(d.error||'agentic flow failed');
+        var stages=(d.stages||[]).filter(function(s){return s.ok;}).length;
+        if(st) st.textContent='synced'; if(dot) dot.style.background='#0a7d33';
+        if(msg) msg.textContent='Flow complete — '+stages+' stages ran. Creative assets (mailers, ads, landing pages) prebuild in the background; refreshing the plan…';
+        load();
+      })
+      .catch(function(e){ if(st) st.textContent='error'; if(dot) dot.style.background='#e89a9a'; if(msg) msg.textContent='Sync failed: '+esc(e.message); })
+      .finally(function(){ if(btn){ btn.disabled=false; btn.textContent='Run Agentic Sync'; } if(bar) bar.style.display='none'; });
+  };
+  document.addEventListener('DOMContentLoaded', load);
+})();
+</script>
+</body>
+</html>

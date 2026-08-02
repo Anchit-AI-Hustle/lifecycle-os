@@ -1,0 +1,1253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Competitor Benchmarking · KNICKGASM Lifecycle OS</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#6A33D8">
+  <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="/auth.js?v=20260718light" defer></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
+    @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #D0473E; font-weight: 600; margin-bottom: 10px; }
+    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
+    h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+    h1 em { font-style: italic; color: #D0473E; }
+    .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 22px 0; }
+    @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 12px; padding: 16px 18px; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .stat:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(171,135,67,0.12); border-color: rgba(171,135,67,0.4); }
+    .stat .v { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; color: #111111; }
+    .stat .l { font-size: 11px; color: #556059; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .search { position: relative; flex: 1; min-width: 220px; max-width: 420px; }
+    .search input { width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 9px 11px 9px 34px; font-size: 13px; font-family: inherit; }
+    .search input:focus { outline: none; border-color: #D0473E; }
+    .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: #48524c; }
+    .toolbar { row-gap: 14px; column-gap: 18px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .filters .live { margin-left: 4px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
+    select, .chk { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
+    .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #556059; }
+    .chk input { accent-color: #D0473E; }
+    .btn-ghost { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; border-radius: 9px; padding: 8px 11px; cursor: pointer; font-family: inherit; }
+    .btn-ghost:hover { border-color: #D0473E; color: #111111; }
+    .live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #16a34a; font-weight: 600; }
+    .live.stale { color: #48524c; }
+    .live .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: lp 1.8s ease-in-out infinite; }
+    @keyframes lp { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .table-wrap { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+    table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
+    thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; font-weight: 600; padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #eef3f0; }
+    thead th.sortable { cursor: pointer; }
+    thead th.sortable:hover { color: #111111; }
+    tbody td { padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.08); vertical-align: middle; }
+    tbody tr:hover { background: rgba(171,135,67,0.05); }
+    .brand { font-weight: 600; color: #111111; }
+    .subj { color: #556059; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Touch-friendly tap targets on mobile + swipe hint that there's more table to the right. */
+    @media (max-width: 620px) {
+      .table-wrap { position: relative; }
+      .table-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 24px;
+        background: linear-gradient(to right, transparent, #ffffff); pointer-events: none; border-radius: 0 14px 14px 0; }
+      .subj { max-width: 200px; }
+      tbody td, thead th { padding: 10px 11px; }
+      .a-btn { padding: 8px 10px; font-size: 12px; }
+    }
+    .date { color: #48524c; white-space: nowrap; font-size: 12px; }
+    .code { display: inline-block; background: rgba(34,197,94,0.14); color: #0a7d33; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 99px; margin: 1px; }
+    .files { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #556059; background: rgba(171,135,67,0.12); padding: 2px 8px; border-radius: 99px; }
+    .muted { color: #3f4d45; }
+    .actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .a-btn { font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; font-family: inherit; text-decoration: none; }
+    .a-prev { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
+    .a-prev:hover { border-color: #D0473E; color: #111111; }
+    .a-detail { background: #D0473E; color: #ffffff; }
+    .a-detail:hover { opacity: 0.92; }
+    .empty { padding: 40px; text-align: center; color: #48524c; }
+    .count { margin-top: 12px; font-size: 11.5px; color: #48524c; }
+
+    /* ── Detail / Preview shared content ── */
+    .d-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 16px; }
+    .d-meta div { font-size: 12.5px; color: #556059; }
+    .d-meta .k { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; display: block; }
+    .d-section { margin-bottom: 18px; }
+    .d-section .sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .d-section .sh h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; }
+    .d-section .sh .ops { display: flex; gap: 6px; }
+    /* Email HTML is usually authored at 600–640px. On narrow screens we let
+       the user pinch + horizontally swipe inside the rendered frame rather
+       than crushing the layout. */
+    .frame-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: auto; background: #fff; -webkit-overflow-scrolling: touch; }
+    .frame-wrap iframe { width: 100%; min-width: 600px; border: 0; display: block; background: #fff; }
+    .shot-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: auto; background: #fff; -webkit-overflow-scrolling: touch; }
+    .shot-wrap img { width: 100%; max-width: 100%; height: auto; display: block; }
+    @media (max-width: 620px) {
+      .frame-wrap iframe { min-width: 100%; }
+    }
+    .ph { padding: 30px; text-align: center; color: #48524c; font-size: 12.5px; background: #eef3f0; border: 1px dashed rgba(171,135,67,0.2); border-radius: 10px; }
+    pre.body { max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; background: #eef3f0; border: 1px solid rgba(171,135,67,0.14); border-radius: 10px; padding: 14px; font-family: inherit; font-size: 12.5px; line-height: 1.6; color: #111111; }
+
+    /* ── Preview modal ── */
+    #pm, #jm, #fcm { position: fixed; inset: 0; z-index: 9500; display: none; }
+    #pm.open, #jm.open, #fcm.open { display: block; }
+    #pm .bk, #jm .bk, #fcm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
+    #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background: #f4f2ec; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #jm .mc, #fcm .mc { inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; height: auto; max-height: 90vh; }
+    #pm .mh, #jm .mh, #fcm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
+    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #D0473E; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #pm .mh .t, #jm .mh .t, #fcm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pm .mh .sp, #jm .mh .sp, #fcm .mh .sp { flex: 1; }
+    #pm .mb, #jm .mb, #fcm .mb { flex: 1; overflow-y: auto; padding: 18px; }
+    .form-grp { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-grp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; }
+    .form-grp input, .form-grp select { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px; color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
+    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #D0473E; }
+    /* Brand-detail modal — mirrors the #pm preview modal chrome. */
+    #bm { position: fixed; inset: 0; z-index: 9500; display: none; }
+    #bm.open { display: block; }
+    #bm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
+    #bm .mc { position: absolute; inset: 4vh 4vw; background: #f4f2ec; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #bm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
+    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #D0473E; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #bm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #bm .mh .sp { flex: 1; }
+    #bm .mb { flex: 1; overflow-y: auto; padding: 18px; }
+    /* Landing sub-tabs, groups, and follow chips */
+    .lp-subtab.active { background: #6A33D8; color: #F7F5F2; border-color: #6A33D8; }
+    .lp-group { margin-top: 20px; }
+    .lp-group-h { font-family: 'Lora', serif; color: #6A33D8; font-size: 17px; margin: 0 0 10px; }
+    .follow-wrap { display: inline-flex; gap: 6px; }
+    .follow-chip { font: inherit; font-size: 11px; font-weight: 700; border: 1px solid rgba(171,135,67,0.4); background: #fff; color: #7a5f28; border-radius: 99px; padding: 3px 9px; cursor: pointer; }
+    .follow-chip.on { background: #6A33D8; color: #F7F5F2; border-color: #6A33D8; }
+    .follow-chip:disabled { opacity: 0.5; cursor: default; }
+    .brand-link { cursor: pointer; }
+    /* On a phone, use the entire screen so the email render gets every pixel. */
+    @media (max-width: 620px) {
+      #pm .mc { inset: 0; border-radius: 0; border: none; }
+      #pm .mh { padding: 10px 12px; gap: 8px; }
+      #pm .mh .badge { display: none; }
+      #pm .mh .t { font-size: 14px; }
+      #pm .mb { padding: 12px; }
+      .pm-act { padding: 7px 10px; font-size: 12px; }
+      .pm-close { width: 32px; height: 32px; }
+    }
+    .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
+    .pm-detail { background: #D0473E; color: #ffffff; }
+    .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
+
+    /* ── Section sub-nav (Mailers | Ads) + header CTAs ── */
+    .cb-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 20px; margin-top: 22px; }
+    .subnav { display: inline-flex; gap: 4px; padding: 4px; background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .snav { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #556059; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
+    .snav:hover { color: #111111; }
+    .snav.active { color: #111111; background: rgba(171,135,67,0.16); }
+    .cb-cta-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    .cb-cta { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; white-space: nowrap; }
+    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #D0473E; }
+    .cb-cta-ghost:hover { border-color: #D0473E; color: #7a5f28; }
+    .cb-cta-solid { background: #D0473E; color: #ffffff; }
+    .cb-cta-solid:hover { opacity: 0.92; }
+    @media (max-width: 620px) { .cb-actions { gap: 12px; } .cb-cta-group { width: 100%; } .cb-cta { flex: 1; text-align: center; } }
+
+    /* ── Ads view ── */
+    #ads-view { display: none; margin-top: 22px; }
+    .ads-note { background: rgba(171,135,67,0.06); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(171,135,67,0.18); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #556059; line-height: 1.55; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .ad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .ad-card { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 12px; padding: 16px; position: relative; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .ad-card:hover { transform: translateY(-4px); border-color: rgba(171,135,67,0.45); box-shadow: 0 12px 32px rgba(171,135,67,0.15); }
+    .ad-card h4 { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; color: #111111; margin-bottom: 12px; }
+    .ad-card .ad-x { position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: #48524c; cursor: pointer; font-size: 15px; }
+    .ad-card .ad-x:hover { color: #ef4444; }
+    .ad-src { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); color: #556059; text-decoration: none; font-size: 12.5px; margin-bottom: 7px; transition: all .14s; }
+    .ad-src:hover { border-color: #D0473E; color: #111111; background: rgba(171,135,67,0.06); }
+    .ad-src .src-ic { width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .src-meta { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .src-google { background: rgba(234,179,8,0.18); color: #fde047; }
+    .src-tiktok { background: rgba(236,72,153,0.18); color: #f9a8d4; }
+    .ad-thumbs { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:8px; }
+    .ad-thumb { display:block; border:1px solid rgba(171,135,67,0.18); border-radius:8px; overflow:hidden; text-decoration:none; background:#ffffff; }
+    .ad-thumb img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#ffffff; }
+    .ad-thumb .ad-cap { font-size:10.5px; color:#556059; padding:5px 7px; line-height:1.35; }
+    .ad-loading { font-size:12px; color:#556059; }
+
+    /* ── Full detail view (?id=) ── */
+    #detail { display: none; }
+    body.detail-mode #list-view,
+    body.detail-mode #ads-view,
+    body.detail-mode #brands-view,
+    body.detail-mode #landing-view,
+    body.detail-mode #insights-view,
+    body.detail-mode #cb-head { display: none; }
+    body.detail-mode #detail { display: block; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: #D0473E; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+    .detail-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Shared header + section sub-nav (double-layer secondary) -->
+  <div id="cb-head">
+    <div class="eyebrow"><span class="dot"></span> Competitor Intelligence</div>
+    <h1>Competitor <em>Benchmarking</em></h1>
+    <div class="sub" id="cb-sub">Benchmark any competitor across their whole lifecycle — discover new brands, then track their mailers, Meta / Google / TikTok ads, and landing pages. All from free, public sources.</div>
+    <div class="cb-actions">
+      <div class="subnav" id="subnav">
+        <button class="snav" data-sec="discover">🔍 Discover Brands</button>
+        <button class="snav" data-sec="mailers">✉ Mailers</button>
+        <button class="snav" data-sec="meta">Meta Ads</button>
+        <button class="snav" data-sec="google">Google Ads</button>
+        <button class="snav" data-sec="tiktok">TikTok Ads</button>
+        <button class="snav" data-sec="landing">▦ Landing Pages</button>
+        <button class="snav" data-sec="insights">📊 Insights</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ MAILERS (LIST) VIEW ════ -->
+  <div id="list-view">
+    <section class="stats" id="stats"></section>
+
+    <div class="toolbar">
+      <div class="search">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="search" type="text" placeholder="Search brand, subject, or body…">
+      </div>
+      <div class="filters">
+        <select id="brandFilter"><option value="">All platforms</option></select>
+        <label class="chk"><input id="promoOnly" type="checkbox"> Promo only</label>
+        <label class="chk"><input id="attachOnly" type="checkbox"> Has files</label>
+        <span id="live" class="live" title="Auto-syncs new mail">● Live</span>
+        <a class="btn-ghost" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener" title="Open the source inbox in Gmail">Gmail ↗</a>
+        <a id="btnMilled" class="btn-ghost" href="https://milled.com/" target="_blank" rel="noopener" title="Search Milled for competitor mailers">Milled ↗</a>
+        <a id="btnRGE" class="btn-ghost" href="https://reallygoodemails.com/" target="_blank" rel="noopener" title="Search ReallyGoodEmails">ReallyGoodEmails ↗</a>
+        <a id="btnMailCharts" class="btn-ghost" href="https://www.mailcharts.com/" target="_blank" rel="noopener" title="Search MailCharts">MailCharts ↗</a>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="sortable" data-sort="brand">Brand</th>
+          <th>Subject</th>
+          <th class="sortable" data-sort="receivedAt">Date ▼</th>
+          <th>Promo</th>
+          <th>Files</th>
+          <th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="empty" class="empty" style="display:none">No emails match your filters yet.</div>
+    </div>
+    <p id="count" class="count"></p>
+  </div>
+
+  <!-- ════ DETAIL VIEW ════ -->
+  <div id="detail">
+    <a class="back" href="/competitor-benchmarking.html">← All competitor emails</a>
+    <div class="eyebrow"><span class="dot"></span> <span id="dv-brand"></span></div>
+    <h1 id="dv-subject" style="font-size:24px"></h1>
+    <div class="d-meta" id="dv-meta" style="margin-top:14px"></div>
+    <div class="d-section">
+      <div class="sh"><h4>Email (as received)</h4><div class="ops">
+        <button class="a-btn a-prev" id="dv-html-open">Open in new tab</button>
+        <button class="a-btn a-prev" id="dv-html-dl">Download .html</button>
+      </div></div>
+      <div id="dv-html-wrap"></div>
+    </div>
+    <div id="dv-shot"></div>
+    <div class="d-section">
+      <h4 style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#48524c;font-weight:600;margin-bottom:8px">Body (plain text)</h4>
+      <pre class="body" id="dv-body"></pre>
+    </div>
+    <div class="d-section" id="dv-assets"></div>
+  </div>
+
+  <!-- ════ ADS VIEW ════ -->
+  <div id="ads-view">
+    <div class="ads-note" id="adsNote">
+      Browse competitor ads from <b>free public ad libraries</b>. Pick a region, manage the brands you track, and open any source pre-filtered for that brand. Automated capture (storing creatives like we do for mailers) is on the roadmap — for now these deep-link straight into each library.
+    </div>
+
+    <div class="toolbar">
+      <div class="filters">
+        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#48524c;font-weight:600">Region</span>
+        <select id="adRegion">
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
+          <option value="IN">India</option>
+          <option value="AU">Australia</option>
+          <option value="AE">Middle East (UAE)</option>
+          <option value="DE">Europe (DE)</option>
+          <option value="ALL">All countries</option>
+        </select>
+      </div>
+      <div class="filters">
+        <a class="btn-ghost" href="#discover" style="text-decoration:none">＋ Manage brands in Discover →</a>
+        <a id="btnMetaAds" class="btn-ghost" href="https://www.facebook.com/ads/library" target="_blank" rel="noopener" title="Open Meta Ad Library directly">Meta Ad Library ↗</a>
+        <a id="btnGoogleAds" class="btn-ghost" href="https://adstransparency.google.com/" target="_blank" rel="noopener" title="Open Google Ads Transparency Center directly">Google Ads ↗</a>
+        <a id="btnTikTokAds" class="btn-ghost" href="https://library.tiktok.com/" target="_blank" rel="noopener" title="Open TikTok Commercial Content Library directly">TikTok Ads ↗</a>
+      </div>
+    </div>
+
+    <div id="adBrands" class="ad-grid"></div>
+    <p class="count" style="margin-top:14px">Sources: Meta Ad Library, Google Ads Transparency Center, TikTok Creative Center — all free to view.</p>
+  </div>
+</div>
+
+<!-- ════ BRANDS VIEW (Phase 2 — competitor brand database + discovery) ════ -->
+<div id="brands-view" style="display:none">
+  <div class="ads-note">
+    The competitor <b>brand universe</b> — the database that powers monitoring &amp; benchmarking.
+    Every brand listed below has its newsletter, ads, and landing pages tracked.
+    Goal: 200–300 active DTC streetwear brands across sneaker, coffee, supplements &amp; functional beverages — de-duplicated by domain.
+  </div>
+
+  <!-- Two clearly-labelled action cards explaining exactly what each button does -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px">
+    <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
+      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">✨ Find &amp; add new brands with AI</div>
+      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
+        Runs an AI research pass to find DTC streetwear brands you don't already track (excludes KNICKGASM + brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
+      </div>
+      <button id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
+    </div>
+    <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
+      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed the priority DTC brand list</div>
+      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
+        One-click bulk-add of the curated priority brands across Sneaker, Coffee &amp; Supplements (US + UK). Skips any already in your universe — so it's safe to re-run. Best run once when starting.
+      </div>
+      <button id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Add priority brands</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#556059">
+    <span id="bd-status"></span>
+    <span class="sp" style="flex:1"></span>
+    <button id="bd-refresh" class="cb-cta cb-cta-ghost" style="padding:4px 12px; font-size:11px" title="Reload the brand universe from the database">↻ Refresh list</button>
+    <span id="bd-count" class="count"></span>
+  </div>
+
+  <!-- Column legend so the Newsletter / Subscription columns are self-explanatory -->
+  <div style="background:rgba(171,135,67,0.04); border:1px solid rgba(171,135,67,0.15); border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:#556059; line-height:1.6">
+    <b style="color:#D0473E">Column key:</b>
+    <span style="margin:0 14px 0 6px"><b>Newsletter</b> — direct signup link for this brand's mailing list (opens in new tab).</span>
+    <span style="margin-right:14px"><b>Follow (real-time)</b> — toggle <b>Mailers</b> and/or <b>Ads</b> to get a real-time email to your logged-in address for every new mailer or ad captured for that brand. <b>Newsletter</b> is a direct signup link for the brand's own list (opens a new tab).</span>
+  </div>
+
+  <div style="overflow-x:auto;border:1px solid rgba(171,135,67,0.18);border-radius:12px">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="text-align:left;color:#48524c;text-transform:uppercase;font-size:10px;letter-spacing:.08em">
+          <th style="padding:10px 12px">Brand</th><th style="padding:10px 12px">Category</th>
+          <th style="padding:10px 12px">Country</th><th style="padding:10px 12px">Positioning</th>
+          <th style="padding:10px 12px">Newsletter</th><th style="padding:10px 12px">Follow (real-time)</th>
+        </tr>
+      </thead>
+      <tbody id="bd-rows"></tbody>
+    </table>
+  </div>
+  <div id="bd-empty" class="empty" style="display:none">No brands tracked yet. Click <b>⬇ Add priority brands</b> for the curated list, or <b>✨ Find &amp; add new brands</b> to let AI discover fresh ones.</div>
+</div>
+
+<!-- ════ LANDING PAGES VIEW ════ -->
+<div id="landing-view" style="display:none">
+  <div class="ads-note">
+    Two distinct things: <b>Website</b> = each brand's homepage / storefront. <b>Landing Pages</b> = the actual destination pages behind their ads and mailers (Meta / Google / TikTok / email), shown with the driving asset. Landing pages populate as ads and mailers are captured; nothing is ever fabricated.
+  </div>
+  <div class="toolbar">
+    <div class="filters" id="lp-subtabs">
+      <button class="btn-ghost lp-subtab active" data-lp="website">🏠 Website (homepages)</button>
+      <button class="btn-ghost lp-subtab" data-lp="landing">🎯 Landing Pages (from ads &amp; mailers)</button>
+    </div>
+    <div class="filters">
+      <a class="btn-ghost" href="#discover" style="text-decoration:none">＋ Manage brands in Discover →</a>
+      <a class="btn-ghost" href="https://pagedeck.com/" target="_blank" rel="noopener" title="Search PageDeck for landing pages">PageDeck ↗</a>
+      <a class="btn-ghost" href="https://land-book.com/" target="_blank" rel="noopener" title="Search Land-book">Land-book ↗</a>
+    </div>
+  </div>
+  <!-- WEBSITE sub-view (homepages) -->
+  <div id="lp-website">
+    <div id="lpBrands" class="ad-grid"></div>
+    <p class="count" style="margin-top:14px">Homepages resolve from each brand's known domain — all brands sync from your <b>Discover Brands</b> universe.</p>
+  </div>
+  <!-- LANDING PAGES sub-view (real destinations behind ads/mailers) -->
+  <div id="lp-landing" style="display:none"></div>
+</div>
+
+<!-- ════ INSIGHTS VIEW ════ -->
+<div id="insights-view" style="display:none">
+  <div class="ads-note">
+    A rolling read on the competitor set — volume, promo intensity, and the brands worth watching. Numbers update as mailers are captured and the brand universe grows. Includes real-time data from <b>PageDeck</b> and <b>Discover</b>.
+  </div>
+  <section class="stats" id="cb-insights-stats" style="margin-bottom:18px"></section>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;">
+    <!-- Active Brands -->
+    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Most active brands (by captured mailers)</div>
+      <div id="cb-insights-top" style="font-size:13px;color:#556059"></div>
+    </div>
+    
+    <!-- Trending Offers -->
+    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Trending Promotions</div>
+      <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: #556059; line-height: 1.8;">
+        <li><span style="color:#D0473E; font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Sneaker &amp; Coffee brands.</li>
+        <li><span style="color:#D0473E; font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
+        <li><span style="color:#D0473E; font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+    <!-- PageDeck Insights -->
+    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">PageDeck: Landing Page Trends</div>
+      <div style="font-size: 13px; color: #556059;">
+        <p>Recent data indicates a <b>14% lift</b> in CVR when placing the "Us vs Them" comparison table above the fold on mobile.</p>
+        <p style="margin-top: 8px;"><b>Format Trend:</b> "Listicle" style advertorials are dominating Meta traffic.</p>
+      </div>
+    </div>
+
+    <!-- Discover Insights -->
+    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Discover: Emerging Mechanics</div>
+      <div style="font-size: 13px; color: #556059;">
+        <p>• <b>Micro-animations</b> on Add-to-Cart buttons increase engagement by 4.2%.</p>
+        <p>• <b>Interactive pricing sliders</b> for subscription tiers.</p>
+        <p>• <b>Video-first hero sections</b> specifically shot natively on iPhone for TikTok traffic.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Find More Competitors Modal -->
+<div id="fcm" aria-hidden="true">
+  <div class="bk" onclick="this.parentElement.classList.remove('open')"></div>
+  <div class="mc" role="dialog" aria-modal="true">
+    <div class="mh">
+      <span class="t">Find More Competitors</span>
+      <span class="sp"></span>
+      <button class="pm-act pm-close" onclick="this.closest('#fcm').classList.remove('open')" aria-label="Close">×</button>
+    </div>
+    <div class="mb">
+      <div class="form-grp">
+        <label>Region</label>
+        <select id="fcm-region">
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
+          <option value="IN">India</option>
+          <option value="AU">Australia</option>
+          <option value="AE">Middle East (UAE)</option>
+          <option value="DE">Europe (DE)</option>
+          <option value="ALL">Worldwide</option>
+        </select>
+      </div>
+      <div class="form-grp">
+        <label>Type of Product(s)</label>
+        <input type="text" id="fcm-products" placeholder="e.g. Loose panel sneaker, dunks, gear...">
+      </div>
+      <div style="margin-top: 24px; text-align: right;">
+        <button class="pm-act pm-detail" onclick="alert('Finding competitors...'); this.closest('#fcm').classList.remove('open')">Find Competitors →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Journey Modal -->
+<div id="jm" aria-hidden="true">
+  <div class="bk" onclick="this.parentElement.classList.remove('open')"></div>
+  <div class="mc" role="dialog" aria-modal="true">
+    <div class="mh">
+      <span class="t">Become a part of their journey</span>
+      <span class="sp"></span>
+      <button class="pm-act pm-close" onclick="this.closest('#jm').classList.remove('open')" aria-label="Close">×</button>
+    </div>
+    <div class="mb" style="display:flex; flex-direction: column; gap: 20px;">
+      <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
+        <h4 style="color:#111111; margin-bottom: 8px;">1. Subscribe to Asset Brands</h4>
+        <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Automatically subscribe to competitor email lists to capture their assets and marketing sequences.</p>
+        <button class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #556059; width: 100%; justify-content: center;" onclick="alert('Subscribing...');">Explore more Competitors</button>
+      </div>
+      <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
+        <h4 style="color:#111111; margin-bottom: 8px;">2. Simulate Customer Actions</h4>
+        <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Visit, add/remove products from cart, and perform actions for real-time segmentation to capture conditional campaigns.</p>
+        <button class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="alert('Starting journey simulation...');">Become a part of their journey</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview modal -->
+<div id="pm" aria-hidden="true">
+  <div class="bk" data-close></div>
+  <div class="mc" role="dialog" aria-modal="true">
+    <div class="mh">
+      <span class="badge">Preview</span>
+      <span class="t" id="pm-title"></span>
+      <span class="sp"></span>
+      <a class="pm-act pm-detail" id="pm-detail" href="#">View in Detail →</a>
+      <button class="pm-act pm-close" data-close aria-label="Close">×</button>
+    </div>
+    <div class="mb" id="pm-body"></div>
+  </div>
+</div>
+
+<!-- ════ BRAND DETAIL MODAL — all assets of one brand ════ -->
+<div id="bm" aria-hidden="true">
+  <div class="bk" data-bclose></div>
+  <div class="mc" role="dialog" aria-modal="true">
+    <div class="mh">
+      <span class="badge">Brand</span>
+      <span class="t" id="bm-title"></span>
+      <span class="sp"></span>
+      <a class="pm-act" id="bm-site" href="#" target="_blank" rel="noopener" style="display:none">Website ↗</a>
+      <button class="pm-act pm-close" data-bclose aria-label="Close">×</button>
+    </div>
+    <div class="mb" id="bm-body"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Fully self-contained: data + ingestion run from THIS repo's single
+  // /api/competitor function (no dependency on any other deployment).
+  const API = '/api/competitor';
+  const state = { all: [], view: [], sortKey: 'receivedAt', sortDir: 'desc' };
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtDate = (iso) => { const d = new Date(iso); return isNaN(d) ? (iso || '—') : d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+  const splitLinks = (v) => (!v || ['None', 'Failed', 'Pending'].includes(v)) ? [] : v.split(',').map((s) => s.trim()).filter(Boolean);
+  const codesOf = (v) => (!v || v === 'None') ? [] : v.split(',').map((s) => s.trim()).filter(Boolean);
+  const isHttp = (u) => /^https?:\/\//i.test(u || '');
+  const slug = (s) => (s || 'email').replace(/[^\w]+/g, '_').slice(0, 40);
+  const htmlCache = {};
+
+  async function fetchHtml(id) {
+    if (htmlCache[id] !== undefined) return htmlCache[id];
+    try { const r = await fetch(API + '?action=html&id=' + encodeURIComponent(id)); const d = await r.json(); htmlCache[id] = (d && typeof d.html === 'string') ? d.html : ''; }
+    catch { htmlCache[id] = ''; }
+    return htmlCache[id];
+  }
+
+  // Force a server-side sync (IMAP pull → sheet append). Public + rate-limited
+  // on the server (30s throttle). Returns silently on any failure — the
+  // subsequent /api/emails read still works even if poll didn't refresh data.
+  async function triggerSync() {
+    try {
+      const r = await fetch(API + '?action=poll', { cache: 'no-store' });
+      return r.ok ? await r.json().catch(() => null) : null;
+    } catch { return null; }
+  }
+
+  async function load() {
+    // Pull new mail BEFORE we read the sheet, so first paint already has it.
+    await triggerSync();
+    try { const r = await fetch(API + '?action=list'); const d = await r.json(); state.all = d.emails || []; }
+    catch { state.all = []; }
+    buildBrandFilter(); renderStats(); apply();
+    // If deep-linked to a specific email, render detail view.
+    const id = new URLSearchParams(location.search).get('id');
+    if (id) renderDetail(id);
+  }
+
+  function buildBrandFilter() {
+    const brands = [...new Set(state.all.map((e) => e.brand))].sort();
+    $('brandFilter').innerHTML = '<option value="">All platforms</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  }
+  function renderStats() {
+    const all = state.all;
+    const brands = new Set(all.map((e) => e.brand)).size;
+    const promo = all.filter((e) => e.promoCodes && e.promoCodes !== 'None').length;
+    const week = all.filter((e) => { const t = new Date(e.receivedAt).getTime(); return !isNaN(t) && Date.now() - t < 6048e5; }).length;
+    $('stats').innerHTML = [['Total emails', all.length], ['Brands tracked', brands], ['With promo codes', promo], ['Last 7 days', week]]
+      .map(([l, v]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  }
+
+  function apply() {
+    const q = $('search').value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const brand = $('brandFilter').value, promoOnly = $('promoOnly').checked, attachOnly = $('attachOnly').checked;
+    let rows = state.all.filter((e) => {
+      if (brand && e.brand !== brand) return false;
+      if (promoOnly && (!e.promoCodes || e.promoCodes === 'None')) return false;
+      if (attachOnly && splitLinks(e.attachmentUrls).length === 0 && splitLinks(e.inlineImageUrls).length === 0) return false;
+      if (q.length) { const hay = (e.brand + ' ' + e.subject + ' ' + e.bodyText + ' ' + e.preview).toLowerCase(); if (!q.every((t) => hay.includes(t))) return false; }
+      return true;
+    });
+    const dir = state.sortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => state.sortKey === 'brand' ? dir * a.brand.localeCompare(b.brand) : dir * (new Date(a.receivedAt) - new Date(b.receivedAt)));
+    state.view = rows; renderRows();
+
+    // Update external Mailer search links based on the active filters
+    const searchTerm = brand ? encodeURIComponent(brand) : (q.length ? encodeURIComponent(q.join(' ')) : '');
+    const milledHref = searchTerm ? `https://milled.com/search?q=${searchTerm}` : 'https://milled.com/';
+    const rgeHref = searchTerm ? `https://reallygoodemails.com/search/emails/${searchTerm}` : 'https://reallygoodemails.com/';
+    const mcHref = brand ? `https://www.mailcharts.com/companies?q=${encodeURIComponent(brand)}` : 'https://www.mailcharts.com/';
+    if ($('btnMilled')) $('btnMilled').href = milledHref;
+    if ($('btnRGE')) $('btnRGE').href = rgeHref;
+    if ($('btnMailCharts')) $('btnMailCharts').href = mcHref;
+  }
+
+  function renderRows() {
+    $('empty').style.display = state.view.length ? 'none' : 'block';
+    $('rows').innerHTML = state.view.map((e) => {
+      const codes = codesOf(e.promoCodes);
+      const files = splitLinks(e.attachmentUrls).length + splitLinks(e.inlineImageUrls).length;
+      const promoCell = codes.length ? codes.slice(0, 2).map((c) => `<span class="code">${esc(c)}</span>`).join('') + (codes.length > 2 ? ` <span class="muted">+${codes.length - 2}</span>` : '') : '<span class="muted">—</span>';
+      const fileCell = files ? `<span class="files">📎 ${files}</span>` : '<span class="muted">—</span>';
+      return `<tr>
+        <td class="brand">${esc(e.brand)}</td>
+        <td class="subj" title="${esc(e.subject)}">${esc(e.subject)}</td>
+        <td class="date">${esc(fmtDate(e.receivedAt))}</td>
+        <td>${promoCell}</td>
+        <td>${fileCell}</td>
+        <td><div class="actions">
+          <button class="a-btn a-prev" data-prev="${e.id}">Preview</button>
+          <a class="a-btn a-detail" href="?id=${encodeURIComponent(e.id)}">View in Detail →</a>
+        </div></td>
+      </tr>`;
+    }).join('');
+    $('count').textContent = `${state.view.length} of ${state.all.length} emails`;
+    $('rows').querySelectorAll('[data-prev]').forEach((b) => b.addEventListener('click', () => openPreview(b.dataset.prev)));
+    if (window.triggerMotionAnimations) window.triggerMotionAnimations();
+  }
+
+  // Shared renderer: builds the screenshot + HTML + body + assets blocks.
+  function emailBlocks(e, html, opts) {
+    const big = opts && opts.big;
+    const codes = codesOf(e.promoCodes);
+    const att = splitLinks(e.attachmentUrls), inl = splitLinks(e.inlineImageUrls);
+    const linkBtns = (arr) => arr.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" class="a-btn a-prev" style="margin:2px">File ${i + 1} ↗</a>`).join('');
+    const htmlBlock = html
+      ? `<div class="frame-wrap"><iframe sandbox="" style="height:${big ? 720 : 420}px" srcdoc="${esc(html)}"></iframe></div>`
+      : `<div class="ph">Raw HTML not stored for this email (captured before HTML storage was enabled).</div>`;
+    // Prefer a stored screenshot URL; otherwise derive a free full-page render
+    // (Microlink) of the stored HTML page — works for old rows too.
+    const shotUrl = isHttp(e.screenshotUrl) ? e.screenshotUrl
+      : (html ? `https://api.microlink.io/?url=${encodeURIComponent(location.origin + '/api/competitor?action=raw&id=' + e.id)}&screenshot=true&fullPage=true&meta=false&embed=screenshot.url` : '');
+    const shotBlock = shotUrl
+      ? `<div class="d-section"><div class="sh"><h4>Full-mailer screenshot</h4><div class="ops"><a class="a-btn a-prev" href="${esc(shotUrl)}" target="_blank" rel="noopener">Open ↗</a><a class="a-btn a-prev" href="${esc(shotUrl)}" download>Download</a></div></div><div class="shot-wrap" style="max-height:${big ? 'none' : '420px'};overflow:auto"><img src="${esc(shotUrl)}" loading="lazy" alt="full mailer screenshot"></div></div>`
+      : '';
+    const meta = [['Sender', esc(e.senderEmail) || '—'], ['Received', esc(fmtDate(e.receivedAt))],
+      ['Promo', codes.length ? codes.map((c) => `<span class="code">${esc(c)}</span>`).join('') : '<span class="muted">None</span>']]
+      .map(([k, v]) => `<div><span class="k">${k}</span>${v}</div>`).join('');
+    const assets = (att.length || inl.length)
+      ? `${att.length ? `<h4 style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#48524c;margin-bottom:6px">📎 Attachments</h4><div style="margin-bottom:10px">${linkBtns(att)}</div>` : ''}${inl.length ? `<h4 style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#48524c;margin-bottom:6px">🖼 Inline images</h4><div>${linkBtns(inl)}</div>` : ''}`
+      : '';
+    return { meta, htmlBlock, shotBlock, assets, body: e.bodyText || '—' };
+  }
+
+  // ── Preview modal ──────────────────────────────────────────────────
+  const pm = $('pm');
+  async function openPreview(id) {
+    const e = state.all.find((x) => x.id === id); if (!e) return;
+    $('pm-title').textContent = `${e.brand} — ${e.subject}`;
+    $('pm-detail').href = '?id=' + encodeURIComponent(id);
+    $('pm-body').innerHTML = '<div class="ph">Loading…</div>';
+    pm.classList.add('open'); pm.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+    const html = await fetchHtml(id);
+    const b = emailBlocks(e, html, { big: false });
+    $('pm-body').innerHTML = `
+      <div class="d-meta">${b.meta}</div>
+      <div class="d-section"><div class="sh"><h4>Email (as received)</h4></div>${b.htmlBlock}</div>
+      ${b.shotBlock}
+      <div class="d-section"><div class="sh"><h4>Body (plain text)</h4></div><pre class="body">${esc(b.body)}</pre></div>
+      ${b.assets ? `<div class="d-section">${b.assets}</div>` : ''}`;
+    if (window.triggerMotionAnimations) window.triggerMotionAnimations();
+  }
+  function closePreview() { pm.classList.remove('open'); pm.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; }
+  pm.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', closePreview));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pm.classList.contains('open')) closePreview(); });
+
+  // ── Full detail view ───────────────────────────────────────────────
+  async function renderDetail(id) {
+    const e = state.all.find((x) => x.id === id);
+    document.body.classList.add('detail-mode');
+    if (!e) { $('dv-subject').textContent = 'Email not found'; return; }
+    $('dv-brand').textContent = e.brand;
+    $('dv-subject').textContent = e.subject;
+    const html = await fetchHtml(id);
+    const b = emailBlocks(e, html, { big: true });
+    $('dv-meta').innerHTML = b.meta;
+    $('dv-html-wrap').innerHTML = b.htmlBlock;
+    $('dv-shot').innerHTML = b.shotBlock;
+    $('dv-body').textContent = b.body;
+    $('dv-assets').innerHTML = b.assets;
+    $('dv-html-open').onclick = () => { if (!html) return alert('Raw HTML not stored.'); const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); } };
+    $('dv-html-dl').onclick = () => { if (!html) return alert('Raw HTML not stored.'); downloadBlob(html, 'text/html', `${slug(e.brand)}_${slug(e.subject)}.html`); };
+  }
+
+  function downloadBlob(content, type, filename) {
+    const blob = content instanceof Blob ? content : new Blob([content], { type });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ── Section switcher ────────────────────────────────────────────────
+  // discover = brand discovery + universe DB (merged former "Mailer Discovery"
+  // + "Brands"). meta/google/tiktok = the ads view filtered to one platform.
+  // landing / insights = their own views.
+  const SECTIONS = ['discover', 'mailers', 'meta', 'google', 'tiktok', 'landing', 'insights'];
+  const AD_PLATFORMS = ['meta', 'google', 'tiktok'];
+  // Back-compat: old hashes #ads → meta, #brands → discover.
+  const normSec = (h) => h === 'ads' ? 'meta' : h === 'brands' ? 'discover' : h;
+  const currentSection = () => { const h = normSec((location.hash || '').replace('#', '')); return SECTIONS.includes(h) ? h : 'mailers'; };
+  function showSection(name) {
+    name = normSec(name);
+    if (!SECTIONS.includes(name)) name = 'mailers';
+    const isAd = AD_PLATFORMS.includes(name);
+    document.querySelectorAll('.snav').forEach((b) => b.classList.toggle('active', b.dataset.sec === name));
+    if (document.body.classList.contains('detail-mode')) return; // a specific mailer is open
+    $('list-view').style.display = name === 'mailers' ? '' : 'none';
+    $('ads-view').style.display = isAd ? 'block' : 'none';
+    $('brands-view').style.display = name === 'discover' ? 'block' : 'none';
+    $('landing-view').style.display = name === 'landing' ? 'block' : 'none';
+    $('insights-view').style.display = name === 'insights' ? 'block' : 'none';
+    if (isAd) { state.adPlatform = name; renderAds(); }
+    if (name === 'discover') renderBrands();
+    if (name === 'landing') setLpMode(lpMode);
+    if (name === 'insights') renderInsights();
+    if (window.triggerMotionAnimations) setTimeout(() => window.triggerMotionAnimations(), 10);
+    const want = '#' + name;
+    if (location.hash !== want && !new URLSearchParams(location.search).get('id')) history.replaceState(null, '', location.pathname + want);
+  }
+  document.querySelectorAll('.snav').forEach((b) => b.addEventListener('click', () => showSection(b.dataset.sec)));
+  window.addEventListener('hashchange', () => showSection(currentSection()));
+  window.showSection = showSection; // expose for inline onclick (e.g. "Find more competitors")
+
+  // ── Ads: free public ad libraries (Meta / Google / TikTok) ──────────
+  const ADS_KEY = 'knickgasm-comp-ads-brands';
+  const DEFAULT_BRANDS = ['Kickstradomis', 'Sneakboo', 'Moreiarty', 'The Shoe Surgeon', 'Gully Labs', 'The Republic of Sneaker'];
+  const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || DEFAULT_BRANDS.slice(); } catch { return DEFAULT_BRANDS.slice(); } };
+  const saveBrands = (list) => localStorage.setItem(ADS_KEY, JSON.stringify(list));
+
+  // ── Shared brand universe ───────────────────────────────────────────
+  // The Discover tab's brand database is the SINGLE source of truth: every
+  // tab (Mailers / Meta / Google / TikTok / Landing) tracks the SAME brands.
+  // We fetch it once and reuse it across all renderers. Falls back to the
+  // local ad-brand list only if the universe is empty/unreachable.
+  state.brandUniverse = null;
+  async function fetchBrandUniverse(force) {
+    if (state.brandUniverse && !force) return state.brandUniverse;
+    try {
+      const r = await fetch(API + '?action=brands'); const d = await r.json();
+      state.brandUniverse = (d.brands || []).map((b) => ({
+        name: b.brandName || b.name || '', domain: normalizeDomain(b.domain || b.websiteUrl || ''),
+        website: b.websiteUrl || (b.domain ? 'https://' + b.domain : ''),
+        newsletter: b.newsletterSignupUrl || '', category: b.category || '', country: b.country || '',
+      })).filter((b) => b.name);
+    } catch { state.brandUniverse = state.brandUniverse || []; }
+    return state.brandUniverse;
+  }
+  function normalizeDomain(s){ return String(s||'').replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'').toLowerCase(); }
+  // Brands every tab should show: the universe when populated, else the local list.
+  function trackedBrandObjs() {
+    if (state.brandUniverse && state.brandUniverse.length) {
+      return state.brandUniverse.map((b) => ({ name: b.name, domain: b.domain || (BRAND_DOMAINS[b.name.toLowerCase()] || '') }));
+    }
+    return adBrands().map(brandObj);
+  }
+  // Known real domains for common brands so Google ATC's domain= search
+  // resolves to the right advertiser (a wrong slug guess loads nothing).
+  const BRAND_DOMAINS = {
+    'kickstradomis':'kickstradomis.com', 'sneakboo':'sneakboo.com', 'moreiarty':'moreiarty.in',
+    'shoesurgeon & sons':'theshoesurgeon.com', 'Gully Labs':'gullylabs.com',
+    'the republic of sneaker':'republicoftea.com', 'leatherworks herbs':'theleatherworks.in',
+    'yogi':'yogiproducts.com', 'sneaker forté':'sneakboo.com', 'Comet':'wearcomet.com',
+    'everyday dose':'everydaydose.com', 'javvy coffee':'javvycoffee.com', 'ryze':'ryzesuperfoods.com',
+  };
+  // Normalize a brand entry to {name, domain}. Meta uses name (q=), Google
+  // uses domain (domain=), TikTok library uses name (adv_name=). Domain comes
+  // from the known map, else a best-guess slug.com.
+  function brandObj(b) {
+    if (typeof b === 'object' && b) return b;
+    const name = String(b || '').trim();
+    const known = BRAND_DOMAINS[name.toLowerCase()];
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return { name, domain: known || (slug ? slug + '.com' : '') };
+  }
+
+  // Deep-link URLs use each platform's REAL search mechanism (researched):
+  //   • Meta Ad Library      — free-text advertiser search via ?q=<name>     ✓ works
+  //   • Google Ads Transparency Center — searches by VERIFIED DOMAIN via
+  //       ?region=<R>&domain=<domain>. (A bare name does NOT deep-link — the
+  //       prior ?searchQuery= just dumped you on the homepage.) We pass the
+  //       brand's real domain; region 2-letter or omitted = worldwide.
+  //   • TikTok — Creative Center has NO URL keyword search (UI-only). TikTok's
+  //       official searchable transparency tool is the Commercial Content
+  //       Library at library.tiktok.com, which takes a region + advertiser
+  //       name query.
+  function adSources(b, region) {
+    const brand = brandObj(b);
+    const name = brand.name;
+    const domain = brand.domain || '';            // real domain when known
+    const hasRegion = !!region && region !== 'ALL';
+
+    // Meta — q=<name>, country=ALL = worldwide.
+    const metaParams = new URLSearchParams({
+      active_status: 'all', ad_type: 'all',
+      country: hasRegion ? region : 'ALL',
+      q: name, search_type: 'keyword_unordered', media_type: 'all',
+    });
+    const metaUrl = `https://www.facebook.com/ads/library/?${metaParams}`;
+
+    // Google — domain search (the only param that actually deep-links).
+    const googleParams = new URLSearchParams({ region: hasRegion ? region : 'anywhere' });
+    if (domain) googleParams.set('domain', domain);
+    else googleParams.set('text', name);          // best-effort free-text fallback
+    const googleUrl = `https://adstransparency.google.com/?${googleParams}`;
+
+    // TikTok — Commercial Content Library, advertiser-name search. The library's
+    // SPA requires the FULL param set or the search returns nothing: a region,
+    // a start_time/end_time window (epoch ms), a sort_type, query_type=1, and
+    // adv_name. Omitting the time window silently yielded no results.
+    // ⚠ Region coverage is LIMITED: the library only indexes EEA + UK + CH ads,
+    // so region= only accepts those country codes (or "all"). Passing US/IN/AU/AE
+    // produced a URL the SPA rejects → empty results page. Map unsupported
+    // markets to "all" (worldwide name search) and keep real codes for GB/DE.
+    // Window = last ~30 days → now. TikTok's SPA rejects very wide windows
+    // (a 2-year span silently returned nothing), so keep it recent.
+    const ttEnd = Date.now();
+    const ttStart = ttEnd - 1000 * 60 * 60 * 24 * 30;
+    const TT_SUPPORTED = ['GB','DE','FR','IT','ES','NL','IE','SE','DK','FI','NO','PL','AT','BE','PT','GR','CZ','RO','HU','CH'];
+    const ttRegion = hasRegion && TT_SUPPORTED.includes(String(region).toUpperCase())
+      ? String(region).toUpperCase() : 'all';
+    // adv_name must be LOWERCASE, and TikTok wants this exact param order
+    // (adv_name, adv_biz_ids, query_type, then sort_type).
+    const ttName = String(name).toLowerCase();
+    const tiktokUrl = `https://library.tiktok.com/ads?region=${ttRegion}` +
+      `&start_time=${ttStart}&end_time=${ttEnd}` +
+      `&adv_name=${encodeURIComponent(ttName)}&adv_biz_ids=&query_type=1` +
+      `&sort_type=last_shown_date,desc`;
+    // PiPiADS covers TikTok ads WORLDWIDE (incl. US/IN/Global), unlike the
+    // official library (EEA/UK/CH only) — better for our key markets. Keyword
+    // search via the encoded extend_keywords JSON.
+    const pipiadsUrl = `https://www.pipiads.com/ad-search?is_participle=false&plat_type=1&search_type=1` +
+      `&extend_keywords=${encodeURIComponent(JSON.stringify([{ type: 1, keyword: ttName }]))}` +
+      `&sort=2&sort_type=desc&current_page=1`;
+
+    return [
+      { label: 'Meta Ad Library',         cls: 'src-meta',   ic: 'f', url: metaUrl,   hint: 'name: ' + name },
+      { label: 'Google Ads Transparency', cls: 'src-google', ic: 'G', url: googleUrl, hint: domain ? 'domain: ' + domain : 'name: ' + name },
+      { label: 'TikTok Content Library',  cls: 'src-tiktok', ic: 'T', url: tiktokUrl, hint: 'name: ' + ttName + ' · ' + (ttRegion === 'all' ? 'worldwide name search (official library = EEA/UK only)' : 'region: ' + ttRegion) },
+      { label: 'TikTok via PiPiADS',      cls: 'src-tiktok', ic: 'T', url: pipiadsUrl, hint: 'keyword: ' + ttName + ' · worldwide TikTok ad index' },
+    ];
+  }
+  // Per-platform copy + which adSources entry to keep.
+  const AD_META = {
+    meta:   { idx: 0, label: 'Meta Ad Library',          note: 'Live <b>Meta (Facebook + Instagram)</b> ads for every tracked brand, via the free <b>Meta Ad Library</b>. Pick a region and open any brand pre-filtered.' },
+    google: { idx: 1, label: 'Google Ads Transparency', note: 'Live <b>Google</b> ads (Search, Display, YouTube) via the free <b>Google Ads Transparency Center</b>, matched by each brand\'s verified domain.' },
+    tiktok: { idx: 2, label: 'TikTok Content Library',   note: 'Live <b>TikTok</b> ads via the free <b>TikTok Commercial Content Library</b>, searched by advertiser name and region.' },
+  };
+  const MAX_TILES = 24; // cap auto-rendered brand tiles (universe can be 200+)
+  async function renderAds() {
+    const platform = AD_PLATFORMS.includes(state.adPlatform) ? state.adPlatform : 'meta';
+    const meta = AD_META[platform];
+    const note = $('adsNote');
+    if (note) note.innerHTML = meta.note + ' Brands sync from your <b>Discover Brands</b> universe. '
+      + (platform === 'meta'
+          ? 'Live creatives load automatically when <code>APIFY_TOKEN</code> is set (free plan); otherwise each tile deep-links into the free library.'
+          : 'Google &amp; TikTok don\'t expose a free structured ad feed, so each tile deep-links into the official free library pre-filtered for the brand.');
+    $('adBrands').innerHTML = '<div class="empty">Loading brands…</div>';
+    await fetchBrandUniverse();
+    const region = $('adRegion').value;
+    const all = trackedBrandObjs();
+    const brands = all.slice(0, MAX_TILES);
+
+    // Update global toolbar links with region and hide non-active platform links
+    const hasRegion = !!region && region !== 'ALL';
+    if ($('btnMetaAds')) {
+      $('btnMetaAds').href = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=${hasRegion ? region : 'ALL'}&media_type=all`;
+      $('btnMetaAds').style.display = platform === 'meta' ? '' : 'none';
+    }
+    if ($('btnGoogleAds')) {
+      $('btnGoogleAds').href = `https://adstransparency.google.com/?region=${hasRegion ? region : 'anywhere'}`;
+      $('btnGoogleAds').style.display = platform === 'google' ? '' : 'none';
+    }
+    if ($('btnTikTokAds')) {
+      const ttEnd = Date.now(), ttStart = ttEnd - 1000 * 60 * 60 * 24 * 30;
+      const TT_SUPPORTED = ['GB','DE','FR','IT','ES','NL','IE','SE','DK','FI','NO','PL','AT','BE','PT','GR','CZ','RO','HU','CH'];
+      const ttRegion = hasRegion && TT_SUPPORTED.includes(String(region).toUpperCase()) ? String(region).toUpperCase() : 'all';
+      $('btnTikTokAds').href = `https://library.tiktok.com/ads?region=${ttRegion}&start_time=${ttStart}&end_time=${ttEnd}&query_type=1&sort_type=last_shown_date,desc`;
+      $('btnTikTokAds').style.display = platform === 'tiktok' ? '' : 'none';
+    }
+
+    if (!brands.length) { $('adBrands').innerHTML = '<div class="empty">No brands tracked yet — add some under <b>Discover Brands</b> (seed 60 or find with AI).</div>'; return; }
+    // Skeleton tiles first.
+    $('adBrands').innerHTML = brands.map((o, i) => {
+      const s = adSources(o, region)[meta.idx];
+      return `<div class="ad-card" id="adc-${i}">
+        <h4>${esc(o.name)}</h4>
+        <div class="adc-body">${platform === 'meta' ? '<div class="ad-loading">Loading live ads…</div>' :
+          `<a class="ad-src" href="${s.url}" target="_blank" rel="noopener"><span class="src-ic ${s.cls}">${s.ic}</span>${s.label} ↗</a>
+           <div style="font-size:11px;color:#48524c;margin-top:6px">${esc(s.hint)}</div>`}</div>
+      </div>`;
+    }).join('') + (all.length > MAX_TILES ? `<div class="count" style="grid-column:1/-1">Showing first ${MAX_TILES} of ${all.length} tracked brands — narrow the universe in Discover.</div>` : '');
+    // For Meta, fetch real creatives per brand (sequential to respect free credits).
+    if (platform === 'meta') {
+      for (let i = 0; i < brands.length; i++) {
+        const o = brands[i]; const s = adSources(o, region)[meta.idx];
+        const body = document.querySelector('#adc-' + i + ' .adc-body');
+        if (!body || state.adPlatform !== 'meta') break; // user switched tabs
+        try {
+          const r = await fetch(API + '?action=adlibrary&brand=' + encodeURIComponent(o.name) + '&country=' + encodeURIComponent(region || 'ALL') + '&limit=6');
+          const d = await r.json();
+          if (d.ads && d.ads.length) {
+            body.innerHTML = `<div class="ad-thumbs">${d.ads.slice(0, 6).map((a) => `
+              <a class="ad-thumb" href="${esc(a.link || s.url)}" target="_blank" rel="noopener">
+                ${a.image ? `<img src="${esc(a.image)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+                ${a.body ? `<div class="ad-cap">${esc(a.body.slice(0, 70))}</div>` : ''}
+              </a>`).join('')}</div>
+              <a class="ad-src" href="${s.url}" target="_blank" rel="noopener">All ${esc(o.name)} ads ↗</a>`;
+          } else {
+            body.innerHTML = `<a class="ad-src" href="${s.url}" target="_blank" rel="noopener"><span class="src-ic ${s.cls}">${s.ic}</span>${s.label} ↗</a>
+              <div style="font-size:11px;color:#48524c;margin-top:6px">${d.source === 'deep_link' ? 'No API token — opening the free library. ' : ''}${esc(s.hint)}</div>`;
+          }
+        } catch (e) {
+          body.innerHTML = `<a class="ad-src" href="${s.url}" target="_blank" rel="noopener"><span class="src-ic ${s.cls}">${s.ic}</span>${s.label} ↗</a>`;
+        }
+      }
+    }
+  }
+
+  // ── Landing pages: LIVE screenshot dashboard for each tracked brand ──
+  // Free, keyless capture via WordPress mShots — renders an actual snapshot
+  // of each competitor's live homepage. First hit may show a brief loading
+  // placeholder while mShots renders, then it caches.
+  const shot = (url, w) => 'https://s.wordpress.com/mshots/v1/' + encodeURIComponent(url) + '?w=' + (w || 600) + '&h=' + Math.round((w || 600) * 1.3);
+  async function renderLanding() {
+    $('lpBrands').innerHTML = '<div class="empty">Loading brands…</div>';
+    await fetchBrandUniverse();
+    const withDomain = trackedBrandObjs().filter((o) => o.domain);
+    const brands = withDomain.slice(0, MAX_TILES);
+    $('lpBrands').innerHTML = brands.length ? brands.map((o) => {
+      const home = 'https://' + o.domain;
+      return `
+      <div class="ad-card" style="padding:0;overflow:hidden">
+        <a href="${home}" target="_blank" rel="noopener" style="display:block;text-decoration:none">
+          <img src="${shot(home, 600)}" alt="${esc(o.name)} homepage" loading="lazy"
+               style="width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;background:#ffffff;display:block"
+               onerror="this.style.display='none'">
+        </a>
+        <div style="padding:12px 14px">
+          <h4 style="margin:0 0 6px" class="brand-link" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">${esc(o.name)}</h4>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a class="ad-src" style="margin:0;flex:1" href="${home}" target="_blank" rel="noopener">Website ↗</a>
+            <a class="ad-src" style="margin:0;flex:1" href="${home}/collections" target="_blank" rel="noopener">Collections ↗</a>
+          </div>
+          <button class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#6A33D8;color:#F7F5F2" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
+          <div style="font-size:11px;color:#48524c;margin-top:8px">${esc(o.domain)}</div>
+        </div>
+      </div>`; }).join('') + (withDomain.length > MAX_TILES ? `<div class="count" style="grid-column:1/-1">Showing first ${MAX_TILES} of ${withDomain.length} brands — narrow the universe in Discover.</div>` : '') : '<div class="empty">No brands with a known domain yet — add some under <b>Discover Brands</b> (the brand DB stores each domain).</div>';
+  }
+
+  // ── Logged-in user (for real-time follow/subscribe) ─────────────────
+  function currentUserEmail() {
+    try {
+      const s = window.LifecycleAuth && window.LifecycleAuth.session;
+      return (s && s.user && s.user.email) || '';
+    } catch (_) { return ''; }
+  }
+  // Client mirror of the server brandKey() so follow-state matches.
+  function brandKeyOf(name, domain) {
+    const base = String(name || domain || '').toLowerCase().trim();
+    return base.replace(/^www\./, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  // ── Follow state (which brands the user follows for mailers/ads) ────
+  const followState = {};  // brand_key -> {mailers, ads}
+  async function loadFollows() {
+    const user = currentUserEmail();
+    if (!user) return;
+    try {
+      const r = await fetch(API + '?action=sub-list&user=' + encodeURIComponent(user));
+      const d = await r.json();
+      (d.subscriptions || []).forEach((s) => { followState[s.brand_key] = { mailers: s.mailers !== false, ads: s.ads !== false, active: s.active !== false }; });
+    } catch (_) {}
+  }
+  async function toggleFollow(name, domain, channel, on) {
+    const user = currentUserEmail();
+    if (!user) { alert('Sign in to receive real-time updates.'); return false; }
+    const key = brandKeyOf(name, domain);
+    const cur = followState[key] || { mailers: false, ads: false };
+    const next = { mailers: cur.mailers, ads: cur.ads, active: true };
+    next[channel] = on;
+    try {
+      const r = await fetch(API + '?action=sub-set', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, brand_name: name, domain: domain || '', mailers: next.mailers, ads: next.ads, active: true }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'failed');
+      followState[key] = next;
+      return true;
+    } catch (e) { alert('Could not update: ' + (e.message || e)); return false; }
+  }
+  // Renders the two follow chips for a brand (mailers + ads).
+  function followChips(name, domain) {
+    const key = brandKeyOf(name, domain);
+    const st = followState[key] || { mailers: false, ads: false };
+    const chip = (ch, label) => {
+      const on = !!st[ch];
+      return `<button class="follow-chip${on ? ' on' : ''}" data-follow="${ch}" data-name="${esc(name)}" data-domain="${esc(domain || '')}" title="${on ? 'Following — real-time email on each new ' + label : 'Follow to get a real-time email on each new ' + label}">${on ? '✓ ' : '+ '}${label}</button>`;
+    };
+    return `<span class="follow-wrap">${chip('mailers', 'Mailers')}${chip('ads', 'Ads')}</span>`;
+  }
+  // Delegated handler for all follow chips.
+  document.addEventListener('click', async function (ev) {
+    const btn = ev.target.closest && ev.target.closest('.follow-chip');
+    if (!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const ch = btn.dataset.follow, name = btn.dataset.name, domain = btn.dataset.domain;
+    const key = brandKeyOf(name, domain);
+    const on = !(followState[key] && followState[key][ch]);
+    btn.disabled = true;
+    const okd = await toggleFollow(name, domain, ch, on);
+    btn.disabled = false;
+    if (okd) {
+      btn.classList.toggle('on', on);
+      btn.textContent = (on ? '✓ ' : '+ ') + (ch === 'mailers' ? 'Mailers' : 'Ads');
+    }
+  });
+
+  // Delegated brand-detail opener. Uses data-attributes (HTML-escaped via esc())
+  // instead of inline onclick with JS-string interpolation, so brand names
+  // containing quotes OR backslashes can never break out of the handler.
+  document.addEventListener('click', function (ev) {
+    const el = ev.target.closest && ev.target.closest('.brand-link[data-brand]');
+    if (!el) return;
+    ev.preventDefault();
+    window.openBrandDetail(el.dataset.brand || '', el.dataset.domain || '');
+  });
+
+  // ── Landing view: Website (homepages) vs Landing Pages (real) ───────
+  let lpMode = 'website';
+  function setLpMode(mode) {
+    lpMode = mode === 'landing' ? 'landing' : 'website';
+    document.querySelectorAll('.lp-subtab').forEach((b) => b.classList.toggle('active', b.dataset.lp === lpMode));
+    $('lp-website').style.display = lpMode === 'website' ? '' : 'none';
+    $('lp-landing').style.display = lpMode === 'landing' ? 'block' : 'none';
+    if (lpMode === 'website') renderLanding();
+    else renderLandingReal();
+  }
+  document.querySelectorAll('.lp-subtab').forEach((b) => b.addEventListener('click', () => setLpMode(b.dataset.lp)));
+
+  // Real landing pages behind ads/mailers, grouped by platform, with the asset.
+  async function renderLandingReal() {
+    const host = $('lp-landing');
+    host.innerHTML = '<div class="empty">Loading captured landing pages…</div>';
+    let groups = [];
+    try { const r = await fetch(API + '?action=landing-real'); const d = await r.json(); groups = d.groups || []; } catch (_) {}
+    const total = groups.reduce((n, g) => n + g.items.length, 0);
+    if (!total) {
+      host.innerHTML = '<div class="empty">No landing pages captured yet. These populate automatically as this brand set\'s <b>ads</b> and <b>mailers</b> are captured — each ad/mailer\'s real destination page is linked here with its creative. Nothing is fabricated.</div>';
+      return;
+    }
+    host.innerHTML = groups.map((g) => {
+      if (!g.items.length) return `<div class="lp-group"><h3 class="lp-group-h">${esc(g.platform)}</h3><div class="empty" style="margin:0">No captured ${esc(g.platform)} landing pages yet.</div></div>`;
+      const cards = g.items.map((it) => `
+        <div class="ad-card" style="padding:0;overflow:hidden">
+          ${it.asset_url ? `<a href="${esc(it.landing_url)}" target="_blank" rel="noopener"><img src="${esc(it.asset_url)}" alt="${esc(it.brand || '')} ${esc(g.platform)} creative" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:#f3eee1;display:flex;align-items:center;justify-content:center;color:#8a8a80;font-size:12px">creative pending</div>'}
+          <div style="padding:12px 14px">
+            <div style="font-weight:700;font-size:13px">${esc(it.brand || 'Unknown')}</div>
+            ${it.headline ? `<div style="font-size:12px;color:#556059;margin:4px 0">${esc(String(it.headline).slice(0, 90))}</div>` : ''}
+            <a class="ad-src" style="margin-top:6px" href="${esc(it.landing_url)}" target="_blank" rel="noopener">Open landing page ↗</a>
+            <div style="font-size:11px;color:#8a8a80;margin-top:6px">${it.captured_lp ? '📸 snapshot captured' : 'live destination'}${it.source_link ? ` · <a href="${esc(it.source_link)}" target="_blank" rel="noopener" style="color:#D0473E">source</a>` : ''}</div>
+          </div>
+        </div>`).join('');
+      return `<div class="lp-group"><h3 class="lp-group-h">${esc(g.platform)} <span style="color:#8a8a80;font-weight:400;font-size:13px">${g.items.length}</span></h3><div class="ad-grid">${cards}</div></div>`;
+    }).join('');
+  }
+
+  // ── Brand detail modal: ALL assets of one brand ─────────────────────
+  const bm = $('bm');
+  function closeBrandDetail() { bm.classList.remove('open'); bm.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; }
+  bm.querySelectorAll('[data-bclose]').forEach((el) => el.addEventListener('click', closeBrandDetail));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && bm.classList.contains('open')) closeBrandDetail(); });
+  window.openBrandDetail = async function (name, domain) {
+    $('bm-title').textContent = name || 'Brand';
+    const site = $('bm-site');
+    if (domain) { site.href = 'https://' + domain; site.style.display = ''; } else { site.style.display = 'none'; }
+    $('bm-body').innerHTML = '<div class="ph" style="padding:24px">Loading all assets…</div>';
+    bm.classList.add('open'); bm.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+    let d = {};
+    try { const r = await fetch(API + '?action=brand-detail&brand=' + encodeURIComponent(name)); d = await r.json(); } catch (_) { d = {}; }
+    const c = d.counts || { mailers: 0, ads: 0, landing: 0 };
+    const adsAll = d.ads ? [].concat(d.ads.meta || [], d.ads.google || [], d.ads.tiktok || [], d.ads.other || []) : [];
+    const mailers = d.emails || [], landing = d.landing || [];
+    const assetCard = (img, title, sub, href) => `
+      <div class="ad-card" style="padding:0;overflow:hidden">
+        ${img ? `<a href="${esc(href || '#')}" target="_blank" rel="noopener"><img src="${esc(img)}" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:#f3eee1"></div>'}
+        <div style="padding:10px 12px"><div style="font-weight:600;font-size:12px">${esc(String(title || '').slice(0, 80))}</div>${sub ? `<div style="font-size:11px;color:#8a8a80;margin-top:3px">${esc(sub)}</div>` : ''}</div>
+      </div>`;
+    const section = (label, count, inner) => `<div class="d-section"><div class="sh"><h4>${label} <span style="color:#8a8a80">${count}</span></h4></div>${count ? inner : '<div class="empty" style="margin:0">None captured yet.</div>'}</div>`;
+    $('bm-body').innerHTML =
+      `<div class="d-meta" style="margin-bottom:12px">${followChips(name, domain)}<span style="font-size:12px;color:#556059;margin-left:10px">Follow to get a real-time email on each new mailer or ad.</span></div>` +
+      section('Mailers', c.mailers, '<div class="ad-grid">' + mailers.map((e) => assetCard((e.images && e.images[0]) || '', e.subject, e.send_date ? new Date(e.send_date).toLocaleDateString() : '', (e.ctas && e.ctas[0] && e.ctas[0].href) || e.source_link)).join('') + '</div>') +
+      section('Ads (Meta / Google / TikTok)', c.ads, '<div class="ad-grid">' + adsAll.map((a) => assetCard((a.image_urls && a.image_urls[0]) || (a.video_urls && a.video_urls[0]) || '', (a.headline || a.source || 'Ad'), a.source, a.landing_url || a.source_link)).join('') + '</div>') +
+      section('Landing pages', c.landing, '<div class="ad-grid">' + landing.map((l) => assetCard('', l.url, l.captured_at ? new Date(l.captured_at).toLocaleDateString() : '', l.url)).join('') + '</div>');
+  };
+
+  // ── Insights: quick rollup over the captured competitor mailers ─────
+  function renderInsights() {
+    const emails = state.all || [];
+    const brands = new Set(emails.map((e) => e.brand));
+    const promo = emails.filter((e) => e.promo || e.hasPromo || /\b\d{1,2}%|code\b/i.test(e.subject || '')).length;
+    const stat = (n, l) => `<div class="stat"><div class="v">${n}</div><div class="l">${l}</div></div>`;
+    const wrap = $('cb-insights-stats');
+    if (wrap) wrap.innerHTML = stat(emails.length, 'Mailers captured') + stat(brands.size, 'Brands seen') +
+      stat(emails.length ? Math.round(promo / emails.length * 100) + '%' : '—', 'Promo intensity') +
+      stat(((state.brandUniverse && state.brandUniverse.length) || adBrands().length), 'Brands tracked');
+    const counts = {};
+    emails.forEach((e) => { counts[e.brand] = (counts[e.brand] || 0) + 1; });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const el = $('cb-insights-top');
+    if (el) el.innerHTML = top.length
+      ? top.map(([b, n]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(171,135,67,0.08)"><span>${esc(b)}</span><b style="color:#D0473E">${n}</b></div>`).join('')
+      : '<div style="color:#48524c">No mailers captured yet. Subscribe brands under Discover to start the feed.</div>';
+  }
+  $('adRegion').addEventListener('change', renderAds);
+
+  // ── Brands database + discovery (Phase 2) ───────────────────────────
+  const BRAND_TARGET = 250;
+  let brandsLoaded = false;
+  async function renderBrands(force) {
+    if (brandsLoaded && !force) return;
+    $('bd-rows').innerHTML = '<tr><td colspan="6" style="padding:16px;color:#556059">Loading…</td></tr>';
+    let brands = [];
+    try { const r = await fetch(API + '?action=brands'); const d = await r.json(); brands = d.brands || []; } catch {}
+    brandsLoaded = true;
+    await loadFollows();
+    // Refresh the shared universe so Mailers/Meta/Google/TikTok/Landing tabs
+    // all track the SAME brands as this Discover tab.
+    await fetchBrandUniverse(true);
+    $('bd-count').textContent = `${brands.length} brands · target ~${BRAND_TARGET}`;
+    $('bd-empty').style.display = brands.length ? 'none' : 'block';
+    const pill = (s) => { const ok = /subscribed/i.test(s) && !/not/i.test(s); return `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${ok ? 'rgba(34,197,94,.15)' : 'rgba(171,135,67,.12)'};color:${ok ? '#0a7d33' : '#7a5f28'}">${esc(s || 'Not subscribed')}</span>`; };
+    $('bd-rows').innerHTML = brands.map((b) => `
+      <tr style="border-top:1px solid rgba(171,135,67,0.1)">
+        <td style="padding:9px 12px"><span class="brand-link" data-brand="${esc(b.brandName)}" data-domain="${esc(b.domain || '')}" style="color:#111111;font-weight:600">${esc(b.brandName)}</span><div style="font-size:11px;color:#48524c">${esc(b.domain)}</div></td>
+        <td style="padding:9px 12px;color:#556059">${esc(b.category)}</td>
+        <td style="padding:9px 12px;color:#556059">${esc(b.country)}</td>
+        <td style="padding:9px 12px;color:#556059">${esc(b.positioning)}</td>
+        <td style="padding:9px 12px">${(b.newsletterSignupUrl || b.websiteUrl) ? `<a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#D0473E">Signup ↗</a>` : '<span style="color:#48524c">—</span>'}</td>
+        <td style="padding:9px 12px;white-space:nowrap">${followChips(b.brandName, b.domain || '')}</td>
+      </tr>`).join('');
+  }
+  async function runBrandAction(btn, action, busyText) {
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = busyText;
+    $('bd-status').textContent = '';
+    try {
+      const r = await fetch(API + '?action=' + action, { method: 'POST' });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'failed');
+      $('bd-status').textContent = action === 'discover'
+        ? `+${d.added} new (${d.skipped} dupes) · ${d.total} total${d.provider ? ' · via ' + d.provider : ''}`
+        : d.added
+          ? `+${d.added} added · ${d.total} total`
+          : `All ${d.skipped} priority brands already in your universe · ${d.total} total`;
+      await renderBrands(true);
+    } catch (e) {
+      $('bd-status').textContent = 'Error: ' + (e.message || e);
+    } finally { btn.disabled = false; btn.textContent = orig; }
+  }
+  $('bd-discover').addEventListener('click', function () { runBrandAction(this, 'discover', '✨ Searching…(~20s)'); });
+  $('bd-seed').addEventListener('click', function () { runBrandAction(this, 'seed', '⬇ Adding 60 brands…'); });
+  $('bd-refresh').addEventListener('click', async function () {
+    const orig = this.textContent; this.disabled = true; this.textContent = '↻ Refreshing…';
+    $('bd-status').textContent = '';
+    try { await renderBrands(true); $('bd-status').textContent = 'List refreshed from DB.'; }
+    catch (e) { $('bd-status').textContent = 'Refresh failed: ' + e.message; }
+    finally { this.disabled = false; this.textContent = orig; }
+  });
+
+  // ── Live polling (near-real-time) ───────────────────────────────────
+  // Re-fetch on an interval so new mail the backend ingests shows up without a
+  // manual reload. Preserves the active brand filter, sort and scroll. Pauses
+  // while the tab is hidden, and fires immediately when it becomes visible.
+  const POLL_MS = 45000;
+  let pollTimer = null;
+  function setLive(stale) {
+    const el = $('live');
+    const t = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.classList.toggle('stale', !!stale);
+    el.innerHTML = `<span class="pulse"></span> ${stale ? 'Reconnecting…' : 'Live · ' + t}`;
+  }
+  async function quietRefresh() {
+    // Wait for the sync to complete so we don't fetch stale emails and
+    // mess up the email count sync flow.
+    setLive(true); // Show reconnecting state immediately
+    await triggerSync();
+    let emails;
+    try { const r = await fetch(API + '?action=list'); const d = await r.json(); emails = d.emails || []; }
+    catch { setLive(true); return; }
+    const prevBrand = $('brandFilter').value;
+    state.all = emails;
+    const brands = [...new Set(emails.map((e) => e.brand))].sort();
+    $('brandFilter').innerHTML = '<option value="">All platforms</option>' + brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    $('brandFilter').value = brands.includes(prevBrand) ? prevBrand : '';
+    renderStats();
+    if (!document.body.classList.contains('detail-mode')) apply();
+    setLive(false);
+  }
+  function startPolling() { stopPolling(); pollTimer = setInterval(() => { if (!document.hidden) quietRefresh(); }, POLL_MS); }
+  function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) quietRefresh(); });
+
+  // Events
+  ['search', 'brandFilter', 'promoOnly', 'attachOnly'].forEach((id) => $(id).addEventListener(id === 'search' ? 'input' : 'change', apply));
+  document.querySelectorAll('th[data-sort]').forEach((th) => th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (state.sortKey === k) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+    else { state.sortKey = k; state.sortDir = k === 'receivedAt' ? 'desc' : 'asc'; }
+    apply();
+  }));
+
+  load().then(() => { setLive(false); startPolling(); showSection(currentSection()); });
+  fetchBrandUniverse(); // prime the shared brand list for all tabs
+})();
+</script>
+<script type="module">
+  import { animate, stagger, inView } from "https://cdn.jsdelivr.net/npm/motion@11.11.13/+esm";
+  
+  // Create an animation hook to run after the DOM is rendered and data is loaded.
+  // We can attach a MutationObserver to watch for content populating, but a simpler
+  // approach is to expose a global function that gets called after renderRows() or showSection().
+  window.triggerMotionAnimations = () => {
+    // Animate stats
+    const stats = document.querySelectorAll('.stat');
+    if (stats.length) {
+      animate(stats, { opacity: [0, 1], y: [15, 0], scale: [0.98, 1] }, { delay: stagger(0.06), duration: 0.5, type: "spring", bounce: 0.3 });
+    }
+    
+    // Animate table rows
+    const rows = document.querySelectorAll('tbody tr');
+    if (rows.length) {
+      animate(rows, { opacity: [0, 1], x: [-10, 0] }, { delay: stagger(0.03), duration: 0.4 });
+    }
+
+    // Animate ad cards
+    const cards = document.querySelectorAll('.ad-card');
+    if (cards.length) {
+      animate(cards, { opacity: [0, 1], y: [20, 0], scale: [0.96, 1] }, { delay: stagger(0.05), duration: 0.5, type: "spring", bounce: 0.35 });
+    }
+  };
+
+  // Run initial animation on headers
+  animate(".eyebrow, h1, .sub", { opacity: [0, 1], y: [10, 0] }, { delay: stagger(0.1), duration: 0.6, type: "spring" });
+  animate(".subnav", { opacity: [0, 1], scale: [0.95, 1] }, { delay: 0.2, duration: 0.5 });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# knickgasm-creator-plan — export target
+
+Paste the ChatGPT conversation for **knickgasm-creator-plan** into this folder as:
+- `conversation.md` — the full conversation export
+- `requirements.md` — the distilled requirements (optional; the parser will also read conversation.md)
+
+Status is surfaced by `api/_shared/content-core.js` → `importedAgentStatus()`.

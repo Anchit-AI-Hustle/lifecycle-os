@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Master Dashboard — KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#6A33D8">
+<style>
+  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--muted:#48524c}
+  *{box-sizing:border-box} body{margin:0;background:#ffffff;color:#111111;font-family:Inter,system-ui,Arial,sans-serif;padding:28px}
+  .wrap{max-width:1280px;margin:0 auto}
+  .top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
+  .eyebrow{color:var(--lava);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+  h1{font-family:Georgia,serif;font-size:38px;line-height:1.05;margin:8px 0 10px}
+  p{color:#556059;line-height:1.55}
+  .btn{border:0;border-radius:10px;background:var(--lava);color:#ffffff;padding:12px 16px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn.secondary{background:transparent;color:#111111;border:1px solid rgba(171,135,67,.35)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:16px;padding:18px}
+  .card h2{font-size:15px;margin:0 0 10px}
+  .metric{font-size:30px;color:#111111;font-weight:800;font-variant-numeric:tabular-nums}
+  .metric.na{color:#5f6f66;font-size:20px}
+  .label{font-size:10.5px;color:#48524c;letter-spacing:.12em;text-transform:uppercase}
+  .sub{font-size:11px;color:#8aa;margin-top:4px}
+  .wide{grid-column:span 4}.two{grid-column:span 2}.three{grid-column:span 3}.one{grid-column:span 1}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .kpi{background:#f4f2ec;border:1px solid rgba(171,135,67,.14);border-radius:12px;padding:14px}
+  .kpi a{color:inherit;text-decoration:none;display:block}
+  .kpi .metric{font-size:26px}
+  .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+  .st.ok,.st.success,.st.connected{background:rgba(29,107,69,.3);color:#0a7d33}
+  .st.warn,.st.skipped,.st.partial{background:rgba(171,135,67,.16);color:#7a5f28}
+  .st.error,.st.not_connected{background:rgba(180,60,60,.22);color:#e89a9a}
+  .st.running{background:rgba(80,120,200,.22);color:#a9c3f0}
+  .feed{max-height:340px;overflow:auto}
+  .feed .row{margin:0 0 8px;font-size:13px;border-left:2px solid rgba(171,135,67,.35);padding-left:10px}
+  .feed .row small{color:#48524c;display:block;font-size:11px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-size:10px;color:#48524c;letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:8px;border-bottom:1px solid rgba(171,135,67,.25)}
+  td{padding:9px 8px;border-bottom:1px solid rgba(171,135,67,.1);vertical-align:top}
+  .bar{height:8px;border-radius:999px;background:#f4f2ec;overflow:hidden;margin-top:8px;border:1px solid rgba(171,135,67,.14)}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#1d6b45,#0a7d33)}
+  .muted{color:#48524c}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .banner{border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px}
+  .banner.err{background:rgba(180,60,60,.14);border:1px solid rgba(180,60,60,.5);color:#111111}
+  .banner.info{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.4);color:#111111}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two,.three,.one{grid-column:span 1}h1{font-size:28px}}
+</style>
+<script src="/auth.js?v=20260718light" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="eyebrow">KNICKGASM Lifecycle OS</div>
+      <h1>Master Dashboard</h1>
+      <p>The single control plane for every action across the app — connector health, the Daily Intelligence Refresh, all generated work (campaigns, mailers, ads, landing pages, calendar slots), competitor and knowledge intelligence, agent runs, and recent activity from every feature. Every number is read from the database; blanks mean not yet connected or no data.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="refresh-btn">Run Daily Intelligence Refresh</button>
+      <button class="btn secondary" id="reload-btn">Reload</button>
+    </div>
+  </div>
+
+  <div id="banner"></div>
+  <div id="content"><p><span class="spinner"></span> Loading dashboard…</p></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var API = "/api/brain";
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  function num(n){ return (n==null) ? '<span class="metric na">—</span>' : '<span class="metric">'+n+'</span>'; }
+  function timeago(iso){ if(!iso) return ""; try{ var d=new Date(iso); var s=Math.floor((Date.now()-d.getTime())/1000); if(s<60)return s+"s ago"; if(s<3600)return Math.floor(s/60)+"m ago"; if(s<86400)return Math.floor(s/3600)+"h ago"; return Math.floor(s/86400)+"d ago"; }catch(e){return "";} }
+
+  function kpi(label, val, href){
+    var inner = '<div class="label">'+esc(label)+'</div>'+num(val);
+    return '<div class="kpi">'+(href?('<a href="'+href+'">'+inner+'</a>'):inner)+'</div>';
+  }
+
+  function render(d){
+    var c = d.connectors || {};
+    var counts = d.counts || {};
+    var lr = d.last_refresh;
+
+    var connPct = c.total ? Math.round((c.connected/c.total)*100) : 0;
+    var html = '';
+
+    // Supabase health line — reads the live probe the API already returns so a
+    // stale service-role key is diagnosed at a glance (the #1 cause of empty
+    // tiles). Green = reachable, red = 401/403 rotate the key, amber = not set.
+    var dg = d._diag || {}, probe = dg.probe || {};
+    var sbColor, sbState, sbMsg;
+    if (!dg.smart_brain_service_role) {
+      sbColor='#9a6b12'; sbState='service-role key not set';
+      sbMsg='Set SUPABASE_SERVICE_ROLE_KEY in Vercel (Settings → Env Vars) for Production + Preview + Development, then redeploy.';
+    } else if (probe.http===200 || probe.ok===true) {
+      sbColor='#1d7a4d'; sbState='reachable ✓';
+      sbMsg='Service-role key is valid; counts below are live from the database.';
+    } else if (probe.http===401 || probe.http===403) {
+      sbColor='#a5341f'; sbState='HTTP '+probe.http+' — key stale';
+      sbMsg='Rotate SUPABASE_SERVICE_ROLE_KEY: Supabase → Settings → API → copy service_role → update it in Vercel env → redeploy.';
+    } else if (probe.error) {
+      sbColor='#9a6b12'; sbState='unreachable';
+      sbMsg=esc(probe.error);
+    } else {
+      sbColor='#9a6b12'; sbState='unknown';
+      sbMsg='No probe result returned.';
+    }
+    html += '<div style="border:1px solid var(--hair,rgba(23,23,23,.12));border-left:4px solid '+sbColor+';'+
+      'border-radius:10px;padding:11px 15px;margin-bottom:14px;background:rgba(0,0,0,.02)">'+
+      '<b>Supabase</b> · <span style="color:'+sbColor+';font-weight:700">'+esc(sbState)+'</span>'+
+      (dg.smart_brain_url_host?' <span class="muted" style="font-size:12px">('+esc(dg.smart_brain_url_host)+')</span>':'')+
+      '<div class="sub" style="margin-top:3px">'+sbMsg+'</div></div>';
+
+    // Row 1: status cards
+    html += '<div class="grid" style="margin-bottom:14px">';
+    html += '<div class="card one"><div class="label">Daily Intelligence Refresh</div>'+
+      (lr ? ('<div style="margin-top:8px"><span class="st '+esc(lr.status)+'">'+esc(lr.status)+'</span></div><div class="sub">'+esc(lr.summary||"")+'</div><div class="sub muted">'+timeago(lr.finished_at||lr.started_at)+'</div>')
+          : '<div style="margin-top:8px"><span class="st warn">never run</span></div><div class="sub muted">Trigger it from the button above.</div>')+
+      '</div>';
+    html += '<div class="card one"><div class="label">Connectors</div>'+
+      '<div class="metric">'+(c.connected!=null?c.connected:'—')+' <span class="muted" style="font-size:15px">/ '+(c.total||0)+'</span></div>'+
+      '<div class="bar"><i style="width:'+connPct+'%"></i></div>'+
+      '<div class="sub">'+(c.partial||0)+' partial · '+(c.not_connected||0)+' not connected'+(c.persisted?'':' · <span class="muted">(registry not migrated)</span>')+'</div>'+
+      '<div class="sub"><a class="muted" href="/connectors" style="color:var(--lava)">Manage connectors →</a></div></div>';
+    html += '<div class="card one"><div class="label">Pending approvals</div>'+num(counts.pending_reviews)+'<div class="sub"><a class="muted" href="/brain" style="color:var(--lava)">Review &amp; approve →</a></div></div>';
+    html += '<div class="card one"><div class="label">Agent runs</div>'+num(counts.agent_runs)+'<div class="sub">'+(counts.agent_definitions!=null?counts.agent_definitions+' agents defined':'')+'</div></div>';
+    html += '</div>';
+
+    // Row 2: KPI grid of generated work
+    html += '<div class="card wide" style="margin-bottom:14px"><h2>Generated &amp; planned work</h2><div class="kpis">';
+    html += kpi('Campaigns', counts.campaigns, null);
+    html += kpi('Generated campaigns', counts.generated_campaigns, null);
+    html += kpi('Generated assets', counts.generated_assets, '/assets');
+    html += kpi('Mailer-calendar entries', counts.calendar_entries, '/mailer-calendar');
+    html += kpi('Smart calendar slots', counts.smart_calendar, '/brain');
+    html += kpi('Ads generated', counts.ads_generated, '/ads');
+    html += kpi('Landing pages', counts.landing_pages, '/landing-pages');
+    html += kpi('Competitor brands', counts.competitor_brands, '/competitor');
+    html += kpi('KB entries', counts.kb_entries, '/kb');
+    html += kpi('Prompt templates', counts.prompt_templates, null);
+    html += kpi('Connector syncs', counts.connectors_synced, '/connectors');
+    html += '</div><p class="sub muted" style="margin-top:12px">A dash (—) means the table is empty or not yet available in this environment — shown honestly rather than as zero-looks-like-data.</p></div>';
+
+    // Row 3: activity + cron
+    html += '<div class="grid">';
+    html += '<div class="card two"><h2>Recent activity</h2><div class="feed">';
+    if ((d.recent_activity||[]).length){
+      d.recent_activity.forEach(function(a){
+        html += '<div class="row"><span class="st '+esc(a.status||'ok')+'" style="font-size:10px;padding:1px 7px">'+esc(a.status||'ok')+'</span> '+esc(a.summary||a.action)+'<small>'+esc(a.action)+' · '+timeago(a.created_at)+'</small></div>';
+      });
+    } else { html += '<p class="muted">No activity logged yet. Run the Daily Intelligence Refresh or trigger a connector sync.</p>'; }
+    html += '</div></div>';
+
+    html += '<div class="card two"><h2>Recent job runs</h2>';
+    if ((d.recent_cron_runs||[]).length){
+      html += '<table><thead><tr><th>Job</th><th>Status</th><th>Summary</th><th>When</th></tr></thead><tbody>';
+      d.recent_cron_runs.forEach(function(r){
+        html += '<tr><td>'+esc(r.job_id)+'</td><td><span class="st '+esc(r.status)+'">'+esc(r.status)+'</span></td><td class="muted">'+esc(r.summary||"")+'</td><td class="muted">'+timeago(r.finished_at||r.started_at)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else { html += '<p class="muted">No job runs yet.</p>'; }
+    html += '</div>';
+    html += '</div>';
+
+    // Row 4: agent runs
+    html += '<div class="card wide" style="margin-top:14px"><h2>Recent agent activity</h2>';
+    if ((d.recent_agent_runs||[]).length){
+      html += '<table><thead><tr><th>Agent</th><th>Status</th><th>Quality</th><th>When</th></tr></thead><tbody>';
+      d.recent_agent_runs.forEach(function(r){
+        html += '<tr><td>'+esc(r.agent_id)+'</td><td><span class="st '+esc(r.status)+'">'+esc(r.status)+'</span></td><td>'+(r.quality_score!=null?esc(r.quality_score):'<span class="muted">—</span>')+'</td><td class="muted">'+timeago(r.started_at)+'</td></tr>';
+      });
+      html += '</tbody></table>';
+    } else { html += '<p class="muted">No agent runs recorded yet. Agents are defined and ready; runs appear here once generation is invoked.</p>'; }
+    html += '</div>';
+
+    html += '<p class="sub muted" style="margin-top:14px">Generated '+esc(d.generated_at)+'</p>';
+    $("content").innerHTML = html;
+  }
+
+  function load(){
+    $("banner").innerHTML = "";
+    fetch(API+"?action=os-dashboard").then(function(r){return r.json();}).then(function(j){
+      if(!j.ok) throw new Error(j.error||"failed");
+      render(j);
+    }).catch(function(e){
+      $("content").innerHTML = '<div class="banner err">Could not load dashboard: '+esc(e.message)+'. If this is a fresh environment, apply the backbone migration (supabase/migrations/20260706_lifecycle_os_backbone.sql) and set SUPABASE env vars.</div>';
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    $("reload-btn").addEventListener("click", load);
+    $("refresh-btn").addEventListener("click", function(){
+      var b=$("refresh-btn"); b.disabled=true; var t=b.textContent; b.innerHTML='<span class="spinner"></span> Running…';
+      fetch(API+"?action=os-run-daily-job",{method:"POST"}).then(function(r){return r.json();}).then(function(j){
+        b.disabled=false; b.textContent=t;
+        if(j.ok){
+          // Be honest about what the run actually did. Today the connector sync
+          // adapters are Phase 2 ("adapter pending — no records pulled"), so a
+          // successful run can legitimately change zero counts — surface that
+          // instead of a bare "complete" that looks like nothing happened.
+          var steps = (j.steps_total!=null?j.steps_total:'?');
+          var pulled = (j.records_synced!=null?j.records_synced:0);
+          var pending = (j.connectors_pending!=null?j.connectors_pending:null);
+          var detail = pulled>0
+            ? (pulled+' records synced across '+steps+' steps.')
+            : (steps+' steps ran, 0 new records — connector sync adapters are Phase 2 (pending)'+(pending!=null?', '+pending+' connector(s) awaiting adapters':'')+'. Counts change once live adapters + a valid SUPABASE_SERVICE_ROLE_KEY are in place.');
+          $("banner").innerHTML='<div class="banner info">Daily Intelligence Refresh complete — '+esc(j.summary||detail)+(j.summary?' ('+esc(steps)+' steps).':'')+'</div>'; load();
+        }
+        else { $("banner").innerHTML='<div class="banner err">Refresh failed: '+esc(j.error||"unknown")+'. If this mentions auth/permission, the SUPABASE_SERVICE_ROLE_KEY in Vercel is stale — rotate it and redeploy.</div>'; }
+      }).catch(function(e){ b.disabled=false; b.textContent=t; $("banner").innerHTML='<div class="banner err">Refresh failed: '+esc(e.message)+'</div>'; });
+    });
+    load();
+  });
+})();
+</script>
+</body>
+</html>

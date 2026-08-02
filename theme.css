@@ -1,0 +1,466 @@
+/* ============================================================================
+   KNICKGASM Lifecycle OS — shared design system (theme.css)
+   ----------------------------------------------------------------------------
+   One token-driven stylesheet loaded on EVERY page via auth.js. It provides:
+     1. Design tokens (palette, type scale, spacing, radius, shadow) as CSS vars
+        — restyle the whole suite by editing these, not 15 files.
+     2. Globally SAFE polish only: font smoothing, selection, focus-visible
+        rings, custom scrollbars, reduced-motion. Bare elements are not restyled
+        EXCEPT one intentional, lowest-specificity table-layout default (see the
+        "Global table default" block) so header cells always sit above their
+        columns; any per-page `table.<class>` rule still wins on specificity, so
+        existing per-page CSS is not clobbered.
+     3. An OPT-IN component kit under the `vh-` prefix (buttons, cards, tables,
+        inputs, chips, badges, section headers) for pages to migrate onto.
+     4. Mobile hardening: safe-area (notch) insets for the shared nav, larger
+        tap targets, and responsive helpers — improves the Capacitor apps too.
+
+   Palette is locked to the brand's four colors (Brand style guide):
+     violet #6A33D8 · lava #D0473E · near-black #111111 · chalk #F7F5F2.
+   Dark surfaces are derived tints of violet/near-black, not off-palette drift.
+   ========================================================================== */
+
+:root {
+  /* Brand core (locked, theme-independent accents) */
+  --vh-green:  #6A33D8;
+  --vh-lava:   #D0473E;
+  --vh-black:  #111111;
+  --vh-chalk:  #F7F5F2;
+
+  /* State (theme-independent) */
+  --vh-ok:   #3fa46a;
+  --vh-warn: #c9a227;
+  --vh-err:  #b0483f;
+
+  /* ── US D2C Review design system (source: KNICKGASM_USA_D2C_Dashboard.html) ──
+     The official business-review dashboard shares the same four brand colors,
+     Montserrat + Instrument Sans, and adds this semantic set. Its CANONICAL page
+     surface is brand CHALK (not #fff); dark ink text on chalk is the reference
+     pairing. These tokens align the Lifecycle OS light theme to that review. */
+  --vh-surface:      #F7F5F2;  /* canonical light page surface (chalk) */
+  --vh-surface-card: #ffffff;  /* cards sit slightly above the chalk page */
+  --vh-panel-tan:    #eadfce;  /* tan info panel */
+  --vh-border-soft:  #cddbd2;  /* soft green-gray hairline */
+  --vh-pos:          #1a7f37;  /* positive / uptrend (AA on chalk) */
+  --vh-neg:          #c0392b;  /* negative / downtrend (AA on chalk) */
+  --vh-coffee:       #6f4e37;  /* coffee-category accent */
+  --vh-text-on-light:#111111;  /* body text on any light surface */
+  --vh-text-muted:   #556059;  /* secondary text on light */
+
+  /* Type */
+  --vh-font-head: 'Lora', 'Montserrat', Georgia, serif;
+  --vh-font-body: 'Inter', 'Instrument Sans', system-ui, -apple-system, Segoe UI, sans-serif;
+  --vh-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Type scale (fluid: clamps between mobile and desktop) */
+  --vh-fs-xs:  11px;
+  --vh-fs-sm:  12.5px;
+  --vh-fs-md:  14px;
+  --vh-fs-lg:  clamp(16px, 1.4vw, 18px);
+  --vh-fs-xl:  clamp(20px, 2.4vw, 26px);
+  --vh-fs-2xl: clamp(28px, 4.4vw, 44px);
+
+  /* Spacing scale */
+  --vh-s1: 4px;  --vh-s2: 8px;  --vh-s3: 12px; --vh-s4: 16px;
+  --vh-s5: 22px; --vh-s6: 32px; --vh-s7: 48px;
+
+  /* Radius / shadow / motion */
+  --vh-r-sm: 8px; --vh-r-md: 12px; --vh-r-lg: 16px; --vh-r-pill: 999px;
+  --vh-shadow:    0 16px 40px rgba(0,0,0,0.45);
+  --vh-shadow-lg: 0 40px 100px rgba(0,0,0,0.70);
+  --vh-t-fast: .14s; --vh-t-mid: .22s;
+
+  /* Safe-area insets (notch / home indicator) surfaced as usable vars */
+  --vh-safe-top:    env(safe-area-inset-top, 0px);
+  --vh-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --vh-safe-left:   env(safe-area-inset-left, 0px);
+  --vh-safe-right:  env(safe-area-inset-right, 0px);
+}
+
+/* ============================================================================
+   LOCKED THEME — single green surface, golden/yellow/white text.
+   ----------------------------------------------------------------------------
+   The dark/dusk/light switcher was removed. There is now ONE theme: a
+   deep-purple (#6A33D8) canvas with lava/chalk text, on brand with the style
+   guide. All selectors below resolve to the SAME tokens, so any stale
+   html[data-theme="dusk|light"] value left in a browser still renders green —
+   the lock cannot be defeated by old localStorage.
+   ========================================================================== */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="dusk"],
+:root[data-theme="light"],
+:root[data-theme="green"] {
+  /* LIGHT theme lock (2026-07-18): the suite is standardized to ONE light theme
+     so every tool tab renders consistently light — chalk canvas #F7F5F2, white
+     cards/tiles, near-black ink, violet heads, lava accents, cool-muted secondary.
+     Every data-theme value resolves here (auth.js sets data-theme="green"). This
+     MATCHES the light :root each page already declares, so pages stop rendering
+     dark against their own intent. NOTE: --chalk stays page-owned (it is used as
+     text on hard-coded dark/violet elements like hero bands + CTA buttons, so it
+     must remain chalk there); pages that placed --chalk text on a light surface
+     are corrected per-page (e.g. app-audit remaps --chalk to violet). Two themed
+     pages opt back to dark on purpose: diff-version (frozen dark diff) and /3d
+     (WebGL storefront) — they carry their own high-specificity dark override. */
+  --vh-bg: #F7F5F2; --vh-panel: #ffffff; --vh-panel-2: #f4f2ec;
+  --vh-line: rgba(171,135,67,0.24); --vh-line-hot: rgba(171,135,67,0.5);
+  /* Text: near-black body, muted secondary, faint tertiary — readable on light. */
+  --vh-ink: #111111; --vh-ink-dim: #556059; --vh-ink-faint: #6b7770;
+  /* legacy aliases (family A + family B) — all point at the locked light set.
+     --soft is a *dim text* color (never a surface): a readable muted tone. */
+  --bg: #F7F5F2; --panel: #ffffff; --surface: #ffffff; --card: #ffffff; --soft: #556059; --chip: #f4f2ec;
+  --ink: #111111; --ink-dim: #556059; --ink-faint: #6b7770; --muted: #556059; --head: #6A33D8;
+  --line: rgba(171,135,67,0.24); --line-hot: rgba(171,135,67,0.5);
+  --violet: #6A33D8; --green: #6A33D8; --accent: #D0473E; --moss: #eef3f0; --moss-deep: #e7efe9;
+  color-scheme: light;
+}
+
+/* ── Globally safe polish (no layout-affecting bare-element restyles) ─────── */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* ── Global table default: header cells sit exactly above their columns ─────
+   Element-level (lowest specificity) so ANY per-page `table.<class>` rule
+   still wins and existing per-page CSS is never clobbered. This only sets a
+   sane default for otherwise-unstyled tables. `table-layout: fixed` guarantees
+   the header row and body rows share identical column widths within a single
+   <table> (columns can never drift), `width: 100%` fills the container, and
+   border-box keeps padding inside the column so data cells align to their
+   header exactly. Wide tables should sit in an `overflow-x:auto` wrapper.
+   NOTE: applies only to app pages that load theme.css (via auth.js); the
+   generated email/mailer HTML, which uses <table> for layout, never loads it. */
+table { table-layout: fixed; width: 100%; border-collapse: collapse; }
+table th, table td {
+  box-sizing: border-box;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+/* Data-table column alignment. A table that has header cells is a DATA table
+   (layout/email tables use <td> only), so `:has(th)` targets exactly those and
+   never touches layout tables. The header row and body share identical column
+   widths (table-layout: fixed above), so each header sits over its column; here
+   we set the reading alignment: the first column (row labels) stays LEFT, and
+   every other column is CENTERED so the value sits centered under its header.
+   Element-level (no class), so any page that deliberately sets per-column
+   alignment via a `table.<class>` rule still wins — this is the sane default. */
+table:has(th) th, table:has(th) td { text-align: center; }
+table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
+
+::selection { background: rgba(171,135,67,0.30); color: var(--vh-chalk); }
+
+/* Consistent, on-brand focus ring for keyboard users across every page. */
+:focus-visible {
+  outline: 2px solid var(--vh-lava);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Quiet, on-brand scrollbars (Firefox + WebKit). */
+* { scrollbar-width: thin; scrollbar-color: rgba(171,135,67,0.30) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: rgba(171,135,67,0.28); border-radius: var(--vh-r-pill); }
+*::-webkit-scrollbar-thumb:hover { background: rgba(171,135,67,0.45); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+/* ── Mobile hardening for the shared nav (auth.js #lifecycle-nav) ─────────── */
+/* Respect the notch / status bar and home indicator inside the Capacitor apps
+   and on modern phones, without each page needing to know about safe areas. */
+#lifecycle-nav .lnav-mbar { padding-top: var(--vh-safe-top); }
+#lifecycle-nav .lnav-side { padding-bottom: calc(var(--vh-s4) + var(--vh-safe-bottom)); }
+@media (max-width: 860px) {
+  /* Comfortable 44px tap targets on touch for the shared nav controls. */
+  #lifecycle-nav .lnav-burger,
+  #lifecycle-nav .lnav-link,
+  #lifecycle-nav .lnav-ghead { min-height: 44px; }
+}
+
+/* ── Opt-in component kit (vh-*) — pages migrate onto these ───────────────── */
+.vh-stack { display: flex; flex-direction: column; gap: var(--vh-s4); }
+.vh-row   { display: flex; align-items: center; gap: var(--vh-s3); flex-wrap: wrap; }
+.vh-muted { color: var(--vh-ink-dim); }
+.vh-faint { color: var(--vh-ink-faint); }
+
+.vh-h1 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-2xl); letter-spacing: -0.02em; line-height: 1.1; color: var(--vh-chalk); }
+.vh-h2 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-xl); letter-spacing: -0.01em; color: var(--vh-chalk); }
+.vh-eyebrow { font-size: var(--vh-fs-xs); text-transform: uppercase; letter-spacing: 0.22em; color: var(--vh-lava); font-weight: 600; }
+.vh-section-label { font-size: var(--vh-fs-xs); text-transform: uppercase; letter-spacing: 0.16em; color: var(--vh-ink-faint); font-weight: 600; }
+
+.vh-card {
+  background: var(--vh-panel); border: 1px solid var(--vh-line);
+  border-radius: var(--vh-r-lg); padding: var(--vh-s5);
+  transition: border-color var(--vh-t-mid), transform var(--vh-t-mid), box-shadow var(--vh-t-mid);
+}
+.vh-card:hover { border-color: var(--vh-line-hot); box-shadow: var(--vh-shadow); }
+
+.vh-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--vh-s2);
+  font-family: var(--vh-font-body); font-size: var(--vh-fs-sm); font-weight: 600; letter-spacing: 0.02em;
+  padding: 10px 16px; min-height: 40px; border-radius: var(--vh-r-sm);
+  border: 1px solid transparent; cursor: pointer; text-decoration: none;
+  transition: all var(--vh-t-fast);
+}
+.vh-btn-solid { background: var(--vh-lava); color: var(--vh-bg); }
+.vh-btn-solid:hover { filter: brightness(1.05); }
+.vh-btn-ghost { background: transparent; border-color: var(--vh-line-hot); color: var(--vh-ink); }
+.vh-btn-ghost:hover { border-color: var(--vh-lava); color: var(--vh-chalk); background: rgba(171,135,67,0.06); }
+.vh-btn-green { background: var(--vh-green); color: var(--vh-chalk); border-color: var(--vh-line-hot); }
+
+.vh-chip {
+  font-size: var(--vh-fs-xs); font-weight: 600; letter-spacing: 0.03em;
+  padding: 6px 13px; border-radius: var(--vh-r-pill);
+  border: 1px solid var(--vh-line); background: transparent; color: var(--vh-ink-dim);
+}
+.vh-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--vh-lava); background: rgba(171,135,67,0.12);
+  padding: 3px 8px; border-radius: var(--vh-r-pill);
+}
+
+.vh-input, .vh-select, .vh-textarea {
+  width: 100%; font-family: var(--vh-font-body); font-size: var(--vh-fs-md); color: var(--vh-ink);
+  background: var(--vh-panel-2); border: 1px solid var(--vh-line); border-radius: var(--vh-r-sm);
+  padding: 10px 12px; transition: border-color var(--vh-t-fast);
+}
+.vh-input:focus, .vh-select:focus, .vh-textarea:focus { border-color: var(--vh-lava); outline: none; }
+
+.vh-table { width: 100%; border-collapse: collapse; font-size: var(--vh-fs-sm); }
+.vh-table th, .vh-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--vh-line); }
+.vh-table th { color: var(--vh-ink-faint); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--vh-fs-xs); }
+.vh-table tr:hover td { background: rgba(171,135,67,0.04); }
+/* Wide tables scroll inside their own container instead of breaking the page. */
+.vh-table-wrap { overflow-x: auto; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
+
+/* Responsive grid helper: auto-fit cards, 1-up on small screens. */
+.vh-grid { display: grid; gap: var(--vh-s4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+
+.vh-container { max-width: 1180px; margin: 0 auto; padding-left: max(var(--vh-s4), var(--vh-safe-left)); padding-right: max(var(--vh-s4), var(--vh-safe-right)); }
+
+/* ============================================================================
+   GLOBAL 3D DEPTH LAYER (2026-07-16)
+   App-wide dimensionality without touching any page's own CSS: layered
+   elevation shadows + hover lift/tilt on cards, tiles and buttons. All
+   transforms are HOVER-ONLY (no layout shift, nothing moves at rest) and are
+   fully disabled under prefers-reduced-motion. Scoped to common component
+   classes + generic [class*="card"], never to nav/header/sticky chrome.
+   ============================================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  /* Subtle hover lift for SMALL card/tile/kpi surfaces only — a flat raise, no
+     3D tilt. The previous rule applied a perspective+rotateX(2.5deg)+scale tilt
+     to .panel and any [class*="card"], so large sections (e.g. the calendar
+     panel) lurched/swung when the cursor entered. Large sections + panels are
+     no longer transformed; small cards get a gentle 2px lift + shadow. */
+  .vh-card, .kpi, .tile, .coll, .card, [class*="kpi"], [class*="tile"] {
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .vh-card:hover, .kpi:hover, .tile:hover, .coll:hover, .card:hover,
+  [class*="kpi"]:hover, [class*="tile"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(23,23,23,.12), 0 3px 10px rgba(23,23,23,.06);
+  }
+  /* Buttons feel physical: raised at rest, press down on click. */
+  button, .btn, .vh-btn, [role="button"], input[type="submit"] {
+    transition: transform .12s ease, box-shadow .18s ease;
+  }
+  button:hover, .btn:hover, .vh-btn:hover, [role="button"]:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 8px 20px rgba(0,74,43,.18);
+  }
+  button:active, .btn:active, .vh-btn:active, [role="button"]:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(0,74,43,.16);
+  }
+}
+/* Resting elevation (kept even with reduced motion — shadows are static, safe). */
+.card, .vh-card, .kpi, .tile, .p3d, [data-chart-host] {
+  box-shadow: 0 1px 2px rgba(23,23,23,.05), 0 8px 24px rgba(23,23,23,.06);
+}
+
+/* ============================================================================
+   MOTION LAYER (2026-07-19) — shared scroll-reveal + depth choreography.
+   Driven by /motion.js (loaded app-wide via auth.js). Design DNA motion tokens
+   + a cinematic "Genjutsu" rise. FAIL-SAFE: elements are only hidden-then-
+   revealed when motion.js has added `.vh-motion-ready` to <html> AND the user
+   has not requested reduced motion. If the script never runs, `.vh-reveal` is
+   never applied and nothing is hidden; motion.js also force-reveals every
+   tracked node after 3.5s, so content can never get stuck invisible.
+   ============================================================================ */
+:root {
+  --vh-ease-genjutsu: cubic-bezier(.16, 1, .3, 1);
+  --vh-ease-soft: cubic-bezier(.4, 0, .2, 1);
+  --vh-reveal-y: 18px;
+  --vh-reveal-dur: .72s;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.vh-motion-ready .vh-reveal {
+    opacity: 0;
+    transform: translate3d(0, var(--vh-reveal-y), 0);
+    transition: opacity var(--vh-reveal-dur) var(--vh-ease-genjutsu),
+                transform var(--vh-reveal-dur) var(--vh-ease-genjutsu);
+    transition-delay: var(--vh-delay, 0ms);
+    will-change: opacity, transform;
+  }
+  html.vh-motion-ready .vh-reveal.vh-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Reduced motion (or the reduce class motion.js sets): never hide, never move. */
+@media (prefers-reduced-motion: reduce) {
+  .vh-reveal { opacity: 1 !important; transform: none !important; }
+}
+html.vh-reduce .vh-reveal { opacity: 1 !important; transform: none !important; }
+
+/* ============================================================================
+   REUSABLE 3D EFFECTS — extracted from the July 2026 welcome page.
+   Opt-in utilities for layered display type, raised cards, dimensional icons,
+   and hover-depth interactions. The style guide at /styleguide.html documents
+   the markup and variables for each pattern.
+   ============================================================================ */
+:root {
+  --vh-3d-ink: #17243d;
+  --vh-3d-accent: #ff6b45;
+  --vh-3d-highlight: #ffd45c;
+  --vh-3d-underline: #53bdf2;
+  --vh-3d-surface: #d9efff;
+  --vh-3d-depth: #9fcde9;
+  --vh-3d-turn: -2deg;
+  --vh-3d-hover-turn: 2deg;
+  --vh-3d-tilt: -1deg;
+}
+
+.vh-3d-styleguide {
+  min-height: 100vh;
+  margin: 0;
+  padding: clamp(24px, 5vw, 72px);
+  color: var(--vh-3d-ink);
+  background: var(--vh-surface);
+  font-family: var(--vh-font-body);
+}
+.vh-3d-styleguide-shell { width: min(1080px, 100%); margin: 0 auto; }
+.vh-3d-styleguide-header { max-width: 760px; margin-bottom: var(--vh-s7); }
+.vh-3d-styleguide-header h1 { margin: var(--vh-s2) 0 var(--vh-s3); color: var(--vh-green); font: 600 var(--vh-fs-2xl)/1.05 var(--vh-font-head); }
+.vh-3d-styleguide-header p { margin: 0; color: var(--vh-text-muted); line-height: 1.65; }
+.vh-3d-example-grid { display: grid; gap: var(--vh-s5); }
+.vh-3d-example {
+  overflow: hidden;
+  border: 1px solid var(--vh-border-soft);
+  border-radius: var(--vh-r-lg);
+  background: var(--vh-surface-card);
+  box-shadow: 0 1px 2px rgba(23,23,23,.05), 0 16px 40px rgba(23,23,23,.08);
+}
+.vh-3d-example-copy { padding: clamp(20px, 3vw, 32px); border-bottom: 1px solid var(--vh-border-soft); }
+.vh-3d-example-copy h2 { margin: 0 0 var(--vh-s2); color: var(--vh-green); font: 600 var(--vh-fs-xl)/1.15 var(--vh-font-head); }
+.vh-3d-example-copy p { margin: 0; color: var(--vh-text-muted); line-height: 1.6; }
+.vh-3d-demo {
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 6vw, 64px);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,215,136,.45) 0 9%, transparent 9.2%),
+    linear-gradient(145deg, #fffaf0, #f5fbff 52%, #f7f3ff);
+  perspective: 1100px;
+}
+.vh-3d-snippet { margin: 0; padding: 22px; overflow: auto; background: var(--vh-black); color: var(--vh-chalk); font: 12px/1.65 var(--vh-font-mono); white-space: pre; }
+.vh-3d-meta { display: grid; gap: var(--vh-s3); width: min(560px, 100%); }
+.vh-3d-meta code { color: var(--vh-green); font-family: var(--vh-font-mono); font-size: var(--vh-fs-sm); }
+.vh-3d-stage { perspective: 1100px; transform-style: preserve-3d; }
+
+.vh-layered-title {
+  margin: 0;
+  color: var(--vh-3d-ink);
+  font: 900 clamp(54px, 10vw, 112px)/.88 var(--vh-font-body);
+  letter-spacing: -.075em;
+  transform: rotateX(-5deg) rotateY(1deg) translateZ(18px);
+  transform-style: preserve-3d;
+  text-shadow:
+    0 1px 0 #d9e5ef,
+    0 2px 0 #cbd8e4,
+    0 3px 0 #bdccda,
+    0 4px 0 #afc0cf,
+    0 9px 18px rgba(23,36,61,.16);
+}
+.vh-layered-title-accent {
+  position: relative;
+  display: inline-block;
+  color: var(--vh-3d-accent);
+  transform: translateZ(24px);
+  text-shadow:
+    1px 1px 0 var(--vh-3d-highlight),
+    2px 2px 0 var(--vh-3d-highlight),
+    3px 3px 0 #f5bd35,
+    4px 4px 0 #e6aa24,
+    5px 5px 0 #d99c17,
+    9px 12px 18px rgba(110,71,20,.18);
+}
+.vh-layered-title-accent::after {
+  content: "";
+  position: absolute;
+  left: 5%; right: 1%; bottom: -9px;
+  height: 8px;
+  border-radius: var(--vh-r-pill);
+  background: var(--vh-3d-underline);
+  transform: rotate(-1.5deg);
+}
+
+.vh-raised-card {
+  position: relative;
+  width: min(320px, 100%);
+  padding: 22px;
+  border: 1px solid rgba(23,36,61,.1);
+  border-radius: 20px;
+  background: var(--vh-3d-surface);
+  box-shadow:
+    0 3px 0 rgba(23,36,61,.14),
+    0 13px 0 -5px var(--vh-3d-depth),
+    0 22px 32px rgba(49,65,96,.16);
+  transform: rotateX(4deg) rotateY(var(--vh-3d-turn)) rotateZ(var(--vh-3d-tilt));
+  transform-style: preserve-3d;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.vh-raised-card::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border-radius: 15px;
+  background: rgba(255,255,255,.38);
+  transform: translateZ(-18px) translateY(10px);
+}
+.vh-raised-card h3 { margin: 0 0 var(--vh-s2); color: var(--vh-3d-ink); font-size: var(--vh-fs-lg); }
+.vh-raised-card p { margin: 0; color: #34425c; line-height: 1.5; }
+.vh-raised-card--mint { --vh-3d-surface: #d8f5e7; --vh-3d-depth: #9ed8bc; --vh-3d-turn: -1deg; --vh-3d-hover-turn: 1deg; --vh-3d-tilt: -.4deg; }
+.vh-raised-card--peach { --vh-3d-surface: #ffe0c7; --vh-3d-depth: #e7b891; --vh-3d-turn: 1.5deg; --vh-3d-hover-turn: -1.5deg; --vh-3d-tilt: .6deg; }
+
+.vh-dimensional-icon {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 5px rgba(23,36,61,.2));
+  transform: translateZ(16px) rotateX(-4deg);
+}
+.vh-dimensional-icon-lockup { display: flex; align-items: center; gap: var(--vh-s4); transform: translateZ(22px); transform-style: preserve-3d; }
+.vh-dimensional-icon-lockup strong { color: var(--vh-3d-ink); font-size: var(--vh-fs-xl); }
+
+.vh-depth-interaction:hover {
+  transform: translateY(-8px) rotateX(-3deg) rotateY(var(--vh-3d-hover-turn)) rotateZ(0) scale(1.025);
+  box-shadow:
+    0 4px 0 rgba(23,36,61,.12),
+    0 16px 0 -5px var(--vh-3d-depth),
+    0 30px 42px rgba(49,65,96,.22);
+}
+
+@media (max-width: 680px) {
+  .vh-3d-styleguide { padding: 20px 14px 40px; }
+  .vh-3d-demo { min-height: 210px; padding: 34px 18px; }
+  .vh-layered-title { font-size: clamp(46px, 18vw, 76px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vh-raised-card { transition: none; }
+  .vh-depth-interaction:hover { transform: rotateX(4deg) rotateY(var(--vh-3d-turn)) rotateZ(var(--vh-3d-tilt)); }
+}

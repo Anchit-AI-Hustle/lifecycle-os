@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tencentdb-memory": {
+      "command": "node",
+      "args": ["integrations/tencentdb-memory/mcp-server.mjs"],
+      "env": {
+        "TDAI_GATEWAY_URL": "http://127.0.0.1:8420",
+        "TDAI_SESSION": "knickgasm-lifecycle-os"
+      }
+    }
+  }
+}

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knickgasm D2C · Live Dashboard</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#6A33D8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a1410;
+    --panel: #0f1d18;
+    --panel-2: #142822;
+    --border: rgba(171,135,67,0.18);
+    --green: #6A33D8;
+    --green-bright: #16a34a;
+    --lava: #D0473E;
+    --chalk: #F7F5F2;
+    --ink: #e8ede9;
+    --ink-2: #9aaaa1;
+    --ink-3: #5d6e64;
+    --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(10,20,16,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .brand { font-weight: 700; letter-spacing: 0.06em; font-size: 14px; color: var(--lava); }
+  .brand em { font-style: normal; color: var(--ink); margin-left: 6px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 99px;
+    background: rgba(22,163,74,0.12); color: #5fcf8c;
+    border: 1px solid rgba(22,163,74,0.3);
+  }
+  .pill.warn { background: rgba(239,68,68,0.12); color: #f87171; border-color: rgba(239,68,68,0.3); }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+  .topbar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: 11px; color: var(--ink-2); }
+  .topbar-right code { color: var(--lava); font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .section-head {
+    margin: 32px 0 16px; display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .section-head h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .section-head .sub { font-size: 12px; color: var(--ink-2); }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+  }
+  .kpi .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); }
+  .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
+  .kpi .value em { font-style: normal; color: var(--lava); }
+  .kpi .delta { font-size: 11px; margin-top: 4px; color: var(--ink-2); }
+  .kpi .delta.up { color: #5fcf8c; }
+  .kpi .delta.down { color: #f87171; }
+  .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; min-height: 320px;
+  }
+  .panel h3 { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 10px 8px; color: var(--ink-3); font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 8px; border-bottom: 1px solid rgba(171,135,67,0.06); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:hover td { background: rgba(171,135,67,0.04); }
+  .skel { height: 14px; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.12), rgba(255,255,255,0.05)); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 4px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .canvas-wrap { position: relative; height: 260px; }
+  @media (min-width: 900px)  { .canvas-wrap { height: 360px; } }
+  @media (min-width: 1300px) { .canvas-wrap { height: 420px; } }
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  .badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+  .badge.US { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .badge.UK { background: rgba(234,88,12,0.15); color: #fdba74; }
+  .badge.IN { background: rgba(34,197,94,0.15); color: #86efac; }
+  .badge.EU { background: rgba(168,85,247,0.15); color: #c4b5fd; }
+  .badge.AU { background: rgba(20,184,166,0.15); color: #5eead4; }
+  .badge.Global, .badge.Unknown { background: rgba(171,135,67,0.18); color: var(--lava); }
+  .err { padding: 14px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; color: #f87171; font-size: 12px; margin: 16px 0; }
+  .err code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--lava); }
+  .empty { padding: 24px; text-align: center; color: var(--ink-3); font-size: 12px; }
+  .btn {
+    background: transparent; color: var(--ink-2); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .btn:hover { color: var(--ink); border-color: var(--lava); }
+  .ts { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-3); }
+
+/* vh-table-align: data-table column alignment — header cells sit over their
+   columns (table-layout:fixed, equal width), the first column (row labels) is
+   left-aligned and every other column is centered. Scoped to tables that have
+   <th> so layout tables are never affected; element-level so a page's own
+   table.<class> alignment still wins. */
+table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="brand">KNICKGASM DTC <em>·</em> Live Dashboard</span>
+  <span id="connection-pill" class="pill"><span class="dot"></span><span id="connection-text">connecting…</span></span>
+  <div class="topbar-right">
+    <span>last sync <span id="last-sync" class="ts">—</span></span>
+    <button class="btn" onclick="window.location.reload()">Refresh</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Config error -->
+  <div id="config-err" class="err" style="display:none">
+    <strong>Dashboard not configured.</strong>
+    Set <code>SUPABASE_URL</code> + <code>SUPABASE_ANON_KEY</code> on the Vercel project, then redeploy.
+    Or add them inline at the bottom of this HTML for local testing.
+    See <code>infra/supabase_schema.sql</code> for the schema and
+    <code>ingest/sync_to_supabase.py</code> for the ingest loop.
+  </div>
+
+  <!-- Section 1: Revenue & Orders -->
+  <div class="section-head">
+    <h2>Revenue &amp; Orders</h2>
+    <span class="sub">Tier 1 · Daily orders by market · last 30/90 days</span>
+  </div>
+  <div id="kpi-row" class="kpi-grid">
+    <div class="kpi"><div class="label">Revenue · 30d</div><div class="value" id="kpi-rev-30">—</div></div>
+    <div class="kpi"><div class="label">Revenue · 7d</div><div class="value" id="kpi-rev-7">—</div></div>
+    <div class="kpi"><div class="label">Orders · 30d</div><div class="value" id="kpi-orders">—</div></div>
+    <div class="kpi"><div class="label">AOV · 30d</div><div class="value" id="kpi-aov">—</div></div>
+    <div class="kpi"><div class="label">Markets</div><div class="value" id="kpi-markets">—</div></div>
+  </div>
+
+  <div class="grid-2" style="margin-top: 16px;">
+    <div class="panel">
+      <h3>Daily revenue · 90d</h3>
+      <div class="canvas-wrap"><canvas id="chart-revenue"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>By market · 30d</h3>
+      <table id="tbl-market"><thead><tr><th>Market</th><th class="num">Rev</th><th class="num">Orders</th><th class="num">AOV</th></tr></thead><tbody><tr><td colspan="4" class="empty">loading…</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- Section 2: Channels & CAC -->
+  <div class="section-head">
+    <h2>Channel mix &amp; CAC</h2>
+    <span class="sub">Tier 2 · spend / CAC / ROAS · last 90 days</span>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Spend vs Revenue by channel</h3>
+      <div class="canvas-wrap"><canvas id="chart-channels"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Channel summary</h3>
+      <table id="tbl-channels"><thead><tr><th>Channel</th><th class="num">Spend</th><th class="num">CAC</th><th class="num">ROAS</th></tr></thead><tbody><tr><td colspan="4" class="empty">loading…</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- Section 3: Retention & Cohorts -->
+  <div class="section-head">
+    <h2>Retention &amp; cohorts</h2>
+    <span class="sub">Tier 3 · 30/60/90d retention by cohort month</span>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Retention curve</h3>
+      <div class="canvas-wrap"><canvas id="chart-retention"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Recent cohorts</h3>
+      <table id="tbl-cohorts"><thead><tr><th>Cohort</th><th class="num">Size</th><th class="num">30d</th><th class="num">60d</th><th class="num">90d</th></tr></thead><tbody><tr><td colspan="5" class="empty">loading…</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- Section 4: Email / Klaviyo -->
+  <div class="section-head">
+    <h2>Email &amp; CRM</h2>
+    <span class="sub">Klaviyo flows · last 90 days</span>
+  </div>
+  <div class="panel">
+    <h3>Top flows by revenue</h3>
+    <table id="tbl-flows"><thead><tr><th>Flow</th><th class="num">Sends</th><th class="num">Open %</th><th class="num">Click %</th><th class="num">Revenue</th><th class="num">Rev / send</th></tr></thead><tbody><tr><td colspan="6" class="empty">loading…</td></tr></tbody></table>
+  </div>
+
+</main>
+
+<!-- ─── Config (replace inline OR inject via build step from env) ─────────── -->
+<script>
+  // For local testing without a build step, paste your Supabase URL + anon key here.
+  // In production, prefer build-time substitution or a JSON config endpoint.
+  window.__DTC_CFG__ = window.__DTC_CFG__ || {
+    supabaseUrl:  "",   // e.g. "https://abcd1234.supabase.co"
+    supabaseKey:  "",   // anon (public) key
+  };
+</script>
+
+<!-- ─── Dashboard logic ──────────────────────────────────────────────────── -->
+<script>
+(function () {
+  const cfg = window.__DTC_CFG__ || {};
+  const $ = (id) => document.getElementById(id);
+
+  if (!cfg.supabaseUrl || !cfg.supabaseKey) {
+    $('config-err').style.display = 'block';
+    $('connection-pill').classList.add('warn');
+    $('connection-text').textContent = 'not configured';
+    return;
+  }
+
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, {
+    realtime: { params: { eventsPerSecond: 5 } },
+  });
+
+  const charts = {};
+
+  // ─── Number helpers ────────────────────────────────────────────────
+  const fmtCur = (n) => n == null ? '—' : '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmtInt = (n) => n == null ? '—' : Number(n).toLocaleString('en-US');
+  const fmtPct = (n) => n == null ? '—' : Number(n).toFixed(1) + '%';
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+
+  // ─── Set connection pill ───────────────────────────────────────────
+  // Colour + icon — colour alone is not accessible (red/green colour-blindness)
+  function setConn(state) {
+    const pill = $('connection-pill');
+    const text = $('connection-text');
+    const dot  = pill.querySelector('.dot');
+    const icon = {
+      live:    '✓',
+      syncing: '⟳',
+      error:   '✕',
+      'auth error': '🔒',
+      'not configured': '⚙',
+    }[state] || '!';
+    if (state === 'live') { pill.classList.remove('warn'); text.textContent = `${icon}  live`; }
+    else if (state === 'syncing') { pill.classList.remove('warn'); text.textContent = `${icon}  syncing…`; }
+    else { pill.classList.add('warn'); text.textContent = `${icon}  ${state}`; }
+    if (dot) dot.style.animation = state === 'syncing' ? 'spin 1.4s linear infinite' : '';
+  }
+
+  // ─── Section 1: Revenue & Orders ───────────────────────────────────
+  async function loadRevenue() {
+    // KPIs from view
+    const { data: kpiRows, error: kpiErr } = await sb.schema('dtc').from('v_revenue_30d').select('*');
+    if (kpiErr) return console.error('v_revenue_30d', kpiErr);
+    let rev7 = 0, rev30 = 0, orders30 = 0, aovSum = 0, aovCount = 0;
+    for (const r of kpiRows ?? []) {
+      rev7 += Number(r.rev_7d ?? 0);
+      rev30 += Number(r.rev_30d ?? 0);
+      orders30 += Number(r.orders_30d ?? 0);
+      if (r.aov_30d != null) { aovSum += Number(r.aov_30d); aovCount++; }
+    }
+    $('kpi-rev-7').textContent = fmtCur(rev7);
+    $('kpi-rev-30').textContent = fmtCur(rev30);
+    $('kpi-orders').textContent = fmtInt(orders30);
+    $('kpi-aov').textContent = aovCount ? fmtCur(aovSum / aovCount) : '—';
+    $('kpi-markets').textContent = (kpiRows ?? []).length;
+
+    // Market table
+    const tbody = $('tbl-market').querySelector('tbody');
+    if ((kpiRows ?? []).length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">no data — run sync_to_supabase.py</td></tr>';
+    } else {
+      tbody.innerHTML = (kpiRows ?? [])
+        .sort((a, b) => (b.rev_30d ?? 0) - (a.rev_30d ?? 0))
+        .map(r => `
+          <tr>
+            <td><span class="badge ${r.market}">${r.market}</span></td>
+            <td class="num">${fmtCur(r.rev_30d)}</td>
+            <td class="num">${fmtInt(r.orders_30d)}</td>
+            <td class="num">${fmtCur(r.aov_30d)}</td>
+          </tr>`).join('');
+    }
+
+    // Daily chart
+    const { data: daily } = await sb.schema('dtc').from('v_revenue_daily').select('*');
+    drawDailyRevenue(daily ?? []);
+  }
+
+  function drawDailyRevenue(rows) {
+    // pivot: date × market → revenue
+    const dates = [...new Set(rows.map(r => r.order_date))].sort();
+    const markets = [...new Set(rows.map(r => r.market))];
+    const colors = { US: '#3b82f6', UK: '#f97316', IN: '#22c55e', EU: '#a855f7', AU: '#14b8a6', Global: '#D0473E', Unknown: '#6b7280' };
+    const datasets = markets.map(m => ({
+      label: m,
+      data: dates.map(d => {
+        const hit = rows.find(r => r.order_date === d && r.market === m);
+        return hit ? Number(hit.net_revenue) : 0;
+      }),
+      borderColor: colors[m] || '#D0473E',
+      backgroundColor: (colors[m] || '#D0473E') + '22',
+      tension: 0.3,
+      fill: false,
+      pointRadius: 0,
+    }));
+    if (charts.revenue) charts.revenue.destroy();
+    if (dates.length === 0) return;     // Chart.js warns on empty datasets
+    charts.revenue = new Chart($('chart-revenue'), {
+      type: 'line',
+      data: { labels: dates.map(fmtDate), datasets },
+      options: chartOpts({ stacked: false, currency: true }),
+    });
+  }
+
+  // ─── Section 2: Channels ───────────────────────────────────────────
+  async function loadChannels() {
+    const { data, error } = await sb.schema('dtc').from('v_channel_summary').select('*');
+    if (error) return console.error('v_channel_summary', error);
+    const rows = data ?? [];
+    const tbody = $('tbl-channels').querySelector('tbody');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">no data</td></tr>';
+    } else {
+      tbody.innerHTML = rows.slice(0, 12).map(r => `
+        <tr>
+          <td>${r.channel}</td>
+          <td class="num">${fmtCur(r.spend_90d)}</td>
+          <td class="num">${fmtCur(r.cac_90d)}</td>
+          <td class="num">${r.roas_90d == null ? '—' : Number(r.roas_90d).toFixed(2) + '×'}</td>
+        </tr>`).join('');
+    }
+    if (charts.channels) charts.channels.destroy();
+    if (rows.length === 0) return;
+    charts.channels = new Chart($('chart-channels'), {
+      type: 'bar',
+      data: {
+        labels: rows.slice(0, 8).map(r => r.channel),
+        datasets: [
+          { label: 'Spend',   data: rows.slice(0, 8).map(r => Number(r.spend_90d   ?? 0)), backgroundColor: '#ef444499' },
+          { label: 'Revenue', data: rows.slice(0, 8).map(r => Number(r.revenue_90d ?? 0)), backgroundColor: '#16a34a99' },
+        ],
+      },
+      options: chartOpts({ currency: true, horizontal: false }),
+    });
+  }
+
+  // ─── Section 3: Retention ──────────────────────────────────────────
+  async function loadRetention() {
+    const { data, error } = await sb.schema('dtc').from('v_retention_summary').select('*');
+    if (error) return console.error('v_retention_summary', error);
+    const rows = (data ?? []).reverse(); // chronological
+    const tbody = $('tbl-cohorts').querySelector('tbody');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">no data</td></tr>';
+    } else {
+      tbody.innerHTML = rows.slice(-8).reverse().map(r => `
+        <tr>
+          <td>${fmtDate(r.cohort_month)}</td>
+          <td class="num">${fmtInt(r.cohort_size)}</td>
+          <td class="num">${fmtPct(r.ret_30d_pct)}</td>
+          <td class="num">${fmtPct(r.ret_60d_pct)}</td>
+          <td class="num">${fmtPct(r.ret_90d_pct)}</td>
+        </tr>`).join('');
+    }
+    if (charts.retention) charts.retention.destroy();
+    if (rows.length === 0) return;
+    charts.retention = new Chart($('chart-retention'), {
+      type: 'line',
+      data: {
+        labels: rows.map(r => fmtDate(r.cohort_month)),
+        datasets: [
+          { label: '30d', data: rows.map(r => Number(r.ret_30d_pct ?? 0)), borderColor: '#22c55e', tension: 0.3, pointRadius: 0, fill: false },
+          { label: '60d', data: rows.map(r => Number(r.ret_60d_pct ?? 0)), borderColor: '#D0473E', tension: 0.3, pointRadius: 0, fill: false },
+          { label: '90d', data: rows.map(r => Number(r.ret_90d_pct ?? 0)), borderColor: '#ef4444', tension: 0.3, pointRadius: 0, fill: false },
+        ],
+      },
+      options: chartOpts({ percent: true }),
+    });
+  }
+
+  // ─── Section 4: Klaviyo flows ──────────────────────────────────────
+  async function loadFlows() {
+    const { data, error } = await sb.schema('dtc').from('v_email_top_flows').select('*');
+    if (error) return console.error('v_email_top_flows', error);
+    const rows = data ?? [];
+    const tbody = $('tbl-flows').querySelector('tbody');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">no data</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.slice(0, 12).map(r => `
+      <tr>
+        <td>${r.flow_name}</td>
+        <td class="num">${fmtInt(r.sends)}</td>
+        <td class="num">${fmtPct(r.open_pct)}</td>
+        <td class="num">${fmtPct(r.click_pct)}</td>
+        <td class="num">${fmtCur(r.revenue)}</td>
+        <td class="num">${r.rev_per_send == null ? '—' : '$' + Number(r.rev_per_send).toFixed(2)}</td>
+      </tr>`).join('');
+  }
+
+  // ─── Last sync timestamp ───────────────────────────────────────────
+  async function loadLastSync() {
+    const { data } = await sb.schema('dtc').from('v_last_sync').select('*');
+    const latest = (data ?? []).reduce((acc, r) => {
+      const t = new Date(r.last_ran).getTime();
+      return t > acc ? t : acc;
+    }, 0);
+    if (latest > 0) {
+      const ago = Math.round((Date.now() - latest) / 1000);
+      const txt = ago < 60 ? ago + 's ago' : ago < 3600 ? Math.round(ago / 60) + 'm ago' : Math.round(ago / 3600) + 'h ago';
+      $('last-sync').textContent = txt;
+    } else {
+      $('last-sync').textContent = 'never';
+    }
+  }
+
+  // ─── Chart options factory ─────────────────────────────────────────
+  function chartOpts({ stacked = false, currency = false, percent = false } = {}) {
+    const isMobile = window.innerWidth < 600;
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { 
+          position: isMobile ? 'bottom' : 'top',
+          labels: { 
+            color: '#9aaaa1', 
+            font: { size: isMobile ? 10 : 11 },
+            padding: isMobile ? 10 : 15,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          } 
+        },
+        tooltip: { 
+          backgroundColor: '#0f1d18', 
+          borderColor: '#D0473E', 
+          borderWidth: 1,
+          bodyFont: { size: isMobile ? 11 : 12 }
+        },
+      },
+      scales: {
+        x: { 
+          ticks: { 
+            color: '#5d6e64', 
+            font: { size: isMobile ? 9 : 10 },
+            maxRotation: isMobile ? 45 : 0
+          }, 
+          grid: { color: 'rgba(171,135,67,0.06)' }, 
+          stacked 
+        },
+        y: {
+          ticks: {
+            color: '#5d6e64', font: { size: isMobile ? 9 : 10 },
+            callback: (v) => currency ? '$' + Number(v).toLocaleString() : percent ? v + '%' : v,
+          },
+          grid: { color: 'rgba(171,135,67,0.06)' },
+          stacked,
+        },
+      },
+    };
+  }
+
+  // ─── Boot + realtime ───────────────────────────────────────────────
+  async function refreshAll() {
+    setConn('syncing');
+    try {
+      await Promise.all([loadRevenue(), loadChannels(), loadRetention(), loadFlows(), loadLastSync()]);
+      setConn('live');
+    } catch (e) {
+      console.error(e);
+      setConn('error');
+    }
+  }
+
+  refreshAll();
+  setInterval(loadLastSync, 30_000);
+  setInterval(refreshAll, 5 * 60_000); // belt-and-braces refresh every 5 min
+
+  // Realtime subscriptions — re-pull a section when its fact table changes.
+  sb.channel('dtc-realtime')
+    .on('postgres_changes', { event: '*', schema: 'dtc', table: 'fact_daily_orders'    }, () => loadRevenue())
+    .on('postgres_changes', { event: '*', schema: 'dtc', table: 'fact_channel_perf'    }, () => loadChannels())
+    .on('postgres_changes', { event: '*', schema: 'dtc', table: 'fact_cohort_retention'}, () => loadRetention())
+    .on('postgres_changes', { event: '*', schema: 'dtc', table: 'fact_klaviyo_perf'    }, () => loadFlows())
+    .on('postgres_changes', { event: '*', schema: 'dtc', table: 'sync_log'             }, () => loadLastSync())
+    .subscribe();
+})();
+</script>
+
+</body>
+</html>

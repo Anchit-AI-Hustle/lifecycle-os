@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNICKGASM · Ad Campaigns</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260718light" defer></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
+  @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
+
+  .page-head { margin-bottom: 18px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #D0473E; font-weight: 600; margin-bottom: 10px; }
+  h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color: #D0473E; }
+  .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin: 22px 0 20px; border-bottom: 1px solid rgba(171,135,67,0.18); flex-wrap: wrap; }
+  .tab { padding: 10px 16px; font-size: 13px; font-weight: 600; color: #556059; cursor: pointer;
+    background: transparent; border: none; border-bottom: 2px solid transparent; font-family: inherit; transition: all .14s; }
+  .tab:hover { color: #111111; }
+  .tab.active { color: #111111; border-bottom-color: #D0473E; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Cards & layout */
+  .card { background: #ffffff; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; padding: 20px; }
+  .grid2 { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
+  @media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
+  .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; margin: 12px 0 5px; }
+  input, select, textarea {
+    width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
+    color: #111111; padding: 9px 11px; font-size: 13px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #D0473E; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; }
+  .btn-solid { background: #D0473E; color: #ffffff; }
+  .btn-solid:hover { opacity: 0.92; }
+  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #111111; }
+  .btn-ghost:hover { border-color: #D0473E; color: #111111; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .list-head h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; }
+  .empty { color: #48524c; font-size: 13px; padding: 28px; text-align: center; border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
+  .item { background: #ffffff; border: 1px solid rgba(171,135,67,0.16); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .item:hover { border-color: rgba(171,135,67,0.4); }
+  .item-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .item-top b { font-size: 14px; color: #111111; }
+  .item-meta { font-size: 11.5px; color: #556059; display: flex; gap: 14px; flex-wrap: wrap; }
+  .item-meta span b { color: #111111; }
+  .item-copy { margin-top: 10px; font-size: 12.5px; color: #111111; line-height: 1.5; }
+  .item-copy .h { color: #111111; font-weight: 600; }
+  .x { margin-left: auto; background: transparent; border: none; color: #48524c; cursor: pointer; font-size: 16px; }
+  .x:hover { color: #ef4444; }
+  .item-acts { display: flex; gap: 6px; margin-top: 8px; }
+  .abtn { flex: 1; font-family: inherit; font-size: 11.5px; font-weight: 600; color: #cdd8d2; background: transparent;
+    border: 1px solid rgba(171,135,67,0.28); border-radius: 8px; padding: 7px 8px; cursor: pointer; transition: all .12s; }
+  .abtn:hover { border-color: #D0473E; color: #F7F5F2; background: rgba(171,135,67,0.06); }
+  .chan { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; }
+  .chan-google { background: rgba(59,130,246,0.15); color: #1d4ed8; }
+  .chan-meta   { background: rgba(34,197,94,0.15); color: #0a7d33; }
+  .chan-other  { background: rgba(171,135,67,0.16); color: #D0473E; }
+  .pill { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: rgba(171,135,67,0.14); color: #D0473E; }
+
+  /* Calendar */
+  .cal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .cal-empty { border: 1px dashed rgba(171,135,67,0.35); background: rgba(171,135,67,0.06); color: #7a5f28; border-radius: 10px; padding: 11px 14px; margin-bottom: 12px; font-size: 12.5px; line-height: 1.5; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+  .dow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; text-align: center; padding-bottom: 4px; }
+  .day { background: #ffffff; border: 1px solid rgba(171,135,67,0.16); border-radius: 9px; padding: 7px; min-height: 84px; cursor: pointer; transition: border-color .14s; }
+  .day:hover { border-color: rgba(171,135,67,0.4); }
+  .day.empty { background: transparent; border-color: transparent; cursor: default; }
+  .day-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #556059; }
+  .day .cm { font-size: 10px; margin-top: 4px; padding: 2px 5px; border-radius: 5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #eef3f0; border: 1px solid rgba(171,135,67,0.4);
+    color: #111111; padding: 10px 18px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+
+  /* Modal */
+  .modal { position: fixed; inset: 0; z-index: 9500; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal.open { display: flex; }
+  .modal .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); }
+  .modal .mc { position: relative; width: 100%; max-width: 460px; background: #ffffff; border: 1px solid rgba(171,135,67,0.3);
+    border-radius: 14px; padding: 22px; max-height: 88vh; overflow-y: auto; }
+  .modal h3 { font-family: 'Lora', serif; font-size: 18px; margin-bottom: 4px; }
+  .note { font-size: 11px; color: #48524c; margin-top: 4px; }
+
+  /* Single-prompt autofill bar at the top of each ad form. */
+  .ai-bar { background: rgba(171,135,67,0.06); border: 1px solid rgba(171,135,67,0.22); border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; }
+  .ai-bar .label { margin-top: 0; color: #D0473E; font-size: 11.5px; }
+  .ai-bar textarea { min-height: 64px; font-family: inherit; }
+
+  /* Creative (AI image) generator block on each channel form. */
+  .cre { border: 1px dashed rgba(171,135,67,0.3); border-radius: 10px; padding: 10px 12px; margin: 14px 0 4px; }
+  .cre .cre-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .cre .cre-title { font-size: 11.5px; font-weight: 600; color: #D0473E; text-transform: uppercase; letter-spacing: 0.08em; }
+  .cre-prev { margin-top: 10px; }
+  .cre-prev img { max-width: 220px; width: 100%; border-radius: 10px; border: 1px solid rgba(171,135,67,0.25); display: block; }
+  .cre-prev .cre-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .cre-spin { font-size: 11.5px; color: #556059; }
+  /* Multi-asset creative grid (one tile per platform format). */
+  .cre-assets { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+  .cre-asset { width: 150px; }
+  .cre-asset .cre-asset-label { font-size: 10px; color: #556059; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: block; }
+  .cre-asset img { width: 100%; border-radius: 8px; border: 1px solid rgba(171,135,67,0.25); display: block; background: #ffffff; }
+  .cre-asset .cre-asset-dl { font-size: 10.5px; color: #D0473E; text-decoration: none; display: inline-block; margin-top: 4px; }
+  .cre-anim { position: relative; overflow: hidden; }
+  .cre-anim img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; animation: creFade var(--cre-dur, 6s) infinite; }
+  @keyframes creFade { 0%,100%{opacity:0} 8%,33%{opacity:1} 41%{opacity:0} }
+  .item-cre { display: flex; flex-wrap: wrap; gap: 8px; }
+  .item-cre img { max-width: 110px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); margin-top: 8px; display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <div class="eyebrow">Ad Campaigns</div>
+    <h1>Paid acquisition, <em>one calendar</em>.</h1>
+    <div class="sub">Plan and brief Google &amp; Meta campaigns, and the landing pages they point to — in the brand system.</div>
+  </div>
+
+  <!-- Embedded KPI Dashboard -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <div class="label" style="margin: 0;">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #D0473E; text-decoration: none;">Open real analysis →</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Ad Spend (30d)</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">$45,200</div>
+        <div style="font-size: 10px; color: #b91c1c; margin-top: 4px;">↓ 2% vs prior</div>
+      </div>
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Overall ROAS</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">3.8x</div>
+        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 0.2x vs prior</div>
+      </div>
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Cost per Acq (CPA)</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">$18.50</div>
+        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↓ $1.20 vs prior</div>
+      </div>
+      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
+        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Top Channel</div>
+        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">Meta Ads</div>
+        <div style="font-size: 10px; color: #556059; margin-top: 4px;">4.2x ROAS</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="tabs" id="tabs">
+    <button class="tab" data-tab="calendar">Calendar</button>
+    <button class="tab" data-tab="google">Google Ads</button>
+    <button class="tab" data-tab="meta">Meta Ads</button>
+    <button class="tab" data-tab="tiktok">TikTok Ads</button>
+  </div>
+
+  <!-- CALENDAR -->
+  <section class="panel" id="panel-calendar">
+    <div class="card">
+      <div class="cal-head" style="justify-content:space-between;align-items:center">
+        <h3 style="font-family:'Lora',serif;font-size:18px;font-weight:600;margin:0">Ad calendar — the Knickgasm Brain plan</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="ad-mkt" style="display:flex;gap:4px"></div>
+          <button class="btn btn-ghost" id="ad-refresh" title="Reload the plan">↻</button>
+        </div>
+      </div>
+      <p class="note" style="margin:8px 0 14px">This is the <b>same rolling plan as the Knickgasm Brain</b> mailer calendar — identical slots, cohorts, dates and reasoning. Each slot's paid-social ad set (Meta, Google, TikTok) is generated from the same strategy, copy and real catalog assets as its mailer. Review and approval happen in the Brain; approving a slot there locks its ads here too.</p>
+      <div id="ad-plan"></div>
+      <div id="ad-plan-empty" class="cal-empty" style="display:none"></div>
+      <div style="margin-top:14px;border-top:1px solid rgba(171,135,67,0.15);padding-top:12px">
+        <button class="btn btn-ghost" id="ad-manual">＋ Add a manual one-off campaign</button>
+        <span class="note" style="margin-left:8px">Manual campaigns are separate from the Brain plan and also show in their channel tab.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- GOOGLE -->
+  <section class="panel" id="panel-google">
+    <div class="grid2">
+      <div class="card">
+        <div class="list-head"><h3>New Google campaign</h3></div>
+        <div class="ai-bar" data-surface="google">
+          <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
+          <textarea data-ai-prompt placeholder="e.g. Promote one-of-one Jordan First Flush at 25% off in the US, target sneaker-curious buyers searching for premium hand-painted"></textarea>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+        </div>
+        <label class="label">Campaign name</label>
+        <input id="g-name" placeholder="e.g. Jordan First Flush — Search">
+        <div class="row">
+          <div><label class="label">Type</label><select id="g-type"><option>Search</option><option>Performance Max</option><option>Display</option><option>Shopping</option><option>YouTube</option></select></div>
+          <div><label class="label">Daily budget</label><input id="g-budget" type="number" placeholder="50"></div>
+        </div>
+        <div class="row">
+          <div><label class="label">Market</label><select id="g-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Final URL</label><input id="g-url" placeholder="/landing"></div>
+        </div>
+        <label class="label">Keywords (comma-separated)</label>
+        <input id="g-keywords" placeholder="jordan sneaker, one of one sneaker, premium black sneaker">
+        <label class="label">Headlines (one per line, ≤30 chars)</label>
+        <textarea id="g-headlines" placeholder="One-of-One Jordan&#10;Studio-Fresh in 72 Hours&#10;Shop the First Flush"></textarea>
+        <label class="label">Descriptions (one per line, ≤90 chars)</label>
+        <textarea id="g-desc" placeholder="Hand-painted, one-of-one sneakers shipped within 72 hours of drop."></textarea>
+        <div class="cre" data-cre="g">
+          <div class="cre-head">
+            <span class="cre-title">🎨 Ad creatives</span>
+            <div class="btn-row">
+              <button class="btn btn-ghost" type="button" id="g-cre">Generate ad creatives</button>
+              <button class="btn btn-ghost" type="button" id="g-mp" data-mp="g">⧉ Copy master prompt</button>
+            </div>
+          </div>
+          <label class="label" style="margin-top:8px">Media URL (optional) — paste a hosted image / GIF / MP4 (e.g. a Shopify product video)</label>
+          <input id="g-media" type="url" placeholder="https://cdn.shopify.com/…/product.mp4">
+          <p class="note" id="g-cre-note">Builds platform-correct creatives (1.91:1 + 1:1) with on-creative headline & offer from this campaign.</p>
+          <div class="cre-prev" id="g-cre-prev"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="g-ai">✨ Generate copy with AI</button>
+          <button class="btn btn-solid" id="g-save">Save campaign</button>
+        </div>
+        <p class="note" id="g-ai-note"></p>
+      </div>
+      <div>
+        <div class="list-head"><h3>Google campaigns</h3><span class="pill" id="g-count">0</span></div>
+        <div id="g-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- META -->
+  <section class="panel" id="panel-meta">
+    <div class="grid2">
+      <div class="card">
+        <div class="list-head"><h3>New Meta campaign</h3></div>
+        <div class="ai-bar" data-surface="meta">
+          <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
+          <textarea data-ai-prompt placeholder="e.g. Re-engage lapsed US buyers with our Kicks Bestsellers bundle, $40/day, Advantage+ placements, primary text in our 'morning ritual' voice"></textarea>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+        </div>
+        <label class="label">Campaign name</label>
+        <input id="m-name" placeholder="e.g. Gifting Season — Advantage+">
+        <div class="row">
+          <div><label class="label">Objective</label><select id="m-obj"><option>Sales / Conversions</option><option>Traffic</option><option>Awareness</option><option>Engagement</option><option>Leads</option></select></div>
+          <div><label class="label">Daily budget</label><input id="m-budget" type="number" placeholder="40"></div>
+        </div>
+        <div class="row">
+          <div><label class="label">Market</label><select id="m-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Placements</label><select id="m-place"><option>Advantage+ (all)</option><option>Feed</option><option>Stories/Reels</option><option>Manual</option></select></div>
+        </div>
+        <label class="label">Audience</label>
+        <input id="m-aud" placeholder="Lookalike 1% purchasers · 28-55 · sneaker & streetwear interests">
+        <label class="label">Primary text</label>
+        <textarea id="m-primary" placeholder="There's a moment every morning when the right pair slows the whole world down…"></textarea>
+        <label class="label">Headline (≤40 chars)</label>
+        <input id="m-headline" placeholder="Studio-fresh, one-of-one sneaker">
+        <div class="cre" data-cre="m">
+          <div class="cre-head">
+            <span class="cre-title">🎨 Ad creatives</span>
+            <div class="btn-row">
+              <button class="btn btn-ghost" type="button" id="m-cre">Generate ad creatives</button>
+              <button class="btn btn-ghost" type="button" id="m-mp" data-mp="m">⧉ Copy master prompt</button>
+            </div>
+          </div>
+          <label class="label" style="margin-top:8px">Media URL (optional) — paste a hosted image / GIF / MP4 (e.g. a Shopify product video)</label>
+          <input id="m-media" type="url" placeholder="https://cdn.shopify.com/…/product.mp4">
+          <p class="note" id="m-cre-note">Builds platform-correct creatives (1:1 feed + 9:16 story/reel) with on-creative headline & offer.</p>
+          <p class="note" style="margin-top:4px">🎬 Video ad for Reels/Stories? Turn this brief, copy & key-frame into a finished MP4 with <a href="https://github.com/Open-Montage/OpenMontage" target="_blank" rel="noopener" style="color:#D0473E;text-decoration:none">OpenMontage →</a>, the open-source agentic video pipeline.</p>
+          <div class="cre-prev" id="m-cre-prev"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="m-ai">✨ Generate copy with AI</button>
+          <button class="btn btn-solid" id="m-save">Save campaign</button>
+        </div>
+        <p class="note" id="m-ai-note"></p>
+      </div>
+      <div>
+        <div class="list-head"><h3>Meta campaigns</h3><span class="pill" id="m-count">0</span></div>
+        <div id="m-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIKTOK -->
+  <section class="panel" id="panel-tiktok">
+    <div class="grid2">
+      <div class="card">
+        <div class="list-head"><h3>New TikTok campaign</h3></div>
+        <div class="ai-bar" data-surface="tiktok">
+          <label class="label">✨ Or describe the campaign in plain English — AI fills every field below</label>
+          <textarea data-ai-prompt placeholder="e.g. UGC creator drop for our Mushroom Coffee alternative, $30/day, In-Feed + Spark Ads, hook in the 'POV: morning coffee crash' lane"></textarea>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+        </div>
+        <label class="label">Campaign name</label>
+        <input id="t-name" placeholder="e.g. Morning Ritual — UGC Creator Drop">
+        <div class="row">
+          <div><label class="label">Objective</label><select id="t-obj"><option>Web Conversions</option><option>Traffic</option><option>Reach</option><option>App Promotion</option><option>Video Views</option><option>Lead Generation</option></select></div>
+          <div><label class="label">Daily budget</label><input id="t-budget" type="number" placeholder="40"></div>
+        </div>
+        <div class="row">
+          <div><label class="label">Market</label><select id="t-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Placement</label><select id="t-place"><option>TikTok In-Feed</option><option>Spark Ads</option><option>TopView</option><option>Pangle Network</option></select></div>
+        </div>
+        <label class="label">Audience</label>
+        <input id="t-aud" placeholder="Streetwear + morning routines · 22-45 · interests: dunks, ayurveda">
+        <label class="label">Hook (first 3 seconds)</label>
+        <input id="t-hook" placeholder="POV: you finally found a sneaker that actually wakes you up">
+        <label class="label">Caption / on-screen text</label>
+        <textarea id="t-caption" placeholder="one-of-one · laced in 4 min · no paint crash"></textarea>
+        <div class="row">
+          <div><label class="label">Creator handle (optional)</label><input id="t-creator" placeholder="@username"></div>
+          <div><label class="label">Hashtags</label><input id="t-hash" placeholder="#sneaker #morningritual #streetwear"></div>
+        </div>
+        <div class="cre" data-cre="t">
+          <div class="cre-head">
+            <span class="cre-title">🎨 Ad creatives</span>
+            <div class="btn-row">
+              <button class="btn btn-ghost" type="button" id="t-cre">Generate ad creatives</button>
+              <button class="btn btn-ghost" type="button" id="t-mp" data-mp="t">⧉ Copy master prompt</button>
+            </div>
+          </div>
+          <label class="label" style="margin-top:8px">Media URL (optional) — paste a hosted image / GIF / MP4 (e.g. a Shopify product video)</label>
+          <input id="t-media" type="url" placeholder="https://cdn.shopify.com/…/product.mp4">
+          <p class="note" id="t-cre-note">Builds a platform-correct 9:16 creative with on-creative hook & offer, safe-zoned for TikTok UI.</p>
+          <p class="note" style="margin-top:4px">🎬 Making the video ad? Turn this hook, caption & key-frame into a finished MP4 with <a href="https://github.com/Open-Montage/OpenMontage" target="_blank" rel="noopener" style="color:#D0473E;text-decoration:none">OpenMontage →</a>, the open-source agentic video pipeline.</p>
+          <div class="cre-prev" id="t-cre-prev"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="t-ai">✨ Generate hook + caption with AI</button>
+          <button class="btn btn-solid" id="t-save">Save campaign</button>
+        </div>
+        <p class="note" id="t-ai-note"></p>
+      </div>
+      <div>
+        <div class="list-head"><h3>TikTok campaigns</h3><span class="pill" id="t-count">0</span></div>
+        <div id="t-list"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Day modal (calendar) -->
+<div class="modal" id="day-modal">
+  <div class="bk" data-close></div>
+  <div class="mc">
+    <h3 id="dm-date"></h3>
+    <p class="note">Schedule a campaign for this day.</p>
+    <label class="label">Channel</label>
+    <select id="dm-channel"><option value="google">Google Ads</option><option value="meta">Meta Ads</option><option value="other">Other</option></select>
+    <label class="label">Name</label>
+    <input id="dm-name" placeholder="Campaign name">
+    <div class="row">
+      <div><label class="label">Budget</label><input id="dm-budget" type="number" placeholder="50"></div>
+      <div><label class="label">Market</label><select id="dm-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" data-close>Cancel</button>
+      <button class="btn btn-solid" id="dm-save">Schedule</button>
+    </div>
+    <div id="dm-existing" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Clamp ad copy to the platform character limit at save (covers both manually
+  // typed and AI-autofilled copy), trimming to a word boundary so the platform
+  // never rejects an over-length headline/description at upload. Google H≤30 /
+  // D≤90, Meta headline≤40 / primary≤125, TikTok caption≤100.
+  const clampLen = (s, n) => { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '').trim() : s; };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const lines = (v) => (v || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2000); };
+
+  // ── Storage ─────────────────────────────────────────────────────────
+  const KEY = 'knickgasm-ads-v1';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+  const save = () => localStorage.setItem(KEY, JSON.stringify(store));
+  const store = Object.assign({ google: [], meta: [], tiktok: [], landing: [], calendar: {} }, load());
+
+  // ── Clone + portable AI prompt (same pattern as /assets and /landing) ─
+  function copyText(txt, okMsg) {
+    const done = (ok) => toast(ok ? (okMsg || 'Copied') : 'Could not copy — see console');
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); return; } } catch (_) {}
+    try { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); } catch (_) { console.log(txt); done(false); }
+  }
+  const BRAND_BLOCK = [
+    'BRAND RULES (strict — obey exactly):',
+    '- Palette, ONLY these four: deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2.',
+    "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
+    '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
+    "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+    '- KNICKGASM: premium Indian heritage sneaker · B-Corp · one-of-one · studio-fresh within 72 hours of drop.'
+  ].join('\n');
+  const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft, fix them, and return ONLY the corrected final output.';
+  function buildAdPrompt(ch, c) {
+    const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' : 'TikTok';
+    const market = c.market || 'US';
+    return 'ROLE: You are a senior paid-social/search creative director + performance copywriter for KNICKGASM.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK + '\n\n' + [
+      'Produce a scroll-stopping ' + platform + ' ad campaign package.',
+      '',
+      'CAMPAIGN BRIEF:',
+      '- Name: ' + (c.name || '(name it)'),
+      c.aud ? '- Audience: ' + c.aud : '',
+      c.primary || c.hook ? '- Existing angle to improve on: ' + (c.primary || c.hook) : '',
+      c.headlines && c.headlines.length ? '- Existing headlines: ' + c.headlines.join(' | ') : '',
+      '',
+      'DELIVER, clearly labelled:',
+      '1) 3 headline options leading with the emotional end-state, never an ingredient list.',
+      '2) Primary text / caption + a strong CTA, sized correctly for ' + platform + '.',
+      '3) An IMAGE-GENERATION PROMPT for a photoreal lifestyle scene: brand palette, gallery-print/8K sharpness, soft natural light; KNICKGASM box shows a lava botanical illustration only with NO readable lettering; NO logos, NO watermarks, NO garbled text.',
+      '4) Which cohort/audience this is aimed at and why.',
+      'OUTPUT: clean sections, ready to paste into the ' + platform + ' ad builder. No preamble.'
+    ].filter(Boolean).join('\n') + SELF_CHECK;
+  }
+  function cloneAd(ch, c) {
+    store[ch] = store[ch] || [];
+    const copy = Object.assign({}, c, { id: uid(), name: (c.name || 'Ad') + ' (Copy)' });
+    store[ch].unshift(copy);
+    save();
+  }
+  function adActionsHtml(ch, c) {
+    const enc = encodeURIComponent(JSON.stringify(c));
+    return '<div class="item-acts">' +
+      '<button class="abtn" type="button" data-clone="' + ch + '" data-payload="' + enc + '">⧉ Clone</button>' +
+      '<button class="abtn" type="button" data-prompt="' + ch + '" data-payload="' + enc + '">📋 AI prompt</button></div>';
+  }
+  // Event delegation for clone/prompt across all three list containers.
+  ['#g-list', '#m-list', '#t-list'].forEach((sel) => {
+    const el = $(sel); if (!el) return;
+    el.addEventListener('click', (e) => {
+      const cb = e.target.closest('[data-clone]'), pb = e.target.closest('[data-prompt]');
+      const btn = cb || pb; if (!btn) return;
+      let c; try { c = JSON.parse(decodeURIComponent(btn.dataset.payload)); } catch (_) { return; }
+      const ch = btn.dataset.clone || btn.dataset.prompt;
+      if (cb) { cloneAd(ch, c); ({ google: renderGoogle, meta: renderMeta, tiktok: renderTikTok }[ch] || (() => {}))(); toast('⧉ Cloned "' + (c.name || 'ad') + '"'); }
+      else copyText(buildAdPrompt(ch, c), '📋 AI prompt copied — paste into Claude, Gemini or ChatGPT.');
+    });
+  });
+
+  // ── Supabase (reuse the client auth.js already booted) ───────────────
+  const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
+  const sbUser   = () => (window.LifecycleAuth && window.LifecycleAuth.user) || null;
+  const AD_BUCKET = 'mailer-assets';
+  function dataUrlToBlob(d) {
+    try {
+      const [head, b64] = d.split(','); const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/png';
+      const bin = atob(b64); const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    } catch { return null; }
+  }
+  async function uploadCreative(dataUrl) {
+    const sb = sbClient(); if (!sb || !dataUrl || dataUrl.indexOf('data:') !== 0) return '';
+    const blob = dataUrlToBlob(dataUrl); if (!blob) return '';
+    const path = 'ads/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.png';
+    try {
+      const { error } = await sb.storage.from(AD_BUCKET).upload(path, blob, { contentType: 'image/png', upsert: false, cacheControl: '31536000' });
+      if (error) { console.warn('[ads] creative upload failed:', error.message); return ''; }
+      const { data } = sb.storage.from(AD_BUCKET).getPublicUrl(path);
+      return (data && data.publicUrl) || '';
+    } catch (e) { console.warn('[ads] upload error:', e && e.message); return ''; }
+  }
+  // Persist a saved ad to Supabase (best-effort — localStorage stays the source
+  // of truth so the UI never blocks on the network). Uploads any base64 creative
+  // to Storage first, then stores only the hosted URL on the row.
+  async function persistAd(channel, c) {
+    const sb = sbClient(); if (!sb) return;
+    try {
+      // Upload every base64 creative asset to Storage so only hosted URLs are
+      // stored on the row. creative_assets is an array of platform-correct
+      // assets ({format,size,url,text_overlay}); creative_url stays = primary
+      // for backward compatibility.
+      const assets = Array.isArray(c.creative_assets) ? c.creative_assets : [];
+      for (let i = 0; i < assets.length; i++) {
+        const a = assets[i];
+        if (a && a.url && a.url.indexOf('data:') === 0) {
+          const hosted = await uploadCreative(a.url);
+          if (hosted) a.url = hosted;
+        }
+      }
+      let creativeUrl = c.image || (assets[0] && assets[0].url) || '';
+      if (creativeUrl && creativeUrl.indexOf('data:') === 0) creativeUrl = await uploadCreative(creativeUrl);
+      const u = sbUser() || {};
+      const row = {
+        user_name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || '',
+        user_email: u.email || '',
+        channel, name: c.name || '', market: c.market || '',
+        objective: c.type || c.obj || '', budget: String(c.budget || ''),
+        url: c.url || '', audience: c.aud || '',
+        // c (stored in the `copy` JSONB) carries the full creative_assets array,
+        // so the multi-asset payload survives without needing a new column.
+        copy: c, creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
+        origin: location.origin || ''
+      };
+      const { data, error } = await sb.from('ads_generated').insert([row]).select('id').single();
+      if (error) { console.warn('[ads] supabase insert failed:', error.message); return; }
+      // Backfill hosted URL into local record so the dashboard + list show it.
+      if (creativeUrl && data && data.id) { c.image = creativeUrl; c.supabaseId = data.id; save(); }
+    } catch (e) { console.warn('[ads] persist error:', e && e.message); }
+  }
+
+  // ── Ad creative generator — REAL platform ad creatives ───────────────
+  // Produces platform-correct creative ASSETS (visual + on-creative text
+  // overlay) at the right sizes, via the shared /api/ai/image cascade for the
+  // underlying visual. Held per channel until the campaign is saved.
+  //   creative[ch] = { assets: [{format,size,url,text_overlay}], provider }
+  const creative = { g: null, m: null, t: null };
+  // LLM-authored on-creative overlay copy per channel, set by the autofill
+  // response (creative_spec[].overlay): { headline, sub, offer }. getCopy()
+  // prefers this over raw form text so the baked-in wording + the real P01
+  // offer reach the canvas instead of the old hardcoded 'Shop now'.
+  const adSpec = { g: null, m: null, t: null };
+  const CUR = { US: '$', UK: '£', IN: '₹', EU: '€', AU: 'A$', ME: 'AED', Global: '$' };
+  // Platform format specs. label = human name; size = WxH the visual + overlay
+  // are rendered at; ar = friendly aspect tag stored on the asset.
+  const CRE_CFG = {
+    g: { market: 'g-market', name: 'g-name',
+      formats: [
+        { format: 'Google · Landscape 1.91:1', size: '1200x628',  ar: '1.91:1' },
+        { format: 'Google · Square 1:1',       size: '1200x1200', ar: '1:1' },
+      ] },
+    m: { market: 'm-market', name: 'm-name',
+      formats: [
+        { format: 'Meta/IG · Feed 1:1',         size: '1080x1080', ar: '1:1' },
+        { format: 'Meta/IG · Story/Reel 9:16',  size: '1080x1920', ar: '9:16' },
+      ] },
+    t: { market: 't-market', name: 't-name',
+      formats: [
+        { format: 'TikTok · Vertical 9:16', size: '1080x1920', ar: '9:16' },
+      ] },
+  };
+  const v = (id) => (document.getElementById(id)?.value || '').trim();
+  // Pull the headline / offer / sub copy + market for a channel.
+  function getCopy(ch) {
+    const market = v(CRE_CFG[ch].market) || 'US';
+    const spec = adSpec[ch] || {};
+    const headline = spec.headline
+      || (ch === 'g' ? (v('g-headlines').split('\n')[0]) : ch === 'm' ? v('m-headline') : v('t-hook'))
+      || v(CRE_CFG[ch].name) || 'Lace-up the moment';
+    const sub = spec.sub
+      || (ch === 'g' ? v('g-keywords').split(',')[0] : ch === 'm' ? v('m-primary') : v('t-caption'))
+      || 'Single-studio · studio-fresh in 72 hours';
+    // On-creative offer: use ONLY a real, LLM/operator-authored offer. Never
+    // fabricate a discount (the old '65% OFF + free gifts' default baked an
+    // invented promo into shipped creatives — a zero-fabrication violation). When
+    // no verified offer exists, leave it empty and the offer pill is skipped.
+    const offer = spec.offer || '';
+    return { market, headline, sub, offer, cur: CUR[market] || '$' };
+  }
+  // Ambient BACKDROP prompt (no product, no packaging) for the AI image cascade.
+  // Branding + packaging in ads must be REAL, so the AI never renders a box/label
+  // (image models fabricate garbled fake packaging). The real product photo is a
+  // pasted media URL or a real Shopify catalog image; the AI only fills an empty
+  // sneaker scene as a last-resort backdrop. Sent with mode:'ambient' server-side.
+  function buildCreativePrompt(ch) {
+    const cfg = CRE_CFG[ch];
+    const market = v(cfg.market) || 'US';
+    const orient = ch === 't' ? 'vertical 9:16 mobile-first social composition' : 'clean centered composition';
+    return [
+      'Ambient lifestyle backdrop for KNICKGASM premium sneaker — an atmospheric sneaker scene with NO product and NO packaging in frame.',
+      'Market: ' + market + '.',
+      'Show only: a freshly crafted pair with rising steam, loose sneaker panels, a marble or wood surface, warm natural light, shallow depth of field.',
+      'Brand palette accents: deep deep purple #6A33D8, amber lava #D0473E, chalk #F7F5F2.',
+      orient + '. Photorealistic, premium, uncluttered. Absolutely NO product packaging, NO box, NO box, NO pouch, NO label, NO brand mark, NO text, NO words, NO logos, NO watermark.'
+    ].join(' ');
+  }
+  // Wrap text to a max width on a canvas context, return array of lines.
+  function wrapText(ctx, text, maxW, maxLines) {
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    const lines = []; let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; if (lines.length === maxLines - 1) break; }
+      else line = test;
+    }
+    if (line && lines.length < maxLines) lines.push(line);
+    return lines;
+  }
+  // Load an image (CORS-safe) for compositing. Returns null on failure.
+  function loadImage(src) {
+    return new Promise((resolve) => {
+      if (!src) return resolve(null);
+      // MP4/WebM (e.g. a Shopify product video) → grab the first frame.
+      if (/\.(mp4|webm|mov)(\?|#|$)/i.test(src)) {
+        const vid = document.createElement('video');
+        vid.crossOrigin = 'anonymous'; vid.muted = true; vid.playsInline = true; vid.preload = 'auto';
+        const done = (ok) => resolve(ok ? vid : null);
+        vid.onloadeddata = () => { try { vid.currentTime = Math.min(0.1, (vid.duration || 1) * 0.1); } catch (_) { done(true); } };
+        vid.onseeked = () => done(true);
+        vid.onerror = () => done(false);
+        vid.src = src;
+        return;
+      }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+  // Draw a base visual into the canvas: cover-fit the provided image, or paint
+  // the brand gradient fallback. Then add a legibility scrim.
+  function drawBase(x, W, H, baseImg) {
+    x.fillStyle = '#6A33D8'; x.fillRect(0, 0, W, H);
+    if (baseImg) {
+      const bw = baseImg.videoWidth || baseImg.width, bh = baseImg.videoHeight || baseImg.height;
+      const ir = (bw && bh) ? bw / bh : (W / H), cr = W / H;
+      let dw = W, dh = H, dx = 0, dy = 0;
+      if (ir > cr) { dh = H; dw = H * ir; dx = (W - dw) / 2; } else { dw = W; dh = W / ir; dy = (H - dh) / 2; }
+      try { x.drawImage(baseImg, dx, dy, dw, dh); } catch (_) {}
+    } else {
+      const g = x.createRadialGradient(W * 0.5, H * 0.32, 40, W * 0.5, H * 0.32, W * 0.9);
+      g.addColorStop(0, 'rgba(171,135,67,0.30)'); g.addColorStop(1, 'rgba(0,74,43,0)');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+    }
+  }
+  // Composite ONE platform asset: base visual + brand text overlay (wordmark,
+  // headline, sub, offer pill, market chip). 9:16 keeps text clear of the
+  // bottom ~20% (platform UI chrome safe zone). Returns a PNG data URL.
+  function composeCreative(fmt, copy, baseImg) {
+    const dims = fmt.size.split('x').map(Number); const W = dims[0], H = dims[1];
+    const tall = (H / W) > 1.4; // 9:16-ish
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d'); x.textAlign = 'center';
+    drawBase(x, W, H, baseImg);
+    // Text band gradient (bottom for tall, full soft wash otherwise) for legibility.
+    const band = x.createLinearGradient(0, 0, 0, H);
+    band.addColorStop(0, 'rgba(10,20,16,0.55)'); band.addColorStop(0.45, 'rgba(10,20,16,0.10)'); band.addColorStop(1, 'rgba(10,20,16,0.80)');
+    x.fillStyle = band; x.fillRect(0, 0, W, H);
+    // Safe zone: on 9:16 keep all text above the bottom 20%.
+    const safeBottom = tall ? H * 0.80 : H * 0.94;
+    const base = Math.min(W, H);
+    // Wordmark (top)
+    x.fillStyle = '#F7F5F2';
+    x.font = '700 ' + Math.round(base * 0.05) + "px 'Montserrat', Georgia, serif";
+    x.fillText('V A H D A M', W / 2, H * 0.10);
+    x.fillStyle = '#D0473E'; x.font = '600 ' + Math.round(base * 0.022) + "px 'Instrument Sans', Arial, sans-serif";
+    x.fillText('SINGLE-ESTATE INDIAN SNEAKER', W / 2, H * 0.14);
+    // Offer pill (sits just above safe-zone floor) — ONLY drawn when a real
+    // offer exists; with no verified offer, pillH=0 so no empty lava pill shows
+    // and the headline block anchors to the safe floor.
+    const pillH = copy.offer ? Math.round(base * 0.085) : 0, pillW = Math.min(W * 0.7, base * 0.9);
+    const pillX = (W - pillW) / 2, pillY = safeBottom - pillH;
+    if (copy.offer) {
+      x.fillStyle = '#D0473E';
+      if (x.roundRect) { x.beginPath(); x.roundRect(pillX, pillY, pillW, pillH, pillH / 2); x.fill(); }
+      else x.fillRect(pillX, pillY, pillW, pillH);
+      // Offer text: the real offer (may be long) — auto-shrink to fit the pill.
+      x.fillStyle = '#111111';
+      let offSize = Math.round(base * 0.034);
+      const maxOfferW = pillW * 0.88;
+      x.font = '700 ' + offSize + "px 'Instrument Sans', Arial, sans-serif";
+      while (offSize > 11 && x.measureText(copy.offer).width > maxOfferW) {
+        offSize -= 1; x.font = '700 ' + offSize + "px 'Instrument Sans', Arial, sans-serif";
+      }
+      x.fillText(copy.offer, W / 2, pillY + pillH * 0.64);
+    }
+    // Headline block (above the pill, wrapped)
+    const hSize = Math.round(base * 0.075); x.font = '600 ' + hSize + "px 'Montserrat', Georgia, serif";
+    const hLines = wrapText(x, copy.headline, W * 0.82, 4);
+    const sSize = Math.round(base * 0.03);
+    const blockH = hLines.length * hSize * 1.12 + sSize * 1.6;
+    let y = pillY - base * 0.06 - blockH + hSize;
+    if (y < H * 0.24) y = H * 0.24;
+    x.fillStyle = '#F7F5F2';
+    hLines.forEach((ln) => { x.fillText(ln, W / 2, y); y += hSize * 1.12; });
+    // Sub copy
+    x.fillStyle = 'rgba(251,245,234,0.85)'; x.font = '400 ' + sSize + "px 'Instrument Sans', Arial, sans-serif";
+    wrapText(x, copy.sub, W * 0.74, 2).forEach((ln, i) => x.fillText(ln, W / 2, y + sSize * 0.4 + i * sSize * 1.3));
+    // Market chip (within safe zone)
+    x.fillStyle = 'rgba(251,245,234,0.55)'; x.font = '600 ' + Math.round(base * 0.02) + "px 'Instrument Sans', Arial, sans-serif";
+    x.fillText(copy.market + ' · ' + copy.cur, W / 2, safeBottom + (tall ? H * 0.05 : 0) + base * 0.02);
+    return c.toDataURL('image/png');
+  }
+  // Real Shopify catalog images per region (cached). Ad branding + packaging must
+  // be REAL, so a genuine PDP product photo is the default base visual — never an
+  // AI-invented box. Catalog JSON is served with CORS from /data/catalog.
+  const _catalogCache = {};
+  // Return catalog PRODUCTS (with name/handle + real primary image), not a flat
+  // image list — so a creative can be matched to the RIGHT SKU, never a random
+  // real-but-wrong product.
+  async function catalogProducts(market) {
+    const region = /uk/i.test(market) ? 'uk' : /us/i.test(market) ? 'us' : 'global';
+    if (_catalogCache[region]) return _catalogCache[region];
+    try {
+      const r = await fetch('/data/catalog/products_' + region + '.json', { cache: 'force-cache' });
+      const rows = r.ok ? await r.json() : [];
+      const prods = (Array.isArray(rows) ? rows : []).map((p) => ({
+        name: String((p && p.n) || ''), handle: String((p && p.h) || ''),
+        img: (p && typeof p.i === 'string' && /^https?:\/\//.test(p.i)) ? p.i
+          : (Array.isArray(p && p.imgs) && p.imgs[0] && /^https?:\/\//.test(p.imgs[0]) ? p.imgs[0] : ''),
+      })).filter((p) => p.img);
+      _catalogCache[region] = prods;
+      return prods;
+    } catch (_) { _catalogCache[region] = []; return []; }
+  }
+  // Pick a REAL catalog image for a channel — prefer the product whose name/handle
+  // matches the configured product (so branding matches the SKU the ad is about);
+  // only if there is no product reference at all do we deterministically rotate.
+  async function realCatalogImage(ch) {
+    const cfg = CRE_CFG[ch];
+    const prods = await catalogProducts(v(cfg.market) || 'US');
+    if (!prods.length) return '';
+    const want = String(v(cfg.name) || '').trim().toLowerCase();
+    if (want) {
+      const wantH = want.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      // exact-ish: handle match, then full-name contains, then strongest token overlap.
+      let hit = prods.find((p) => p.handle && (p.handle.toLowerCase() === wantH || p.handle.toLowerCase().includes(wantH)));
+      if (!hit) hit = prods.find((p) => p.name.toLowerCase().includes(want) || want.includes(p.name.toLowerCase()));
+      if (!hit) {
+        const toks = want.split(/[^a-z0-9]+/).filter((t) => t.length > 2);
+        let best = null, bestScore = 0;
+        prods.forEach((p) => {
+          const nl = p.name.toLowerCase();
+          const score = toks.reduce((s, t) => s + (nl.includes(t) ? 1 : 0), 0);
+          if (score > bestScore) { bestScore = score; best = p; }
+        });
+        if (bestScore >= 2) hit = best; // require a real overlap, not one stopword
+      }
+      if (hit) return hit.img;
+    }
+    // No product named on this channel → deterministic rotation over real photos.
+    const seed = String(v(cfg.name) || ch);
+    let h = 0; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    return prods[h % prods.length].img;
+  }
+  // Fetch ONE AI base visual at the given size (text-free). Returns dataURL or ''.
+  async function fetchAiVisual(prompt, size) {
+    try {
+      const geminiKey = (() => { try { return localStorage.getItem('knickgasm-gemini-key') || ''; } catch (_) { return ''; } })();
+      const r = await fetch('/api/ai/image', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
+        // mode:'ambient' → server renders a product-free sneaker backdrop ONLY, never
+        // fabricated packaging (ad branding + packaging must be real).
+        body: JSON.stringify({ prompt, size, quality: 'high', mode: 'ambient' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.image_data_url) return { url: d.image_data_url, provider: d.provider || 'ai' };
+    } catch (_) {}
+    return { url: '', provider: '' };
+  }
+  // Render the per-channel multi-asset preview (grid + optional animated tile).
+  function showCreatives(ch, assets, animFrames, provider, note) {
+    const prev = document.getElementById(ch + '-cre-prev');
+    const noteEl = document.getElementById(ch + '-cre-note');
+    creative[ch] = { assets, provider, prompt: buildCreativePrompt(ch) };
+    let html = '';
+    if (animFrames && animFrames.length > 1) {
+      const ar = (assets[0] && assets[0].size.split('x').map(Number)) || [1, 1];
+      html += '<div class="cre-asset"><span class="cre-asset-label">Animated preview</span>' +
+        '<div class="cre-anim" style="aspect-ratio:' + ar[0] + '/' + ar[1] + '">' +
+        animFrames.map((f) => '<img src="' + f + '" alt="frame">').join('') + '</div></div>';
+    }
+    html += '<div class="cre-assets">' + assets.map((a, i) =>
+      '<div class="cre-asset"><span class="cre-asset-label">' + esc(a.format) + '</span>' +
+      '<img src="' + a.url + '" alt="' + esc(a.format) + '">' +
+      '<a class="cre-asset-dl" href="' + a.url + '" download="knickgasm-' + ch + '-' + a.size + '.png">⬇ Download</a></div>'
+    ).join('') + '</div>';
+    html += '<div class="cre-actions">' +
+      '<button class="btn btn-ghost" type="button" data-cre-redo="' + ch + '">↻ Regenerate</button>' +
+      '<button class="btn btn-ghost" type="button" data-cre-clear="' + ch + '">Remove</button>' +
+      '</div>';
+    prev.innerHTML = html;
+    if (noteEl) noteEl.textContent = note;
+  }
+  async function genCreative(ch) {
+    const note = document.getElementById(ch + '-cre-note');
+    const btn  = document.getElementById(ch + '-cre');
+    const cfg = CRE_CFG[ch];
+    const copy = getCopy(ch);
+    const prompt = buildCreativePrompt(ch);
+    const mediaUrl = v(ch + '-media');
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Generating…';
+    if (note) note.innerHTML = '<span class="cre-spin">Building platform creatives…</span>';
+    try {
+      let baseImg = null, provider = 'designed', animFrames = [];
+      // ── Visual source cascade ──
+      // Tier 1: a provided hosted media URL (image / GIF / MP4 still) — real.
+      if (mediaUrl) {
+        baseImg = await loadImage(mediaUrl);
+        if (baseImg) provider = 'media-url';
+        if (note) note.innerHTML = '<span class="cre-spin">Composing creatives from your media…</span>';
+      }
+      // Tier 2 (real, default): a genuine Shopify catalog product photo — REAL
+      // packaging, never AI-invented. This is the default so ad branding is real.
+      if (!baseImg) {
+        const catUrl = await realCatalogImage(ch);
+        if (catUrl) {
+          baseImg = await loadImage(catUrl);
+          if (baseImg) provider = 'catalog';
+        }
+        if (note) note.innerHTML = '<span class="cre-spin">Composing creatives from real catalog photos…</span>';
+      }
+      // Tier 3: no real photo available → AI fills a PRODUCT-FREE ambient backdrop
+      // (mode:'ambient'); it never renders packaging. Assemble an animated preview.
+      if (!baseImg) {
+        const primarySize = cfg.formats[0].size;
+        const a1 = await fetchAiVisual(prompt, primarySize);
+        if (a1.url) { baseImg = await loadImage(a1.url); provider = a1.provider; }
+        // Build a 2-frame cross-fade animated preview (Tier 2). Second frame is
+        // a re-roll where available, else the brand-gradient composite.
+        const f1 = composeCreative(cfg.formats[0], copy, baseImg);
+        const a2 = baseImg ? await fetchAiVisual(prompt, primarySize) : { url: '' };
+        const img2 = a2.url ? await loadImage(a2.url) : null;
+        const f2 = composeCreative(cfg.formats[0], copy, img2 || null);
+        animFrames = [f1, f2];
+      }
+      // Compose one platform-correct asset per format from the resolved base.
+      const assets = cfg.formats.map((fmt) => ({
+        format: fmt.format, size: fmt.size, ar: fmt.ar,
+        url: composeCreative(fmt, copy, baseImg),
+        text_overlay: { headline: copy.headline, offer: copy.offer, sub: copy.sub, market: copy.market }
+      }));
+      const msg = provider === 'media-url'
+        ? assets.length + ' creatives composed from your media — attaches when you save.'
+        : provider === 'catalog'
+          ? assets.length + ' creatives composed from real Shopify catalog photos — real packaging, no AI-invented product. Attaches when you save.'
+          : provider === 'designed'
+            ? assets.length + ' designed creatives ready (product-free brand backdrop) — animated preview included. Attaches when you save.'
+            : assets.length + ' creatives ready · product-free ambient backdrop (' + provider + ') — attaches when you save.';
+      showCreatives(ch, assets, animFrames, provider, msg);
+    } catch (e) {
+      if (note) note.textContent = 'Error: ' + ((e && e.message) || e);
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const gen = e.target.closest('[id$="-cre"]');
+    if (gen && /^[gmt]-cre$/.test(gen.id)) { genCreative(gen.id.charAt(0)); return; }
+    const redo = e.target.closest('[data-cre-redo]'); if (redo) { genCreative(redo.dataset.creRedo); return; }
+    const mp = e.target.closest('[data-mp]'); if (mp) { copyMasterPrompt(mp.dataset.mp, mp); return; }
+    const clr = e.target.closest('[data-cre-clear]');
+    if (clr) { const ch = clr.dataset.creClear; creative[ch] = null;
+      const p = document.getElementById(ch + '-cre-prev'); if (p) p.innerHTML = '';
+      const n = document.getElementById(ch + '-cre-note'); if (n) n.textContent = 'Creatives removed.'; }
+  });
+  // Pull the pending creatives for a channel into the saved record, then reset.
+  function attachCreative(ch, rec) {
+    if (creative[ch]) {
+      rec.creative_assets = creative[ch].assets || [];
+      rec.image = (rec.creative_assets[0] && rec.creative_assets[0].url) || '';  // primary, backward compat
+      rec.imagePrompt = creative[ch].prompt;
+    }
+    creative[ch] = null; adSpec[ch] = null;
+    const p = document.getElementById(ch + '-cre-prev'); if (p) p.innerHTML = '';
+    const n = document.getElementById(ch + '-cre-note'); if (n) n.textContent = '';
+    const md = document.getElementById(ch + '-media'); if (md) md.value = '';
+  }
+
+  // ── Master prompt (copy anywhere) ─────────────────────────────────────
+  // The single portable prompt for this ad. The /api/ai/generate autofill
+  // response now returns `master_prompt`; we cache it per channel and let the
+  // user copy it. If autofill hasn't run, build a client-side prompt mirroring
+  // api/_shared/master-prompt.js (assetType:'ad', platform per channel).
+  const CH_PLATFORM = { g: 'google', m: 'meta', t: 'tiktok' };
+  const lastMasterPrompt = { g: '', m: '', t: '' };
+  const STORE_FACTS = {
+    US: { store: 'knickgasm.com', currency: '$' }, UK: { store: 'knickgasm.com', currency: '£' },
+    IN: { store: 'knickgasm.com', currency: '₹' }, EU: { store: 'knickgasm.com', currency: '€' },
+    AU: { store: 'knickgasm.com', currency: 'A$' }, ME: { store: 'knickgasm.com', currency: 'AED' },
+    Global: { store: 'knickgasm.com', currency: '$' },
+  };
+  const AD_SPEC = {
+    google: 'Google (Responsive Search + Performance Max): 15 headlines (≤30 chars), 4 descriptions (≤90 chars), long headline (≤90), business name. PRODUCED creatives are static images at 1.91:1 (1200×628) and 1:1 (1200×1200).',
+    meta: 'Meta (Facebook/Instagram Feed + Reels + Stories): primary text (≤125 chars before truncation), headline (≤40), description. PRODUCED creatives are static images at 1:1 (1080×1080, Feed) and 9:16 (1080×1920, Story/Reel).',
+    tiktok: 'TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, brand-safe audio direction, caption, and 3 hashtag options. The PRODUCED creative is a static 9:16 (1080×1920) key-frame/cover image.',
+  };
+  // Client-side mirror of buildMasterPrompt({assetType:'ad'}) for when the
+  // server-returned master_prompt isn't available yet.
+  function clientMasterPrompt(ch) {
+    const platform = CH_PLATFORM[ch];
+    const market = v(CRE_CFG[ch].market) || 'US';
+    const f = STORE_FACTS[market] || STORE_FACTS.Global;
+    const c = getCopy(ch);
+    const brief = [v(CRE_CFG[ch].name), c.headline, c.sub].filter(Boolean).join(' — ');
+    return [
+      "You are KNICKGASM's senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.",
+      '',
+      'BRAND: KNICKGASM — premium one-of-one Indian sneakers & streetwear.',
+      'VOICE: warm, sensory, emotionally resonant, story-driven.',
+      'PALETTE (use ONLY these four): #6A33D8 deep purple · #D0473E lava · #111111 near-black · #F7F5F2 chalk.',
+      "TYPOGRAPHY (strict): Headings = 'Montserrat'. Body = 'Instrument Sans'. Never introduce other fonts.",
+      'BANNED phrases: "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "hurry", "don\'t miss out", "last chance", "while supplies last".',
+      '',
+      'MARKET: ' + market + ' · Store: https://' + f.store + ' · Currency: ' + f.currency,
+      brief ? '\nCAMPAIGN BRIEF:\n' + brief : '',
+      '',
+      'ASSET: Paid ad creative for ' + platform.toUpperCase() + ' — a FULL ad, not just copy.',
+      'The PRODUCED creative is a still, photoreal, on-palette image at each size below with the on-creative text overlay (headline + offer) BAKED INTO the image, exactly like a real ' + platform + ' ad.',
+      'Platform spec: ' + (AD_SPEC[platform] || AD_SPEC.meta),
+      'Deliver: (a) every text field the platform requires; (b) for EACH static size, a precise creative brief describing the still visual, the baked-in overlay wording + pixel placement + safe zones; (c) the destination URL.',
+      'VISUALS (produced asset): one still on-palette image per size with the overlay baked in. If a hosted product image/MP4 URL is supplied, its first frame is the base still. Motion (GIF/short video) is an OPTIONAL follow-up brief — never a delivered asset here. To produce the actual video ad, hand this brief to OpenMontage (open-source agentic video pipeline): https://github.com/Open-Montage/OpenMontage',
+      '',
+      'QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims.',
+    ].filter((l) => l !== null && l !== undefined).join('\n').trim();
+  }
+  async function copyMasterPrompt(ch, btn) {
+    const text = lastMasterPrompt[ch] || clientMasterPrompt(ch);
+    const orig = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = '✓ Copied';
+      toast('Master prompt copied — paste into any chat');
+    } catch (_) {
+      // Clipboard blocked — fall back to a temporary textarea selection.
+      try {
+        const ta = document.createElement('textarea'); ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        btn.textContent = '✓ Copied'; toast('Master prompt copied');
+      } catch (e2) { toast('Copy failed — select manually'); }
+    }
+    setTimeout(() => { btn.textContent = orig; }, 1600);
+  }
+
+  // ── Tabs (hash-routed to match sidebar deep-links) ───────────────────
+  const TABS = ['calendar', 'google', 'meta', 'tiktok'];
+  function showTab(t) {
+    if (!TABS.includes(t)) t = 'calendar';
+    document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
+    document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'panel-' + t));
+    if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+
+  // ── Calendar — the SAME rolling plan as the Knickgasm Brain mailer calendar ──
+  // Not a separate manual grid: it reads the Smart Brain plan (identical slots,
+  // cohorts, dates, reasoning) and renders each slot's paid-social AD SET, built
+  // from the same strategy + copy + real catalog assets as that slot's mailer.
+  // Review/approval lives in the Brain; the shared plan reflects it here.
+  let calDate = new Date(); calDate.setDate(1);
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dkey = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const BRAIN = '/api/brain';
+  const intf = (n) => (+n || 0).toLocaleString();
+  let AD_PLAN = [], AD_MKT = 'US';
+  const AD_PREVIEW = {};
+  const CHAN_COL = { google: 'chan-google', meta: 'chan-meta', tiktok: 'chan-other' };
+  const adVisible = (e) => AD_MKT === 'ALL' || String(e.market || '').toUpperCase() === AD_MKT;
+  function renderAdMkt() {
+    const host = $('#ad-mkt'); if (!host) return;
+    host.innerHTML = ['US', 'UK', 'ALL'].map((m) => `<button class="tab${AD_MKT === m ? ' active' : ''}" data-admkt="${m}" style="padding:5px 12px;font-size:12px">${m}</button>`).join('');
+    host.querySelectorAll('[data-admkt]').forEach((b) => { b.onclick = () => { AD_MKT = b.dataset.admkt; renderAdMkt(); renderAdPlan(); }; });
+  }
+  async function loadAdPlan() {
+    const host = $('#ad-plan'); if (host) host.innerHTML = '<p class="note">Loading the Knickgasm Brain plan…</p>';
+    try { const r = await fetch(BRAIN + '?action=smart-brain-plan'); const d = await r.json(); AD_PLAN = (d && d.entries) || []; }
+    catch (e) { AD_PLAN = []; }
+    renderAdPlan();
+  }
+  function adStatus(e) {
+    if (e.generated_campaign_id || e.status === 'approved' || e.status === 'final') return '<span class="chan" style="background:rgba(34,197,94,0.15);color:#0a7d33">approved</span>';
+    if (e.status === 'rejected') return '<span class="chan" style="background:rgba(209,121,95,0.16);color:#b91c1c">rejected</span>';
+    return '<span class="chan chan-other">draft</span>';
+  }
+  function renderAdPlan() {
+    const host = $('#ad-plan'), empty = $('#ad-plan-empty'); if (!host) return;
+    AD_PLAN.forEach((e, i) => { e.__i = i; });
+    const rows = AD_PLAN.filter(adVisible);
+    if (!rows.length) {
+      host.innerHTML = '';
+      if (empty) { empty.style.display = 'block'; empty.textContent = AD_PLAN.length ? ('No slots for ' + AD_MKT + ' — switch market.') : 'No plan yet. Open the Knickgasm Brain, run the plan, and the same slots appear here with their ad sets.'; }
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    const head = '<tr style="text-align:left;color:#556059;font-size:11px;text-transform:uppercase;letter-spacing:.06em"><th style="padding:8px 10px">Date</th><th style="padding:8px 10px">Cohort</th><th style="padding:8px 10px">Objective / Hero</th><th style="padding:8px 10px">Channels</th><th style="padding:8px 10px">Conf.</th><th style="padding:8px 10px">Status</th><th style="padding:8px 10px">Actions</th></tr>';
+    const body = rows.map((e) => {
+      const i = e.__i;
+      const chans = (e.channels || []).filter((c) => c !== 'email' && c !== 'landing_page').map((c) => `<span class="chan ${CHAN_COL[c] || 'chan-other'}">${esc(c)}</span>`).join(' ') || '<span class="chan chan-other">meta · google · tiktok</span>';
+      return `<tr style="border-top:1px solid rgba(171,135,67,0.12)">`
+        + `<td style="padding:10px">${esc(e.date)}</td>`
+        + `<td style="padding:10px">${esc((e.cohort && e.cohort.name) || '')}<br><span class="note">${(e.cohort && e.cohort.size != null) ? intf(e.cohort.size) + ' profiles' : ''}</span></td>`
+        + `<td style="padding:10px"><b>${esc(e.objective || '')}</b><br><span class="note">${esc((e.heroProduct && e.heroProduct.title) || '')}</span></td>`
+        + `<td style="padding:10px">${chans}</td>`
+        + `<td style="padding:10px">${e.confidence != null ? Math.round(e.confidence * 100) + '%' : '—'}</td>`
+        + `<td style="padding:10px">${adStatus(e)}</td>`
+        + `<td style="padding:10px;white-space:nowrap"><button class="btn btn-ghost" onclick="viewAdSlot(${i})">View ads</button> <button class="btn btn-ghost" onclick="whyAdSlot(${i})">❓ Why</button></td>`
+        + `</tr>`
+        + `<tr id="adexp-${i}" style="display:none"><td colspan="7" style="padding:0;background:#f4f2ec"><div id="adbody-${i}" style="padding:14px 16px"></div></td></tr>`;
+    }).join('');
+    host.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">${head}${body}</table></div>`;
+  }
+  function adSlotToggle(i) {
+    const row = $('#adexp-' + i); if (!row) return null;
+    document.querySelectorAll('[id^="adexp-"]').forEach((r) => { if (r !== row) r.style.display = 'none'; });
+    row.style.display = row.style.display === 'none' ? '' : 'none';
+    return row.style.display === 'none' ? null : $('#adbody-' + i);
+  }
+  function adCard(ad) {
+    const img = ad.creative && ad.creative.image;
+    const plat = esc(ad.platform || '');
+    let copy = '';
+    if (ad.platform === 'meta') copy = `<b>${esc(ad.headline || '')}</b><p style="margin:4px 0">${esc(ad.primary_text || '')}</p><span class="note">${esc(ad.description || '')}</span>`;
+    else if (ad.platform === 'google') copy = `<b>${esc((ad.headlines || []).filter(Boolean).join(' · '))}</b><p style="margin:4px 0">${esc((ad.descriptions || []).filter(Boolean).join(' '))}</p>`;
+    else if (ad.platform === 'tiktok') copy = `<b>${esc(ad.caption || '')}</b><p style="margin:4px 0">${esc(ad.script || '')}</p>`;
+    return `<div class="item" style="flex:1;min-width:220px"><div class="item-top"><span class="chan ${CHAN_COL[ad.platform] || 'chan-other'}">${plat}${ad.variant ? ' · ' + esc(ad.variant) : ''}</span></div>`
+      + (img ? `<img src="${esc(img)}" alt="" style="width:100%;border-radius:8px;margin:8px 0;display:block">` : '')
+      + `<div style="font-size:12.5px;line-height:1.5">${copy}</div></div>`;
+  }
+  window.viewAdSlot = async function (i) {
+    const e = AD_PLAN[i]; if (!e) return;
+    const body = adSlotToggle(i); if (!body) return;
+    if (AD_PREVIEW[e.id]) { body.innerHTML = renderAdSet(AD_PREVIEW[e.id]); return; }
+    body.innerHTML = '<p class="note">Generating the ad set (same pipeline as the Brain mailer)…</p>';
+    try {
+      const r = await fetch(BRAIN + '?action=smart-brain-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: e.id, entry: e }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || 'Preview failed');
+      AD_PREVIEW[e.id] = d;
+      body.innerHTML = renderAdSet(d);
+    } catch (err) { body.innerHTML = `<p class="note" style="color:#b91c1c">Ad preview failed: ${esc(err.message)}</p>`; }
+  };
+  function renderAdSet(d) {
+    const ads = (d && (d.ads || (d.campaign && d.campaign.assets && d.campaign.assets.ads))) || [];
+    if (!ads.length) return '<p class="note">No ad assets in this slot yet.</p>';
+    return '<div style="display:flex;gap:12px;flex-wrap:wrap">' + ads.map(adCard).join('') + '</div>';
+  }
+  window.whyAdSlot = function (i) {
+    const e = AD_PLAN[i]; if (!e) return;
+    const body = adSlotToggle(i); if (!body) return;
+    const d = e.decision || {}, a = e.analysis || {}, offer = d.offer || {};
+    const rowly = (l, v) => v ? `<div style="margin:6px 0"><span style="color:#D0473E;font-weight:700;font-size:12px">${esc(l)}</span><div style="font-size:13px">${esc(v)}</div></div>` : '';
+    body.innerHTML = '<div style="border-left:3px solid #D0473E;padding-left:14px">'
+      + `<div style="font-weight:700;margin-bottom:8px">Why this slot and its ads</div>`
+      + rowly('Cohort', (e.cohort && e.cohort.name) || '')
+      + rowly('Data basis', a.summary || d.topic && d.topic.why || e.rationale || '')
+      + rowly('Timing', (d.timing && d.timing.why) || (e.reach && e.reach.why) || '')
+      + rowly('Offer', offer.code ? (Math.round((offer.pct || 0) * 100) + '% via ' + offer.code) : 'No discount')
+      + rowly('Confidence', e.confidence != null ? Math.round(e.confidence * 100) + '%' : '')
+      + `<div style="font-size:12.5px;color:#556059;margin-top:8px">Ad imagery uses real Shopify catalog photos only; copy is brand-gated and rendered as native platform text (never baked into the image). Same strategy + assets as this slot's mailer in the Brain.</div>`
+      + '</div>';
+  };
+
+  const dayModal = $('#day-modal'); let activeDay = null;
+  function openDay(k) {
+    activeDay = k;
+    $('#dm-date').textContent = new Date(k).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    $('#dm-name').value = ''; $('#dm-budget').value = '';
+    const existing = store.calendar[k] || [];
+    $('#dm-existing').innerHTML = existing.length
+      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
+      : '';
+    $('#dm-existing').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => {
+      store.calendar[k].splice(+b.dataset.rm, 1); if (!store.calendar[k].length) delete store.calendar[k]; save(); openDay(k); renderAdPlan();
+    }));
+    dayModal.classList.add('open');
+  }
+  $('#dm-save').onclick = () => {
+    if (!activeDay) return;
+    const name = $('#dm-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    (store.calendar[activeDay] = store.calendar[activeDay] || []).push({
+      id: uid(), channel: $('#dm-channel').value, name, budget: $('#dm-budget').value, market: $('#dm-market').value,
+    });
+    save(); renderAdPlan(); openDay(activeDay); toast('Scheduled');
+  };
+  dayModal.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', () => dayModal.classList.remove('open')));
+  // Ad-calendar controls: reload the Brain plan, and open the manual one-off modal.
+  { const rb = $('#ad-refresh'); if (rb) rb.onclick = () => loadAdPlan(); }
+  { const mb = $('#ad-manual'); if (mb) mb.onclick = () => { const t = new Date(); openDay(dkey(t.getFullYear(), t.getMonth(), t.getDate())); }; }
+
+  // ── AI copy (reuses /api/ai/generate create_brief) ───────────────────
+  async function aiBrief(noteEl, market, type, prompt) {
+    noteEl.textContent = 'Generating…';
+    try {
+      const geminiKey = (() => { try { return localStorage.getItem('knickgasm-gemini-key') || ''; } catch { return ''; } })();
+      const r = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
+        body: JSON.stringify({ mode: 'create_brief', market, type, prompt }),
+      });
+      const d = await r.json();
+      noteEl.textContent = '';
+      return d.text || d.brief || d.content || '';
+    } catch (e) { noteEl.textContent = 'AI unavailable — fill copy manually.'; return ''; }
+  }
+  // Pull a few "Headline:" style lines out of a prose brief for convenience.
+  function extractLines(text, label) {
+    const re = new RegExp(label + '[^\\n:]*:?\\s*(.+)', 'i');
+    return text.split('\n').map((l) => { const m = l.match(re); return m ? m[1].trim() : null; }).filter(Boolean);
+  }
+
+  $('#g-ai').onclick = async () => {
+    const name = $('#g-name').value.trim() || 'Google Search campaign';
+    const text = await aiBrief($('#g-ai-note'), $('#g-market').value, 'Sale', name + ' — write Google Ads headlines and descriptions for KNICKGASM sneaker.');
+    if (!text) return;
+    const heads = extractLines(text, 'HERO HEADLINE').concat(extractLines(text, 'SUBJECT'));
+    if (heads.length) $('#g-headlines').value = heads.slice(0, 5).join('\n');
+    const subs = extractLines(text, 'SUB-COPY').concat(extractLines(text, 'OFFER SUB'));
+    if (subs.length) $('#g-desc').value = subs.slice(0, 4).join('\n');
+    toast('Copy drafted from AI brief');
+  };
+  $('#m-ai').onclick = async () => {
+    const name = $('#m-name').value.trim() || 'Meta campaign';
+    const text = await aiBrief($('#m-ai-note'), $('#m-market').value, 'Launch', name + ' — write a Meta primary text and headline for KNICKGASM sneaker.');
+    if (!text) return;
+    const subs = extractLines(text, 'SUB-COPY'); if (subs.length) $('#m-primary').value = subs[0];
+    const heads = extractLines(text, 'HERO HEADLINE'); if (heads.length) $('#m-headline').value = heads[0].slice(0, 40);
+    toast('Copy drafted from AI brief');
+  };
+
+  // Render the saved creative thumbnails for a list row. Prefers the multi-asset
+  // creative_assets array; falls back to the single legacy c.image.
+  function creativeThumbs(c) {
+    const assets = Array.isArray(c.creative_assets) ? c.creative_assets : [];
+    if (assets.length) {
+      return '<div class="item-cre">' + assets.map((a) =>
+        '<img src="' + esc(a.url) + '" alt="' + esc(a.format || 'creative') + '" title="' + esc(a.format || '') + '">'
+      ).join('') + '</div>';
+    }
+    return c.image ? '<div class="item-cre"><img src="' + esc(c.image) + '" alt="creative"></div>' : '';
+  }
+
+  // ── Google list ──────────────────────────────────────────────────────
+  function renderGoogle() {
+    $('#g-count').textContent = store.google.length;
+    $('#g-list').innerHTML = store.google.length ? store.google.map((c) => `
+      <div class="item">
+        <div class="item-top"><span class="chan chan-google">Google</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
+        ${(c.headlines || []).length ? `<div class="item-copy"><span class="h">Headlines:</span> ${c.headlines.map(esc).join(' · ')}</div>` : ''}
+        ${(c.descriptions || []).length ? `<div class="item-copy">${c.descriptions.map(esc).join('<br>')}</div>` : ''}
+        ${creativeThumbs(c)}
+        ${adActionsHtml('google', c)}
+      </div>`).join('') : '<div class="empty">No Google campaigns yet.</div>';
+    $('#g-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.google = store.google.filter((x) => x.id !== b.dataset.rm); save(); renderGoogle(); }));
+  }
+  $('#g-save').onclick = () => {
+    const name = $('#g-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    const rec = { id: uid(), name, type: $('#g-type').value, budget: $('#g-budget').value, market: $('#g-market').value,
+      url: $('#g-url').value.trim(), keywords: lines($('#g-keywords').value.split(',').join('\n')),
+      headlines: lines($('#g-headlines').value).map((h) => clampLen(h, 30)), descriptions: lines($('#g-desc').value).map((d) => clampLen(d, 90)) };
+    attachCreative('g', rec); store.google.unshift(rec);
+    save(); renderGoogle(); persistAd('google', rec); ['g-name', 'g-budget', 'g-url', 'g-keywords', 'g-headlines', 'g-desc'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+  };
+
+  // ── Meta list ──────────────────────────────────────────────────────
+  function renderMeta() {
+    $('#m-count').textContent = store.meta.length;
+    $('#m-list').innerHTML = store.meta.length ? store.meta.map((c) => `
+      <div class="item">
+        <div class="item-top"><span class="chan chan-meta">Meta</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
+        ${c.aud ? `<div class="item-copy"><span class="h">Audience:</span> ${esc(c.aud)}</div>` : ''}
+        ${c.primary ? `<div class="item-copy">${esc(c.primary)}</div>` : ''}
+        ${c.headline ? `<div class="item-copy"><span class="h">${esc(c.headline)}</span></div>` : ''}
+        ${creativeThumbs(c)}
+        ${adActionsHtml('meta', c)}
+      </div>`).join('') : '<div class="empty">No Meta campaigns yet.</div>';
+    $('#m-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.meta = store.meta.filter((x) => x.id !== b.dataset.rm); save(); renderMeta(); }));
+  }
+  $('#m-save').onclick = () => {
+    const name = $('#m-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    const rec = { id: uid(), name, obj: $('#m-obj').value, budget: $('#m-budget').value, market: $('#m-market').value,
+      place: $('#m-place').value, aud: $('#m-aud').value.trim(), primary: clampLen($('#m-primary').value.trim(), 125), headline: clampLen($('#m-headline').value.trim(), 40) };
+    attachCreative('m', rec); store.meta.unshift(rec);
+    save(); renderMeta(); persistAd('meta', rec); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+  };
+
+  // ── TikTok Ads ─────────────────────────────────────────────────────
+  function renderTikTok() {
+    $('#t-count').textContent = store.tiktok.length;
+    $('#t-list').innerHTML = store.tiktok.length ? store.tiktok.map((c) => `
+      <div class="item">
+        <div class="item-top"><span class="chan chan-other">TikTok</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>$${esc(c.budget)}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
+        <div class="item-copy" style="margin-top:6px"><span class="h">${esc(c.hook || '')}</span><br>${esc(c.caption || '')}</div>
+        ${c.hashtags ? `<div class="item-meta" style="margin-top:6px"><span>${esc(c.hashtags)}</span></div>` : ''}
+        ${creativeThumbs(c)}
+        ${adActionsHtml('tiktok', c)}
+      </div>`).join('') : '<div class="empty">No TikTok campaigns yet.</div>';
+    $('#t-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { store.tiktok = store.tiktok.filter((x) => x.id !== b.dataset.rm); save(); renderTikTok(); }));
+  }
+  $('#t-save').onclick = () => {
+    const name = $('#t-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
+    const rec = { id: uid(), name, obj: $('#t-obj').value, budget: $('#t-budget').value, market: $('#t-market').value,
+      place: $('#t-place').value, aud: $('#t-aud').value.trim(), hook: clampLen($('#t-hook').value.trim(), 100), caption: clampLen($('#t-caption').value.trim(), 100),
+      creator: $('#t-creator').value.trim(), hashtags: $('#t-hash').value.trim() };
+    attachCreative('t', rec); store.tiktok.unshift(rec);
+    save(); renderTikTok(); persistAd('tiktok', rec); ['t-name','t-budget','t-aud','t-hook','t-caption','t-creator','t-hash'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+  };
+  $('#t-ai').onclick = async () => {
+    const name = $('#t-name').value.trim() || 'TikTok campaign';
+    const text = await aiBrief($('#t-ai-note'), $('#t-market').value, 'Launch', name + ' — write a TikTok hook (≤80 chars, native, conversational) + caption (≤120 chars, no marketing-speak) for KNICKGASM sneaker.');
+    if (!text) return;
+    // Naive split: first line → hook, rest → caption
+    const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (lines[0]) $('#t-hook').value = lines[0].replace(/^["'`]|["'`]$/g, '');
+    if (lines.slice(1).length) $('#t-caption').value = lines.slice(1).join(' ').replace(/^["'`]|["'`]$/g, '');
+  };
+
+  // ── Init ─────────────────────────────────────────────────────────────
+  renderAdMkt(); loadAdPlan(); renderGoogle(); renderMeta(); renderTikTok();
+
+  // ── Single-prompt autofill ───────────────────────────────────────────
+  // The Generate-from-prompt bar at the top of each ad form. Calls
+  // /api/ai/generate with mode='autofill' + surface=<channel>, then walks
+  // the returned JSON and sets every form field by key.
+  //
+  // Surface → DOM-id-prefix map (the ad-campaigns forms use single-letter
+  // prefixes per channel: g- for Google, m- for Meta, t- for TikTok).
+  const AI_FIELD_MAP = {
+    google: { name:'g-name', type:'g-type', budget:'g-budget', market:'g-market', url:'g-url', keywords:'g-keywords', headlines:'g-headlines', desc:'g-desc' },
+    meta:   { name:'m-name', obj:'m-obj',   budget:'m-budget', market:'m-market', place:'m-place', aud:'m-aud', primary:'m-primary', headline:'m-headline' },
+    tiktok: { name:'t-name', obj:'t-obj',   budget:'t-budget', market:'t-market', place:'t-place', aud:'t-aud', hook:'t-hook', caption:'t-caption', creator:'t-creator', hashtags:'t-hash' },
+  };
+  function setField(id, value) {
+    const el = document.getElementById(id);
+    if (!el || value === undefined || value === null) return;
+    const v = String(value);
+    if (el.tagName === 'SELECT') {
+      // Try exact match first, then case-insensitive contains
+      const opts = [...el.options];
+      const exact = opts.find((o) => o.value === v || o.textContent.trim() === v);
+      const fuzzy = exact || opts.find((o) => o.textContent.trim().toLowerCase().includes(v.toLowerCase()));
+      if (fuzzy) el.value = fuzzy.value;
+    } else {
+      el.value = v;
+    }
+  }
+  document.querySelectorAll('.ai-bar [data-ai-fill]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const bar = btn.closest('.ai-bar');
+      const surface = bar.dataset.surface;
+      const promptEl = bar.querySelector('[data-ai-prompt]');
+      const refEl = bar.querySelector('[data-ai-ref]');
+      const status = bar.querySelector('[data-ai-status]');
+      const prompt = (promptEl.value || '').trim();
+      const reference_url = (refEl?.value || '').trim();
+      if (!prompt) { status.textContent = 'Type what you want first.'; return; }
+      const fieldMap = AI_FIELD_MAP[surface];
+      if (!fieldMap) { status.textContent = 'Unknown surface: ' + surface; return; }
+      const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
+      status.textContent = '';
+      try {
+        const r = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || 'US' }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
+        // Some providers wrap the JSON in { text: '...' } or in ```json fences.
+        const safeJson = (t) => {
+          if (t && typeof t === 'object') return t;
+          const s = String(t || '');
+          try { return JSON.parse(s); } catch (_) {}
+          const stripped = s.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+          try { return JSON.parse(stripped); } catch (_) {}
+          const a = s.indexOf('{'), b = s.lastIndexOf('}');
+          if (a !== -1 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (_) {} }
+          return null;
+        };
+        const fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
+        // Cache the server-returned master prompt for the "Copy master prompt"
+        // button (surface google|meta|tiktok → channel key g|m|t).
+        const mp = (d && d.master_prompt) || (fields && fields.master_prompt) || '';
+        const chKey = { google: 'g', meta: 'm', tiktok: 't' }[surface];
+        if (mp && chKey) lastMasterPrompt[chKey] = mp;
+        // Capture the LLM-authored on-creative overlay (real offer + baked-in
+        // headline/sub) so the compositor renders it instead of raw form text.
+        const spec = (d && Array.isArray(d.creative_spec)) ? d.creative_spec : null;
+        const overlay = (spec && spec[0] && spec[0].overlay)
+          || { headline: fields.overlay_headline, sub: fields.overlay_sub, offer: fields.offer };
+        if (chKey && overlay && (overlay.headline || overlay.sub || overlay.offer)) {
+          adSpec[chKey] = { headline: overlay.headline || '', sub: overlay.sub || '', offer: overlay.offer || '' };
+        }
+        let filled = 0;
+        for (const key in fieldMap) {
+          if (fields[key] !== undefined) { setField(fieldMap[key], fields[key]); filled++; }
+        }
+        status.textContent = filled ? `Filled ${filled} fields — review and save.` : 'No matching fields returned. Try a more specific prompt.';
+        toast('Form pre-filled — tweak and save');
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = orig;
+      }
+    });
+  });
+  showTab(location.hash.slice(1) || (location.pathname.includes('landing') ? 'landing' : 'calendar'));
+})();
+</script>
+</body>
+</html>

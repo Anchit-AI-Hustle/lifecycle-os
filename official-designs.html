@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Official Website Designs — KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  /* Light app chrome (dark text on light bg). The 3D SCENE itself renders in
+     both variations via the dark/light toggle below. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 70px; }
+  .badge { display: inline-block; border: 1px solid rgba(171,135,67,.4); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: #7a5f28; font-weight: 700; margin-bottom: 10px; }
+  .eyebrow { color: #7a5f28; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
+  h1 { font-family: 'Lora', serif; font-size: 34px; line-height: 1.05; margin: 8px 0 10px; color: #111111; }
+  h1 em { font-style: italic; color: #7a5f28; }
+  p { color: #556059; line-height: 1.6; max-width: 760px; }
+  .stage { margin: 20px 0; border: 1px solid rgba(171,135,67,.22); border-radius: 16px; overflow: hidden; height: 66vh; min-height: 460px; position: relative; background: #f7f5f0; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
+  .grp { display: inline-flex; gap: 6px; align-items: center; padding: 4px; border: 1px solid rgba(171,135,67,.22); border-radius: 12px; }
+  .grp .lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #48524c; font-weight: 700; padding: 0 6px; }
+  .btn { border: 1px solid transparent; border-radius: 9px; background: transparent; color: #556059; padding: 8px 13px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; }
+  .btn:hover { color: #111111; }
+  .btn.active { background: #6A33D8; color: #F7F5F2; }
+  .btn.solid { background: #D0473E; color: #ffffff; text-decoration: none; }
+  .note { font-size: 12px; color: #556059; background: rgba(171,135,67,.05); border: 1px solid rgba(171,135,67,.16); border-radius: 12px; padding: 14px 16px; margin-top: 16px; line-height: 1.6; }
+  .note b { color: #111111; }
+  code { font-family: monospace; font-size: 12px; background: rgba(23,23,23,.06); color: #111111; padding: 1px 5px; border-radius: 5px; }
+</style>
+<script src="/auth.js?v=20260718light" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="badge">V2 · 3D Engine</div>
+  <div class="eyebrow">Official Website Designs</div>
+  <h1>The store, rebuilt as a <em>3D scene</em></h1>
+  <p>A true-to-brand replica of Knickgasm's digital signature rendered as a continuous WebGL scene: floating
+     product panels, glassmorphic surfaces, brand-cloned colours and typography. Live catalog and pricing come
+     from the regional Shopify storefront; historical metrics from the Snowflake to Supabase daily mirror. The
+     scene ships in <b>both variations</b> — dark background with light text, and light background with dark
+     text — and degrades automatically to a fast 2D brand layout on low-end, mobile, reduced-motion or crawler
+     traffic so conversion is never sacrificed.</p>
+
+  <div class="controls">
+    <div class="grp"><span class="lab">Region</span>
+      <button class="btn active" data-region="us">US</button>
+      <button class="btn" data-region="uk">UK</button>
+      <button class="btn" data-region="global">Global</button>
+    </div>
+    <div class="grp"><span class="lab">Variation</span>
+      <button class="btn active" data-variant="light">Light</button>
+      <button class="btn" data-variant="dark">Dark</button>
+    </div>
+    <button class="btn" id="toggleTier" style="border-color:rgba(171,135,67,.3)">Force 2D preview</button>
+    <a href="/landing-pages#threed" class="btn solid">Landing templates →</a>
+  </div>
+
+  <div class="stage"><div data-knickgasm3d data-region="us" data-variant="light" id="mount" style="width:100%;height:100%"></div></div>
+
+  <div class="note">
+    <b>Powered by Knickgasm3DConnectorEngine.</b> On the bundled React app it mounts as a context provider
+    (<code>marketing_automation/src/Knickgasm3DConnectorEngine.tsx</code>); here on the static site it loads through
+    the no-build ESM bridge (<code>/assets/knickgasm3d-bridge.js</code>). Meta-ads landers
+    (<code>knickgasm.com</code>, <code>knickgasm.com</code>) auto-collapse the scene into a single-product
+    spatial checkout.
+  </div>
+</div>
+
+<script type="module">
+  import { mountKnickgasm3D } from '/assets/knickgasm3d-bridge.js';
+  const mount = document.getElementById('mount');
+  let disposer = null, tier = null, region = 'us', variant = 'light';
+  async function remount() {
+    if (typeof disposer === 'function') { try { disposer(); } catch (_) {} }
+    mount.setAttribute('data-region', region);
+    mount.setAttribute('data-variant', variant);
+    disposer = await mountKnickgasm3D(mount, { region, variant, tier });
+  }
+  function wire(attr, set) {
+    document.querySelectorAll('[' + attr + ']').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('[' + attr + ']').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active'); set(b.getAttribute(attr)); remount();
+    }));
+  }
+  wire('data-region', (v) => region = v);
+  wire('data-variant', (v) => variant = v);
+  document.getElementById('toggleTier').addEventListener('click', (e) => {
+    tier = tier === '2d' ? null : '2d';
+    e.target.textContent = tier === '2d' ? 'Back to 3D' : 'Force 2D preview';
+    remount();
+  });
+  remount();
+</script>
+</body>
+</html>

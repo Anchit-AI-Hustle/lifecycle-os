@@ -1,0 +1,28 @@
+# RULE: the `snowflake-streamlit-app` branch is a PERMANENTLY SEPARATE
+# distribution of this repo (the Streamlit-in-Snowflake version). It must NEVER
+# be merged into main — the two diverge by design (different runtime, different
+# data access: get_active_session + Snowflake tables vs Vercel serverless +
+# Supabase). This required check fails any PR whose head is that branch, so a
+# merge cannot go green. Documented in CLAUDE.md ("SiS distribution branch").
+name: Protect main from SiS branch
+
+on:
+  pull_request:
+    branches: [main]
+
+# Least privilege (CodeQL): this job only inspects github.head_ref and echoes —
+# it needs no access to the GITHUB_TOKEN at all.
+permissions: {}
+
+jobs:
+  block-sis-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block snowflake-streamlit-app -> main
+        if: github.head_ref == 'snowflake-streamlit-app'
+        run: |
+          echo "::error::The snowflake-streamlit-app branch is the separate Streamlit-in-Snowflake distribution and must NEVER be merged into main. Close this PR."
+          exit 1
+      - name: OK (head is not the SiS branch)
+        if: github.head_ref != 'snowflake-streamlit-app'
+        run: echo "Head branch '${{ github.head_ref }}' is allowed."

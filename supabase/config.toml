@@ -1,0 +1,34 @@
+# Supabase project config — minimal, generated for the Knickgasm Mailer Studio.
+# After running `supabase link --project-ref <YOUR_PROJECT_REF>`, this file
+# is updated with your project metadata and the migrations are applied.
+
+project_id = "knickgasm-mailer-studio"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3001"
+additional_redirect_urls = ["http://localhost:3001/knickgasm_mailer_architect_v23.html"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = true

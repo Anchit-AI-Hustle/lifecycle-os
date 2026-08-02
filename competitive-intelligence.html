@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Competitive Intelligence · KNICKGASM Lifecycle OS</title>
+  <link rel="icon" href="/favicon.ico" />
+  <meta name="theme-color" content="#6A33D8">
+  <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script src="/auth.js?v=20260718light" defer></script>
+  <style>
+    /* Violet-green canvas, consistent with the locked shell theme (theme.css).
+       Was light-first (chalk bg, green accent-text); accents re-assigned to
+       lava/chalk so nothing renders green-on-green. */
+    :root{ --green:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
+      --canvas:var(--bg,#6A33D8); --panel:var(--surface,#075C39); --panel2:var(--chip,#f4f2ec);
+      --txt:var(--vh-ink,#F7F5F2); --dim:var(--ink-dim,#E4CF94); --line:rgba(171,135,67,0.28); }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--txt); background:var(--canvas); }
+    .wrap{ max-width:1180px; margin:0 auto; padding:24px 20px 80px; }
+    h1{ font-family:'Montserrat','Raleway',Georgia,serif; font-weight:700; color:var(--green); margin:.2em 0 .1em; font-size:30px; }
+    .sub{ color:var(--dim); margin:0 0 22px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    select,input{ padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--txt); font:inherit; }
+    .cat{ margin:26px 0 8px; font-weight:700; color:var(--lava); text-transform:uppercase; letter-spacing:.06em; font-size:13px; }
+    .tiles{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+    .tile{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; cursor:pointer; transition:.15s; }
+    .tile:hover{ border-color:var(--lava); transform:translateY(-1px); }
+    .tile.active{ border-color:var(--lava); box-shadow:0 0 0 2px rgba(171,135,67,.25); }
+    .tile .n{ font-size:26px; font-weight:700; color:var(--ink); }
+    .tile .l{ font-size:13px; color:var(--dim); margin-top:2px; }
+    .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:22px; min-height:120px; }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+    .card{ border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--panel2); }
+    .card h4{ margin:0 0 6px; font-size:14px; }
+    .card .meta{ font-size:12px; color:var(--dim); }
+    .pill{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(171,135,67,.14); color:var(--lava); margin:2px 4px 2px 0; }
+    .pill.lava{ background:rgba(171,135,67,.22); color:var(--green); }
+    .tl{ position:relative; padding-left:22px; }
+    .tl .ev{ position:relative; padding:8px 0 8px 14px; border-left:2px solid var(--line); }
+    .tl .ev::before{ content:''; position:absolute; left:-7px; top:14px; width:10px; height:10px; border-radius:50%; background:var(--lava); }
+    .tl .ev .d{ font-size:12px; color:var(--dim); }
+    .tabs{ display:flex; gap:6px; margin:10px 0 0; flex-wrap:wrap; }
+    .tab{ padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); cursor:pointer; font-size:14px; }
+    .tab.active{ background:var(--lava); color:var(--ink); border-color:var(--lava); }
+    .muted{ color:var(--dim); font-size:14px; }
+    a{ color:var(--lava); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Competitive Intelligence</h1>
+    <p class="sub">Continuously-updating repository of competitor ads, emails, landing pages &amp; offers. <span class="muted">Real-time competitor stream — kept separate from KNICKGASM own-data.</span></p>
+
+    <div class="row" style="margin-bottom:6px;">
+      <select id="brand"><option value="">All brands</option></select>
+      <select id="category"><option value="">All categories</option><option>sneaker</option><option>coffee</option><option>supplements</option><option>streetwear</option><option>dtc</option></select>
+      <select id="region"><option value="">All regions</option><option>US</option><option>UK</option><option>IN</option><option>EU</option><option>AU</option></select>
+      <select id="days"><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
+      <input id="search" placeholder="Search copy / subject…" style="flex:1;min-width:160px" />
+    </div>
+
+    <div class="tabs" id="modeTabs">
+      <div class="tab active" data-mode="ads">Ads</div>
+      <div class="tab" data-mode="emails">Emails</div>
+      <div class="tab" data-mode="landing">Landing Pages</div>
+      <div class="tab" data-mode="offers">Offers</div>
+      <div class="tab" data-mode="funnel">Funnel</div>
+    </div>
+
+    <div id="tileRow"></div>
+    <div class="panel" id="panel"><p class="muted">Loading…</p></div>
+  </div>
+
+<script>
+(function(){
+  const API = '/api/competitor';
+  const SOURCES = {
+    ads:     [['','All Sources'],['meta','Meta'],['google','Google'],['tiktok','TikTok']],
+    emails:  [['','All Sources'],['inbox','Inbox'],['mailcharts','MailCharts'],['milled','Milled'],['owletter','Owletter']],
+    landing: [['','All Sources'],['direct','Direct Capture'],['wayback','Wayback'],['pagetest','PageTest']]
+  };
+  const state = { mode:'ads', source:'', brand:'', category:'', region:'', days:'30', q:'' };
+  const $ = (id)=>document.getElementById(id);
+  const esc = (s)=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  async function jget(action, params={}){
+    const u = new URL(API, location.origin); u.searchParams.set('action', action);
+    Object.entries(params).forEach(([k,v])=>{ if(v) u.searchParams.set(k,v); });
+    const r = await fetch(u); return r.json();
+  }
+
+  async function loadBrands(){
+    // Use the Supabase brands table — its ids match ci_*.brand_id used by the
+    // ci-ads / ci-emails / ci-landing / ci-funnel reads. (?action=brands returns
+    // the legacy Google-Sheet rows whose ids do NOT match, so don't use it here.)
+    try{
+      const r = await fetch(API+'?action=ci-brands'); const j = await r.json();
+      const sel = $('brand'); const list = (j.brands||[]);
+      list.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=(b.name||('brand '+b.id))+(b.category?' · '+b.category:''); sel.appendChild(o); });
+    }catch(e){}
+  }
+
+  function renderTiles(counts){
+    if(state.mode==='offers' || state.mode==='funnel'){ $('tileRow').innerHTML=''; return; }
+    const srcs = SOURCES[state.mode]||[];
+    $('tileRow').innerHTML = '<div class="cat">'+esc(state.mode)+' · sources</div><div class="tiles">'+
+      srcs.map(([val,label])=>`<div class="tile ${state.source===val?'active':''}" data-src="${esc(val)}">
+        <div class="n">${esc(String(counts[val]??'·'))}</div><div class="l">${esc(label)}</div></div>`).join('')+'</div>';
+    document.querySelectorAll('#tileRow .tile').forEach(t=>t.onclick=()=>{ state.source=t.dataset.src; refresh(); });
+  }
+
+  function matchQ(txt){ return !state.q || (txt||'').toLowerCase().includes(state.q.toLowerCase()); }
+
+  function adCard(a){
+    const e = a.enrichment||{};
+    return `<div class="card"><h4>${esc(a.headline||a.primary_copy||a.ad_id||'(untitled)')}</h4>
+      <div class="meta">${esc(a.brand_name||'')} · ${esc(a.source)} · ${a.active?'<span class=pill>active</span>':'<span class=pill lava>retired</span>'}</div>
+      <p style="font-size:13px;margin:8px 0">${esc((a.primary_copy||'').slice(0,160))}</p>
+      ${e.funnel_stage?`<span class=pill>${esc(e.funnel_stage)}</span>`:''}
+      ${e.hook?`<span class=pill lava>${esc(e.hook).slice(0,40)}</span>`:''}
+      ${a.source_link?`<div><a href="${esc(a.source_link)}" target="_blank" rel="noopener">source ↗</a></div>`:''}</div>`;
+  }
+  function emailCard(m){
+    return `<div class="card"><h4>${esc(m.subject||'(no subject)')}</h4>
+      <div class="meta">${esc(m.brand_name||m.sender||'')} · ${esc(m.source)} · ${m.send_date?new Date(m.send_date).toLocaleDateString():''}</div>
+      <p style="font-size:13px;margin:8px 0">${esc((m.preheader||m.plain_text||'').slice(0,140))}</p>
+      ${(m.promotions||[]).slice(0,3).map(p=>`<span class=pill lava>${esc(typeof p==='string'?p:p.code||'')}</span>`).join('')}</div>`;
+  }
+  function lpCard(l){
+    const p=l.parsed||{};
+    return `<div class="card"><h4>${esc(p.headline||l.url)}</h4>
+      <div class="meta">${esc(l.brand_name||'')} · ${esc(l.source)} · ${l.captured_at?new Date(l.captured_at).toLocaleDateString():''}</div>
+      ${p.offer?`<span class=pill lava>${esc(typeof p.offer==='string'?p.offer:JSON.stringify(p.offer)).slice(0,50)}</span>`:''}
+      <div><a href="${esc(l.url)}" target="_blank" rel="noopener">view ↗</a></div></div>`;
+  }
+  function offerCard(o){
+    return `<div class="card"><h4>${esc(o.offer_type)}${o.offer_value?' · '+o.offer_value+(o.offer_unit==='percent'?'%':''):''}</h4>
+      <div class="meta">${esc(o.brand_name||'')} · ${esc(o.product_category||'')} · ${esc(o.region||'')}</div>
+      <p style="font-size:13px;margin:8px 0">${esc(o.raw_text||'')}</p>
+      ${o.promo_code?`<span class=pill lava>${esc(o.promo_code)}</span>`:''}
+      <span class=pill>${esc(o.asset_type)}</span></div>`;
+  }
+
+  async function refresh(){
+    renderTiles({});
+    const P = $('panel'); P.innerHTML='<p class="muted">Loading…</p>';
+    try{
+      if(state.mode==='offers'){
+        const j = await jget('ci-offers',{category:state.category,region:state.region,brand_id:state.brand,days:state.days});
+        const rows=(j.offers||[]).filter(o=>matchQ(o.raw_text+o.brand_name));
+        // group counts by type for a quick board
+        const by={}; rows.forEach(o=>by[o.offer_type]=(by[o.offer_type]||0)+1);
+        P.innerHTML = `<div class="row" style="margin-bottom:10px">${Object.entries(by).map(([t,n])=>`<span class=pill>${esc(t)}: ${n}</span>`).join('')||'<span class=muted>No offers in range</span>'}</div>`+
+          '<div class="grid">'+rows.map(offerCard).join('')+'</div>';
+        return;
+      }
+      if(state.mode==='funnel'){
+        if(!state.brand){ P.innerHTML='<p class="muted">Pick a brand to reconstruct its Ad → Landing → Email → Offer timeline.</p>'; return; }
+        const j = await jget('ci-funnel',{brand_id:state.brand});
+        const fs=(j.funnels||[]);
+        if(!fs.length){ P.innerHTML='<p class="muted">No funnel yet. Run reconstruction (action=ci-funnel-rebuild).</p>'; return; }
+        P.innerHTML = fs.map(f=>`<div style="margin-bottom:18px"><b>${esc(f.funnel_key)}</b> <span class=muted>${esc(f.product_category||'')} ${esc(f.region||'')}</span>
+          <div class="tl">${(f.events||[]).map(ev=>`<div class="ev"><div class="d">${ev.date?new Date(ev.date).toLocaleDateString():''} · ${esc(ev.stage)}${ev.offer_type?' · offer:'+esc(ev.offer_type):''}</div>${esc(ev.label||'')}</div>`).join('')}</div></div>`).join('');
+        return;
+      }
+      // ads / emails / landing
+      const action = {ads:'ci-ads',emails:'ci-emails',landing:'ci-landing'}[state.mode];
+      const j = await jget(action,{brand_id:state.brand,source:state.source,limit:300});
+      let rows = j.rows||[];
+      // tile counts by source (over the unfiltered-by-source set we just got, but
+      // tiles drive the source filter, so fetch counts independent of source)
+      const all = state.source ? (await jget(action,{brand_id:state.brand,limit:300})).rows||rows : rows;
+      const counts={'':all.length}; (SOURCES[state.mode]||[]).forEach(([v])=>{ if(v) counts[v]=all.filter(r=>r.source===v).length; });
+      renderTiles(counts);
+      rows = rows.filter(r=>matchQ((r.headline||'')+(r.primary_copy||'')+(r.subject||'')+(r.url||'')));
+      const card = state.mode==='ads'?adCard:state.mode==='emails'?emailCard:lpCard;
+      P.innerHTML = rows.length ? '<div class="grid">'+rows.map(card).join('')+'</div>'
+        : '<p class="muted">No '+esc(state.mode)+' captured yet for this filter. Collectors POST to /api/competitor?action=ci-collect-'+(state.mode==='ads'?'ad':state.mode==='emails'?'email':'landing')+'.</p>';
+    }catch(e){ P.innerHTML='<p class="muted">Error: '+esc(e.message)+'</p>'; }
+  }
+
+  // wiring
+  document.querySelectorAll('#modeTabs .tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('#modeTabs .tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active'); state.mode=t.dataset.mode; state.source=''; refresh();
+  });
+  ['brand','category','region','days'].forEach(id=>$(id).onchange=()=>{ state[id]=$(id).value; refresh(); });
+  $('search').oninput=()=>{ state.q=$('search').value; clearTimeout(window.__t); window.__t=setTimeout(refresh,250); };
+
+  loadBrands().then(refresh);
+})();
+</script>
+</body>
+</html>

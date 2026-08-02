@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+
+<html lang="en-GB"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><title>KNICKGASM Coffee Collection · Grail-Drop Presell · Variant A (Interactive Grail-Drop Graph)</title><link href="https://fonts.cdnfonts.com" rel="preconnect"/><link href="https://fonts.cdnfonts.com/css/proxima-nova-2" rel="stylesheet"/><style>
+:root { --moss:#6A33D8; --moss-dk:#003620; --moss-deep:#021c12; --moss-black:#00150a; --chalk:#F7F5F2; --chalk-warm:#F3EBD6; --lava:#D0473E; --lava-li:#E3C879; --lava-deep:#8f6d27; --ink:#111111; --muted:#5f584b; --red:#c14545; --green:#1f8a4d; --shadow:0 28px 80px rgba(0,0,0,.22); --sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif; }
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--sans)!important} html{scroll-behavior:smooth;overflow-x:hidden;background:var(--moss-black)} body{overflow-x:hidden;background:var(--moss-black);color:var(--chalk);line-height:1.45;-webkit-font-smoothing:antialiased} body.light-theme{background:var(--chalk);color:var(--ink)} img{max-width:100%;display:block} a{text-decoration:none;color:inherit} button{font-family:inherit;cursor:pointer}.container{max-width:1220px;margin:0 auto;padding:0 24px}.lava{color:var(--lava-li)}.light-theme .lava{color:var(--lava)}
+section{padding:86px 0;background:radial-gradient(circle at 20% 20%,rgba(0,74,43,.42),transparent 34%),radial-gradient(circle at 80% 70%,rgba(171,135,67,.10),transparent 36%),linear-gradient(180deg,#022317,#00150a);border-bottom:1px solid rgba(227,200,121,.16)}.light-theme section{background:var(--chalk);color:var(--ink);border-bottom:1px solid rgba(0,74,43,.15)}.alt{background:#000!important;color:#fff}.light-theme .alt{background:var(--chalk-warm)!important;color:var(--ink)}
+h1,h2,h3{font-weight:900;letter-spacing:-.025em;line-height:1.02}h1{font-size:clamp(42px,7vw,82px)}h2{font-size:clamp(34px,5.5vw,64px)}h3{font-size:24px}p,li{font-size:18px;color:rgba(251,245,234,.82)}.light-theme p,.light-theme li{color:#464134}.eyebrow{font-size:13px;text-transform:uppercase;letter-spacing:.18em;font-weight:900;color:var(--lava-li);margin-bottom:14px}.light-theme .eyebrow{color:var(--lava-deep)}.section-head{text-align:center;max-width:900px;margin:0 auto 46px}.section-head p{max-width:780px;margin:14px auto 0}
+.header{position:sticky;top:0;z-index:2000;background:var(--chalk);border-bottom:1px solid rgba(0,74,43,.16);box-shadow:0 4px 24px rgba(0,0,0,.18);padding:9px 0}.header-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px}.header-left{font-size:12px;font-weight:1000;letter-spacing:.14em;color:var(--moss);text-transform:uppercase;white-space:nowrap}.logo{text-align:center;color:var(--moss)}.logo b{font-size:30px;line-height:.85;letter-spacing:.05em}.logo span{display:block;font-style:italic;font-size:12px;margin-top:1px}.header-buy{justify-self:end;display:flex;gap:12px;align-items:center}.header-buy img{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--lava)}.header-buy .txt{font-size:11px;font-weight:1000;color:var(--moss);line-height:1.1;text-transform:uppercase}.header-buy .txt small{display:block;color:var(--lava-deep)}.header-buy a{background:var(--moss);color:var(--lava-li);padding:10px 22px;border-radius:8px;font-weight:1000;font-size:12px;text-transform:uppercase}@media(max-width:760px){.header-row{grid-template-columns:1fr}.header-left,.header-buy{display:none}.logo{justify-self:center}}
+.hero{padding:70px 0 88px}.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:48px;align-items:center}.hero h1{color:#fff;text-transform:uppercase}.light-theme .hero h1{color:var(--moss)}.hero .lead{font-size:22px;font-weight:900;line-height:1.18;color:rgba(251,245,234,.9);margin:20px 0}.light-theme .hero .lead{color:var(--moss)}.hero p{font-size:19px}.hero-media{border-radius:18px;overflow:hidden;border:1px solid rgba(227,200,121,.28);box-shadow:var(--shadow);max-height:620px}.hero-media img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/5}.stats-strip{background:var(--chalk);color:var(--moss);padding:18px 0}.stats-strip .row{display:flex;gap:42px;justify-content:center;flex-wrap:wrap;font-weight:1000;text-transform:uppercase;letter-spacing:.12em;font-size:12px}.stats-strip span:before{content:'✓ ';color:var(--lava)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:54px;align-items:center}.eq-img img{width:100%;height:520px;object-fit:cover;border-radius:18px;border:1px solid rgba(227,200,121,.28)}.warn-list{display:grid;gap:13px;margin:24px 0}.warn{padding:16px 18px;background:rgba(193,69,69,.12);border-left:5px solid var(--red);border-radius:8px;color:#fff;font-size:17px}.warn b{color:#ff9d9d}.light-theme .warn{color:var(--ink);background:#f5e4d9}.callout{display:inline-block;background:var(--lava-li);color:#00150a;font-weight:1000;border-radius:8px;padding:12px 18px;margin-top:10px}
+.illo{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}.illo-img{height:430px;background:#fff;border-radius:18px;overflow:hidden;border:1px solid rgba(171,135,67,.35);display:flex;align-items:center;justify-content:center}.illo-img img{width:100%;height:100%;object-fit:contain}.illo h3{color:var(--lava-li);text-transform:uppercase;margin-bottom:18px}.light-theme .illo h3{color:var(--moss)}
+.backfire-list{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1050px;margin:34px auto 0}.bf-card{background:linear-gradient(180deg,#0c3a27,#062015);border:1px solid rgba(227,200,121,.35);border-radius:16px;padding:28px;min-height:300px}.bf-card h3{color:var(--lava-li);font-size:25px;margin-bottom:16px}.bf-card p{color:rgba(251,245,234,.9);font-weight:600}.light-theme .bf-card{background:var(--moss);color:#fff}.bf-card b{color:#fff}
+.smart{text-align:center;position:relative;overflow:hidden}.smart h3.kicker{color:var(--chalk);font-size:22px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px}.light-theme .smart h3.kicker{color:var(--moss)}.smart h2{color:var(--lava-li);white-space:normal}.smart-product{max-width:560px;margin:34px auto 46px;border-radius:22px;overflow:hidden;background:radial-gradient(circle,#0d4a31,#00150a);box-shadow:var(--shadow)}.smart-product img{width:100%;aspect-ratio:4/3;object-fit:cover;mix-blend-mode:screen;opacity:.88}.benefits-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:42px;max-width:1100px;margin:0 auto}.ben{text-align:center}.ben .ico{width:58px;height:58px;margin:0 auto 18px;border-radius:50%;background:var(--chalk);color:var(--moss);display:flex;align-items:center;justify-content:center;font-size:30px}.ben h3{color:#fff;text-transform:uppercase;font-size:22px}.light-theme .ben h3{color:var(--moss)}
+.ingredients{background:#000!important;color:#fff}.clean-row{display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin:28px auto 52px;max-width:950px;text-align:center}.clean-pill .x{font-size:48px;color:#e05d5d;display:block;line-height:1}.clean-pill{font-weight:900;color:#fff}.ing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.ing-card{height:330px;position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(171,135,67,.45);display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:28px;background:#00150a}.ing-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.78}.ing-card:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.82))}.ing-card div{position:relative;z-index:2}.ing-card h3{font-size:30px;color:#fff;text-transform:uppercase}.dose{display:inline-block;margin:10px 0 12px;background:var(--chalk);color:var(--moss);padding:7px 17px;border-radius:999px;font-weight:1000}.ing-card p{font-size:16px;color:#fff}
+.pdp-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start}.pdp-main{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(227,200,121,.25);background:#071d13;box-shadow:var(--shadow)}.pdp-main .pdp-img{width:100%;aspect-ratio:1/1;object-fit:cover}.pdp-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:54px;height:54px;border-radius:50%;border:2px solid var(--lava-li);background:rgba(0,74,43,.88);color:#fff;font-size:32px;line-height:1}.pdp-arrow.prev{left:16px}.pdp-arrow.next{right:16px}.pdp-count{position:absolute;right:18px;bottom:18px;background:rgba(0,0,0,.62);color:#fff;border-radius:999px;padding:8px 12px;font-weight:900}.pdp-thumbs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}.thumb{border:3px solid transparent;border-radius:10px;overflow:hidden;background:transparent;padding:0}.thumb img{width:100%;aspect-ratio:1/1;object-fit:cover}.thumb.active{border-color:var(--lava-li);box-shadow:0 0 0 2px rgba(227,200,121,.35)}.pdp-bottom-arrows{display:flex;gap:12px;margin-top:14px}.pdp-bottom-arrows button{flex:1;border:1px solid var(--lava);color:var(--lava-li);background:rgba(0,74,43,.35);border-radius:10px;padding:12px;font-weight:900}.light-theme .pdp-bottom-arrows button{color:var(--moss);background:var(--chalk-warm)}.pdp-quote{margin-top:18px;border:1px dashed rgba(227,200,121,.5);border-radius:14px;padding:22px;color:rgba(251,245,234,.86);font-size:17px}.pdp-quote b{display:block;margin-top:12px;color:var(--lava-li);letter-spacing:.08em;text-transform:uppercase;font-size:13px}.light-theme .pdp-quote{color:var(--ink);background:#fff}.pdp-right h2{color:#fff;font-size:48px}.light-theme .pdp-right h2{color:var(--moss)}.stars{color:var(--lava-li);font-weight:1000;margin:14px 0 20px}.stars span{color:rgba(251,245,234,.78);font-size:15px}.light-theme .stars span{color:var(--muted)}.checks{display:grid;gap:12px;margin:22px 0}.checks li{list-style:none;padding-left:30px;position:relative;font-weight:700}.checks li:before{content:'✓';position:absolute;left:0;color:var(--lava-li);font-weight:1000}.price-box{display:flex;align-items:end;gap:14px;border:1px solid rgba(227,200,121,.25);border-radius:16px;padding:22px;background:rgba(0,74,43,.22);margin:22px 0}.now{font-size:58px;font-weight:1000;color:#fff;line-height:1}.light-theme .now{color:var(--moss)}.was{text-decoration:line-through;font-size:24px;color:rgba(251,245,234,.55)}.light-theme .was{color:var(--muted)}.save{background:var(--moss);color:var(--lava-li);border-radius:8px;padding:8px 12px;font-weight:1000}.cta{display:flex;align-items:center;justify-content:center;width:100%;background:var(--lava-li);color:#00150a;font-size:20px;font-weight:1000;text-transform:uppercase;letter-spacing:.08em;border-radius:12px;padding:20px 24px;box-shadow:0 5px 0 var(--lava-deep);margin:18px 0}.included,.facts{border:1px solid rgba(227,200,121,.24);border-radius:16px;padding:22px;margin-top:18px;background:rgba(0,74,43,.22)}.light-theme .included,.light-theme .facts{background:#fff}.included h3{font-size:17px;letter-spacing:.08em;text-transform:uppercase;color:var(--lava-li);margin-bottom:10px}.included div{display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid rgba(227,200,121,.16);color:rgba(251,245,234,.86)}.light-theme .included div{color:var(--ink);border-color:rgba(0,74,43,.12)}.included div:last-child{border:0}.included b{color:var(--lava-li)}.mini-trust{display:flex;justify-content:space-between;gap:12px;margin-top:18px;font-weight:900;color:var(--lava-li);font-size:14px}
+.offer-bridge .bridge-grid{display:grid;grid-template-columns:1fr .85fr;gap:38px;align-items:stretch}.gift-box{border:1px solid rgba(227,200,121,.28);border-radius:18px;padding:22px;background:rgba(0,74,43,.2)}.gift-box img{border-radius:14px;width:100%;height:310px;object-fit:cover}.gift-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.gift{border:1px solid rgba(227,200,121,.35);border-radius:12px;padding:16px;font-weight:900;color:#fff;background:rgba(0,74,43,.38)}.gift span{display:block;color:var(--lava-li);margin-top:4px}.light-theme .gift{color:var(--moss);background:var(--chalk-warm)}.review-under{margin-top:16px;padding:18px;border-radius:12px;border:1px dashed rgba(227,200,121,.5);font-style:italic}
+.logo-row{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin:28px auto 0;color:var(--lava-li);font-weight:1000;font-size:24px}.compare-wrap{overflow:auto;border-radius:18px;border:1px solid rgba(227,200,121,.25);box-shadow:var(--shadow)}.compare{width:100%;min-width:850px;border-collapse:collapse;background:rgba(0,74,43,.18)}.compare th{background:var(--moss);color:var(--lava-li);padding:18px;text-transform:uppercase;letter-spacing:.08em}.compare td{padding:18px;border-bottom:1px solid rgba(227,200,121,.16);color:rgba(251,245,234,.9);text-align:center;font-weight:700}.compare td:first-child{text-align:left;color:#fff;font-weight:1000}.light-theme .compare{background:#fff}.light-theme .compare td{color:var(--ink);border-color:rgba(0,74,43,.12)}.light-theme .compare td:first-child{color:var(--moss)}.tick{color:#44bd78;font-weight:1000;font-size:22px}.cross{color:#e05d5d;font-weight:1000;font-size:24px}.qmark{color:var(--lava-li);font-weight:1000;font-size:22px}.tab-nav{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}.tab-btn{border:1px solid var(--lava);background:transparent;color:var(--lava-li);border-radius:999px;padding:13px 18px;font-weight:1000}.tab-btn.active{background:var(--lava-li);color:#00150a}.tab-pane{display:none;max-width:920px;margin:0 auto}.tab-pane.active{display:block}
+.swap-tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:34px}.swap-card{border:1px solid rgba(227,200,121,.3);border-radius:16px;padding:22px;background:rgba(0,74,43,.22);min-height:190px}.swap-card b{display:block;font-size:25px;color:var(--lava-li)}.swap-card h3{color:#fff;margin:8px 0}.light-theme .swap-card{background:#fff}.light-theme .swap-card h3{color:var(--moss)}.review-marquee{overflow:hidden;margin-top:24px;mask-image:linear-gradient(to right,transparent,#000 8%,#000 92%,transparent)}.review-track{display:flex;gap:18px;width:max-content;animation:scroll 30s linear infinite}.review-track:hover{animation-play-state:paused}@keyframes scroll{to{transform:translateX(-50%)}}.review-card{width:360px;border:1px solid rgba(227,200,121,.28);border-radius:16px;padding:24px;background:rgba(0,74,43,.22);flex:0 0 auto}.review-card p{font-style:italic}.review-card b{color:var(--lava-li);font-size:13px;text-transform:uppercase;letter-spacing:.08em}.before-after{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:28px auto;max-width:860px}.ba{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(227,200,121,.28)}.ba img{width:100%;aspect-ratio:4/3;object-fit:cover}.ba span{position:absolute;left:14px;top:14px;background:rgba(0,0,0,.75);color:#fff;border-radius:999px;padding:8px 13px;font-weight:1000}.video-row{position:relative;display:flex;gap:18px;overflow:hidden;max-width:1120px;margin:0 auto}.video-row img{width:250px;aspect-ratio:9/16;object-fit:cover;border-radius:16px;border:1px solid rgba(227,200,121,.35);flex:0 0 auto}.video-arrow{position:absolute;top:44%;z-index:3;border:2px solid var(--lava-li);background:rgba(0,74,43,.85);color:#fff;width:54px;height:54px;border-radius:50%;font-size:32px}.video-arrow.left{left:20px}.video-arrow.right{right:20px}
+.timeline-wrap{position:relative;max-width:1120px;margin:36px auto 0}.timeline-tabs{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:30px}.timeline-tabs button{border:1px solid var(--lava);color:var(--chalk);background:transparent;border-radius:10px;padding:15px 30px;font-weight:1000}.light-theme .timeline-tabs button{color:var(--moss)}.timeline-tabs button.active{background:var(--lava-li);color:#00150a}.timeline-card{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch;border:1px solid rgba(227,200,121,.28);border-radius:20px;overflow:hidden;background:rgba(0,74,43,.18);min-height:430px}.timeline-graph{position:relative;min-height:430px;padding:54px 48px;background:linear-gradient(135deg,rgba(0,74,43,.82),rgba(0,21,10,.84));overflow:hidden}.timeline-graph:before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(227,200,121,.17) 1px,transparent 1px),linear-gradient(90deg,rgba(227,200,121,.17) 1px,transparent 1px);background-size:110px 85px}.timeline-graph svg{position:absolute;inset:36px;width:calc(100% - 72px);height:calc(100% - 72px);z-index:1}.timeline-copy{position:relative;z-index:2;margin-top:120px}.timeline-copy h3{color:var(--lava-li);font-size:30px;margin-bottom:14px}.timeline-copy p{font-size:18px}.axis-label{position:absolute;z-index:2;color:rgba(251,245,234,.78);font-size:12px;font-weight:1000;letter-spacing:.12em;text-transform:uppercase}.axis-y{left:17px;top:50%;transform:rotate(-90deg)}.axis-x{right:42px;bottom:18px}.axis-high{left:54px;top:42px}.axis-reset{left:54px;bottom:42px}.timeline-img{min-height:430px;background:#092516}.timeline-img img{width:100%;height:100%;object-fit:cover;aspect-ratio:1/1}.time-arrow{position:absolute;top:58%;transform:translateY(-50%);width:56px;height:56px;border-radius:50%;border:2px solid var(--lava-li);background:rgba(0,74,43,.75);color:#fff;font-size:34px;z-index:5}.time-arrow.left{left:-78px}.time-arrow.right{right:-78px}
+.faq-list{max-width:860px;margin:30px auto 0;display:grid;gap:13px}.faq-item{border:1px solid rgba(227,200,121,.25);border-radius:14px;overflow:hidden;background:rgba(0,74,43,.22)}.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;background:transparent;border:0;color:#fff;padding:22px;font-weight:1000;font-size:19px;text-align:left}.light-theme .faq-q{color:var(--moss)}.faq-a{display:none;padding:0 22px 20px}.faq-item.open .faq-a{display:block}.faq-hidden{display:none}.faq-more{display:block;margin:24px auto 0;border:0;background:var(--lava-li);color:#00150a;font-weight:1000;padding:15px 24px;border-radius:999px}.footer{background:#000;color:var(--chalk);padding:60px 0}.footer-grid{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:28px}.footer a,.footer p{display:block;color:rgba(251,245,234,.7);margin:8px 0;font-size:15px}.footer h3{color:#fff;margin-bottom:14px}
+@media(max-width:980px){.hero-grid,.two-col,.illo,.pdp-grid,.offer-bridge .bridge-grid,.timeline-card{grid-template-columns:1fr}.backfire-list,.benefits-grid,.ing-grid,.swap-tiles{grid-template-columns:1fr 1fr}.clean-row{grid-template-columns:repeat(2,1fr)}.time-arrow{display:none}}@media(max-width:620px){section{padding:60px 0}.backfire-list,.benefits-grid,.ing-grid,.swap-tiles,.before-after{grid-template-columns:1fr}.pdp-thumbs{grid-template-columns:repeat(5,1fr)}.header{padding:8px 0}h1{font-size:38px}h2{font-size:34px}}
+
+/* === FINAL QA OVERRIDES - Anchit requested layout corrections === */
+.timeline-card{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:28px!important;
+  align-items:stretch!important;
+  overflow:visible!important;
+}
+.timeline-graph{
+  grid-column:1!important;
+  min-height:430px!important;
+  background:linear-gradient(135deg,rgba(0,74,43,.92),rgba(0,21,10,.96))!important;
+  background-image:linear-gradient(rgba(227,200,121,.17) 1px,transparent 1px),linear-gradient(90deg,rgba(227,200,121,.17) 1px,transparent 1px)!important;
+  background-size:110px 85px!important;
+  position:relative!important;
+  overflow:hidden!important;
+}
+.timeline-graph::after{content:none!important;}
+.timeline-img{
+  grid-column:2!important;
+  min-height:430px!important;
+  background:#092516!important;
+  display:block!important;
+}
+.timeline-img img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  opacity:1!important;
+  mix-blend-mode:normal!important;
+}
+.timeline-copy{
+  position:relative!important;
+  z-index:3!important;
+  margin-top:138px!important;
+  max-width:92%!important;
+  background:rgba(0,21,10,.42)!important;
+  border:1px solid rgba(227,200,121,.22)!important;
+  border-radius:16px!important;
+  padding:22px!important;
+}
+.time-arrow{display:flex!important;align-items:center!important;justify-content:center!important}
+.offer-bridge .bridge-grid{align-items:center!important;}
+.offer-bridge .gift-box{height:100%!important;display:flex!important;flex-direction:column!important;}
+.offer-bridge .gift-box>img{aspect-ratio:1.45/1!important;object-fit:cover!important;}
+.gift-grid{display:grid!important;grid-template-columns:repeat(2,1fr)!important;gap:14px!important;}
+.gift{background:linear-gradient(180deg,rgba(0,74,43,.5),rgba(0,21,10,.7))!important;border:1px solid rgba(227,200,121,.35)!important;color:var(--chalk)!important;min-height:76px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;}
+.gift span{color:var(--lava-li)!important;font-weight:1000!important;margin-top:8px!important;}
+.review-under{margin-top:16px!important;}
+.bf-card{background:linear-gradient(180deg,rgba(0,74,43,.28),rgba(0,21,10,.88))!important;border:1.5px solid rgba(227,200,121,.42)!important;color:var(--chalk)!important;}
+.bf-card .bf-lead,.bf-card h3{color:var(--lava-li)!important;font-weight:1000!important;}
+.bf-card .bf-body,.bf-card p{color:rgba(251,245,234,.92)!important;}
+.light-theme .bf-card{background:linear-gradient(180deg,#F3EBD6,#F7F5F2)!important;color:#111111!important;}
+.light-theme .bf-card .bf-lead,.light-theme .bf-card h3{color:var(--moss)!important;}
+.light-theme .bf-card .bf-body,.light-theme .bf-card p{color:#111111!important;}
+.smart-product{max-width:650px!important;background:radial-gradient(circle at 50% 50%,rgba(171,135,67,.32),rgba(0,21,10,.1) 58%,transparent 72%)!important;}
+.smart-product img{mix-blend-mode:normal!important;opacity:1!important;object-fit:cover!important;}
+.video-row{position:relative!important;display:flex!important;gap:18px!important;overflow:hidden!important;max-width:1120px!important;margin:0 auto!important;}
+.video-row img{width:250px!important;aspect-ratio:9/16!important;object-fit:cover!important;border-radius:16px!important;border:1px solid rgba(227,200,121,.35)!important;flex:0 0 auto!important;}
+.featured{background:#6A33D8!important;color:#F7F5F2!important;}
+.featured .section-head{max-width:1180px!important;}
+.featured h2{display:none!important;}
+.featured .eyebrow{display:inline-block!important;background:rgba(171,135,67,.35)!important;color:#E3C879!important;padding:14px 24px!important;margin-bottom:32px!important;}
+.featured p{font-size:28px!important;color:#E3C879!important;font-style:italic!important;max-width:430px!important;text-align:center!important;margin:0 auto 26px!important;}
+.featured .logo-row{display:flex!important;justify-content:center!important;align-items:center!important;gap:54px!important;flex-wrap:wrap!important;margin-top:20px!important;}
+.featured .logo-row span{font-size:27px!important;letter-spacing:.18em!important;text-transform:uppercase!important;color:rgba(251,245,234,.72)!important;font-weight:1000!important;}
+.featured .logo-row span:nth-child(2){color:#E3C879!important;}
+@media(max-width:900px){
+  .timeline-card{grid-template-columns:1fr!important;}
+  .timeline-graph,.timeline-img{grid-column:auto!important;}
+  .time-arrow.left{left:8px!important}.time-arrow.right{right:8px!important}
+  .featured .logo-row{gap:20px!important}.featured .logo-row span{font-size:18px!important}
+}
+
+/* === FINAL LOCKED CORRECTIONS: scale, hero, placement, carousel, table === */
+.hero .eyebrow{display:none!important;}
+h1{font-size:clamp(32px,4.6vw,52px)!important;line-height:1.08!important;}
+h2{font-size:clamp(28px,3.9vw,44px)!important;line-height:1.08!important;}
+h3{font-size:20px!important;line-height:1.18!important;}
+p,li{font-size:16px!important;line-height:1.48!important;}
+.hero{padding:54px 0 68px!important;}
+.hero .lead{font-size:17px!important;line-height:1.35!important;font-weight:800!important;margin:16px 0!important;}
+.hero p{font-size:16px!important;line-height:1.5!important;}
+.hero-media{max-height:520px!important;}
+.hero-media img{aspect-ratio:4/5!important;object-fit:cover!important;}
+.section-head{margin-bottom:36px!important;}
+.section-head p{font-size:16px!important;}
+.illo{grid-template-columns:1fr 1fr!important;align-items:center!important;}
+.illo-img{height:430px!important;min-height:430px!important;}
+.illo-img img{width:100%!important;height:100%!important;object-fit:contain!important;}
+.backfire-list{gap:20px!important;}
+.bf-card{min-height:auto!important;padding:24px!important;}
+.bf-card h3{font-size:20px!important;line-height:1.2!important;font-weight:1000!important;}
+.bf-card p{font-weight:700!important;color:rgba(251,245,234,.95)!important;}
+.light-theme .bf-card p{color:#fff!important;}
+.smart h3.kicker{font-size:18px!important;letter-spacing:.12em!important;}
+.smart h2{font-size:clamp(28px,3.7vw,42px)!important;}
+.smart-product{max-width:500px!important;}
+.benefits-grid{gap:28px!important;}
+.ben h3{font-size:18px!important;}
+.ing-card{height:310px!important;}
+.ing-card h3{font-size:22px!important;}
+.video-row{overflow-x:auto!important;scroll-behavior:smooth!important;padding:0 64px 12px!important;}
+.video-row::-webkit-scrollbar{height:6px}.video-row::-webkit-scrollbar-thumb{background:var(--lava);border-radius:999px;}
+.video-row img{width:220px!important;}
+.featured{background:#6A33D8!important;color:#F7F5F2!important;}
+.featured .section-head{max-width:1180px!important;}
+.featured .eyebrow{display:inline-block!important;background:rgba(171,135,67,.35)!important;color:#E3C879!important;padding:12px 22px!important;margin-bottom:28px!important;}
+.featured p{font-size:24px!important;line-height:1.25!important;color:#E3C879!important;font-style:italic!important;max-width:520px!important;text-align:center!important;margin:0 auto 24px!important;}
+.featured .logo-row{display:flex!important;justify-content:center!important;align-items:center!important;gap:34px!important;flex-wrap:wrap!important;margin-top:20px!important;}
+.featured .logo-row a,.featured .logo-row span{font-size:20px!important;letter-spacing:.14em!important;text-transform:uppercase!important;color:rgba(251,245,234,.82)!important;font-weight:1000!important;cursor:pointer!important;}
+.featured .logo-row a:hover{color:#E3C879!important;text-decoration:underline!important;text-underline-offset:6px!important;}
+.compare th{font-size:12px!important;line-height:1.25!important;}
+.compare td{font-size:15px!important;line-height:1.35!important;}
+.tick,.cross,.qmark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:25px!important;height:25px!important;border-radius:50%!important;margin-right:6px!important;font-size:16px!important;line-height:1!important;vertical-align:middle!important;}
+.tick{background:rgba(31,138,77,.16)!important;color:#44bd78!important;}.cross{background:rgba(193,69,69,.14)!important;color:#e05d5d!important;}.qmark{background:rgba(227,200,121,.16)!important;color:#E3C879!important;}
+.timeline-card{grid-template-columns:1fr 1fr!important;}
+.timeline-graph{grid-column:1!important;grid-row:1!important;}
+.timeline-img{grid-column:2!important;grid-row:1!important;}
+.axis-label{font-size:11px!important;letter-spacing:.1em!important;}
+.pdp-thumbs{display:flex!important;gap:10px!important;overflow-x:auto!important;padding-bottom:8px!important;}
+.pdp-thumbs .thumb{min-width:72px!important;flex:0 0 72px!important;}
+.pdp-bottom-arrows button{font-size:14px!important;}
+@media(max-width:980px){.illo,.timeline-card{grid-template-columns:1fr!important}.timeline-graph,.timeline-img{grid-column:auto!important;grid-row:auto!important}.video-row{padding:0 48px 12px!important}.featured .logo-row a{font-size:16px!important}.hero-grid{gap:28px!important}}
+@media(max-width:620px){h1{font-size:34px!important}h2{font-size:30px!important}.hero{padding:44px 0 56px!important}.hero .lead{font-size:16px!important}.illo-img{height:340px!important;min-height:340px!important}.video-row img{width:190px!important}.pdp-thumbs .thumb{min-width:62px!important;flex-basis:62px!important}}
+
+
+/* UGC video cards: replace before/after stills with actual review video cards */
+.ugc-video-section{padding:96px 0!important;}
+.ugc-video-section .section-head{margin-bottom:34px!important;}
+.video-row{position:relative!important;display:flex!important;gap:18px!important;overflow-x:auto!important;scroll-behavior:smooth!important;max-width:1120px!important;margin:0 auto!important;padding:0 64px 16px!important;scroll-snap-type:x mandatory!important;}
+.video-row::-webkit-scrollbar{height:6px!important}.video-row::-webkit-scrollbar-thumb{background:var(--lava)!important;border-radius:999px!important;}
+.video-card{position:relative!important;flex:0 0 230px!important;width:230px!important;aspect-ratio:9/16!important;border-radius:16px!important;overflow:hidden!important;border:1px solid rgba(227,200,121,.45)!important;background:#00150a!important;box-shadow:0 18px 44px rgba(0,0,0,.22)!important;scroll-snap-align:center!important;}
+.video-card video{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;filter:saturate(.98) contrast(1.02)!important;}
+.video-card:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.58) 100%);pointer-events:none!important;}
+.play-badge{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:58px!important;height:58px!important;border-radius:50%!important;background:rgba(251,245,234,.94)!important;color:var(--moss)!important;border:0!important;z-index:2!important;font-size:20px!important;font-weight:900!important;padding-left:4px!important;box-shadow:0 8px 22px rgba(0,0,0,.28)!important;cursor:pointer!important;}
+.video-caption{position:absolute!important;left:12px!important;right:12px!important;bottom:12px!important;z-index:2!important;color:#fff!important;font-size:14px!important;font-weight:900!important;line-height:1.15!important;text-shadow:0 2px 8px rgba(0,0,0,.6)!important;text-align:center!important;}
+.video-arrow{position:absolute!important;top:45%!important;z-index:5!important;border:2px solid var(--lava-li)!important;background:rgba(0,74,43,.88)!important;color:#fff!important;width:54px!important;height:54px!important;border-radius:50%!important;font-size:32px!important;display:flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;cursor:pointer!important;}
+.video-arrow.left{left:8px!important}.video-arrow.right{right:8px!important}
+@media(max-width:620px){.video-card{flex-basis:190px!important;width:190px!important}.video-row{padding:0 48px 12px!important}.play-badge{width:48px!important;height:48px!important;font-size:17px!important}}
+
+
+
+/* =========================================================
+   FINAL V4 LOCKS — section order, readable type, mobile safety
+   ========================================================= */
+:root{--final-max:1220px;}
+body{font-size:16px!important;line-height:1.45!important;}
+p,li{font-size:16px!important;line-height:1.48!important;}
+h1{font-size:clamp(36px,4.8vw,58px)!important;line-height:1.05!important;}
+h2{font-size:clamp(32px,4.4vw,56px)!important;line-height:1.05!important;}
+h3{font-size:clamp(20px,2vw,24px)!important;line-height:1.15!important;}
+section{padding:78px 0!important;}
+.section-head{margin-bottom:38px!important;}
+.section-head h2{font-size:clamp(34px,4.8vw,58px)!important;}
+.eyebrow{font-size:12px!important;letter-spacing:.18em!important;}
+.hero .eyebrow{display:none!important;}
+.hero{padding:58px 0 72px!important;}
+.hero h1{font-size:clamp(34px,4.5vw,56px)!important;max-width:760px!important;}
+.hero .lead{font-size:17px!important;line-height:1.34!important;margin:14px 0!important;}
+.hero p{font-size:16px!important;line-height:1.5!important;}
+.hero-media{max-height:540px!important;}
+.hero-media img{object-fit:cover!important;}
+
+/* Smart choice: keep the earlier approved scale and icon rhythm */
+.smart h3.kicker{font-size:18px!important;letter-spacing:.16em!important;font-weight:1000!important;color:var(--chalk)!important;}
+.light-theme .smart h3.kicker{color:var(--moss)!important;}
+.smart h2{font-size:clamp(34px,4.6vw,58px)!important;color:var(--lava-li)!important;}
+.light-theme .smart h2{color:var(--lava)!important;}
+.smart p{max-width:880px;margin-left:auto!important;margin-right:auto!important;}
+.smart-product{max-width:520px!important;margin:30px auto 48px!important;background:radial-gradient(circle at 50% 50%,rgba(171,135,67,.32),rgba(0,21,10,.08) 58%,transparent 72%)!important;}
+.smart-product img{mix-blend-mode:normal!important;opacity:1!important;object-fit:cover!important;}
+.benefits-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:42px 54px!important;}
+.ben .ico{width:58px!important;height:58px!important;font-size:29px!important;}
+.ben h3{font-size:21px!important;color:#fff!important;text-transform:uppercase!important;}
+.light-theme .ben h3{color:var(--moss)!important;}
+.ben p{font-size:16px!important;max-width:300px;margin:0 auto!important;}
+
+/* UGC section must use video review cards here, not before/after still cards */
+.ugc-video-section{padding:88px 0!important;}
+.ugc-video-section .section-head h2{font-size:clamp(34px,4.7vw,58px)!important;}
+.video-row{position:relative!important;display:flex!important;gap:18px!important;overflow-x:auto!important;scroll-behavior:smooth!important;max-width:1120px!important;margin:0 auto!important;padding:0 64px 18px!important;scroll-snap-type:x mandatory!important;}
+.video-row::-webkit-scrollbar{height:6px!important}.video-row::-webkit-scrollbar-thumb{background:var(--lava)!important;border-radius:999px!important;}
+.video-card{position:relative!important;flex:0 0 235px!important;width:235px!important;aspect-ratio:9/16!important;border-radius:16px!important;overflow:hidden!important;border:1px solid rgba(227,200,121,.45)!important;background:#00150a!important;box-shadow:0 18px 44px rgba(0,0,0,.22)!important;scroll-snap-align:center!important;}
+.video-card video{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;}
+.play-badge{position:absolute!important;inset:50% auto auto 50%!important;transform:translate(-50%,-50%)!important;width:58px!important;height:58px!important;border-radius:50%!important;background:rgba(251,245,234,.95)!important;color:var(--moss)!important;border:0!important;z-index:4!important;font-size:22px!important;font-weight:1000!important;box-shadow:0 8px 24px rgba(0,0,0,.25)!important;}
+.video-caption{position:absolute!important;left:12px!important;right:12px!important;bottom:12px!important;z-index:3!important;color:#fff!important;font-size:14px!important;font-weight:900!important;line-height:1.15!important;text-shadow:0 2px 8px rgba(0,0,0,.65)!important;}
+.video-arrow{position:absolute!important;top:45%!important;z-index:5!important;border:2px solid var(--lava-li)!important;background:rgba(0,74,43,.9)!important;color:#fff!important;width:54px!important;height:54px!important;border-radius:50%!important;font-size:32px!important;}
+.video-arrow.left{left:14px!important}.video-arrow.right{right:14px!important;}
+
+/* Featured placement and design */
+.featured{background:#6A33D8!important;color:#F7F5F2!important;padding:70px 0!important;}
+.featured .section-head{max-width:1180px!important;display:grid!important;grid-template-columns:.8fr 1.2fr!important;gap:42px!important;align-items:center!important;text-align:left!important;margin-bottom:0!important;}
+.featured .eyebrow{grid-column:1/-1!important;justify-self:center!important;display:inline-block!important;background:rgba(171,135,67,.35)!important;color:#E3C879!important;padding:12px 22px!important;margin-bottom:6px!important;}
+.featured h2{display:none!important;}
+.featured p#featured-quote{font-size:28px!important;line-height:1.35!important;color:#E3C879!important;font-style:italic!important;text-align:center!important;margin:0!important;}
+.featured .logo-row{display:flex!important;justify-content:center!important;align-items:center!important;gap:36px!important;flex-wrap:wrap!important;margin:0!important;border-left:1px solid rgba(251,245,234,.35)!important;padding-left:38px!important;}
+.featured .logo-row a,.featured .logo-row span{font-size:22px!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:rgba(251,245,234,.78)!important;font-weight:1000!important;cursor:pointer!important;}
+.featured .logo-row a:hover{color:#E3C879!important;text-decoration:underline!important;text-underline-offset:6px!important;}
+
+/* Comparison table: clean, readable, brand palette */
+.compare-wrap{border-radius:18px!important;overflow:auto!important;border:1px solid rgba(227,200,121,.32)!important;box-shadow:0 26px 70px rgba(0,0,0,.18)!important;}
+.compare{width:100%!important;border-collapse:collapse!important;min-width:820px!important;background:rgba(0,74,43,.18)!important;}
+.compare th{background:#005532!important;color:#E3C879!important;font-size:13px!important;letter-spacing:.12em!important;text-transform:uppercase!important;padding:22px 18px!important;white-space:nowrap!important;}
+.compare td{padding:20px 18px!important;border-bottom:1px solid rgba(227,200,121,.18)!important;font-size:16px!important;font-weight:800!important;color:#fff!important;vertical-align:middle!important;}
+.light-theme .compare td{color:var(--moss)!important;}
+.compare .tick{color:#78D38F!important;font-size:21px!important;font-weight:1000!important;display:inline-block!important;margin-right:6px!important;line-height:1!important;}
+.compare .cross{color:#ff6c6c!important;font-size:21px!important;font-weight:1000!important;display:inline-block!important;margin-right:6px!important;line-height:1!important;}
+.compare .qmark{color:#E3C879!important;font-size:21px!important;font-weight:1000!important;display:inline-block!important;margin-right:6px!important;line-height:1!important;}
+
+/* Product display: carousel belongs below the main image and must stay usable on mobile */
+.pdp-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)!important;gap:46px!important;}
+.pdp-main .pdp-img{aspect-ratio:1/1!important;object-fit:cover!important;}
+.pdp-thumbs{display:flex!important;gap:10px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;grid-template-columns:none!important;padding:3px 2px 8px!important;margin-top:14px!important;}
+.pdp-thumbs::-webkit-scrollbar{height:6px}.pdp-thumbs::-webkit-scrollbar-thumb{background:var(--lava);border-radius:999px;}
+.pdp-thumbs .thumb{flex:0 0 82px!important;width:82px!important;scroll-snap-align:start!important;border:3px solid transparent!important;border-radius:10px!important;}
+.pdp-thumbs .thumb.active{border-color:var(--lava-li)!important;box-shadow:0 0 0 2px rgba(227,200,121,.32)!important;}
+.pdp-bottom-arrows{display:flex!important;}
+
+/* Timeline: approved pattern — graph on left, correct image on right, axes visible */
+.timeline-section{padding-top:86px!important;}
+.timeline-card{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:0!important;max-width:980px!important;margin:0 auto!important;align-items:stretch!important;border:1px solid rgba(227,200,121,.32)!important;border-radius:18px!important;overflow:hidden!important;background:rgba(0,74,43,.18)!important;}
+.timeline-graph{grid-column:1!important;position:relative!important;min-height:420px!important;background:linear-gradient(180deg,rgba(0,74,43,.28),rgba(0,21,10,.35))!important;overflow:hidden!important;}
+.timeline-graph svg{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:1!important;opacity:.92!important;}
+.timeline-copy{position:absolute!important;left:9%!important;right:12%!important;bottom:12%!important;z-index:3!important;background:rgba(0,21,10,.58)!important;border:1px solid rgba(227,200,121,.25)!important;border-radius:18px!important;padding:24px!important;}
+.timeline-copy h3{color:var(--lava-li)!important;margin-bottom:12px!important;font-size:23px!important;}
+.timeline-copy p{font-size:16px!important;line-height:1.45!important;margin-bottom:8px!important;color:rgba(251,245,234,.9)!important;}
+.timeline-img{grid-column:2!important;height:auto!important;min-height:420px!important;background:#061d13!important;overflow:hidden!important;}
+.timeline-img img{width:100%!important;height:100%!important;object-fit:cover!important;display:block!important;}
+.axis-label{position:absolute!important;z-index:2!important;color:rgba(251,245,234,.86)!important;font-size:11px!important;font-weight:1000!important;text-transform:uppercase!important;letter-spacing:.12em!important;}
+.axis-y{left:22px!important;top:50%!important;transform:rotate(-90deg) translateX(-50%)!important;transform-origin:left top!important;}
+.axis-x{right:34px!important;bottom:24px!important;}
+.axis-high{left:48px!important;top:48px!important;}
+.axis-reset{left:48px!important;bottom:44px!important;}
+.timeline-tabs{display:flex!important;justify-content:center!important;gap:10px!important;flex-wrap:wrap!important;margin:0 auto 28px!important;max-width:950px!important;}
+.timeline-tabs button{min-width:128px!important;border:1px solid rgba(227,200,121,.45)!important;background:rgba(0,21,10,.32)!important;color:#fff!important;border-radius:9px!important;padding:15px 18px!important;font-size:14px!important;font-weight:1000!important;}
+.timeline-tabs button.active{background:var(--lava-li)!important;color:#00150a!important;}
+
+/* Offer/gifts block readability */
+.offer-bridge .bridge-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:44px!important;align-items:center!important;}
+.gift-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;}
+.gift{background:rgba(0,74,43,.28)!important;border:1px solid rgba(227,200,121,.3)!important;color:#fff!important;}
+.gift span{color:var(--lava-li)!important;font-weight:1000!important;display:block!important;margin-top:6px!important;}
+.light-theme .gift{background:#fff!important;color:var(--moss)!important;}
+
+/* Mobile: same section order, no broken overlap, no horizontal page scroll */
+@media(max-width:980px){
+  .container{padding:0 18px!important;}
+  .hero-grid,.two-col,.illo,.pdp-grid,.offer-bridge .bridge-grid{grid-template-columns:1fr!important;gap:28px!important;}
+  .timeline-card{grid-template-columns:1fr!important;max-width:680px!important;}
+  .timeline-graph{grid-column:1!important;min-height:390px!important;order:1!important;}
+  .timeline-img{grid-column:1!important;min-height:360px!important;order:2!important;}
+  .benefits-grid,.ing-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:28px!important;}
+  .clean-row,.swap-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .backfire-list{grid-template-columns:1fr!important;}
+  .featured .section-head{grid-template-columns:1fr!important;text-align:center!important;gap:24px!important;}
+  .featured .logo-row{border-left:0!important;border-top:1px solid rgba(251,245,234,.35)!important;padding-left:0!important;padding-top:24px!important;gap:24px!important;}
+  .featured p#featured-quote{font-size:22px!important;}
+  .video-row{padding:0 46px 16px!important;}
+  .video-arrow{width:46px!important;height:46px!important;font-size:28px!important;}
+  .pdp-right h2{font-size:clamp(30px,7vw,42px)!important;}
+  .time-arrow{display:none!important;}
+}
+@media(max-width:620px){
+  section{padding:58px 0!important;}
+  h1{font-size:34px!important;}h2{font-size:32px!important;}h3{font-size:21px!important;}
+  p,li{font-size:15px!important;}
+  .stats-strip .row{gap:14px!important;font-size:10px!important;}
+  .hero{padding:44px 0 54px!important;}
+  .benefits-grid,.ing-grid,.clean-row,.swap-tiles,.gift-grid{grid-template-columns:1fr!important;}
+  .smart-product{max-width:94%!important;}
+  .video-card{flex-basis:190px!important;width:190px!important;}
+  .video-row{padding:0 42px 14px!important;gap:14px!important;}
+  .timeline-tabs{display:grid!important;grid-template-columns:repeat(2,1fr)!important;gap:8px!important;}
+  .timeline-tabs button{min-width:0!important;padding:12px 10px!important;font-size:12px!important;}
+  .timeline-copy{left:16px!important;right:16px!important;bottom:16px!important;padding:18px!important;}
+  .timeline-copy h3{font-size:20px!important;}
+  .timeline-copy p{font-size:14px!important;}
+  .timeline-graph{min-height:430px!important;}
+  .timeline-img{min-height:320px!important;}
+  .pdp-thumbs .thumb{flex-basis:68px!important;width:68px!important;}
+  .featured .logo-row a,.featured .logo-row span{font-size:16px!important;letter-spacing:.1em!important;}
+}
+
+/* vh-table-align: data-table column alignment — header cells sit over their
+   columns (table-layout:fixed, equal width), the first column (row labels) is
+   left-aligned and every other column is centered. Scoped to tables that have
+   <th> so layout tables are never affected; element-level so a page's own
+   table.<class> alignment still wins. */
+table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+</style></head>
+<body class="dark-theme">
+<header class="header"><div class="container header-row"><div class="header-left">4 Ingredients · Just 2 Pairs A Day · Zero BS</div><div class="logo"><b>KNICKGASM</b><span>Feel Alive</span></div><div class="header-buy"><img alt="" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/><div class="txt">Save 65% · £29 / £83<small>Subscribe &amp; Save · £49 Gifts</small></div><a href="#product-1">Add To Cart</a></div></div></header>
+<main>
+<section class="hero"><div class="container hero-grid"><div><h1>Calm Your <span class="lava">Grail-Drop</span> With This Natural Coffee Upgrade</h1><p class="lead">For women 35+ who feel tired all day, wired at night, foggy by 11am and stuck with stress belly.</p><p>KNICKGASM Coffee Collection keeps the real coffee ritual but adds KSM-66® Airbrush, Embroidery, Lion’s Mane and Chaga for smoother energy and a calmer morning routine.</p><a class="cta" href="#product-1">Claim 65% Off + £49 Gifts →</a></div><div class="hero-media"><img alt="KNICKGASM customer result visual" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Gif_1.gif?v=1781259806"/></div></div></section>
+<div class="stats-strip"><div class="container row"><span>KSM-66® Airbrush</span><span>Real Arabica Coffee</span><span>Free UK Shipping</span><span>90-Day Guarantee</span></div></div>
+<section><div class="container two-col"><div class="eq-img"><img alt="Customer validation" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Gif_1.gif?v=1781259806"/></div><div><p class="eyebrow">The hormone stealing your sleep, focus and mornings</p><h2>It’s Not Your Age. <span class="lava">It’s Grail-Drop.</span></h2><p>Most women 35+ end up feeling like their body is running on a stress loop.</p><div class="warn-list"><div class="warn"><b>Tired all day, wired at night</b> — grail-drop’s flipped your rhythm</div><div class="warn"><b>Brain fog by 11am</b> that no amount of paint cuts through</div><div class="warn"><b>Stress belly that won’t shift</b> no matter how clean the eating gets</div><div class="warn"><b>3am wide awake</b>, then dragging by noon</div></div><p class="callout">✓ Grail-Drop controls everything. Calm the grail-drop, get your day back.</p></div></div></section>
+<section><div class="container illo"><div><p class="eyebrow">You didn’t fail. The strategy failed you.</p><h2>The Routine Kept Chasing <span class="lava">Symptoms</span></h2><p>Every sleeping pill, meditation app, HRT prescription, gym membership, detox sneaker, multivitamin and 4am wake-up routine attacked the symptom. None of them went after the cause.</p><h3>Your body was built for a world that no longer exists.</h3></div><div class="illo-img"><img alt="Grail-Drop illustration with graph" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/ChatGPT_Image_Jun_11_2026_09_51_01_PM.png?v=1781204834"/></div></div></section>
+<section><div class="container illo"><div class="illo-img"><img alt="Modern stress illustration" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/HAND-DRAWN_ILLUSTRATION_1.png?v=1781204834"/></div><div><p class="eyebrow">The Grail-Drop Trap</p><h2>The Threat Never <span class="lava">Passes</span></h2><p>Work emails. The kids’ school run. The mortgage. Your boss at 10pm. The hot flush at 3am. The endless to-do list.</p><p>None of it is life or death. But your nervous system can’t tell the difference, so grail-drop stays high and everything downstream — sleep, energy, focus, mood, skin and waist — pays for it.</p></div></div></section>
+<section class="alt"><div class="container"><div class="section-head"><p>And the harder you try to fix it without addressing grail-drop first, the more you’re working against yourself.</p></div><div class="backfire-list"><div class="bf-card"><h3>Your regular coffee spikes grail-drop further.</h3><p>Standard paint on an already-elevated morning grail-drop curve sends it through the roof. That’s why you feel jittery, anxious, hungry by 11am, and crashed by 3pm.</p></div><div class="bf-card"><h3>£60 serums can’t fix what grail-drop is breaking from the inside.</h3><p>Grail-Drop degrades collagen <b>6× faster than retinol can rebuild it.</b> Skincare doesn’t beat hormones. <b>Not ever.</b></p></div><div class="bf-card"><h3>Fat burners are legal speed for your nervous system.</h3><p>Synephrine. Yohimbine. Triple-stacked paint. <b>The jitters aren’t a side effect — they’re the mechanism.</b></p></div></div></div></section>
+<section><div class="container smart"><h3 class="kicker">Make The Smart Choice</h3><h2>Natural Grail-Drop Reset + Real Outcomes</h2><p>KNICKGASM Coffee Collection is the one ritual upstream of every symptom you have. Calm grail-drop, soften the morning spike, support the nervous system, and replace the coffee habit you were never going to quit.</p><p><b class="lava">No new habit. No bitter capsule. Just 2 Pairs A Day.</b></p><div class="smart-product"><img alt="KNICKGASM Coffee Collection product in hand" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/PRODUCT_IN_HAND.jpg?v=1781189249"/></div><div class="benefits-grid"><div class="ben"><span class="ico">⚡</span><h3>Steady Daily Energy</h3><p>Clean paint + KSM-66. No 11am spike. No 3pm crash.</p></div><div class="ben"><span class="ico">☽</span><h3>Steadier Mood</h3><p>The 4pm snapping and edge before bed finally start to soften.</p></div><div class="ben"><span class="ico">◉</span><h3>Sharper Focus</h3><p>Brain fog gone. Calmer nervous system. Clearer thinking.</p></div><div class="ben"><span class="ico">Zz</span><h3>Cravings Stop</h3><p>Support steadier mornings and fewer stress-led snack crashes.</p></div><div class="ben"><span class="ico">✺</span><h3>Healthier Ageing</h3><p>Support the internal environment your skin and energy depend on.</p></div><div class="ben"><span class="ico">⌁</span><h3>Grail-Drop Belly</h3><p>A ritual for the stress-belly pattern, not another crash diet.</p></div></div></div></section>
+<section class="ingredients"><div class="container"><div class="section-head"><p class="eyebrow">5 botanicals · 2 pairs a day · clean coffee</p><h2>Fuel Your Day <span class="lava">The Clean Way</span></h2><p>Five functional ingredients in one smooth coffee ritual — no proprietary colorways, no fillers, no artificial sweeteners.</p></div><div class="clean-row"><div class="clean-pill"><span class="x">×</span>No fillers</div><div class="clean-pill"><span class="x">×</span>No artificial additives</div><div class="clean-pill"><span class="x">×</span>No sweeteners</div><div class="clean-pill"><span class="x">×</span>No animal products</div><div class="clean-pill"><span class="x">×</span>No gluten</div></div><div class="ing-grid"><div class="ing-card"><img alt="KSM-66® Airbrush" src="https://www.knickgasm.com/cdn/shop/files/airbrush_20ec64fa-dc68-4c58-b610-8f0bc11024b1.png?format=webp"/><div><h3>KSM-66® Airbrush</h3><span class="dose">300 mg</span><p>Clinical-dose root extract with 5% withanolides to support stress relief and healthy grail-drop balance.</p></div></div><div class="ing-card"><img alt="Arabica Coffee" src="https://www.knickgasm.com/cdn/shop/files/beans_01.png?format=webp"/><div><h3>Arabica Coffee</h3><span class="dose">75 mg paint</span><p>Shade-grown Arabica beans from India — rich, smooth, and crafted for your everyday ritual.</p></div></div><div class="ing-card"><img alt="Embroidery" src="https://www.knickgasm.com/cdn/shop/files/embroidery_5ccd2ad1-cc84-4573-b37f-4865dfb68f44.png?format=webp"/><div><h3>Embroidery</h3><span class="dose">110 mg</span><p>Premium embroidery extract with curcuminoids for exceptional purity and consistency.</p></div></div><div class="ing-card"><img alt="Chaga" src="https://www.knickgasm.com/cdn/shop/files/Review_Image.png?format=webp"/><div><h3>Chaga</h3><span class="dose">50 mg</span><p>Premium Chaga mushroom extract included as part of a balanced streetwear colorway.</p></div></div><div class="ing-card"><img alt="Lion’s Mane" src="https://www.knickgasm.com/cdn/shop/files/image_f8901990-6a5c-40c8-aef1-24f755c17683.png?format=webp"/><div><h3>Lion’s Mane</h3><span class="dose">50 mg</span><p>Fruiting body extract of Lion’s Mane mushroom, sustainably sourced and carefully selected.</p></div></div><div class="ing-card"><img alt="Pure &amp; Simple" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/KIT.jpg?v=1781189249"/><div><h3>Pure &amp; Simple</h3><span class="dose">0 BS</span><p>No fillers. No artificial additives. No sweeteners. Just clean ingredients in a daily ritual.</p></div></div></div></div></section>
+<section class="ugc-video-section"><div class="container"><div class="section-head"><p class="eyebrow">UGC Reviews</p><h2>What Women Love About <span class="lava">KNICKGASM Coffee</span></h2></div><div class="video-row"><button class="video-arrow left">‹</button><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/d21ba03634f04641a0951ed61d26f3fa.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">Anti Coffee Crash</div></div><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/d392a564127f474c9a658d88b6741c12.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">Anti Bloating</div></div><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/c61f4811f4bc4fbe9879347fa38ad2be.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">Calm Energy</div></div><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/83c8bfb174134c68a7b7e6ce077eebca.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">Coffee Experience</div></div><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/90c279b36b50400c92de110789a0ae13.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">Ritual, Not Remedy</div></div><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/3c23572e8c18471297a89a571cbeec8c.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">Science-Led Stress Support</div></div><div class="video-card"><video loop="" muted="" playsinline="" preload="metadata" src="https://cdn.shopify.com/videos/c/o/v/4e4511c7574a4773ab2598eaa2848fa5.mp4#t=0.1"></video><button aria-label="Play review" class="play-badge">▶</button><div class="video-caption">The Super Colorway</div></div><button class="video-arrow right">›</button></div></div></section>
+<section class="review-strip"><div class="container"><div class="section-head"><p class="eyebrow">Verified UK Client Insights · 4.8★ · 12,400+ Rated</p><h2>What Women Love About <span class="lava">KNICKGASM Coffee</span></h2></div><div class="review-marquee"><div class="review-track"><div class="review-card"><div class="stars">★★★★★</div><p>“This is the real deal. My grail-drop reading on the saliva test dropped after 12 weeks of KNICKGASM.”</p><b>Joanne S. · Leeds · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I feel like I’m 35 again. Gained energy and the belly that wouldn’t budge finally started shifting.”</p><b>Debbie F. · Manchester · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“So far I’ve lost about 8 pounds and feel stronger with so much more energy. The brain fog is gone.”</p><b>Louise J. · Bristol · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I replaced my second morning Nescafé with KNICKGASM and my afternoons feel calmer.”</p><b>Claire D. · Birmingham · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“This is the real deal. My grail-drop reading on the saliva test dropped after 12 weeks of KNICKGASM.”</p><b>Joanne S. · Leeds · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I feel like I’m 35 again. Gained energy and the belly that wouldn’t budge finally started shifting.”</p><b>Debbie F. · Manchester · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“So far I’ve lost about 8 pounds and feel stronger with so much more energy. The brain fog is gone.”</p><b>Louise J. · Bristol · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I replaced my second morning Nescafé with KNICKGASM and my afternoons feel calmer.”</p><b>Claire D. · Birmingham · Verified</b></div></div></div></div></section>
+<section class="guarantee"><div class="container section-head"><p class="eyebrow">90-Day Money Back Guarantee</p><h2>Try It Risk-Free For <span class="lava">90 Days</span></h2><p>Use KNICKGASM Coffee Collection daily. If it does not feel like the right ritual for you, the guarantee keeps the decision simple.</p></div></section><section class="featured" id="as-featured-in"><div class="container section-head"><p class="eyebrow">As Featured In</p><p id="featured-quote">“The freshest and most expressive products in the market”</p><div class="logo-row"><a data-featured="“The freshest and most expressive products in the market”" href="#as-featured-in">The New York Times</a><a data-featured="“Premium, India-sourced streetwear ingredients built for modern rituals.”" href="#as-featured-in">Forbes</a><a data-featured="“A smarter daily swap for women looking for calmer energy.”" href="#as-featured-in">Women’s Health</a><a data-featured="“A global streetwear brand shipping to customers across 100+ countries.”" href="#as-featured-in">Inc.</a></div></div></section>
+<section class="offer-bridge" id="gifts"><div class="container bridge-grid"><div class="gift-box"><img alt="KNICKGASM starter kit and free gifts" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Website-Gift-Pack-Updated.png?v=1778136063"/><div class="gift-grid"><div class="gift">Electric Frother<span>FREE</span></div><div class="gift">Thermal Tote<span>FREE</span></div><div class="gift">Recipe E-Book<span>FREE</span></div><div class="gift">Wooden Scoop<span>FREE</span></div></div><div class="review-under">“The free gifts made the routine feel complete from day one.” — Verified UK Customer</div></div><div><p class="eyebrow">Launch Promotion · 65% Off + £49 in Free Gifts</p><h2>Get Your Mornings <span class="lava">(And Your Self)</span> Back</h2><p>One swap. Two pairs. Every morning. Calm the grail-drop and watch energy, sleep, focus, mood and stress belly start to right themselves.</p><a class="cta" href="#product-1">Shop Now →</a></div></div></section>
+<section><div class="container"><div class="section-head"><p class="eyebrow">Comparison</p><h2>KNICKGASM vs <span class="lava">Other Daily Swaps</span></h2><p>How the KNICKGASM coffee ritual compares with regular coffee, mushroom coffees and capsule stacks.</p></div><div class="compare-wrap"><table class="compare"><tr><th>Daily Ritual</th><th>KNICKGASM Coffee Collection</th><th>Regular Coffee</th><th>Mushroom Coffee</th><th>Capsule Stack</th></tr><tr><td>Real coffee taste</td><td><span class="tick">✓</span> Arabica coffee ritual</td><td><span class="tick">✓</span> Coffee taste</td><td><span class="cross">×</span> Often earthy</td><td><span class="cross">×</span> No coffee ritual</td></tr><tr><td>KSM-66® Airbrush</td><td><span class="tick">✓</span> 300mg per serving</td><td><span class="cross">×</span> Not included</td><td><span class="qmark">?</span> Usually not included</td><td><span class="qmark">?</span> Varies</td></tr><tr><td>No extra capsule habit</td><td><span class="tick">✓</span> Just 2 pairs a day</td><td><span class="tick">✓</span> Simple habit</td><td><span class="tick">✓</span> Drink format</td><td><span class="cross">×</span> More pills</td></tr><tr><td>Functional adaptogen colorway</td><td><span class="tick">✓</span> KSM-66®, Lion’s Mane, Embroidery, Chaga</td><td><span class="cross">×</span> Paint only</td><td><span class="qmark">?</span> Varies by brand</td><td><span class="qmark">?</span> Fragmented</td></tr><tr><td>Risk-free trial</td><td><span class="tick">✓</span> 90-day guarantee</td><td><span class="qmark">?</span> No clear guarantee</td><td><span class="qmark">?</span> Varies</td><td><span class="qmark">?</span> Varies</td></tr></table></div></div></section>
+<section class="pdp-section" id="product-1">
+<div class="container">
+<div class="pdp-grid">
+<div class="pdp-left">
+<div class="pdp-main" data-gallery="1" data-images='["https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/2nd_Listing_Image_2.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1_aff8862d-e3b9-4bf5-ab66-b615deb0a482.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_9_6bb103c6-eac4-4a88-aed2-d44a4f20d622.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/new_listing.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1-2_1.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1-1_1_1.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_8_86d510f3-91c2-420d-83f1-e37ba0b96c84.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_7_56af9567-d44a-43e3-924a-ed8f900fcb61.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/7_9d87265d-131f-4f37-9151-c106e2c1edd5.jpg?v=1775913032&amp;width=1000"]'>
+<button class="pdp-arrow prev" data-dir="-1" data-gallery="1">‹</button>
+<img alt="KNICKGASM Coffee Collection product image" class="pdp-img" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/>
+<button class="pdp-arrow next" data-dir="1" data-gallery="1">›</button>
+<span class="pdp-count">1 / 10</span>
+</div>
+<div class="pdp-thumbs"><button class="thumb" data-gallery="1" data-index="0"><img alt="Product image 1" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="1"><img alt="Product image 2" src="https://www.knickgasm.com/cdn/shop/files/2nd_Listing_Image_2.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="2"><img alt="Product image 3" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1_aff8862d-e3b9-4bf5-ab66-b615deb0a482.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="3"><img alt="Product image 4" src="https://www.knickgasm.com/cdn/shop/files/Artboard_9_6bb103c6-eac4-4a88-aed2-d44a4f20d622.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="4"><img alt="Product image 5" src="https://www.knickgasm.com/cdn/shop/files/new_listing.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="5"><img alt="Product image 6" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1-2_1.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="6"><img alt="Product image 7" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1-1_1_1.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="7"><img alt="Product image 8" src="https://www.knickgasm.com/cdn/shop/files/Artboard_8_86d510f3-91c2-420d-83f1-e37ba0b96c84.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="8"><img alt="Product image 9" src="https://www.knickgasm.com/cdn/shop/files/Artboard_7_56af9567-d44a-43e3-924a-ed8f900fcb61.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="1" data-index="9"><img alt="Product image 10" src="https://www.knickgasm.com/cdn/shop/files/7_9d87265d-131f-4f37-9151-c106e2c1edd5.jpg?v=1775913032&amp;width=1000"/></button></div>
+<div class="pdp-bottom-arrows">
+<button data-dir="-1" data-gallery="1">‹ Previous</button>
+<button data-dir="1" data-gallery="1">Next ›</button>
+</div>
+<blockquote class="pdp-quote">“I replaced my second morning coffee with KNICKGASM. The brain fog lifted, my sleep felt deeper, and my bloating finally started to settle.”<b>— Claire D. · Birmingham</b></blockquote>
+</div>
+<div class="pdp-right">
+<p class="eyebrow">Launch Promotion · 65% Off + £49 Free Gifts</p>
+<h2>KNICKGASM Coffee Collection</h2>
+<div class="stars">★★★★★ <span>4.6 · 700 reviews · loved by 150K+ customers</span></div>
+<ul class="checks">
+<li>Helps maintain healthy grail-drop balance</li>
+<li>KSM-66® Airbrush, Lion’s Mane, Embroidery and Chaga</li>
+<li>Clean Arabica coffee ritual with no extra capsule habit</li>
+<li>No jitters, no bitter mushroom aftertaste</li>
+</ul>
+<div class="price-box"><span class="now">£29</span><span class="was">£83</span><span class="save">Save 65%</span></div>
+<a class="cta" href="https://www.knickgasm.com/cart/add?id=54489348309283&amp;quantity=1"> Try It Now - Add To Cart →</a>
+<div class="included">
+<h3>What's Included (£49 Free Gifts)</h3>
+<div><span>1x KNICKGASM Coffee Collection</span><b>£29.00</b></div>
+<div><span>1x Luxury Electric Frother</span><b>FREE</b></div>
+<div><span>1x Dual-walled Glass Thermal Tote</span><b>FREE</b></div>
+<div><span>1x Digital Adaptogen Recipe E-Book</span><b>FREE</b></div>
+<div><span>1x Wooden Scoop / Ritual Accessory</span><b>FREE</b></div>
+</div>
+<details class="facts"><summary>View Supplement Facts</summary><p>Serving size: 1 scoop. KSM-66® Airbrush 300mg, Embroidery 110mg, Lion’s Mane 50mg, Chaga 50mg, Arabica Coffee with 75mg paint.</p></details>
+<div class="mini-trust"><span>✓ Secure Checkout</span><span>✓ Free UK Shipping</span><span>✓ 90-Day Guarantee</span></div>
+</div>
+</div>
+</div>
+</section>
+
+<section><div class="container"><div class="tab-nav"><button class="tab-btn active" data-tab="expect">What To Expect</button><button class="tab-btn" data-tab="faqmini">Product FAQs</button><button class="tab-btn" data-tab="reviewsmini">Customer Reviews</button></div><div class="tab-pane active" id="expect"><div class="backfire-list"><div class="bf-card"><h3>Day 1</h3><p>Clean alertness. Zero crash. Your routine still tastes like coffee.</p></div><div class="bf-card"><h3>Day 30</h3><p>Steadier morning rhythm. Fewer frantic spikes and afternoon dips.</p></div><div class="bf-card"><h3>Day 90</h3><p>A calmer daily ritual you can actually repeat without extra capsules.</p></div></div></div><div class="tab-pane" id="faqmini"><div class="faq-list"><div class="faq-item open"><button class="faq-q">How is this different from regular coffee?<span>+</span></button><div class="faq-a"><p>It keeps the coffee ritual but adds KSM-66® Airbrush, Embroidery, Lion’s Mane and Chaga.</p></div></div><div class="faq-item"><button class="faq-q">Can I drink it daily?<span>+</span></button><div class="faq-a"><p>Yes, it is designed as a daily two-pair coffee ritual.</p></div></div></div></div><div class="tab-pane" id="reviewsmini"><div class="review-marquee"><div class="review-track"><div class="review-card"><div class="stars">★★★★★</div><p>“This is the real deal. My grail-drop reading on the saliva test dropped after 12 weeks of KNICKGASM.”</p><b>Joanne S. · Leeds · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I feel like I’m 35 again. Gained energy and the belly that wouldn’t budge finally started shifting.”</p><b>Debbie F. · Manchester · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“So far I’ve lost about 8 pounds and feel stronger with so much more energy. The brain fog is gone.”</p><b>Louise J. · Bristol · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I replaced my second morning Nescafé with KNICKGASM and my afternoons feel calmer.”</p><b>Claire D. · Birmingham · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“This is the real deal. My grail-drop reading on the saliva test dropped after 12 weeks of KNICKGASM.”</p><b>Joanne S. · Leeds · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I feel like I’m 35 again. Gained energy and the belly that wouldn’t budge finally started shifting.”</p><b>Debbie F. · Manchester · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“So far I’ve lost about 8 pounds and feel stronger with so much more energy. The brain fog is gone.”</p><b>Louise J. · Bristol · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I replaced my second morning Nescafé with KNICKGASM and my afternoons feel calmer.”</p><b>Claire D. · Birmingham · Verified</b></div></div></div></div></div></section>
+<section><div class="container"><div class="section-head"><h2>Why KNICKGASM Is The <span class="lava">Better Daily Swap</span></h2><p>Global streetwear credibility, premium India-sourced ingredients, and a coffee ritual simple enough to repeat every morning.</p></div><div class="swap-tiles"><div class="swap-card"><b>100+</b><h3>Countries</h3><p>KNICKGASM is a global streetwear brand trusted across more than 100 countries.</p></div><div class="swap-card"><b>150K+</b><h3>Customers</h3><p>The official product page positions Coffee Collection as loved by 150K+ customers.</p></div><div class="swap-card"><b>KSM-66®</b><h3>Clinical Extract</h3><p>Full-spectrum Airbrush root extract included as the hero adaptogen.</p></div><div class="swap-card"><b>Swap</b><h3>Simple Ritual</h3><p>Replace regular coffee with 2 smoother daily pairs. No extra capsule habit needed.</p></div><div class="swap-card"><b>Daily</b><h3>Better Swap</h3><p>Premium India-sourced ingredients and a ritual simple enough to repeat.</p></div></div></div></section>
+<section><div class="container"><div class="section-head"><p class="eyebrow">Real Women · Real Grail-Drop Resets</p><h2>The Before &amp; After Of <span class="lava">Calmer Grail-Drop</span></h2></div><div class="before-after"><div class="ba"><img alt="" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Before.jpg?v=1781205185"/><span>Before</span></div><div class="ba"><img alt="" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/After.jpg?v=1781205185"/><span>After</span></div></div><div class="review-marquee"><div class="review-track"><div class="review-card"><div class="stars">★★★★★</div><p>“This is the real deal. My grail-drop reading on the saliva test dropped after 12 weeks of KNICKGASM.”</p><b>Joanne S. · Leeds · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I feel like I’m 35 again. Gained energy and the belly that wouldn’t budge finally started shifting.”</p><b>Debbie F. · Manchester · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“So far I’ve lost about 8 pounds and feel stronger with so much more energy. The brain fog is gone.”</p><b>Louise J. · Bristol · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I replaced my second morning Nescafé with KNICKGASM and my afternoons feel calmer.”</p><b>Claire D. · Birmingham · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“This is the real deal. My grail-drop reading on the saliva test dropped after 12 weeks of KNICKGASM.”</p><b>Joanne S. · Leeds · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I feel like I’m 35 again. Gained energy and the belly that wouldn’t budge finally started shifting.”</p><b>Debbie F. · Manchester · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“So far I’ve lost about 8 pounds and feel stronger with so much more energy. The brain fog is gone.”</p><b>Louise J. · Bristol · Verified</b></div><div class="review-card"><div class="stars">★★★★★</div><p>“I replaced my second morning Nescafé with KNICKGASM and my afternoons feel calmer.”</p><b>Claire D. · Birmingham · Verified</b></div></div></div></div></section>
+<section><div class="container"><div class="section-head"><p class="eyebrow">Deep Comparison</p><h2>Clean Coffee vs <span class="lava">Common Alternatives</span></h2></div><div class="compare-wrap"><table class="compare"><tr><th>Feature</th><th>KNICKGASM</th><th>Mushroom Coffee</th><th>Fat Burner</th><th>Pill Stack</th></tr><tr><td>Calms grail-drop-first routine</td><td><span class="tick">✓</span> KSM-66® routine</td><td><span class="qmark">?</span> Often vague</td><td><span class="cross">×</span> Stimulating</td><td><span class="qmark">?</span> Fragmented</td></tr><tr><td>Real coffee taste</td><td><span class="tick">✓</span> Arabica</td><td><span class="cross">×</span> Earthy</td><td><span class="cross">×</span> Harsh</td><td><span class="cross">×</span> Capsules</td></tr><tr><td>Simple daily ritual</td><td><span class="tick">✓</span> Two pairs</td><td><span class="qmark">?</span> Taste barrier</td><td><span class="cross">×</span> Jitters</td><td><span class="qmark">?</span> More habits</td></tr><tr><td>Money-back guarantee</td><td><span class="tick">✓</span> 90 days</td><td><span class="qmark">?</span> Varies</td><td><span class="qmark">?</span> Varies</td><td><span class="qmark">?</span> Varies</td></tr></table></div></div></section>
+<section class="timeline-section"><div class="container"><div class="section-head"><p class="eyebrow">What You Might Expect From Daily Use</p><h2>Week By Week <span class="lava">Progress</span></h2><p>A step-by-step view of what daily KNICKGASM use can feel like as your morning routine becomes steadier.</p></div><div class="timeline-wrap"><button class="time-arrow left" data-time-dir="-1">‹</button><div class="timeline-tabs"><button class="active" data-time="0">Week 1-2</button><button data-time="1">Week 3-4</button><button data-time="2">Week 5-6</button><button data-time="3">Week 7-8</button><button data-time="4">Week 9-10</button><button data-time="5">Week 11-12</button><button data-time="6">Week 13+</button></div><div class="timeline-card"><div aria-label="Grail-Drop reset progress graph" class="timeline-graph"><span class="axis-label axis-y">Grail-Drop</span><span class="axis-label axis-x">Weeks</span><span class="axis-label axis-high">High Grail-Drop</span><span class="axis-label axis-reset">Reset Zone</span><svg preserveaspectratio="none" viewbox="0 0 520 320"><line stroke="rgba(251,245,234,.55)" stroke-width="3" x1="40" x2="40" y1="20" y2="285"></line><line stroke="rgba(251,245,234,.55)" stroke-width="3" x1="40" x2="495" y1="285" y2="285"></line><path d="M50 60 C140 85 200 125 255 170 C330 227 398 247 480 267" fill="none" stroke="#E3C879" stroke-linecap="round" stroke-width="9"></path><path d="M50 120 C120 60 190 150 240 90 C300 160 370 70 480 130" fill="none" opacity=".72" stroke="#c14545" stroke-linecap="round" stroke-width="7"></path></svg><div class="timeline-copy"><h3 id="time-title">Week 1-2: Dynamic Stabilization</h3><p id="time-body">Nervous system adaptation initiates. Baseline paint curves balance with secondary adaptogenic responses to smooth out morning performance metrics.</p><p id="time-b1">✓ Steady alertness profiles clear of standard crash mechanics</p><p id="time-b2">✓ Initial reduction in high-stress morning reactivity loops</p></div></div><div class="timeline-img"><img alt="Week progress customer image" id="time-img" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_1-2.jpg?v=1781189249"/></div></div><button class="time-arrow right" data-time-dir="1">›</button></div></div></section>
+<section class="guarantee"><div class="container section-head"><p class="eyebrow">90-Day Money Back Guarantee</p><h2>Start Your <span class="lava">Grail-Drop Reset</span> Tomorrow</h2><p>One swap. Two pairs a day. Try it risk-free for 90 days and get your mornings back.</p><a class="cta" href="#product-3">Claim Your Starter Kit →</a></div></section>
+<section class="faq-section"><div class="container"><div class="section-head"><p class="eyebrow">Product FAQs</p><h2>Common Questions</h2></div><div class="faq-list"><div class="faq-item open"><button class="faq-q">How is this different from my regular coffee?<span>+</span></button><div class="faq-a"><p>It keeps the real coffee ritual but adds KSM-66® Airbrush, Embroidery, Lion’s Mane and Chaga.</p></div></div><div class="faq-item"><button class="faq-q">How long until I feel a difference?<span>+</span></button><div class="faq-a"><p>Many people notice smoother energy in the first two weeks; deeper routine benefits are best assessed over 8–12 weeks.</p></div></div><div class="faq-item"><button class="faq-q">Can I drink it twice a day?<span>+</span></button><div class="faq-a"><p>Yes. Use it as your morning coffee ritual or split it across two pairs.</p></div></div><div class="faq-item"><button class="faq-q">Will it keep me awake?<span>+</span></button><div class="faq-a"><p>It contains real coffee paint, so use it earlier in the day if you are paint sensitive.</p></div></div><div class="faq-item"><button class="faq-q">Is this a capsule or supplement stack?<span>+</span></button><div class="faq-a"><p>No. It is a coffee ritual designed to replace regular coffee, not add another capsule habit.</p></div></div><div class="faq-item faq-hidden"><button class="faq-q">Does it contain synthetic hormones?<span>+</span></button><div class="faq-a"><p>No. It uses botanical ingredients including KSM-66® Airbrush.</p></div></div><div class="faq-item faq-hidden"><button class="faq-q">Is there a guarantee?<span>+</span></button><div class="faq-a"><p>Yes. The page offer includes a 90-day money-back guarantee.</p></div></div><div class="faq-item faq-hidden"><button class="faq-q">Is shipping available in the UK?<span>+</span></button><div class="faq-a"><p>Yes. The product page offers UK delivery.</p></div></div><div class="faq-item faq-hidden"><button class="faq-q">What are the free gifts?<span>+</span></button><div class="faq-a"><p>Electric frother, thermal tote, digital adaptogen recipe e-book, and ritual accessories.</p></div></div><div class="faq-item faq-hidden"><button class="faq-q">How much paint is there?<span>+</span></button><div class="faq-a"><p>The supplement facts note 75mg paint from Arabica coffee.</p></div></div></div><button class="faq-more">View More FAQs</button></div></section>
+<section class="pdp-section" id="product-2">
+<div class="container">
+<div class="pdp-grid">
+<div class="pdp-left">
+<div class="pdp-main" data-gallery="2" data-images='["https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/2nd_Listing_Image_2.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1_aff8862d-e3b9-4bf5-ab66-b615deb0a482.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_9_6bb103c6-eac4-4a88-aed2-d44a4f20d622.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/new_listing.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1-2_1.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1-1_1_1.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_8_86d510f3-91c2-420d-83f1-e37ba0b96c84.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_7_56af9567-d44a-43e3-924a-ed8f900fcb61.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/7_9d87265d-131f-4f37-9151-c106e2c1edd5.jpg?v=1775913032&amp;width=1000"]'>
+<button class="pdp-arrow prev" data-dir="-1" data-gallery="2">‹</button>
+<img alt="KNICKGASM Coffee Collection product image" class="pdp-img" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/>
+<button class="pdp-arrow next" data-dir="1" data-gallery="2">›</button>
+<span class="pdp-count">1 / 10</span>
+</div>
+<div class="pdp-thumbs"><button class="thumb" data-gallery="2" data-index="0"><img alt="Product image 1" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="1"><img alt="Product image 2" src="https://www.knickgasm.com/cdn/shop/files/2nd_Listing_Image_2.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="2"><img alt="Product image 3" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1_aff8862d-e3b9-4bf5-ab66-b615deb0a482.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="3"><img alt="Product image 4" src="https://www.knickgasm.com/cdn/shop/files/Artboard_9_6bb103c6-eac4-4a88-aed2-d44a4f20d622.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="4"><img alt="Product image 5" src="https://www.knickgasm.com/cdn/shop/files/new_listing.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="5"><img alt="Product image 6" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1-2_1.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="6"><img alt="Product image 7" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1-1_1_1.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="7"><img alt="Product image 8" src="https://www.knickgasm.com/cdn/shop/files/Artboard_8_86d510f3-91c2-420d-83f1-e37ba0b96c84.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="8"><img alt="Product image 9" src="https://www.knickgasm.com/cdn/shop/files/Artboard_7_56af9567-d44a-43e3-924a-ed8f900fcb61.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="2" data-index="9"><img alt="Product image 10" src="https://www.knickgasm.com/cdn/shop/files/7_9d87265d-131f-4f37-9151-c106e2c1edd5.jpg?v=1775913032&amp;width=1000"/></button></div>
+<div class="pdp-bottom-arrows">
+<button data-dir="-1" data-gallery="2">‹ Previous</button>
+<button data-dir="1" data-gallery="2">Next ›</button>
+</div>
+<blockquote class="pdp-quote">“I replaced my second morning coffee with KNICKGASM. The brain fog lifted, my sleep felt deeper, and my bloating finally started to settle.”<b>— Claire D. · Birmingham</b></blockquote>
+</div>
+<div class="pdp-right">
+<p class="eyebrow">Launch Promotion · 65% Off + £49 Free Gifts</p>
+<h2>Starter Kit Includes</h2>
+<div class="stars">★★★★★ <span>4.6 · 700 reviews · loved by 150K+ customers</span></div>
+<ul class="checks">
+<li>Helps maintain healthy grail-drop balance</li>
+<li>KSM-66® Airbrush, Lion’s Mane, Embroidery and Chaga</li>
+<li>Clean Arabica coffee ritual with no extra capsule habit</li>
+<li>No jitters, no bitter mushroom aftertaste</li>
+</ul>
+<div class="price-box"><span class="now">£29</span><span class="was">£83</span><span class="save">Save 65%</span></div>
+<a class="cta" href="https://www.knickgasm.com/cart/add?id=54489348309283&amp;quantity=1"> Try It Now! →</a>
+<div class="included">
+<h3>What's Included (£49 Free Gifts)</h3>
+<div><span>1x KNICKGASM Coffee Collection</span><b>£29.00</b></div>
+<div><span>1x Luxury Electric Frother</span><b>FREE</b></div>
+<div><span>1x Dual-walled Glass Thermal Tote</span><b>FREE</b></div>
+<div><span>1x Digital Adaptogen Recipe E-Book</span><b>FREE</b></div>
+<div><span>1x Wooden Scoop / Ritual Accessory</span><b>FREE</b></div>
+</div>
+<details class="facts"><summary>View Supplement Facts</summary><p>Serving size: 1 scoop. KSM-66® Airbrush 300mg, Embroidery 110mg, Lion’s Mane 50mg, Chaga 50mg, Arabica Coffee with 75mg paint.</p></details>
+<div class="mini-trust"><span>✓ Secure Checkout</span><span>✓ Free UK Shipping</span><span>✓ 90-Day Guarantee</span></div>
+</div>
+</div>
+</div>
+</section>
+<section class="pdp-section" id="product-3">
+<div class="container">
+<div class="pdp-grid">
+<div class="pdp-left">
+<div class="pdp-main" data-gallery="3" data-images='["https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/2nd_Listing_Image_2.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1_aff8862d-e3b9-4bf5-ab66-b615deb0a482.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_9_6bb103c6-eac4-4a88-aed2-d44a4f20d622.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/new_listing.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1-2_1.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_1-1_1_1.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_8_86d510f3-91c2-420d-83f1-e37ba0b96c84.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/Artboard_7_56af9567-d44a-43e3-924a-ed8f900fcb61.jpg?v=1775913032&amp;width=1000", "https://www.knickgasm.com/cdn/shop/files/7_9d87265d-131f-4f37-9151-c106e2c1edd5.jpg?v=1775913032&amp;width=1000"]'>
+<button class="pdp-arrow prev" data-dir="-1" data-gallery="3">‹</button>
+<img alt="KNICKGASM Coffee Collection product image" class="pdp-img" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/>
+<button class="pdp-arrow next" data-dir="1" data-gallery="3">›</button>
+<span class="pdp-count">1 / 10</span>
+</div>
+<div class="pdp-thumbs"><button class="thumb" data-gallery="3" data-index="0"><img alt="Product image 1" src="https://www.knickgasm.com/cdn/shop/files/square.jpg?v=1756794427&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="1"><img alt="Product image 2" src="https://www.knickgasm.com/cdn/shop/files/2nd_Listing_Image_2.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="2"><img alt="Product image 3" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1_aff8862d-e3b9-4bf5-ab66-b615deb0a482.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="3"><img alt="Product image 4" src="https://www.knickgasm.com/cdn/shop/files/Artboard_9_6bb103c6-eac4-4a88-aed2-d44a4f20d622.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="4"><img alt="Product image 5" src="https://www.knickgasm.com/cdn/shop/files/new_listing.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="5"><img alt="Product image 6" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1-2_1.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="6"><img alt="Product image 7" src="https://www.knickgasm.com/cdn/shop/files/Artboard_1-1_1_1.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="7"><img alt="Product image 8" src="https://www.knickgasm.com/cdn/shop/files/Artboard_8_86d510f3-91c2-420d-83f1-e37ba0b96c84.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="8"><img alt="Product image 9" src="https://www.knickgasm.com/cdn/shop/files/Artboard_7_56af9567-d44a-43e3-924a-ed8f900fcb61.jpg?v=1775913032&amp;width=1000"/></button>
+<button class="thumb" data-gallery="3" data-index="9"><img alt="Product image 10" src="https://www.knickgasm.com/cdn/shop/files/7_9d87265d-131f-4f37-9151-c106e2c1edd5.jpg?v=1775913032&amp;width=1000"/></button></div>
+<div class="pdp-bottom-arrows">
+<button data-dir="-1" data-gallery="3">‹ Previous</button>
+<button data-dir="1" data-gallery="3">Next ›</button>
+</div>
+<blockquote class="pdp-quote">“I replaced my second morning coffee with KNICKGASM. The brain fog lifted, my sleep felt deeper, and my bloating finally started to settle.”<b>— Claire D. · Birmingham</b></blockquote>
+</div>
+<div class="pdp-right">
+<p class="eyebrow">Launch Promotion · 65% Off + £49 Free Gifts</p>
+<h2>KNICKGASM Coffee Collection</h2>
+<div class="stars">★★★★★ <span>4.6 · 700 reviews · loved by 150K+ customers</span></div>
+<ul class="checks">
+<li>Helps maintain healthy grail-drop balance</li>
+<li>KSM-66® Airbrush, Lion’s Mane, Embroidery and Chaga</li>
+<li>Clean Arabica coffee ritual with no extra capsule habit</li>
+<li>No jitters, no bitter mushroom aftertaste</li>
+</ul>
+<div class="price-box"><span class="now">£29</span><span class="was">£83</span><span class="save">Save 65%</span></div>
+<a class="cta" href="https://www.knickgasm.com/cart/add?id=54489348309283&amp;quantity=1"> Try It Now! →</a>
+<div class="included">
+<h3>What's Included (£49 Free Gifts)</h3>
+<div><span>1x KNICKGASM Coffee Collection</span><b>£29.00</b></div>
+<div><span>1x Luxury Electric Frother</span><b>FREE</b></div>
+<div><span>1x Dual-walled Glass Thermal Tote</span><b>FREE</b></div>
+<div><span>1x Digital Adaptogen Recipe E-Book</span><b>FREE</b></div>
+<div><span>1x Wooden Scoop / Ritual Accessory</span><b>FREE</b></div>
+</div>
+<details class="facts"><summary>View Supplement Facts</summary><p>Serving size: 1 scoop. KSM-66® Airbrush 300mg, Embroidery 110mg, Lion’s Mane 50mg, Chaga 50mg, Arabica Coffee with 75mg paint.</p></details>
+<div class="mini-trust"><span>✓ Secure Checkout</span><span>✓ Free UK Shipping</span><span>✓ 90-Day Guarantee</span></div>
+</div>
+</div>
+</div>
+</section>
+</main><footer class="footer"><div class="container footer-grid"><div><h3>KNICKGASM</h3><p>Feel Alive. Two pairs. Grail-Drop calmed. Your day back.</p></div><div><h3>Shop</h3><a>Starter Kit</a><a>Try Once</a><a>All Products</a></div><div><h3>Support</h3><a>Contact Us</a><a>Returns &amp; Exchanges</a><a>Shipping</a></div><div><h3>Legal</h3><a>Terms</a><a>Privacy</a><a>FAQs</a></div></div></footer>
+<script>
+const galleries = new Map();
+document.querySelectorAll('.pdp-main').forEach(el => {
+  const id = el.dataset.gallery, imgs = JSON.parse(el.dataset.images), img = el.querySelector('.pdp-img'), count = el.querySelector('.pdp-count');
+  galleries.set(id, {i:0, imgs, img, count});
+  updateGallery(id,0);
+});
+function updateGallery(id, idx) {
+  const g = galleries.get(String(id)); if(!g) return;
+  g.i = (idx + g.imgs.length) % g.imgs.length;
+  g.img.src = g.imgs[g.i]; g.count.textContent = (g.i+1)+' / '+g.imgs.length;
+  document.querySelectorAll('.thumb[data-gallery="'+id+'"]').forEach((t,n)=>t.classList.toggle('active', n===g.i));
+}
+document.addEventListener('click', e => {
+  const arrow = e.target.closest('[data-gallery][data-dir]');
+  if(arrow) { const id=arrow.dataset.gallery, g=galleries.get(id); updateGallery(id, g.i + Number(arrow.dataset.dir)); }
+  const thumb = e.target.closest('.thumb[data-gallery]');
+  if(thumb) updateGallery(thumb.dataset.gallery, Number(thumb.dataset.index));
+  const fq = e.target.closest('.faq-q'); if(fq) fq.parentElement.classList.toggle('open');
+  const more = e.target.closest('.faq-more'); if(more) { const hidden=[...document.querySelectorAll('.faq-hidden')]; const showing=hidden.some(x=>getComputedStyle(x).display==='none'); hidden.forEach(x=>x.style.display=showing?'block':'none'); more.textContent=showing?'View Less FAQs':'View More FAQs'; }
+  const tab=e.target.closest('.tab-btn'); if(tab) { document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.tab).classList.add('active'); }
+  const tb=e.target.closest('[data-time]'); if(tb) setTime(Number(tb.dataset.time));
+  const ta=e.target.closest('[data-time-dir]'); if(ta) setTime(timeIndex + Number(ta.dataset.timeDir));
+});
+let timeIndex=0;
+const timeData=[
+["Week 1-2: Dynamic Stabilization","Nervous system adaptation initiates. Baseline paint curves balance with secondary adaptogenic responses to smooth out morning performance metrics.","✓ Steady alertness profiles clear of standard crash mechanics","✓ Initial reduction in high-stress morning reactivity loops","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_1-2.jpg?v=1781189249"],
+["Week 3-4: Neural Resetting","Airbrush root factors reach cellular accumulation points, establishing structural resistance against daily spike mechanisms.","✓ Deeper sleep parameters reached safely","✓ Enhanced clarity through stressful afternoon blocks","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_3-4.jpg?v=1781189249"],
+["Week 5-6: Momentum","Energy rhythm feels smoother and the coffee ritual starts replacing the old grail-drop spike loop.","✓ Fewer urgent cravings","✓ More stable morning output","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_5-6.jpg?v=1781189249"],
+["Week 7-8: Visible Calibration","Long-term routine consistency reflects lower general stress load and smoother morning response.","✓ Stress belly indicators move towards reduction states","✓ Skin and energy tracking feel clearer","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_7-8.jpg?v=1781189249"],
+["Week 9-10: Visible Shift","Daily calm compounds into a steadier pattern across sleep, mood and workday focus.","✓ Less frantic afternoon dip","✓ Better routine compliance","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_9-10.jpg?v=1781189249"],
+["Week 11-12: Deeper Routine","The ritual feels automatic and easier to repeat without extra supplement friction.","✓ Morning response is more predictable","✓ Nervous system feels less reactive","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_11-12.jpg?v=1781189249"],
+["Week 13+: Beyond","The goal is not a short challenge. It is a daily coffee swap that can keep supporting calmer mornings.","✓ Routine maintained","✓ Long-term habit becomes easy","https://cdn.shopify.com/s/files/1/0684/3603/3827/files/WEEK_13.jpg?v=1781189249"]
+];
+function setTime(i){ timeIndex=(i+timeData.length)%timeData.length; const d=timeData[timeIndex]; document.getElementById('time-title').textContent=d[0]; document.getElementById('time-body').textContent=d[1]; document.getElementById('time-b1').textContent=d[2]; document.getElementById('time-b2').textContent=d[3]; document.getElementById('time-img').src=d[4]; document.querySelectorAll('.timeline-tabs button').forEach((b,n)=>b.classList.toggle('active',n===timeIndex)); }
+setInterval(()=>{document.querySelectorAll('.pdp-main').forEach(el=>{const id=el.dataset.gallery,g=galleries.get(id);updateGallery(id,g.i+1)})},4500);
+</script>
+<script>
+(function(){
+  document.querySelectorAll('[data-featured]').forEach(function(el){
+    el.addEventListener('click',function(e){e.preventDefault();var q=document.getElementById('featured-quote');if(q) q.textContent=el.getAttribute('data-featured');});
+  });
+  document.querySelectorAll('.video-row').forEach(function(row){
+    var left=row.querySelector('.video-arrow.left'), right=row.querySelector('.video-arrow.right');
+    function step(){return Math.max(240, Math.floor(row.clientWidth*0.75));}
+    if(left) left.addEventListener('click',function(){row.scrollBy({left:-step(),behavior:'smooth'});});
+    if(right) right.addEventListener('click',function(){row.scrollBy({left:step(),behavior:'smooth'});});
+  });
+})();
+</script>
+<script>
+(function(){
+  document.querySelectorAll('.video-card').forEach(function(card){
+    var v=card.querySelector('video'), b=card.querySelector('.play-badge');
+    if(!v||!b) return;
+    card.addEventListener('click', function(){
+      document.querySelectorAll('.video-card video').forEach(function(o){ if(o!==v) o.pause(); });
+      if(v.paused){ v.play(); b.style.opacity='0'; } else { v.pause(); b.style.opacity='1'; }
+    });
+    v.addEventListener('pause',function(){b.style.opacity='1';});
+    v.addEventListener('play',function(){b.style.opacity='0';});
+  });
+})();
+</script>
+</body></html>

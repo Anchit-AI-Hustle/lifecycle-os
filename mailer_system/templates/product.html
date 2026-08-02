@@ -1,0 +1,46 @@
+<tr>
+  <td>
+    <table border="0" cellpadding="0" cellspacing="0" width="600" bgcolor="#ffffff" style="background-color:#ffffff; width:100%;" class="two-col-table">
+      <tr>
+        <!-- Product image cell — hidden on Outlook/mobile via img-cell class -->
+        <td width="280" valign="top" bgcolor="#f5f0e8" class="img-cell" style="background-color:#f5f0e8; width:280px; padding:0; vertical-align:top;">
+          <!--[if !mso]><!-->
+          <!-- DESIGNER: insert {{IMAGE_SUGGESTION}} — suggested shot type from API -->
+          <img src="{{PRODUCT_IMAGE_URL}}" width="280" height="320" border="0" alt="{{PRODUCT_NAME}}" style="display:block; width:280px; height:320px; object-fit:cover;" />
+          <!--<![endif]-->
+        </td>
+        <!-- Product text cell -->
+        <td valign="top" class="product-text-cell" style="padding:32px 32px 32px 32px; vertical-align:top; background-color:#ffffff;">
+          <!-- Eyebrow -->
+          <p style="margin:0 0 12px 0; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; font-size:10px; font-weight:400; color:#D0473E; letter-spacing:0.2em; text-transform:uppercase; mso-line-height-rule:exactly; line-height:16px;">
+            FEATURED
+          </p>
+          <!-- Product name -->
+          <h2 style="margin:0 0 14px 0; font-family:'Montserrat','Montserrat',Georgia,serif; font-size:30px; font-weight:400; color:#111111; line-height:1.25; mso-line-height-rule:exactly;">
+            {{PRODUCT_NAME}}
+          </h2>
+          <!-- Description -->
+          <p style="margin:0 0 14px 0; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; font-size:13px; font-weight:300; color:#111111; line-height:1.7; mso-line-height-rule:exactly;">
+            {{PRODUCT_DESC}}
+          </p>
+          <!-- Emotional hook -->
+          <p style="margin:0 0 20px 0; font-family:'Montserrat','Montserrat',Georgia,serif; font-size:16px; font-weight:400; font-style:italic; color:#D0473E; line-height:1.5; mso-line-height-rule:exactly;">
+            {{EMOTIONAL_HOOK}}
+          </p>
+          <!-- Price callout -->
+          <p style="margin:0 0 24px 0; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; font-size:15px; font-weight:500; color:#D0473E; mso-line-height-rule:exactly; line-height:22px;">
+            {{PRICE_CALLOUT}}
+          </p>
+          <!-- CTA button -->
+          <table border="0" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center" bgcolor="#6A33D8" style="background-color:#6A33D8; border-radius:2px; mso-padding-alt:13px 28px;">
+                <a href="{{PRODUCT_URL}}" target="_blank" style="display:inline-block; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; font-size:13px; font-weight:500; color:#F7F5F2; text-decoration:none; padding:13px 28px; border-radius:2px; letter-spacing:0.05em; mso-padding-alt:0; line-height:1;">{{PRODUCT_CTA}}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>

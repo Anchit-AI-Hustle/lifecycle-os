@@ -1,0 +1,122 @@
+[
+  {
+    "sku_key": "logo",
+    "asset_type": "logo",
+    "url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332",
+    "alt": "KNICKGASM logo (US)",
+    "width": 330,
+    "height": null,
+    "source_pdp": "https://knickgasm.com",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "spiderman_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/IMG-0260.jpg?v=1785677897",
+    "alt": "Spiderman x Nike Air Force 1",
+    "width": 2048,
+    "height": 2048,
+    "source_pdp": "https://knickgasm.com/products/spiderman-x-nike-air-force-7",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "manutd_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/DA0012AC-1E15-45CC-98CC-32BF98F16376.jpg?v=1785618811",
+    "alt": "Manchester United F.C. x Nike Air Force 1",
+    "width": 1024,
+    "height": 1024,
+    "source_pdp": "https://knickgasm.com/products/manchester-united-f-c-x-nike-air-force-2",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "gtr_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/Nike-Air-Force-1-x-M3-GTR-NFS-Most-Wanted-Knickgasm-2492.jpg?v=1734418838",
+    "alt": "M3 GTR NFS Most Wanted x Nike Air Force 1",
+    "width": 1440,
+    "height": 1440,
+    "source_pdp": "https://knickgasm.com/products/nike-air-force-1-x-m3-gtr-nfs-most-wanted",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "demon_slayer_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/FullSizeRender_d7a462af-d6a7-4d40-b847-4d94dd9ade69.jpg?v=1782761944",
+    "alt": "Tanjiro x Muzan x Demon Slayer x Nike Air Force 1",
+    "width": 1080,
+    "height": 1080,
+    "source_pdp": "https://knickgasm.com/products/tanjiro-x-muzan-x-demon-slayer-x-nike-air-force-1",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "dbz_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/Dragon_Ball_Z_x_Nike_Air_Force_1.jpg?v=1783287177",
+    "alt": "Dragon Ball Z x Nike Air Force 1",
+    "width": 2048,
+    "height": 2048,
+    "source_pdp": "https://knickgasm.com/products/dragon-ball-z-nike-air-force-1-custom-sneakers",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "jordan1_golf",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/E43A13FF-BAC3-4151-B200-F59899886C9E.jpg?v=1773669242",
+    "alt": "Golf x Nike Air Jordan 1 Lows",
+    "width": 4122,
+    "height": 4122,
+    "source_pdp": "https://knickgasm.com/products/nike-air-jordan-1-lows-x-golf",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "taylor_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/12F58C8A-1762-4115-A944-20851B72AA15.jpg?v=1779373666",
+    "alt": "Taylor Swift Eras Tour x Nike Air Force 1",
+    "width": 1078,
+    "height": 1079,
+    "source_pdp": "https://knickgasm.com/products/nike-air-force-1-x-taylor-swift-eras-tour",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "care_kit",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/39D1E11C-861B-47D1-83E2-81B8382E528D.jpg?v=1738650974",
+    "alt": "Ultimate Sneaker Care Kit",
+    "width": 2000,
+    "height": 2000,
+    "source_pdp": "https://knickgasm.com/products/sneaker-care-kit",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  },
+  {
+    "sku_key": "rope_laces_af1",
+    "asset_type": "product",
+    "url": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/D61DD11F-E0A6-497C-AD39-6780DBE3C9FC.webp?v=1735934691",
+    "alt": "Nike Air Force 1 x Rope Laces - Black",
+    "width": 1536,
+    "height": 1536,
+    "source_pdp": "https://knickgasm.com/products/nike-air-force-1-with-chunky-rope-laces-biege",
+    "origin_validated": true,
+    "status": "verified",
+    "region": "us"
+  }
+]

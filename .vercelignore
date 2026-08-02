@@ -1,0 +1,29 @@
+# Exclude from deployment (NOT from the repo).
+# health.js is retired as a serverless function — its route is served by
+# /api/public-config?pipeline=1 via a rewrite — freeing the 12th Hobby
+# function slot for /api/brain.
+api/ai/pipeline/health.js
+# duplicates of routes served by /api/calendar?action=smart-brain-* and /api/brain?action=tts
+api/smart-brain.js
+api/voice.js
+
+# Heavy local-only directories (never needed at runtime)
+node_modules
+# Native mobile projects (Capacitor) — built locally/CI, never on Vercel web deploy
+android
+ios
+mobile-shell
+capacitor.config.json
+competitor-intelligence-hub/node_modules
+marketing_automation/node_modules
+test-results
+tests
+ingest
+mailer_system
+marketing_automation
+knickgasm_dtc_data_engine
+queries
+workers
+reports
+.github
+mobile

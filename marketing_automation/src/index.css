@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  color: #111111;
+  background: #f7f5f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f7f5f2;
+  color: #111111;
+  line-height: 1.6;
+}
+
+/* Give unthemed content planes an opaque, readable surface. Explicit brand
+   backgrounds on feature cards continue to take precedence. */
+.card:not([class*="bg-"]) {
+  background-color: #ffffff;
+  color: #111111;
+  box-shadow: 0 4px 18px rgb(23 23 23 / 8%);
+}
+
+.badge:not([class*="bg-"]) {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 9999px;
+  background-color: #d0473e;
+  color: #111111;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+small {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+button,
+select,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, select, a):focus-visible {
+  outline: 3px solid #d0473e;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #d0473e;
+  color: #111111;
+}

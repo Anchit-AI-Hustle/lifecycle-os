@@ -1,0 +1,5857 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+
+<head>
+  <!-- v3: funnel-restructured from v1/v2 content -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>[V3] Beat the Grail-Drop Belly With This Natural Coffee Upgrade — Knickgasm</title>
+  <style>
+    @import url('https://fonts.cdnfonts.com/css/proxima-nova-2');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+    :root {
+      /* Knickgasm brand palette */
+      --moss: #6A33D8;
+      --moss-dk: #003620;
+      --moss-deep: #021c12;
+      --moss-near-black: #00150a;
+      --chalk: #f7f5f2;
+      --chalk-warm: #f3ebd6;
+      --chalk-faint: #ebdfc4;
+      --lava: #D0473E;
+      --lava-li: #e3c879;
+      --lava-deep: #9a7a2c;
+      --ink: #111111;
+      --ink-dim: #4a4a4a;
+      --grey: #8a8270;
+      /* Section bgs */
+      --bg: var(--chalk);
+      --bg-soft: var(--chalk-warm);
+      --bg-card: #ffffff;
+      --bg-elev: var(--chalk-warm);
+      --bg-dark: var(--moss-deep);
+      --bg-dark-soft: var(--moss-near-black);
+      /* On-chalk dimmed text */
+      --on-chalk-dim: #4a4a4a;
+      --on-chalk-faint: #7a7a7a;
+      /* On-moss dimmed text */
+      --on-moss-dim: rgba(251, 245, 234, .78);
+      --on-moss-faint: rgba(251, 245, 234, .45);
+      --green-tick: #1f8a4d;
+      --red-x: #c14545;
+      --grey-warn: #9c9c9c;
+      --mono: 'Instrument Sans', 'Inter', -apple-system, sans-serif;
+      --sans: 'Instrument Sans', 'Inter', -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+      overflow-x: clip
+    }
+
+    body {
+      overflow-x: clip
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 84px
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none
+    }
+
+    ul {
+      list-style: none
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px
+    }
+
+    /* HEADLINES = bold sans-serif (Mars Men style). Mono is reserved for eyebrows, labels, callouts. */
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: var(--sans);
+      font-weight: 900;
+      letter-spacing: -.025em;
+      text-transform: none;
+      color: var(--moss);
+      line-height: 1.02
+    }
+
+    h1 {
+      font-size: 74px
+    }
+
+    h2 {
+      font-size: 62px
+    }
+
+    h3 {
+      font-size: 28px
+    }
+
+    h4 {
+      font-size: 22px
+    }
+
+    .lava {
+      color: var(--lava)
+    }
+
+    /* ============ TOP BAR ============ */
+    .top-bar {
+      background: var(--moss);
+      color: var(--chalk);
+      text-align: center;
+      padding: 11px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase
+    }
+
+    .top-bar a {
+      color: var(--lava-li);
+      text-decoration: underline;
+      text-underline-offset: 3px
+    }
+
+    /* ============ NAV ============ */
+    header.nav {
+      background: var(--chalk);
+      border-bottom: 1px solid rgba(0, 74, 43, .25);
+      padding: 14px 0;
+      position: sticky;
+      top: 0;
+      z-index: 50
+    }
+
+    header.nav .logo {
+      color: var(--moss-dk)
+    }
+
+    header.nav .nav-eyebrow {
+      color: var(--moss-dk);
+      opacity: 1
+    }
+
+    .nav-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 18px
+    }
+
+    .nav-eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      color: var(--moss);
+      opacity: .7;
+      text-transform: uppercase;
+      grid-column: 1;
+      justify-self: start
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--moss);
+      letter-spacing: .18em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      grid-column: 2;
+      justify-self: center
+    }
+
+    /* ============ § 1. HERO (dark moss for drama) ============ */
+    .hero {
+      padding: 60px 0 80px;
+      background: radial-gradient(ellipse at center, #0a3a26 0%, var(--moss-deep) 75%);
+      position: relative
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 40px;
+      align-items: center
+    }
+
+    .hero-copy h1 {
+      font-family: var(--sans);
+      font-size: 74px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.03em;
+      color: var(--chalk);
+      margin-bottom: 24px
+    }
+
+    .hero-copy h1 .lava {
+      color: var(--lava-li);
+      display: block
+    }
+
+    .hero-lead {
+      font-size: 17px;
+      color: var(--on-moss-dim);
+      line-height: 1.6;
+      margin-bottom: 18px;
+      font-weight: 600
+    }
+
+    .hero-lead b {
+      color: var(--chalk);
+      font-weight: 800
+    }
+
+    .hero-body p {
+      font-size: 15.5px;
+      color: var(--on-moss-dim);
+      line-height: 1.7;
+      margin-bottom: 14px
+    }
+
+    .hero-body .pay {
+      color: var(--chalk);
+      font-weight: 700;
+      margin-top: 18px
+    }
+
+    .hero-buybox {
+      margin-top: 26px;
+      padding: 22px 24px;
+      background: rgba(251, 245, 234, .06);
+      border: 1px solid rgba(171, 135, 67, .35);
+      border-radius: 14px;
+      max-width: 440px
+    }
+
+    .hero-rating {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px
+    }
+
+    .hero-stars {
+      color: var(--lava-li);
+      font-size: 18px;
+      letter-spacing: 2px
+    }
+
+    .hero-rating-text {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--on-moss-dim)
+    }
+
+    .hero-rating-text b {
+      color: var(--chalk)
+    }
+
+    .hero-price {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px
+    }
+
+    .hero-price-now {
+      font-family: var(--sans);
+      font-size: 40px;
+      font-weight: 900;
+      color: var(--chalk);
+      line-height: 1
+    }
+
+    .hero-price-per {
+      font-size: 18px;
+      font-weight: 700
+    }
+
+    .hero-price-was {
+      font-size: 18px;
+      color: var(--on-moss-dim);
+      text-decoration: line-through
+    }
+
+    .hero-price-save {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--lava-li);
+      width: 100%
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--lava);
+      color: var(--moss-dk);
+      padding: 18px 46px;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 0 var(--lava-deep);
+      transition: transform .15s
+    }
+
+    .hero-cta:hover {
+      transform: translateY(-2px)
+    }
+
+    .hero-trust {
+      margin-top: 14px;
+      font-family: var(--sans);
+      font-size: 12.5px;
+      color: var(--on-moss-dim)
+    }
+
+    /* Body diagram visualization */
+    .bodydiag {
+      position: relative;
+      aspect-ratio: 5/6;
+      background: radial-gradient(ellipse at center, #143a28 0%, var(--moss-near-black) 75%);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(195, 154, 61, .3)
+    }
+
+    .bodydiag svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%
+    }
+
+    .bodydiag .body-label {
+      position: absolute;
+      bottom: 18px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      background: rgba(0, 0, 0, .6);
+      padding: 6px 12px;
+      border-radius: 4px;
+      color: var(--chalk)
+    }
+
+    .bodydiag .body-label.lhi {
+      left: 8%;
+      border: 1px solid rgba(212, 72, 72, .5);
+      color: #ff9d9d
+    }
+
+    .bodydiag .body-label.rlo {
+      right: 8%;
+      border: 1px solid rgba(63, 168, 107, .5);
+      color: #a8e0bd
+    }
+
+    .bodydiag .productpack {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90px;
+      height: 130px;
+      background: linear-gradient(180deg, #2a2014 0%, #1a1208 100%);
+      border: 2px solid var(--lava);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 800;
+      color: var(--lava-li);
+      letter-spacing: .08em;
+      text-align: center;
+      padding: 6px;
+      line-height: 1.2;
+      box-shadow: 0 0 40px rgba(195, 154, 61, .4)
+    }
+
+    .bodydiag .productpack .topl {
+      font-size: 14px;
+      letter-spacing: .16em;
+      margin-bottom: 4px
+    }
+
+    /* ============ § 2. SUB-HEADER STRIP ============ */
+    .sub-strip {
+      background: var(--chalk);
+      border-top: 1px solid rgba(0, 74, 43, .2);
+      border-bottom: 1px solid rgba(0, 74, 43, .2);
+      padding: 18px 0
+    }
+
+    .sub-strip-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 50px;
+      flex-wrap: wrap;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      color: var(--moss-dk);
+      text-transform: uppercase
+    }
+
+    .sub-strip-row span {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .sub-strip-row span::before {
+      content: "✓";
+      color: var(--moss-dk);
+      font-weight: 900
+    }
+
+    /* ============ § 3. TRUTH SECTION — CHALK with moss text ============ */
+    .truth-section {
+      padding: 80px 0;
+      background: var(--chalk)
+    }
+
+    .truth-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center
+    }
+
+    .truth-photo {
+      aspect-ratio: 3/4;
+      background: linear-gradient(135deg, #dcd1b3 0%, #c8bb9b 100%);
+      border: 2px solid var(--moss);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--moss);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+      padding: 20px;
+      letter-spacing: .1em;
+      position: relative;
+      overflow: hidden;
+      opacity: .7
+    }
+
+    .truth-photo::after {
+      content: "📸 CUSTOMER PORTRAIT — 47, calm, kitchen, Knickgasm tote";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 30px;
+      color: var(--moss);
+      opacity: .6
+    }
+
+    .truth-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: #c14545;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .truth-h2 {
+      font-family: var(--sans);
+      font-size: 62px;
+      font-weight: 900;
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      color: var(--moss);
+      margin-bottom: 24px
+    }
+
+    .truth-h2 .lava {
+      color: var(--lava)
+    }
+
+    .truth-intro {
+      font-size: 16px;
+      color: var(--on-chalk-dim);
+      margin-bottom: 22px;
+      font-weight: 600
+    }
+
+    .truth-warnlist {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      margin-bottom: 24px
+    }
+
+    .truth-warn {
+      border: 1px solid rgba(193, 69, 69, .35);
+      border-left: 3px solid var(--red-x);
+      background: rgba(193, 69, 69, .06);
+      padding: 13px 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--ink);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start
+    }
+
+    .truth-warn::before {
+      content: "⚠️";
+      font-size: 14px;
+      flex-shrink: 0
+    }
+
+    .truth-warn b {
+      color: #8a2828;
+      font-weight: 800
+    }
+
+    .truth-pull {
+      padding: 18px 0;
+      border-top: 1px solid rgba(0, 73, 43, .15);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--on-chalk-dim)
+    }
+
+    .truth-pull b {
+      color: var(--moss);
+      font-weight: 800
+    }
+
+    .truth-cap {
+      color: var(--moss);
+      font-weight: 800;
+      font-size: 14px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-top: 14px;
+      display: block;
+      background: var(--lava-li);
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: inline-block
+    }
+
+    /* ============ § 4. FAILED STRATEGY — chalk-warm break ============ */
+    .failed-section {
+      padding: 80px 0;
+      background: var(--chalk-warm);
+      color: var(--ink);
+      text-align: center
+    }
+
+    .failed-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--lava-deep);
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .failed-h2 {
+      font-family: var(--sans);
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -.02em;
+      color: var(--moss);
+      max-width: 780px;
+      margin: 0 auto 36px
+    }
+
+    .failed-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 40px;
+      align-items: center;
+      max-width: 1000px;
+      margin: 0 auto;
+      text-align: left
+    }
+
+    .failed-body p {
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--ink);
+      margin-bottom: 16px
+    }
+
+    .failed-body .lead-line {
+      font-weight: 800;
+      color: var(--moss);
+      font-size: 19px
+    }
+
+    .failed-body .cause {
+      font-family: var(--sans);
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--moss);
+      margin: 22px 0;
+      letter-spacing: -.01em
+    }
+
+    .failed-body .biggie {
+      font-family: var(--sans);
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--lava-deep);
+      line-height: 1.02;
+      text-transform: none;
+      letter-spacing: -.025em;
+      margin: 14px 0 0
+    }
+
+    .stress-illust {
+      aspect-ratio: 1/1;
+      background: var(--chalk);
+      border: 2px solid var(--moss);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--moss);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+      padding: 24px;
+      letter-spacing: .06em;
+      line-height: 1.4
+    }
+
+    /* ============ § 5. STRESS CYCLE — CHALK ============ */
+    .cycle-section {
+      padding: 80px 0;
+      background: var(--chalk)
+    }
+
+    .cycle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+      max-width: 1080px;
+      margin: 0 auto
+    }
+
+    .cycle-illust {
+      aspect-ratio: 1/1;
+      background: var(--chalk-warm);
+      border: 2px solid var(--moss);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--moss);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+      padding: 24px;
+      letter-spacing: .06em;
+      line-height: 1.5
+    }
+
+    .cycle-copy h3 {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: .16em;
+      color: var(--lava-deep);
+      margin-bottom: 14px;
+      text-transform: uppercase
+    }
+
+    .cycle-copy p {
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+      color: var(--on-chalk-dim)
+    }
+
+    .cycle-copy p b {
+      color: var(--moss);
+      font-weight: 800
+    }
+
+    /* ============ § 6. 3 BACKFIRE WAYS — Mars Men 3-col peach style ============ */
+    .backfire-section {
+      padding: 80px 0;
+      background: var(--chalk-warm)
+    }
+
+    .backfire-intro {
+      max-width: 780px;
+      margin: 0 auto 40px;
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--ink)
+    }
+
+    .backfire-intro b {
+      color: var(--moss);
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-color: var(--moss);
+      text-underline-offset: 3px
+    }
+
+    .backfire-list {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px
+    }
+
+    .bf-card {
+      background: #f5d9c2;
+      border-radius: 14px;
+      padding: 30px 26px
+    }
+
+    .bf-lead {
+      font-size: 17px;
+      line-height: 1.45;
+      color: var(--ink);
+      font-weight: 800;
+      margin-bottom: 14px
+    }
+
+    .bf-lead u {
+      text-decoration-color: var(--ink);
+      text-underline-offset: 3px;
+      text-decoration-thickness: 2px
+    }
+
+    .bf-body {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--ink)
+    }
+
+    /* ============ § 7. CRACK THE CODE — DARK MOSS with B/A photo pair ============ */
+    .crack-section {
+      padding: 90px 0;
+      background: radial-gradient(ellipse at center, #0a3a26 0%, var(--moss-deep) 75%);
+      position: relative;
+      overflow: hidden;
+      color: var(--chalk)
+    }
+
+    .crack-section::before {
+      content: "";
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(195, 154, 61, .12) 0%, transparent 70%);
+      pointer-events: none
+    }
+
+    .crack-section .container {
+      position: relative
+    }
+
+    .crack-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+      max-width: 1100px;
+      margin: 0 auto
+    }
+
+    .crack-photos {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0;
+      align-items: stretch
+    }
+
+    .crack-photo {
+      aspect-ratio: 3/4;
+      background: linear-gradient(180deg, #1d3d2c 0%, var(--moss-near-black) 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      color: var(--on-moss-faint);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -.005em;
+      padding: 14px;
+      text-align: center;
+      position: relative
+    }
+
+    .crack-photo.before {
+      filter: grayscale(.6) brightness(.85)
+    }
+
+    .crack-photo .lbl {
+      position: relative;
+      z-index: 2;
+      background: rgba(0, 0, 0, .6);
+      padding: 5px 10px;
+      border-radius: 3px;
+      width: 100%;
+      font-weight: 800
+    }
+
+    .crack-photo.before .lbl {
+      color: #ff9d9d
+    }
+
+    .crack-photo.after .lbl {
+      color: var(--lava-li)
+    }
+
+    .crack-photo::after {
+      content: "📸";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      opacity: .4
+    }
+
+    .crack-divider {
+      width: 2px;
+      background: linear-gradient(180deg, transparent 0%, var(--lava) 30%, var(--lava) 70%, transparent 100%);
+      margin: 30px 14px
+    }
+
+    .crack-copy p {
+      font-size: 18px;
+      line-height: 1.65;
+      color: var(--on-moss-dim);
+      margin-bottom: 20px
+    }
+
+    .crack-copy p b {
+      color: var(--chalk);
+      font-weight: 800
+    }
+
+    .crack-duo {
+      font-family: var(--sans);
+      font-size: 50px;
+      font-weight: 900;
+      letter-spacing: -.025em;
+      line-height: 1.02;
+      color: var(--chalk);
+      margin: 28px 0 16px
+    }
+
+    .crack-duo .lava {
+      color: var(--lava-li)
+    }
+
+    .crack-builtto {
+      font-family: var(--sans);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+      color: var(--lava-li);
+      line-height: 1.35
+    }
+
+    /* ============ § 8. ENEMY SECTION — Mars Men layout (dark moss, photo right) ============ */
+    .enemy-section {
+      padding: 90px 0;
+      background: var(--moss-deep);
+      color: var(--chalk)
+    }
+
+    .enemy-row {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 60px;
+      max-width: 1180px;
+      margin: 0 auto;
+      align-items: start
+    }
+
+    .enemy-left {}
+
+    .enemy-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: #ff6464;
+      margin-bottom: 18px;
+      text-transform: uppercase
+    }
+
+    .enemy-eyebrow::before {
+      content: "?";
+      color: #ff6464;
+      font-weight: 900;
+      margin-right: 6px
+    }
+
+    .enemy-h2 {
+      font-family: var(--sans);
+      font-size: 62px;
+      font-weight: 900;
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      color: var(--chalk);
+      margin-bottom: 44px
+    }
+
+    .enemy-h2 .lava {
+      color: var(--lava-li)
+    }
+
+    .enemy-group {
+      margin-bottom: 32px
+    }
+
+    .enemy-group:last-child {
+      margin-bottom: 0
+    }
+
+    .enemy-group h3 {
+      font-family: var(--sans);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--chalk);
+      margin-bottom: 16px;
+      letter-spacing: -.01em
+    }
+
+    .enemy-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .enemy-bullet {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      border: 1.5px solid #6a2828;
+      background: rgba(212, 72, 72, .04);
+      padding: 14px 18px;
+      border-radius: 6px;
+      font-size: 14.5px;
+      line-height: 1.5;
+      color: var(--chalk)
+    }
+
+    .enemy-bullet::before {
+      content: "✕";
+      color: #ff6464;
+      font-weight: 900;
+      font-size: 18px;
+      line-height: 1.3;
+      flex-shrink: 0
+    }
+
+    .enemy-bullet b {
+      font-weight: 800;
+      color: var(--chalk)
+    }
+
+    .enemy-right {}
+
+    .enemy-photo {
+      aspect-ratio: 4/5;
+      background: linear-gradient(135deg, var(--moss) 0%, var(--ink) 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(251, 245, 234, .4);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+      padding: 24px;
+      letter-spacing: .06em;
+      line-height: 1.4;
+      border: 1px solid rgba(251, 245, 234, .1);
+      margin-bottom: 24px
+    }
+
+    .enemy-payoff {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--chalk);
+      padding: 0
+    }
+
+    .enemy-payoff b {
+      color: var(--lava-li);
+      font-weight: 800
+    }
+
+    .enemy-payoff::before {
+      content: "👉 ";
+      font-size: 18px
+    }
+
+    /* ============ § 9. SMART CHOICE — Mars Men style (dark moss + lava radial + hero product) ============ */
+    .smart-section {
+      padding: 100px 0 110px;
+      background: var(--moss-deep);
+      text-align: center;
+      position: relative;
+      color: var(--chalk);
+      overflow: hidden
+    }
+
+    .smart-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-li);
+      margin-bottom: 18px;
+      text-transform: uppercase
+    }
+
+    .smart-h2 {
+      font-family: var(--sans);
+      font-size: 66px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.03em;
+      color: var(--chalk);
+      margin-bottom: 26px
+    }
+
+    .smart-h2 .lava {
+      color: var(--lava-li)
+    }
+
+    .smart-body {
+      max-width: 780px;
+      margin: 0 auto 50px;
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--on-moss-dim)
+    }
+
+    .smart-body b {
+      color: var(--chalk);
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-color: var(--lava);
+      text-underline-offset: 4px;
+      text-decoration-thickness: 2px
+    }
+
+    .smart-hero {
+      width: 340px;
+      height: 480px;
+      margin: 30px auto 60px;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, .2) 0%, transparent 70%);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--lava-li);
+      text-align: center;
+      padding: 24px
+    }
+
+    .smart-hero::before {
+      content: "";
+      position: absolute;
+      inset: -50px;
+      background: radial-gradient(ellipse at center, rgba(195, 154, 61, .45) 0%, rgba(195, 154, 61, .15) 35%, transparent 70%);
+      pointer-events: none;
+      z-index: 0
+    }
+
+    .smart-hero .ph {
+      position: relative;
+      z-index: 2;
+      background: rgba(0, 0, 0, .4);
+      padding: 16px 22px;
+      border-radius: 8px;
+      border: 1px dashed rgba(195, 154, 61, .4)
+    }
+
+    /* benefits grid — NO CARDS, just icons on dark bg like Mars Men */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px 36px;
+      max-width: 1080px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2
+    }
+
+    .ben-card {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      text-align: center
+    }
+
+    .ben-card .ico-wrap {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      line-height: 1;
+      filter: drop-shadow(0 0 18px rgba(195, 154, 61, .4))
+    }
+
+    .ben-card h3 {
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--chalk);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 10px
+    }
+
+    .ben-card p {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--on-moss-dim);
+      max-width: 260px;
+      margin: 0 auto
+    }
+
+    /* ============ § 10. INGREDIENTS — DARK MOSS ============ */
+    .ingred-section {
+      padding: 90px 0;
+      background: radial-gradient(ellipse at center, #0a3a26 0%, var(--moss-deep) 75%);
+      position: relative;
+      color: var(--chalk)
+    }
+
+    .ingred-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--lava-li);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .ingred-h2 {
+      font-family: var(--sans);
+      font-size: 62px;
+      font-weight: 900;
+      color: var(--chalk);
+      text-align: center;
+      line-height: 1.02;
+      max-width: 760px;
+      margin: 0 auto 30px;
+      letter-spacing: -.025em
+    }
+
+    .ingred-h2 .lava {
+      color: var(--lava-li)
+    }
+
+    /* Mars Men "No X" feature row — red X above, sans Title Case below, 4 across + 1 centered */
+    .clean-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px 24px;
+      max-width: 780px;
+      margin: 0 auto 56px;
+      justify-items: center;
+      align-items: start
+    }
+
+    .clean-row .clean-pill:nth-child(5) {
+      grid-column: 2/span 2
+    }
+
+    .clean-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--chalk);
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.25;
+      text-align: center;
+      max-width: 160px
+    }
+
+    /* ============ INGREDIENT CARDS — Mars Men photo-bg style (4 ingredients, 2x2) ============ */
+    .ingred-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      max-width: 860px;
+      margin: 0 auto 50px
+    }
+
+    .ing-card {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      text-align: center;
+      padding: 40px 28px;
+      border: 0;
+      background-color: #1a2820;
+      background-size: cover;
+      background-position: center
+    }
+
+    .ing-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, .25) 0%, rgba(0, 0, 0, .55) 100%);
+      z-index: 1;
+      pointer-events: none
+    }
+
+    .ing-card>* {
+      position: relative;
+      z-index: 2
+    }
+
+    .ing-card .iimg {
+      display: none
+    }
+
+    .ing-card .name {
+      font-family: var(--sans);
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: .01em;
+      line-height: 1.05;
+      margin-bottom: 18px
+    }
+
+    .ing-card .dose {
+      display: inline-block;
+      background: #fff;
+      color: var(--moss-dk);
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 800;
+      padding: 8px 22px;
+      border-radius: 100px;
+      margin-bottom: 20px
+    }
+
+    .ing-card .desc {
+      font-size: 18px;
+      line-height: 1.45;
+      color: #fff;
+      max-width: 300px;
+      font-weight: 500
+    }
+
+    /* Per-ingredient placeholder backgrounds — SWAP background-image with real photo URL */
+    .ing-card.bg-ksm {
+      background-image: linear-gradient(135deg, rgba(50, 80, 55, .85) 0%, rgba(20, 40, 28, .95) 100%)
+    }
+
+    .ing-card.bg-coffee {
+      background-image: linear-gradient(135deg, rgba(70, 45, 30, .85) 0%, rgba(30, 18, 10, .95) 100%)
+    }
+
+    .ing-card.bg-lionsmane {
+      background-image: linear-gradient(135deg, rgba(95, 75, 50, .85) 0%, rgba(45, 35, 25, .95) 100%)
+    }
+
+    .ing-card.bg-chaga {
+      background-image: linear-gradient(135deg, rgba(50, 40, 30, .85) 0%, rgba(20, 15, 10, .95) 100%)
+    }
+
+    .trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding-top: 30px;
+      border-top: 1px solid rgba(251, 245, 234, .15)
+    }
+
+    .trust-tile {
+      text-align: center;
+      width: 120px
+    }
+
+    .trust-tile .ti {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: rgba(251, 245, 234, .08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 24px;
+      color: var(--chalk)
+    }
+
+    .trust-tile .tt {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--chalk);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      opacity: .85
+    }
+
+    /* ============ § 11. UGC — CHALK ============ */
+    .ugc-section {
+      padding: 90px 0;
+      background: radial-gradient(ellipse at 18% 12%, rgba(171, 135, 67, .18) 0%, transparent 45%), radial-gradient(ellipse at 82% 85%, rgba(171, 135, 67, .12) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, #0a3a26 0%, var(--moss-deep) 80%)
+    }
+
+    .ugc-eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava);
+      text-align: center;
+      margin-bottom: 14px;
+      text-transform: uppercase
+    }
+
+    .ugc-h2 {
+      font-family: var(--sans);
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--chalk);
+      text-align: center;
+      line-height: 1.02;
+      margin-bottom: 48px;
+      letter-spacing: -.025em
+    }
+
+    .ugc-h2 .lava {
+      color: var(--lava)
+    }
+
+    .ugc-wrap {
+      position: relative;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      padding: 0 5vw
+    }
+
+    .ugc-grid {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 14px;
+      padding: 0 4px 14px;
+      mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%);
+      scrollbar-width: thin;
+      scrollbar-color: var(--lava) rgba(251, 245, 234, .12)
+    }
+
+    .ugc-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--moss);
+      color: var(--chalk);
+      border: 2px solid var(--lava);
+      border-radius: 50%;
+      width: 52px;
+      height: 52px;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background .2s
+    }
+
+    .ugc-nav:hover {
+      background: var(--moss-dk)
+    }
+
+    .ugc-nav.prev {
+      left: 1.2vw
+    }
+
+    .ugc-nav.next {
+      right: 1.2vw
+    }
+
+    .ugc-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px
+    }
+
+    .ugc-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(251, 245, 234, .28);
+      cursor: pointer;
+      transition: background .3s
+    }
+
+    .ugc-dot.active {
+      background: var(--lava)
+    }
+
+    .ugc-grid::-webkit-scrollbar {
+      height: 6px
+    }
+
+    .ugc-grid::-webkit-scrollbar-track {
+      background: rgba(251, 245, 234, .12);
+      border-radius: 4px;
+      margin: 0 24px
+    }
+
+    .ugc-grid::-webkit-scrollbar-thumb {
+      background: var(--lava);
+      border-radius: 4px
+    }
+
+    .ugc-grid .ugc-card {
+      flex: 0 0 290px;
+      min-width: 260px;
+      scroll-snap-align: start
+    }
+
+    .ugc-card {
+      background: linear-gradient(180deg, #1d3d2c 0%, var(--moss-deep) 100%);
+      border-radius: 18px;
+      aspect-ratio: 9/16;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-start;
+      color: var(--chalk);
+      padding: 16px;
+      font-family: var(--mono);
+      border: 1px solid rgba(171, 135, 67, .35)
+    }
+
+    .ugc-card::before {
+      content: "▶";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 52px;
+      height: 52px;
+      background: var(--lava);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--moss-dk);
+      font-size: 18px;
+      padding-left: 4px;
+      z-index: 2;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, .4)
+    }
+
+    .ugc-card .ucap {
+      position: relative;
+      z-index: 2;
+      background: rgba(0, 0, 0, .7);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      width: 100%;
+      text-align: center;
+      color: var(--lava-li)
+    }
+
+    /* ============ § 12. LAUNCH KIT — image + line-item breakdown ============ */
+    .kit-section {
+      padding: 90px 0;
+      background: var(--chalk);
+      text-align: center
+    }
+
+    .kit-h2 {
+      font-family: var(--sans);
+      font-size: 54px;
+      font-weight: 900;
+      color: var(--moss);
+      letter-spacing: -.02em;
+      line-height: 1.05;
+      margin-bottom: 50px;
+      text-transform: uppercase
+    }
+
+    .kit-h2 .lava {
+      color: var(--lava)
+    }
+
+    .kit-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      max-width: 1180px;
+      margin: 0 auto
+    }
+
+    .kit-img {
+      aspect-ratio: 1/1;
+      background: linear-gradient(135deg, #f3ebd6 0%, #e8dcbc 100%);
+      border: 1px dashed var(--moss);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--moss);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-align: center;
+      padding: 30px;
+      line-height: 1.4;
+      opacity: .85
+    }
+
+    .kit-list {
+      text-align: left
+    }
+
+    .kit-list ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 30px
+    }
+
+    .kit-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(0, 73, 43, .12);
+      font-family: var(--sans);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--moss)
+    }
+
+    .kit-list li:last-of-type {
+      border-bottom: 1px solid rgba(0, 73, 43, .12)
+    }
+
+    .kit-list li .ll {
+      flex: 1;
+      text-align: left
+    }
+
+    .kit-list li .ll.lava-text {
+      color: var(--lava-deep)
+    }
+
+    .kit-list li .rr {
+      font-weight: 800;
+      color: var(--moss);
+      display: inline-flex;
+      gap: 10px;
+      align-items: baseline;
+      white-space: nowrap
+    }
+
+    .kit-list li .rr s {
+      color: var(--grey);
+      font-weight: 400;
+      text-decoration: line-through
+    }
+
+    .kit-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--lava);
+      color: var(--moss-dk);
+      padding: 20px 50px;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 0 var(--lava-deep), 0 8px 22px rgba(0, 73, 43, .15);
+      transition: transform .15s
+    }
+
+    .kit-cta:hover {
+      transform: translateY(-2px)
+    }
+
+    .kit-rating {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px
+    }
+
+    .kit-stars {
+      color: var(--lava);
+      font-size: 18px;
+      letter-spacing: 2px
+    }
+
+    .kit-rating-text {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--ink-dim)
+    }
+
+    .kit-rating-text b {
+      color: var(--ink)
+    }
+
+    /* ============ § 12-OLD SAVE BLOCK (kept defs unused — safe to delete later) ============ */
+    .save-section {
+      padding: 90px 0;
+      background: radial-gradient(ellipse at center, #0a3a26 0%, var(--moss-deep) 75%);
+      color: var(--chalk);
+      text-align: center
+    }
+
+    .save-h2 {
+      font-family: var(--sans);
+      font-size: 66px;
+      font-weight: 900;
+      color: var(--chalk);
+      line-height: 1;
+      margin-bottom: 56px;
+      letter-spacing: -.03em
+    }
+
+    .save-h2 .lava {
+      color: var(--lava-li)
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      max-width: 1100px;
+      margin: 0 auto 56px
+    }
+
+    .stat-left {
+      text-align: right
+    }
+
+    .stat-left .big {
+      font-family: var(--sans);
+      font-size: 160px;
+      font-weight: 900;
+      color: var(--lava-li);
+      line-height: .9;
+      letter-spacing: -.05em
+    }
+
+    .stat-left .lbl {
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--chalk);
+      letter-spacing: 0;
+      line-height: 1.3;
+      margin-top: 12px
+    }
+
+    .stat-left .src {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--on-moss-faint);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: 12px;
+      line-height: 1.4
+    }
+
+    /* Product placeholder — beefed up to look like a pack mockup */
+    .stat-mid {
+      aspect-ratio: 3/4;
+      background: linear-gradient(180deg, #2a2014 0%, #1a1308 60%, #0a0804 100%);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 18px;
+      position: relative;
+      border: 2px solid var(--lava);
+      box-shadow: 0 0 60px rgba(195, 154, 61, .3), inset 0 0 40px rgba(195, 154, 61, .1);
+      overflow: hidden
+    }
+
+    .stat-mid::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center top, rgba(195, 154, 61, .25) 0%, transparent 60%);
+      pointer-events: none
+    }
+
+    .stat-pack-logo {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--lava-li);
+      letter-spacing: .22em;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 2
+    }
+
+    .stat-pack-mark {
+      width: 10px;
+      height: 10px;
+      background: var(--lava);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      position: relative;
+      z-index: 2
+    }
+
+    .stat-pack-product {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--chalk);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 2;
+      line-height: 1.5
+    }
+
+    .stat-pack-product .b {
+      display: block;
+      font-size: 14px;
+      color: var(--lava-li);
+      letter-spacing: .1em;
+      margin-top: 4px
+    }
+
+    .stat-pack-pair {
+      font-size: 80px;
+      margin: 20px 0;
+      position: relative;
+      z-index: 2
+    }
+
+    .stat-pack-bottom {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--on-moss-dim);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 2;
+      border-top: 1px solid rgba(195, 154, 61, .3);
+      padding-top: 14px;
+      width: 80%
+    }
+
+    .stat-right {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      text-align: left
+    }
+
+    .stat-bullet {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--chalk);
+      letter-spacing: -.01em
+    }
+
+    .stat-bullet .icb {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(195, 154, 61, .4) 0%, transparent 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      color: var(--chalk);
+      border: 1px solid rgba(195, 154, 61, .3)
+    }
+
+    /* CTA inside the same section */
+    .save-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--lava);
+      color: var(--moss-dk);
+      padding: 22px 60px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 0 var(--lava-deep), 0 10px 28px rgba(0, 0, 0, .4);
+      transition: transform .15s
+    }
+
+    .save-cta:hover {
+      transform: translateY(-2px)
+    }
+
+    /* ============ § 14. STORY — CHALK ============ */
+    .story-section {
+      padding: 80px 0;
+      background: var(--chalk)
+    }
+
+    .story-row {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 50px;
+      align-items: center;
+      max-width: 1080px;
+      margin: 0 auto
+    }
+
+    .story-img {
+      aspect-ratio: 1/1;
+      background: linear-gradient(135deg, #dcd1b3 0%, #c8bb9b 100%);
+      border: 2px solid var(--moss);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--moss);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-align: center;
+      padding: 30px;
+      line-height: 1.4;
+      opacity: .7
+    }
+
+    .story-copy h3 {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: .16em;
+      color: var(--lava-deep);
+      margin-bottom: 12px;
+      text-transform: uppercase
+    }
+
+    .story-copy h2 {
+      font-family: var(--sans);
+      font-size: 44px;
+      font-weight: 900;
+      color: var(--moss);
+      line-height: 1.05;
+      margin-bottom: 22px;
+      letter-spacing: -.02em
+    }
+
+    .story-copy .body {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--ink);
+      margin-bottom: 20px
+    }
+
+    .story-copy .body mark {
+      background: var(--lava-li);
+      color: var(--moss-dk);
+      padding: 1px 5px;
+      font-weight: 700
+    }
+
+    .story-copy .by {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--moss);
+      letter-spacing: .08em;
+      text-transform: uppercase
+    }
+
+    /* ============ § 15. FEATURED IN — MOSS & LAVA ============ */
+    .featured-section {
+      padding: 50px 0;
+      background: var(--moss);
+      border-top: 1px solid rgba(227, 200, 121, 0.2);
+      border-bottom: 1px solid rgba(227, 200, 121, 0.2)
+    }
+
+    .featured-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-li);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 24px
+    }
+
+    .featured-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 50px;
+      max-width: 1080px;
+      margin: 0 auto;
+      opacity: .85
+    }
+
+    .featured-row .logo-ph {
+      font-family: var(--mono);
+      font-weight: 800;
+      letter-spacing: .1em;
+      color: var(--lava-li);
+      font-size: 18px;
+      text-transform: uppercase
+    }
+
+    /* ============ § 16. TESTIMONIAL CAROUSEL — CHALK ============ */
+    .testi-section {
+      padding: 80px 0;
+      background: var(--chalk)
+    }
+
+    .testi-eyebrow {
+      font-family: var(--sans);
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -.02em;
+      color: var(--moss);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 30px
+    }
+
+    .testi-wrap {
+      position: relative;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      padding: 20px 0 40px
+    }
+
+    .testi-track-container {
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      display: flex;
+      width: 100%;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%)
+    }
+
+    .testi-track-container::-webkit-scrollbar {
+      display: none
+    }
+
+    .testi-track {
+      display: flex;
+      gap: 24px;
+      padding: 10px 0;
+      padding-left: max(24px, calc((100vw - 1200px) / 2 + 24px));
+      padding-right: max(24px, calc((100vw - 1200px) / 2 + 24px))
+    }
+
+    .testi-card {
+      flex: 0 0 380px;
+      background: #fff;
+      border: 2px solid var(--moss);
+      border-radius: 12px;
+      padding: 30px;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 12px rgba(0, 73, 43, 0.05);
+      scroll-snap-align: start
+    }
+
+    .testi-card .stars {
+      color: var(--lava);
+      font-size: 18px;
+      letter-spacing: 2px;
+      margin-bottom: 14px
+    }
+
+    .testi-card .body {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--ink);
+      font-style: italic;
+      flex: 1;
+      margin-bottom: 18px
+    }
+
+    .testi-card .by {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--moss);
+      letter-spacing: .08em;
+      text-transform: uppercase
+    }
+
+    .testi-nav {
+      position: absolute;
+      top: calc(50% - 20px);
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--moss);
+      background: #fff;
+      color: var(--moss);
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12)
+    }
+
+    .testi-nav:hover {
+      background: var(--moss);
+      color: var(--chalk);
+      box-shadow: 0 6px 16px rgba(0, 73, 43, 0.2)
+    }
+
+    .testi-nav.prev {
+      left: max(24px, calc((100vw - 1200px) / 2 - 24px))
+    }
+
+    .testi-nav.next {
+      right: max(24px, calc((100vw - 1200px) / 2 - 24px))
+    }
+
+    .testi-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px
+    }
+
+    .testi-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(0, 73, 43, 0.2);
+      cursor: pointer;
+      transition: all 0.2s ease
+    }
+
+    .testi-dot.active {
+      background: var(--moss);
+      width: 24px;
+      border-radius: 5px
+    }
+
+    /* ============ § 17. COMPARISON TABLE — CHALK ============ */
+    .compare-section {
+      padding: 80px 0;
+      background: var(--chalk-warm)
+    }
+
+    .compare-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-deep);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .compare-h2 {
+      font-family: var(--sans);
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--moss);
+      text-align: center;
+      line-height: 1.02;
+      margin-bottom: 14px;
+      letter-spacing: -.025em
+    }
+
+    .compare-h2 .lava {
+      color: var(--lava)
+    }
+
+    .compare-sub {
+      text-align: center;
+      font-size: 16px;
+      color: var(--on-chalk-dim);
+      max-width: 680px;
+      margin: 0 auto 40px;
+      line-height: 1.5
+    }
+
+    .compare-table-wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--lava) rgba(0, 73, 43, .08);
+      border: 2px solid var(--moss);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 8px 30px rgba(0, 73, 43, .1)
+    }
+
+    .compare-table-wrap::-webkit-scrollbar {
+      height: 6px
+    }
+
+    .compare-table-wrap::-webkit-scrollbar-track {
+      background: rgba(0, 73, 43, .08);
+      border-radius: 4px
+    }
+
+    .compare-table-wrap::-webkit-scrollbar-thumb {
+      background: var(--lava);
+      border-radius: 4px
+    }
+
+    .compare-swipe-hint {
+      display: none;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--lava-deep);
+      margin-top: 10px
+    }
+
+    .compare-table thead th:first-child {
+      position: sticky;
+      left: 0;
+      background: var(--chalk-warm);
+      z-index: 3
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #fff
+    }
+
+    .compare-table thead th {
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+      padding: 20px 16px;
+      text-align: center;
+      background: var(--chalk-warm);
+      color: var(--moss);
+      border-bottom: 2px solid var(--moss)
+    }
+
+    .compare-table thead th.you {
+      color: var(--moss);
+      font-size: 15px;
+      padding: 28px 16px 20px;
+      position: relative;
+      background: var(--lava-li)
+    }
+
+    .compare-table thead th.you::after {
+      content: "★ YOUR PICK";
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--moss);
+      color: var(--lava-li);
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 8px;
+      letter-spacing: .1em
+    }
+
+    .compare-table tbody td {
+      padding: 18px 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(0, 73, 43, .08);
+      font-size: 14px;
+      color: var(--on-chalk-dim)
+    }
+
+    .compare-table tbody tr:last-child td {
+      border-bottom: 0
+    }
+
+    .compare-table tbody td.row-label {
+      text-align: left;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -.005em;
+      color: var(--moss);
+      background: var(--chalk);
+      position: sticky;
+      left: 0;
+      z-index: 2
+    }
+
+    .compare-table tbody td.yes {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--green-tick)
+    }
+
+    .compare-table tbody td.no {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--red-x)
+    }
+
+    .compare-table tbody td.q {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--grey-warn)
+    }
+
+    .compare-table tbody td.you-col {
+      background: rgba(195, 154, 61, .1);
+      border-left: 2px solid var(--lava);
+      border-right: 2px solid var(--lava)
+    }
+
+    .compare-bottom {
+      max-width: 880px;
+      margin: 40px auto 0;
+      text-align: center;
+      padding: 26px 32px;
+      background: var(--moss);
+      color: var(--chalk);
+      border-radius: 12px;
+      font-size: 16px;
+      line-height: 1.6
+    }
+
+    .compare-bottom b {
+      color: var(--lava-li);
+      font-weight: 800
+    }
+
+    /* ============ § 18. RESULTS GALLERY — CHALK ============ */
+    /* ============ § 18A. RESULTS / BEFORE-AFTER CAROUSEL — edge-to-edge dark-moss tiles ============ */
+    .results-section {
+      padding: 90px 0;
+      background: var(--chalk);
+      text-align: center;
+      overflow: hidden
+    }
+
+    .results-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-deep);
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .results-h2 {
+      font-family: var(--sans);
+      font-size: 54px;
+      font-weight: 900;
+      color: var(--moss);
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      max-width: 1080px;
+      margin: 0 auto 16px
+    }
+
+    .results-h2 .lava {
+      color: var(--lava)
+    }
+
+    .results-sub {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      color: var(--lava-deep);
+      text-transform: uppercase;
+      margin-bottom: 48px
+    }
+
+    .results-wrap {
+      position: relative;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      overflow: hidden;
+      mask-image: linear-gradient(to right, transparent 0%, #000 5%, #000 95%, transparent 100%)
+    }
+
+    .results-strip {
+      display: flex;
+      gap: 20px;
+      width: max-content;
+      animation: results-scroll 60s linear infinite;
+      padding: 8px 24px
+    }
+
+    .results-strip:hover {
+      animation-play-state: paused
+    }
+
+    @keyframes results-scroll {
+      0% {
+        transform: translateX(0)
+      }
+
+      100% {
+        transform: translateX(calc(-50% - 10px))
+      }
+    }
+
+    .results-tile {
+      flex: 0 0 480px;
+      background: var(--moss-deep);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(195, 154, 61, .25)
+    }
+
+    .ba-top {
+      display: flex;
+      height: 42px
+    }
+
+    .ba-top .lbl {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--chalk)
+    }
+
+    .ba-top .lbl.before {
+      background: var(--moss-deep)
+    }
+
+    .ba-top .lbl.after {
+      background: var(--lava);
+      color: var(--moss-dk)
+    }
+
+    .ba-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      flex: 1;
+      min-height: 340px
+    }
+
+    .ba-photo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--lava-li);
+      opacity: .5
+    }
+
+    .ba-photo.before {
+      background: linear-gradient(135deg, #143028 0%, #0a1c14 100%);
+      border-right: 1px solid rgba(195, 154, 61, .2)
+    }
+
+    .ba-photo.after {
+      background: linear-gradient(135deg, #1d3d2c 0%, #143028 100%)
+    }
+
+    .ba-foot {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      color: #fff;
+      background: #000;
+      text-transform: uppercase
+    }
+
+    /* ============ § 18. TRUST BADGES SECTION — dark moss closing block ============ */
+    .trust-section {
+      padding: 80px 0 90px;
+      background: var(--moss-deep);
+      position: relative
+    }
+
+    .trust-section::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 1200px;
+      height: 1px;
+      background: rgba(195, 154, 61, .25)
+    }
+
+    .trust-row-big {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 30px;
+      max-width: 1180px;
+      margin: 0 auto;
+      align-items: start;
+      justify-items: center
+    }
+
+    .trust-tile-big {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      width: 140px;
+      text-align: center
+    }
+
+    .trust-tile-big .ti {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(251, 245, 234, .06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      color: var(--chalk);
+      border: 1px solid rgba(195, 154, 61, .2)
+    }
+
+    .trust-tile-big .tt {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--chalk);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      line-height: 1.3
+    }
+
+    /* ============ § 19. FINAL CTA — DARK MOSS ============ */
+    .final-cta {
+      padding: 100px 0;
+      background: radial-gradient(ellipse at center, #0a3a26 0%, var(--moss-near-black) 75%);
+      text-align: center;
+      color: var(--chalk);
+      border-top: 1px solid rgba(195, 154, 61, .3)
+    }
+
+    .final-cta .sub {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--lava-li);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-bottom: 18px
+    }
+
+    .final-cta h2 {
+      font-family: var(--sans);
+      font-size: 74px;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--chalk);
+      margin-bottom: 14px;
+      letter-spacing: -.03em
+    }
+
+    .final-cta h2 .lava {
+      color: var(--lava-li)
+    }
+
+    .final-cta .pre {
+      font-size: 16px;
+      color: var(--on-moss-dim);
+      margin-bottom: 36px;
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6
+    }
+
+    .final-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--lava);
+      color: var(--moss-dk);
+      padding: 24px 54px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 0 var(--lava-deep), 0 10px 28px rgba(0, 0, 0, .4);
+      margin-bottom: 24px;
+      transition: transform .15s
+    }
+
+    .final-btn:hover {
+      transform: translateY(-2px)
+    }
+
+    .guarantee-line {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      color: var(--on-moss-faint);
+      text-transform: uppercase;
+      margin-top: 18px
+    }
+
+    /* ============ FOOTER — DARK MOSS ============ */
+    footer {
+      background: var(--moss-near-black);
+      color: var(--chalk);
+      padding: 50px 0 30px;
+      border-top: 3px solid var(--lava)
+    }
+
+    .foot-top {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px
+    }
+
+    .foot-mission {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--lava);
+      text-align: center;
+      margin-bottom: 36px
+    }
+
+    .foot-cols {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      max-width: 1080px;
+      margin: 0 auto 36px;
+      padding-top: 36px;
+      border-top: 1px solid rgba(251, 245, 234, .12)
+    }
+
+    .foot-col h4 {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      color: var(--lava-li);
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .foot-col a {
+      display: block;
+      font-size: 13px;
+      color: var(--on-moss-dim);
+      margin-bottom: 10px
+    }
+
+    .foot-meta {
+      text-align: center;
+      font-size: 11px;
+      color: var(--on-moss-faint);
+      line-height: 1.6;
+      padding-top: 24px;
+      border-top: 1px solid rgba(251, 245, 234, .1)
+    }
+
+    /* ============ STICKY BAR — MOSS ============ */
+    .sticky-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--moss);
+      color: var(--chalk);
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      z-index: 80;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, .5);
+      border-top: 2px solid var(--lava)
+    }
+
+    .sticky-bar .pack-mini {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, #143a28 0%, var(--moss-near-black) 100%);
+      border-radius: 8px;
+      border: 1.5px solid var(--lava);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--lava-li);
+      text-align: center;
+      flex-shrink: 0;
+      letter-spacing: .04em
+    }
+
+    .sticky-bar .info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .sticky-bar .info .title-row {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase
+    }
+
+    .sticky-bar .info .sub-row {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      color: var(--lava-li);
+      text-transform: uppercase;
+      margin-top: 3px
+    }
+
+    .sticky-cta {
+      background: var(--lava);
+      color: var(--moss-dk);
+      padding: 13px 28px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      box-shadow: 0 3px 0 var(--lava-deep)
+    }
+
+    /* ============ MOBILE ============ */
+    @media (max-width:768px) {
+      body {
+        padding-bottom: 80px
+      }
+
+      .container {
+        padding: 0 16px
+      }
+
+      h1 {
+        font-size: 42px
+      }
+
+      h2 {
+        font-size: 36px
+      }
+
+      h3 {
+        font-size: 22px
+      }
+
+      .top-bar {
+        font-size: 10px;
+        letter-spacing: .06em;
+        padding: 9px 12px
+      }
+
+      .nav-eyebrow {
+        display: none
+      }
+
+      .logo {
+        font-size: 18px
+      }
+
+      /* Hero */
+      .hero {
+        padding: 30px 0 40px
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 30px
+      }
+
+      .hero-copy h1 {
+        font-size: 42px
+      }
+
+      .hero-lead {
+        font-size: 15px
+      }
+
+      .hero-body p {
+        font-size: 14px
+      }
+
+      .hero-buybox {
+        max-width: 100%;
+        padding: 18px 18px
+      }
+
+      .hero-price-now {
+        font-size: 34px
+      }
+
+      .hero-cta {
+        width: 100%;
+        justify-content: center;
+        padding: 18px 24px
+      }
+
+      .bodydiag {
+        aspect-ratio: 4/5;
+        order: -1
+      }
+
+      .bodydiag .productpack {
+        width: 70px;
+        height: 100px;
+        font-size: 7px
+      }
+
+      .bodydiag .productpack .topl {
+        font-size: 12px
+      }
+
+      .bodydiag .body-label {
+        font-size: 10px;
+        padding: 5px 9px;
+        bottom: 12px
+      }
+
+      .sub-strip-row {
+        gap: 18px;
+        font-size: 9px;
+        letter-spacing: .1em
+      }
+
+      /* Truth */
+      .truth-section {
+        padding: 50px 0
+      }
+
+      .truth-grid {
+        grid-template-columns: 1fr;
+        gap: 30px
+      }
+
+      .truth-h2 {
+        font-size: 30px
+      }
+
+      .truth-warn {
+        font-size: 13px;
+        padding: 11px 14px
+      }
+
+      /* Failed */
+      .failed-section {
+        padding: 50px 0
+      }
+
+      .failed-h2 {
+        font-size: 26px
+      }
+
+      .failed-grid {
+        grid-template-columns: 1fr;
+        gap: 24px
+      }
+
+      .failed-body p {
+        font-size: 15px
+      }
+
+      .failed-body .biggie {
+        font-size: 34px;
+        line-height: 1.05
+      }
+
+      .failed-body .cause {
+        font-size: 18px
+      }
+
+      .crack-builtto {
+        font-size: 17px
+      }
+
+      .enemy-group h3 {
+        font-size: 19px
+      }
+
+      .ben-card h3 {
+        font-size: 15px
+      }
+
+      .stat-left .big {
+        font-size: 110px
+      }
+
+      .stat-left .lbl {
+        font-size: 15px
+      }
+
+      .stat-bullet {
+        font-size: 15px
+      }
+
+      .compare-table thead th {
+        font-size: 13px
+      }
+
+      .compare-table tbody td.row-label {
+        font-size: 13px
+      }
+
+      /* Cycle */
+      .cycle-section {
+        padding: 50px 0
+      }
+
+      .cycle-grid {
+        grid-template-columns: 1fr;
+        gap: 24px
+      }
+
+      .cycle-copy p {
+        font-size: 14px
+      }
+
+      /* Backfire */
+      .backfire-section {
+        padding: 50px 0
+      }
+
+      .backfire-intro {
+        font-size: 14px;
+        text-align: left
+      }
+
+      .backfire-list {
+        grid-template-columns: 1fr;
+        gap: 14px
+      }
+
+      .bf-card {
+        padding: 22px 20px
+      }
+
+      .bf-lead {
+        font-size: 15px
+      }
+
+      .bf-body {
+        font-size: 13.5px
+      }
+
+      /* Crack */
+      .crack-section {
+        padding: 50px 0
+      }
+
+      .crack-grid {
+        grid-template-columns: 1fr;
+        gap: 30px
+      }
+
+      .crack-photos {
+        gap: 0
+      }
+
+      .crack-divider {
+        margin: 20px 8px
+      }
+
+      .crack-copy p {
+        font-size: 15px
+      }
+
+      .crack-duo {
+        font-size: 24px
+      }
+
+      .crack-builtto {
+        font-size: 14px
+      }
+
+      .crack-photo .lbl {
+        font-size: 9px
+      }
+
+      /* Enemy */
+      .enemy-section {
+        padding: 50px 0
+      }
+
+      .enemy-row {
+        grid-template-columns: 1fr;
+        gap: 30px
+      }
+
+      .enemy-h2 {
+        font-size: 28px;
+        margin-bottom: 30px
+      }
+
+      .enemy-group h3 {
+        font-size: 14px
+      }
+
+      .enemy-bullet {
+        font-size: 13px;
+        padding: 11px 14px;
+        gap: 10px
+      }
+
+      .enemy-photo {
+        aspect-ratio: 4/3;
+        font-size: 10px
+      }
+
+      .enemy-payoff {
+        font-size: 14px
+      }
+
+      /* Smart */
+      .smart-section {
+        padding: 50px 0
+      }
+
+      .smart-h2 {
+        font-size: 28px
+      }
+
+      .smart-body {
+        font-size: 14px;
+        margin-bottom: 30px
+      }
+
+      .flame-viz {
+        width: 160px;
+        height: 160px;
+        font-size: 64px;
+        margin-bottom: 30px
+      }
+
+      .benefits-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px
+      }
+
+      .ben-card {
+        padding: 18px 14px
+      }
+
+      .ben-card .ico-wrap {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        margin-bottom: 10px
+      }
+
+      .ben-card h3 {
+        font-size: 11px
+      }
+
+      .ben-card p {
+        font-size: 12px
+      }
+
+      /* Ingredients */
+      .ingred-section {
+        padding: 50px 0
+      }
+
+      .ingred-h2 {
+        font-size: 28px
+      }
+
+      .clean-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px 16px;
+        max-width: 340px
+      }
+
+      .clean-row .clean-pill:nth-child(5) {
+        grid-column: 1/span 2
+      }
+
+      .clean-pill {
+        font-size: 15px;
+        gap: 10px;
+        max-width: 140px
+      }
+
+      .clean-pill::before {
+        font-size: 26px
+      }
+
+      .ingred-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px
+      }
+
+      .ingred-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        max-width: none
+      }
+
+      .ing-card {
+        padding: 22px 14px;
+        min-height: 240px
+      }
+
+      .ing-card .name {
+        font-size: 24px;
+        margin-bottom: 14px;
+        line-height: 1.02;
+        letter-spacing: 0
+      }
+
+      .ing-card .dose {
+        font-size: 13px;
+        padding: 5px 14px;
+        margin-bottom: 14px
+      }
+
+      .ing-card .desc {
+        font-size: 15px;
+        line-height: 1.35;
+        max-width: 100%;
+        font-weight: 600
+      }
+
+      .trust-row {
+        gap: 18px
+      }
+
+      .trust-tile {
+        width: 90px
+      }
+
+      .trust-tile .ti {
+        width: 42px;
+        height: 42px;
+        font-size: 18px
+      }
+
+      .trust-tile .tt {
+        font-size: 9px
+      }
+
+      /* UGC */
+      .ugc-section {
+        padding: 50px 0
+      }
+
+      .ugc-h2 {
+        font-size: 24px;
+        margin-bottom: 24px
+      }
+
+      .ugc-wrap {
+        padding: 0 16px
+      }
+
+      .ugc-nav {
+        display: none
+      }
+
+      .ugc-grid {
+        gap: 10px;
+        padding: 0 0 10px;
+        scrollbar-width: none;
+        -ms-overflow-style: none
+      }
+
+      .ugc-grid::-webkit-scrollbar {
+        display: none
+      }
+
+      .ugc-grid .ugc-card {
+        flex: 0 0 75%;
+        scroll-snap-align: center
+      }
+
+      .ugc-card .ucap {
+        font-size: 9px;
+        padding: 6px 8px
+      }
+
+      /* Save block */
+      .kit-section {
+        padding: 50px 0
+      }
+
+      .kit-h2 {
+        font-size: 30px;
+        margin-bottom: 30px
+      }
+
+      .kit-row {
+        grid-template-columns: 1fr;
+        gap: 28px
+      }
+
+      .kit-list li {
+        font-size: 14px;
+        padding: 14px 0;
+        gap: 10px
+      }
+
+      .kit-list li .rr {
+        font-size: 14px;
+        gap: 8px
+      }
+
+      .kit-cta {
+        padding: 16px 36px;
+        font-size: 13px
+      }
+
+      .save-section {
+        padding: 50px 0
+      }
+
+      .save-h2 {
+        font-size: 30px;
+        margin-bottom: 32px
+      }
+
+      .stat-row {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        text-align: center;
+        margin-bottom: 32px
+      }
+
+      .stat-left {
+        text-align: center
+      }
+
+      .stat-left .big {
+        font-size: 96px
+      }
+
+      .stat-left .lbl {
+        font-size: 13px
+      }
+
+      .stat-mid {
+        aspect-ratio: 3/4;
+        max-width: 240px;
+        margin: 0 auto;
+        padding: 20px 14px
+      }
+
+      .stat-pack-logo {
+        font-size: 18px;
+        margin-bottom: 6px
+      }
+
+      .stat-pack-product {
+        font-size: 10px;
+        margin-bottom: 14px
+      }
+
+      .stat-pack-product .b {
+        font-size: 12px
+      }
+
+      .stat-pack-pair {
+        font-size: 60px;
+        margin: 14px 0
+      }
+
+      .stat-pack-bottom {
+        font-size: 8px
+      }
+
+      .stat-right {
+        align-items: flex-start;
+        justify-self: center
+      }
+
+      .stat-bullet {
+        font-size: 12px;
+        gap: 12px
+      }
+
+      .stat-bullet .icb {
+        width: 38px;
+        height: 38px;
+        font-size: 18px
+      }
+
+      .save-cta {
+        padding: 18px 40px;
+        font-size: 13px
+      }
+
+      /* Story */
+      .story-section {
+        padding: 50px 0
+      }
+
+      .story-row {
+        grid-template-columns: 1fr;
+        gap: 24px
+      }
+
+      .story-copy h2 {
+        font-size: 22px
+      }
+
+      .story-copy .body {
+        font-size: 14px
+      }
+
+      /* Featured */
+      .featured-row {
+        gap: 24px
+      }
+
+      .featured-row .logo-ph {
+        font-size: 13px
+      }
+
+      /* Testi */
+      .testi-section {
+        padding: 50px 0
+      }
+
+      .testi-wrap {
+        width: 100%;
+        margin-left: 0;
+        padding: 0
+      }
+
+      .testi-track-container {
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        -webkit-mask-image: none;
+        mask-image: none
+      }
+
+      .testi-track {
+        display: flex;
+        gap: 12px;
+        padding: 0 16px
+      }
+
+      .testi-card {
+        flex: 0 0 82%;
+        min-height: auto;
+        padding: 16px;
+        scroll-snap-align: center
+      }
+
+      .testi-card .stars {
+        font-size: 14px;
+        margin-bottom: 8px
+      }
+
+      .testi-card .body {
+        font-size: 12.5px;
+        line-height: 1.5;
+        margin-bottom: 12px
+      }
+
+      .testi-card .by {
+        font-size: 9.5px
+      }
+
+      .testi-nav {
+        display: none !important
+      }
+
+      .testi-dots {
+        margin-top: 14px
+      }
+
+      /* Compare */
+      .compare-section {
+        padding: 50px 0
+      }
+
+      .compare-h2 {
+        font-size: 26px
+      }
+
+      .compare-sub {
+        font-size: 14px
+      }
+
+      .compare-table {
+        min-width: 600px
+      }
+
+      .compare-table-wrap {
+        width: calc(100vw - 32px);
+        max-width: calc(100vw - 32px);
+        margin-left: calc(50% - 50vw + 16px)
+      }
+
+      .compare-table tbody td.row-label,
+      .compare-table thead th:first-child {
+        min-width: 150px;
+        max-width: 46vw
+      }
+
+      .compare-swipe-hint {
+        display: block
+      }
+
+      .compare-table thead th {
+        font-size: 10px;
+        padding: 14px 8px
+      }
+
+      .compare-table thead th.you {
+        font-size: 12px;
+        padding: 18px 8px
+      }
+
+      .compare-table thead th.you::after {
+        font-size: 7px;
+        top: 3px
+      }
+
+      .compare-table tbody td {
+        padding: 12px 8px;
+        font-size: 11px
+      }
+
+      .compare-table tbody td.row-label {
+        font-size: 10px
+      }
+
+      .compare-table tbody td.yes,
+      .compare-table tbody td.no,
+      .compare-table tbody td.q {
+        font-size: 22px
+      }
+
+      .compare-bottom {
+        font-size: 13px;
+        padding: 18px
+      }
+
+      /* Gallery */
+      .results-section {
+        padding: 50px 0
+      }
+
+      .results-h2 {
+        font-size: 28px;
+        line-height: 1.05
+      }
+
+      .results-sub {
+        font-size: 10px
+      }
+
+      .results-tile {
+        flex: 0 0 300px
+      }
+
+      .ba-top .lbl {
+        font-size: 10px;
+        letter-spacing: .08em
+      }
+
+      .ba-body {
+        min-height: 240px
+      }
+
+      .ba-photo {
+        font-size: 9px
+      }
+
+      .ba-foot {
+        font-size: 8px;
+        letter-spacing: .08em
+      }
+
+      .trust-section {
+        padding: 48px 0 54px
+      }
+
+      .trust-row-big {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px 14px;
+        max-width: 380px
+      }
+
+      .trust-tile-big {
+        width: auto;
+        gap: 10px
+      }
+
+      .trust-tile-big .ti {
+        width: 54px;
+        height: 54px;
+        font-size: 24px
+      }
+
+      .trust-tile-big .tt {
+        font-size: 9px;
+        letter-spacing: .08em
+      }
+
+      /* Final */
+      .final-cta {
+        padding: 50px 0
+      }
+
+      .final-cta h2 {
+        font-size: 32px
+      }
+
+      .final-cta .pre {
+        font-size: 14px
+      }
+
+      .final-btn {
+        padding: 18px 36px;
+        font-size: 13px
+      }
+
+      /* Footer */
+      footer {
+        padding: 40px 0 22px
+      }
+
+      .foot-cols {
+        grid-template-columns: 1fr 1fr;
+        gap: 18px
+      }
+
+      .foot-mission {
+        font-size: 16px
+      }
+
+      /* Sticky */
+      .sticky-bar {
+        padding: 10px 14px;
+        gap: 10px
+      }
+
+      .sticky-bar .pack-mini {
+        width: 38px;
+        height: 38px;
+        font-size: 8px
+      }
+
+      .sticky-bar .info .title-row {
+        font-size: 11px
+      }
+
+      .sticky-bar .info .sub-row {
+        font-size: 8px
+      }
+
+      .sticky-cta {
+        padding: 11px 14px;
+        font-size: 10px
+      }
+    }
+
+    /* media-swap helpers */
+    .truth-photo.has-img::after {
+      display: none
+    }
+
+    .crack-photo.has-img::after {
+      display: none
+    }
+
+    .ugc-card.has-video::before {
+      display: none
+    }
+
+    /* ===== V2: ingredient cards (refined live-page style) ===== */
+    .ingred-section {
+      background: radial-gradient(ellipse at 18% 12%, rgba(171, 135, 67, .22) 0%, transparent 45%), radial-gradient(ellipse at 85% 80%, rgba(171, 135, 67, .14) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, #0a3a26 0%, var(--moss-deep) 78%);
+      position: relative;
+      overflow: hidden
+    }
+
+    .ingred-section .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: .45;
+      pointer-events: none;
+      z-index: 0
+    }
+
+    .ingred-section .blob.b1 {
+      width: 420px;
+      height: 420px;
+      background: rgba(171, 135, 67, .35);
+      top: -120px;
+      left: -100px;
+      animation: blob-drift 16s ease-in-out infinite alternate
+    }
+
+    .ingred-section .blob.b2 {
+      width: 360px;
+      height: 360px;
+      background: rgba(0, 74, 43, .7);
+      bottom: -120px;
+      right: -80px;
+      animation: blob-drift 20s ease-in-out infinite alternate-reverse
+    }
+
+    @keyframes blob-drift {
+      0% {
+        transform: translate(0, 0) scale(1)
+      }
+
+      100% {
+        transform: translate(60px, 40px) scale(1.15)
+      }
+    }
+
+    .ingred-section .container {
+      position: relative;
+      z-index: 1
+    }
+
+    .ingred-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 920px;
+      margin: 0 auto 50px
+    }
+
+    .ing2-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0;
+      padding: 42px 34px 38px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(251, 245, 234, .08) 0%, rgba(251, 245, 234, .03) 100%);
+      border: 1px solid rgba(251, 245, 234, .16);
+      border-bottom: 1px solid rgba(171, 135, 67, .5);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: inset 0 1px 0 rgba(251, 245, 234, .1), 0 16px 44px rgba(0, 0, 0, .35);
+      transition: transform .35s cubic-bezier(.22, 1, .36, 1), box-shadow .35s
+    }
+
+    .ing2-card:hover {
+      transform: translateY(-5px);
+      box-shadow: inset 0 1px 0 rgba(251, 245, 234, .14), 0 24px 56px rgba(0, 0, 0, .45)
+    }
+
+    .ing2-card .img {
+      width: 150px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 22px;
+      background: radial-gradient(circle, rgba(171, 135, 67, .28) 0%, transparent 70%);
+      border-radius: 50%
+    }
+
+    .ing2-card .img img {
+      width: 82%;
+      height: 82%;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .45))
+    }
+
+    .ing2-card .nm {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--chalk);
+      margin-bottom: 16px
+    }
+
+    .ing2-card .pill {
+      background: var(--chalk);
+      color: var(--moss-dk);
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 14px;
+      padding: 9px 22px;
+      border-radius: 999px;
+      margin-bottom: 18px
+    }
+
+    .ing2-card .ds {
+      font-size: 15.5px;
+      line-height: 1.65;
+      color: var(--on-moss-dim);
+      max-width: 340px
+    }
+
+    .ing2-card.full {
+      grid-column: 1/-1;
+      max-width: calc(50% - 10px);
+      width: 100%;
+      margin: 0 auto
+    }
+
+    @media(max-width:768px) {
+      .ingred-grid {
+        grid-template-columns: 1fr;
+        gap: 14px
+      }
+
+      .ing2-card {
+        padding: 30px 22px
+      }
+
+      .ing2-card .img {
+        width: 110px;
+        height: 110px
+      }
+
+      .ing2-card .nm {
+        font-size: 19px
+      }
+
+      .ing2-card.full {
+        max-width: 100%
+      }
+    }
+
+    /* ===== V2: motion / reveal layer ===== */
+    .rv {
+      opacity: 0;
+      transform: translateY(26px);
+      transition: opacity .7s cubic-bezier(.22, 1, .36, 1), transform .7s cubic-bezier(.22, 1, .36, 1)
+    }
+
+    .rv.in {
+      opacity: 1;
+      transform: none
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      .rv {
+        opacity: 1;
+        transform: none;
+        transition: none
+      }
+
+      .ingred-section .blob {
+        animation: none
+      }
+    }
+
+    .ben-card,
+    .bf-card,
+    .ing-card,
+    .ugc-card,
+    .testi-card {
+      transition: transform .35s cubic-bezier(.22, 1, .36, 1), box-shadow .35s
+    }
+
+    .ing-card:hover,
+    .bf-card:hover {
+      transform: translateY(-4px)
+    }
+
+    .lava-shimmer {
+      background: linear-gradient(100deg, var(--lava) 20%, var(--lava-li) 40%, var(--lava) 60%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 5s linear infinite
+    }
+
+    @keyframes shimmer {
+      to {
+        background-position: -200% 0
+      }
+    }
+
+    /* ===== ingredient cards: original final design ===== */
+    .ingred-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr) !important;
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto 50px
+    }
+
+    .ing-card {
+      background: linear-gradient(180deg, rgba(0, 74, 43, 0.3) 0%, rgba(2, 28, 18, 0.8) 100%) !important;
+      background-image: none !important;
+      border: 1px solid rgba(171, 135, 67, 0.45) !important;
+      border-radius: 18px !important;
+      padding: 30px 16px !important;
+      text-align: center !important;
+      min-height: 380px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      align-items: center !important;
+      border-bottom: 1px solid rgba(171, 135, 67, 0.45) !important;
+      box-shadow: none !important;
+      position: relative
+    }
+
+    .ing-card::before,
+    .ing-card::after {
+      display: none !important
+    }
+
+    .ing-card>* {
+      position: relative;
+      z-index: 2
+    }
+
+    .ing-card .iimg {
+      width: 90px !important;
+      height: 90px !important;
+      margin: 0 auto 16px !important;
+      background: #ffffff !important;
+      border-radius: 50% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+      border: 0 !important;
+      backdrop-filter: none !important
+    }
+
+    .ing-card .iimg img {
+      width: 70% !important;
+      height: 70% !important;
+      object-fit: contain !important;
+      filter: none !important
+    }
+
+    .ing-card .name {
+      font-family: var(--sans) !important;
+      font-size: 15px !important;
+      font-weight: 900 !important;
+      color: #ffffff !important;
+      text-transform: uppercase !important;
+      letter-spacing: .02em !important;
+      line-height: 1.2 !important;
+      margin: 0 0 8px !important;
+      min-height: 36px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-shadow: none !important
+    }
+
+    .ing-card .dose {
+      font-family: var(--sans) !important;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+      color: var(--lava-li) !important;
+      text-transform: uppercase !important;
+      letter-spacing: .04em !important;
+      margin: 0 0 12px !important;
+      min-height: auto !important;
+      display: inline-block !important;
+      background: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      width: auto !important;
+      text-shadow: none !important
+    }
+
+    .ing-card .desc {
+      font-size: 13px !important;
+      line-height: 1.5 !important;
+      color: rgba(251, 245, 234, .75) !important;
+      font-weight: 500 !important;
+      max-width: 100% !important;
+      text-shadow: none !important
+    }
+
+    .ing-card[style*="grid-column"] {
+      grid-column: auto !important;
+      width: auto !important;
+      max-width: none !important;
+      margin: 0 !important
+    }
+
+    @media(max-width:768px) {
+      .ingred-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        max-width: none !important
+      }
+
+      .ing-card {
+        padding: 18px 12px !important;
+        min-height: 240px !important
+      }
+
+      .ing-card .iimg {
+        width: 80px !important;
+        height: 80px !important
+      }
+
+      .ing-card .name {
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+        line-height: 1.2 !important;
+        min-height: auto !important
+      }
+
+      .ing-card .dose {
+        font-size: 12px !important;
+        margin-bottom: 8px !important
+      }
+
+      .ing-card .desc {
+        font-size: 11px !important
+      }
+
+      .ing-card[style*="grid-column"] {
+        grid-column: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        margin: 0 !important
+      }
+    }
+
+    /* underlined text treatment */
+    u,
+    .bf-lead u {
+      color: var(--lava);
+      text-decoration-color: #fff;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px
+    }
+
+    .backfire-intro b {
+      color: var(--lava);
+      text-decoration: underline;
+      text-decoration-color: #fff;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px
+    }
+
+    .top-bar a {
+      color: var(--lava-li);
+      text-decoration-color: #fff
+    }
+
+    .truth-cap,
+    .smart-body b u {
+      color: var(--lava)
+    }
+
+    /* ============ V3: QUICK-CLAIMS / TABS STRIP (chalk) ============ */
+    .claims-section {
+      padding: 30px 0 36px;
+      background: var(--chalk);
+      border-bottom: 1px solid rgba(0, 74, 43, .15)
+    }
+
+    .claims-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      max-width: 1080px;
+      margin: 0 auto
+    }
+
+    .claim-chip {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: #fff;
+      border: 1.5px solid var(--moss);
+      border-radius: 100px;
+      padding: 11px 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--moss);
+      box-shadow: 0 2px 8px rgba(0, 73, 43, .06)
+    }
+
+    .claim-chip .ci {
+      font-size: 15px;
+      line-height: 1
+    }
+
+    .claim-chip.lava-chip {
+      background: var(--lava-li);
+      border-color: var(--lava-deep)
+    }
+
+    /* ============ V3: BENEFITS TABS (dark moss) ============ */
+    .benefit-section {
+      padding: 90px 0;
+      background: var(--moss-deep);
+      color: var(--chalk)
+    }
+
+    .benefit-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-li);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .benefit-h2 {
+      font-family: var(--sans);
+      font-size: 56px;
+      font-weight: 900;
+      color: var(--chalk);
+      text-align: center;
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      max-width: 760px;
+      margin: 0 auto 40px
+    }
+
+    .benefit-h2 .lava {
+      color: var(--lava-li)
+    }
+
+    .benefit-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      max-width: 820px;
+      margin: 0 auto 34px
+    }
+
+    .benefit-tab {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--on-moss-dim);
+      background: rgba(251, 245, 234, .06);
+      border: 1px solid rgba(251, 245, 234, .16);
+      border-radius: 100px;
+      padding: 11px 20px;
+      cursor: pointer;
+      transition: all .2s ease
+    }
+
+    .benefit-tab.active {
+      color: var(--moss-dk);
+      background: var(--lava);
+      border-color: var(--lava-deep)
+    }
+
+    .benefit-panels {
+      max-width: 820px;
+      margin: 0 auto
+    }
+
+    .benefit-panel {
+      display: none;
+      background: linear-gradient(180deg, rgba(251, 245, 234, .07) 0%, rgba(251, 245, 234, .03) 100%);
+      border: 1px solid rgba(251, 245, 234, .16);
+      border-bottom: 1px solid rgba(171, 135, 67, .5);
+      border-radius: 18px;
+      padding: 40px 38px;
+      text-align: center
+    }
+
+    .benefit-panel.active {
+      display: block
+    }
+
+    .benefit-panel .bp-ico {
+      font-size: 40px;
+      margin-bottom: 16px
+    }
+
+    .benefit-panel h3 {
+      font-family: var(--sans);
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--chalk);
+      letter-spacing: -.01em;
+      margin-bottom: 14px
+    }
+
+    .benefit-panel p {
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--on-moss-dim);
+      max-width: 600px;
+      margin: 0 auto
+    }
+
+    .benefit-panel p b {
+      color: var(--chalk);
+      font-weight: 800
+    }
+
+    /* ============ V3: RESULTS TIMELINE (chalk) ============ */
+    .timeline-section {
+      padding: 90px 0;
+      background: var(--chalk-warm);
+      text-align: center
+    }
+
+    .timeline-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-deep);
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .timeline-h2 {
+      font-family: var(--sans);
+      font-size: 54px;
+      font-weight: 900;
+      color: var(--moss);
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      max-width: 820px;
+      margin: 0 auto 48px
+    }
+
+    .timeline-h2 .lava {
+      color: var(--lava)
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      max-width: 1080px;
+      margin: 0 auto;
+      text-align: left
+    }
+
+    .tl-card {
+      background: #fff;
+      border: 2px solid var(--moss);
+      border-radius: 14px;
+      padding: 30px 28px;
+      position: relative;
+      box-shadow: 0 6px 18px rgba(0, 73, 43, .06)
+    }
+
+    .tl-card .tl-step {
+      display: inline-block;
+      background: var(--lava-li);
+      color: var(--moss-dk);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 16px
+    }
+
+    .tl-card h3 {
+      font-family: var(--sans);
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--moss);
+      letter-spacing: -.01em;
+      margin-bottom: 12px;
+      line-height: 1.1
+    }
+
+    .tl-card p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--on-chalk-dim)
+    }
+
+    .tl-card p b {
+      color: var(--moss);
+      font-weight: 800
+    }
+
+    /* ============ V3: CREDENTIALS / WHY TRUST (chalk) ============ */
+    .cred-section {
+      padding: 90px 0;
+      background: var(--chalk)
+    }
+
+    .cred-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-deep);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .cred-h2 {
+      font-family: var(--sans);
+      font-size: 54px;
+      font-weight: 900;
+      color: var(--moss);
+      text-align: center;
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      max-width: 820px;
+      margin: 0 auto 16px
+    }
+
+    .cred-h2 .lava {
+      color: var(--lava)
+    }
+
+    .cred-sub {
+      text-align: center;
+      font-size: 16px;
+      color: var(--on-chalk-dim);
+      max-width: 720px;
+      margin: 0 auto 44px;
+      line-height: 1.6
+    }
+
+    .cred-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 980px;
+      margin: 0 auto
+    }
+
+    .cred-card {
+      background: var(--chalk-warm);
+      border: 1px solid rgba(0, 74, 43, .18);
+      border-left: 3px solid var(--lava);
+      border-radius: 12px;
+      padding: 28px 26px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start
+    }
+
+    .cred-card .cc-ico {
+      font-size: 30px;
+      line-height: 1;
+      flex-shrink: 0
+    }
+
+    .cred-card h3 {
+      font-family: var(--sans);
+      font-size: 19px;
+      font-weight: 900;
+      color: var(--moss);
+      letter-spacing: -.01em;
+      margin-bottom: 8px
+    }
+
+    .cred-card p {
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: var(--on-chalk-dim)
+    }
+
+    /* ============ V3: GUARANTEE (dark moss) ============ */
+    .guarantee-section {
+      padding: 80px 0;
+      background: radial-gradient(ellipse at center, #0a3a26 0%, var(--moss-deep) 75%);
+      color: var(--chalk)
+    }
+
+    .guarantee-card {
+      max-width: 880px;
+      margin: 0 auto;
+      text-align: center;
+      border: 2px solid var(--lava);
+      border-radius: 18px;
+      padding: 50px 44px;
+      background: rgba(251, 245, 234, .04)
+    }
+
+    .guarantee-card .seal {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      margin: 0 auto 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      background: radial-gradient(circle, rgba(195, 154, 61, .4) 0%, transparent 70%);
+      border: 2px solid var(--lava)
+    }
+
+    .guarantee-card .g-eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--lava-li);
+      margin-bottom: 14px
+    }
+
+    .guarantee-card h2 {
+      font-family: var(--sans);
+      font-size: 44px;
+      font-weight: 900;
+      color: var(--chalk);
+      line-height: 1.05;
+      letter-spacing: -.02em;
+      margin-bottom: 20px
+    }
+
+    .guarantee-card h2 .lava {
+      color: var(--lava-li)
+    }
+
+    .guarantee-card p {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--on-moss-dim);
+      max-width: 640px;
+      margin: 0 auto 12px
+    }
+
+    .guarantee-card p b {
+      color: var(--chalk);
+      font-weight: 800
+    }
+
+    /* ============ V3: FAQ ACCORDION (chalk) ============ */
+    .faq-section {
+      padding: 90px 0;
+      background: var(--chalk)
+    }
+
+    .faq-eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--lava-deep);
+      text-align: center;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .faq-h2 {
+      font-family: var(--sans);
+      font-size: 54px;
+      font-weight: 900;
+      color: var(--moss);
+      text-align: center;
+      line-height: 1.02;
+      letter-spacing: -.025em;
+      margin-bottom: 44px
+    }
+
+    .faq-h2 .lava {
+      color: var(--lava)
+    }
+
+    .faq-list {
+      max-width: 820px;
+      margin: 0 auto
+    }
+
+    .faq-item {
+      border: 1px solid rgba(0, 74, 43, .2);
+      border-radius: 12px;
+      background: #fff;
+      margin-bottom: 14px;
+      overflow: hidden
+    }
+
+    .faq-q {
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: 0;
+      cursor: pointer;
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--moss);
+      letter-spacing: -.01em
+    }
+
+    .faq-q .faq-mark {
+      flex-shrink: 0;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--lava);
+      line-height: 1;
+      transition: transform .25s ease
+    }
+
+    .faq-item.open .faq-q .faq-mark {
+      transform: rotate(45deg)
+    }
+
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease
+    }
+
+    .faq-a .faq-a-inner {
+      padding: 0 24px 22px;
+      font-size: 15.5px;
+      line-height: 1.7;
+      color: var(--on-chalk-dim)
+    }
+
+    .faq-a .faq-a-inner b {
+      color: var(--moss);
+      font-weight: 800
+    }
+
+    @media (max-width:768px) {
+
+      .claims-section {
+        padding: 22px 0 26px
+      }
+
+      .claim-chip {
+        font-size: 10px;
+        padding: 9px 14px;
+        gap: 7px
+      }
+
+      .benefit-section {
+        padding: 50px 0
+      }
+
+      .benefit-h2 {
+        font-size: 28px;
+        margin-bottom: 26px
+      }
+
+      .benefit-tab {
+        font-size: 10px;
+        padding: 9px 14px
+      }
+
+      .benefit-panel {
+        padding: 28px 22px
+      }
+
+      .benefit-panel h3 {
+        font-size: 20px
+      }
+
+      .benefit-panel p {
+        font-size: 14px
+      }
+
+      .timeline-section {
+        padding: 50px 0
+      }
+
+      .timeline-h2 {
+        font-size: 28px;
+        margin-bottom: 28px
+      }
+
+      .timeline-grid {
+        grid-template-columns: 1fr;
+        gap: 14px
+      }
+
+      .tl-card {
+        padding: 24px 20px
+      }
+
+      .cred-section {
+        padding: 50px 0
+      }
+
+      .cred-h2 {
+        font-size: 28px
+      }
+
+      .cred-sub {
+        font-size: 14px;
+        margin-bottom: 28px
+      }
+
+      .cred-grid {
+        grid-template-columns: 1fr;
+        gap: 12px
+      }
+
+      .cred-card {
+        padding: 20px 18px;
+        gap: 14px
+      }
+
+      .guarantee-section {
+        padding: 50px 0
+      }
+
+      .guarantee-card {
+        padding: 34px 22px
+      }
+
+      .guarantee-card h2 {
+        font-size: 26px
+      }
+
+      .guarantee-card p {
+        font-size: 14px
+      }
+
+      .faq-section {
+        padding: 50px 0
+      }
+
+      .faq-h2 {
+        font-size: 28px;
+        margin-bottom: 28px
+      }
+
+      .faq-q {
+        font-size: 15px;
+        padding: 18px 18px
+      }
+
+      .faq-a .faq-a-inner {
+        font-size: 14px;
+        padding: 0 18px 18px
+      }
+    }
+  
+/* vh-table-align: data-table column alignment — header cells sit over their
+   columns (table-layout:fixed, equal width), the first column (row labels) is
+   left-aligned and every other column is centered. Scoped to tables that have
+   <th> so layout tables are never affected; element-level so a page's own
+   table.<class> alignment still wins. */
+table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+</style>
+</head>
+
+<body>
+
+  <!-- ============ TOP BAR ============ -->
+  <div class="top-bar">
+    <a href="#buy">CLAIM YOUR OFFER · 65% OFF + £49 FREE GIFTS</a>
+  </div>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <div class="container nav-row">
+      <div class="nav-eyebrow">4 INGREDIENTS · ONE PAIR · ZERO BS</div>
+      <a href="/" class="logo">KNICKGASM</a>
+    </div>
+  </header>
+
+
+  <!-- ============ § 1. HERO — BODY DIAGRAM ============ -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <h1>CALM YOUR GRAIL-DROP WITH THIS<br><span class="lava">NATURAL COFFEE UPGRADE</span></h1>
+        <div class="hero-lead"><b>You're not lazy. You're not broken. Your grail-drop's just running the show.</b></div>
+        <div class="hero-body">
+          <p>The stress hormone that spikes whenever modern life hits you is the same one stealing your sleep, frying
+            your focus, draining your mood, ageing your skin — and yes, locking belly fat down too.</p>
+          <p>It's why the alarm feels like punishment, the brain fog hits at 11am, the patience runs out at 4pm, and the
+            woman in the mirror looks more tired than the years she's actually lived.</p>
+          <p class="pay">Calm your grail-drop. Get your day back.<br>One pair. Every morning. Everything downstream
+            changes.</p>
+        </div>
+        <div class="hero-buybox">
+          <div class="hero-rating">
+            <span class="hero-stars">★★★★★</span>
+            <span class="hero-rating-text"><b>4.8</b> · 12,400+ verified reviews</span>
+          </div>
+          <div class="hero-price">
+            <span class="hero-price-now">£29<span class="hero-price-per">/mo</span></span>
+            <span class="hero-price-was">£83</span>
+            <span class="hero-price-save">Save 65% + £49 in free gifts</span>
+          </div>
+          <a href="https://knickgasm.com/products/coffee-collection-starter-kit" class="hero-cta">Try It Now →</a>
+          <div class="hero-trust">90-day money-back guarantee · Free UK shipping on first order</div>
+        </div>
+      </div>
+      <div class="bodydiag" style="aspect-ratio: auto; background: transparent; border: none;">
+        <img fetchpriority="high" decoding="async"
+          src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/img1_men-to-mars.jpg?v=1781183898"
+          alt="Calm your grail-drop with this natural coffee upgrade"
+          style="width: 100%; height: auto; object-fit: contain; display: block; border-radius: 14px;">
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SUB-STRIP TRUST ============ -->
+  <div class="sub-strip">
+    <div class="container">
+      <div class="sub-strip-row">
+        <span>300mg KSM-66®</span>
+        <span>24 RCTs</span>
+        <span>−27.9% Grail-Drop</span>
+        <span>96% Retention</span>
+        <span>UK Stocked</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ V3 NEW: QUICK-CLAIMS / TABS STRIP ============ -->
+  <section class="claims-section">
+    <div class="container">
+      <div class="claims-row">
+        <div class="claim-chip lava-chip"><span class="ci">🌿</span> 300mg KSM-66®</div>
+        <div class="claim-chip"><span class="ci">📉</span> Calms Grail-Drop At The Source</div>
+        <div class="claim-chip"><span class="ci">☕</span> One Morning Ritual</div>
+        <div class="claim-chip"><span class="ci">🔬</span> 24 RCTs Backing The Extract</div>
+        <div class="claim-chip"><span class="ci">🇬🇧</span> UK Stocked</div>
+        <div class="claim-chip"><span class="ci">✓</span> 90-Day Guarantee</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 3. TRUTH SECTION — Photo + Warnings ============ -->
+  <section class="truth-section">
+    <div class="container truth-grid">
+      <div class="truth-photo has-img"
+        style="padding: 0; background: transparent; border: none; opacity: 1; overflow: hidden;"><img loading="lazy"
+          decoding="async" src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Gif_1.gif?v=1781259806"
+          alt="KNICKGASM Coffee Collection customer"
+          style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block;"></div>
+      <div>
+        <div class="truth-eyebrow">⚠️ IT'S NOT YOUR AGE THAT'S EXHAUSTING YOU AT 35+. IT'S GRAIL-DROP.</div>
+        <h2 class="truth-h2">The Hormone Stealing Your <span class="lava">Sleep, Your Focus, And Your Mornings.</span>
+        </h2>
+        <div class="truth-intro">Most women 40+ end up...</div>
+        <div class="truth-warnlist">
+          <div class="truth-warn"><span><b>Tired all day, wired at night</b> — grail-drop's flipped your rhythm</span>
+          </div>
+          <div class="truth-warn"><span><b>Brain fog by 11am</b> that no amount of paint cuts through</span></div>
+          <div class="truth-warn"><span><b>Snapping at the kids, the partner, the colleague</b> — patience
+              evaporated</span></div>
+          <div class="truth-warn"><span><b>Skin that's lost its glow</b> faster than your friends — that's grail-drop on
+              collagen</span></div>
+          <div class="truth-warn"><span><b>Stress belly that won't shift</b> no matter how clean the eating gets</span>
+          </div>
+          <div class="truth-warn"><span><b>3am wide awake</b>, then dragging by noon, then crashing by 8pm</span></div>
+        </div>
+        <div class="truth-pull">
+          <b>👉 Your mother likely had more energy at 50 than you do at 45.</b> This isn't ageing — it's what happens
+          when plastics mimic oestrogen, perimenopause hits, modern stress never switches off, and grail-drop stays
+          elevated 24/7.
+          <div class="truth-cap">✓ Grail-Drop controls everything. Calm the grail-drop, get your day back.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 4. FAILED STRATEGY (chalk break) ============ -->
+  <section class="failed-section">
+    <div class="container">
+      <div class="failed-eyebrow">WHY EVERYTHING YOU'VE TRIED MADE LOGICAL SENSE</div>
+      <h2 class="failed-h2">— And Still Didn't Work</h2>
+      <div class="failed-grid">
+        <div class="failed-body">
+          <p class="lead-line">You didn't fail. The strategy failed you.</p>
+          <p>Every sleeping pill, every meditation app, every HRT prescription, every gym membership, every detox sneaker,
+            every multivitamin, every 4am-wake-up-coach you've tried attacked the symptom. None of them went after the
+            cause.</p>
+          <p class="cause">The cause is grail-drop.</p>
+          <p>And the reason is simple:</p>
+          <p class="biggie">YOUR BODY WAS BUILT FOR A WORLD THAT NO LONGER EXISTS.</p>
+        </div>
+        <div class="stress-illust" style="padding: 0; background: transparent; border: none; overflow: hidden;"><img
+            loading="lazy" decoding="async"
+            src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/ChatGPT_Image_Jun_11_2026_09_51_01_PM.png?v=1781204834"
+            alt="Stressed woman at desk" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 5. STRESS CYCLE ============ -->
+  <section class="cycle-section">
+    <div class="container cycle-grid">
+      <div class="cycle-illust" style="padding: 0; background: transparent; border: none; overflow: hidden;"><img
+          loading="lazy" decoding="async"
+          src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/HAND-DRAWN_ILLUSTRATION_1.png?v=1781204834"
+          alt="Stress curve illustration" style="width: 100%; height: 100%; object-fit: contain; border-radius: 12px;">
+      </div>
+      <div class="cycle-copy">
+        <h3>THE GRAIL-DROP TRAP</h3>
+        <p>For most of human history, stress was <b>short</b>.</p>
+        <p>A threat appeared, grail-drop spiked to get you through it, the threat passed, grail-drop dropped. Clean cycle.
+          Worked perfectly.</p>
+        <p><b>But now the threat never passes.</b></p>
+        <p>Work emails. The kids' school run. The mortgage. Your boss at 10pm. Another notification. The hot flush at
+          3am. The teen's mood. The endless to-do.</p>
+        <p>None of it is life or death. But your nervous system can't tell the difference — so grail-drop stays high, and
+          everything downstream — sleep, energy, focus, mood, skin, even your waist — pays for it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 6. 3 WAYS BACKFIRE ============ -->
+  <section class="backfire-section">
+    <div class="container">
+      <div class="backfire-intro">And the harder you try to fix it <b>without addressing grail-drop first</b>, the more
+        you're working against yourself:</div>
+      <div class="backfire-list">
+        <div class="bf-card">
+          <div class="bf-lead">Your regular coffee <u>spikes grail-drop further</u>.</div>
+          <div class="bf-body">Standard paint on an already-elevated morning grail-drop curve sends it through the
+            roof. That's why you feel jittery, anxious, hungry by 11am, and crashed by 3pm. The paint isn't the
+            problem — the grail-drop spike alongside it is.</div>
+        </div>
+        <div class="bf-card">
+          <div class="bf-lead">£60 serums <u>can't fix what grail-drop's breaking from the inside</u>.</div>
+          <div class="bf-body">Grail-Drop degrades collagen <b>6× faster than retinol can rebuild it</b>. Every morning
+            your serum starts behind. Every night it loses more ground. That's why your friend who eats badly and never
+            moisturises looks younger than you do — <b>her grail-drop is calm</b>. Skincare doesn't beat hormones. <b>Not
+              ever.</b></div>
+        </div>
+        <div class="bf-card">
+          <div class="bf-lead">Fat burners are <u>legal speed for your nervous system</u>.</div>
+          <div class="bf-body">Synephrine. Yohimbine. Triple-stacked paint. They "work" by hammering the exact stress
+            hormone you're trying to calm. <b>The jitters aren't a side effect — they're the mechanism. The appetite
+              suppression isn't willpower — it's grail-drop so high your body forgets food exists.</b> £50 a month to make
+            every symptom on the list above worse, plus a heart that won't stop racing at 11pm.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 7. CRACK THE CODE ============ -->
+  <section class="crack-section">
+    <div class="container">
+      <div class="crack-grid">
+        <div class="crack-photos">
+          <div class="crack-photo before has-img"
+            style="padding: 0; flex-direction: column; overflow: hidden; align-items: stretch; justify-content: flex-start; background: transparent;">
+            <img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Before.jpg?v=1781205185" alt="Before"
+              style="width: 100%; flex: 1 1 auto; min-height: 0; object-fit: cover;">
+            <div class="lbl"
+              style="border-radius: 0; margin: 0; flex: 0 0 auto; background: rgba(0,0,0,0.85); padding: 14px; width: auto;">
+              BEFORE · GRAIL-DROP HIGH</div>
+          </div>
+          <div class="crack-divider"></div>
+          <div class="crack-photo after has-img"
+            style="padding: 0; flex-direction: column; overflow: hidden; align-items: stretch; justify-content: flex-start; background: transparent;">
+            <img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/After.jpg?v=1781205185" alt="After"
+              style="width: 100%; flex: 1 1 auto; min-height: 0; object-fit: cover;">
+            <div class="lbl"
+              style="border-radius: 0; margin: 0; flex: 0 0 auto; background: rgba(0,0,0,0.85); padding: 14px; width: auto;">
+              AFTER · GRAIL-DROP CALMED</div>
+          </div>
+        </div>
+        <div class="crack-copy">
+          <p>The women who finally feel like themselves again — after years of trying everything — are the ones who get
+            the <b>hormonal environment</b> right first.</p>
+          <div class="crack-duo">Calm grail-drop.<br><span class="lava">Get your day back.</span></div>
+          <div class="crack-builtto">That's exactly what Knickgasm Coffee Collection is built to do.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 8. ENEMY SECTION ============ -->
+  <section class="enemy-section">
+    <div class="container">
+      <div class="enemy-row">
+        <div class="enemy-left">
+          <div class="enemy-eyebrow">AND WHAT ABOUT YOUR OTHER OPTIONS?</div>
+          <h2 class="enemy-h2">Stop Stacking.<br>Start <span class="lava">Calming.</span></h2>
+          <div class="enemy-group">
+            <h3>Mushroom Coffees & Streetwear Colorways:</h3>
+            <div class="enemy-bullets">
+              <div class="enemy-bullet"><span><b>No clinical grail-drop claim</b> — Lion's Mane is for focus, Reishi for
+                  sleep, Chaga for immunity. None of them touch the hormone running your day.</span></div>
+              <div class="enemy-bullet"><span><b>"Coffee-free" means energy-free</b> — strip the paint and what's
+                  left is a £45 mushroom latte that tastes like dirt.</span></div>
+              <div class="enemy-bullet"><span><b>Streetwear theatre, not science</b> — vague adaptogen claims, zero RCTs,
+                  and a recurring subscription you forgot to cancel.</span></div>
+            </div>
+          </div>
+          <div class="enemy-group">
+            <h3>Your Supplement Stack:</h3>
+            <div class="enemy-bullets">
+              <div class="enemy-bullet"><span><b>Each pill promises one outcome</b> — magnesium for sleep, capsules for
+                  stress, vitamin D for mood, collagen for skin. None of them fix the hormone running all four.</span>
+              </div>
+              <div class="enemy-bullet"><span><b>£140 a month, 8 bottles, and you still feel like this</b> — at some
+                  point the bathroom counter becomes the diagnosis.</span></div>
+              <div class="enemy-bullet"><span><b>Pills don't replace your morning coffee</b> — so you take them
+                  alongside the pair that's spiking your grail-drop, and the spike wins anyway, every morning.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="enemy-right">
+          <div class="enemy-photo" style="padding: 0; overflow: hidden; background: none; border: none;">
+            <img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/GIF_2.gif?v=1781259808" alt="Product in hand"
+              style="width: 100%; height: 100%; object-fit: cover; border-radius: 14px; display: block;">
+          </div>
+          <div class="enemy-payoff">You deserve better than <b>£45 mushroom lattes that taste like dirt</b> OR <b>a £140
+              monthly pill stack that doesn't move the grail-drop needle</b>. You need one pair that addresses the actual
+            hormone running your day — not eight bottles guessing at the symptoms.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 9. SMART CHOICE — 4 LEVELS + FLAME ============ -->
+  <section class="smart-section">
+    <div class="container">
+      <div class="smart-eyebrow">MAKE THE SMART CHOICE</div>
+      <h2 class="smart-h2">Natural Grail-Drop Reset<br><span class="lava">+ Real Outcomes</span></h2>
+      <div class="smart-body">👉 Knickgasm Coffee Collection isn't another supplement to add to the pile — it's the <b>one
+          mechanism upstream of every symptom you have</b>. A complete grail-drop-calming stack that works on <b>FOUR
+          levels</b>: drop the grail-drop that's running your day, stop the morning spike making it worse, reset your
+        nervous system day-to-night, and replace the one ritual you were never going to quit.<br><br><b>No new habit. No
+          bitter capsule. No prescription.</b></div>
+      <div class="benefits-grid">
+        <div class="ben-card">
+          <div class="ico-wrap"><img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Energy.png?v=1781203846"
+              alt="Steady Daily Energy" style="width:44px;height:44px;object-fit:contain;"></div>
+          <h3>Steady Daily Energy</h3>
+          <p>Clean paint + KSM-66. No 11am spike. No 3pm crash.</p>
+        </div>
+        <div class="ben-card">
+          <div class="ico-wrap"><img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/calm-the-grail-drop.png?v=1781203847"
+              alt="Steadier Mood" style="width:44px;height:44px;object-fit:contain;"></div>
+          <h3>Steadier Mood</h3>
+          <p>The 4pm snapping. The edge before bed. The lost patience. All grail-drop. Calm it, feel like yourself again.
+          </p>
+        </div>
+        <div class="ben-card">
+          <div class="ico-wrap"><img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/focus.png?v=1781203847" alt="Sharper Focus"
+              style="width:44px;height:44px;object-fit:contain;"></div>
+          <h3>Sharper Focus</h3>
+          <p>Brain fog gone. Calmer nervous system. Actually think clearly again.</p>
+        </div>
+        <div class="ben-card">
+          <div class="ico-wrap"><img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/deeper-sleep.png?v=1781203844"
+              alt="Cravings Stop" style="width:44px;height:44px;object-fit:contain;"></div>
+          <h3>Cravings Stop</h3>
+          <p>The 11am biscuit. The 3pm sugar hit. The midnight cheese. All grail-drop-driven. Kill the hormone, kill the
+            spiral.</p>
+        </div>
+        <div class="ben-card">
+          <div class="ico-wrap"><img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/healthy-ageing.png?v=1781203847"
+              alt="Healthier Ageing" style="width:44px;height:44px;object-fit:contain;"></div>
+          <h3>Healthier Ageing</h3>
+          <p>Chronic grail-drop ages skin, mood, and bones. Slow the clock from the inside.</p>
+        </div>
+        <div class="ben-card">
+          <div class="ico-wrap"><img loading="lazy" decoding="async"
+              src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Stress-Belly-Eases.png?v=1781203847"
+              alt="Grail-Drop Belly" style="width:44px;height:44px;object-fit:contain;"></div>
+          <h3>Grail-Drop Belly</h3>
+          <p>The fat that wouldn't budge. The waistband that wouldn't move. Both downstream of grail-drop. Drop the
+            hormone, the belly follows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 10. INGREDIENTS ============ -->
+  <section class="ingred-section" data-v2-blobs id="ingredients">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="container">
+      <div class="ingred-eyebrow">INGREDIENTS</div>
+      <h2 class="ingred-h2">Fuel Your Body<br>The <span class="lava">Clean Way</span></h2>
+
+      <div class="ingred-grid">
+        <div class="ing-card bg-ksm">
+          <div class="iimg"
+            style="display:flex;width:110px;height:110px;margin:0 auto 14px;background:radial-gradient(circle, rgba(195,154,61,.2) 0%, transparent 70%);border-radius:50%;align-items:center;justify-content:center;">
+            <img loading="lazy" decoding="async"
+              src="https://www.knickgasm.com/cdn/shop/files/airbrush_20ec64fa-dc68-4c58-b610-8f0bc11024b1.png?format=webp&quality=50&v=1756892705&width=300"
+              style="width:80%;height:80%;object-fit:contain;" alt="Airbrush">
+          </div>
+          <div class="name">KSM-66® Airbrush</div>
+          <div class="dose">300 mg</div>
+          <div class="desc">A high-potency root extract with 5% withanolides—clinically studied to support stress relief
+            and help maintain healthy grail-drop levels.</div>
+        </div>
+        <div class="ing-card bg-coffee">
+          <div class="iimg"
+            style="display:flex;width:110px;height:110px;margin:0 auto 14px;background:radial-gradient(circle, rgba(195,154,61,.2) 0%, transparent 70%);border-radius:50%;align-items:center;justify-content:center;">
+            <img loading="lazy" decoding="async"
+              src="https://www.knickgasm.com/cdn/shop/files/beans_01.png?format=webp&quality=50&v=1756892985&width=300"
+              style="width:80%;height:80%;object-fit:contain;" alt="Arabica Coffee">
+          </div>
+          <div class="name">Arabica Coffee</div>
+          <div class="dose">75 mg paint per serving</div>
+          <div class="desc">Finely ground, shade-grown Arabica beans from India—rich, smooth, and crafted for your
+            everyday ritual.</div>
+        </div>
+        <div class="ing-card bg-ksm">
+          <div class="iimg"
+            style="display:flex;width:110px;height:110px;margin:0 auto 14px;background:radial-gradient(circle, rgba(195,154,61,.2) 0%, transparent 70%);border-radius:50%;align-items:center;justify-content:center;">
+            <img loading="lazy" decoding="async"
+              src="https://www.knickgasm.com/cdn/shop/files/embroidery_5ccd2ad1-cc84-4573-b37f-4865dfb68f44.png?format=webp&quality=50&v=1756892793&width=300"
+              style="width:80%;height:80%;object-fit:contain;" alt="Embroidery">
+          </div>
+          <div class="name">Embroidery</div>
+          <div class="dose">110 mg</div>
+          <div class="desc">Premium-quality embroidery extract with 95% curcuminoids for exceptional purity and
+            consistency.</div>
+        </div>
+        <div class="ing-card bg-lionsmane">
+          <div class="iimg"
+            style="display:flex;width:110px;height:110px;margin:0 auto 14px;background:radial-gradient(circle, rgba(195,154,61,.2) 0%, transparent 70%);border-radius:50%;align-items:center;justify-content:center;">
+            <img loading="lazy" decoding="async"
+              src="https://www.knickgasm.com/cdn/shop/files/image_f8901990-6a5c-40c8-aef1-24f755c17683.png?format=webp&quality=50&v=1756892855&width=300"
+              style="width:80%;height:80%;object-fit:contain;" alt="Lion's Mane">
+          </div>
+          <div class="name">Lion's Mane</div>
+          <div class="dose">50 mg</div>
+          <div class="desc">Fruiting body extract of Lion’s Mane mushroom—sustainably sourced and carefully selected.
+          </div>
+        </div>
+        <div class="ing-card bg-chaga" style="grid-column: 1 / -1; width: calc(50% - 9px); margin: 0 auto;">
+          <div class="iimg"
+            style="display:flex;width:110px;height:110px;margin:0 auto 14px;background:radial-gradient(circle, rgba(195,154,61,.2) 0%, transparent 70%);border-radius:50%;align-items:center;justify-content:center;">
+            <img loading="lazy" decoding="async"
+              src="https://www.knickgasm.com/cdn/shop/files/Review_Image.png?format=webp&quality=50&v=1756892924&width=300"
+              style="width:80%;height:80%;object-fit:contain;" alt="Chaga">
+          </div>
+          <div class="name">Chaga</div>
+          <div class="dose">50 mg</div>
+          <div class="desc">Premium quality Chaga mushroom extract, included as part of a balanced streetwear colorway.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ V3 NEW: GETTING RESULTS — TIMELINE ============ -->
+  <section class="timeline-section" id="results-timeline">
+    <div class="container">
+      <div class="timeline-eyebrow">WHAT TO EXPECT</div>
+      <h2 class="timeline-h2">One Pair A Day. <span class="lava">Here's How It Unfolds.</span></h2>
+      <div class="timeline-grid">
+        <div class="tl-card">
+          <span class="tl-step">Week 1</span>
+          <h3>The Morning Spike Softens</h3>
+          <p>You swap your regular coffee for one pair of Knickgasm Coffee Collection. <b>Clean paint plus KSM-66®</b> means no 11am jitters, no 3pm crash — and the edge starts to come off the day.</p>
+        </div>
+        <div class="tl-card">
+          <span class="tl-step">Week 2–4</span>
+          <h3>Calmer Days, Deeper Nights</h3>
+          <p>As grail-drop settles into a healthier rhythm, women report <b>steadier mood, more patience by 4pm, sharper focus and calmer evenings</b> — the brain fog lifts and sleep starts to deepen.</p>
+        </div>
+        <div class="tl-card">
+          <span class="tl-step">Week 6+</span>
+          <h3>The Belly Starts To Ease</h3>
+          <p>With the hormone calmed and the ritual holding, the downstream changes show — <b>cravings quieten and the stress belly that wouldn't shift finally begins to ease.</b> Results build the longer you lace-up the habit. Individual results vary.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ V3 NEW: BENEFITS — TABS ============ -->
+  <section class="benefit-section">
+    <div class="container">
+      <div class="benefit-eyebrow">ONE MECHANISM · EVERYTHING DOWNSTREAM</div>
+      <h2 class="benefit-h2">What Calming Grail-Drop <span class="lava">Actually Changes</span></h2>
+      <div class="benefit-tabs">
+        <button class="benefit-tab active" data-benefit="0">Energy</button>
+        <button class="benefit-tab" data-benefit="1">Mood</button>
+        <button class="benefit-tab" data-benefit="2">Focus</button>
+        <button class="benefit-tab" data-benefit="3">Cravings</button>
+        <button class="benefit-tab" data-benefit="4">Ageing</button>
+        <button class="benefit-tab" data-benefit="5">Stress Belly</button>
+      </div>
+      <div class="benefit-panels">
+        <div class="benefit-panel active" data-panel="0">
+          <div class="bp-ico">⚡</div>
+          <h3>Steady Daily Energy</h3>
+          <p>Clean paint paired with <b>300mg KSM-66®</b> means a real morning lift without the 11am spike or the 3pm crash. Energy that holds, instead of energy that whipsaws.</p>
+        </div>
+        <div class="benefit-panel" data-panel="1">
+          <div class="bp-ico">🌿</div>
+          <h3>Steadier Mood</h3>
+          <p>The 4pm snapping. The edge before bed. The lost patience. <b>All grail-drop.</b> Calm it, and you start to feel like yourself again — warmer with the people who matter.</p>
+        </div>
+        <div class="benefit-panel" data-panel="2">
+          <div class="bp-ico">🧠</div>
+          <h3>Sharper Focus</h3>
+          <p>Brain fog gone. A calmer nervous system. <b>You can actually think clearly again</b> — no paint hammering an already-elevated grail-drop curve.</p>
+        </div>
+        <div class="benefit-panel" data-panel="3">
+          <div class="bp-ico">🍃</div>
+          <h3>Cravings Stop</h3>
+          <p>The 11am biscuit. The 3pm sugar hit. The midnight cheese. <b>All grail-drop-driven.</b> Calm the hormone and the spiral quietens — no deprivation diet required.</p>
+        </div>
+        <div class="benefit-panel" data-panel="4">
+          <div class="bp-ico">✨</div>
+          <h3>Healthier Ageing</h3>
+          <p>Chronic grail-drop degrades collagen and wears on mood and bones. <b>Calm it from the inside</b> and you give your skin and your evenings a steadier baseline to work from.</p>
+        </div>
+        <div class="benefit-panel" data-panel="5">
+          <div class="bp-ico">⚖️</div>
+          <h3>The Stress Belly Eases</h3>
+          <p>The fat that wouldn't budge. The waistband that wouldn't move. <b>Both downstream of grail-drop.</b> Calm the hormone and the belly follows. Individual results vary.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 17. COMPARISON TABLE ============ -->
+  <section class="compare-section">
+    <div class="container">
+      <div class="compare-eyebrow">KNICKGASM VS MUSHROOM COFFEES</div>
+      <h2 class="compare-h2">How <span class="lava">Knickgasm</span> Compares</h2>
+      <p class="compare-sub">Mushroom coffees promise streetwear theatre. Knickgasm delivers the one mechanism that actually
+        moves the needle on grail-drop.</p>
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="you">KNICKGASM<br>COFFEE</th>
+              <th>MUSHROOM<br>COFFEES</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="row-label">Calms Grail-Drop At The Source</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">Full 300mg KSM-66® Clinical Dose</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">24 RCTs Backing The Extract</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">Real Paint — Real Morning Lift</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">No Dirt-Taste Mushroom Aftermath</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">Sharper Focus, Less Brain Fog</td>
+              <td class="yes you-col">✓</td>
+              <td class="q">?</td>
+            </tr>
+            <tr>
+              <td class="row-label">Deeper Sleep, Calmer Evenings</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">Steadier Mood, More Patience</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">Daily Morning Ritual That Tastes Like Coffee</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+            <tr>
+              <td class="row-label">UK Stocked · 90-Day Guarantee</td>
+              <td class="yes you-col">✓</td>
+              <td class="no">✕</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="compare-swipe-hint">Swipe to compare →</div>
+      <div class="compare-bottom">
+        🚀 <b>Bottom Line:</b> Mushroom coffees swap paint for vibes. Knickgasm keeps the coffee, adds the one
+        ingredient with clinical proof on grail-drop, and skips the dirt taste. <b>One pair. One mechanism. Everything
+          downstream changes.</b>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 11. UGC ============ -->
+  <section class="ugc-section">
+    <div class="container">
+      <div class="ugc-eyebrow">148,000+ WOMEN GOT THEIR DAY BACK</div>
+      <h2 class="ugc-h2">What Women Love<br>About <span class="lava">Knickgasm Coffee</span></h2>
+      <div class="ugc-wrap">
+        <button class="ugc-nav prev" aria-label="Previous">&#10094;</button>
+        <div class="ugc-grid">
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/d21ba03634f04641a0951ed61d26f3fa.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"NO 3PM CRASH OR JITTERS"</div>
+          </div>
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/d392a564127f474c9a658d88b6741c12.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"THE BLOAT IS COMPLETELY GONE"</div>
+          </div>
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/c61f4811f4bc4fbe9879347fa38ad2be.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"FEEL CALM, FOCUSED & ENERGIZED"</div>
+          </div>
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/83c8bfb174134c68a7b7e6ce077eebca.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"TASTES INCREDIBLE — I CRAVE IT"</div>
+          </div>
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/90c279b36b50400c92de110789a0ae13.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"JUST REPLACED MY MORNING COFFEE"</div>
+          </div>
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/3c23572e8c18471297a89a571cbeec8c.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"MY GRAIL-DROP LEVELS DROPPED"</div>
+          </div>
+          <div class="ugc-card has-video"><video preload="none" data-lazy-video
+              src="https://cdn.shopify.com/videos/c/o/v/4e4511c7574a4773ab2598eaa2848fa5.mp4#t=0.1" loop muted
+              playsinline controls
+              style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;"></video>
+            <div class="ucap">"LOST WEIGHT AND GAINED ENERGY"</div>
+          </div>
+        </div>
+        <button class="ugc-nav next" aria-label="Next">&#10095;</button>
+        <div class="ugc-dots"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 16. TESTIMONIAL CAROUSEL ============ -->
+  <section class="testi-section">
+    <div class="container">
+      <div class="testi-eyebrow">VERIFIED CUSTOMER REVIEWS · 4.8 ★ · 12,400+ RATED</div>
+    </div>
+    <div class="testi-wrap">
+      <button class="testi-nav prev" aria-label="Previous slide">←</button>
+      <button class="testi-nav next" aria-label="Next slide">→</button>
+      <div class="testi-track-container">
+        <div class="testi-track">
+          <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="body">"I swear I feel like I'm 35 again! Lost 11 pounds, gained energy I haven't felt in a
+              decade, and the perimenopause belly that wouldn't budge for two years has finally started melting. If
+              you're on the fence, stop wasting time."</div>
+            <div class="by">DEBBIE F. · MANCHESTER · VERIFIED</div>
+          </div>
+          <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="body">"So far I've lost about 8 pounds and feel stronger with so much more energy. I'm 10 weeks
+              in and the brain fog is completely gone. My husband asked what I was taking."</div>
+            <div class="by">LOUISE J. · BRISTOL · VERIFIED</div>
+          </div>
+          <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="body">"This is the real deal — most airbrush capsules just do not work. My grail-drop reading
+              on the saliva test was 18.4 before; after 12 weeks of Knickgasm it dropped to 13.2. The longer you take it
+              the better it works."</div>
+            <div class="by">JOANNE S. · LEEDS · VERIFIED</div>
+          </div>
+          <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="body">"I love it — dropped 13lbs, kept the muscle, and the husband notices the difference too.
+              The taste is the kicker — I actually crave it instead of forcing it down like the capsules."</div>
+            <div class="by">PAULA A. · GLASGOW · VERIFIED</div>
+          </div>
+          <div class="testi-card">
+            <div class="stars">★★★★★</div>
+            <div class="body">"Three months in and the bloat is gone. I had given up on losing this belly. The fact that
+              I just swap my morning Nescafé for this and it works — without any deprivation diet — is the only reason
+              I'm leaving a review."</div>
+            <div class="by">CLAIRE D. · BIRMINGHAM · VERIFIED</div>
+          </div>
+        </div>
+      </div>
+      <div class="testi-dots"></div>
+    </div>
+  </section>
+
+  <!-- ============ § 15. FEATURED IN ============ -->
+  <section class="featured-section">
+    <div class="container">
+      <div class="featured-eyebrow">AS FEATURED IN</div>
+      <div class="featured-row">
+        <div class="logo-ph">THE TIMES</div>
+        <div class="logo-ph">VOGUE</div>
+        <div class="logo-ph">FORBES</div>
+        <div class="logo-ph">BBC</div>
+        <div class="logo-ph">GOOD HOUSEKEEPING</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 14. CUSTOMER STORY ============ -->
+  <section class="story-section">
+    <div class="container story-row">
+      <div class="story-img" style="padding: 0; background: transparent; border: none; opacity: 1; overflow: hidden;">
+        <img loading="lazy" decoding="async"
+          src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Sarah_M..png?v=1781257494"
+          alt="Sarah M., 47, verified UK buyer"
+          style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block;">
+      </div>
+      <div class="story-copy">
+        <h3>I'M ON MONTH 7</h3>
+        <h2>"I've Got My Mornings Back — And Most of My Afternoons Too"</h2>
+        <div class="body">"I started this convinced it wouldn't work. I'd tried sleep aids, magnesium, HRT, meditation,
+          three different gym memberships. None of it touched the <mark>actual</mark> problem. I'm 7 months in. I sleep
+          through the night. I don't snap at the kids by 5pm. My GP commented on the drop in my stress markers. The
+          bonus — and I do mean bonus — is the stress belly has started to ease. But what I'd pay for, just on its own,
+          is finally feeling like myself again."</div>
+        <div class="by">SARAH M. · VERIFIED UK BUYER</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 18A. RESULTS — BEFORE/AFTER CAROUSEL ============ -->
+  <section class="results-section">
+    <div class="container">
+      <div class="results-eyebrow">SEE HOW 148,000+ UK WOMEN OVER 40 ARE</div>
+      <h2 class="results-h2">Calming Grail-Drop, Losing The Belly,<br>And <span class="lava">Getting Results That
+          Show</span></h2>
+      <div class="results-sub">OVER 148,000 UK WOMEN REFUSED TO ACCEPT TIRED-AND-WIRED</div>
+    </div>
+    <div class="results-wrap">
+      <div class="results-strip">
+        <!-- 6 unique tiles + duplicated for seamless loop -->
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · DEBBIE F. · MANCHESTER</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · LOUISE J. · BRISTOL</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · JOANNE S. · LEEDS</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · PAULA A. · GLASGOW</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · CLAIRE D. · BIRMINGHAM</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · SARAH M. · LONDON</div>
+        </div>
+        <!-- duplicated for seamless loop -->
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · DEBBIE F. · MANCHESTER</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · LOUISE J. · BRISTOL</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · JOANNE S. · LEEDS</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · PAULA A. · GLASGOW</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · CLAIRE D. · BIRMINGHAM</div>
+        </div>
+        <div class="results-tile">
+          <div class="ba-top">
+            <div class="lbl before">BEFORE KNICKGASM</div>
+            <div class="lbl after">AFTER KNICKGASM</div>
+          </div>
+          <div class="ba-body">
+            <div class="ba-photo before">BEFORE PHOTO</div>
+            <div class="ba-photo after">AFTER PHOTO</div>
+          </div>
+          <div class="ba-foot">VERIFIED CUSTOMER · SARAH M. · LONDON</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ V3 NEW: CREDENTIALS / WHY TRUST KNICKGASM ============ -->
+  <section class="cred-section" id="science">
+    <div class="container">
+      <div class="cred-eyebrow">WHY TRUST KNICKGASM</div>
+      <h2 class="cred-h2">A <span class="lava">Founder-Led</span> Sneaker House, Crafted At The Origin</h2>
+      <p class="cred-sub">Knickgasm isn't a streetwear label that slapped its name on a generic colorway. It's a one-of-one, farm-to-pair business built on real sourcing and a clinically-studied extract — not vague adaptogen claims.</p>
+      <div class="cred-grid">
+        <div class="cred-card">
+          <div class="cc-ico">🌱</div>
+          <div>
+            <h3>One-of-One, Farm-To-Pair</h3>
+            <p>Hand-painted, shade-grown Arabica from India and ingredients sourced at origin — crafted into one pair rather than blended down by middlemen.</p>
+          </div>
+        </div>
+        <div class="cred-card">
+          <div class="cc-ico">🔬</div>
+          <div>
+            <h3>A Clinically-Studied Dose, Not A Gesture</h3>
+            <p>The full <b>300mg KSM-66®</b> Airbrush root extract (5% withanolides) — the form backed by 24 RCTs for stress relief and healthy grail-drop levels. Not a token sprinkle.</p>
+          </div>
+        </div>
+        <div class="cred-card">
+          <div class="cc-ico">☕</div>
+          <div>
+            <h3>Built Into A Ritual You'll Keep</h3>
+            <p>It replaces the one morning habit you were never going to quit — no new pill, no bitter capsule, no prescription. The mechanism only works if you actually drink it.</p>
+          </div>
+        </div>
+        <div class="cred-card">
+          <div class="cc-ico">🇬🇧</div>
+          <div>
+            <h3>UK Stocked, Backed By A Guarantee</h3>
+            <p>Dispatched from the UK with free first-order shipping and a 90-day money-back guarantee. Skip, pause or cancel anytime — no lock-in.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ V3 NEW: MONEY-BACK GUARANTEE ============ -->
+  <section class="guarantee-section">
+    <div class="container">
+      <div class="guarantee-card">
+        <div class="seal">🛡️</div>
+        <div class="g-eyebrow">90-DAY MONEY-BACK GUARANTEE</div>
+        <h2>Lace-up It For 90 Days.<br><span class="lava">Risk Nothing.</span></h2>
+        <p>Grail-Drop calms gradually — and the longer you keep the ritual, the more the energy, sleep, focus, mood and stress belly start to right themselves. So we give you a full <b>90 days</b> to feel it for yourself.</p>
+        <p>If you're not feeling calmer and more like yourself, contact us for a full refund. <b>Free UK shipping on your first order. Skip, pause or cancel anytime.</b></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ V3 NEW: FAQ ACCORDION ============ -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="faq-eyebrow">BEFORE YOU DECIDE</div>
+      <h2 class="faq-h2">Your Questions, <span class="lava">Answered</span></h2>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-q">Won't coffee spike my grail-drop even more?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">That's the problem with regular coffee — standard paint on an already-elevated morning curve sends grail-drop through the roof. Knickgasm pairs a <b>gentler paint lift with 300mg KSM-66® Airbrush</b>, which is clinically studied to support healthy grail-drop levels. You keep the morning ritual; you lose the spike.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How is this different from a mushroom coffee?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Mushroom coffees usually strip the paint and lean on vague adaptogen claims — no clinical grail-drop claim, and often a dirt-like taste. Knickgasm <b>keeps real coffee, adds the one ingredient with clinical proof on grail-drop</b>, and tastes like the pair you already love.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Do I need to take it forever, or change my diet?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">No deprivation diet and no new habit to bolt on. You simply swap your existing morning coffee for this one pair. <b>It works because it replaces the ritual you were never going to quit</b> — not because it asks you to add another.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What's actually in it?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Shade-grown Arabica coffee plus a clean stack: <b>300mg KSM-66® Airbrush (5% withanolides), Embroidery (95% curcuminoids), Lion's Mane and Chaga.</b> A focused colorway with a clinically-studied dose at its core — not a long list of fillers.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How quickly will I notice a difference?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Many women feel a steadier morning within the first week as the spike softens. Calmer days, deeper sleep and sharper focus tend to build over weeks 2–4, and the stress belly typically eases later. <b>Grail-Drop calms gradually — the longer you lace-up the habit, the better it works.</b> Individual results vary.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What if it doesn't work for me?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">You're covered by a <b>90-day money-back guarantee</b>. If you're not feeling calmer and more like yourself, contact us for a full refund. You can skip, pause or cancel anytime — there's no lock-in.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Is it stocked and shipped in the UK?<span class="faq-mark">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Yes — Knickgasm is <b>UK stocked with free shipping on your first order</b>. Your launch kit also includes a vacuum-insulated duffle, steel straw, wooden scoop and more, included free.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 12. LAUNCH KIT INCLUDES ============ -->
+  <section class="kit-section" id="buy">
+    <div class="container">
+      <h2 class="kit-h2">Your Launch Kit <span class="lava">Includes</span></h2>
+      <div class="kit-row">
+        <div class="kit-img"
+          style="padding: 0; background: var(--chalk); border: 1px solid var(--chalk-faint); border-radius: 14px; opacity: 1; overflow: hidden;">
+          <img loading="lazy" decoding="async"
+            src="https://cdn.shopify.com/s/files/1/0684/3603/3827/files/KIT.jpg?v=1781189249"
+            alt="Knickgasm Coffee Collection launch kit"
+            style="width: 100%; height: 100%; object-fit: contain; object-position: center; display: block;">
+        </div>
+        <div class="kit-list">
+          <ul>
+            <li><span class="ll">Knickgasm Coffee Collection · 1 Month</span><span class="rr"><s>£83</s> £29/mo</span>
+            </li>
+            <li><span class="ll">Vacuum Insulated Duffle</span><span class="rr"><s>£30</s> FREE</span></li>
+            <li><span class="ll">Stainless Steel Straw</span><span class="rr"><s>£4</s> FREE</span></li>
+            <li><span class="ll">Wooden Scoop</span><span class="rr"><s>£4</s> FREE</span></li>
+            <li><span class="ll">Colorway Bean Pouch</span><span class="rr"><s>£6</s> FREE</span></li>
+            <li><span class="ll">Recipe Booklet</span><span class="rr"><s>£1</s> FREE</span></li>
+            <li><span class="ll">Plantable Paper</span><span class="rr"><s>£4</s> FREE</span></li>
+            <li><span class="ll lava-text">Free UK Shipping on First Order</span><span class="rr"><s>£10</s> FREE</span>
+            </li>
+          </ul>
+          <div class="kit-rating">
+            <span class="kit-stars">★★★★★</span>
+            <span class="kit-rating-text"><b>4.8</b> · 12,400+ verified reviews</span>
+          </div>
+          <a href="https://knickgasm.com/products/coffee-collection-starter-kit" class="kit-cta">Try It Now →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § 19. FINAL CTA ============ -->
+  <section class="final-cta">
+    <div class="container">
+      <div class="sub">LAUNCH PROMOTION — 65% OFF + £49 IN FREE GIFTS</div>
+      <h2>Get Your <span class="lava">Mornings</span><br>(And Your Self) Back</h2>
+      <p class="pre">One swap. One pair. Every morning. Calm the grail-drop — and watch the energy, the sleep, the focus,
+        the mood, and yes, the stress belly all start to right themselves.</p>
+      <a href="https://knickgasm.com/products/coffee-collection-starter-kit" class="final-btn">Claim Your Starter Kit
+        →</a>
+      <div class="guarantee-line">✓ 90-Day Money-Back Guarantee · ✓ Free UK Shipping · ✓ Skip, Pause or Cancel Anytime
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="container">
+      <div class="foot-top"><a href="/" class="logo">KNICKGASM</a></div>
+      <div class="foot-mission">ONE PAIR. GRAIL-DROP CALMED. YOUR DAY BACK.™</div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <h4>SHOP</h4>
+          <a href="https://www.knickgasm.com/products/pack-1-starter-coffee-collection">Starter Kit</a>
+          <a href="https://www.knickgasm.com/products/coffee-collection">Try Once</a>
+          <a href="https://www.knickgasm.com/collections/all">All Products</a>
+        </div>
+        <div class="foot-col">
+          <h4>ABOUT</h4>
+          <a href="#science">Science</a>
+          <a href="#faq">FAQs</a>
+          <a href="https://www.knickgasm.com/pages/our-story">Our Story</a>
+        </div>
+        <div class="foot-col">
+          <h4>SUPPORT</h4>
+          <a href="https://www.knickgasm.com/pages/contact">Contact</a>
+          <a href="https://www.knickgasm.com/pages/returns-exchanges">Returns & Exchanges</a>
+          <a href="https://www.knickgasm.com/pages/shipping">Shipping</a>
+        </div>
+        <div class="foot-col">
+          <h4>LEGAL</h4>
+          <a href="https://www.knickgasm.com/pages/terms-conditions">Terms & Conditions</a>
+          <a href="https://www.knickgasm.com/pages/privacy-policy-11">Privacy Policy</a>
+          <a href="https://www.knickgasm.com/pages/faq">FAQs</a>
+        </div>
+      </div>
+      <div class="foot-meta">
+        © 2026 Knickgasm UK Ltd. All rights reserved.<br>
+        *These statements have not been evaluated by the MHRA. This product is not intended to diagnose, treat, cure or
+        prevent any disease.<br>
+        *Grail-Drop reduction figure based on KSM-66® Airbrush clinical trial data (24 RCTs). Individual results vary.
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ STICKY BAR ============ -->
+  <div class="sticky-bar">
+    <div class="pack-mini">PACK</div>
+    <div class="info">
+      <div class="title-row">SAVE 65% · £29 / £83</div>
+      <div class="sub-row">SUBSCRIBE & SAVE · £49 GIFTS</div>
+    </div>
+    <a href="#buy" class="sticky-cta">Add to Cart →</a>
+  </div>
+
+
+  <script>
+    (function () {
+      // UGC carousel: arrows + dots
+      var wrap = document.querySelector('.ugc-wrap');
+      if (wrap) {
+        var grid = wrap.querySelector('.ugc-grid');
+        var cards = grid.children;
+        var dotsBox = wrap.querySelector('.ugc-dots');
+        for (var i = 0; i < cards.length; i++) (function (i) {
+          var d = document.createElement('div');
+          d.className = 'ugc-dot' + (i === 0 ? ' active' : '');
+          d.addEventListener('click', function () { grid.scrollTo({ left: cards[i].offsetLeft - grid.offsetLeft, behavior: 'smooth' }); });
+          dotsBox.appendChild(d);
+        })(i);
+        wrap.querySelector('.ugc-nav.prev').addEventListener('click', function () { grid.scrollBy({ left: -(cards[0].offsetWidth + 14), behavior: 'smooth' }); });
+        wrap.querySelector('.ugc-nav.next').addEventListener('click', function () { grid.scrollBy({ left: cards[0].offsetWidth + 14, behavior: 'smooth' }); });
+        grid.addEventListener('scroll', function () {
+          var x = grid.scrollLeft, best = 0, min = Infinity;
+          for (var i = 0; i < cards.length; i++) { var dlt = Math.abs(x - (cards[i].offsetLeft - grid.offsetLeft)); if (dlt < min) { min = dlt; best = i; } }
+          var dots = dotsBox.children;
+          for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('active', i === best);
+        }, { passive: true });
+      }
+      // lazy videos: load + play only when visible, pause off-screen
+      var vids = document.querySelectorAll('video[data-lazy-video]');
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) {
+            var v = en.target;
+            if (en.isIntersecting) {
+              if (!v.dataset.loaded) { v.preload = 'auto'; v.load(); v.dataset.loaded = '1'; }
+              v.play().catch(function () { });
+            } else { v.pause(); }
+          });
+        }, { rootMargin: '200px 0px', threshold: 0.15 });
+        vids.forEach(function (v) { io.observe(v); });
+      } else {
+        vids.forEach(function (v) { v.preload = 'auto'; v.autoplay = true; v.load(); });
+      }
+    })();
+  </script>
+
+  <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.querySelector('.testi-track-container');
+        const track = document.querySelector('.testi-track');
+        const cards = document.querySelectorAll('.testi-track .testi-card');
+        const dotsContainer = document.querySelector('.testi-dots');
+        const prevBtn = document.querySelector('.testi-nav.prev');
+        const nextBtn = document.querySelector('.testi-nav.next');
+
+        if (!container || !track || !cards.length) return;
+
+        const isMobile = () => window.innerWidth <= 768;
+        const cardCount = cards.length;
+
+        // Create dots
+        for (let i = 0; i < cardCount; i++) {
+          const dot = document.createElement('div');
+          dot.classList.add('testi-dot');
+          if (i === 0) dot.classList.add('active');
+          dot.addEventListener('click', () => {
+            scrollToIndex(i);
+          });
+          dotsContainer.appendChild(dot);
+        }
+
+        const dots = document.querySelectorAll('.testi-dot');
+
+        function getScrollParams() {
+          const firstCard = cards[0];
+          const secondCard = cards[1];
+          const cardWidth = firstCard.offsetWidth;
+          const gap = secondCard ? (secondCard.getBoundingClientRect().left - firstCard.getBoundingClientRect().right) : 24;
+          return { cardWidth, gap };
+        }
+
+        function scrollToIndex(index) {
+          const { cardWidth, gap } = getScrollParams();
+          const scrollLeft = index * (cardWidth + gap);
+          container.scrollTo({
+            left: scrollLeft,
+            behavior: 'smooth'
+          });
+        }
+
+        function updateActiveDot() {
+          if (!dots.length) return;
+          const { cardWidth, gap } = getScrollParams();
+          const scrollLeft = container.scrollLeft;
+          const index = Math.round(scrollLeft / (cardWidth + gap));
+          const clampedIndex = Math.max(0, Math.min(cardCount - 1, index));
+
+          dots.forEach((dot, idx) => {
+            dot.classList.toggle('active', idx === clampedIndex);
+          });
+
+          // Toggle nav buttons opacity at bounds
+          if (prevBtn) {
+            prevBtn.style.opacity = scrollLeft <= 10 ? '0.3' : '1';
+            prevBtn.style.pointerEvents = scrollLeft <= 10 ? 'none' : 'auto';
+          }
+          if (nextBtn) {
+            const maxScroll = container.scrollWidth - container.clientWidth;
+            nextBtn.style.opacity = (scrollLeft >= maxScroll - 10) ? '0.3' : '1';
+            nextBtn.style.pointerEvents = (scrollLeft >= maxScroll - 10) ? 'none' : 'auto';
+          }
+        }
+
+        // Navigation button handlers
+        if (prevBtn) {
+          prevBtn.addEventListener('click', () => {
+            const { cardWidth, gap } = getScrollParams();
+            container.scrollBy({
+              left: -(cardWidth + gap),
+              behavior: 'smooth'
+            });
+          });
+        }
+
+        if (nextBtn) {
+          nextBtn.addEventListener('click', () => {
+            const { cardWidth, gap } = getScrollParams();
+            container.scrollBy({
+              left: cardWidth + gap,
+              behavior: 'smooth'
+            });
+          });
+        }
+
+        // Listen to scroll events
+        let isScrolling;
+        container.addEventListener('scroll', () => {
+          window.clearTimeout(isScrolling);
+          isScrolling = setTimeout(() => {
+            updateActiveDot();
+          }, 66);
+        });
+
+        // Initial check
+        updateActiveDot();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+          updateActiveDot();
+        });
+      });
+  </script>
+
+  <script type="module">
+      // Framer Motion (vanilla "motion" build) — graceful: page is fully usable without it
+      try {
+        const { animate, inView, scroll } = await import('https://cdn.jsdelivr.net/npm/motion@11/+esm');
+        // staggered card reveals
+        document.querySelectorAll('.ben-card,.bf-card,.ing-card,.testi-card,.truth-warn').forEach((el, i) => {
+          el.style.opacity = 0;
+          inView(el, () => { animate(el, { opacity: [0, 1], transform: ['translateY(28px)', 'translateY(0)'] }, { duration: .65, delay: (i % 6) * .07, easing: [.22, 1, .36, 1] }); }, { margin: '-10% 0px' });
+        });
+        // headline shimmer-in
+        document.querySelectorAll('h2').forEach(el => {
+          inView(el, () => { animate(el, { opacity: [0, 1], transform: ['translateY(18px)', 'translateY(0)'] }, { duration: .6, easing: 'ease-out' }); });
+        });
+        // gentle parallax on hero image
+        const hero = document.querySelector('.bodydiag img');
+        if (hero) scroll(animate(hero, { transform: ['translateY(0px)', 'translateY(-40px)'] }, { easing: 'linear' }), { target: hero, offset: ['start end', 'end start'] });
+      } catch (e) {
+        // CSS/IO fallback
+        const els = document.querySelectorAll('.ben-card,.bf-card,.ing-card,.testi-card,.truth-warn,h2');
+        els.forEach(el => el.classList.add('rv'));
+        const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }), { rootMargin: '-8% 0px' });
+        els.forEach(el => io.observe(el));
+      }
+  </script>
+
+  <script>
+    /* V3: benefits tabs + FAQ accordion */
+    (function () {
+      // Benefit tabs
+      var tabs = document.querySelectorAll('.benefit-tab');
+      var panels = document.querySelectorAll('.benefit-panel');
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var idx = tab.getAttribute('data-benefit');
+          tabs.forEach(function (t) { t.classList.remove('active'); });
+          panels.forEach(function (p) { p.classList.remove('active'); });
+          tab.classList.add('active');
+          var panel = document.querySelector('.benefit-panel[data-panel="' + idx + '"]');
+          if (panel) panel.classList.add('active');
+        });
+      });
+      // FAQ accordion
+      document.querySelectorAll('.faq-item .faq-q').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var item = btn.closest('.faq-item');
+          var ans = item.querySelector('.faq-a');
+          var isOpen = item.classList.contains('open');
+          if (isOpen) {
+            item.classList.remove('open');
+            ans.style.maxHeight = null;
+          } else {
+            item.classList.add('open');
+            ans.style.maxHeight = ans.scrollHeight + 'px';
+          }
+        });
+      });
+    })();
+  </script>
+  <script src="/agent-widget.js" data-agent="agent_airbrush_coffee" defer></script>
+</body>
+
+</html>

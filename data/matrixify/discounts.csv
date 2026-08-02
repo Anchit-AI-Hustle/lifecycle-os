@@ -1,0 +1,5 @@
+id,title,code,discount_type,value,value_type,target_type,target_selection,allocation_method,once_per_customer,usage_limit,times_used,starts_at,ends_at,status,created_at,updated_at
+disc1844342489,SAVE10,KNICKGASM10,percentage,10,percentage,line_item,all,across,False,,305,2023-01-01 00:00:00,2025-12-31 00:00:00,active,2023-01-01 00:00:00,2024-01-01 00:00:00
+disc3310170972,SAVE15,KNICKGASM15,percentage,15,percentage,line_item,all,across,False,,238,2023-01-01 00:00:00,2025-12-31 00:00:00,active,2023-01-01 00:00:00,2024-01-01 00:00:00
+disc6354940271,SAVE20,KNICKGASM20,percentage,20,percentage,line_item,all,across,False,,125,2023-01-01 00:00:00,2025-12-31 00:00:00,active,2023-01-01 00:00:00,2024-01-01 00:00:00
+disc1075183382,SAVE25,KNICKGASM25,percentage,25,percentage,line_item,all,across,False,,416,2023-01-01 00:00:00,2025-12-31 00:00:00,active,2023-01-01 00:00:00,2024-01-01 00:00:00

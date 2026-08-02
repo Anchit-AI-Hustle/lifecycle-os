@@ -1,0 +1,6 @@
+{
+  "name": "Knickgasm Campaign Hub",
+  "description": "Knickgasm India Coffee Collection UK launch marketing automation dashboard, compiling high-converting landing pages for various stress, bloating, and face puffiness campaign themes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

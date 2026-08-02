@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cohorts - KNICKGASM Lifecycle OS</title>
+<link rel="icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+  :root{
+    --violet:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
+    --bg:#F7F5F2; --surface:#ffffff; --line:#e3d8c2; --soft:#5c5347; --chip:#f0e7d3;
+    --head:#6A33D8; --accent:#D0473E;
+  }
+  @media (prefers-color-scheme: dark){:root{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}}
+  :root[data-theme="dark"]{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}
+  :root[data-theme="light"]{--bg:#F7F5F2;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--ink:#111111;--head:#6A33D8;--accent:#D0473E;--chip:#f0e7d3;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
+  .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
+  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--head);margin:0;text-wrap:balance;}
+  h1{font-size:32px;} h2{font-size:21px;margin-top:2px;} h3{font-size:16px;}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--accent);font-weight:700;}
+  p.lede{color:var(--soft);max-width:72ch;margin:6px 0 0;}
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;margin:22px 0 8px;border-bottom:1px solid var(--line);}
+  .tab{cursor:pointer;border:0;background:transparent;color:var(--soft);font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 14px;border-bottom:3px solid transparent;margin-bottom:-1px;border-radius:6px 6px 0 0;white-space:nowrap;transition:background .12s,color .12s;}
+  .tab:hover{color:var(--head);background:var(--chip);}
+  /* Selected tab: solid green pill + chalk text + lava underline — unmistakable in light and dark */
+  .tab.active{color:var(--chalk);background:var(--violet);border-bottom-color:var(--lava);box-shadow:0 1px 0 var(--lava);}
+  .tab.active .chip{background:rgba(251,245,234,0.16);color:var(--chalk);}
+  .tab.active .cnt{background:rgba(251,245,234,0.18)!important;color:var(--chalk)!important;}
+  .tab:focus-visible{outline:2px solid var(--lava);outline-offset:2px;}
+  .panel{display:none;padding-top:20px;} .panel.active{display:block;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;}
+  .card .n{font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:var(--head);font-variant-numeric:tabular-nums;line-height:1;}
+  .card .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);margin-top:5px;}
+  .card .d{color:var(--soft);font-size:13px;margin-top:8px;}
+  .card.link{cursor:pointer;transition:border-color .15s;} .card.link:hover{border-color:var(--accent);}
+  .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
+  .v2{background:#e7f0e9;color:#6A33D8;}
+  @media (prefers-color-scheme:dark){.v2{background:#1d3326;color:#9fd0ae;}}
+  :root[data-theme="dark"] .v2{background:#1d3326;color:#9fd0ae;}
+  .row{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:15px 18px;margin-bottom:10px;}
+  .row .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .row .code{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.05em;}
+  .row .name{font-weight:700;color:var(--head);font-size:15px;}
+  .row dl{margin:10px 0 0;display:grid;grid-template-columns:130px 1fr;gap:5px 14px;}
+  .row dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;padding-top:2px;}
+  .row dd{margin:0;color:var(--ink);font-size:13.5px;}
+  .stage-h{display:flex;align-items:baseline;gap:10px;margin:24px 0 10px;flex-wrap:wrap;}
+  .mix{display:inline-flex;gap:6px;flex-wrap:wrap;} .mix span{background:var(--chip);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--head);}
+  .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:26px;padding-top:14px;}
+  a{color:var(--head);text-decoration-color:var(--accent);}
+  .how{background:var(--chip);border-radius:8px;padding:14px 16px;margin:14px 0;color:var(--soft);font-size:13.5px;}
+  @media (max-width:520px){.row dl{grid-template-columns:1fr;gap:2px 0;} .row dt{margin-top:6px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">KNICKGASM Lifecycle OS - Research &amp; Benchmark</span>
+  <h1>Cohorts</h1>
+  <p class="lede">The shared dictionary every mailer, ad, landing page and social post targets. Six ways to group customers, from the two engagement cohorts driving today's sends to the full lifecycle map, engagement levels, and product-world cohorts. Use these names verbatim in briefs so copy, imagery and offers stay consistent across every channel.</p>
+
+  <div class="tabs" id="tabs" role="tablist">
+    <button class="tab active" role="tab" data-tab="overview">Overview</button>
+    <button class="tab" role="tab" data-tab="engagement">Engagement Cohorts <span class="chip v2">V2</span></button>
+    <button class="tab" role="tab" data-tab="englevel">Engagement Levels</button>
+    <button class="tab" role="tab" data-tab="product">Product Cohorts</button>
+    <button class="tab" role="tab" data-tab="lifecycle">Lifecycle Stages <span class="chip">V1</span></button>
+    <button class="tab" role="tab" data-tab="rfm">RFM Segments <span class="chip">V1</span></button>
+    <button class="tab" role="tab" data-tab="behavioral">Behavioral</button>
+  </div>
+
+  <section class="panel active" id="panel-overview" role="tabpanel">
+    <div class="cards">
+      <div class="card link" data-goto="engagement"><div class="n">6</div><div class="lbl">Engagement Cohorts <span class="chip v2">V2</span></div><div class="d">Purchase history crossed with engagement. Cohorts A and B are the active program.</div></div>
+      <div class="card link" data-goto="englevel"><div class="n">8</div><div class="lbl">Engagement Levels</div><div class="d">Email and SMS behaviour bands, from highly engaged to suppressed.</div></div>
+      <div class="card link" data-goto="product"><div class="n">16</div><div class="lbl">Product Cohorts</div><div class="d">By category, collection and purchase mode, sneaker, coffee, supplements.</div></div>
+      <div class="card link" data-goto="lifecycle"><div class="n">12</div><div class="lbl">Lifecycle Stages <span class="chip">V1</span></div><div class="d">The full journey, prospect to churned, across 5 stages.</div></div>
+      <div class="card link" data-goto="rfm"><div class="n">11</div><div class="lbl">RFM Segments <span class="chip">V1</span></div><div class="d">Recency, Frequency, Monetary buckets. Drives cadence.</div></div>
+      <div class="card link" data-goto="behavioral"><div class="n">11</div><div class="lbl">Behavioral</div><div class="d">Interest groups the Smart Brain uses to theme content.</div></div>
+    </div>
+    <div class="how">
+      <b style="color:var(--head)">How the lenses fit together.</b> Every customer sits in one <b>Lifecycle Stage</b> (where they are in the journey), one <b>RFM Segment</b> (how valuable and recent), one <b>Engagement Level</b> (how they treat our email), and one or more <b>Product Cohorts</b> (what they buy). The <b>Engagement Cohorts</b> are purchase history crossed with engagement level; Cohorts A and B are the specific dormant slices we work right now. <b>Behavioral</b> cohorts cut across everything by interest, so creative can be themed. Pick the lens the task needs: targeting starts with Engagement or Product, cadence uses RFM, journey logic uses Lifecycle Stage, and theming uses Behavioral.
+    </div>
+  </section>
+
+  <section class="panel" id="panel-engagement" role="tabpanel">
+    <h2>Engagement Cohorts <span class="chip v2">V2 - active program</span></h2>
+    <p class="lede">Purchase history crossed with email engagement, the full matrix. Cohorts A and B (badged V2) are the dormant audiences the current lifecycle program re-engages and what the Mailer Calendar and UK Non-Engagers hub target today. C to F cover the rest of the grid, engaged non-buyers, engaged buyers, quiet new-line buyers and multi-category near-VIPs, so every contact maps to one.</p>
+    <div id="engagement"></div>
+  </section>
+
+  <section class="panel" id="panel-englevel" role="tabpanel">
+    <h2>Engagement Levels</h2>
+    <p class="lede">How a contact treats our messages, independent of whether they have bought. This band, crossed with purchase history, is what defines the Engagement Cohorts. It also sets send frequency: engaged contacts sustain more, disengaged ones get fewer, sharper touches to protect deliverability.</p>
+    <div id="englevel"></div>
+  </section>
+
+  <section class="panel" id="panel-product" role="tabpanel">
+    <h2>Product Cohorts</h2>
+    <p class="lede">Grouped by what a customer buys: product category, finer collection, and purchase mode. This decides which world a message lives in and which cross-grade is natural. Sneakers &amp; Botanicals are one-time only, Coffee and Supplements lead with subscription.</p>
+    <div class="stage-h"><h3>By category</h3></div><div id="prod-cat"></div>
+    <div class="stage-h"><h3>By collection (within Sneakers &amp; Botanicals)</h3></div><div id="prod-coll"></div>
+    <div class="stage-h"><h3>By purchase mode</h3></div><div id="prod-mode"></div>
+  </section>
+
+  <section class="panel" id="panel-lifecycle" role="tabpanel">
+    <h2>Lifecycle Stages <span class="chip">V1</span></h2>
+    <p class="lede">The complete journey in 12 named cohorts across 5 stages. Each names a precise stage, defines exactly who lands in it, and states the audience and the trigger that should convert them.</p>
+    <div id="lifecycle"></div>
+  </section>
+
+  <section class="panel" id="panel-rfm" role="tabpanel">
+    <h2>RFM Segments <span class="chip">V1</span></h2>
+    <p class="lede">Recency, Frequency and Monetary scoring buckets from analytics. They drive send cadence in the 30-day Plan Calendar: higher-value engaged segments sustain more frequency, lapsed ones get fewer, sharper touches.</p>
+    <div id="rfm"></div>
+  </section>
+
+  <section class="panel" id="panel-behavioral" role="tabpanel">
+    <h2>Behavioral Cohorts</h2>
+    <p class="lede">Interest and behaviour groups the Smart Brain derives from purchase and browse patterns. They cut across lifecycle and RFM, and theme creative (which ritual, which product world) rather than set cadence.</p>
+    <div id="behavioral"></div>
+  </section>
+
+  <p class="note">One customer can appear in several lenses at once. Always target by the most specific cohort a task needs. The names here are the source of truth, use them verbatim in every brief.</p>
+</div>
+
+<script>
+const ENGAGEMENT = [
+  { code:'Cohort A', name:'Non-Buyers / Non-Engagers', badge:'V2',
+    def:'On the list, never purchased, and have not opened or clicked recently.',
+    objective:'Earn the open, earn the click, first purchase.',
+    voice:'No guilt, no pressure. Introduce the brand as if for the first time, warm, sensory, story-driven. Lead with what a pair feels like, not what it costs. One clear idea per email.',
+    mix:['Coffee x4','T&amp;B x1','Supplements x1'] },
+  { code:'Cohort B', name:'T&amp;B Buyers / Non-Engagers', badge:'V2',
+    def:'Bought Sneakers &amp; Botanicals before and have gone quiet.',
+    objective:'Reactivate with familiarity, then cross-grade to Coffee / Supplements subscription.',
+    voice:'Welcome back an old friend, acknowledge the relationship without guilt. Start from the sneakers they already know, then introduce what is new from the same sneaker people. Never make them feel watched or chased.',
+    mix:['T&amp;B x3','Coffee x2','Supplements x1'] },
+  { code:'Cohort C', name:'Non-Buyers / Engaged', badge:'',
+    def:'On the list, opening and clicking within 90 days, but has never purchased.',
+    objective:'Convert warm interest into a first order while attention is high.',
+    voice:'Reward the curiosity. Confident, specific, low-friction. Remove the last doubt with proof and one easy first step.',
+    mix:['T&amp;B x2','Coffee x2','Supplements x1'] },
+  { code:'Cohort D', name:'T&amp;B Buyers / Engaged', badge:'',
+    def:'Bought Sneakers &amp; Botanicals and still open and click regularly.',
+    objective:'Sustain the habit, grow the basket, cross-grade to Coffee / Supplements subscription.',
+    voice:'Talk to a friend who is already in. Depth, range and the next ritual, never a hard sell.',
+    mix:['T&amp;B x2','Coffee x2','Supplements x2'] },
+  { code:'Cohort E', name:'Coffee / Supplement Buyers / Non-Engagers', badge:'',
+    def:'Bought Coffee Collection or a supplement, then went quiet on email.',
+    objective:'Protect the subscription window, win the reorder before the routine breaks.',
+    voice:'Steady and useful. Reorder rhythm, refill value, the gifts they already earned. No pressure.',
+    mix:['Coffee x3','Supplements x2','T&amp;B x1'] },
+  { code:'Cohort F', name:'Multi-Category / Engaged (near-VIP)', badge:'',
+    def:'Bought across two or more categories and stays engaged. The highest-potential slice.',
+    objective:'Deepen loyalty, move to subscription, invite to first-look and referral.',
+    voice:'Recognition and access. Treat as an insider, provenance and early drops over discounts.',
+    mix:['Coffee x2','T&amp;B x2','Supplements x2'] },
+];
+const ENGLEVEL = [
+  {code:'Highly Engaged', def:'Opened and clicked more than once in the last 30 days.', use:'Highest send tolerance. First look at drops, reviews and referral asks.'},
+  {code:'Active Openers', def:'Open regularly but click less often, active in the last 45 days.', use:'Stronger single CTA, make the click worth it. Test subject and hook.'},
+  {code:'Clickers', def:'Click when a message lands but open inconsistently.', use:'Lead with the offer or product, they act on relevance not habit.'},
+  {code:'Lapsing Engagers', def:'Engaged 90 to 180 days ago, quiet since.', use:'Reconnect early with a light, warm touch before they go fully cold.'},
+  {code:'Non-Engagers', def:'No open or click in 90+ days. The dormant slice the active program targets.', use:'Short, curiosity-led subjects. Earn one open at a time, no pressure.'},
+  {code:'Never Engaged', def:'On the list but has never opened a single send.', use:'Re-permission and a fresh introduction, then sunset if still silent.'},
+  {code:'SMS / Push Engaged', def:'Answers on SMS or push even when email stays quiet.', use:'Shift the touch to the channel they respond on, keep email light to protect deliverability.'},
+  {code:'Unsubscribed / Suppressed', def:'Opted out of email or suppressed for deliverability.', use:'No email. Reach only on-site or other channels, and honour the opt-out.'},
+];
+const PROD_CAT = [
+  {code:'Sneakers &amp; Botanicals', def:'Bought sneaker (hand-painted, lace sets, samplers, gifts). One-time purchase only.', use:'Replenishment and range discovery. Natural bridge into Coffee and Supplements.'},
+  {code:'Coffee (Airbrush)', def:'Bought Coffee Collection, one-time or subscription.', use:'Subscription is the priority: gifts worth 105 pounds a year, refill rhythm, B2G1 on Pack of 3.'},
+  {code:'Supplements', def:'Bought Embroidery Curcumin or Green Burner. New line, few buyers yet.', use:'Subscription-first framing, daily-rhythm story. First-to-try positioning while it is new.'},
+  {code:'Multi-Category', def:'Bought across two or more of Sneaker, Coffee, Supplements.', use:'Highest LTV potential. Bundle across worlds, lead with subscription and membership.'},
+  {code:'Accessories &amp; Kit', def:'Bought a frother, scoop, straw or gifting kit, with or without a consumable.', use:'Attach to a sneaker or coffee order as the ritual upgrade, never a standalone push.'},
+];
+const PROD_COLL = [
+  {code:'Black Sneaker', def:'Court Vision, Airforce, Jordan and breakfast colorways.', use:'Bold, everyday ritual. Cross-sell kicks and one-of-one.'},
+  {code:'Green Sneaker', def:'Signature green, designed greens, dunks.', use:'Lighter ritual and functional angle. Bridge to dunks and themed.'},
+  {code:'Kicks', def:'Hand-painted, spice and chrome kicks buyers.', use:'Strong design loyalty. Kicks-first launches, spice provenance, then embroidery.'},
+  {code:'Themed / Tisane', def:'Embroidery, neon, crimson and scuff-resistant tisanes.', use:'Streetwear-curious. Cleanest bridge to Supplements and Coffee Collection.'},
+  {code:'Dunks / Instant', def:'Dunks powders and instant lattes.', use:'Convenience ritual. Cross-sell frother and coffee.'},
+  {code:'Gifts / Samplers', def:'Bought gift sets or design samplers.', use:'Occasion timing and discovery. Higher AOV, seasonal spikes.'},
+  {code:'White &amp; Hightop', def:'Delicate whites and hightops, the premium tier.', use:'Connoisseur tone, one-of-one provenance, higher AOV, gentle pours.'},
+  {code:'Streetwear / Functional', def:'Embroidery-forward, sleep, immunity and calm colorways.', use:'Cleanest bridge to Supplements and Coffee Collection. Non-medical benefit framing.'},
+];
+const PROD_MODE = [
+  {code:'One-Time Buyers', def:'Buy per-order, no active subscription.', use:'Show the subscription value (price, gifts, rhythm) on Coffee and Supplements. Never sub-frame T&amp;B.'},
+  {code:'Subscribers', def:'Hold an active recurring order.', use:'Retention-first: rotation, easy skip/swap, surprise upgrades. Protect churn, never hard-sell.'},
+  {code:'Lapsed Subscribers', def:'Held a subscription, then cancelled or let it lapse.', use:'Win back the rhythm: what they will miss, an easy restart, and one fair incentive.'},
+];
+const STAGES = [
+  { id:'new',label:'New &amp; Prospect',desc:'Winning trust and the first (and second) order.' },
+  { id:'active',label:'Active',desc:'Building the habit and growing the basket.' },
+  { id:'vip',label:'Loyal &amp; VIP',desc:'Recognition, early access, protecting the relationship.' },
+  { id:'risk',label:'At Risk',desc:'Rhythm slipping. Nudge before they lapse.' },
+  { id:'lapsed',label:'Lapsed',desc:'Win-back, then a graceful sunset.' },
+];
+const LIFECYCLE = [
+  {stage:'new',code:'NEW-00',name:'Prospect / Non-buyer',def:'On the list but no purchase yet. Engaged with email or site in the last 30 days.',audience:'Streetwear-curious browsers who signed up for a discount or guide and are still comparing. Trust not yet earned.',trigger:'First-order incentive plus origin story. Lead with freshness proof and a low-risk bestseller or sampler.'},
+  {stage:'new',code:'NEW-01',name:'First-Time Buyer (0 to 45 days)',def:'Exactly one order, placed within the last 45 days. Still inside the first repurchase window.',audience:'Just tried KNICKGASM for the first time. Forming an opinion on taste, freshness and crafting.',trigger:'Onboarding: how to lace-up, what to try next, a gentle second-order nudge before the box runs low.'},
+  {stage:'new',code:'NEW-02',name:'Second-Order Pending',def:'One order, 30 to 60 days old, no repeat yet, approaching the end of a typical pack.',audience:'Liked it enough to finish the pack but has not reordered. The make-or-break moment for retention.',trigger:'Replenishment reminder plus a small thank-you offer or free shipping to lock in the habit.'},
+  {stage:'active',code:'ACT-01',name:'Repeat / Habitual',def:'2 to 4 lifetime orders, last order within 60 days. Buying on a roughly regular cadence.',audience:'Has a go-to colorway and reorders it. Open to discovering one adjacent product at a time.',trigger:'Cross-sell the natural next ritual (kicks to embroidery, green to dunks) and introduce subscription savings.'},
+  {stage:'active',code:'ACT-02',name:'Growing Basket',def:'3 or more orders with rising AOV or items-per-order over the last 90 days.',audience:'Increasingly invested, trying multiple categories, gifting, exploring bundles.',trigger:'Bundles, design flights, and a free-shipping threshold pegged just above current AOV.'},
+  {stage:'active',code:'ACT-03',name:'Subscriber / Auto-Replenish',def:'Holds an active subscription or recurring order.',audience:'Locked into a ritual and predictable revenue. Values consistency and a sense of membership.',trigger:'Retention-first: surprise upgrades, design rotation, easy skip and swap. Never hard-sell, protect churn.'},
+  {stage:'vip',code:'VIP-01',name:'Loyal Core',def:'5 or more lifetime orders, last order within 75 days, consistent cadence.',audience:'Reliable repeat buyers who advocate by word of mouth. The backbone of revenue.',trigger:'Recognition, loyalty perks, and first look at new drops before the broader list.'},
+  {stage:'vip',code:'VIP-02',name:'High-Value VIP',def:'Top quintile by lifetime value or AOV well above brand average, active in the last 90 days.',audience:'Premium, gift-heavy, brand-loyal buyers. Care about quality, provenance and exclusivity over discounts.',trigger:'Early and exclusive access, limited one-of-one drops, concierge tone. Discounts are a last resort.'},
+  {stage:'risk',code:'RISK-01',name:'At-Risk Regular',def:'Previously regular (3 or more orders) but no order in 75 to 120 days, past their normal cycle.',audience:'A habitual buyer whose rhythm has slipped. Still warm, but cooling.',trigger:'Personalised "your colorway, restocked" nudge plus a modest, time-bound incentive before they fully lapse.'},
+  {stage:'risk',code:'RISK-02',name:'One-and-Done Stalling',def:'Single order, now 60 to 120 days old, no second purchase. Aging out of NEW.',audience:'Tried once, never returned. Either taste, price or timing missed.',trigger:'Reason-to-return: a different colorway recommendation, a clear offer, and a freshness reminder.'},
+  {stage:'lapsed',code:'LAP-01',name:'Lapsed Buyer',def:'No order in 120 to 270 days. Previously purchased at least once.',audience:'Disengaged but not gone. Needs a strong, specific reason and a freshness reset.',trigger:'Win-back: new-drop news plus a meaningful offer (a clear percentage or a free sampler with order).'},
+  {stage:'lapsed',code:'LAP-02',name:'Dormant / Churned',def:'No order in 270+ days and low email engagement. Effectively churned.',audience:'Cold. Treat as near-reacquisition, many will not return at any price.',trigger:'Final win-back sequence, then sunset. One bold offer or brand-story re-introduction, then reduce send frequency.'},
+];
+const RFM = [
+  {code:'Champions',def:'Bought recently, buy often, spend the most.',use:'Reward, early access, ask for reviews and referrals. Highest send tolerance.'},
+  {code:'Loyal',def:'Buy regularly, responsive, solid spend.',use:'Sustain the habit, cross-sell adjacent rituals, invite to subscription.'},
+  {code:'Promising',def:'Recent buyers with growing frequency.',use:'Nurture toward a second and third order, introduce the range.'},
+  {code:'New',def:'Just made a first purchase, low history.',use:'Onboard, set expectations, lace-up guidance and a gentle second-order nudge.'},
+  {code:'Need-Attention',def:'Above-average history but recency slipping.',use:'Re-engage with relevance before value decays, a timely restock prompt.'},
+  {code:'About-to-Sleep',def:'Below-average recency and frequency, cooling.',use:'Light win-back, a reason to return, watch for lapse.'},
+  {code:'At-Risk',def:'Spent well once but have not returned in a while.',use:'Personalised win-back with a modest, time-bound incentive.'},
+  {code:'Hibernating',def:'Low recency, low frequency, long gap since last order.',use:'Strong, specific offer plus freshness reset, then sunset if no response.'},
+  {code:'Potential Loyalists',def:'Recent buyers with more than one order and rising frequency.',use:'Encourage the next order and introduce subscription, they are on the loyalty path.'},
+  {code:'Can-not-Lose-Them',def:'Spent the most and bought often, but have not returned in a long time.',use:'Highest-priority personal win-back, the biggest revenue at risk. Concierge tone, a real reason to return.'},
+  {code:'Lost',def:'Lowest recency and engagement, effectively churned.',use:'One bold re-introduction, then reduce frequency to protect deliverability.'},
+];
+const BEHAVIORAL = [
+  {code:'VIP Ritualists',def:'High-value buyers with a fixed daily ritual and consistent cadence.',use:'Provenance, one-of-one drops, membership tone.'},
+  {code:'Streetwear Seekers',def:'Drawn to functional benefits, themed, embroidery, calm and balance.',use:'Ingredient stories and gentle, non-medical benefit framing.'},
+  {code:'Kicks Loyalists',def:'Buy kicks repeatedly, strong design preference.',use:'Kicks-first launches, spice provenance, crafting rituals.'},
+  {code:'Gift Buyers',def:'Purchase around occasions, higher AOV, seasonal spikes.',use:'Gift sets, bundles, occasion-timed sends.'},
+  {code:'New Customers',def:'First 60 days, still forming an opinion.',use:'Onboarding education and a confident second-order path.'},
+  {code:'At-Risk Winback',def:'Previously active, recency past their normal cycle.',use:'Familiar-colorway restock plus a timely reason to return.'},
+  {code:'Discount Responsive',def:'Historically convert mainly on promotions.',use:'Reserve offers for these, protect full-margin buyers from a discount habit.'},
+  {code:'Engaged Non-buyers',def:'Open and click within 90 days but have never purchased.',use:'First-purchase nudges, low-risk samplers, remove friction.'},
+  {code:'Scuff-Resistant Seekers',def:'Prefer themed, tisane and decaf, avoid paint.',use:'Lead with scuff-resistant ranges, evening ritual and calm. Never push black sneaker or coffee.'},
+  {code:'Convenience / Instant',def:'Buy dunks powders, instant lattes and quick formats.',use:'Speed and ease, frother and single-serve, natural coffee cross-sell.'},
+  {code:'Sustainability-Driven',def:'Motivated by B-Corp, plastic-free and ethical sourcing.',use:'Provenance, certifications and impact stories, refills over single buys.'},
+];
+
+function renderEngagement(){
+  document.getElementById('engagement').innerHTML = ENGAGEMENT.map(c=>`
+    <div class="row"><div class="top"><span class="code">${c.code}</span><span class="name">${c.name}</span><span class="chip v2">${c.badge}</span></div>
+    <dl><dt>Who</dt><dd>${c.def}</dd><dt>Objective</dt><dd>${c.objective}</dd><dt>Voice</dt><dd>${c.voice}</dd>
+    <dt>Product mix</dt><dd><span class="mix">${c.mix.map(m=>`<span>${m}</span>`).join('')}</span></dd></dl></div>`).join('');
+}
+function renderLifecycle(){
+  document.getElementById('lifecycle').innerHTML = STAGES.map(s=>{
+    const rows = LIFECYCLE.filter(c=>c.stage===s.id).map(c=>`
+      <div class="row"><div class="top"><span class="code">${c.code}</span><span class="name">${c.name}</span></div>
+      <dl><dt>Definition</dt><dd>${c.def}</dd><dt>Audience</dt><dd>${c.audience}</dd><dt>Trigger</dt><dd>${c.trigger}</dd></dl></div>`).join('');
+    return `<div class="stage-h"><h3>${s.label}</h3><span style="color:var(--soft);font-size:12.5px">${s.desc}</span></div>${rows}`;
+  }).join('');
+}
+function renderSimple(id, arr, k1, k2){
+  document.getElementById(id).innerHTML = arr.map(c=>`
+    <div class="row"><div class="top"><span class="name">${c.code}</span></div>
+    <dl><dt>${k1}</dt><dd>${c.def}</dd><dt>${k2}</dt><dd>${c.use}</dd></dl></div>`).join('');
+}
+renderEngagement();
+renderLifecycle();
+renderSimple('englevel', ENGLEVEL, 'Definition', 'How we use it');
+renderSimple('prod-cat', PROD_CAT, 'Definition', 'How we use it');
+renderSimple('prod-coll', PROD_COLL, 'Definition', 'How we use it');
+renderSimple('prod-mode', PROD_MODE, 'Definition', 'How we use it');
+renderSimple('rfm', RFM, 'Definition', 'How we use it');
+renderSimple('behavioral', BEHAVIORAL, 'Signal', 'How we use it');
+
+// Show the cohort count in each tab AND section header, counted from the
+// actually-rendered .row items so the number can never drift from content.
+(function annotateCounts(){
+  const CNT = 'display:inline-block;margin-left:7px;padding:1px 8px;border-radius:999px;'
+    + 'background:rgba(171,135,67,0.14);color:var(--lava);font-size:11px;font-weight:700;vertical-align:middle';
+  ['engagement','englevel','product','lifecycle','rfm','behavioral'].forEach(id=>{
+    const panel=document.getElementById('panel-'+id); if(!panel) return;
+    const n=panel.querySelectorAll('.row').length; if(!n) return;
+    const tab=document.querySelector('.tab[data-tab="'+id+'"]');
+    if(tab && !tab.querySelector('.cnt')) tab.insertAdjacentHTML('beforeend',' <span class="cnt" style="'+CNT+'">'+n+'</span>');
+    const h2=panel.querySelector('h2');
+    if(h2 && !h2.querySelector('.cnt')) h2.insertAdjacentHTML('beforeend',' <span class="cnt" style="'+CNT+'">'+n+' cohorts</span>');
+  });
+})();
+
+const TAB_IDS = ['overview','engagement','englevel','product','lifecycle','rfm','behavioral'];
+function showTab(id){
+  if(TAB_IDS.indexOf(id)===-1) id='overview';
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+id));
+  try{ history.replaceState(null,'','?tab='+id); }catch(_){}
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab)));
+document.querySelectorAll('.card.link').forEach(c=>c.addEventListener('click',()=>showTab(c.dataset.goto)));
+(function(){ const q=new URLSearchParams(location.search).get('tab'); const h=(location.hash||'').replace('#',''); showTab(q||h||'overview'); })();
+</script>
+<script defer src="/auth.js"></script>
+</body>
+</html>

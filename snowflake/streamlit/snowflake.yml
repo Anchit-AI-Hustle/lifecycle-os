@@ -1,0 +1,26 @@
+# Snowflake project definition for the KNICKGASM Analytics Streamlit-in-Snowflake app.
+# Deploy with the Snowflake CLI:  snow streamlit deploy --replace
+#
+# IMPORTANT — single main file, no stray copies:
+#   * main_file is streamlit_app.py (the two-section Data Analysis + Ads app).
+#   * artifacts lists ONLY the files the app needs. Do NOT add a
+#     "streamlit_app copy.py" (or any duplicate) here — a second app module in
+#     artifacts shadows/imports over the real one and breaks the deploy.
+#   * Dependencies live in environment.yml (Snowflake Anaconda channel):
+#     streamlit, altair, pandas, snowflake-snowpark-python. NOTHING external —
+#     no langchain-core, no snowflake-connector-python (SiS provides Snowpark and
+#     the session via get_active_session()), so NO PYPI_ACCESS_INTEGRATION is
+#     required.
+definition_version: "2"
+entities:
+  knickgasm_analytics:
+    type: "streamlit"
+    identifier:
+      name: "KNICKGASM_ADS_ANALYSIS"      # object name kept stable so the app URL doesn't change
+    stage: "streamlit_stage"
+    query_warehouse: "COMPUTE_WH"        # change to your warehouse if different
+    title: "KNICKGASM Analytics"
+    main_file: "streamlit_app.py"
+    artifacts:
+      - "streamlit_app.py"
+      - "environment.yml"

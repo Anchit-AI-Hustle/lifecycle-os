@@ -1,0 +1,79 @@
+name: Revenue Alerts (anomaly / pulse / EOD)
+
+# Number + revenue monitoring, delivered by email to ALERT_EMAIL.
+# Hits the CRON_SECRET-protected router in api/brain.js:
+#   ?action=alerts-anomaly  — real month-over-month anomaly vs trailing baseline
+#   ?action=alerts-pulse    — intraday progress pulse (degrades until feed ready)
+#   ?action=alerts-eod      — end-of-day forecast (degrades until feed ready)
+#
+# HONEST cadences (why these times):
+#  - ANOMALY runs on the MONTHLY market export, which only refreshes on the
+#    daily sync. So it is checked twice a day, ~15 min AFTER each sync
+#    (06:30 + 18:30 UTC) — checking more often would re-alert on unchanged data.
+#    It emails ONLY when something crosses a threshold (silent when clean), so a
+#    persistent anomaly surfaces at most twice/day, never a stream of duplicates.
+#  - PULSE runs every 2 hours. Until INTRADAY_FEED_READY=1 (needs the live
+#    Shopify/Klaviyo orders feed, blocker B3) it returns {skipped:true} and sends
+#    nothing — the schedule is the scaffold, live the moment the flag flips.
+#  - EOD runs once at 23:30 IST (18:00 UTC). Same degrade contract as PULSE.
+#
+# GitHub fires one run PER matching cron entry and exposes which one fired via
+# github.event.schedule, so the steps below self-route. (Min GH interval is 5m;
+# schedules are best-effort and can be delayed under load — fine for this.)
+#
+# SETUP (one-time) — Settings -> Secrets and variables -> Actions:
+#   CRON_SECRET   = same value as the Vercel CRON_SECRET env var (required)
+#   APP_BASE_URL  = https://knickgasm-lifecycle-os.anchit-tandon.com (optional)
+# To send real email set RESEND_API_KEY (+ optional ALERT_EMAIL / ALERT_FROM)
+# in Vercel; with no key the endpoints still run and return a would_send stub.
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'Which alert to run now'
+        type: choice
+        options: [all, anomaly, pulse, eod]
+        default: all
+  schedule:
+    - cron: '30 6,18 * * *'   # anomaly — ~15 min after each daily sync (x2/day)
+    - cron: '0 */2 * * *'     # pulse   — every 2 hours
+    - cron: '0 18 * * *'      # eod     — 23:30 IST end-of-day
+
+concurrency:
+  group: revenue-alerts-${{ github.event.schedule || github.event.inputs.kind }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  alerts:
+    runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+    steps:
+      - name: Anomaly detection (real monthly data)
+        if: github.event.schedule == '30 6,18 * * *' || github.event.inputs.kind == 'anomaly' || github.event.inputs.kind == 'all'
+        run: |
+          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET repo secret is not set." >&2; exit 1; fi
+          curl --fail-with-body -sS -X POST "$BASE/api/brain?action=alerts-anomaly" \
+            -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json"
+
+      - name: 2-hour progress pulse
+        if: github.event.schedule == '0 */2 * * *' || github.event.inputs.kind == 'pulse' || github.event.inputs.kind == 'all'
+        run: |
+          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET repo secret is not set." >&2; exit 1; fi
+          curl --fail-with-body -sS -X POST "$BASE/api/brain?action=alerts-pulse" \
+            -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json"
+
+      - name: End-of-day forecast
+        if: github.event.schedule == '0 18 * * *' || github.event.inputs.kind == 'eod' || github.event.inputs.kind == 'all'
+        run: |
+          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET repo secret is not set." >&2; exit 1; fi
+          curl --fail-with-body -sS -X POST "$BASE/api/brain?action=alerts-eod" \
+            -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json"

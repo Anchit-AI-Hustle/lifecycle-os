@@ -1,0 +1,80 @@
+# Netlify
+.netlify/
+.cache/
+
+# Vercel CLI link state (org/project IDs — not secrets, but no need to track)
+.vercel/
+
+# Node / npm
+node_modules/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# Env / secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+supabase/.env
+
+# Build outputs
+dist/
+build/
+.next/
+data/catalog/
+
+# Logs
+*.log
+
+# Local downloads / generated artefacts
+*.html.bak
+test-output/
+
+# Playwright run artifacts (traces, screenshots, HTML report — regenerable, never source)
+test-results/
+tests/report/
+playwright-report/
+
+# Compiled analysis exports (keep the README, ignore the workbooks)
+output/*.xlsx
+output/*.csv
+
+# Linked-DB pointer written by the dashboard (may hold an anon key — not tracked)
+data/linked-db.public.json
+
+# Reference projects / accidental nested clones — never commit these
+knickgasm-sneaker-architect/
+marketing_mailers__html_architect/
+
+# Supabase CLI runtime files
+supabase/.temp/
+
+# Claude Code local config (keep shared project commands tracked)
+.claude/*
+!.claude/commands/
+.claude/settings.local.json
+
+# Credentials and PATs
+*.pat
+*.token
+.tokens/
+.env*.local
+.vercel
+
+# Auto-subscribe worker screenshots (audit artifacts, not source)
+workers/.artifacts/
+
+# local dashboard build artifacts
+scratchpad/
+.env*
+
+# Python bytecode cache
+__pycache__/
+*.pyc

@@ -1,0 +1,20 @@
+# Dependencies for the KNICKGASM Analytics Streamlit-in-Snowflake app, for the
+# Snowsight Workspaces (Git-native) flow. Use EITHER this file OR environment.yml
+# — both declare the same four packages, all from the Snowflake Anaconda channel.
+#
+# Deliberately minimal. streamlit_app.py imports only altair, pandas, streamlit,
+# and snowflake.snowpark.context.get_active_session (Snowpark is provided by the
+# SiS runtime). Do NOT add langchain-core or snowflake-connector-python — the app
+# uses neither, and adding an external PyPI package would force a
+# PYPI_ACCESS_INTEGRATION that is otherwise unnecessary.
+[project]
+name = "knickgasm-analytics"
+version = "1.0.0"
+description = "KNICKGASM Analytics — Data Analysis + Ads Analytics (Streamlit in Snowflake)."
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit",
+    "pandas",
+    "altair",
+    "snowflake-snowpark-python",
+]

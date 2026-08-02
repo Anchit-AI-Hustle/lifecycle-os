@@ -1,0 +1,28 @@
+name: Competitor Hub — email sync (manual)
+
+# MANUAL fallback trigger only. The automatic near-real-time trigger now runs
+# from an EXTERNAL cron service (e.g. cron-job.org) every 1 minute, hitting:
+#   POST https://competitor-intelligence-hub-fawn.vercel.app/api/sync-emails
+#   Header: Authorization: Bearer <CRON_SECRET>
+# (GitHub Actions' minimum interval is 5 min, so 1-min cadence lives off-platform.)
+#
+# This workflow is kept for on-demand runs via the "Run workflow" button.
+# SETUP (one-time): add repo secret COMPETITOR_HUB_CRON_SECRET = the CRON_SECRET.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: competitor-hub-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger sync endpoint
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://competitor-intelligence-hub-fawn.vercel.app/api/sync-emails" \
+            -H "Authorization: Bearer ${{ secrets.COMPETITOR_HUB_CRON_SECRET }}" \
+            -H "Content-Type: application/json"

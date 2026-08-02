@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade Coffee Dossier :: Knickgasm Playbook</title>
+<link rel="icon" href="/favicon.png">
+<meta name="description" content="Forensic competitor dossier for Trade Coffee: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { knickgasm: { green:"#6A33D8", lava:"#D0473E", ink:"#111111", chalk:"#F7F5F2" } },
+    fontFamily: { head:["Montserrat","Raleway","Georgia","serif"], body:["Instrument Sans","Helvetica Neue","Arial","sans-serif"] }
+  } } };
+</script>
+<style>
+  :root{--knickgasm-green:#6A33D8;--knickgasm-lava:#D0473E;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#F7F5F2;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
+  /* brand lava #D0473E fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
+  .lava-ink{color:var(--knickgasm-lava-ink);}
+  input::placeholder,textarea::placeholder{color:#6f6f6f;opacity:1;} #gen-out::placeholder{color:#9fb0a8;opacity:1;}
+  html{scroll-behavior:smooth;scroll-padding-top:20px;}
+  body{background:var(--knickgasm-chalk);color:var(--knickgasm-ink);font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4,.font-head{font-family:"Montserrat","Raleway",Georgia,serif;}
+  .nav-link{transition:background .12s,color .12s;}
+  .nav-link:hover{background:rgba(171,135,67,.16);color:var(--knickgasm-chalk);}
+  .nav-link.active{background:var(--knickgasm-lava);color:var(--knickgasm-green);font-weight:700;}
+  .card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:14px;}
+  .metric{background:#fff;border:1px solid var(--line);border-radius:12px;}
+  .metric .mv{font-family:"Montserrat",Georgia,serif;color:var(--knickgasm-green);}
+  table.grid-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:820px;table-layout:fixed;}
+  table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;}
+  table.grid-tbl th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;}
+  table.grid-tbl tr:nth-child(even) td{background:#faf7f0;}
+  table.grid-tbl tr:last-child td{border-bottom:0;}
+  .tier-1{color:var(--knickgasm-green);font-weight:700;} .tier-2{color:var(--knickgasm-lava-ink);font-weight:700;} .tier-3{color:var(--soft);font-weight:700;}
+  .tierbadge{display:inline-flex;flex-direction:column;line-height:1.12;border-radius:8px;padding:4px 9px;text-align:center;}
+  .tierbadge b{font-size:11px;font-weight:800;} .tierbadge i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;opacity:.85;}
+  .tb1{background:rgba(0,74,43,.10);color:var(--knickgasm-green);} .tb2{background:rgba(171,135,67,.18);color:#8a6a2f;} .tb3{background:rgba(23,23,23,.07);color:var(--soft);}
+  td.num{font-variant-numeric:tabular-nums;font-weight:700;color:var(--knickgasm-ink);white-space:nowrap;}
+  .rtab{cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--knickgasm-ink);border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
+  .rtab:hover{border-color:var(--knickgasm-lava);} .rtab.on{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-color:var(--knickgasm-green);}
+  .mstab{cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--knickgasm-ink);border-radius:999px;padding:5px 14px;font-family:inherit;font-size:12px;font-weight:700;transition:all .12s;}
+  .mstab:hover{border-color:var(--knickgasm-lava);} .mstab.on{background:var(--knickgasm-lava-ink);color:#fff;border-color:var(--knickgasm-lava-ink);}
+  .av-card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:16px;padding:22px;}
+  .av-face{width:56px;height:56px;border-radius:999px;background:var(--knickgasm-green);display:inline-flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 0 0 3px rgba(171,135,67,.35);}
+  .av-quote{font-family:"Montserrat",Georgia,serif;font-style:italic;color:var(--knickgasm-green);border-left:3px solid var(--knickgasm-lava);padding-left:12px;margin:12px 0;}
+  .av-q{cursor:pointer;text-align:left;background:#faf6ec;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12.5px;color:var(--knickgasm-ink);transition:background .12s,border-color .12s;font-family:inherit;}
+  .av-q:hover{border-color:var(--knickgasm-lava-ink);} .av-q.on{background:var(--knickgasm-lava);color:var(--knickgasm-green);font-weight:700;border-color:var(--knickgasm-lava-ink);}
+  .av-bubble{display:none;margin-top:12px;background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:12px;border-top-left-radius:3px;padding:13px 15px;font-size:13.5px;line-height:1.55;}
+  .av-roster{display:flex;flex-wrap:wrap;gap:10px;}
+  .av-chip{display:flex;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 14px 6px 6px;font-family:inherit;font-size:13px;color:var(--knickgasm-ink);transition:border-color .12s;}
+  .av-chip:hover{border-color:var(--knickgasm-lava);} .av-chip.on{border-color:var(--knickgasm-green);background:var(--knickgasm-chalk);}
+  .av-chip .f{width:32px;height:32px;border-radius:999px;background:var(--knickgasm-green);display:inline-flex;align-items:center;justify-content:center;font-size:17px;}
+  .chat{background:#fff;border:1px solid var(--line);border-radius:16px;min-height:280px;max-height:52vh;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px;}
+  .msg{max-width:82%;padding:11px 15px;border-radius:14px;font-size:14px;line-height:1.55;white-space:pre-wrap;}
+  .msg.user{align-self:flex-end;background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-bottom-right-radius:4px;}
+  .msg.bot{align-self:flex-start;background:var(--knickgasm-chalk);color:var(--knickgasm-ink);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .msg.bot a{color:var(--knickgasm-green);font-weight:600;}
+  .prompt-chip{cursor:pointer;background:#faf6ec;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--knickgasm-ink);font-family:inherit;}
+  .prompt-chip:hover{border-color:var(--knickgasm-lava);}
+  .askbar{display:flex;gap:8px;margin-top:12px;}
+  .askbar input{flex:1;border:1.5px solid var(--knickgasm-lava);border-radius:12px;padding:11px 14px;font-family:inherit;font-size:14px;color:var(--knickgasm-ink);background:#fff;}
+  .mic{min-width:46px;border:1.5px solid var(--knickgasm-lava);background:var(--knickgasm-chalk);color:var(--knickgasm-green);border-radius:12px;cursor:pointer;font-size:16px;}
+  .mic.on{background:#c0392b;color:#fff;border-color:#c0392b;}
+  .pill{display:inline-block;border-radius:999px;padding:2px 11px;font-size:11px;font-weight:700;border:1px solid var(--line);}
+  .btn-primary{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:10px;font-weight:700;transition:filter .12s;} .btn-primary:hover{filter:brightness(1.15);}
+  .btn-lava{background:var(--knickgasm-lava);color:var(--knickgasm-green);border-radius:10px;font-weight:800;transition:filter .12s;} .btn-lava:hover{filter:brightness(1.05);}
+  .wire{border:2px dashed var(--knickgasm-lava);border-radius:12px;background:repeating-linear-gradient(45deg,#fff,#fff 12px,#faf6ec 12px,#faf6ec 24px);padding:16px;min-height:96px;}
+  .wire .wl{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:11.5px;color:var(--knickgasm-green);font-weight:700;letter-spacing:.02em;}
+  details.blueprint{background:var(--knickgasm-ink);border-radius:12px;overflow:hidden;border:1px solid var(--line);}
+  details.blueprint>summary{list-style:none;cursor:pointer;padding:13px 18px;color:var(--knickgasm-chalk);font-family:"Montserrat",Georgia,serif;font-size:16px;background:var(--knickgasm-green);display:flex;align-items:center;justify-content:space-between;}
+  details.blueprint>summary::-webkit-details-marker{display:none;}
+  details.blueprint[open]>summary .plus{transform:rotate(45deg);}
+  details.blueprint pre{margin:0;padding:18px;overflow-x:auto;color:#e8ede9;font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12.5px;line-height:1.6;}
+  .code-out{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12.5px;line-height:1.55;}
+  .flow-node{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;}
+  a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
+  ::selection{background:var(--knickgasm-lava);color:#fff;}
+  section[data-section]{scroll-margin-top:18px;}
+
+/* vh-table-align: data-table column alignment — header cells sit over their
+   columns (table-layout:fixed, equal width), the first column (row labels) is
+   left-aligned and every other column is centered. Scoped to tables that have
+   <th> so layout tables are never affected; element-level so a page's own
+   table.<class> alignment still wins. */
+table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+</style>
+</head>
+<body class="font-body">
+<div class="flex min-h-screen">
+  <aside class="hidden lg:flex flex-col w-[288px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">
+    <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">
+      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>
+      <div class="font-head text-[21px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>
+      <p class="text-[11px] mt-2" style="color:#cdd8d0;">A modular documentation and execution hub. One page per feature and per competitor.</p>
+    </div>
+    <nav class="px-3 py-4 space-y-1 text-[13px]">
+        <a href="../index.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">🏠</span>Playbook Hub</a>
+        <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
+        <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
+        <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
+        <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
+        <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
+        <a href="../features/shopify-loop.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📦</span>Shopify CDN Ingestion Loop</a>
+        <a href="../features/kicksgpt-config.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">🤖</span>KicksGPT Engine Config</a>
+    </nav>
+    <div class="mt-auto px-5 py-4 text-[11px] border-t" style="border-color:rgba(251,245,234,.14);color:#cdd8d0;">
+      <a href="/all-in-one" class="underline" style="color:#cdd8d0;">OS Home</a> &nbsp;&middot;&nbsp; <a href="/research" class="underline" style="color:#cdd8d0;">Market Study</a>
+    </div>
+  </aside>
+  <main class="flex-1 min-w-0">
+    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">Trade Coffee</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
+    <div class="max-w-[1080px] mx-auto px-6 md:px-10 py-10 space-y-14">
+      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">Trade Coffee</span></nav>
+      <header class="space-y-3">
+        <span class="text-[11px] tracking-[.18em] uppercase font-bold lava-ink">Forensic Dossier</span>
+        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Trade Coffee</h1>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Coffee marketplace. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
+      </header>
+      <section data-section id="snapshot" class="space-y-4">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb1"><b>Tier 1</b><i>High</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">$45.00</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">31.10%</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">Personalized algorithmic onboarding quiz</div></div>        </div>
+        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Dynamic personalized bean-profile rotations</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Headless engine / Next.js / Stripe</p></div>
+      </section>
+      <section data-section id="viewport" class="space-y-4">
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">1. Viewport</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Desktop vs mobile UX</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Where the experience diverges across breakpoints, and where the gaps are.</p></div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Quiz-matched roaster marketplace with a strong desktop quiz flow and clear swap-and-skip subscription controls in-account.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">The onboarding quiz runs long on mobile with many steps, creating drop-off before the first match and checkout.</p></div>        </div>
+      </section>
+      <section data-section id="wireframes" class="space-y-4">
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">2. Wireframes</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">High-fidelity asset outlines</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Labelled bounding boxes standing in for layout screenshots.</p></div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="wire"><div class="wl">[SCREENSHOT: Desktop match quiz]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Progressive multi-step quiz with a visible progress bar and a results page mapping taste inputs to roaster matches.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Mobile quiz drop-off point]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Step 6 of a long mobile quiz where momentum stalls; no save-and-resume, no shortcut to browse.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: In-account swap and skip]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Subscription management with prominent skip, swap, and reschedule controls on the next shipment card.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Roaster spotlight PDP]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Editorial roaster story above the buy box building trust in the marketplace curation.</p></div>
+        </div>
+      </section>
+      <section data-section id="stack" class="space-y-4">
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">3. Technical stack</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Infrastructure footprint</h2></div>
+        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Custom headless checkout</td></tr><tr><td>Subscription app</td><td>Recharge</td></tr><tr><td>Analytics suite</td><td>Segment plus GA4</td></tr><tr><td>ESP / CRM</td><td>Klaviyo</td></tr><tr><td>Churn prevention hook</td><td>Quiz-matched roasts with one-tap swap and skip that keep the subscription feeling personalised.</td></tr></tbody></table></div>
+      </section>
+      <section data-section id="battlecard" class="space-y-4">
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs Trade Coffee SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (Trade Coffee)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Personalisation via the taste quiz</li><li>Frictionless swap and skip retention controls</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Long mobile quiz creates onboarding drop-off</li><li>Marketplace model dilutes a single brand story</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Shorter mobile quiz with save-and-resume</li><li>First-order match paired with a second-order nudge</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Roaster-direct brands cutting out the marketplace</li><li>Thin margins on a curation model</li></ul></div>        </div>
+        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs Trade Coffee</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Borrow the quiz-to-match idea but compress it to a two-tap cohort match on mobile.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Layer Knickgasm one-of-one provenance on top of personalisation, which a marketplace cannot own.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Trigger the second-order nudge immediately after the first match to lift repeat rate.</li></ul></div>
+        <div class="flex flex-wrap gap-3"><a href="../features/competitor-index.html" class="btn-lava inline-block px-5 py-2.5 text-sm">Back to all dossiers</a><a href="../index.html" class="btn-primary inline-block px-5 py-2.5 text-sm">Hub</a></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

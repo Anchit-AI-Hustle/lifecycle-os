@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://knickgasm.vercel.app/schemas/cohort-profile.json",
+  "title": "KNICKGASM Cohort Profile",
+  "description": "Canonical user/cohort profile payload for the KNICKGASM Lifecycle OS retention engine. Captures identity, demographics, geography, purchase vectors, lifecycle health flags, and cohort assignments used by segmentation and automated retention triggers.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "identity": {
+      "type": "object",
+      "description": "Stable identifiers for the profile.",
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "description": "Internal UUID for the profile.",
+          "format": "uuid"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Primary contact email."
+        },
+        "phone": {
+          "type": ["string", "null"],
+          "description": "E.164 phone number for SMS, if consented.",
+          "pattern": "^\\+?[1-9]\\d{6,14}$"
+        },
+        "external_ids": {
+          "type": "object",
+          "description": "IDs in downstream systems.",
+          "additionalProperties": false,
+          "properties": {
+            "shopify_customer_id": { "type": ["string", "null"] },
+            "klaviyo_profile_id": { "type": ["string", "null"] },
+            "supabase_user_id": { "type": ["string", "null"] }
+          }
+        },
+        "consent": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "email_opt_in": { "type": "boolean", "default": false },
+            "sms_opt_in": { "type": "boolean", "default": false },
+            "push_opt_in": { "type": "boolean", "default": false }
+          }
+        }
+      },
+      "required": ["profile_id", "email"]
+    },
+    "demographics": {
+      "type": "object",
+      "description": "Demographic attributes used for cohort mapping.",
+      "additionalProperties": false,
+      "properties": {
+        "age_band": {
+          "type": "string",
+          "enum": ["18-24", "25-34", "35-44", "45-54", "55-64", "65+", "unknown"],
+          "default": "unknown"
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["female", "male", "nonbinary", "undisclosed", "unknown"],
+          "default": "unknown"
+        },
+        "hhi_bracket": {
+          "type": "string",
+          "description": "Estimated household income bracket (USD/yr).",
+          "enum": [
+            "under_50k",
+            "50k_75k",
+            "75k_100k",
+            "100k_150k",
+            "150k_250k",
+            "250k_plus",
+            "unknown"
+          ],
+          "default": "unknown"
+        }
+      }
+    },
+    "geography": {
+      "type": "object",
+      "description": "Geographic footprint for regional segmentation.",
+      "additionalProperties": false,
+      "properties": {
+        "region": {
+          "type": "string",
+          "enum": ["northeast", "west_coast", "south_southeast", "midwest", "other", "unknown"],
+          "default": "unknown"
+        },
+        "state": {
+          "type": ["string", "null"],
+          "description": "Two-letter US state code (uppercase).",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "postal_code": {
+          "type": ["string", "null"],
+          "description": "US ZIP or ZIP+4."
+        },
+        "zip_archetype": {
+          "type": "string",
+          "enum": [
+            "urban_coastal",
+            "urban_coastal_luxury",
+            "affluent_suburban",
+            "emerging_urban",
+            "inner_ring_urban",
+            "rural",
+            "unknown"
+          ],
+          "default": "unknown"
+        },
+        "country": {
+          "type": "string",
+          "description": "ISO 3166-1 alpha-2 country code.",
+          "default": "US",
+          "pattern": "^[A-Z]{2}$"
+        }
+      }
+    },
+    "purchase_vectors": {
+      "type": "object",
+      "description": "Purchase behavior and monetary signals.",
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "type": "array",
+          "description": "Product categories the profile has purchased.",
+          "items": {
+            "type": "string",
+            "enum": ["sneaker", "coffee", "supplements", "accessories", "gift"]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "purchase_mode": {
+          "type": "string",
+          "enum": ["one_time", "subscription", "mixed", "none"],
+          "default": "none"
+        },
+        "subscription_status": {
+          "type": "string",
+          "enum": ["active", "paused", "cancelled", "never", "unknown"],
+          "default": "never"
+        },
+        "aov": {
+          "type": "number",
+          "description": "Average order value in USD.",
+          "minimum": 0
+        },
+        "order_count": {
+          "type": "integer",
+          "description": "Lifetime completed order count.",
+          "minimum": 0,
+          "default": 0
+        },
+        "ltv": {
+          "type": "number",
+          "description": "Realized lifetime value in USD.",
+          "minimum": 0,
+          "default": 0
+        },
+        "predicted_ltv": {
+          "type": ["number", "null"],
+          "description": "Model-predicted 12-month LTV in USD.",
+          "minimum": 0
+        }
+      }
+    },
+    "lifecycle_health": {
+      "type": "object",
+      "description": "Lifecycle stage and health flags driving retention logic.",
+      "additionalProperties": false,
+      "properties": {
+        "lifecycle_stage": {
+          "type": "string",
+          "description": "Coarse lifecycle family.",
+          "enum": ["NEW", "ACTIVE", "VIP", "RISK", "LAPSED"],
+          "default": "NEW"
+        },
+        "rfm_segment": {
+          "type": "string",
+          "description": "KNICKGASM RFM segment.",
+          "enum": [
+            "Champions",
+            "Loyal",
+            "Promising",
+            "New",
+            "Need-Attention",
+            "About-to-Sleep",
+            "At-Risk",
+            "Hibernating",
+            "Lost"
+          ],
+          "default": "New"
+        },
+        "engagement_level": {
+          "type": "string",
+          "enum": ["high", "medium", "low", "dormant", "unknown"],
+          "default": "unknown"
+        },
+        "churn_risk": {
+          "type": "number",
+          "description": "Modeled churn probability, 0 (safe) to 1 (imminent).",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "reactivation_likelihood": {
+          "type": "number",
+          "description": "Modeled probability of reactivation on outreach, 0 to 1.",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "days_since_last_order": {
+          "type": ["integer", "null"],
+          "description": "Days since most recent completed order; null if never ordered.",
+          "minimum": 0
+        },
+        "days_since_last_engagement": {
+          "type": ["integer", "null"],
+          "description": "Days since last email/SMS/site engagement.",
+          "minimum": 0
+        }
+      },
+      "required": ["lifecycle_stage", "rfm_segment", "churn_risk"]
+    },
+    "cohort_assignments": {
+      "type": "object",
+      "description": "Behavioral and product cohort memberships.",
+      "additionalProperties": false,
+      "properties": {
+        "behavioral_cohorts": {
+          "type": "array",
+          "description": "Named behavioral cohorts the profile belongs to.",
+          "items": {
+            "type": "string",
+            "enum": ["optimizer", "ritualist", "status_seeker", "curious_convert"]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "product_cohorts": {
+          "type": "array",
+          "description": "Product-affinity cohorts.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "airbrush_coffee",
+              "adaptogen_blends",
+              "heritage_tea",
+              "supplements",
+              "gifting",
+              "limited_drops",
+              "starter_kit"
+            ]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "primary_value_driver": {
+          "type": "string",
+          "enum": ["status", "functionality", "routine", "trial", "unknown"],
+          "default": "unknown"
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "Record metadata.",
+      "additionalProperties": false,
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "source_system": {
+          "type": "string",
+          "enum": ["supabase", "shopify", "klaviyo", "manual", "computed"],
+          "default": "computed"
+        },
+        "schema_version": { "type": "string", "default": "1.0.0" }
+      }
+    }
+  },
+  "required": ["identity", "lifecycle_health", "cohort_assignments"]
+}

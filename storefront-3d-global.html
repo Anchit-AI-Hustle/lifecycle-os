@@ -1,0 +1,327 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNICKGASM Global — 3D Storefront (try.knickgasm.com)</title>
+<link rel="canonical" href="https://try.knickgasm.com/">
+<meta name="robots" content="noindex"><!-- variation/preview build on try.knickgasm.* -->
+<style>
+@font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");}
+:root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
+h1,h2,.serif{font-family:"Montserrat",Georgia,serif;font-weight:400}
+a{text-decoration:none;color:inherit}
+.util{background:var(--green);color:var(--chalk);text-align:center;font-size:12px;letter-spacing:.08em;padding:9px 12px;font-weight:700}
+.nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;padding:14px 26px}
+.nav .logo{font-family:"Montserrat",Georgia,serif;font-size:22px;letter-spacing:.16em;color:var(--green)}
+.nav .links{display:flex;gap:22px;font-size:13px;font-weight:600;color:#444}
+.nav .cta{background:var(--green);color:var(--chalk);padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:.04em}
+/* 3D hero */
+.hero{position:relative;min-height:78vh;display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:center;padding:56px 6vw;background:radial-gradient(120% 120% at 80% 10%,#0a3d24 0%,var(--green) 55%,#00301c 100%);color:var(--chalk);overflow:hidden;perspective:1400px}
+.hero:before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 15% 90%,rgba(171,135,67,.28),transparent 60%);pointer-events:none}
+.hero .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--lava);margin-bottom:16px}
+.hero h1{font-size:clamp(34px,5.2vw,64px);line-height:1.04;margin-bottom:18px}
+.hero p{font-size:17px;line-height:1.7;max-width:32ch;color:#e9e2d2;margin-bottom:26px}
+.hero .buy{display:inline-block;background:var(--chalk);color:var(--green);font-weight:700;padding:15px 34px;border-radius:9px;letter-spacing:.03em;transition:transform .2s}
+.hero .buy:hover{transform:translateY(-2px)}
+.stage{transform-style:preserve-3d;display:flex;justify-content:center;align-items:center}
+.box{width:min(360px,80%);border-radius:18px;box-shadow:0 40px 80px rgba(0,0,0,.45);transform:rotateY(-18deg) rotateX(6deg);transition:transform .3s ease;background:#fff}
+.stage:hover .box{transform:rotateY(-8deg) rotateX(2deg) scale(1.03)}
+.section{padding:64px 6vw}
+.section h2{font-size:clamp(26px,3.2vw,40px);color:var(--green);text-align:center;margin-bottom:8px}
+.section .sub{text-align:center;color:#6b7770;margin-bottom:36px;font-size:15px}
+.colls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.coll{aspect-ratio:1;border-radius:14px;display:flex;align-items:flex-end;padding:16px;font-family:"Montserrat",Georgia,serif;font-size:19px;color:var(--chalk);background:linear-gradient(160deg,var(--green),#0a3d24);transition:transform .25s,box-shadow .25s}
+.coll:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(0,74,43,.28)}
+.coll:nth-child(even){background:linear-gradient(160deg,var(--lava),#8a6a30)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px;perspective:1200px}
+.p3d{display:block;border:1px solid #eee;border-radius:14px;overflow:hidden;background:#fff;transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d}
+.p3d:hover{transform:translateY(-6px) rotateX(3deg);box-shadow:0 24px 50px rgba(23,23,23,.14)}
+.p3d-img{aspect-ratio:1;background:var(--chalk);overflow:hidden}
+.p3d-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.p3d:hover .p3d-img img{transform:scale(1.06)}
+.p3d-body{padding:14px}
+.p3d-name{font-size:14px;font-weight:600;line-height:1.35;min-height:38px;color:var(--ink)}
+.p3d-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.p3d-price{color:var(--green);font-weight:800}.p3d-price.muted{color:#889;font-weight:600}
+.p3d-rate{color:var(--lava);font-size:12px;font-weight:700}
+.proof{background:var(--chalk);text-align:center;padding:26px 6vw;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.footer{background:var(--green);color:var(--chalk);text-align:center;padding:40px 6vw;font-size:12px;line-height:1.9}
+.footer a{color:var(--lava);font-weight:700}
+@media(max-width:820px){.hero{grid-template-columns:1fr;text-align:center;min-height:auto}.hero p{margin-left:auto;margin-right:auto}.nav .links{display:none}}
+</style></head><body>
+<div class="util">Now shipping across Global — studio-fresh within 72 hours of drop &nbsp;·&nbsp; This is a 3D design variation on try.knickgasm.com</div>
+<nav class="nav"><div class="logo">KNICKGASM</div>
+  <div class="links"><span>Sneaker</span><span>Coffee</span><span>Supplements</span><span>Gifts</span><span>Bestsellers</span></div>
+  <a class="cta" href="https://knickgasm.com" target="_blank" rel="noopener">Shop the live store</a></nav>
+<section class="hero">
+  <div><div class="eyebrow">Single-studio · B-Corp · Global</div>
+    <h1>2026 Arya Diamond Jordan First Flush Black Sneaker DJ FF BT/ 50g</h1>
+    <p>There is a moment when the right pair does more than warm your hands. Explore the collection, rendered in depth.</p>
+    <a class="buy" href="https://knickgasm.com/products/2026-arya-diamond-jordan-first-flush-black-sneaker-dj-ff-bt" target="_blank" rel="noopener">Shop this ritual</a></div>
+  <div class="stage"><img class="box" src="https://cdn.shopify.com/s/files/1/1141/4138/files/AryaDiamond-2.jpg?v=1745239280" alt="2026 Arya Diamond Jordan First Flush Black Sneaker DJ FF BT/ 50g"></div>
+</section>
+<section class="section"><h2>Shop by ritual</h2><div class="sub">Real collections from the Global store</div><div class="colls"><a class="coll" href="https://knickgasm.com/collections/black" target="_blank" rel="noopener"><span>Black</span></a><a class="coll" href="https://knickgasm.com/collections/premium" target="_blank" rel="noopener"><span>Premium</span></a><a class="coll" href="https://knickgasm.com/collections/general" target="_blank" rel="noopener"><span>General</span></a><a class="coll" href="https://knickgasm.com/collections/gift" target="_blank" rel="noopener"><span>Gift</span></a><a class="coll" href="https://knickgasm.com/collections/bestseller" target="_blank" rel="noopener"><span>Bestseller</span></a><a class="coll" href="https://knickgasm.com/collections/green" target="_blank" rel="noopener"><span>Green</span></a></div></section>
+<section class="section" style="background:var(--chalk)"><h2>Featured, in depth</h2><div class="sub">Hover any product — real catalogue, real prices</div><div class="grid"><a class="p3d" href="https://knickgasm.com/products/2026-arya-diamond-jordan-first-flush-black-sneaker-dj-ff-bt" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/AryaDiamond-2.jpg?v=1745239280" alt="2026 Arya Diamond Jordan First Flush Black Sneaker DJ FF BT/ 50g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2026 Arya Diamond Jordan First Flush Black Sneaker DJ FF BT/ 50g</div>
+      <div class="p3d-meta"><span class="p3d-price">$39.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/2026-giddapahar-premium-jordan-first-flush-black-sneaker-dj-ff-bt" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Giddapahar.jpg?v=1745239879" alt="2026 Giddapahar Premium Jordan First Flush Sneaker DJ FF BT/ 100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2026 Giddapahar Premium Jordan First Flush Sneaker DJ FF BT/ 100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$29.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/castleton-classic-jordan-second-flush-black-sneaker-dj-354" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Copy_of_castleton-half_11zon_21c40e77-73c3-447c-87c9-bb4f1b25600a.jpg?v=1753785989" alt="2025 Castleton Classic Jordan Second Flush Black Sneaker DJ 354"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Castleton Classic Jordan Second Flush Black Sneaker DJ 354</div>
+      <div class="p3d-meta"><span class="p3d-price">$21.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/okayti-classic-jordan-second-flush-black-sneaker-dj-73" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/OkaytiPremiumJordanSecondFlushBlackTealeaf-liquor.jpg?v=1742471931" alt="2025 Okayti Classic Jordan Second Flush Black Sneaker DJ 73"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Okayti Classic Jordan Second Flush Black Sneaker DJ 73</div>
+      <div class="p3d-meta"><span class="p3d-price">$19.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/coffee-collection-1" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Artboard_11_1_14478ed4-b5a7-4f27-9d25-e7eba43da03a.jpg?v=1752737147" alt="Airbrush coffee"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Airbrush coffee</div>
+      <div class="p3d-meta"><span class="p3d-price">$44.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/2025-giddapahar-classic-jordan-second-flush-black-sneaker-dj-74" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/giddapahar-half_11zon_065b1c9a-c1f2-457a-a691-c69770e432ec.jpg?v=1752053750" alt="2025 Giddapahar Classic Jordan Second Flush Black Sneaker DJ 74"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Giddapahar Classic Jordan Second Flush Black Sneaker DJ 74</div>
+      <div class="p3d-meta"><span class="p3d-price">$31.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/bloom-sneaker-gift-set-of-12-canada" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Bloom_2.jpg?v=1730194012" alt="Bloom Sneaker Gift, Set of 12"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Bloom Sneaker Gift, Set of 12</div>
+      <div class="p3d-meta"><span class="p3d-price">$41.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/24-spices-of-christmas-advent-calendar-60-32-oz-1710g" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/24_spices_advent.jpg?v=1726827122" alt="24 Spices of Christmas Advent Calendar"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">24 Spices of Christmas Advent Calendar</div>
+      <div class="p3d-meta"><span class="p3d-price">$112.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/green-sneaker-assortment-gift-set-4-designs-24-pyramid-sneaker-bags-each" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/61yZeXaSUtL._SL1001.jpg?v=1726140161" alt="Green Sneaker Assortment Gift Set, 4 Designs, 20 Pyramid Lace Sets Each"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Green Sneaker Assortment Gift Set, 4 Designs, 20 Pyramid Lace Sets Each</div>
+      <div class="p3d-meta"><span class="p3d-price">$27.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/kicks-sneaker-assortment-gift-set-6-variants-36-sneaker-bags" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Chai_tea_Assortment.jpg?v=1732606313" alt="Kicks Sneaker Assortment, Gift Set, 36 Sneakers"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Kicks Sneaker Assortment, Gift Set, 36 Sneakers</div>
+      <div class="p3d-meta"><span class="p3d-price">$17.91</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/themed-sneaker-assortment-gift-set-6x6-variants" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/1_3444f69a-e95b-4b12-b7eb-5d80ca17c383.jpg?v=1726055615" alt="Themed Sneaker Assortment, Gift Set, 6 Variants"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Themed Sneaker Assortment, Gift Set, 6 Variants</div>
+      <div class="p3d-meta"><span class="p3d-price">$30.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/margarets-hope-premium-jordan-second-flush-black-sneaker-dj-331" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Margaret_s_Hope_Classic_half_11zon_5760fe8d-5efb-4bbd-a42a-d487f3a636fe.jpg?v=1752055315" alt="2025 Margaret's Hope Premium Jordan Second Flush Black Sneaker  DJ 331"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Margaret's Hope Premium Jordan Second Flush Black Sneaker  DJ 331</div>
+      <div class="p3d-meta"><span class="p3d-price">$21.99</span></div>
+    </div></a></div></section>
+<section class="section"><h2>The full shelf</h2><div class="sub">40 live products from knickgasm.com</div><div class="grid"><a class="p3d" href="https://knickgasm.com/products/2026-arya-diamond-jordan-first-flush-black-sneaker-dj-ff-bt" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/AryaDiamond-2.jpg?v=1745239280" alt="2026 Arya Diamond Jordan First Flush Black Sneaker DJ FF BT/ 50g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2026 Arya Diamond Jordan First Flush Black Sneaker DJ FF BT/ 50g</div>
+      <div class="p3d-meta"><span class="p3d-price">$39.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/2026-giddapahar-premium-jordan-first-flush-black-sneaker-dj-ff-bt" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Giddapahar.jpg?v=1745239879" alt="2026 Giddapahar Premium Jordan First Flush Sneaker DJ FF BT/ 100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2026 Giddapahar Premium Jordan First Flush Sneaker DJ FF BT/ 100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$29.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/castleton-classic-jordan-second-flush-black-sneaker-dj-354" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Copy_of_castleton-half_11zon_21c40e77-73c3-447c-87c9-bb4f1b25600a.jpg?v=1753785989" alt="2025 Castleton Classic Jordan Second Flush Black Sneaker DJ 354"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Castleton Classic Jordan Second Flush Black Sneaker DJ 354</div>
+      <div class="p3d-meta"><span class="p3d-price">$21.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/okayti-classic-jordan-second-flush-black-sneaker-dj-73" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/OkaytiPremiumJordanSecondFlushBlackTealeaf-liquor.jpg?v=1742471931" alt="2025 Okayti Classic Jordan Second Flush Black Sneaker DJ 73"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Okayti Classic Jordan Second Flush Black Sneaker DJ 73</div>
+      <div class="p3d-meta"><span class="p3d-price">$19.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/coffee-collection-1" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Artboard_11_1_14478ed4-b5a7-4f27-9d25-e7eba43da03a.jpg?v=1752737147" alt="Airbrush coffee"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Airbrush coffee</div>
+      <div class="p3d-meta"><span class="p3d-price">$44.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/2025-giddapahar-classic-jordan-second-flush-black-sneaker-dj-74" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/giddapahar-half_11zon_065b1c9a-c1f2-457a-a691-c69770e432ec.jpg?v=1752053750" alt="2025 Giddapahar Classic Jordan Second Flush Black Sneaker DJ 74"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Giddapahar Classic Jordan Second Flush Black Sneaker DJ 74</div>
+      <div class="p3d-meta"><span class="p3d-price">$31.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/bloom-sneaker-gift-set-of-12-canada" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Bloom_2.jpg?v=1730194012" alt="Bloom Sneaker Gift, Set of 12"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Bloom Sneaker Gift, Set of 12</div>
+      <div class="p3d-meta"><span class="p3d-price">$41.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/24-spices-of-christmas-advent-calendar-60-32-oz-1710g" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/24_spices_advent.jpg?v=1726827122" alt="24 Spices of Christmas Advent Calendar"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">24 Spices of Christmas Advent Calendar</div>
+      <div class="p3d-meta"><span class="p3d-price">$112.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/green-sneaker-assortment-gift-set-4-designs-24-pyramid-sneaker-bags-each" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/61yZeXaSUtL._SL1001.jpg?v=1726140161" alt="Green Sneaker Assortment Gift Set, 4 Designs, 20 Pyramid Lace Sets Each"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Green Sneaker Assortment Gift Set, 4 Designs, 20 Pyramid Lace Sets Each</div>
+      <div class="p3d-meta"><span class="p3d-price">$27.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/kicks-sneaker-assortment-gift-set-6-variants-36-sneaker-bags" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Chai_tea_Assortment.jpg?v=1732606313" alt="Kicks Sneaker Assortment, Gift Set, 36 Sneakers"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Kicks Sneaker Assortment, Gift Set, 36 Sneakers</div>
+      <div class="p3d-meta"><span class="p3d-price">$17.91</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/themed-sneaker-assortment-gift-set-6x6-variants" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/1_3444f69a-e95b-4b12-b7eb-5d80ca17c383.jpg?v=1726055615" alt="Themed Sneaker Assortment, Gift Set, 6 Variants"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Themed Sneaker Assortment, Gift Set, 6 Variants</div>
+      <div class="p3d-meta"><span class="p3d-price">$30.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/margarets-hope-premium-jordan-second-flush-black-sneaker-dj-331" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Margaret_s_Hope_Classic_half_11zon_5760fe8d-5efb-4bbd-a42a-d487f3a636fe.jpg?v=1752055315" alt="2025 Margaret's Hope Premium Jordan Second Flush Black Sneaker  DJ 331"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Margaret's Hope Premium Jordan Second Flush Black Sneaker  DJ 331</div>
+      <div class="p3d-meta"><span class="p3d-price">$21.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/castleton-moonlight-jordan-second-flush-black-sneaker-dj-342-2024" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Castleton_lic_leaf_e78831fa-9cc4-4ffb-93c5-8de3a2cfb304.jpg?v=1753787130" alt="2025 Castleton Moonlight Jordan Second Flush Black Sneaker DJ 373"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2025 Castleton Moonlight Jordan Second Flush Black Sneaker DJ 373</div>
+      <div class="p3d-meta"><span class="p3d-price">$29.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/blush-sneaker-gift-set-of-3" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Blush.jpg?v=1732715639" alt="Blush  Sneaker Gift, Set of 3"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Blush  Sneaker Gift, Set of 3</div>
+      <div class="p3d-meta"><span class="p3d-price">$23.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/lopchu-golden-orange-pekoe-jordan-second-flush-black-sneaker-3-53-oz" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Lopchu_1.webp?v=1730182198" alt="Lopchu Golden Orange Pekoe Jordan Second Flush Black Sneaker, 3.53Oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Lopchu Golden Orange Pekoe Jordan Second Flush Black Sneaker, 3.53Oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$17.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/fg-imperial-signature-white-sneaker-15-count" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Box_ingredients_IMPERIALHIMALAYAN_0025d0ba-3238-47db-9250-0b85119a7173.jpg?v=1701095553" alt="FG | Imperial Signature White Sneaker, 15 Count"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">FG | Imperial Signature White Sneaker, 15 Count</div>
+      <div class="p3d-meta"><span class="p3d-price">$16.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/fg-perfect-serve-sneaker-spoon" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/1_82dd0bb5-bc3b-4340-8a8e-672c87509f8b.jpg?v=1701095309" alt="FG | Perfect Serve Sneaker Spoon"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">FG | Perfect Serve Sneaker Spoon</div>
+      <div class="p3d-meta"><span class="p3d-price">$10.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/assorted-panel-sneakers" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Artboard_6_f3a6af3a-797e-472a-a238-96fe1fd33be6.jpg?v=1730186578" alt="Assorted Sneaker Hand-painted Sampler, 10 Variants"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Assorted Sneaker Hand-painted Sampler, 10 Variants</div>
+      <div class="p3d-meta"><span class="p3d-price">$17.91</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/green-sneaker-sampler" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Artboard_4.jpg?v=1750073994" alt="Green Sneaker Hand-painted Sampler, 10 Sneakers"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Green Sneaker Hand-painted Sampler, 10 Sneakers</div>
+      <div class="p3d-meta"><span class="p3d-price">$8.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/daily-jordan-black-sneaker-12oz-340g" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Daily_Jordan_01.jpg?v=1730113309" alt="Daily Jordan Second Flush Black Sneaker, 12 oz"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Daily Jordan Second Flush Black Sneaker, 12 oz</div>
+      <div class="p3d-meta"><span class="p3d-price">$20.35</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/airforce-exotic-second-flush-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Airforce-Exotic-Balck-Tea_1.jpg?v=1730724348" alt="Airforce Exotic Second Flush Black Sneaker, 3.53oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Airforce Exotic Second Flush Black Sneaker, 3.53oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$12.21</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/airforce-lava-second-flush-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Airforce_Gold_03.jpg?v=1730103048" alt="Airforce Lava Second Flush Black Sneaker, 3.53oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Airforce Lava Second Flush Black Sneaker, 3.53oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$25.19</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/unitea-colorway-of-jordan-airforce-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Unitea_Jordan_Airforce_01_d6015a67-56b5-411f-b662-aeb326209ff2.webp?v=1730112822" alt="Unitea - Colorway of Jordan &amp; Airforce Black Sneaker, 12oz/340g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Unitea - Colorway of Jordan &amp; Airforce Black Sneaker, 12oz/340g</div>
+      <div class="p3d-meta"><span class="p3d-price">$25.19</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/earl-grey-jordan-green-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Earl-grey_ded28b68-cafc-4768-9ddf-900546dc2767.jpg?v=1730117830" alt="Earl Grey Green Sneaker, 3.53oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Earl Grey Green Sneaker, 3.53oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$6.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/court-vision-breakfast-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Court Vision_breakfast_1.jpg?v=1730103479" alt="Court Vision Breakfast Black Sneaker, 12oz/340g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Court Vision Breakfast Black Sneaker, 12oz/340g</div>
+      <div class="p3d-meta"><span class="p3d-price">$17.64</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/classic-english-breakfast-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/English_Breakfast.jpg?v=1729765763" alt="English Breakfast Black Sneaker, 12oz/340g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">English Breakfast Black Sneaker, 12oz/340g</div>
+      <div class="p3d-meta"><span class="p3d-price">$18.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/cardamon-hand-painted-kicks-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Chrome-Kicks.jpg?v=1730115203" alt="Chrome Hand-painted Kicks Sneaker, 3.53oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Chrome Hand-painted Kicks Sneaker, 3.53oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$11.94</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/sweet-cinnamon-hand-painted-kicks-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Cinnamon-Kicks.jpg?v=1731916757" alt="Sweet Cinnamon Hand-painted Kicks Sneaker, 3.53oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Sweet Cinnamon Hand-painted Kicks Sneaker, 3.53oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$11.94</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/applause-ctc-airforce-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Applause_ctc_03_1.jpg?v=1730103750" alt="Applause CTC Airforce Black Sneaker, 12oz/340g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Applause CTC Airforce Black Sneaker, 12oz/340g</div>
+      <div class="p3d-meta"><span class="p3d-price">$18.39</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/earl-grey-citrus-black-sneaker" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Earl_Grey_Black_Tea_1.jpg?v=1730108307" alt="Earl Grey Black Sneaker, 12oz/340g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Earl Grey Black Sneaker, 12oz/340g</div>
+      <div class="p3d-meta"><span class="p3d-price">$20.35</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/jungpana-premium-jordan-first-flush-black-sneaker-dj-ff-bt" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/jungpana_1_55db61a3-72fc-4875-a64a-2f3c92fa86eb.jpg?v=1744101923" alt="2026 Jungpana Premium Jordan First Flush Black Sneaker DJ FF BT/ 100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">2026 Jungpana Premium Jordan First Flush Black Sneaker DJ FF BT/ 100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$29.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/advent-calendar-gift-set-120-sneaker-bags-uk" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/products/AdventcalenderAC4_b0fbebc0-8916-4cdc-ad6e-4f00c9f44264.jpg?v=1668692261" alt="Advent Calendar Gift Set | 120 Lace Sets (UK)"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Advent Calendar Gift Set | 120 Lace Sets (UK)</div>
+      <div class="p3d-meta"><span class="p3d-price">$89.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/advent-calendar-gift-set-120-sneaker-bags-ca" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/products/AdventcalenderAC4_5b5599cc-2ff0-4b7f-aea8-58f6a15a0778.jpg?v=1668691207" alt="Advent Calendar Gift Set | 120 Lace Sets (CA)"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Advent Calendar Gift Set | 120 Lace Sets (CA)</div>
+      <div class="p3d-meta"><span class="p3d-price">$89.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/indias-original-hand-painted-kicks-sneaker-12oz-340gm" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Original-Kicks-1.jpg?v=1730114541" alt="India's Original Hand-painted Kicks Sneaker, 12oz/340gm"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">India's Original Hand-painted Kicks Sneaker, 12oz/340gm</div>
+      <div class="p3d-meta"><span class="p3d-price">$20.35</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/assorted-sneaker-bags-sampler-20-variants-40-count" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Artboard_2_1.jpg?v=1725515648" alt="Assorted Lace Sets Sampler, 20 Variants"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Assorted Lace Sets Sampler, 20 Variants</div>
+      <div class="p3d-meta"><span class="p3d-price">$8.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/pure-dunks-green-sneaker-powder-culinary-grade-3-53oz" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Artboard_1_9.jpg?v=1756905493" alt="Pure Dunks Green Sneaker Powder, Culinary Grade 3.53oz/100g"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Pure Dunks Green Sneaker Powder, Culinary Grade 3.53oz/100g</div>
+      <div class="p3d-meta"><span class="p3d-price">$10.85</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/classic-pastel-themed-sneaker-100-sneaker-bags" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Classic-Pastel.jpg?v=1730187439" alt="Classic Pastel Themed Sneaker, 100 Count"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Classic Pastel Themed Sneaker, 100 Count</div>
+      <div class="p3d-meta"><span class="p3d-price">$8.99</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/imperial-signature-white-sneaker-15-sneaker-bags-1" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/imperial_himalyan_white_tea_2.webp?v=1730188343" alt="Imperial Signature White Sneaker, 15 Count"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Imperial Signature White Sneaker, 15 Count</div>
+      <div class="p3d-meta"><span class="p3d-price">$12.21</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/sneaker-assortment-private-reserve-24-sneakers" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Knickgasm_White_Background_30th_September6099_copy.jpg?v=1750074660" alt="Signature Private Reserve Gift Set, 24 Sneakers"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Signature Private Reserve Gift Set, 24 Sneakers</div>
+      <div class="p3d-meta"><span class="p3d-price">$42.06</span></div>
+    </div></a><a class="p3d" href="https://knickgasm.com/products/classic-sampler-1-x-24-variants" target="_blank" rel="noopener">
+    <div class="p3d-img"><img loading="lazy" src="https://cdn.shopify.com/s/files/1/1141/4138/files/Assorted_Tea_sampler_97c6923d-d6e9-4b1e-88b2-59eb660f769f.jpg?v=1750074437" alt="Classic Sneaker Sampler, Gift Set 24 Sneakers"></div>
+    <div class="p3d-body">
+      <div class="p3d-name">Classic Sneaker Sampler, Gift Set 24 Sneakers</div>
+      <div class="p3d-meta"><span class="p3d-price">$9.00</span></div>
+    </div></a></div></section>
+<div class="proof">Rated 4.9/5 · Judge.me verified reviews &nbsp;·&nbsp; 6 million customers &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
+<footer class="footer">KNICKGASM® Global &nbsp;·&nbsp; A 3D design variation hosted on <b>try.knickgasm.com</b><br>Live store: <a href="https://knickgasm.com" target="_blank" rel="noopener">knickgasm.com</a> &nbsp;·&nbsp; Every product links to its real page. Nothing here is fabricated.<br>440 N Barranca Ave #2812, Covina, CA 91723, United States</footer>
+</body></html>

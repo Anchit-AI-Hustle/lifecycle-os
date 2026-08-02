@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Social Media OS — KNICKGASM Lifecycle OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta name="theme-color" content="#6A33D8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Social OS">
+<style>
+  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--muted:#9fb3a8}
+  *{box-sizing:border-box}
+  body{margin:0;background:#0a1410;color:#e8ede9;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:28px}
+  .wrap{max-width:1280px;margin:0 auto}
+  .top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
+  .eyebrow{color:var(--lava);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+  h1{font-family:'Montserrat','Raleway',Georgia,serif;font-size:40px;line-height:1.05;margin:8px 0 10px;color:var(--chalk)}
+  p{color:var(--muted);line-height:1.55}
+  .btn{border:0;border-radius:10px;background:var(--lava);color:#0a1410;padding:12px 16px;font-weight:800;cursor:pointer}
+  .btn.secondary{background:transparent;color:#e8ede9;border:1px solid rgba(171,135,67,.35)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+  .btn.ok{background:#1d6b45;color:#eafff3}
+  .btn.no{background:transparent;color:#e89a9a;border:1px solid rgba(232,154,154,.4)}
+  input[type=date]{background:#0f1d18;border:1px solid rgba(171,135,67,.35);color:#e8ede9;border-radius:10px;padding:10px 12px;font:inherit}
+  label.chk{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .banner{display:none;border:1px solid rgba(232,154,154,.4);background:rgba(180,60,60,.12);color:#e89a9a;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px}
+  .banner.info{border-color:rgba(171,135,67,.4);background:rgba(171,135,67,.08);color:#d9c18f}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{background:#0f1d18;border:1px solid rgba(171,135,67,.18);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .card h3{margin:0;font-size:14px;color:var(--chalk);display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .plat{color:var(--lava);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+  .meta{font-size:11px;color:var(--muted)}
+  .copy{font-size:13px;line-height:1.55;color:#dfe8e2;white-space:pre-wrap;max-height:180px;overflow:auto;background:#07100d;border:1px solid rgba(171,135,67,.14);border-radius:10px;padding:10px}
+  .tags{font-size:12px;color:#d9c18f;word-break:break-word}
+  .heroimg{width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid rgba(171,135,67,.2);display:block}
+  .prompt{font-size:11px;color:#a7b5ad;background:#07100d;border:1px dashed rgba(171,135,67,.35);border-radius:10px;padding:8px;max-height:110px;overflow:auto}
+  .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
+  .st.draft{background:rgba(171,135,67,.16);color:#d9c18f}
+  .st.approved{background:rgba(29,107,69,.3);color:#8fe7b9}
+  .st.skipped{background:rgba(180,60,60,.22);color:#e89a9a}
+  .st.posted{background:#1d6b45;color:#eafff3}
+  .actions{display:flex;gap:8px;margin-top:auto}
+  .wide{grid-column:1/-1}
+  .trace{background:#0f1d18;border:1px solid rgba(171,135,67,.18);border-radius:16px;padding:16px;margin-top:18px}
+  .trace h2{margin:0 0 10px;font-size:16px;color:var(--chalk);font-family:'Montserrat','Raleway',Georgia,serif}
+  .tstep{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(171,135,67,.1);font-size:13px}
+  .tstep:last-child{border-bottom:0}
+  .tbadge{min-width:110px;color:var(--lava);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;padding-top:2px}
+  .tsrc{font-size:11px;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:1px 8px;color:#d9c18f;white-space:nowrap}
+  .tsrc.fb{border-color:rgba(232,154,154,.4);color:#e89a9a}
+  .tnote{color:#cfe0d7;line-height:1.5;word-break:break-word}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{color:var(--muted);font-size:14px;padding:26px;text-align:center;border:1px dashed rgba(171,135,67,.3);border-radius:14px;grid-column:1/-1}
+  details.blog summary{cursor:pointer;color:var(--lava);font-size:12px;font-weight:700}
+  .blogbody{font-size:13px;line-height:1.65;color:#dfe8e2;white-space:pre-wrap;max-height:340px;overflow:auto;background:#07100d;border-radius:10px;padding:12px;margin-top:8px}
+  @media(max-width:1024px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}h1{font-size:30px}body{padding:16px}}
+</style>
+<script src="/auth.js?v=20260617" defer></script>
+</head>
+<body>
+<main class="wrap">
+  <section class="top">
+    <div>
+      <div class="eyebrow">KNICKGASM Lifecycle OS · Social Media OS</div>
+      <h1>Daily Social Post Generator</h1>
+      <p>A 7-agent pipeline (ideology → data &amp; hypothesis → strategy → content → design → video → compilation) drafts one full day of posts across Instagram, Facebook, TikTok, LinkedIn, X, Pinterest, YouTube Shorts, Threads and the blog. Runs daily at <b>04:30 UTC</b> via cron, or on demand below. Everything lands as a <b>draft</b> for human approval — platform push is Phase&nbsp;2.</p>
+    </div>
+    <div>
+      <button id="runBtn" class="btn">Run today&rsquo;s pipeline</button>
+      <button id="loadBtn" class="btn secondary">Load saved posts</button>
+    </div>
+  </section>
+
+  <div class="bar">
+    <label class="meta" for="datePick">Date</label>
+    <input type="date" id="datePick">
+    <label class="chk"><input type="checkbox" id="dryRun"> dry run (no save, no media render)</label>
+    <span id="runState" class="meta"></span>
+  </div>
+
+  <div id="banner" class="banner"></div>
+
+  <section id="cards" class="grid">
+    <div class="empty">No posts loaded yet. Pick a date, then <b>Run today&rsquo;s pipeline</b> to generate drafts, or <b>Load saved posts</b> to review a previous run.</div>
+  </section>
+
+  <section class="trace" id="tracePanel" style="display:none">
+    <h2>Pipeline trace</h2>
+    <div id="traceRows"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var API = '/api/brain';
+  var lastRun = null;
+
+  function todayIso() { return new Date().toISOString().slice(0, 10); }
+  $('datePick').value = todayIso();
+
+  function banner(msg, info) {
+    var el = $('banner');
+    if (!msg) { el.style.display = 'none'; return; }
+    el.textContent = msg;
+    el.className = 'banner' + (info ? ' info' : '');
+    el.style.display = 'block';
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function mediaHtml(media) {
+    if (!media) return '';
+    var h = '';
+    var img = media.image_url || (media.cover && media.cover.image_url);
+    var prompt = media.image_prompt || (media.cover && media.cover.image_prompt);
+    if (img) h += '<img class="heroimg" alt="hero creative" src="' + esc(img) + '">';
+    else if (prompt) h += '<div class="prompt"><b>IMAGE PROMPT (placeholder — cascade unavailable):</b><br>' + esc(prompt) + '</div>';
+    if (media.type === 'video' && media.video) {
+      var v = media.video;
+      var shots = (v.storyboard && v.storyboard.storyboard) || [];
+      h += '<div class="prompt"><b>VIDEO STORYBOARD:</b><br>' + shots.map(esc).join('<br>');
+      var job = v.job || {};
+      if (job.not_connected) h += '<br><b>Render:</b> stubbed — no video key set (would call ' + esc((job.would_request && job.would_request.provider) || 'veo') + ')';
+      else if (job.job_id) h += '<br><b>Render job:</b> ' + esc(job.provider || '') + ' ' + esc(job.job_id) + ' (' + esc(job.status || '') + ')';
+      else if (job.status) h += '<br><b>Render:</b> ' + esc(job.status);
+      else if (job.error) h += '<br><b>Render:</b> failed — ' + esc(job.error);
+      h += '</div>';
+    }
+    if (media.crop) h += '<div class="meta">Crop: ' + esc(media.crop) + '</div>';
+    return h;
+  }
+
+  function copyHtml(p) {
+    var c = p.copy || (p.payload && p.payload.copy) || {};
+    if ((p.platform || '') === 'blog' || c.body_markdown) {
+      return '<div class="copy"><b>' + esc(c.title || '') + '</b><br>' + esc(c.meta_description || '') + '</div>' +
+        '<details class="blog"><summary>Full article (' + (String(c.body_markdown || '').split(/\s+/).length) + ' words)</summary>' +
+        '<div class="blogbody">' + esc(c.body_markdown || '') + '</div></details>';
+    }
+    var t = c.title ? ('<b>' + esc(c.title) + '</b>\n') : '';
+    return '<div class="copy">' + t + esc(c.caption || '') + '</div>';
+  }
+
+  function card(post, dbId) {
+    var p = post.payload || post; // DB rows wrap the post in payload
+    var id = dbId != null ? dbId : post.id;
+    var status = post.status || p.status || 'draft';
+    var el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML =
+      '<div class="plat">' + esc(p.platform) + ' · ' + esc(p.format) + '</div>' +
+      '<h3><span>' + esc(p.theme || '') + '</span><span class="st ' + esc(status) + '">' + esc(status) + '</span></h3>' +
+      '<div class="meta">' + esc(p.objective || '') + ' · best time ' + esc(p.best_time_utc || '') + ' UTC · ' + esc((p.media && p.media.dims) || '') + '</div>' +
+      copyHtml(p) +
+      (p.hashtags && p.hashtags.length ? '<div class="tags">' + esc(p.hashtags.join(' ')) + '</div>' : '') +
+      mediaHtml(p.media) +
+      (p.alt_text ? '<div class="meta">Alt: ' + esc(p.alt_text) + '</div>' : '') +
+      '<div class="meta">CTA: <b>' + esc(p.cta || '') + '</b> → <a style="color:#d9c18f" href="' + esc(p.link || '#') + '" target="_blank" rel="noopener">' + esc(p.link || '') + '</a></div>' +
+      '<div class="meta">Push: ' + esc(post.push_status || p.push_status || '') + '</div>' +
+      '<div class="actions">' +
+        '<button class="btn sm ok" data-act="social-approve">Approve</button>' +
+        '<button class="btn sm no" data-act="social-skip">Skip</button>' +
+      '</div>';
+    el.querySelectorAll('button[data-act]').forEach(function (btn) {
+      btn.addEventListener('click', function () { decide(btn, el, id, btn.getAttribute('data-act')); });
+    });
+    return el;
+  }
+
+  function renderPosts(posts, fromDb) {
+    var box = $('cards');
+    box.innerHTML = '';
+    if (!posts || !posts.length) {
+      box.innerHTML = '<div class="empty">Nothing here for this date yet.</div>';
+      return;
+    }
+    posts.forEach(function (row) {
+      box.appendChild(fromDb ? card(row, row.id) : card(row, row.id));
+    });
+  }
+
+  function renderTrace(trace) {
+    var panel = $('tracePanel'), rows = $('traceRows');
+    if (!trace || !trace.length) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    rows.innerHTML = trace.map(function (t) {
+      var fb = String(t.source || '').indexOf('fallback') === 0;
+      return '<div class="tstep"><span class="tbadge">' + esc(t.step) + '</span>' +
+        '<span class="tsrc' + (fb ? ' fb' : '') + '">' + esc(t.source || '') + (t.tier ? ' · ' + esc(t.tier) : '') + '</span>' +
+        '<span class="tnote"><b>' + esc(t.agent || '') + '</b> — ' + esc(t.note || t.error || '') + ' <span class="meta">(' + (t.ms != null ? t.ms + 'ms' : '') + ')</span></span></div>';
+    }).join('');
+  }
+
+  async function decide(btn, cardEl, id, action) {
+    banner('');
+    if (id == null) { banner('This post was not persisted (dry run / no Supabase) — approve/skip needs a saved post.', true); return; }
+    btn.disabled = true;
+    try {
+      var r = await fetch(API + '?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      var j = await r.json();
+      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      var st = cardEl.querySelector('.st');
+      var s = (j.post && j.post.status) || (action === 'social-approve' ? 'approved' : 'skipped');
+      st.textContent = s; st.className = 'st ' + s;
+    } catch (e) {
+      banner('Could not update post: ' + e.message);
+    } finally { btn.disabled = false; }
+  }
+
+  async function run() {
+    banner('');
+    var btn = $('runBtn');
+    btn.disabled = true;
+    $('runState').innerHTML = '<span class="spinner"></span>Running the 7-agent pipeline (up to ~80s)…';
+    try {
+      var body = { date: $('datePick').value || todayIso(), dry_run: $('dryRun').checked };
+      var r = await fetch(API + '?action=social-run-daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      var j = await r.json();
+      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      lastRun = j;
+      renderPosts(j.posts, false);
+      renderTrace(j.trace);
+      var persisted = j.persistence && j.persistence.persisted;
+      $('runState').textContent = 'Done in ' + Math.round((j.ms || 0) / 1000) + 's — ' + (j.posts || []).length + ' drafts' + (persisted ? ' (saved)' : ' (NOT saved: ' + ((j.persistence && j.persistence.reason) || '') + ')');
+      if (!persisted) banner('Run complete but not persisted: ' + ((j.persistence && j.persistence.reason) || 'unknown') + '. Approve/skip needs Supabase.', true);
+    } catch (e) {
+      $('runState').textContent = '';
+      banner('Pipeline call failed: ' + e.message + ' — is the API deployed/reachable?');
+    } finally { btn.disabled = false; }
+  }
+
+  async function load() {
+    banner('');
+    var btn = $('loadBtn');
+    btn.disabled = true;
+    $('runState').textContent = 'Loading…';
+    try {
+      var d = $('datePick').value || todayIso();
+      var r = await fetch(API + '?action=social-list&date=' + encodeURIComponent(d));
+      var j = await r.json();
+      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      renderPosts(j.posts, true);
+      renderTrace(null);
+      $('runState').textContent = (j.posts || []).length + ' saved post(s) for ' + d + (j.persistence ? '' : ' — Supabase not configured');
+      if (!j.persistence && j.note) banner(j.note, true);
+    } catch (e) {
+      $('runState').textContent = '';
+      banner('Could not load posts: ' + e.message + ' — is the API deployed/reachable?');
+    } finally { btn.disabled = false; }
+  }
+
+  $('runBtn').addEventListener('click', run);
+  $('loadBtn').addEventListener('click', load);
+})();
+</script>
+</body>
+</html>

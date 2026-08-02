@@ -1,0 +1,8 @@
+vendor/
+node_modules/
+gateway.env
+gateway.log
+gateway.pid
+*.sqlite
+*.db
+data/

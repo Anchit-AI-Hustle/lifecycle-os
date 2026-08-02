@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knickgasm Growth &amp; Automation Playbook</title>
+<link rel="icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="description" content="The Knickgasm Growth and Automation Playbook: market intelligence, knowledge base, buyer avatars, real-time analytics, and the content automation and Shopify sync engine, in one command tower.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          knickgasm: {
+            green: '#6A33D8',
+            lava:  '#D0473E',
+            ink:   '#111111',
+            chalk: '#F7F5F2'
+          }
+        },
+        fontFamily: {
+          head: ['Montserrat', 'Raleway', 'Georgia', 'serif'],
+          body: ['Instrument Sans', 'Helvetica Neue', 'Arial', 'sans-serif']
+        }
+      }
+    }
+  };
+</script>
+<style>
+  :root{
+    --knickgasm-green:#6A33D8;
+    --knickgasm-lava:#D0473E;
+    --knickgasm-ink:#111111;
+    --knickgasm-chalk:#F7F5F2;
+    --knickgasm-card:#FFFFFF;
+    --line:rgba(23,23,23,.12);
+    --soft:#5b5b57;
+  }
+  html{scroll-behavior:smooth;scroll-padding-top:24px;}
+  body{
+    background:var(--knickgasm-chalk);
+    color:var(--knickgasm-ink);
+    font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4,.font-head{font-family:'Montserrat','Raleway',Georgia,serif;}
+  /* Sidebar tree */
+  .nav-group > summary{list-style:none;cursor:pointer;}
+  .nav-group > summary::-webkit-details-marker{display:none;}
+  .nav-group[open] > summary .chev{transform:rotate(90deg);}
+  .nav-link{transition:background .12s,color .12s,border-color .12s;}
+  .nav-link:hover{background:rgba(171,135,67,.16);color:var(--knickgasm-chalk);}
+  .nav-link.active{background:var(--knickgasm-lava);color:var(--knickgasm-green);font-weight:700;}
+  .card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:14px;}
+  .metric{background:#fff;border:1px solid var(--line);border-radius:12px;}
+  .metric .mv{font-family:'Montserrat',Georgia,serif;color:var(--knickgasm-green);}
+  table.grid-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:900px;}
+  table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.grid-tbl th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;}
+  table.grid-tbl tr:nth-child(even) td{background:#faf7f0;}
+  table.grid-tbl tr:last-child td{border-bottom:0;}
+  .tier-1{color:var(--knickgasm-green);font-weight:700;}
+  .tier-2{color:var(--knickgasm-lava);font-weight:700;}
+  .tier-3{color:var(--soft);font-weight:700;}
+  details.blueprint{background:var(--knickgasm-ink);border-radius:12px;overflow:hidden;border:1px solid var(--line);}
+  details.blueprint > summary{list-style:none;cursor:pointer;padding:14px 18px;color:var(--knickgasm-chalk);font-family:'Montserrat',Georgia,serif;font-size:16px;background:var(--knickgasm-green);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  details.blueprint > summary::-webkit-details-marker{display:none;}
+  details.blueprint[open] > summary .plus{transform:rotate(45deg);}
+  details.blueprint pre{margin:0;padding:18px;overflow-x:auto;color:#111111;font-family:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,monospace;font-size:12.5px;line-height:1.6;}
+  .pill{display:inline-block;border-radius:999px;padding:2px 11px;font-size:11px;font-weight:700;border:1px solid var(--line);}
+  .flow-node{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;}
+  .btn-primary{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:10px;font-weight:700;transition:filter .12s;}
+  .btn-primary:hover{filter:brightness(1.15);}
+  .btn-lava{background:var(--knickgasm-lava);color:var(--knickgasm-green);border-radius:10px;font-weight:800;transition:filter .12s;}
+  .btn-lava:hover{filter:brightness(1.05);}
+  select,input[type=text],textarea{font-family:inherit;}
+  ::selection{background:var(--knickgasm-lava);color:#fff;}
+  /* Scroll-spy section spacing */
+  section[data-section]{scroll-margin-top:20px;}
+  .code-out{font-family:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,monospace;font-size:12.5px;line-height:1.55;}
+
+/* vh-table-align: data-table column alignment — header cells sit over their
+   columns (table-layout:fixed, equal width), the first column (row labels) is
+   left-aligned and every other column is centered. Scoped to tables that have
+   <th> so layout tables are never affected; element-level so a page's own
+   table.<class> alignment still wins. */
+table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+</style>
+</head>
+<body class="font-body">
+
+<div class="flex min-h-screen">
+
+  <!-- ============ LHS COMMAND TOWER SIDEBAR ============ -->
+  <aside class="hidden lg:flex flex-col w-[300px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">
+    <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">
+      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>
+      <div class="font-head text-[22px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>
+      <p class="text-[11.5px] mt-2" style="color:#cdd8d0;">Command tower for the full growth stack: intelligence, avatars, live pace, and the automation loop.</p>
+    </div>
+
+    <nav class="px-3 py-4 space-y-3 text-[13px]" id="command-nav">
+
+      <!-- SYSTEM ONE -->
+      <div class="px-2 text-[10px] tracking-[.14em] uppercase font-bold text-knickgasm-lava">System One: Growth &amp; Strategy</div>
+
+      <details class="nav-group" open>
+        <summary class="flex items-center gap-2 px-2 py-1.5 rounded-lg font-semibold">
+          <span class="chev inline-block transition-transform text-knickgasm-lava">&#9656;</span>
+          <span>&#128202; Market Intelligence</span>
+        </summary>
+        <div class="pl-4 mt-1 space-y-0.5">
+          <a href="#macro-economics" class="nav-link block px-3 py-1.5 rounded-lg">Macro Economics (TAM/SAM/SOM)</a>
+          <a href="#competitor-grid" class="nav-link block px-3 py-1.5 rounded-lg">Cross-Vertical Competitor Grid</a>
+          <a href="#config-blueprints" class="nav-link block px-3 py-1.5 rounded-lg">Technical Configuration Blueprints</a>
+        </div>
+      </details>
+
+      <details class="nav-group">
+        <summary class="flex items-center gap-2 px-2 py-1.5 rounded-lg font-semibold">
+          <span class="chev inline-block transition-transform text-knickgasm-lava">&#9656;</span>
+          <span>&#128216; Core Knowledge Base</span>
+        </summary>
+        <div class="pl-4 mt-1 space-y-0.5">
+          <a href="#supply-chain" class="nav-link block px-3 py-1.5 rounded-lg">Supply-Chain-to-Origin Metrics</a>
+          <a href="#ingredient-verification" class="nav-link block px-3 py-1.5 rounded-lg">Ingredient Source Verification</a>
+          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Coffee/Sneaker Hybrid Cross-Sell Logic</a>
+        </div>
+      </details>
+
+      <details class="nav-group">
+        <summary class="flex items-center gap-2 px-2 py-1.5 rounded-lg font-semibold">
+          <span class="chev inline-block transition-transform text-knickgasm-lava">&#9656;</span>
+          <span>&#128101; Avatars &amp; Personas</span>
+        </summary>
+        <div class="pl-4 mt-1 space-y-0.5">
+          <a href="#cohort-001" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 001: Third-Wave Purists</a>
+          <a href="#cohort-002" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 002: Functional Optimizers</a>
+          <a href="#cohort-003" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 003: Biohacking Performers</a>
+          <a href="#cohort-004" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 004: Routine Convenience</a>
+        </div>
+      </details>
+
+      <details class="nav-group">
+        <summary class="flex items-center gap-2 px-2 py-1.5 rounded-lg font-semibold">
+          <span class="chev inline-block transition-transform text-knickgasm-lava">&#9656;</span>
+          <span>&#128200; Real-Time &amp; Midday Analytics</span>
+        </summary>
+        <div class="pl-4 mt-1 space-y-0.5">
+          <a href="#intraday-pace" class="nav-link block px-3 py-1.5 rounded-lg">Intraday Pace Tracking</a>
+          <a href="#midday-models" class="nav-link block px-3 py-1.5 rounded-lg">Midday Predictive Models</a>
+        </div>
+      </details>
+
+      <!-- SYSTEM TWO -->
+      <div class="px-2 pt-2 text-[10px] tracking-[.14em] uppercase font-bold text-knickgasm-lava">System Two: Retention &amp; Automation</div>
+
+      <details class="nav-group" open>
+        <summary class="flex items-center gap-2 px-2 py-1.5 rounded-lg font-semibold">
+          <span class="chev inline-block transition-transform text-knickgasm-lava">&#9656;</span>
+          <span>&#9881;&#65039; Workspace &amp; Asset Production</span>
+        </summary>
+        <div class="pl-4 mt-1 space-y-0.5">
+          <a href="#mailer-frameworks" class="nav-link block px-3 py-1.5 rounded-lg">HTML Mailer Frameworks</a>
+          <a href="#social-variants" class="nav-link block px-3 py-1.5 rounded-lg">Localized Social Ad Variants</a>
+          <a href="#motion-assets" class="nav-link block px-3 py-1.5 rounded-lg">Image / Video / GIF Assets</a>
+        </div>
+      </details>
+
+      <details class="nav-group">
+        <summary class="flex items-center gap-2 px-2 py-1.5 rounded-lg font-semibold">
+          <span class="chev inline-block transition-transform text-knickgasm-lava">&#9656;</span>
+          <span>&#128230; Shopify Asset Ingestion</span>
+        </summary>
+        <div class="pl-4 mt-1 space-y-0.5">
+          <a href="#cdn-route" class="nav-link block px-3 py-1.5 rounded-lg">Shopify Content CDN Route</a>
+          <a href="#activation-sync" class="nav-link block px-3 py-1.5 rounded-lg">Live Activation Asset Sync</a>
+        </div>
+      </details>
+    </nav>
+
+    <div class="mt-auto px-5 py-4 text-[11px] border-t" style="border-color:rgba(251,245,234,.14);color:#cdd8d0;">
+      <a href="/research" class="underline decoration-knickgasm-lava">Growth Book</a> &nbsp;&middot;&nbsp;
+      <a href="/all-in-one" class="underline decoration-knickgasm-lava">OS Home</a>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN VIEWPORT ============ -->
+  <main class="flex-1 min-w-0">
+
+    <!-- Mobile top bar -->
+    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);">
+      <div class="font-head text-lg">Growth &amp; Automation Playbook</div>
+      <a href="#macro-economics" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Jump in</a>
+    </div>
+
+    <div class="max-w-[1100px] mx-auto px-6 md:px-10 py-10 space-y-16">
+
+      <!-- HERO -->
+      <header class="space-y-3">
+        <span class="text-[11px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</span>
+        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">The Growth &amp; Automation Playbook</h1>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">One command tower for how Knickgasm grows a premium coffee and functional-beverage franchise: the market it plays in, the buyers it serves, the pace it runs at each day, and the automation loop that turns a brief into a shipped mailer, ad, and synced Shopify asset. Every figure below is either a live-engine reading or a stated planning benchmark, labelled as such.</p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <span class="pill" style="background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-color:var(--knickgasm-green);">System One: Strategy</span>
+          <span class="pill" style="background:var(--knickgasm-lava);color:var(--knickgasm-green);border-color:var(--knickgasm-lava);">System Two: Automation</span>
+          <span class="pill" style="color:var(--knickgasm-ink);">Brand-locked: 4-color palette, Montserrat + Instrument Sans</span>
+        </div>
+      </header>
+
+      <!-- ============================================================= -->
+      <!-- SYSTEM ONE -->
+      <!-- ============================================================= -->
+
+      <!-- MACRO ECONOMICS -->
+      <section data-section id="macro-economics" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Market Intelligence</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Macro Economics: TAM / SAM / SOM</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The US coffee and functional-beverage opportunity, framed top-down. Total market at the top, the served D2C slice in the middle, and the realistically obtainable share for a premium heritage brand at the base.</p>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="metric p-5">
+            <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">TAM</div>
+            <div class="mv text-4xl mt-1">$117.94B</div>
+            <div class="text-[12.5px] mt-1" style="color:var(--soft);">Total US coffee market value, all channels and formats.</div>
+          </div>
+          <div class="metric p-5" style="border-color:var(--knickgasm-lava);">
+            <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SAM</div>
+            <div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava);">$26.40B</div>
+            <div class="text-[12.5px] mt-1" style="color:var(--soft);">Serviceable D2C and premium/functional segment Knickgasm can address.</div>
+          </div>
+          <div class="metric p-5" style="border-color:var(--knickgasm-green);border-width:2px;">
+            <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SOM</div>
+            <div class="mv text-4xl mt-1">$5.85B</div>
+            <div class="text-[12.5px] mt-1" style="color:var(--soft);">Obtainable US coffee D2C value within reach at current positioning.</div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <h3 class="font-head text-lg text-knickgasm-green">Reading the funnel</h3>
+          <ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);">
+            <li><b class="text-knickgasm-green">SAM is 22.4% of TAM.</b> The D2C and premium/functional slice is where provenance and a real functional payload win, and where price competition matters least.</li>
+            <li><b class="text-knickgasm-green">SOM is 22.2% of SAM.</b> Obtainable share is gated by acquisition efficiency and retention, not by demand. The playbook prioritises the second order and the subscription anchor because that is where the SOM actually compounds.</li>
+            <li><b class="text-knickgasm-green">Where the leverage sits.</b> Moving day-180 retention up a few points expands realised SOM faster than raising ad spend, because functional buyers carry a materially higher lifetime value.</li>
+          </ul>
+          <p class="text-[12px] mt-3" style="color:var(--soft);">Figures are stated planning benchmarks for the US coffee and functional-beverage segment. Live owned-store readings appear under Real-Time Analytics.</p>
+        </div>
+      </section>
+
+      <!-- COMPETITOR GRID -->
+      <section data-section id="competitor-grid" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Market Intelligence</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Cross-Vertical Competitor Grid</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Who Knickgasm benchmarks against across premium coffee, functional beverage, and supplement verticals, and the retention move worth borrowing from each. Tier reflects relative D2C scale in the segment.</p>
+        </div>
+
+        <div class="card overflow-x-auto">
+          <table class="grid-tbl">
+            <thead>
+              <tr>
+                <th>Brand</th>
+                <th>Vertical</th>
+                <th>Market Share Tier</th>
+                <th>Channel Mix</th>
+                <th>Infrastructure Stack</th>
+                <th>Churn Prevention Strategy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Blue Bottle</td>
+                <td>Premium coffee</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>Retail-led, D2C subscription secondary</td>
+                <td>Shopify Plus, Recharge, Klaviyo</td>
+                <td>Roast-freshness cadence, cafe-to-subscription bridge</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Trade Coffee</td>
+                <td>Coffee marketplace</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>Pure D2C subscription</td>
+                <td>Custom stack, Recharge, Klaviyo</td>
+                <td>Quiz-matched roasts, one-tap swap and skip</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Onyx Coffee Lab</td>
+                <td>Specialty coffee</td>
+                <td><span class="tier-2">Tier 2</span></td>
+                <td>D2C plus wholesale</td>
+                <td>Shopify, Recharge, Klaviyo</td>
+                <td>Transparency scoring, taste-note storytelling</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Four Sigmatic</td>
+                <td>Functional / mushroom</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>D2C plus Amazon plus retail</td>
+                <td>Shopify Plus, Stay AI, Klaviyo</td>
+                <td>Ritual-replacement copy, subscribe-first onboarding</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">MUD\Wtr</td>
+                <td>Adaptogen coffee alternative</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>D2C-heavy, growing retail</td>
+                <td>Shopify Plus, Stay AI, Klaviyo</td>
+                <td>Starter-kit onboarding, rebrand the morning habit</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Ryze</td>
+                <td>Mushroom coffee</td>
+                <td><span class="tier-2">Tier 2</span></td>
+                <td>D2C plus Amazon</td>
+                <td>Shopify, Skio, Klaviyo</td>
+                <td>Subscribe-and-save default, creator proof</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Vital Proteins</td>
+                <td>Functional supplement</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>Omnichannel, retail-led</td>
+                <td>Shopify Plus, Recharge, Klaviyo</td>
+                <td>Routine bundling, replenishment reminders</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Obvi</td>
+                <td>Collagen / streetwear</td>
+                <td><span class="tier-2">Tier 2</span></td>
+                <td>D2C plus Amazon</td>
+                <td>Shopify, Recharge, Klaviyo, Postscript</td>
+                <td>Community-led SMS, gamified loyalty</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Cometeer</td>
+                <td>Frozen coffee format</td>
+                <td><span class="tier-3">Tier 3</span></td>
+                <td>Pure D2C subscription</td>
+                <td>Custom stack, Recharge, Klaviyo</td>
+                <td>Convenience proof, freezer-shelf habit framing</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Jot</td>
+                <td>Ultra-concentrate coffee</td>
+                <td><span class="tier-3">Tier 3</span></td>
+                <td>D2C plus select retail</td>
+                <td>Shopify, Recharge, Klaviyo</td>
+                <td>One-bottle-a-month math, low-friction reorder</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Bruvi</td>
+                <td>Coffee hardware / pods</td>
+                <td><span class="tier-3">Tier 3</span></td>
+                <td>D2C, machine plus consumable</td>
+                <td>Shopify, Recharge, Klaviyo</td>
+                <td>Razor-and-blade lock-in, auto-ship pods</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card p-5">
+          <h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3>
+          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance paired with a genuine functional payload (Coffee Collection) is a position none of the eleven hold at once. The move: pair ritual-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
+        </div>
+      </section>
+
+      <!-- BLUEPRINTS -->
+      <section data-section id="config-blueprints" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Market Intelligence</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Technical Configuration Blueprints</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The machine-readable contracts the rest of the OS reads from: the cohort profile schema every brief targets, and the retention-trigger rules that fire the lifecycle hooks. Expand to read the exact payload.</p>
+        </div>
+
+        <details class="blueprint">
+          <summary>
+            <span>schemas/cohort-profile.json &nbsp;<span class="text-[11px] font-body opacity-70">JSON Schema</span></span>
+            <span class="plus text-knickgasm-lava text-xl leading-none transition-transform">+</span>
+          </summary>
+<pre>{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://knickgasm.os/schemas/cohort-profile.json",
+  "title": "CohortProfile",
+  "type": "object",
+  "required": ["id", "name", "vertical", "economics", "preferences"],
+  "properties": {
+    "id":       { "type": "string", "pattern": "^cohort-[0-9]{3}$" },
+    "name":     { "type": "string" },
+    "vertical": {
+      "type": "string",
+      "enum": ["third-wave-purist", "functional-optimizer",
+               "biohacking-performer", "routine-convenience"]
+    },
+    "economics": {
+      "type": "object",
+      "required": ["income_band_usd", "target_aov_usd", "ltv_cac_target"],
+      "properties": {
+        "income_band_usd": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer", "minimum": 0 },
+            "max": { "type": "integer" }
+          }
+        },
+        "target_aov_usd":  { "type": "number", "minimum": 0 },
+        "ltv_cac_target":  { "type": "number", "minimum": 1 }
+      }
+    },
+    "preferences": {
+      "type": "object",
+      "required": ["roast", "format", "hero_products"],
+      "properties": {
+        "roast":  { "type": "string",
+                    "enum": ["light", "medium", "medium-dark", "dark", "adaptogen-colorway"] },
+        "format": { "type": "string",
+                    "enum": ["whole-bean", "ground", "concentrate", "instant", "capsule"] },
+        "hero_products": { "type": "array", "items": { "type": "string" } },
+        "subscription_bias": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "messaging": {
+      "type": "object",
+      "properties": {
+        "primary_hook": { "type": "string" },
+        "banned_terms": { "type": "array", "items": { "type": "string" },
+                          "default": ["streetwear journey", "transform", "liquid lava",
+                                      "game-changer", "hurry", "last chance"] }
+      }
+    }
+  }
+}</pre>
+        </details>
+
+        <details class="blueprint">
+          <summary>
+            <span>config/retention-triggers.yaml &nbsp;<span class="text-[11px] font-body opacity-70">YAML</span></span>
+            <span class="plus text-knickgasm-lava text-xl leading-none transition-transform">+</span>
+          </summary>
+<pre>version: 2
+market: US
+currency: USD
+
+# Lifecycle hooks that fire against Klaviyo events.
+# Each trigger names the cohort it protects and the expected metric it moves.
+triggers:
+  - id: second-order-nudge
+    protects: cohort-004
+    fires_on: order_number == 1
+    delay_days: 9
+    channel: [email, sms]
+    condition: replenishment_window_days <= 14
+    action: send_flow("second-order-lace-up-guide")
+    target_metric: repeat_purchase_rate
+
+  - id: subscription-anchor
+    protects: cohort-002
+    fires_on: product_category == "coffee" && subscription == false
+    delay_days: 3
+    channel: [email]
+    action: offer("subscribe-first-refill-rhythm")
+    target_metric: subscription_attach_rate
+
+  - id: aov-recovery
+    protects: cohort-001
+    fires_on: order_aov_usd < segment_median_aov
+    delay_days: 0
+    channel: [email]
+    action: recommend_bundle("hero-plus-two-complementary")
+    target_metric: average_order_value
+
+  - id: winback-about-to-sleep
+    protects: cohort-003
+    fires_on: days_since_last_order between 45 and 75
+    delay_days: 0
+    channel: [email, sms]
+    action: send_flow("winback-ritual-reset")
+    target_metric: reactivation_rate
+
+  - id: discount-discipline
+    protects: all
+    fires_on: discount_requested == true
+    guard: cohort != "cohort-001"   # protect full-margin loyalists
+    action: route_to("curious-switcher-offer-only")
+    target_metric: contribution_margin
+
+defaults:
+  quiet_hours: "21:00-08:00"
+  max_touches_per_week: 3
+  suppress_if: unsubscribed || bounced</pre>
+        </details>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- CORE KNOWLEDGE BASE -->
+      <!-- ============================================================= -->
+
+      <!-- SUPPLY CHAIN -->
+      <section data-section id="supply-chain" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Supply-Chain-to-Origin Metrics</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Knickgasm ships studio-fresh from origin. The provenance timeline is the proof behind the premium, and the copy engine quotes these speeds directly.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="flow-node">Hand-painted at one of one</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Processed at origin factory in 24 to 72 hrs</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Quality and grading, batch logged</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Sealed, studio-fresh packing</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Direct-from-source dispatch</span>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="metric p-5"><div class="mv text-3xl">24-72h</div><div class="text-[12px] mt-1" style="color:var(--soft);">Drop to factory processing window</div></div>
+          <div class="metric p-5"><div class="mv text-3xl">0</div><div class="text-[12px] mt-1" style="color:var(--soft);">Auction-house middlemen between studio and pack</div></div>
+          <div class="metric p-5"><div class="mv text-3xl">100%</div><div class="text-[12px] mt-1" style="color:var(--soft);">Batches traceable to source studio</div></div>
+          <div class="metric p-5"><div class="mv text-3xl">B-Corp</div><div class="text-[12px] mt-1" style="color:var(--soft);">Ethical-sourcing proof point, not the headline</div></div>
+        </div>
+      </section>
+
+      <!-- INGREDIENT VERIFICATION -->
+      <section data-section id="ingredient-verification" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Ingredient Source Verification</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">How each functional claim is backed. The rule for copy: state the verified source and payload, never a medical claim.</p>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-3">
+          <div class="card p-5">
+            <h3 class="font-head text-lg text-knickgasm-green">Single-studio origin</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Sneaker and coffee tied to a named studio and drop. Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p>
+          </div>
+          <div class="card p-5">
+            <h3 class="font-head text-lg text-knickgasm-green">Functional payload</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated adaptogen dose per serving. Copy names the ingredient and the ritual benefit in plain, non-medical language.</p>
+          </div>
+          <div class="card p-5">
+            <h3 class="font-head text-lg text-knickgasm-green">Certification chain</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">B-Corp and ethical-sourcing certifications sit as trust proof beside the origin story, referenced but never used as the lead hook.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CROSS SELL -->
+      <section data-section id="cross-sell" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Coffee / Sneaker Hybrid Cross-Sell Logic</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time sneaker buyer into a subscriber. Move buyers along the frequency ladder toward the coffee and supplement franchise.</p>
+        </div>
+
+        <div class="card overflow-x-auto">
+          <table class="grid-tbl" style="min-width:640px;">
+            <thead>
+              <tr><th>From (habit category)</th><th>Bridge product</th><th>To (anchor)</th><th>Trigger</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Black sneaker / Kicks</td><td>Embroidery or themed functional colorway</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>
+              <tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Ritual-replacement, morning-swap framing</td></tr>
+              <tr><td>Coffee Collection</td><td>Supplement companion</td><td>Multi-category subscription</td><td>Bundle logic, free-ship threshold above AOV</td></tr>
+              <tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal ritual subscription</td><td>January reframe of the gift they gave</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- AVATARS -->
+      <!-- ============================================================= -->
+
+      <section class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Avatars &amp; Personas</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">The Four Buyer Cohorts</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The named buyers every brief targets, with income band and roast preference. These map one-to-one to the cohort-profile schema above.</p>
+        </div>
+
+        <div class="grid gap-5 md:grid-cols-2">
+          <div data-section id="cohort-001" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
+            <div class="flex items-center justify-between">
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 001: Third-Wave Purists</h3>
+              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-green);">Loyalist</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$95k to $180k</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Light to medium, single-origin</div></div>
+            </div>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Buys on provenance and craft. Reads taste notes and studio names. Full-margin, protect from a discount habit. Hook: origin story and pair character.</p>
+          </div>
+
+          <div data-section id="cohort-002" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
+            <div class="flex items-center justify-between">
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 002: Functional Optimizers</h3>
+              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava);">Subscriber</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$70k to $140k</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Adaptogen colorway, medium</div></div>
+            </div>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily ritual.</p>
+          </div>
+
+          <div data-section id="cohort-003" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
+            <div class="flex items-center justify-between">
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 003: Biohacking Performers</h3>
+              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-green);">High-intent</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$110k to $220k</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Medium-dark, high-dose adaptogen</div></div>
+            </div>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Optimises inputs and tracks outcomes. Responds to dose, sourcing, and stacking logic. Hook: precise payload and companion supplements.</p>
+          </div>
+
+          <div data-section id="cohort-004" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
+            <div class="flex items-center justify-between">
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 004: Routine Convenience</h3>
+              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava);">Switcher</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$55k to $110k</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Medium, ground or instant</div></div>
+            </div>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Buys for ease and price sensitivity. The discount-responsive switcher. Hook: convenience proof, low-friction reorder, second-order nudge.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- REAL-TIME ANALYTICS -->
+      <!-- ============================================================= -->
+
+      <section data-section id="intraday-pace" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Real-Time Analytics</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Intraday Pace Tracking</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Rolling hour-over-hour indicators mirroring the knickgasm_dtc_data_engine DuckDB instance. These are illustrative live-shape readings; the engine link at the bottom carries the real feed.</p>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="metric p-5">
+            <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net revenue (this hour)</div>
+            <div class="mv text-3xl mt-1" id="pace-rev">$0</div>
+            <div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--knickgasm-green);">&nbsp;</div>
+          </div>
+          <div class="metric p-5">
+            <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Unit order velocity</div>
+            <div class="mv text-3xl mt-1" id="pace-vel">0</div>
+            <div class="text-[12px] mt-1" id="pace-vel-delta" style="color:var(--knickgasm-green);">orders / hr</div>
+          </div>
+          <div class="metric p-5">
+            <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net new subscriptions</div>
+            <div class="mv text-3xl mt-1" id="pace-sub">0</div>
+            <div class="text-[12px] mt-1" id="pace-sub-delta" style="color:var(--knickgasm-green);">this hour</div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <h3 class="font-head text-lg text-knickgasm-green">Hour-over-hour, last 12 hours</h3>
+            <button id="pace-refresh" class="btn-lava px-4 py-2 text-sm">Refresh pace</button>
+          </div>
+          <div class="overflow-x-auto mt-3">
+            <table class="grid-tbl" style="min-width:560px;">
+              <thead><tr><th>Hour</th><th>Net revenue</th><th>Orders</th><th>New subs</th><th>vs prior hr</th></tr></thead>
+              <tbody id="pace-body"></tbody>
+            </table>
+          </div>
+          <p class="text-[12px] mt-3" style="color:var(--soft);">Shape generated locally to mirror engine output. Connect the live DuckDB feed for real values.</p>
+        </div>
+      </section>
+
+      <section data-section id="midday-models" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Real-Time Analytics</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Midday Predictive Models</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">A midday estimator that projects the midnight settlement from pace so far. Enter what you have booked by noon and read the end-of-day boundaries.</p>
+        </div>
+
+        <div class="card p-6">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <label class="block text-sm">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Revenue booked by noon ($)</span>
+              <input id="in-rev" type="text" value="18400" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
+            </label>
+            <label class="block text-sm">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Orders by noon</span>
+              <input id="in-orders" type="text" value="412" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
+            </label>
+            <label class="block text-sm">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Ad spend so far ($)</span>
+              <input id="in-spend" type="text" value="3100" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
+            </label>
+          </div>
+          <button id="predict-btn" class="btn-primary px-5 py-2.5 text-sm mt-4">Project midnight settlement</button>
+
+          <div class="grid gap-4 sm:grid-cols-3 mt-5">
+            <div class="metric p-5">
+              <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Gross daily revenue</div>
+              <div class="mv text-3xl mt-1" id="out-rev">-</div>
+              <div class="text-[12px] mt-1" id="out-rev-band" style="color:var(--soft);">settlement boundary</div>
+            </div>
+            <div class="metric p-5">
+              <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Blended CAC</div>
+              <div class="mv text-3xl mt-1" id="out-cac">-</div>
+              <div class="text-[12px] mt-1" id="out-cac-flag" style="color:var(--soft);">vs $38 to $65 target</div>
+            </div>
+            <div class="metric p-5">
+              <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Active churn variance</div>
+              <div class="mv text-3xl mt-1" id="out-churn">-</div>
+              <div class="text-[12px] mt-1" style="color:var(--soft);">vs trailing baseline</div>
+            </div>
+          </div>
+          <p class="text-[12px] mt-3" style="color:var(--soft);">Projection assumes a noon-to-midnight decay curve typical of D2C coffee. Tune the curve against the live engine before acting on the CAC flag.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- SYSTEM TWO: AUTOMATION -->
+      <!-- ============================================================= -->
+
+      <section data-section id="mailer-frameworks" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Workspace &amp; Asset Production</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Asset Generation Workspace</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Pick a cohort and a format, generate a brand-locked, copy-pasteable asset block. Output honours the four-color palette, Montserrat and Instrument Sans, and the banned-phrase rules. Covers HTML mailer frameworks, localized social ad variants, and image / video / GIF asset configs.</p>
+        </div>
+
+        <div class="card p-6" id="social-variants">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <label class="block text-sm">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Avatar</span>
+              <select id="gen-avatar" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
+                <option value="001">Cohort 001: Third-Wave Purists</option>
+                <option value="002" selected>Cohort 002: Functional Optimizers</option>
+                <option value="003">Cohort 003: Biohacking Performers</option>
+                <option value="004">Cohort 004: Routine Convenience</option>
+              </select>
+            </label>
+            <label class="block text-sm">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Campaign format</span>
+              <select id="gen-format" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
+                <option value="mailer" selected>HTML Mailer</option>
+                <option value="social">Paid Social Ad</option>
+                <option value="motion">Motion Graphic (video / GIF)</option>
+              </select>
+            </label>
+            <label class="block text-sm" id="motion-assets">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Market</span>
+              <select id="gen-market" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
+                <option value="US" selected>US (knickgasm.com)</option>
+                <option value="UK">UK (knickgasm.com)</option>
+                <option value="Global">Global (knickgasm.com)</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="flex flex-wrap gap-3 mt-4">
+            <button id="gen-btn" class="btn-primary px-5 py-2.5 text-sm">Generate asset source</button>
+            <button id="copy-btn" class="btn-lava px-5 py-2.5 text-sm">Copy to clipboard</button>
+            <span id="copy-status" class="self-center text-sm text-knickgasm-green"></span>
+          </div>
+
+          <textarea id="gen-out" spellcheck="false" class="code-out mt-4 w-full h-80 rounded-xl border p-4"
+            style="border-color:var(--line);background:#ffffff;color:#111111;" placeholder="Your generated, copy-pasteable asset source will appear here. Edit it in place before shipping."></textarea>
+        </div>
+      </section>
+
+      <!-- SHOPIFY SYNC -->
+      <section data-section id="cdn-route" class="space-y-5">
+        <div>
+          <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Shopify Asset Ingestion</div>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Shopify CDN Sync Pipeline</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Open the Shopify content files area, upload the asset you just generated, then paste the resulting cdn.shopify.com URL back here to register it for the local activation sync.</p>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-2">
+          <div class="card p-6">
+            <h3 class="font-head text-lg text-knickgasm-green">1. Shopify Content CDN Route</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Direct route to the Knickgasm UK store content files. Upload the generated asset there to mint a cdn.shopify.com URL.</p>
+            <a href="https://admin.shopify.com/store/knickgasmuk/content/files" target="_blank" rel="noopener"
+               class="btn-lava inline-block px-5 py-2.5 text-sm mt-4">Open Shopify content files &#8599;</a>
+            <p class="text-[12px] mt-3 code-out" style="color:var(--soft);">admin.shopify.com/store/knickgasmuk/content/files</p>
+          </div>
+
+          <div class="card p-6" id="activation-sync">
+            <h3 class="font-head text-lg text-knickgasm-green">2. Live Activation Asset Sync</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Paste the CDN URL Shopify returns. It is validated for the cdn.shopify.com host, then registered below to trigger the local activation workflow.</p>
+            <label class="block text-sm mt-4">
+              <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Generated cdn.shopify.com media URL</span>
+              <input id="cdn-input" type="text" placeholder="https://cdn.shopify.com/s/files/1/..../asset.png"
+                     class="mt-1 w-full rounded-lg border px-3 py-2 code-out" style="border-color:var(--line);">
+            </label>
+            <div class="flex flex-wrap gap-3 mt-3">
+              <button id="cdn-sync-btn" class="btn-primary px-5 py-2.5 text-sm">Trigger sync</button>
+              <span id="cdn-status" class="self-center text-sm"></span>
+            </div>
+            <ul id="cdn-list" class="mt-4 space-y-2 text-sm"></ul>
+          </div>
+        </div>
+
+        <p class="text-[12px]" style="color:var(--soft);">Sync registers assets in this session only. Wire the activation workflow endpoint to persist them to the OS.</p>
+      </section>
+
+      <footer class="pt-8 border-t text-[12.5px]" style="border-color:var(--line);color:var(--soft);">
+        Knickgasm Growth &amp; Automation Playbook. Market figures are stated planning benchmarks; live pace mirrors the
+        <a class="underline decoration-knickgasm-lava" href="/data-engine">knickgasm_dtc_data_engine</a>.
+        Every generated asset is locked to the brand palette, typography, and copy rules.
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Scroll-spy: highlight active sidebar link ----------
+  var links = Array.prototype.slice.call(document.querySelectorAll('#command-nav .nav-link'));
+  var idToLink = {};
+  links.forEach(function(a){ idToLink[a.getAttribute('href').slice(1)] = a; });
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section[data-section]'));
+
+  function setActive(id){
+    links.forEach(function(a){ a.classList.remove('active'); });
+    var a = idToLink[id];
+    if(a){
+      a.classList.add('active');
+      var grp = a.closest('details.nav-group');
+      if(grp && !grp.open){ grp.open = true; }
+    }
+  }
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ setActive(e.target.id); }
+      });
+    }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+    sections.forEach(function(s){ io.observe(s); });
+  }
+
+  // ---------- Intraday pace (mirrors DuckDB engine shape) ----------
+  var baseHour = 10;
+  function pseudo(seed){ // deterministic per-seed pseudo value, no Math.random
+    var x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  function renderPace(offset){
+    offset = offset || 0;
+    var body = document.getElementById('pace-body');
+    var rows = '', prevRev = 0, latest = null;
+    for(var i=11;i>=0;i--){
+      var seed = i + 1 + offset;
+      var rev = Math.round(900 + pseudo(seed)*1700);
+      var orders = Math.round(20 + pseudo(seed*2)*34);
+      var subs = Math.round(2 + pseudo(seed*3)*11);
+      var hr = ((baseHour - i) % 24 + 24) % 24;
+      var label = (hr<10?'0':'')+hr+':00';
+      var delta = prevRev ? Math.round(((rev-prevRev)/prevRev)*100) : 0;
+      var arrow = delta>=0 ? '&#9650; +' : '&#9660; ';
+      var col = delta>=0 ? 'var(--knickgasm-green)' : '#a23b2b';
+      rows += '<tr><td>'+label+'</td><td>$'+rev.toLocaleString()+'</td><td>'+orders+'</td><td>'+subs+'</td>'+
+              '<td style="color:'+col+';font-weight:700;">'+(prevRev?arrow+Math.abs(delta)+'%':'-')+'</td></tr>';
+      prevRev = rev;
+      latest = { rev: rev, orders: orders, subs: subs, delta: delta };
+    }
+    body.innerHTML = rows;
+    if(latest){
+      document.getElementById('pace-rev').textContent = '$'+latest.rev.toLocaleString();
+      document.getElementById('pace-vel').textContent = latest.orders;
+      document.getElementById('pace-sub').textContent = latest.subs;
+      var d = latest.delta;
+      var rd = document.getElementById('pace-rev-delta');
+      rd.textContent = (d>=0?'+':'')+d+'% vs prior hour';
+      rd.style.color = d>=0 ? 'var(--knickgasm-green)' : '#a23b2b';
+    }
+  }
+  var paceOffset = 0;
+  renderPace(0);
+  document.getElementById('pace-refresh').addEventListener('click', function(){
+    paceOffset += 7; renderPace(paceOffset);
+  });
+
+  // ---------- Midday predictive model ----------
+  function num(id){ var v = parseFloat((document.getElementById(id).value||'').replace(/[^0-9.]/g,'')); return isNaN(v)?0:v; }
+  function money(v){ return '$'+Math.round(v).toLocaleString(); }
+  document.getElementById('predict-btn').addEventListener('click', function(){
+    var revNoon = num('in-rev'), ordersNoon = num('in-orders'), spend = num('in-spend');
+    // Noon-to-midnight typically adds ~70% more on top of morning pace for D2C coffee.
+    var projLow  = revNoon * 1.55;
+    var projMid  = revNoon * 1.72;
+    var projHigh = revNoon * 1.92;
+    var projOrders = ordersNoon * 1.72;
+    var projSpend  = spend * 1.9;
+    var cac = projOrders ? projSpend / projOrders : 0;
+    // Churn variance: crude proxy from order/revenue balance vs baseline AOV of ~44.
+    var aov = projOrders ? projMid / projOrders : 0;
+    var churnVar = ((44 - aov) / 44) * 100;
+
+    document.getElementById('out-rev').textContent = money(projMid);
+    document.getElementById('out-rev-band').textContent = money(projLow)+' to '+money(projHigh)+' boundary';
+
+    var cacEl = document.getElementById('out-cac');
+    cacEl.textContent = '$'+cac.toFixed(2);
+    var flag = document.getElementById('out-cac-flag');
+    if(cac > 65){ flag.textContent = 'above target, tighten spend'; flag.style.color = '#a23b2b'; }
+    else if(cac < 38){ flag.textContent = 'below target, room to scale'; flag.style.color = 'var(--knickgasm-green)'; }
+    else { flag.textContent = 'inside $38 to $65 target'; flag.style.color = 'var(--knickgasm-lava)'; }
+
+    var churnEl = document.getElementById('out-churn');
+    var sign = churnVar>=0 ? '+' : '';
+    churnEl.textContent = sign+churnVar.toFixed(1)+'%';
+    churnEl.style.color = churnVar>0 ? '#a23b2b' : 'var(--knickgasm-green)';
+  });
+
+  // ---------- Asset generator ----------
+  var STORE = { US:'knickgasm.com', UK:'knickgasm.com', Global:'knickgasm.com' };
+  var CUR   = { US:'$', UK:'£', Global:'$' };
+  var AVATAR = {
+    '001': { name:'Third-Wave Purists', hook:'origin story and pair character', hero:'One-of-One Jordan First Flush', sub:'studio reserve' },
+    '002': { name:'Functional Optimizers', hook:'the daily refill rhythm', hero:'Coffee Collection', sub:'refill subscription' },
+    '003': { name:'Biohacking Performers', hook:'precise adaptogen payload', hero:'Coffee Collection, high-dose', sub:'performance stack' },
+    '004': { name:'Routine Convenience', hook:'a simpler morning', hero:'Ground Coffee Collection', sub:'auto-reorder' }
+  };
+
+  function mailerBlock(a, market){
+    var store = STORE[market], cur = CUR[market];
+    return [
+'<!-- Knickgasm mailer :: '+a.name+' :: '+market+' -->',
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F2;font-family:\'Instrument Sans\',\'Helvetica Neue\',Arial,sans-serif;color:#111111;">',
+'  <tr><td align="center" style="padding:28px 16px;">',
+'    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid rgba(23,23,23,.12);border-radius:12px;overflow:hidden;">',
+'      <tr><td style="background:#6A33D8;padding:22px 28px;">',
+'        <span style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;color:#F7F5F2;font-size:24px;">Knickgasm</span>',
+'      </td></tr>',
+'      <tr><td style="padding:34px 28px 8px;">',
+'        <h1 style="margin:0;font-family:\'Montserrat\',Georgia,serif;color:#6A33D8;font-size:28px;line-height:1.15;">There is a moment when the right pair does more than warm your hands.</h1>',
+'      </td></tr>',
+'      <tr><td style="padding:8px 28px 20px;">',
+'        <p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. Lace-up the '+a.hero+', hand-painted and shipped studio-fresh from origin, and let the ritual restore the morning.</p>',
+'      </td></tr>',
+'      <tr><td style="padding:0 28px 26px;">',
+'        <a href="https://'+store+'/products/coffee-collection" style="display:inline-block;background:#D0473E;color:#6A33D8;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Start the ritual, '+cur+'39.83</a>',
+'      </td></tr>',
+'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;">',
+'        <p style="margin:0;font-size:12px;color:#5b5b57;">Single-studio. Hand-painted. Crafted at origin. Knickgasm.</p>',
+'      </td></tr>',
+'    </table>',
+'  </td></tr>',
+'</table>'
+    ].join('\n');
+  }
+
+  function socialBlock(a, market){
+    var store = STORE[market], cur = CUR[market];
+    return [
+'/* Paid social ad :: '+a.name+' :: '+market+' */',
+'PRIMARY TEXT:',
+'  Restore the morning with '+a.hero+'. Hand-painted at a one of one, crafted at origin,',
+'  and built for '+a.hook+'. This is the ritual worth keeping.',
+'',
+'HEADLINE:  Origin in every pair',
+'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+', shipped studio-fresh.',
+'CTA:  Shop now',
+'LANDING:  https://'+store+'/products/coffee-collection',
+'PRICE POINT:  '+cur+'39.83',
+'',
+'PALETTE:  #6A33D8 violet / #D0473E lava / #111111 ink / #F7F5F2 chalk',
+'FONTS:    Montserrat (headline) / Instrument Sans (body)',
+'NOTE:     No banned phrases. Warm, sensory, story-driven register.'
+    ].join('\n');
+  }
+
+  function motionBlock(a, market){
+    var store = STORE[market];
+    return [
+'{',
+'  "asset_type": "motion",',
+'  "cohort": "'+a.name+'",',
+'  "market": "'+market+'",',
+'  "formats": ["mp4_9x16", "mp4_1x1", "gif_1x1"],',
+'  "duration_seconds": 8,',
+'  "palette": ["#6A33D8", "#D0473E", "#111111", "#F7F5F2"],',
+'  "typography": { "headline": "Montserrat", "body": "Instrument Sans" },',
+'  "scenes": [',
+'    { "t": "0-2s", "shot": "steam rising off a fresh pour, chalk background", "text": "A moment to restore" },',
+'    { "t": "2-5s", "shot": "'+a.hero+' pack, one-of-one label in focus", "text": "Hand-painted at origin" },',
+'    { "t": "5-8s", "shot": "hands cradling the pair, warm light", "text": "Start the ritual" }',
+'  ],',
+'  "cta": { "label": "Shop now", "url": "https://'+store+'/products/coffee-collection" },',
+'  "hook": "'+a.hook+'",',
+'  "copy_rules": "no banned phrases, no em or en dashes, brand voice only"',
+'}'
+    ].join('\n');
+  }
+
+  document.getElementById('gen-btn').addEventListener('click', function(){
+    var a = AVATAR[document.getElementById('gen-avatar').value];
+    var fmt = document.getElementById('gen-format').value;
+    var market = document.getElementById('gen-market').value;
+    var out;
+    if(fmt === 'mailer') out = mailerBlock(a, market);
+    else if(fmt === 'social') out = socialBlock(a, market);
+    else out = motionBlock(a, market);
+    document.getElementById('gen-out').value = out;
+    document.getElementById('copy-status').textContent = '';
+  });
+
+  document.getElementById('copy-btn').addEventListener('click', function(){
+    var ta = document.getElementById('gen-out');
+    if(!ta.value){ document.getElementById('copy-status').textContent = 'Generate an asset first.'; return; }
+    ta.select();
+    var ok = false;
+    try {
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(ta.value); ok = true;
+      } else { ok = document.execCommand('copy'); }
+    } catch(e){ ok = false; }
+    document.getElementById('copy-status').textContent = ok ? 'Copied.' : 'Select the text and copy manually.';
+  });
+
+  // ---------- Shopify CDN sync ----------
+  var synced = [];
+  document.getElementById('cdn-sync-btn').addEventListener('click', function(){
+    var input = document.getElementById('cdn-input');
+    var status = document.getElementById('cdn-status');
+    var url = (input.value||'').trim();
+    var valid = /^https:\/\/cdn\.shopify\.com\/.+/i.test(url);
+    if(!valid){
+      status.textContent = 'Enter a valid cdn.shopify.com URL.';
+      status.style.color = '#a23b2b';
+      return;
+    }
+    if(synced.indexOf(url) !== -1){
+      status.textContent = 'Already synced.';
+      status.style.color = 'var(--knickgasm-lava)';
+      return;
+    }
+    synced.push(url);
+    status.textContent = 'Sync triggered.';
+    status.style.color = 'var(--knickgasm-green)';
+    input.value = '';
+    var list = document.getElementById('cdn-list');
+    var li = document.createElement('li');
+    li.className = 'flex items-start gap-2';
+    li.style.wordBreak = 'break-all';
+    li.innerHTML = '<span style="color:var(--knickgasm-green);font-weight:700;">&#10003;</span>'+
+                   '<a class="code-out underline" style="color:var(--knickgasm-lava);" href="'+encodeURI(url)+'" target="_blank" rel="noopener">'+
+                   url.replace(/</g,'&lt;')+'</a>';
+    list.appendChild(li);
+  });
+
+})();
+</script>
+</body>
+</html>

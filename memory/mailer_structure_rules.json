@@ -1,0 +1,258 @@
+{
+  "_meta": {
+    "version": 1,
+    "purpose": "Persistent knowledge base for KNICKGASM email mailer HTML structure rules. Loaded once per session to reduce token usage by avoiding re-discovery of structural patterns.",
+    "source": "Derived from production KNICKGASM mailers (Mother's Day, Summer Sneakers, Heritage collection campaigns)"
+  },
+
+  "email_structure": {
+    "max_width": "600px",
+    "outer_background": "#f0ebe0",
+    "responsive_breakpoint": "600px",
+    "rendering_targets": ["Gmail", "Apple Mail", "Outlook 2016+", "Yahoo Mail", "Samsung Mail"],
+
+    "sections_order": [
+      "S0_preheader",
+      "S1_announcement_bar",
+      "S2_brand_header",
+      "S3_trust_badges",
+      "S4_hero",
+      "S5_benefit_strip",
+      "S6_product_section",
+      "S7_social_proof",
+      "S8_lifestyle_image",
+      "S9_offer_bar",
+      "S10_final_cta",
+      "S11_footer"
+    ],
+
+    "S0_preheader": {
+      "max_chars": 120,
+      "format": "hidden div, font-size:1px, color matches background, overflow:hidden",
+      "content_rule": "Summarize the email value prop + offer in one compelling line. Never generic."
+    },
+
+    "S1_announcement_bar": {
+      "background": "gradient or solid #6A33D8 / #003d24",
+      "text_style": "8-10px uppercase, letter-spacing 0.18-0.24em, #F7F5F2",
+      "content_pattern": "FREE SHIPPING threshold + offer code OR seasonal urgency",
+      "border_radius": "8px 8px 0 0 (top corners only)"
+    },
+
+    "S2_brand_header": {
+      "logo_text": "KNICKGASM®",
+      "logo_font": "Montserrat, Georgia, serif",
+      "logo_size": "28-36px bold",
+      "logo_color": "#6A33D8",
+      "est_line": "EST. 2015 · NEW DELHI, INDIA",
+      "est_style": "8.5px uppercase, letter-spacing 0.36em, #D0473E",
+      "tagline": "PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE",
+      "background": "#ffffff"
+    },
+
+    "S3_trust_badges": {
+      "layout": "3-column table row",
+      "badges": [
+        "🌿 100% PURE INDIAN SNEAKER",
+        "🤝 ETHICALLY SOURCED",
+        "🌱 DIRECT FROM FARMS"
+      ],
+      "style": "9px uppercase, #888, border-top 1px solid #ede5d8",
+      "rule": "Always present. Never remove trust badges."
+    },
+
+    "S4_hero": {
+      "variant_A": {
+        "name": "Editorial Hero / Split Layout",
+        "layout": "50/50 side-by-side: image left, copy right",
+        "hero_image": "Product/lifestyle photo, 300px wide",
+        "copy_side": {
+          "kicker": "12px uppercase, #d4873a or #D0473E, letter-spacing 2px (e.g. NEW ARRIVAL, BESTSELLER)",
+          "headline": "Georgia/serif, 24-32px, #6A33D8 or #0f2a1c, max 8 words",
+          "subcopy": "14-15px, #4a4540, 1-2 lines max, line-height 1.6",
+          "cta_button": {
+            "background": "#d4873a or #D0473E",
+            "color": "#ffffff",
+            "padding": "14px 32px",
+            "font": "13px bold, letter-spacing 0.5px",
+            "border_radius": "2-4px",
+            "text": "Shop Now / Add to Cart / Explore"
+          }
+        },
+        "best_for": "Sale, Bestseller, Launch, Discovery, Seasonal with discount"
+      },
+      "variant_B": {
+        "name": "Narrative Story / Full-Width",
+        "layout": "Full-width hero image, centered copy below",
+        "hero_image": "Full 600px wide lifestyle/atmospheric shot",
+        "copy_below": {
+          "background": "#0f2a1c (dark) or #fdf6e8 (light)",
+          "kicker": "12px uppercase, #d4873a, letter-spacing 2px",
+          "headline": "Georgia/serif, 28-36px, #fdf6e8 (on dark) or #0f2a1c",
+          "subcopy": "15px, #c9bfb0 (on dark) or #4a4540, centered, max-width 440px",
+          "cta_button": {
+            "border": "1px solid #fdf6e8 (ghost) or solid #d4873a",
+            "color": "#fdf6e8",
+            "padding": "14px 36px"
+          }
+        },
+        "best_for": "Story, Routine, Gift, Seasonal occasion, no-discount campaigns"
+      }
+    },
+
+    "S5_benefit_strip": {
+      "layout": "4-column equal-width cells",
+      "background": "#ffffff or #0a1f13 (dark variant)",
+      "items_format": "emoji + line break + label",
+      "default_items": ["One-of-One", "Hand-Painted", "Farm to Pair", "Premium Heritage"],
+      "rule": "Context-aware: change items based on campaign type (e.g. summer = Cooling Colorways, Refreshing)"
+    },
+
+    "S6_product_section": {
+      "section_title": "Georgia/serif, 20-24px, centered",
+      "layout_rules": {
+        "1_product": "Single centered card, max-width 400px",
+        "2_products": "2-column grid",
+        "3_4_products": "3-4 column grid (stack to 1-col on mobile)",
+        "5_plus": "Max 4 columns, wrap to rows"
+      },
+      "product_card": {
+        "image": "Product photo from CSV catalog (Shopify CDN), object-fit cover",
+        "name": "11-13px Georgia/serif bold, first part before comma",
+        "benefit_chip": "Short benefit statement in colored pill",
+        "price_block": {
+          "sale_price": "Bold, #D0473E or #6A33D8",
+          "compare_at": "Strikethrough, #aaa",
+          "savings_badge": "Red/amber pill showing % off"
+        },
+        "rating": "5 lava stars + '4.8 · 1,000+ reviews'",
+        "cta": "SHOP NOW or ADD TO CART button",
+        "hero_badge": "First product gets 'HERO PICK' badge in #D0473E"
+      }
+    },
+
+    "S7_social_proof": {
+      "background": "#fdf6e8 or #0a1f13",
+      "content": "5 stars + quoted testimonial (italic Georgia) + review count",
+      "review_count": "15,000+ or 50,000+ 5-STAR REVIEWS",
+      "testimonial_style": "16px italic Georgia, #0f2a1c or #fdf6e8"
+    },
+
+    "S8_lifestyle_image": {
+      "width": "600px full-bleed",
+      "purpose": "Atmospheric brand lifestyle shot, no text overlay",
+      "source": "Shopify CDN or uploaded hero image"
+    },
+
+    "S9_offer_bar": {
+      "background": "#d4873a or #D0473E",
+      "headline": "Georgia/serif, 20px bold, #ffffff",
+      "subtext": "13px, #fff5eb",
+      "cta_button": {
+        "background": "#0f2a1c or #6A33D8",
+        "color": "#fdf6e8",
+        "text": "Shop the Collection"
+      },
+      "content_rule": "Must include specific offer (% off, free shipping threshold, code). Never vague."
+    },
+
+    "S10_final_cta": {
+      "background": "#fdf6e8 or #0f2a1c",
+      "headline": "Georgia/serif, 22px",
+      "cta_button": "Large prominent button, 16px 40px padding",
+      "text_options": ["Explore the Collection", "Shop Now", "Begin Your Ritual", "Shop KNICKGASM Today"]
+    },
+
+    "S11_footer": {
+      "background": "#0f2a1c or #111111",
+      "logo": "KNICKGASM®, 18px Georgia, #fdf6e8",
+      "links": ["Shop All", "Our Story", "Gifting", "Contact"],
+      "link_color": "#d4873a",
+      "legal": "Unsubscribe + Privacy Policy links",
+      "social_links": ["Instagram", "Facebook", "YouTube", "Pinterest"],
+      "copyright": "© 2026 KNICKGASM. All Rights Reserved."
+    }
+  },
+
+  "html_rules": {
+    "never_use": [
+      "href='#' — always use real store URLs",
+      "div-based layouts — use table-based email HTML only",
+      "CSS flexbox/grid — not supported in email clients",
+      "External stylesheets — all styles must be inline",
+      "JavaScript — never in email HTML",
+      "SVG — use PNG/JPG images instead",
+      "CSS variables — not supported",
+      "position:absolute/fixed — limited email support"
+    ],
+    "always_use": [
+      "role='presentation' on layout tables",
+      "cellpadding='0' cellspacing='0' border='0'",
+      "MSO conditional comments for Outlook",
+      "VML buttons for Outlook compatibility",
+      "bgcolor attribute alongside background CSS",
+      "width attribute on images (not just CSS)",
+      "display:block on all images",
+      "border:0 on all images"
+    ],
+    "mobile_responsive": {
+      "breakpoint": "600px",
+      "rules": [
+        "email-wrap class: width 100%",
+        "pcol class: display block, width 100%",
+        "hero split: stack vertically on mobile",
+        "hide-mobile class for desktop-only elements"
+      ]
+    }
+  },
+
+  "color_palette": {
+    "primary_dark": "#6A33D8",
+    "primary_forest": "#0f2a1c",
+    "primary_deep": "#0a1f13",
+    "gold_accent": "#D0473E",
+    "warm_amber": "#d4873a",
+    "ivory_cream": "#F7F5F2",
+    "light_cream": "#fdf6e8",
+    "outer_bg": "#f0ebe0",
+    "card_bg": "#ffffff",
+    "border_light": "#ede5d8",
+    "text_dark": "#1a1a1a",
+    "text_medium": "#4a4540",
+    "text_light": "#888",
+    "text_muted": "#6b6255",
+    "success_green": "#9fd6b5",
+    "star_gold": "#D0473E"
+  },
+
+  "typography": {
+    "headline_font": "Montserrat, Georgia, serif",
+    "body_font": "Instrument Sans, Helvetica Neue, Arial, sans-serif",
+    "headline_sizes": {
+      "hero": "28-36px",
+      "section": "20-24px",
+      "card": "11-13px"
+    },
+    "body_sizes": {
+      "regular": "13-15px",
+      "small": "11-12px",
+      "micro": "9-10px",
+      "legal": "9px"
+    },
+    "letter_spacing": {
+      "logo": "0.18-0.2em",
+      "uppercase_labels": "0.08-0.24em",
+      "body": "0-0.05em"
+    }
+  },
+
+  "market_urls": {
+    "US": "https://knickgasm.com",
+    "UK": "https://knickgasm.com",
+    "IN": "https://knickgasm.com",
+    "EU": "https://knickgasm.com",
+    "AU": "https://knickgasm.com",
+    "ME": "https://knickgasm.com",
+    "Global": "https://knickgasm.com"
+  }
+}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>KNICKGASM Lifecycle OS</title>
+  <style>
+    html,body{margin:0;height:100%;background:#0a1410;color:#F7F5F2;
+      font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;display:flex;
+      align-items:center;justify-content:center;text-align:center}
+    .b{opacity:.85}.d{width:30px;height:30px;border:3px solid #D0473E;border-top-color:transparent;
+      border-radius:50%;margin:18px auto 0;animation:s 1s linear infinite}
+    @keyframes s{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <!-- Fallback shell. Capacitor loads the live PWA via server.url in
+       capacitor.config.json; this shows only if the device is offline and the
+       remote URL is unreachable. -->
+  <div>
+    <div style="font-size:20px;letter-spacing:.3em;font-weight:700">KNICKGASM</div>
+    <div class="b" style="margin-top:8px;font-size:13px">Lifecycle OS — connecting…</div>
+    <div class="d"></div>
+  </div>
+</body>
+</html>

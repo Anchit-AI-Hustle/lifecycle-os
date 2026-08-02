@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTC Data Engine - KNICKGASM Lifecycle OS</title>
+<link rel="icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/data/analytics/market-data.js"></script>
+<script>
+  if (window.tailwind) {
+    tailwind.config = { theme: { extend: { colors: {
+      vgreen: '#6A33D8', vgold: '#D0473E', vink: '#111111', vcream: '#F7F5F2'
+    } } } };
+  }
+</script>
+<style>
+  :root{ --knickgasm-green:#6A33D8; --knickgasm-lava:#D0473E; --knickgasm-ink:#111111; --knickgasm-chalk:#F7F5F2; }
+  html{scroll-behavior:smooth;}
+  body{background:#ffffff;color:#111111;font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:26px 30px;}
+  .lc-main{max-width:1080px;margin:0 auto;}
+  h1,h2,h3,.font-head{font-family:'Lora','Raleway',Georgia,serif;}
+  .card{background:#ffffff;border:1px solid rgba(171,135,67,.28);border-radius:14px;}
+  .kicker{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--knickgasm-lava);font-weight:800;}
+  .divider{height:2px;background:linear-gradient(90deg,var(--knickgasm-lava),transparent);border:0;margin:0;}
+  .metric-lg{font-family:'Lora',serif;font-size:32px;color:#111111;font-weight:700;line-height:1;}
+  .pill{display:inline-block;background:rgba(171,135,67,.16);color:#7a5f28;border:1px solid rgba(171,135,67,.4);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
+  .rtab{cursor:pointer;border:1.5px solid rgba(171,135,67,.4);background:transparent;color:#111111;border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
+  .rtab:hover{border-color:#D0473E;} .rtab.on{background:#6A33D8;color:#F7F5F2;border-color:#6A33D8;}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
+  .flow .node{background:#f4f2ec;border:1px solid rgba(171,135,67,.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#111111;}
+  .flow .arrow{color:var(--knickgasm-lava);font-weight:800;}
+  .bar{background:linear-gradient(180deg,var(--knickgasm-lava),#6f5525);border-radius:4px 4px 0 0;min-height:2px;transition:height .2s;}
+  .bar.partial{background:repeating-linear-gradient(45deg,rgba(171,135,67,.55),rgba(171,135,67,.55) 4px,rgba(171,135,67,.25) 4px,rgba(171,135,67,.25) 8px);}
+  table.grid{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.grid th,table.grid td{border-bottom:1px solid rgba(171,135,67,.18);padding:9px 12px;text-align:left;}
+  table.grid th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+</style>
+</head>
+<body>
+  <main class="lc-main">
+    <div class="kicker">KNICKGASM Lifecycle OS &middot; DTC Data Engine</div>
+    <h1 class="text-vcream text-[34px] font-bold leading-tight mt-1" style="color:#111111">DTC Data Engine</h1>
+    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The ingestion and analytics core that powers the OS. Matrixify, Shopify, Klaviyo and WebEngage exports are ingested into DuckDB, modelled, and synced to Supabase; the compiled market exports below render natively here, no external app and no server round-trip.</p>
+
+    <div class="flex flex-wrap items-center gap-2 mt-5" id="mktTabs">
+      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#D0473E;margin-right:4px">Market</span>
+      <button type="button" class="rtab on" data-mkt="US">US</button>
+      <button type="button" class="rtab" data-mkt="UK">UK</button>
+      <span class="text-[12px]" style="color:#556059;margin-left:6px">Showing <b style="color:#111111" id="mktLabel">US</b></span>
+    </div>
+
+    <!-- Pipeline -->
+    <section class="mt-8">
+      <div class="kicker mb-2">Pipeline</div>
+      <hr class="divider mb-4">
+      <div class="flow">
+        <div class="node">Matrixify &middot; Shopify &middot; Klaviyo &middot; WebEngage exports</div>
+        <span class="arrow">&rarr;</span>
+        <div class="node">DuckDB (ingest/run_all.py, KNICKGASM_DuckDB_DDL.sql)</div>
+        <span class="arrow">&rarr;</span>
+        <div class="node">Supabase (sync_to_supabase.py)</div>
+        <span class="arrow">&rarr;</span>
+        <div class="node">This OS (compiled market module)</div>
+      </div>
+      <p class="text-[12px] mt-3" style="color:#556059">Ingestion runs offline via the Python engines in <code>ingest/</code>; <code>scripts/build-market-analytics.js</code> compiles the market CSVs into a single client-side module so this page renders real numbers with no upload.</p>
+    </section>
+
+    <!-- KPIs -->
+    <section class="mt-8">
+      <div class="kicker mb-2">Compiled KPIs</div>
+      <hr class="divider mb-4">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="kpis"></div>
+    </section>
+
+    <!-- Monthly revenue -->
+    <section class="mt-8">
+      <div class="kicker mb-2">Monthly net revenue</div>
+      <hr class="divider mb-4">
+      <div class="card p-5">
+        <div id="chart" style="display:flex;align-items:flex-end;gap:6px;height:220px;"></div>
+        <div id="chartLabels" style="display:flex;gap:6px;margin-top:8px;"></div>
+        <p class="text-[12px] mt-3" style="color:#556059">Hatched bar = current month in progress (partial). Source: compiled market exports.</p>
+      </div>
+    </section>
+
+    <!-- Monthly table -->
+    <section class="mt-8 mb-10">
+      <div class="kicker mb-2">Monthly detail</div>
+      <hr class="divider mb-4">
+      <div class="card p-2 overflow-x-auto">
+        <table class="grid" style="min-width:520px;">
+          <thead><tr><th>Month</th><th style="text-align:right">Orders</th><th style="text-align:right">Sales</th><th style="text-align:right">AOV</th></tr></thead>
+          <tbody id="monthlyRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/auth.js"></script>
+  <script>
+  (function(){
+    "use strict";
+    var A = window.KNICKGASM_ANALYTICS;
+    if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:#b91c1c">Analytics module not loaded.</div>'; return; }
+    var market = 'US';
+    var symByCur = { USD:'$', GBP:'£' };
+
+    function sym(){ var cur=(A.currency&&A.currency[market])||'USD'; return symByCur[cur]||''; }
+    function money(n){ return sym() + Math.round(n).toLocaleString('en-US'); }
+    function moneyK(n){ var v=n/1000; return sym() + (v>=1000?(v/1000).toFixed(1)+'M':Math.round(v)+'k'); }
+    function pct(n){ return (n*100).toFixed(1) + '%'; }
+
+    function kpiCard(label, value, sub){
+      return '<div class="card p-5"><div class="kicker">'+label+'</div><div class="metric-lg mt-1">'+value+'</div>'+(sub?'<div class="text-[12px] mt-1" style="color:#556059">'+sub+'</div>':'')+'</div>';
+    }
+
+    function render(){
+      var m = A.markets[market]; if(!m){ return; }
+      var s = m.summary;
+      document.getElementById('mktLabel').textContent = market;
+      document.getElementById('kpis').innerHTML =
+        kpiCard('Orders', s.orders.toLocaleString('en-US'), '') +
+        kpiCard('Net sales', money(s.net_sales), 'Gross ' + moneyK(s.gross_sales)) +
+        kpiCard('AOV', sym() + s.aov.toFixed(2), '') +
+        kpiCard('Units', s.quantity.toLocaleString('en-US'), '') +
+        kpiCard('New customers', s.new_customers.toLocaleString('en-US'), '') +
+        kpiCard('Returning rate', pct(s.returning_rate), s.returning_customers.toLocaleString('en-US') + ' returning');
+
+      var mon = m.monthly || [];
+      var max = mon.reduce(function(a,b){ return Math.max(a, b.sales); }, 0) || 1;
+      var chart = document.getElementById('chart');
+      var labels = document.getElementById('chartLabels');
+      chart.innerHTML = ''; labels.innerHTML = '';
+      mon.forEach(function(row, i){
+        var isPartial = (i === mon.length - 1);
+        var h = Math.max(2, Math.round(row.sales / max * 210));
+        var bar = document.createElement('div');
+        bar.className = 'bar' + (isPartial ? ' partial' : '');
+        bar.style.height = h + 'px'; bar.style.flex = '1';
+        bar.title = row.month + ': ' + money(row.sales) + (isPartial ? ' (partial)' : '');
+        chart.appendChild(bar);
+        var lab = document.createElement('div');
+        lab.style.flex = '1'; lab.style.textAlign = 'center'; lab.style.fontSize = '9px'; lab.style.color = '#6b7770';
+        lab.textContent = row.month.slice(2, 7);
+        labels.appendChild(lab);
+      });
+
+      document.getElementById('monthlyRows').innerHTML = mon.map(function(row, i){
+        var partial = (i === mon.length - 1) ? ' <span class="pill">partial</span>' : '';
+        return '<tr><td>' + row.month + partial + '</td><td class="num">' + row.orders.toLocaleString('en-US') + '</td><td class="num">' + money(row.sales) + '</td><td class="num">' + sym() + row.aov.toFixed(2) + '</td></tr>';
+      }).join('');
+    }
+
+    document.getElementById('mktTabs').addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('.rtab') : null; if(!b) return;
+      // Resolve to a fixed, code-defined value (never route the raw DOM attribute
+      // into the render/innerHTML path) so only known markets are ever used.
+      market = (b.getAttribute('data-mkt') === 'UK') ? 'UK' : 'US';
+      [].forEach.call(document.querySelectorAll('#mktTabs .rtab'), function(t){ t.classList.toggle('on', t === b); });
+      render();
+    });
+    render();
+  })();
+  </script>
+</body>
+</html>

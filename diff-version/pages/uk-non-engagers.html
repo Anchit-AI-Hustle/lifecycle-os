@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>UK Non-Engagers — Lifecycle Campaign Hub · KNICKGASM</title>
+<style>
+  :root {
+    --violet:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
+    --line:#e3d8c2; --soft:#5c5347; --card:#ffffff;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--chalk); color:var(--ink);
+    font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; font-size:15px; line-height:1.55;
+    padding:32px 20px 80px; }
+  .wrap { max-width:1060px; margin:0 auto; }
+  h1,h2,h3 { font-family:'Montserrat','Raleway',Georgia,serif; color:var(--violet); margin:0; }
+  h1 { font-size:32px; }
+  h2 { font-size:20px; }
+  .eyebrow { text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--lava); font-weight:700; }
+  p.lede { color:var(--soft); max-width:70ch; margin:6px 0 0; }
+  .meta-strip { display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 30px; }
+  .meta { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:12px 16px; flex:1 1 140px; }
+  .meta b { display:block; font-size:21px; font-family:'Montserrat','Raleway',Georgia,serif; color:var(--violet); }
+  .meta span { color:var(--soft); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+  .slot { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:22px; margin-bottom:18px; }
+  .slot-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+  .slot-date { font-weight:700; color:var(--violet); font-variant-numeric:tabular-nums; }
+  .chip { background:#f0e7d3; border-radius:4px; padding:2px 9px; font-size:12px; font-weight:700; color:var(--violet); }
+  .chip.b { background:#e7f0e9; }
+  .slot-title { font-size:17px; font-weight:700; margin:2px 0 2px; }
+  .slot-note { color:var(--soft); font-size:13.5px; margin:0 0 14px; }
+  .variants { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+  .variant { border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+  .variant h3 { font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--lava); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; }
+  .subline { font-size:14.5px; }
+  .subline b { color:var(--violet); }
+  .subline .alt { color:var(--soft); font-size:13px; display:block; margin-top:2px; }
+  .pre { color:var(--soft); font-size:13px; font-style:italic; }
+  .angle { font-size:12.5px; color:var(--soft); border-top:1px dashed var(--line); padding-top:8px; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding-top:8px; }
+  button, a.btn { cursor:pointer; border:1px solid var(--violet); background:var(--violet); color:var(--chalk);
+    border-radius:4px; padding:7px 14px; font-size:13px; font-weight:700; text-decoration:none; display:inline-block;
+    font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; }
+  button.ghost, a.btn.ghost { background:transparent; color:var(--violet); }
+  button:focus-visible, a:focus-visible { outline:2px solid var(--lava); outline-offset:2px; }
+  .loading { color:var(--soft); font-style:italic; }
+  dialog { border:1px solid var(--line); border-radius:8px; padding:0; width:min(680px,94vw); height:min(88vh,900px); }
+  dialog iframe { width:100%; height:calc(100% - 46px); border:0; }
+  .dlg-bar { display:flex; justify-content:space-between; align-items:center; padding:8px 14px; background:var(--violet); color:var(--chalk); }
+  .dlg-bar button { border-color:var(--chalk); background:transparent; color:var(--chalk); padding:4px 12px; }
+  ::backdrop { background:rgba(23,23,23,.55); }
+  .foot { color:var(--soft); font-size:12.5px; margin-top:34px; border-top:1px solid var(--line); padding-top:16px; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--violet); color:var(--chalk);
+    padding:10px 22px; border-radius:6px; font-weight:700; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">KNICKGASM UK · Lifecycle Program · Week of 3–9 July 2026</span>
+  <h1>UK Non-Engagers — Campaign Hub</h1>
+  <p class="lede">Two cohorts of non-openers, three sends each, two creative variations per send for A/B testing. Subjects and preheaders below are parsed live from each email file. Preview, copy, or download any variation and paste straight into Klaviyo.</p>
+
+  <div class="meta-strip">
+    <div class="meta"><b>2</b><span>Cohorts</span></div>
+    <div class="meta"><b>6</b><span>Send slots</span></div>
+    <div class="meta"><b>12</b><span>Email variations</span></div>
+    <div class="meta"><b>09:00</b><span>UK send time</span></div>
+  </div>
+
+  <div id="slots"></div>
+
+  <p class="foot">
+    Cohort A = Non-Buyers/Non-Engagers · Cohort B = T&amp;B Buyers/Non-Engagers.
+    V1 vs V2 test distinct psychological angles per slot — pick one or split-test.
+    Subject-line discipline for non-openers: short, human, curiosity-led, no spam triggers.
+    Coffee/supplement emails carry an image-generation prompt in an HTML comment where a product shot can slot in.
+  </p>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-bar"><span id="dlgTitle">Preview</span><button onclick="document.getElementById('dlg').close()">Close</button></div>
+  <iframe id="dlgFrame" title="Email preview"></iframe>
+</dialog>
+<div class="toast" id="toast">Copied</div>
+
+<script>
+const BASE = '/lifecycle-campaigns/2026-07-03_week1/emails/';
+const SLOTS = [
+  { date:'Thu 3 Jul', cohort:'A', title:'Coffee introduction', note:'First touch for cold non-buyers — earn the open, introduce Coffee Collection.',
+    v1:{ file:'2026-07-03_cohortA_story-intro-coffee.html', angle:'Sensory brand story (long-form warmth)' },
+    v2:{ file:'2026-07-03_cohortA_story-intro-coffee_v2.html', angle:'Short question-led pattern-interrupt' } },
+  { date:'Thu 3 Jul', cohort:'B', title:'Win-back · Wimbledon week', note:'Reactivate lapsed sneaker buyers with familiarity, zero guilt.',
+    v1:{ file:'2026-07-03_cohortB_winback-wimbledon.html', angle:'Warm letter + 4-product restock grid' },
+    v2:{ file:'2026-07-03_cohortB_winback-wimbledon_v2.html', angle:'Ultra-short personal note, one product' } },
+  { date:'Sun 6 Jul', cohort:'A', title:'Unboxing + subscription math', note:'Turn curiosity into a concrete decision.',
+    v1:{ file:'2026-07-06_cohortA_gifts-unboxing-subscription.html', angle:'Gifts-first unboxing, then price math' },
+    v2:{ file:'2026-07-06_cohortA_gifts-unboxing-subscription_v2.html', angle:'Price-math first, gifts as proof' } },
+  { date:'Sun 6 Jul', cohort:'B', title:'Coffee launch for sneaker lovers', note:'News as reactivation — your sneaker house made a coffee.',
+    v1:{ file:'2026-07-06_cohortB_coffee-launch-sneaker-lovers.html', angle:'Story-led bridge, then price card' },
+    v2:{ file:'2026-07-06_cohortB_coffee-launch-sneaker-lovers_v2.html', angle:'Product-card first, 3-point why' } },
+  { date:'Wed 9 Jul', cohort:'A', title:'Pack-of-3 conversion push', note:'The strongest honest offer — third pack free on subscription.',
+    v1:{ file:'2026-07-09_cohortA_pack-of-3-offer.html', angle:'Headline offer + price-math table' },
+    v2:{ file:'2026-07-09_cohortA_pack-of-3-offer_v2.html', angle:'Gift-value receipt stack, then offer' } },
+  { date:'Wed 9 Jul', cohort:'B', title:'Supplements launch', note:'Genuine news for lapsed buyers — first to know.',
+    v1:{ file:'2026-07-09_cohortB_supplements-launch.html', angle:'Announcement + two product cards + sneaker PS' },
+    v2:{ file:'2026-07-09_cohortB_supplements-launch_v2.html', angle:'Single-column editorial narrative' } },
+];
+
+function parseMeta(html) {
+  const grab = (k) => {
+    const m = html.match(new RegExp(k + '\\s*:?\\s*(.+)'));
+    return m ? m[1].replace(/-->.*$/s,'').trim() : '';
+  };
+  return { primary:grab('SUBJECT_PRIMARY'), alt1:grab('SUBJECT_ALT1'), alt2:grab('SUBJECT_ALT2'), pre:grab('PREHEADER') };
+}
+
+async function loadVariant(v, el) {
+  try {
+    const r = await fetch(BASE + v.file, { cache:'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const html = await r.text();
+    const m = parseMeta(html);
+    el.querySelector('.subline').innerHTML =
+      '<b>' + esc(m.primary || '—') + '</b>' +
+      (m.alt1 ? '<span class="alt">Alt: ' + esc(m.alt1) + '</span>' : '') +
+      (m.alt2 ? '<span class="alt">Alt: ' + esc(m.alt2) + '</span>' : '');
+    el.querySelector('.pre').textContent = m.pre ? 'Preheader: ' + m.pre : '';
+    el._html = html;
+  } catch (e) {
+    el.querySelector('.subline').innerHTML = '<span class="loading">Not available yet (' + esc(String(e.message||e)) + ')</span>';
+  }
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function render() {
+  const root = document.getElementById('slots');
+  SLOTS.forEach(slot => {
+    const div = document.createElement('div');
+    div.className = 'slot';
+    div.innerHTML =
+      '<div class="slot-head"><span class="slot-date">' + slot.date + ' · 09:00 UK</span>' +
+      '<span class="chip' + (slot.cohort==='B'?' b':'') + '">Cohort ' + slot.cohort + (slot.cohort==='A'?' · Non-Buyers':' · T&amp;B Buyers') + '</span></div>' +
+      '<div class="slot-title">' + slot.title + '</div>' +
+      '<p class="slot-note">' + slot.note + '</p>' +
+      '<div class="variants"></div>';
+    const vwrap = div.querySelector('.variants');
+    [['V1', slot.v1], ['V2', slot.v2]].forEach(([label, v]) => {
+      const card = document.createElement('div');
+      card.className = 'variant';
+      card.innerHTML =
+        '<h3>' + label + ' — ' + esc(v.angle) + '</h3>' +
+        '<div class="subline"><span class="loading">Loading…</span></div>' +
+        '<div class="pre"></div>' +
+        '<div class="btns">' +
+          '<button data-act="preview">Preview</button>' +
+          '<button class="ghost" data-act="copy">Copy HTML</button>' +
+          '<a class="btn ghost" href="' + BASE + v.file + '" download>Download</a>' +
+        '</div>';
+      card.querySelector('[data-act=preview]').onclick = () => {
+        document.getElementById('dlgTitle').textContent = slot.date + ' · Cohort ' + slot.cohort + ' · ' + label;
+        document.getElementById('dlgFrame').src = BASE + v.file;
+        document.getElementById('dlg').showModal();
+      };
+      card.querySelector('[data-act=copy]').onclick = async () => {
+        if (!card._html) return;
+        await navigator.clipboard.writeText(card._html);
+        const t = document.getElementById('toast');
+        t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1400);
+      };
+      vwrap.appendChild(card);
+      loadVariant(v, card);
+    });
+    root.appendChild(div);
+  });
+}
+render();
+</script>
+<script defer src="/auth.js"></script>
+</body>
+</html>

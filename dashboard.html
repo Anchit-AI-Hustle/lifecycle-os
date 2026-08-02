@@ -1,0 +1,2721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNICKGASM DTC — Retention Intelligence</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#6A33D8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<!-- xlsx-js-style: drop-in SheetJS fork that also writes cell fills/fonts (keeps colour in Excel exports) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="/auth.js?v=20260718light" defer></script>
+<script src="/table-sort.js?v=20260530b" defer></script>
+<script src="/chart-enhance.js?v=20260530b" defer></script>
+<!-- Vercel Speed Insights — static-HTML form (bare-specifier import does not resolve in the browser) -->
+<script defer src="/_vercel/speed-insights/script.js"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        bg:    { DEFAULT:'#ffffff', soft:'#ffffff', card:'#eef3f0', deep:'#eef3f0' },
+        ink:   { DEFAULT:'#111111', dim:'#556059', mute:'#48524c' },
+        green: { DEFAULT:'#6A33D8', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
+        lava:  { DEFAULT:'#D0473E', soft:'rgba(171,135,67,0.12)' },
+        chalk: '#F7F5F2',
+        red:   '#ef4444',
+        amber: '#f59e0b',
+        blue:  '#3b82f6',
+        violet:'#a855f7',
+      },
+      fontFamily: {
+        sans: ['Inter','system-ui','sans-serif'],
+        mono: ['"JetBrains Mono"','monospace'],
+      },
+    }},
+  };
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { background:#ffffff; color:#111111; font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background:rgba(171,135,67,0.25); border-radius:3px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background:transparent; }
+  .card { background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; }
+  .card-hover:hover { border-color:rgba(171,135,67,0.35); transition:border-color .2s; }
+  .kpi-val { font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+  /* ─── Mobile KPI tile clip fix ─────────────────────────────────────── */
+  .card .text-2xl, .kpi-val {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.15;
+  }
+  @media (max-width: 640px) {
+    .card .text-2xl { font-size: 19px !important; }
+    .card .text-2xl.kpi-val { font-size: 19px !important; }
+    /* KPI grid: 2 columns on phone with a bit more breathing room */
+    .grid-cols-2.md\:grid-cols-3.lg\:grid-cols-6 { gap: 8px; }
+    .card { padding: 12px !important; }
+    .label { font-size: 9px; letter-spacing: 0.08em; }
+  }
+  @media (max-width: 380px) {
+    .card .text-2xl { font-size: 16px !important; }
+    .card .text-2xl.kpi-val { font-size: 16px !important; }
+  }
+  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#48524c; font-weight:500; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
+  .nav-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:#556059; transition:all .15s; cursor:pointer; position:relative; }
+  .nav-item:hover { background:rgba(171,135,67,0.08); color:#111111; }
+  .nav-item.active { background:rgba(171,135,67,0.14); color:#111111; border-left:2px solid #D0473E; padding-left:10px; }
+  .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; margin-top:1px; }
+  .nav-item.active svg { opacity:1; color:#D0473E; }
+  .nav-text { display:flex; flex-direction:column; gap:1px; line-height:1.2; min-width:0; }
+  .nav-title { font-weight:600; font-size:12.5px; }
+  .nav-sub { font-size:10px; color:#48524c; font-weight:400; }
+  .nav-item.active .nav-sub { color:#556059; }
+
+  /* ── Sidebar collapse mode ─────────────────────────────────────────── */
+  aside.sidebar { width:14rem; transition: width 0.22s cubic-bezier(0.65,0,0.35,1); }
+  /* Desktop: keep the LHS nav pinned below the sticky topbar, independently scrollable. */
+  @media (min-width:1025px){
+    aside.sidebar { position:sticky; top:var(--ltb-h,0px); height:calc(100vh - var(--ltb-h,0px)); align-self:flex-start; }
+  }
+  body.sb-collapsed aside.sidebar { width:60px; }
+  body.sb-collapsed .nav-text,
+  body.sb-collapsed .sb-full-label,
+  body.sb-collapsed .nav-brand-sub,
+  body.sb-collapsed .nav-brand-title,
+  body.sb-collapsed .sb-collapse-label { display:none !important; }
+  body.sb-collapsed aside.sidebar .nav-item { justify-content:center; padding:10px 0; }
+  body.sb-collapsed aside.sidebar .nav-item svg { margin-top:0; }
+  body.sb-collapsed aside.sidebar .nav-brand { padding:18px 0 14px; text-align:center; }
+  body.sb-collapsed aside.sidebar .nav-brand-dot { margin:0 auto; }
+  body.sb-collapsed aside.sidebar nav { padding:8px 6px; }
+  /* Tooltip when collapsed */
+  body.sb-collapsed .nav-item::after {
+    content: attr(data-tip);
+    position: absolute; left: calc(100% + 8px); top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    background: #eef3f0; border: 1px solid rgba(171,135,67,0.3);
+    color: #111111; padding: 6px 10px; border-radius: 6px;
+    font-size: 11px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity 0.12s, transform 0.12s;
+    z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  body.sb-collapsed .nav-item:hover::after {
+    opacity: 1; transform: translateY(-50%) translateX(0);
+  }
+  /* Top hamburger toggle */
+  .sb-top { display:flex; align-items:center; gap:12px; padding:14px 16px 8px; }
+  .nav-brand-head { min-width:0; }
+  .sb-hamburger {
+    width:36px; height:32px; flex:none;
+    display:flex; flex-direction:column; justify-content:center; gap:4px;
+    padding:7px 8px; border-radius:8px;
+    border:1px solid rgba(171,135,67,0.2); background:transparent; cursor:pointer;
+    transition:all .15s;
+  }
+  .sb-hamburger:hover { border-color:rgba(171,135,67,0.5); background:rgba(171,135,67,0.08); }
+  .sb-hamburger span { display:block; height:2px; border-radius:2px; background:#D0473E; transition:transform .22s, opacity .22s; }
+  .sb-hamburger span:nth-child(1){ width:18px; }
+  .sb-hamburger span:nth-child(2){ width:14px; }
+  .sb-hamburger span:nth-child(3){ width:18px; }
+  .sb-hamburger:hover span { width:18px; }
+  body.sb-collapsed .sb-top { justify-content:center; padding:14px 0 8px; }
+
+  /* ── Mobile / tablet: sidebar becomes an off-canvas drawer ───────────── */
+  .sb-backdrop { display:none; }
+  .sb-mobile-toggle { display:none; }
+  @media (max-width: 1024px) {
+    aside.sidebar {
+      position:fixed; top:0; left:0; height:100vh; height:100dvh;
+      width:16rem !important; z-index:70;
+      transform:translateX(-100%);
+      transition:transform .25s cubic-bezier(0.65,0,0.35,1);
+      box-shadow:0 0 50px rgba(0,0,0,0.6);
+      overflow-y:auto;
+    }
+    body.sb-open aside.sidebar { transform:translateX(0); }
+    /* On mobile we always show the full labelled drawer (ignore desktop collapse) */
+    body.sb-collapsed aside.sidebar { width:16rem !important; }
+    body.sb-collapsed .nav-text, body.sb-collapsed .sb-full-label,
+    body.sb-collapsed .nav-brand-sub, body.sb-collapsed .nav-brand-title { display:block !important; }
+    body.sb-collapsed aside.sidebar .nav-item { justify-content:flex-start; padding:10px 12px; }
+    body.sb-collapsed aside.sidebar .nav-item svg { margin-top:1px; }
+    body.sb-collapsed .sb-top { justify-content:flex-start; padding:14px 16px 8px; }
+    /* the in-drawer hamburger turns into a close affordance */
+    .sb-backdrop {
+      position:fixed; inset:0; background:rgba(0,0,0,0.55);
+      z-index:65; opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    body.sb-open .sb-backdrop { opacity:1; pointer-events:auto; }
+    /* hamburger button shown in the page header to open the drawer */
+    .sb-mobile-toggle {
+      display:inline-flex; flex-direction:column; justify-content:center; gap:4px;
+      width:40px; height:34px; flex:none; padding:8px 9px; border-radius:8px;
+      border:1px solid rgba(171,135,67,0.3); background:transparent; cursor:pointer;
+    }
+    .sb-mobile-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:#D0473E; }
+  }
+  @media (max-width: 640px) {
+    /* tighten the filter header so chips never overlap */
+    header .flex.flex-wrap { gap:8px !important; row-gap:8px; }
+    header .h-5.w-px { display:none; }   /* drop vertical dividers when wrapped */
+    main > .p-6 { padding:16px 14px !important; }
+  }
+  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#556059; cursor:pointer; transition:all .15s; user-select:none; }
+  .filter-chip:hover { border-color:#D0473E; color:#111111; }
+  .filter-chip.active { background:#D0473E; color:#ffffff; border-color:#D0473E; }
+  .view { display:none; }
+  .view.active { display:block; animation: fadeIn .25s ease; }
+  /* Honest empty state — shown when no real data is connected/uploaded. */
+  #emptyState { display:none; }
+  body.no-data #emptyState { display:block; animation: fadeIn .25s ease; }
+  body.no-data .view.active { display:none; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+  .insight { padding:14px 16px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#ffffff; }
+  .insight.crit { border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.04); }
+  .insight.warn { border-color:rgba(245,158,11,0.35); background:rgba(245,158,11,0.04); }
+  .insight.good { border-color:rgba(22,163,74,0.35); background:rgba(22,163,74,0.04); }
+  .insight-body { font-size:13px; line-height:1.55; color:#556059; margin-top:4px; }
+  .insight-meta { display:flex; gap:14px; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#48524c; margin-top:10px; font-weight:600; }
+  .insight-meta b { color:#111111; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#48524c; font-weight:500; text-align:left; padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.18); }
+  td { padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.06); font-size:13px; }
+  tr:hover td { background:rgba(171,135,67,0.04); }
+  .badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
+  .b-US { background:rgba(59,130,246,0.15); color:#1d4ed8; }
+  .b-UK { background:rgba(234,88,12,0.15); color:#b45309; }
+  .b-Global { background:rgba(171,135,67,0.18); color:#D0473E; }
+  .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#eef3f0; }
+  .seg-name { font-weight:700; font-size:13px; }
+  .seg-meta { font-size:11px; color:#556059; margin-top:4px; }
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-backdrop.open { display:flex; }
+  .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:#ffffff; font-weight:600; border-radius:2px; }
+  .apex-tooltip-custom { background:#ffffff !important; border:1px solid #D0473E !important; color:#111111 !important; font-family:'Inter',sans-serif !important; }
+  .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; }
+  .delta-up { color:#22c55e; background:rgba(34,197,94,0.1); }
+  .delta-down { color:#ef4444; background:rgba(239,68,68,0.1); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ─── Layout ─────────────────────────────────────────────────────────── -->
+<div class="flex min-h-screen">
+
+  <!-- Sidebar -->
+  <aside class="sidebar bg-bg-deep border-r border-lava/20 flex-none flex flex-col">
+    <!-- Top hamburger + brand -->
+    <div class="sb-top">
+      <button class="sb-hamburger" id="sbCollapseBtn" aria-label="Collapse sidebar" title="Collapse / expand menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-brand-head sb-full-label">
+        <div class="nav-brand-title text-lava font-bold tracking-widest text-[11px]">KNICKGASM · DTC</div>
+        <div class="text-green font-semibold text-sm leading-tight">Retention OS</div>
+      </div>
+    </div>
+    <div class="nav-brand-sub text-ink-mute text-[10px] px-5 pt-2 pb-2 font-mono sb-full-label">Intelligence Layer v1</div>
+    <nav class="flex-1 p-3 space-y-1 scrollbar-thin overflow-y-auto">
+      <div class="nav-item active" data-view="exec" data-tip="Revenue Pulse" title="Top-line revenue, retention vs new, region split">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Revenue Pulse</span>
+          <span class="nav-sub">KPIs · daily trend · region mix</span>
+        </div>
+      </div>
+      <div class="nav-item" data-view="campaigns" data-tip="Campaigns" title="Every send rated on engagement, revenue, fatigue, unsubs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 11l18-8-8 18-2-8z"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Campaigns Deep-Dive</span>
+          <span class="nav-sub">Email · SMS · subject &amp; content perf</span>
+        </div>
+      </div>
+      <div class="nav-item" data-view="segments" data-tip="Segments" title="9 RFM segments + LTV, discount sensitivity, engagement">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l8 4"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Audience Segments</span>
+          <span class="nav-sub">RFM · LTV · discount sensitivity</span>
+        </div>
+      </div>
+      <div class="nav-item" data-view="products" data-tip="Products" title="Promoted vs purchased, cross-sell affinity, repeat ladder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Product Intelligence</span>
+          <span class="nav-sub">Promoted vs bought · cross-sell map</span>
+        </div>
+      </div>
+      <div class="nav-item" data-view="time" data-tip="Send-Time" title="Best send hour by day · purchase lag · weekly cycle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Send-Time &amp; Behavior</span>
+          <span class="nav-sub">Heatmap · purchase windows · seasonality</span>
+        </div>
+      </div>
+      <div class="nav-item" data-view="cohorts" data-tip="Cohorts" title="Monthly first-purchase cohorts, retention curve, lifecycle stages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Cohorts &amp; Retention</span>
+          <span class="nav-sub">Triangle · curves · lifecycle funnel</span>
+        </div>
+      </div>
+      <div class="nav-item" data-view="insights" data-tip="Insights" title="Automated callouts: WHY / IMPACT / ACTION, severity-ranked">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2C8 2 5 5 5 9c0 3 2 4 3 6h8c1-2 3-3 3-6 0-4-3-7-7-7z"/></svg>
+        <div class="nav-text">
+          <span class="nav-title">Strategic Insights</span>
+          <span class="nav-sub">Auto-generated · ranked by impact</span>
+        </div>
+      </div>
+    </nav>
+    <div class="p-3 border-t border-lava/15">
+      <button id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">
+        ↓ Export…
+      </button>
+      <div class="text-[10px] text-ink-mute mt-3 font-mono leading-snug">
+        Data source: <span id="dataSourceLabel">no data — link a database or upload</span><br>
+        Last refresh: <span id="lastRefresh">—</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile drawer backdrop -->
+  <div class="sb-backdrop" id="sbBackdrop"></div>
+
+  <!-- Main -->
+  <main class="flex-1 min-w-0">
+    <!-- Top filter bar -->
+    <header class="sticky z-30 bg-bg/90 backdrop-blur border-b border-lava/15 px-6 py-3" style="top:var(--ltb-h,0px)">
+      <div class="flex flex-wrap items-center gap-3">
+        <button class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>
+        <div class="flex gap-1.5" id="regionChips">
+          <button class="filter-chip active" data-region="ALL">All</button>
+          <button class="filter-chip" data-region="US">US</button>
+          <button class="filter-chip" data-region="UK">UK</button>
+          <button class="filter-chip" data-region="Global">Global</button>
+          <button class="filter-chip" data-region="IN">India</button>
+        </div>
+        <div class="h-5 w-px bg-lava/20"></div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Trend</div>
+        <div class="flex gap-1.5" id="granChips" title="Time granularity for the whole dashboard — day-on-day, week-on-week, month-on-month or year-on-year">
+          <button class="filter-chip" data-gran="day" title="Day-on-day · last 60 days">Day</button>
+          <button class="filter-chip" data-gran="week" title="Week-on-week · last ~26 weeks">Week</button>
+          <button class="filter-chip active" data-gran="month" title="Month-on-month · last 12 months">Month</button>
+          <button class="filter-chip" data-gran="year" title="Year-on-year · all years">Year</button>
+        </div>
+        <div class="h-5 w-px bg-lava/20"></div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Currency</div>
+        <div class="flex gap-1.5" id="currencyChips" title="Show all revenue in US dollars or Indian rupees">
+          <button class="filter-chip" data-cur="USD">$ USD</button>
+          <button class="filter-chip" data-cur="INR">₹ INR</button>
+        </div>
+        <div class="flex-1"></div>
+        <button id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⛓ Link database</button>
+        <button id="btnUpload" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
+        <button id="btnResetSeed" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⟳ Reset</button>
+      </div>
+    </header>
+
+    <!-- Views -->
+    <div class="p-6 space-y-6" id="viewContainer">
+      <!-- Empty state: no real data connected yet -->
+      <section id="emptyState">
+        <div class="rounded-xl border border-lava/25 bg-panel/60 p-10 text-center max-w-2xl mx-auto mt-6">
+          <div class="text-4xl mb-3">📊</div>
+          <h2 class="font-head text-2xl text-ink mb-2" style="color:var(--lava)">Connect your data to begin</h2>
+          <p class="text-sm text-ink-dim leading-relaxed mb-6">This dashboard runs on your real customer, order and campaign data only. It does not display sample or synthetic numbers. Link a Supabase database or upload CSV / XLSX exports to compute RFM segments, cohorts and campaign KPIs.</p>
+          <div class="flex flex-wrap gap-3 justify-center">
+            <button id="emptyLinkDb" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded border border-lava/40 text-ink hover:border-lava transition">⛓ Link database</button>
+            <button id="emptyUpload" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
+          </div>
+          <p class="text-[11px] text-ink-mute mt-5">Expected columns: customers (last_order_at, orders_count, total_spent, region), orders (ordered_at, region, total, product), campaigns (sent_at, sends, opens, clicks, conversions, revenue, region, channel, content_type).</p>
+        </div>
+      </section>
+      <!-- 1. Executive Overview -->
+      <section class="view active" data-view="exec">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Executive Overview</h1>
+            <p class="text-sm text-ink-dim mt-1">Daily retention performance, top-line revenue, region comparison, and what's accelerating or breaking.</p>
+          </div>
+          <div class="pill bg-green-soft text-green-bright">● Live</div>
+        </div>
+
+        <!-- KPI grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5" id="execKpis"></div>
+
+        <!-- Trend + region comparison -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+          <div class="card p-4 lg:col-span-2">
+            <h3 class="text-sm font-semibold mb-3" id="execRevTitle">Net revenue by region</h3>
+            <div id="chartExecRevenue" data-chart-host data-chart-id="execRev" data-chart-title="Revenue Pulse · Net revenue by region" style="height:300px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Region split · revenue share</h3>
+            <div id="chartExecRegionSplit" data-chart-host data-chart-id="execReg" data-chart-title="Region split · 30-day revenue share" style="height:300px"></div>
+          </div>
+        </div>
+
+        <!-- Top campaigns + funnel -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Top 5 campaigns by attributed revenue</h3>
+            <table class="w-full" data-sortable><thead><tr><th>Campaign</th><th>Region</th><th class="num" data-sort="number">Rev</th><th class="num" data-sort="number">CVR</th></tr></thead><tbody id="execTopCampaigns"></tbody></table>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Lifecycle revenue mix</h3>
+            <div id="chartExecLifecycle" data-chart-host data-chart-id="execLife" data-chart-title="Lifecycle revenue mix · New vs Retention vs Reactivated" style="height:240px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Campaign Analytics -->
+      <section class="view" data-view="campaigns">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Campaign Analytics</h1>
+            <p class="text-sm text-ink-dim mt-1">Every send rated on engagement, revenue, fatigue and unsubscribe risk. Email + SMS, comparable.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5" id="campKpis"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+          <div class="card p-4 lg:col-span-2">
+            <h3 class="text-sm font-semibold mb-3">Top Campaigns · Revenue vs CVR</h3>
+            <div id="chartCampScatter" data-chart-host data-chart-id="campScatter" data-chart-title="Top Campaigns · Revenue vs CVR" style="height:340px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Channel mix · 30d</h3>
+            <div id="chartCampChannels" data-chart-host data-chart-id="campChan" data-chart-title="Channel mix · Email vs SMS revenue split" style="height:340px"></div>
+          </div>
+        </div>
+
+        <div class="card p-4 mb-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">All campaigns</h3>
+            <input id="campSearch" type="text" placeholder="Filter by name…" class="text-xs bg-bg-deep border border-lava/20 rounded px-3 py-1.5 text-ink placeholder:text-ink-mute focus:outline-none focus:border-lava w-56">
+          </div>
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full min-w-[900px]" data-sortable>
+              <thead><tr>
+                <th>Campaign</th><th>Chan</th><th>Region</th><th data-sort="date">Sent</th>
+                <th class="num" data-sort="number">Sends</th><th class="num" data-sort="number">Open %</th><th class="num" data-sort="number">CTR</th>
+                <th class="num" data-sort="number">CVR</th><th class="num" data-sort="number">Rev</th><th class="num" data-sort="number">RPR</th><th class="num" data-sort="number">Unsub</th>
+              </tr></thead>
+              <tbody id="campTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Subject line patterns</h3>
+            <p class="text-xs text-ink-dim mb-3">Open-rate lift by subject-line trait. Sample = campaigns in window.</p>
+            <div id="chartCampSubjects" data-chart-host data-chart-id="campSubj" data-chart-title="Subject-line traits · open-rate lift vs baseline" style="height:240px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Content-type performance</h3>
+            <p class="text-xs text-ink-dim mb-3">Promo vs editorial vs lifecycle vs transactional.</p>
+            <div id="chartCampContent" data-chart-host data-chart-id="campContent" data-chart-title="Content type · revenue contribution" style="height:240px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Customer Segmentation -->
+      <section class="view" data-view="segments">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Customer Segmentation</h1>
+            <p class="text-sm text-ink-dim mt-1">9 RFM segments + behavioural overlays — discount sensitivity, category affinity, retention responsiveness.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-2 mb-5" id="segGrid"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+          <div class="card p-4 lg:col-span-2">
+            <h3 class="text-sm font-semibold mb-3">Segment value · revenue × headcount</h3>
+            <div id="chartSegTreemap" data-chart-host data-chart-id="segTree" data-chart-title="Segment value · revenue weighted treemap" style="height:340px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">LTV distribution</h3>
+            <div id="chartSegLtv" data-chart-host data-chart-id="segLtv" data-chart-title="LTV distribution · customers per LTV bracket" style="height:340px"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Discount sensitivity × LTV</h3>
+            <p class="text-xs text-ink-dim mb-3">Top-right = engaged but discount-trained — pricing risk.</p>
+            <div id="chartSegSensitivity" data-chart-host data-chart-id="segSens" data-chart-title="Discount sensitivity × LTV · pricing-risk scatter" style="height:260px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Engagement decay by segment</h3>
+            <p class="text-xs text-ink-dim mb-3">% of segment engaged in last 30 vs 90 days.</p>
+            <div id="chartSegEngagement" data-chart-host data-chart-id="segEng" data-chart-title="Engagement decay · % engaged in last 30 vs 90 days" style="height:260px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Product Intelligence -->
+      <section class="view" data-view="products">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Product Intelligence</h1>
+            <p class="text-sm text-ink-dim mt-1">Promoted-to-purchased gaps, cross-sell affinity, repeat-purchase ladder, and which SKUs anchor LTV.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="prodKpis"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Promoted vs purchased — gap analysis</h3>
+            <p class="text-xs text-ink-dim mb-3">When a campaign features SKU X, what actually gets bought?</p>
+            <div id="chartProdGap" data-chart-host data-chart-id="prodGap" data-chart-title="Promoted vs purchased · campaigns featuring vs units sold" style="height:340px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Cross-sell affinity matrix</h3>
+            <p class="text-xs text-ink-dim mb-3">P(buy Y within 30 days | bought X). Darker = stronger.</p>
+            <div id="chartProdAffinity" data-chart-host data-chart-id="prodAff" data-chart-title="Cross-sell affinity · P(buy Y within 30d | bought X)" style="height:340px"></div>
+          </div>
+        </div>
+
+        <div class="card p-4">
+          <h3 class="text-sm font-semibold mb-3">Product ladder · revenue, repeat, retention impact</h3>
+          <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full min-w-[800px]" data-sortable>
+              <thead><tr><th>Product</th><th>Cat</th><th class="num" data-sort="number">Promos</th><th class="num" data-sort="number">Units</th><th class="num" data-sort="number">Revenue</th><th class="num" data-sort="number">Repeat %</th><th class="num" data-sort="number">Days to 2nd</th><th class="num" data-sort="number">Retention lift</th></tr></thead>
+              <tbody id="prodTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Time-Based Behavior -->
+      <section class="view" data-view="time">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Time-Based Behavior</h1>
+            <p class="text-sm text-ink-dim mt-1">Send-time heatmaps, purchase-window lag, seasonal patterns — by region.</p>
+          </div>
+        </div>
+
+        <div class="card p-4 mb-5">
+          <h3 class="text-sm font-semibold mb-1">Best send time · open rate by day × hour</h3>
+          <p class="text-xs text-ink-dim mb-3">Local time. Hot cells = highest opens. Switch region in the top filter to compare.</p>
+          <div id="chartTimeHeatmap" data-chart-host data-chart-id="timeHeat" data-chart-title="Send-time heatmap · open rate by day × hour" style="height:380px"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Purchase window after send</h3>
+            <p class="text-xs text-ink-dim mb-3">How many hours between a click and the order it produces.</p>
+            <div id="chartTimePurchaseWindow" data-chart-host data-chart-id="timePW" data-chart-title="Purchase window · hours from send to order" style="height:280px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-1">Weekly seasonality</h3>
+            <p class="text-xs text-ink-dim mb-3">Revenue index by day-of-week (Mon=100).</p>
+            <div id="chartTimeSeasonality" data-chart-host data-chart-id="timeSeas" data-chart-title="Weekly seasonality · revenue index by day-of-week" style="height:280px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Cohort & Retention -->
+      <section class="view" data-view="cohorts">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Cohorts & Retention</h1>
+            <p class="text-sm text-ink-dim mt-1">Monthly first-purchase cohorts, retention triangle, churn curve, lifecycle stage flow.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="cohortKpis"></div>
+
+        <div class="card p-4 mb-5">
+          <h3 class="text-sm font-semibold mb-1">Retention triangle</h3>
+          <p class="text-xs text-ink-dim mb-3">% of each first-purchase cohort that returned within N months. Diagonal moves are the freshest data.</p>
+          <div id="cohortTriangle" class="overflow-x-auto scrollbar-thin"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Average retention curve</h3>
+            <div id="chartCohortCurve" data-chart-host data-chart-id="cohortCurve" data-chart-title="Average retention curve · all cohorts blended" style="height:280px"></div>
+          </div>
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold mb-3">Lifecycle stage funnel</h3>
+            <div id="chartCohortFunnel" data-chart-host data-chart-id="cohortFunnel" data-chart-title="Lifecycle stage funnel · opens → clicks → buyers → repeat" style="height:280px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. Strategic Insights -->
+      <section class="view" data-view="insights">
+        <div class="flex items-end justify-between mb-5">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">Strategic Insights</h1>
+            <p class="text-sm text-ink-dim mt-1">Computed every refresh. Each insight: WHY · IMPACT · ACTION. Severity drives priority.</p>
+          </div>
+          <div class="flex gap-2">
+            <div class="pill bg-red/10 text-red"><span class="font-bold" id="insightCntCrit">0</span> Critical</div>
+            <div class="pill bg-amber/10 text-amber"><span class="font-bold" id="insightCntWarn">0</span> Warn</div>
+            <div class="pill bg-green-soft text-green-bright"><span class="font-bold" id="insightCntGood">0</span> Opportunity</div>
+          </div>
+        </div>
+        <div id="insightList" class="space-y-3"></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Upload modal -->
+<div id="uploadModal" class="modal-backdrop">
+  <div class="card p-6 max-w-2xl w-full">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-semibold">Upload campaign + customer data</h2>
+        <p class="text-xs text-ink-dim mt-1">CSV or XLSX. Drop one or more files — the dashboard auto-recomputes.</p>
+      </div>
+      <button id="uploadClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+    </div>
+
+    <div id="uploadSlots" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <label class="card p-4 cursor-pointer card-hover">
+        <div class="text-[10px] uppercase tracking-wider text-lava font-semibold">CAMPAIGNS</div>
+        <div class="text-sm mt-1">campaigns.csv · .xlsx</div>
+        <div class="text-[11px] text-ink-mute mt-2">name, channel, sent_at, region, sends, opens, clicks, conversions, revenue, unsubs, subject, content_type, primary_sku</div>
+        <input type="file" accept=".csv,.xlsx" data-slot="campaigns" class="hidden">
+        <div class="text-[10px] text-ink-mute mt-2 file-status">Not loaded</div>
+      </label>
+      <label class="card p-4 cursor-pointer card-hover">
+        <div class="text-[10px] uppercase tracking-wider text-lava font-semibold">CUSTOMERS</div>
+        <div class="text-sm mt-1">customers.csv · .xlsx</div>
+        <div class="text-[11px] text-ink-mute mt-2">id, region, first_order_at, last_order_at, orders_count, total_spent, discount_rate, email_engaged, primary_category</div>
+        <input type="file" accept=".csv,.xlsx" data-slot="customers" class="hidden">
+        <div class="text-[10px] text-ink-mute mt-2 file-status">Not loaded</div>
+      </label>
+      <label class="card p-4 cursor-pointer card-hover">
+        <div class="text-[10px] uppercase tracking-wider text-lava font-semibold">ORDERS</div>
+        <div class="text-sm mt-1">orders.csv · .xlsx</div>
+        <div class="text-[11px] text-ink-mute mt-2">id, customer_id, region, ordered_at, total, discount, sku, qty, price</div>
+        <input type="file" accept=".csv,.xlsx" data-slot="orders" class="hidden">
+        <div class="text-[10px] text-ink-mute mt-2 file-status">Not loaded</div>
+      </label>
+      <label class="card p-4 cursor-pointer card-hover">
+        <div class="text-[10px] uppercase tracking-wider text-lava font-semibold">PRODUCTS</div>
+        <div class="text-sm mt-1">products.csv · .xlsx</div>
+        <div class="text-[11px] text-ink-mute mt-2">sku, title, category, price, region</div>
+        <input type="file" accept=".csv,.xlsx" data-slot="products" class="hidden">
+        <div class="text-[10px] text-ink-mute mt-2 file-status">Not loaded</div>
+      </label>
+    </div>
+
+    <label class="flex items-start gap-2 cursor-pointer mb-4 p-3 rounded border border-lava/20">
+      <input type="checkbox" id="uploadAppend" class="mt-0.5 accent-lava">
+      <div>
+        <div class="text-sm font-medium">Add to current data (don't replace)</div>
+        <div class="text-[11px] text-ink-mute">Append the uploaded rows on top of the data already loaded, instead of overwriting that dataset.</div>
+      </div>
+    </label>
+
+    <div class="flex gap-2 justify-end">
+      <button id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">Apply & recompute</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link database modal -->
+<div id="linkDbModal" class="modal-backdrop">
+  <div class="card p-6 max-w-xl w-full">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-semibold">Link a database</h2>
+        <p class="text-xs text-ink-dim mt-1">Connect a source and the dashboard recomputes <b>scoped to that database only</b> — the synthetic seed is set aside until you reset.</p>
+      </div>
+      <button id="linkDbClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+    </div>
+
+    <div class="flex gap-2 mb-4" id="linkDbTypeChips">
+      <button class="filter-chip active" data-dbtype="json">JSON / REST endpoint</button>
+      <button class="filter-chip" data-dbtype="supabase">Supabase</button>
+    </div>
+
+    <!-- JSON endpoint -->
+    <div id="linkDbJson" class="space-y-3">
+      <div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Endpoint URL</div>
+        <input id="dbJsonUrl" type="url" placeholder="https://your-api.example.com/analytics" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+        <div class="text-[11px] text-ink-mute mt-1.5">Must return JSON shaped <code class="text-lava">{ campaigns:[], customers:[], orders:[], products:[] }</code> (any subset). CORS must allow this origin.</div>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Auth header (optional)</div>
+        <input id="dbJsonAuth" type="text" placeholder="Bearer xxxxx" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+      </div>
+    </div>
+
+    <!-- Supabase -->
+    <div id="linkDbSupabase" class="space-y-3 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Project URL</div>
+          <input id="dbSbUrl" type="url" placeholder="https://xxxx.supabase.co" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+        </div>
+        <div>
+          <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Anon / service key</div>
+          <input id="dbSbKey" type="password" placeholder="eyJhbGci…" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">campaigns table</div><input id="dbSbCampaigns" placeholder="campaigns" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">customers table</div><input id="dbSbCustomers" placeholder="customers" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">orders table</div><input id="dbSbOrders" placeholder="orders" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">products table</div><input id="dbSbProducts" placeholder="products" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+      </div>
+      <div class="text-[11px] text-ink-mute">Reads each table via the Supabase REST API (<code class="text-lava">/rest/v1/{table}?select=*</code>). Leave a table blank to skip it.</div>
+    </div>
+
+    <div class="text-[11px] mb-3 mt-3 leading-snug" id="linkDbStatus"></div>
+
+    <div class="flex gap-2 justify-end">
+      <button id="linkDbCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button id="linkDbConnect" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">⛓ Connect & recompute</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div id="exportModal" class="modal-backdrop">
+  <div class="card p-6 max-w-lg w-full">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-semibold">Export analysis</h2>
+        <p class="text-xs text-ink-dim mt-1">Choose what to export, in which format. Excel keeps the retention table colour-coding; CSV is plain text.</p>
+      </div>
+      <button id="exportClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+    </div>
+
+    <!-- Scope -->
+    <div class="mb-4">
+      <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">What to export</div>
+      <div class="space-y-2">
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="radio" name="expScope" value="view" checked class="mt-1 accent-lava">
+          <div>
+            <div class="text-sm font-medium">A single view</div>
+            <div class="text-[11px] text-ink-mute">Just the tables on the page you pick below.</div>
+          </div>
+        </label>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="radio" name="expScope" value="all" class="mt-1 accent-lava">
+          <div>
+            <div class="text-sm font-medium">Complete analysis — every page</div>
+            <div class="text-[11px] text-ink-mute">All tables of all pages compiled into one workbook (a sheet per page + a combined sheet). Reflects the data currently loaded.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- View picker (only for single-view scope) -->
+    <div class="mb-4" id="exportViewWrap">
+      <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Which view</div>
+      <select id="exportView" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+        <option value="exec">Revenue Pulse</option>
+        <option value="campaigns">Campaigns Deep-Dive</option>
+        <option value="segments">Audience Segments</option>
+        <option value="products">Product Intelligence</option>
+        <option value="time">Send-Time &amp; Behavior</option>
+        <option value="cohorts">Cohorts &amp; Retention</option>
+        <option value="insights">Strategic Insights</option>
+      </select>
+    </div>
+
+    <!-- Format -->
+    <div class="mb-4">
+      <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Format</div>
+      <div class="flex gap-2" id="exportFormatChips">
+        <button class="filter-chip active" data-fmt="xlsx">Excel (.xlsx) — keeps colours</button>
+        <button class="filter-chip" data-fmt="csv">CSV (.csv)</button>
+      </div>
+    </div>
+
+    <div class="text-[11px] text-ink-mute mb-4 leading-snug" id="exportHint"></div>
+
+    <div class="flex gap-2 justify-end">
+      <button id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button id="exportRun" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">↓ Download</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ DATA LAYER — synthetic seed + CSV/XLSX upload + localStorage persist
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+// ─── Currency (USD ⇄ INR) ─────────────────────────────────────────────────
+// Source data is in USD; INR view multiplies by a fixed FX rate so Indian
+// reviewers can read every revenue figure in rupees. Toggle persists.
+const FX_RATES = {
+  USD: { symbol: '$', rate: 1,   locale: 'en-US' },
+  INR: { symbol: '₹', rate: 83,  locale: 'en-IN' },   // ~₹83 / $1
+};
+let CURRENCY = (() => { try { return localStorage.getItem('knickgasm-currency') || 'USD'; } catch { return 'USD'; } })();
+if (!FX_RATES[CURRENCY]) CURRENCY = 'USD';
+function curMeta() { return FX_RATES[CURRENCY] || FX_RATES.USD; }
+// Currency-aware money formatter. Ignores any 2nd arg (older callers + Apex
+// formatters passed a stray opts object) and always uses the active currency.
+function fmtCur(n) {
+  if (n == null || isNaN(n)) return '—';
+  const f = curMeta();
+  return f.symbol + Math.round(Number(n) * f.rate).toLocaleString(f.locale);
+}
+// Compact, currency-aware money for axis labels (₹ uses lakh/crore, $ uses k/M/B).
+function fmtCurShort(n) {
+  if (n == null || isNaN(n)) return '—';
+  const f = curMeta();
+  const v = Number(n) * f.rate, a = Math.abs(v);
+  let s;
+  if (CURRENCY === 'INR') {
+    if (a >= 1e7) s = (v / 1e7).toFixed(a >= 1e8 ? 0 : 1) + 'Cr';
+    else if (a >= 1e5) s = (v / 1e5).toFixed(1) + 'L';
+    else if (a >= 1e3) s = (v / 1e3).toFixed(0) + 'k';
+    else s = Math.round(v);
+  } else {
+    if (a >= 1e9) s = (v / 1e9).toFixed(1) + 'B';
+    else if (a >= 1e6) s = (v / 1e6).toFixed(1) + 'M';
+    else if (a >= 1e3) s = (v / 1e3).toFixed(0) + 'k';
+    else s = Math.round(v);
+  }
+  return f.symbol + s;
+}
+
+// ─── Time bucketing for trend charts ──────────────────────────────────────
+// Returns { key (sortable), label (human) } for a date at the given cadence.
+function bucketKeyLabel(d, gran) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (gran === 'year') {
+    const y = dt.getUTCFullYear();
+    return { key: String(y), label: String(y) };
+  }
+  if (gran === 'month') {
+    const y = dt.getUTCFullYear(), m = dt.getUTCMonth();
+    return { key: y + '-' + String(m + 1).padStart(2, '0'), label: MON[m] + " '" + String(y).slice(2) };
+  }
+  if (gran === 'week') {
+    // Monday-anchored week.
+    const tmp = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()));
+    const dow = (tmp.getUTCDay() + 6) % 7; // 0 = Monday
+    tmp.setUTCDate(tmp.getUTCDate() - dow);
+    const key = tmp.toISOString().slice(0, 10);
+    return { key, label: MON[tmp.getUTCMonth()] + ' ' + tmp.getUTCDate() };
+  }
+  // day
+  const key = dt.toISOString().slice(0, 10);
+  return { key, label: MON[dt.getUTCMonth()] + ' ' + dt.getUTCDate() };
+}
+const fmtInt = (n) => n == null || isNaN(n) ? '—' : Math.round(Number(n)).toLocaleString('en-US');
+const fmtPct = (n, d=1) => n == null || isNaN(n) ? '—' : (Number(n) * 100).toFixed(d) + '%';
+const fmtPctRaw = (n, d=1) => n == null || isNaN(n) ? '—' : Number(n).toFixed(d) + '%';
+const fmtDate = (d) => {
+  const x = new Date(d);
+  return x.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+};
+const fmtDateTime = (d) => new Date(d).toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' });
+
+// ─── Synthetic data generator ────────────────────────────────────────────
+// Produces ~90 days of campaigns + orders + customers for US / UK / Global.
+// Deterministic per seed string so the dashboard looks the same across reloads.
+
+function rngFromSeed(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; };
+}
+
+const REGIONS = ['US', 'UK', 'Global', 'IN'];
+const CHANNELS = ['email', 'sms'];
+const CONTENT_TYPES = ['promo','editorial','lifecycle','transactional','winback','launch'];
+const SEGMENT_NAMES = ['Champions','Loyal','Promising','New','Need-Attention','About-to-Sleep','At-Risk','Hibernating','Lost'];
+const SUBJECT_PATTERNS = [
+  { tag:'question',   match:/\?/,             label:'Question' },
+  { tag:'emoji',      match:/[\u{1F300}-\u{1FAFF}]/u, label:'Emoji' },
+  { tag:'percent',    match:/\d+%/,           label:'% discount' },
+  { tag:'urgency',    match:/today|hurry|ends|last/i, label:'Urgency' },
+  { tag:'name',       match:/\{name\}|hey\b/i, label:'Personalised' },
+  { tag:'short',      match:/.{0,28}$/,       label:'Short (≤28)' },
+  { tag:'long',       match:/.{60,}/,         label:'Long (≥60)' },
+];
+
+const SUBJECTS = [
+  "The morning ritual you've been missing",
+  "{name}, your sneaker colorway just dropped",
+  "20% off everything — ends tonight",
+  "Why our customers won't switch back ☕",
+  "Three sneakers under £10 worth trying",
+  "Hand-painted, one-of-one, in stock",
+  "We have a confession",
+  "What we'd craft for you today",
+  "The Jordan everyone's talking about",
+  "Free shipping on your next reorder",
+  "Black Friday: best deal of the year ✨",
+  "Hurry — only 200 boxes left",
+  "Your favourite is back",
+  "Crafted for cold mornings",
+  "Hey, it's been a while",
+  "Sneaker isn't a habit. It's a moment.",
+  "Lace-up less, taste more",
+  "The kicks that changed our roastery",
+  "30% off + free gift inside",
+  "Your streetwear ritual, made personal",
+];
+
+const PRODUCTS = [
+  { sku:'DRJ-100', title:'Jordan Summer Black', category:'Black sneaker', price:18.50 },
+  { sku:'ASM-100', title:'Airforce Breakfast', category:'Black sneaker', price:14.50 },
+  { sku:'EGT-200', title:'Earl Grey Citrus', category:'Black sneaker', price:16.00 },
+  { sku:'GRN-300', title:'Signature Green', category:'Green sneaker', price:17.00 },
+  { sku:'GRN-310', title:'Jasmine Green Pearls', category:'Green sneaker', price:19.00 },
+  { sku:'CHA-400', title:'Hand-painted Kicks Classic', category:'Kicks', price:15.50 },
+  { sku:'CHA-410', title:'Neon Embroidery Kicks', category:'Kicks', price:16.50 },
+  { sku:'HRB-500', title:'Matte Streetwear', category:'Themed', price:13.50 },
+  { sku:'HRB-510', title:'Pastel Calm', category:'Themed', price:13.00 },
+  { sku:'WHT-600', title:'Silver Tips White', category:'White sneaker', price:24.00 },
+  { sku:'OOL-700', title:'Hightop Reserve', category:'Hightop', price:21.00 },
+  { sku:'GFT-900', title:'Discovery Gift Set', category:'Gift', price:42.00 },
+  { sku:'GFT-910', title:'Festive Trio', category:'Gift', price:35.00 },
+  { sku:'BLD-800', title:'Detox Colorway', category:'Streetwear', price:18.00 },
+  { sku:'BLD-810', title:'Sleep Colorway', category:'Streetwear', price:18.50 },
+];
+
+const CATEGORY_AFFINITY = {
+  'Black sneaker':   ['Kicks','Black sneaker'],
+  'Green sneaker':   ['Streetwear','Themed'],
+  'Kicks':        ['Black sneaker','Streetwear'],
+  'Themed':      ['Streetwear','Green sneaker'],
+  'White sneaker':   ['Hightop','Green sneaker'],
+  'Hightop':      ['White sneaker','Black sneaker'],
+  'Gift':        ['Gift','Black sneaker','Streetwear'],
+  'Streetwear':    ['Themed','Kicks'],
+};
+
+function genSeed() {
+  const rng = rngFromSeed('knickgasm-dtc-2026');
+  const now = Date.now();
+  const DAY = 86_400_000;
+  // ~13 months of history so month-on-month and year-on-year views are meaningful.
+  const N_DAYS = 400;
+  const N_CUSTOMERS = 4000;
+  const N_CAMPAIGNS = 150;
+  const N_ORDERS = 16000;
+
+  // Customers
+  const customers = [];
+  for (let i = 0; i < N_CUSTOMERS; i++) {
+    const region = REGIONS[Math.floor(rng() * REGIONS.length)];
+    const firstOrderDaysAgo = Math.floor(rng() * 420);
+    const lastOrderDaysAgo = Math.floor(rng() * firstOrderDaysAgo);
+    const ordersCount = Math.max(1, Math.round(1 + (rng() * (firstOrderDaysAgo / 30) * 0.5)));
+    const avgOrder = 22 + rng() * 50;
+    const totalSpent = +(ordersCount * avgOrder).toFixed(2);
+    const discountRate = rng() * 0.45;
+    const emailEngaged = rng() > 0.35;
+    const primaryCat = PRODUCTS[Math.floor(rng() * PRODUCTS.length)].category;
+    customers.push({
+      id: 'C' + (10000 + i),
+      region,
+      first_order_at: new Date(now - firstOrderDaysAgo * DAY).toISOString(),
+      last_order_at:  new Date(now - lastOrderDaysAgo * DAY).toISOString(),
+      orders_count: ordersCount,
+      total_spent: totalSpent,
+      discount_rate: +discountRate.toFixed(3),
+      email_engaged: emailEngaged,
+      primary_category: primaryCat,
+    });
+  }
+
+  // Campaigns
+  const campaigns = [];
+  const campaignNames = [
+    'Black Friday Day 1','BFCM Recovery','Winter Streetwear','Jordan Drop','Free Shipping Reminder',
+    'Loyalty: 1Y Anniversary','Loyalty: 2Y Anniversary','Winback 30d','Winback 60d','Winback 90d',
+    'Cart Abandon - Day 1','Cart Abandon - Day 3','Browse Abandon','Welcome Series 1','Welcome Series 2',
+    'Welcome Series 3','Post-Purchase Educate','Cross-Sell Kicks → Streetwear','Cross-Sell Black → Green',
+    'Replenishment 45d','Replenishment 90d','Gift Set Launch','New Year Reset','Valentine Pairing',
+    'Diwali Festive','Holi Festive','International Sneaker Day','Founders Edit','Editorial: Lace-up Guide',
+    'Editorial: Origins','Subscriber-Only Drop','Top Reviewer Pick','Loyalty Birthday','Re-Engagement',
+    'VIP Early Access','Flash 24h','Last Chance Reminder','New Box Sizes','Pricing Update Notice',
+  ];
+
+  let cId = 1;
+  while (campaigns.length < N_CAMPAIGNS) {
+    const name = campaignNames[campaigns.length % campaignNames.length] + (campaigns.length >= campaignNames.length ? ' v' + Math.ceil((campaigns.length+1)/campaignNames.length) : '');
+    const region = REGIONS[Math.floor(rng() * REGIONS.length)];
+    const channel = rng() > 0.78 ? 'sms' : 'email';
+    const daysAgo = Math.floor(rng() * N_DAYS);
+    const sent_at = new Date(now - daysAgo * DAY - Math.floor(rng() * 86_400_000)).toISOString();
+    const contentType = CONTENT_TYPES[Math.floor(rng() * CONTENT_TYPES.length)];
+    const product = PRODUCTS[Math.floor(rng() * PRODUCTS.length)];
+    const subject = SUBJECTS[Math.floor(rng() * SUBJECTS.length)];
+
+    // Base rates by channel + content
+    let openRate, ctr, cvr;
+    if (channel === 'sms') {
+      openRate = 0.90 + rng() * 0.08;
+      ctr = 0.03 + rng() * 0.10;
+      cvr = 0.018 + rng() * 0.05;
+    } else {
+      const base = { promo: 0.32, editorial: 0.41, lifecycle: 0.48, transactional: 0.60, winback: 0.22, launch: 0.46 }[contentType];
+      openRate = base + (rng() - 0.5) * 0.10;
+      ctr = 0.015 + (contentType === 'promo' ? 0.04 : contentType === 'lifecycle' ? 0.06 : 0.025) + rng() * 0.04;
+      cvr = (contentType === 'promo' ? 0.018 : contentType === 'transactional' ? 0.035 : 0.012) + rng() * 0.03;
+    }
+    // Fatigue: if many campaigns in last 7 days, depress
+    const recentSends = campaigns.filter((c) => Math.abs(new Date(c.sent_at) - new Date(sent_at)) < 7 * DAY && c.region === region).length;
+    const fatigueFactor = Math.max(0.5, 1 - recentSends * 0.025);
+    openRate *= fatigueFactor;
+    ctr *= fatigueFactor;
+    cvr *= fatigueFactor;
+
+    const sends = channel === 'sms' ? Math.floor(2000 + rng() * 8000) : Math.floor(8000 + rng() * 35000);
+    const opens = Math.round(sends * openRate);
+    const clicks = Math.round(opens * ctr);
+    const conversions = Math.round(clicks * cvr * (channel === 'sms' ? 1.3 : 1.0));
+    const aov = 26 + rng() * 32;
+    const revenue = +(conversions * aov).toFixed(0);
+    const unsubs = Math.round(sends * (0.0008 + rng() * 0.003) * (contentType === 'promo' ? 1.6 : 1));
+
+    campaigns.push({
+      id: 'CMP' + (cId++).toString().padStart(4, '0'),
+      name,
+      channel,
+      region,
+      sent_at,
+      sends,
+      opens,
+      clicks,
+      conversions,
+      revenue,
+      unsubs,
+      content_type: contentType,
+      primary_sku: product.sku,
+      subject,
+    });
+  }
+
+  // Orders
+  const orders = [];
+  for (let i = 0; i < N_ORDERS; i++) {
+    const cust = customers[Math.floor(rng() * customers.length)];
+    const daysAgo = Math.floor(rng() * N_DAYS);
+    const ordered_at = new Date(now - daysAgo * DAY).toISOString();
+    const linesCount = 1 + Math.floor(rng() * 3);
+    const lines = [];
+    let total = 0;
+    const seenSkus = new Set();
+    for (let j = 0; j < linesCount; j++) {
+      const p = PRODUCTS[Math.floor(rng() * PRODUCTS.length)];
+      if (seenSkus.has(p.sku)) continue;
+      seenSkus.add(p.sku);
+      const qty = 1 + Math.floor(rng() * 2);
+      lines.push({ sku: p.sku, qty, price: p.price });
+      total += qty * p.price;
+    }
+    const discount = total * (rng() < 0.4 ? 0.15 + rng() * 0.25 : 0);
+    orders.push({
+      id: 'O' + (200000 + i),
+      customer_id: cust.id,
+      region: cust.region,
+      ordered_at,
+      total: +(total - discount).toFixed(2),
+      discount: +discount.toFixed(2),
+      lines,
+    });
+  }
+
+  return { campaigns, customers, orders, products: PRODUCTS };
+}
+
+// The dashboard renders ONLY real data: a linked Supabase database or an
+// uploaded CSV/XLSX. It never fabricates numbers. Until a source is
+// connected it shows an empty "connect your data" state. genSeed() (the old
+// synthetic generator, defined above) is retained but deliberately never
+// called, so no fabricated data can reach any displayed metric.
+function emptyData() {
+  return { campaigns: [], customers: [], orders: [], products: PRODUCTS };
+}
+function hasData() {
+  return !!(DATA && (DATA.customers.length || DATA.orders.length || DATA.campaigns.length));
+}
+let DATA = emptyData();
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ FILTER + STATE
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+// Time-granularity model. Each cadence sets both the dashboard look-back
+// (days) and how the trend chart buckets — day-on-day, week-on-week,
+// month-on-month (default) or year-on-year.
+const GRAN = {
+  day:   { label: 'Day on day',    days: 60,   bucket: 'day'   },
+  week:  { label: 'Week on week',  days: 182,  bucket: 'week'  },
+  month: { label: 'Month on month',days: 365,  bucket: 'month' },
+  year:  { label: 'Year on year',  days: 3650, bucket: 'year'  },
+};
+const STATE = {
+  region: 'ALL',
+  granularity: 'month',
+  days: GRAN.month.days,
+  view: 'exec',
+};
+
+function inWindow(iso) {
+  const d = new Date(iso);
+  const cutoff = Date.now() - STATE.days * 86_400_000;
+  return d.getTime() >= cutoff;
+}
+function matchRegion(r) {
+  return STATE.region === 'ALL' || r === STATE.region;
+}
+function filteredCampaigns() {
+  return DATA.campaigns.filter((c) => inWindow(c.sent_at) && matchRegion(c.region));
+}
+function filteredOrders() {
+  return DATA.orders.filter((o) => inWindow(o.ordered_at) && matchRegion(o.region));
+}
+function filteredCustomers() {
+  return DATA.customers.filter((c) => matchRegion(c.region));
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ KPI CALCULATIONS
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+function calcExecKpis() {
+  const orders = filteredOrders();
+  const camps = filteredCampaigns();
+  const custs = filteredCustomers();
+  const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
+  const campaignRev = camps.reduce((s, c) => s + c.revenue, 0);
+  const repeatCust = custs.filter((c) => c.orders_count > 1).length;
+  const repeatRate = custs.length ? repeatCust / custs.length : 0;
+  const aov = orders.length ? totalRevenue / orders.length : 0;
+  const engagedSubs = custs.filter((c) => c.email_engaged).length;
+  const retentionRev = orders.filter((o) => {
+    const cust = DATA.customers.find((c) => c.id === o.customer_id);
+    return cust && cust.orders_count > 1;
+  }).reduce((s, o) => s + o.total, 0);
+  return {
+    totalRevenue,
+    retentionRev,
+    retentionRevPct: totalRevenue ? retentionRev / totalRevenue : 0,
+    campaignRev,
+    campaignRevPct: totalRevenue ? campaignRev / totalRevenue : 0,
+    aov,
+    repeatRate,
+    engagedSubs,
+    nCustomers: custs.length,
+    nOrders: orders.length,
+    nCampaigns: camps.length,
+  };
+}
+
+function calcCampaignKpis() {
+  const camps = filteredCampaigns();
+  const sends = camps.reduce((s, c) => s + c.sends, 0);
+  const opens = camps.reduce((s, c) => s + c.opens, 0);
+  const clicks = camps.reduce((s, c) => s + c.clicks, 0);
+  const conv = camps.reduce((s, c) => s + c.conversions, 0);
+  const rev = camps.reduce((s, c) => s + c.revenue, 0);
+  const unsubs = camps.reduce((s, c) => s + c.unsubs, 0);
+  return {
+    sends, opens, clicks, conv, rev, unsubs,
+    openRate: sends ? opens/sends : 0,
+    ctr: opens ? clicks/opens : 0,
+    cvr: clicks ? conv/clicks : 0,
+    rpr: sends ? rev/sends : 0,
+    unsubRate: sends ? unsubs/sends : 0,
+  };
+}
+
+function calcProductKpis() {
+  const orders = filteredOrders();
+  const lines = orders.flatMap((o) => (o.lines || []).map((l) => ({ ...l, orderId: o.id, region: o.region })));
+  const byProduct = {};
+  for (const l of lines) {
+    const p = byProduct[l.sku] = byProduct[l.sku] || { sku: l.sku, units: 0, revenue: 0, orders: new Set() };
+    p.units += l.qty;
+    p.revenue += l.qty * l.price;
+    p.orders.add(l.orderId);
+  }
+  const promoCount = {};
+  filteredCampaigns().forEach((c) => { promoCount[c.primary_sku] = (promoCount[c.primary_sku] || 0) + 1; });
+  return Object.values(byProduct).map((p) => {
+    const def = DATA.products.find((x) => x.sku === p.sku) || {};
+    return {
+      sku: p.sku,
+      title: def.title || p.sku,
+      category: def.category || '—',
+      units: p.units,
+      revenue: +p.revenue.toFixed(0),
+      ordersWithIt: p.orders.size,
+      promos: promoCount[p.sku] || 0,
+    };
+  });
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ RFM SEGMENTATION
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+// Monetary quintile scorer: returns a function value -> 1..5 based on the
+// distribution of the loaded customer base (quintile cut-points). No hardcoded
+// dollar thresholds — the tiers adapt to whatever real data is connected.
+function quintileScorer(values) {
+  const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (sorted.length < 5) return () => 3; // too few rows to quintile meaningfully
+  const q = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+  const cuts = [q(0.2), q(0.4), q(0.6), q(0.8)];
+  return (v) => (v <= cuts[0] ? 1 : v <= cuts[1] ? 2 : v <= cuts[2] ? 3 : v <= cuts[3] ? 4 : 5);
+}
+
+function computeSegments() {
+  const custs = filteredCustomers();
+  const now = Date.now();
+  // Monetary score from the base distribution, so "RFM" genuinely uses M.
+  const mScore = quintileScorer(custs.map((c) => c.total_spent));
+  const out = custs.map((c) => {
+    const recency = (now - new Date(c.last_order_at).getTime()) / 86_400_000; // days
+    const frequency = c.orders_count;
+    const monetary = c.total_spent;
+    const mQuintile = mScore(monetary); // 1..5 (5 = top spenders)
+    let segment;
+    // Champions must be recent, frequent AND high-value (top two monetary
+    // quintiles); an otherwise-qualifying but low-spend buyer falls to Loyal.
+    if (recency <= 30 && frequency >= 5 && mQuintile >= 4) segment = 'Champions';
+    else if (recency <= 60 && frequency >= 3)        segment = 'Loyal';
+    else if (recency <= 30 && frequency === 2)       segment = 'Promising';
+    else if (recency <= 30 && frequency === 1)       segment = 'New';
+    else if (recency <= 90 && frequency >= 2)        segment = 'Need-Attention';
+    else if (recency <= 120 && frequency >= 2)       segment = 'About-to-Sleep';
+    else if (recency <= 180 && frequency >= 2)       segment = 'At-Risk';
+    else if (recency > 180 && frequency >= 1)        segment = 'Hibernating';
+    else                                              segment = 'Lost';
+    return { ...c, recency, frequency, monetary, mQuintile, segment };
+  });
+  return out;
+}
+
+function segmentSummary() {
+  const segs = computeSegments();
+  const groups = {};
+  for (const c of segs) {
+    if (!groups[c.segment]) groups[c.segment] = { name: c.segment, count: 0, revenue: 0, avgDiscount: 0, engaged: 0 };
+    const g = groups[c.segment];
+    g.count++; g.revenue += c.monetary; g.avgDiscount += c.discount_rate; if (c.email_engaged) g.engaged++;
+  }
+  return SEGMENT_NAMES.map((name) => {
+    const g = groups[name] || { name, count:0, revenue:0, avgDiscount:0, engaged:0 };
+    return {
+      name,
+      count: g.count,
+      revenue: +g.revenue.toFixed(0),
+      avgLtv: g.count ? g.revenue / g.count : 0,
+      avgDiscount: g.count ? g.avgDiscount / g.count : 0,
+      engagedPct: g.count ? g.engaged / g.count : 0,
+    };
+  });
+}
+
+const SEGMENT_COLOR = {
+  Champions: '#16a34a', Loyal: '#22c55e', Promising: '#84cc16', New: '#3b82f6',
+  'Need-Attention': '#f59e0b', 'About-to-Sleep': '#fb923c', 'At-Risk': '#ef4444',
+  Hibernating: '#a855f7', Lost: '#64748b',
+};
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ COHORTS
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+function computeCohorts() {
+  const custs = filteredCustomers();
+  const orders = DATA.orders.filter((o) => matchRegion(o.region));
+  const cohortMap = {};
+  for (const c of custs) {
+    const firstD = new Date(c.first_order_at);
+    const key = `${firstD.getUTCFullYear()}-${String(firstD.getUTCMonth() + 1).padStart(2, '0')}`;
+    if (!cohortMap[key]) cohortMap[key] = { cohort: key, customers: [], size: 0, ret: [0,0,0,0,0,0,0,0,0,0,0,0] };
+    cohortMap[key].customers.push(c.id);
+    cohortMap[key].size++;
+  }
+  for (const o of orders) {
+    const cust = custs.find((c) => c.id === o.customer_id);
+    if (!cust) continue;
+    const firstD = new Date(cust.first_order_at);
+    const orderD = new Date(o.ordered_at);
+    const monthsLater = (orderD.getUTCFullYear() - firstD.getUTCFullYear()) * 12 + (orderD.getUTCMonth() - firstD.getUTCMonth());
+    if (monthsLater > 0 && monthsLater < 12) {
+      const key = `${firstD.getUTCFullYear()}-${String(firstD.getUTCMonth() + 1).padStart(2, '0')}`;
+      if (cohortMap[key]) cohortMap[key].ret[monthsLater] = (cohortMap[key].ret[monthsLater] || 0) + 1;
+    }
+  }
+  // Compute distinct retention (each customer counted once per month bucket)
+  for (const key in cohortMap) {
+    const c = cohortMap[key];
+    const seen = c.customers.reduce((m, id) => { m[id] = new Set(); return m; }, {});
+    for (const o of orders) {
+      const cust = custs.find((x) => x.id === o.customer_id);
+      if (!cust) continue;
+      const firstD = new Date(cust.first_order_at);
+      const key2 = `${firstD.getUTCFullYear()}-${String(firstD.getUTCMonth() + 1).padStart(2, '0')}`;
+      if (key2 !== key) continue;
+      const orderD = new Date(o.ordered_at);
+      const monthsLater = (orderD.getUTCFullYear() - firstD.getUTCFullYear()) * 12 + (orderD.getUTCMonth() - firstD.getUTCMonth());
+      if (monthsLater > 0 && monthsLater < 12 && seen[o.customer_id]) seen[o.customer_id].add(monthsLater);
+    }
+    const monthCounts = Array(12).fill(0);
+    Object.values(seen).forEach((monthsSet) => monthsSet.forEach((m) => monthCounts[m]++));
+    c.retPct = monthCounts.map((n) => c.size ? n / c.size : 0);
+  }
+  return Object.values(cohortMap).sort((a, b) => a.cohort.localeCompare(b.cohort)).slice(-9);
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ CROSS-SELL AFFINITY MATRIX
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+function buildAffinityMatrix() {
+  const cats = [...new Set(DATA.products.map((p) => p.category))];
+  // For each customer, collect set of categories purchased + sequence
+  const byCust = {};
+  filteredOrders().forEach((o) => {
+    (o.lines || []).forEach((l) => {
+      const p = DATA.products.find((x) => x.sku === l.sku);
+      if (!p) return;
+      if (!byCust[o.customer_id]) byCust[o.customer_id] = [];
+      byCust[o.customer_id].push({ cat: p.category, t: new Date(o.ordered_at).getTime() });
+    });
+  });
+  // P(buy Y within 30d | bought X) — count cust where X→Y appears, divide by total X buyers
+  const xCount = {}, xyCount = {};
+  cats.forEach((x) => { xCount[x] = 0; cats.forEach((y) => { xyCount[x + '|' + y] = 0; }); });
+  Object.values(byCust).forEach((events) => {
+    events.sort((a, b) => a.t - b.t);
+    const xSeen = new Set();
+    for (let i = 0; i < events.length; i++) {
+      const x = events[i].cat;
+      if (!xSeen.has(x)) {
+        xCount[x] = (xCount[x] || 0) + 1;
+        xSeen.add(x);
+      }
+      for (let j = i+1; j < events.length; j++) {
+        const dt = (events[j].t - events[i].t) / 86_400_000;
+        if (dt > 30) break;
+        if (dt > 0) xyCount[x + '|' + events[j].cat] = (xyCount[x + '|' + events[j].cat] || 0) + 1;
+      }
+    }
+  });
+  const matrix = cats.map((y) => ({
+    name: y,
+    data: cats.map((x) => ({ x, y: xCount[x] ? +(xyCount[x + '|' + y] / xCount[x]).toFixed(2) : 0 })),
+  }));
+  return { cats, matrix };
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ INSIGHTS ENGINE
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+function computeInsights() {
+  const out = [];
+  const kpis = calcExecKpis();
+  const camps = filteredCampaigns();
+  const products = calcProductKpis().sort((a, b) => b.revenue - a.revenue);
+  const segs = segmentSummary();
+
+  // 1. Discount-trained champions
+  const champs = segs.find((s) => s.name === 'Champions') || {};
+  if (champs.avgDiscount > 0.20 && champs.revenue > 0) {
+    out.push({
+      sev: 'warn',
+      title: 'Champions are discount-trained',
+      body: `Your top "Champions" segment averages a ${fmtPct(champs.avgDiscount, 0)} discount rate. The very segment that should be paying full price has been conditioned to wait for promos.`,
+      why: `${fmtInt(champs.count)} customers, ${fmtCur(champs.revenue)} revenue at a ${fmtPct(champs.avgDiscount, 0)} average discount. Every point of discount on the segment that would buy anyway is margin given away.`,
+      impact: `Each 1pp cut in this segment's discount rate flows straight to margin on ${fmtCur(champs.revenue)} of revenue.`,
+      action: 'Switch Champions onto loyalty-tier rewards (free shipping, early access, free 50g sampler) instead of % discounts. A/B test for 30 days.',
+    });
+  }
+
+  // 2. Promoted-but-not-purchased SKUs
+  const promoVsBuy = products.map((p) => ({ ...p, gap: p.promos - (p.units / 100) }));
+  const orphan = promoVsBuy.filter((p) => p.promos >= 3 && p.units < 100).slice(0, 3);
+  if (orphan.length) {
+    out.push({
+      sev: 'crit',
+      title: `${orphan.length} product${orphan.length>1?'s':''} promoted heavily, barely purchased`,
+      body: orphan.map((p) => `<b>${p.title}</b> — ${p.promos} campaigns, only ${fmtInt(p.units)} units sold`).join(' · '),
+      why: 'Either the price, positioning, or audience targeting is wrong. Continuing to push wastes attention.',
+      impact: 'Recover the send slots these ' + fmtInt(orphan.reduce((s, p) => s + p.promos, 0)) + ' campaigns occupy and redirect them to higher-converting SKUs.',
+      action: 'Drop these from the next 2 send cycles. Run a small ($500) Meta ads test on each — if CVR matches catalog avg, it\'s an audience issue, not a product one.',
+    });
+  }
+
+  // 3. Cross-sell opportunity
+  const aff = buildAffinityMatrix();
+  let bestCross = { x:'', y:'', p:0 };
+  aff.matrix.forEach((row) => row.data.forEach((cell) => {
+    if (cell.x !== row.name && cell.y > bestCross.p && cell.y > 0.18) bestCross = { x: cell.x, y: row.name, p: cell.y };
+  }));
+  if (bestCross.p > 0) {
+    out.push({
+      sev: 'good',
+      title: `Strong cross-sell signal: ${bestCross.x} → ${bestCross.y}`,
+      body: `Customers who buy <b>${bestCross.x}</b> have a <b>${fmtPct(bestCross.p, 0)}</b> probability of buying <b>${bestCross.y}</b> within 30 days. There is no automated flow capturing this.`,
+      why: 'This is organic affinity — we are not actively suggesting it. Adding a post-purchase email at day 7 captures the signal.',
+      impact: 'A day-7 post-purchase flow can capture this ' + fmtPct(bestCross.p, 0) + ' affinity that currently has no automation behind it.',
+      action: `Build a Klaviyo flow: trigger = order contains ${bestCross.x} · delay 7 days · email with curated ${bestCross.y} bundle · 10% incentive only after 2 weeks no-action.`,
+    });
+  }
+
+  // 4. Campaign fatigue
+  const recentWeekCamps = camps.filter((c) => (Date.now() - new Date(c.sent_at).getTime()) < 7 * 86_400_000);
+  if (recentWeekCamps.length >= 8) {
+    const avgOR = recentWeekCamps.reduce((s, c) => s + c.opens / c.sends, 0) / recentWeekCamps.length;
+    const olderCamps = camps.filter((c) => {
+      const d = (Date.now() - new Date(c.sent_at).getTime()) / 86_400_000;
+      return d > 7 && d < 28;
+    });
+    const olderOR = olderCamps.length ? olderCamps.reduce((s, c) => s + c.opens / c.sends, 0) / olderCamps.length : avgOR;
+    if (avgOR < olderOR * 0.85) {
+      out.push({
+        sev: 'warn',
+        title: 'Send-frequency fatigue this week',
+        body: `${recentWeekCamps.length} campaigns sent in the last 7 days. Average open rate dropped to ${fmtPct(avgOR)} vs ${fmtPct(olderOR)} over the prior 3 weeks — a ${fmtPct((avgOR - olderOR) / olderOR, 0)} relative drop.`,
+        why: 'When customers see >5 sends/week, deliverability + open rate collapse together. Inboxes start filtering.',
+        impact: `${fmtInt((olderOR - avgOR) * recentWeekCamps.reduce((s,c)=>s+c.sends,0))} fewer opens this week vs baseline.`,
+        action: 'Cap sends at 3 per audience per week. Move 40% of "promo" content into segmented sends (Champions + Loyal only).',
+      });
+    }
+  }
+
+  // 5. Unsubscribe spike
+  const unsubByType = {};
+  camps.forEach((c) => { unsubByType[c.content_type] = unsubByType[c.content_type] || { unsubs: 0, sends: 0 }; unsubByType[c.content_type].unsubs += c.unsubs; unsubByType[c.content_type].sends += c.sends; });
+  const ranked = Object.entries(unsubByType).map(([type, v]) => ({ type, rate: v.sends ? v.unsubs / v.sends : 0 })).sort((a, b) => b.rate - a.rate);
+  if (ranked[0] && ranked[0].rate > 0.0035) {
+    out.push({
+      sev: 'warn',
+      title: `${ranked[0].type[0].toUpperCase() + ranked[0].type.slice(1)} sends have ${fmtPct(ranked[0].rate, 2)} unsubscribe rate`,
+      body: `That's ${(ranked[0].rate / (ranked[ranked.length - 1].rate || 0.001)).toFixed(1)}× higher than the best-performing content type (${ranked[ranked.length - 1].type}). Above industry benchmark of 0.2%.`,
+      why: 'High unsub on a content type means the audience is wrong, the frequency is wrong, or the value proposition is unclear.',
+      impact: `At ${fmtPct(ranked[0].rate, 2)} this content type sheds subscribers far faster than the rest, and unsubscribes are unrecoverable.`,
+      action: 'Pause this content type for one cycle. Survey unsubscribers (Klaviyo exit poll). Re-launch with revised positioning + smaller test audience first.',
+    });
+  }
+
+  // 6. Region under-targeted
+  const byRegion = {};
+  filteredCustomers().forEach((c) => { byRegion[c.region] = (byRegion[c.region] || { custs: 0, sends: 0, rev: 0 }); byRegion[c.region].custs++; byRegion[c.region].rev += c.total_spent; });
+  camps.forEach((c) => { byRegion[c.region] = byRegion[c.region] || { custs: 0, sends: 0, rev: 0 }; byRegion[c.region].sends += c.sends; });
+  const regionScores = Object.entries(byRegion).map(([r, v]) => ({ region: r, sendsPerCust: v.custs ? v.sends / v.custs : 0, revPerCust: v.custs ? v.rev / v.custs : 0 }));
+  const richRegion = regionScores.sort((a, b) => b.revPerCust - a.revPerCust)[0];
+  const thinSend = regionScores.find((r) => r.sendsPerCust < (richRegion?.sendsPerCust || 0) * 0.5 && r.revPerCust > 0);
+  if (richRegion && thinSend && thinSend.region !== richRegion.region) {
+    out.push({
+      sev: 'good',
+      title: `${thinSend.region} is under-targeted vs revenue potential`,
+      body: `${thinSend.region} customers receive ${(thinSend.sendsPerCust / richRegion.sendsPerCust).toFixed(2)}× the sends of ${richRegion.region}, yet their revenue-per-customer is ${fmtCur(thinSend.revPerCust)} (vs ${fmtCur(richRegion.revPerCust)}).`,
+      why: 'Email + SMS frequency is conservative there. We are leaving capacity on the table.',
+      impact: 'This region earns ' + fmtCur(thinSend.revPerCust) + ' revenue-per-customer on well-below-baseline send frequency, headroom to raise cadence toward ' + richRegion.region + '.',
+      action: `Build a ${thinSend.region}-localised content track (currency, shipping, festive moments). Test +2 sends/week for 30 days.`,
+    });
+  }
+
+  // 7. Lifecycle replenishment gap (no campaign of type lifecycle)
+  const lifecycleCount = camps.filter((c) => c.content_type === 'lifecycle').length;
+  if (lifecycleCount < camps.length * 0.10) {
+    out.push({
+      sev: 'crit',
+      title: 'Lifecycle / replenishment flow underbuilt',
+      body: `Only ${lifecycleCount} of ${camps.length} sends (${fmtPct(lifecycleCount / camps.length, 0)}) are lifecycle / replenishment messages. Consumable categories (sneaker, coffee, supplements) should be at 25 to 35%.`,
+      why: 'A 50g sneaker box lasts ~6 weeks of daily use. Without a replenishment trigger, repurchase is left to memory.',
+      impact: 'Industry benchmark: lifecycle / replenishment flows drive 28 to 40% of retention revenue, a band this program is well under today.',
+      action: 'Build a 4-step replenishment flow: order day +28 (educate lacing) · +42 (subtle reorder CTA) · +56 (incentive) · +75 (last chance + cross-sell).',
+    });
+  }
+
+  // 8. Hibernating recovery
+  const hiber = segs.find((s) => s.name === 'Hibernating') || {};
+  if (hiber.count > 200) {
+    out.push({
+      sev: 'good',
+      title: `${fmtInt(hiber.count)} Hibernating customers worth a winback push`,
+      body: `Combined past spend: ${fmtCur(hiber.revenue)}. Winback flows on this kind of segment typically reactivate 4 to 7%.`,
+      why: 'These were paying customers — the cost to reactivate is ~1/5 the cost to acquire net new.',
+      impact: 'These ' + fmtInt(hiber.count) + ' lapsed customers carry ' + fmtCur(hiber.revenue) + ' of past spend; reactivating even a small share costs a fraction of net-new acquisition.',
+      action: 'A 3-email Winback series at +180d / +210d / +240d dormancy. First email: founders-tone story, no discount. Third email: 20% one-time code with countdown.',
+    });
+  }
+
+  // 9. Best send window
+  const hourly = {};
+  camps.forEach((c) => {
+    const h = new Date(c.sent_at).getUTCHours();
+    if (!hourly[h]) hourly[h] = { sends: 0, opens: 0 };
+    hourly[h].sends += c.sends;
+    hourly[h].opens += c.opens;
+  });
+  const hourSorted = Object.entries(hourly).map(([h, v]) => ({ h: +h, or: v.sends ? v.opens / v.sends : 0 })).sort((a, b) => b.or - a.or);
+  if (hourSorted.length > 4) {
+    const top = hourSorted[0], bot = hourSorted[hourSorted.length - 1];
+    if (top.or > bot.or * 1.4) {
+      out.push({
+        sev: 'good',
+        title: `Send-time sweet spot is ${top.h}:00 UTC`,
+        body: `Open rate at ${top.h}:00 is ${fmtPct(top.or, 1)}, vs ${fmtPct(bot.or, 1)} at the worst hour (${bot.h}:00). That's a ${((top.or - bot.or) / bot.or * 100).toFixed(0)}% relative lift.`,
+        why: 'Send-time is the single most powerful lever in email engagement. Most teams set it once and forget.',
+        impact: 'The gap between the best and worst send hour is ' + fmtPct(top.or - bot.or, 1) + ' of open rate, a lever most teams set once and forget.',
+        action: 'Lock evergreen flows to the ' + top.h + ':00 send window. Manually-scheduled campaigns: default to that hour, override only with reason.',
+      });
+    }
+  }
+
+  // 10. AOV under-monetised segment
+  const newSeg = segs.find((s) => s.name === 'New') || {};
+  if (newSeg.count > 100 && newSeg.avgLtv < (champs.avgLtv || Infinity) * 0.15) {
+    out.push({
+      sev: 'warn',
+      title: 'New customers are buying below catalog AOV',
+      body: `Average LTV at the "New" stage is ${fmtCur(newSeg.avgLtv)} — that's the price of one entry-level box. The first order is meant to anchor the relationship.`,
+      why: 'New customers convert on the discount, not the discovery. They never see the rest of the catalog.',
+      impact: 'With ' + fmtInt(newSeg.count) + ' customers stuck at ' + fmtCur(newSeg.avgLtv) + ' first-order value, a starter-set cross-sell is the fastest AOV lever.',
+      action: 'Welcome email #2 should include a "complete your starter set" CTA (gift set ladder). Free Discovery 6-pack add-on at $32 order threshold.',
+    });
+  }
+
+  return out;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ RENDERERS
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+
+const charts = {}; // store ApexCharts instances for cleanup
+// Expose for chart-enhance.js (table-view / expand auto-extraction reads window.charts[id]).
+window.charts = charts;
+
+function destroyCharts() {
+  Object.values(charts).forEach((c) => { try { c.destroy(); } catch {} });
+  Object.keys(charts).forEach((k) => delete charts[k]);
+}
+
+const APEX_BASE = {
+  chart: {
+    background: 'transparent',
+    foreColor: '#556059',
+    toolbar: { show: false },
+    animations: { enabled: true, speed: 300 },
+    fontFamily: 'Inter, system-ui, sans-serif',
+  },
+  grid: { borderColor: 'rgba(171,135,67,0.08)', strokeDashArray: 3 },
+  tooltip: { theme: 'light' },
+  dataLabels: { enabled: false },
+  legend: { labels: { colors: '#556059' }, fontSize: '11px' },
+};
+
+const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#D0473E', IN: '#22c55e' };
+
+// ─── 1. Executive Overview ──────────────────────────────────────────────
+function renderExec() {
+  const k = calcExecKpis();
+  $('execKpis').innerHTML = [
+    kpi('Total revenue', fmtCur(k.totalRevenue), `${fmtInt(k.nOrders)} orders`),
+    kpi('Retention revenue', fmtCur(k.retentionRev), fmtPct(k.retentionRevPct, 0) + ' of total'),
+    kpi('Campaign-attributed', fmtCur(k.campaignRev), fmtPct(k.campaignRevPct, 0) + ' of total'),
+    kpi('AOV', fmtCur(k.aov), 'per order'),
+    kpi('Repeat rate', fmtPct(k.repeatRate, 1), `${fmtInt(k.nCustomers)} customers`),
+    kpi('Engaged subs', fmtInt(k.engagedSubs), fmtPct(k.engagedSubs / Math.max(1, k.nCustomers), 0) + ' of base'),
+  ].join('');
+
+  // Net revenue trend — bucketed at the selected cadence (default month-on-month).
+  const orders = filteredOrders();
+  const gran = STATE.granularity || 'month';
+  const byBucket = {};
+  orders.forEach((o) => {
+    const { key, label } = bucketKeyLabel(o.ordered_at, gran);
+    if (!byBucket[key]) byBucket[key] = { label, US: 0, UK: 0, Global: 0, IN: 0 };
+    byBucket[key][o.region] = (byBucket[key][o.region] || 0) + o.total;
+  });
+  const keys = Object.keys(byBucket).sort();
+  const labels = keys.map((k) => byBucket[k].label);
+  // Bars are most readable for coarse cadences; area for many fine-grained points.
+  const useBar = (gran === 'month' || gran === 'year') || keys.length <= 16;
+  // update the card title to reflect the active cadence
+  const titleEl = $('execRevTitle');
+  if (titleEl) titleEl.textContent = `Net revenue by region · ${(GRAN[gran] || {}).label || 'Month on month'}`;
+  charts.execRev = new ApexCharts($('chartExecRevenue'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: useBar ? 'bar' : 'area', stacked: true, height: 300 },
+    series: REGIONS.map((r) => ({ name: r, data: keys.map((k) => +(byBucket[k][r] || 0).toFixed(0)) })),
+    xaxis: {
+      categories: labels,
+      tickAmount: Math.min(labels.length, 12),
+      labels: { rotate: -40, rotateAlways: false, hideOverlappingLabels: true, trim: false, style: { fontSize: '10px' } },
+    },
+    yaxis: { labels: { formatter: fmtCurShort } },
+    colors: REGIONS.map((r) => REGION_COLORS[r]),
+    stroke: useBar ? { width: 0 } : { curve: 'smooth', width: 1.5 },
+    fill: useBar ? { opacity: 1 } : { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0.05 } },
+    plotOptions: useBar ? { bar: { columnWidth: '62%', borderRadius: 3 } } : {},
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'light', y: { formatter: fmtCur } },
+  });
+  charts.execRev.render();
+
+  // Region donut
+  const regRev = { US: 0, UK: 0, Global: 0 };
+  orders.forEach((o) => { regRev[o.region] = (regRev[o.region] || 0) + o.total; });
+  charts.execReg = new ApexCharts($('chartExecRegionSplit'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'donut', height: 300 },
+    series: REGIONS.map((r) => +(regRev[r] || 0).toFixed(0)),
+    labels: REGIONS,
+    colors: REGIONS.map((r) => REGION_COLORS[r]),
+    legend: { ...APEX_BASE.legend, position: 'bottom' },
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: 'Total', formatter: (w) => fmtCur(w.globals.seriesTotals.reduce((a,b)=>a+b,0)) } } } } },
+    tooltip: { theme: 'light', y: { formatter: fmtCur } },
+  });
+  charts.execReg.render();
+
+  // Top campaigns
+  const topC = [...filteredCampaigns()].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  $('execTopCampaigns').innerHTML = topC.map((c) => `
+    <tr>
+      <td class="text-ink">${campNameCell(c)}</td>
+      <td><span class="badge b-${c.region}">${c.region}</span></td>
+      <td class="num">${fmtCur(c.revenue)}</td>
+      <td class="num">${fmtPct(c.clicks ? c.conversions / c.clicks : 0)}</td>
+    </tr>`).join('') || `<tr><td colspan="4" class="text-ink-mute text-center py-6">No campaigns in window</td></tr>`;
+
+  // Lifecycle revenue mix
+  const lifecycleMix = { 'New':0,'Retention (repeat)':0,'Reactivated (90d+)':0 };
+  orders.forEach((o) => {
+    const cust = DATA.customers.find((c) => c.id === o.customer_id);
+    if (!cust) return;
+    const isFirst = cust.first_order_at === o.ordered_at || cust.orders_count <= 1;
+    const daysSinceLast = (new Date(o.ordered_at) - new Date(cust.last_order_at)) / 86_400_000;
+    if (isFirst) lifecycleMix['New'] += o.total;
+    else if (Math.abs(daysSinceLast) > 90) lifecycleMix['Reactivated (90d+)'] += o.total;
+    else lifecycleMix['Retention (repeat)'] += o.total;
+  });
+  charts.execLife = new ApexCharts($('chartExecLifecycle'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'donut', height: 240 },
+    series: Object.values(lifecycleMix).map((v) => +v.toFixed(0)),
+    labels: Object.keys(lifecycleMix),
+    colors: ['#3b82f6','#16a34a','#a855f7'],
+    legend: { ...APEX_BASE.legend, position: 'bottom' },
+    plotOptions: { pie: { donut: { size: '60%' } } },
+    tooltip: { theme: 'light', y: { formatter: fmtCur } },
+  });
+  charts.execLife.render();
+}
+
+// ─── 2. Campaign Analytics ──────────────────────────────────────────────
+function renderCampaigns(filter='') {
+  const k = calcCampaignKpis();
+  $('campKpis').innerHTML = [
+    kpi('Sends', fmtInt(k.sends), 'window total'),
+    kpi('Open rate', fmtPct(k.openRate), `${fmtInt(k.opens)} opens`),
+    kpi('CTR', fmtPct(k.ctr, 2), `${fmtInt(k.clicks)} clicks`),
+    kpi('CVR', fmtPct(k.cvr, 2), `${fmtInt(k.conv)} orders`),
+    kpi('Revenue', fmtCur(k.rev), 'attributed'),
+    kpi('Unsub rate', fmtPct(k.unsubRate, 2), `${fmtInt(k.unsubs)} unsubs`),
+  ].join('');
+
+  // Combo chart: Campaign Revenue (Bar) vs CVR (Line)
+  const camps = filteredCampaigns();
+  const topCamps = [...camps].sort((a,b) => b.revenue - a.revenue).slice(0, 15);
+  const names = topCamps.map(c => c.name.length > 20 ? c.name.substring(0,20)+'...' : c.name);
+  const revData = topCamps.map(c => c.revenue);
+  const cvrData = topCamps.map(c => c.clicks ? +(c.conversions / c.clicks * 100).toFixed(2) : 0);
+  
+  charts.campScatter = new ApexCharts($('chartCampScatter'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'line', height: 340 },
+    stroke: { width: [0, 3], curve: 'smooth' },
+    series: [
+      { name: 'Revenue', type: 'column', data: revData },
+      { name: 'CVR %', type: 'line', data: cvrData }
+    ],
+    labels: names,
+    xaxis: { type: 'category', labels: { style: { colors: '#48524c', fontSize: '9px' } } },
+    yaxis: [
+      { title: { text: 'Revenue', style: { color: '#48524c', fontSize: '11px' } }, labels: { formatter: (v) => '$' + (v/1000).toFixed(1) + 'k' } },
+      { opposite: true, title: { text: 'CVR %', style: { color: '#48524c', fontSize: '11px' } } }
+    ],
+    colors: ['#D0473E', '#16a34a'],
+    tooltip: { theme: 'light', shared: true, intersect: false },
+  });
+  charts.campScatter.render();
+
+  // Channel pie
+  const byChan = { email: { sends:0, rev:0 }, sms: { sends:0, rev:0 } };
+  camps.forEach((c) => { byChan[c.channel].sends += c.sends; byChan[c.channel].rev += c.revenue; });
+  charts.campChan = new ApexCharts($('chartCampChannels'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'donut', height: 340 },
+    series: [byChan.email.rev, byChan.sms.rev],
+    labels: ['Email', 'SMS'],
+    colors: ['#3b82f6','#a855f7'],
+    legend: { ...APEX_BASE.legend, position: 'bottom' },
+    tooltip: { theme: 'light', y: { formatter: fmtCur } },
+    plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: 'Revenue', formatter: (w) => fmtCur(w.globals.seriesTotals.reduce((a,b)=>a+b,0)) } } } } },
+  });
+  charts.campChan.render();
+
+  // Table
+  const f = filter.toLowerCase();
+  const rows = [...camps].sort((a, b) => b.revenue - a.revenue)
+    .filter((c) => !f || c.name.toLowerCase().includes(f))
+    .slice(0, 200);
+  $('campTable').innerHTML = rows.map((c) => `
+    <tr>
+      <td class="text-ink">${campNameCell(c)}<div class="text-[10px] text-ink-mute">${escapeHtml(c.subject)}</div></td>
+      <td class="text-[10px] uppercase">${c.channel}</td>
+      <td><span class="badge b-${c.region}">${c.region}</span></td>
+      <td class="text-[11px] text-ink-mute">${fmtDate(c.sent_at)}</td>
+      <td class="num">${fmtInt(c.sends)}</td>
+      <td class="num">${fmtPct(c.sends ? c.opens / c.sends : 0)}</td>
+      <td class="num">${fmtPct(c.opens ? c.clicks / c.opens : 0, 2)}</td>
+      <td class="num">${fmtPct(c.clicks ? c.conversions / c.clicks : 0, 2)}</td>
+      <td class="num">${fmtCur(c.revenue)}</td>
+      <td class="num">${fmtCur(c.sends ? c.revenue / c.sends : 0)}</td>
+      <td class="num">${fmtPct(c.sends ? c.unsubs / c.sends : 0, 2)}</td>
+    </tr>`).join('') || `<tr><td colspan="11" class="text-ink-mute text-center py-6">No campaigns match</td></tr>`;
+
+  // Subject line patterns
+  const subjectPerf = SUBJECT_PATTERNS.map((p) => {
+    const matched = camps.filter((c) => p.match.test(c.subject));
+    if (!matched.length) return { ...p, n: 0, or: 0, lift: 0 };
+    const or = matched.reduce((s, c) => s + (c.sends ? c.opens / c.sends : 0), 0) / matched.length;
+    const baseline = camps.reduce((s, c) => s + (c.sends ? c.opens / c.sends : 0), 0) / Math.max(1, camps.length);
+    return { ...p, n: matched.length, or, lift: baseline ? (or - baseline) / baseline : 0 };
+  }).filter((p) => p.n > 0).sort((a, b) => b.lift - a.lift);
+  charts.campSubj = new ApexCharts($('chartCampSubjects'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 240 },
+    series: [{ name: 'Open rate lift vs baseline', data: subjectPerf.map((p) => +(p.lift * 100).toFixed(1)) }],
+    xaxis: { categories: subjectPerf.map((p) => `${p.label} (${p.n})`), labels: { formatter: (v) => v + '%' } },
+    colors: ['#D0473E'],
+    plotOptions: { bar: { horizontal: true, borderRadius: 3 } },
+    tooltip: { theme: 'light', y: { formatter: (v) => v + '%' } },
+  });
+  charts.campSubj.render();
+
+  // Content type bars
+  const ctRev = {};
+  camps.forEach((c) => { ctRev[c.content_type] = (ctRev[c.content_type] || 0) + c.revenue; });
+  const ctSorted = Object.entries(ctRev).sort((a,b) => b[1] - a[1]);
+  charts.campContent = new ApexCharts($('chartCampContent'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 240 },
+    series: [{ name: 'Revenue', data: ctSorted.map(([t, r]) => +r.toFixed(0)) }],
+    xaxis: { categories: ctSorted.map(([t]) => t) },
+    yaxis: { labels: { formatter: (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) } },
+    colors: ['#16a34a'],
+    plotOptions: { bar: { borderRadius: 4 } },
+    tooltip: { theme: 'light', y: { formatter: fmtCur } },
+  });
+  charts.campContent.render();
+}
+
+// ─── 3. Segmentation ────────────────────────────────────────────────────
+function renderSegments() {
+  const segs = segmentSummary();
+  $('segGrid').innerHTML = segs.map((s) => `
+    <div class="seg" style="border-left:3px solid ${SEGMENT_COLOR[s.name]}">
+      <div class="seg-name" style="color:${SEGMENT_COLOR[s.name]}">${s.name}</div>
+      <div class="text-xl font-bold mt-1 kpi-val">${fmtInt(s.count)}</div>
+      <div class="seg-meta">${fmtCur(s.revenue)} · LTV ${fmtCur(s.avgLtv)}</div>
+      <div class="seg-meta text-[10px] mt-1">Disc ${fmtPct(s.avgDiscount, 0)} · ${fmtPct(s.engagedPct, 0)} engaged</div>
+    </div>`).join('');
+
+  charts.segTree = new ApexCharts($('chartSegTreemap'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'treemap', height: 340, toolbar:{show:false} },
+    series: [{ data: segs.filter((s) => s.revenue > 0).map((s) => ({ x: s.name, y: s.revenue, fillColor: SEGMENT_COLOR[s.name] })) }],
+    legend: { show: false },
+    plotOptions: { treemap: { distributed: true, enableShades: false } },
+    dataLabels: {
+      enabled: true,
+      style: { fontSize: '12px', fontWeight: 600, colors: ['#ffffff'] },
+      formatter: (text, op) => [text, fmtCur(op.value)],
+    },
+    tooltip: { theme: 'light', y: { formatter: fmtCur } },
+  });
+  charts.segTree.render();
+
+  // LTV distribution histogram
+  const ltvBins = Array(10).fill(0);
+  const custs = filteredCustomers();
+  custs.forEach((c) => {
+    const bin = Math.min(9, Math.floor(c.total_spent / 100));
+    ltvBins[bin]++;
+  });
+  charts.segLtv = new ApexCharts($('chartSegLtv'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 340 },
+    series: [{ name: 'Customers', data: ltvBins }],
+    xaxis: { categories: ltvBins.map((_, i) => i < 9 ? `$${i*100}-${(i+1)*100}` : '$900+') },
+    colors: ['#D0473E'],
+    plotOptions: { bar: { borderRadius: 4 } },
+    tooltip: { theme: 'light' },
+  });
+  charts.segLtv.render();
+
+  // Discount sensitivity scatter
+  const scatterData = computeSegments().map((c) => ({ x: +(c.discount_rate * 100).toFixed(1), y: +c.monetary.toFixed(0), name: c.id }));
+  charts.segSens = new ApexCharts($('chartSegSensitivity'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'scatter', height: 260 },
+    series: [{ name: 'Customers', data: scatterData.slice(0, 500) }],
+    xaxis: { title: { text: 'Discount rate %', style: { fontSize: '11px', color: '#48524c' } }, labels: { formatter: (v) => v + '%' }, type:'numeric' },
+    yaxis: { title: { text: 'LTV $', style: { fontSize: '11px', color: '#48524c' } }, labels: { formatter: (v) => '$' + v } },
+    colors: ['#a855f7'],
+    markers: { size: 3 },
+    tooltip: { theme: 'light' },
+  });
+  charts.segSens.render();
+
+  // Engagement decay
+  charts.segEng = new ApexCharts($('chartSegEngagement'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 260 },
+    series: [{ name: 'Engaged %', data: segs.map((s) => +(s.engagedPct * 100).toFixed(1)) }],
+    xaxis: { categories: segs.map((s) => s.name), labels: { style: { fontSize: '10px' }, rotate: -40 } },
+    yaxis: { labels: { formatter: (v) => v + '%' } },
+    colors: ['#16a34a'],
+    plotOptions: { bar: { borderRadius: 3, distributed: true, colors: { backgroundBarColors: ['transparent'] } } },
+    tooltip: { theme: 'light', y: { formatter: (v) => v + '%' } },
+  });
+  charts.segEng.render();
+}
+
+// ─── 4. Product Intelligence ────────────────────────────────────────────
+function renderProducts() {
+  const prods = calcProductKpis().sort((a, b) => b.revenue - a.revenue);
+  const totalRev = prods.reduce((s, p) => s + p.revenue, 0);
+  $('prodKpis').innerHTML = [
+    kpi('SKUs sold', fmtInt(prods.length), 'in window'),
+    kpi('Total units', fmtInt(prods.reduce((s, p) => s + p.units, 0)), 'across orders'),
+    kpi('Catalog revenue', fmtCur(totalRev), 'product-attributed'),
+    kpi('Avg promo / SKU', (prods.reduce((s, p) => s + p.promos, 0) / Math.max(1, prods.length)).toFixed(1), 'campaigns'),
+  ].join('');
+
+  // Promoted vs purchased gap
+  const top = prods.slice(0, 12);
+  charts.prodGap = new ApexCharts($('chartProdGap'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 340 },
+    series: [
+      { name: 'Campaigns featuring', data: top.map((p) => p.promos) },
+      { name: 'Units sold (÷100)', data: top.map((p) => +(p.units / 100).toFixed(1)) },
+    ],
+    xaxis: { categories: top.map((p) => p.title.length > 18 ? p.title.slice(0, 18) + '…' : p.title), labels: { rotate: -45, style: { fontSize: '9px' } } },
+    colors: ['#a855f7', '#16a34a'],
+    plotOptions: { bar: { borderRadius: 3 } },
+    tooltip: { theme: 'light' },
+  });
+  charts.prodGap.render();
+
+  // Cross-sell heatmap
+  const { matrix } = buildAffinityMatrix();
+  charts.prodAff = new ApexCharts($('chartProdAffinity'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'heatmap', height: 340 },
+    series: matrix.map((row) => ({ name: row.name, data: row.data.map((c) => ({ x: c.x, y: +(c.y * 100).toFixed(0) })) })),
+    colors: ['#D0473E'],
+    plotOptions: { heatmap: { colorScale: { ranges: [
+      { from: 0, to: 5, color: '#eef3f0', name: '0–5%' },
+      { from: 5, to: 15, color: '#3d4d2e', name: '5–15%' },
+      { from: 15, to: 25, color: '#7a6a3a', name: '15–25%' },
+      { from: 25, to: 50, color: '#D0473E', name: '25–50%' },
+      { from: 50, to: 100, color: '#16a34a', name: '50%+' },
+    ] } } },
+    dataLabels: { enabled: true, style: { fontSize: '9px', colors: ['#111111'] }, formatter: (v) => v + '%' },
+    tooltip: { theme: 'light', y: { formatter: (v) => v + '%' } },
+  });
+  charts.prodAff.render();
+
+  // Table — compute repeat purchase + days-to-2nd
+  const customerLines = {};
+  filteredOrders().forEach((o) => {
+    (o.lines || []).forEach((l) => {
+      const k = o.customer_id;
+      if (!customerLines[k]) customerLines[k] = [];
+      customerLines[k].push({ sku: l.sku, t: new Date(o.ordered_at).getTime() });
+    });
+  });
+  const skuRepeat = {};
+  Object.values(customerLines).forEach((rows) => {
+    rows.sort((a, b) => a.t - b.t);
+    const seen = {};
+    rows.forEach((r) => {
+      if (seen[r.sku]) {
+        const days = (r.t - seen[r.sku]) / 86_400_000;
+        if (!skuRepeat[r.sku]) skuRepeat[r.sku] = { repeats: 0, daysSum: 0 };
+        skuRepeat[r.sku].repeats++;
+        skuRepeat[r.sku].daysSum += days;
+      }
+      seen[r.sku] = r.t;
+    });
+  });
+  $('prodTable').innerHTML = prods.slice(0, 30).map((p) => {
+    const rp = skuRepeat[p.sku] || { repeats: 0, daysSum: 0 };
+    const repeatPct = p.ordersWithIt ? rp.repeats / p.ordersWithIt : 0;
+    const daysTo2nd = rp.repeats ? rp.daysSum / rp.repeats : 0;
+    const lift = repeatPct - 0.18; // baseline ~18%
+    return `<tr>
+      <td class="text-ink">${escapeHtml(p.title)}<div class="text-[10px] text-ink-mute font-mono">${p.sku}</div></td>
+      <td class="text-xs">${p.category}</td>
+      <td class="num">${p.promos}</td>
+      <td class="num">${fmtInt(p.units)}</td>
+      <td class="num">${fmtCur(p.revenue)}</td>
+      <td class="num">${fmtPct(repeatPct)}</td>
+      <td class="num">${daysTo2nd ? Math.round(daysTo2nd) + 'd' : '—'}</td>
+      <td class="num"><span class="${lift >= 0 ? 'delta-up' : 'delta-down'} delta">${lift >= 0 ? '+' : ''}${fmtPct(lift, 1)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── 5. Time-Based Behavior ─────────────────────────────────────────────
+function renderTime() {
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const heat = Array(7).fill(null).map(() => Array(24).fill({ sends: 0, opens: 0 }).map(() => ({ sends: 0, opens: 0 })));
+  filteredCampaigns().forEach((c) => {
+    const d = new Date(c.sent_at);
+    const dow = d.getUTCDay();
+    const hr = d.getUTCHours();
+    heat[dow][hr].sends += c.sends;
+    heat[dow][hr].opens += c.opens;
+  });
+  const series = heat.map((row, i) => ({
+    name: DAYS[i],
+    data: row.map((cell, h) => ({ x: String(h).padStart(2, '0'), y: cell.sends ? +(cell.opens / cell.sends * 100).toFixed(1) : 0 })),
+  }));
+  charts.timeHeat = new ApexCharts($('chartTimeHeatmap'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'heatmap', height: 380 },
+    series,
+    colors: ['#D0473E'],
+    plotOptions: { heatmap: {
+      colorScale: { ranges: [
+        { from: 0, to: 0.001, color: '#ffffff', name: 'no sends' },
+        { from: 0.001, to: 20, color: '#3d4d2e', name: '<20%' },
+        { from: 20, to: 35, color: '#7a6a3a', name: '20–35%' },
+        { from: 35, to: 50, color: '#D0473E', name: '35–50%' },
+        { from: 50, to: 70, color: '#16a34a', name: '50–70%' },
+        { from: 70, to: 100, color: '#22c55e', name: '70%+' },
+      ] }
+    } },
+    xaxis: { title: { text: 'Hour (UTC)', style: { fontSize: '11px', color: '#48524c' } } },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'light', y: { formatter: (v) => v + '% open' } },
+  });
+  charts.timeHeat.render();
+
+  // Purchase window — simulated from campaign sent_at vs order ordered_at deltas
+  // Approximate: orders within 0–168h of any campaign attributed.
+  const orderHours = Array(168).fill(0);
+  const camps = filteredCampaigns();
+  filteredOrders().slice(0, 3000).forEach((o) => {
+    const ot = new Date(o.ordered_at).getTime();
+    let best = Infinity;
+    for (const c of camps) {
+      if (c.region !== o.region) continue;
+      const ct = new Date(c.sent_at).getTime();
+      const dh = (ot - ct) / 3600000;
+      if (dh >= 0 && dh < best) best = dh;
+    }
+    if (best < 168) orderHours[Math.floor(best)]++;
+  });
+  // Bin into 6-hour buckets
+  const buckets = [];
+  for (let i = 0; i < 168; i += 6) buckets.push(orderHours.slice(i, i + 6).reduce((a, b) => a + b, 0));
+  charts.timePW = new ApexCharts($('chartTimePurchaseWindow'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 280 },
+    series: [{ name: 'Orders', data: buckets }],
+    xaxis: { categories: buckets.map((_, i) => (i * 6) + 'h'), labels: { rotate: -40, style: { fontSize: '9px' } } },
+    colors: ['#3b82f6'],
+    plotOptions: { bar: { borderRadius: 2 } },
+    tooltip: { theme: 'light' },
+  });
+  charts.timePW.render();
+
+  // Weekly seasonality (revenue index)
+  const dowRev = [0,0,0,0,0,0,0];
+  filteredOrders().forEach((o) => { dowRev[new Date(o.ordered_at).getUTCDay()] += o.total; });
+  const base = dowRev[1] || 1;
+  const indexed = dowRev.map((v) => Math.round((v / base) * 100));
+  charts.timeSeas = new ApexCharts($('chartTimeSeasonality'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 280 },
+    series: [{ name: 'Revenue index (Mon=100)', data: indexed }],
+    xaxis: { categories: DAYS },
+    yaxis: { labels: { formatter: (v) => Math.round(v) } },
+    colors: ['#D0473E'],
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '55%', distributed: false,
+      colors: { backgroundBarColors: [], ranges: [{ from: 100, to: 100000, color: '#22c55e' }] } } },
+    dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#ffffff'] }, formatter: (v) => Math.round(v) },
+    tooltip: { theme: 'light', y: { formatter: (v) => 'Index ' + Math.round(v) + ' (Mon = 100)' } },
+  });
+  charts.timeSeas.render();
+}
+
+// ─── 6. Cohorts ─────────────────────────────────────────────────────────
+function renderCohorts() {
+  const cohorts = computeCohorts();
+  const custs = filteredCustomers();
+  const repeatCust = custs.filter((c) => c.orders_count > 1);
+  const churnRisk = custs.filter((c) => {
+    const days = (Date.now() - new Date(c.last_order_at).getTime()) / 86400000;
+    return c.orders_count >= 2 && days > 120;
+  });
+  const newCust = custs.filter((c) => c.orders_count === 1);
+  $('cohortKpis').innerHTML = [
+    kpi('Cohorts tracked', fmtInt(cohorts.length), 'months'),
+    kpi('Repeat customers', fmtInt(repeatCust.length), fmtPct(repeatCust.length / Math.max(1, custs.length), 0) + ' of base'),
+    kpi('Churn risk', fmtInt(churnRisk.length), '>120d since last'),
+    kpi('Single-order', fmtInt(newCust.length), 'not yet converted to repeat'),
+  ].join('');
+
+  // Cohort triangle table
+  let html = `<table class="w-full text-xs"><thead><tr><th class="text-[9px]">Cohort</th><th class="text-[9px] num">Size</th>`;
+  for (let m = 1; m <= 11; m++) html += `<th class="text-[9px] num">M+${m}</th>`;
+  html += `</tr></thead><tbody>`;
+  cohorts.forEach((c) => {
+    html += `<tr><td class="text-[11px]">${c.cohort}</td><td class="num text-[11px]">${fmtInt(c.size)}</td>`;
+    for (let m = 1; m <= 11; m++) {
+      const p = (c.retPct?.[m] || 0) * 100;
+      const bg = p > 0 ? `background:rgba(171,135,67,${Math.min(p / 60, 1)})` : '';
+      html += `<td class="num text-[11px]" style="${bg}; color:${p > 30 ? '#ffffff' : '#556059'};${p > 0 ? 'font-weight:600' : ''}">${p ? p.toFixed(1) + '%' : '—'}</td>`;
+    }
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  $('cohortTriangle').innerHTML = html;
+
+  // Avg retention curve
+  const avgRet = Array(12).fill(0).map((_, m) => {
+    if (m === 0) return 100;
+    let s = 0, n = 0;
+    cohorts.forEach((c) => { if (c.retPct?.[m] != null && c.cohort) { s += c.retPct[m]; n++; } });
+    return n ? +(s / n * 100).toFixed(1) : 0;
+  });
+  charts.cohortCurve = new ApexCharts($('chartCohortCurve'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'area', height: 280 },
+    series: [{ name: 'Avg retention %', data: avgRet }],
+    xaxis: { categories: avgRet.map((_, i) => 'M+' + i) },
+    yaxis: { labels: { formatter: (v) => v + '%' } },
+    colors: ['#D0473E'],
+    stroke: { curve: 'smooth', width: 2 },
+    fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0 } },
+    tooltip: { theme: 'light', y: { formatter: (v) => v.toFixed(1) + '%' } },
+  });
+  charts.cohortCurve.render();
+
+  // Funnel
+  const stages = ['Visitors (proxy: opens)','Engaged (clicks)','First-time buyers','Repeat 2nd order','Repeat 3rd+'];
+  const camps = filteredCampaigns();
+  const opens = camps.reduce((s, c) => s + c.opens, 0);
+  const clicks = camps.reduce((s, c) => s + c.clicks, 0);
+  const firstBuyers = newCust.length + repeatCust.length;
+  const secondOrder = custs.filter((c) => c.orders_count >= 2).length;
+  const thirdPlus = custs.filter((c) => c.orders_count >= 3).length;
+  charts.cohortFunnel = new ApexCharts($('chartCohortFunnel'), {
+    ...APEX_BASE,
+    chart: { ...APEX_BASE.chart, type: 'bar', height: 280 },
+    series: [{ name: 'Count', data: [opens, clicks, firstBuyers, secondOrder, thirdPlus] }],
+    xaxis: { categories: stages, labels: { style: { fontSize: '10px' } } },
+    colors: ['#16a34a'],
+    plotOptions: { bar: { horizontal: true, borderRadius: 3 } },
+    dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#ffffff'] }, formatter: (v) => fmtInt(v) },
+    tooltip: { theme: 'light' },
+  });
+  charts.cohortFunnel.render();
+}
+
+// ─── 7. Strategic Insights ──────────────────────────────────────────────
+function renderInsights() {
+  const list = computeInsights();
+  $('insightCntCrit').textContent = list.filter((i) => i.sev === 'crit').length;
+  $('insightCntWarn').textContent = list.filter((i) => i.sev === 'warn').length;
+  $('insightCntGood').textContent = list.filter((i) => i.sev === 'good').length;
+  const order = { crit: 0, warn: 1, good: 2 };
+  list.sort((a, b) => order[a.sev] - order[b.sev]);
+  $('insightList').innerHTML = list.map((ins) => `
+    <div class="insight ${ins.sev}">
+      <div class="flex items-start gap-3">
+        <div class="pill ${ins.sev === 'crit' ? 'bg-red/10 text-red' : ins.sev === 'warn' ? 'bg-amber/10 text-amber' : 'bg-green-soft text-green-bright'} flex-none">${ins.sev === 'crit' ? 'CRITICAL' : ins.sev === 'warn' ? 'WATCH' : 'OPPORTUNITY'}</div>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-sm font-semibold">${ins.title}</h3>
+          <div class="insight-body">${ins.body}</div>
+          <div class="insight-meta">
+            <span><b>Why:</b> ${ins.why}</span>
+          </div>
+          <div class="insight-meta">
+            <span><b>Impact:</b> ${ins.impact}</span>
+          </div>
+          <div class="insight-meta">
+            <span><b>Action:</b> ${ins.action}</span>
+          </div>
+        </div>
+      </div>
+    </div>`).join('') || `<div class="text-ink-mute text-center py-12">No insights computed for the current window — try widening the date range.</div>`;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ HELPERS
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+function kpi(label, val, sub) {
+  return `<div class="card p-4 card-hover">
+    <div class="label">${label}</div>
+    <div class="text-2xl font-bold mt-2 kpi-val">${val}</div>
+    ${sub ? `<div class="text-[11px] text-ink-mute mt-1">${sub}</div>` : ''}
+  </div>`;
+}
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+// Campaign name → hyperlink when a real URL exists in the data, plain text otherwise.
+function campNameCell(c) {
+  const u = (typeof campaignUrl === 'function') ? campaignUrl(c) : (c.url || null);
+  const nm = escapeHtml(c.name);
+  return u ? `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" class="text-lava hover:underline" title="Open campaign">${nm} ↗</a>` : nm;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ ROUTER + EVENTS
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+function switchView(name) {
+  STATE.view = name;
+  $$('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.view === name));
+  $$('.view').forEach((v) => v.classList.toggle('active', v.dataset.view === name));
+  destroyCharts();
+  rerender();
+}
+function rerender() {
+  // Honest empty state: with no connected/uploaded data there is nothing to
+  // compute, so show the connect prompt instead of metrics over no rows.
+  const empty = !hasData();
+  document.body.classList.toggle('no-data', empty);
+  if (empty) { $('lastRefresh').textContent = fmtDateTime(Date.now()); return; }
+  if (STATE.view === 'exec')      renderExec();
+  if (STATE.view === 'campaigns') renderCampaigns($('campSearch')?.value || '');
+  if (STATE.view === 'segments')  renderSegments();
+  if (STATE.view === 'products')  renderProducts();
+  if (STATE.view === 'time')      renderTime();
+  if (STATE.view === 'cohorts')   renderCohorts();
+  if (STATE.view === 'insights')  renderInsights();
+  $('lastRefresh').textContent = fmtDateTime(Date.now());
+}
+
+// ─── Sidebar: desktop collapse + mobile off-canvas drawer ───────────────
+const isMobileNav = () => window.matchMedia('(max-width: 1024px)').matches;
+function closeMobileDrawer() { document.body.classList.remove('sb-open'); }
+function openMobileDrawer()  { document.body.classList.add('sb-open'); }
+
+$$('.nav-item').forEach((n) => n.addEventListener('click', () => {
+  switchView(n.dataset.view);
+  if (isMobileNav()) closeMobileDrawer();   // pick a section → close the drawer
+}));
+
+(function () {
+  const KEY = 'knickgasm-dashboard-sidebar-collapsed';
+  if (localStorage.getItem(KEY) === '1') document.body.classList.add('sb-collapsed');
+  const btn = $('sbCollapseBtn');
+  const mobileBtn = $('sbMobileToggle');
+  const backdrop = $('sbBackdrop');
+
+  function syncAria() {
+    const collapsed = document.body.classList.contains('sb-collapsed');
+    if (btn) btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  }
+  syncAria();
+
+  // In-drawer hamburger: on mobile it closes the drawer; on desktop it collapses.
+  if (btn) btn.addEventListener('click', () => {
+    if (isMobileNav()) { closeMobileDrawer(); return; }
+    const collapsed = document.body.classList.toggle('sb-collapsed');
+    localStorage.setItem(KEY, collapsed ? '1' : '0');
+    syncAria();
+    setTimeout(() => { if (typeof rerender === 'function') rerender(); }, 240);
+  });
+
+  // Header hamburger (mobile only) opens the drawer.
+  if (mobileBtn) mobileBtn.addEventListener('click', openMobileDrawer);
+  if (backdrop) backdrop.addEventListener('click', closeMobileDrawer);
+  // Esc closes the drawer; leaving mobile width also closes it.
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobileDrawer(); });
+  window.addEventListener('resize', () => { if (!isMobileNav()) closeMobileDrawer(); });
+})();
+
+$('regionChips').addEventListener('click', (e) => {
+  if (!e.target.dataset.region) return;
+  STATE.region = e.target.dataset.region;
+  $$('#regionChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+  destroyCharts(); rerender();
+});
+$('granChips').addEventListener('click', (e) => {
+  const g = e.target.dataset.gran;
+  if (!g || !GRAN[g]) return;
+  STATE.granularity = g;
+  STATE.days = GRAN[g].days;
+  $$('#granChips .filter-chip').forEach((c) => c.classList.toggle('active', c.dataset.gran === g));
+  destroyCharts(); rerender();
+});
+
+// ─── Currency toggle (USD ⇄ INR) ────────────────────────────────────────
+function syncCurrencyChips() {
+  $$('#currencyChips .filter-chip').forEach((c) => c.classList.toggle('active', c.dataset.cur === CURRENCY));
+}
+syncCurrencyChips();
+$('currencyChips').addEventListener('click', (e) => {
+  const cur = e.target.dataset.cur;
+  if (!cur || cur === CURRENCY) return;
+  CURRENCY = cur;
+  try { localStorage.setItem('knickgasm-currency', CURRENCY); } catch {}
+  syncCurrencyChips();
+  destroyCharts(); rerender();
+});
+$('campSearch')?.addEventListener('input', (e) => {
+  destroyCharts(); renderCampaigns(e.target.value);
+});
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ UPLOAD WORKFLOW (CSV + XLSX)
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+const STAGE = {}; // pending uploads
+
+$('btnUpload').addEventListener('click', () => $('uploadModal').classList.add('open'));
+$('uploadClose').addEventListener('click', () => $('uploadModal').classList.remove('open'));
+$('uploadCancel').addEventListener('click', () => $('uploadModal').classList.remove('open'));
+
+$$('#uploadSlots input[type=file]').forEach((input) => {
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const slot = input.dataset.slot;
+    const statusEl = input.parentElement.querySelector('.file-status');
+    statusEl.textContent = 'Parsing…';
+    try {
+      let rows;
+      if (file.name.endsWith('.xlsx')) {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf);
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      } else {
+        rows = await new Promise((res, rej) => {
+          Papa.parse(file, { header: true, dynamicTyping: true, skipEmptyLines: true, complete: (r) => res(r.data), error: rej });
+        });
+      }
+      STAGE[slot] = rows;
+      statusEl.textContent = `✓ ${rows.length} rows`;
+      statusEl.classList.add('text-green-bright');
+    } catch (err) {
+      statusEl.textContent = '✗ ' + (err.message || 'parse error');
+      statusEl.classList.add('text-red');
+    }
+  });
+});
+
+$('uploadApply').addEventListener('click', () => {
+  const append = $('uploadAppend').checked;
+  let applied = 0;
+  ['campaigns','customers','orders','products'].forEach((slot) => {
+    if (!STAGE[slot]) return;
+    const rows = STAGE[slot].map((r) => normalizeRow(slot, r));
+    // Append → add on top of whatever is currently loaded (seed or prior upload);
+    // otherwise replace that dataset entirely.
+    DATA[slot] = append ? (Array.isArray(DATA[slot]) ? DATA[slot] : []).concat(rows) : rows;
+    applied++;
+  });
+  if (applied > 0) {
+    localStorage.setItem('knickgasm-retention-data', JSON.stringify(DATA));
+    $('dataSourceLabel').textContent = `${append ? 'seed + uploaded' : 'uploaded'} (${applied} dataset${applied>1?'s':''})`;
+    $('uploadModal').classList.remove('open');
+    destroyCharts(); rerender();
+  } else {
+    alert('Drop at least one file first.');
+  }
+});
+
+function normalizeRow(slot, r) {
+  // Coerce common column-name variants → canonical
+  const cKey = (canonical, ...aliases) => {
+    if (r[canonical] != null) return r[canonical];
+    for (const a of aliases) if (r[a] != null) return r[a];
+    return null;
+  };
+  if (slot === 'campaigns') return {
+    id: cKey('id','campaign_id'),
+    name: cKey('name','campaign_name','title'),
+    channel: (cKey('channel','type') || 'email').toLowerCase(),
+    region: cKey('region','market','country') || 'Global',
+    sent_at: cKey('sent_at','send_date','date'),
+    sends: +cKey('sends','recipients','sent') || 0,
+    opens: +cKey('opens','unique_opens') || 0,
+    clicks: +cKey('clicks','unique_clicks') || 0,
+    conversions: +cKey('conversions','orders','placed_order') || 0,
+    revenue: +cKey('revenue','revenue_usd','attributed_revenue') || 0,
+    unsubs: +cKey('unsubs','unsubscribes') || 0,
+    content_type: cKey('content_type','type') || 'promo',
+    primary_sku: cKey('primary_sku','sku','product_sku') || PRODUCTS[0].sku,
+    subject: cKey('subject','subject_line') || '(no subject)',
+    url: cKey('url','campaign_url','link','web_url','view_url','report_url') || null,
+  };
+  if (slot === 'customers') return {
+    id: cKey('id','customer_id'),
+    region: cKey('region','market','country') || 'Global',
+    first_order_at: cKey('first_order_at','first_purchase_date'),
+    last_order_at: cKey('last_order_at','last_purchase_date'),
+    orders_count: +cKey('orders_count','total_orders') || 1,
+    total_spent: +cKey('total_spent','ltv') || 0,
+    discount_rate: +cKey('discount_rate','discount_pct') || 0,
+    email_engaged: !!cKey('email_engaged','engaged'),
+    primary_category: cKey('primary_category','category') || 'Black sneaker',
+  };
+  if (slot === 'orders') {
+    const lines = cKey('lines','items');
+    return {
+      id: cKey('id','order_id','order_number'),
+      customer_id: cKey('customer_id','customer'),
+      region: cKey('region','market','country') || 'Global',
+      ordered_at: cKey('ordered_at','order_date','date'),
+      total: +cKey('total','total_price','order_total') || 0,
+      discount: +cKey('discount','total_discounts') || 0,
+      lines: lines ? (typeof lines === 'string' ? JSON.parse(lines) : lines) : [{ sku: cKey('sku') || '?', qty: +cKey('qty','quantity') || 1, price: +cKey('price') || 0 }],
+    };
+  }
+  if (slot === 'products') return {
+    sku: cKey('sku','id'),
+    title: cKey('title','name','product_name'),
+    category: cKey('category','type') || '—',
+    price: +cKey('price') || 0,
+  };
+  return r;
+}
+
+$('btnResetSeed').addEventListener('click', () => {
+  if (!confirm('Clear all data? This removes any uploaded or linked data and returns to the empty state.')) return;
+  localStorage.removeItem('knickgasm-retention-data');
+  DATA = emptyData();
+  STAGE && Object.keys(STAGE).forEach((k) => delete STAGE[k]);
+  $('dataSourceLabel').textContent = 'no data — link a database or upload';
+  $$('#uploadSlots .file-status').forEach((el) => { el.textContent = 'Not loaded'; el.classList.remove('text-green-bright','text-red'); });
+  destroyCharts(); rerender();
+});
+
+// Empty-state shortcuts forward to the toolbar's Link / Upload actions.
+$('emptyLinkDb')?.addEventListener('click', () => $('btnLinkDb')?.click());
+$('emptyUpload')?.addEventListener('click', () => $('btnUpload')?.click());
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ LINK DATABASE — connect a JSON/REST endpoint or a Supabase project.
+ * ║ When linked, DATA is REPLACED with the linked source (scoped to that DB
+ * ║ only — the seed is set aside until Reset).
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+$('btnLinkDb').addEventListener('click', () => $('linkDbModal').classList.add('open'));
+$('linkDbClose').addEventListener('click', () => $('linkDbModal').classList.remove('open'));
+$('linkDbCancel').addEventListener('click', () => $('linkDbModal').classList.remove('open'));
+
+let DB_TYPE = 'json';
+$$('#linkDbTypeChips .filter-chip').forEach((chip) => chip.addEventListener('click', () => {
+  DB_TYPE = chip.dataset.dbtype;
+  $$('#linkDbTypeChips .filter-chip').forEach((c) => c.classList.toggle('active', c === chip));
+  $('linkDbJson').classList.toggle('hidden', DB_TYPE !== 'json');
+  $('linkDbSupabase').classList.toggle('hidden', DB_TYPE !== 'supabase');
+}));
+
+const dbStatus = (msg, kind) => {
+  const el = $('linkDbStatus');
+  el.textContent = msg;
+  el.className = 'text-[11px] mb-3 mt-3 leading-snug ' + (kind === 'err' ? 'text-red' : kind === 'ok' ? 'text-green-bright' : 'text-ink-mute');
+};
+
+async function fetchSupabaseTable(url, key, table) {
+  if (!table) return null;
+  const base = url.replace(/\/+$/, '');
+  const r = await fetch(`${base}/rest/v1/${encodeURIComponent(table)}?select=*`, {
+    headers: { apikey: key, Authorization: 'Bearer ' + key },
+  });
+  if (!r.ok) throw new Error(`${table}: HTTP ${r.status}`);
+  return r.json();
+}
+
+$('linkDbConnect').addEventListener('click', async () => {
+  dbStatus('Connecting…');
+  try {
+    const SLOTS = ['campaigns', 'customers', 'orders', 'products'];
+    let raw = {};
+
+    if (DB_TYPE === 'json') {
+      const url = $('dbJsonUrl').value.trim();
+      if (!url) return dbStatus('Enter an endpoint URL.', 'err');
+      const auth = $('dbJsonAuth').value.trim();
+      const r = await fetch(url, { headers: auth ? { Authorization: auth } : {} });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      raw = await r.json();
+    } else {
+      const url = $('dbSbUrl').value.trim(), key = $('dbSbKey').value.trim();
+      if (!url || !key) return dbStatus('Enter the Supabase URL and key.', 'err');
+      const tables = { campaigns: $('dbSbCampaigns').value.trim(), customers: $('dbSbCustomers').value.trim(), orders: $('dbSbOrders').value.trim(), products: $('dbSbProducts').value.trim() };
+      for (const slot of SLOTS) raw[slot] = tables[slot] ? await fetchSupabaseTable(url, key, tables[slot]) : null;
+    }
+
+    // Normalize whatever subset of datasets the source returned. Scoped: start
+    // from an empty dataset (not the seed) so analysis reflects only this DB.
+    const next = { campaigns: [], customers: [], orders: [], products: [] };
+    let loaded = 0;
+    SLOTS.forEach((slot) => {
+      const rows = raw && raw[slot];
+      if (Array.isArray(rows) && rows.length) { next[slot] = rows.map((r) => normalizeRow(slot, r)); loaded++; }
+    });
+    if (!loaded) return dbStatus('Source returned no rows for campaigns/customers/orders/products.', 'err');
+
+    DATA = next;
+    localStorage.setItem('knickgasm-retention-data', JSON.stringify(DATA));
+    const label = DB_TYPE === 'supabase' ? 'Supabase' : 'linked DB';
+    $('dataSourceLabel').textContent = `${label} — scoped (${loaded} dataset${loaded > 1 ? 's' : ''})`;
+    dbStatus(`✓ Connected — ${loaded} dataset${loaded > 1 ? 's' : ''} loaded. Recomputing…`, 'ok');
+    setTimeout(() => { $('linkDbModal').classList.remove('open'); destroyCharts(); rerender(); }, 500);
+  } catch (err) {
+    dbStatus('✗ ' + (err.message || 'connection failed') + ' — check the URL, key, table names and CORS.', 'err');
+  }
+});
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ EXPORT ENGINE  — CSV + colour-preserving Excel, per-view or complete
+ * ╚═══════════════════════════════════════════════════════════════════════
+ * Every export reads the LIVE in-memory DATA at click time, so it always
+ * reflects the latest uploaded / linked data (no stale snapshot).
+ * A table descriptor = { sheet, title, columns:[{key,label}], rows:[{...}],
+ *                        cell?(rowObj,colKey,value)->{fill,font} }            */
+
+const VIEW_LABELS = {
+  exec: 'Revenue Pulse', campaigns: 'Campaigns Deep-Dive', segments: 'Audience Segments',
+  products: 'Product Intelligence', time: 'Send-Time & Behavior',
+  cohorts: 'Cohorts & Retention', insights: 'Strategic Insights',
+};
+
+// lava (#D0473E) blended over white at alpha — matches the on-screen heat cell
+function goldFillHex(pct) {
+  const a = Math.min((pct || 0) / 60, 1);
+  if (a <= 0) return null;
+  const mix = (base, lava) => Math.round(base * (1 - a) + lava * a);
+  const r = mix(255, 171), g = mix(255, 135), b = mix(255, 67);
+  const h = (x) => x.toString(16).padStart(2, '0').toUpperCase();
+  return 'FF' + h(r) + h(g) + h(b);
+}
+const HEX_HEADER_FILL = 'FF004A2B';      // deep purple
+const HEX_HEADER_FONT = 'FFFBF5EA';      // chalk
+const HEX_TITLE_FONT  = 'FF004A2B';
+
+function regionSummaryRows() {
+  const orders = filteredOrders();
+  const by = {};
+  orders.forEach((o) => {
+    const r = by[o.region] = by[o.region] || { region: o.region, orders: 0, revenue: 0, units: 0 };
+    r.orders++; r.revenue += o.total;
+    (o.lines || []).forEach((l) => r.units += (l.qty || 0));
+  });
+  return Object.values(by).sort((a, b) => b.revenue - a.revenue)
+    .map((r) => ({ ...r, aov: r.orders ? r.revenue / r.orders : 0 }));
+}
+
+function sendTimeSummaryRows() {
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const agg = DAYS.map(() => ({ sends: 0, opens: 0, hours: Array(24).fill(null).map(() => ({ s: 0, o: 0 })), rev: 0 }));
+  filteredCampaigns().forEach((c) => {
+    const d = new Date(c.sent_at); const dow = d.getUTCDay(); const hr = d.getUTCHours();
+    agg[dow].sends += c.sends; agg[dow].opens += c.opens;
+    agg[dow].hours[hr].s += c.sends; agg[dow].hours[hr].o += c.opens;
+  });
+  const dowRev = [0,0,0,0,0,0,0];
+  filteredOrders().forEach((o) => { dowRev[new Date(o.ordered_at).getUTCDay()] += o.total; });
+  const base = dowRev[1] || 1;
+  return DAYS.map((day, i) => {
+    let bestHr = '—', bestRate = -1;
+    agg[i].hours.forEach((h, hr) => { const rate = h.s ? h.o / h.s : 0; if (h.s && rate > bestRate) { bestRate = rate; bestHr = String(hr).padStart(2, '0') + ':00 UTC'; } });
+    return {
+      weekday: day, sends: agg[i].sends, opens: agg[i].opens,
+      open_rate: agg[i].sends ? agg[i].opens / agg[i].sends : 0,
+      best_hour: bestHr, revenue_index: Math.round((dowRev[i] / base) * 100),
+    };
+  });
+}
+
+// Build table descriptors for a given view
+function tablesForView(view) {
+  if (view === 'exec') {
+    const k = calcExecKpis();
+    const kpiRows = [
+      { metric: 'Total revenue', value: fmtCur(k.totalRevenue) },
+      { metric: 'Retention revenue', value: fmtCur(k.retentionRev) + ' (' + fmtPct(k.retentionRevPct, 0) + ')' },
+      { metric: 'Campaign-attributed revenue', value: fmtCur(k.campaignRev) + ' (' + fmtPct(k.campaignRevPct, 0) + ')' },
+      { metric: 'AOV', value: fmtCur(k.aov) },
+      { metric: 'Repeat rate', value: fmtPct(k.repeatRate, 0) },
+      { metric: 'Orders', value: fmtInt(k.nOrders) },
+      { metric: 'Customers', value: fmtInt(k.nCustomers) },
+      { metric: 'Campaigns', value: fmtInt(k.nCampaigns) },
+    ];
+    const topCamps = [...filteredCampaigns()].sort((a, b) => b.revenue - a.revenue).slice(0, 20)
+      .map((c) => ({ name: c.name, region: c.region, revenue: c.revenue, cvr: c.clicks ? c.conversions / c.clicks : 0, url: c.url || campaignUrl(c) }));
+    return [
+      { sheet: 'Revenue Pulse', title: 'Key metrics', columns: [{ key:'metric', label:'Metric' }, { key:'value', label:'Value' }], rows: kpiRows },
+      { sheet: 'Revenue Pulse', title: 'Revenue by region', columns: [
+        { key:'region', label:'Region' }, { key:'orders', label:'Orders' }, { key:'units', label:'Units' },
+        { key:'revenue', label:'Revenue', money:true }, { key:'aov', label:'AOV', money:true },
+      ], rows: regionSummaryRows() },
+      { sheet: 'Revenue Pulse', title: 'Top campaigns by revenue', columns: [
+        { key:'name', label:'Campaign', urlKey:'url' }, { key:'region', label:'Region' },
+        { key:'revenue', label:'Revenue', money:true }, { key:'cvr', label:'CVR', pct:true },
+      ], rows: topCamps },
+    ];
+  }
+  if (view === 'campaigns') {
+    const rows = [...filteredCampaigns()].sort((a, b) => b.revenue - a.revenue).map((c) => ({
+      name: c.name, region: c.region, channel: c.channel, sent_at: (c.sent_at || '').slice(0, 10),
+      sends: c.sends, opens: c.opens, open_rate: c.sends ? c.opens / c.sends : 0,
+      clicks: c.clicks, ctr: c.opens ? c.clicks / c.opens : 0,
+      conversions: c.conversions, cvr: c.clicks ? c.conversions / c.clicks : 0,
+      revenue: c.revenue, unsubs: c.unsubs, subject: c.subject, url: c.url || campaignUrl(c),
+    }));
+    return [{ sheet: 'Campaigns', title: 'Every send', columns: [
+      { key:'name', label:'Campaign', urlKey:'url' }, { key:'region', label:'Region' }, { key:'channel', label:'Channel' },
+      { key:'sent_at', label:'Sent' }, { key:'sends', label:'Sends' }, { key:'opens', label:'Opens' },
+      { key:'open_rate', label:'Open rate', pct:true }, { key:'clicks', label:'Clicks' }, { key:'ctr', label:'CTR', pct:true },
+      { key:'conversions', label:'Orders' }, { key:'cvr', label:'CVR', pct:true }, { key:'revenue', label:'Revenue', money:true },
+      { key:'unsubs', label:'Unsubs' }, { key:'subject', label:'Subject' },
+    ], rows }];
+  }
+  if (view === 'segments') {
+    return [{ sheet: 'Segments', title: 'RFM segments', columns: [
+      { key:'name', label:'Segment' }, { key:'count', label:'Customers' }, { key:'revenue', label:'Revenue', money:true },
+      { key:'avgLtv', label:'Avg LTV', money:true }, { key:'avgDiscount', label:'Avg discount', pct:true }, { key:'engagedPct', label:'Engaged %', pct:true },
+    ], rows: segmentSummary() }];
+  }
+  if (view === 'products') {
+    return [{ sheet: 'Products', title: 'Product performance', columns: [
+      { key:'sku', label:'SKU' }, { key:'title', label:'Product' }, { key:'category', label:'Category' },
+      { key:'units', label:'Units' }, { key:'revenue', label:'Revenue', money:true },
+      { key:'ordersWithIt', label:'Orders incl.' }, { key:'promos', label:'Times promoted' },
+    ], rows: [...calcProductKpis()].sort((a, b) => b.revenue - a.revenue) }];
+  }
+  if (view === 'time') {
+    return [{ sheet: 'Send-Time', title: 'Send-time & weekly seasonality', columns: [
+      { key:'weekday', label:'Weekday' }, { key:'sends', label:'Sends' }, { key:'opens', label:'Opens' },
+      { key:'open_rate', label:'Open rate', pct:true }, { key:'best_hour', label:'Best hour' }, { key:'revenue_index', label:'Revenue index (Mon=100)' },
+    ], rows: sendTimeSummaryRows() }];
+  }
+  if (view === 'cohorts') {
+    const cohorts = computeCohorts();
+    const cols = [{ key:'cohort', label:'Cohort' }, { key:'size', label:'Size' }];
+    for (let m = 1; m <= 11; m++) cols.push({ key:'m' + m, label:'M+' + m, pct:true, heat:true });
+    const rows = cohorts.map((c) => {
+      const o = { cohort: c.cohort, size: c.size };
+      for (let m = 1; m <= 11; m++) o['m' + m] = (c.retPct?.[m] || 0); // fraction
+      return o;
+    });
+    return [{
+      sheet: 'Cohorts', title: 'Retention triangle (colour = retention strength)', columns: cols, rows,
+      cell(row, colKey, col) {
+        if (!col.heat) return null;
+        const pct = (row[colKey] || 0) * 100;
+        const fill = goldFillHex(pct);
+        if (!fill) return null;
+        return { fill, font: pct > 30 ? 'FF0A1410' : 'FF5D6E64', bold: true };
+      },
+    }];
+  }
+  if (view === 'insights') {
+    return [{ sheet: 'Insights', title: 'Strategic insights', columns: [
+      { key:'sev', label:'Severity' }, { key:'title', label:'Insight' }, { key:'body', label:'Detail' },
+      { key:'why', label:'Why' }, { key:'impact', label:'Impact' }, { key:'action', label:'Action' },
+    ], rows: computeInsights().map((i) => ({ sev: (i.sev || '').toUpperCase(), title: i.title, body: i.body, why: i.why, impact: i.impact, action: i.action })) }];
+  }
+  return [];
+}
+
+function allTables() {
+  return ['exec','campaigns','segments','products','time','cohorts','insights'].flatMap(tablesForView);
+}
+
+// ── format a cell value for display in CSV/Excel
+function fmtExportVal(col, raw) {
+  if (raw == null) return '';
+  if (col.money) return fmtCur(raw);
+  if (col.pct)   return typeof raw === 'number' ? (raw * 100).toFixed(1) + '%' : raw;
+  return raw;
+}
+
+// ── CSV (single table or stacked tables) ───────────────────────────────
+function tablesToCsv(tables) {
+  const blocks = tables.map((t) => {
+    const head = t.columns.map((c) => c.label);
+    const body = t.rows.map((r) => t.columns.map((c) => fmtExportVal(c, r[c.key])));
+    const title = `# ${t.sheet} — ${t.title}`;
+    return [title, Papa.unparse([head, ...body])].join('\n');
+  });
+  return blocks.join('\n\n');
+}
+
+// Campaign deep-link: only return a URL if one was actually present in the
+// uploaded/linked data (Klaviyo "web view" link, etc.) — never fabricate one.
+function campaignUrl(c) {
+  return c.url || c.campaign_url || c.link || c.web_url || c.view_url || c.report_url || null;
+}
+
+// Excel worksheet from one-or-more stacked tables, with cell fills, fonts and
+// real hyperlinks for any column that declares a urlKey.
+function tablesToSheetWithLinks(tables) {
+  const aoa = []; const styles = {}; const links = [];
+  const setStyle = (r, c, s) => { styles[XLSX.utils.encode_cell({ r, c })] = s; };
+  tables.forEach((t, ti) => {
+    if (ti > 0) aoa.push([]);
+    const titleRow = aoa.length; aoa.push([t.title]);
+    setStyle(titleRow, 0, { font: { bold: true, sz: 13, color: { rgb: HEX_TITLE_FONT } } });
+    const headRow = aoa.length; aoa.push(t.columns.map((c) => c.label));
+    t.columns.forEach((_, ci) => setStyle(headRow, ci, {
+      fill: { patternType: 'solid', fgColor: { rgb: HEX_HEADER_FILL } },
+      font: { bold: true, color: { rgb: HEX_HEADER_FONT } },
+    }));
+    t.rows.forEach((row) => {
+      const r = aoa.length;
+      aoa.push(t.columns.map((c) => fmtExportVal(c, row[c.key])));
+      t.columns.forEach((c, ci) => {
+        const st = t.cell && t.cell(row, c.key, c);
+        const s = {};
+        if (st) { s.fill = { patternType: 'solid', fgColor: { rgb: st.fill } }; s.font = { color: { rgb: st.font }, bold: !!st.bold }; }
+        if (c.urlKey && row[c.urlKey]) {
+          s.font = Object.assign({ color: { rgb: 'FF1155CC' }, underline: true }, s.font || {});
+          links.push({ ref: XLSX.utils.encode_cell({ r, c: ci }), target: row[c.urlKey] });
+        }
+        if (Object.keys(s).length) setStyle(r, ci, s);
+      });
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  Object.keys(styles).forEach((ref) => { if (ws[ref]) ws[ref].s = styles[ref]; });
+  links.forEach((l) => { if (ws[l.ref]) ws[l.ref].l = { Target: l.target }; });
+  const maxCols = Math.max(1, ...tables.map((t) => t.columns.length));
+  ws['!cols'] = Array(maxCols).fill(0).map((_, i) => ({ wch: i === 0 ? 28 : 16 }));
+  return ws;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function runExport({ scope, format, view }) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (scope === 'view') {
+    const tables = tablesForView(view);
+    if (!tables.length) return alert('Nothing to export for this view.');
+    const base = `knickgasm-${view}-${stamp}`;
+    if (format === 'csv') {
+      downloadBlob(new Blob([tablesToCsv(tables)], { type: 'text/csv' }), base + '.csv');
+    } else {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, tablesToSheetWithLinks(tables), VIEW_LABELS[view].slice(0, 28));
+      XLSX.writeFile(wb, base + '.xlsx', { cellStyles: true });
+    }
+    return;
+  }
+  // Complete analysis — every page
+  const all = allTables();
+  const base = `knickgasm-complete-analysis-${stamp}`;
+  if (format === 'csv') {
+    downloadBlob(new Blob([tablesToCsv(all)], { type: 'text/csv' }), base + '.csv');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  // 1 sheet per page
+  ['exec','campaigns','segments','products','time','cohorts','insights'].forEach((v) => {
+    const t = tablesForView(v);
+    if (t.length) XLSX.utils.book_append_sheet(wb, tablesToSheetWithLinks(t), (VIEW_LABELS[v] || v).slice(0, 28));
+  });
+  // combined "All Tables" sheet (everything stacked) — the single-sheet compile
+  XLSX.utils.book_append_sheet(wb, tablesToSheetWithLinks(all), 'All Tables');
+  XLSX.writeFile(wb, base + '.xlsx', { cellStyles: true });
+}
+
+// ── Export modal wiring ─────────────────────────────────────────────────
+const exportState = { format: 'xlsx' };
+function openExportModal() {
+  $('exportView').value = STATE.view;
+  updateExportHint();
+  $('exportModal').classList.add('open');
+}
+function closeExportModal() { $('exportModal').classList.remove('open'); }
+function currentExportScope() { return (document.querySelector('input[name="expScope"]:checked') || {}).value || 'view'; }
+function updateExportHint() {
+  const scope = currentExportScope();
+  $('exportViewWrap').style.display = scope === 'view' ? '' : 'none';
+  const fmt = exportState.format;
+  let h = '';
+  if (scope === 'all') h = 'One workbook: a sheet per page plus an “All Tables” sheet combining everything. ';
+  else h = `Exports the “${VIEW_LABELS[$('exportView').value]}” page. `;
+  if (fmt === 'xlsx') h += 'Retention colour-coding and clickable campaign links are preserved.';
+  else h += 'CSV is plain text (no colours/links); colour is kept only in Excel.';
+  $('exportHint').textContent = h;
+}
+
+$('btnExport').addEventListener('click', openExportModal);
+$('exportClose').addEventListener('click', closeExportModal);
+$('exportCancel').addEventListener('click', closeExportModal);
+$('exportModal').addEventListener('click', (e) => { if (e.target.id === 'exportModal') closeExportModal(); });
+document.querySelectorAll('input[name="expScope"]').forEach((r) => r.addEventListener('change', updateExportHint));
+$('exportView').addEventListener('change', updateExportHint);
+$('exportFormatChips').addEventListener('click', (e) => {
+  if (!e.target.dataset.fmt) return;
+  exportState.format = e.target.dataset.fmt;
+  $$('#exportFormatChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
+  updateExportHint();
+});
+$('exportRun').addEventListener('click', () => {
+  runExport({ scope: currentExportScope(), format: exportState.format, view: $('exportView').value });
+  closeExportModal();
+});
+
+/* ╔═══════════════════════════════════════════════════════════════════════
+ * ║ BOOT
+ * ╚═══════════════════════════════════════════════════════════════════════ */
+const stored = localStorage.getItem('knickgasm-retention-data');
+if (stored) {
+  try {
+    DATA = JSON.parse(stored);
+    $('dataSourceLabel').textContent = 'restored from localStorage';
+  } catch { /* ignore */ }
+}
+rerender();
+</script>
+</body>
+</html>

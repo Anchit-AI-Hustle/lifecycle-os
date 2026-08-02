@@ -1,0 +1,48 @@
+name: Daily Intelligence Sync (noon IST + manual)
+
+# The full daily loop = pull READ-ONLY data from the source platforms into
+# Supabase, re-analyse, re-plan the calendar, and regenerate the day's campaign
+# assets (mailers / ads / landing pages). It hits the CRON_SECRET-protected
+# endpoint POST /api/brain?action=cron.
+#
+# WHY GitHub Actions: Vercel Hobby cron jobs can only run ONCE per day, so the
+# native Vercel cron covers the MIDNIGHT IST run (vercel.json: "30 18 * * *").
+# This workflow adds the SECOND daily run at NOON IST, plus a manual "Run now"
+# button (workflow_dispatch) for on-demand/one-time runs.
+#
+# SETUP (one-time): add two repo secrets under Settings -> Secrets and variables
+# -> Actions:
+#   CRON_SECRET   = the same value as the Vercel CRON_SECRET env var
+#   APP_BASE_URL  = https://knickgasm-lifecycle-os.anchit-tandon.com   (optional;
+#                   falls back to that default below if unset)
+
+on:
+  workflow_dispatch: {}            # manual "Run now" for the one-time run
+  schedule:
+    - cron: '30 6 * * *'           # 06:30 UTC = 12:00 noon IST
+
+concurrency:
+  group: daily-intelligence-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the daily loop (read-only pull -> analyse -> re-plan -> regenerate)
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: |
+          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET repo secret is not set — add it under Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+          curl --fail-with-body -sS -X POST \
+            "$BASE/api/brain?action=cron" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json"
