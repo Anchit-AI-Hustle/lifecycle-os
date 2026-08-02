@@ -260,7 +260,7 @@ function reference() {
     chain: 'organic post URL -> videoid -> ad name -> ad code -> paid performance',
     authority: 'The master tracking sheet is the source of truth; the SOP is corrected to match it.',
     sop_pdf: '/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf',
-    master_sheet: 'https://docs.google.com/spreadsheets/d/1SoYc6YFGa6SM_GpvrCVZDaN0otpshG_E6grxw-BljVA/edit?usp=sharing' };
+    master_sheet: 'https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit' };
 }
 
 module.exports = { compliance, pacing, reference, parseAdName, parseAdSetName, parseCampaignName, extractVideoId, TOKENS, CAPS, SCORING };
