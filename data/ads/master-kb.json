@@ -1015,7 +1015,7 @@
    "name": "Supabase (app persistence)",
    "status": "connected - verified 2026-07-25",
    "details": [
-    "Project knickgasm-lifecycle-os (gubbckgjujwqodghcavv, ap-south-1, Postgres 17) - 57 public tables",
+    "Project knickgasm-lifecycle-os (fswdwmkgggzyxrdzabnh, ap-south-1, Postgres 17) - 57 public tables",
     "Campaign system live: smart_generated_campaigns 90 rows, smart_calendar_entries 182, smart_campaigns 96, smart_calendar 290",
     "ads_generated / landing_pages_generated mirror tables were NOT found in the live schema - verify migration state before relying on the Brain approval mirror",
     "Security advisory: RLS disabled on ci_user_subscriptions and ci_notification_log (flagged by Supabase advisor)"
@@ -1192,7 +1192,7 @@
   {
    "group": "SOP (FINAL)",
    "title": "KNICKGASM Master Ad Tracking Sheet (source of truth, Google Sheet)",
-   "url": "https://docs.google.com/spreadsheets/d/1SoYc6YFGa6SM_GpvrCVZDaN0otpshG_E6grxw-BljVA/edit?usp=sharing",
+   "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
    "owner": "Anchit Tandon",
    "status": "from-sop",
    "note": "9 tabs. The sheet is authoritative over the SOP document wherever they differ."
@@ -1241,7 +1241,7 @@
   {
    "group": "UGC & creators",
    "title": "UGC creator-performance dashboard - automated output snapshot (columns A-AN)",
-   "url": "https://docs.google.com/spreadsheets/d/12s2MfnKPB5T1ta2IlDkuNITGOLMWigal2TvMcmVkQ3s/edit",
+   "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
    "owner": "Aviral Agrawal / Samvita Sarkar",
    "status": "from-email",
    "source": "kt-ugc-mail"
@@ -1249,7 +1249,7 @@
   {
    "group": "UGC & creators",
    "title": "Video ID to Ad ID mapping sheet (REQUIRED manual input for the UGC dashboard)",
-   "url": "https://docs.google.com/spreadsheets/d/1O3rKasfrw8vr70na4kH1Nmu-D_o0siPGE0YiIDjnSEo/edit",
+   "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
    "owner": "Ads team (keep current as ads go live)",
    "status": "from-email",
    "source": "kt-ugc-mail"
@@ -1257,7 +1257,7 @@
   {
    "group": "UGC & creators",
    "title": "KNICKGASM_UGC_Master_v6 (UGC master tracker)",
-   "url": "https://docs.google.com/spreadsheets/d/1lLxCx4uLeV52MazFQj_y9ZC_XRwXlzvugepEkP18yNc/edit",
+   "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
    "owner": "Samvita Sarkar",
    "status": "verified",
    "source": "drive-connector",
@@ -1322,7 +1322,7 @@
   {
    "group": "Platforms",
    "title": "Supabase project (knickgasm-lifecycle-os)",
-   "url": "https://supabase.com/dashboard/project/gubbckgjujwqodghcavv",
+   "url": "https://supabase.com/dashboard/project/fswdwmkgggzyxrdzabnh",
    "owner": "-",
    "status": "verified",
    "source": "supabase-connector"
@@ -1747,7 +1747,7 @@
   "status": "FINAL — live from Monday",
   "scope": "Ad execution across UGC, Target, Costco and D2C.",
   "authority": "The master tracking sheet is the source of truth. Where the sheet and the SOP differ, the sheet is correct and the SOP is corrected to match. The SOP carries the process; the sheet carries the data.",
-  "master_sheet": "https://docs.google.com/spreadsheets/d/1SoYc6YFGa6SM_GpvrCVZDaN0otpshG_E6grxw-BljVA/edit?usp=sharing",
+  "master_sheet": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
   "local_copies": {
    "sop_pdf": "/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf",
    "tracker_xlsx": "/docs/sop/KNICKGASM_Master_Ad_Tracking_Sheet.xlsx"

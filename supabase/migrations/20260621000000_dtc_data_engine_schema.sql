@@ -29,7 +29,7 @@ create table if not exists dtc.fact_daily_orders (
     order_date     date        not null,
     orders         integer     not null default 0,
     new_customers  integer     not null default 0,
-    returning      integer     not null default 0,
+    "returning"      integer     not null default 0,
     gross_revenue  numeric(18,2) not null default 0,
     net_revenue    numeric(18,2) not null default 0,
     aov            numeric(18,2) not null default 0,
@@ -124,7 +124,7 @@ select
     orders,
     aov,
     new_customers,
-    returning
+    "returning"
 from dtc.fact_daily_orders
 where order_date >= current_date - interval '90 days'
 order by order_date desc, market;

@@ -3,6 +3,20 @@
 -- Row created automatically on first sign-in via trigger.
 -- Profile filling is NOT compulsory — name/mobile/region are nullable.
 
+-- Fresh-install guard: on a clean database the 20260501190000 rename leaves the
+-- LEGACY signup-tracking table (bigserial id) named app_users. This profile table
+-- is the auth-linked uuid one; drop the legacy-shaped table if present.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='app_users'
+      and column_name='id' and data_type <> 'uuid'
+  ) then
+    drop table public.app_users cascade;
+  end if;
+end $$;
+
 create table if not exists public.app_users (
   id          uuid        primary key references auth.users (id) on delete cascade,
   email       text        not null,

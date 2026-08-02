@@ -1576,8 +1576,8 @@
   // preview deployments where Deployment Protection redirects /api/public-config
   // to an auth page (HTML, not JSON), or any transient endpoint failure.
   const PUBLIC_SUPABASE_FALLBACK = {
-    url: 'https://gubbckgjujwqodghcavv.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmJja2dqdWp3cW9kZ2hjYXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk3MzksImV4cCI6MjA5Njc3NTczOX0.mJikSp_K1j7kV3THCYq8Z8PNf2Q7eJMwsY9iphRZWFg',
+    url: 'https://fswdwmkgggzyxrdzabnh.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzd2R3bWtnZ2d6eXhyZHphYm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDQ5MDUsImV4cCI6MjEwMTI4MDkwNX0.KB4za4F7mTjQOY5-gxBoWguGDlgMu_dsyg9Nb-H9614',
   };
 
   async function getConfig() {
