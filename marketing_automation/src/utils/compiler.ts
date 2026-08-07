@@ -561,10 +561,10 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
   <style>
     /* Premium Brand Colors & CSS Properties */
     :root {
-      --color-brand: #6A33D8;
-      --color-lava: #D0473E;
-      --color-chalk: #F7F5F2;
-      --color-offset: #F7F5F2;
+      --color-brand: #D0473E;
+      --color-lava: #6A33D8;
+      --color-chalk: #FFFFFF;
+      --color-offset: #FFFFFF;
       --color-charcoal: #111111;
       --color-white: #FFFFFF;
     }

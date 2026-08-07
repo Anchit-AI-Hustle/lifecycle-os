@@ -50,8 +50,8 @@
         color: #556059; cursor: pointer; transition: all .15s;
         font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 0;
       }
-      .ce-btn:hover { color: #F7F5F2; border-color: #D0473E; background: rgba(20,40,34,0.95); }
-      .ce-btn.active { background: #D0473E; color: #ffffff; border-color: #D0473E; }
+      .ce-btn:hover { color: #FFFFFF; border-color: #6A33D8; background: rgba(20,40,34,0.95); }
+      .ce-btn.active { background: #6A33D8; color: #ffffff; border-color: #6A33D8; }
       .ce-btn svg { width: 13px; height: 13px; }
       [data-chart-host] { position: relative; }
       [data-chart-host][data-ce-mode="table"] > :not(.ce-tools):not(.ce-table) { display: none !important; }
@@ -82,10 +82,10 @@
         padding: 16px 22px; border-bottom: 1px solid rgba(171,135,67,0.18);
       }
       #ce-modal-head h2 {
-        font-family: 'Lora','Inter',serif; font-size: 19px; color: #F7F5F2;
+        font-family: 'Lora','Inter',serif; font-size: 19px; color: #FFFFFF;
         font-weight: 600; letter-spacing: -0.01em; margin: 0;
       }
-      #ce-modal-head h2 em { color: #D0473E; font-style: italic; }
+      #ce-modal-head h2 em { color: #6A33D8; font-style: italic; }
       #ce-modal-head .right { display: inline-flex; gap: 6px; align-items: center; }
       #ce-modal-body {
         padding: 18px 22px; overflow: auto; display: grid; gap: 18px;
@@ -105,13 +105,13 @@
       #ce-insights { display: flex; flex-direction: column; gap: 10px; }
       #ce-insights h3, #ce-summary h3 {
         font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
-        color: #D0473E; font-weight: 700; margin: 0 0 6px;
+        color: #6A33D8; font-weight: 700; margin: 0 0 6px;
       }
       .ce-insight {
         padding: 12px 14px; border-radius: 8px;
         background: #eef3f0; border: 1px solid rgba(171,135,67,0.18);
       }
-      .ce-insight-title { font-size: 12.5px; font-weight: 600; color: #F7F5F2; margin: 0 0 4px; }
+      .ce-insight-title { font-size: 12.5px; font-weight: 600; color: #FFFFFF; margin: 0 0 4px; }
       .ce-insight-body  { font-size: 12px; line-height: 1.55; color: #556059; margin: 0; }
       #ce-summary {
         padding: 14px 16px; border-radius: 10px;
@@ -125,7 +125,7 @@
         font-family: inherit; font-size: 11px; text-transform: uppercase;
         letter-spacing: 0.06em; font-weight: 600;
       }
-      .ce-modal-close:hover { color: #F7F5F2; border-color: #D0473E; }
+      .ce-modal-close:hover { color: #FFFFFF; border-color: #6A33D8; }
 
       /* mobile: stack everything vertically */
       @media (max-width: 700px) {
@@ -280,7 +280,7 @@
   function formatCell(v, col) {
     if (v == null || v === '') return '<span style="color:#48524c">—</span>';
     if (col.url && typeof v === 'object' && v.label && v.url) {
-      return `<a href="${escapeAttr(v.url)}" target="_blank" rel="noopener" style="color:#D0473E;text-decoration:underline">${escapeHtml(v.label)} ↗</a>`;
+      return `<a href="${escapeAttr(v.url)}" target="_blank" rel="noopener" style="color:#6A33D8;text-decoration:underline">${escapeHtml(v.label)} ↗</a>`;
     }
     if (col.fmt === 'currency') return '$' + Math.round(Number(v)).toLocaleString();
     if (col.fmt === 'pct')      return (Number(v) * 100).toFixed(1) + '%';

@@ -298,7 +298,7 @@ module.exports = async function handler(req, res) {
       hero_image_brief:
         `On-brand KNICKGASM email visual for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
         `Editorial photography or gentle product-frame motion (animated GIF), one-of-one provenance, ` +
-        `elegant negative space, cinematic light. Brand palette only (violet #6A33D8, lava #D0473E, chalk #F7F5F2). ` +
+        `elegant negative space, cinematic light. Brand palette only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). ` +
         `Mood: warm, restrained, gift-worthy. No on-image text.`,
       master_prompt: buildMasterPrompt({
         assetType: 'mailer', variant: 'V2', market, brief, products: promptProducts, cohort: entry.segment,
@@ -440,7 +440,7 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
   const BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
   const palette = {
-    green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2',
+    green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF',
   };
 
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
@@ -487,7 +487,7 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
       </td></tr>`;
   // CAN-SPAM footer — nothing clickable except the brand mark (in the header).
   // Brand HARD rule: NEVER a black / near-black section background. The footer
-  // sits on deep purple (#6A33D8); chalk + lava text stay high-contrast on it.
+  // sits on deep purple (#D0473E); chalk + lava text stay high-contrast on it.
   const brandFooter = `
       <tr><td align="center" style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.chalk};">KNICKGASM</div>

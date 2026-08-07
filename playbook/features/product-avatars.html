@@ -9,13 +9,13 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: {
-    colors: { knickgasm: { green:"#6A33D8", lava:"#D0473E", ink:"#111111", chalk:"#F7F5F2" } },
+    colors: { knickgasm: { green:"#D0473E", lava:"#6A33D8", ink:"#111111", chalk:"#FFFFFF" } },
     fontFamily: { head:["Montserrat","Raleway","Georgia","serif"], body:["Instrument Sans","Helvetica Neue","Arial","sans-serif"] }
   } } };
 </script>
 <style>
-  :root{--knickgasm-green:#6A33D8;--knickgasm-lava:#D0473E;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#F7F5F2;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
-  /* brand lava #D0473E fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
+  :root{--knickgasm-green:#D0473E;--knickgasm-lava:#6A33D8;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#FFFFFF;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
+  /* brand lava #6A33D8 fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
   .lava-ink{color:var(--knickgasm-lava-ink);}
   input::placeholder,textarea::placeholder{color:#6f6f6f;opacity:1;} #gen-out::placeholder{color:#9fb0a8;opacity:1;}
   html{scroll-behavior:smooth;scroll-padding-top:20px;}
@@ -208,7 +208,7 @@
 '(function(){',
 '  var AGENT_ID='+JSON.stringify(id)+', API="/api/brain";',
 '  var NAME='+JSON.stringify(spec.name)+', GREET='+JSON.stringify(spec.greeting)+', FACE='+JSON.stringify(spec.face)+';',
-'  var sid=null, hist=[], open=false, audio=null, C="#6A33D8", G="#D0473E", K="#F7F5F2";',
+'  var sid=null, hist=[], open=false, audio=null, C="#D0473E", G="#6A33D8", K="#FFFFFF";',
 '  var btn=document.createElement("button"); btn.textContent=FACE; btn.setAttribute("aria-label","Chat with "+NAME);',
 '  btn.style.cssText="position:fixed;bottom:22px;right:22px;z-index:99999;width:60px;height:60px;border-radius:50%;border:0;background:"+C+";color:"+K+";font-size:26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)";',
 '  var box=document.createElement("div");',

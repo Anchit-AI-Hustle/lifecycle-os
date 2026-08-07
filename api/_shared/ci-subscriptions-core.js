@@ -119,11 +119,11 @@ function assetEmailHtml({ channel, brand, asset }) {
     ? ((asset.image_urls && asset.image_urls[0]) || '')
     : ((asset.images && asset.images[0]) || '');
   const links = [];
-  if (asset.landing_url) links.push(`<a href="${esc(asset.landing_url)}" style="color:#D0473E">Landing page</a>`);
-  if (asset.source_link) links.push(`<a href="${esc(asset.source_link)}" style="color:#D0473E">View ${esc(platform)}</a>`);
-  return `<!doctype html><html><body style="margin:0;background:#F7F5F2;font-family:'Helvetica Neue',Arial,sans-serif;color:#111111">
+  if (asset.landing_url) links.push(`<a href="${esc(asset.landing_url)}" style="color:#6A33D8">Landing page</a>`);
+  if (asset.source_link) links.push(`<a href="${esc(asset.source_link)}" style="color:#6A33D8">View ${esc(platform)}</a>`);
+  return `<!doctype html><html><body style="margin:0;background:#FFFFFF;font-family:'Helvetica Neue',Arial,sans-serif;color:#111111">
   <div style="max-width:560px;margin:0 auto;padding:24px">
-    <div style="background:#6A33D8;color:#F7F5F2;padding:16px 20px;border-radius:12px 12px 0 0">
+    <div style="background:#D0473E;color:#FFFFFF;padding:16px 20px;border-radius:12px 12px 0 0">
       <div style="font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#d9c9a3">Competitor update . ${esc(platform)}</div>
       <div style="font-size:20px;font-weight:700;margin-top:4px">${esc(brand)}</div>
     </div>

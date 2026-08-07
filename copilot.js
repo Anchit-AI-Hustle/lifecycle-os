@@ -23,7 +23,7 @@
   if (/\/agent(\.html)?$|\/agent\b|\/brain\b|\/smart-brain|\/studio|knickgasm_mailer_architect/i.test(location.pathname)) return;
   window.__knickgasmAgentBooted = true;
 
-  var BRAND = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2' };
+  var BRAND = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF' };
 
   // Config — overridable per host (e.g. a public conversational landing page sets
   // window.KNICKGASM_AGENT_CONFIG before loading this script).

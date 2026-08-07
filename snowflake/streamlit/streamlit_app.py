@@ -33,7 +33,7 @@ session = get_active_session()
 st.set_page_config(page_title="KNICKGASM Analytics", layout="wide")
 
 # Brand palette (docs/CLAUDE.md — the only four colours)
-GREEN, LAVA, INK, CHALK = "#6A33D8", "#D0473E", "#111111", "#F7F5F2"
+GREEN, LAVA, INK, CHALK = "#D0473E", "#6A33D8", "#111111", "#FFFFFF"
 
 # ── Source tables (verified live against the warehouse) ──────────────────────
 META_ADS = "KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS"

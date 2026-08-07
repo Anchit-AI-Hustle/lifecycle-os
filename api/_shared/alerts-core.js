@@ -52,9 +52,9 @@ function emailShell(title, bodyHtml) {
   return `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;color:#111111">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border:1px solid #ece4d2;border-radius:10px;overflow:hidden">
-  <tr><td style="background:#6A33D8;color:#F7F5F2;padding:18px 22px;font-family:'Montserrat',Georgia,serif;font-size:18px">KNICKGASM Lifecycle OS · ${esc(title)}</td></tr>
+  <tr><td style="background:#D0473E;color:#FFFFFF;padding:18px 22px;font-family:'Montserrat',Georgia,serif;font-size:18px">KNICKGASM Lifecycle OS · ${esc(title)}</td></tr>
   <tr><td style="padding:20px 22px;font-size:14px;line-height:1.6">${bodyHtml}</td></tr>
-  <tr><td style="background:#6A33D8;color:#F7F5F299;padding:14px 22px;font-size:11px">Automated monitoring · sent to ${esc(ALERT_EMAIL())}</td></tr>
+  <tr><td style="background:#D0473E;color:#FFFFFF99;padding:14px 22px;font-size:11px">Automated monitoring · sent to ${esc(ALERT_EMAIL())}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -103,7 +103,7 @@ function detectAnomalies() {
 async function runAnomaly() {
   const anomalies = detectAnomalies();
   if (!anomalies.length) return { ok: true, kind: 'anomaly', anomalies: [], note: 'No anomalies vs the trailing baseline (real monthly market data).', email: { sent: false, reason: 'nothing to report' } };
-  const rows = anomalies.map((a) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee"><b>${esc(a.market)}</b></td><td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(a.metric)}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;color:${a.direction === 'drop' ? '#c0392b' : '#6A33D8'}">${a.pct >= 0 ? '+' : ''}${a.pct}% vs baseline</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(a.month)}</td></tr>`).join('');
+  const rows = anomalies.map((a) => `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee"><b>${esc(a.market)}</b></td><td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(a.metric)}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;color:${a.direction === 'drop' ? '#c0392b' : '#D0473E'}">${a.pct >= 0 ? '+' : ''}${a.pct}% vs baseline</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${esc(a.month)}</td></tr>`).join('');
   const html = emailShell('Revenue anomaly alert', `<p>${anomalies.length} metric(s) moved beyond the alert threshold vs the trailing 3-month baseline:</p><table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="text-align:left;color:#7a6e5a"><th style="padding:6px 10px">Market</th><th style="padding:6px 10px">Metric</th><th style="padding:6px 10px">Move</th><th style="padding:6px 10px">Period</th></tr>${rows}</table><p style="color:#7a6e5a;font-size:12px;margin-top:14px">Computed from the real monthly market export. Intraday anomaly precision improves once the live Shopify/Klaviyo feed is wired.</p>`);
   const email = await sendEmail(`[KNICKGASM] Revenue anomaly: ${anomalies.length} flagged`, html);
   return { ok: true, kind: 'anomaly', anomalies, email };

@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,7 +19,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --ink: #111111; --ink-dim: #556059; --ink-faint: #48524c;
-    --lava: #D0473E; --chalk: #F7F5F2; --green: #6A33D8;
+    --lava: #6A33D8; --chalk: #FFFFFF; --green: #D0473E;
     --bg: #ffffff; --panel: #ffffff;
     --line: rgba(171,135,67,0.18); --line-hot: rgba(171,135,67,0.5);
   }
@@ -115,12 +115,12 @@
     font-family: inherit; cursor: pointer; text-decoration: none; transition: all .14s;
     border: 1px solid transparent; letter-spacing: 0.02em;
   }
-  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #6A33D8; }
-  .btn-ghost:hover { border-color: var(--lava); color: #6A33D8; background: rgba(171,135,67,0.06); }
+  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #D0473E; }
+  .btn-ghost:hover { border-color: var(--lava); color: #D0473E; background: rgba(171,135,67,0.06); }
   .btn-solid { background: var(--lava); color: var(--bg); }
   .btn-solid:hover { opacity: 0.92; }
-  .btn-live { background: transparent; border-color: rgba(0,74,43,0.9); color: #6A33D8; }
-  .btn-live:hover { background: #6A33D8; color: #F7F5F2; }
+  .btn-live { background: transparent; border-color: rgba(0,74,43,0.9); color: #D0473E; }
+  .btn-live:hover { background: #D0473E; color: #FFFFFF; }
 
   /* ─── Pipeline flow ─────────────────────────────────────────────── */
   .flow {
@@ -216,7 +216,7 @@
     display: flex; align-items: center; gap: 12px; padding: 12px 16px;
     border-bottom: 1px solid var(--line); background: var(--bg);
   }
-  #preview-modal .pm-title { font-family: 'Lora', serif; font-size: 16px; color: #6A33D8; font-weight: 600; }
+  #preview-modal .pm-title { font-family: 'Lora', serif; font-size: 16px; color: #D0473E; font-weight: 600; }
   #preview-modal .pm-badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lava);
     border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
   #preview-modal .pm-spacer { flex: 1; }
@@ -226,7 +226,7 @@
   #preview-modal .pm-detail:hover { opacity: 0.92; }
   #preview-modal .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059;
     width: 34px; height: 34px; border-radius: 8px; font-size: 18px; line-height: 1; }
-  #preview-modal .pm-close:hover { border-color: var(--lava); color: #6A33D8; }
+  #preview-modal .pm-close:hover { border-color: var(--lava); color: #D0473E; }
   #preview-modal .pm-body { flex: 1; position: relative; background: var(--bg); overflow-y: auto; }
   #preview-modal .pm-body-content { max-width: 760px; margin: 0 auto; padding: 26px 28px 40px; }
   #preview-modal .pm-lead { font-size: 15px; line-height: 1.65; color: #111111; margin: 0 0 22px; }
@@ -279,7 +279,7 @@
     </p>
     <div class="hero-actions">
       <button class="kbd-hint" id="home-signin" type="button" hidden
-        style="background:var(--lava,#D0473E);color:#0a1410;font-weight:800;border:none;padding:11px 20px;border-radius:10px;cursor:pointer">
+        style="background:var(--lava,#6A33D8);color:#0a1410;font-weight:800;border:none;padding:11px 20px;border-radius:10px;cursor:pointer">
         Sign in with Google
       </button>
       <button class="kbd-hint" id="cmdk-open" type="button">
@@ -287,9 +287,9 @@
       </button>
     </div>
     <p class="legal-links" style="margin:16px 0 0;font-size:13px;color:var(--muted,#6b7568)">
-      <a href="/privacy" style="color:var(--lava,#D0473E)">Privacy Policy</a>
+      <a href="/privacy" style="color:var(--lava,#6A33D8)">Privacy Policy</a>
       &nbsp;·&nbsp;
-      <a href="/terms" style="color:var(--lava,#D0473E)">Terms</a>
+      <a href="/terms" style="color:var(--lava,#6A33D8)">Terms</a>
     </p>
   </section>
   <script>
@@ -319,10 +319,10 @@
   <section class="v3d-showcase" aria-label="Official Website Designs — 3D store preview" style="margin:8px 0 26px;border:1px solid var(--line,rgba(171,135,67,.2));border-radius:18px;overflow:hidden;background:#07100d;position:relative">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;flex-wrap:wrap">
       <div>
-        <div class="section-label" style="color:var(--lava,#D0473E)">Official Website Designs · V2</div>
-        <div style="font-family:'Lora',Georgia,serif;font-size:18px;margin-top:2px;color:#F7F5F2">The store, as a live 3D scene</div>
+        <div class="section-label" style="color:var(--lava,#6A33D8)">Official Website Designs · V2</div>
+        <div style="font-family:'Lora',Georgia,serif;font-size:18px;margin-top:2px;color:#FFFFFF">The store, as a live 3D scene</div>
       </div>
-      <a href="/3d" class="btn" style="text-decoration:none;padding:8px 14px;border-radius:10px;background:var(--lava,#D0473E);color:#0a1410;font-weight:800">Open full view →</a>
+      <a href="/3d" class="btn" style="text-decoration:none;padding:8px 14px;border-radius:10px;background:var(--lava,#6A33D8);color:#0a1410;font-weight:800">Open full view →</a>
     </div>
     <div data-knickgasm3d data-region="us" id="v3d-home" style="width:100%;height:340px"></div>
   </section>

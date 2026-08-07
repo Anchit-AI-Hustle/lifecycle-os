@@ -8,14 +8,20 @@ The OS generates brand-compliant HTML landing pages and serves them from a singl
 
 ### Airbrush presell matrix
 
-The repo contains a set of **Coffee Collection presell landing pages** organised as a motivation matrix, targeting the distinct reasons a Streetwear Optimiser reaches for the product:
+`landing-pages/airbrush-matrix/` holds the **8 angles x 8 variants** presell grid. Each angle is a design collection, targeting the distinct reason a buyer commissions a one-of-one pair:
 
-- **Ambition** — the productivity/drive angle.
-- **Anxiety** — the calm/stress-relief angle.
-- **Productivity** — the sustained-focus angle.
-- **Grail-Drop presell** — dedicated pages built around the grail-drop/stress-hormone narrative.
+- **anime** — fandom identity; the Naruto, Demon Slayer, and One Piece grails.
+- **football** — club and player loyalty; CR7, Messi, Manchester United customs.
+- **cars** — build culture; BMW, Ferrari, GT-R pairs.
+- **gaming** — player identity and streamer culture.
+- **wedding** — occasion; pairs customised to the outfit, planned around the 10 to 15 day build.
+- **gifting** — buying for someone else; denim jackets, accessories, occasion commissions.
+- **pets** — the personal-portrait commission.
+- **bling** — crystal and embroidery finish work on top of a painted base.
 
-Each presell page leads with the felt problem and the daily pair as the answer, staying inside the brand's restraint (functional benefit, never a miracle claim; no banned phrases).
+Each collection folder carries `VariantA` through `VariantE` (with B1-B4 sub-variants) plus its own `index.html`. **Grail-Drop presell** pages (`landing-pages/final/*grail-drop*`, `knickgasm-grail-drop-presell-v5-variant{A,B}.html`) sit alongside the matrix and run the drop narrative for the high-ticket silhouettes.
+
+Each presell page leads with the felt reason someone wants this exact pair, then earns it with the craft: original base, hand-painted by India's best artists, sealed water and scratch resistant finish, made to order in 10 to 15 days. Stay inside the brand's restraint (real craft proof, never an exaggerated claim; no banned phrases).
 
 ### Agent landing pages
 
@@ -37,12 +43,14 @@ Platform push to ad networks remains **Phase 2** (`push_status: not_integrated_p
 
 Non-negotiable, identical to the brand foundation:
 
-- **Palette:** only deep purple `#6A33D8`, lava `#D0473E`, near-black `#111111`, chalk `#F7F5F2`. No off-palette tints.
+- **Palette:** only lava red `#D0473E`, drip purple `#6A33D8`, near-black `#111111`, chalk `#FFFFFF`. No off-palette tints.
 - **Typography:** Headings Montserrat (fallback Raleway, Georgia, serif); Body Instrument Sans (fallback Helvetica Neue, Arial, sans-serif). No other font as the primary family.
 - **No on-image text.** Image-generation prompts must instruct "NO text" — copy is laid over images with real type, never baked into the generated pixels. (The image cascade — Gemini native to Gemini Imagen to OpenAI to Pollinations — carries this instruction.)
-- **Single-studio provenance imagery.** Show origin: studios, hand-painted panel, the roast, the lace-up, the ritual moment. Prefer warm, sensory, story-led visuals over stocky product-on-white unless the layout calls for a clean hero.
+- **Single-studio provenance imagery.** Show the making: the Mumbai studio bench, the artist's hand mid-brushstroke, airbrush gradients on the toe box, masking tape coming off, the cured pair under studio light, the lace-up. Prefer warm, sensory, story-led visuals over stocky product-on-white unless the layout calls for a clean hero.
+- **Show the real base.** Product imagery must read as a genuine Air Force 1, Jordan Low, Dunk, Court Vision, Converse, or Samba. Never render a generic or invented silhouette.
 - **Copy discipline.** Banned phrases and em/en dashes are forbidden on pages exactly as in mailers; use the preferred lexicon (ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted).
-- **Offer framing follows the playbook** — subscription-first for coffee/supplements, one-time for sneakers, discounts only for the Curious Switcher / discount-responsive cohort (see `04-offers-and-mechanics.md`).
+- **Offer framing follows the playbook** — one-time commission framing for every pair, replenishment framing for accessories and care, discounts only for the Curious Switcher / discount-responsive cohort (see `04-offers-and-mechanics.md`).
+- **Every price is region-correct.** USD from `products_us.json`, GBP from `products_uk.json`. Never carry a price across regions.
 
 ## Related surfaces
 

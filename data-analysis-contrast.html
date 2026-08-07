@@ -6,9 +6,9 @@
 <title>Data Analysis — KNICKGASM Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <style>
-  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#F7F5F2}
-  #analytics-frame{display:block;width:100%;height:100%;border:0;background:#F7F5F2}
-  #load-state{position:fixed;inset:0;display:grid;place-items:center;background:#6A33D8;color:#F7F5F2;font-family:Arial,sans-serif;font-weight:700;letter-spacing:.04em;z-index:10}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#FFFFFF}
+  #analytics-frame{display:block;width:100%;height:100%;border:0;background:#FFFFFF}
+  #load-state{position:fixed;inset:0;display:grid;place-items:center;background:#D0473E;color:#FFFFFF;font-family:Arial,sans-serif;font-weight:700;letter-spacing:.04em;z-index:10}
 </style>
 </head>
 <body>
@@ -20,51 +20,51 @@
   const loader=document.getElementById('load-state');
   const css=`
     :root{
-      --violet:#6A33D8!important;
-      --lava:#D0473E!important;
+      --violet:#D0473E!important;
+      --lava:#6A33D8!important;
       --ink:#111111!important;
-      --chalk:#F7F5F2!important;
-      --bg:#F7F5F2!important;
+      --chalk:#FFFFFF!important;
+      --bg:#FFFFFF!important;
       --surface:#FFFFFF!important;
       --tile:#FFFFFF!important;
-      --chip:#F7F5F2!important;
-      --line:#D0473E!important;
+      --chip:#FFFFFF!important;
+      --line:#6A33D8!important;
       --soft:#31483B!important;
-      --head:#6A33D8!important;
+      --head:#D0473E!important;
       --accent:#8A682F!important;
-      --c1:#6A33D8!important;
-      --c2:#D0473E!important;
+      --c1:#D0473E!important;
+      --c2:#6A33D8!important;
       --c3:#18794E!important;
       --c4:#9B3A2E!important;
       --c5:#305C89!important;
       --c6:#6A3D7A!important;
     }
-    html,body{background:#F7F5F2!important;color:#111111!important}
+    html,body{background:#FFFFFF!important;color:#111111!important}
     body{min-height:100vh!important}
     .wrap{max-width:1440px!important;padding:30px 28px 110px!important}
-    h1,h2,h3,.sig-head,.sig-v,.w .wt,.bignum{color:#6A33D8!important}
+    h1,h2,h3,.sig-head,.sig-v,.w .wt,.bignum{color:#D0473E!important}
     .eyebrow{color:#8A682F!important}
     p.lede,.kpi .kl,.kpi .kd,.sig-sub,.sig-h,.sig-d,.w .ws,.legend,.note,.empty,.heat td.lbl,.heat th{color:#31483B!important}
-    .mkt{background:#F7F5F2!important;border:1px solid #D0473E!important;box-shadow:0 2px 10px rgba(0,74,43,.08)!important}
-    .mkt button{color:#6A33D8!important}
+    .mkt{background:#FFFFFF!important;border:1px solid #6A33D8!important;box-shadow:0 2px 10px rgba(0,74,43,.08)!important}
+    .mkt button{color:#D0473E!important}
     .mkt button:hover{background:#E9DDC6!important}
-    .mkt button.on{background:#6A33D8!important;color:#FFFFFF!important;box-shadow:0 0 0 2px #D0473E!important}
-    .kpi,.sig,.w{background:#FFFFFF!important;border:1px solid #D0473E!important;box-shadow:0 6px 18px rgba(0,74,43,.08)!important}
-    .kpi .kv{color:#6A33D8!important}
-    .kpi:hover,.sig:hover,.w.link:hover{border-color:#6A33D8!important;box-shadow:0 10px 26px rgba(0,74,43,.16)!important}
-    .sig-decomp,.insight{background:#F7F5F2!important;color:#111111!important;border:1px solid #D5C19A!important;border-left:4px solid #D0473E!important}
-    .sig-decomp b,.insight b{color:#6A33D8!important}
+    .mkt button.on{background:#D0473E!important;color:#FFFFFF!important;box-shadow:0 0 0 2px #6A33D8!important}
+    .kpi,.sig,.w{background:#FFFFFF!important;border:1px solid #6A33D8!important;box-shadow:0 6px 18px rgba(0,74,43,.08)!important}
+    .kpi .kv{color:#D0473E!important}
+    .kpi:hover,.sig:hover,.w.link:hover{border-color:#D0473E!important;box-shadow:0 10px 26px rgba(0,74,43,.16)!important}
+    .sig-decomp,.insight{background:#FFFFFF!important;color:#111111!important;border:1px solid #D5C19A!important;border-left:4px solid #6A33D8!important}
+    .sig-decomp b,.insight b{color:#D0473E!important}
     .w .open,.crumb{color:#76551F!important}
-    .w .open:focus-visible,.crumb:focus-visible,.btn-dl:focus-visible,.mkt button:focus-visible{outline:3px solid #D0473E!important;outline-offset:2px!important}
-    .tbl-wrap{border:1px solid #D0473E!important;background:#FFFFFF!important}
+    .w .open:focus-visible,.crumb:focus-visible,.btn-dl:focus-visible,.mkt button:focus-visible{outline:3px solid #6A33D8!important;outline-offset:2px!important}
+    .tbl-wrap{border:1px solid #6A33D8!important;background:#FFFFFF!important}
     table{color:#111111!important;background:#FFFFFF!important}
-    th{background:#6A33D8!important;color:#FFFFFF!important;border-bottom:2px solid #D0473E!important}
+    th{background:#D0473E!important;color:#FFFFFF!important;border-bottom:2px solid #6A33D8!important}
     td{color:#111111!important;border-bottom:1px solid #D8CCB6!important}
-    tbody tr:nth-child(even) td{background:#F7F5F2!important}
+    tbody tr:nth-child(even) td{background:#FFFFFF!important}
     tbody tr:hover td{background:#E7F0EB!important}
     .heat td{color:#111111!important}
-    .btn-dl{background:#6A33D8!important;color:#FFFFFF!important;border:1px solid #D0473E!important}
-    .datalink{color:#6A33D8!important;text-decoration-color:#D0473E!important}
+    .btn-dl{background:#D0473E!important;color:#FFFFFF!important;border:1px solid #6A33D8!important}
+    .datalink{color:#D0473E!important;text-decoration-color:#6A33D8!important}
     .kpi .up,.sig-decomp .up{color:#137547!important}
     .kpi .down,.sig-decomp .down{color:#A52A2A!important}
     svg text{fill:#111111!important;font-weight:600!important}
@@ -72,7 +72,7 @@
     svg line{stroke:#B9AA8C!important;stroke-opacity:.62!important}
     svg path[stroke]{stroke-width:2.5!important}
     svg circle{stroke:#FFFFFF!important;stroke-width:2!important}
-    [role="tooltip"],.tooltip,.chart-tooltip{background:#6A33D8!important;color:#FFFFFF!important;border:1px solid #D0473E!important;box-shadow:0 8px 24px rgba(0,0,0,.22)!important}
+    [role="tooltip"],.tooltip,.chart-tooltip{background:#D0473E!important;color:#FFFFFF!important;border:1px solid #6A33D8!important;box-shadow:0 8px 24px rgba(0,0,0,.22)!important}
     @media(max-width:700px){.wrap{padding:20px 14px 90px!important}.topbar{align-items:flex-start!important}}
   `;
   function apply(){

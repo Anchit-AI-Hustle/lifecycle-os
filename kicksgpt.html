@@ -11,7 +11,7 @@
      theme.css's --soft, which theme.css defines as a light DIM-TEXT colour
      (#556059). Mapping a surface to it produced light bubbles with light --ink
      text (unreadable). --card is the theme's card surface (#ffffff, dark). */
-  :root { --green:#6A33D8; --lava:#D0473E; --chalk:#F7F5F2; --canvas:var(--bg,#6A33D8); --panel:var(--surface,#075C39); --panel2:var(--card,#ffffff); --ink:var(--vh-ink,#F7F5F2); --dim:var(--ink-dim,#E4CF94); }
+  :root { --green:#D0473E; --lava:#6A33D8; --chalk:#FFFFFF; --canvas:var(--bg,#D0473E); --panel:var(--surface,#075C39); --panel2:var(--card,#ffffff); --ink:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,#E4CF94); }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--canvas); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--ink); }
   .shell { max-width:920px; margin:0 auto; padding:26px 18px 150px; }
@@ -91,7 +91,7 @@
 <script src="/chat-history.js"></script>
 <style>
   .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
-  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.4);background:rgba(171,135,67,.12);color:var(--lava,#D0473E);cursor:pointer}
+  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.4);background:rgba(171,135,67,.12);color:var(--lava,#6A33D8);cursor:pointer}
   .cbtn:hover{background:rgba(171,135,67,.22)}
   .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:#0b2c1c;border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.4)}
   .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#e8f0ea}
@@ -101,7 +101,7 @@
   .hempty{padding:14px;color:#cdbf9a;font-size:12px;text-align:center}
   .assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:6px 0 4px}
   .acard{background:rgba(4,32,20,.5);border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:12px 13px}
-  .acard .akind{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--lava,#D0473E);font-weight:800}
+  .acard .akind{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--lava,#6A33D8);font-weight:800}
   .acard .alabel{font-size:13px;color:#eaf2ec;margin:4px 0 9px;font-weight:600;line-height:1.3}
   .acard .arow{display:flex;gap:7px}
   .abtn{flex:1;text-align:center;font-size:11px;font-weight:700;padding:7px 8px;border-radius:8px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:#f0e6cf;cursor:pointer;text-decoration:none}

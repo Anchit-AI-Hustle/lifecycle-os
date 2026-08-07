@@ -105,7 +105,7 @@ buildMasterPrompt({
 
 ## 5. Knowledge base (brand truth — never drift)
 
-**Palette (ONLY four):** `#6A33D8` deep purple · `#D0473E` lava · `#111111` near-black · `#F7F5F2` chalk.
+**Palette (ONLY four — from knickgasm.com live theme):** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk.
 **Type (strict):** headings `'Montserrat'` (fallback Raleway, Georgia, serif); body `'Instrument Sans'` (fallback Helvetica Neue, Arial). No other primary fonts.
 **Voice:** warm, sensory, story-driven. **Prefer:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 **Banned:** streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No medical claims, no fake scarcity, no off-palette tints.

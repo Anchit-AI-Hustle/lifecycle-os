@@ -17,7 +17,7 @@ Analyze: `$ARGUMENTS`.
 1) Result table. 2) Verdict + confidence. 3) Next test card (Hypothesis | Change | Metric | Sample needed | Runtime estimate). If the data cannot support a verdict, say so — never fabricate certainty.
 
 ## Brand guardrails (always)
-- Palette #6A33D8 / #D0473E / #111111 / #F7F5F2; Montserrat headlines + Instrument Sans body.
+- Palette #D0473E / #6A33D8 / #111111 / #FFFFFF; Montserrat headlines + Instrument Sans body.
 - BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
 - Zero fabrication: never invent numbers, benchmarks, reviews, prices or URLs. Missing input -> ask for it or mark [DATA REQUIRED].
 - Mega-prompt discipline: be clear, concise and highly specific; every claim quotes the exact figure or line it came from.

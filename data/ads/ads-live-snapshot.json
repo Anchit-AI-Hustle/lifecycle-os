@@ -10,7 +10,7 @@
       "account_id": "1303870183798748",
       "table": "KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS",
       "used_for": "US direct-to-consumer storefront (knickgasm.com)",
-      "purpose": "The revenue account: coffee, airbrush and supplement scale campaigns plus evergreen sneaker, all landing on own site with the Meta pixel firing.",
+      "purpose": "The revenue account: coffee-ART and airbrush scale campaigns plus the evergreen custom-sneaker sets and the low-ticket accessories lane (rope laces, lace tags, care kits), all landing on own site with the Meta pixel firing.",
       "kpi": "roas",
       "attribution": "meta_pixel",
       "attribution_note": null,
@@ -35,7 +35,7 @@
     },
     {
       "key": "retail",
-      "account": "KNICKGASM USA - Sneaker Ad Account",
+      "account": "KNICKGASM USA - Retail Ad Account",
       "account_id": "804570870670763",
       "table": "KNICKGASM_DB.MAPLEMONK.USA_TEA_ADS_ADS_INSIGHTS",
       "used_for": "Retail sell-through at Target and Costco (third-party checkout)",
@@ -2235,7 +2235,7 @@
   ],
   "campaigns": [
     {
-      "campaign": "Conversion_BCAP_Coffee_NewB",
+      "campaign": "Conversion_BCAP_CoffeeArt_NewB",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2256,7 +2256,7 @@
       "kpi": "roas"
     },
     {
-      "campaign": "Conversion_Scale_Airbrush_NewB_SUPP",
+      "campaign": "Conversion_Scale_Airbrush_NewB_KICKS",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2279,7 +2279,7 @@
     {
       "campaign": "Target - In-house - Sales PageDeck Campaign",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_SALES",
       "ads": 44,
       "first_day": "2026-06-24",
@@ -2300,7 +2300,7 @@
     {
       "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_SALES",
       "ads": 30,
       "first_day": "2026-07-07",
@@ -2319,7 +2319,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "Old Evergreen Tea_Conversion",
+      "campaign": "Old Evergreen Kicks_Conversion",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2340,9 +2340,9 @@
       "kpi": "roas"
     },
     {
-      "campaign": "Traffic_Target_Statics_US_Coffee",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 15,
       "first_day": "2026-06-12",
@@ -2361,7 +2361,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "Conversion_Partnership_Coffee",
+      "campaign": "Conversion_Partnership_CoffeeArt",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2384,7 +2384,7 @@
     {
       "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 7,
       "first_day": "2026-05-25",
@@ -2405,7 +2405,7 @@
     {
       "campaign": "TARGET_Awareness_CAMP01",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 7,
       "first_day": "2026-05-22",
@@ -2426,7 +2426,7 @@
     {
       "campaign": "Target-Influencer-Link Click-Page Deck",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_SALES",
       "ads": 7,
       "first_day": "2026-07-16",
@@ -2445,7 +2445,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "SUPP_BCAP_Conversion",
+      "campaign": "ACC_BCAP_Conversion",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2468,7 +2468,7 @@
     {
       "campaign": "Costco-Traffic-Instacart-11th July",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 3,
       "first_day": "2026-07-11",
@@ -2531,7 +2531,7 @@
     {
       "campaign": "UGC Target JoinBrands - Traffic Campaign",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 4,
       "first_day": "2026-06-10",
@@ -2552,7 +2552,7 @@
     {
       "campaign": "DIG - Reach - Costco - Bay Area - Carousel (5)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 10,
       "first_day": "2026-07-17",
@@ -2571,7 +2571,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "tts_Coffee",
+      "campaign": "tts_CoffeeArt",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "LINK_CLICKS",
@@ -2594,7 +2594,7 @@
     {
       "campaign": "DIG - Reach - Costco - Bay Area - July 2026 - Founder Video",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 8,
       "first_day": "2026-07-17",
@@ -2636,7 +2636,7 @@
     {
       "campaign": "Social Media - Target Awareness",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 5,
       "first_day": "2026-06-04",
@@ -2657,7 +2657,7 @@
     {
       "campaign": "Target Sales Campaign - Statics Ads - 23 Jun",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_SALES",
       "ads": 2,
       "first_day": "2026-06-23",
@@ -2678,7 +2678,7 @@
     {
       "campaign": "DIG - Reach - Costco - Bay Area - Story Ads (6)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 12,
       "first_day": "2026-07-17",
@@ -2699,7 +2699,7 @@
     {
       "campaign": "DIG - Instacart - Awareness - Benefit Led (5)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 5,
       "first_day": "2026-07-17",
@@ -2718,9 +2718,9 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "DIG - TOF - Instant - Awareness - Summer Drinks (5)",
+      "campaign": "DIG - TOF - Instant - Awareness - Summer Drops (5)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 10,
       "first_day": "2026-07-17",
@@ -2741,7 +2741,7 @@
     {
       "campaign": "DIG - TOF - Instant - Awareness - Social Proof (5)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 5,
       "first_day": "2026-07-17",
@@ -2762,7 +2762,7 @@
     {
       "campaign": "DIG - TOF - Instant - Awareness - Value Packs (5)",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "LINK_CLICKS",
       "ads": 4,
       "first_day": "2026-07-17",
@@ -2783,7 +2783,7 @@
     {
       "campaign": "Costco_Awareness_Founder_Videos17072026",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 1,
       "first_day": "2026-07-17",
@@ -2802,7 +2802,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "Conversion_Tea_BOF",
+      "campaign": "Conversion_Kicks_BOF",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2825,7 +2825,7 @@
     {
       "campaign": "Trendyfavefinds - Target Awareness",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 1,
       "first_day": "2026-05-25",
@@ -2846,7 +2846,7 @@
     {
       "campaign": "Giveaway - Target - Engagement",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_ENGAGEMENT",
       "ads": 1,
       "first_day": "2026-07-10",
@@ -2865,7 +2865,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "Conversion_Scale_Triphala_NewB_SUPP",
+      "campaign": "Conversion_Scale_RopeLaces_NewB_ACC",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2886,7 +2886,7 @@
       "kpi": "roas"
     },
     {
-      "campaign": "Conversion_Scale_Psyllium_NewB_SUPP",
+      "campaign": "Conversion_Scale_LaceTags_NewB_ACC",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2907,7 +2907,7 @@
       "kpi": "roas"
     },
     {
-      "campaign": "Conversion_BCAP_Embroidery_Curcumin_NewB_SUPP",
+      "campaign": "Conversion_BCAP_Embroidery_Crystal_NewB_ACC",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2949,7 +2949,7 @@
       "kpi": "roas"
     },
     {
-      "campaign": "Conversion_Scale_Moringa_NewB_SUPP",
+      "campaign": "Conversion_Scale_CareKit_NewB_ACC",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",
@@ -2972,7 +2972,7 @@
     {
       "campaign": "Giveaway - Target",
       "account": "retail",
-      "account_name": "KNICKGASM USA - Sneaker Ad Account",
+      "account_name": "KNICKGASM USA - Retail Ad Account",
       "objective": "OUTCOME_AWARENESS",
       "ads": 1,
       "first_day": "2026-07-09",
@@ -2991,7 +2991,7 @@
       "kpi": "traffic"
     },
     {
-      "campaign": "Conversion_BCAP_Embroidery_Curcumin_NewB",
+      "campaign": "Conversion_BCAP_Embroidery_Crystal_NewB",
       "account": "dtc",
       "account_name": "Knickgasm India USA New EST Main Account",
       "objective": "OUTCOME_SALES",

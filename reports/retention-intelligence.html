@@ -6,7 +6,7 @@
 <title>Knickgasm D2C · Retention Intelligence</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
@@ -18,9 +18,9 @@
       colors: {
         bg:    { DEFAULT:'#0a1410', soft:'#0f1d18', card:'#142822', deep:'#06100c' },
         ink:   { DEFAULT:'#e8ede9', dim:'#9aaaa1', mute:'#5d6e64' },
-        green: { DEFAULT:'#6A33D8', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
-        lava:  { DEFAULT:'#D0473E', soft:'rgba(171,135,67,0.12)' },
-        chalk: '#F7F5F2',
+        green: { DEFAULT:'#D0473E', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
+        lava:  { DEFAULT:'#6A33D8', soft:'rgba(171,135,67,0.12)' },
+        chalk: '#FFFFFF',
         red:   '#ef4444',
         amber: '#f59e0b',
         blue:  '#3b82f6',
@@ -46,12 +46,12 @@
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
   .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:13px; color:#9aaaa1; transition:all .15s; cursor:pointer; }
   .nav-item:hover { background:rgba(171,135,67,0.08); color:#e8ede9; }
-  .nav-item.active { background:rgba(171,135,67,0.14); color:#F7F5F2; border-left:2px solid #D0473E; padding-left:10px; }
+  .nav-item.active { background:rgba(171,135,67,0.14); color:#FFFFFF; border-left:2px solid #6A33D8; padding-left:10px; }
   .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; }
-  .nav-item.active svg { opacity:1; color:#D0473E; }
+  .nav-item.active svg { opacity:1; color:#6A33D8; }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; transition:all .15s; user-select:none; }
-  .filter-chip:hover { border-color:#D0473E; color:#e8ede9; }
-  .filter-chip.active { background:#D0473E; color:#0a1410; border-color:#D0473E; }
+  .filter-chip:hover { border-color:#6A33D8; color:#e8ede9; }
+  .filter-chip.active { background:#6A33D8; color:#0a1410; border-color:#6A33D8; }
   .view { display:none; }
   .view.active { display:block; animation: fadeIn .25s ease; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
@@ -69,14 +69,14 @@
   .badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
   .b-US { background:rgba(59,130,246,0.15); color:#93c5fd; }
   .b-UK { background:rgba(234,88,12,0.15); color:#fdba74; }
-  .b-Global { background:rgba(171,135,67,0.18); color:#D0473E; }
+  .b-Global { background:rgba(171,135,67,0.18); color:#6A33D8; }
   .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#142822; }
   .seg-name { font-weight:700; font-size:13px; }
   .seg-meta { font-size:11px; color:#9aaaa1; margin-top:4px; }
   .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
   .modal-backdrop.open { display:flex; }
   .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:#0a1410; font-weight:600; border-radius:2px; }
-  .apex-tooltip-custom { background:#0a1410 !important; border:1px solid #D0473E !important; color:#e8ede9 !important; font-family:'Inter',sans-serif !important; }
+  .apex-tooltip-custom { background:#0a1410 !important; border:1px solid #6A33D8 !important; color:#e8ede9 !important; font-family:'Inter',sans-serif !important; }
   .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; }
   .delta-up { color:#22c55e; background:rgba(34,197,94,0.1); }
   .delta-down { color:#ef4444; background:rgba(239,68,68,0.1); }
@@ -1145,7 +1145,7 @@ const APEX_BASE = {
   }]
 };
 
-const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#D0473E' };
+const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#6A33D8' };
 
 // ─── 1. Executive Overview ──────────────────────────────────────────────
 function renderExec() {
@@ -1324,7 +1324,7 @@ function renderCampaigns(filter='') {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 240 },
     series: [{ name: 'Open rate lift vs baseline', data: subjectPerf.map((p) => +(p.lift * 100).toFixed(1)) }],
     xaxis: { categories: subjectPerf.map((p) => `${p.label} (${p.n})`), labels: { formatter: (v) => v + '%' } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { horizontal: true, borderRadius: 3 } },
     tooltip: { theme: 'dark', y: { formatter: (v) => v + '%' } },
   });
@@ -1385,7 +1385,7 @@ function renderSegments() {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 340 },
     series: [{ name: 'Customers', data: ltvBins }],
     xaxis: { categories: ltvBins.map((_, i) => i < 9 ? `$${i*100}-${(i+1)*100}` : '$900+') },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { borderRadius: 4 } },
     tooltip: { theme: 'dark' },
   });
@@ -1452,12 +1452,12 @@ function renderProducts() {
     ...APEX_BASE,
     chart: { ...APEX_BASE.chart, type: 'heatmap', height: 340 },
     series: matrix.map((row) => ({ name: row.name, data: row.data.map((c) => ({ x: c.x, y: +(c.y * 100).toFixed(0) })) })),
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { heatmap: { colorScale: { ranges: [
       { from: 0, to: 5, color: '#1a2820', name: '0–5%' },
       { from: 5, to: 15, color: '#3d4d2e', name: '5–15%' },
       { from: 15, to: 25, color: '#7a6a3a', name: '15–25%' },
-      { from: 25, to: 50, color: '#D0473E', name: '25–50%' },
+      { from: 25, to: 50, color: '#6A33D8', name: '25–50%' },
       { from: 50, to: 100, color: '#16a34a', name: '50%+' },
     ] } } },
     dataLabels: { enabled: true, style: { fontSize: '9px', colors: ['#e8ede9'] }, formatter: (v) => v + '%' },
@@ -1525,13 +1525,13 @@ function renderTime() {
     ...APEX_BASE,
     chart: { ...APEX_BASE.chart, type: 'heatmap', height: 380 },
     series,
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { heatmap: {
       colorScale: { ranges: [
         { from: 0, to: 0.001, color: '#0f1d18', name: 'no sends' },
         { from: 0.001, to: 20, color: '#3d4d2e', name: '<20%' },
         { from: 20, to: 35, color: '#7a6a3a', name: '20–35%' },
-        { from: 35, to: 50, color: '#D0473E', name: '35–50%' },
+        { from: 35, to: 50, color: '#6A33D8', name: '35–50%' },
         { from: 50, to: 70, color: '#16a34a', name: '50–70%' },
         { from: 70, to: 100, color: '#22c55e', name: '70%+' },
       ] }
@@ -1581,7 +1581,7 @@ function renderTime() {
     chart: { ...APEX_BASE.chart, type: 'radar', height: 280 },
     series: [{ name: 'Revenue index (Mon=100)', data: indexed }],
     xaxis: { categories: DAYS },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     fill: { opacity: 0.3 },
     markers: { size: 4 },
     tooltip: { theme: 'dark' },
@@ -1635,7 +1635,7 @@ function renderCohorts() {
     series: [{ name: 'Avg retention %', data: avgRet }],
     xaxis: { categories: avgRet.map((_, i) => 'M+' + i) },
     yaxis: { labels: { formatter: (v) => v + '%' } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     stroke: { curve: 'smooth', width: 2 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0 } },
     tooltip: { theme: 'dark', y: { formatter: (v) => v.toFixed(1) + '%' } },

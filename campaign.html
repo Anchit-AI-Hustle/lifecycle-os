@@ -7,10 +7,10 @@
   <!-- Load Supabase Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body style="margin: 0; padding: 0; background: #F7F5F2;">
-  <div id="loader" style="font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 100px 24px; color: #6A33D8;">
+<body style="margin: 0; padding: 0; background: #FFFFFF;">
+  <div id="loader" style="font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 100px 24px; color: #D0473E;">
     <div style="font-size: 24px; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.05em;">KNICKGASM</div>
-    <div style="font-size: 14px; color: #D0473E;">Retrieving campaign variant...</div>
+    <div style="font-size: 14px; color: #6A33D8;">Retrieving campaign variant...</div>
   </div>
 
   <script>
@@ -69,7 +69,7 @@
 
         if (!campaign || !campaign.html_content) {
           loader.innerHTML = `
-            <div style="font-size: 20px; font-weight: 600; color: #D0473E; margin-bottom: 8px;">Campaign Variant Not Found</div>
+            <div style="font-size: 20px; font-weight: 600; color: #6A33D8; margin-bottom: 8px;">Campaign Variant Not Found</div>
             <div style="font-size: 14px; color: #666;">No variant matches the path: <strong>${theme}</strong> (${variant.toUpperCase()}).</div>
           `;
           return;

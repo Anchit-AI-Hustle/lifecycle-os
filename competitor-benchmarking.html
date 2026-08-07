@@ -6,7 +6,7 @@
   <title>Competitor Benchmarking · KNICKGASM Lifecycle OS</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#6A33D8">
+  <meta name="theme-color" content="#D0473E">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="/auth.js?v=20260718light" defer></script>
@@ -17,10 +17,10 @@
     .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
     @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
-    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #D0473E; font-weight: 600; margin-bottom: 10px; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #6A33D8; font-weight: 600; margin-bottom: 10px; }
     .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
     h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-    h1 em { font-style: italic; color: #D0473E; }
+    h1 em { font-style: italic; color: #6A33D8; }
     .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
 
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 22px 0; }
@@ -33,16 +33,16 @@
     .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .search { position: relative; flex: 1; min-width: 220px; max-width: 420px; }
     .search input { width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 9px 11px 9px 34px; font-size: 13px; font-family: inherit; }
-    .search input:focus { outline: none; border-color: #D0473E; }
+    .search input:focus { outline: none; border-color: #6A33D8; }
     .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: #48524c; }
     .toolbar { row-gap: 14px; column-gap: 18px; }
     .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .filters .live { margin-left: 4px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
     select, .chk { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
     .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #556059; }
-    .chk input { accent-color: #D0473E; }
+    .chk input { accent-color: #6A33D8; }
     .btn-ghost { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; border-radius: 9px; padding: 8px 11px; cursor: pointer; font-family: inherit; }
-    .btn-ghost:hover { border-color: #D0473E; color: #111111; }
+    .btn-ghost:hover { border-color: #6A33D8; color: #111111; }
     .live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #16a34a; font-weight: 600; }
     .live.stale { color: #48524c; }
     .live .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: lp 1.8s ease-in-out infinite; }
@@ -73,8 +73,8 @@
     .actions { display: flex; gap: 6px; justify-content: flex-end; }
     .a-btn { font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; font-family: inherit; text-decoration: none; }
     .a-prev { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
-    .a-prev:hover { border-color: #D0473E; color: #111111; }
-    .a-detail { background: #D0473E; color: #ffffff; }
+    .a-prev:hover { border-color: #6A33D8; color: #111111; }
+    .a-detail { background: #6A33D8; color: #ffffff; }
     .a-detail:hover { opacity: 0.92; }
     .empty { padding: 40px; text-align: center; color: #48524c; }
     .count { margin-top: 12px; font-size: 11.5px; color: #48524c; }
@@ -107,31 +107,31 @@
     #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background: #f4f2ec; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
     #jm .mc, #fcm .mc { inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; height: auto; max-height: 90vh; }
     #pm .mh, #jm .mh, #fcm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
-    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #D0473E; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6A33D8; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
     #pm .mh .t, #jm .mh .t, #fcm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #pm .mh .sp, #jm .mh .sp, #fcm .mh .sp { flex: 1; }
     #pm .mb, #jm .mb, #fcm .mb { flex: 1; overflow-y: auto; padding: 18px; }
     .form-grp { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
     .form-grp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; }
     .form-grp input, .form-grp select { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px; color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
-    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #D0473E; }
+    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #6A33D8; }
     /* Brand-detail modal — mirrors the #pm preview modal chrome. */
     #bm { position: fixed; inset: 0; z-index: 9500; display: none; }
     #bm.open { display: block; }
     #bm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
     #bm .mc { position: absolute; inset: 4vh 4vw; background: #f4f2ec; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
     #bm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
-    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #D0473E; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6A33D8; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
     #bm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #bm .mh .sp { flex: 1; }
     #bm .mb { flex: 1; overflow-y: auto; padding: 18px; }
     /* Landing sub-tabs, groups, and follow chips */
-    .lp-subtab.active { background: #6A33D8; color: #F7F5F2; border-color: #6A33D8; }
+    .lp-subtab.active { background: #D0473E; color: #FFFFFF; border-color: #D0473E; }
     .lp-group { margin-top: 20px; }
-    .lp-group-h { font-family: 'Lora', serif; color: #6A33D8; font-size: 17px; margin: 0 0 10px; }
+    .lp-group-h { font-family: 'Lora', serif; color: #D0473E; font-size: 17px; margin: 0 0 10px; }
     .follow-wrap { display: inline-flex; gap: 6px; }
     .follow-chip { font: inherit; font-size: 11px; font-weight: 700; border: 1px solid rgba(171,135,67,0.4); background: #fff; color: #7a5f28; border-radius: 99px; padding: 3px 9px; cursor: pointer; }
-    .follow-chip.on { background: #6A33D8; color: #F7F5F2; border-color: #6A33D8; }
+    .follow-chip.on { background: #D0473E; color: #FFFFFF; border-color: #D0473E; }
     .follow-chip:disabled { opacity: 0.5; cursor: default; }
     .brand-link { cursor: pointer; }
     /* On a phone, use the entire screen so the email render gets every pixel. */
@@ -145,7 +145,7 @@
       .pm-close { width: 32px; height: 32px; }
     }
     .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
-    .pm-detail { background: #D0473E; color: #ffffff; }
+    .pm-detail { background: #6A33D8; color: #ffffff; }
     .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
 
     /* ── Section sub-nav (Mailers | Ads) + header CTAs ── */
@@ -156,9 +156,9 @@
     .snav.active { color: #111111; background: rgba(171,135,67,0.16); }
     .cb-cta-group { display: flex; flex-wrap: wrap; gap: 10px; }
     .cb-cta { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; white-space: nowrap; }
-    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #D0473E; }
-    .cb-cta-ghost:hover { border-color: #D0473E; color: #7a5f28; }
-    .cb-cta-solid { background: #D0473E; color: #ffffff; }
+    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #6A33D8; }
+    .cb-cta-ghost:hover { border-color: #6A33D8; color: #7a5f28; }
+    .cb-cta-solid { background: #6A33D8; color: #ffffff; }
     .cb-cta-solid:hover { opacity: 0.92; }
     @media (max-width: 620px) { .cb-actions { gap: 12px; } .cb-cta-group { width: 100%; } .cb-cta { flex: 1; text-align: center; } }
 
@@ -172,7 +172,7 @@
     .ad-card .ad-x { position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: #48524c; cursor: pointer; font-size: 15px; }
     .ad-card .ad-x:hover { color: #ef4444; }
     .ad-src { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); color: #556059; text-decoration: none; font-size: 12.5px; margin-bottom: 7px; transition: all .14s; }
-    .ad-src:hover { border-color: #D0473E; color: #111111; background: rgba(171,135,67,0.06); }
+    .ad-src:hover { border-color: #6A33D8; color: #111111; background: rgba(171,135,67,0.06); }
     .ad-src .src-ic { width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     .src-meta { background: rgba(59,130,246,0.2); color: #93c5fd; }
     .src-google { background: rgba(234,179,8,0.18); color: #fde047; }
@@ -192,7 +192,7 @@
     body.detail-mode #insights-view,
     body.detail-mode #cb-head { display: none; }
     body.detail-mode #detail { display: block; }
-    .back { display: inline-flex; align-items: center; gap: 6px; color: #D0473E; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: #6A33D8; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
     .detail-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
     @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
   </style>
@@ -343,7 +343,7 @@
 
   <!-- Column legend so the Newsletter / Subscription columns are self-explanatory -->
   <div style="background:rgba(171,135,67,0.04); border:1px solid rgba(171,135,67,0.15); border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:#556059; line-height:1.6">
-    <b style="color:#D0473E">Column key:</b>
+    <b style="color:#6A33D8">Column key:</b>
     <span style="margin:0 14px 0 6px"><b>Newsletter</b> — direct signup link for this brand's mailing list (opens in new tab).</span>
     <span style="margin-right:14px"><b>Follow (real-time)</b> — toggle <b>Mailers</b> and/or <b>Ads</b> to get a real-time email to your logged-in address for every new mailer or ad captured for that brand. <b>Newsletter</b> is a direct signup link for the brand's own list (opens a new tab).</span>
   </div>
@@ -406,9 +406,9 @@
     <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
       <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Trending Promotions</div>
       <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: #556059; line-height: 1.8;">
-        <li><span style="color:#D0473E; font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Sneaker &amp; Coffee brands.</li>
-        <li><span style="color:#D0473E; font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
-        <li><span style="color:#D0473E; font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
+        <li><span style="color:#6A33D8; font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Sneaker &amp; Coffee brands.</li>
+        <li><span style="color:#6A33D8; font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
+        <li><span style="color:#6A33D8; font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
       </ul>
     </div>
   </div>
@@ -949,7 +949,7 @@
             <a class="ad-src" style="margin:0;flex:1" href="${home}" target="_blank" rel="noopener">Website ↗</a>
             <a class="ad-src" style="margin:0;flex:1" href="${home}/collections" target="_blank" rel="noopener">Collections ↗</a>
           </div>
-          <button class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#6A33D8;color:#F7F5F2" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
+          <button class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#D0473E;color:#FFFFFF" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
           <div style="font-size:11px;color:#48524c;margin-top:8px">${esc(o.domain)}</div>
         </div>
       </div>`; }).join('') + (withDomain.length > MAX_TILES ? `<div class="count" style="grid-column:1/-1">Showing first ${MAX_TILES} of ${withDomain.length} brands — narrow the universe in Discover.</div>` : '') : '<div class="empty">No brands with a known domain yet — add some under <b>Discover Brands</b> (the brand DB stores each domain).</div>';
@@ -1064,7 +1064,7 @@
             <div style="font-weight:700;font-size:13px">${esc(it.brand || 'Unknown')}</div>
             ${it.headline ? `<div style="font-size:12px;color:#556059;margin:4px 0">${esc(String(it.headline).slice(0, 90))}</div>` : ''}
             <a class="ad-src" style="margin-top:6px" href="${esc(it.landing_url)}" target="_blank" rel="noopener">Open landing page ↗</a>
-            <div style="font-size:11px;color:#8a8a80;margin-top:6px">${it.captured_lp ? '📸 snapshot captured' : 'live destination'}${it.source_link ? ` · <a href="${esc(it.source_link)}" target="_blank" rel="noopener" style="color:#D0473E">source</a>` : ''}</div>
+            <div style="font-size:11px;color:#8a8a80;margin-top:6px">${it.captured_lp ? '📸 snapshot captured' : 'live destination'}${it.source_link ? ` · <a href="${esc(it.source_link)}" target="_blank" rel="noopener" style="color:#6A33D8">source</a>` : ''}</div>
           </div>
         </div>`).join('');
       return `<div class="lp-group"><h3 class="lp-group-h">${esc(g.platform)} <span style="color:#8a8a80;font-weight:400;font-size:13px">${g.items.length}</span></h3><div class="ad-grid">${cards}</div></div>`;
@@ -1115,7 +1115,7 @@
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const el = $('cb-insights-top');
     if (el) el.innerHTML = top.length
-      ? top.map(([b, n]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(171,135,67,0.08)"><span>${esc(b)}</span><b style="color:#D0473E">${n}</b></div>`).join('')
+      ? top.map(([b, n]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(171,135,67,0.08)"><span>${esc(b)}</span><b style="color:#6A33D8">${n}</b></div>`).join('')
       : '<div style="color:#48524c">No mailers captured yet. Subscribe brands under Discover to start the feed.</div>';
   }
   $('adRegion').addEventListener('change', renderAds);
@@ -1142,7 +1142,7 @@
         <td style="padding:9px 12px;color:#556059">${esc(b.category)}</td>
         <td style="padding:9px 12px;color:#556059">${esc(b.country)}</td>
         <td style="padding:9px 12px;color:#556059">${esc(b.positioning)}</td>
-        <td style="padding:9px 12px">${(b.newsletterSignupUrl || b.websiteUrl) ? `<a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#D0473E">Signup ↗</a>` : '<span style="color:#48524c">—</span>'}</td>
+        <td style="padding:9px 12px">${(b.newsletterSignupUrl || b.websiteUrl) ? `<a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#6A33D8">Signup ↗</a>` : '<span style="color:#48524c">—</span>'}</td>
         <td style="padding:9px 12px;white-space:nowrap">${followChips(b.brandName, b.domain || '')}</td>
       </tr>`).join('');
   }

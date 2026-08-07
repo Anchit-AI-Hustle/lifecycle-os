@@ -36,7 +36,7 @@
       "schema": "MAPLEMONK",
       "fresh_to": "2026-07-25",
       "partial_day": true,
-      "purpose": "US direct-to-consumer storefront. The revenue account: coffee, airbrush and supplement scale campaigns plus evergreen sneaker, all landing on knickgasm.com with the Meta pixel firing.",
+      "purpose": "US direct-to-consumer storefront. The revenue account: anime, football and coffee-ART design scale campaigns plus evergreen custom sneaker, all landing on knickgasm.com with the Meta pixel firing.",
       "used_for": "Prospecting and retargeting to own-site checkout",
       "kpi": "roas",
       "attribution": "meta_pixel",
@@ -356,7 +356,7 @@
       "schema": "MAPLEMONK",
       "fresh_to": "2026-07-25",
       "partial_day": true,
-      "purpose": "Google Ads bought through Ampd to drive traffic to KNICKGASM ASINs on amazon.com and amazon.ca. One campaign per ASIN — Crimson, Amla, Moringa, Curcumin, Dandelion Root, Pastel and so on.",
+      "purpose": "Google Ads bought through Ampd to drive traffic to KNICKGASM ASINs on amazon.com and amazon.ca. One campaign per ASIN — Chunky Rope Laces, Custom Lace Tags, Ultimate Sneaker Care Kit, hand-painted denim jackets and so on.",
       "used_for": "Amazon marketplace demand capture",
       "kpi": "traffic",
       "attribution": "marketplace",
@@ -475,7 +475,7 @@
         "spend": 40314.74,
         "attributed_sales": 23264.68,
         "roas": 0.58,
-        "note": "Blended Roundel ROAS is 0.58. The spread is wide: \"Coffee - Ingredients\" returns 1.95 on $2,327.44 at a 3.94% CTR, while the three Manual powder lines (Airbrush_Powder_M1, Curry_Powder_M1, Moringa_Powder_M1) burn $15,636.48 combined at 0.09 to 0.42."
+        "note": "Blended Roundel ROAS is 0.58. The spread is wide: \"CoffeeArt - Designs\" returns 1.95 on $2,327.44 at a 3.94% CTR, while the three Manual accessory lines (RopeLaces_M1, LaceTags_M1, CareKit_M1) burn $15,636.48 combined at 0.09 to 0.42."
       }
     },
     {
@@ -489,7 +489,7 @@
       "schema": "MAPLEMONK1",
       "fresh_to": "2026-07-22",
       "partial_day": false,
-      "purpose": "The same Roundel spend broken out by keyword (98,647 rows). Use it to find which Target search terms carry the winning campaigns and which are draining the manual powder lines.",
+      "purpose": "The same Roundel spend broken out by keyword (98,647 rows). Use it to find which Target search terms carry the winning campaigns and which are draining the manual accessory lines.",
       "used_for": "Target search-term diagnosis",
       "kpi": "roas",
       "attribution": "target_attributed_sales",

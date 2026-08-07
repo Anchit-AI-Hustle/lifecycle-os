@@ -14,8 +14,8 @@
 > - **(A) Competitive Intelligence (CI) Collection System** — continuously
 >   discover, collect, normalize, dedupe, store and enrich competitor **ads**,
 >   **emails**, **landing pages**, plus first-class **offers** and reconstructed
->   **funnels**, scaling to 500+ DTC brands across sneaker / coffee / supplements /
->   streetwear.
+>   **funnels**, scaling to 500+ DTC brands across custom sneakers / sneaker
+>   resale / streetwear / sneaker care and accessories.
 > - **(B) KNICKGASM Smart Brain** — Knowledge Base (own catalog/assets/historical
 >   campaigns) + Data Analysis Engine + Competitor Benchmarking (a separate
 >   real-time stream, logically isolated from own-data) + Calendar Intelligence
@@ -126,7 +126,7 @@ Migration target for the legacy Google Sheet "Competitors" tab (columns A–R in
 | `brand_name` | text | display name |
 | `website_url` | text | real homepage |
 | `domain` | text | **dedup key**, `normalizeDomain()` (lowercased, no scheme/www) |
-| `category` | text | sneaker / coffee / functional-coffee / supplements / streetwear … |
+| `category` | text | custom-sneakers / sneaker-resale / streetwear / sneaker-care / accessories … |
 | `country` | text | |
 | `positioning` | text | Premium / Mass / Luxury |
 | `newsletter_signup_url`, `popup_signup`, `sms_signup` | text/bool | for the auto-subscribe worker |
@@ -220,7 +220,7 @@ Every ad/email/landing page can yield 0..n structured offers.
 | `value_unit` | text | `percent` / `currency` |
 | `currency` | text | USD / GBP / EUR / INR |
 | `code` | text | promo code if any |
-| `product_category` | text | sneaker / coffee / supplements … (for "free-gift offers on coffee" queries) |
+| `product_category` | text | sneakers / denim / laces / care-kits … (for "free-gift offers on sneakers" queries) |
 | `min_spend`, `gift_description`, `subscription_discount` | numeric/text/numeric | |
 | `source_kind`, `source_id` | text/uuid | which ad/email/landing produced it |
 | `first_seen`, `last_seen` | timestamptz | offer duration window |
@@ -624,7 +624,7 @@ already applied per router. Mutating actions require `CRON_SECRET` (cron) or
 | POST | `landing-collect` | `{ url, brand_id, source_kind, source_id }` | upsert by `url_hash` → `{ ok, status }` |
 | GET | `landing-list` | `brand_id?`, `source_kind?`, `search?` | `{ ok, pages:[ci_landing_pages] }` |
 | GET | `landing-diff` | `id` or `url_hash` | `{ ok, versions:[ci_asset_versions] }` (pricing/hero/offer changes over time) |
-| GET | `offers-query` | `offer_type?`, `product_category?`, `country?`, `brand_id?`, `from?`, `to?` | `{ ok, offers:[ci_offers] }` — e.g. `?action=offers-query&offer_type=free_gift&product_category=coffee&country=US&from=2026-05-18` answers *"free-gift offers on coffee in US in last 30 days"* |
+| GET | `offers-query` | `offer_type?`, `product_category?`, `country?`, `brand_id?`, `from?`, `to?` | `{ ok, offers:[ci_offers] }` — e.g. `?action=offers-query&offer_type=free_gift&product_category=sneakers&country=US&from=2026-05-18` answers *"free-gift offers on sneakers in US in last 30 days"* |
 | POST | `funnel-reconstruct` | `{ brand_id }` | builds `ci_funnels` from ads+emails+landing by time/offer correlation → `{ ok, funnels:[…] }` |
 | GET | `funnel-list` | `brand_id`, `entry_point?` | `{ ok, funnels:[ci_funnels] }` |
 | GET/POST | `brands` / `discover` / `seed` / `mark-subscribed` *(exist)* | — | brand registry + discovery (unchanged) |
@@ -680,7 +680,7 @@ already applied per router. Mutating actions require `CRON_SECRET` (cron) or
     "meta":   { "primary_texts": [], "headlines": [], "media_ref": "" },
     "tiktok": { "video_brief": "", "captions": [], "music_hint": "" }
   },
-  "guardrails": { "palette": ["#6A33D8","#D0473E","#111111","#F7F5F2"],
+  "guardrails": { "palette": ["#D0473E","#6A33D8","#111111","#FFFFFF"],
                   "banned_phrases_checked": true },
   "verification_status": "pending"
 }

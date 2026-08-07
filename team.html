@@ -7,12 +7,12 @@
 <style>
   /* Violet-green canvas, consistent with the locked shell theme (theme.css).
      --ink stays dark for text ON the lava badge/button; body text is chalk. */
-  :root{--moss:#6A33D8;--chalk:#F7F5F2;--lava:#D0473E;--ink:#111111;
-    --canvas:var(--bg,#6A33D8);--panel:var(--surface,#075C39);--panel2:var(--chip,#f4f2ec);
-    --txt:var(--vh-ink,#F7F5F2);--dim:var(--ink-dim,#E4CF94);--line:rgba(171,135,67,0.28)}
+  :root{--moss:#D0473E;--chalk:#FFFFFF;--lava:#6A33D8;--ink:#111111;
+    --canvas:var(--bg,#D0473E);--panel:var(--surface,#075C39);--panel2:var(--chip,#f4f2ec);
+    --txt:var(--vh-ink,#FFFFFF);--dim:var(--ink-dim,#E4CF94);--line:rgba(171,135,67,0.28)}
   *{box-sizing:border-box}
   body{margin:0;background:var(--canvas);color:var(--txt);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;line-height:1.55}
-  .head{background:#6A33D8;color:var(--chalk);padding:18px 22px}
+  .head{background:#D0473E;color:var(--chalk);padding:18px 22px}
   .head h1{font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;margin:0}
   .head .sub{color:rgba(251,245,234,.75);font-size:13px;margin-top:4px}
   .badge{display:inline-block;background:var(--lava);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
@@ -20,7 +20,7 @@
   .msg{margin:14px 0;display:flex;gap:10px}
   .msg .who{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--lava);font-weight:700;min-width:64px;padding-top:3px}
   .msg .body{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;white-space:pre-wrap;flex:1}
-  .msg.user .body{background:#6A33D8;color:var(--chalk);border-color:#6A33D8}
+  .msg.user .body{background:#D0473E;color:var(--chalk);border-color:#D0473E}
   .data{margin-top:10px;font-size:12px;color:var(--dim);background:rgba(0,0,0,.22);border-radius:8px;padding:8px 10px;overflow:auto}
   .empty{color:var(--dim);text-align:center;padding:40px 0}
   .bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px}

@@ -52,7 +52,7 @@ function main() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KNICKGASM USA July · Calendar + Mailer Studio</title>
 <style>
-  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--line:#e6dcc7;--muted:#7a6e5a;}
+  :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--line:#e6dcc7;--muted:#7a6e5a;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--chalk);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
   a{color:var(--green);}

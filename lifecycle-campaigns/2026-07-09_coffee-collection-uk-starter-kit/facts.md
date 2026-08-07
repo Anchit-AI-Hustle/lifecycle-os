@@ -1,47 +1,82 @@
-# LOCKED FACTS - Coffee Collection Starter Kit · KNICKGASM UK · 9 Jul 2026
+# LOCKED FACTS - Coffee Collection UK Launch Kit · KNICKGASM UK · 9 Jul 2026
 
-Single source of truth for the three assets in this campaign (Meta ad, landing page, email).
-Nothing outside this file may be claimed as fact. Every figure below was verified LIVE from the
-Shopify PDP JSON on 9 Jul 2026 (`https://knickgasm.com/products/pack-1-starter-coffee-collection.json`).
+Single source of truth for the four assets in this campaign (strategy, Meta ad, landing page, email).
+Nothing outside this file may be claimed as fact. Every product figure below comes from the repo
+catalog `data/catalog/products_uk.json` (GBP, UK region file); brand claims come from
+`api/_shared/master-prompt.js` BRAND_BLOCK.
 
 ## Store
 - Market: UK
 - Base URL: `https://knickgasm.com`
 - Currency: GBP (£)
-- Vendor as returned live: KNICKGASM® UK
+- Brand: KNICKGASM, India's largest sneaker customisers
 
-## Product (the offer for this run)
-- Name (exact, live): **Coffee Collection Starter Kit (1 Pack + 6 FREE Gifts worth £40)**
-- Handle (verified live): `pack-1-starter-coffee-collection`
-- Product URL: `https://knickgasm.com/products/pack-1-starter-coffee-collection`
-- Price (verified live): **£44.99**
-- Variant (verified live): **40 Servings · 90-Day Money Back Guarantee**
-- Included: **1 coffee pack + 6 free gifts worth £40** (the "6 gifts worth £40" is stated in the
-  product title itself; the individual gift items are NOT enumerated here because they were not
-  itemised in the live PDP body - do not list specific gift names we cannot verify).
-- Formula (verified live body copy): **Pure Arabica coffee blended with KSM-66® Airbrush and
-  adaptogens** to support stress relief and help you feel more balanced naturally.
+## Collection (the offer for this run)
+- Collection: **Coffee Collection**, hand-painted coffee-art custom sneakers
+- Collection URL (real slug): `https://knickgasm.com/collections/coffee-air-forces`
+- These are SNEAKERS with coffee-inspired artwork. No drink, brewing, serving,
+  or consumption language anywhere in any asset.
+
+## Products (verified from `data/catalog/products_uk.json`, prices GBP)
+
+| Product (exact catalog name) | Price | Compare-at | Handle |
+|---|---|---|---|
+| Coffee (Rope Laces) x Nike Court Vision | £89.09 | £104.00 | `nike-court-vision-x-coffee-with-chunky-rope-laces-1` |
+| Nike Court Vision Mid x Mocha | £97.01 | £115.49 | `nike-court-vision-mid-x-coffee-mocha` |
+| Coffee Dip x Nike Air Force 1 | £108.27 | £145.15 | `nike-air-force-1-coffee-dip-rope-laces` |
+| Coffee Cartoon (Brown Swoosh) x Nike Air Force 1 | £117.36 | £156.48 | `nike-air-force-1-x-coffee-brown-swoosh` |
+| Coffee (Black Swoosh) x Nike Air Force 1 | £117.36 | £156.48 | `nike-air-force-1-x-coffee-black-swoosh` |
+| Cartooned Coffee Dip x Nike Air Force 1 | £117.36 | £156.48 | `nike-air-force-1-cartooned-x-coffee-dip-rope-laces` |
+| Coffee Black Studded Swoosh x Nike Air Force 1 | £130.97 | £174.63 | `nike-air-force-1-x-coffee-x-black-swoosh` |
+| Nike Air Jordan 1 Lows x Coffee | £141.91 | £190.26 | `nike-air-jordan-1-lows-x-coffee-dip-rope-laces` |
+| Cartoon Coffee Nike Air Jordan 1 Lows | £148.27 | £182.70 | `nike-air-jordan-1-lows-x-cartooned-coffee-dip-rope-laces` |
+| Adidas Sambas x mocha coffee | £152.73 | £161.82 | `adidas-sambas-x-coffee-dip` |
+
+Also catalog-verified (mocha colourway pairs surfaced by the same search, usable if an asset
+needs an extra tile, same rules apply):
+
+| Product (exact catalog name) | Price | Compare-at | Handle |
+|---|---|---|---|
+| Nike Air Force 1 x Mocha | £115.82 | £154.42 | `nike-air-force-1-x-mocha-pastel` |
+| Mocha Brown Comic x Nike Air Force 1 | £117.36 | £156.48 | `nike-air-force-1-x-brown-comic` |
+
+- Price range across the core collection: **£89.09 to £152.73**
+- Product URL pattern: `https://knickgasm.com/products/{handle}`
+- Image URLs: ONLY the `cdn.shopify.com/s/files/1/0754/4094/7522/...` URLs recorded in the
+  catalog JSON for these exact handles. Never invent an image URL.
+
+## Approved brand claims (BRAND_BLOCK, usable verbatim)
+- Made on 100% original brand sneakers
+- Hand-painted by India's best artists
+- One-of-one custom sneakers
+- Water & scratch resistant designs
+- Express shipping worldwide (60+ countries)
+- Worn by Samay Raina, Rohit Sharma, Shraddha Kapoor (organic)
 
 ## Claim rules (compliance)
-- Structure-function language ONLY, using the product's own live wording: "support stress relief",
-  "feel more balanced naturally", "a steadier start", "lift without the jitter" (framing of the
-  coffee experience, not a medical claim).
-- NO disease/medical claims. No "cures", "treats", "reduces grail-drop by X%", "anti-inflammatory",
-  no quantified physiological claims. Airbrush is described as an adaptogen, nothing more.
-- Do NOT invent servings, paint mg, additional adaptogens (e.g. Lion's Mane / Embroidery / Chaga),
-  gift item names, subscription pricing, or a discount percentage - none of those were verified live
-  for THIS SKU. If a figure is not in this file, it may not appear in an asset.
+- ZERO drink language: nothing brewed, roasted, sipped, poured or served, no cup or drink
+  framing, no "coffee order" framing. Coffee appears ONLY as art, colourway, and culture.
+- No invented discounts, percentages, review counts, ratings, guarantees, delivery-time
+  promises, or scarcity. Compare-at prices may be shown only as recorded in the catalog.
+- No counterfeit or replica implication: always "made on 100% original brand sneakers".
+- No health or medical language of any kind. KNICKGASM sells artwork on footwear.
+- If a figure is not in this file, it may not appear in an asset.
 
-## Brand constants (enforced in all three assets)
-- Palette (ONLY): `#6A33D8` deep purple · `#D0473E` lava · `#111111` near-black · `#F7F5F2` chalk
-- Headings font stack: `'Montserrat','Raleway',Georgia,serif`
-- Body font stack: `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
+## Brand constants (enforced in all assets)
+- Palette (ONLY): `#D0473E` lava red (primary accent) · `#6A33D8` drip purple (secondary) ·
+  `#111111` ink (text + primary buttons, white text on ink) · `#FFFFFF` white (background)
+- Headings: `'Montserrat','Raleway',Arial,sans-serif` (700/800)
+- Body: `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
 - No em/en dashes anywhere in copy (commas, colons, plain hyphens only).
-- Banned phrases: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps),
+- Banned phrases: streetwear journey, transform, liquid gold, game-changer, LIMITED TIME (caps),
   hurry, don't miss out, last chance, while supplies last.
-- Preferred: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
+- Preferred: custom, hand-painted, one-of-one, grail, canvas, colorway, drop, rotation, crafted, original.
+- Never black or dark-neutral section backgrounds (use red or white); WCAG-AA contrast.
 
-## The offer + CTA (single, consistent across all three assets)
-- Offer: the Starter Kit - 1 pack of Coffee Collection plus 6 free gifts worth £40, at £44.99,
-  backed by the 90-day money-back guarantee.
-- Primary CTA copy: **Start the ritual** → `https://knickgasm.com/products/pack-1-starter-coffee-collection`
+## The offer + CTA (single, consistent across all assets)
+- Offer: the Coffee Collection, hand-painted coffee-art customs on 100% original Nike AF1,
+  Jordan 1, Court Vision and Adidas Sambas, from £89.09, express shipped to the UK.
+- Shared hook (message spine for ad, landing page, email):
+  **"Coffee tones, hand-painted on original Nikes."**
+- Primary CTA copy: **Shop the Coffee Collection** → `https://knickgasm.com/collections/coffee-air-forces`
+- Product CTAs deep-link to `https://knickgasm.com/products/{handle}` from the table above.

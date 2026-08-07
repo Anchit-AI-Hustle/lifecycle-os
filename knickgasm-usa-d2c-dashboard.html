@@ -30,7 +30,7 @@
 @font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");}
 @font-face{font-family:"Instrument Sans";src:url("https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npSTF-Tf8kywN2u7ZWwUbNA.woff2") format("woff2");}
 :root{--font-head:"Montserrat",Georgia,serif;--font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
---green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;}
+--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-body);color:var(--ink);background:var(--chalk);line-height:1.5}
 h1,h2,h3,h4,.heading{font-family:var(--font-head)}
@@ -161,7 +161,7 @@ footer{text-align:center;font-size:11px;color:#999;padding:20px}
 
 
 /* Contrast/readability hardening (WCAG-AA): never light-on-light or dark-on-dark.
-   Lava (#D0473E) as TEXT on chalk/white fails AA (~3.2:1) and white on lava fails
+   Lava (#6A33D8) as TEXT on chalk/white fails AA (~3.2:1) and white on lava fails
    (~3.4:1); darken lava text on light, and use ink on lava fills. */
 .srcline b,.insight .lbl,.clickhint,.info,.carhead,.granseg .granlbl,.granseg button[data-g="custom"],.caryr .info{color:#7a5a1e !important}
 .gtbar .gtapply,.pgctl button.pgnum.on{color:#111111 !important}
@@ -197,7 +197,7 @@ Chart.register(ChartDataLabels);
 Chart.defaults.font.family="Instrument Sans, Arial";
 Chart.defaults.plugins.datalabels.color='#111111';
 Chart.defaults.plugins.legend.labels.font={size:11};
-const GREEN='#6A33D8',LAVA='#D0473E',INK='#111111',GREEN2='#2e7d5b';
+const GREEN='#D0473E',LAVA='#6A33D8',INK='#111111',GREEN2='#2e7d5b';
 D.access_audit={app:"Shopify Claude Connector App",store:"KNICKGASM® USA — knickgasm.com (Shopify Plus)",pulled:"17 Jul 2026",granted_n:59,granted:["read_all_orders","read_analytics","read_companies","read_legal_policies","read_reports","read_checkouts","read_checkout_branding_settings","read_content","read_customers","read_discounts","read_draft_orders","read_files","read_fulfillments","read_inventory","read_locales","read_locations","read_marketing_events","read_markets","read_merchant_managed_fulfillment_orders","read_metaobject_definitions","read_metaobjects","read_online_store_navigation","read_order_edits","read_orders","read_price_rules","read_products","read_publications","read_returns","read_shipping","read_themes","read_translations","read_validations","write_checkouts","write_checkout_branding_settings","write_content","write_customers","write_discounts","write_draft_orders","write_files","write_fulfillments","write_inventory","write_locales","write_locations","write_marketing_events","write_markets","write_merchant_managed_fulfillment_orders","write_metaobject_definitions","write_metaobjects","write_online_store_navigation","write_order_edits","write_orders","write_price_rules","write_products","write_publications","write_returns","write_shipping","write_themes","write_translations","write_validations"],denied:[["staffMembers","Staff users, roles & permissions","Access denied — no user/staff read scope on the connector"],["appInstallations","Installed apps & their granted scopes","Access denied — no app-read scope"],["scriptTags","Storefront script injectors","Access denied"]],channels:["Online Store","Google & YouTube","Facebook & Instagram","Point of Sale","Pinterest","TikTok","Shop","Attentive","GrowLTV","Wizzy Blogs","Inbox","Instant","tectonic-commerce","Zaymo","Shopify GraphiQL App"],webhooks:0};
 D.app_audit={total:69,spend:"~$843/mo + Loop txn fees + Flype per-order",savings:"$300-430/mo",
  keep:[["Loop Subscriptions","Core recurring-revenue engine"],["Klaviyo","Primary owned email/SMS channel"],["Amazon MCF (WebBee)","Amazon is ~13.9x D2C sales - fulfilment essential"],["MapleMonk","Amazon/Snowflake data source behind this review"],["Yotpo Reviews","17.5k reviews drive PDP conversion"],["Matrixify","Bulk import/export in your workflow"],["Simprosys GMC","$4.99 Google Shopping feed"],["Shopify Flow / Bundles / Checkout Blocks","Native/Plus automation & merchandising"]],
@@ -312,8 +312,8 @@ function tvRender(g){
  document.querySelectorAll('#tvseg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-g')===g));
  if(tvChart)tvChart.destroy();
  tvChart=new Chart(el,{data:{labels:d.labels,datasets:[
-   {type:'bar',label:'Net sales',data:d.net,backgroundColor:'#6A33D8',yAxisID:'y',datalabels:{display:true,anchor:'end',align:'top',font:{size:6.5,weight:'700'},color:'#6A33D8',formatter:function(v){return v==null?'':'$'+(v/1000).toFixed(0)+'k';}}},
-   {type:'line',label:'Orders',data:d.orders,borderColor:'#D0473E',backgroundColor:'#D0473E',yAxisID:'y1',tension:.3,datalabels:{display:true,anchor:'end',align:'bottom',offset:3,font:{size:6.5,weight:'700'},color:'#D0473E',formatter:function(v){return v==null?'':numf(v);}}}]},
+   {type:'bar',label:'Net sales',data:d.net,backgroundColor:'#D0473E',yAxisID:'y',datalabels:{display:true,anchor:'end',align:'top',font:{size:6.5,weight:'700'},color:'#D0473E',formatter:function(v){return v==null?'':'$'+(v/1000).toFixed(0)+'k';}}},
+   {type:'line',label:'Orders',data:d.orders,borderColor:'#6A33D8',backgroundColor:'#6A33D8',yAxisID:'y1',tension:.3,datalabels:{display:true,anchor:'end',align:'bottom',offset:3,font:{size:6.5,weight:'700'},color:'#6A33D8',formatter:function(v){return v==null?'':numf(v);}}}]},
   options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:function(c){return c.dataset.label==='Orders'?'Orders: '+numf(c.raw):'Net sales: '+money(c.raw);}}}},
    scales:{x:{ticks:{maxRotation:(g==='day'?90:0),autoSkip:true,font:{size:8}}},
      y:{position:'left',title:{display:true,text:'net sales'},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}},
@@ -363,7 +363,7 @@ const yoy=(a,b)=>((b-a)/a*100);
 const yoyS=(a,b)=>(b>=a?'+':'')+yoy(a,b).toFixed(1)+'%';
 // tooltip that flags 2026 as a part-year (YTD) so a shorter bar isn't misread as a decline
 const ytdTip={tooltip:{callbacks:{afterLabel:function(c){return String(c.label)==='2026'?'Part-year: Jan 1 - Jul 16, 2026 (YTD) - not a full year':'';}}}};
-const ytdNote='<div class="insight" style="background:#eef4f0;border-left-color:#6A33D8">2026 shows <b>actual gross to date ($0.59M, Jan 1 - 16 Jul)</b> - it is a partial year, not a decline, so it is not comparable to the full years next to it. On a like-for-like H1 (Jan-Jun) basis, 2026 gross is <b>+42% ahead of the same period in 2025</b>.</div>';
+const ytdNote='<div class="insight" style="background:#eef4f0;border-left-color:#D0473E">2026 shows <b>actual gross to date ($0.59M, Jan 1 - 16 Jul)</b> - it is a partial year, not a decline, so it is not comparable to the full years next to it. On a like-for-like H1 (Jan-Jun) basis, 2026 gross is <b>+42% ahead of the same period in 2025</b>.</div>';
 // smart labels for line series: show value at the peak and the latest point only (keeps lines readable)
 function lineLabels(fmt){return {display:function(ctx){return ctx.dataset.data[ctx.dataIndex]!=null;},
   anchor:'end',align:'top',offset:3,font:{size:7,weight:'700'},clamp:true,

@@ -66,7 +66,7 @@ const REVISE_SYSTEM = `You are the Creative Director + Director of Growth at KNI
 HARD RULES:
 - Return the COMPLETE revised spec as STRICT JSON with EXACTLY the same schema and top-level keys as the input (synthesis, strategy, vibe, product_logic, theme, image_style_lock, variant_a, variant_b — keep any extra keys the input has). Do not drop, rename, or add top-level keys.
 - Keep product names, prices, and URLs from the input verbatim — never invent SKUs.
-- Palette ONLY #6A33D8 / #D0473E / #111111 / #F7F5F2. Headings Montserrat, body Instrument Sans.
+- Palette ONLY #D0473E / #6A33D8 / #111111 / #FFFFFF. Headings Montserrat, body Instrument Sans.
 - BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last.
 - PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 - Variant B must stay structurally opposite to Variant A (narrative-led, no product grids, understated CTA).

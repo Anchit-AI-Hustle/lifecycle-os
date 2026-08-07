@@ -28,7 +28,7 @@ const REGION_HOSTS: Record<KnickgasmRegion, RegExp> = {
 };
 
 const DEFAULT_THEME: ShopifyThemeSettings = {
-  colors: { primary: '#6A33D8', accent: '#D0473E' },
+  colors: { primary: '#D0473E', accent: '#6A33D8' },
   typography: { bodyFamily: 'Instrument Sans' },
   assets: {},
 };

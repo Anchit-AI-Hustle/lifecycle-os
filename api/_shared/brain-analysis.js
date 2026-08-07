@@ -67,7 +67,9 @@ function legacyDefineCohorts(users) {
   const daysSince = (ts) => (ts ? Math.floor((now - new Date(ts).getTime()) / day) : 9999);
   const defs = [
     { key: 'vip_ritualists', name: 'VIP Ritualists', test: (u) => u.orders_count >= 8 && u.total_spent >= 300, definition: { rule: 'orders_count >= 8 AND total_spent >= 300', intent: 'retention + early access' } },
-    { key: 'wellness_seekers', name: 'Streetwear Seekers', test: (u) => (u.categories || []).some((c) => ['streetwear', 'themed', 'sleep'].includes(c)), definition: { rule: "categories ∩ {streetwear,themed,sleep} ≠ ∅", intent: 'streetwear-benefit angle' } },
+    // key kept ('wellness_seekers') so stored cohort references stay valid; the
+    // segment is really fandom / self-expression buyers.
+    { key: 'wellness_seekers', name: 'Streetwear Seekers', test: (u) => (u.categories || []).some((c) => ['streetwear', 'themed', 'sleep'].includes(c)), definition: { rule: "categories ∩ {streetwear,themed,sleep} ≠ ∅", intent: 'self-expression and fandom angle' } },
     { key: 'chai_loyalists', name: 'Kicks Loyalists', test: (u) => (u.categories || []).includes('kicks'), definition: { rule: "'kicks' ∈ categories", intent: 'kicks stories, replenishment' } },
     { key: 'gift_buyers', name: 'Gift Buyers', test: (u) => (u.categories || []).includes('gift') || (u.categories || []).includes('gear'), definition: { rule: "gift|gear ∈ categories", intent: 'festival gifting funnels' } },
     { key: 'new_customers', name: 'New Customers (≤60d)', test: (u) => daysSince(u.first_order_at) <= 60, definition: { rule: 'first_order ≤ 60 days', intent: 'onboarding funnel, second purchase' } },

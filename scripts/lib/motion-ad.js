@@ -17,13 +17,31 @@
 //   - scene rhythm ~2-3s with soft crossfades, hard cut only into the CTA,
 //   - one grade across scenes (the brand veil), safe-areas respected.
 //
-// Brand: palette #6A33D8 / #D0473E / #111111 / #F7F5F2 only; Montserrat serif
+// Brand: palette #D0473E / #6A33D8 / #111111 / #FFFFFF only; Montserrat serif
 // headlines + Instrument Sans body (with fallbacks); no banned phrases (the
 // caller passes copy that already went through sanitizeBrand()).
 
 'use strict';
 
-const PALETTE = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2' };
+const PALETTE = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF' };
+// NOTE: the historic var names are kept for callers; `green` now carries the brand
+// PRIMARY (lava red #D0473E) and `lava` the SECONDARY (drip purple), matching the
+// live knickgasm.com theme.
+
+// Original, royalty-free brand audio beds (synthesized by scripts/gen-brand-audio.py).
+// Every motion/video ad ships with a bed so exports are never silent.
+const AUDIO = {
+  hero:       '/assets/media/knickgasm-brand-beat.wav',      // 32s full bed
+  reels:      '/assets/media/knickgasm-reels-loop.wav',      // 16s cutdown
+  underscore: '/assets/media/knickgasm-ad-underscore.wav',   // 22s under-VO bed
+};
+function audioTrack(spec) {
+  if (spec && spec.audio === false) return null;             // explicit opt-out
+  if (spec && typeof spec.audio === 'string') return spec.audio;  // caller override
+  const total = spec && spec.__totalSeconds;
+  if (spec && spec.voiceover) return AUDIO.underscore;
+  return total && total <= 18 ? AUDIO.reels : AUDIO.hero;
+}
 
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -99,6 +117,7 @@ function renderMotionAd(spec) {
   </section>`);
   });
   const ctaStart = ((total - 2.2) / total) * 100;
+  const track = audioTrack(Object.assign({ __totalSeconds: total }, spec));
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -143,6 +162,9 @@ function renderMotionAd(spec) {
     .ken, .kin, .cta, .bar { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
     .kin, .cta { opacity: 1 !important; transform: none !important; }
   }
+  .sound { position:absolute; right:5%; top:4%; z-index:5; border:0; cursor:pointer;
+           background:rgba(17,17,17,.55); color:var(--chalk); font:600 11px/1 'Instrument Sans',Arial,sans-serif;
+           letter-spacing:.12em; padding:8px 11px; border-radius:999px; backdrop-filter:blur(4px); }
 </style></head>
 <body>
 <div class="stage" role="img" aria-label="${esc(spec.product || 'KNICKGASM')} advertisement">
@@ -155,7 +177,24 @@ ${sceneCss.length ? `<style>${sceneCss.join('\n')}</style>` : ''}
     ${spec.footnote ? `<div class="fn">${esc(spec.footnote)}</div>` : ''}
   </div>
   <div class="bar"></div>
+${track ? `  <audio id="bed" src="${track}" ${loop ? 'loop' : ''} preload="auto" autoplay muted></audio>
+  <button class="sound" type="button" aria-label="Toggle sound">SOUND ON</button>` : ''}
 </div>
+${track ? `<script>
+  (function(){
+    var a=document.getElementById('bed'), b=document.querySelector('.sound');
+    if(!a||!b) return;
+    // Browsers block audible autoplay: start muted, let the first tap unmute —
+    // the same pattern Reels/TikTok previews use.
+    b.addEventListener('click', function(){
+      a.muted=!a.muted; b.textContent=a.muted?'SOUND ON':'SOUND OFF';
+      if(!a.muted){ a.currentTime=0; a.play().catch(function(){}); }
+    });
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden) a.pause(); else if(!a.muted) a.play().catch(function(){});
+    });
+  })();
+</script>` : ''}
 </body></html>`;
 }
 
@@ -165,6 +204,7 @@ ${sceneCss.length ? `<style>${sceneCss.join('\n')}</style>` : ''}
  * generate_video), then assemble per the timeline.
  */
 function motionBrief(spec) {
+  const total = normalizeScenes(spec).reduce((a, s) => a + s.seconds, 0) + 2.2;
   const scenes = normalizeScenes(spec);
   let t = 0;
   const shots = scenes.map((s, i) => {
@@ -187,7 +227,14 @@ function motionBrief(spec) {
     product: spec.product || '',
     grade: 'one filmic grade across all shots; brand veil deep-purple to ink, lava accents',
     hook_rule: 'first shot must move within 0.8s; type punches in with it',
-    audio: 'licensed/original only - never rip a trending sound for a paid ad',
+    audio: {
+      bed: audioTrack(Object.assign({ __totalSeconds: total }, spec)),
+      note: 'KNICKGASM-owned original bed (scripts/gen-brand-audio.py) - 90 BPM, F minor, ' +
+            'seamless loop, royalty-free for paid use. Never rip a trending sound for a paid ad.',
+      mix: 'bed at -18 LUFS under voiceover, -14 LUFS music-forward; duck 6 dB under any VO; ' +
+           'hard-out on the CTA card downbeat',
+      captions: 'burn in captions - most feed views start muted',
+    },
     shots,
     cta_card: { duration_s: 2.2, headline: spec.ctaHeadline || spec.cta || 'Lace-up something better',
                 offer: spec.offer || null, button: spec.cta || 'Shop now',
@@ -196,4 +243,4 @@ function motionBrief(spec) {
   };
 }
 
-module.exports = { renderMotionAd, motionBrief, PALETTE };
+module.exports = { renderMotionAd, motionBrief, PALETTE, AUDIO, audioTrack };

@@ -165,7 +165,7 @@ function mergeDeep(base, over) {
 
 // ── Brand kit ────────────────────────────────────────────────────────────────
 const FALLBACK_BRAND = {
-  palette: { forest_green: '#6A33D8', lava: '#D0473E', near_black: '#111111', chalk: '#F7F5F2' },
+  palette: { forest_green: '#D0473E', lava: '#6A33D8', near_black: '#111111', chalk: '#FFFFFF' },
   typography: {
     headings: { fallback: "'Montserrat','Raleway',Georgia,serif" },
     body: { fallback: "'Instrument Sans','Helvetica Neue',Arial,sans-serif" },
