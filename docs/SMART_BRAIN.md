@@ -72,7 +72,7 @@ The linked DB uses the public anon key committed in `data/linked-db.json` with p
 
 ## Voice agents (the telecalling substitute)
 
-Telecalling held ROAS 3.5–4 because explaining value conversationally beats text. The agents reproduce that mode at zero marginal cost: brand-level "Knickgasm", product-level "Coffee Collection Expert", collection-level guides — each scoped to its slice of the catalog, each honest about price (per-pair math) and duration (2–4 weeks for adaptogens). Voice in/out runs in-browser (Web Speech API) with optional ElevenLabs premium voice via `ELEVENLABS_API_KEY`. Generated mailers and landing pages carry a "Talk to the Knickgasm expert" CTA that deep-links to `/agent`. Shopify embed: one script tag per theme/collection/product template (`agent-widget.js`, `data-agent=`).
+Telecalling held ROAS 3.5–4 because explaining value conversationally beats text. The agents reproduce that mode at zero marginal cost: brand-level "Knickgasm", collection-level experts (coffee-ART, anime, football, wedding), base-model guides (Air Force 1, Jordan Lows, Court Vision) — each scoped to its slice of the catalog, each honest about price (what a hand-painted one-of-one on an original base actually costs) and about the 10 to 15 day made-to-order build. Voice in/out runs in-browser (Web Speech API) with optional ElevenLabs premium voice via `ELEVENLABS_API_KEY`. Generated mailers and landing pages carry a "Talk to the Knickgasm expert" CTA that deep-links to `/agent`. Shopify embed: one script tag per theme/collection/product template (`agent-widget.js`, `data-agent=`).
 
 ## Phase 2 (excluded by design)
 

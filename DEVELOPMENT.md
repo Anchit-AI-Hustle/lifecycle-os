@@ -257,8 +257,8 @@ CSV/XLSX exports (Matrixify · Shopify Analytics · Klaviyo · WebEngage)
 
 ## 9. Guardrails (why generated output stays on-brand)
 
-- **Brand palette (4 colours only):** `#6A33D8` deep purple · `#D0473E` lava ·
-  `#111111` ink · `#F7F5F2` chalk. Type: Montserrat headings + Instrument Sans body.
+- **Brand palette (4 colours only):** `#D0473E` deep purple · `#6A33D8` lava ·
+  `#111111` ink · `#FFFFFF` chalk. Type: Montserrat headings + Instrument Sans body.
   Enforced in the image-prompt preambles in `api/ai/image.js`
   (`IMAGE_PROMPT_PREAMBLE`, `DESIGN_PROMPT_PREAMBLE`, `AD_PROMPT_PREAMBLE`,
   `QUALITY_SUFFIX`) and the pipeline HTML system prompts.

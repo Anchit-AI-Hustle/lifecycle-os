@@ -11,7 +11,7 @@
  * run copy through scenario-model.sanitizeBrand / assertNoBanned first.
  */
 
-const PAL = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2' };
+const PAL = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF' };
 
 // Market-aware shipping line. The old renderer hardcoded a US-only "$59" string
 // onto every region's mailer/ad; this keeps the country + currency correct.

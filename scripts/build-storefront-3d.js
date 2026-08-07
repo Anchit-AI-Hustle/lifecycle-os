@@ -19,7 +19,7 @@ const REGION = {
   uk:     { code: 'UK', cur: '£', live: 'knickgasm.com',  tryd: 'knickgasm.com',  label: 'United Kingdom' },
   global: { code: 'Global', cur: '$', live: 'knickgasm.com',  tryd: 'try.knickgasm.com', label: 'Global' },
 };
-const PAL = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2', panel: '#FFFFFF' };
+const PAL = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF', panel: '#FFFFFF' };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function load(region) {

@@ -164,7 +164,7 @@
       '.xsplit{display:grid;grid-template-columns:1fr 1fr;gap:12px}.xform-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}',
       '.xform-row{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0;font-size:12.5px}.xform-row:last-child{border:0}',
       '.xswitch{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--head)}.xswitch input{width:17px;height:17px;accent-color:var(--violet)}',
-      '.xreview-note{margin:0 0 10px}.xreview-frame{display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:#F7F5F2;min-height:800px}',
+      '.xreview-note{margin:0 0 10px}.xreview-frame{display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:#FFFFFF;min-height:800px}',
       '.xplatform{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}.xplatform:last-child{border:0}',
       '.xmetric-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.xmetric{border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:12px}.xmetric b{color:var(--head)}',
       '@media(max-width:900px){.xcard,.xcard.span4,.xcard.span8{grid-column:span 12}.xsplit,.xform-grid{grid-template-columns:1fr}.xhead{align-items:stretch}.xcontrols{align-items:stretch}.xfield{flex:1 1 130px}}',
@@ -304,7 +304,7 @@
         state.lastPayload.mailer = d; var k = d.kpis || {}, s = d.sources || {};
         var klOn = !!(s.klaviyo && s.klaviyo.connected), weOn = !!(s.webengage && s.webengage.connected);
         var connectBanner = (!klOn && !weOn)
-          ? '<div class="xcard span12" style="border-left:4px solid var(--lava,#D0473E)"><h3>No mailer source connected</h3><p>Klaviyo and WebEngage are not connected, so every figure below is zero (nothing is estimated). To populate this tab with real data, set <code>KLAVIYO_API_KEY</code> (and the WebEngage export vars) in Vercel, then refresh. Read only, never written back.</p></div>'
+          ? '<div class="xcard span12" style="border-left:4px solid var(--lava,#6A33D8)"><h3>No mailer source connected</h3><p>Klaviyo and WebEngage are not connected, so every figure below is zero (nothing is estimated). To populate this tab with real data, set <code>KLAVIYO_API_KEY</code> (and the WebEngage export vars) in Vercel, then refresh. Read only, never written back.</p></div>'
           : '';
         var campaigns = (d.campaigns || []).map(function (c) { return [c.source, c.campaign, c.status || '—', dateTime(c.sent_at), c.events == null ? '—' : fmt(c.events), c.opens == null ? '—' : fmt(c.opens), c.clicks == null ? '—' : fmt(c.clicks), c.conversions == null ? '—' : fmt(c.conversions), c.revenue == null ? '—' : money(c.revenue)]; });
         var segments = (d.segments || []).map(function (x) { return [x.name || x.id, fmt(x.profile_count), dateTime(x.synced_at || x.klaviyo_updated)]; });
@@ -430,7 +430,7 @@
       if (!d || !w) return;
       var style = d.getElementById('embedded-business-review-css') || d.createElement('style');
       style.id = 'embedded-business-review-css';
-      style.textContent = '.topbar,.gtbar,footer{display:none!important}body{background:#F7F5F2!important}.tab{display:none!important}.tab.active{display:block!important}main{max-width:none!important;padding:18px 14px 50px!important}.modal{z-index:9999!important}.histpage{z-index:9999!important}';
+      style.textContent = '.topbar,.gtbar,footer{display:none!important}body{background:#FFFFFF!important}.tab{display:none!important}.tab.active{display:block!important}main{max-width:none!important;padding:18px 14px 50px!important}.modal{z-index:9999!important}.histpage{z-index:9999!important}';
       if (!style.parentNode) d.head.appendChild(style);
       if (typeof w.show === 'function') w.show(index);
       state.reviewReady = true;

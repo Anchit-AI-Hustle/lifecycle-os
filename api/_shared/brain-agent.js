@@ -248,13 +248,16 @@ async function syncKnowledge(agentId) {
   return { agent: agentId, knowledge_items: rows.length, scraped: targets.length };
 }
 
-const WELLNESS_FACTS = `
-Grounded product-education facts (use honestly, no medical claims):
-- Airbrush: adaptogen; typical perceived effects (calmer stress response, better sleep quality) build over 2–4 WEEKS of consistent daily use, not instantly.
-- Embroidery colorways: curcumin absorbs better with black pepper (piperine); daily ritual over weeks, not a quick fix.
-- Green/white sneakers: L-theanine + lower paint → smooth alertness without the crash.
-- Value framing: a 100g box ≈ 50 pairs → roughly $0.40–0.60 per pair vs $5 cafe drinks; packed at origin within days of drop (fresher than store sneaker that ages 6–24 months in warehouses).
-- KNICKGASM is carbon & plastic neutral, ships direct from India.`;
+// Craft/product-education facts used in the agent system prompt.
+const CRAFT_FACTS = `
+Grounded product-education facts (use honestly, never overclaim):
+- Every pair starts as a 100% original sneaker (Nike Air Force 1, Jordan, Dunk, Court Vision, Converse, Adidas Samba) — we customise, we never replicate.
+- Hand-painted one-of-one: made to order by India's best sneaker artists, typically 10–15 days from order to dispatch. That wait is the product, not a delay.
+- Paint system: layered, sealed and cured so the artwork is water & scratch resistant and flexes with the leather instead of cracking at the toe box.
+- Airbrush work is best for gradients and skies; brush detail for character linework; embroidery and crystal (bling) work are add-ons on top of the painted base.
+- Care: wipe with a damp microfibre, no machine wash, no direct heat. Restoration and touch-ups are possible because the artwork is hand-applied.
+- Value framing: a one-of-one pair nobody else on earth owns, built on an original silhouette — compare it to the sneaker plus a commissioned artwork, not to a stock retail pair.
+- KNICKGASM ships express from Mumbai to 60+ countries; worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.`;
 
 async function chat({ agentId, sessionId, message, context = {}, history = [], scope = 'buyer' }) {
   const agent = await getAgent(agentId);
@@ -301,7 +304,7 @@ TONE: ${persona.tone || 'warm, knowledgeable, never pushy'}. Brand voice: ${bran
 GOALS: ${(persona.goals || ['educate', 'guide', 'justify value honestly']).join('; ')}.
 
 OBJECTION HANDLING: ${JSON.stringify(persona.objection_handling || {})}.
-${WELLNESS_FACTS}
+${CRAFT_FACTS}
 
 CATALOG YOU CAN RECOMMEND (only these; include the link when recommending):
 ${catalogLines}
@@ -313,9 +316,9 @@ RULES — CLEAR AND TO-THE-POINT:
 - LEAD with the direct answer in your FIRST sentence. Answer the exact question asked before anything else.
 - Then at most 2–4 short supporting sentences (the why / the relevant product / the honest caveat). Then OPTIONALLY one short follow-up question — only if it genuinely helps.
 - No rambling, no filler, no preamble ("great question", "happy to help"), and do NOT repeat brand/value boilerplate (per-pair math, origin-freshness, certifications) in every reply — bring those up ONLY when the question is about price or worth.
-- Be honest about durations and effects; set expectations (2–4 weeks for adaptogens). No medical claims, no cure language.
+- Be honest about lead times and finish; set expectations (10–15 days made-to-order, hand-painted so tiny variations are the signature, not a flaw). Never overpromise on delivery dates or durability.
 - If asked something outside KNICKGASM products/sneaker/streetwear, say so briefly and steer back in one sentence.
-- COMPETITOR & PRICING POLICY: you only ever recommend KNICKGASM products (the catalog above), never a competitor. Do NOT quote, confirm, estimate, or look up another brand's prices, and never suggest or point the customer to a cheaper brand as the better deal. If a customer asks you to compare prices or name a cheaper option, do not give competitor figures; instead reframe the conversation onto VALUE and make KNICKGASM the most reasonable choice on what actually makes a pair worth it: the real per-pair cost, one-of-one studio-fresh quality within 72 hours, clinically studied KSM-66, the free gifts and the money-back guarantee. Stay honest and on-brand: champion KNICKGASM's value in your own words, but never invent a competitor's number and never claim KNICKGASM is literally the cheapest if that is not something you can stand behind, sell the worth, not a false price.
+- COMPETITOR & PRICING POLICY: you only ever recommend KNICKGASM products (the catalog above), never a competitor. Do NOT quote, confirm, estimate, or look up another brand's prices, and never suggest or point the customer to a cheaper brand as the better deal. If a customer asks you to compare prices or name a cheaper option, do not give competitor figures; instead reframe the conversation onto VALUE and make KNICKGASM the most reasonable choice on what actually makes a pair worth it: what a hand-painted one-of-one actually costs, an original Nike/Jordan/Adidas base rather than a copy, a water & scratch resistant paint system, express worldwide shipping and the free gifts. Stay honest and on-brand: champion KNICKGASM's value in your own words, but never invent a competitor's number and never claim KNICKGASM is literally the cheapest if that is not something you can stand behind, sell the worth, not a false price.
 - Reply in the user's language if they switch (incl. Hindi/Hinglish). Stay spoken-friendly (this may be read aloud).
 - Write the way you speak: complete, flowing sentences only. NO markdown, headings, bullet or numbered lists, tables, asterisks, or emoji — if you name a few products, say them inside a sentence, never as a list.` + EVIDENCE_RULES + BRAND_GUARDRAILS;
 
@@ -452,7 +455,7 @@ MISSION: turn data into decisions. Help staff diagnose performance, prioritise g
 
 TONE: direct, senior, concise. Lead with the answer and the number; no filler, no hedging, no motivational fluff.
 
-BRAND VOICE (only when drafting CUSTOMER-FACING copy): prefer ${(brand.preferred_lexicon || []).join(', ')}; never use ${(brand.banned_phrases || []).join(', ')}; palette #6A33D8/#D0473E/#111111/#F7F5F2; headings Montserrat, body Instrument Sans.
+BRAND VOICE (only when drafting CUSTOMER-FACING copy): prefer ${(brand.preferred_lexicon || []).join(', ')}; never use ${(brand.banned_phrases || []).join(', ')}; palette #D0473E/#6A33D8/#111111/#FFFFFF; headings Montserrat, body Instrument Sans.
 
 ${dataBlock}${contextBlock}
 

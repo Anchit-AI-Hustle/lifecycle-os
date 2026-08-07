@@ -1,229 +1,3539 @@
 {
-  "_doc": "Festivals + cultural moments by market. Keys = market code. Each entry: { date (MM-DD), name, weight (1-10 commercial relevance), tags, archetype_hint, recommended_segments }. Universal coverage across every market KNICKGASM ships to.",
-
-  "US": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset","streetwear"],         "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "01-15", "name": "MLK Day weekend",           "weight": 5,  "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 8,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "03-17", "name": "St. Patrick's Day",         "weight": 4,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Champions","Loyal"] },
-    { "date": "03-20", "name": "Spring Equinox",            "weight": 5,  "tags": ["seasonal","reset"],         "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Need-Attention"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 6,  "tags": ["sustainability","origin"],  "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-12", "name": "Mother's Day (US)",         "weight": 9,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 10, "tags": ["category","education"],     "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "05-27", "name": "Memorial Day",              "weight": 7,  "tags": ["sale","summer-open"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk"] },
-    { "date": "06-16", "name": "Father's Day (US)",         "weight": 7,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Promising"] },
-    { "date": "06-21", "name": "Summer Solstice",           "weight": 5,  "tags": ["seasonal","iced"],          "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "07-04", "name": "Independence Day",          "weight": 6,  "tags": ["seasonal","sale"],          "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","Loyal"] },
-    { "date": "09-22", "name": "Autumn Equinox",            "weight": 6,  "tags": ["seasonal","kicks"],          "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Promising"] },
-    { "date": "10-31", "name": "Halloween",                 "weight": 3,  "tags": ["light-touch"],              "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal","Champions"] },
-    { "date": "11-26", "name": "Thanksgiving",              "weight": 8,  "tags": ["gift","family","warmth"],   "archetype_hint": "hero-led-editorial",      "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 10, "tags": ["sale","high-intent"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "11-30", "name": "Cyber Monday",              "weight": 10, "tags": ["sale","high-intent"],       "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "12-15", "name": "Hanukkah",                  "weight": 5,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 9,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset","reflection"],       "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","Promising"] }
-  ],
-
-  "UK": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "01-25", "name": "Burns Night",               "weight": 3,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 8,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "03-17", "name": "St. Patrick's Day",         "weight": 4,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Champions","Loyal"] },
-    { "date": "03-30", "name": "Mother's Day (UK)",         "weight": 9,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "04-18", "name": "Good Friday",               "weight": 4,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "04-21", "name": "Easter Monday",             "weight": 5,  "tags": ["seasonal","family"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Promising"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 6,  "tags": ["sustainability"],           "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "04-23", "name": "St. George's Day",          "weight": 3,  "tags": ["heritage"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "05-05", "name": "Early May Bank Holiday",    "weight": 5,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","Loyal"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 10, "tags": ["category","heritage"],      "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "05-26", "name": "Spring Bank Holiday",       "weight": 5,  "tags": ["sale","summer-open"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk"] },
-    { "date": "06-15", "name": "Father's Day (UK)",         "weight": 7,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Promising"] },
-    { "date": "06-21", "name": "Summer Solstice",           "weight": 5,  "tags": ["seasonal"],                 "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "07-04", "name": "Wimbledon",                 "weight": 5,  "tags": ["seasonal","afternoon-sneaker"], "archetype_hint": "ritual-journey",          "recommended_segments": ["Champions","Loyal"] },
-    { "date": "08-25", "name": "Summer Bank Holiday",       "weight": 5,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","Loyal"] },
-    { "date": "10-31", "name": "Halloween",                 "weight": 3,  "tags": ["light-touch"],              "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "11-05", "name": "Bonfire Night",             "weight": 4,  "tags": ["seasonal","warmth"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "11-11", "name": "Remembrance Day",           "weight": 3,  "tags": ["heritage"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 10, "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "11-30", "name": "Cyber Monday",              "weight": 10, "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 9,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-26", "name": "Boxing Day",                "weight": 8,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Loyal","Need-Attention","At-Risk"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "IN": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 6,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "01-14", "name": "Makar Sankranti / Pongal",  "weight": 7,  "tags": ["festive","drop","family"],"archetype_hint": "ritual-journey",         "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "01-26", "name": "Republic Day",              "weight": 8,  "tags": ["national","heritage","pride"],"archetype_hint": "storytelling-narrative","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 6,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "02-26", "name": "Maha Shivaratri",           "weight": 4,  "tags": ["fasting","streetwear"],       "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "03-13", "name": "Holi",                      "weight": 9,  "tags": ["festive","colour","joy"],   "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "03-30", "name": "Ugadi / Gudi Padwa",        "weight": 6,  "tags": ["new-year","festive"],       "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Champions","Need-Attention"] },
-    { "date": "04-14", "name": "Baisakhi / Tamil New Year", "weight": 6,  "tags": ["drop","festive"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Promising"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 6,  "tags": ["sustainability","origin"],  "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-12", "name": "Mother's Day",              "weight": 8,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 10, "tags": ["category","heritage","origin"],"archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New","Need-Attention"] },
-    { "date": "06-16", "name": "Father's Day",              "weight": 6,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Promising"] },
-    { "date": "06-21", "name": "International Yoga Day",    "weight": 7,  "tags": ["streetwear","ritual"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "07-15", "name": "Monsoon onset",             "weight": 6,  "tags": ["seasonal","kicks"],          "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions","Need-Attention"] },
-    { "date": "08-09", "name": "Raksha Bandhan",            "weight": 9,  "tags": ["festive","gift","siblings"],"archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New","Promising"] },
-    { "date": "08-15", "name": "Independence Day",          "weight": 8,  "tags": ["national","pride","heritage"],"archetype_hint": "storytelling-narrative","recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "08-27", "name": "Janmashtami",               "weight": 5,  "tags": ["festive","spiritual"],      "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "09-07", "name": "Ganesh Chaturthi",          "weight": 7,  "tags": ["festive","family"],         "archetype_hint": "ritual-journey",          "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "10-02", "name": "Gandhi Jayanti",            "weight": 4,  "tags": ["heritage","national"],      "archetype_hint": "founder-note",            "recommended_segments": ["Loyal"] },
-    { "date": "10-13", "name": "Karwa Chauth",              "weight": 6,  "tags": ["festive","couple","gift"],  "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "10-20", "name": "Dussehra",                  "weight": 7,  "tags": ["festive","family"],         "archetype_hint": "ritual-journey",          "recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "10-31", "name": "Diwali Eve / Dhanteras",    "weight": 9,  "tags": ["festive","gift","prosperity"],"archetype_hint": "limited-drop-countdown","recommended_segments": ["Champions","Loyal","Promising","Need-Attention"] },
-    { "date": "11-01", "name": "Diwali",                    "weight": 10, "tags": ["festive","gift","family","prosperity"],"archetype_hint": "gift-bundle-showcase","recommended_segments": ["Champions","Loyal","Promising","New","Need-Attention","At-Risk"] },
-    { "date": "11-02", "name": "Govardhan Puja",            "weight": 4,  "tags": ["festive"],                  "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal","Champions"] },
-    { "date": "11-03", "name": "Bhai Dooj",                 "weight": 6,  "tags": ["festive","siblings","gift"],"archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "11-15", "name": "Children's Day",            "weight": 3,  "tags": ["light-touch","family"],     "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 9,  "tags": ["sale","high-intent"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "11-30", "name": "Cyber Monday",              "weight": 8,  "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "12-25", "name": "Christmas",                 "weight": 7,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset","reflection"],       "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","Promising"] }
-  ],
-
-  "ME": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 5,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Champions"] },
-    { "date": "02-11", "name": "Saudi Founding Day",        "weight": 6,  "tags": ["national","heritage"],      "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Loyal","Champions"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 5,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "02-28", "name": "Ramadan begins (approx)",   "weight": 10, "tags": ["fasting","family","streetwear","ritual"],"archetype_hint": "ritual-journey","recommended_segments": ["Champions","Loyal","Promising","New","Need-Attention"] },
-    { "date": "03-15", "name": "Ramadan mid-month",         "weight": 8,  "tags": ["fasting","gift","preparation"],"archetype_hint": "gift-bundle-showcase", "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "03-30", "name": "Eid al-Fitr (approx)",      "weight": 10, "tags": ["festive","gift","family","celebration"],"archetype_hint": "gift-bundle-showcase","recommended_segments": ["Champions","Loyal","Promising","New","Need-Attention","At-Risk"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 5,  "tags": ["sustainability"],           "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 9,  "tags": ["category","heritage"],      "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "06-06", "name": "Eid al-Adha (approx)",      "weight": 10, "tags": ["festive","gift","family","sacrifice"],"archetype_hint": "gift-bundle-showcase","recommended_segments": ["Champions","Loyal","Promising","New","Need-Attention"] },
-    { "date": "06-27", "name": "Islamic New Year (approx)", "weight": 5,  "tags": ["reset","spiritual"],        "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Champions"] },
-    { "date": "09-05", "name": "Mawlid (approx)",           "weight": 4,  "tags": ["spiritual"],                "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "09-23", "name": "Saudi National Day",        "weight": 8,  "tags": ["national","pride","heritage"],"archetype_hint": "storytelling-narrative","recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "10-15", "name": "Pink October (BCAM)",       "weight": 4,  "tags": ["streetwear","cause"],         "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Champions"] },
-    { "date": "11-27", "name": "Black Friday / White Friday","weight":10, "tags": ["sale","high-intent"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "12-02", "name": "UAE National Day",          "weight": 9,  "tags": ["national","pride","heritage"],"archetype_hint": "storytelling-narrative","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "12-18", "name": "Qatar National Day",        "weight": 6,  "tags": ["national","heritage"],      "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Loyal","Champions"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 6,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "AU": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset","summer"],           "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "01-26", "name": "Australia Day",             "weight": 7,  "tags": ["national","pride","summer"],"archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 7,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "03-08", "name": "International Women's Day", "weight": 5,  "tags": ["story","founder"],          "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Promising"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 6,  "tags": ["sustainability"],           "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "04-25", "name": "ANZAC Day",                 "weight": 6,  "tags": ["national","heritage"],      "archetype_hint": "founder-note",            "recommended_segments": ["Loyal"] },
-    { "date": "05-11", "name": "Mother's Day (AU)",         "weight": 9,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 9,  "tags": ["category"],                 "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "06-21", "name": "Winter Solstice",           "weight": 6,  "tags": ["seasonal","warmth","kicks"], "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions","Need-Attention"] },
-    { "date": "07-01", "name": "EOFY clearance",            "weight": 7,  "tags": ["sale","high-intent"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Loyal"] },
-    { "date": "09-07", "name": "Father's Day (AU)",         "weight": 7,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Promising"] },
-    { "date": "11-04", "name": "Melbourne Pair",             "weight": 5,  "tags": ["seasonal","gathering"],     "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Champions","Loyal"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 9,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "11-30", "name": "Cyber Monday",              "weight": 9,  "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 9,  "tags": ["gift","family","summer"],   "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-26", "name": "Boxing Day",                "weight": 8,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Loyal","Need-Attention","At-Risk"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "EU": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 7,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "02-25", "name": "Carnival / Karneval",       "weight": 4,  "tags": ["festive","seasonal"],       "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "03-08", "name": "International Women's Day", "weight": 6,  "tags": ["story","founder"],          "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Promising","Champions"] },
-    { "date": "04-20", "name": "Easter Sunday",             "weight": 8,  "tags": ["seasonal","family","gift"], "archetype_hint": "ritual-journey",          "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 7,  "tags": ["sustainability","origin"],  "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-01", "name": "Labour Day",                "weight": 5,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "05-09", "name": "Europe Day",                "weight": 5,  "tags": ["heritage"],                 "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Loyal","Champions"] },
-    { "date": "05-11", "name": "Mother's Day (most EU)",    "weight": 9,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 9,  "tags": ["category"],                 "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "06-21", "name": "Midsummer / Jaaniõhtu",     "weight": 5,  "tags": ["seasonal","ritual"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "10-03", "name": "German Unity Day",          "weight": 4,  "tags": ["heritage"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "11-01", "name": "All Saints' Day",           "weight": 4,  "tags": ["spiritual","seasonal"],     "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 9,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "11-30", "name": "Cyber Monday",              "weight": 8,  "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "12-06", "name": "St. Nicholas (DE/NL)",      "weight": 6,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-24", "name": "Christmas Eve (EU)",        "weight": 9,  "tags": ["gift","family","warmth"],   "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 9,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-26", "name": "Stephens Day / Boxing Day", "weight": 7,  "tags": ["sale","seasonal"],          "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Loyal","Need-Attention"] },
-    { "date": "12-31", "name": "Silvester / New Year's Eve","weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "CA": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 8,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "02-17", "name": "Family Day",                "weight": 5,  "tags": ["family","sale"],            "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Promising"] },
-    { "date": "03-17", "name": "St. Patrick's Day",         "weight": 4,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "04-18", "name": "Good Friday",               "weight": 4,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 6,  "tags": ["sustainability"],           "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-11", "name": "Mother's Day (CA)",         "weight": 9,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-19", "name": "Victoria Day",              "weight": 6,  "tags": ["national","sale","summer-open"],"archetype_hint": "limited-drop-countdown","recommended_segments": ["Loyal","Need-Attention"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 9,  "tags": ["category"],                 "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "06-15", "name": "Father's Day (CA)",         "weight": 7,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Promising"] },
-    { "date": "07-01", "name": "Canada Day",                "weight": 8,  "tags": ["national","pride","summer"],"archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "10-13", "name": "Canadian Thanksgiving",     "weight": 8,  "tags": ["gift","family","warmth"],   "archetype_hint": "hero-led-editorial",      "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "10-31", "name": "Halloween",                 "weight": 3,  "tags": ["light-touch"],              "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "11-11", "name": "Remembrance Day",           "weight": 3,  "tags": ["heritage"],                 "archetype_hint": "founder-note",            "recommended_segments": ["Loyal"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 10, "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "11-30", "name": "Cyber Monday",              "weight": 10, "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 9,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-26", "name": "Boxing Day",                "weight": 8,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Loyal","Need-Attention","At-Risk"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "JP": [
-    { "date": "01-01", "name": "Shōgatsu (New Year)",       "weight": 9,  "tags": ["reset","family","ritual","gift"],"archetype_hint": "ritual-journey",     "recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "01-08", "name": "Seijin no Hi (Coming of Age)","weight": 5,"tags": ["heritage","gift"],         "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Champions"] },
-    { "date": "02-03", "name": "Setsubun",                  "weight": 4,  "tags": ["seasonal","ritual"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal"] },
-    { "date": "02-14", "name": "Valentine's Day (gift to men)","weight": 7,"tags": ["gift","couple"],          "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "03-03", "name": "Hinamatsuri",               "weight": 4,  "tags": ["festive","family"],         "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "03-14", "name": "White Day (gift to women)", "weight": 7,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "04-01", "name": "Cherry Blossom season",     "weight": 8,  "tags": ["seasonal","ritual","outdoor"],"archetype_hint": "ritual-journey",        "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "04-29", "name": "Showa Day (Golden Week begins)","weight":9,"tags": ["sale","family","travel"],  "archetype_hint": "hero-led-editorial",      "recommended_segments": ["Champions","Loyal","Promising","Need-Attention"] },
-    { "date": "05-05", "name": "Children's Day (Golden Week)","weight":7, "tags": ["family","festive"],         "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 10, "tags": ["category","heritage"],      "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "07-07", "name": "Tanabata",                  "weight": 5,  "tags": ["festive","wish"],           "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal","Champions"] },
-    { "date": "08-13", "name": "Obon",                      "weight": 7,  "tags": ["family","heritage","ritual"],"archetype_hint": "ritual-journey",         "recommended_segments": ["Champions","Loyal"] },
-    { "date": "09-23", "name": "Autumnal Equinox",          "weight": 5,  "tags": ["seasonal","sneaker-season"],    "archetype_hint": "ritual-journey",          "recommended_segments": ["Loyal","Champions"] },
-    { "date": "11-15", "name": "Shichi-Go-San",             "weight": 4,  "tags": ["family","gift"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Champions"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 7,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","Loyal","Champions"] },
-    { "date": "12-24", "name": "Christmas Eve (couple's night)","weight":8,"tags": ["gift","couple"],           "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 6,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Promising"] },
-    { "date": "12-31", "name": "Omisoka (NYE)",             "weight": 8,  "tags": ["reset","family","ritual"],  "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "SG": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "01-29", "name": "Chinese New Year",          "weight": 10, "tags": ["festive","family","gift","prosperity"],"archetype_hint": "gift-bundle-showcase","recommended_segments": ["Champions","Loyal","Promising","New","Need-Attention"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 7,  "tags": ["gift","couple"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "03-30", "name": "Hari Raya Puasa (Eid)",     "weight": 9,  "tags": ["festive","family","gift"],  "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "04-18", "name": "Good Friday",               "weight": 4,  "tags": ["seasonal"],                 "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Loyal"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 6,  "tags": ["sustainability"],           "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-01", "name": "Labour Day",                "weight": 5,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","Loyal"] },
-    { "date": "05-11", "name": "Mother's Day",              "weight": 9,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 10, "tags": ["category","heritage"],      "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "06-06", "name": "Hari Raya Haji",            "weight": 7,  "tags": ["festive","family"],         "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Loyal","Champions","Promising"] },
-    { "date": "08-09", "name": "National Day (Singapore)",  "weight": 9,  "tags": ["national","pride","heritage"],"archetype_hint": "storytelling-narrative","recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "10-20", "name": "Deepavali",                 "weight": 9,  "tags": ["festive","gift","family"],  "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "11-11", "name": "11.11 sale",                "weight": 9,  "tags": ["sale","high-intent"],       "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 9,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating","Loyal","Champions"] },
-    { "date": "12-12", "name": "12.12 sale",                "weight": 8,  "tags": ["sale"],                     "archetype_hint": "product-grid-conversion", "recommended_segments": ["Need-Attention","Loyal","At-Risk"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 8,  "tags": ["gift","family"],            "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ],
-
-  "Global": [
-    { "date": "01-01", "name": "New Year's Day",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "01-26", "name": "Republic Day (IN diaspora)","weight": 4,  "tags": ["heritage","origin"],        "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Loyal"] },
-    { "date": "02-14", "name": "Valentine's Day",           "weight": 7,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "03-08", "name": "International Women's Day", "weight": 6,  "tags": ["story","founder"],          "archetype_hint": "founder-note",            "recommended_segments": ["Loyal","Promising","Champions"] },
-    { "date": "03-13", "name": "Holi",                      "weight": 6,  "tags": ["colour","festive"],         "archetype_hint": "editorial-trend-roundup", "recommended_segments": ["Champions","Loyal"] },
-    { "date": "04-22", "name": "Earth Day",                 "weight": 7,  "tags": ["sustainability","origin"],  "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Champions","Loyal"] },
-    { "date": "05-11", "name": "Mother's Day (most regions)","weight": 8, "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "05-21", "name": "International Sneaker Day",     "weight": 10, "tags": ["category"],                 "archetype_hint": "single-product-spotlight","recommended_segments": ["Champions","Loyal","Promising","New"] },
-    { "date": "06-21", "name": "International Yoga Day",    "weight": 6,  "tags": ["streetwear","ritual"],        "archetype_hint": "ritual-journey",          "recommended_segments": ["Champions","Loyal","Promising"] },
-    { "date": "08-15", "name": "Independence Day (IN)",     "weight": 5,  "tags": ["heritage"],                 "archetype_hint": "storytelling-narrative",  "recommended_segments": ["Loyal","Champions"] },
-    { "date": "10-20", "name": "Diwali (approx)",           "weight": 9,  "tags": ["festive","gift","family"],  "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New","Promising"] },
-    { "date": "11-27", "name": "Black Friday",              "weight": 8,  "tags": ["sale"],                     "archetype_hint": "limited-drop-countdown",  "recommended_segments": ["Need-Attention","At-Risk","Hibernating"] },
-    { "date": "12-25", "name": "Christmas Day",             "weight": 8,  "tags": ["gift"],                     "archetype_hint": "gift-bundle-showcase",    "recommended_segments": ["Champions","Loyal","New"] },
-    { "date": "12-31", "name": "New Year's Eve",            "weight": 7,  "tags": ["reset"],                    "archetype_hint": "founder-note",            "recommended_segments": ["Champions","Loyal"] }
-  ]
+ "_doc": "Festivals + cultural moments by market. Keys = market code. Each entry: { date (MM-DD), name, weight (1-10 commercial relevance), tags, archetype_hint, recommended_segments }. Universal coverage across every market KNICKGASM ships to.",
+ "US": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset",
+    "streetwear"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "01-15",
+   "name": "MLK Day weekend",
+   "weight": 5,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "02-08",
+   "name": "Super Bowl Sunday (2026: Feb 8) — VARIABLE, 2nd Sunday of February",
+   "weight": 5,
+   "tags": [
+    "sports",
+    "variable-date",
+    "us-tentpole"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "US-sports-buyers"
+   ],
+   "why": "Football/sports collection — US sports-fandom customs and halftime-culture moment for the US shipping market",
+   "source": "Well-known fact: Super Bowl LX played Feb 8, 2026 (NFL schedules the game the 2nd Sunday of February)"
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-27",
+   "name": "Pokemon Day",
+   "weight": 7,
+   "tags": [
+    "anime",
+    "fandom",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers",
+    "gaming-buyers"
+   ],
+   "why": "Anime collection — Pokemon hand-painted AF1/Dunks; Pokemon Company runs official Pokemon Day announcements annually on Feb 27 (anniversary of 1996 Red/Green release)",
+   "source": "https://www.pokemon.com/us/pokemon-news (official annual Pokemon Day, Feb 27)"
+  },
+  {
+   "date": "03-17",
+   "name": "St. Patrick's Day",
+   "weight": 4,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "03-20",
+   "name": "Spring Equinox",
+   "weight": 5,
+   "tags": [
+    "seasonal",
+    "reset"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "03-26",
+   "name": "Air Max Day",
+   "weight": 9,
+   "tags": [
+    "sneaker-culture",
+    "nike",
+    "fixed-date"
+   ],
+   "archetype_hint": "category-tentpole",
+   "recommended_segments": [
+    "sneakerheads",
+    "all-buyers"
+   ],
+   "why": "AF1/sneaker-culture core — Nike's official sneaker holiday (Mar 26, anniversary of the 1987 Air Max 1); peak sneakerhead attention for a Nike-canvas customiser",
+   "source": "https://www.nike.com/air-max-day (Nike official, celebrated Mar 26 annually since 2014)"
+  },
+  {
+   "date": "04-11",
+   "name": "National Pet Day (US)",
+   "weight": 4,
+   "tags": [
+    "pets",
+    "fixed-date",
+    "us-observance"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners",
+    "US-buyers"
+   ],
+   "why": "Pets collection — pet-portrait custom sneakers for the US market",
+   "source": "https://nationaltoday.com/national-pet-day/ (observed Apr 11 annually in the US)"
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 6,
+   "tags": [
+    "sustainability",
+    "origin"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-04",
+   "name": "Star Wars Day (May the 4th)",
+   "weight": 6,
+   "tags": [
+    "pop-culture",
+    "gaming",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "gaming-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "Gaming/pop-culture collection — Star Wars-themed customs; Disney/Lucasfilm promote May 4 officially each year",
+   "source": "https://www.starwars.com/star-wars-day (official)"
+  },
+  {
+   "date": "05-09",
+   "name": "Goku Day",
+   "weight": 8,
+   "tags": [
+    "anime",
+    "dragon-ball",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers"
+   ],
+   "why": "Anime collection — Dragon Ball customs are a hero SKU for anime customisers; May 9 ('Go-Ku' in Japanese numerals) is certified by the Japan Anniversary Association and promoted by Toei",
+   "source": "https://en.dragon-ball-official.com/news/ (Toei's official Dragon Ball site promotes Goku Day, May 9, annually)"
+  },
+  {
+   "date": "05-12",
+   "name": "Mother's Day (US)",
+   "weight": 9,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "05-27",
+   "name": "Memorial Day",
+   "weight": 7,
+   "tags": [
+    "sale",
+    "summer-open"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "06-16",
+   "name": "Father's Day (US)",
+   "weight": 7,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "06-21",
+   "name": "Summer Solstice",
+   "weight": 5,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "07-04",
+   "name": "Independence Day",
+   "weight": 6,
+   "tags": [
+    "seasonal",
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "07-22",
+   "name": "One Piece Day",
+   "weight": 7,
+   "tags": [
+    "anime",
+    "one-piece",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers"
+   ],
+   "why": "Anime collection — One Piece customs; Jul 22 is the anniversary of the manga's 1997 serialization, celebrated with official annual One Piece Day events by Shueisha/Toei",
+   "source": "https://one-piece-day.com/ (official One Piece Day event site)"
+  },
+  {
+   "date": "08-08",
+   "name": "International Cat Day",
+   "weight": 5,
+   "tags": [
+    "pets",
+    "fixed-date"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners"
+   ],
+   "why": "Pets collection — cat-portrait customs and UGC; Aug 8 established by International Fund for Animal Welfare",
+   "source": "https://www.ifaw.org/journal/international-cat-day (IFAW, custodian of International Cat Day, Aug 8)"
+  },
+  {
+   "date": "08-26",
+   "name": "International/National Dog Day",
+   "weight": 6,
+   "tags": [
+    "pets",
+    "fixed-date"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners",
+    "gift-buyers"
+   ],
+   "why": "Pets collection — dog-portrait custom sneakers are a proven personalisation SKU; Aug 26 observed annually",
+   "source": "https://nationaltoday.com/national-dog-day/ (Aug 26 annually)"
+  },
+  {
+   "date": "09-12",
+   "name": "National Video Games Day (US)",
+   "weight": 6,
+   "tags": [
+    "gaming",
+    "fixed-date",
+    "us-observance"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "gaming-buyers",
+    "US-buyers"
+   ],
+   "why": "Gaming collection — game-franchise customs (US observance, Sep 12; distinct from Sep 29 'Video Games Day')",
+   "source": "https://nationaltoday.com/national-video-games-day/ (Sep 12, US)"
+  },
+  {
+   "date": "09-22",
+   "name": "Autumn Equinox",
+   "weight": 6,
+   "tags": [
+    "seasonal",
+    "kicks"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "10-01",
+   "name": "International Coffee Day",
+   "weight": 5,
+   "tags": [
+    "coffee",
+    "fixed-date"
+   ],
+   "archetype_hint": "niche-collection-push",
+   "recommended_segments": [
+    "coffee-buyers",
+    "lifestyle-buyers"
+   ],
+   "why": "Coffee collection — coffee-themed customs; Oct 1 designated by the International Coffee Organization since 2015",
+   "source": "https://www.internationalcoffeeday.org/ (ICO official, Oct 1)"
+  },
+  {
+   "date": "10-31",
+   "name": "Halloween",
+   "weight": 3,
+   "tags": [
+    "light-touch"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-26",
+   "name": "Thanksgiving",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "family",
+    "warmth"
+   ],
+   "archetype_hint": "hero-led-editorial",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 10,
+   "tags": [
+    "sale",
+    "high-intent"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday / Cyber Monday (2026: Nov 27-30) — VARIABLE, 4th Friday of November",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "variable-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "sale-event",
+   "recommended_segments": [
+    "all-buyers",
+    "international-buyers"
+   ],
+   "why": "All collections — biggest global e-commerce discount window; key for the 60+ country shipping audience and AF1 base customs",
+   "source": "Well-known fact: Black Friday is the day after US Thanksgiving (4th Thursday of Nov); in 2026 that is Nov 27"
+  },
+  {
+   "date": "11-30",
+   "name": "Cyber Monday",
+   "weight": 10,
+   "tags": [
+    "sale",
+    "high-intent"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-13",
+   "name": "Taylor Swift's Birthday",
+   "weight": 6,
+   "tags": [
+    "taylor-swift",
+    "fandom",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "swifties",
+    "US-UK-female-18-34"
+   ],
+   "why": "Taylor Swift collection — Swiftie eras-themed customs; Dec 13 (b. 1989) is the recurring fandom date Swifties celebrate annually",
+   "source": "Well-known fact: Taylor Swift born Dec 13, 1989 (https://en.wikipedia.org/wiki/Taylor_Swift)"
+  },
+  {
+   "date": "12-15",
+   "name": "Hanukkah",
+   "weight": 5,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 9,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas (order-cutoff campaign from late Nov given custom lead times)",
+   "weight": 9,
+   "tags": [
+    "gifting",
+    "fixed-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "gifting-peak",
+   "recommended_segments": [
+    "gift-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "All collections — peak Western gifting; critical for Knickgasm's international shipping markets, with early-order messaging due to hand-painting lead time",
+   "source": "Well-known fact: Christmas is Dec 25 worldwide"
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset",
+    "reflection"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  }
+ ],
+ "UK": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "01-25",
+   "name": "Burns Night",
+   "weight": 3,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "03-17",
+   "name": "St. Patrick's Day",
+   "weight": 4,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "03-26",
+   "name": "Air Max Day",
+   "weight": 9,
+   "tags": [
+    "sneaker-culture",
+    "nike",
+    "fixed-date"
+   ],
+   "archetype_hint": "category-tentpole",
+   "recommended_segments": [
+    "sneakerheads",
+    "all-buyers"
+   ],
+   "why": "AF1/sneaker-culture core — Nike's official sneaker holiday (Mar 26, anniversary of the 1987 Air Max 1); peak sneakerhead attention for a Nike-canvas customiser",
+   "source": "https://www.nike.com/air-max-day (Nike official, celebrated Mar 26 annually since 2014)"
+  },
+  {
+   "date": "03-30",
+   "name": "Mother's Day (UK)",
+   "weight": 9,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "04-18",
+   "name": "Good Friday",
+   "weight": 4,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "04-21",
+   "name": "Easter Monday",
+   "weight": 5,
+   "tags": [
+    "seasonal",
+    "family"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 6,
+   "tags": [
+    "sustainability"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "04-23",
+   "name": "St. George's Day",
+   "weight": 3,
+   "tags": [
+    "heritage"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-04",
+   "name": "Star Wars Day (May the 4th)",
+   "weight": 6,
+   "tags": [
+    "pop-culture",
+    "gaming",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "gaming-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "Gaming/pop-culture collection — Star Wars-themed customs; Disney/Lucasfilm promote May 4 officially each year",
+   "source": "https://www.starwars.com/star-wars-day (official)"
+  },
+  {
+   "date": "05-05",
+   "name": "Early May Bank Holiday",
+   "weight": 5,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-26",
+   "name": "Spring Bank Holiday",
+   "weight": 5,
+   "tags": [
+    "sale",
+    "summer-open"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "05-30",
+   "name": "UEFA Champions League Final (2026: May 30, Budapest) — VARIABLE, late May/early June each year",
+   "weight": 6,
+   "tags": [
+    "football",
+    "sports",
+    "variable-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "football-buyers",
+    "UK-buyers"
+   ],
+   "why": "Football collection — club-crest and player-tribute customs peak around the UCL final",
+   "source": "https://www.uefa.com/uefachampionsleague/ (2025/26 final scheduled May 30, 2026, Puskas Arena, Budapest)"
+  },
+  {
+   "date": "06-15",
+   "name": "Father's Day (UK)",
+   "weight": 7,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "06-21",
+   "name": "Summer Solstice",
+   "weight": 5,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "07-04",
+   "name": "Wimbledon",
+   "weight": 5,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "08-08",
+   "name": "International Cat Day",
+   "weight": 5,
+   "tags": [
+    "pets",
+    "fixed-date"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners"
+   ],
+   "why": "Pets collection — cat-portrait customs and UGC; Aug 8 established by International Fund for Animal Welfare",
+   "source": "https://www.ifaw.org/journal/international-cat-day (IFAW, custodian of International Cat Day, Aug 8)"
+  },
+  {
+   "date": "08-25",
+   "name": "Summer Bank Holiday",
+   "weight": 5,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "08-26",
+   "name": "International/National Dog Day",
+   "weight": 6,
+   "tags": [
+    "pets",
+    "fixed-date"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners",
+    "gift-buyers"
+   ],
+   "why": "Pets collection — dog-portrait custom sneakers are a proven personalisation SKU; Aug 26 observed annually",
+   "source": "https://nationaltoday.com/national-dog-day/ (Aug 26 annually)"
+  },
+  {
+   "date": "10-31",
+   "name": "Halloween",
+   "weight": 3,
+   "tags": [
+    "light-touch"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-05",
+   "name": "Bonfire Night",
+   "weight": 4,
+   "tags": [
+    "seasonal",
+    "warmth"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-11",
+   "name": "Remembrance Day",
+   "weight": 3,
+   "tags": [
+    "heritage"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 10,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday / Cyber Monday (2026: Nov 27-30) — VARIABLE, 4th Friday of November",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "variable-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "sale-event",
+   "recommended_segments": [
+    "all-buyers",
+    "international-buyers"
+   ],
+   "why": "All collections — biggest global e-commerce discount window; key for the 60+ country shipping audience and AF1 base customs",
+   "source": "Well-known fact: Black Friday is the day after US Thanksgiving (4th Thursday of Nov); in 2026 that is Nov 27"
+  },
+  {
+   "date": "11-30",
+   "name": "Cyber Monday",
+   "weight": 10,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-13",
+   "name": "Taylor Swift's Birthday",
+   "weight": 6,
+   "tags": [
+    "taylor-swift",
+    "fandom",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "swifties",
+    "US-UK-female-18-34"
+   ],
+   "why": "Taylor Swift collection — Swiftie eras-themed customs; Dec 13 (b. 1989) is the recurring fandom date Swifties celebrate annually",
+   "source": "Well-known fact: Taylor Swift born Dec 13, 1989 (https://en.wikipedia.org/wiki/Taylor_Swift)"
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 9,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas (order-cutoff campaign from late Nov given custom lead times)",
+   "weight": 9,
+   "tags": [
+    "gifting",
+    "fixed-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "gifting-peak",
+   "recommended_segments": [
+    "gift-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "All collections — peak Western gifting; critical for Knickgasm's international shipping markets, with early-order messaging due to hand-painting lead time",
+   "source": "Well-known fact: Christmas is Dec 25 worldwide"
+  },
+  {
+   "date": "12-26",
+   "name": "Boxing Day",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Loyal",
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "IN": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 6,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "01-14",
+   "name": "Makar Sankranti / Pongal",
+   "weight": 7,
+   "tags": [
+    "festive",
+    "drop",
+    "family"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "01-26",
+   "name": "Republic Day",
+   "weight": 8,
+   "tags": [
+    "national",
+    "heritage",
+    "pride"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 6,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-26",
+   "name": "Maha Shivaratri",
+   "weight": 4,
+   "tags": [
+    "fasting",
+    "streetwear"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "02-27",
+   "name": "Pokemon Day",
+   "weight": 7,
+   "tags": [
+    "anime",
+    "fandom",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers",
+    "gaming-buyers"
+   ],
+   "why": "Anime collection — Pokemon hand-painted AF1/Dunks; Pokemon Company runs official Pokemon Day announcements annually on Feb 27 (anniversary of 1996 Red/Green release)",
+   "source": "https://www.pokemon.com/us/pokemon-news (official annual Pokemon Day, Feb 27)"
+  },
+  {
+   "date": "03-08",
+   "name": "F1 Season Opener (2026: Australian GP Mar 6-8) — VARIABLE, early March each year",
+   "weight": 6,
+   "tags": [
+    "cars",
+    "motorsport",
+    "variable-date",
+    "season-window"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "cars-buyers",
+    "male-18-34"
+   ],
+   "why": "Cars collection — F1/motorsport-themed customs; Indian F1 fandom spikes at season start",
+   "source": "https://www.espn.com/f1/story/_/id/48031144/australian-grand-prix-2026-f1-first-race-start-how-watch-schedule-albert-park-tv-channel-live-stream-predictions-results"
+  },
+  {
+   "date": "03-13",
+   "name": "Holi",
+   "weight": 9,
+   "tags": [
+    "festive",
+    "colour",
+    "joy"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "03-26",
+   "name": "Air Max Day",
+   "weight": 9,
+   "tags": [
+    "sneaker-culture",
+    "nike",
+    "fixed-date"
+   ],
+   "archetype_hint": "category-tentpole",
+   "recommended_segments": [
+    "sneakerheads",
+    "all-buyers"
+   ],
+   "why": "AF1/sneaker-culture core — Nike's official sneaker holiday (Mar 26, anniversary of the 1987 Air Max 1); peak sneakerhead attention for a Nike-canvas customiser",
+   "source": "https://www.nike.com/air-max-day (Nike official, celebrated Mar 26 annually since 2014)"
+  },
+  {
+   "date": "03-28",
+   "name": "IPL Season Window (2026: Mar 28 - May 31) — VARIABLE, late March to late May each year",
+   "weight": 8,
+   "tags": [
+    "cricket",
+    "sports",
+    "season-window",
+    "variable-date"
+   ],
+   "archetype_hint": "season-window",
+   "recommended_segments": [
+    "sports-buyers",
+    "IN-male-18-34"
+   ],
+   "why": "Football/sports collection — team-colour cricket customs and fan merch energy; the biggest sustained sports-attention window in India",
+   "source": "https://documents.iplt20.com/smart-images/1774525332894_TATA_IPL_2026-Schedule.pdf (official IPL 2026 schedule)"
+  },
+  {
+   "date": "03-30",
+   "name": "Ugadi / Gudi Padwa",
+   "weight": 6,
+   "tags": [
+    "new-year",
+    "festive"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Champions",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "04-14",
+   "name": "Baisakhi / Tamil New Year",
+   "weight": 6,
+   "tags": [
+    "drop",
+    "festive"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 6,
+   "tags": [
+    "sustainability",
+    "origin"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-09",
+   "name": "Goku Day",
+   "weight": 8,
+   "tags": [
+    "anime",
+    "dragon-ball",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers"
+   ],
+   "why": "Anime collection — Dragon Ball customs are a hero SKU for anime customisers; May 9 ('Go-Ku' in Japanese numerals) is certified by the Japan Anniversary Association and promoted by Toei",
+   "source": "https://en.dragon-ball-official.com/news/ (Toei's official Dragon Ball site promotes Goku Day, May 9, annually)"
+  },
+  {
+   "date": "05-12",
+   "name": "Mother's Day",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "05-30",
+   "name": "UEFA Champions League Final (2026: May 30, Budapest) — VARIABLE, late May/early June each year",
+   "weight": 6,
+   "tags": [
+    "football",
+    "sports",
+    "variable-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "football-buyers",
+    "UK-buyers"
+   ],
+   "why": "Football collection — club-crest and player-tribute customs peak around the UCL final",
+   "source": "https://www.uefa.com/uefachampionsleague/ (2025/26 final scheduled May 30, 2026, Puskas Arena, Budapest)"
+  },
+  {
+   "date": "06-16",
+   "name": "Father's Day",
+   "weight": 6,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "06-21",
+   "name": "International Yoga Day",
+   "weight": 7,
+   "tags": [
+    "streetwear",
+    "ritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "07-15",
+   "name": "Monsoon onset",
+   "weight": 6,
+   "tags": [
+    "seasonal",
+    "kicks"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "07-22",
+   "name": "One Piece Day",
+   "weight": 7,
+   "tags": [
+    "anime",
+    "one-piece",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers"
+   ],
+   "why": "Anime collection — One Piece customs; Jul 22 is the anniversary of the manga's 1997 serialization, celebrated with official annual One Piece Day events by Shueisha/Toei",
+   "source": "https://one-piece-day.com/ (official One Piece Day event site)"
+  },
+  {
+   "date": "08-02",
+   "name": "Friendship Day India (2026: Aug 2) — VARIABLE, first Sunday of August",
+   "weight": 5,
+   "tags": [
+    "gifting",
+    "variable-date",
+    "in-observance"
+   ],
+   "archetype_hint": "gifting-peak",
+   "recommended_segments": [
+    "IN-gen-z",
+    "gift-buyers"
+   ],
+   "why": "Gifting moment across collections (bling/pets/anime) — friendship-pair customs; widely observed in India on the first Sunday of August",
+   "source": "Well-known fact: India observes Friendship Day on the first Sunday of August (Aug 2 in 2026)"
+  },
+  {
+   "date": "08-09",
+   "name": "Raksha Bandhan",
+   "weight": 9,
+   "tags": [
+    "festive",
+    "gift",
+    "siblings"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New",
+    "Promising"
+   ]
+  },
+  {
+   "date": "08-15",
+   "name": "Independence Day",
+   "weight": 8,
+   "tags": [
+    "national",
+    "pride",
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "08-27",
+   "name": "Janmashtami",
+   "weight": 5,
+   "tags": [
+    "festive",
+    "spiritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "08-28",
+   "name": "Raksha Bandhan (2026: Aug 28; 2027: Aug 17) — LUNAR/VARIABLE",
+   "weight": 9,
+   "tags": [
+    "gifting",
+    "festival",
+    "lunar-variable",
+    "in-tentpole"
+   ],
+   "archetype_hint": "gifting-peak",
+   "recommended_segments": [
+    "IN-gift-buyers",
+    "siblings"
+   ],
+   "why": "Sibling-gifting tentpole — maps to bling and anime collections as rakhi-return gifts; one of India's biggest gifting occasions",
+   "source": "https://www.drikpanchang.com/festivals/raksha-bandhan/raksha-bandhan-date-time.html (Aug 28, 2026; Aug 17, 2027 — Shravana Purnima, lunar)"
+  },
+  {
+   "date": "09-07",
+   "name": "Ganesh Chaturthi",
+   "weight": 7,
+   "tags": [
+    "festive",
+    "family"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "10-01",
+   "name": "International Coffee Day",
+   "weight": 5,
+   "tags": [
+    "coffee",
+    "fixed-date"
+   ],
+   "archetype_hint": "niche-collection-push",
+   "recommended_segments": [
+    "coffee-buyers",
+    "lifestyle-buyers"
+   ],
+   "why": "Coffee collection — coffee-themed customs; Oct 1 designated by the International Coffee Organization since 2015",
+   "source": "https://www.internationalcoffeeday.org/ (ICO official, Oct 1)"
+  },
+  {
+   "date": "10-02",
+   "name": "Gandhi Jayanti",
+   "weight": 4,
+   "tags": [
+    "heritage",
+    "national"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "10-13",
+   "name": "Karwa Chauth",
+   "weight": 6,
+   "tags": [
+    "festive",
+    "couple",
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "10-20",
+   "name": "Dussehra",
+   "weight": 7,
+   "tags": [
+    "festive",
+    "family"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "10-31",
+   "name": "Diwali Eve / Dhanteras",
+   "weight": 9,
+   "tags": [
+    "festive",
+    "gift",
+    "prosperity"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "11-01",
+   "name": "Diwali",
+   "weight": 10,
+   "tags": [
+    "festive",
+    "gift",
+    "family",
+    "prosperity"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New",
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "11-02",
+   "name": "Govardhan Puja",
+   "weight": 4,
+   "tags": [
+    "festive"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-03",
+   "name": "Bhai Dooj",
+   "weight": 6,
+   "tags": [
+    "festive",
+    "siblings",
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "11-08",
+   "name": "Diwali (2026: Nov 8; 2027: Oct 29) — LUNAR/VARIABLE",
+   "weight": 10,
+   "tags": [
+    "festival",
+    "gifting",
+    "lunar-variable",
+    "in-tentpole"
+   ],
+   "archetype_hint": "mega-tentpole",
+   "recommended_segments": [
+    "IN-all-buyers",
+    "gift-buyers",
+    "bling-buyers"
+   ],
+   "why": "Bling collection — festive gold/metallic customs plus gifting across all collections; India's single biggest commercial gifting season",
+   "source": "https://publicholidays.in/diwali-deepavali/ (Nov 8, 2026; Oct 29, 2027 — Kartik Amavasya, lunar)"
+  },
+  {
+   "date": "11-15",
+   "name": "Children's Day",
+   "weight": 3,
+   "tags": [
+    "light-touch",
+    "family"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-15",
+   "name": "Indian Wedding Season Window (approx Nov 15 - Feb 15, plus Apr-May shoulder) — VARIABLE by auspicious muhurat dates",
+   "weight": 10,
+   "tags": [
+    "wedding",
+    "season-window",
+    "lunar-variable"
+   ],
+   "archetype_hint": "mega-tentpole",
+   "recommended_segments": [
+    "wedding-leads",
+    "couples",
+    "IN-high-AOV"
+   ],
+   "why": "Wedding collection is a hero category — custom sneakers for grooms/brides/baraat; India's wedding season concentrates Nov-Feb per Hindu muhurat calendar",
+   "source": "https://www.drikpanchang.com/shubh-dates/shubh-marriage-dates-with-muhurat.html (annual auspicious marriage-date calendar clustering Nov-Feb and Apr-May)"
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "high-intent"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday / Cyber Monday (2026: Nov 27-30) — VARIABLE, 4th Friday of November",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "variable-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "sale-event",
+   "recommended_segments": [
+    "all-buyers",
+    "international-buyers"
+   ],
+   "why": "All collections — biggest global e-commerce discount window; key for the 60+ country shipping audience and AF1 base customs",
+   "source": "Well-known fact: Black Friday is the day after US Thanksgiving (4th Thursday of Nov); in 2026 that is Nov 27"
+  },
+  {
+   "date": "11-30",
+   "name": "Cyber Monday",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas",
+   "weight": 7,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas (order-cutoff campaign from late Nov given custom lead times)",
+   "weight": 9,
+   "tags": [
+    "gifting",
+    "fixed-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "gifting-peak",
+   "recommended_segments": [
+    "gift-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "All collections — peak Western gifting; critical for Knickgasm's international shipping markets, with early-order messaging due to hand-painting lead time",
+   "source": "Well-known fact: Christmas is Dec 25 worldwide"
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset",
+    "reflection"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  }
+ ],
+ "ME": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 5,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "02-11",
+   "name": "Saudi Founding Day",
+   "weight": 6,
+   "tags": [
+    "national",
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 5,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-28",
+   "name": "Ramadan begins (approx)",
+   "weight": 10,
+   "tags": [
+    "fasting",
+    "family",
+    "streetwear",
+    "ritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "03-15",
+   "name": "Ramadan mid-month",
+   "weight": 8,
+   "tags": [
+    "fasting",
+    "gift",
+    "preparation"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "03-30",
+   "name": "Eid al-Fitr (approx)",
+   "weight": 10,
+   "tags": [
+    "festive",
+    "gift",
+    "family",
+    "celebration"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New",
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 5,
+   "tags": [
+    "sustainability"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "06-06",
+   "name": "Eid al-Adha (approx)",
+   "weight": 10,
+   "tags": [
+    "festive",
+    "gift",
+    "family",
+    "sacrifice"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "06-27",
+   "name": "Islamic New Year (approx)",
+   "weight": 5,
+   "tags": [
+    "reset",
+    "spiritual"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "09-05",
+   "name": "Mawlid (approx)",
+   "weight": 4,
+   "tags": [
+    "spiritual"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "09-23",
+   "name": "Saudi National Day",
+   "weight": 8,
+   "tags": [
+    "national",
+    "pride",
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "10-15",
+   "name": "Pink October (BCAM)",
+   "weight": 4,
+   "tags": [
+    "streetwear",
+    "cause"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday / White Friday",
+   "weight": 10,
+   "tags": [
+    "sale",
+    "high-intent"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "12-02",
+   "name": "UAE National Day",
+   "weight": 9,
+   "tags": [
+    "national",
+    "pride",
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "12-18",
+   "name": "Qatar National Day",
+   "weight": 6,
+   "tags": [
+    "national",
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 6,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "AU": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset",
+    "summer"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "01-26",
+   "name": "Australia Day",
+   "weight": 7,
+   "tags": [
+    "national",
+    "pride",
+    "summer"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 7,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "03-08",
+   "name": "International Women's Day",
+   "weight": 5,
+   "tags": [
+    "story",
+    "founder"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 6,
+   "tags": [
+    "sustainability"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "04-25",
+   "name": "ANZAC Day",
+   "weight": 6,
+   "tags": [
+    "national",
+    "heritage"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-11",
+   "name": "Mother's Day (AU)",
+   "weight": 9,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "06-21",
+   "name": "Winter Solstice",
+   "weight": 6,
+   "tags": [
+    "seasonal",
+    "warmth",
+    "kicks"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "07-01",
+   "name": "EOFY clearance",
+   "weight": 7,
+   "tags": [
+    "sale",
+    "high-intent"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "09-07",
+   "name": "Father's Day (AU)",
+   "weight": 7,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 9,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-30",
+   "name": "Cyber Monday",
+   "weight": 9,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 9,
+   "tags": [
+    "gift",
+    "family",
+    "summer"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-26",
+   "name": "Boxing Day",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Loyal",
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "EU": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 7,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-25",
+   "name": "Carnival / Karneval",
+   "weight": 4,
+   "tags": [
+    "festive",
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "03-08",
+   "name": "International Women's Day",
+   "weight": 6,
+   "tags": [
+    "story",
+    "founder"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Promising",
+    "Champions"
+   ]
+  },
+  {
+   "date": "04-20",
+   "name": "Easter Sunday",
+   "weight": 8,
+   "tags": [
+    "seasonal",
+    "family",
+    "gift"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 7,
+   "tags": [
+    "sustainability",
+    "origin"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-01",
+   "name": "Labour Day",
+   "weight": 5,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-09",
+   "name": "Europe Day",
+   "weight": 5,
+   "tags": [
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "05-11",
+   "name": "Mother's Day (most EU)",
+   "weight": 9,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "06-21",
+   "name": "Midsummer / Jaaniõhtu",
+   "weight": 5,
+   "tags": [
+    "seasonal",
+    "ritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "10-03",
+   "name": "German Unity Day",
+   "weight": 4,
+   "tags": [
+    "heritage"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-01",
+   "name": "All Saints' Day",
+   "weight": 4,
+   "tags": [
+    "spiritual",
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 9,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-30",
+   "name": "Cyber Monday",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-06",
+   "name": "St. Nicholas (DE/NL)",
+   "weight": 6,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-24",
+   "name": "Christmas Eve (EU)",
+   "weight": 9,
+   "tags": [
+    "gift",
+    "family",
+    "warmth"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 9,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-26",
+   "name": "Stephens Day / Boxing Day",
+   "weight": 7,
+   "tags": [
+    "sale",
+    "seasonal"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Loyal",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "Silvester / New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "CA": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-17",
+   "name": "Family Day",
+   "weight": 5,
+   "tags": [
+    "family",
+    "sale"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "03-17",
+   "name": "St. Patrick's Day",
+   "weight": 4,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "04-18",
+   "name": "Good Friday",
+   "weight": 4,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 6,
+   "tags": [
+    "sustainability"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-11",
+   "name": "Mother's Day (CA)",
+   "weight": 9,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "05-19",
+   "name": "Victoria Day",
+   "weight": 6,
+   "tags": [
+    "national",
+    "sale",
+    "summer-open"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Loyal",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "06-15",
+   "name": "Father's Day (CA)",
+   "weight": 7,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "07-01",
+   "name": "Canada Day",
+   "weight": 8,
+   "tags": [
+    "national",
+    "pride",
+    "summer"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "10-13",
+   "name": "Canadian Thanksgiving",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "family",
+    "warmth"
+   ],
+   "archetype_hint": "hero-led-editorial",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "10-31",
+   "name": "Halloween",
+   "weight": 3,
+   "tags": [
+    "light-touch"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-11",
+   "name": "Remembrance Day",
+   "weight": 3,
+   "tags": [
+    "heritage"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 10,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-30",
+   "name": "Cyber Monday",
+   "weight": 10,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 9,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-26",
+   "name": "Boxing Day",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Loyal",
+    "Need-Attention",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "JP": [
+  {
+   "date": "01-01",
+   "name": "Shōgatsu (New Year)",
+   "weight": 9,
+   "tags": [
+    "reset",
+    "family",
+    "ritual",
+    "gift"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "01-08",
+   "name": "Seijin no Hi (Coming of Age)",
+   "weight": 5,
+   "tags": [
+    "heritage",
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "02-03",
+   "name": "Setsubun",
+   "weight": 4,
+   "tags": [
+    "seasonal",
+    "ritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day (gift to men)",
+   "weight": 7,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "03-03",
+   "name": "Hinamatsuri",
+   "weight": 4,
+   "tags": [
+    "festive",
+    "family"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "03-14",
+   "name": "White Day (gift to women)",
+   "weight": 7,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "04-01",
+   "name": "Cherry Blossom season",
+   "weight": 8,
+   "tags": [
+    "seasonal",
+    "ritual",
+    "outdoor"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "04-29",
+   "name": "Showa Day (Golden Week begins)",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "family",
+    "travel"
+   ],
+   "archetype_hint": "hero-led-editorial",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "05-05",
+   "name": "Children's Day (Golden Week)",
+   "weight": 7,
+   "tags": [
+    "family",
+    "festive"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "07-07",
+   "name": "Tanabata",
+   "weight": 5,
+   "tags": [
+    "festive",
+    "wish"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "08-13",
+   "name": "Obon",
+   "weight": 7,
+   "tags": [
+    "family",
+    "heritage",
+    "ritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "09-23",
+   "name": "Autumnal Equinox",
+   "weight": 5,
+   "tags": [
+    "seasonal",
+    "sneaker-season"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-15",
+   "name": "Shichi-Go-San",
+   "weight": 4,
+   "tags": [
+    "family",
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 7,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "12-24",
+   "name": "Christmas Eve (couple's night)",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 6,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "Omisoka (NYE)",
+   "weight": 8,
+   "tags": [
+    "reset",
+    "family",
+    "ritual"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "SG": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "01-29",
+   "name": "Chinese New Year",
+   "weight": 10,
+   "tags": [
+    "festive",
+    "family",
+    "gift",
+    "prosperity"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New",
+    "Need-Attention"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 7,
+   "tags": [
+    "gift",
+    "couple"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "03-30",
+   "name": "Hari Raya Puasa (Eid)",
+   "weight": 9,
+   "tags": [
+    "festive",
+    "family",
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "04-18",
+   "name": "Good Friday",
+   "weight": 4,
+   "tags": [
+    "seasonal"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 6,
+   "tags": [
+    "sustainability"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-01",
+   "name": "Labour Day",
+   "weight": 5,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-11",
+   "name": "Mother's Day",
+   "weight": 9,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "06-06",
+   "name": "Hari Raya Haji",
+   "weight": 7,
+   "tags": [
+    "festive",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Loyal",
+    "Champions",
+    "Promising"
+   ]
+  },
+  {
+   "date": "08-09",
+   "name": "National Day (Singapore)",
+   "weight": 9,
+   "tags": [
+    "national",
+    "pride",
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "10-20",
+   "name": "Deepavali",
+   "weight": 9,
+   "tags": [
+    "festive",
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising",
+    "New"
+   ]
+  },
+  {
+   "date": "11-11",
+   "name": "11.11 sale",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "high-intent"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 9,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating",
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "12-12",
+   "name": "12.12 sale",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "product-grid-conversion",
+   "recommended_segments": [
+    "Need-Attention",
+    "Loyal",
+    "At-Risk"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 8,
+   "tags": [
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ],
+ "Global": [
+  {
+   "date": "01-01",
+   "name": "New Year's Day",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "01-26",
+   "name": "Republic Day (IN diaspora)",
+   "weight": 4,
+   "tags": [
+    "heritage",
+    "origin"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Loyal"
+   ]
+  },
+  {
+   "date": "02-14",
+   "name": "Valentine's Day",
+   "weight": 7,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "02-27",
+   "name": "Pokemon Day",
+   "weight": 7,
+   "tags": [
+    "anime",
+    "fandom",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers",
+    "gaming-buyers"
+   ],
+   "why": "Anime collection — Pokemon hand-painted AF1/Dunks; Pokemon Company runs official Pokemon Day announcements annually on Feb 27 (anniversary of 1996 Red/Green release)",
+   "source": "https://www.pokemon.com/us/pokemon-news (official annual Pokemon Day, Feb 27)"
+  },
+  {
+   "date": "03-08",
+   "name": "International Women's Day",
+   "weight": 6,
+   "tags": [
+    "story",
+    "founder"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Loyal",
+    "Promising",
+    "Champions"
+   ]
+  },
+  {
+   "date": "03-08",
+   "name": "F1 Season Opener (2026: Australian GP Mar 6-8) — VARIABLE, early March each year",
+   "weight": 6,
+   "tags": [
+    "cars",
+    "motorsport",
+    "variable-date",
+    "season-window"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "cars-buyers",
+    "male-18-34"
+   ],
+   "why": "Cars collection — F1/motorsport-themed customs; Indian F1 fandom spikes at season start",
+   "source": "https://www.espn.com/f1/story/_/id/48031144/australian-grand-prix-2026-f1-first-race-start-how-watch-schedule-albert-park-tv-channel-live-stream-predictions-results"
+  },
+  {
+   "date": "03-13",
+   "name": "Holi",
+   "weight": 6,
+   "tags": [
+    "colour",
+    "festive"
+   ],
+   "archetype_hint": "editorial-trend-roundup",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "03-26",
+   "name": "Air Max Day",
+   "weight": 9,
+   "tags": [
+    "sneaker-culture",
+    "nike",
+    "fixed-date"
+   ],
+   "archetype_hint": "category-tentpole",
+   "recommended_segments": [
+    "sneakerheads",
+    "all-buyers"
+   ],
+   "why": "AF1/sneaker-culture core — Nike's official sneaker holiday (Mar 26, anniversary of the 1987 Air Max 1); peak sneakerhead attention for a Nike-canvas customiser",
+   "source": "https://www.nike.com/air-max-day (Nike official, celebrated Mar 26 annually since 2014)"
+  },
+  {
+   "date": "04-22",
+   "name": "Earth Day",
+   "weight": 7,
+   "tags": [
+    "sustainability",
+    "origin"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  },
+  {
+   "date": "05-04",
+   "name": "Star Wars Day (May the 4th)",
+   "weight": 6,
+   "tags": [
+    "pop-culture",
+    "gaming",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "gaming-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "Gaming/pop-culture collection — Star Wars-themed customs; Disney/Lucasfilm promote May 4 officially each year",
+   "source": "https://www.starwars.com/star-wars-day (official)"
+  },
+  {
+   "date": "05-09",
+   "name": "Goku Day",
+   "weight": 8,
+   "tags": [
+    "anime",
+    "dragon-ball",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers"
+   ],
+   "why": "Anime collection — Dragon Ball customs are a hero SKU for anime customisers; May 9 ('Go-Ku' in Japanese numerals) is certified by the Japan Anniversary Association and promoted by Toei",
+   "source": "https://en.dragon-ball-official.com/news/ (Toei's official Dragon Ball site promotes Goku Day, May 9, annually)"
+  },
+  {
+   "date": "05-11",
+   "name": "Mother's Day (most regions)",
+   "weight": 8,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "05-30",
+   "name": "UEFA Champions League Final (2026: May 30, Budapest) — VARIABLE, late May/early June each year",
+   "weight": 6,
+   "tags": [
+    "football",
+    "sports",
+    "variable-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "football-buyers",
+    "UK-buyers"
+   ],
+   "why": "Football collection — club-crest and player-tribute customs peak around the UCL final",
+   "source": "https://www.uefa.com/uefachampionsleague/ (2025/26 final scheduled May 30, 2026, Puskas Arena, Budapest)"
+  },
+  {
+   "date": "06-21",
+   "name": "International Yoga Day",
+   "weight": 6,
+   "tags": [
+    "streetwear",
+    "ritual"
+   ],
+   "archetype_hint": "ritual-journey",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "Promising"
+   ]
+  },
+  {
+   "date": "07-22",
+   "name": "One Piece Day",
+   "weight": 7,
+   "tags": [
+    "anime",
+    "one-piece",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "anime-buyers"
+   ],
+   "why": "Anime collection — One Piece customs; Jul 22 is the anniversary of the manga's 1997 serialization, celebrated with official annual One Piece Day events by Shueisha/Toei",
+   "source": "https://one-piece-day.com/ (official One Piece Day event site)"
+  },
+  {
+   "date": "08-08",
+   "name": "International Cat Day",
+   "weight": 5,
+   "tags": [
+    "pets",
+    "fixed-date"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners"
+   ],
+   "why": "Pets collection — cat-portrait customs and UGC; Aug 8 established by International Fund for Animal Welfare",
+   "source": "https://www.ifaw.org/journal/international-cat-day (IFAW, custodian of International Cat Day, Aug 8)"
+  },
+  {
+   "date": "08-15",
+   "name": "Independence Day (IN)",
+   "weight": 5,
+   "tags": [
+    "heritage"
+   ],
+   "archetype_hint": "storytelling-narrative",
+   "recommended_segments": [
+    "Loyal",
+    "Champions"
+   ]
+  },
+  {
+   "date": "08-26",
+   "name": "International/National Dog Day",
+   "weight": 6,
+   "tags": [
+    "pets",
+    "fixed-date"
+   ],
+   "archetype_hint": "ugc-moment",
+   "recommended_segments": [
+    "pet-owners",
+    "gift-buyers"
+   ],
+   "why": "Pets collection — dog-portrait custom sneakers are a proven personalisation SKU; Aug 26 observed annually",
+   "source": "https://nationaltoday.com/national-dog-day/ (Aug 26 annually)"
+  },
+  {
+   "date": "09-12",
+   "name": "National Video Games Day (US)",
+   "weight": 6,
+   "tags": [
+    "gaming",
+    "fixed-date",
+    "us-observance"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "gaming-buyers",
+    "US-buyers"
+   ],
+   "why": "Gaming collection — game-franchise customs (US observance, Sep 12; distinct from Sep 29 'Video Games Day')",
+   "source": "https://nationaltoday.com/national-video-games-day/ (Sep 12, US)"
+  },
+  {
+   "date": "10-01",
+   "name": "International Coffee Day",
+   "weight": 5,
+   "tags": [
+    "coffee",
+    "fixed-date"
+   ],
+   "archetype_hint": "niche-collection-push",
+   "recommended_segments": [
+    "coffee-buyers",
+    "lifestyle-buyers"
+   ],
+   "why": "Coffee collection — coffee-themed customs; Oct 1 designated by the International Coffee Organization since 2015",
+   "source": "https://www.internationalcoffeeday.org/ (ICO official, Oct 1)"
+  },
+  {
+   "date": "10-20",
+   "name": "Diwali (approx)",
+   "weight": 9,
+   "tags": [
+    "festive",
+    "gift",
+    "family"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New",
+    "Promising"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday",
+   "weight": 8,
+   "tags": [
+    "sale"
+   ],
+   "archetype_hint": "limited-drop-countdown",
+   "recommended_segments": [
+    "Need-Attention",
+    "At-Risk",
+    "Hibernating"
+   ]
+  },
+  {
+   "date": "11-27",
+   "name": "Black Friday / Cyber Monday (2026: Nov 27-30) — VARIABLE, 4th Friday of November",
+   "weight": 9,
+   "tags": [
+    "sale",
+    "variable-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "sale-event",
+   "recommended_segments": [
+    "all-buyers",
+    "international-buyers"
+   ],
+   "why": "All collections — biggest global e-commerce discount window; key for the 60+ country shipping audience and AF1 base customs",
+   "source": "Well-known fact: Black Friday is the day after US Thanksgiving (4th Thursday of Nov); in 2026 that is Nov 27"
+  },
+  {
+   "date": "12-13",
+   "name": "Taylor Swift's Birthday",
+   "weight": 6,
+   "tags": [
+    "taylor-swift",
+    "fandom",
+    "fixed-date"
+   ],
+   "archetype_hint": "fandom-drop",
+   "recommended_segments": [
+    "swifties",
+    "US-UK-female-18-34"
+   ],
+   "why": "Taylor Swift collection — Swiftie eras-themed customs; Dec 13 (b. 1989) is the recurring fandom date Swifties celebrate annually",
+   "source": "Well-known fact: Taylor Swift born Dec 13, 1989 (https://en.wikipedia.org/wiki/Taylor_Swift)"
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas Day",
+   "weight": 8,
+   "tags": [
+    "gift"
+   ],
+   "archetype_hint": "gift-bundle-showcase",
+   "recommended_segments": [
+    "Champions",
+    "Loyal",
+    "New"
+   ]
+  },
+  {
+   "date": "12-25",
+   "name": "Christmas (order-cutoff campaign from late Nov given custom lead times)",
+   "weight": 9,
+   "tags": [
+    "gifting",
+    "fixed-date",
+    "global-tentpole"
+   ],
+   "archetype_hint": "gifting-peak",
+   "recommended_segments": [
+    "gift-buyers",
+    "US-UK-buyers"
+   ],
+   "why": "All collections — peak Western gifting; critical for Knickgasm's international shipping markets, with early-order messaging due to hand-painting lead time",
+   "source": "Well-known fact: Christmas is Dec 25 worldwide"
+  },
+  {
+   "date": "12-31",
+   "name": "New Year's Eve",
+   "weight": 7,
+   "tags": [
+    "reset"
+   ],
+   "archetype_hint": "founder-note",
+   "recommended_segments": [
+    "Champions",
+    "Loyal"
+   ]
+  }
+ ]
 }

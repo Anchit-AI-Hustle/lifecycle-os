@@ -6,7 +6,7 @@
 
 ## Update log (post-audit fixes shipped this session)
 These landed AFTER the audit was first written and are reflected in the "Now" scores below:
-- **/social** — code-level caption validators added (strip non-PDP URLs + supplement prices, flag medical claims, budget hashtags into the char cap). Prompt-only gate is now code-enforced. (6.5 → 7.5)
+- **/social** — code-level caption validators added (strip non-PDP URLs + unverified prices, flag any health or absolute-durability claim, budget hashtags into the char cap). Prompt-only gate is now code-enforced. (6.5 → 7.5)
 - **/ad-campaigns** — per-platform char-limit clamps enforced at save (Google 30/90, Meta 40/125, TikTok 100); the fabricated "65% OFF" default offer was already removed. The char-limit gap is **closed**. (6.5 → 7)
 - **/lp** — the hardcoded 5-star trust bar, testimonial and guarantee are now routed through the B1 approved-facts gate (below). (7 → 7.5)
 - **B1 infrastructure** — the approved-facts library + master gate now exists (`api/_shared/brand-facts.js`, `data/brand-facts/<region>.json`), shipping **dark** behind `REAL_FACTS_ONLY`. Flip the flag once the library is populated to make /lp (and, once wired, the rest) real-only. Data + flip still pending; `/studio` + flagship mailer wiring still to do.
@@ -85,7 +85,7 @@ Robust: unknown/garbage ids 404 cleanly, no injection, images real-catalog-only,
 ### `/social` — Social OS — **6.5**
 Excellent pipeline hygiene (single bounded run, full fallbacks, no fan-out, honest degradation, no XSS).
 - **Fixed this session:** diffused fake-box hero → real catalog photo; scrub no longer flattens blog/caption paragraphs.
-- Remaining: caption/blog claim gates are **prompt-only** → add code validators (no invented price/discount, no medical claim, PDP-only URLs); hashtags not budgeted into char limit; hardcoded "best time UTC" reads as data.
+- Remaining: caption/blog claim gates are **prompt-only** → add code validators (no invented price/discount, no health or absolute-durability claim, PDP-only URLs); hashtags not budgeted into char limit; hardcoded "best time UTC" reads as data.
 - **To 9.5:** code-level content validators + honest labelling.
 
 ### `/assets` — **7.5** · `/kicksgpt` — **7.5** · `/agent` — **7**

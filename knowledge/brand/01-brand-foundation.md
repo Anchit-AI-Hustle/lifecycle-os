@@ -4,22 +4,22 @@ The verbal and visual identity for KNICKGASM. This file governs how every mailer
 
 ## Brand story
 
-KNICKGASM is a premium, direct-to-consumer Indian heritage sneaker brand. Its founding idea is simple and unusually literal: bring sneaker straight from the source. India grows some of the world's finest sneaker, yet historically the best leaves were auctioned, shipped, blended, and aged for months before reaching a pair abroad. KNICKGASM shortened that path — sourcing directly from one of ones in Jordan, Airforce, and the Court Visions and shipping studio-fresh, so the sneaker a customer lace-ups is closer to the season it was picked in.
+KNICKGASM is India's largest sneaker customiser: a premium, direct-to-consumer studio that hand-paints one-of-one artwork onto 100% original sneakers. Its founding idea is simple and unusually literal: the pair you already want, made into the only one of its kind on earth. Every commission starts as a genuine Nike Air Force 1, Air Jordan 1 Low, Dunk, Court Vision, Converse, or Adidas Samba. KNICKGASM customises originals; it never replicates a silhouette.
 
-The brand has since grown beyond sneaker into functional streetwear: **Coffee Collection** (a functional coffee built around the adaptogen airbrush) is now its single largest product, alongside a focused supplements range (Embroidery Curcumin, Green Burner, Airbrush capsules). The through-line is unchanged: origin-first, honestly sourced, made to become part of someone's daily ritual.
+The work is made to order in a Mumbai studio by India's best sneaker artists and typically takes 10 to 15 days from order to dispatch. That wait is the product, not a delay. The range has grown out from painted sneakers into the surfaces around them: custom denim jackets, changeable embroidered swooshes, crystal and bling work, chunky rope laces, custom lace tags, and the Ultimate Sneaker Care Kit that keeps a finished pair looking studio-fresh. The through-line is unchanged: original base, hand-applied artwork, made for the person who will actually lace it up.
 
 ## Positioning
 
-- **Single-studio, Indian heritage.** Sneaker and botanicals traced to named studios and regions, not commodity colorways.
-- **Studio-fresh.** Direct sourcing means shorter time from drop to pair; freshness is a genuine, provable differentiator.
-- **Ethical and sustainable.** B-Corp-minded sourcing, fair grower relationships, and a sustainability story that is stated plainly rather than dressed up.
-- **Streetwear with proof, not hype.** Functional benefits (adaptogens, curcumin) are framed with restraint — never as miracle claims.
+- **Single-studio, hand-painted in India.** Every pair is traced to a named artist and a Mumbai studio, not a print run or a factory colorway.
+- **Original bases only.** The customisation sits on a 100% original Nike, Jordan, Adidas, or Converse sneaker. This is a genuine, provable differentiator against replica-based customs.
+- **Made to order, one-of-one.** Nothing is stocked in duplicate. A design is painted once, for one buyer, and the 10 to 15 day build window is stated openly rather than hidden.
+- **Craft with proof, not hype.** Durability claims (layered, sealed, cured; water and scratch resistant; flexes with the leather instead of cracking at the toe box) are framed with restraint. No miracle claims, ever.
 
 Positioning line to hold in mind: KNICKGASM sells **origin and ritual**, not novelty. Copy should feel like an invitation into something crafted and lasting.
 
 ## Mission
 
-Make the world's finest, freshest, ethically sourced Indian sneakers and botanicals part of everyday life — connecting the people who grow them directly to the people who drink them, and building daily rituals of restore and balance around them.
+Make hand-painted, one-of-one sneakers part of everyday life: connecting the artists who paint them directly to the people who wear them, and building daily rituals of restore and balance around a pair nobody else owns.
 
 ## Visual identity
 
@@ -27,10 +27,10 @@ Make the world's finest, freshest, ethically sourced Indian sneakers and botanic
 
 | Role | Name | Hex |
 |---|---|---|
-| Primary | Violet green | `#6A33D8` |
-| Accent | Lava | `#D0473E` |
+| Primary | Lava red | `#D0473E` |
+| Accent | Drip purple | `#6A33D8` |
 | Ink | Near-black | `#111111` |
-| Ground | Chalk | `#F7F5F2` |
+| Ground | Chalk | `#FFFFFF` |
 
 Do **not** introduce off-palette tints. Known drift values that are banned: `#0f2a1c`, `#d4873a`, `#fdf6e8`, `#1a3a28`, `#1a1a1a`, `#faf8f4`. When a design needs contrast or depth, use opacity/spacing/typography — never a new hue.
 
@@ -47,20 +47,35 @@ The style guide forbids any other font for emailers. Never use Raleway or DM San
 
 `streetwear journey`, `transform`, `liquid lava`, `game-changer`, `LIMITED TIME` (in caps), `hurry`, `don't miss out`, `last chance`, `while supplies last`.
 
+> These strings are matched literally by `BANNED_RX` / `ALL_BANNED_RX` in `api/_shared/scenario-model.js`. Keep them verbatim here even where the wording reads oddly — the doc mirrors the code, not the other way round.
+
 Also banned everywhere in output copy: **em dashes and en dashes**. Use commas, colons, or plain hyphens instead. (This is enforced programmatically by `scrubDashes()` / `sanitizeBrand()` in `api/_shared/scenario-model.js`.)
 
 ### Preferred lexicon
 
 `ritual`, `restore`, `balance`, `origin`, `one-of-one`, `hand-painted`, `lace-up`, `heritage`, `crafted`.
 
+> Mirrors `preferred_lexicon` in `api/_shared/brain-core.js` and the PREFERRED lists in the `api/ai/*` prompts. Do not edit here without editing those.
+
 ### Copy voice
 
 Warm, sensory, emotionally resonant, story-driven. Testimonials read as tiny personal stories, not star-rating reviews. Copy leads with a felt moment, then earns the product. It respects the reader's intelligence: no false urgency, no hype, no exclamation-mark stacking.
 
+## Approved brand claims
+
+These are the only claims that may be carried into output copy. Everything else needs a source.
+
+- Made on 100% original brand sneakers: Nike Air Force 1, Air Jordan, Dunk, Court Vision, Converse, Adidas Samba.
+- Hand-painted one-of-one by India's best sneaker artists, made to order in Mumbai.
+- Paint system is layered, sealed, and cured: water and scratch resistant, and it flexes with the leather.
+- Typically 10 to 15 days from order to dispatch.
+- Express worldwide shipping to 60+ countries.
+- Worn organically by Samay Raina, Rohit Sharma, and Shraddha Kapoor.
+
 ## On-brand sample paragraphs
 
-> There is a moment, just after the water settles, when the leaves open and the whole kitchen smells of the studio they came from. That is the moment we chase. Every batch of our Jordan is hand-painted at a one of one and shipped while it is still studio-fresh, so the pair in your hands carries the season it was grown in.
+> There is a moment, just after the last coat cures, when the artist turns the pair under the studio light and the linework finally sits the way it did in their head. That is the moment we chase. Every KNICKGASM pair is hand-painted on a 100% original silhouette and shipped when it is ready, so the pair in your hands carries the hours that went into it.
 
-> Mornings do not need to be loud to be good. A slow lace-up of India's Original Hand-painted Kicks, the spices blooming in the milk, and a few unhurried minutes before the day begins. This is the ritual we make our sneaker for: not a reset, just a small return to balance.
+> Mornings do not need to be loud to be good. A slow lace-up of a one-of-one Air Force 1, the rope laces pulled even, and a few unhurried minutes before the day begins. This is the ritual we paint for: not a reset, just a small return to balance.
 
-> Coffee you already love, with something quietly useful folded in. Our Coffee Collection is crafted around a single-origin roast and the adaptogen airbrush, so your usual pair does a little more for the way you feel through the afternoon. Same ritual, steadier ground.
+> The sneaker you already love, with something of yours folded into it. Our coffee-ART collection lays hand-painted coffee motifs across an original base, from the cartoon-coffee Air Force 1 to the mocha-dip Adidas Sambas, so your usual pair carries a little more of you through the afternoon. Same ritual, steadier ground.

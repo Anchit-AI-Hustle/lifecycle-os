@@ -7,10 +7,10 @@
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
-  :root{--violet:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--bg:#F7F5F2;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--chip:#f0e7d3;--head:#6A33D8;--accent:#D0473E;}
+  :root{--violet:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--bg:#FFFFFF;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--chip:#f0e7d3;--head:#D0473E;--accent:#6A33D8;}
   @media (prefers-color-scheme: dark){:root{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}}
   :root[data-theme="dark"]{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}
-  :root[data-theme="light"]{--bg:#F7F5F2;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--ink:#111111;--head:#6A33D8;--accent:#D0473E;--chip:#f0e7d3;}
+  :root[data-theme="light"]{--bg:#FFFFFF;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--ink:#111111;--head:#D0473E;--accent:#6A33D8;--chip:#f0e7d3;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
   .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
@@ -26,7 +26,7 @@
   ol.beats{margin:14px 0 0;padding-left:0;list-style:none;counter-reset:b;}
   ol.beats li{position:relative;padding:8px 0 8px 34px;border-top:1px solid var(--line);}
   ol.beats li:first-child{border-top:0;}
-  ol.beats li::before{counter-increment:b;content:counter(b);position:absolute;left:0;top:8px;width:22px;height:22px;border-radius:50%;background:var(--violet);color:#F7F5F2;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  ol.beats li::before{counter-increment:b;content:counter(b);position:absolute;left:0;top:8px;width:22px;height:22px;border-radius:50%;background:var(--violet);color:#FFFFFF;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
   ol.beats .bn{font-weight:700;color:var(--head);}
   ol.beats .bg{color:var(--soft);font-size:13.5px;display:block;margin-top:2px;}
   .meta{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:13px;color:var(--soft);}

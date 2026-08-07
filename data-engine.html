@@ -6,18 +6,18 @@
 <title>DTC Data Engine - KNICKGASM Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/data/analytics/market-data.js"></script>
 <script>
   if (window.tailwind) {
     tailwind.config = { theme: { extend: { colors: {
-      vgreen: '#6A33D8', vgold: '#D0473E', vink: '#111111', vcream: '#F7F5F2'
+      vgreen: '#D0473E', vgold: '#6A33D8', vink: '#111111', vcream: '#FFFFFF'
     } } } };
   }
 </script>
 <style>
-  :root{ --knickgasm-green:#6A33D8; --knickgasm-lava:#D0473E; --knickgasm-ink:#111111; --knickgasm-chalk:#F7F5F2; }
+  :root{ --knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF; }
   html{scroll-behavior:smooth;}
   body{background:#ffffff;color:#111111;font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:26px 30px;}
   .lc-main{max-width:1080px;margin:0 auto;}
@@ -28,7 +28,7 @@
   .metric-lg{font-family:'Lora',serif;font-size:32px;color:#111111;font-weight:700;line-height:1;}
   .pill{display:inline-block;background:rgba(171,135,67,.16);color:#7a5f28;border:1px solid rgba(171,135,67,.4);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
   .rtab{cursor:pointer;border:1.5px solid rgba(171,135,67,.4);background:transparent;color:#111111;border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
-  .rtab:hover{border-color:#D0473E;} .rtab.on{background:#6A33D8;color:#F7F5F2;border-color:#6A33D8;}
+  .rtab:hover{border-color:#6A33D8;} .rtab.on{background:#D0473E;color:#FFFFFF;border-color:#D0473E;}
   .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
   .flow .node{background:#f4f2ec;border:1px solid rgba(171,135,67,.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#111111;}
   .flow .arrow{color:var(--knickgasm-lava);font-weight:800;}
@@ -47,7 +47,7 @@
     <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The ingestion and analytics core that powers the OS. Matrixify, Shopify, Klaviyo and WebEngage exports are ingested into DuckDB, modelled, and synced to Supabase; the compiled market exports below render natively here, no external app and no server round-trip.</p>
 
     <div class="flex flex-wrap items-center gap-2 mt-5" id="mktTabs">
-      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#D0473E;margin-right:4px">Market</span>
+      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Market</span>
       <button type="button" class="rtab on" data-mkt="US">US</button>
       <button type="button" class="rtab" data-mkt="UK">UK</button>
       <span class="text-[12px]" style="color:#556059;margin-left:6px">Showing <b style="color:#111111" id="mktLabel">US</b></span>

@@ -89,15 +89,15 @@ function fingerprint(html) {
   const htmlEllipsis = (html.match(/&hellip;/gi) || []).length;
   const realEllipsis = rawEllipsis - htmlEllipsis;
 
-  // Count distinct dark-bg sections (each opening #6A33D8 background counts once per <td>)
-  const darkBgSections = (html.match(/bgcolor=["']#6A33D8["']/gi) || []).length;
+  // Count distinct dark-bg sections (each opening #D0473E background counts once per <td>)
+  const darkBgSections = (html.match(/bgcolor=["']#D0473E["']/gi) || []).length;
 
   return {
     char_count: html.length,
     table_count: (html.match(/<table/gi) || []).length,
     image_count: (html.match(/<img/gi) || []).length,
     // Conversion signals
-    amber_cta_buttons: (html.match(/background[:\s]*#D0473E/gi) || []).length,
+    amber_cta_buttons: (html.match(/background[:\s]*#6A33D8/gi) || []).length,
     ghost_buttons: (html.match(/border[:\s]*1\.5px solid|border[:\s]*2px solid/gi) || []).length,
     cta_links: (html.match(/<a[^>]+href/gi) || []).length,
     // Layout signals

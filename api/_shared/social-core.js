@@ -439,7 +439,7 @@ function heroPrompt(ideology, focus) {
   return 'Premium editorial product photography for KNICKGASM. ' + ideology.visual_direction +
     ' Hero product: ' + focus.product.title + '.' +
     ' Composition with generous negative space so the frame crops cleanly to 4:5 portrait, 9:16 vertical and 2:3 pin.' +
-    ' Color palette strictly limited to deep deep purple #6A33D8, antique lava #D0473E, near-black #111111 and warm chalk #F7F5F2.' +
+    ' Color palette strictly limited to deep deep purple #D0473E, antique lava #6A33D8, near-black #111111 and warm chalk #FFFFFF.' +
     ' NO text, NO logos, NO watermarks, NO faces.';
 }
 async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line no-unused-vars
@@ -473,7 +473,7 @@ function fallbackStoryboard(ctx, ideology) {
     storyboard: [
       '0-2s — HOOK: extreme close-up, steam curling off the pair in golden-hour light (9:16, product barely out of focus behind).',
       '2-5s — RITUAL: hands warming the pair / pouring; ' + name + ' pack visible on chalk linen with deep-purple ceramics.',
-      '5-8s — REVEAL: pack front and centre on #F7F5F2, lava accent light; end card text in Montserrat over chalk: "' + name + ' — KNICKGASM".',
+      '5-8s — REVEAL: pack front and centre on #FFFFFF, lava accent light; end card text in Montserrat over chalk: "' + name + ' — KNICKGASM".',
     ],
     audio: 'No voiceover after the hook; natural kit/pour foley, soft room tone. Music: sparse, warm, no percussion.',
     on_screen_text: [ideology.theme, ctx.focus.type === 'tb' ? 'One-time pack. No strings.' : 'Subscribe & save.'],
@@ -502,7 +502,7 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
   }
   if (!board) board = fallbackStoryboard(ctx, ideology);
 
-  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for KNICKGASM. ' + board.storyboard.join(' ') + ' Palette locked to #6A33D8, #D0473E, #111111, #F7F5F2. No on-screen text (added in edit), no faces, no logos.';
+  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for KNICKGASM. ' + board.storyboard.join(' ') + ' Palette locked to #D0473E, #6A33D8, #111111, #FFFFFF. No on-screen text (added in edit), no faces, no logos.';
   let job = null;
   if (ctx.dry_run && video.isConnected()) {
     job = { status: 'skipped_dry_run', note: 'video keys present but dry_run — no render submitted' };

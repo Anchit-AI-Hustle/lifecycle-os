@@ -1,115 +1,199 @@
 {
-  "_doc": "KNICKGASM UK lifecycle product-type facts. Single source of truth for the lifecycle calendar + mailer builder (api/_shared/lifecycle-*.js). Locked from lifecycle-campaigns/2026-07-03_week1/facts.md — nothing outside that file may be claimed as fact. Committed on purpose (data/catalog/ is gitignored build output; this is hand-curated).",
+  "_doc": "KNICKGASM lifecycle product-type facts. Single source of truth for the lifecycle calendar + mailer builder (api/_shared/lifecycle-*.js) and Social Media OS (api/_shared/social-core.js). SOURCE: the live knickgasm.com catalog fetched 2026-08-03 (436 active products, built into data/catalog/products_{us,uk,global}.json by scripts/build-catalog.js; USD @ INR 87.5 and GBP @ INR 110 fixed-rate conversions from INR list prices). Every count, product, handle, price and image below is copied from that catalog (GBP figures from products_uk.json, USD from products_us.json) - nothing here may be claimed unless it exists there. 'catalog_types' is the real product-type taxonomy; 'types' keeps the legacy consumer keys shape-compatible (see _key_note). Committed on purpose (data/catalog/ is gitignored build output; this is hand-curated).",
+  "_key_note": "The type keys 'tb', 'coffee' and 'supplements' are LEGACY IDENTIFIERS consumed by api/_shared/lifecycle-*.js, social-core.js and lifecycle-cohorts.js. They are kept verbatim so those consumers keep working. Read them as: tb = the core custom-sneaker range, coffee = the coffee-ART collection (hand-painted coffee motifs on sneakers, not a drink), supplements = the accessories lane (laces, lace tags, care).",
   "store": {
     "base_url": "https://knickgasm.com",
     "product_url_pattern": "https://knickgasm.com/products/{handle}",
     "currency": "GBP",
     "currency_symbol": "£"
   },
+  "catalog_types": {
+    "_doc": "Real product-type groups derived from the 'type' field of the live knickgasm.com catalog fetched 2026-08-03. count = active products in that group (sums to 436); price ranges are min-max across the group (USD from products_us.json, GBP from products_uk.json).",
+    "af1": {
+      "label": "Nike Air Force 1 Customs",
+      "count": 349,
+      "price_range_usd": { "min": 115.47, "max": 261.95 },
+      "price_range_gbp": { "min": 91.85, "max": 208.37 },
+      "description": "The flagship: hand-painted one-of-one Nike Air Force 1 customs, roughly 80% of the catalog. Themes counted from live product names: anime (59 - Naruto, One Piece, Dragon Ball), football clubs (32 - Manchester United, Real Madrid and more), cars and F1 (32 - GTR R34, Porsche, Ferrari, BMW), gaming and superheroes (16 - Spiderman, Captain America), pets (7 - customisable Doggo editions), bling/crystal (5), wedding customs (customisable with the outfit), plus celebrity editions (CR7, Messi, Taylor Swift, Travis Scott, Ranbir Kapoor).",
+      "lifecycle_use": "Default hero for nearly every campaign: story-led intros, theme-of-the-week rotations (anime drop, matchday, race-week), gifting pushes (pet and wedding customs), win-backs citing live compare-at prices."
+    },
+    "court_vision": {
+      "label": "Nike Court Vision Customs",
+      "count": 35,
+      "price_range_usd": { "min": 103.67, "max": 152.06 },
+      "price_range_gbp": { "min": 82.46, "max": 120.96 },
+      "description": "Hand-painted Nike Court Vision customs - the accessible entry silhouette, priced below AF1.",
+      "lifecycle_use": "First-purchase and price-sensitive plays: entry-point offers for non-buyers, 'your first custom' onboarding sends."
+    },
+    "converse": {
+      "label": "Converse Customs",
+      "count": 19,
+      "price_range_usd": { "min": 99.84, "max": 138.79 },
+      "price_range_gbp": { "min": 79.42, "max": 110.4 },
+      "description": "Hand-painted Converse customs - the lowest-priced sneaker canvas in the catalog.",
+      "lifecycle_use": "Entry-point and student/gift angles; canvas-art storytelling for discovery cohorts."
+    },
+    "adidas_sambas": {
+      "label": "Adidas Sambas & Stan Smith Customs",
+      "count": 9,
+      "price_range_usd": { "min": 153.6, "max": 203.43 },
+      "price_range_gbp": { "min": 122.18, "max": 161.82 },
+      "description": "Adidas Sambas and Stan Smith customs including F1 driver editions (Lewis Hamilton, Lando Norris), Messi, Ferrari, Doggo and Indian Cricket customs.",
+      "lifecycle_use": "Trend-led sends (terrace style), F1 race-weekend and cricket-season moments."
+    },
+    "air_jordan": {
+      "label": "Nike Air Jordan 1 Low Customs",
+      "count": 8,
+      "price_range_usd": { "min": 174.97, "max": 226.29 },
+      "price_range_gbp": { "min": 139.18, "max": 180.0 },
+      "description": "Hand-painted Air Jordan 1 Low customs - anime (One Piece, Bleach, Luffy x Zoro), Captain America, golf and coffee-art themes. The premium sneaker tier.",
+      "lifecycle_use": "Premium and VIP cohort heroes; upgrade path for repeat AF1 buyers."
+    },
+    "other_nike": {
+      "label": "Other Nike Customs (Air Max, Dunks, AF1 Mids, Ebernon)",
+      "count": 4,
+      "price_range_usd": { "min": 104.0, "max": 217.81 },
+      "price_range_gbp": { "min": 82.73, "max": 173.25 },
+      "description": "Single-piece Nike customs outside the core lines: Nebula x Air Max, Nike Dunk Low Indigo Haze x Taylor Swift, AF1 Mids x Lionel Messi, Nike Ebernon x Cartoon.",
+      "lifecycle_use": "Scarcity-true one-of-one features and collector spotlights - each of these is a single live listing."
+    },
+    "other_customs": {
+      "label": "Other Brand Customs (ARKS, Comet, Asics, Philipp Plein)",
+      "count": 5,
+      "price_range_usd": { "min": 123.43, "max": 1109.79 },
+      "price_range_gbp": { "min": 98.18, "max": 882.79 },
+      "description": "Customs on Indian sneaker labels ARKS and Comet (Spiderman, Ranbir Kapoor, Tale of Two Cities editions), an Asics Stree 2 theme, and the top-of-catalog Philipp Plein Chunky Godzilla Color Wave custom.",
+      "lifecycle_use": "India-pride storytelling (homegrown silhouettes) and the Philipp Plein piece as the ultra-premium halo product."
+    },
+    "denim_jackets": {
+      "label": "Denim Jackets",
+      "count": 3,
+      "price_range_usd": { "min": 64.35, "max": 64.35 },
+      "price_range_gbp": { "min": 51.19, "max": 51.19 },
+      "description": "Hand-painted artist-tribute denim jackets: Juice WRLD, Pop Smoke, Travis Scott. Single price point across all three.",
+      "lifecycle_use": "Cross-sell to sneaker buyers (complete-the-fit) and music-culture moments."
+    },
+    "laces_accessories": {
+      "label": "Laces & Accessories",
+      "count": 3,
+      "price_range_usd": { "min": 7.91, "max": 9.14 },
+      "price_range_gbp": { "min": 6.29, "max": 7.27 },
+      "description": "Chunky rope laces (two colorways) and custom lace tags - the lowest-priced items in the catalog.",
+      "lifecycle_use": "Add-on and basket-builder plays, post-purchase 'style your pair' follow-ups, low-risk first conversion for non-buyers."
+    },
+    "care_kits": {
+      "label": "Sneaker Care Kits",
+      "count": 1,
+      "price_range_usd": { "min": 17.13, "max": 17.13 },
+      "price_range_gbp": { "min": 13.63, "max": 13.63 },
+      "description": "Ultimate Sneaker Care Kit (handle sneaker-care-kit) - cleaning and protection for hand-painted customs. Live compare-at on store: £13.63, was £27.26.",
+      "lifecycle_use": "Post-purchase care education, replenishment reminders, attach-to-every-order cross-sell."
+    }
+  },
   "types": {
     "tb": {
-      "label": "Sneakers & Botanicals",
+      "label": "Custom Sneakers",
       "purchase_mode": "one_time_only",
-      "notes": "ONE-TIME purchase only — never use subscription language for T&B. Full list (75 SKUs) lives in the store CSV export / data-catalog pipeline (products_export_uk.csv → data/catalog/products_uk.json); the heroes below are the verified subset for lifecycle sends. Compare-at (was) prices are live store values — citing them is honest, not an invented discount.",
+      "notes": "ONE-TIME purchase only - every pair is a one-of-one, made to order, so never use subscription or refill language for this lane. Full list (436 SKUs) lives in the store CSV export / data-catalog pipeline (products_export_uk.csv -> data/catalog/products_uk.json); the heroes below are the verified subset for lifecycle sends. Compare-at (was) prices are live store values - citing them is honest, not an invented discount. Every pair is hand-painted on a 100% original base sneaker, finished water and scratch resistant, and made to order in 10 to 15 days.",
       "products": [
         {
-          "title": "Airforce Spice Hand-painted Kicks, 200g hand-painted",
-          "handle": "airforce-spice-hand-painted-kicks-sneaker",
-          "price_gbp": 12.99,
-          "compare_at_gbp": 14.99,
-          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/products/airforcechaispicedbt_11zon.jpg?v=1675673061"
+          "title": "CR7 x Nike Air Force 1, hand-painted one-of-one",
+          "handle": "cr7-x-nike-air-force-1",
+          "price_gbp": 125.11,
+          "compare_at_gbp": 167.84,
+          "image": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/918FE56F-6D8E-4C07-A45F-EDBA37E4E41D.jpg?v=1785410921"
         },
         {
-          "title": "Signature Green Sneaker, 100g hand-painted",
-          "handle": "signature-green-sneaker-3-53oz-100g",
-          "price_gbp": 5.99,
-          "compare_at_gbp": 15.99,
-          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/products/signaturegreentea_11zon_2.jpg?v=1675673283"
+          "title": "Spiderman x Nike Air Force 1, hand-painted one-of-one",
+          "handle": "spiderman-x-nike-air-force-1",
+          "price_gbp": 133.38,
+          "compare_at_gbp": 167.84,
+          "image": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/28DE9946-D17C-4315-8861-E3DD69D53938.jpg?v=1783339509"
         },
         {
-          "title": "Earl Grey Black Sneaker, 100 lace sets",
-          "handle": "earl-grey-black-sneaker-bags-100-sneaker-bags",
-          "price_gbp": 17.99,
-          "compare_at_gbp": 25.99,
-          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/files/Earl-grey_ed481d66-3b90-4a08-94a3-2ba4cb94ae5c.jpg?v=1758099441"
+          "title": "Manchester United F.C. x Nike Air Force 1, hand-painted one-of-one",
+          "handle": "manchester-united-f-c-x-nike-air-force-1",
+          "price_gbp": 133.45,
+          "compare_at_gbp": 156.48,
+          "image": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/FullSizeRender_463ec0c1-bdb5-410d-bd57-2cebd9f0edac.jpg?v=1785616541"
         },
         {
-          "title": "Pastel Mint Citrus Green Sneaker, 200g",
-          "handle": "pastel-mint-citrus-green-sneaker",
-          "price_gbp": 15.99,
-          "compare_at_gbp": 17.99,
-          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/products/pastelmintcitrusgreentea_11zon.jpg?v=1675673420"
+          "title": "Nissan Skyline GT-R R34 x Nike Air Force 1, hand-painted one-of-one",
+          "handle": "gtr-x-nike-air-force-1",
+          "price_gbp": 123.93,
+          "compare_at_gbp": 156.48,
+          "image": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/48E101AF-8235-496A-BB64-80C98EC70F7F.jpg?v=1785617884"
         },
         {
-          "title": "Assorted Hand-painted Sampler, 10 sneakers",
-          "handle": "assorted-panel-sneakers",
-          "price_gbp": 12.99,
-          "compare_at_gbp": 23.99,
-          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/files/71d5z4TlNaL._AC_SL1500.jpg?v=1682503156"
+          "title": "Tom And Jerry x Nike Air Force 1, hand-painted one-of-one",
+          "handle": "tom-and-jerry-x-nike-air-force-1",
+          "price_gbp": 149.28,
+          "compare_at_gbp": 189.72,
+          "image": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/DBA9C814-FA7A-4098-9BA9-03A238C23E2F.jpg?v=1785265158"
         },
         {
-          "title": "Embroidery Airbrush Themed Tisane, 100 bags",
-          "handle": "embroidery-airbrush-themed-sneaker-tisane-100-sneaker-bags",
-          "price_gbp": 24.99,
-          "compare_at_gbp": 34.99,
-          "image": "https://cdn.shopify.com/s/files/1/0684/3603/3827/files/81zl0PJEMoL._AC_SL1500.jpg?v=1684996616"
+          "title": "BMW Custom x Nike Air Force 1, hand-painted one-of-one",
+          "handle": "bmw-custom-x-nike-air-force-1",
+          "price_gbp": 126.06,
+          "compare_at_gbp": 151.96,
+          "image": "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/9637519B-335C-4745-8198-281A7C8A7121.jpg?v=1783692999"
         }
       ]
     },
     "coffee": {
-      "label": "Coffee Collection",
-      "purchase_mode": "subscription_priority",
-      "notes": "One-time OR subscription — SUBSCRIPTION IS THE PRIORITY CTA. Exact pricing below, do not alter. No product image available; use typographic hero with a drop-in slot for a product shot.",
-      "handle": "coffee-collection",
-      "handle_verified": false,
-      "handle_note": "BEST GUESS — verify against the live store before send.",
+      "label": "coffee-ART Collection",
+      "purchase_mode": "one_time_only",
+      "notes": "The coffee-ART collection is a PAINT THEME, not a drink: coffee-dip washes, latte-swirl and cartoon-coffee motifs hand-painted onto original Nike Air Force 1, Court Vision and Air Jordan 1 Low bases. Sold as one-of-one pairs, one-time purchase only - KNICKGASM runs no subscription of any kind, so never write subscribe / refill / auto-ship copy for this lane. The two entries under 'packs' are the price ladder by base sneaker model, not multi-unit bundles.",
+      "handle": "nike-air-force-1-coffee-dip-rope-laces",
+      "handle_verified": true,
+      "handle_note": "Verified against data/catalog/products_uk.json.",
       "collection_slug": "coffee",
       "collection_slug_note": "Fallback destination if the product handle 404s.",
       "packs": [
         {
           "key": "pack_1",
-          "label": "Pack of 1",
-          "one_time_gbp": 49.99,
-          "subscription_gbp": 29.99
+          "label": "Court Vision base",
+          "one_time_gbp": 89.09,
+          "subscription_gbp": 89.09,
+          "_field_note": "LEGACY KEYS. 'one_time_gbp' and 'subscription_gbp' both carry the single live store price for Coffee (Rope Laces) x Nike Court Vision, handle nike-court-vision-x-coffee-with-chunky-rope-laces-1 (compare-at £104.00). There is no subscription price because there is no subscription; the duplicate key is kept only so existing consumers keep reading a valid number."
         },
         {
           "key": "pack_3",
-          "label": "Pack of 3",
-          "one_time_gbp": 99.99,
-          "subscription_gbp": 59.99,
-          "b2g1_framing": "£59.99 = 2 × £29.99 — buy two packs, the third is free (B2G1)."
+          "label": "Air Jordan 1 Low base",
+          "one_time_gbp": 141.91,
+          "subscription_gbp": 141.91,
+          "b2g1_framing": "Same hand-painted coffee artwork, stepped up a base model: Court Vision £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91. State the ladder, never invent a bundle or a discount code.",
+          "_field_note": "LEGACY KEYS. Both price fields carry the single live store price for Nike Air Jordan 1 Lows x Coffee, handle nike-air-jordan-1-lows-x-coffee-dip-rope-laces (compare-at £190.26)."
         }
       ],
       "gifts": [
-        "Electric Frother",
-        "Recipe Booklet",
-        "Plantable Paper",
-        "Colorway Bean Pouch",
-        "Mystery Gift (5 Lace Sets)",
-        "Wooden Scoop",
-        "Stainless Steel Straw"
+        "100% original brand-new base sneaker",
+        "Hand-painted by India's best sneaker artists",
+        "Water and scratch resistant finish",
+        "Made to order in 10 to 15 days",
+        "Express worldwide shipping to 60+ countries"
       ],
-      "gifts_note": "7 free gifts with EVERY order — both one-time and subscription.",
-      "sub_gift_value_per_year_gbp": 105,
-      "sub_gift_hook": "Subscription-only hook: gifts worth more than £105 across the year, arriving with refills."
+      "gifts_note": "LEGACY KEY. This is NOT a free-gift list - it is what every coffee-ART order includes as standard. KNICKGASM gives no free gifts with orders; do not write gift-with-purchase copy from this field.",
+      "sub_gift_value_per_year_gbp": 0,
+      "sub_gift_hook": "There is no subscription and no gift-value claim. The honest hook is the craft: an original AF1, Court Vision or Jordan 1 Low, hand-painted with coffee-dip artwork, one pair only, finished water and scratch resistant."
     },
     "supplements": {
-      "label": "Supplements",
-      "purchase_mode": "subscription_priority",
-      "zero_purchase_history": true,
-      "notes": "Just launched, zero buyers yet — a truthful 'be among the first' angle is allowed. One-time OR subscription; SUBSCRIPTION IS THE PRIORITY CTA. No pricing provided — NEVER state a price; CTA to product page only. No images — typographic treatment.",
+      "label": "Accessories",
+      "purchase_mode": "one_time_only",
+      "zero_purchase_history": false,
+      "notes": "LEGACY KEY 'supplements' = the accessories lane: chunky rope laces and custom lace tags that finish a pair. One-time purchase only. These are low-ticket add-ons, so the lifecycle role is attachment and reorder rather than headline revenue - the CTA goes to the product page and never to a subscription. Prices are live store values but this lane is deliberately routed price-free in social copy; cite the PDP instead.",
       "products": [
         {
-          "title": "Embroidery Curcumin 1800 MG",
-          "handle": "embroidery-curcumin",
-          "handle_verified": false,
-          "handle_note": "BEST GUESS — verify against the live store before send."
+          "title": "Chunky Rope Laces For Sneakers",
+          "handle": "rope-laces",
+          "handle_verified": true,
+          "handle_note": "Verified against data/catalog/products_uk.json (£6.29, compare-at £8.39)."
         },
         {
-          "title": "Green Burner",
-          "handle": "green-burner",
-          "handle_verified": false,
-          "handle_note": "BEST GUESS — verify against the live store before send."
+          "title": "Lace Tags (Custom)",
+          "handle": "lace-tags-custom",
+          "handle_verified": true,
+          "handle_note": "Verified against data/catalog/products_uk.json (£7.27, compare-at £9.70)."
         }
       ]
     }

@@ -7,12 +7,12 @@
 <link rel="icon" href="/favicon.png">
 <style>
   :root{
-    --green:#6A33D8; --lava:#D0473E; --lava-deep:#7a5a1e; --ink:#111111; --chalk:#F7F5F2;
-    --bg:#F3EEE2; --surface:#ffffff; --surface-2:#F7F5F2; --line:#E3D8BF; --line-strong:#CBB98C;
+    --green:#D0473E; --lava:#6A33D8; --lava-deep:#7a5a1e; --ink:#111111; --chalk:#FFFFFF;
+    --bg:#F3EEE2; --surface:#ffffff; --surface-2:#FFFFFF; --line:#E3D8BF; --line-strong:#CBB98C;
     /* Contrast tokens — every pair below is dark-on-light and clears WCAG-AA
        (>=4.5:1) on --surface and --surface-2. --dim was #5c6b60 (4.9:1) and is
        now #3D4A42 (8.2:1); lava text only ever uses the deep lava. */
-    --text:#1F2A23; --dim:#3D4A42; --head:#6A33D8;
+    --text:#1F2A23; --dim:#3D4A42; --head:#D0473E;
     --good:#0E5C36; --good-bg:#DCEDE3; --warn:#6E4A0C; --warn-bg:#F7ECD2; --bad:#7A2718; --bad-bg:#F7DED6;
     --live:#0E5C36; --live-bg:#D6EBDD;
     --shadow:0 4px 16px rgba(0,74,43,.08);
@@ -428,7 +428,7 @@
       var v=Number(r[key])||0, h=Math.max(1,v/max*ih), x=PL+i*bw, y=PT+ih-h;
       var isToday=r.rel==="today"||(SNAP&&r.date===SNAP.today&&false);
       return "<rect x='"+(x+bw*0.12).toFixed(1)+"' y='"+y.toFixed(1)+"' width='"+(bw*0.76).toFixed(1)+"' height='"+h.toFixed(1)+
-        "' rx='2' fill='"+(isToday?"#0E5C36":"#6A33D8")+"' opacity='"+(isToday?1:0.86)+"'><title>"+esc(r.date)+": "+esc(fmt(v))+"</title></rect>";
+        "' rx='2' fill='"+(isToday?"#0E5C36":"#D0473E")+"' opacity='"+(isToday?1:0.86)+"'><title>"+esc(r.date)+": "+esc(fmt(v))+"</title></rect>";
     }).join("");
     var ticks=[0,0.5,1].map(function(f){
       var y=PT+ih-f*ih;
@@ -1116,7 +1116,7 @@
     var u=og.ugc_june_buckets;
     $("#org-ugc").innerHTML=table(
       [{t:"Bucket"},{t:"Live pieces",r:1}],
-      [["Target shelf showdown",intf(u.target_shelf)],["Grail-Drop",intf(u.grail-drop)],["Over 40",intf(u.over_40)],["Gummies vs coffee",intf(u.gummies_vs_coffee)],["Taste",intf(u.taste)],["Countering mushroom-coffee trend",intf(u.countering_mushroom)],["<b>Total live (June)</b>","<b>"+intf(u.total_live)+"</b> (TikTok "+intf(u.tiktok)+" · IG "+intf(u.instagram)+" · YT "+intf(u.youtube)+")"]]);
+      [["Target shelf showdown",intf(u.target_shelf)],["Grail-Drop",intf(u.grail-drop)],["Over 40",intf(u.over_40)],["Laces vs full custom",intf(u.gummies_vs_coffee)],["Paint detail",intf(u.taste)],["Countering factory colourways",intf(u.countering_mushroom)],["<b>Total live (June)</b>","<b>"+intf(u.total_live)+"</b> (TikTok "+intf(u.tiktok)+" · IG "+intf(u.instagram)+" · YT "+intf(u.youtube)+")"]]);
     $("#org-funnel").innerHTML="<div class='stage'><span class='hdr'>Stage</span><span class='hdr'>May</span><span class='hdr'>June</span></div>"+
       og.retention_funnel.stages.map(function(s){return "<div class='stage'><span class='lab'>"+esc(s.stage)+"</span><span>"+esc(s.may)+"</span><span>"+esc(s.june)+"</span></div>";}).join("");
     $("#org-funnel-note").textContent=og.retention_funnel.headline;

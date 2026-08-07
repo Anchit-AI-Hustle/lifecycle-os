@@ -17,7 +17,7 @@ Design the nurture flow for: `$ARGUMENTS`.
 1) Flow map (trigger -> emails with day offsets -> exits). 2) Per-email cards. 3) Measurement plan (per-email open/click/cvr targets stated as TARGETS, not predictions). Then offer /email-flow to build it in Klaviyo and /mailer to render the HTML.
 
 ## Brand guardrails (always)
-- Palette #6A33D8 / #D0473E / #111111 / #F7F5F2; Montserrat headlines + Instrument Sans body.
+- Palette #D0473E / #6A33D8 / #111111 / #FFFFFF; Montserrat headlines + Instrument Sans body.
 - BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
 - Zero fabrication: never invent numbers, benchmarks, reviews, prices or URLs. Missing input -> ask for it or mark [DATA REQUIRED].
 - Mega-prompt discipline: be clear, concise and highly specific; every claim quotes the exact figure or line it came from.

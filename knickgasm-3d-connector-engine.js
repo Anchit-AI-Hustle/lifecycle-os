@@ -39,10 +39,10 @@ var Knickgasm3D = (() => {
     supportsWebGL: () => supportsWebGL
   });
   var PALETTE = {
-    forestGreen: "#6A33D8",
-    lava: "#D0473E",
+    forestGreen: "#D0473E",
+    lava: "#6A33D8",
     ink: "#111111",
-    chalk: "#F7F5F2"
+    chalk: "#FFFFFF"
   };
   var FONTS = {
     heading: "'Montserrat','Raleway',Georgia,serif",

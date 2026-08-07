@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,8 +25,8 @@
     colors: {
       bg: { DEFAULT:'#ffffff', soft:'#ffffff', card:'#eef3f0' },
       ink: { DEFAULT:'#111111', dim:'#556059', mute:'#48524c' },
-      green: { DEFAULT:'#6A33D8', bright:'#16a34a' },
-      lava: { DEFAULT:'#D0473E' }, chalk: '#F7F5F2',
+      green: { DEFAULT:'#D0473E', bright:'#16a34a' },
+      lava: { DEFAULT:'#6A33D8' }, chalk: '#FFFFFF',
     },
     fontFamily: { sans:['Inter','sans-serif'], mono:['"JetBrains Mono"','monospace'] },
   }}};
@@ -38,7 +38,7 @@
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:99px; }
   .b-US { background:rgba(59,130,246,0.15); color:#1d4ed8; }
   .b-UK { background:rgba(234,88,12,0.15); color:#b45309; }
-  .b-Global { background:rgba(171,135,67,0.18); color:#D0473E; }
+  .b-Global { background:rgba(171,135,67,0.18); color:#6A33D8; }
   .b-IN { background:rgba(34,197,94,0.15); color:#0a7d33; }
   .ct-promo       { background:rgba(239,68,68,0.12); color:#b91c1c; }
   .ct-editorial   { background:rgba(168,85,247,0.12); color:#7c3aed; }
@@ -58,19 +58,19 @@
   .day:hover { border-color:rgba(171,135,67,0.35); cursor:pointer; }
   .day.festival { border-color: rgba(171,135,67,0.45); background: rgba(171,135,67,0.04); }
   .day-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:#556059; }
-  .day-fest { font-size:9px; color:#D0473E; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-top:2px; }
+  .day-fest { font-size:9px; color:#6A33D8; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-top:2px; }
   .entry { font-size:11px; line-height:1.35; padding:3px 6px; margin-top:4px; border-radius:4px; background:#eef3f0; cursor:help; }
   .entry-market { font-weight:700; font-family:'JetBrains Mono',monospace; }
-  .entry-assets { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.14em; color:#D0473E; margin-left:4px; white-space:nowrap; }
+  .entry-assets { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.14em; color:#6A33D8; margin-left:4px; white-space:nowrap; }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#556059; cursor:pointer; }
-  .filter-chip.active { background:#D0473E; color:#ffffff; border-color:#D0473E; }
+  .filter-chip.active { background:#6A33D8; color:#ffffff; border-color:#6A33D8; }
   th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#48524c; padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.18); text-align:left; }
   td { padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.06); font-size:12.5px; vertical-align:top; }
   tr:hover td { background:rgba(171,135,67,0.04); }
   .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
   .modal-backdrop.open { display:flex; }
   .modal-card { background:#ffffff; border:1px solid rgba(171,135,67,0.3); border-radius:12px; max-width:920px; width:100%; max-height:90vh; overflow-y:auto; }
-  iframe.preview { width:100%; min-height:600px; background:#F7F5F2; border:0; border-radius:8px; }
+  iframe.preview { width:100%; min-height:600px; background:#FFFFFF; border:0; border-radius:8px; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -473,21 +473,21 @@ function analysisDetails(p){
   let body='';
   if(a){
     const drivers = (a.drivers||[]).map(function(d){
-      return '<div style="margin:3px 0;color:#111111"><b style="color:#D0473E">'+calEsc(d.signal)+':</b> '+calEsc(d.value)+
+      return '<div style="margin:3px 0;color:#111111"><b style="color:#6A33D8">'+calEsc(d.signal)+':</b> '+calEsc(d.value)+
         (d.implication?'<div style="font-size:10px;color:#556059">'+calEsc(d.implication)+'</div>':'')+'</div>';
     }).join('');
     const factors = ((a.confidence&&a.confidence.factors)||[]).map(function(f){
       return '<div style="display:flex;justify-content:space-between;gap:8px;color:#111111"><span>'+calEsc(f.label)+'</span><span style="color:'+(f.delta>=0?'#16a34a':'#b91c1c')+'">'+(f.delta>=0?'+':'')+f.delta+'</span></div>';
     }).join('');
     body = '<div style="font-size:11px;line-height:1.5;max-width:320px;color:#111111">'+drivers+
-      (a.hypothesis?'<div style="margin:6px 0"><b style="color:#D0473E">Hypothesis:</b> '+calEsc(a.hypothesis)+'</div>':'')+
-      (a.expected_impact?'<div style="margin:4px 0"><b style="color:#D0473E">Expected:</b> '+calEsc(a.expected_impact.metric||'')+' '+calEsc(a.expected_impact.direction||'up')+'</div>':'')+
-      (factors?'<div style="margin-top:6px;border-top:1px solid rgba(171,135,67,.35);padding-top:4px"><b style="color:#D0473E">Confidence '+confTxt+'</b>'+factors+'</div>':'')+
+      (a.hypothesis?'<div style="margin:6px 0"><b style="color:#6A33D8">Hypothesis:</b> '+calEsc(a.hypothesis)+'</div>':'')+
+      (a.expected_impact?'<div style="margin:4px 0"><b style="color:#6A33D8">Expected:</b> '+calEsc(a.expected_impact.metric||'')+' '+calEsc(a.expected_impact.direction||'up')+'</div>':'')+
+      (factors?'<div style="margin-top:6px;border-top:1px solid rgba(171,135,67,.35);padding-top:4px"><b style="color:#6A33D8">Confidence '+confTxt+'</b>'+factors+'</div>':'')+
       '</div>';
   } else {
     body = '<div style="font-size:11px;max-width:320px;color:#111111">'+calEsc(summary)+'</div>';
   }
-  return '<details><summary style="cursor:pointer;font-size:11px;color:#D0473E">'+calEsc(calTrunc(summary,56))+
+  return '<details><summary style="cursor:pointer;font-size:11px;color:#6A33D8">'+calEsc(calTrunc(summary,56))+
     (confTxt?' <span style="color:#556059">('+confTxt+')</span>':'')+'</summary><div style="margin-top:6px">'+body+'</div></details>';
 }
 

@@ -3,13 +3,15 @@
  * Generate dark, native Growth Book competitor DETAIL pages, one per brand,
  * under /growth-book/brands/<slug>.html. Each page draws a full side-by-side
  * comparison of the brand vs KNICKGASM across products, offers, pricing,
- * benefits, provenance, retention, channels, cohorts and UX, plus a SWOT,
- * a "most common strategies" tag set, and a path-to-progress for KNICKGASM.
+ * base sneaker and provenance, retention, channels, cohorts and UX, plus a
+ * SWOT, a "most common strategies" tag set, and a path-to-progress.
  *
  * Pages use the shared /auth.js OS shell and the dark OS palette so they read
- * as first-class platform routes. Pricing/tier figures are directional
- * planning estimates from public storefront observation, labelled as such
- * (no live screenshots: this environment's egress blocks headless capture).
+ * as first-class platform routes. KNICKGASM figures are exact, read from the
+ * built catalogs (data/catalog/products_us.json in USD, products_uk.json in
+ * GBP). Competitor figures that could not be read off an official page are
+ * marked "n/v" or "POA" rather than guessed: bespoke studios quote per
+ * commission and brand configurators render price client-side.
  *
  * Run: node scripts/gen-growthbook-brands.js
  */
@@ -21,24 +23,24 @@ fs.mkdirSync(OUT, { recursive: true });
 
 /* KNICKGASM baseline (the right-hand comparison column everywhere) */
 const V = {
-  vertical: "Heritage sneaker + functional coffee",
-  tier: "Challenger",
-  products: "Coffee Collection, one-of-one sneakers, kicks, embroidery/themed colorways, supplements",
-  entry: "$28 to $40 (approx)",
-  sub: "Subscribe-first refill, ~$39.83 AOV (Loop)",
-  serving: "~$1.30 to $1.60 / pair (approx)",
-  intro: "Subscribe-first; discounts reserved for the discovery/switcher cohort only",
-  bundles: "Coffee + sneaker + supplement ritual bundles, system-selling",
-  gifting: "Advent calendars, festival drops, gift sets",
-  benefit: "Real adaptogen payload with genuine coffee taste, not a coffee substitute",
-  provenance: "Single-studio, studio-fresh, 48 to 72h drop-to-pack, B-Corp, traceable to studio",
-  platform: "Loop Subscriptions, Klaviyo (Skio-ready), Supabase",
-  churn: "Provenance-led acquisition, subscription anchor, refill-rhythm and second-order flows",
-  channels: "Meta, TikTok, SEO, Email",
-  cohort: "Functional Optimizers, Ritualists, Third-Wave Purists, Curious Switchers",
-  desktop: "Editorial origin storytelling with subscribe-first PDPs",
-  mobile: "Thumb-zone subscribe CTA, refill rhythm front-and-centre",
-  loyalty: "Ritual-based retention, protect full-margin loyalists from a discount habit"
+  vertical: "Hand-painted one-of-one custom sneakers",
+  tier: "Category leader (India), challenger worldwide",
+  products: "436 live designs on Nike Air Force 1, Court Vision, Air Jordan, Converse and Adidas, plus hand-painted denim jackets, rope laces and lace tags",
+  entry: "$99.84 Converse custom / $7.91 rope laces (UK from &pound;79.42 / &pound;6.29)",
+  sub: "No subscription: drop and restock signups, occasion campaigns and care follow-up carry the repeat",
+  serving: "AF1 median ~$156 (UK ~&pound;124); range $99.84 to $261.95",
+  intro: "No fabricated discount codes: accessory attach and collection bundles do the work",
+  bundles: "Pair + rope laces + lace tags; collection bundles; denim jacket cross-category",
+  gifting: "Wedding, festive and milestone customs; a gift that cannot be duplicated",
+  benefit: "A genuine one-of-one, hand-painted on a 100% original pair, water and scratch resistant",
+  provenance: "100% original Nike, Jordan, Converse and Adidas bases; hand-painted in Mumbai by India's best artists",
+  platform: "Shopify storefront, Klaviyo, Supabase",
+  churn: "Occasion cycles, new fandom collections, care and restoration follow-up",
+  channels: "Meta, TikTok, Instagram, SEO, Email",
+  cohort: "Fandom collectors (anime, gaming, football, cars), gift and occasion buyers, grail collectors",
+  desktop: "Collection-led browsing by fandom, build and reveal video on the PDP",
+  mobile: "Thumb-zone add to bag, lead time stated above the fold",
+  loyalty: "Real proof only: customer photography and organic wear by Samay Raina, Rohit Sharma and Shraddha Kapoor"
 };
 
 /* one row = one comparison parameter */
@@ -47,14 +49,14 @@ const PARAMS = [
   ["Market-share tier", "tier"],
   ["Hero products", "products"],
   ["Entry price (approx)", "entry"],
-  ["Subscription model / price", "sub"],
-  ["Cost per serving (approx)", "serving"],
+  ["Repeat / recurring model", "sub"],
+  ["Typical order value (approx)", "serving"],
   ["Intro offer", "intro"],
   ["Bundles / cross-sell", "bundles"],
   ["Gifting", "gifting"],
   ["Core benefit / claim", "benefit"],
-  ["Provenance / sourcing", "provenance"],
-  ["Subscription + ESP stack", "platform"],
+  ["Base sneaker &amp; provenance", "provenance"],
+  ["Commerce + ESP stack", "platform"],
   ["Retention / churn strategy", "churn"],
   ["Acquisition channels", "channels"],
   ["Target cohort", "cohort"],
@@ -65,11 +67,12 @@ const PARAMS = [
 
 /* master strategy vocabulary for the comparison matrix */
 const STRATEGIES = [
-  "Subscribe-first default", "Quiz / personalized onboarding", "Starter-kit funnel",
-  "Bundle & multi-SKU cross-sell", "Ritual-replacement narrative", "Pause-instead-of-cancel",
-  "UGC / creator proof", "Limited drops / scarcity", "Loyalty / gamification",
-  "SMS-led retention", "Format / hardware lock-in", "Retail halo / omnichannel",
-  "Provenance / origin proof"
+  "Configurator / self-serve personalisation", "Commission-only, priced on application",
+  "Browsable finished-design catalog", "Build and reveal video", "Fandom and licensed-design pull",
+  "Occasion and gifting merchandising", "Accessory attach and basket-building",
+  "UGC / creator proof", "Limited drops / scarcity", "Authentication as the trust product",
+  "Marketplace long tail / price anchoring", "Care, protection and restoration",
+  "Original-base and finish guarantee"
 ];
 
 const BRANDS = [
@@ -250,7 +253,7 @@ function page(title, desc, main) {
 '<link rel="icon" href="/favicon.png">',
 '<meta name="description" content="' + desc + '">',
 '<script src="https://cdn.tailwindcss.com"></script>',
-'<script>tailwind.config={theme:{extend:{colors:{vgreen:"#6A33D8",vgold:"#D0473E",vcream:"#F7F5F2"},fontFamily:{head:["Lora","Raleway","Georgia","serif"]}}}};</script>',
+'<script>tailwind.config={theme:{extend:{colors:{vgreen:"#D0473E",vgold:"#6A33D8",vcream:"#FFFFFF"},fontFamily:{head:["Lora","Raleway","Georgia","serif"]}}}};</script>',
 '<style>',
 '  body{margin:0;background:#0a1410;color:#e8ede9;font-family:Inter,"Instrument Sans","Helvetica Neue",Arial,sans-serif;padding:26px 30px;}',
 '  @media(min-width:961px){body{margin-left:var(--lsb-w,248px);}}',
@@ -261,7 +264,7 @@ function page(title, desc, main) {
 '  a{color:var(--vgold);} a:hover{color:#e8d9b4;}',
 '  table.cmp{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}',
 '  table.cmp th,table.cmp td{border-bottom:1px solid rgba(171,135,67,.16);padding:11px 14px;text-align:left;vertical-align:top;overflow-wrap:break-word;}',
-'  table.cmp thead th{background:#6A33D8;color:#F7F5F2;text-transform:uppercase;letter-spacing:.05em;font-size:10.5px;}',
+'  table.cmp thead th{background:#D0473E;color:#FFFFFF;text-transform:uppercase;letter-spacing:.05em;font-size:10.5px;}',
 '  table.cmp td.param,table.cmp th:first-child{width:200px;}',
 '  table.cmp td.param{color:#9fb0a8;font-weight:700;}',
 '  table.cmp td.vah{background:rgba(171,135,67,.08);color:#f2ead6;}',

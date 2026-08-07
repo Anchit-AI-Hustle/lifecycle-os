@@ -577,10 +577,10 @@ function compileHTML(theme, variant, baseOrigin) {
     /* KNICKGASM Design System — tokens are the source of truth; the legacy
        --color-* names alias them so existing markup inherits the correct palette. */
     :root {
-      --knickgasm-green: #6A33D8;
-      --knickgasm-lava:  #D0473E;
+      --knickgasm-green: #D0473E;
+      --knickgasm-lava:  #6A33D8;
       --knickgasm-ink:   #111111;
-      --knickgasm-chalk: #F7F5F2;
+      --knickgasm-chalk: #FFFFFF;
       --font-head: "Montserrat", Georgia, "Times New Roman", serif;
       --font-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
       --color-brand: var(--knickgasm-green);

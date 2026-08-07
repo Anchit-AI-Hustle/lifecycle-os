@@ -5,7 +5,7 @@
 // The most actionable object in the system. Every asset (ad/email/landing) is
 // scanned for offers; each detected offer becomes a ci_offers row so the team
 // can answer questions like:
-//   "every competitor running a free-gift offer on coffee in the US in last 30d"
+//   "every competitor running a free-gift offer on custom sneakers in the US in last 30d"
 //
 // Detection is a deterministic regex/keyword pass (fast, free, runs on every
 // collect). The AI enrichment pass (ci-enrich.js) can later upgrade offer_type
@@ -16,11 +16,14 @@ const supa = require('./supa');
 
 const OFFER_TYPES = ['percent_off', 'amount_off', 'bundle', 'free_gift', 'subscription', 'bogo', 'free_shipping', 'other'];
 
+// Category buckets an offer can be attributed to. The KEYS are persisted on
+// ci_offers rows, so they are kept stable; only the matching lexicon is
+// Knickgasm's (custom sneakers, not the legacy beverage taxonomy).
 const CATEGORY_KEYWORDS = {
-  coffee:      /\b(coffee|espresso|cold craft|roast|arabica|robusta)\b/i,
-  sneaker:         /\b(sneaker|kicks|dunks|hightop|jordan|airforce|themed|tisane|green sneaker|black sneaker)\b/i,
-  supplements: /\b(supplement|vitamin|capsule|gummies|probiotic|collagen|airbrush|magnesium)\b/i,
-  streetwear:    /\b(streetwear|immunity|detox|sleep|gut health|adaptogen)\b/i
+  coffee:      /\b(coffee-?art|coffee art|latte art|barista print|cafe print)\b/i,
+  sneaker:         /\b(sneaker|kicks|dunks?|high\s?top|jordan|air\s?force|court vision|converse|samba|custom(ised|ized)? (shoe|pair|sneaker))\b/i,
+  supplements: /\b(care kit|cleaner|protect(ant|or)|restoration|rope laces?|lace tags?|shoe tree|crease guard)\b/i,
+  streetwear:    /\b(streetwear|denim jacket|jacket|hoodie|tee|apparel|embroidery|bling|crystal)\b/i
 };
 
 const CURRENCY = /(?:[$£€₹]|usd|gbp|eur|inr)/i;

@@ -606,7 +606,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || 'KNICKGASM')}</title>
 <style>
-:root{--moss:#6A33D8;--moss-deep:#021c12;--moss-near:#00150a;--chalk:#F7F5F2;--chalk-warm:#f3ebd6;--lava:#D0473E;--ink:#111111;--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
+:root{--moss:#D0473E;--moss-deep:#021c12;--moss-near:#00150a;--chalk:#FFFFFF;--chalk-warm:#f3ebd6;--lava:#6A33D8;--ink:#111111;--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
@@ -687,7 +687,7 @@ ${proofSection}
 // shared renderer is unavailable (caller keeps the single local mailer).
 function emailPlaceholder(label, w, h) {
   const t = String(label || 'Product image').replace(/[<&>]/g, ' ').slice(0, 42);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#F7F5F2"/><rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#D0473E" stroke-width="2" stroke-dasharray="9 7"/><text x="50%" y="45%" text-anchor="middle" fill="#6A33D8" font-family="Georgia,serif" font-size="21">${t}</text><text x="50%" y="59%" text-anchor="middle" fill="#D0473E" font-family="Arial,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#FFFFFF"/><rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#6A33D8" stroke-width="2" stroke-dasharray="9 7"/><text x="50%" y="45%" text-anchor="middle" fill="#D0473E" font-family="Georgia,serif" font-size="21">${t}</text><text x="50%" y="59%" text-anchor="middle" fill="#6A33D8" font-family="Arial,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text></svg>`;
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 function variantMeta(copy) {
@@ -713,7 +713,7 @@ function slotLinks(entry) {
   const collectionSlug = /kicks/.test(cat) ? 'kicks-sneaker'
     : /green/.test(cat) ? 'green-sneaker'
     : /black/.test(cat) ? 'black-sneaker'
-    : /themed|embroidery|streetwear|tisane|supplement/.test(cat) ? 'streetwear-sneaker'
+    : /themed|embroidery|streetwear|jacket|accessor/.test(cat) ? 'streetwear-sneaker'
     : 'all';
   const collectionUrl = `${store}/collections/${collectionSlug}`;
   // Every product CTA must land on a REAL product page. Prefer the
@@ -805,19 +805,19 @@ function emailHtml(entry, copy, creativeUrl) {
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || 'KNICKGASM').replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${E.subject}</title></head>
-<body style="margin:0;background:#F7F5F2;color:#111111;font-family:${FONT_BODY}">
+<body style="margin:0;background:#FFFFFF;color:#111111;font-family:${FONT_BODY}">
 <main style="max-width:680px;margin:auto;background:#ffffff">
-  <section style="background:#6A33D8;color:#F7F5F2;padding:44px 36px;text-align:center">
-    <p style="color:#D0473E;letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">KNICKGASM</p>
+  <section style="background:#D0473E;color:#FFFFFF;padding:44px 36px;text-align:center">
+    <p style="color:#6A33D8;letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">KNICKGASM</p>
     <h1 style="font-family:${FONT_HEAD};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
   </section>
   ${heroImg}
   <section style="padding:36px">
     <p style="line-height:1.7">${E.intro_paragraph}</p>
     <p style="line-height:1.7">${E.body_paragraph}</p>
-    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:#D0473E;color:#111111;padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || 'Shop the edit'}</a></p>
+    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:#6A33D8;color:#111111;padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || 'Shop the edit'}</a></p>
   </section>
-  <footer style="background:#6A33D8;color:#F7F5F299;text-align:center;padding:22px;font-size:11px">You're receiving this as a KNICKGASM ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
+  <footer style="background:#D0473E;color:#FFFFFF99;text-align:center;padding:22px;font-size:11px">You're receiving this as a KNICKGASM ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
 </main>
 </body></html>`;
 }

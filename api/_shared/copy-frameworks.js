@@ -43,12 +43,12 @@ const COPY_FRAMEWORKS = {
     name: 'PAS',
     full: 'Problem, Agitate, Solution',
     beats: [
-      ['Problem', 'Name the small friction the reader already feels - the flat afternoon, the box gone cold, the same tired pair.'],
-      ['Agitate', 'Make the cost of it vivid and human, never fear-based. No medical or anxiety claims - just the quiet ache of a duller ritual.'],
+      ['Problem', 'Name the small friction the reader already feels - the same stock pair everyone owns, the fit that says nothing, the gift they still have not solved.'],
+      ['Agitate', 'Make the cost of it vivid and human, never fear-based. No health or anxiety claims - just the quiet ache of blending into every other pair on the street.'],
       ['Solution', 'Present the product as the calm resolution, with one clear next step.'],
     ],
-    when_to_use: 'Win-back and problem-aware audiences; supplement and coffee benefit stories where a felt need already exists.',
-    example: 'Problem: the 3pm slump. Agitate: another tote of nothing. Solution: a steadier pair of Coffee Collection.',
+    when_to_use: 'Win-back and problem-aware audiences; fandom and gifting stories where a felt need already exists.',
+    example: 'Problem: the same Air Force 1 as everyone in the room. Agitate: nobody looks twice. Solution: a hand-painted one-of-one on the exact same silhouette.',
     source: 'Chase Dimond swipe library (01-chase-dimond.md)',
   },
   bab: {
@@ -57,11 +57,11 @@ const COPY_FRAMEWORKS = {
     full: 'Before, After, Bridge',
     beats: [
       ['Before', 'Their world today - honest, familiar, no judgement.'],
-      ['After', 'The better ordinary once the ritual lands - sensory, specific, believable.'],
+      ['After', 'The better ordinary once the pair lands - sensory, specific, believable: the double-takes, the questions, the photos.'],
       ['Bridge', 'The product as the short path from one to the other, with a single CTA.'],
     ],
-    when_to_use: 'Brand introductions, cross-grade (sneaker to coffee), and subscription framing - anywhere a gentle transformation reads true.',
-    example: 'Before: a rushed morning. After: five slow minutes that are yours. Bridge: the coffee that makes the pause worth it.',
+    when_to_use: 'Brand introductions, cross-grade (sneakers to denim jackets or accessories), and repeat-commission framing - anywhere a gentle transformation reads true.',
+    example: 'Before: a shoe rack of stock colourways. After: one pair that is only yours. Bridge: the design brief that gets it painted.',
     source: 'Chase Dimond swipe library (01-chase-dimond.md)',
   },
   aida: {
@@ -69,13 +69,13 @@ const COPY_FRAMEWORKS = {
     name: 'AIDA',
     full: 'Attention, Interest, Desire, Action',
     beats: [
-      ['Attention', 'A sensory hook in the first line - a scent, a sound, a moment.'],
+      ['Attention', 'A visual hook in the first line - a colour, a character, a detail on the toe box.'],
       ['Interest', 'Why it is relevant now - the launch, the season, the reason to read on.'],
-      ['Desire', 'Make it wanted with proof: sourcing, the gifts, honest prices.'],
+      ['Desire', 'Make it wanted with proof: the original base sneaker, the artist behind it, the one-of-one guarantee, honest prices.'],
       ['Action', 'One clear CTA, no competing links.'],
     ],
     when_to_use: 'Launch announcements and offer-forward closers where momentum matters.',
-    example: 'Attention: a new colorway from the sneaker people you know. Interest: our first coffee. Desire: 7 gifts in every box. Action: see the coffee.',
+    example: 'Attention: a new drop from the artists you already follow. Interest: our first anime capsule. Desire: every pair painted once and never repeated. Action: see the drop.',
     source: 'Chase Dimond swipe library (01-chase-dimond.md)',
   },
   fourps: {
@@ -84,12 +84,12 @@ const COPY_FRAMEWORKS = {
     full: 'Promise, Picture, Proof, Push',
     beats: [
       ['Promise', 'The outcome the reader gets, stated plainly.'],
-      ['Picture', 'Paint it - the ritual, the table, the morning.'],
-      ['Proof', 'The evidence: the value math, the 7 gifts, the honest compare-at prices, the sourcing.'],
+      ['Picture', 'Paint it - the unboxing, the first lace-up, the walk out the door.'],
+      ['Proof', 'The evidence: the original base sneaker, the water and scratch resistant finish, the honest compare-at prices, the named artists.'],
       ['Push', 'The ask, framed by the play\'s CTA rule.'],
     ],
     when_to_use: 'Subscription value-math, B2G1 and any offer where proof carries the decision.',
-    example: 'Promise: the same pair for less. Picture: it arrives before you run out. Proof: £29.99 a pack on subscription vs £49.99, gifts worth over £105 a year. Push: start your subscription.',
+    example: 'Promise: a pair that exists once. Picture: it lands in 10 to 15 days, painted for you. Proof: built on an original Nike Air Force 1, sealed water and scratch resistant, shipped to 60+ countries. Push: start your custom.',
     source: 'Chase Dimond swipe library (01-chase-dimond.md)',
   },
   fab: {
@@ -97,12 +97,12 @@ const COPY_FRAMEWORKS = {
     name: 'FAB',
     full: 'Feature, Advantage, Benefit',
     beats: [
-      ['Feature', 'What it is - the concrete thing in the box.'],
+      ['Feature', 'What it is - the concrete thing in the box: the silhouette, the artwork, the finish.'],
       ['Advantage', 'What that does differently.'],
       ['Benefit', 'What it means for the reader\'s day.'],
     ],
-    when_to_use: 'Education and unboxing sends where showing beats telling - walk each gift or product detail through F to B.',
-    example: 'Feature: an electric frother in every order. Advantage: cafe foam at home. Benefit: the ritual feels like a treat, not a chore.',
+    when_to_use: 'Education and unboxing sends where showing beats telling - walk each detail or add-on through F to B.',
+    example: 'Feature: rope laces and a metal lace tag in every order. Advantage: the pair arrives finished, not half-dressed. Benefit: it looks like a commission, because it is one.',
     source: 'Chase Dimond swipe library (01-chase-dimond.md)',
   },
   sss: {
@@ -110,12 +110,12 @@ const COPY_FRAMEWORKS = {
     name: 'Star-Story-Solution',
     full: 'Star, Story, Solution',
     beats: [
-      ['Star', 'The hero of the email - a one-of-one panel, a ritual, the coffee itself. The brand speaks as "we"; there is no founder or personal narrator.'],
-      ['Story', 'Its origin and journey - where it is grown, how it is made, why it exists.'],
+      ['Star', 'The hero of the email - a one-of-one panel, a collection, the pair itself. The brand speaks as "we"; there is no founder or personal narrator.'],
+      ['Story', 'Its origin and journey - the reference it came from, how it was painted, why it exists.'],
       ['Solution', 'Invite the reader into that story with one warm CTA.'],
     ],
     when_to_use: 'Origin and brand-story sends and editorial tone, where trust must precede any offer.',
-    example: 'Star: a studio in the studio archives. Story: hand-painted, one-of-one, laced slowly. Solution: begin with one box.',
+    example: 'Star: a pair pulled from the studio archive. Story: hand-painted over days, one-of-one, never repeated. Solution: begin with one pair.',
     source: 'Chase Dimond swipe library (01-chase-dimond.md)',
   },
 };
@@ -253,11 +253,11 @@ const STRATEGY_FRAMEWORKS = {
 const COHORT_STRATEGY = {
   non_buyers_non_engagers: {
     frameworks: ['hammer_vs_nurture', 'brand_first_performance', 'discount_ladder', 'three_multipliers'],
-    posture: 'NURTURE, not hammer. Cold and never-purchased: lead with brand codes, sourcing and story; climb the discount ladder slowly (value and the 7 gifts before any price lever). The multiplier in play is acquiring a first order - one clear, low-pressure step.',
+    posture: 'NURTURE, not hammer. Cold and never-purchased: lead with brand codes, the craft and the story; climb the discount ladder slowly (the one-of-one value and the free accessories before any price lever). The multiplier in play is acquiring a first order - one clear, low-pressure step.',
   },
   tb_buyers_non_engagers: {
     frameworks: ['hammer_vs_nurture', 'merchandising_is_retention', 'three_multipliers', 'rfm_priority'],
-    posture: 'Warm nurture toward cross-grade. They already bought sneaker, so reopen with familiarity, then let merchandising (the coffee bundle, the 7 gifts, the £105/yr subscription value) do the persuading. The multipliers in play are frequency and AOV via subscription - never a guilt or urgency hammer.',
+    posture: 'Warm nurture toward cross-grade. They already own a custom pair, so reopen with familiarity, then let merchandising (the matching denim jacket, the rope laces and lace tags, the sneaker care kit) do the persuading. The multipliers in play are repeat commissions and AOV via add-ons - never a guilt or urgency hammer.',
   },
 };
 

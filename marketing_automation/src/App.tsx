@@ -176,19 +176,19 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F2] text-[#111111] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#111111] flex flex-col font-sans">
 
       {/* Dynamic Navigation Header */}
-      <header className="bg-[#6A33D8] text-white border-b border-[#D0473E] py-4 px-6 sticky top-0 z-50 shadow-md">
+      <header className="bg-[#D0473E] text-white border-b border-[#6A33D8] py-4 px-6 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center justify-between w-full md:w-auto">
             <div className="flex items-center gap-3">
-              <span className="p-2 bg-[#D0473E] rounded-lg text-[#111111] font-bold shadow-inner animate-pulse">
+              <span className="p-2 bg-[#6A33D8] rounded-lg text-[#111111] font-bold shadow-inner animate-pulse">
                 <Sparkles className="w-6 h-6" />
               </span>
               <div>
                 <h1 className="text-xl font-bold tracking-tight uppercase font-serif">KNICKGASM</h1>
-                <p className="text-xs text-[#F7F5F2] font-mono tracking-wider">LIFECYCLE OS &bull; Campaign Suite</p>
+                <p className="text-xs text-[#FFFFFF] font-mono tracking-wider">LIFECYCLE OS &bull; Campaign Suite</p>
               </div>
             </div>
 
@@ -197,7 +197,7 @@ export default function App() {
               href="https://knickgasm.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="md:hidden flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-[#D0473E] text-[#F7F5F2] hover:text-white hover:border-white font-mono transition-all bg-[#6A33D8]"
+              className="md:hidden flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-[#6A33D8] text-[#FFFFFF] hover:text-white hover:border-white font-mono transition-all bg-[#D0473E]"
               id="back-to-vercel-mobile"
             >
               <Globe className="w-3.5 h-3.5 animate-spin-slow" />
@@ -210,7 +210,7 @@ export default function App() {
               onClick={() => setActiveTab('landing')}
               className={`px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center gap-2 ${
                 activeTab === 'landing'
-                  ? 'bg-[#D0473E] text-[#111111] shadow-sm font-medium'
+                  ? 'bg-[#6A33D8] text-[#111111] shadow-sm font-medium'
                   : 'hover:bg-white/10 text-white'
               }`}
               id="nav-landing-hub-tab"
@@ -222,7 +222,7 @@ export default function App() {
               onClick={() => setActiveTab('ads')}
               className={`px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center gap-2 ${
                 activeTab === 'ads'
-                  ? 'bg-[#D0473E] text-[#111111] shadow-sm font-medium'
+                  ? 'bg-[#6A33D8] text-[#111111] shadow-sm font-medium'
                   : 'hover:bg-white/10 text-white'
               }`}
               id="nav-campaign-ads-tab"
@@ -234,7 +234,7 @@ export default function App() {
               onClick={() => setActiveTab('mailer')}
               className={`px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center gap-2 ${
                 activeTab === 'mailer'
-                  ? 'bg-[#D0473E] text-[#111111] shadow-sm font-medium'
+                  ? 'bg-[#6A33D8] text-[#111111] shadow-sm font-medium'
                   : 'hover:bg-white/10 text-white'
               }`}
               id="nav-mailer-matrix-tab"
@@ -246,7 +246,7 @@ export default function App() {
               onClick={() => setActiveTab('automation')}
               className={`px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center gap-2 ${
                 activeTab === 'automation'
-                  ? 'bg-[#D0473E] text-[#111111] shadow-sm'
+                  ? 'bg-[#6A33D8] text-[#111111] shadow-sm'
                   : 'hover:bg-white/10 text-white'
               }`}
               id="nav-automation-prd-tab"
@@ -258,7 +258,7 @@ export default function App() {
               onClick={() => setActiveTab('prompt')}
               className={`px-4 py-2 text-sm font-semibold rounded-md transition-all flex items-center gap-2 ${
                 activeTab === 'prompt'
-                  ? 'bg-[#D0473E] text-[#111111] shadow-sm'
+                  ? 'bg-[#6A33D8] text-[#111111] shadow-sm'
                   : 'hover:bg-white/10 text-white'
               }`}
               id="nav-master-prompts-tab"
@@ -272,7 +272,7 @@ export default function App() {
               href="https://knickgasm.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#D0473E] hover:border-white text-xs font-mono font-bold uppercase tracking-wider text-[#F7F5F2] hover:text-white hover:bg-white/10 transition-all ml-2"
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#6A33D8] hover:border-white text-xs font-mono font-bold uppercase tracking-wider text-[#FFFFFF] hover:text-white hover:bg-white/10 transition-all ml-2"
               id="back-to-vercel-desktop"
             >
               <Globe className="w-3.5 h-3.5" />
@@ -283,10 +283,10 @@ export default function App() {
       </header>
 
       {/* Control Panel Area */}
-      <section className="bg-[#6A33D8] text-[#F7F5F2] py-6 px-6 shadow-md border-b border-[#D0473E]">
+      <section className="bg-[#D0473E] text-[#FFFFFF] py-6 px-6 shadow-md border-b border-[#6A33D8]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <label className="block text-xs font-mono text-[#F7F5F2] uppercase tracking-widest mb-2 font-bold">1. Select Target Campaign Angle</label>
+            <label className="block text-xs font-mono text-[#FFFFFF] uppercase tracking-widest mb-2 font-bold">1. Select Target Campaign Angle</label>
             <div className="relative">
               <select
                 value={selectedTheme.id}
@@ -294,7 +294,7 @@ export default function App() {
                   const t = THEMES.find(item => item.id === parseInt(e.target.value));
                   if (t) setSelectedTheme(t);
                 }}
-                className="w-full bg-[#6A33D8] text-white border border-[#D0473E] px-4 py-3 rounded-md font-serif text-lg focus:border-white cursor-pointer"
+                className="w-full bg-[#D0473E] text-white border border-[#6A33D8] px-4 py-3 rounded-md font-serif text-lg focus:border-white cursor-pointer"
               >
                 {THEMES.map(theme => (
                   <option key={theme.id} value={theme.id}>
@@ -303,20 +303,20 @@ export default function App() {
                 ))}
               </select>
             </div>
-            <p className="mt-2 text-sm text-[#F7F5F2] italic font-sans leading-relaxed">
+            <p className="mt-2 text-sm text-[#FFFFFF] italic font-sans leading-relaxed">
               <strong>Core Root Cause:</strong> {selectedTheme.coreProblem}
             </p>
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-[#F7F5F2] uppercase tracking-widest mb-2 font-bold">2. Select Funnel Conversion Architecture Type</label>
+            <label className="block text-xs font-mono text-[#FFFFFF] uppercase tracking-widest mb-2 font-bold">2. Select Funnel Conversion Architecture Type</label>
             <select
               value={selectedVariant.code}
               onChange={(e) => {
                 const v = FUNNEL_VARIANTS.find(item => item.code === e.target.value);
                 if (v) setSelectedVariant(v);
               }}
-              className="w-full bg-[#6A33D8] text-white border border-[#D0473E] px-4 py-3 rounded-md font-sans text-sm md:text-base focus:border-white cursor-pointer"
+              className="w-full bg-[#D0473E] text-white border border-[#6A33D8] px-4 py-3 rounded-md font-sans text-sm md:text-base focus:border-white cursor-pointer"
             >
               {FUNNEL_VARIANTS.map(variant => (
                 <option key={variant.code} value={variant.code}>
@@ -324,7 +324,7 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-sm text-[#F7F5F2] italic font-sans leading-relaxed">
+            <p className="mt-2 text-sm text-[#FFFFFF] italic font-sans leading-relaxed">
               <strong>Audience Strategy:</strong> {selectedVariant.targetAudience}
             </p>
           </div>
@@ -339,15 +339,15 @@ export default function App() {
 
             {/* Left Hand: Theme Metadata Dashboard */}
             <div className="lg:col-span-4 flex flex-col gap-6">
-              <div className="card border border-[#D0473E]/15 transform transition-all p-6">
+              <div className="card border border-[#6A33D8]/15 transform transition-all p-6">
                 <span className="badge mb-3">VARIANT CONFIG</span>
-                <h3 className="text-xl font-serif text-[#6A33D8] font-bold mb-2">{selectedVariant.name}</h3>
+                <h3 className="text-xl font-serif text-[#D0473E] font-bold mb-2">{selectedVariant.name}</h3>
                 <p className="text-sm text-gray-600 mb-4">{selectedVariant.description}</p>
 
                 <div className="space-y-3 font-sans text-xs border-t border-gray-100 pt-4">
                   <div className="flex justify-between py-1">
                     <span className="text-gray-600 font-mono">Journey Flow:</span>
-                    <span className="font-bold text-[#6A33D8] text-right">{selectedVariant.flowShort}</span>
+                    <span className="font-bold text-[#D0473E] text-right">{selectedVariant.flowShort}</span>
                   </div>
                   <div className="flex justify-between py-1 border-t border-gray-50">
                     <span className="text-gray-600 font-mono">Routing Logic:</span>
@@ -362,12 +362,12 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card bg-[#6A33D8] text-white p-6">
-                <h4 className="font-serif text-lg text-[#F7F5F2] mb-3">Live Compilation Actions</h4>
+              <div className="card bg-[#D0473E] text-white p-6">
+                <h4 className="font-serif text-lg text-[#FFFFFF] mb-3">Live Compilation Actions</h4>
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleCopyCode}
-                    className="w-full bg-[#D0473E] text-[#111111] hover:bg-[#D0473E] py-3 rounded font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all min-h-[48px]"
+                    className="w-full bg-[#6A33D8] text-[#111111] hover:bg-[#6A33D8] py-3 rounded font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all min-h-[48px]"
                   >
                     {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     <span>{copied ? 'Code Copied!' : 'Copy Code Output'}</span>
@@ -381,7 +381,7 @@ export default function App() {
                   </button>
                 </div>
                 <div className="mt-4 p-3 bg-white/5 rounded text-left">
-                  <p className="text-sm text-[#F7F5F2] font-mono leading-relaxed">
+                  <p className="text-sm text-[#FFFFFF] font-mono leading-relaxed">
                     💡 <strong>Pro Tip:</strong> Embed this fully self-contained HTML directly inside PageDeck or Shopify Funnels for high-precision campaign deployment.
                   </p>
                 </div>
@@ -389,18 +389,18 @@ export default function App() {
 
               {/* Review Highlights */}
               <div className="card p-6 border border-gray-150">
-                <h4 className="font-serif text-[#6A33D8] font-bold mb-3 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-[#D0473E]" />
+                <h4 className="font-serif text-[#D0473E] font-bold mb-3 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-[#6A33D8]" />
                   <span>Verified Target Review Insights</span>
                 </h4>
                 <div className="space-y-4 text-xs font-sans">
-                  <div className="p-3 bg-[#F7F5F2] rounded border border-gray-100">
+                  <div className="p-3 bg-[#FFFFFF] rounded border border-gray-100">
                     <p className="italic text-gray-600 mb-2">"Woke up with heavy puffiness every single day. Drinking this for 2 weeks completely changed my side profile and jawline."</p>
-                    <span className="font-bold text-[#6A33D8]">— Emma H. (Verified London Buyer)</span>
+                    <span className="font-bold text-[#D0473E]">— Emma H. (Verified London Buyer)</span>
                   </div>
-                  <div className="p-3 bg-[#F7F5F2] rounded border border-gray-100">
+                  <div className="p-3 bg-[#FFFFFF] rounded border border-gray-100">
                     <p className="italic text-gray-600 mb-2">"The standard paint jitter spike was gone. Love the chocolatey rich and smooth low-acid design notes too."</p>
-                    <span className="font-bold text-[#6A33D8]">— Chloe S. (Verified Manchester Buyer)</span>
+                    <span className="font-bold text-[#D0473E]">— Chloe S. (Verified Manchester Buyer)</span>
                   </div>
                 </div>
               </div>
@@ -409,10 +409,10 @@ export default function App() {
             {/* Right Hand: Visual Live Compilation & Code Preview Container */}
             <div className="lg:col-span-8 flex flex-col gap-4">
 
-              <div className="bg-white border border-[#D0473E]/15 rounded-lg overflow-hidden flex flex-col shadow-sm">
+              <div className="bg-white border border-[#6A33D8]/15 rounded-lg overflow-hidden flex flex-col shadow-sm">
 
                 {/* Header controls inside canvas */}
-                <div className="bg-[#F7F5F2] border-b border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="bg-[#FFFFFF] border-b border-gray-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <span className="w-3 h-3 rounded-full bg-red-400"></span>
                     <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
@@ -424,7 +424,7 @@ export default function App() {
                     <button
                       onClick={() => setPreviewMode('desktop')}
                       className={`px-3 py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                        previewMode === 'desktop' ? 'bg-[#6A33D8] text-white shadow-sm' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        previewMode === 'desktop' ? 'bg-[#D0473E] text-white shadow-sm' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                     >
                       <Monitor className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ export default function App() {
                     <button
                       onClick={() => setPreviewMode('mobile')}
                       className={`px-3 py-1.5 rounded text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                        previewMode === 'mobile' ? 'bg-[#6A33D8] text-white shadow-sm' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        previewMode === 'mobile' ? 'bg-[#D0473E] text-white shadow-sm' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                       }`}
                     >
                       <Smartphone className="w-3.5 h-3.5" />
@@ -469,15 +469,15 @@ export default function App() {
         {activeTab === 'ads' && (
           <div className="space-y-8 animate-fadeIn">
             {/* Header Description */}
-            <div className="card p-6 border border-[#D0473E]/20 bg-[#6A33D8] text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="card p-6 border border-[#6A33D8]/20 bg-[#D0473E] text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <span className="text-xs font-mono text-[#F7F5F2] tracking-widest uppercase font-bold">CROSS-CHANNEL ACQUISITION ENGINE</span>
+                <span className="text-xs font-mono text-[#FFFFFF] tracking-widest uppercase font-bold">CROSS-CHANNEL ACQUISITION ENGINE</span>
                 <h3 className="font-serif text-3xl font-bold mt-1 text-white">Interactive Ad Campaign Studio</h3>
-                <p className="text-sm text-[#F7F5F2] mt-1 max-w-2xl leading-relaxed">
+                <p className="text-sm text-[#FFFFFF] mt-1 max-w-2xl leading-relaxed">
                   Deploy targeted Meta and Google Ads optimized across our 6 biological grail-drop-conversion pillars. Fully synced with campaign funnels.
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-[#6A33D8] p-2.5 rounded border border-[#D0473E]/30 text-xs font-mono">
+              <div className="flex items-center gap-2 bg-[#D0473E] p-2.5 rounded border border-[#6A33D8]/30 text-xs font-mono">
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
                 <span>SYSTEM LINK ACTIVE &bull; KNICKGASM CLOUD</span>
               </div>
@@ -485,7 +485,7 @@ export default function App() {
 
             {/* Selector Pills across all 6 variations */}
             <div className="space-y-2">
-              <label className="block text-xs font-mono text-[#6A33D8] uppercase tracking-widest font-bold">
+              <label className="block text-xs font-mono text-[#D0473E] uppercase tracking-widest font-bold">
                 1. Switch Campaign Variations (6 Channels)
               </label>
               <div className="flex flex-wrap gap-2">
@@ -495,7 +495,7 @@ export default function App() {
                     onClick={() => setSelectedAdThemeId(tpl.themeId)}
                     className={`px-4 py-2 text-xs font-semibold rounded-full border transition-all ${
                       selectedAdThemeId === tpl.themeId
-                        ? 'bg-[#6A33D8] text-white border-[#6A33D8] shadow-sm'
+                        ? 'bg-[#D0473E] text-white border-[#D0473E] shadow-sm'
                         : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-200'
                     }`}
                   >
@@ -516,8 +516,8 @@ export default function App() {
                   <div className="lg:col-span-5 space-y-6">
                     <div className="card p-6 bg-white border border-gray-200 shadow-sm space-y-4">
                       <div>
-                        <span className="badge mb-2 bg-[#F7F5F2] text-[#6A33D8]">BUYER PARAMETERS Matrix</span>
-                        <h4 className="text-lg font-serif font-bold text-[#6A33D8]">{currentTpl.angleName}</h4>
+                        <span className="badge mb-2 bg-[#FFFFFF] text-[#D0473E]">BUYER PARAMETERS Matrix</span>
+                        <h4 className="text-lg font-serif font-bold text-[#D0473E]">{currentTpl.angleName}</h4>
                         <p className="text-xs text-gray-700 mt-1 italic">
                           <strong>Active Strategy Path:</strong> {correspondingThemeObj?.landingPageVariant || "No associated Variant Path"}
                         </p>
@@ -561,7 +561,7 @@ export default function App() {
                             setCopiedAdText(true);
                             setTimeout(() => setCopiedAdText(false), 2000);
                           }}
-                          className="flex-1 px-4 py-2 bg-[#D0473E] text-[#111111] text-xs font-bold rounded hover:bg-[#D0473E] transition-colors flex items-center justify-center gap-1.5"
+                          className="flex-1 px-4 py-2 bg-[#6A33D8] text-[#111111] text-xs font-bold rounded hover:bg-[#6A33D8] transition-colors flex items-center justify-center gap-1.5"
                         >
                           {copiedAdText ? (
                             <>
@@ -587,9 +587,9 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="card p-5 bg-[#F7F5F2] border border-[#D0473E]/30 rounded text-xs space-y-2.5">
-                      <h5 className="font-serif font-bold text-[#6A33D8] flex items-center gap-1.5">
-                        <Award className="w-4 h-4 text-[#D0473E]" />
+                    <div className="card p-5 bg-[#FFFFFF] border border-[#6A33D8]/30 rounded text-xs space-y-2.5">
+                      <h5 className="font-serif font-bold text-[#D0473E] flex items-center gap-1.5">
+                        <Award className="w-4 h-4 text-[#6A33D8]" />
                         <span>Creative Alignment Guidelines</span>
                       </h5>
                       <p className="text-gray-600 leading-relaxed font-sans">
@@ -602,13 +602,13 @@ export default function App() {
                   <div className="lg:col-span-7 flex flex-col gap-4">
                     {/* Mockup tabs trigger */}
                     <div className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between shadow-sm">
-                      <span className="text-xs font-mono font-bold text-[#6A33D8] uppercase">2. Select Screen Mockup Channel:</span>
+                      <span className="text-xs font-mono font-bold text-[#D0473E] uppercase">2. Select Screen Mockup Channel:</span>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setActiveAdNetwork('meta')}
                           className={`px-3 py-1.5 text-xs font-bold font-mono uppercase tracking-wider rounded transition-all ${
                             activeAdNetwork === 'meta'
-                              ? 'bg-[#6A33D8] text-white'
+                              ? 'bg-[#D0473E] text-white'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
@@ -618,7 +618,7 @@ export default function App() {
                           onClick={() => setActiveAdNetwork('google')}
                           className={`px-3 py-1.5 text-xs font-bold font-mono uppercase tracking-wider rounded transition-all ${
                             activeAdNetwork === 'google'
-                              ? 'bg-[#6A33D8] text-white'
+                              ? 'bg-[#D0473E] text-white'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
@@ -635,7 +635,7 @@ export default function App() {
                           {/* Profile details */}
                           <div className="p-4 flex items-center justify-between border-b border-gray-100">
                             <div className="flex items-center gap-2">
-                              <div className="w-9 h-9 rounded-full bg-[#6A33D8] text-white flex items-center justify-center font-serif font-extrabold text-sm border-2 border-[#D0473E]">
+                              <div className="w-9 h-9 rounded-full bg-[#D0473E] text-white flex items-center justify-center font-serif font-extrabold text-sm border-2 border-[#6A33D8]">
                                 V
                               </div>
                               <div>
@@ -736,7 +736,7 @@ export default function App() {
 
             {/* Campaign Summary Deck footer */}
             <div className="card p-6 border border-gray-200 bg-white shadow-sm space-y-4">
-              <h4 className="font-serif text-xl text-[#6A33D8] font-bold">Cross-Channel Deployment Matrix Overview</h4>
+              <h4 className="font-serif text-xl text-[#D0473E] font-bold">Cross-Channel Deployment Matrix Overview</h4>
               <p className="text-xs text-gray-700 leading-relaxed">
                 Review strategy parameters for all campaign variants. Sourced directly to Klaviyo flow handles and PageDeck components.
               </p>
@@ -744,13 +744,13 @@ export default function App() {
                 {AD_CAMPAIGN_TEMPLATES.map(tpl => (
                   <div key={tpl.themeId} className="p-4 bg-gray-50 border border-gray-150 rounded flex flex-col justify-between">
                     <div>
-                      <span className="font-mono text-[#6A33D8] uppercase font-bold text-xs">Variant {tpl.themeId} Angle</span>
-                      <h5 className="font-bold text-[#6A33D8] mt-0.5 mb-1.5">{tpl.angleName}</h5>
+                      <span className="font-mono text-[#D0473E] uppercase font-bold text-xs">Variant {tpl.themeId} Angle</span>
+                      <h5 className="font-bold text-[#D0473E] mt-0.5 mb-1.5">{tpl.angleName}</h5>
                       <p className="text-gray-600 line-clamp-2 text-xs leading-relaxed mb-3">{tpl.metaHook}</p>
                     </div>
                     <button
                       onClick={() => setSelectedAdThemeId(tpl.themeId)}
-                      className="w-full py-1 border border-[#6A33D8]/20 hover:border-[#6A33D8] text-center font-bold font-mono text-xs uppercase tracking-wider text-[#6A33D8] rounded mt-2 bg-white transition-all"
+                      className="w-full py-1 border border-[#D0473E]/20 hover:border-[#D0473E] text-center font-bold font-mono text-xs uppercase tracking-wider text-[#D0473E] rounded mt-2 bg-white transition-all"
                     >
                       Load Creative Workspace
                     </button>
@@ -764,8 +764,8 @@ export default function App() {
         {/* MAIL MATRIX TAB */}
         {activeTab === 'mailer' && (
           <div className="space-y-8">
-            <div className="card p-6 border border-[#D0473E]/20 bg-white">
-              <h3 className="font-serif text-2xl text-[#6A33D8] font-bold mb-2">Campaign Content & Klaviyo Mailer Blueprints</h3>
+            <div className="card p-6 border border-[#6A33D8]/20 bg-white">
+              <h3 className="font-serif text-2xl text-[#D0473E] font-bold mb-2">Campaign Content & Klaviyo Mailer Blueprints</h3>
               <p className="text-sm text-gray-600">Deep-dive segment matrix connecting target stress/grail-drop profiles to high-open rate mailing pointer copy variants.</p>
             </div>
 
@@ -773,10 +773,10 @@ export default function App() {
               {THEMES.map(theme => (
                 <div key={theme.id} className="card p-6 border border-gray-100 bg-white relative flex flex-col justify-between hover:shadow-md transition-all">
                   <div>
-                    <span className="badge bg-[#F7F5F2] text-[#6A33D8] mb-3">Theme {theme.id}</span>
-                    <h4 className="font-serif text-lg font-bold text-[#6A33D8] mb-2">{theme.name}</h4>
+                    <span className="badge bg-[#FFFFFF] text-[#D0473E] mb-3">Theme {theme.id}</span>
+                    <h4 className="font-serif text-lg font-bold text-[#D0473E] mb-2">{theme.name}</h4>
 
-                    <div className="bg-[#F7F5F2] p-3 rounded border border-gray-150 mb-4 text-xs font-sans">
+                    <div className="bg-[#FFFFFF] p-3 rounded border border-gray-150 mb-4 text-xs font-sans">
                       <p className="font-bold text-gray-600 font-mono text-xs uppercase mb-1">Core Root Problem</p>
                       <p className="text-gray-600 leading-relaxed">{theme.coreProblem}</p>
                     </div>
@@ -784,7 +784,7 @@ export default function App() {
                     <div className="space-y-3 mb-6">
                       <div>
                         <span className="text-xs font-mono font-bold text-lava uppercase block">Recommended Subject Line:</span>
-                        <p className="text-xs font-sans font-medium italic text-[#6A33D8]">{theme.subjectLines[0]}</p>
+                        <p className="text-xs font-sans font-medium italic text-[#D0473E]">{theme.subjectLines[0]}</p>
                       </div>
                       <div>
                         <span className="text-xs font-mono font-bold text-lava uppercase block">Body Copy Pointers:</span>
@@ -804,7 +804,7 @@ export default function App() {
                         setSelectedTheme(theme);
                         setActiveTab('landing');
                       }}
-                      className="w-full bg-[#6A33D8] text-white py-2.5 rounded font-sans uppercase font-bold text-xs tracking-wider flex items-center justify-center gap-1 hover:bg-[#6A33D8]"
+                      className="w-full bg-[#D0473E] text-white py-2.5 rounded font-sans uppercase font-bold text-xs tracking-wider flex items-center justify-center gap-1 hover:bg-[#D0473E]"
                     >
                       <span>Pre-Compile Landing Page</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -820,15 +820,15 @@ export default function App() {
         {activeTab === 'automation' && (
           <div className="card p-8 bg-white border border-gray-200 font-sans shadow-sm leading-relaxed max-w-4xl mx-auto space-y-8">
             <div className="border-b border-gray-150 pb-6 text-center">
-              <span className="text-xs font-mono text-[#6A33D8] tracking-widest uppercase font-bold">SYSTEM OPERATIONS CONFIG</span>
-              <h2 className="font-serif text-3xl text-[#6A33D8] font-bold mt-1">Growth Automation & Engineering PRD</h2>
+              <span className="text-xs font-mono text-[#D0473E] tracking-widest uppercase font-bold">SYSTEM OPERATIONS CONFIG</span>
+              <h2 className="font-serif text-3xl text-[#D0473E] font-bold mt-1">Growth Automation & Engineering PRD</h2>
               <p className="text-sm text-gray-700 mt-2">TECHNICAL CONVERSION MACHINE MATRIX • FOR UNIVERSAL CAMPAIGN GENERATOR PLATFORMS</p>
             </div>
 
             {/* Architecture Overview */}
             <div>
-              <h3 className="font-serif text-xl text-[#6A33D8] font-bold mb-3 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-[#D0473E]" />
+              <h3 className="font-serif text-xl text-[#D0473E] font-bold mb-3 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-[#6A33D8]" />
                 <span>1. Technical Core Architecture</span>
               </h3>
               <p className="text-sm text-gray-600 mb-4">
@@ -838,11 +838,11 @@ export default function App() {
 
             {/* DB Schema */}
             <div>
-              <h3 className="font-serif text-xl text-[#6A33D8] font-bold mb-3 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-[#D0473E]" />
+              <h3 className="font-serif text-xl text-[#D0473E] font-bold mb-3 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#6A33D8]" />
                 <span>2. Relational Postgres Database Schemas</span>
               </h3>
-              <div className="bg-[#6A33D8] text-[#F7F5F2] p-5 rounded font-mono text-xs overflow-x-auto shadow-inner border border-[#D0473E]/30">
+              <div className="bg-[#D0473E] text-[#FFFFFF] p-5 rounded font-mono text-xs overflow-x-auto shadow-inner border border-[#6A33D8]/30">
                 <pre>{`-- Core Product Registry Table
 CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -886,15 +886,15 @@ CREATE TABLE campaign_pages (
 
             {/* Performance Indicators */}
             <div>
-              <h3 className="font-serif text-xl text-[#6A33D8] font-bold mb-3 flex items-center gap-2">
-                <Flame className="w-5 h-5 text-[#D0473E]" />
+              <h3 className="font-serif text-xl text-[#D0473E] font-bold mb-3 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-[#6A33D8]" />
                 <span>3. Meta & GA4 Automation Pipeline Logic</span>
               </h3>
               <p className="text-sm text-gray-600 mb-3">
                 Our Node.js compiler processes real-time database inputs, injecting precise theme content and custom URL handles into layout files. To close the optimizer loop, we deploy periodic sync workers targeting Facebook Lead Ads and conversion events. Performance metrics are evaluated continuously:
               </p>
-              <div className="bg-[#F7F5F2] p-4 text-center rounded border border-[#D0473E]/40">
-                <span className="font-serif text-lg font-bold text-[#6A33D8]">
+              <div className="bg-[#FFFFFF] p-4 text-center rounded border border-[#6A33D8]/40">
+                <span className="font-serif text-lg font-bold text-[#D0473E]">
                   Performance Evaluation Weight Metric = (Total Conversions / Total Page Views) × Average Order Value (AOV)
                 </span>
               </div>
@@ -909,13 +909,13 @@ CREATE TABLE campaign_pages (
         {activeTab === 'prompt' && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="card p-6 bg-white border border-gray-200">
-              <h3 className="font-serif text-2xl text-[#6A33D8] font-bold mb-2">Master Code Prompts for Claude & Gemini</h3>
+              <h3 className="font-serif text-2xl text-[#D0473E] font-bold mb-2">Master Code Prompts for Claude & Gemini</h3>
               <p className="text-sm text-gray-600">Pre-configured operational prompts to copy directly into your AI workspace to recreate or generate extra landing page styles.</p>
             </div>
 
             <div className="card p-6 bg-white border border-gray-100 flex flex-col gap-4">
               <div>
-                <span className="badge bg-[#6A33D8] text-white mb-2">1. Claude Code Optimization Prompt</span>
+                <span className="badge bg-[#D0473E] text-white mb-2">1. Claude Code Optimization Prompt</span>
                 <p className="text-xs text-gray-700 mb-3">Crafted specifically to compile clean single-file HTML layout scripts with direct loops.</p>
               </div>
               <div className="bg-gray-100 p-4 rounded text-xs font-mono overflow-y-auto max-h-60 border border-gray-200">
@@ -947,14 +947,14 @@ Please compile completely following mobile-first design guides.`}</pre>
 
             <div className="card p-6 bg-white border border-gray-100 flex flex-col gap-4">
               <div>
-                <span className="badge bg-[#D0473E] text-[#111111] mb-2">2. Gemini Campaign & Copywriting Prompt</span>
+                <span className="badge bg-[#6A33D8] text-[#111111] mb-2">2. Gemini Campaign & Copywriting Prompt</span>
                 <p className="text-xs text-gray-700 mb-3">Designed for structural layout, behavioral customer targeting, and deep-benefit copywriting.</p>
               </div>
               <div className="bg-gray-100 p-4 rounded text-xs font-mono overflow-y-auto max-h-60 border border-gray-200">
                 <pre>{`You are a Lead Conversion Architect and Frontend Engineer. Your task is to output a complete, responsive, semantic vanilla HTML/CSS landing page code block for the KNICKGASM UK Coffee Collection product. The theme for this page is completely focused on addressing "Face Puffiness and Water Retention" using clean adaptogens.
 
 [DESIGN SPECIFICATIONS]
-- Colors: Deep Teal (#6A33D8) as primary, Warm Lava (#D0473E) as secondary, Soft Chalk (#F7F5F2) as background, and Dark Charcoal (#111111) for clear reading.
+- Colors: Deep Teal (#D0473E) as primary, Warm Lava (#6A33D8) as secondary, Soft Chalk (#FFFFFF) as background, and Dark Charcoal (#111111) for clear reading.
 - Typography: Use elegant fallback Serif fonts (like Georgia, "Playfair Display") for main headings, and clean Sans-Serif fonts (like Inter, system-ui) for body text and product options.
 - Layout: Apply a clean mobile-first flexbox/grid layout. Use single-column structures for small devices with a minimum 16px font size, and expand to 2 columns on screens 1024px or wider.
 
@@ -968,13 +968,13 @@ Assemble high-performance, responsive HTML layouts optimized for consumer retent
       </main>
 
       {/* Corporate Professional Footer */}
-      <footer className="bg-[#6A33D8] border-t border-[#D0473E]/20 text-[#F7F5F2] py-8 mt-auto px-6 font-sans">
+      <footer className="bg-[#D0473E] border-t border-[#6A33D8]/20 text-[#FFFFFF] py-8 mt-auto px-6 font-sans">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-center sm:text-left text-xs space-y-1">
-            <p className="font-serif text-sm font-semibold tracking-wide text-[#F7F5F2]">KNICKGASM Lifecycle OS &bull; Campaign Expansion Engine</p>
-            <p className="text-[#F7F5F2]">Fully synced with knickgasm.vercel.app to optimize acquisition and retention funnels across the UK.</p>
+            <p className="font-serif text-sm font-semibold tracking-wide text-[#FFFFFF]">KNICKGASM Lifecycle OS &bull; Campaign Expansion Engine</p>
+            <p className="text-[#FFFFFF]">Fully synced with knickgasm.vercel.app to optimize acquisition and retention funnels across the UK.</p>
           </div>
-          <div className="text-xs text-[#F7F5F2] font-mono text-center sm:text-right">
+          <div className="text-xs text-[#FFFFFF] font-mono text-center sm:text-right">
             <span>Lifecycle OS Node Active • Live Session 2026</span>
           </div>
         </div>

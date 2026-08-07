@@ -71,7 +71,7 @@ function ctaRulesBlock(purchaseMode) {
 function brandGatesBlock() {
   return [
     'BRAND GATES (hard fail if violated):',
-    '- Palette: only deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2. Never mention other colors.',
+    '- Palette: only deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. Never mention other colors.',
     "- Fonts are fixed by the template (Montserrat headings, Instrument Sans body) - do not reference fonts in copy.",
     '- BANNED phrases (any casing unless noted): "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" in caps, "hurry", "don\'t miss out", "last chance", "while supplies last".',
     '- NO FOUNDER VOICE - no founder letters, no "from our founder/CEO", no personal-name sign-offs, no first-person-singular ("I") narration. The brand speaks as "we".',
@@ -200,10 +200,10 @@ function placeholderImage(label, w, h) {
   const t = String(label || 'Product image').replace(/[<&>]/g, ' ').slice(0, 42);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-    `<rect width="100%" height="100%" fill="#F7F5F2"/>` +
-    `<rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#D0473E" stroke-width="2" stroke-dasharray="9 7"/>` +
-    `<text x="50%" y="45%" text-anchor="middle" fill="#6A33D8" font-family="Georgia,serif" font-size="21">${t}</text>` +
-    `<text x="50%" y="59%" text-anchor="middle" fill="#D0473E" font-family="Arial,Helvetica,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text>` +
+    `<rect width="100%" height="100%" fill="#FFFFFF"/>` +
+    `<rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#6A33D8" stroke-width="2" stroke-dasharray="9 7"/>` +
+    `<text x="50%" y="45%" text-anchor="middle" fill="#D0473E" font-family="Georgia,serif" font-size="21">${t}</text>` +
+    `<text x="50%" y="59%" text-anchor="middle" fill="#6A33D8" font-family="Arial,Helvetica,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text>` +
     `</svg>`;
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
@@ -241,7 +241,7 @@ function resolveHero(entry, w, h) {
   const prompt =
     `On-brand KNICKGASM email hero for "${entry.hero_product || entry.product_type}". Editorial product ` +
     `photography, one-of-one provenance, elegant negative space, warm cinematic light. Brand palette ` +
-    `only (violet #6A33D8, lava #D0473E, chalk #F7F5F2). No text on the image. Ideal size ${w} x ${h}.`;
+    `only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). No text on the image. Ideal size ${w} x ${h}.`;
   return { url: placeholderImage(entry.hero_product || 'Product image', w, h), mode: 'placeholder', size: `${w}x${h}`, prompt };
 }
 

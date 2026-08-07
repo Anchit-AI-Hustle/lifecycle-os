@@ -64,7 +64,7 @@ run_agentic_campaign* · generate_mailer_assets* · klaviyo` (*=writes, explicit
 ## 7. Platform & governance
 - Single Vercel project, `framework:null`; 12 serverless functions (Hobby cap) — multi-capability routers via `?action=`; heavy logic in `api/_shared/` (not counted).
 - Auth: Supabase-mediated Google sign-in via `auth.js` shell + LHS nav IA.
-- Brand constants enforced (palette #6A33D8/#D0473E/#111111/#F7F5F2, Montserrat/Proxima, banned phrases, no em/en dashes).
+- Brand constants enforced (palette #D0473E/#6A33D8/#111111/#FFFFFF, Montserrat/Proxima, banned phrases, no em/en dashes).
 - CI: HTML smoke + `npm run build` + Playwright visual/invariant tests + CodeQL.
 
 ---

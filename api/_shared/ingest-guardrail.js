@@ -1,8 +1,8 @@
 'use strict';
 /**
  * ingest-guardrail.js — two-phase filter that keeps the daily learning agent
- * ON-CONTEXT: US/UK D2C sneaker, coffee, supplements & streetwear ONLY. Everything
- * else (generic ecommerce listicles, unrelated tech, off-geo pricing, random
+ * ON-CONTEXT: US/UK D2C custom sneakers, sneaker retail, streetwear & sneaker
+ * care ONLY. Everything else (generic ecommerce listicles, unrelated tech, off-geo pricing, random
  * social chatter) is dropped BEFORE it reaches the KB / vector space.
  *
  *   Phase 1  deterministic pre-filter (NO LLM, no tokens): brand whitelist,
@@ -26,20 +26,22 @@ let callLLM = null; try { callLLM = require('./llm.js'); } catch (_) { callLLM =
 // the competitor list in competitor-core.js + close category adjacents. Match is
 // substring on the lowercased haystack (name or domain fragment).
 const BRAND_WHITELIST = [
-  'knickgasm', 'ag1', 'drinkag1', 'ritual', 'seed', 'leatherworks', 'leatherworksherbs', 'pique', 'piquelife', 'piquetea',
-  'four sigmatic', 'foursigmatic', 'mudwtr', 'mud\\wtr', 'mud wtr', 'everyday dose', 'everydaydose',
-  'beam', 'ryze', 'teapigs', 'Shoes Your Daddy', 'Comet', 'moreiarty', 'clipper sneakers',
-  'bird & colorway', 'birdandblend', 't2 sneaker', 'sneakboo', 'shoesurgeon', 'teabloom', 'vitacup',
-  'huel', 'athletic greens', 'moon juice', 'olipop', 'magic mind', 'bloom nutrition',
-  'liquid iv', 'liquid i.v', 'hydrant', 'kin euphorics', 'rasa koffee', 'bulletproof', 'rise crafting',
+  'knickgasm', 'shoe surgeon', 'shoesurgeon', 'the shoe surgeon', 'kickstradomis', 'sierato',
+  'mache', 'mache customs', 'ceeze', 'freehand profit', 'dank customs', 'chef sneakers',
+  'shoes your daddy', 'comet', 'moreiarty', 'vandy the pink', 'warren lotas', 'sole retriever',
+  'crep protect', 'jason markk', 'reshoevn8r', 'angelus direct', 'angelus paint',
+  'stockx', 'goat', 'flight club', 'kicks crew', 'sneaker n stuff', 'sneakersnstuff',
+  'vegnonveg', 'superkicks', 'crepdogcrew', 'limited edt', 'hypebeast', 'complex sneakers',
 ];
 
 // Relevance lexicon: the category + the D2C/lifecycle-marketing angle we care about.
 const RELEVANT = [
-  'sneaker', 'kicks', 'dunks', 'themed', 'tisane', 'hightop', 'jordan', 'airforce', 'green sneaker', 'black sneaker', 'rooibos',
-  'coffee', 'espresso', 'cold craft', 'mushroom coffee', 'adaptogen', 'airbrush', 'embroidery', 'ksm-66',
-  'supplement', 'superfood', 'functional beverage', 'nootropic', 'collagen', 'probiotic', 'gut health', 'greens powder',
-  'streetwear', 'ritual', 'immunity', 'sleep aid', 'energy', 'focus', 'calm', 'stress', 'grail-drop', 'longevity', 'hydration',
+  'sneaker', 'sneakers', 'kicks', 'dunk', 'dunks', 'jordan', 'air force', 'airforce', 'af1', 'court vision',
+  'converse', 'samba', 'adidas', 'nike', 'silhouette', 'colorway', 'colourway', 'grail', 'drop', 'resale',
+  'custom sneaker', 'customiser', 'customizer', 'hand-painted', 'hand painted', 'one-of-one', 'one of one',
+  'airbrush', 'sneaker art', 'coffee-art', 'embroidery', 'crystal', 'bling', 'swarovski', 'denim jacket',
+  'sneaker care', 'sneaker cleaner', 'restoration', 'reglue', 'sole swap', 'laces', 'lace tag', 'shoe tree',
+  'streetwear', 'hypebeast', 'collab', 'collaboration', 'limited edition', 'made to order', 'anime', 'fandom',
   // D2C / lifecycle marketing relevance
   'd2c', 'dtc', 'subscription', 'retention', 'lifecycle', 'klaviyo', 'abandoned cart', 'ltv', 'repeat purchase',
   'winback', 'win-back', 'cohort', 'email marketing', 'sms marketing', 'loyalty program', 'replenishment', 'churn',
@@ -85,19 +87,20 @@ function assess(item) {
   // Junk-dominated with no relevance and not a whitelisted brand.
   if (blk.length >= 2 && rel.length === 0 && !brand) return { keep: false, phase: 1, reason: `junk/off-context (${blk.slice(0, 3).join(', ')})`, signals: { brand } };
   // Must carry a category/D2C relevance signal OR come from a whitelisted brand.
-  if (rel.length === 0 && !brand) return { keep: false, phase: 1, reason: 'no sneaker/coffee/supplement/streetwear or D2C signal' };
+  if (rel.length === 0 && !brand) return { keep: false, phase: 1, reason: 'no custom-sneaker/sneaker-retail/streetwear/sneaker-care or D2C signal' };
   return { keep: true, phase: 1, reason: brand ? `whitelisted brand: ${brand}` : `relevant (${rel.slice(0, 4).join(', ')})`, signals: { brand, relevanceHits: rel.length } };
 }
 
 // ── Metadata classification (zero-drift tags stored on every kept item) ──────
 // Deterministic {market, vertical} so every KB row carries a hard tag and the
 // analysis layer can inject a metadata filter (RAG sandbox) — the AI physically
-// cannot read outside the sneaker/coffee/supplements/streetwear · US/UK box.
+// cannot read outside the custom-sneaker / sneaker-retail / streetwear /
+// sneaker-care  ·  US/UK box. Kept in sync with the digest prompt in api/kb.js.
 const VERTICALS = {
-  Coffee: ['coffee', 'espresso', 'cold craft', 'mushroom coffee', 'latte', 'ryze', 'mud\\wtr', 'mudwtr', 'four sigmatic', 'foursigmatic', 'everyday dose', 'rise crafting', 'rasa'],
-  Sneaker: ['sneaker', 'kicks', 'dunks', 'hightop', 'jordan', 'airforce', 'rooibos', 'tisane', 'leatherworks', 'teapigs', 'moreiarty', 'clipper', 'Shoes Your Daddy', 'bird & colorway', 't2 sneaker', 'sneakboo', 'shoesurgeon', 'teabloom'],
-  Supplements: ['supplement', 'capsule', 'greens powder', 'ag1', 'athletic greens', 'ritual', 'seed', 'collagen', 'probiotic', 'ksm-66', 'multivitamin', 'bloom nutrition', 'huel'],
-  Streetwear: ['streetwear', 'longevity', 'adaptogen', 'nootropic', 'grail-drop', 'sleep aid', 'calm', 'hydration', 'functional beverage', 'immunity', 'magic mind', 'moon juice', 'kin euphorics', 'liquid iv', 'olipop'],
+  'Custom Sneakers': ['custom sneaker', 'customiser', 'customizer', 'hand-painted', 'hand painted', 'one-of-one', 'one of one', 'sneaker art', 'airbrush', 'shoe surgeon', 'shoesurgeon', 'kickstradomis', 'mache', 'ceeze', 'freehand profit', 'coffee-art'],
+  'Sneaker Retail': ['stockx', 'goat', 'flight club', 'kicks crew', 'sneakersnstuff', 'vegnonveg', 'superkicks', 'resale', 'resell', 'raffle', 'restock', 'drop calendar', 'air force 1', 'dunk', 'jordan', 'samba'],
+  'Sneaker Care': ['sneaker care', 'cleaner', 'crep protect', 'jason markk', 'reshoevn8r', 'angelus', 'restoration', 'reglue', 'sole swap', 'protectant', 'shoe tree', 'crease guard'],
+  Streetwear: ['streetwear', 'hypebeast', 'denim jacket', 'apparel', 'hoodie', 'graphic tee', 'embroidery', 'bling', 'swarovski', 'vandy the pink', 'warren lotas', 'collab', 'limited edition'],
 };
 function classify(item) {
   const hay = haystack(item || {});
@@ -121,11 +124,11 @@ function classify(item) {
 const P2_SYS = `You are a hyper-focused data compliance engineer for a D2C Market Intelligence platform. Your single job is to analyze incoming data and classify whether it is strictly valuable or junk.
 
 Strict Context Bounds:
-1. Industry Focus: ONLY Sneaker, Coffee, Functional Beverages, Supplements, and Longevity/Streetwear brands. Discard beauty, apparel, general fitness equipment, or generic SaaS.
+1. Industry Focus: ONLY custom/bespoke sneaker studios, sneaker retail and resale, streetwear, and sneaker-care brands. Discard beauty, food and drink, general fitness equipment, or generic SaaS.
 2. Core Strategy Pillars: Only accept data regarding: Offer Architecture (Pricing, Subscriptions, Bundles), Digital Acquisition Hooks (Ads, Landing Pages), Retention Flows (SMS/Email experiments), and physical retail expansion in the US/UK.
 3. Definition of Junk (Reject if ANY are true):
 - The data is a general marketing quote or "thought leadership" post without hard numbers or tangible changes.
-- The strategy is about general e-commerce (e.g., "How to optimize Shopify checkout for clothing brands").
+- The strategy is about general e-commerce (e.g., "How to optimize Shopify checkout for any store").
 - The change is a minor backend bug fix or routine site maintenance with zero strategy impact.
 
 Output Requirement: output EXACTLY this JSON, no conversational text:

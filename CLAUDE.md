@@ -12,7 +12,7 @@ any of those, obey it. Load-bearing rules (full detail in the doc):
   segment sizes, or performance. Missing data -> `[DATA REQUIRED BEFORE LAUNCH: field, product, region]`.
 - **Closed source-of-truth** — only the repo + the exact official KNICKGASM regional site for the exact
   product/region. No cross-region reuse of facts/assets/reviews/claims/URLs.
-- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use purple); enforce
+- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use red or white); enforce
   WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards; proofread all
   copy; source-map every fact.
 - **Frequency** — promotional cap 2 (absolute 3) per rolling 7 days; do not assume all ~111k are
@@ -149,7 +149,7 @@ US → knickgasm.com | UK → knickgasm.com | IN → knickgasm.com | EU → knic
 - PDP: `{base}/products/{handle}` (handle = catalog JSON `h` field) · Collection: `{base}/collections/{slug}` (via `heroMap` in `collectionUrl()`)
 
 ## Brand Constants (source of truth: `Brand style guide.pdf`)
-- **Palette (ONLY these four)**: `#6A33D8` deep purple · `#D0473E` lava · `#111111` near-black · `#F7F5F2` chalk
+- **Palette (ONLY these four — exact knickgasm.com theme vars)**: `#D0473E` lava red (primary accent) · `#6A33D8` drip purple (secondary) · `#111111` ink (text/buttons) · `#FFFFFF` white (background)
 - **Typography (STRICT — style guide forbids any other font for emailers)**:
   - Headings: **Montserrat** Regular & Bold — fallback `'Montserrat','Raleway',Georgia,serif`
   - Body: **Instrument Sans** — fallback `'Instrument Sans','Helvetica Neue',Arial,sans-serif`

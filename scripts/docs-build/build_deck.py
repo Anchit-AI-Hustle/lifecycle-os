@@ -160,15 +160,15 @@ page = """<!doctype html><html><head><meta charset="utf-8"><style>
 body { margin:0; font-family:'Helvetica Neue',Arial,sans-serif; }
 .slide { width:13.333in; height:7.5in; padding:0.55in 0.9in; background:#06130d;
   background-image: radial-gradient(1100px 600px at 80% -10%, rgba(171,135,67,.12), transparent);
-  color:#F7F5F2; page-break-after:always; position:relative; overflow:hidden; }
-.eyebrow { font-size:12pt; letter-spacing:.18em; text-transform:uppercase; color:#D0473E; font-weight:700; }
-h1 { font-family:Georgia,serif; font-size:30pt; margin:10pt 0 12pt; color:#F7F5F2; line-height:1.12; }
+  color:#FFFFFF; page-break-after:always; position:relative; overflow:hidden; }
+.eyebrow { font-size:12pt; letter-spacing:.18em; text-transform:uppercase; color:#6A33D8; font-weight:700; }
+h1 { font-family:Georgia,serif; font-size:30pt; margin:10pt 0 12pt; color:#FFFFFF; line-height:1.12; }
 .lead { font-size:14pt; color:#cdd8d2; max-width:10.5in; line-height:1.6; }
 ul { margin:6pt 0 0; padding-left:20pt; }
-li { font-size:14.5pt; color:#F7F5F2; line-height:1.5; margin:7pt 0; max-width:11in; }
+li { font-size:14.5pt; color:#FFFFFF; line-height:1.5; margin:7pt 0; max-width:11in; }
 table { border-collapse:collapse; width:100%; margin-top:8pt; font-size:11pt; }
-th { background:#6A33D8; color:#F7F5F2; text-align:left; padding:7pt 9pt; }
+th { background:#D0473E; color:#FFFFFF; text-align:left; padding:7pt 9pt; }
 td { background:#0f1d18; color:#cdd8d2; border:1px solid rgba(171,135,67,.25); padding:7pt 9pt; }
-.pg { position:absolute; bottom:0.35in; right:0.6in; color:#D0473E; font-size:10pt; }
+.pg { position:absolute; bottom:0.35in; right:0.6in; color:#6A33D8; font-size:10pt; }
 </style></head><body>""" + "".join(slides_html) + "</body></html>"
 open("scratchpad/deck_print.html","w",encoding="utf-8").write(page); print("wrote scratchpad/deck_print.html")

@@ -9,9 +9,9 @@ VALUES (
   1,
   -- Official 4-colour palette (from PDF page 11)
   '{
-    "primary": "#6A33D8",
-    "accent":  "#D0473E",
-    "bg":      "#F7F5F2",
+    "primary": "#D0473E",
+    "accent":  "#6A33D8",
+    "bg":      "#FFFFFF",
     "text":    "#111111"
   }'::jsonb,
   -- Official typography (from PDF pages 3-10)
@@ -44,7 +44,7 @@ VALUES (
       "Generic marketing fluff",
       "Aggressive CAPS sale-shouting",
       "Dilute the ® mark",
-      "Use unofficial colours (only #6A33D8 / #D0473E / #F7F5F2 / #111111)",
+      "Use unofficial colours (only #D0473E / #6A33D8 / #FFFFFF / #111111)",
       "Use fonts other than Montserrat (headings) or Instrument Sans (body)"
     ]
   }'::jsonb,

@@ -127,7 +127,7 @@ vercel --prod
 
 All inherited from the parent repo (see `CLAUDE.md`):
 
-- Palette: `#6A33D8` deep purple · `#D0473E` lava · `#111111` ink · `#F7F5F2`
+- Palette: `#D0473E` deep purple · `#6A33D8` lava · `#111111` ink · `#FFFFFF`
   chalk
 - Type: Montserrat (headings) + Instrument Sans (body)
 - Banned phrases enforced: "streetwear journey", "transform", "liquid lava",

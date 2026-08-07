@@ -51,20 +51,20 @@ doc = """<!doctype html><html><head><meta charset="utf-8"><style>
 @page { size: A4; margin: 18mm 16mm; }
 * { box-sizing: border-box; }
 body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#111111; font-size:10.5pt; line-height:1.55; }
-h1 { font-family: Georgia, 'Times New Roman', serif; color:#6A33D8; font-size:24pt; margin:0 0 6pt; }
-h2 { font-family: Georgia, serif; color:#6A33D8; font-size:15pt; margin:20pt 0 6pt; border-bottom:2px solid #D0473E; padding-bottom:3pt; }
-h3 { color:#D0473E; font-size:12pt; margin:14pt 0 4pt; }
-h4 { color:#6A33D8; font-size:11pt; margin:10pt 0 3pt; }
+h1 { font-family: Georgia, 'Times New Roman', serif; color:#D0473E; font-size:24pt; margin:0 0 6pt; }
+h2 { font-family: Georgia, serif; color:#D0473E; font-size:15pt; margin:20pt 0 6pt; border-bottom:2px solid #6A33D8; padding-bottom:3pt; }
+h3 { color:#6A33D8; font-size:12pt; margin:14pt 0 4pt; }
+h4 { color:#D0473E; font-size:11pt; margin:10pt 0 3pt; }
 p { margin:5pt 0; }
-a { color:#D0473E; }
-code { font-family:'Consolas',monospace; color:#6A33D8; background:#F7F5F2; padding:0 3px; border-radius:3px; font-size:9.5pt; }
+a { color:#6A33D8; }
+code { font-family:'Consolas',monospace; color:#D0473E; background:#FFFFFF; padding:0 3px; border-radius:3px; font-size:9.5pt; }
 strong { color:#111111; }
-hr { border:0; border-top:1px solid #D0473E; margin:10pt 0; }
-blockquote { margin:8pt 0; padding:6pt 12pt; border-left:3px solid #D0473E; color:#6A33D8; font-style:italic; background:#F7F5F2; }
+hr { border:0; border-top:1px solid #6A33D8; margin:10pt 0; }
+blockquote { margin:8pt 0; padding:6pt 12pt; border-left:3px solid #6A33D8; color:#D0473E; font-style:italic; background:#FFFFFF; }
 ul, ol { margin:5pt 0 5pt 6pt; padding-left:14pt; }
 li { margin:2pt 0; }
 table { border-collapse:collapse; width:100%; margin:8pt 0; font-size:9pt; page-break-inside:avoid; }
-th { background:#6A33D8; color:#F7F5F2; text-align:left; padding:5pt 7pt; font-size:8.5pt; }
+th { background:#D0473E; color:#FFFFFF; text-align:left; padding:5pt 7pt; font-size:8.5pt; }
 td { border:1px solid #e4dcc9; padding:5pt 7pt; vertical-align:top; }
 tr:nth-child(even) td { background:#FBF9F1; }
 </style></head><body>

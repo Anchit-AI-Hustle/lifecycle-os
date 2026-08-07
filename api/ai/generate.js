@@ -90,7 +90,7 @@ GROWTH-LEADER LENS (apply to every section):
 
 BRAND IDENTITY:
 - KNICKGASM. Single-studio sneakers, streetwear colorways, gift sets. B-Corp. Studio-fresh within 72 hours of drop.
-- Palette: deep purple #6A33D8 / amber lava #D0473E / parchment chalk #F7F5F2 / near-black #111111
+- Palette: deep purple #D0473E / amber lava #6A33D8 / parchment chalk #FFFFFF / near-black #111111
 - Typography: Montserrat (headings), Instrument Sans (body/buttons)
 - Voice: calm-confident-premium. PREFERRED: ritual, restore, balance, origin, one-of-one, lace-up, heritage, crafted
 - BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out
@@ -158,7 +158,7 @@ const SYSTEM_PROMPT_SUGGESTED_PROMPTS = `You are a Creative Director + Director 
 
 KNICKGASM BRAND:
 - Ultra-premium Indian heritage sneaker. Single-studio sourcing. Ethical, B-Corp certified.
-- Palette: deep purple #6A33D8 / amber #D0473E / chalk #F7F5F2
+- Palette: deep purple #D0473E / amber #6A33D8 / chalk #FFFFFF
 - Tone: calm-confident-premium. Ritual not regimen. Story over price.
 - BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, dont miss out
 - PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted
@@ -294,7 +294,7 @@ FINAL OUTPUT JSON SCHEMA
 - NEVER ignore Step 8 validation
 
 KNICKGASM BRAND:
-Palette (ONLY these 4 hex): #6A33D8 / #D0473E / #111111 / #F7F5F2. Fonts (STRICT): Montserrat for headings (fallback 'Montserrat','Raleway',Georgia,serif), Instrument Sans for body (fallback 'Instrument Sans','Helvetica Neue',Arial,sans-serif). NO other fonts or colors.
+Palette (ONLY these 4 hex): #D0473E / #6A33D8 / #111111 / #FFFFFF. Fonts (STRICT): Montserrat for headings (fallback 'Montserrat','Raleway',Georgia,serif), Instrument Sans for body (fallback 'Instrument Sans','Helvetica Neue',Arial,sans-serif). NO other fonts or colors.
 
 GROWTH-LEADER OUTPUT CHECKLIST (every brief MUST include all 8):
 1. Subject lines: 3 options. Each must reference a NUMBER (% off, count, days left, price), a SPECIFIC product/category, or a NAMED occasion. No vague "Sneaker you'll love".
@@ -428,7 +428,7 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
       'Help the user brainstorm campaigns, sharpen subject lines and copy, critique the current mailer, and answer marketing questions.',
       'VOICE: warm, sensory, story-driven, premium. PREFER words like ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
       "NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
-      'Brand palette is deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2. Headings Montserrat, body Instrument Sans.',
+      'Brand palette is deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. Headings Montserrat, body Instrument Sans.',
       'Be concise and practical. Short paragraphs or tight lists. When asked for copy, give ready-to-paste options. Plain text only — no markdown headers.'
     ].join('\n');
     const ctxLines = [
@@ -495,7 +495,7 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     }
 
     const BRAND_GUARDRAILS = `BRAND: KNICKGASM — premium D2C sneaker, one-of-one, studio-fresh in 72h, B-Corp.
-PALETTE: deep purple #6A33D8 / amber lava #D0473E / chalk #F7F5F2 / black #111111.
+PALETTE: deep purple #D0473E / amber lava #6A33D8 / chalk #FFFFFF / black #111111.
 BANNED: "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out".
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for India, € for EU.`;
@@ -636,7 +636,7 @@ Target market for this autofill: ${targetMarket}.`;
       '- Images use max-width:100%; height:auto. No horizontal scroll at any width.',
       '',
       'BRAND RULES (strict):',
-      '- Colour palette ONLY: deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2. No other colours.',
+      '- Colour palette ONLY: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. No other colours.',
       "- Headings in a serif stack: 'Montserrat','Raleway',Georgia,serif. Body in a sans stack: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
       '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
       "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",

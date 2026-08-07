@@ -91,7 +91,7 @@ VARIANT A — CONTROL (Conversion-optimised):
 - Structured hierarchy: product hero → benefits → proof → offer → CTA
 - Copy register: precise, benefit-specific, authoritative
 - Layout: split-hero or centered product with copy adjacent
-- Color scheme: LIGHT — chalk background #F7F5F2, dark green text, amber accents
+- Color scheme: LIGHT — chalk background #FFFFFF, dark green text, amber accents
 - hero_scene: studio-adjacent, product prominent, benefit-clear, morning/afternoon light
 - Section flow: top-down conversion funnel, compact, no excess whitespace
 
@@ -104,7 +104,7 @@ HARD RULES — ALL must be true. Verify each before outputting:
 □ CTA: ghost-button or text-link ONLY — NOT prominent amber filled button
 □ hero_scene: atmospheric, lifestyle, DIFFERENT time of day from A, NO studio feel
 □ template_key MUST DIFFER from Variant A's template_key
-□ COLOR SCHEME INVERTED: B must use dark background (#6A33D8 or #0a1f13) with light (#F7F5F2 / #e8dcc8) text for at least the first 2 sections — NOT chalk background like A
+□ COLOR SCHEME INVERTED: B must use dark background (#D0473E or #0a1f13) with light (#FFFFFF / #e8dcc8) text for at least the first 2 sections — NOT chalk background like A
 □ SECTION ORDER DIFFERENT: B must NOT open with the same section type as A. If A opens hero→product, B must open narrative→lifestyle or context→mood
 □ HEADLINE STYLE: B headlines must be poetic/indirect/sensory (e.g., "The hill is quiet at 7,000 feet.") — NOT benefit-direct like A
 
@@ -112,8 +112,8 @@ DIVERGENCE ENFORCEMENT:
 If Variant B resembles A on ANY of the above → rewrite the failing sections entirely from a different emotional entry point. Do not output until all 10 boxes above are checked and true.
 
 COLOR DIVERGENCE REQUIREMENT (mandatory):
-- variant_a_concept must specify: color_approach = "light-chalk" (background #F7F5F2, green text)
-- variant_b_concept must specify: color_approach = "dark-inverted" (background #6A33D8, chalk text) for hero/narrative sections
+- variant_a_concept must specify: color_approach = "light-chalk" (background #FFFFFF, green text)
+- variant_b_concept must specify: color_approach = "dark-inverted" (background #D0473E, chalk text) for hero/narrative sections
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PERFORMANCE MARKETING PRINCIPLES — APPLY TO EVERY STRATEGY
@@ -144,7 +144,7 @@ The structure.sections array in your output MUST reflect this order exactly.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 KNICKGASM BRAND CONSTRAINTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Palette: deep purple #6A33D8 / amber lava #D0473E / chalk #F7F5F2
+Palette: deep purple #D0473E / amber lava #6A33D8 / chalk #FFFFFF
 Audience: urban professionals 30-55, health-conscious, value quality + story over price
 BANNED phrases: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME (caps) / Last chance / While supplies last
 PREFERRED: ritual / restore / balance / origin / one-of-one / hand-painted / lace-up / heritage / crafted
@@ -201,7 +201,7 @@ SCHEMA (all fields required):
     "emotional_angle": "the emotional entry point for Variant A",
     "headline_register": "tone and register — e.g. 'direct benefit-led declarative'",
     "template_key": "launch | sale | story | gift | routine | discovery | bestseller | seasonal | editorial | founder",
-    "color_approach": "light-chalk — background #F7F5F2, primary text #6A33D8, amber accents #D0473E",
+    "color_approach": "light-chalk — background #FFFFFF, primary text #D0473E, amber accents #6A33D8",
     "opening_section": "hero (product visible in section 1)",
     "hero_scene": "50-70w specific photographic scene — composition, foreground, background, light direction, mood"
   },
@@ -209,7 +209,7 @@ SCHEMA (all fields required):
     "emotional_angle": "MUST differ from A — different emotional entry point entirely",
     "headline_register": "MUST differ from A — poetic-sensory, NOT benefit-direct",
     "template_key": "MUST differ from A's template_key (choose a different one from the list)",
-    "color_approach": "dark-inverted — background #6A33D8 for first 2 sections, chalk text #F7F5F2, amber accent — OPPOSITE of A",
+    "color_approach": "dark-inverted — background #D0473E for first 2 sections, chalk text #FFFFFF, amber accent — OPPOSITE of A",
     "opening_section": "narrative or lifestyle (NO product in first 2 sections)",
     "hero_scene": "50-70w scene — DIFFERENT composition axis, time of day (e.g. dusk/evening if A is morning), human context, atmospheric mood — NOT studio"
   },
@@ -309,11 +309,11 @@ Run Phase 1 → Phase 2 now. Think deeply before locking. Every field matters.`;
 
     // Auto-correct color_approach if LLM got it wrong (defensive fix)
     if (!a.color_approach || aIsDark) {
-      a.color_approach = 'light-chalk — background #F7F5F2, primary text #6A33D8, amber accents #D0473E';
+      a.color_approach = 'light-chalk — background #FFFFFF, primary text #D0473E, amber accents #6A33D8';
       parsed.variant_a_concept = a;
     }
     if (!b.color_approach || bIsLight) {
-      b.color_approach = 'dark-inverted — background #6A33D8 for first 2 sections, chalk text #F7F5F2, amber accent — OPPOSITE of A';
+      b.color_approach = 'dark-inverted — background #D0473E for first 2 sections, chalk text #FFFFFF, amber accent — OPPOSITE of A';
       parsed.variant_b_concept = b;
     }
     if (!b.opening_section || b.opening_section === a.opening_section || b.opening_section.toLowerCase().includes('hero')) {
@@ -398,7 +398,7 @@ Run Phase 1 → Phase 2 now. Think deeply before locking. Every field matters.`;
         sections: ['hero', 'context', 'product_reveal', 'benefit_strip', 'social_proof', 'offer_bar', 'cta'],
         layout_rules: 'Max 7 sections. Single-column mobile-first. CTA visible without scroll. Product section max 3 items.',
         visual_system: {
-          color_palette: 'Primary: deep purple #6A33D8. Secondary: chalk #F7F5F2. Accent: amber lava #D0473E. Variant A uses chalk bg, Variant B uses dark bg.',
+          color_palette: 'Primary: deep purple #D0473E. Secondary: chalk #FFFFFF. Accent: amber lava #6A33D8. Variant A uses chalk bg, Variant B uses dark bg.',
           typography: 'Headings: serif, 28-36px. Body: sans-serif, 14-16px. Generous line-height 1.6.',
           spacing_rhythm: 'Section gap: 32-48px. Internal padding: 24-32px. Breathing room between elements.',
           image_style: 'Luxury editorial — cinematic warm light, shallow DOF, tactile textures, no stock look'
@@ -409,7 +409,7 @@ Run Phase 1 → Phase 2 now. Think deeply before locking. Every field matters.`;
         emotional_angle: 'Direct confidence — the product speaks for itself with clarity and authority',
         headline_register: 'Direct benefit-led declarative — clear, precise, action-oriented',
         template_key: isSale ? 'sale' : isGifting ? 'gift' : 'bestseller',
-        color_approach: 'light-chalk — background #F7F5F2, primary text #6A33D8, amber accents #D0473E',
+        color_approach: 'light-chalk — background #FFFFFF, primary text #D0473E, amber accents #6A33D8',
         opening_section: 'hero (product visible in section 1)',
         hero_scene: 'Clean morning light studio-adjacent scene. KNICKGASM sneaker package centered on a chalk linen surface. A freshly crafted pair beside it, steam catching the light. Warm amber tones, shallow focus on the product, soft shadow falling left. Overhead angle, slightly off-center composition. Premium, confident, conversion-clear.'
       },
@@ -417,13 +417,13 @@ Run Phase 1 → Phase 2 now. Think deeply before locking. Every field matters.`;
         emotional_angle: 'Atmospheric immersion — the reader feels the origin before seeing the product',
         headline_register: 'Poetic-sensory and evocative — reader feels before they see',
         template_key: isSale ? 'story' : isGifting ? 'editorial' : 'story',
-        color_approach: 'dark-inverted — background #6A33D8 for first 2 sections, chalk text #F7F5F2, amber accent — OPPOSITE of A',
+        color_approach: 'dark-inverted — background #D0473E for first 2 sections, chalk text #FFFFFF, amber accent — OPPOSITE of A',
         opening_section: 'narrative or lifestyle (NO product in first 2 sections)',
         hero_scene: 'Golden hour on a Jordan hillside. Sneaker bushes stretching to the horizon under warm dusk light. A weathered wooden table in the foreground holds a single steaming pair. Atmospheric haze, deep greens and amber sky. Full-bleed editorial composition, the product is secondary to the mood. The reader should feel transported to the studio.'
       },
       variant_divergence_contract: {
         layout_difference: 'A uses centered product-hero layout; B uses full-bleed editorial with generous whitespace',
-        color_difference: 'A uses light chalk bg (#F7F5F2) with dark text; B uses dark green bg (#6A33D8) with chalk text for opening sections',
+        color_difference: 'A uses light chalk bg (#FFFFFF) with dark text; B uses dark green bg (#D0473E) with chalk text for opening sections',
         copy_difference: 'A is direct and benefit-specific; B is sensory, poetic, and narrative-led',
         section_order_difference: 'A opens hero→product; B opens narrative→lifestyle→product reveal',
         product_treatment_difference: 'A: product grid in section 1; B: editorial single product reveal after section 2'

@@ -16,16 +16,16 @@
         tap targets, and responsive helpers — improves the Capacitor apps too.
 
    Palette is locked to the brand's four colors (Brand style guide):
-     violet #6A33D8 · lava #D0473E · near-black #111111 · chalk #F7F5F2.
+     violet #D0473E · lava #6A33D8 · near-black #111111 · chalk #FFFFFF.
    Dark surfaces are derived tints of violet/near-black, not off-palette drift.
    ========================================================================== */
 
 :root {
   /* Brand core (locked, theme-independent accents) */
-  --vh-green:  #6A33D8;
-  --vh-lava:   #D0473E;
+  --vh-green:  #D0473E;
+  --vh-lava:   #6A33D8;
   --vh-black:  #111111;
-  --vh-chalk:  #F7F5F2;
+  --vh-chalk:  #FFFFFF;
 
   /* State (theme-independent) */
   --vh-ok:   #3fa46a;
@@ -37,10 +37,10 @@
      Montserrat + Instrument Sans, and adds this semantic set. Its CANONICAL page
      surface is brand CHALK (not #fff); dark ink text on chalk is the reference
      pairing. These tokens align the Lifecycle OS light theme to that review. */
-  --vh-surface:      #F7F5F2;  /* canonical light page surface (chalk) */
+  --vh-surface:      #FFFFFF;  /* canonical light page surface (chalk) */
   --vh-surface-card: #ffffff;  /* cards sit slightly above the chalk page */
-  --vh-panel-tan:    #eadfce;  /* tan info panel */
-  --vh-border-soft:  #cddbd2;  /* soft green-gray hairline */
+  --vh-panel-tan:    #f5f5f5;  /* neutral info panel (site gray) */
+  --vh-border-soft:  #ebebeb;  /* site hairline gray (--color-border) */
   --vh-pos:          #1a7f37;  /* positive / uptrend (AA on chalk) */
   --vh-neg:          #c0392b;  /* negative / downtrend (AA on chalk) */
   --vh-coffee:       #6f4e37;  /* coffee-category accent */
@@ -81,7 +81,7 @@
    LOCKED THEME — single green surface, golden/yellow/white text.
    ----------------------------------------------------------------------------
    The dark/dusk/light switcher was removed. There is now ONE theme: a
-   deep-purple (#6A33D8) canvas with lava/chalk text, on brand with the style
+   deep-purple (#D0473E) canvas with lava/chalk text, on brand with the style
    guide. All selectors below resolve to the SAME tokens, so any stale
    html[data-theme="dusk|light"] value left in a browser still renders green —
    the lock cannot be defeated by old localStorage.
@@ -92,7 +92,7 @@
 :root[data-theme="light"],
 :root[data-theme="green"] {
   /* LIGHT theme lock (2026-07-18): the suite is standardized to ONE light theme
-     so every tool tab renders consistently light — chalk canvas #F7F5F2, white
+     so every tool tab renders consistently light — chalk canvas #FFFFFF, white
      cards/tiles, near-black ink, violet heads, lava accents, cool-muted secondary.
      Every data-theme value resolves here (auth.js sets data-theme="green"). This
      MATCHES the light :root each page already declares, so pages stop rendering
@@ -102,16 +102,16 @@
      are corrected per-page (e.g. app-audit remaps --chalk to violet). Two themed
      pages opt back to dark on purpose: diff-version (frozen dark diff) and /3d
      (WebGL storefront) — they carry their own high-specificity dark override. */
-  --vh-bg: #F7F5F2; --vh-panel: #ffffff; --vh-panel-2: #f4f2ec;
+  --vh-bg: #FFFFFF; --vh-panel: #ffffff; --vh-panel-2: #f4f2ec;
   --vh-line: rgba(171,135,67,0.24); --vh-line-hot: rgba(171,135,67,0.5);
   /* Text: near-black body, muted secondary, faint tertiary — readable on light. */
   --vh-ink: #111111; --vh-ink-dim: #556059; --vh-ink-faint: #6b7770;
   /* legacy aliases (family A + family B) — all point at the locked light set.
      --soft is a *dim text* color (never a surface): a readable muted tone. */
-  --bg: #F7F5F2; --panel: #ffffff; --surface: #ffffff; --card: #ffffff; --soft: #556059; --chip: #f4f2ec;
-  --ink: #111111; --ink-dim: #556059; --ink-faint: #6b7770; --muted: #556059; --head: #6A33D8;
+  --bg: #FFFFFF; --panel: #ffffff; --surface: #ffffff; --card: #ffffff; --soft: #556059; --chip: #f4f2ec;
+  --ink: #111111; --ink-dim: #556059; --ink-faint: #6b7770; --muted: #556059; --head: #D0473E;
   --line: rgba(171,135,67,0.24); --line-hot: rgba(171,135,67,0.5);
-  --violet: #6A33D8; --green: #6A33D8; --accent: #D0473E; --moss: #eef3f0; --moss-deep: #e7efe9;
+  --violet: #D0473E; --green: #D0473E; --accent: #6A33D8; --moss: #eef3f0; --moss-deep: #e7efe9;
   color-scheme: light;
 }
 

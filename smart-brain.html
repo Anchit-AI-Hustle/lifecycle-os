@@ -7,13 +7,13 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Automated Calendar">
 <style>
-  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--muted:#48524c}
+  :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--muted:#48524c}
   *{box-sizing:border-box} body{margin:0;background:#ffffff;color:#111111;font-family:Inter,system-ui,Arial,sans-serif;padding:28px}
   .wrap{max-width:1280px;margin:0 auto}.top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
   .eyebrow{color:var(--lava);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}h1{font-family:Georgia,serif;font-size:40px;line-height:1.05;margin:8px 0 10px}p{color:#556059;line-height:1.55}
@@ -23,7 +23,7 @@
   .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
   .mkchip{border:1px solid rgba(171,135,67,.4);background:transparent;color:#111111;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
   .mkchip:hover{border-color:var(--lava);color:#111111}
-  .mkchip.on{background:var(--violet,#6A33D8);color:#fff;border-color:var(--lava)}
+  .mkchip.on{background:var(--violet,#D0473E);color:#fff;border-color:var(--lava)}
   .akbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 10px;padding:8px 0;border-bottom:1px solid rgba(171,135,67,.18)}
   .akstatus{font-size:12px;font-weight:700}
   .akstatus.approved{color:#0a7d33} .akstatus.rejected{color:#b91c1c}
@@ -51,8 +51,8 @@
   .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .pill{display:inline-block;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:#7a5f28;white-space:nowrap}
   /* Why / Analysis panel — clear focus hierarchy */
-  .an-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#D0473E;margin:0 0 6px}
-  .an-focus{background:linear-gradient(90deg,rgba(0,74,43,.35),rgba(0,74,43,.08));border-left:3px solid #D0473E;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 16px}
+  .an-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6A33D8;margin:0 0 6px}
+  .an-focus{background:linear-gradient(90deg,rgba(0,74,43,.35),rgba(0,74,43,.08));border-left:3px solid #6A33D8;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 16px}
   .an-focus .lead{font-size:17px;line-height:1.4;color:#111111;margin:0}
   .an-focus .sub{font-size:13px;line-height:1.55;color:#556059;margin:8px 0 0}
   .an-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}
@@ -66,7 +66,7 @@
   .an-factor{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(171,135,67,.14);font-size:12.5px;color:#556059}
   .an-factor b{color:#111111;font-weight:600}
   .an-driver{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(171,135,67,.12)}
-  .an-driver .sig{color:#D0473E;font-weight:700;font-size:12px;min-width:120px}
+  .an-driver .sig{color:#6A33D8;font-weight:700;font-size:12px;min-width:120px}
   .an-driver .val{color:#111111;font-size:13px}
   .an-driver .imp{color:#6b7770;font-size:11.5px;display:block;margin-top:2px}
   .an-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
@@ -400,20 +400,20 @@ function renderAd(ad){
   const add = (k,v)=>{ if(v!=null && String(v).trim()!=='') rows.push(`<div class="k">${esc(k)}</div><div class="v">${esc(Array.isArray(v)?v.filter(Boolean).join('\n'):v)}</div>`); };
   const platform = (ad.platform||'ad').toUpperCase();
   const ctype = ad.creative_type || ((ad.storyboard||ad.script) && !ad.creative_brief ? 'video' : 'static');
-  const vtag = `<span class="pill" style="font-size:10px;background:${ctype==='video'?'#7a5f28':'#6A33D8'};color:#F7F5F2">${esc(ad.variant||(ctype==='video'?'Video':'Static'))}</span>`;
+  const vtag = `<span class="pill" style="font-size:10px;background:${ctype==='video'?'#7a5f28':'#D0473E'};color:#FFFFFF">${esc(ad.variant||(ctype==='video'?'Video':'Static'))}</span>`;
   const cta = esc(ad.cta||'Shop Now');
   const qa = ad.__qa ? `<span class="pill" title="${esc((ad.__qa.issues||[]).join(' · ')||'passed all checks')}" style="font-size:10px;background:${ad.__qa.ok?'#0a7d33':'#b45309'};color:#fff">QA ${ad.__qa.ok?'✓':'⚠'} ${ad.__qa.score}/10</span>` : '';
   if(ctype==='video'){
     // Video ad: a shot-by-shot storyboard strip + hook — not a wall of text.
-    const board = (ad.storyboard||[]).map(s=>`<div style="flex:0 0 128px;border:1px solid rgba(171,135,67,.3);border-radius:8px;overflow:hidden;background:#0c1c14"><div style="background:#6A33D8;color:#D0473E;font-size:10px;font-weight:800;padding:3px 7px">${esc(s.t||'')}</div><div style="color:#e9efe9;font-size:11px;line-height:1.4;padding:7px 8px">${esc(s.scene||s.shot||'')}</div></div>`).join('');
+    const board = (ad.storyboard||[]).map(s=>`<div style="flex:0 0 128px;border:1px solid rgba(171,135,67,.3);border-radius:8px;overflow:hidden;background:#0c1c14"><div style="background:#D0473E;color:#6A33D8;font-size:10px;font-weight:800;padding:3px 7px">${esc(s.t||'')}</div><div style="color:#e9efe9;font-size:11px;line-height:1.4;padding:7px 8px">${esc(s.scene||s.shot||'')}</div></div>`).join('');
     add('Hook', ad.hook); add('Caption', ad.caption); if(!ad.storyboard) add('Script', ad.script);
     return `<div class="adcard"><h4>${esc(platform)} · Video ad ${vtag} ${qa}</h4>
       <div style="position:relative;border-radius:12px;height:150px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#0f2a1c,#04120b);border:1px solid rgba(171,135,67,.3)">
-        <span style="width:0;height:0;border-left:22px solid #F7F5F2;border-top:14px solid transparent;border-bottom:14px solid transparent;margin-left:6px"></span>
-        <span style="position:absolute;top:8px;left:10px;font-size:10px;font-weight:800;letter-spacing:.08em;color:#D0473E">VIDEO · ${esc(ad.placement||'9:16')} · ${esc(String(ad.duration_s||15))}s</span>
+        <span style="width:0;height:0;border-left:22px solid #FFFFFF;border-top:14px solid transparent;border-bottom:14px solid transparent;margin-left:6px"></span>
+        <span style="position:absolute;top:8px;left:10px;font-size:10px;font-weight:800;letter-spacing:.08em;color:#6A33D8">VIDEO · ${esc(ad.placement||'9:16')} · ${esc(String(ad.duration_s||15))}s</span>
       </div>
       ${board?`<div style="display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px">${board}</div>`:''}
-      <div style="display:inline-block;background:#D0473E;color:#111111;font-weight:800;font-size:12px;padding:8px 16px;border-radius:8px;margin:4px 0 8px">${cta} &rarr;</div>
+      <div style="display:inline-block;background:#6A33D8;color:#111111;font-weight:800;font-size:12px;padding:8px 16px;border-radius:8px;margin:4px 0 8px">${cta} &rarr;</div>
       ${rows.join('')}</div>`;
   }
   // Static ad: a framed mockup with overlay (headline + proof chip + CTA) so it
@@ -425,10 +425,10 @@ function renderAd(ad){
   if(ad.creative_brief) add('Creative brief', ad.creative_brief);
   return `<div class="adcard"><h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
     <div style="position:relative;border-radius:12px;height:190px;overflow:hidden;border:1px solid rgba(171,135,67,.3);${bg}">
-      <span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;color:#F7F5F2;opacity:.85">${esc(ad.aspect||'1:1')}</span>
-      <div style="position:absolute;top:12px;left:14px;right:14px;font-family:'Lora',Georgia,serif;font-size:19px;font-weight:700;color:#F7F5F2;text-shadow:0 1px 6px rgba(0,0,0,.5)">${esc(ov.headline||ad.headline||'')}</div>
-      <div style="position:absolute;bottom:14px;left:14px;font-size:11px;font-weight:700;color:#F7F5F2;background:rgba(0,0,0,.35);padding:4px 9px;border-radius:99px">★ ${esc(ov.proof||'Rated 4.9/5')}</div>
-      <div style="position:absolute;bottom:12px;right:14px;background:#D0473E;color:#111111;font-weight:800;font-size:12px;padding:8px 15px;border-radius:8px">${esc(ov.cta||cta)}</div>
+      <span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;color:#FFFFFF;opacity:.85">${esc(ad.aspect||'1:1')}</span>
+      <div style="position:absolute;top:12px;left:14px;right:14px;font-family:'Lora',Georgia,serif;font-size:19px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 6px rgba(0,0,0,.5)">${esc(ov.headline||ad.headline||'')}</div>
+      <div style="position:absolute;bottom:14px;left:14px;font-size:11px;font-weight:700;color:#FFFFFF;background:rgba(0,0,0,.35);padding:4px 9px;border-radius:99px">★ ${esc(ov.proof||'Rated 4.9/5')}</div>
+      <div style="position:absolute;bottom:12px;right:14px;background:#6A33D8;color:#111111;font-weight:800;font-size:12px;padding:8px 15px;border-radius:8px">${esc(ov.cta||cta)}</div>
     </div>
     ${rows.join('')}</div>`;
 }
@@ -584,7 +584,7 @@ function decisionPanelHTML(e){
         <td style="color:#7a5f28;font-size:12px;font-weight:700;vertical-align:top;padding:10px 18px 10px 0;white-space:nowrap">${esc(label)}</td>
         <td style="color:#111111;font-size:13.5px;line-height:1.55;padding:10px 0;border-bottom:1px solid rgba(171,135,67,.14)">${value||''}${sub?`<div style="color:#556059;font-size:12px;margin-top:3px">${sub}</div>`:''}</td>
       </tr>` : '';
-  const li = (label, text) => text ? `<li style="margin:0 0 9px;line-height:1.55;color:#111111;font-size:13.5px"><b style="color:#6A33D8">${esc(label)}:</b> ${esc(text)}</li>` : '';
+  const li = (label, text) => text ? `<li style="margin:0 0 9px;line-height:1.55;color:#111111;font-size:13.5px"><b style="color:#D0473E">${esc(label)}:</b> ${esc(text)}</li>` : '';
 
   // ── Section 1 · why this slot was chosen ──
   const cohortName = e.cohort?.name || d.cohort?.choice || '—';
@@ -609,7 +609,7 @@ function decisionPanelHTML(e){
   return `<div class="pvroot" style="border:1px solid rgba(171,135,67,.35);border-radius:14px;padding:18px 20px;background:#f4f2ec">
     <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(171,135,67,.2);padding-bottom:12px;margin-bottom:14px">
       <span class="pill" style="background:#e8f3ec;color:#0a7d33;font-size:10px;letter-spacing:.06em">WHY YOU'RE SEEING THIS</span>
-      <span style="color:#6A33D8;font-size:15px;font-weight:700">The complete logic, analysis &amp; reason</span>
+      <span style="color:#D0473E;font-size:15px;font-weight:700">The complete logic, analysis &amp; reason</span>
     </div>
     <div style="color:#7a5f28;font-size:14px;font-weight:700;margin:0 0 6px">1 · Why this slot was chosen for the calendar</div>
     <table style="width:100%;border-collapse:collapse;margin:0 0 16px">
@@ -670,7 +670,7 @@ window.sbAsset = function(ak, verdict, btn){
 window.sbDownloadAll = function(){
   const items = window.__SB_EXPORTS || [];
   if(!items.length){ alert('Open View first so the assets are generated.'); return; }
-  const parts = items.map(it => `<section style="margin:0 0 28px"><h2 style="font-family:sans-serif;border-bottom:2px solid #D0473E;padding-bottom:6px">${String(it.name||'asset')}</h2>${it.html}</section>`);
+  const parts = items.map(it => `<section style="margin:0 0 28px"><h2 style="font-family:sans-serif;border-bottom:2px solid #6A33D8;padding-bottom:6px">${String(it.name||'asset')}</h2>${it.html}</section>`);
   const doc = `<!doctype html><meta charset="utf-8"><title>KNICKGASM campaign assets</title><body style="max-width:720px;margin:24px auto;padding:0 16px">${parts.join('\n')}</body>`;
   const blob = new Blob([doc], { type:'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -725,7 +725,7 @@ function _zipDashboardHTML(rows){
       `<table><thead><tr><th>Market</th><th>Cohort</th><th>Objective</th><th>Hero</th><th>Offer</th><th>Conf.</th><th>Assets</th></tr></thead><tbody>${cards}</tbody></table>`;
   }).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KNICKGASM Campaign Calendar — export</title><style>
-    :root{--g:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2}*{box-sizing:border-box}
+    :root{--g:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF}*{box-sizing:border-box}
     body{margin:0;background:var(--chalk);color:var(--ink);font:15px/1.55 'Instrument Sans',Arial,sans-serif;padding:28px max(20px,5vw)}
     h1{font-family:'Montserrat',Georgia,serif;color:var(--g);margin:0 0 4px;font-size:30px}
     .sub{color:#4a5750;margin:0 0 22px}
