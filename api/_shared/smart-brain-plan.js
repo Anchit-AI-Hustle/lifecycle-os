@@ -982,7 +982,13 @@ function attachMasterPrompts(campaign, entry) {
   const cohort = entry.cohort?.name || '';
   const brief = entry.rationale || entry.objective || '';
   const products = entry.heroProduct ? [entry.heroProduct] : [];
-  const base = { market, cohort, brief, products };
+  // The brand this campaign is FOR. Without it every prompt was built from
+  // tenant zero, so a mailer generated inside another workspace carried that
+  // brand's palette, voice, claims and logo - the asset looked like the wrong
+  // company. entry.brand is stamped when the slot is planned; fall back to the
+  // campaign's own brand before ever falling back to the default.
+  const brand = entry.brand || campaign.brand || null;
+  const base = { brand, market, cohort, brief, products };
   if (campaign.assets.email) {
     // Both mailer variants the operator requires, per region.
     campaign.assets.email.master_prompt_v1 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V1' });
@@ -1090,14 +1096,41 @@ async function generateCreatives(copy, entry, { only = null, lean = false } = {}
 // LLM-written copy applied to the email + landing page + ads. Pure: it does NOT
 // touch the DB or change any slot's status. Both previewEntry() and approveEntry()
 // call this so a reviewer sees EXACTLY what approving will produce.
+/**
+ * Resolve the brand this entry belongs to and stamp it onto the entry, so every
+ * downstream prompt and renderer builds from the RIGHT brand.
+ *
+ * Server-side generation runs without a user token, so it cannot use the
+ * RLS-protected brand router. It resolves through the entry's workspace with
+ * the service-role key instead. If no brand can be resolved the entry is left
+ * unstamped and the prompt builder falls back to tenant zero - which is only
+ * correct when tenant zero IS the workspace, so the caller logs it.
+ */
+async function stampBrand(entry, config) {
+  if (!entry || entry.brand) return entry;
+  try {
+    const wsScope = require('./workspace-scope.js');
+    const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+    if (!url || !key) return entry;
+    const env = { url, key };
+    const wsId = entry.workspace_id || (config && config.workspace_id) || await wsScope.defaultWorkspaceId(env);
+    const brand = await wsScope.brandForWorkspace(env, wsId);
+    if (brand) entry.brand = brand;
+    else try { console.warn(`[smart-brain] no brand resolved for workspace ${wsId}; prompts will use the default brand`); } catch (_) {}
+  } catch (_) { /* never fail a generation on brand lookup */ }
+  return entry;
+}
+
 async function buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
+  await stampBrand(entry, config);
   // Review-recovery slots are a review INVITATION, not a promo: email-only, no
   // offer, no ads/landing page, CTA to the product's own review section. Render
   // the dedicated brand-compliant template directly (no LLM promo pipeline).
   if (reviewRecovery && (entry.objective === 'review_recovery' || entry.review_recovery)) {
     const product = entry.heroProduct || {};
     const html = reviewRecovery.reviewMailerHtml(product, entry.market);
-    const subject = `A quick word on your ${product.title || 'last KNICKGASM sneaker'}?`;
+    const subject = `A quick word on your ${product.title || 'recent order'}?`;
     return {
       campaign_id: id || `review_${entry.id || entry.date}`,
       calendar_entry_id: entry.id || id || null,
