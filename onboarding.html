@@ -205,7 +205,19 @@
   function lum(h) { return rgb(h).map(function (v) { var s = v/255; return s <= 0.03928 ? s/12.92 : Math.pow((s+0.055)/1.055, 2.4); }).reduce(function (a, c, i) { return a + c * [0.2126,0.7152,0.0722][i]; }, 0); }
   function contrast(a, b) { var x = lum(a), y = lum(b); var hi = Math.max(x,y), lo = Math.min(x,y); return Math.round(((hi+0.05)/(lo+0.05))*100)/100; }
   function shade(h, t) { var tgt = t >= 0 ? 255 : 0, a = Math.abs(t); return '#' + rgb(h).map(function (v) { return Math.round(v + (tgt - v) * a).toString(16).padStart(2,'0'); }).join(''); }
-  function readableOn(bg) { var p = brand.palette; return contrast(bg, p.ink || '#111') >= contrast(bg, p.surface_alt || '#fff') ? (p.ink || '#111') : (p.surface_alt || '#fff'); }
+  function readableOn(bg) {
+    /* Best of the brand's own text-capable colours: ink, PAGE surface, card
+       surface. The page surface counts - if primary-on-page passes AA, then
+       page-surface text on a primary button is the same (symmetric) pairing. */
+    var p = brand.palette;
+    var candidates = [p.ink || '#111', p.surface || '#fff', p.surface_alt || '#fff'];
+    var best = candidates[0], bestC = -1;
+    for (var i = 0; i < candidates.length; i++) {
+      var r = contrast(bg, candidates[i]);
+      if (r > bestC) { bestC = r; best = candidates[i]; }
+    }
+    return best;
+  }
 
   /* ── live preview ───────────────────────────────────────────────────────
      Painted from the in-progress brand, so a colour choice is judged on the
