@@ -5,74 +5,20 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- BRAND KIT (singleton row) --------------------------------------------------
+-- >>> BRAND-SYNC:brand_kit — generated from data/brands/_default.json, do not edit by hand
 INSERT INTO public.knickgasm_brand_kit (id, palette, typography, voice, footer_blocks, guide_pdf_url)
 VALUES (
   1,
-  -- Official 4-colour palette (from PDF page 11)
-  '{
-    "primary": "#D0473E",
-    "accent":  "#6A33D8",
-    "bg":      "#FFFFFF",
-    "text":    "#111111"
-  }'::jsonb,
-  -- Official typography (from PDF pages 3-10)
-  '{
-    "primary": {
-      "family": "Montserrat",
-      "stack":  "''Montserrat'', Georgia, ''Times New Roman'', serif",
-      "usage":  ["headings","sub-heading","titles","hero text"],
-      "weights": ["regular","bold"]
-    },
-    "secondary": {
-      "family": "Instrument Sans",
-      "stack":  "''Instrument Sans'', ''Helvetica Neue'', Arial, sans-serif",
-      "usage":  ["body","paragraph","captions","buttons","footer","labels","nav"],
-      "weights": ["thin","light","regular","medium","semibold","bold","extrabold","black"]
-    }
-  }'::jsonb,
-  -- Voice (real KNICKGASM positioning — knickgasm.com, verified 2026-08-03)
-  '{
-    "tone": "Bold, energetic, youth street-culture. Confident and playful, never corporate. KNICKGASM is India''s largest sneaker customiser: one-of-one hand-painted art on 100% original sneakers.",
-    "tagline": "India''s Largest Sneaker Customisers.",
-    "dos": [
-      "Lead with the art and the artist (hand-painted, one-of-one)",
-      "Say made on 100% original brand sneakers",
-      "Cite real craft facts: water and scratch resistant, 10-15 day made-to-order",
-      "Name the fandom: anime, football, cars, gaming, wedding, pets",
-      "Street-culture energy: drop, grail, colorway, rotation, canvas"
-    ],
-    "donts": [
-      "Never imply replica, fake, or counterfeit product",
-      "No fabricated discounts, review counts, or scarcity",
-      "Aggressive CAPS sale-shouting",
-      "Use unofficial colours (only #D0473E / #6A33D8 / #FFFFFF / #111111)",
-      "Use fonts other than Montserrat (headings) or Instrument Sans (body)"
-    ]
-  }'::jsonb,
-  -- Footer blocks
-  '{
-    "legal":   "KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India",
-    "contact": { "email": "hello@knickgasm.com" },
-    "social": [
-      { "platform": "instagram", "url": "https://www.instagram.com/knickgasm/" },
-      { "platform": "facebook",  "url": "https://www.facebook.com/knickgasm/" },
-      { "platform": "x",         "url": "https://twitter.com/knickgasm" }
-    ],
-    "links": {
-      "unsubscribe":    "/pages/unsubscribe",
-      "privacy_policy": "/pages/privacy-policy",
-      "shipping":       "/pages/shipping-policy",
-      "returns":        "/pages/returns-and-refunds"
-    }
-  }'::jsonb,
+  '{"primary":"#D0473E","accent":"#6A33D8","bg":"#FFFFFF","text":"#111111"}'::jsonb,
+  '{"primary":{"family":"Montserrat","stack":"''Montserrat'',''Raleway'',Arial,sans-serif","usage":["headings","titles","hero text"],"weights":["600","700","800"]},"secondary":{"family":"Instrument Sans","stack":"''Instrument Sans'',''Helvetica Neue'',Arial,sans-serif","usage":["body","buttons","labels","nav"],"weights":["400","500","600"]}}'::jsonb,
+  '{"tone":"bold, energetic, youth street-culture; confident and playful, never corporate","tagline":"India''s Largest Sneaker Customisers","dos":["India''s largest sneaker customisers","Made on 100% original brand sneakers","Hand-painted by India''s best artists","Water and scratch resistant designs","Express shipping worldwide to 60+ countries","Free shipping in India and worldwide"],"donts":["wellness journey","transform","liquid gold","game-changer","LIMITED TIME","hurry","don''t miss out","last chance","while supplies last","replica","knock-off","first copy","fake pair"]}'::jsonb,
+  '{"legal":"KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India","contact":{"email":"hello@knickgasm.com"},"social":[{"platform":"instagram","url":"https://www.instagram.com/knickgasm/"}],"links":{"privacy_policy":"/pages/privacy-policy","shipping":"/pages/shipping-policy","returns":"/pages/returns-and-refunds"}}'::jsonb,
   null
 )
 ON CONFLICT (id) DO UPDATE SET
-  palette        = EXCLUDED.palette,
-  typography     = EXCLUDED.typography,
-  voice          = EXCLUDED.voice,
-  footer_blocks  = EXCLUDED.footer_blocks,
-  updated_at     = now();
+  palette = EXCLUDED.palette, typography = EXCLUDED.typography, voice = EXCLUDED.voice,
+  footer_blocks = EXCLUDED.footer_blocks, updated_at = now();
+-- <<< BRAND-SYNC:brand_kit
 
 -- MARKET CONFIG (7 markets) --------------------------------------------------
 INSERT INTO public.knickgasm_market_config

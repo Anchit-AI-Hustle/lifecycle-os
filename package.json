@@ -2,12 +2,12 @@
   "name": "knickgasm-lifecycle-os",
   "version": "1.0.0",
   "private": true,
-  "description": "KNICKGASM Lifecycle OS — Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
+  "description": "KNICKGASM Lifecycle OS \u2014 Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
   "engines": {
     "node": ">=20.x"
   },
   "scripts": {
-    "build": "node scripts/build-catalog.js && node scripts/build-website-designs.js",
+    "build": "node scripts/brand-sync.js && node scripts/build-catalog.js && node scripts/build-website-designs.js",
     "preflight": "bash scripts/preflight-credentials.sh",
     "migrate:domains": "node scripts/migrate-domains.js",
     "migrate:oauth": "node scripts/migrate-oauth.js",
@@ -30,7 +30,9 @@
     "mobile:sync": "cap sync",
     "mobile:android": "cap sync android && cd android && ./gradlew assembleDebug",
     "mobile:android:open": "cap open android",
-    "mobile:ios:open": "cap open ios"
+    "mobile:ios:open": "cap open ios",
+    "brand:sync": "node scripts/brand-sync.js",
+    "brand:check": "node scripts/brand-sync.js --check"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",

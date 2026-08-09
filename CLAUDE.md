@@ -169,15 +169,17 @@ US → knickgasm.com | UK → knickgasm.com | IN → knickgasm.com | EU → knic
 - PDP: `{base}/products/{handle}` (handle = catalog JSON `h` field) · Collection: `{base}/collections/{slug}` (via `heroMap` in `collectionUrl()`)
 
 ## Brand Constants (source of truth: `Brand style guide.pdf`)
-- **Palette (ONLY these four — exact knickgasm.com theme vars)**: `#D0473E` lava red (primary accent) · `#6A33D8` drip purple (secondary) · `#111111` ink (text/buttons) · `#FFFFFF` white (background)
-- **Typography (STRICT — style guide forbids any other font for emailers)**:
-  - Headings: **Montserrat** Regular & Bold — fallback `'Montserrat','Raleway',Georgia,serif`
-  - Body: **Instrument Sans** — fallback `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
-- ⚠️ Do NOT introduce off-palette tints (`#0f2a1c`, `#d4873a`, `#fdf6e8`, `#1a3a28`, `#1a1a1a`, `#faf8f4`) or Raleway/DM Sans as the *primary* family — these were drift, now removed.
-- **BANNED phrases**: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last, AND any counterfeit implication (replica, knock-off, first copy, fake pair) - Knickgasm paints on 100% original sneakers
+<!-- >>> BRAND-SYNC:constants -->
+- **Source of truth:** `data/brands/_default.json`. Run `npm run brand:sync` after editing it; `npm run brand:check` fails the build on drift.
+- **Palette (ONLY these four)**: `#D0473E` primary accent · `#6A33D8` secondary · `#111111` ink (text + primary buttons) · `#FFFFFF` background
+- **Typography (STRICT)**: Headings **Montserrat** — `'Montserrat','Raleway',Arial,sans-serif`; Body **Instrument Sans** — `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
+- **Voice**: bold, energetic, youth street-culture; confident and playful, never corporate. Testimonials read like a friend flexing a new pair, not a review. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers.
 - **PREFERRED**: custom, hand-painted, one-of-one, grail, canvas, colorway, drop, rotation, crafted, original
+- **BANNED phrases**: wellness journey, transform, liquid gold, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last, replica, knock-off, first copy, fake pair
 - **No em/en dashes anywhere in output copy** - use commas, colons, or plain hyphens. (Enforced by `scrubDashes()`/`sanitizeBrand()` in `api/_shared/scenario-model.js`.)
-- **Copy voice**: bold, energetic, youth street-culture; confident and playful, never corporate. Testimonials read like a friend flexing a new pair, not a review.
+- **Verifiable claims** (never assert anything else as fact): India's largest sneaker customisers · Made on 100% original brand sneakers · Hand-painted by India's best artists · Water and scratch resistant designs · Express shipping worldwide to 60+ countries · Free shipping in India and worldwide
+- **Legal entity**: KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India
+<!-- <<< BRAND-SYNC:constants -->
 
 ## Mailer Studio specifics (`knickgasm_mailer_architect_v34.html`)
 - 5-step wizard: Brief → Products → Generation → Review & Refine → Final HTML.
