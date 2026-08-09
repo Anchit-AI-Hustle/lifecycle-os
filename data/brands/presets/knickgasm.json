@@ -1,0 +1,116 @@
+{
+  "slug": "knickgasm",
+  "name": "KNICKGASM",
+  "tagline": "India's Largest Sneaker Customisers",
+  "industry": "Custom sneakers / D2C",
+  "website": "https://knickgasm.com",
+  "logo_url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332",
+  "preset": {
+    "label": "KNICKGASM",
+    "sector": "D2C commerce",
+    "blurb": "Hand-painted one-of-one custom sneakers. Ships with a real 436-product catalogue.",
+    "verified_at": "2026-08-09",
+    "source": "knickgasm.com theme variables (--color-primary) + public site claims"
+  },
+  "palette": {
+    "primary": "#D0473E",
+    "accent": "#6A33D8",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#FFFFFF",
+    "muted": "#666666",
+    "line": "#EBEBEB",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Montserrat",
+      "stack": "'Montserrat','Raleway',Arial,sans-serif",
+      "google": true,
+      "weights": "600;700;800"
+    },
+    "body": {
+      "family": "Instrument Sans",
+      "stack": "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
+      "google": true,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "bold, energetic, youth street-culture; confident and playful, never corporate",
+    "preferred": [
+      "custom",
+      "hand-painted",
+      "one-of-one",
+      "grail",
+      "canvas",
+      "colorway",
+      "drop",
+      "rotation",
+      "crafted",
+      "original"
+    ],
+    "banned": [
+      "wellness journey",
+      "transform",
+      "liquid gold",
+      "game-changer",
+      "LIMITED TIME",
+      "hurry",
+      "don't miss out",
+      "last chance",
+      "while supplies last",
+      "replica",
+      "knock-off",
+      "first copy",
+      "fake pair"
+    ],
+    "no_em_dashes": true,
+    "notes": "Testimonials read like a friend flexing a new pair. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers."
+  },
+  "claims": [
+    "India's largest sneaker customisers",
+    "Made on 100% original brand sneakers",
+    "Hand-painted by India's best artists",
+    "Water and scratch resistant designs",
+    "Express shipping worldwide to 60+ countries"
+  ],
+  "regions": [
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "US",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "UK",
+      "currency": "GBP",
+      "symbol": "£",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "knickgasm.com",
+    "cdn.shopify.com"
+  ],
+  "catalog_source": {
+    "kind": "shopify_public",
+    "url": "https://knickgasm.com/products.json"
+  },
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

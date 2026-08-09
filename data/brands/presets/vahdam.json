@@ -1,0 +1,102 @@
+{
+  "slug": "vahdam",
+  "name": "VAHDAM India",
+  "tagline": "Wellness Teas, Direct from the Source",
+  "industry": "Tea and wellness / D2C",
+  "website": "https://www.vahdamteas.com",
+  "preset": {
+    "label": "VAHDAM India",
+    "sector": "D2C commerce",
+    "blurb": "Single-estate teas and wellness blends. A second D2C profile to contrast against a streetwear catalogue.",
+    "verified_at": "2026-08-10",
+    "source": "vahdamteas.com homepage CSS (#004a2b, #ab8744, Lao MN + Proxima Nova)"
+  },
+  "palette": {
+    "primary": "#004A2B",
+    "accent": "#AB8744",
+    "ink": "#282A2C",
+    "surface": "#FFFFFF",
+    "surface_alt": "#EFDEC3",
+    "muted": "#5A5F5C",
+    "line": "#E3D9C6",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Lao MN",
+      "stack": "'Lao MN','Cormorant Garamond',Georgia,serif",
+      "google": false,
+      "weights": "400;700"
+    },
+    "body": {
+      "family": "Proxima Nova",
+      "stack": "'Proxima Nova','Helvetica Neue',Arial,sans-serif",
+      "google": false,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "warm, sensory, story-driven; origin and craft before offer",
+    "preferred": [
+      "single-estate",
+      "garden-fresh",
+      "origin",
+      "steep",
+      "ritual",
+      "hand-picked",
+      "harvest"
+    ],
+    "banned": [
+      "miracle",
+      "cures",
+      "detox guarantee",
+      "clinically proven",
+      "medicine",
+      "treats illness"
+    ],
+    "no_em_dashes": true,
+    "notes": "OBSERVED from public output, not official guidelines. Wellness copy must avoid medical claims; describe taste and ritual, never health outcomes."
+  },
+  "claims": [
+    "Teas sourced direct from Indian estates"
+  ],
+  "regions": [
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://www.vahdamindia.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "US",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://www.vahdamteas.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "UK",
+      "currency": "GBP",
+      "symbol": "£",
+      "store_url": "https://uk.vahdamteas.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "vahdamteas.com",
+    "www.vahdamteas.com",
+    "cdn.shopify.com"
+  ],
+  "catalog_source": {
+    "kind": "shopify_public",
+    "url": "https://www.vahdamteas.com/products.json"
+  },
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

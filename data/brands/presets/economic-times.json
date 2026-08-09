@@ -1,0 +1,85 @@
+{
+  "slug": "economic-times",
+  "name": "The Economic Times",
+  "tagline": "Business News, Markets, Economy",
+  "industry": "Business news / digital publishing",
+  "website": "https://economictimes.indiatimes.com",
+  "preset": {
+    "label": "The Economic Times",
+    "sector": "News & publishing",
+    "blurb": "Business and markets journalism. Subscription and newsletter lifecycle rather than a product catalogue.",
+    "verified_at": "2026-08-10",
+    "source": "economictimes.indiatimes.com homepage CSS (dominant #d51131/#ed193b, Montserrat + Faustina)"
+  },
+  "palette": {
+    "primary": "#D51131",
+    "accent": "#ED193B",
+    "ink": "#4D4D4D",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F1F5F8",
+    "muted": "#4D4D4D",
+    "line": "#D8D8D8",
+    "ok": "#147014",
+    "warn": "#c9a227",
+    "err": "#B80E2B"
+  },
+  "typography": {
+    "heading": {
+      "family": "Montserrat",
+      "stack": "'Montserrat',Verdana,Arial,sans-serif",
+      "google": true,
+      "weights": "500;600;700"
+    },
+    "body": {
+      "family": "Faustina",
+      "stack": "'Faustina',Georgia,'Times New Roman',serif",
+      "google": true,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "authoritative, precise, market-first; explains what a number means for the reader",
+    "preferred": [
+      "markets",
+      "earnings",
+      "policy",
+      "analysis",
+      "outlook",
+      "briefing",
+      "explained"
+    ],
+    "banned": [
+      "guaranteed returns",
+      "sure shot",
+      "multibagger tip",
+      "get rich",
+      "insider tip",
+      "risk-free"
+    ],
+    "no_em_dashes": true,
+    "notes": "OBSERVED from public output, not official guidelines. Financial copy must never promise returns or read as investment advice; attribute every figure to its source and date."
+  },
+  "claims": [
+    "Business, markets and economy journalism from The Economic Times"
+  ],
+  "regions": [
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://economictimes.indiatimes.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "economictimes.indiatimes.com",
+    "img.etimg.com"
+  ],
+  "catalog_source": {
+    "kind": "none",
+    "note": "Publisher: the \"catalogue\" is sections, newsletters and subscription plans, not SKUs."
+  },
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

@@ -24,6 +24,36 @@ all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `bra
   the `SUBFEATURES` registry in `_shared/telesuite-core.js`. Every dashboard is a filtered view of
   the one `telesuite_runs` table (shared source of truth), not its own store.
 
+## Brand layer: one record, many derived sites, any brand
+`data/brands/_default.json` is tenant zero and the SINGLE source of brand truth. Nothing else is
+hand-maintained:
+- `api/_shared/master-prompt.js` DERIVES `BRAND_BLOCK` at require-time via
+  `brand-runtime.brandBlock(defaultBrand())` — it cannot drift.
+- `scripts/brand-sync.js` regenerates the `theme.css` tokens, this file's Brand Constants block and
+  the Supabase brand-kit seed between `BRAND-SYNC` markers. **Never hand-edit inside those markers.**
+- `npm run brand:check` exits 1 on drift, runs first in `npm run build`, and is a required CI step.
+
+**The mechanism is brand-agnostic, and that is demonstrable:**
+```bash
+npm run brand:presets                 # regenerate the starter library
+npm run brand:sync                    # propagate tenant zero
+node scripts/brand-sync.js --brand=apple   # re-skin the WHOLE suite to any preset
+npm run brand:check                   # always validates tenant zero; fails on drift
+```
+`data/brands/presets/` ships starter profiles across deliberately different sectors — KNICKGASM
+(D2C commerce), The Economic Times and The Times of India (news), TOI Health & Fitness (health
+media, with medical-claim guardrails in its banned list), VAHDAM India (D2C tea) and Apple
+(consumer tech). `/onboarding` renders them as a gallery above the "enter your own" form, served by
+`/api/public-config?action=brand&op=presets` (unauthenticated, like `op=defaults`, because the
+gallery must paint before a workspace exists).
+
+**Preset provenance rule:** every palette/typography value was read from that brand's OWN live site
+or stylesheet on its `verified_at` date, with the exact source recorded per preset. Voice is written
+as OBSERVED from public output, never presented as a company's internal guidelines. Presets are
+TEMPLATES for building and demos, not licences to use a third party's marks — each carries
+`rights_note` saying so, and the gallery repeats it. Regenerate via `scripts/build-brand-presets.js`
+(edit that file, not the generated JSON).
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating

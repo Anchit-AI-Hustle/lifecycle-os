@@ -116,6 +116,7 @@
     { "source": "/studio", "destination": "/knickgasm_mailer_architect_v34.html" },
     { "source": "/app", "destination": "/knickgasm_mailer_architect_v34.html" },
     { "source": "/mailer", "destination": "/knickgasm_mailer_architect_v34.html" },
+    { "source": "/about", "destination": "/about.html" },
     { "source": "/brand", "destination": "/brand.html" },
     { "source": "/assets", "destination": "/assets.html" },
     { "source": "/premium", "destination": "/premium-experience.html" },

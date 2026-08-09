@@ -114,6 +114,21 @@
   .region-row{display:grid;grid-template-columns:80px 90px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
   @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}}
   .link{color:var(--primary);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+
+  /* Starter brand profiles (step 1). Deliberately industry-varied so the
+     gallery reads as "this platform runs any brand", not one vertical. */
+  .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;margin:14px 0 6px}
+  .preset{border:1px solid var(--line,#e3e3e3);border-radius:12px;padding:13px;cursor:pointer;
+    background:var(--surface-alt,#fafafa);text-align:left;transition:border-color .12s,transform .12s;font:inherit}
+  .preset:hover{border-color:var(--primary,#1F5FD0);transform:translateY(-1px)}
+  .preset[aria-pressed="true"]{border-color:var(--primary,#1F5FD0);box-shadow:0 0 0 2px var(--primary,#1F5FD0) inset}
+  .preset .pname{font-weight:700;font-size:14px;margin-bottom:2px}
+  .preset .psector{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.6;margin-bottom:7px}
+  .preset .pblurb{font-size:12px;line-height:1.45;opacity:.82;margin-bottom:9px}
+  .preset .pswatch{display:flex;gap:4px;margin-bottom:7px}
+  .preset .pswatch i{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.14);display:block}
+  .preset .pmeta{font-size:10.5px;opacity:.55;line-height:1.4}
+  .preset-note{font-size:11.5px;opacity:.6;margin:2px 0 0;line-height:1.5}
 </style>
 </head>
 <body>
@@ -148,7 +163,7 @@
      a [DATA REQUIRED BEFORE LAUNCH: ...] marker instead. */
   var brand = {
     id: '', slug: '', name: '', tagline: '', industry: '', website: '', logo_url: '',
-    palette: { primary: '#6A33D8', accent: '#D0473E', ink: '#111111', surface: '#F7F5F2', surface_alt: '#ffffff', muted: '#556059' },
+    palette: { primary: '#1F5FD0', accent: '#111111', ink: '#111111', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' },
     typography: {
       heading: { family: 'Lora', stack: "'Lora',Georgia,serif", google: true, weights: '500;600;700' },
       body: { family: 'Inter', stack: "'Inter',system-ui,-apple-system,Segoe UI,sans-serif", google: true, weights: '400;500;600;700' }
@@ -422,7 +437,9 @@
     if (step === 1) {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
-        '<p class="hint">This is the identity every generated asset will carry. Leave anything you are not sure of blank — the platform reports missing data rather than inventing it.</p>' +
+        '<p class="hint">Start from a profile below, or fill the form for a brand of your own. A profile pre-fills every step - colours, typography, voice - and you can change anything afterwards.</p>' +
+        '<div id="presetGallery" class="presets">Loading brand profiles...</div>' +
+        '<p class="hint" style="margin-top:18px">Or enter your own. Leave anything you are not sure of blank - the platform reports missing data rather than inventing it.</p>' +
         '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
         '<div class="row">' +
           '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="one line that says what you make"></div>' +
@@ -433,6 +450,8 @@
           '<div class="field"><label>Logo URL <span class="note">must be a real hosted image</span></label><input type="url" data-path="logo_url" value="' + esc(brand.logo_url) + '" placeholder="https://yourbrand.com/logo.png"></div>' +
         '</div>' +
         actions(null, 'Colour schema');
+      loadPresets();
+      paintPresets();
     }
 
     else if (step === 2) {
@@ -534,6 +553,68 @@
     paintPreview();
     if (window.Credits) window.Credits.decorate(c);
   }
+
+
+  /* ── Starter brand profiles ───────────────────────────────────────────────
+     The platform is brand-agnostic; the gallery makes that legible on the very
+     first screen. Profiles are TEMPLATES built from each brand's own public
+     site (see data/brands/presets + rights_note), not licensed brand kits.
+     Picking one pre-fills every step; "enter your own" is always available
+     because the form sits directly underneath. */
+  var PRESETS = null, presetPicked = '';
+
+  function paintPresets() {
+    var host = document.getElementById('presetGallery');
+    if (!host) return;
+    if (!PRESETS) { host.textContent = 'Loading brand profiles...'; return; }
+    if (!PRESETS.length) { host.innerHTML = '<p class="preset-note">No starter profiles available - fill the form below to add your brand.</p>'; return; }
+    host.innerHTML = PRESETS.map(function (p) {
+      return '<button type="button" class="preset" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
+        '<div class="pswatch">' + (p.swatch || []).map(function (h) { return '<i style="background:' + esc(h) + '"></i>'; }).join('') + '</div>' +
+        '<div class="pname">' + esc(p.name) + '</div>' +
+        '<div class="psector">' + esc(p.sector || '') + '</div>' +
+        '<div class="pblurb">' + esc(p.blurb || '') + '</div>' +
+        '<div class="pmeta">' + esc(p.heading_font || '') + ' / ' + esc(p.body_font || '') +
+          (p.has_catalog ? ' &middot; live catalogue' : '') + '</div>' +
+      '</button>';
+    }).join('') +
+    '<p class="preset-note">Profiles are starting points built from each brand\'s own public site, not licensed brand kits. Replace with your approved guidelines before running a real programme.</p>';
+  }
+
+  function loadPresets() {
+    if (PRESETS) { paintPresets(); return; }
+    fetch('/api/public-config?action=brand&op=presets')
+      .then(function (r) { return r.json(); })
+      .then(function (d) { PRESETS = (d && d.presets) || []; paintPresets(); })
+      .catch(function () { PRESETS = []; paintPresets(); });
+  }
+
+  function applyPreset(slug) {
+    fetch('/api/public-config?action=brand&op=presets&slug=' + encodeURIComponent(slug))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var p = d && d.preset;
+        if (!p) return;
+        // Never clobber the workspace id: the operator may be editing an
+        // existing brand and only wants the preset's design/voice values.
+        var keepId = brand.id;
+        ['name','tagline','industry','website','logo_url','slug'].forEach(function (k) { if (p[k]) brand[k] = p[k]; });
+        if (p.palette) brand.palette = JSON.parse(JSON.stringify(p.palette));
+        if (p.typography) brand.typography = JSON.parse(JSON.stringify(p.typography));
+        if (p.voice) brand.voice = JSON.parse(JSON.stringify(p.voice));
+        if (p.regions) brand.regions = JSON.parse(JSON.stringify(p.regions));
+        if (p.asset_hosts) brand.asset_hosts = p.asset_hosts.slice();
+        brand.id = keepId;
+        presetPicked = slug;
+        render();
+      })
+      .catch(function () {});
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-preset]');
+    if (b) { applyPreset(b.getAttribute('data-preset')); }
+  });
 
   function actions(back, next) {
     return '<div class="actions">' +
@@ -703,8 +784,9 @@
   /* ── boot ───────────────────────────────────────────────────────────── */
   async function boot() {
     render();
-    // Do not bounce the user back out of the wizard while they are in it.
-    try { sessionStorage.setItem('lc-onboarding-skip', '1'); } catch (_) {}
+    // The wizard is on the gate's EXEMPT list, so no skip flag is needed to
+    // stay in it. The old sessionStorage flag also survived the whole session,
+    // which meant one visit here silently unlocked every gated feature.
 
     if (!window.BrandContext) { setTimeout(boot, 250); return; }
     try {
@@ -732,7 +814,8 @@
     render();
   }
 
-  window.addEventListener('beforeunload', function () { try { sessionStorage.removeItem('lc-onboarding-skip'); } catch (_) {} });
+  // Clear any flag left by an older build so a stale value cannot unlock the gate.
+  try { sessionStorage.removeItem('lc-onboarding-skip'); } catch (_) {}
   boot();
 })();
 </script>
