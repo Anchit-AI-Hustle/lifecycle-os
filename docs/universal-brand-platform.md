@@ -40,16 +40,16 @@ pages are exempt, so there is no redirect loop.
    This covers both the `--vh-*` component tokens **and** the legacy aliases (`--bg`, `--panel`,
    `--surface`, `--ink`, `--muted`, `--green`, `--violet`, `--accent`, `--line`, `--head`) that most
    existing pages actually consume.
-1b. Sets those legacy aliases **inline on `<html>`** as well. Many pages declare their own
+2. Sets those legacy aliases **inline on `<html>`** as well. Many pages declare their own
    `:root { --ink: …; --green: … }` block, which would beat a stylesheet rule — but `:root` *is* the
    html element, so an inline declaration wins. `--chalk` maps to the contrast-checked
    `--brand-on-primary` (its real role is text on a dark/primary band, not a surface) and `--lava`
    maps to the brand accent.
-2. Loads the brand's Google Fonts.
-3. Swaps `<title>`, favicon and `theme-color`.
-4. Re-labels the shipped brand name in visible copy (text nodes only — never URLs, hosts or
+3. Loads the brand's Google Fonts.
+4. Swaps `<title>`, favicon and `theme-color`.
+5. Re-labels the shipped brand name in visible copy (text nodes only — never URLs, hosts or
    identifiers, and never inside `script`/`code`/`pre`/inputs or `[data-no-brand-swap]`).
-5. Paints from a localStorage cache on the first frame, so there is no flash of the wrong brand.
+6. Paints from a localStorage cache on the first frame, so there is no flash of the wrong brand.
 
 Switching brands (step 6, or the **Switch Brand** nav item) re-skins immediately and switches the
 wallet with it.
