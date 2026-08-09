@@ -325,9 +325,13 @@
           function (payload) {
             var row = payload && payload.new;
             if (!row) return;
-            var ws = workspaceId();
-            // Ignore another workspace's wallet.
-            if (ws && row.workspace_id && row.workspace_id !== ws) return;
+            // Exact match on the wallet this pill represents, treating "no
+            // workspace" (the personal wallet) as a value in its own right.
+            // A loose check let a personal-wallet update overwrite the active
+            // brand's balance, and let any workspace's update through when no
+            // brand was active.
+            var ws = workspaceId() || null;
+            if ((row.workspace_id || null) !== ws) return;
             state.wallet = row;
             state.held = Number(row.held) || 0;
             state.balance = Number(row.balance);

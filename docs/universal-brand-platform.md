@@ -99,6 +99,10 @@ Three routes, all operator-supplied:
   unique-local literals, cloud-metadata addresses and `*.internal`-style names are refused; the
   hostname is resolved and refused if **any** answer lands on an internal range; and the request is
   issued with `redirect: 'manual'` so a public host cannot bounce the import onto an internal one.
+  IPv6 is fully parsed rather than string-matched, because Node canonicalises
+  `[::ffff:127.0.0.1]` to `::ffff:7f00:1` — loopback written in hex — which a prefix-stripping check
+  waves through. IPv4-mapped, IPv4-compatible and NAT64-embedded addresses are decoded and run
+  through the IPv4 rules.
 - **CSV** — RFC4180 parser (quotes, escaped quotes, embedded newlines) with automatic column
   matching for title/handle/sku/price/currency/image/url/type/collections/tags.
 - **JSON / file upload** — an array of products, or `{products: […]}`.
@@ -118,7 +122,10 @@ single-tenant tables, a workspace is private to its owner and members — not wo
 ## 2. Credits
 
 ### Model
-- One wallet per **(user, brand workspace)**, so per-brand cost is visible.
+- One wallet per **(user, brand workspace)**, so per-brand cost is visible. When a request does not
+  name a workspace — which every pre-existing generator client does — the meter resolves the
+  caller's **active** workspace before holding, so the wallet charged is always the one the header
+  pill is showing.
 - `credit_ledger` is append-only truth; the wallet balance is derived state.
 - Spending is **hold → settle**, never a bare decrement:
 
@@ -137,9 +144,15 @@ single-tenant tables, a workspace is private to its owner and members — not wo
 - The welcome grant is idempotent through a partial unique index
   (`credit_ledger_welcome_once_idx`), not just an application check, so two simultaneous first
   touches cannot double-grant.
-- Recharge fulfilment is a **compare-and-set**: the pending → paid patch is filtered on
-  `status=eq.pending`, and only the caller that actually claimed the row grants the credits, so an
-  overlapping webhook and operator retry cannot credit a pack twice.
+- Recharge fulfilment is **one transaction** (`credit_fulfil_order()`): the pending → paid
+  compare-and-set and the ledger grant happen together. Splitting them was wrong in both directions
+  — without the CAS two callers could each grant the pack; with the CAS alone, a grant that failed
+  after the status flip left the order permanently `paid` with no credits and every retry
+  short-circuiting. Inside one function a failed grant rolls the status back to `pending`, so the
+  retry works. A partial unique index on `ref` where `kind='topup'` is the backstop.
+- Voice minutes are **claimed before they are charged**: the session's billed total is moved by a
+  compare-and-set, so two overlapping turns cannot bill the same interval twice, and a claim whose
+  charge fails is handed back.
 
 ### Security
 `credit_grant`, `credit_hold`, `credit_settle`, `credit_release` and `credit_wallet_id` are
@@ -162,6 +175,11 @@ Declaring a price does not charge anything, so the endpoints are wrapped:
 the response: a 2xx settles the hold into a spend and gets a `credits` receipt attached to its
 payload; anything else releases the reservation in full. Because the balance moves at **hold** time,
 the user's balance is already correct the moment a run starts.
+
+The wrapper **buffers** the response body and awaits settlement before writing it. A serverless
+instance can be frozen the moment the handler resolves, so a fire-and-forget settle can be lost —
+leaving a successful run permanently holding credits, or a failed one debited instead of refunded.
+The ledger write is bounded (8s) so a hung call cannot hang the user's response.
 
 `opts.successIf(payload)` covers endpoints that answer 200 with a degraded result. `/api/ai/image`
 deliberately never 502s — when every provider fails it returns the on-brand placeholder — so it
