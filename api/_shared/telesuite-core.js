@@ -647,12 +647,20 @@ async function voiceSession(ctx, callId, mode) {
     title: `${mode} call session`,
     input: { call_id: callId, mode },
     output: { billed_minutes: 0 },
-    units: 0, credits: 0,
+    units: 0, credits: 0,   // `units` is the billed-minutes counter the CAS filters on
   });
   return made || null;
 }
 
-/** Charge whatever whole minutes have elapsed and are not yet billed. */
+/**
+ * Charge whatever whole minutes have elapsed and are not yet billed.
+ *
+ * The minutes are CLAIMED before they are charged. Two overlapping turns for
+ * the same call would otherwise both read the same `billed_minutes`, compute
+ * the same `due`, and each bill that same interval. The claim is a
+ * compare-and-set: the PATCH is filtered on the billed total we read, so only
+ * one caller can move it, and only the winner charges.
+ */
 async function billElapsed(ctx, session, mode, req) {
   if (!session) return { charged: 0, billed: 0 };
   const startedAt = new Date(session.created_at).getTime();
@@ -661,20 +669,45 @@ async function billElapsed(ctx, session, mode, req) {
   const due = elapsed - billed;
   if (due <= 0) return { charged: 0, billed };
 
+  const total = billed + due;
+  // CAS: `units` holds the billed total, so filtering on it makes the claim
+  // atomic. A loser gets zero rows back and bills nothing.
+  const claimed = await serviceRest(
+    `telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&units=eq.${billed}&select=id`,
+    { method: 'PATCH', body: { output: { billed_minutes: total }, units: total }, prefer: 'return=representation' }
+  );
+  if (!Array.isArray(claimed) || !claimed.length) {
+    // Another turn claimed this interval and is charging it.
+    return { charged: 0, billed, contended: true };
+  }
+
   const key = mode === 'support' ? 'telesuite.voice_support' : 'telesuite.voice_sales';
-  const m = await credits.meter(req, key, {
-    auth: ctx.auth, workspace_id: ctx.workspace_id, units: due,
-    ref: session.id, meta: { op: 'voice_turn', call_session: session.id },
-  });
-  if (!m.ok) { const e = new Error(m.message || 'insufficient_credits'); e.status = m.status || 402; e.payload = m; throw e; }
+  let m;
+  try {
+    m = await credits.meter(req, key, {
+      auth: ctx.auth, workspace_id: ctx.workspace_id, units: due,
+      ref: session.id, meta: { op: 'voice_turn', call_session: session.id },
+    });
+  } catch (err) {
+    // Give the claim back so the interval can be billed on a later turn.
+    await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+      method: 'PATCH', body: { output: { billed_minutes: billed }, units: billed }, prefer: 'return=minimal',
+    }).catch(() => {});
+    throw err;
+  }
+  if (!m.ok) {
+    await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+      method: 'PATCH', body: { output: { billed_minutes: billed }, units: billed }, prefer: 'return=minimal',
+    }).catch(() => {});
+    const e = new Error(m.message || 'insufficient_credits'); e.status = m.status || 402; e.payload = m; throw e;
+  }
   await m.settle(due);
 
-  const total = billed + due;
   await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
     method: 'PATCH',
-    body: { output: { billed_minutes: total }, units: total, credits: (Number(session.credits) || 0) + ((m.receipt && m.receipt.charged) || 0) },
+    body: { credits: (Number(session.credits) || 0) + ((m.receipt && m.receipt.charged) || 0) },
     prefer: 'return=minimal',
-  });
+  }).catch(() => {});
   return { charged: (m.receipt && m.receipt.charged) || 0, billed: total, balance: m.balance };
 }
 

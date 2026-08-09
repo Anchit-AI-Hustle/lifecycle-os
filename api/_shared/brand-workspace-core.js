@@ -604,28 +604,91 @@ function rowsFromJson(text, region) {
 
 const BLOCKED_HOST_RX = /^(localhost|.*\.localhost|.*\.internal|.*\.local|.*\.home\.arpa|metadata|metadata\.google\.internal)$/i;
 
-function isPrivateIp(host) {
-  // IPv4
-  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (v4) {
-    const o = v4.slice(1).map(Number);
-    if (o.some((n) => n > 255)) return true;
-    const [a, b] = o;
-    if (a === 0 || a === 10 || a === 127) return true;                 // this-host, private, loopback
-    if (a === 169 && b === 254) return true;                            // link-local + cloud metadata
-    if (a === 172 && b >= 16 && b <= 31) return true;                   // private
-    if (a === 192 && b === 168) return true;                            // private
-    if (a === 192 && b === 0) return true;                              // IETF protocol assignments
-    if (a === 100 && b >= 64 && b <= 127) return true;                  // CGNAT
-    if (a >= 224) return true;                                          // multicast + reserved
-    return false;
+function isPrivateV4(octets) {
+  const [a, b] = octets;
+  if (octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+  if (a === 0 || a === 10 || a === 127) return true;                    // this-host, private, loopback
+  if (a === 169 && b === 254) return true;                              // link-local + cloud metadata
+  if (a === 172 && b >= 16 && b <= 31) return true;                     // private
+  if (a === 192 && b === 168) return true;                              // private
+  if (a === 192 && b === 0) return true;                                // IETF protocol assignments
+  if (a === 100 && b >= 64 && b <= 127) return true;                    // CGNAT
+  if (a >= 224) return true;                                            // multicast + reserved
+  return false;
+}
+
+/**
+ * Expand an IPv6 literal to its eight 16-bit groups.
+ * Returns null if it does not parse as IPv6.
+ *
+ * This matters because Node canonicalises `[::ffff:127.0.0.1]` to
+ * `::ffff:7f00:1` — the loopback address written in HEX. A guard that only
+ * strips a literal `::ffff:` prefix and hands the rest to an IPv4 parser sees
+ * `7f00:1`, fails to parse it, and lets loopback through. The mapped address
+ * has to be DECODED, not string-matched.
+ */
+function v6Groups(host) {
+  let h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '').replace(/%.*$/, '');  // strip zone id
+  if (!/^[0-9a-f:.]*$/.test(h) || h.indexOf(':') < 0) return null;
+
+  // A trailing dotted quad (::ffff:127.0.0.1) becomes two hex groups.
+  const dotted = /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (dotted) {
+    const o = dotted.slice(1).map(Number);
+    if (o.some((n) => n > 255)) return null;
+    const hi = ((o[0] << 8) | o[1]).toString(16);
+    const lo = ((o[2] << 8) | o[3]).toString(16);
+    h = h.slice(0, dotted.index) + hi + ':' + lo;
   }
-  // IPv6 (brackets already stripped by URL parsing)
-  const h = String(host).toLowerCase();
-  if (h === '::1' || h === '::') return true;
-  if (/^f[cd][0-9a-f]{2}:/.test(h)) return true;                        // unique-local fc00::/7
-  if (/^fe[89ab][0-9a-f]:/.test(h)) return true;                        // link-local fe80::/10
-  if (/^::ffff:/.test(h)) return isPrivateIp(h.replace(/^::ffff:/, '')); // IPv4-mapped
+
+  const halves = h.split('::');
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 ? (halves[1] ? halves[1].split(':') : []) : [];
+  if (halves.length === 1 && head.length !== 8) return null;
+
+  const fill = 8 - head.length - tail.length;
+  if (fill < 0) return null;
+  const groups = head.concat(Array(halves.length === 2 ? fill : 0).fill('0'), tail);
+  if (groups.length !== 8) return null;
+
+  const out = [];
+  for (const g of groups) {
+    if (g === '') return null;
+    if (!/^[0-9a-f]{1,4}$/.test(g)) return null;
+    out.push(parseInt(g, 16));
+  }
+  return out;
+}
+
+function isPrivateIp(host) {
+  const h = String(host || '').toLowerCase().replace(/^\[|\]$/g, '');
+
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (v4) return isPrivateV4(v4.slice(1).map(Number));
+
+  const g = v6Groups(h);
+  if (!g) return false;
+
+  // Unspecified :: and loopback ::1
+  if (g.every((x) => x === 0)) return true;
+  if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return true;
+
+  // IPv4-mapped ::ffff:a.b.c.d and IPv4-compatible ::a.b.c.d — decode and
+  // apply the IPv4 rules to the embedded address.
+  const firstSixZero = g.slice(0, 5).every((x) => x === 0);
+  if (firstSixZero && (g[5] === 0xffff || g[5] === 0)) {
+    const o = [(g[6] >> 8) & 0xff, g[6] & 0xff, (g[7] >> 8) & 0xff, g[7] & 0xff];
+    if (!(o[0] === 0 && o[1] === 0 && o[2] === 0 && o[3] === 0)) return isPrivateV4(o);
+  }
+  // NAT64 well-known prefix 64:ff9b::/96 also embeds an IPv4 address.
+  if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) {
+    return isPrivateV4([(g[6] >> 8) & 0xff, g[6] & 0xff, (g[7] >> 8) & 0xff, g[7] & 0xff]);
+  }
+
+  if ((g[0] & 0xfe00) === 0xfc00) return true;                          // unique-local fc00::/7
+  if ((g[0] & 0xffc0) === 0xfe80) return true;                          // link-local fe80::/10
+  if ((g[0] & 0xff00) === 0xff00) return true;                          // multicast ff00::/8
   return false;
 }
 

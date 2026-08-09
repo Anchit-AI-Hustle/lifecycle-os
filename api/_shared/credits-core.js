@@ -171,7 +171,13 @@ async function meter(req, featureKey, opts) {
     throw e;
   }
 
-  const workspaceId = o.workspace_id || (req && req.query && req.query.workspace_id) || (req && req.body && req.body.workspace_id) || null;
+  // WHICH WALLET. The header pill shows the ACTIVE brand's wallet, so that is
+  // what must be charged. Existing generator clients (calendar, mailer, ads)
+  // send no workspace_id, and falling back to the personal wallet would drain a
+  // different balance than the one on screen and lose per-brand attribution —
+  // so when no id is supplied the caller's active workspace is resolved below,
+  // once we have a verified session.
+  let workspaceId = o.workspace_id || (req && req.query && req.query.workspace_id) || (req && req.body && req.body.workspace_id) || null;
 
   // A free feature costs nothing, so it takes no hold, writes no ledger row and
   // does not pay for a session round-trip. Checked BEFORE auth so a free
@@ -188,6 +194,10 @@ async function meter(req, featureKey, opts) {
 
   const auth = o.auth || await brandCore.requireUser(req);
   if (!auth.ok) return Object.assign({ ok: false }, auth);
+
+  if (!workspaceId) {
+    try { workspaceId = await brandCore.activeWorkspaceId(auth); } catch (_) { workspaceId = null; }
+  }
 
   // If the meter is not configured we must not hand out paid features for
   // free silently — say so, with a 503 the UI can explain.
@@ -351,47 +361,72 @@ function metered(handler, featureFor, unitsFor, opts) {
     if (!gate.ok) return;                       // 402/401/503 already written
     if (gate.unmetered) return handler(req, res);
 
-    let finished = false;
-    const finish = (statusCode, payload) => {
-      if (finished) return;
-      finished = true;
-      let ok = statusCode >= 200 && statusCode < 400;
-      // An endpoint may answer 200 with a degraded result. Ask it.
-      if (ok && cfg.successIf) {
-        try { ok = cfg.successIf(payload, statusCode) !== false; } catch (_) { /* keep ok */ }
-      }
-      // Fire and forget: the balance already moved at hold time, so settling
-      // after the response is sent cannot show the user a stale number.
-      const p = ok
-        ? gate.settle(unitsFor ? unitsFor(req, body) : undefined)
-        : gate.release(ok === false && statusCode < 400 ? 'endpoint returned a fallback result' : `endpoint returned ${statusCode}`);
-      Promise.resolve(p).catch(() => {});
-    };
-
     const origStatus = res.status.bind(res);
     const origJson = res.json.bind(res);
     const origEnd = res.end.bind(res);
     let code = 200;
 
-    res.status = (c) => { code = c; return origStatus(c); };
-    res.json = (payload) => {
-      finish(code, payload);
-      if (payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.credits) {
-        try { payload.credits = finished && gate.receipt ? gate.receipt : null; } catch (_) { /* frozen payload */ }
+    // The response body is BUFFERED rather than written straight through,
+    // because settlement has to finish before the invocation does. On a
+    // serverless runtime the instance can be frozen the moment the handler
+    // resolves, so a fire-and-forget settle can be lost — leaving a successful
+    // run permanently holding credits, or a failed one debited instead of
+    // refunded. Buffering lets the wrapper await the ledger write and only then
+    // send the response.
+    let captured = null;   // { kind: 'json'|'end', payload, args }
+
+    res.status = (c) => { code = c; origStatus(c); return res; };
+    res.json = (payload) => { if (!captured) captured = { kind: 'json', payload }; return res; };
+    res.end = (...args) => { if (!captured) captured = { kind: 'end', args }; return res; };
+
+    let settled = false;
+    async function settleNow(statusCode, payload) {
+      if (settled) return;
+      settled = true;
+      let ok = statusCode >= 200 && statusCode < 400;
+      // An endpoint may answer 200 with a degraded result. Ask it.
+      if (ok && cfg.successIf) {
+        try { ok = cfg.successIf(payload, statusCode) !== false; } catch (_) { /* keep ok */ }
       }
-      return origJson(payload);
-    };
-    res.end = (...args) => { finish(code); return origEnd(...args); };
+      const work = ok
+        ? gate.settle(unitsFor ? unitsFor(req, body) : undefined)
+        : gate.release(statusCode < 400 ? 'endpoint returned a fallback result' : `endpoint returned ${statusCode}`);
+      // Bounded: a hung ledger call must not hang the user's response. Either
+      // way the reservation is already reflected in their balance, and an
+      // unsettled hold shows in the wallet as `held`.
+      try {
+        await Promise.race([
+          Promise.resolve(work),
+          new Promise((r) => setTimeout(r, 8000)),
+        ]);
+      } catch (_) { /* the ledger is the record; never fail a response on it */ }
+    }
+
+    function restore() { res.status = origStatus; res.json = origJson; res.end = origEnd; }
+
+    function flush() {
+      restore();
+      if (!captured) return undefined;
+      if (captured.kind === 'json') {
+        const payload = captured.payload;
+        if (payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.credits) {
+          try { payload.credits = gate.receipt || null; } catch (_) { /* frozen payload */ }
+        }
+        return origJson(payload);
+      }
+      return origEnd(...captured.args);
+    }
 
     try {
-      return await handler(req, res);
+      await handler(req, res);
     } catch (err) {
-      finish(500);
+      await settleNow(500, null);
+      restore();
       throw err;
-    } finally {
-      // A handler that returned without writing anything must not hold credits.
-      if (!finished) finish(res.statusCode || 200);
     }
+
+    await settleNow(code, captured && captured.kind === 'json' ? captured.payload : null);
+    return flush();
   };
 }
 
@@ -434,27 +469,31 @@ async function createOrder(auth, { pack_key, workspace_id }) {
  * credited twice.
  */
 async function fulfilOrder(orderId, { provider, provider_ref } = {}) {
-  const rows = await serviceRest(`credit_orders?select=*&id=eq.${encodeURIComponent(orderId)}&limit=1`);
-  const order = Array.isArray(rows) ? rows[0] : null;
-  if (!order) { const e = new Error('Order not found.'); e.status = 404; throw e; }
-  if (order.status === 'paid') return { ok: true, order, credited: false, message: 'Order was already fulfilled.' };
-
-  const claimed = await serviceRest(`credit_orders?id=eq.${encodeURIComponent(orderId)}&status=eq.pending&select=id`, {
-    method: 'PATCH',
-    body: { status: 'paid', provider: provider || order.provider, provider_ref: provider_ref || order.provider_ref, updated_at: new Date().toISOString() },
-    prefer: 'return=representation',
+  // ONE transaction: the pending -> paid transition and the ledger grant happen
+  // together inside credit_fulfil_order(). Doing them as two calls was wrong in
+  // both directions — without the compare-and-set two callers could each grant
+  // the pack, and with the CAS alone a grant that failed after the status flip
+  // left the order permanently `paid` with no credits, and every retry
+  // short-circuited. Inside one function a failed grant rolls the status back
+  // to `pending`, so the retry works.
+  const r = await rpc('credit_fulfil_order', {
+    p_order: orderId,
+    p_provider: provider || null,
+    p_ref: provider_ref || null,
   });
-  if (!Array.isArray(claimed) || !claimed.length) {
-    // Someone else moved it out of `pending` first. Do NOT grant again.
-    return { ok: true, order: Object.assign({}, order, { status: 'paid' }), credited: false, message: 'Order was already fulfilled by a concurrent request.' };
+  if (r && r.ok === false) { const e = new Error('Order not found.'); e.status = 404; throw e; }
+  if (r && r.credited === false) {
+    return {
+      ok: true, credited: false, order: { id: orderId, status: r.status || 'paid' },
+      message: r.already_fulfilled === false
+        ? 'Order is not in a payable state, and no credits were added.'
+        : 'Order was already fulfilled.',
+    };
   }
-
-  const r = await rpc('credit_grant', {
-    p_user: order.user_id, p_workspace: order.workspace_id, p_amount: order.credits,
-    p_kind: 'topup', p_ref: order.id, p_note: `Recharge: ${order.pack_key}`,
-    p_meta: { pack: order.pack_key, provider: provider || null },
-  });
-  return { ok: true, order: Object.assign({}, order, { status: 'paid' }), credited: true, balance: r && r.balance, credits: order.credits };
+  return {
+    ok: true, credited: true, credits: r && r.credits, balance: r && r.balance,
+    order: { id: orderId, status: 'paid', pack_key: r && r.pack_key },
+  };
 }
 
 /* ── router (mounted at /api/public-config?action=credits) ────────────────── */
