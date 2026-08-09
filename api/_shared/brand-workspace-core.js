@@ -857,29 +857,34 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     const key = `${r.region}|${r.handle || ''}|${r.sku || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    payload.push(Object.assign({ workspace_id, import_batch: batch }, r));
+    payload.push(Object.assign({ workspace_id, import_batch: batch }, r));  // workspace_id/import_batch ignored by the RPC, used by the additive path
   }
 
-  // STAGE AND SWAP. The old rows are NOT deleted up front: every new row is
-  // written first under a fresh batch id, and only once they are all in are the
-  // previous ones removed. A transient PostgREST failure or a timeout part-way
-  // through therefore leaves the previous catalog intact, rather than an empty
-  // or half-replaced one. PostgREST has no multi-statement transaction, so this
-  // ordering is what provides the atomicity that matters here.
   let inserted = 0;
-  for (let i = 0; i < payload.length; i += 500) {
-    const chunk = payload.slice(i, i + 500);
-    await restAs(auth.token, 'brand_catalog_products?on_conflict=workspace_id,region,handle,sku', {
-      method: 'POST', body: chunk, prefer: 'resolution=merge-duplicates,return=minimal',
-    });
-    inserted += chunk.length;
-  }
-
   if (replace) {
-    // Everything for this region that is not part of the batch just written.
-    await restAs(auth.token, `brand_catalog_products?workspace_id=eq.${encodeURIComponent(workspace_id)}&region=eq.${encodeURIComponent(reg)}&or=(import_batch.is.null,import_batch.neq.${encodeURIComponent(batch)})`, {
-      method: 'DELETE', prefer: 'return=minimal',
+    // ATOMIC REPLACE. Chunked upserts cannot be made all-or-nothing from here:
+    // the unique key is (workspace_id, region, handle, sku), so an upsert
+    // OVERWRITES a matching existing row in place, and a failure after the
+    // first chunk would leave a mixture of old, overwritten and new rows that
+    // skipping a final delete could not undo. The delete and the insert must
+    // therefore happen in ONE database call, which is one transaction — that
+    // is what brand_catalog_replace() does. A failure rolls the whole swap
+    // back and the previous catalog survives untouched.
+    const out = await restAs(auth.token, 'rpc/brand_catalog_replace', {
+      method: 'POST',
+      body: { p_workspace: workspace_id, p_region: reg, p_rows: payload, p_batch: batch },
     });
+    inserted = (out && typeof out.inserted === 'number') ? out.inserted : payload.length;
+  } else {
+    // Additive import: no existing row is destroyed, so per-chunk failure is
+    // recoverable by simply re-running it.
+    for (let i = 0; i < payload.length; i += 500) {
+      const chunk = payload.slice(i, i + 500);
+      await restAs(auth.token, 'brand_catalog_products?on_conflict=workspace_id,region,handle,sku', {
+        method: 'POST', body: chunk, prefer: 'resolution=merge-duplicates,return=minimal',
+      });
+      inserted += chunk.length;
+    }
   }
 
   const source = {

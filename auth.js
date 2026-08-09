@@ -85,6 +85,78 @@
   // every [data-credit-feature] element with its cost, and guards runs.
   // Both are additive, fail-safe and self-skip the frozen diff snapshot.
   // brand-context loads FIRST so credits can read the active workspace id.
+  // ─── Same-origin API calls carry the session automatically ──────────────
+  // The credit meter identifies the caller from a Supabase bearer token, and
+  // several long-standing endpoints (/api/ai/generate, /api/ai/image,
+  // /api/calendar) are now metered. Dozens of pages call them with only a
+  // Content-Type header, so without this every signed-in user would get
+  // 401 sign_in_required the moment the meter is configured.
+  //
+  // Rather than editing every call site, fetch is wrapped once here: a
+  // SAME-ORIGIN request to /api/... gets the current access token attached,
+  // and only when the caller has not set an Authorization header itself (so
+  // CRON_SECRET callers and explicit tokens still win).
+  //
+  // Cross-origin requests are never touched — attaching the token to a third
+  // party would leak the user's session.
+  (function attachSessionToApiCalls() {
+    try {
+      if (window.__lcFetchPatched || typeof window.fetch !== 'function') return;
+      window.__lcFetchPatched = true;
+      var nativeFetch = window.fetch.bind(window);
+
+      function currentToken() {
+        try {
+          var a = window.LifecycleAuth;
+          if (a && a.session && a.session.access_token) return a.session.access_token;
+        } catch (_) {}
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf('-auth-token') < 0) continue;
+            var v = JSON.parse(localStorage.getItem(k) || 'null');
+            var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
+            if (t) return t;
+          }
+        } catch (_) {}
+        return '';
+      }
+
+      function isOwnApi(url) {
+        try {
+          var u = new URL(url, location.href);
+          return u.origin === location.origin && /^\/api\//.test(u.pathname);
+        } catch (_) { return false; }
+      }
+
+      window.fetch = function (input, init) {
+        try {
+          var url = (typeof input === 'string') ? input : (input && input.url) || '';
+          if (!isOwnApi(url)) return nativeFetch(input, init);
+
+          var token = currentToken();
+          if (!token) return nativeFetch(input, init);
+
+          // Request object: clone with the header added, leaving the body alone.
+          if (typeof input !== 'string' && input && typeof Request !== 'undefined' && input instanceof Request) {
+            if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
+            var req = new Request(input, init || undefined);
+            if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
+            return nativeFetch(req);
+          }
+
+          var opts = Object.assign({}, init || {});
+          var headers = new Headers((opts && opts.headers) || {});
+          if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
+          opts.headers = headers;
+          return nativeFetch(input, opts);
+        } catch (_) {
+          return nativeFetch(input, init);
+        }
+      };
+    } catch (_) {}
+  })();
+
   (function ensurePlatformRuntimes() {
     try {
       if (IS_FROZEN_DIFF) return;

@@ -58,7 +58,8 @@ wallet with it.
 Re-skinning the browser is only paint; the prompts that produce mailers, ads, landing pages and
 calendars run on the server. `api/_shared/brand-runtime.js` is the server-side counterpart:
 `resolve(req)` returns the caller's active workspace (explicit `workspace_id` → active workspace →
-tenant zero) and `brandBlock(brand)` renders it as a prompt block carrying that brand's identity,
+tenant zero), keyed in its short-lived cache by the **resolved** workspace id rather than the request
+shape — so switching active brand takes effect on the next generation instead of after the TTL and `brandBlock(brand)` renders it as a prompt block carrying that brand's identity,
 voice, palette, typography, logo and regions — with `[DATA REQUIRED BEFORE LAUNCH: …]` wherever the
 brand has not supplied something, never a value inherited from tenant zero.
 
@@ -157,10 +158,23 @@ Declaring a price does not charge anything, so the endpoints are wrapped:
 | `/api/calendar` | `calendar.generate` on the generating actions, `mailer.generate` on mailer builds; cron-authenticated runs are never metered |
 | `/api/brain?action=telesuite` | per subfeature, from the registry |
 
-`credits.metered(handler, featureFor)` reserves before the handler runs and watches the response:
-a 2xx settles the hold into a spend and gets a `credits` receipt attached to its payload; anything
-else releases the reservation in full. Because the balance moves at **hold** time, the user's balance
-is already correct the moment a run starts.
+`credits.metered(handler, featureFor, unitsFor, opts)` reserves before the handler runs and watches
+the response: a 2xx settles the hold into a spend and gets a `credits` receipt attached to its
+payload; anything else releases the reservation in full. Because the balance moves at **hold** time,
+the user's balance is already correct the moment a run starts.
+
+`opts.successIf(payload)` covers endpoints that answer 200 with a degraded result. `/api/ai/image`
+deliberately never 502s — when every provider fails it returns the on-brand placeholder — so it
+declares the placeholder as a failure and the reservation is **refunded**. The user is never charged
+25 credits for an image they did not get.
+
+**Existing callers did not send a session token.** The meter identifies the caller from a Supabase
+bearer token, and dozens of pages call `/api/ai/generate`, `/api/ai/image` and `/api/calendar` with
+only a `Content-Type` header, so metering them would have returned `401 sign_in_required` to every
+signed-in user. Rather than editing every call site, `auth.js` wraps `fetch` once: a **same-origin**
+request to `/api/…` gets the current access token attached, only when the caller has not set an
+`Authorization` header itself (so `CRON_SECRET` callers still win). Cross-origin requests are never
+touched — attaching the token to a third party would leak the session.
 
 ### Prices are declared once
 `api/_shared/credit-catalog.js` is the versioned source of truth (51 features). The server charges
@@ -234,7 +248,9 @@ take unlimited free turns by never finishing. Instead a server-side session (`vo
 that have elapsed since the last charge. A three-turn call inside one minute costs one minute; an
 abandoned call still pays for the minutes it consumed; and the client cannot understate elapsed time
 because the server's own `created_at` is authoritative. `voice_finish` tops up the final part-minute
-and short-circuits on a duplicate `call_id`.
+and short-circuits on a duplicate `call_id` — matching only a completed `voice_sales`/`voice_support`
+run, never the billing session row, which carries the same `call_id` and would otherwise make every
+finish look like a duplicate.
 
 **Roles are enforced server-side and in RLS.** `is_brand_member()` is true for every member,
 including a `viewer`, so it is a READ test only. `is_brand_editor()` (owner or editor) is the write
@@ -243,10 +259,14 @@ keeping member reads. TeleSuite additionally checks the role in `context()` beca
 with the service role and bypass RLS entirely, and `catalog-import` checks it too — a viewer could
 otherwise replace a workspace's whole catalog.
 
-**Catalog replacement is stage-and-swap.** A replacement import writes every new row under a fresh
-`import_batch` first, and only then deletes rows from earlier batches. PostgREST has no
-multi-statement transaction, so this ordering is what guarantees a failure part-way through leaves
-the previous catalog intact instead of an empty or half-written one.
+**Catalog replacement is one transaction.** Chunked upserts cannot be made all-or-nothing from the
+API layer: the unique key is `(workspace_id, region, handle, sku)`, so an upsert *overwrites* a
+matching existing row in place, and a failure after the first chunk leaves a mixture of old,
+overwritten and new rows that no subsequent delete can undo. A replacement import therefore goes
+through the `brand_catalog_replace()` function, where the delete and the insert run in a single
+database call — one transaction. A failure rolls the whole swap back and the previous catalog
+survives untouched. (An *additive* import still uses chunked upserts, since it destroys nothing and
+is safe to re-run.) The function is `SECURITY DEFINER`, so it checks `is_brand_editor()` itself.
 
 The page renders **entirely from the `SUBFEATURES` registry** in `telesuite-core.js`, so adding a
 subfeature is a one-object change and its cost can never drift out of sync with the UI.
