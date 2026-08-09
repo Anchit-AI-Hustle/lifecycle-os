@@ -44,11 +44,11 @@
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
   @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-  .asset { background: linear-gradient(160deg, #ffffff, #0c1814); border: 1px solid rgba(171,135,67,0.18);
+  .asset { background: linear-gradient(160deg, #ffffff, var(--vh-ink)); border: 1px solid rgba(171,135,67,0.18);
     border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: transform .14s, border-color .14s; }
   .asset:hover { transform: translateY(-2px); border-color: rgba(171,135,67,0.4); }
   .asset .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top center; background: #fff; display: block; border-bottom: 1px solid rgba(171,135,67,0.12); }
-  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: #33473d; font-size: 30px; background: #ffffff; }
+  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: var(--vh-ink); font-size: 30px; background: #ffffff; }
   /* Live mailer/landing preview: render the real HTML, scaled to card width, so
      the card shows the ACTUAL rendered mailer — not a raw product photo. */
   .asset .thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/10; overflow: hidden; background: #fff; border-bottom: 1px solid rgba(171,135,67,0.12); }
@@ -59,7 +59,7 @@
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .asset .meta { font-size: 11px; color: #556059; margin-bottom: 11px; flex: 1; }
   .tag { font-size: 9.5px; padding: 2px 7px; border-radius: 99px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 5px; }
-  .tag.mailer { background: rgba(171,135,67,0.16); color: #7a5f28; }
+  .tag.mailer { background: rgba(171,135,67,0.16); color: var(--vh-ink); }
   .tag.ad { background: rgba(59,130,246,0.14); color: #1d4ed8; }
   .tag.landing { background: rgba(22,163,74,0.16); color: #0a7d33; }
   .acts { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -155,7 +155,7 @@
       '- Palette, ONLY these four: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
       "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
       '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
       '- KNICKGASM: premium Indian heritage sneaker · B-Corp · one-of-one · studio-fresh within 72 hours of drop.'
     ].join('\n');
   }
@@ -420,7 +420,7 @@
       const dot = stale > 0 ? '#d9b25a' : '#3fa46a';
       const label = stale > 0
         ? ('<b style="color:#111111">' + stale + ' of ' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' need regeneration — a source fact changed since they were built'
-           + ' <span style="color:#d9b25a">(STALE)</span>')
+           + ' <span style="color:var(--vh-lava)">(STALE)</span>')
         : ('<b style="color:#111111">' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' tracked, all current against source');
       strip.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:' + dot + ';display:inline-block;flex:0 0 auto"></span>'
         + '<span>Source sync · ' + label + '</span>'

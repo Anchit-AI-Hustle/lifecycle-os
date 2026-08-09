@@ -524,7 +524,7 @@ If ANY QA check fails → fix it inline before outputting the HTML.
 - IMAGE_LIFESTYLE_URL = exact placeholder string for lifestyle image
 
 ━━ BRAND VOCABULARY ━━
-BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all-caps), hurry, don't miss out, last chance
+BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all-caps), hurry, don't miss out, last chance
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted, first-flush
 
 ━━ OUTPUT FORMAT ━━

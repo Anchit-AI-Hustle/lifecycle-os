@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Competitive Intelligence · Lifecycle OS</title>
-  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" href="/favicon.png" />
   <meta name="theme-color" content="#D0473E">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -18,8 +18,8 @@
        Was light-first (chalk bg, green accent-text); accents re-assigned to
        lava/chalk so nothing renders green-on-green. */
     :root{ --green:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
-      --canvas:var(--bg,#D0473E); --panel:var(--surface,#075C39); --panel2:var(--chip,#f4f2ec);
-      --txt:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,#E4CF94); --line:rgba(171,135,67,0.28); }
+      --canvas:var(--bg,#D0473E); --panel:var(--surface,var(--vh-ink)); --panel2:var(--chip,var(--vh-panel-tan));
+      --txt:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,var(--vh-lava)); --line:rgba(171,135,67,0.28); }
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--txt); background:var(--canvas); }
     .wrap{ max-width:1180px; margin:0 auto; padding:24px 20px 80px; }

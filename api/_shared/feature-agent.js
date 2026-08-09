@@ -36,7 +36,7 @@ const EVIDENCE_CONTRACT =
   'EVIDENCE CONTRACT (non-negotiable): quote the exact figure from the inputs behind every claim; ' +
   'never invent numbers, products, prices, reviews, or benchmarks; if the inputs do not support a ' +
   'point, do not make it. Respect KNICKGASM brand voice (warm, sensory, heritage) and never use the ' +
-  'banned phrases (streetwear journey, transform, liquid lava, game-changer, LIMITED TIME in caps, ' +
+  'banned phrases (wellness journey, transform, liquid gold, game-changer, LIMITED TIME in caps, ' +
   'hurry, don\'t miss out, last chance, while supplies last) or em/en dashes.';
 
 function withDeadline(promise, ms) {

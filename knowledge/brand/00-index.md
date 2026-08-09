@@ -35,6 +35,6 @@ All targeting ultimately resolves to one of four buyer avatars. The names are us
 
 - **Palette (only these four):** lava red `#D0473E`, drip purple `#6A33D8`, near-black `#111111`, chalk `#FFFFFF`.
 - **Type:** Headings Montserrat (fallback Raleway, Georgia, serif); Body Instrument Sans (fallback Helvetica Neue, Arial, sans-serif).
-- **Banned phrases:** streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy. (Matched literally in `api/_shared/scenario-model.js`.)
+- **Banned phrases:** wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy. (Matched literally in `api/_shared/scenario-model.js`.)
 - **Preferred lexicon:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 - **Approved claims only:** 100% original bases, hand-painted one-of-one, water and scratch resistant paint system, 10 to 15 day made-to-order build, express shipping to 60+ countries, worn organically by Samay Raina / Rohit Sharma / Shraddha Kapoor.

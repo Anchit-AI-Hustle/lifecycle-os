@@ -20,13 +20,13 @@
   --text-dim:#9AA6B6;
   --text-ink:#141A22;
   --text-ink-dim:#5B6675;
-  --amber:#FFB020;
-  --amber-soft:#FFD98A;
+  --amber:var(--vh-lava);
+  --amber-soft:var(--vh-lava);
   --google:#4285F4;
   --meta:#3B82F6;
-  --tiktok-a:#25F4EE;
+  --tiktok-a:var(--vh-ink-dim);
   --tiktok-b:#FE2C55;
-  --up:#22C883;
+  --up:var(--vh-ink-dim);
   --down:#FF5C6C;
   --radius:14px;
   --maxw:1120px;
@@ -45,7 +45,7 @@ body{
 .mono{font-family:'JetBrains Mono',monospace}
 h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;line-height:1.05;letter-spacing:-.02em;font-weight:700}
 a{color:inherit}
-::selection{background:var(--amber);color:#241a00}
+::selection{background:var(--amber);color:var(--vh-ink)}
 
 /* ---------- CONSOLE FRAME ---------- */
 .progress-track{position:fixed;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.06);z-index:100}
@@ -96,7 +96,7 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
 .sim-head .tag{font-family:'JetBrains Mono';font-size:.66rem;color:var(--tiktok-a);border:1px solid rgba(37,244,238,.3);padding:3px 9px;border-radius:20px;letter-spacing:.08em}
 .btn{
   font-family:'JetBrains Mono';font-size:.78rem;font-weight:500;cursor:pointer;
-  background:var(--amber);color:#241a00;border:none;padding:10px 18px;border-radius:9px;
+  background:var(--amber);color:var(--vh-ink);border:none;padding:10px 18px;border-radius:9px;
   transition:transform .15s,box-shadow .15s;letter-spacing:.03em;
 }
 .btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,176,32,.35)}
@@ -111,7 +111,7 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
 .bar{height:100%;border-radius:6px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1);background:linear-gradient(90deg,#3a4553,#5a6a80);display:flex;align-items:center;justify-content:flex-end;padding-right:9px}
 .bar.win{background:linear-gradient(90deg,var(--amber),var(--amber-soft))}
 .bar b{font-family:'JetBrains Mono';font-size:.72rem;color:#fff}
-.bar.win b{color:#241a00}
+.bar.win b{color:var(--vh-ink)}
 .rank{font-family:'JetBrains Mono';font-size:.9rem;color:var(--text-dim);min-width:38px;text-align:right}
 .rank.win{color:var(--amber);font-weight:700}
 .sim-result{margin-top:18px;padding:14px 16px;background:var(--panel-2);border-radius:10px;border-left:3px solid var(--amber);font-size:.9rem}
@@ -119,8 +119,8 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
 
 /* ---------- LIGHT CARD SECTIONS ---------- */
 .paper-block{background:var(--paper);color:var(--text-ink)}
-.paper-block .eyebrow{color:#B67400}
-.paper-block .eyebrow::before{background:#B67400}
+.paper-block .eyebrow{color:var(--vh-ink)}
+.paper-block .eyebrow::before{background:var(--vh-ink)}
 .paper-block h2{color:var(--text-ink);font-size:clamp(2rem,4.4vw,3.1rem);max-width:16ch}
 .paper-block .lead{color:var(--text-ink-dim)}
 .paper-block p{color:#38414d}
@@ -131,7 +131,7 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
 @media(max-width:760px){.grid-2,.grid-3{grid-template-columns:1fr}}
 .card h3{color:var(--text-ink);font-size:1.2rem;margin-bottom:8px}
 .card p{font-size:.94rem}
-.card .ic{font-family:'JetBrains Mono';font-size:.7rem;color:#B67400;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+.card .ic{font-family:'JetBrains Mono';font-size:.7rem;color:var(--vh-ink);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
 
 /* ---------- FLOWCHART ---------- */
 .flow{display:flex;flex-direction:column;align-items:center;gap:0;margin:8px 0}
@@ -141,7 +141,7 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
   max-width:440px;box-shadow:3px 3px 0 rgba(20,26,34,.9);
 }
 .node small{display:block;font-weight:400;color:var(--text-ink-dim);font-size:.76rem;margin-top:3px}
-.node.accent{background:var(--amber);border-color:#241a00;box-shadow:3px 3px 0 #241a00}
+.node.accent{background:var(--amber);border-color:var(--vh-ink);box-shadow:3px 3px 0 var(--vh-ink)}
 .node.pill{border-radius:40px}
 .node.diamond{background:#141A22;color:#fff;border-color:#141A22;box-shadow:3px 3px 0 rgba(0,0,0,.25);border-radius:11px}
 .arrow{width:2px;height:26px;background:var(--text-ink);position:relative;margin:2px 0}
@@ -149,13 +149,13 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
 .arrow.lbl::before{content:attr(data-l);position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono';font-size:.66rem;color:var(--text-ink-dim);white-space:nowrap}
 .branch{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;width:100%}
 .branch-col{display:flex;flex-direction:column;align-items:center}
-.branch-col .lbl{font-family:'JetBrains Mono';font-size:.66rem;color:#B67400;margin-bottom:6px;letter-spacing:.05em}
+.branch-col .lbl{font-family:'JetBrains Mono';font-size:.66rem;color:var(--vh-ink);margin-bottom:6px;letter-spacing:.05em}
 
 /* ---------- METRICS DECODER ---------- */
 .metric-row{display:grid;grid-template-columns:96px 1fr;gap:16px;padding:15px 0;border-bottom:1px solid var(--line-light);align-items:start}
 .metric-row:last-child{border-bottom:none}
 .metric-row .abbr{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.3rem;color:var(--text-ink)}
-.metric-row .abbr small{display:block;font-family:'JetBrains Mono';font-weight:400;font-size:.64rem;color:#B67400;letter-spacing:.05em;margin-top:2px}
+.metric-row .abbr small{display:block;font-family:'JetBrains Mono';font-weight:400;font-size:.64rem;color:var(--vh-ink);letter-spacing:.05em;margin-top:2px}
 .metric-row .def{font-size:.92rem;color:#38414d}
 .metric-row .def .formula{font-family:'JetBrains Mono';font-size:.78rem;background:#EEF1F5;padding:2px 8px;border-radius:5px;color:#1c2530;display:inline-block;margin-top:6px}
 
@@ -218,9 +218,9 @@ section{max-width:var(--maxw);margin:0 auto;padding:76px 22px}
   padding:14px 16px;cursor:pointer;font-size:.92rem;color:var(--text-ink);font-family:'Inter';
   transition:.16s;display:flex;align-items:center;gap:12px;
 }
-.opt:hover{border-color:var(--amber);background:#FFF8EC;transform:translateX(4px)}
+.opt:hover{border-color:var(--amber);background:var(--vh-panel-tan);transform:translateX(4px)}
 .opt:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.opt .n{font-family:'JetBrains Mono';font-size:.72rem;color:#B67400;border:1px solid #E4C994;border-radius:6px;padding:3px 7px;flex-shrink:0}
+.opt .n{font-family:'JetBrains Mono';font-size:.72rem;color:var(--vh-ink);border:1px solid var(--vh-lava);border-radius:6px;padding:3px 7px;flex-shrink:0}
 .dtree-result{padding:22px;border-radius:12px;background:#141A22;color:#fff;margin-top:8px}
 .dtree-result h4{color:var(--amber);font-size:1.4rem;margin-bottom:8px}
 .dtree-result p{color:#C4CDD9;font-size:.92rem}
@@ -250,9 +250,9 @@ table.cmp td.g{border-top:3px solid var(--google)}
 .callout{background:var(--panel-2);border-left:3px solid var(--amber);border-radius:0 12px 12px 0;padding:18px 20px;margin:22px 0}
 .callout .lab{font-family:'JetBrains Mono';font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .callout p{font-size:.92rem;color:var(--text-dim)}
-.paper-block .callout{background:#FFF8EC;border-color:#B67400}
-.paper-block .callout .lab{color:#B67400}
-.paper-block .callout p{color:#5a4a2a}
+.paper-block .callout{background:var(--vh-panel-tan);border-color:var(--vh-ink)}
+.paper-block .callout .lab{color:var(--vh-ink)}
+.paper-block .callout p{color:var(--vh-ink)}
 
 /* ---------- FOOTER ---------- */
 footer{max-width:var(--maxw);margin:0 auto;padding:50px 22px 70px;border-top:1px solid var(--line-dark);color:var(--text-dim);font-size:.85rem}
@@ -320,7 +320,7 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
 <!-- ================= FUNDAMENTALS ================= -->
 <section class="paper-block reveal" id="fundamentals" style="max-width:none;padding-left:0;padding-right:0">
   <div style="max-width:var(--maxw);margin:0 auto;padding:0 22px">
-    <div class="section-num" style="color:#B67400">MODULE 01</div>
+    <div class="section-num" style="color:var(--vh-ink)">MODULE 01</div>
     <div class="eyebrow">The physics of every ad platform</div>
     <h2>Three ideas run everything: the auction, the funnel, the metrics.</h2>
     <p class="lead" style="margin-top:18px">Google, Meta and TikTok feel different because their <em>surfaces</em> differ. Underneath, they share the same engine. Master these three and you can walk into any ad account and know what you're looking at.</p>
@@ -386,7 +386,7 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
           <p style="font-size:.86rem"><b>Job:</b> get discovered by cold strangers.<br><b>Audience:</b> broad / interest / lookalike.<br><b>Creative:</b> scroll-stopping hooks, story.<br><b>Watch:</b> CPM, reach, hook rate, 3-sec views.</p>
         </div>
         <div>
-          <div class="ic" style="color:#B67400">MOFU · Middle</div>
+          <div class="ic" style="color:var(--vh-ink)">MOFU · Middle</div>
           <h3 style="font-size:1.05rem">Consideration</h3>
           <p style="font-size:.86rem"><b>Job:</b> earn trust, get engagement.<br><b>Audience:</b> engagers, video viewers, visitors.<br><b>Creative:</b> proof, reviews, demo, education.<br><b>Watch:</b> CTR, landing views, add-to-cart.</p>
         </div>
@@ -611,7 +611,7 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
 <!-- ================= STRATEGY ================= -->
 <section class="paper-block reveal" id="strategy" style="max-width:none;padding-left:0;padding-right:0">
   <div style="max-width:var(--maxw);margin:0 auto;padding:0 22px">
-    <div class="section-num" style="color:#B67400">MODULE 05</div>
+    <div class="section-num" style="color:var(--vh-ink)">MODULE 05</div>
     <div class="eyebrow">Putting the three together</div>
     <h2>You don't pick a platform. You build a system where they feed each other.</h2>
     <p class="lead" style="margin-top:18px">The real journey isn't linear: someone sees a TikTok, gets retargeted on Instagram, then Googles your brand and buys. Each platform played a role. The mistake is judging them in isolation. Here's how operators actually allocate.</p>
@@ -697,7 +697,7 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
   <div class="callout">
     <div class="lab">The testing loop · how growth actually compounds</div>
     <div class="flow" style="margin-top:14px">
-      <div class="node accent" style="background:var(--amber);color:#241a00">Hypothesis<small>"UGC hook beats studio hook"</small></div>
+      <div class="node accent" style="background:var(--amber);color:var(--vh-ink)">Hypothesis<small>"UGC hook beats studio hook"</small></div>
       <div class="arrow"></div>
       <div class="node" style="background:#1D242E;color:#fff;border-color:#1D242E;box-shadow:3px 3px 0 rgba(0,0,0,.3)">Test<small>one variable, enough budget &amp; time to reach significance</small></div>
       <div class="arrow"></div>

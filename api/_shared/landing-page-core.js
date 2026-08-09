@@ -62,7 +62,7 @@ Only these four hex colours may appear. Apply var(--font-head) to h1, h2, h3, h4
 Primary CTA: green background and chalk text. Secondary CTA: lava border or background and green text. Headings green on light surfaces and chalk on dark surfaces. Body text ink. Default section background chalk. Lava for rule lines, badges, hover and active accents.
 
 VOICE
-Warm, sensory, story-driven, premium. Prefer ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Never use streetwear journey, transform, liquid lava, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last. No fabricated ratings, review counts, medical claims, prices, products or guarantees.
+Warm, sensory, story-driven, premium. Prefer ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Never use wellness journey, transform, liquid gold, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last. No fabricated ratings, review counts, medical claims, prices, products or guarantees.
 
 FRAMER AND MOTION-INSPIRED INTERACTION SYSTEM
 Treat 3D, 4D and 5D as concrete interaction layers, not labels pasted onto the page.

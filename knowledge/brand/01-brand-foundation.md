@@ -45,7 +45,7 @@ The style guide forbids any other font for emailers. Never use Raleway or DM San
 
 ### Banned phrases (never use)
 
-`streetwear journey`, `transform`, `liquid lava`, `game-changer`, `LIMITED TIME` (in caps), `hurry`, `don't miss out`, `last chance`, `while supplies last`.
+`wellness journey`, `transform`, `liquid gold`, `game-changer`, `LIMITED TIME` (in caps), `hurry`, `don't miss out`, `last chance`, `while supplies last`.
 
 > These strings are matched literally by `BANNED_RX` / `ALL_BANNED_RX` in `api/_shared/scenario-model.js`. Keep them verbatim here even where the wording reads oddly — the doc mirrors the code, not the other way round.
 

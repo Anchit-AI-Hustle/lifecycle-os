@@ -39,4 +39,4 @@ Related: [[knickgasm-ad-happiness-strategy]], `docs/playbooks/brand-agent-guardr
   policy in `brand-agent-guardrails.md` ("traditionally associated with…" or a
   real, cited PubMed/WHO/Cochrane source — never a fabricated study).
 - Stay within the brand voice: warm, origin-led, no banned phrases (no "streetwear
-  journey", "transform", "liquid lava", "game-changer", caps urgency).
+  journey", "transform", "liquid gold", "game-changer", caps urgency).

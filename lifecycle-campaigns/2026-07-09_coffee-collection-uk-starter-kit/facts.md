@@ -68,7 +68,7 @@ needs an extra tile, same rules apply):
 - Headings: `'Montserrat','Raleway',Arial,sans-serif` (700/800)
 - Body: `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
 - No em/en dashes anywhere in copy (commas, colons, plain hyphens only).
-- Banned phrases: streetwear journey, transform, liquid gold, game-changer, LIMITED TIME (caps),
+- Banned phrases: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps),
   hurry, don't miss out, last chance, while supplies last.
 - Preferred: custom, hand-painted, one-of-one, grail, canvas, colorway, drop, rotation, crafted, original.
 - Never black or dark-neutral section backgrounds (use red or white); WCAG-AA contrast.

@@ -146,7 +146,7 @@ KNICKGASM BRAND CONSTRAINTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Palette: deep purple #D0473E / amber lava #6A33D8 / chalk #FFFFFF
 Audience: urban professionals 30-55, health-conscious, value quality + story over price
-BANNED phrases: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME (caps) / Last chance / While supplies last
+BANNED phrases: wellness journey / transform / liquid gold / game-changer / LIMITED TIME (caps) / Last chance / While supplies last
 PREFERRED: ritual / restore / balance / origin / one-of-one / hand-painted / lace-up / heritage / crafted
 IMAGE STYLE: luxury editorial photography — cinematic lighting, shallow DOF, tactile textures, no stock photography look, no clutter, no artificial lighting
 IMAGE GENERATION: a multi-provider cascade renders your scene prompts (exact model varies by tier/availability) — prompts must be photorealistic, premium editorial, no text in image, minimal props (1-2), natural lighting, realistic product context

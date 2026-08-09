@@ -22,6 +22,6 @@ The 8-section brief, tight enough to hand off unedited. Offer next steps: /ad-cr
 
 ## Brand guardrails (always)
 - Palette #D0473E / #6A33D8 / #111111 / #FFFFFF; Montserrat headlines + Instrument Sans body.
-- BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
+- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
 - Zero fabrication: never invent numbers, benchmarks, reviews, prices or URLs. Missing input -> ask for it or mark [DATA REQUIRED].
 - Mega-prompt discipline: be clear, concise and highly specific; every claim quotes the exact figure or line it came from.

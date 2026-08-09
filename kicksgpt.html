@@ -11,7 +11,7 @@
      theme.css's --soft, which theme.css defines as a light DIM-TEXT colour
      (#556059). Mapping a surface to it produced light bubbles with light --ink
      text (unreadable). --card is the theme's card surface (#ffffff, dark). */
-  :root { --green:#D0473E; --lava:#6A33D8; --chalk:#FFFFFF; --canvas:var(--bg,#D0473E); --panel:var(--surface,#075C39); --panel2:var(--card,#ffffff); --ink:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,#E4CF94); }
+  :root { --green:#D0473E; --lava:#6A33D8; --chalk:#FFFFFF; --canvas:var(--bg,#D0473E); --panel:var(--surface,var(--vh-ink)); --panel2:var(--card,#ffffff); --ink:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,var(--vh-lava)); }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--canvas); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--ink); }
   .shell { max-width:920px; margin:0 auto; padding:26px 18px 150px; }
@@ -62,7 +62,7 @@
 </head>
 <body>
 <div class="shell">
-  <div class="kicker">KNICKGASM · Brand Intelligence <span style="background:#7c2d12;color:#fde68a;border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">INTERNAL · TEAM ONLY</span></div>
+  <div class="kicker">KNICKGASM · Brand Intelligence <span style="background:var(--vh-ink);color:var(--vh-lava);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">INTERNAL · TEAM ONLY</span></div>
   <h1>Kicks<span class="bot">GPT</span></h1>
   <div class="sub">An internal tool for the KNICKGASM growth and retention team, not customer-facing. Your brand's own AI: it doesn't just chat, it operates the growth stack, analytics, calendar, campaign generation, competitor intel, and Klaviyo lifecycle. Laced in your own data.</div>
 
@@ -93,18 +93,18 @@
   .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
   .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.4);background:rgba(171,135,67,.12);color:var(--lava,#6A33D8);cursor:pointer}
   .cbtn:hover{background:rgba(171,135,67,.22)}
-  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:#0b2c1c;border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.4)}
-  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#e8f0ea}
+  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:var(--vh-ink);border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.4)}
+  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--vh-panel-tan)}
   .hitem:hover{background:rgba(171,135,67,.14)} .hitem.on{background:rgba(171,135,67,.22)}
   .htitle{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hdel{background:none;border:0;color:#cdbf9a;cursor:pointer;font-size:12px} .hdel:hover{color:#ff9d8a}
-  .hempty{padding:14px;color:#cdbf9a;font-size:12px;text-align:center}
+  .hdel{background:none;border:0;color:var(--vh-lava);cursor:pointer;font-size:12px} .hdel:hover{color:#ff9d8a}
+  .hempty{padding:14px;color:var(--vh-lava);font-size:12px;text-align:center}
   .assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:6px 0 4px}
   .acard{background:rgba(4,32,20,.5);border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:12px 13px}
   .acard .akind{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--lava,#6A33D8);font-weight:800}
-  .acard .alabel{font-size:13px;color:#eaf2ec;margin:4px 0 9px;font-weight:600;line-height:1.3}
+  .acard .alabel{font-size:13px;color:var(--vh-panel-tan);margin:4px 0 9px;font-weight:600;line-height:1.3}
   .acard .arow{display:flex;gap:7px}
-  .abtn{flex:1;text-align:center;font-size:11px;font-weight:700;padding:7px 8px;border-radius:8px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:#f0e6cf;cursor:pointer;text-decoration:none}
+  .abtn{flex:1;text-align:center;font-size:11px;font-weight:700;padding:7px 8px;border-radius:8px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:var(--vh-panel-tan);cursor:pointer;text-decoration:none}
   .abtn:hover{background:rgba(171,135,67,.26)}
 </style>
 <script>

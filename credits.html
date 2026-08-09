@@ -12,9 +12,9 @@
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
     --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
-    --surface:var(--brand-surface,#F7F5F2);--card:var(--brand-surface-alt,#fff);
+    --surface:var(--brand-surface,var(--vh-panel-tan));--card:var(--brand-surface-alt,#fff);
     --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
-    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#e3e0dc);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,var(--vh-panel-tan));
     --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
     --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
   }
@@ -63,7 +63,7 @@
   .kind{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
   .k-spend{background:color-mix(in srgb,var(--err) 12%,transparent);color:var(--err)}
   .k-grant,.k-topup,.k-refund,.k-release{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
-  .k-hold{background:color-mix(in srgb,var(--warn) 16%,transparent);color:#7a5f00}
+  .k-hold{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--vh-ink)}
   .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
   .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tab{padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-size:12.5px;font-weight:600;cursor:pointer}

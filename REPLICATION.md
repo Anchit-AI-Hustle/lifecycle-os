@@ -108,7 +108,7 @@ buildMasterPrompt({
 **Palette (ONLY four — from knickgasm.com live theme):** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk.
 **Type (strict):** headings `'Montserrat'` (fallback Raleway, Georgia, serif); body `'Instrument Sans'` (fallback Helvetica Neue, Arial). No other primary fonts.
 **Voice:** warm, sensory, story-driven. **Prefer:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
-**Banned:** streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No medical claims, no fake scarcity, no off-palette tints.
+**Banned:** wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No medical claims, no fake scarcity, no off-palette tints.
 **Catalogs:** US 436 · UK 436 · Global 436 active (full knickgasm.com Shopify catalog per region; fixed-rate USD/GBP conversion from INR). Built at deploy from `products_export_{usa,uk,global}.csv`.
 **Store URLs:** US `knickgasm.com` · UK `knickgasm.com` · IN `knickgasm.com` · EU `knickgasm.com` · AU `knickgasm.com`. Presell: `knickgasm.com` / `knickgasm.com`. PDP `{base}/products/{handle}`.
 

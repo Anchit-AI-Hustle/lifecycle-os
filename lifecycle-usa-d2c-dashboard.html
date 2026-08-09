@@ -52,15 +52,15 @@ main{max-width:1220px;margin:0 auto;padding:26px 22px 80px}
 .tab.active{display:block}
 .tab>h2{color:var(--green);font-size:26px;margin-bottom:4px;font-weight:400}
 .q{font-size:13px;color:#555;font-style:italic;margin-bottom:8px;border-left:3px solid var(--lava);padding-left:10px}
-.srcline{font-size:11px;color:var(--green);background:#eef3f0;border:1px solid #d8e5dd;border-radius:6px;padding:5px 10px;margin-bottom:16px;display:inline-block}
+.srcline{font-size:11px;color:var(--green);background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:6px;padding:5px 10px;margin-bottom:16px;display:inline-block}
 .srcline b{color:var(--lava)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:20px}
-.kpi{background:#fff;border-radius:10px;padding:15px 16px;border:1px solid #eadfce;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.kpi{background:#fff;border-radius:10px;padding:15px 16px;border:1px solid var(--vh-panel-tan);box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#777;font-weight:700}
 .kpi .v{font-size:23px;font-family:var(--font-head);color:var(--green);margin:3px 0}
 .kpi .d{font-size:12px;font-weight:700}
 .up{color:#1a7f37}.down{color:#c0392b}
-.card{background:#fff;border-radius:10px;padding:18px;margin-bottom:18px;border:1px solid #eadfce}
+.card{background:#fff;border-radius:10px;padding:18px;margin-bottom:18px;border:1px solid var(--vh-panel-tan)}
 .card h3{color:var(--green);font-size:16px;margin-bottom:2px;font-weight:400}
 .card .sub{font-size:12px;color:#888;margin-bottom:12px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -77,7 +77,7 @@ main{max-width:1220px;margin:0 auto;padding:26px 22px 80px}
 .tvseg button.on{background:var(--green);color:var(--chalk)}
 .granseg{display:inline-flex;border:1.5px solid var(--lava);border-radius:8px;overflow:hidden;margin:2px 0 8px;vertical-align:middle}
 .granseg .granlbl{font-size:10px;color:var(--lava);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;align-self:center}
-.granseg button{border:0;background:var(--chalk);color:var(--green);font-weight:600;font-size:11px;padding:5px 12px;cursor:pointer;font-family:inherit;border-left:1px solid #e6dcc8}
+.granseg button{border:0;background:var(--chalk);color:var(--green);font-weight:600;font-size:11px;padding:5px 12px;cursor:pointer;font-family:inherit;border-left:1px solid var(--vh-panel-tan)}
 .granseg button.on{background:var(--green);color:var(--chalk)}
 .carwrap{margin:2px 0 14px}
 .carhead{font-size:11px;color:var(--lava);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px;display:flex;align-items:center;gap:8px}
@@ -87,19 +87,19 @@ main{max-width:1220px;margin:0 auto;padding:26px 22px 80px}
 .carousel{flex:1 1 auto;min-width:0;display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;scroll-behavior:smooth}
 .carousel .kpi{min-width:190px;flex:0 0 auto}
 .caryr{flex:0 0 auto;display:flex;align-items:center;padding:0 6px;font-family:var(--font-head);color:var(--green);font-weight:700;font-size:13px;border-left:3px solid var(--lava)}
-.facts{background:#eef3f0;border-left:4px solid var(--green);padding:10px 14px;border-radius:0 8px 8px 0;margin-top:12px;font-size:14px}
+.facts{background:var(--vh-panel-tan);border-left:4px solid var(--green);padding:10px 14px;border-radius:0 8px 8px 0;margin-top:12px;font-size:14px}
 .facts .lbl,.insight .lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px;color:var(--green)}
 .insight .lbl{color:var(--lava)}
 .facts ul,.insight ul{margin:4px 0 0 18px;padding:0}
 .facts li,.insight li{margin:3px 0}
-.insight{background:#fbf3e3;border-left:4px solid var(--lava);padding:12px 14px;border-radius:0 8px 8px 0;margin-top:12px;font-size:14px}
+.insight{background:var(--vh-panel-tan);border-left:4px solid var(--lava);padding:12px 14px;border-radius:0 8px 8px 0;margin-top:12px;font-size:14px}
 .insight b{color:var(--green)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:var(--green);color:var(--chalk);text-align:right;padding:8px 10px;font-weight:600;position:sticky;top:0}
 th:first-child,td:first-child{text-align:left}
-td{padding:7px 10px;border-bottom:1px solid #f0e9db;text-align:right}
-tr:hover td{background:#fbf3e3}
-.tblwrap{max-height:520px;overflow:auto;border:1px solid #eadfce;border-radius:8px}
+td{padding:7px 10px;border-bottom:1px solid var(--vh-panel-tan);text-align:right}
+tr:hover td{background:var(--vh-panel-tan)}
+.tblwrap{max-height:520px;overflow:auto;border:1px solid var(--vh-panel-tan);border-radius:8px}
 .pgctl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 4px;font-size:12px;color:#555;flex-wrap:wrap}
 .pgctl .pgbtns{display:flex;align-items:center;gap:6px}
 .pgctl button{font-family:var(--font-body);background:var(--green);color:var(--chalk);border:none;padding:5px 9px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;min-width:30px}
@@ -109,10 +109,10 @@ tr:hover td{background:#fbf3e3}
 .pgctl .pgdots{color:#999;padding:0 2px}
 .pgctl b{color:var(--green)}
 .tblwrap.click tbody tr{cursor:pointer}
-.method{font-size:12.5px;background:#f5f0e6;border-radius:8px;padding:10px 12px;margin-top:10px;color:#444}
+.method{font-size:12.5px;background:var(--vh-panel-tan);border-radius:8px;padding:10px 12px;margin-top:10px;color:#444}
 .method b{color:var(--green)}
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
-.b-ok{background:#e4f2e8;color:#1a7f37}.b-part{background:#fdf3df;color:#9a6a00}.b-block{background:#fdeaea;color:#c0392b}
+.b-ok{background:var(--vh-panel-tan);color:#1a7f37}.b-part{background:var(--vh-panel-tan);color:var(--vh-ink)}.b-block{background:#fdeaea;color:#c0392b}
 .modal{display:none;position:fixed;inset:0;background:rgba(23,23,23,.6);z-index:100;padding:40px 18px;overflow:auto}
 .modal.open{display:block}
 .modal-in{background:var(--chalk);max-width:900px;margin:0 auto;border-radius:12px;padding:24px;border-top:6px solid var(--lava)}
@@ -132,9 +132,9 @@ footer{text-align:center;font-size:11px;color:#999;padding:20px}
 /* ==== time-filter + detail-page additions ==== */
 .granseg button[data-g="week"]{}
 .granseg button[data-g="custom"]{color:var(--lava);font-style:italic}
-.granrange{display:block;margin:0 0 10px;font-size:12px;color:#555;background:#faf6ee;border:1px solid #eadfce;border-radius:8px;padding:8px 10px}
+.granrange{display:block;margin:0 0 10px;font-size:12px;color:#555;background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:8px;padding:8px 10px}
 .granrange.inl{display:inline-flex;align-items:center;gap:6px;margin-left:8px;vertical-align:middle}
-.granrange input[type=date]{font-family:inherit;font-size:12px;padding:3px 6px;border:1px solid #cbb98f;border-radius:6px;background:#fff}
+.granrange input[type=date]{font-family:inherit;font-size:12px;padding:3px 6px;border:1px solid var(--vh-lava);border-radius:6px;background:#fff}
 .granrange .rngapply{background:var(--green);color:var(--chalk);border:0;border-radius:6px;padding:4px 12px;font-weight:600;cursor:pointer}
 .granrange .rngnote{color:#999;font-size:10px;margin-left:6px}
 .gtbar{z-index:58;background:var(--green);color:var(--chalk);display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:8px 16px;font-size:12px;border-bottom:2px solid var(--lava)}
@@ -151,19 +151,19 @@ footer{text-align:center;font-size:11px;color:#999;padding:20px}
 .histpage .hp-top h2{color:var(--chalk);font-weight:400;font-size:18px;margin:0}
 .histpage .hp-back{background:var(--chalk);color:var(--green);border:0;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer;font-family:inherit}
 .histpage .hp-body{max-width:1080px;margin:0 auto;padding:22px}
-.histpage .hp-chart{position:relative;height:440px;background:#fff;border:1px solid #eadfce;border-radius:10px;padding:14px}
+.histpage .hp-chart{position:relative;height:440px;background:#fff;border:1px solid var(--vh-panel-tan);border-radius:10px;padding:14px}
 #histctl{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 14px}
 #histctl button[data-hg]{border:1.5px solid var(--lava);background:var(--chalk);color:var(--green);border-radius:7px;padding:5px 13px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer}
 #histctl button[data-hg].on{background:var(--green);color:var(--chalk)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .t8h{color:var(--green);font-weight:600;font-size:13px;margin:12px 0 4px}
-.chip{background:#f1ece0;border:1px solid var(--lava);color:var(--green);border-radius:14px;padding:3px 12px;font-size:12px;font-weight:600}
+.chip{background:var(--vh-panel-tan);border:1px solid var(--lava);color:var(--green);border-radius:14px;padding:3px 12px;font-size:12px;font-weight:600}
 
 
 /* Contrast/readability hardening (WCAG-AA): never light-on-light or dark-on-dark.
    Lava (#6A33D8) as TEXT on chalk/white fails AA (~3.2:1) and white on lava fails
    (~3.4:1); darken lava text on light, and use ink on lava fills. */
-.srcline b,.insight .lbl,.clickhint,.info,.carhead,.granseg .granlbl,.granseg button[data-g="custom"],.caryr .info{color:#7a5a1e !important}
+.srcline b,.insight .lbl,.clickhint,.info,.carhead,.granseg .granlbl,.granseg button[data-g="custom"],.caryr .info{color:var(--vh-ink) !important}
 .gtbar .gtapply,.pgctl button.pgnum.on{color:#111111 !important}
 </style></head><body>
 <div class="topbar">
@@ -363,7 +363,7 @@ const yoy=(a,b)=>((b-a)/a*100);
 const yoyS=(a,b)=>(b>=a?'+':'')+yoy(a,b).toFixed(1)+'%';
 // tooltip that flags 2026 as a part-year (YTD) so a shorter bar isn't misread as a decline
 const ytdTip={tooltip:{callbacks:{afterLabel:function(c){return String(c.label)==='2026'?'Part-year: Jan 1 - Jul 16, 2026 (YTD) - not a full year':'';}}}};
-const ytdNote='<div class="insight" style="background:#eef4f0;border-left-color:#D0473E">2026 shows <b>actual gross to date ($0.59M, Jan 1 - 16 Jul)</b> - it is a partial year, not a decline, so it is not comparable to the full years next to it. On a like-for-like H1 (Jan-Jun) basis, 2026 gross is <b>+42% ahead of the same period in 2025</b>.</div>';
+const ytdNote='<div class="insight" style="background:var(--vh-panel-tan);border-left-color:#D0473E">2026 shows <b>actual gross to date ($0.59M, Jan 1 - 16 Jul)</b> - it is a partial year, not a decline, so it is not comparable to the full years next to it. On a like-for-like H1 (Jan-Jun) basis, 2026 gross is <b>+42% ahead of the same period in 2025</b>.</div>';
 // smart labels for line series: show value at the peak and the latest point only (keeps lines readable)
 function lineLabels(fmt){return {display:function(ctx){return ctx.dataset.data[ctx.dataIndex]!=null;},
   anchor:'end',align:'top',offset:3,font:{size:7,weight:'700'},clamp:true,

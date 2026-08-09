@@ -106,7 +106,7 @@ function buildBriefFromEntry(entry, fw) {
     (entry.feedback && String(entry.feedback).trim()) ? `\nREVIEWER FEEDBACK to incorporate on this regeneration (highest priority, override earlier guidance where it conflicts): ${String(entry.feedback).trim()}` : null,
     '',
     'Strategist guidance:',
-    `- Stay strictly on KNICKGASM brand voice: warm, sensory, story-driven. No "transform", no "streetwear journey", no all-caps urgency.`,
+    `- Stay strictly on KNICKGASM brand voice: warm, sensory, story-driven. No "transform", no "wellness journey", no all-caps urgency.`,
     `- Match the archetype layout convention (see project brand spec).`,
     `- One CTA, one hero product, optional 2-3 supporting products.`,
     `- For ${entry.segment}: ${segmentVoiceGuide(entry.segment, entry.content_type)}`,

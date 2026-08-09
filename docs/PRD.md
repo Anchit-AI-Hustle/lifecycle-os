@@ -49,7 +49,7 @@ V1 features are upgraded by customising the base version only where needed. Wher
 
 The chronology matters because every module was pulled into existence by a concrete operational pain, not speculatively:
 
-1. **It started as the Mailer Studio** (`lifecycle_mailer_architect_v34.html` — the "v34" records 34 iterations of a single-file app). The original need: producing brand-correct lifecycle emails was slow, inconsistent, and dependent on a designer's availability; generic AI output drifted off-brand (wrong greens, wrong fonts, "streetwear journey" copy). The answer was a wizard that bakes the brand style guide into the generation itself.
+1. **It started as the Mailer Studio** (`lifecycle_mailer_architect_v34.html` — the "v34" records 34 iterations of a single-file app). The original need: producing brand-correct lifecycle emails was slow, inconsistent, and dependent on a designer's availability; generic AI output drifted off-brand (wrong greens, wrong fonts, "wellness journey" copy). The answer was a wizard that bakes the brand style guide into the generation itself.
 2. **Generation needs targeting** → the **Data Analysis dashboard** was built so briefs come from RFM segments, cohort retention and send-time behavior instead of guesswork.
 3. **Targeting needs cadence** → the **Marketing Calendar** turned analytics into a 30-day, festival-aware send plan that feeds the Studio one click per row.
 4. **Cadence needs context** → the **Competitor Benchmarking** system began capturing every competitor email automatically (a dedicated Gmail inbox + IMAP sync into a Google Sheet), then grew ad libraries and landing-page tracking, because promo cadence decisions are made relative to the market.
@@ -295,7 +295,7 @@ Source of truth: `Brand style guide.pdf`, codified in `_shared/master-prompt.js`
 
 - **Palette — ONLY four colors:** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk. Known drift tints are explicitly banned and were purged.
 - **Typography:** headings **Montserrat**, body **Instrument Sans** (with exact fallback stacks and `@font-face` sources). No substitute primaries.
-- **Banned phrases:** "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
+- **Banned phrases:** "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
 - **Preferred vocabulary:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 - **Voice:** warm, sensory, story-driven; testimonials read as tiny personal stories with region-matched names.
 - **P01 ad mandate (Aman):** *sell happiness, not ingredients* — emotional end-state creative for women 45+/busy mums, 1-second scroll-stop, offer text baked into the image ("Starter Pack 65% OFF + free frother + scoop").

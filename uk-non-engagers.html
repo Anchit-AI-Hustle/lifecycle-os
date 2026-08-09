@@ -11,8 +11,8 @@
      violet used as accent-text) — accents re-assigned to chalk/lava here. */
   :root {
     --violet:#D0473E; --lava:#6A33D8; --chalk:#FFFFFF;
-    --canvas:var(--bg,#D0473E); --card:var(--surface,#075C39);
-    --ink:var(--vh-ink,#FFFFFF); --soft:var(--ink-dim,#E4CF94);
+    --canvas:var(--bg,#D0473E); --card:var(--surface,var(--vh-ink));
+    --ink:var(--vh-ink,#FFFFFF); --soft:var(--ink-dim,var(--vh-lava));
     --line:rgba(171,135,67,0.28);
   }
   * { box-sizing:border-box; }

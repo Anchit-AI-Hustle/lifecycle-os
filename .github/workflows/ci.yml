@@ -34,6 +34,10 @@ jobs:
         # theme.css tokens, CLAUDE.md constants and Supabase brand-kit seed are
         # generated from it. Fail rather than let a hand-edit drift them apart.
         run: npm run brand:check
+      - name: Every element and word of every page
+        # 65 pages, ~240k words. Blocks wrong-industry vocabulary, fabricated
+        # proof, banned phrases used as copy, dead links and off-brand colour.
+        run: npm run audit:pages:ci
       - name: Build catalog
         run: npm run build
 
