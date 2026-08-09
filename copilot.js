@@ -109,6 +109,8 @@
   function loadKB() {
     if (KB.ready) return Promise.resolve(KB);
     var region = regionGuess();
+    // Brand-aware: the static JSON is tenant zero's catalogue only.
+    if (window.BrandCatalog) return window.BrandCatalog.load(region).then(function (r) { return r.products; });
     return fetch('/data/catalog/products_' + region + '.json', { cache: 'force-cache' })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (list) {
