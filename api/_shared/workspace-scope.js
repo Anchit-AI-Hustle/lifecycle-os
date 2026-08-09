@@ -79,4 +79,38 @@ async function stamp(table, rows, env, req, explicit) {
   return Array.isArray(rows) ? out : out[0];
 }
 
-module.exports = { SCOPED_TABLES, isScoped, resolve, defaultWorkspaceId, filterFor, stamp };
+
+/**
+ * The BRAND RECORD for a workspace, read with the service-role key.
+ *
+ * Server-side generation (the daily cron, prebuild, approve) has no user token,
+ * so it cannot go through the RLS-protected brand router - but it still must
+ * build assets from the RIGHT brand. Without this, every generated mailer and
+ * ad fell back to tenant zero and carried that brand's palette, voice, claims
+ * and logo into another company's workspace.
+ *
+ * Returns null when it cannot resolve one; callers must then decline to
+ * generate rather than quietly using a default brand.
+ */
+const BRAND_CACHE = new Map();
+const BRAND_TTL = 60_000;
+
+async function brandForWorkspace(env, workspaceId) {
+  const id = String(workspaceId || '');
+  if (!id || !env || !env.url || !env.key) return null;
+  const hit = BRAND_CACHE.get(id);
+  if (hit && Date.now() - hit.at < BRAND_TTL) return hit.brand;
+  try {
+    const r = await fetch(`${env.url}/rest/v1/brand_workspaces?id=eq.${encodeURIComponent(id)}&select=*&limit=1`, {
+      headers: { apikey: env.key, Authorization: `Bearer ${env.key}` },
+    });
+    if (!r.ok) return null;
+    const rows = await r.json().catch(() => []);
+    const brand = rows[0] || null;
+    if (brand) BRAND_CACHE.set(id, { brand, at: Date.now() });
+    return brand;
+  } catch (_) { return null; }
+}
+
+module.exports = {
+  brandForWorkspace, SCOPED_TABLES, isScoped, resolve, defaultWorkspaceId, filterFor, stamp };

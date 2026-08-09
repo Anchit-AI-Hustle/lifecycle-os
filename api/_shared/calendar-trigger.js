@@ -353,6 +353,7 @@ module.exports = async function handler(req, res) {
       cta_url: ctaUrl,
       html: renderTextVariant({ ...sharedText, style: 'pure' }),
       master_prompt: buildMasterPrompt({
+        brand: entry.brand || null,
         assetType: 'mailer', variant: 'V1', market, brief, products: promptProducts, cohort: entry.segment,
       }),
     },
@@ -376,6 +377,7 @@ module.exports = async function handler(req, res) {
         `elegant negative space, cinematic light. Brand palette only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). ` +
         `Mood: warm, restrained, gift-worthy. No on-image text.`,
       master_prompt: buildMasterPrompt({
+        brand: entry.brand || null,
         assetType: 'mailer', variant: 'V2', market, brief, products: promptProducts, cohort: entry.segment,
       }),
     },
