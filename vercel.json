@@ -46,6 +46,50 @@
   },
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "knickgasm-lifecycle-os.anchit-tandon.com"
+        }
+      ],
+      "destination": "https://lifecycle-os.anchit-tandon.com/",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "knickgasm.vercel.app"
+        }
+      ],
+      "destination": "https://lifecycle-os.anchit-tandon.com/",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "knickgasm-anchit-ai-hustle.vercel.app"
+        }
+      ],
+      "destination": "https://lifecycle-os.anchit-tandon.com/",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "lifecycle-os.vercel.app"
+        }
+      ],
+      "destination": "https://lifecycle-os.anchit-tandon.com/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [
         {
