@@ -25,7 +25,7 @@ TYPOGRAPHY (strict): Headings = 'Montserrat' 700/800 (fallback 'Raleway',Arial,s
 LOGO (header, exact — never substitute): <img src="https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332" alt="KNICKGASM" /> at a restrained header height (~30px).
 FOOTER: "Privacy Policy" and "Terms of Service" must be plain labels with href="#" and no target/onclick routing.
 PREFERRED words: custom, hand-painted, one-of-one, grail, canvas, colorway, drop, rotation, crafted, original.
-BANNED phrases (never use): "streetwear journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (in caps), "hurry", "don't miss out", "last chance", "while supplies last".
+BANNED phrases (never use): "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (in caps), "hurry", "don't miss out", "last chance", "while supplies last", and ANY counterfeit implication ("replica", "knock-off", "first copy", "fake pair") - the pairs are hand-painted on 100% original sneakers.
 NEVER: off-palette tints, counterfeit/replica implications (always "made on 100% original brand sneakers"), fake scarcity, ALL-CAPS urgency, fabricated filenames/URLs/selectors.`;
 
 // ── Regional facts ──────────────────────────────────────────────────────────

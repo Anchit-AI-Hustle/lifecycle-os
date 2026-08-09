@@ -346,8 +346,8 @@
         '<option value="__custom"' + (GOOGLE_FONTS.indexOf(f.family) < 0 ? ' selected' : '') + '>Custom (a font you host yourself)</option>' +
       '</select>' +
       '<div data-custom="' + slot + '" style="' + (GOOGLE_FONTS.indexOf(f.family) < 0 ? '' : 'display:none') + ';margin-top:9px">' +
-        '<input type="text" data-custom-family="' + slot + '" placeholder="Family name, e.g. Söhne" value="' + esc(GOOGLE_FONTS.indexOf(f.family) < 0 ? f.family : '') + '">' +
-        '<input type="text" style="margin-top:7px" data-custom-stack="' + slot + '" placeholder="CSS stack, e.g. \'Söhne\',Helvetica,sans-serif" value="' + esc(GOOGLE_FONTS.indexOf(f.family) < 0 ? (f.stack || '') : '') + '">' +
+        '<input type="text" data-custom-family="' + slot + '" placeholder="Family name, e.g. Montserrat" value="' + esc(GOOGLE_FONTS.indexOf(f.family) < 0 ? f.family : '') + '">' +
+        '<input type="text" style="margin-top:7px" data-custom-stack="' + slot + '" placeholder="CSS stack, e.g. \'Montserrat\',Helvetica,sans-serif" value="' + esc(GOOGLE_FONTS.indexOf(f.family) < 0 ? (f.stack || '') : '') + '">' +
         '<p class="muted" style="margin-top:6px">A custom family is not fetched from Google Fonts. Make sure your own @font-face is served, or the stack falls back.</p>' +
       '</div></div>';
   }
@@ -423,10 +423,10 @@
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">This is the identity every generated asset will carry. Leave anything you are not sure of blank — the platform reports missing data rather than inventing it.</p>' +
-        '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. Northbound Coffee"></div>' +
+        '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
         '<div class="row">' +
-          '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="Slow roasted, small batch"></div>' +
-          '<div class="field"><label>Industry</label><input type="text" data-path="industry" value="' + esc(brand.industry) + '" placeholder="Coffee / D2C"></div>' +
+          '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="one line that says what you make"></div>' +
+          '<div class="field"><label>Industry</label><input type="text" data-path="industry" value="' + esc(brand.industry) + '" placeholder="e.g. Custom sneakers / D2C"></div>' +
         '</div>' +
         '<div class="row">' +
           '<div class="field"><label>Website</label><input type="url" data-path="website" value="' + esc(brand.website) + '" placeholder="https://yourbrand.com"></div>' +

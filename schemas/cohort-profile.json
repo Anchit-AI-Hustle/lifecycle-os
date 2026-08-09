@@ -249,7 +249,7 @@
             "type": "string",
             "enum": [
               "airbrush_coffee",
-              "adaptogen_blends",
+              "statement piece_blends",
               "heritage_tea",
               "supplements",
               "gifting",

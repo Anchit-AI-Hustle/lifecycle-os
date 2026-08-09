@@ -65,7 +65,7 @@ Genuinely real-data-only, honestly gates unavailable metrics, decomposition now 
 
 ### `/studio` — Mailer Studio — **5** (lowest)
 Excellent plumbing (cascade fallthrough, key rotation, OpenAI-400 quota detection, A/B archetype-family divergence). Disqualifying correctness gaps:
-- **B1** — invents reviewer names, testimonial quotes, `4.8/50,000+ reviews`, and **guesses prices** (name-heuristic FX) with fake SAVE badges when catalog price is missing.
+- **B1** — invents reviewer names, testimonial quotes, `4.8/India's largest sneaker customisers`, and **guesses prices** (name-heuristic FX) with fake SAVE badges when catalog price is missing.
 - **Brand gates run only on LLM text, not the deterministic render path** — "LIMITED TIME ONLY" and em/en-dashes leak into shipped copy. → port `sanitizeBrand`/`scrubDashes` to the client render step.
 - **Palette check is a 6-item denylist** → make it a 4-colour allowlist.
 - **`design` image mode** bakes a full email (garbled text/price/reviews) into the hero → restrict to text-free photography.

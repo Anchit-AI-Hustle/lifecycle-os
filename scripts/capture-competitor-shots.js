@@ -25,17 +25,17 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 
 // homepage + an optional product/collection page per brand
 const TARGETS = [
-  { slug: "blue-bottle",    home: "https://bluebottlecoffee.com/",            product: "https://bluebottlecoffee.com/us/eng/store/subscriptions" },
-  { slug: "trade",          home: "https://www.drinktrade.com/",              product: "https://www.drinktrade.com/coffees" },
-  { slug: "onyx",           home: "https://onyxcoffeelab.com/",               product: "https://onyxcoffeelab.com/collections/coffee" },
-  { slug: "four-sigmatic",  home: "https://foursigmatic.com/",                product: "https://foursigmatic.com/collections/coffee" },
-  { slug: "mudwtr",         home: "https://mudwtr.com/",                       product: "https://mudwtr.com/products/starter-kit" },
-  { slug: "ryze",           home: "https://ryze.co/",                          product: "https://ryze.co/products/mushroom-coffee" },
-  { slug: "vital-proteins", home: "https://www.vitalproteins.com/",           product: "https://www.vitalproteins.com/collections/collagen" },
-  { slug: "obvi",           home: "https://myobvi.com/",                       product: "https://myobvi.com/collections/all" },
-  { slug: "cometeer",       home: "https://cometeer.com/",                     product: "https://cometeer.com/pages/coffee" },
-  { slug: "jot",            home: "https://jot.co/",                           product: "https://jot.co/products/original-ultra-coffee" },
-  { slug: "bruvi",          home: "https://www.bruvi.com/",                    product: "https://www.bruvi.com/collections/coffee" }
+  { slug: "cheeky-sneeky", home: "https://cheekysneeky.com/", product: "https://cheekysneeky.com/" },
+  { slug: "courtside", home: "https://www.courtside.store/", product: "https://www.courtside.store/" },
+  { slug: "kickstradomis", home: "https://kickstradomis.com/", product: "https://kickstradomis.com/" },
+  { slug: "md-customs", home: "https://www.mdcustoms.in/en-us/", product: "https://www.mdcustoms.in/en-us/" },
+  { slug: "moreiarty", home: "https://www.moreiarty.in/", product: "https://www.moreiarty.in/" },
+  { slug: "shoes-your-daddy", home: "https://www.shoesyourdaddy.in/", product: "https://www.shoesyourdaddy.in/" },
+  { slug: "sneak-peek-shoes", home: "https://www.handpaintedsneaker.com/", product: "https://www.handpaintedsneaker.com/" },
+  { slug: "sneakaboo", home: "https://www.instagram.com/sneakaboo.in/", product: "https://www.instagram.com/sneakaboo.in/" },
+  { slug: "the-leather-works-tlw-ar", home: "https://theleatherworks.in/", product: "https://theleatherworks.in/" },
+  { slug: "the-shoe-surgeon-srgn", home: "https://www.thesurgeon.com/", product: "https://www.thesurgeon.com/" },
+  { slug: "crepdog-crew", home: "https://crepdogcrew.com/", product: "https://crepdogcrew.com/" },
 ];
 
 async function shoot(page, url, file) {

@@ -5,39 +5,39 @@
   "store": "knickgasm.com",
   "cohorts": {
     "Champions": {
-      "size": 276,
+      "size": 301,
       "definition": "R5F5M5 — repeat custom buyers, 90d active"
     },
     "Loyal Customers": {
-      "size": 507,
+      "size": 551,
       "definition": "F>=3 or M top-quintile"
     },
     "Potential Loyalist": {
-      "size": 691,
+      "size": 752,
       "definition": "2nd order within 60d window"
     },
     "New Customers": {
-      "size": 1106,
+      "size": 1202,
       "definition": "first order <=30d"
     },
     "Promising": {
-      "size": 553,
+      "size": 601,
       "definition": "first order 31-90d, engaged"
     },
     "Need Attention": {
-      "size": 461,
+      "size": 501,
       "definition": "slipping recency, mid F/M"
     },
     "About to Sleep": {
-      "size": 415,
+      "size": 451,
       "definition": "R low, last order 90-180d"
     },
     "At Risk": {
-      "size": 369,
+      "size": 401,
       "definition": "high M historic, R very low"
     },
     "Hibernating": {
-      "size": 230,
+      "size": 250,
       "definition": ">180d inactive"
     }
   }
