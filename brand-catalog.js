@@ -138,8 +138,45 @@
     });
   }
 
+  /* ── Shipped tenant-zero datasets ────────────────────────────────────────
+     Several pages read static JSON that describes TENANT ZERO specifically -
+     its analytics, its cohort sizes, its commercial moments, its product-type
+     taxonomy, its verified asset library. Those are facts about one brand, so
+     serving them to another workspace is exactly the cross-brand leak the
+     platform must not have. loadData() returns them ONLY to tenant zero and
+     otherwise returns null with a reason, so the caller renders an empty state.
+
+     A dataset that is genuinely brand-independent does not belong here. */
+  var TENANT_ZERO_DATA = {
+    'analytics':     '/data/analytics/market-data.json',
+    'cohort-sizes':  '/data/cohort-sizes.json',
+    'moments':       '/data/festivals.json',
+    'product-types': '/data/product-types.json',
+    'brand-assets':  '/data/brand-assets/us.json',
+    'live-shopify':  '/data/analytics/live-shopify.json',
+  };
+
+  function loadData(name) {
+    var url = TENANT_ZERO_DATA[name];
+    if (!url) return Promise.resolve({ data: null, source: 'none', reason: 'unknown dataset: ' + name });
+    return activeBrand().then(function (brand) {
+      if (!brand) return { data: null, source: 'none', reason: 'no active brand' };
+      if (!isTenantZero(brand)) {
+        return {
+          data: null, source: 'none',
+          reason: 'This dataset describes ' + SHIPPED_SLUG + ', not ' + (brand.name || 'this brand') +
+                  '. Connect ' + (brand.name || 'the brand') + '\'s own data rather than reading another brand\'s numbers.',
+        };
+      }
+      return fetch(url, { cache: 'force-cache' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { return { data: d, source: 'shipped', reason: '' }; })
+        .catch(function () { return { data: null, source: 'none', reason: 'dataset unavailable' }; });
+    }).catch(function () { return { data: null, source: 'none', reason: 'lookup failed' }; });
+  }
+
   window.BrandCatalog = {
-    load: load, loadOfferings: loadOfferings, invalidate: invalidate,
-    SHIPPED_SLUG: SHIPPED_SLUG, DATE_BOUND: DATE_BOUND,
+    load: load, loadOfferings: loadOfferings, loadData: loadData, invalidate: invalidate,
+    SHIPPED_SLUG: SHIPPED_SLUG, DATE_BOUND: DATE_BOUND, TENANT_ZERO_DATA: TENANT_ZERO_DATA,
   };
 })();
