@@ -50,7 +50,7 @@
   var SHIPPED_NAME_TEST = /\bKNICKGASM\b|\bKnickgasm\b/;
   var SHIPPED_ASSISTANT_TEST = /\bKicksGPT\b/;
 
-  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false };
+  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false };
   var listeners = [];
   var readyResolve;
   var readyPromise = new Promise(function (r) { readyResolve = r; });
@@ -315,7 +315,20 @@
   }
 
   function showGate(opts) {
-    if (gateExempt() || document.getElementById(GATE_ID)) return;
+    if (gateExempt()) return;
+    var existing = document.getElementById(GATE_ID);
+    // A gate is already up: only re-render when the BUSY state actually
+    // changed. Returning unconditionally (the original bug) meant the busy
+    // gate could never become the actionable one, so the app hung on
+    // "Checking your brand..." forever.
+    if (existing) {
+      var wasBusy = existing.getAttribute('data-busy') === '1';
+      var wasOut = existing.getAttribute('data-signedout') === '1';
+      var isBusy = !!(opts && opts.busy);
+      var isOut = !!(opts && opts.signedOut);
+      if (wasBusy === isBusy && wasOut === isOut) return;
+      existing.parentNode.removeChild(existing);
+    }
     if (!document.body) { document.addEventListener('DOMContentLoaded', function () { showGate(opts); }); return; }
     var o = opts || {};
     var el = document.createElement('div');
@@ -323,6 +336,8 @@
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', 'Choose a brand to continue');
+    el.setAttribute('data-busy', o.busy ? '1' : '0');
+    el.setAttribute('data-signedout', o.signedOut ? '1' : '0');
     el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(255,255,255,.97);' +
       'backdrop-filter:saturate(120%) blur(3px);display:flex;align-items:center;justify-content:center;' +
       'padding:24px;font-family:var(--brand-font-body,system-ui,-apple-system,Segoe UI,sans-serif);color:#111';
@@ -330,15 +345,19 @@
       '<div style="max-width:560px;width:100%;text-align:left">' +
         '<div style="font-size:12px;letter-spacing:.09em;text-transform:uppercase;opacity:.55;margin-bottom:10px">Lifecycle OS</div>' +
         '<h1 style="font-family:var(--brand-font-heading,inherit);font-size:clamp(22px,4vw,30px);margin:0 0 10px;line-height:1.15">' +
-          (o.busy ? 'Checking your brand...' : 'Choose a brand to continue') + '</h1>' +
+          (o.busy ? 'Checking your brand...' : o.signedOut ? 'Sign in to continue' : 'Choose a brand to continue') + '</h1>' +
         '<p style="margin:0 0 18px;line-height:1.6;font-size:14.5px;opacity:.8">' +
           (o.busy
             ? 'One moment while we load your workspace.'
-            : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
+            : o.signedOut
+              ? 'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands. If sign-in fails, the Google OAuth client needs this callback allowed: https://fswdwmkgggzyxrdzabnh.supabase.co/auth/v1/callback'
+              : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
-          '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>' +
+          (o.signedOut
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Google</button>'
+            : '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>') +
           '<button type="button" data-gate-about style="background:transparent;color:#111;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer">About this platform</button>' +
         '</div>' +
         '<div data-gate-aboutbody hidden style="border-top:1px solid rgba(0,0,0,.12);padding-top:14px;font-size:13.5px;line-height:1.65;opacity:.85">' +
@@ -349,6 +368,19 @@
       '</div>';
     document.documentElement.style.overflow = 'hidden';
     document.body.appendChild(el);
+    var signin = el.querySelector('[data-gate-signin]');
+    if (signin) signin.addEventListener('click', function () {
+      signin.textContent = 'Opening Google...';
+      try {
+        var a = window.LifecycleAuth;
+        if (a && a.client) {
+          a.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+          return;
+        }
+      } catch (_) {}
+      // auth.js has not booted yet; it runs the same sign-in on load.
+      location.reload();
+    });
     var btn = el.querySelector('[data-gate-about]');
     if (btn) btn.addEventListener('click', function () {
       var b = el.querySelector('[data-gate-aboutbody]');
@@ -365,7 +397,7 @@
   function enforceGate() {
     if (gateExempt()) { removeGate(); return; }
     if (state.brand) { removeGate(); return; }
-    showGate({ busy: !state.loaded });
+    showGate({ busy: !state.loaded, signedOut: state.signedOut });
   }
 
   function gateToOnboarding() { enforceGate(); }
@@ -376,6 +408,7 @@
       state.brand = r.brand || null;
       state.needsOnboarding = !!r.needs_onboarding;
       state.workspaces = r.workspaces || [];
+      state.signedOut = false;
       state.loaded = true;
       if (state.brand) { writeCache(state.brand); paint(state.brand); }
       else writeCache(null);
@@ -388,10 +421,13 @@
       // 401 means this session is not (or no longer) valid. Anything cached
       // belongs to a session we cannot verify, so stop showing it rather than
       // leaving another account's brand on screen indefinitely.
-      if (e.status === 401) { clearCache(); state.brand = null; }
+      if (e.status === 401) { clearCache(); state.brand = null; state.signedOut = true; }
       else log(e);
       state.loaded = true;
       emit();
+      // Settle the gate on failure too. Without this a signed-out session (401)
+      // or any transient network error left the busy gate up with no buttons.
+      enforceGate();
       return state.brand;
     } finally {
       readyResolve(state.brand);
@@ -422,13 +458,21 @@
   // briefly live: links are clickable and forms focusable during the round
   // trip. If a cached brand exists the gate never appears; if the revalidation
   // then says there is no active brand, enforceGate() puts it up.
-  if (!cached) enforceGate();
+  if (!cached) {
+    enforceGate();
+    // Hard deadline: whatever happens to the network, the user must not be
+    // left staring at a spinner with no action. After this the gate shows its
+    // buttons regardless.
+    setTimeout(function () {
+      if (!state.loaded) { state.loaded = true; enforceGate(); }
+    }, 6000);
+  }
 
   // 2. Revalidate. Wait for auth to have a session, but never wait forever.
   function start() {
     var tries = 0;
     (function attempt() {
-      if (token() || tries > 20) { refresh(); return; }
+      if (token() || tries > 10) { refresh(); return; }
       tries++;
       setTimeout(attempt, 150);
     })();
