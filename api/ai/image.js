@@ -433,3 +433,13 @@ module.exports = async function handler(req, res) {
       : 'All image providers failed (OpenAI gpt-image-2/1, Gemini, Pollinations). Usually the OpenAI org is not verified for image generation or has no credits — verify at platform.openai.com → Settings → Organization. Showing brand placeholder.'
   });
 };
+
+// ── Metering (Universal Brand Platform) ────────────────────────────────────
+// Image generation is the second most expensive call in the app, so it must be
+// charged. 'reels' mode is a distinct, pricier product in the catalog.
+const _credits = require('../_shared/credits-core.js');
+module.exports = _credits.metered(
+  module.exports,
+  (req, body) => (String(body.mode || '').toLowerCase() === 'reels' ? 'image.reels' : 'image.generate')
+);
+

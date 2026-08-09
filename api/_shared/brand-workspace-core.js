@@ -808,9 +808,28 @@ async function deleteWorkspace(auth, id) {
   return { ok: true, deleted: id };
 }
 
-async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true }) {
-  const ws = await getWorkspace(auth, workspace_id);
+/** Owner or editor. A `viewer` may read a workspace but must not change it. */
+async function assertCanWrite(auth, workspaceId, what) {
+  const ws = await getWorkspace(auth, workspaceId);
   if (!ws) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
+  if (ws.owner_id === auth.user_id) return ws;
+  let role = 'viewer';
+  try {
+    const rows = await restAs(auth.token, `brand_workspace_members?select=role&workspace_id=eq.${encodeURIComponent(workspaceId)}&user_id=eq.${encodeURIComponent(auth.user_id)}&limit=1`);
+    if (Array.isArray(rows) && rows[0] && rows[0].role) role = String(rows[0].role);
+  } catch (_) { /* least privilege on an unknown role */ }
+  if (role !== 'owner' && role !== 'editor') {
+    const e = new Error(`Your role on this brand is "${role}", which can view it but not ${what || 'change it'}. Ask the workspace owner for editor access.`);
+    e.status = 403; throw e;
+  }
+  return ws;
+}
+
+async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true }) {
+  // A replacement import can destroy the whole catalog, so membership is not
+  // enough — this needs write permission. The RLS policy enforces it too
+  // (20260809150000), but failing here gives the user a real message.
+  const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
   const reg = str(region, 12).toLowerCase() || 'us';
   const k = str(kind).toLowerCase();
 
@@ -827,23 +846,26 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
 
   if (!parsed.rows.length) { const e = new Error('No usable product rows were found in that source.'); e.status = 400; throw e; }
 
-  if (replace) {
-    await restAs(auth.token, `brand_catalog_products?workspace_id=eq.${encodeURIComponent(workspace_id)}&region=eq.${encodeURIComponent(reg)}`, {
-      method: 'DELETE', prefer: 'return=minimal',
-    });
-  }
-
   // De-dupe on the table's unique key before insert so one bad source row can't
   // abort the whole import.
+  const batch = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : require('crypto').randomUUID();
   const seen = new Set();
   const payload = [];
   for (const r of parsed.rows) {
     const key = `${r.region}|${r.handle || ''}|${r.sku || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    payload.push(Object.assign({ workspace_id }, r));
+    payload.push(Object.assign({ workspace_id, import_batch: batch }, r));
   }
 
+  // STAGE AND SWAP. The old rows are NOT deleted up front: every new row is
+  // written first under a fresh batch id, and only once they are all in are the
+  // previous ones removed. A transient PostgREST failure or a timeout part-way
+  // through therefore leaves the previous catalog intact, rather than an empty
+  // or half-replaced one. PostgREST has no multi-statement transaction, so this
+  // ordering is what provides the atomicity that matters here.
   let inserted = 0;
   for (let i = 0; i < payload.length; i += 500) {
     const chunk = payload.slice(i, i + 500);
@@ -853,11 +875,19 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     inserted += chunk.length;
   }
 
+  if (replace) {
+    // Everything for this region that is not part of the batch just written.
+    await restAs(auth.token, `brand_catalog_products?workspace_id=eq.${encodeURIComponent(workspace_id)}&region=eq.${encodeURIComponent(reg)}&or=(import_batch.is.null,import_batch.neq.${encodeURIComponent(batch)})`, {
+      method: 'DELETE', prefer: 'return=minimal',
+    });
+  }
+
   const source = {
     kind: k === 'storefront' ? 'shopify_public' : k,
     url: k === 'storefront' ? (parsed.base || httpUrl(url)) : '',
     imported_at: new Date().toISOString(),
     row_count: inserted,
+    batch,
     region: reg,
     columns: parsed.columns || {},
   };
@@ -1010,5 +1040,5 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, listCatalog,
+  importCatalog, listCatalog, assertCanWrite,
 };

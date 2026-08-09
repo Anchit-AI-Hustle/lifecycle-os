@@ -666,7 +666,8 @@
         '<div class="card"><button class="mic" id="mic">' + (SR ? 'Talk' : 'No mic') + '</button>' +
           '<div class="status" id="status">Connecting the call…</div>' +
           '<button class="btn danger" id="endCall" style="width:100%;margin-top:12px;justify-content:center">End call</button>' +
-          '<p class="muted" style="margin-top:10px;font-size:11px">Speech recognition and playback run in your browser. Only the agent turn is generated on the server. Individual turns are free: the call is charged once when it ends, for its real length.</p>' +
+          '<p class="muted" style="margin-top:10px;font-size:11px">Speech recognition and playback run in your browser. Only the agent turn is generated on the server. The call is metered per minute as it runs, so you only pay for the minutes you actually use, even if you close the tab.</p>' +
+          '<div class="status" id="billed" style="margin-top:8px"></div>' +
         '</div>' +
       '</div><div id="callout"></div>';
 
@@ -695,13 +696,17 @@
     async function agentTurn(utterance) {
       status('Thinking…');
       try {
-        var r = await ts('voice_turn', { input: Object.assign({}, cfg, { mode: s.mode, history: history, utterance: utterance }) });
+        var r = await ts('voice_turn', { input: Object.assign({}, cfg, { mode: s.mode, call_id: callId, history: history, utterance: utterance }) });
         var out = r.result || {};
         var say = out.say || 'Sorry, I did not catch that.';
         history.push({ role: 'agent', text: say, intent: out.intent, note: out.internal_note });
         paintTurns();
         if (out.needs_fact) status('Agent flagged a missing fact: ' + out.needs_fact);
         else status(out.intent ? 'Intent: ' + out.intent : 'Your turn.');
+        if (r.billed_minutes != null) {
+          var bm = document.getElementById('billed');
+          if (bm) bm.textContent = r.billed_minutes + ' minute(s) billed so far';
+        }
         speak(say);
         if (out.should_end) setTimeout(function () { endCall(); }, 1800);
       } catch (e) {
@@ -767,7 +772,7 @@
           '<h2>Call saved</h2><div class="card"><p class="muted">' + res.turns + ' turns over about ' + res.minutes + ' minute(s). ' +
           'It is now in the ' + esc(s.mode === 'sales' ? 'Voice Sales DB' : 'Voice Support DB') + '.</p>' +
           '<div class="transcript" style="margin-top:12px">' + esc(res.transcript) + '</div>' +
-          (r.credits ? '<p class="muted" style="margin-top:12px">Charged <b>' + fmt(r.credits.charged) + '</b> credits for ' + r.credits.units + ' minute(s).</p>' : '') +
+          (res.billed_minutes ? '<p class="muted" style="margin-top:12px">Billed <b>' + res.billed_minutes + '</b> minute(s) of call time.</p>' : '') +
           '</div>' + scoreHtml;
         status('Call ended and scored.');
       } catch (e) { handleRunError(e, $('callout')); status('Call ended.'); }

@@ -50,11 +50,48 @@
 
   function log(e) { try { console.warn('[brand-context]', e && e.message ? e.message : e); } catch (_) {} }
 
+  /* The cache is scoped to the signed-in user. A single browser is often shared,
+     and a brand payload carries voice rules, regions and store URLs — so it must
+     never survive into another account's session. The entry records the user id
+     it belongs to and is discarded when that does not match, or when there is no
+     session at all. clearCache() also runs on sign-out. */
+  function currentUserId() {
+    try {
+      var a = window.LifecycleAuth;
+      var u = a && a.session && a.session.user && a.session.user.id;
+      if (u) return u;
+    } catch (_) {}
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || k.indexOf('-auth-token') < 0) continue;
+        var v = JSON.parse(localStorage.getItem(k) || 'null');
+        var s = v && (v.user || (v.currentSession && v.currentSession.user));
+        if (s && s.id) return s.id;
+      }
+    } catch (_) {}
+    return '';
+  }
+
   function readCache() {
-    try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (_) { return null; }
+    try {
+      var raw = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (!raw || !raw.uid || !raw.brand) return null;
+      var uid = currentUserId();
+      // No verified session, or a different account: never paint this.
+      if (!uid || uid !== raw.uid) { clearCache(); return null; }
+      return raw.brand;
+    } catch (_) { return null; }
   }
   function writeCache(b) {
-    try { b ? localStorage.setItem(CACHE_KEY, JSON.stringify(b)) : localStorage.removeItem(CACHE_KEY); } catch (_) {}
+    try {
+      var uid = currentUserId();
+      if (b && uid) localStorage.setItem(CACHE_KEY, JSON.stringify({ uid: uid, brand: b }));
+      else clearCache();
+    } catch (_) {}
+  }
+  function clearCache() {
+    try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
   }
 
   /* ── painting ──────────────────────────────────────────────────────────── */
@@ -268,8 +305,11 @@
       if (!state.brand && state.needsOnboarding) gateToOnboarding();
       return state.brand;
     } catch (e) {
-      // 401 just means "not signed in yet" — auth.js is handling that.
-      if (!e.status || e.status !== 401) log(e);
+      // 401 means this session is not (or no longer) valid. Anything cached
+      // belongs to a session we cannot verify, so stop showing it rather than
+      // leaving another account's brand on screen indefinitely.
+      if (e.status === 401) { clearCache(); state.brand = null; }
+      else log(e);
       state.loaded = true;
       emit();
       return state.brand;
@@ -322,6 +362,7 @@
     api: api,
     paint: paint,
     token: token,
+    clearCache: clearCache,
     onChange: function (fn) { if (typeof fn === 'function') { listeners.push(fn); if (state.loaded) fn({ brand: state.brand, needsOnboarding: state.needsOnboarding, workspaces: state.workspaces }); } },
   };
 })();

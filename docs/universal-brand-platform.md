@@ -54,6 +54,20 @@ pages are exempt, so there is no redirect loop.
 Switching brands (step 6, or the **Switch Brand** nav item) re-skins immediately and switches the
 wallet with it.
 
+### The brand reaches the GENERATORS, not just the shell
+Re-skinning the browser is only paint; the prompts that produce mailers, ads, landing pages and
+calendars run on the server. `api/_shared/brand-runtime.js` is the server-side counterpart:
+`resolve(req)` returns the caller's active workspace (explicit `workspace_id` → active workspace →
+tenant zero) and `brandBlock(brand)` renders it as a prompt block carrying that brand's identity,
+voice, palette, typography, logo and regions — with `[DATA REQUIRED BEFORE LAUNCH: …]` wherever the
+brand has not supplied something, never a value inherited from tenant zero.
+
+`buildMasterPrompt()` accepts a `brand` and builds the whole prompt from it. `/api/ai/generate`
+resolves the brand per request, prepends the block to its (tenant-zero-authored) system prompts with
+an explicit instruction that it **supersedes any brand named later**, and enforces the brand's own
+banned-phrase list on the generated output as well as in the prompt. With no active brand every
+prompt is byte-identical to before.
+
 ### Design rules are enforced at save time
 `brand-workspace-core.validatePalette()` runs on the server (and mirrored live in the wizard) and
 **blocks activation** when:
@@ -133,6 +147,21 @@ execute them. `credits-core.js` verifies the caller's JWT first, then calls them
 role. A signed-in browser cannot grant itself credits or cancel its own charge. `credit_wallets` has
 a select-only policy and no insert/update policy at all.
 
+### Where the meter is actually applied
+Declaring a price does not charge anything, so the endpoints are wrapped:
+
+| Endpoint | Charged as |
+|---|---|
+| `/api/ai/generate` | by mode: `mailer.brief`, `mailer.concepts`, `mailer.generate`, `landing.generate`, `ads.generate`, `analytics.narrative`, `assistant.chat` |
+| `/api/ai/image` | `image.generate`, or `image.reels` in reels mode |
+| `/api/calendar` | `calendar.generate` on the generating actions, `mailer.generate` on mailer builds; cron-authenticated runs are never metered |
+| `/api/brain?action=telesuite` | per subfeature, from the registry |
+
+`credits.metered(handler, featureFor)` reserves before the handler runs and watches the response:
+a 2xx settles the hold into a spend and gets a `credits` receipt attached to its payload; anything
+else releases the reservation in full. Because the balance moves at **hold** time, the user's balance
+is already correct the moment a run starts.
+
 ### Prices are declared once
 `api/_shared/credit-catalog.js` is the versioned source of truth (51 features). The server charges
 from it, the UI labels every button from it, and the wallet page groups usage by it — so a feature
@@ -197,15 +226,27 @@ Browser `SpeechRecognition` and `speechSynthesis` still run client-side; only th
 generated on the server. Barge-in (customer speech cancels playback), turn-taking and automatic
 post-call scoring are preserved.
 
-**Voice calls are billed once, at the end.** The price is per minute of call, so metering each turn
-would charge a three-turn call three times and re-charge every earlier minute on each later turn.
-`voice_turn` is therefore free and `voice_finish` is the billing boundary, charging the call's real
-duration once. The client generates a `call_id` at the start of the call and the server
-short-circuits on a duplicate, so a retry or double click cannot bill the same call twice.
+**Voice calls are billed incrementally, per minute, by the server.** The price is per minute of
+call, and turns arrive one request at a time, so neither "charge every turn" nor "charge only at the
+end" is correct: the first over-charges a three-turn call inside one minute, the second lets a client
+take unlimited free turns by never finishing. Instead a server-side session (`voiceSession` /
+`billElapsed`, stored in `telesuite_runs`) owns the clock, and each turn charges only the minutes
+that have elapsed since the last charge. A three-turn call inside one minute costs one minute; an
+abandoned call still pays for the minutes it consumed; and the client cannot understate elapsed time
+because the server's own `created_at` is authoritative. `voice_finish` tops up the final part-minute
+and short-circuits on a duplicate `call_id`.
 
-**Roles are enforced server-side.** TeleSuite writes run with the service role and so bypass RLS —
-membership alone is not authorization. `context()` resolves the caller's role and a `viewer` is
-refused every mutating op (`WRITE_OPS`) with a 403.
+**Roles are enforced server-side and in RLS.** `is_brand_member()` is true for every member,
+including a `viewer`, so it is a READ test only. `is_brand_editor()` (owner or editor) is the write
+test, and the catalog, TeleSuite items and TeleSuite runs policies now use it for writes while
+keeping member reads. TeleSuite additionally checks the role in `context()` because its writes run
+with the service role and bypass RLS entirely, and `catalog-import` checks it too — a viewer could
+otherwise replace a workspace's whole catalog.
+
+**Catalog replacement is stage-and-swap.** A replacement import writes every new row under a fresh
+`import_batch` first, and only then deletes rows from earlier batches. PostgREST has no
+multi-statement transaction, so this ordering is what guarantees a failure part-way through leaves
+the previous catalog intact instead of an empty or half-written one.
 
 The page renders **entirely from the `SUBFEATURES` registry** in `telesuite-core.js`, so adding a
 subfeature is a one-object change and its cost can never drift out of sync with the UI.
