@@ -71,6 +71,45 @@
       .catch(function () { return null; });
   }
 
+  /* The brand's own offerings, with its matching PRESET as fallback. A
+     workspace onboarded from a preset (a publisher, a health vertical) has no
+     uploaded product CSV, but its offerings - sections, events, programmes,
+     plans - ARE its catalogue, and every picker and generator should list
+     them rather than an empty state. Never another brand's. */
+  var OFFERINGS_CACHE = null;
+  function hostOf(u) { try { return String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase(); } catch (_) { return ''; } }
+  function presetMatches(brand, preset) {
+    if (!brand || !preset) return false;
+    if (hostOf(brand.website) && hostOf(brand.website) === hostOf(preset.website)) return true;
+    var bs = String(brand.slug || '').toLowerCase(), ps = String(preset.slug || '').toLowerCase();
+    if (bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0)) return true;
+    var bn = String(brand.name || '').toLowerCase(), pn = String(preset.name || '').toLowerCase();
+    return !!(bn && pn && (bn.indexOf(pn) >= 0 || pn.indexOf(bn) >= 0));
+  }
+  function brandOfferings(brand) {
+    if (Array.isArray(brand.offerings) && brand.offerings.length) return Promise.resolve(brand.offerings);
+    if (brand.brand_data && Array.isArray(brand.brand_data.offerings) && brand.brand_data.offerings.length) {
+      return Promise.resolve(brand.brand_data.offerings);
+    }
+    if (OFFERINGS_CACHE) return OFFERINGS_CACHE;
+    OFFERINGS_CACHE = fetch('/api/public-config?action=brand&op=presets', { cache: 'force-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var list = (d && d.presets) || [];
+        var hit = null;
+        for (var i = 0; i < list.length; i++) if (presetMatches(brand, list[i])) { hit = list[i]; break; }
+        if (!hit || !hit.slug) return [];
+        return fetch('/api/public-config?action=brand&op=presets&slug=' + encodeURIComponent(hit.slug), { cache: 'force-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (full) {
+            var p = full && full.preset;
+            return (p && Array.isArray(p.offerings)) ? p.offerings : [];
+          });
+      })
+      .catch(function () { return []; });
+    return OFFERINGS_CACHE;
+  }
+
   function load(region) {
     var key = String(region || 'us').toLowerCase();
     if (CACHE[key]) return Promise.resolve(CACHE[key]);
@@ -83,11 +122,27 @@
       return fetchBrandCatalog(key).then(function (rows) {
         if (rows && rows.length) return { products: rows, source: 'brand', reason: '' };
         if (isTenantZero(brand)) return fetchShipped(key);
-        return {
-          products: [], source: 'none',
-          reason: 'No catalogue is connected for ' + (brand.name || 'this brand') +
-                  '. Import one from the brand setup; another brand\'s products are never substituted.',
-        };
+        // The brand's own offerings ARE its catalogue when no product store is
+        // connected. Prices are never invented for them.
+        return brandOfferings(brand).then(function (offs) {
+          if (offs && offs.length) {
+            return {
+              products: offs.map(function (o) {
+                return {
+                  n: o.title || o.name || '', i: '', t: [String(o.kind || 'product')],
+                  h: o.url || '', price: null, type: String(o.kind || 'product'),
+                  subtitle: o.note || '', offering: true,
+                };
+              }),
+              source: 'offerings', reason: '',
+            };
+          }
+          return {
+            products: [], source: 'none',
+            reason: 'No catalogue is connected for ' + (brand.name || 'this brand') +
+                    '. Import one from the brand setup; another brand\'s products are never substituted.',
+          };
+        });
       });
     }).catch(function () {
       return { products: [], source: 'none', reason: 'catalogue lookup failed' };
@@ -119,7 +174,15 @@
     return activeBrand().then(function (brand) {
       if (!brand) return { evergreen: [], upcoming: [], past: [], source: 'none', reason: 'no active brand' };
       var today = now ? new Date(now) : new Date();
-      var list = (brand.offerings || []).map(normOffering).filter(Boolean);
+      return brandOfferings(brand).then(function (raw) { return splitOfferings(brand, raw, today); });
+    }).catch(function () {
+      return { evergreen: [], upcoming: [], past: [], source: 'none', reason: 'offering lookup failed' };
+    });
+  }
+
+  function splitOfferings(brand, raw, today) {
+    {
+      var list = (raw || []).map(normOffering).filter(Boolean);
       var out = { evergreen: [], upcoming: [], past: [], source: list.length ? 'brand' : 'none', reason: '' };
       list.forEach(function (o) {
         if (!o.dateBound) { out.evergreen.push(o); return; }
@@ -133,9 +196,7 @@
           '. Add products, events, programmes, sections or plans in the brand setup.';
       }
       return out;
-    }).catch(function () {
-      return { evergreen: [], upcoming: [], past: [], source: 'none', reason: 'offering lookup failed' };
-    });
+    }
   }
 
   /* ── Shipped tenant-zero datasets ────────────────────────────────────────
