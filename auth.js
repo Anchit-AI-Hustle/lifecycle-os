@@ -237,6 +237,7 @@
       { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
       { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
     ]},
+    { id: 'brandinput', label: 'Brand Input', href: '/brand', icon: 'insights', ver: 'v2', match: ['/brand', '/brand.html'] },
     { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
     { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'], children: [
       { id: 'da-control',  label: 'Control Room',                  href: '/data-analysis?tab=control',              icon: 'analysis' },
@@ -354,6 +355,22 @@
   const INFO = {
     // Home is a plain landing link, not a content-producing feature, so it
     // deliberately has NO 5-sub-item IA entry — it renders as a simple link.
+    brandinput: {
+      title: 'Brand Input',
+      what: "The single brand-truth record for the platform: the four-colour palette, the two type families, the voice (tone, tagline, do and banned lists) and the footer identity blocks. Every generator in the OS reads this one record, so it is the place brand truth is set once instead of being retyped into each feature.",
+      who: "The brand owner and whoever stands the platform up for a brand. It is the first screen to fill when pointing this OS at a new brand.",
+      how: "Reads and writes the knickgasm_brand_kit singleton in Supabase through /api/kb?action=brand-kit. Colours are validated as #RRGGBB and the body-text-on-background pair is contrast-checked against WCAG AA before a save is allowed to look healthy. The Verify panel compares the saved palette against the prompt-side brand block in api/_shared/master-prompt.js and flags drift, because generated copy reads that block rather than the database.",
+      input: "Four hex colours, two font families with their CSS stacks, a tone line and tagline, the do and banned phrase lists, and the footer legal, contact and social values.",
+      steps: [
+        ['Ideology', 'One brand record, many consumers: never let a second copy of brand truth exist.'],
+        ['Data analysis + review + hypothesis', 'Loads the saved singleton and compares it against the live store theme and the prompt block.'],
+        ['Business & strategy decisions', 'The do and banned lists become the enforced gates every generated asset is scrubbed against.'],
+        ['Content', 'Tone, tagline and the word lists feed straight into every generation prompt.'],
+        ['Design + layout + structure', 'Palette and typography drive mailer, ad and landing-page rendering; the live preview shows the pairing before saving.'],
+        ['Coding', 'Persisted via /api/kb?action=brand-kit (GET reads, POST upserts) - no thirteenth serverless function, it extends the existing KB router.'],
+        ['Final compilation + presentation', 'Saved values are what the next generated asset uses. Runs via: /api/kb?action=brand-kit'],
+      ],
+    },
     appaudit: {
       title: 'Overall App Audit',
       what: "A live quality scorecard for the whole OS. Every feature is rated on four axes — accuracy (is the output factually true, no fabrication), implementation (code robustness), execution (does it work end-to-end in production), and results (does it drive a usable outcome). The confidence bar is 9.5: nothing is 'done' below it.",

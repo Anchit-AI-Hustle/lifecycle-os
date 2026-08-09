@@ -93,9 +93,13 @@ function deriveTags(tagsStr, type, title) {
   const titleL = (title || '').toLowerCase();
 
   // Category tags from Shopify tags field — Knickgasm custom-sneaker taxonomy.
-  // Key namespace is unchanged (kicks/green/black/detox/immunity/sleep/gift/
-  // discovery/bestseller/summer/premium) so every downstream consumer keeps
-  // working; the detection rules map Knickgasm attributes onto those keys:
+  // The KEY NAMESPACE is legacy and deliberately unchanged (kicks/green/black/
+  // detox/immunity/sleep/gift/discovery/bestseller/summer/premium) so every
+  // downstream consumer keeps working. The keys no longer mean what they say:
+  // they are now slots for Knickgasm design families, mapped below as
+  // green=anime, black=Jordan/Dunk, detox=aesthetic/tie-dye, immunity=football
+  // and sport, sleep=wedding, gift=pets and gifting, discovery=accessories,
+  // summer=bling/gaming/celebrity, premium=grail and embroidery work.
   const both = tl + ' ' + titleL;
   if (both.includes('air force') || both.includes('airforce') || both.includes('af1') || both.includes('nike')) tags.push('kicks');
   if (both.includes('anime') || both.includes('demon slayer') || both.includes('jujutsu') || both.includes('jujustu') || both.includes('dragon ball') || both.includes('naruto') || both.includes('one piece') || both.includes('cartoon')) tags.push('green');
@@ -151,7 +155,7 @@ function processCSV(filePath, market) {
   const iType        = colIdx(headers, 'Type');
   const iCategory    = colIdx(headers, 'Product Category');
   const iSubtitle    = colIdx(headers, 'Subtitle (product.metafields.custom.subtitle)', 'Product Card Subtitle');
-  const iCaffeine    = colIdx(headers, 'Paint (product.metafields.custom.paint)', 'Paint content');
+  const iPaint    = colIdx(headers, 'Paint (product.metafields.custom.paint)', 'Paint content');
   const iTasting     = colIdx(headers, 'Design Notes');
   const iForm        = colIdx(headers, 'Form (product.metafields.custom.form)');
   const iCups        = colIdx(headers, 'No. of Pairs');
@@ -208,7 +212,7 @@ function processCSV(filePath, market) {
 
     // Extract metafields from first row
     const subtitle   = iSubtitle >= 0 ? (first[iSubtitle] || '').trim() : '';
-    const paint   = iCaffeine >= 0 ? (first[iCaffeine] || '').trim() : '';
+    const paint   = iPaint >= 0 ? (first[iPaint] || '').trim() : '';
     const design    = iTasting >= 0 ? (first[iTasting] || '').trim() : '';
     const form       = iForm >= 0 ? (first[iForm] || '').trim() : '';
     const pairs       = iCups >= 0 ? (first[iCups] || '').trim() : '';

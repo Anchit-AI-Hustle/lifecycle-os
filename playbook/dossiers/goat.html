@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ryze Dossier :: Knickgasm Playbook</title>
+<title>GOAT Dossier :: Knickgasm Playbook</title>
 <link rel="icon" href="/favicon.png">
-<meta name="description" content="Forensic competitor dossier for Ryze: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
+<meta name="description" content="Forensic competitor dossier for GOAT: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: {
@@ -77,15 +77,10 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
-
-/* vh-table-align: data-table column alignment — header cells sit over their
-   columns (table-layout:fixed, equal width), the first column (row labels) is
-   left-aligned and every other column is centered. Scoped to tables that have
-   <th> so layout tables are never affected; element-level so a page's own
-   table.<class> alignment still wins. */
-table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
-table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
-table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
@@ -101,7 +96,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
@@ -113,39 +108,39 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
     </div>
   </aside>
   <main class="flex-1 min-w-0">
-    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">Ryze</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
+    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">GOAT</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
     <div class="max-w-[1080px] mx-auto px-6 md:px-10 py-10 space-y-14">
-      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">Ryze</span></nav>
+      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">GOAT</span></nav>
       <header class="space-y-3">
         <span class="text-[11px] tracking-[.18em] uppercase font-bold lava-ink">Forensic Dossier</span>
-        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Ryze</h1>
-        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Mushroom coffee. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
+        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">GOAT</h1>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Sneaker resale marketplace. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
       </header>
       <section data-section id="snapshot" class="space-y-4">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb2"><b>Tier 2</b><i>Med</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">$55.00</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">23.10%</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">High-frequency TikTok Shop loops</div></div>        </div>
-        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Gamified milestone rewards interface</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Shopify Core / Skio Sub / Klaviyo</p></div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb2"><b>Tier 2</b><i>Med</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">undefined</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">undefined</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">Editorial curation over resale</div></div>        </div>
+        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Editorial content and app engagement</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Proprietary marketplace</p></div>
       </section>
       <section data-section id="viewport" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">1. Viewport</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Desktop vs mobile UX</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Where the experience diverges across breakpoints, and where the gaps are.</p></div>
-        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Simple conversion-focused site with subscribe-and-save as the default and heavy creator and review proof.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Lightweight and fast on mobile with subscribe pre-selected, though the brand story is thin beyond the offer.</p></div>        </div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Editorial merchandising layered over a resale catalog, which raises perceived quality above a pure market interface.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Strong app browsing with editorial content and clean authentication messaging.</p></div>        </div>
       </section>
       <section data-section id="wireframes" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">2. Wireframes</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">High-fidelity asset outlines</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Labelled bounding boxes standing in for layout screenshots.</p></div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <div class="wire"><div class="wl">[SCREENSHOT: Subscribe-default PDP]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Add-to-cart with subscription pre-selected and one-time relegated to a smaller toggle.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Creator proof wall]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Grid of creator videos and reviews acting as the primary trust driver.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Mobile fast checkout]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Minimal-step express checkout optimised for paid-social first-time buyers.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Amazon parity banner]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Cross-channel reassurance for buyers who also see the brand on Amazon.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Editorial home]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Curated stories sitting above the resale catalog, doing brand work a market interface cannot.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Product page]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Sizing, condition and authentication messaging on a resale listing.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: App browse]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Editorial-led discovery in a mobile-first surface.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Authentication explainer]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Verification process presented as the reason to trust the platform.</p></div>
         </div>
       </section>
       <section data-section id="stack" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">3. Technical stack</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Infrastructure footprint</h2></div>
-        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Shopify checkout</td></tr><tr><td>Subscription app</td><td>Skio</td></tr><tr><td>Analytics suite</td><td>GA4</td></tr><tr><td>ESP / CRM</td><td>Klaviyo</td></tr><tr><td>Churn prevention hook</td><td>Subscribe-and-save default with strong creator proof driving first purchase.</td></tr></tbody></table></div>
+        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Proprietary marketplace</td></tr><tr><td>Subscription app</td><td>None</td></tr><tr><td>Analytics suite</td><td>First-party</td></tr><tr><td>ESP / CRM</td><td>App push and email</td></tr><tr><td>Churn prevention hook</td><td>Editorial content and app engagement rather than lifecycle flows.</td></tr></tbody></table></div>
       </section>
       <section data-section id="battlecard" class="space-y-4">
-<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs Ryze SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
-        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (Ryze)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>High-velocity subscribe-default funnel</li><li>Strong creator-led social proof</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Thin brand narrative beyond the offer</li><li>Heavy Amazon reliance weakens first-party data</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>A defensible origin and provenance story</li><li>Owned-channel retention beyond the initial discount</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Commoditised mushroom-coffee pricing wars</li><li>Marketplace margin compression</li></ul></div>        </div>
-        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs Ryze</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Keep subscribe-as-default but reinforce it with a provenance narrative Ryze lacks.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Move buyers off marketplace dependence into owned lifecycle flows for durable retention.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Compete on story and taste rather than the discount treadmill.</li></ul></div>
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs GOAT SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (GOAT)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Editorial curation raises perceived quality</li><li>Authentication plus a strong app experience</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Produces nothing unique</li><li>Competes on access and hype, not on creation</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Their editorial standard as the bar for KNICKGASM design storytelling</li><li>Gifting budget won on uniqueness</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Competes for the same discretionary sneaker spend</li></ul></div>        </div>
+        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs GOAT</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Raise KNICKGASM's design storytelling to their editorial standard.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Argue uniqueness against curation, which is a different and stronger claim.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Take gifting budget with a pair that cannot be bought twice.</li></ul></div>
         <div class="flex flex-wrap gap-3"><a href="../features/competitor-index.html" class="btn-lava inline-block px-5 py-2.5 text-sm">Back to all dossiers</a><a href="../index.html" class="btn-primary inline-block px-5 py-2.5 text-sm">Hub</a></div>
       </section>
     </div>

@@ -37,27 +37,29 @@ function productFactsBlock(productType) {
     const lines = PT.types.tb.products.map((p) =>
       `- ${p.title} - £${p.price_gbp.toFixed(2)}${p.compare_at_gbp ? ` (compare-at £${p.compare_at_gbp.toFixed(2)}, a live store price - honest to cite)` : ''} - ${PT.store.base_url}/products/${p.handle}`);
     return [
-      'PRODUCT FACTS - Sneakers & Botanicals (ONE-TIME PURCHASE ONLY - never use subscription language):',
+      'PRODUCT FACTS - Custom Sneakers (ONE-TIME PURCHASE ONLY - never use subscription language):',
+      '- Every pair is hand-painted one-of-one on a 100% original base sneaker, finished water and scratch resistant, made to order in 10 to 15 days.',
       ...lines,
     ].join('\n');
   }
   if (productType === 'coffee') {
     const c = PT.types.coffee;
     return [
-      'PRODUCT FACTS - Coffee Collection (SUBSCRIPTION IS THE PRIORITY CTA; one-time is the quiet secondary):',
-      '- Pack of 1: £49.99 one-time / £29.99 subscription.',
-      '- Pack of 3: £99.99 one-time / £59.99 subscription. B2G1 framing: £59.99 = 2 x £29.99 - buy two packs, the third is free.',
-      `- 7 free gifts with EVERY order (both modes): ${c.gifts.join(', ')}.`,
-      `- Subscription-only hook: gifts worth more than £${c.sub_gift_value_per_year_gbp} across the year, arriving with refills.`,
-      `- Product URL: ${PT.store.base_url}/products/${c.handle} (handle is a best guess - do not invent others).`,
-      '- These are the ONLY prices and offers that exist. NO new discount codes may be invented.',
+      'PRODUCT FACTS - coffee-ART Collection (ONE-TIME PURCHASE ONLY - never use subscription language).',
+      '- The coffee-ART collection is a PAINT THEME, not a drink: coffee-dip washes and latte-swirl motifs hand-painted onto original sneakers. Never write beverage copy.',
+      ...c.packs.map((pk) => `- ${pk.label}: £${pk.one_time_gbp.toFixed(2)}.`),
+      `- Base-model ladder framing: ${(c.packs.find((x) => x.b2g1_framing) || {}).b2g1_framing || 'state the price ladder by base model; never invent a bundle or a discount code.'}`,
+      `- What EVERY order includes as standard (this is NOT a free-gift list - do not write gift-with-purchase copy): ${c.gifts.join(', ')}.`,
+      `- The honest hook: ${c.sub_gift_hook}`,
+      `- Product URL: ${PT.store.base_url}/products/${c.handle} (verified against the live catalog - do not invent others).`,
+      '- These are the ONLY prices that exist. NO discount codes or bundles may be invented.',
     ].join('\n');
   }
   const s = PT.types.supplements;
   return [
-    'PRODUCT FACTS - Supplements (just launched, zero buyers - "be among the first" is TRUE and allowed; SUBSCRIPTION IS THE PRIORITY CTA):',
+    'PRODUCT FACTS - Accessories (ONE-TIME PURCHASE ONLY; low-ticket attachment items that finish a pair):',
     ...s.products.map((p) => `- ${p.title} - ${PT.store.base_url}/products/${p.handle}`),
-    '- NO pricing was provided - NEVER state a price for supplements. CTA to the product page only.',
+    '- This lane is deliberately routed PRICE-FREE - never state a price for accessories. CTA to the product page only.',
   ].join('\n');
 }
 
@@ -65,7 +67,9 @@ function ctaRulesBlock(purchaseMode) {
   if (purchaseMode === 'one_time_only') {
     return 'CTA RULES: This product is ONE-TIME purchase only. The CTA must be a simple purchase/replenishment invitation. Do NOT use the words subscribe, subscription, refill plan, or any recurring-purchase framing anywhere in the email.';
   }
-  return 'CTA RULES: This product is SUBSCRIPTION-PRIORITY. The primary CTA must be to subscribe; a one-time purchase may only be mentioned as a quiet secondary option, never the headline.';
+  // KNICKGASM runs no subscription of any kind, so this branch should never be
+  // reached; it stays as a hard backstop that still forbids recurring framing.
+  return 'CTA RULES: KNICKGASM has NO subscription program. The CTA must be a simple one-time purchase invitation to the product page. Never write subscribe, subscription, refill plan, auto-ship, or any recurring-purchase framing.';
 }
 
 function brandGatesBlock() {
@@ -75,10 +79,10 @@ function brandGatesBlock() {
     "- Fonts are fixed by the template (Montserrat headings, Instrument Sans body) - do not reference fonts in copy.",
     '- BANNED phrases (any casing unless noted): "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" in caps, "hurry", "don\'t miss out", "last chance", "while supplies last".',
     '- NO FOUNDER VOICE - no founder letters, no "from our founder/CEO", no personal-name sign-offs, no first-person-singular ("I") narration. The brand speaks as "we".',
-    '- NO medical claims for airbrush/embroidery/supplements: no disease, stress-cure, grail-drop, or weight-loss claims. Softest allowed register: "calm", "steady", "balance", "a gentler kind of energy".',
+    '- NO health, medical or performance claims of ANY kind - KNICKGASM sells hand-painted sneakers, not remedies. The only claims allowed are: 100% original base sneakers, hand-painted by India\'s best artists, water and scratch resistant, made to order in 10 to 15 days, express shipping to 60+ countries, worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.',
     '- No invented discounts or codes. Only the exact prices/mechanics in the product facts.',
     '- Voice: warm, sensory, story-driven. Preferred words: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-    '- Exemplar sentence: "There is a moment when the right pair of kicks does more than warm your hands."',
+    '- Exemplar sentence: "There is a moment when the right pair of kicks stops being footwear and starts being a signature."',
   ].join('\n');
 }
 
@@ -439,7 +443,7 @@ async function buildLifecycleMailer({ id = null, entry = null, force = false } =
         variant_logic: variants.map((v) => ({ key: v.key, type: v.type, framework: v.framework, why: v.type === 'Text' ? 'Pure typographic build — deliverable for image-free, high-deliverability sends.' : 'Adds a real catalog photo (or a fillable slot) for a richer hero.' })),
         purchase_mode_rule: (row.purchase_mode || purchaseModeForProductType(row.product_type)) === 'one_time_only'
           ? 'One-time product: no subscription language anywhere in the copy.'
-          : 'Subscription-priority product: subscribe is the primary CTA.',
+          : 'No subscription exists: the one-time product-page CTA still applies.',
         evidence: base.evidence,
       };
     })(),

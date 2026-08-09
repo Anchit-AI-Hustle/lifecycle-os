@@ -1,6 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Seed: brand_kit (from official PDF) + market_config (7 markets)
--- Truth source: Brand style guide.pdf — only 4 official colours, 2 fonts.
+-- Truth source: the live knickgasm.com theme (--color-primary #D0473E) + verified
+-- company records. Palette is exactly 4 colours; typography Montserrat + Instrument Sans.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- BRAND KIT (singleton row) --------------------------------------------------
@@ -29,28 +30,28 @@ VALUES (
       "weights": ["thin","light","regular","medium","semibold","bold","extrabold","black"]
     }
   }'::jsonb,
-  -- Voice
+  -- Voice (real KNICKGASM positioning — knickgasm.com, verified 2026-08-03)
   '{
-    "tone": "Premium, warm, story-led, ethical sourcing. KNICKGASM® is disrupting the 200-year-old supply chain of sneaker.",
-    "tagline": "We Care for You, our Farmers & the Environment.",
+    "tone": "Bold, energetic, youth street-culture. Confident and playful, never corporate. KNICKGASM is India''s largest sneaker customiser: one-of-one hand-painted art on 100% original sneakers.",
+    "tagline": "India''s Largest Sneaker Customisers.",
     "dos": [
-      "Lead with farmer / origin story",
-      "Cite one-of-one or single-studio provenance",
-      "Mention freshness window (studio-to-pair)",
-      "Use the ® mark on first KNICKGASM mention",
-      "Premium, considered language — never shouty"
+      "Lead with the art and the artist (hand-painted, one-of-one)",
+      "Say made on 100% original brand sneakers",
+      "Cite real craft facts: water and scratch resistant, 10-15 day made-to-order",
+      "Name the fandom: anime, football, cars, gaming, wedding, pets",
+      "Street-culture energy: drop, grail, colorway, rotation, canvas"
     ],
     "donts": [
-      "Generic marketing fluff",
+      "Never imply replica, fake, or counterfeit product",
+      "No fabricated discounts, review counts, or scarcity",
       "Aggressive CAPS sale-shouting",
-      "Dilute the ® mark",
       "Use unofficial colours (only #D0473E / #6A33D8 / #FFFFFF / #111111)",
       "Use fonts other than Montserrat (headings) or Instrument Sans (body)"
     ]
   }'::jsonb,
   -- Footer blocks
   '{
-    "legal":   "KNICKGASM Pvt. Ltd., New Delhi, India",
+    "legal":   "KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India",
     "contact": { "email": "hello@knickgasm.com" },
     "social": [
       { "platform": "instagram", "url": "https://www.instagram.com/knickgasm/" },

@@ -100,9 +100,66 @@ module.exports = async function handler(req, res) {
   if (action === 'digest' || action === 'daily-digest') {
     return dailyDigest(req, res, env);
   }
+  // ── 7. BRAND-KIT — the single brand-truth record the whole OS reads ──────
+  //   GET  → the singleton brand kit + market config.
+  //   POST → upsert it (palette / typography / voice / footer blocks).
+  if (action === 'brand-kit' || action === 'brandkit') {
+    return brandKit(req, res, env);
+  }
 
-  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|list|top-emails|brands|classify-emails|digest' });
+  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|list|top-emails|brands|classify-emails|digest|brand-kit' });
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BRAND KIT — read/write the brand-truth singleton (knickgasm_brand_kit id=1)
+// ═══════════════════════════════════════════════════════════════════════════
+// This is what /brand (brand.html) edits. Every generator reads the same row,
+// so a change here is the ONE place brand truth is set for the whole platform.
+async function brandKit(req, res, env) {
+  const base = `${env.url}/rest/v1`;
+  const H = sbHeaders(env);
+
+  if (req.method === 'GET') {
+    const [kitRes, mktRes] = await Promise.all([
+      fetch(`${base}/knickgasm_brand_kit?id=eq.1&select=*`, { headers: H }),
+      fetch(`${base}/knickgasm_market_config?select=*&order=market.asc`, { headers: H }).catch(() => null),
+    ]);
+    if (!kitRes.ok) return res.status(502).json({ ok: false, error: `brand_kit read failed: ${await kitRes.text()}` });
+    const rows = await kitRes.json();
+    let markets = [];
+    if (mktRes && mktRes.ok) markets = await mktRes.json().catch(() => []);
+    return res.status(200).json({ ok: true, brand_kit: rows[0] || null, markets });
+  }
+
+  if (req.method === 'POST' || req.method === 'PUT') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const { palette, typography, voice, footer_blocks, guide_pdf_url } = body;
+    if (!palette || !typography || !voice) {
+      return res.status(400).json({ ok: false, error: 'palette, typography and voice are required' });
+    }
+    // Guard the load-bearing invariant: exactly four hex colours, all valid.
+    const hexes = ['primary', 'accent', 'bg', 'text'].map((k) => palette[k]);
+    if (hexes.some((h) => !/^#[0-9A-Fa-f]{6}$/.test(String(h || '')))) {
+      return res.status(400).json({ ok: false, error: 'palette needs primary, accent, bg and text as #RRGGBB' });
+    }
+    const row = {
+      id: 1, palette, typography, voice,
+      footer_blocks: footer_blocks || {},
+      guide_pdf_url: guide_pdf_url || null,
+      updated_at: new Date().toISOString(),
+    };
+    const r = await fetch(`${base}/knickgasm_brand_kit?on_conflict=id`, {
+      method: 'POST',
+      headers: { ...H, Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify([row]),
+    });
+    if (!r.ok) return res.status(502).json({ ok: false, error: `brand_kit write failed: ${await r.text()}` });
+    const saved = await r.json();
+    return res.status(200).json({ ok: true, brand_kit: saved[0] || row });
+  }
+
+  return res.status(405).json({ ok: false, error: 'GET or POST only' });
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 6. DAILY D2C DIGEST — synthesise the clean 24h learning log into one lesson

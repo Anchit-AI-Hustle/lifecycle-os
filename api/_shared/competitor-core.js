@@ -868,8 +868,10 @@ async function markBrandSubscribed(opts) {
   return { ok: true, domain: target, row: rowNum, status, dateSubscribed };
 }
 
-const DISCOVERY_CATEGORIES = ['Sneaker', 'Coffee', 'Functional Coffee', 'Botanicals', 'Adaptogens', 'Streetwear Beverages', 'Supplements', 'Superfoods'];
-const DISCOVERY_GEOS = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Europe', 'Global DTC Brands'];
+// Categories mirror the SEED_BRANDS taxonomy above so discovered brands slot
+// into the same competitive set.
+const DISCOVERY_CATEGORIES = ['Custom Sneakers', 'Sneaker Customisation Studio', 'Sneaker Retail & Marketplace', 'Indie Sneaker Brand', 'Official Customization Program', 'Sneaker Care & Restoration', 'Streetwear'];
+const DISCOVERY_GEOS = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Europe', 'Global DTC Brands'];
 
 /**
  * Ask the LLM waterfall for a batch of real competitor brands, excluding
@@ -884,9 +886,9 @@ async function discoverBrands(opts) {
   const existing = await getBrands();
   const excludeDomains = [...new Set([...existing.map((b) => b.domain).filter(Boolean), ...OWN_DOMAINS])];
 
-  const system = 'You are a competitor-intelligence research engine specializing in premium DTC streetwear brands (sneaker, coffee, functional beverages, adaptogens, supplements, superfoods). You only output strict JSON. Use REAL, currently-operating brands with their REAL primary website domains. Never invent brands or fake domains.';
+  const system = 'You are a competitor-intelligence research engine specializing in custom sneakers and streetwear (hand-painted one-of-one sneaker studios, official brand customisation programs, sneaker retail and resale marketplaces, indie sneaker labels, sneaker care and restoration). You only output strict JSON. Use REAL, currently-operating brands with their REAL primary website domains. Never invent brands or fake domains.';
   const user = [
-    `Find up to ${limit} high-quality competitor brands similar to KNICKGASM and to: Pique, Four Sigmatic, AG1, Everyday Dose, MUD\\WTR, Beam, RYZE. Do NOT include KNICKGASM itself (we are KNICKGASM — it is not a competitor).`,
+    `Find up to ${limit} high-quality competitor brands similar to KNICKGASM and to: The Shoe Surgeon, Kickstradomis, Shoes Your Daddy, Moreiarty, MD Customs, Nike By You, Vans Customs. Do NOT include KNICKGASM itself (we are KNICKGASM — it is not a competitor).`,
     `Categories to cover: ${categories.join(', ')}.`,
     `Geographies: ${geographies.join(', ')}.`,
     excludeDomains.length ? `EXCLUDE these domains already in our database (do not return them): ${excludeDomains.slice(0, 200).join(', ')}.` : '',

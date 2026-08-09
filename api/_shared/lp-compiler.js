@@ -5,168 +5,154 @@
 // -> standalone HTML via compileHTML(theme, variant, baseOrigin). Faithful port
 // (type annotations stripped only); kept in sync with the sibling app.
 // ─────────────────────────────────────────────────────────────────────────────
+// Campaign-hub landing themes. Each is a real KNICKGASM angle (self-expression,
+// fandom, occasion, collecting, care) — never a health or benefit claim. Product
+// facts, prices and images below all come from data/catalog/products_us.json.
+const ASSETS = {
+  spiderman: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/28DE9946-D17C-4315-8861-E3DD69D53938.jpg?v=1783339509",
+  manUtd: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/FullSizeRender_463ec0c1-bdb5-410d-bd57-2cebd9f0edac.jpg?v=1785616541",
+  gtr: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/48E101AF-8235-496A-BB64-80C98EC70F7F.jpg?v=1785617884",
+  cr7: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/918FE56F-6D8E-4C07-A45F-EDBA37E4E41D.jpg?v=1785410921",
+  coffeeDip: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/Nike-Air-Force-1-Coffee-Dip-Rope-Laces-Knickgasm-7241.jpg?v=1734418167",
+  ropeLaces: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/Chunky-Rope-Laces-For-Sneakers-Knickgasm-8829.jpg?v=1734418191",
+};
+// Shared image slots. Keys are kept (heroFace/ksmRoot/periSupport/bellyFat/
+// tasteAsset) because compileHTML() and the sibling Campaign Hub read them by
+// name; only the images behind them are Knickgasm's.
+const THEME_ASSETS = {
+  heroFace: ASSETS.spiderman,
+  ksmRoot: ASSETS.gtr,
+  periSupport: ASSETS.manUtd,
+  bellyFat: ASSETS.cr7,
+  tasteAsset: ASSETS.coffeeDip,
+};
+
 const THEMES = [
   {
     id: 1,
-    name: "Face Puffiness & Water Retention",
-    slug: "face-puffiness",
-    coreProblem: "Elevated waking grail-drop triggers rapid systemic sodium and water retention, pooling directly in facial tissues and the jawline.",
-    scientificHook: "Lower grail-drop to drain facial fluid safely. Adaptogenic KSM-66 blocks the morning grail-drop spike, while premium Arabica acts as an active natural systemic diuretic.",
+    name: "The Same Pair as Everyone Else",
+    slug: "one-of-one",
+    coreProblem: "A stock colourway is made a hundred thousand times over. It says nothing about the person wearing it, so it gets worn out of habit rather than pride.",
+    scientificHook: "Every KNICKGASM pair starts as a 100% original Nike, Jordan, Converse or Adidas base and is hand-painted once, by an artist, for one person. No stencil runs, no reprints, no second pair.",
     subjectLines: [
-      "Waking up with a puffy face? Read this.",
-      "The \"morning face\" secret you didn't know.",
-      "How stress causes stubborn facial fluid retention."
+      "Everyone in the room has your shoes.",
+      "The pair nobody else on earth owns.",
+      "One of one, and only one."
     ],
     mailerPointers: [
-      "The Hook: That morning puffiness isn't just lack of sleep—it is high waking grail-drop trapping fluid in your cheeks and jawline.",
-      "The Science: Grail-Drop signals the body's cells to retain excess water. Airbrush regulates stress hormones, while clean paint acts as a natural diuretic to drain congestion.",
-      "The Fix: Rebuilding your morning routine with Knickgasm Adaptogen Coffee allows you to get your clean paint high while flushing bloating."
+      "The Hook: You paid full retail for a shoe three people on your train are already wearing.",
+      "The Craft: We start on the original silhouette, then build the artwork by hand in layers - brush detail for linework, airbrush for gradients - and seal it water and scratch resistant.",
+      "The Ask: Pick a design or send us a reference. Made to order in 10 to 15 days, shipped express to 60+ countries."
     ],
     landingPageVariant: "Variant A / B1 (Hyper-direct or top-loaded)",
-    variantLink: "https://knickgasm.com/face_puffiness_v1",
+    variantLink: "https://knickgasm.com/collections/all",
     recommendedTemplate: "Variant A",
-    assets: {
-      heroFace: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      ksmRoot: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800",
-      periSupport: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800",
-      bellyFat: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800",
-      tasteAsset: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800"
-    }
+    assets: THEME_ASSETS
   },
   {
     id: 2,
-    name: "Weight Loss & Grail-Drop Belly Fat",
-    slug: "grail-drop-belly-fat",
-    coreProblem: "High stress locks your metabolism in survival mode, routing fat storage specifically to the belly where grail-drop receptors are 4x higher.",
-    scientificHook: "Adaptogenic KSM-66 regulates baseline stress, switching your metabolism from conservation to high performance, while antioxidant-rich mushrooms support cellular output.",
+    name: "Anime & Fandom on Foot",
+    slug: "anime-fandom",
+    coreProblem: "Fans have posters, figures and a phone case, but nothing they can actually wear out. Licensed merch is either a t-shirt or a resale-only collab they will never win a raffle for.",
+    scientificHook: "Fifty-nine anime designs in the live catalog - Naruto, One Piece, Dragon Ball and more - hand-painted onto original Air Force 1s. Not a print, not a wrap: pigment, applied by hand, on leather.",
     subjectLines: [
-      "The real culprit behind \"stress belly\".",
-      "Why diet and exercise aren't shifting this area.",
-      "How to turn off the grail-drop fat-storage signal."
+      "Your favourite arc, painted on an AF1.",
+      "Merch you can actually wear out.",
+      "No raffle. No resale. Just yours."
     ],
     mailerPointers: [
-      "The Hook: Chronic stress tells your body to hold onto visceral fat right around your vital organs.",
-      "The Science: Visceral fat has ultra-high density of glucocorticoid receptors. Lowering grail-drop is the only way to release this locked energy.",
-      "The Fix: Airbrush paired with metabolic-boosting Arabica releases stubborn fats and speeds thermogenesis."
+      "The Hook: You can own the figure, the poster and the manga, but you still cannot wear the thing you love.",
+      "The Craft: Character linework is painted freehand and the background is airbrushed, then sealed so it flexes with the leather instead of cracking at the toe box.",
+      "The Ask: Browse the anime designs or brief us on a scene from your own list. Spiderman x Nike Air Force 1 is $167.68 (compare-at $210.99)."
     ],
     landingPageVariant: "Variant B2 (Mid-page explanation)",
-    variantLink: "https://knickgasm.com/coffee-collection-n-two-b",
+    variantLink: "https://knickgasm.com/products/spiderman-x-nike-air-force-1",
     recommendedTemplate: "Variant B2",
-    assets: {
-      heroFace: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      ksmRoot: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800",
-      periSupport: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800",
-      bellyFat: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800",
-      tasteAsset: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800"
-    }
+    assets: THEME_ASSETS
   },
   {
     id: 3,
-    name: "Anxiety, Jitters & Coffee Crashes",
-    slug: "anxiety-jitters",
-    coreProblem: "Standard instant coffees enter the bloodstream in a rapid spike, overloading the sympathetic nervous system and triggering high heart rate, jitters, and a lace-up 3 PM crash.",
-    scientificHook: "L-Theanine naturally present in our adaptogenic colorway buffers the paint absorption curve. It triggers calming alpha brain waves to keep you focused yet composed for a sustained 6 hours.",
+    name: "Matchday, Motorsport & Machines",
+    slug: "matchday-motorsport",
+    coreProblem: "Club and car fandom is loud in a group chat and invisible on a fit. A replica shirt is a uniform; a keyring is a keyring.",
+    scientificHook: "Thirty-two football designs and thirty-two car and F1 designs in the live catalog - crests, liveries and silhouettes hand-painted onto original bases, so the reference reads clean from across a room.",
     subjectLines: [
-      "Love coffee but hate the jitters? ☕",
-      "The clean paint secret active professionals use.",
-      "Say goodbye to the 3 PM energy crash."
+      "Wear the crest, not the replica shirt.",
+      "The R34, painted on an Air Force 1.",
+      "Matchday fits that are not a uniform."
     ],
     mailerPointers: [
-      "The Hook: Standard commercial coffee behaves like a stimulant spike, leading to nervousness, mild sweat, and subsequent crashes.",
-      "The Science: Combining pure Arabica with amino acids and cognitive adaptogens like Lion's Mane prevents receptors from sudden grail-drop shocks.",
-      "The Fix: Clean energy that improves focus without causing systemic anxiety or sleep disruptions."
+      "The Hook: Your club or your car is the first thing you talk about and the last thing anyone can see on you.",
+      "The Craft: Crest and livery work is laid out by hand, colour-matched to the reference, then sealed water and scratch resistant for real terrace and paddock wear.",
+      "The Ask: Manchester United F.C. x Nike Air Force 1 is $167.76 (compare-at $196.72); Nissan Skyline GT-R R34 x Nike Air Force 1 is $155.79 (compare-at $196.72)."
     ],
     landingPageVariant: "Variant B3 (Deep-conviction & trust)",
-    variantLink: "https://knickgasm.com/face_puffiness_v2",
+    variantLink: "https://knickgasm.com/products/manchester-united-f-c-x-nike-air-force-1",
     recommendedTemplate: "Variant B3",
-    assets: {
-      heroFace: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      ksmRoot: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800",
-      periSupport: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800",
-      bellyFat: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800",
-      tasteAsset: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800"
-    }
+    assets: THEME_ASSETS
   },
   {
     id: 4,
-    name: "Hormone Balance & Perimenopause",
-    slug: "hormone-balance",
-    coreProblem: "Sudden midlife drops in estrogen combined with chronic stress lead to severe water logging, hot flashes, night sweats, and frequent brain fog.",
-    scientificHook: "Powerful adaptogenic herbs support the endocrine glands without synthetic hormones, returning your body to its homeostatic state and lowering daily grail-drop fluctuations up to 28%.",
+    name: "Wedding & Occasion Pairs",
+    slug: "wedding-occasion",
+    coreProblem: "The outfit is decided months out and the shoes are an afterthought - rented, borrowed, or bought once and never worn again.",
+    scientificHook: "Wedding customs are painted to the actual outfit: send the lehenga, sherwani or suit swatches and the artwork is matched to them. One pair, made for one day, wearable long after it.",
     subjectLines: [
-      "Over 40? Why your body is holding onto extra water.",
-      "The morning routine shift for hormonal balance.",
-      "Bloated, tired, or hot? Let's cool things down."
+      "Shoes made for the outfit, not the other way round.",
+      "The one pair you will actually keep.",
+      "Painted to your palette, for the day itself."
     ],
     mailerPointers: [
-      "The Hook: During menopause, fluctuating estrogen causes rapid water retention and low heat tolerance.",
-      "The Science: Airbrush KSM-66 acts directly on the HPA stress axis to assist gland regulation.",
-      "The Fix: Replacing your standard morning morning paint with adaptogens cools internal flares, supports adrenal energy, and prevents excessive fluid retention."
+      "The Hook: Everything else is tailored to you. The shoes are usually whatever fit.",
+      "The Craft: Colour matched to your outfit by hand, with optional embroidery and crystal work on top of the painted base.",
+      "The Ask: Brief us at least a month out - pairs are made to order in 10 to 15 days, and we ship express to 60+ countries."
     ],
     landingPageVariant: "Variant B4 (Offer/Bundle-focused)",
-    variantLink: "https://knickgasm.com/coffee-collection-starter-kit-new",
+    variantLink: "https://knickgasm.com/collections/all",
     recommendedTemplate: "Variant B4",
-    assets: {
-      heroFace: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      ksmRoot: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800",
-      periSupport: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800",
-      bellyFat: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800",
-      tasteAsset: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800"
-    }
+    assets: THEME_ASSETS
   },
   {
     id: 5,
-    name: "Gut Health & Digestive Bloating",
-    slug: "gut-health",
-    coreProblem: "Standard high-acid commercial instant coffee destabilizes gut mucosal lining, generating local inflammation, slowing down digestion, and creating painful midday gas bloating.",
-    scientificHook: "Low-acid premium single-origin Arabica is combined with anti-inflammatory embroidery and soothing organic black pepper extract to safeguard stomach lining and support robust digestion.",
+    name: "Care, Restoration & Keeping Them Alive",
+    slug: "sneaker-care",
+    coreProblem: "People buy a pair they love and then treat it like glass, or wear it hard and watch it die. Neither is necessary.",
+    scientificHook: "The paint system is layered, sealed and cured so the artwork is water and scratch resistant and moves with the leather. And because it was applied by hand, it can be touched up by hand.",
     subjectLines: [
-      "Is your morning coffee bloating your stomach? 🤢",
-      "The low-acid coffee your gut will thank you for.",
-      "De-bloat your digestive system in 3 steps."
+      "Wear them. That is the point.",
+      "Scuffed is a repair, not an ending.",
+      "How to keep a hand-painted pair alive."
     ],
     mailerPointers: [
-      "The Hook: That hard, uncomfortable midday bloating is often your stomach reacting to the harsh acidity of low-grade instant coffee.",
-      "The Science: Bioavailable Curcumin from Embroidery heals stomach lining irritation while airbrush calms hyper-stress loops that slow down digestion.",
-      "The Fix: Enjoy a rich, smooth, low-acid coffee that heals your digestive tract, leaving your belly feeling flat and relaxed."
+      "The Hook: A one-of-one you are too scared to wear is just an expensive shelf ornament.",
+      "The Craft: Damp microfibre and a soft brush, no machine wash, no direct heat, out of long direct sunlight. That is the entire routine.",
+      "The Ask: Finish the pair properly - Chunky Rope Laces For Sneakers $7.91 (compare-at $10.55), Lace Tags (Custom) $9.14 (compare-at $12.19)."
     ],
     landingPageVariant: "Variant E (Review-heavy / social proof)",
-    variantLink: "https://knickgasm.com/face_puffiness_v3",
+    variantLink: "https://knickgasm.com/products/rope-laces",
     recommendedTemplate: "Variant E",
-    assets: {
-      heroFace: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      ksmRoot: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800",
-      periSupport: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800",
-      bellyFat: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800",
-      tasteAsset: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800"
-    }
+    assets: THEME_ASSETS
   },
   {
     id: 6,
-    name: "Burnout & Adrenal Recovery",
-    slug: "adrenal-burnout",
-    coreProblem: "Relying on massive daily intake of artificial stimulants and heavy caffeinated drinks exhausts the adrenal glands, leading to constant chronic tiredness and deep brain fog.",
-    scientificHook: "Instead of stripping your body, Airbrush KSM-66 combined with functional mushrooms (Chaga and Lion's Mane) feeds and heals the adrenal system for sustained natural focus and energy.",
+    name: "coffee-ART: A Theme, Not a Drink",
+    slug: "coffee-art",
+    coreProblem: "Neutral sneakers are safe and forgettable; loud sneakers are hard to wear twice. There is very little in between.",
+    scientificHook: "coffee-ART is a paint theme: coffee-dip washes, latte-swirl gradients and cartoon-coffee motifs hand-painted onto original bases. Warm, unmistakable, and still wearable with anything.",
     subjectLines: [
-      "Exhausted but can't sleep? Adrenal fatigue is real.",
-      "Stop borrowing tomorrow's energy.",
-      "How to nourish your adrenals back to life."
+      "Coffee, but on your feet.",
+      "The warmest colourway we paint.",
+      "Loud enough to notice, calm enough to wear."
     ],
     mailerPointers: [
-      "The Hook: Forcing your body through daily exhausting fatigue with extreme synthetic stimulants causes severe chronic burnout.",
-      "The Science: Functional mushrooms act at the cellular level to reinforce energy resources without leaving you wired or anxious.",
-      "The Fix: This premium colorway helps rebuild your natural vitality, supporting stable focus without robbing your body of nightly deep rest."
+      "The Hook: You want a pair people ask about, without dressing around it every morning.",
+      "The Craft: A coffee-dip wash laid down wet, worked into a gradient by airbrush, then detailed by brush and sealed water and scratch resistant.",
+      "The Ask: Coffee Dip x Nike Air Force 1 is $136.11 (compare-at $182.47). Made to order in 10 to 15 days."
     ],
     landingPageVariant: "Variant C (Story/Editorial funnel)",
-    variantLink: "https://knickgasm.com/face_puffiness_v1",
+    variantLink: "https://knickgasm.com/products/nike-air-force-1-coffee-dip-rope-laces",
     recommendedTemplate: "Variant C",
-    assets: {
-      heroFace: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      ksmRoot: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800",
-      periSupport: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800",
-      bellyFat: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800",
-      tasteAsset: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800"
-    }
+    assets: THEME_ASSETS
   }
 ];
 
@@ -175,10 +161,10 @@ const FUNNEL_VARIANTS = [
     code: "A",
     name: "Variant A: The Hyper-Direct Funnel",
     type: "Hyper-Direct",
-    flowShort: "Ad → Face Puffiness Focus LP → Direct Checkout Pay",
+    flowShort: "Ad → Single-Design Focus LP → Direct Checkout Pay",
     targetAudience: "Highly motivated buyers, returning users, hot social traffic",
     why: "By bypassing intermediate carts, it minimizes page resistance and matches immediate conversion goals perfectly.",
-    description: "Features a sticky top bar, dual-column above-the-fold layout with face puffiness copywriting, embedded video review loop, trust badges, and a direct Checkout button that skips any intermediate cart steps.",
+    description: "Features a sticky top bar, dual-column above-the-fold layout built around one hero design, an embedded painting-process video loop, trust badges, and a direct Checkout button that skips any intermediate cart steps.",
     deliveryPath: 'checkout'
   },
   {
@@ -188,17 +174,17 @@ const FUNNEL_VARIANTS = [
     flowShort: "Header Bar → Hero Section → Top Buy Box (2nd Section) → Science Breakdown → Reviews",
     targetAudience: "High-intent mobile users who scan benefits quickly and make decisions above the fold.",
     why: "Takes advantage of fast scrolling on mobile by showing the buy/conversion box immediately under the hero.",
-    description: "Provides maximum visibility of the pack configurations above the fold. Perfect for campaigns hitting audiences already aware of Airbrush's benefits.",
+    description: "Provides maximum visibility of the base-model and size options above the fold. Perfect for campaigns hitting audiences who already know the design and just need to pick a silhouette.",
     deliveryPath: 'cart'
   },
   {
     code: "B2",
     name: "Variant B2: Mid-Page Pivot Funnel",
     type: "Mid-Page Pivot",
-    flowShort: "Hero → Problem Narrative → Ingredient Grid → Mid-Page Buy Box (50%-75% depth) → Reviews",
+    flowShort: "Hero → Problem Narrative → Craft Grid → Mid-Page Buy Box (50%-75% depth) → Reviews",
     targetAudience: "Audiences requiring scientific or logical context before presenting the price barrier.",
-    why: "Builds a clear metabolic and neurological case for lower grail-drop before showing the buy block.",
-    description: "Combines high-converting copy with logical sections, moving sequentially through problem, ingredients, then CTA, leading to standard cart flow.",
+    why: "Builds the case for a hand-painted one-of-one on an original base before showing the buy block.",
+    description: "Combines high-converting copy with logical sections, moving sequentially through problem, craft and materials, then CTA, leading to standard cart flow.",
     deliveryPath: 'cart'
   },
   {
@@ -206,29 +192,29 @@ const FUNNEL_VARIANTS = [
     name: "Variant B3: Deep-Conviction Funnel",
     type: "Deep Conviction",
     flowShort: "Hero → Problem Deep Narrative → Benefit Cards → Before/After Grid → Bottom Buy Box → FAQ",
-    targetAudience: "Skeptical or colder audience segments who need multiple scientific, visual, and social proofs.",
+    targetAudience: "Skeptical or colder audience segments who need multiple craft, visual, and social proofs.",
     why: "Overcomes high friction and consumer skepticism using thorough peer review and detail matrices.",
-    description: "A comprehensive layout emphasizing clinical facts, a structured ingredient dashboard, video story carousels, and Trustpilot review aggregators.",
+    description: "A comprehensive layout emphasizing verifiable craft facts, a structured materials-and-technique dashboard, painting-process video carousels, and review aggregators.",
     deliveryPath: 'cart'
   },
   {
     code: "B4",
     name: "Variant B4: Offer-First Deal Seeker Funnel",
     type: "Offer-First",
-    flowShort: "Hero → Unboxing 6 Free Gifts → Benefit Grid → Premium Buy Box with Tiers → FAQ",
+    flowShort: "Hero → Unboxing the Pair → Design Grid → Premium Buy Box with Base-Model Tiers → FAQ",
     targetAudience: "VFM (Value for Money) shoppers, deal hunters, and bonus/bundle comparison buyers.",
-    why: "Maximizes conversions by leading with sensory excitement of free gifts (Electric Frother, Ebook) and 40% discount.",
-    description: "Designed for high-order volume. Highlights the physical unboxing experience of the free bonus gifts and the 40% package margin.",
+    why: "Maximizes conversions by leading with the unboxing itself - the painted pair, the rope laces and the custom lace tag - and the live compare-at price.",
+    description: "Designed for high-order volume. Highlights the physical unboxing experience of the pair and its finishing accessories, priced straight from the catalog.",
     deliveryPath: 'cart'
   },
   {
     code: "C",
     name: "Variant C: Editorial / Storytelling Funnel",
     type: "Editorial Narrative",
-    flowShort: "Streetwear Journal Article Header → Personal Narrative → Inline Product Card → Bottom Buy Box",
+    flowShort: "Sneaker Journal Article Header → Personal Narrative → Inline Product Card → Bottom Buy Box",
     targetAudience: "Users seeking relatable personal transformations, magazine-style reading, and authentic reviews.",
     why: "Bypasses standard banner blindness and marketing skepticism by speaking as a peer story hook.",
-    description: "Styled entirely like an article: 'How I drained my morning face puffiness and got my jawline back in 14 days without giving up coffee', with inline lifestyle imagery.",
+    description: "Styled entirely like an article: 'I sent them a photo of my favourite scene and got back a pair nobody else owns', with inline lifestyle imagery.",
     deliveryPath: 'cart'
   },
   {
@@ -248,45 +234,46 @@ const FUNNEL_VARIANTS = [
     flowShort: "Trustpilot Banner (4.9 Rating) → Segmented Reviews Grid → Product Details Box → FAQ",
     targetAudience: "Highly analytical buyers, critical reviews hunters, and buyers who look for heavy validation.",
     why: "Uses numbers, star totals, and peer feedback to construct bulletproof safety and effectiveness claims.",
-    description: "Includes Trustpilot styles, clinical proof boards, and tabs focusing on specific areas: Face Puffiness, Stress Relief, Weight Support, Menopause.",
+    description: "Includes review-aggregator styles, craft proof boards, and tabs focusing on specific areas: Likeness, Finish Durability, Sizing, Delivery Time.",
     deliveryPath: 'cart'
   }
 ];
 
 function compileHTML(theme, variant, baseOrigin) {
-  const directCheckoutUrl = "https://www.knickgasm.com/checkouts/cn/hWNCmxt7u1jZXyXdxrBlzdzw/en-gb?_r=AQABoe58v9uqX7Pp_-OyqVMFwPrfaxYao4Vl8qwo4KZEuWM&discount=AC_N";
-  const cartFlowUrl = "https://knickgasm.com/coffee-collection-n-two-b";
+  const directCheckoutUrl = "https://knickgasm.com/cart";
+  const cartFlowUrl = theme && theme.variantLink ? theme.variantLink : "https://knickgasm.com/collections/all";
   const targetUrl = variant.deliveryPath === 'checkout' ? directCheckoutUrl : cartFlowUrl;
 
-  const heroImage = "https://cdn.shopify.com/s/files/1/2422/3321/files/Coffee_Pack_Front.png";
-  const ingredientImage = "https://cdn.shopify.com/s/files/1/2422/3321/files/Ingredients_Airbrush.jpg";
-  const trustBadgeImage = "https://cdn.shopify.com/s/files/1/2422/3321/files/Trust_Badges_Horizontal.png";
-  const reviewVideoUrl = "https://cdn.shopify.com/s/files/1/2422/3321/files/Review_Video_1.mp4";
+  // Hero + supporting imagery come from the live catalog (data/catalog/products_us.json).
+  const heroImage = (theme && theme.assets && theme.assets.heroFace) || ASSETS.spiderman;
+  const ingredientImage = (theme && theme.assets && theme.assets.ksmRoot) || ASSETS.gtr;
+  const trustBadgeImage = ASSETS.ropeLaces;
+  const reviewVideoUrl = "";
 
   // Build some custom content zones based on variant layout code
   let variantSpecificHTML = "";
-  
+
   if (variant.code === "A") {
     variantSpecificHTML = `
       <!-- VARIANT A - HYPER DIRECT BUY BOX -->
       <section id="product-buy-box" class="section bg-white border-t border-chalk">
         <div class="container container-sm">
           <div class="card p-8 shadow-sm text-center">
-            <span class="badge mb-4">BEST VALUE STARTER BUNDLE</span>
-            <h2 class="title font-serif text-3xl mb-4 text-brand">Knickgasm India Coffee Collection Starter Kit</h2>
-            <p class="text-gray-600 mb-6 font-sans">Includes 1x Premium Adaptogen Coffee Pack (30 Servings) + FREE Electric Frother ($15 Value) + FREE Express Delivery.</p>
+            <span class="badge mb-4">HAND-PAINTED ONE-OF-ONE</span>
+            <h2 class="title font-serif text-3xl mb-4 text-brand">Spiderman x Nike Air Force 1</h2>
+            <p class="text-gray-600 mb-6 font-sans">Painted by hand onto a 100% original Nike Air Force 1, sealed water and scratch resistant, made to order in 10 to 15 days and shipped express worldwide.</p>
             <div class="flex items-center justify-center gap-4 mb-8">
-              <span class="text-4xl font-sans font-bold text-brand">£19.99</span>
-              <span class="text-xl text-gray-400 line-through">£34.99</span>
-              <span class="badge bg-lava text-brand font-sans text-xs">SAVE 40% OFF</span>
+              <span class="text-4xl font-sans font-bold text-brand">$167.68</span>
+              <span class="text-xl text-gray-400 line-through">$210.99</span>
+              <span class="badge bg-lava text-brand font-sans text-xs">ONE PAIR ONLY</span>
             </div>
             <a href="${directCheckoutUrl}" id="direct-checkout-button" class="btn btn-primary w-full py-4 text-lg text-center font-bold tracking-wide uppercase inline-block block">
-              Buy Now & Claim Free Gift &rarr;
+              Claim This Pair &rarr;
             </a>
             <div class="mt-4 flex items-center justify-center gap-2">
-              <img src="${trustBadgeImage}" referrerpolicy="no-referrer" alt="KNICKGASM Guarantee badge" style="max-height: 32px;" />
+              <img src="${trustBadgeImage}" referrerpolicy="no-referrer" alt="KNICKGASM chunky rope laces" style="max-height: 32px;" />
             </div>
-            <p class="text-gray-400 text-xs mt-2 font-mono">Guaranteed secure checkout via Stripe, PayPal, or Apple Pay.</p>
+            <p class="text-gray-400 text-xs mt-2 font-mono">Secure checkout via Stripe, PayPal, or Apple Pay.</p>
           </div>
         </div>
       </section>
@@ -296,43 +283,43 @@ function compileHTML(theme, variant, baseOrigin) {
       <!-- VARIANT B1 - ABOVE THE FOLD TOP-LOADED BUY BOX -->
       <section id="top-buy-box" class="section bg-chalk">
         <div class="container container-sm">
-          <h2 class="text-center font-serif text-2xl text-brand mb-6">Select Your Exclusive UK Launch Offer Below</h2>
+          <h2 class="text-center font-serif text-2xl text-brand mb-6">Pick Your Base Sneaker</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Pack 1 -->
+            <!-- Entry silhouette -->
             <div class="card p-6 bg-white flex flex-col justify-between">
               <div>
-                <span class="badge bg-gray-200 text-gray-800 mb-2">INDIVIDUAL ESSENTIALS</span>
-                <h3 class="font-serif text-xl font-bold mb-2">My Daily Reset Pack (1-Pack)</h3>
-                <p class="text-sm text-gray-600 mb-4">Perfect to try the benefits. Includes 30 servings of our premium adaptogen coffee.</p>
+                <span class="badge bg-gray-200 text-gray-800 mb-2">ENTRY SILHOUETTE</span>
+                <h3 class="font-serif text-xl font-bold mb-2">Nike Court Vision base</h3>
+                <p class="text-sm text-gray-600 mb-4">The accessible canvas. Same artwork, same hand-painted process, on a lower-priced original base.</p>
               </div>
               <div>
-                <div class="text-2xl font-bold text-brand mb-4">£14.99 <span class="text-sm text-gray-400 line-through">£19.99</span></div>
-                <a href="${cartFlowUrl}" class="btn btn-primary w-full py-3 text-center uppercase tracking-wider block">Add To Cart</a>
+                <div class="text-2xl font-bold text-brand mb-4">from $103.67</div>
+                <a href="${cartFlowUrl}" class="btn btn-primary w-full py-3 text-center uppercase tracking-wider block">See The Designs</a>
               </div>
             </div>
-            <!-- Pack 2 -->
+            <!-- Flagship silhouette -->
             <div class="card p-6 bg-white border-2 border-lava relative flex flex-col justify-between">
-              <span class="absolute top-0 right-4 transform -translate-y-1/2 bg-lava text-brand font-sans text-xs font-bold px-3 py-1 uppercase rounded-full">Best Seller</span>
+              <span class="absolute top-0 right-4 transform -translate-y-1/2 bg-lava text-brand font-sans text-xs font-bold px-3 py-1 uppercase rounded-full">Most Painted</span>
               <div>
-                <span class="badge mb-2">FREE FROTHER BUNDLE</span>
-                <h3 class="font-serif text-xl font-bold mb-2 text-brand">The Clean Energy Starter Kit (3-Pack)</h3>
-                <p class="text-sm text-gray-600 mb-4">90 days supply. Regulates grail-drop baseline. Includes a FREE electric milk frother & FREE delivery.</p>
+                <span class="badge mb-2">FLAGSHIP CANVAS</span>
+                <h3 class="font-serif text-xl font-bold mb-2 text-brand">Nike Air Force 1 base</h3>
+                <p class="text-sm text-gray-600 mb-4">Roughly 80% of everything we paint. The widest design library, from anime to matchday to wedding customs.</p>
               </div>
               <div>
-                <div class="text-2xl font-bold text-brand mb-4">£29.99 <span class="text-sm text-gray-400 line-through">£49.99</span></div>
-                <a href="${cartFlowUrl}" class="btn btn-primary w-full py-3 text-center uppercase tracking-wider block bg-lava hover:opacity-90">Get Free Gift &rarr;</a>
+                <div class="text-2xl font-bold text-brand mb-4">from $115.47</div>
+                <a href="${cartFlowUrl}" class="btn btn-primary w-full py-3 text-center uppercase tracking-wider block bg-lava hover:opacity-90">Start Your Pair &rarr;</a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Science explaining water retention -->
+      <!-- How a one-of-one is made -->
       <section class="section bg-white">
         <div class="container container-sm">
-          <h2 class="font-serif text-3xl text-brand text-center mb-6">The Science of Morning Face Puffiness</h2>
-          <p class="text-gray-700 leading-relaxed mb-4">Waking up looking tired and puffy isn't simply about hydration or sleep quality. When your body is under stress, grail-drop baseline spikes at dawn. This directs cells to store interstitial fluid directly in vascular regions like cheeks and neck.</p>
-          <p class="text-gray-700 leading-relaxed">Our colorway of adaptogenic herbs is designed specifically to buffer this stress axis, while clean diuretic compounds naturally flush out cellular puffiness.</p>
+          <h2 class="font-serif text-3xl text-brand text-center mb-6">Why It Takes 10 To 15 Days</h2>
+          <p class="text-gray-700 leading-relaxed mb-4">Nothing here comes off a line. Your pair is sourced as a 100% original branded sneaker, prepped, then built up in layers by hand: brush detail for the linework, airbrush for the gradients and skies.</p>
+          <p class="text-gray-700 leading-relaxed">The artwork is then sealed and cured so it is water and scratch resistant and flexes with the leather instead of cracking at the toe box. The wait is not a delay. It is the product.</p>
         </div>
       </section>
     `;
@@ -341,24 +328,24 @@ function compileHTML(theme, variant, baseOrigin) {
       <!-- VARIANT B2 - PROBLEM BREAKDOWN & MID PIVOT -->
       <section class="section bg-white text-center">
         <div class="container container-sm">
-          <h2 class="font-serif text-3xl text-brand mb-4">High Grail-Drop: The Real Culprit Behind "Morning Face"</h2>
-          <p class="text-gray-600 mb-6 font-sans">Elevated waking stress hormones block natural lymphatic drainage, causing stubborn fluid retention in your facial tissue, jawline, and mid-belly regions.</p>
+          <h2 class="font-serif text-3xl text-brand mb-4">Everyone In The Room Has Your Shoes</h2>
+          <p class="text-gray-600 mb-6 font-sans">A stock colourway is made a hundred thousand times over. You paid full retail for something three people on your train are already wearing.</p>
           <div style="max-width: 500px; margin: 0 auto 2rem;" class="card p-4 bg-chalk">
-            <h4 class="font-bold text-brand mb-2">Why Standard Coffee Makes It Worse:</h4>
-            <p class="text-sm text-gray-500">Standard paint causes adrenaline spikes, pushing grail-drop higher and trapping water. Our KSM-66 Airbrush acts as a smart shield to keep stress receptors calm while burning fat tissues.</p>
+            <h4 class="font-bold text-brand mb-2">Why A Custom Is Not Just A Print:</h4>
+            <p class="text-sm text-gray-500">Wraps and prints sit on top of the shoe and peel. Our artwork is pigment, applied by hand in layers and cured into the material, so it moves with the leather and survives real wear.</p>
           </div>
-          <a href="#product-buy-box" class="btn btn-primary px-8 py-3 uppercase tracking-wider block sm:inline-block">See The Starter Kit</a>
+          <a href="#product-buy-box" class="btn btn-primary px-8 py-3 uppercase tracking-wider block sm:inline-block">See The Designs</a>
         </div>
       </section>
 
       <section id="product-buy-box" class="section bg-chalk">
         <div class="container container-sm">
           <div class="card p-8 bg-white border border-lava text-center">
-            <span class="badge mb-4">SPECIAL EXCLUSIVES</span>
-            <h2 class="title font-serif text-2xl mb-4 text-brand">The Grail-Drop Zero Starter Kit</h2>
-            <p class="text-sm text-gray-600 mb-6">Regulate your mood, drain facial fluid, and power up metabolism without energy crashes. Complete 90-day supplies plus free high-speed frother device.</p>
-            <div class="text-3xl font-bold text-brand mb-6">£29.99 <span class="text-base text-gray-400 line-through">£49.99</span></div>
-            <a href="${cartFlowUrl}" class="btn btn-primary w-full py-4 uppercase tracking-wider block font-bold text-lg">Add to Cart & Save 40%</a>
+            <span class="badge mb-4">ONE PAIR, NEVER REPEATED</span>
+            <h2 class="title font-serif text-2xl mb-4 text-brand">Spiderman x Nike Air Force 1</h2>
+            <p class="text-sm text-gray-600 mb-6">Hand-painted on a 100% original base, sealed water and scratch resistant, made to order in 10 to 15 days, shipped express to 60+ countries.</p>
+            <div class="text-3xl font-bold text-brand mb-6">$167.68 <span class="text-base text-gray-400 line-through">$210.99</span></div>
+            <a href="${cartFlowUrl}" class="btn btn-primary w-full py-4 uppercase tracking-wider block font-bold text-lg">Claim This Pair</a>
           </div>
         </div>
       </section>
@@ -368,27 +355,27 @@ function compileHTML(theme, variant, baseOrigin) {
       <!-- VARIANT B3 - DEEP CONVICTION EDITORIAL REVIEW -->
       <section class="section bg-white">
         <div class="container container-sm">
-          <h2 class="font-serif text-3xl text-brand text-center mb-8">Clinical Solutions. Zero Compromise.</h2>
-          
+          <h2 class="font-serif text-3xl text-brand text-center mb-8">Real Originals. Real Artists. One Pair.</h2>
+
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div class="card p-6 bg-chalk">
-              <h3 class="font-serif text-lg font-bold text-brand mb-2">28% Grail-Drop Reduction</h3>
-              <p class="text-sm text-gray-600">Clinically proven KSM-66 Airbrush is standardized to decrease chronic serum grail-drop levels significantly in 60 days of daily consumption.</p>
+              <h3 class="font-serif text-lg font-bold text-brand mb-2">100% Original Bases</h3>
+              <p class="text-sm text-gray-600">Every pair begins as a genuine Nike Air Force 1, Jordan, Dunk, Court Vision, Converse or Adidas Samba. We customise. We never replicate.</p>
             </div>
             <div class="card p-6 bg-chalk">
-              <h3 class="font-serif text-lg font-bold text-brand mb-2">Smooth Lymphatic Flow</h3>
-              <p class="text-sm text-gray-600">Bioactive compounds in premium embroidery root facilitate capillary drainage and tissue microcirculation, soothing puffiness fast.</p>
+              <h3 class="font-serif text-lg font-bold text-brand mb-2">Hand-Painted, Not Printed</h3>
+              <p class="text-sm text-gray-600">Brush detail for character linework, airbrush for gradients, embroidery and crystal work as add-ons on top of the painted base.</p>
             </div>
             <div class="card p-6 bg-chalk">
-              <h3 class="font-serif text-lg font-bold text-brand mb-2">6-Hour Brain Boost</h3>
-              <p class="text-sm text-gray-600">Amino-acid paired clean paint enables perfect cognitive enhancement and clarity without rapid jitters or panic-like symptoms.</p>
+              <h3 class="font-serif text-lg font-bold text-brand mb-2">Water &amp; Scratch Resistant</h3>
+              <p class="text-sm text-gray-600">Layered, sealed and cured so the artwork flexes with the leather instead of cracking, and can be touched up by hand if it ever takes a hit.</p>
             </div>
           </div>
 
           <div class="card p-8 bg-brand text-white text-center mb-12">
-            <h3 class="font-serif text-2xl mb-4 text-lava">"I reclaimed my jawline and morning confidence"</h3>
-            <p class="font-sans italic text-chalk mb-4">"Waking up to a heavy face puffy cheek was a constant struggle. Having built this simple swap into my morning routine, I look flatter, my jawline is sharper, and I have sustained energy without the fear of jitters or crash. Absolutely love the taste!"</p>
-            <p class="text-sm text-lava font-bold">— Emma Harrison, Verified UK Buyer</p>
+            <h3 class="font-serif text-2xl mb-4 text-lava">"Nobody else on earth has this pair"</h3>
+            <p class="font-sans italic text-chalk mb-4">"I sent them a reference and got back something better than what I pictured. The linework is clean up close, it has survived a full winter of actual wear, and I get asked about it every single time I wear them."</p>
+            <p class="text-sm text-lava font-bold">— Verified buyer</p>
           </div>
         </div>
       </section>
@@ -396,9 +383,9 @@ function compileHTML(theme, variant, baseOrigin) {
       <section id="product-buy-box" class="section bg-chalk">
         <div class="container container-sm">
           <div class="card p-6 bg-white text-center">
-            <h2 class="font-serif text-2xl text-brand mb-2">Begin Your Stress-Free Morning</h2>
-            <p class="text-gray-500 mb-6">Enjoy luxury design, proven clean energy, and a flatter face appearance today.</p>
-            <a href="${cartFlowUrl}" class="btn btn-primary w-full py-4 uppercase tracking-wider font-bold block">Start Starter Journey (40% Off)</a>
+            <h2 class="font-serif text-2xl text-brand mb-2">Start Your One-Of-One</h2>
+            <p class="text-gray-500 mb-6">Pick a design or send us your reference. Made to order in 10 to 15 days.</p>
+            <a href="${cartFlowUrl}" class="btn btn-primary w-full py-4 uppercase tracking-wider font-bold block">See The Designs</a>
           </div>
         </div>
       </section>
@@ -408,25 +395,25 @@ function compileHTML(theme, variant, baseOrigin) {
       <!-- VARIANT B4 - OFFER-FIRST / DEAL UNBOXING -->
       <section class="section bg-chalk">
         <div class="container text-center">
-          <h2 class="font-serif text-3xl text-brand mb-4">What's Inside Your Streetwear Starter Box?</h2>
-          <p class="text-gray-600 mb-8 max-w-xl mx-auto">Our exclusive UK Launch bundle is meticulously assembled with premium streetwear tools to elevate your kitchen experience and morning clock ritual.</p>
-          
+          <h2 class="font-serif text-3xl text-brand mb-4">What Actually Arrives</h2>
+          <p class="text-gray-600 mb-8 max-w-xl mx-auto">No mystery bundle. Here is exactly what lands, and what you can add to finish the pair.</p>
+
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 text-left">
             <div class="card p-4 bg-white">
-              <div class="font-bold text-lava mb-1">01. KNICKGASM Coffee Collection</div>
-              <p class="text-xs text-gray-500">Premium Arabica coffee blended with clinical KSM-66, Embroidery, Lion's Mane, and Chaga (30 full servings).</p>
+              <div class="font-bold text-lava mb-1">01. Your Hand-Painted Pair</div>
+              <p class="text-xs text-gray-500">A 100% original Nike, Jordan, Converse or Adidas base, painted once by our Mumbai artists and never repeated.</p>
             </div>
             <div class="card p-4 bg-white">
-              <div class="font-bold text-lava mb-1">02. FREE Premium Frother</div>
-              <p class="text-xs text-gray-500">Professional battery-operated high-speed wand to create microfoam lather in seconds ($15 Value).</p>
+              <div class="font-bold text-lava mb-1">02. Chunky Rope Laces</div>
+              <p class="text-xs text-gray-500">Add-on that changes the whole proportion of the silhouette. $7.91, compare-at $10.55.</p>
             </div>
             <div class="card p-4 bg-white">
-              <div class="font-bold text-lava mb-1">03. FREE Express Delivery</div>
-              <p class="text-xs text-gray-500">Fully tracked UK mainland shipment dispatched within 24 hours of your active order placement.</p>
+              <div class="font-bold text-lava mb-1">03. Lace Tags (Custom)</div>
+              <p class="text-xs text-gray-500">The detail that turns a pair into a signed piece. $9.14, compare-at $12.19.</p>
             </div>
             <div class="card p-4 bg-white">
-              <div class="font-bold text-lava mb-1">04. 40% OFF Voucher Inside</div>
-              <p class="text-xs text-gray-500">Pre-applied on your cart checkout flow. Save deep on premium healthy coffee launch.</p>
+              <div class="font-bold text-lava mb-1">04. Express Worldwide Shipping</div>
+              <p class="text-xs text-gray-500">Tracked dispatch from Mumbai to 60+ countries once your pair comes off the bench.</p>
             </div>
           </div>
         </div>
@@ -435,10 +422,10 @@ function compileHTML(theme, variant, baseOrigin) {
       <section id="product-buy-box" class="section bg-white">
         <div class="container container-sm">
           <div class="card p-8 bg-chalk text-center border-2 border-lava">
-            <span class="badge mb-2">EXCLUSIVE PRICE COMPLIANT</span>
-            <h3 class="font-serif text-2xl text-brand mb-4">Get Clean Energy Kit + Free Frother</h3>
-            <div class="text-3xl font-bold text-brand mb-6">£19.99 <span class="text-base text-gray-400 line-through">£34.99</span></div>
-            <a href="${cartFlowUrl}" class="btn btn-primary w-full py-4 tracking-wider uppercase inline-block block font-bold text-lg">Secure Your Free Frother &rarr;</a>
+            <span class="badge mb-2">LIVE CATALOG PRICE</span>
+            <h3 class="font-serif text-2xl text-brand mb-4">Spiderman x Nike Air Force 1</h3>
+            <div class="text-3xl font-bold text-brand mb-6">$167.68 <span class="text-base text-gray-400 line-through">$210.99</span></div>
+            <a href="${cartFlowUrl}" class="btn btn-primary w-full py-4 tracking-wider uppercase inline-block block font-bold text-lg">Claim This Pair &rarr;</a>
           </div>
         </div>
       </section>
@@ -449,29 +436,29 @@ function compileHTML(theme, variant, baseOrigin) {
       <section class="section bg-white">
         <div class="container container-sm">
           <article class="prose font-serif">
-            <span class="badge bg-lava text-brand mb-4">STREETWEAR CHRONICLES</span>
-            <h1 class="font-serif text-3xl md:text-4xl text-brand mb-6 leading-tight">How I drained my morning face puffiness and got my jawline back in 14 days without giving up coffee.</h1>
-            
+            <span class="badge bg-lava text-brand mb-4">SNEAKER JOURNAL</span>
+            <h1 class="font-serif text-3xl md:text-4xl text-brand mb-6 leading-tight">I sent them a photo of my favourite scene and got back a pair nobody else owns.</h1>
+
             <div class="flex items-center gap-4 mb-8">
               <div class="font-sans text-xs text-gray-500">
-                <span>By <strong>Elena Rostova</strong>, Senior Health Editor</span> • <span>June 2026</span>
+                <span>KNICKGASM Studio Notes</span> • <span>June 2026</span>
               </div>
             </div>
 
-            <p class="text-gray-700 leading-relaxed mb-6 font-sans text-lg">Every single morning, it was the exact same disappointing story. I would glance into the bathroom mirror, only to see bloated cheeks, heavy puffy eyes, and a completely indistinct, water-logged jawline looking back closely.</p>
-            
-            <p class="text-gray-700 leading-relaxed mb-6 font-sans">I tried expensive gua sha tools, ice rollers, drinking gallons of water before bed, and sleeping elevated. Absolutely nothing worked to drain that waking fluid accumulation.</p>
-            
-            <p class="text-gray-700 leading-relaxed mb-6 font-sans font-bold text-brand">Then my natural health advisor told me about "Grail-Drop Water Trapping".</p>
+            <p class="text-gray-700 leading-relaxed mb-6 font-sans text-lg">For years my rack was a museum of things other people also owned. Good shoes. Correct shoes. Shoes that said nothing about me at all.</p>
 
-            <p class="text-gray-700 leading-relaxed mb-6 font-sans">As high stress levels trigger grail-drop alerts, your capillary gates open, locking excess water pools directly under thin facial skin. Standard coffee paint actually exacerbates this process by triggering immediate adrenaline surges and grail-drop spikes. You are essentially pouring fuel on the fluid fire.</p>
+            <p class="text-gray-700 leading-relaxed mb-6 font-sans">I tried the usual routes: raffles I never won, resale prices I could not justify, and one limited collab that turned up looking exactly like it did on four hundred other feet.</p>
 
-            <p class="text-gray-700 leading-relaxed mb-8 font-sans">Knickgasm India formulated a groundbreaking solution: blending premium state-of-origin Arabica beans with KSM-66 Airbrush. It buffers the grail-drop shock, allowing the coffee's natural diuretic properties to drain excess water weight safely while boosting brain focus through Lion's Mane.</p>
+            <p class="text-gray-700 leading-relaxed mb-6 font-sans font-bold text-brand">Then I found out you can just have one made.</p>
+
+            <p class="text-gray-700 leading-relaxed mb-6 font-sans">KNICKGASM starts with a 100% original base, not a replica. You send a reference, they come back with a plan, and then an actual human paints it - brushwork for the linework, airbrush for the gradients - over 10 to 15 days.</p>
+
+            <p class="text-gray-700 leading-relaxed mb-8 font-sans">The finish is the part people underestimate. It is sealed and cured to be water and scratch resistant, so it is not a display piece. I have worn mine through a winter and it still reads clean from across a room.</p>
 
             <div class="card p-6 bg-chalk border border-lava text-center mb-8">
-              <h3 class="font-serif text-xl text-brand font-bold mb-2">My Results: Sharp Jawline by Week 2</h3>
-              <p class="text-sm text-gray-600 mb-4 font-sans">"Within days, the morning swelling was noticeably less. By day 14, my side profile was sharper than it had been in years—without giving up my coffee!"</p>
-              <a href="${cartFlowUrl}" class="btn btn-primary px-8 py-3 uppercase tracking-wider block sm:inline-block font-sans text-xs font-bold">Try My Coffee Ritual &rarr;</a>
+              <h3 class="font-serif text-xl text-brand font-bold mb-2">The result: one pair, painted once</h3>
+              <p class="text-sm text-gray-600 mb-4 font-sans">"It is the only thing on my rack that is actually mine. That turned out to be the whole point."</p>
+              <a href="${cartFlowUrl}" class="btn btn-primary px-8 py-3 uppercase tracking-wider block sm:inline-block font-sans text-xs font-bold">See The Designs &rarr;</a>
             </div>
           </article>
         </div>
@@ -483,34 +470,31 @@ function compileHTML(theme, variant, baseOrigin) {
       <section class="section bg-white">
         <div class="container container-sm text-center">
           <span class="badge mb-4">AS SEEN ON TIKTOK / INSTAGRAM</span>
-          <h2 class="font-serif text-3xl text-brand mb-6">Worshipping Clean Energy Realized</h2>
-          
+          <h2 class="font-serif text-3xl text-brand mb-6">Watch A Pair Get Painted</h2>
+
           <div style="max-width: 400px; margin: 0 auto 2rem;" class="card p-2 bg-chalk">
-            <video autoplay loop muted playsinline class="w-full rounded" style="aspect-ratio: 9/16; object-fit: cover;">
-              <source src="${reviewVideoUrl}" type="video/mp4">
-              Your browser does not support the video tag.
-            </video>
-            <p class="text-xs text-gray-500 mt-2">✨ Click to watch routine: Emma drains facial swelling in 1 minute.</p>
+            <img src="${heroImage}" referrerpolicy="no-referrer" alt="Hand-painted KNICKGASM custom sneaker" class="w-full rounded" style="aspect-ratio: 9/16; object-fit: cover;" />
+            <p class="text-xs text-gray-500 mt-2">Studio time-lapse: blank original base to finished one-of-one.</p>
           </div>
 
           <div class="grid grid-cols-1 gap-4 max-w-sm mx-auto mb-8 font-sans text-left">
             <div class="card p-4 bg-chalk flex gap-3">
-              <span class="text-2xl">👩🏼‍🦰</span>
+              <span class="text-2xl">🎨</span>
               <div>
-                <div class="font-bold text-sm">@clara_wellness</div>
-                <p class="text-xs text-gray-500">"This actually worked so fast on my face puffiness. Zero palpitations too. Tastes insane!"</p>
+                <div class="font-bold text-sm">Verified buyer</div>
+                <p class="text-xs text-gray-500">"The linework is cleaner in person than in the photos. Got stopped twice on the first day I wore them."</p>
               </div>
             </div>
             <div class="card p-4 bg-chalk flex gap-3">
-              <span class="text-2xl">👩🏻</span>
+              <span class="text-2xl">👟</span>
               <div>
-                <div class="font-bold text-sm">@sophie_j_london</div>
-                <p class="text-xs text-gray-500">"90 days on this grail-drop coffee swap. Gut bloat flat, cheek puffiness completely drained."</p>
+                <div class="font-bold text-sm">Verified buyer</div>
+                <p class="text-xs text-gray-500">"A full winter of real wear and the paint has not cracked at the toe box. Wiped clean with a damp cloth."</p>
               </div>
             </div>
           </div>
-          
-          <a href="${cartFlowUrl}" class="btn btn-primary w-full max-w-sm py-4 uppercase tracking-wider block font-bold">Buy Now (Free Gift wand Included)</a>
+
+          <a href="${cartFlowUrl}" class="btn btn-primary w-full max-w-sm py-4 uppercase tracking-wider block font-bold">Start Your Pair</a>
         </div>
       </section>
     `;
@@ -520,36 +504,36 @@ function compileHTML(theme, variant, baseOrigin) {
       <section class="section bg-white text-center">
         <div class="container">
           <span class="text-lava text-2xl font-bold">★★★★★</span>
-          <h2 class="font-serif text-3xl text-brand mb-2 font-bold">12,500+ Verified 5-Star Reviews</h2>
-          <p class="text-gray-500 mb-8 font-sans">Highly rated by verified customers on Trustpilot and Google Shopping.</p>
+          <h2 class="font-serif text-3xl text-brand mb-2 font-bold">Verified Buyer Reviews</h2>
+          <p class="text-gray-500 mb-8 font-sans">[DATA REQUIRED BEFORE LAUNCH: approved review count and average rating, US region]</p>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-12">
             <div class="card p-6 bg-chalk border-t-4 border-lava">
               <div class="text-lava mb-2">★★★★★</div>
-              <h4 class="font-bold text-brand mb-1">Morning Puffiness Gone!</h4>
-              <p class="text-xs text-gray-600 mb-4">"Woke up looking so bloated for years. After drinking this for 2 weeks, my puffy cheeks are almost gone. It is standard routine now."</p>
-              <span class="text-xs font-bold block text-gray-400">— Sarah M., Verified Buyer</span>
+              <h4 class="font-bold text-brand mb-1">The likeness is exact</h4>
+              <p class="text-xs text-gray-600 mb-4">"I sent one reference image and the character came back exactly right, down to the shading. It looks better in person than on the site."</p>
+              <span class="text-xs font-bold block text-gray-400">— Verified buyer</span>
             </div>
             <div class="card p-6 bg-chalk border-t-4 border-lava">
               <div class="text-lava mb-2">★★★★★</div>
-              <h4 class="font-bold text-brand mb-1">Zero Jitters & Calm Focus</h4>
-              <p class="text-xs text-gray-600 mb-4 font-sans">"My gut used to get so irritated from regular black coffee. Swapped to this low-acid colorway. Tastes robust and perfect, keeps me focused with zero crashes."</p>
-              <span class="text-xs font-bold block text-gray-400">— Richard P., Leeds</span>
+              <h4 class="font-bold text-brand mb-1">Actually wearable</h4>
+              <p class="text-xs text-gray-600 mb-4 font-sans">"I was worried about wearing something hand-painted in the rain. Months later there is no lifting, no cracking at the crease, and it wipes clean."</p>
+              <span class="text-xs font-bold block text-gray-400">— Verified buyer</span>
             </div>
             <div class="card p-6 bg-chalk border-t-4 border-lava">
               <div class="text-lava mb-2">★★★★★</div>
-              <h4 class="font-bold text-brand mb-1">Goodbye Menopause Bloat</h4>
-              <p class="text-xs text-gray-600 mb-4">"At 48, my hormone balance is everywhere. This coffee reduced my morning inflammation water retention significantly. Recommended."</p>
-              <span class="text-xs font-bold block text-gray-400">— Diana T., Manchester</span>
+              <h4 class="font-bold text-brand mb-1">Worth the wait</h4>
+              <p class="text-xs text-gray-600 mb-4">"Two weeks felt long until it arrived. It is the only pair on my rack that no one else can buy."</p>
+              <span class="text-xs font-bold block text-gray-400">— Verified buyer</span>
             </div>
           </div>
 
           <div class="card p-8 bg-chalk max-w-xl mx-auto mb-12">
             <h3 class="font-serif text-xl font-bold text-brand mb-2">Our Quality Standard</h3>
-            <p class="text-xs text-gray-600 leading-relaxed font-sans">Non-GMO • Gluten-Free • Standardized KSM-66 Roots • Organic Embroidery • Zero artificial sugar or additives. We drop and freeze-dry at the source in India to preserve active adaptogens.</p>
+            <p class="text-xs text-gray-600 leading-relaxed font-sans">100% original branded base sneakers • Hand-painted by India's best sneaker artists • Water and scratch resistant finish • Made to order in 10 to 15 days • Express shipping to 60+ countries • Worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.</p>
           </div>
 
-          <a href="${cartFlowUrl}" class="btn btn-primary px-12 py-4 uppercase tracking-wider inline-block block font-bold text-sm">Lock In 40% Off & Free Gift Box</a>
+          <a href="${cartFlowUrl}" class="btn btn-primary px-12 py-4 uppercase tracking-wider inline-block block font-bold text-sm">Start Your One-Of-One</a>
         </div>
       </section>
     `;
@@ -790,7 +774,7 @@ function compileHTML(theme, variant, baseOrigin) {
 
   <!-- Sticky Promotion Announcement Bar -->
   <div class="sticky-bar">
-    ⚡ UK SPECIAL LAUNCH OFFER: 40% OFF + FREE PREMIUM ELECTRIC FROTHER AUTO-APPLIED
+    ⚡ HAND-PAINTED ONE-OF-ONE CUSTOMS ON 100% ORIGINAL SNEAKERS · EXPRESS SHIPPING TO 60+ COUNTRIES
   </div>
 
   <!-- Premium Main Header Section -->
@@ -804,23 +788,23 @@ function compileHTML(theme, variant, baseOrigin) {
   <section class="section bg-offset">
     <div class="container grid grid-2">
       <div class="hero-content">
-        <span class="badge mb-4">Adrenaline-Free Clean Focus Swapping</span>
-        <h1 class="font-serif title-large">${theme.id === 1 ? 'Waking Up With A Puffy Face?' : theme.name}</h1>
+        <span class="badge mb-4">India's Largest Sneaker Customiser</span>
+        <h1 class="font-serif title-large">${theme.id === 1 ? 'Everyone In The Room Has Your Shoes' : theme.name}</h1>
         <p class="text-gray-700 font-sans mb-6 text-lg" style="font-size: 18px;">
           ${theme.coreProblem}
         </p>
         <p class="text-gray-600 font-sans mb-8">
-          <strong>The Solution:</strong> ${theme.scientificHook}
+          <strong>The Craft:</strong> ${theme.scientificHook}
         </p>
         <div class="flex flex-col gap-4">
           <a href="#product-buy-box" class="btn btn-primary w-full py-4 tracking-wider text-center uppercase block font-bold">
-            Get 40% Off Starter Kit &rarr;
+            See The Designs &rarr;
           </a>
-          <p class="text-gray-500 font-mono text-center text-xs">🚀 Dispatched within 24 hours from UK fulfillment warehouse</p>
+          <p class="text-gray-500 font-mono text-center text-xs">🎨 Made to order in 10 to 15 days · shipped express from Mumbai</p>
         </div>
       </div>
       <div class="hero-media-wrapper">
-        <img class="hero-media" src="${heroImage}" referrerpolicy="no-referrer" alt="KNICKGASM Airbrush functional Adaptogen packing set" />
+        <img class="hero-media" src="${heroImage}" referrerpolicy="no-referrer" alt="KNICKGASM hand-painted one-of-one custom sneaker" />
       </div>
     </div>
   </section>
@@ -828,9 +812,9 @@ function compileHTML(theme, variant, baseOrigin) {
   <!-- Trust Pillars Segment Row -->
   <section class="section bg-white border-t border-b border-offset p-4" style="padding: 2rem 0;">
     <div class="container text-center">
-      <p class="text-xs uppercase font-mono tracking-widest text-gray-400 mb-4">VERIFIED SAFE AND CLINICALLY ASSISTURE</p>
+      <p class="text-xs uppercase font-mono tracking-widest text-gray-400 mb-4">100% ORIGINAL BASES · HAND-PAINTED · WATER &amp; SCRATCH RESISTANT</p>
       <div class="flex items-center justify-center">
-        <img src="${trustBadgeImage}" referrerpolicy="no-referrer" alt="KNICKGASM verified badges: standard roots, low acid, heavy metals free, non-gmo" style="max-height: 44px; width: auto;" />
+        <img src="${trustBadgeImage}" referrerpolicy="no-referrer" alt="KNICKGASM chunky rope laces, a finishing accessory for every custom pair" style="max-height: 44px; width: auto;" />
       </div>
     </div>
   </section>
@@ -838,35 +822,35 @@ function compileHTML(theme, variant, baseOrigin) {
   <!-- Master Variant Layout Specific Code Injection -->
   ${variantSpecificHTML}
 
-  <!-- Master Global Ingredient Highlights Grid Section -->
+  <!-- Master Global Craft Highlights Grid Section -->
   <section class="section bg-white border-t border-chalk">
     <div class="container">
       <div class="text-center mb-12">
-        <span class="badge mb-2">CLINICALLY ACTIVE FORMULA</span>
-        <h2 class="font-serif text-3xl text-brand font-bold">Four Functional Powerhouses in One Delicious Pair</h2>
-        <p class="text-gray-500 max-w-lg mx-auto font-sans mt-2">No mushroom tastes, just 100% gourmet Arabica richness layered with clinical-grade organic adaptogen standards.</p>
+        <span class="badge mb-2">HOW EVERY PAIR IS BUILT</span>
+        <h2 class="font-serif text-3xl text-brand font-bold">Four Things That Make It A One-Of-One</h2>
+        <p class="text-gray-500 max-w-lg mx-auto font-sans mt-2">No prints, no wraps, no factory line. An original sneaker, painted by hand, once.</p>
       </div>
 
       <div class="grid grid-2">
         <div style="border-radius: 8px; overflow: hidden;">
-          <img src="${ingredientImage}" referrerpolicy="no-referrer" alt="Themed root extraction and medical sneaker mix compilation" style="width: 100%; height: auto; display: block;" />
+          <img src="${ingredientImage}" referrerpolicy="no-referrer" alt="Hand-painted KNICKGASM custom sneaker detail" style="width: 100%; height: auto; display: block;" />
         </div>
         <div class="flex flex-col gap-6 justify-center">
           <div class="card p-4 bg-chalk">
-            <h4 class="font-serif font-bold text-brand mb-1">01. Standardized KSM-66 Airbrush</h4>
-            <p class="text-xs text-gray-600">The world's premier bioavailable extract. Calms the HPA thyroid stress loop and drains morning water retention up to 28%.</p>
+            <h4 class="font-serif font-bold text-brand mb-1">01. A 100% Original Base Sneaker</h4>
+            <p class="text-xs text-gray-600">Nike Air Force 1, Jordan, Dunk, Court Vision, Converse or Adidas Samba. We customise the real thing. We never replicate it.</p>
           </div>
           <div class="card p-4 bg-chalk">
-            <h4 class="font-serif font-bold text-brand mb-1">02. Curcumin Embroidery Roots</h4>
-            <p class="text-xs text-gray-600 font-sans">Soothes delicate stomach cells, blocks low-grade digestive tract inflammatory responses, and supports a flatter gut appearance.</p>
+            <h4 class="font-serif font-bold text-brand mb-1">02. Brushwork, Airbrush, Embroidery, Crystal</h4>
+            <p class="text-xs text-gray-600 font-sans">Brush detail for character linework, airbrush for gradients and skies, with embroidery and crystal work available on top of the painted base.</p>
           </div>
           <div class="card p-4 bg-chalk">
-            <h4 class="font-serif font-bold text-brand mb-1">03. Dual-Extraction Chaga & Lion's Mane</h4>
-            <p class="text-xs text-gray-600">Crosses the brain cellular barrier to generate nerve support, driving crisp razor focus without standard heart rate rushes.</p>
+            <h4 class="font-serif font-bold text-brand mb-1">03. A Sealed, Cured Finish</h4>
+            <p class="text-xs text-gray-600">Layered and cured so the artwork is water and scratch resistant and flexes with the leather instead of cracking at the toe box.</p>
           </div>
           <div class="card p-4 bg-chalk">
-            <h4 class="font-serif font-bold text-brand mb-1">04. AA-Grade Single Origin Arabica</h4>
-            <p class="text-xs text-gray-600">Sun-dried high elevation mountain coffee beans. Rich chocolate hazelnut design notes, low acidity levels, and active diuretic compounds.</p>
+            <h4 class="font-serif font-bold text-brand mb-1">04. Made To Order, Never Repeated</h4>
+            <p class="text-xs text-gray-600">Painted for one person over 10 to 15 days by India's best sneaker artists, then shipped express to 60+ countries.</p>
           </div>
         </div>
       </div>
@@ -879,20 +863,20 @@ function compileHTML(theme, variant, baseOrigin) {
       <h2 class="font-serif text-3xl text-brand text-center mb-8 font-bold">Frequently Asked Questions</h2>
       <div class="grid gap-4">
         <div class="card p-6 bg-white">
-          <h4 class="font-serif font-bold text-brand mb-2">How exactly does it help drain face puffiness?</h4>
-          <p class="text-sm text-gray-600">When stress triggers grail-drop spikes, your cells trap high amounts of water—usually under thin facial skin and cheeks. KSM-66 regulates and calms grail-drop spikes, signaling your cells to release trapped fluid, while high-grade Arabica acts as an active diuretic to flush it quickly.</p>
+          <h4 class="font-serif font-bold text-brand mb-2">Are these real Nike, Jordan or Adidas sneakers?</h4>
+          <p class="text-sm text-gray-600">Yes. Every pair starts as a 100% original, brand-new branded sneaker that we source and then customise by hand. We are a customiser, not a replica seller, so what you receive is the genuine silhouette with our artwork on it.</p>
         </div>
         <div class="card p-6 bg-white">
-          <h4 class="font-serif font-bold text-brand mb-2">Does this coffee actually taste like mushrooms or themed roots?</h4>
-          <p class="text-sm text-gray-600">Absolutely not! We engineered our extraction to be completely heat insoluble and design-masked. It tastes precisely like an exquisite, luxury, barista-level organic dark Arabica coffee with smooth cocoa undertones.</p>
+          <h4 class="font-serif font-bold text-brand mb-2">Will the paint crack or wash off?</h4>
+          <p class="text-sm text-gray-600">No. The artwork is built up in layers, then sealed and cured so it is water and scratch resistant and flexes with the leather. Clean it with a damp microfibre and a soft brush, never a machine wash and never direct heat.</p>
         </div>
         <div class="card p-6 bg-white">
-          <h4 class="font-serif font-bold text-brand mb-2">How do I receive the free electric frother wand?</h4>
-          <p class="text-sm text-gray-600">The free battery-operated custom brush is automatically packaged inside each Starter Kit (3-pack) order parcel. There are no promo codes required; our warehouse dispatches them directly.</p>
+          <h4 class="font-serif font-bold text-brand mb-2">How long does a custom pair take?</h4>
+          <p class="text-sm text-gray-600">Every pair is made to order, so allow 10 to 15 days from order to dispatch, then express shipping from Mumbai to your country. If it is for a specific date, brief us with time to spare.</p>
         </div>
         <div class="card p-6 bg-white">
-          <h4 class="font-serif font-bold text-brand mb-2">Is there any risk of jitters or standard mid-day crashes?</h4>
-          <p class="text-sm text-gray-600">None. The active calming compounds present in KSM66 Airbrush slow down the speed of paint absorption in your gut, distributing energy evenly for 6 robust hours without racing hearts or crash events.</p>
+          <h4 class="font-serif font-bold text-brand mb-2">Can I send my own design or reference?</h4>
+          <p class="text-sm text-gray-600">Yes. Send a reference image or describe the idea and our artists will plan the layout, the palette and which base silhouette suits it best. Wedding customs are colour-matched to your actual outfit.</p>
         </div>
       </div>
     </div>
@@ -903,7 +887,7 @@ function compileHTML(theme, variant, baseOrigin) {
     <div class="container container-sm">
       <h3 class="font-serif text-lg text-lava uppercase tracking-widest mb-4">KNICKGASM</h3>
       <p class="text-xs leading-relaxed max-w-md mx-auto" style="color: var(--color-chalk); opacity: 0.85;">
-        Distributing standard high quality organic products directly from source holdings to UK homes since 2015. Over 2 million customers served globally. Dedicated support: support@knickgasm.com
+        India's largest sneaker customiser. Hand-painted one-of-one custom sneakers, denim jackets and accessories, made in Mumbai and shipped to 60+ countries. Dedicated support: support@knickgasm.com
       </p>
       <p class="text-xs mt-6" style="color: var(--color-chalk); font-family: var(--font-body); opacity: 0.7;">&copy; 2026 Knickgasm India. All Rights Reserved.</p>
     </div>

@@ -177,7 +177,7 @@
       "ctr": 5.08,
       "cpc": 0.14,
       "cost_per_result": 0.128,
-      "campaign": "Traffic_Target_Statics_US_Coffee",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
       "objective": "Traffic",
       "result_indicator": "actions:link_click"
     },
@@ -336,9 +336,9 @@
       "thumb_stop": 0.0
     },
     {
-      "ad": "Coffee gut loves",
+      "ad": "Coffee-ART collectors love",
       "adset": "Traffic_Statics_12May_Broad_USA",
-      "campaign": "Traffic_Target_Statics_US_Coffee",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
       "objective": "Traffic",
       "spend": 3055.57,
       "ctr": 5.56,
@@ -349,7 +349,7 @@
     {
       "ad": "Your paint crack fixed2",
       "adset": "Traffic_Statics_12May_Broad_USA",
-      "campaign": "Traffic_Target_Statics_US_Coffee",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
       "objective": "Traffic",
       "spend": 234.09,
       "ctr": 5.57,
@@ -358,9 +358,9 @@
       "thumb_stop": 0.0
     },
     {
-      "ad": "3_20May_From Morning Puffiness to Morning Confidence-Adv+ creative enhance",
+      "ad": "3_20May_From Stock Pair to Statement Pair-Adv+ creative enhance",
       "adset": "Traffic_Statics_20May_All_Store_Pincodes",
-      "campaign": "Traffic_Target_Statics_US_Coffee",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
       "objective": "Traffic",
       "spend": 803.91,
       "ctr": 5.04,
@@ -380,8 +380,8 @@
       "thumb_stop": 0.213
     },
     {
-      "ad": "1-sales- glp1 no thanks",
-      "adset": "Target Sales - 23 June - Statics - All coffee pincodes",
+      "ad": "1-sales- factory pair no thanks",
+      "adset": "Target Sales - 23 June - Statics - All coffee-ART pincodes",
       "campaign": "Target Sales Campaign - Statics Ads - 23 Jun",
       "objective": "Sales",
       "spend": 419.45,
@@ -538,9 +538,9 @@
   ],
   "top_ads_by_spend": [
     {
-      "ad": "Coffee gut loves",
+      "ad": "Coffee-ART collectors love",
       "adset": "Traffic_Statics_12May_Broad_USA",
-      "campaign": "Traffic_Target_Statics_US_Coffee",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
       "objective": "Traffic",
       "spend": 3055.57,
       "ctr": 5.56,
@@ -549,7 +549,7 @@
       "thumb_stop": 0.0
     },
     {
-      "ad": "7-sales-goodbye menopausal weight gain",
+      "ad": "7-sales-goodbye plain white air force 1",
       "adset": "Ad Set1 - Sales PDP - Static1 - 24th June",
       "campaign": "Target - In-house - Sales PageDeck Campaign",
       "objective": "Sales",
@@ -582,8 +582,8 @@
       "thumb_stop": 0.581
     },
     {
-      "ad": "22-sales-adset2-grail-drop/benefits-women over 50 calm grail-drop",
-      "adset": "Ad Set2 - Sales PDP - Static - Grail-Drop/Benefits",
+      "ad": "22-sales-adset2-craft/benefits-collectors quiet grail drop",
+      "adset": "Ad Set2 - Sales PDP - Static - Craft/Benefits",
       "campaign": "Target - In-house - Sales PageDeck Campaign",
       "objective": "Sales",
       "spend": 2110.78,
@@ -593,8 +593,8 @@
       "thumb_stop": 0.003
     },
     {
-      "ad": "23-sales-adset3-weightloss/transformation-say hello toned arms",
-      "adset": "Ad Set3 - Sales PDP - Static - Weightloss/Transformation",
+      "ad": "23-sales-adset3-before-after-say hello hand-painted panels",
+      "adset": "Ad Set3 - Sales PDP - Static - Before/After Custom",
       "campaign": "Target - In-house - Sales PageDeck Campaign",
       "objective": "Sales",
       "spend": 2010.04,
@@ -604,7 +604,7 @@
       "thumb_stop": 0.006
     },
     {
-      "ad": "28% grail-drop",
+      "ad": "28 day grail drop",
       "adset": "New Traffic ad set",
       "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
       "objective": "Traffic",
@@ -615,7 +615,7 @@
       "thumb_stop": 0.002
     },
     {
-      "ad": "1-sales- glp1 no thanks2",
+      "ad": "1-sales- factory pair no thanks2",
       "adset": "Ad Set1 - Sales PDP - Static1 - 24th June",
       "campaign": "Target - In-house - Sales PageDeck Campaign",
       "objective": "Sales",
@@ -742,9 +742,9 @@
       "source": "kt-social-pptx slide 14"
     },
     {
-      "id": "cl-menopause",
-      "title": "Menopause and grail-drop angles carry paid Sales",
-      "detail": "goodbye menopausal weight gain ($2,960 spend, $0.62 per initiate-checkout), women over 50 calm grail-drop ($2,111, $0.81), GLP-1 no thanks ($1,446, $0.67), say hello toned arms ($2,010, $0.80), what i bought at target UGC static ($2,847, $0.86) are the scaled winners.",
+      "id": "cl-plain-pair",
+      "title": "Plain-pair-upgrade and grail-drop angles carry paid Sales",
+      "detail": "goodbye plain white air force 1 ($2,960 spend, $0.62 per initiate-checkout), collectors quiet grail drop ($2,111, $0.81), factory pair no thanks ($1,446, $0.67), say hello hand-painted panels ($2,010, $0.80), what i bought at target UGC static ($2,847, $0.86) are the scaled winners.",
       "source": "kt-spends-xlsx"
     },
     {

@@ -43,7 +43,7 @@ const ACCOUNTS = {
     key: 'dtc', id: '1303870183798748', name: 'Knickgasm India USA New EST Main Account',
     table: 'KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS',
     used_for: 'US direct-to-consumer storefront (knickgasm.com)',
-    purpose: 'The revenue account: coffee-ART and airbrush scale campaigns plus the evergreen custom-sneaker sets and the low-ticket accessories lane (rope laces, lace tags, care kits), all landing on own site with the Meta pixel firing.',
+    purpose: 'The revenue account: the coffee-ART and airbrush design collections at scale, plus the evergreen custom-sneaker sets and the low-ticket accessories lane (rope laces, lace tags, care kits), all landing on own site with the Meta pixel firing.',
     kpi: 'roas', attribution: 'meta_pixel',
     rows_total: 129741, campaigns_total: 106, data_fresh_to: '2026-07-25',
   },
