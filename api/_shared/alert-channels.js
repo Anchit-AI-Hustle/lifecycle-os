@@ -52,7 +52,7 @@ function mimeMessage({ to, subject, html, text }) {
   const from = senderEmail();
   const boundary = `knickgasm_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const lines = [
-    `From: KNICKGASM Lifecycle OS <${from}>`,
+    `From: Lifecycle OS <${from}>`,
     `To: ${to}`,
     `Subject: ${subject}`,
     'MIME-Version: 1.0',
@@ -101,7 +101,7 @@ async function sendResendFallback({ to, subject, html, text }) {
   const r = await fetchJson('https://api.resend.com/emails', {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: `KNICKGASM Lifecycle OS <${senderEmail()}>`, to: recipients, subject, html, text: text || '' }),
+    body: JSON.stringify({ from: `Lifecycle OS <${senderEmail()}>`, to: recipients, subject, html, text: text || '' }),
   });
   return { channel: 'resend', connected: true, sent: r.ok, status: r.status, id: r.body && r.body.id, error: r.ok ? null : r.body };
 }

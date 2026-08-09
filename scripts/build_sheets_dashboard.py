@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the KNICKGASM Lifecycle OS visual dashboard as an .xlsx (multi-tab + native
+"""Build the Lifecycle OS visual dashboard as an .xlsx (multi-tab + native
 charts) that uploads/converts cleanly into Google Sheets.
 
 Catalog tabs are populated from REAL data (data/catalog/products_{us,uk,global}.json).

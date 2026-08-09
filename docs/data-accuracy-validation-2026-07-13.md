@@ -10,7 +10,7 @@
 
 | Repo dataset | Consumed by | Verdict |
 |---|---|---|
-| `data/market/us/*` → `data/analytics/market-data.js` (`window.KNICKGASM_ANALYTICS`) | `/analytics` (`data-analysis.html`), `data-engine.html`, `research.html`, `alerts-core.js` | ✅ **Consistent in scope.** Trailing-12-month window (Jul 2025-Jul 2026), total sales $1.12M — matches the report's "~$1.1M/year run-rate". Labeled "trailing 12-month" on the page, so not misrepresented. Not directly comparable line-for-line to the report's calendar-year table. |
+| `data/market/us/*` → `data/analytics/market-data.js` (`window.LIFECYCLE_ANALYTICS`) | `/analytics` (`data-analysis.html`), `data-engine.html`, `research.html`, `alerts-core.js` | ✅ **Consistent in scope.** Trailing-12-month window (Jul 2025-Jul 2026), total sales $1.12M — matches the report's "~$1.1M/year run-rate". Labeled "trailing 12-month" on the page, so not misrepresented. Not directly comparable line-for-line to the report's calendar-year table. |
 | `data/shopify_analytics/*.csv` (monthly 2023-01 → 2025-03) | offline Python ingest → DuckDB → Supabase (`ingest_shopify_analytics.py`, `run_all.py`, `sync_to_supabase.py`, `mailer_system/engine.py`) | ❌ **Materially inaccurate / synthetic.** See §1. |
 | `data/cohort-sizes.json` (`base_total_est: 430000`) | cohort sizing / calendar | ⚠️ **Misleading.** Uses inflated profile count as the customer base. See §2. |
 | Report's all-time figures ($14.76M lifetime, 268,500 orders, 154,822 customers) | — | ❌ **Not represented anywhere** in repo analytics until now (added as `usa-d2c-report-2026-07-13.json`). |

@@ -1016,7 +1016,7 @@
       "name": "Supabase (app persistence)",
       "status": "connected - verified 2026-07-25",
       "details": [
-        "Project knickgasm-lifecycle-os (fswdwmkgggzyxrdzabnh, ap-south-1, Postgres 17) - 57 public tables",
+        "Project lifecycle-os (fswdwmkgggzyxrdzabnh, ap-south-1, Postgres 17) - 57 public tables",
         "Campaign system live: smart_generated_campaigns 90 rows, smart_calendar_entries 182, smart_campaigns 96, smart_calendar 290",
         "ads_generated / landing_pages_generated mirror tables were NOT found in the live schema - verify migration state before relying on the Brain approval mirror",
         "Security advisory: RLS disabled on ci_user_subscriptions and ci_notification_log (flagged by Supabase advisor)"
@@ -1045,7 +1045,7 @@
       "name": "Vercel (hosting + crons)",
       "status": "deployed",
       "details": [
-        "knickgasm.vercel.app - knickgasm-lifecycle-os.anchit-tandon.com; 12-function Hobby limit governs API layout",
+        "knickgasm.vercel.app - lifecycle-os.anchit-tandon.com; 12-function Hobby limit governs API layout",
         "Crons: /api/brain?action=cron 18:30 UTC daily, /api/cron/social 19:00 UTC daily",
         "This dashboard is static (data/ads/*.json) - it adds zero serverless functions"
       ]
@@ -1055,7 +1055,7 @@
       "name": "GitHub (source of truth)",
       "status": "active",
       "details": [
-        "anchit-ai-hustle/knickgasm-lifecycle-os - this page, the KB JSON and the flow fixes ship via branch claude/ad-campaigns-master-dashboard-h40ugs"
+        "anchit-ai-hustle/lifecycle-os - this page, the KB JSON and the flow fixes ship via branch claude/ad-campaigns-master-dashboard-h40ugs"
       ]
     }
   ],
@@ -1322,7 +1322,7 @@
     },
     {
       "group": "Platforms",
-      "title": "Supabase project (knickgasm-lifecycle-os)",
+      "title": "Supabase project (lifecycle-os)",
       "url": "https://supabase.com/dashboard/project/fswdwmkgggzyxrdzabnh",
       "owner": "-",
       "status": "verified",
@@ -1330,8 +1330,8 @@
     },
     {
       "group": "Platforms",
-      "title": "GitHub repo (anchit-ai-hustle/knickgasm-lifecycle-os)",
-      "url": "https://github.com/anchit-ai-hustle/knickgasm-lifecycle-os",
+      "title": "GitHub repo (anchit-ai-hustle/lifecycle-os)",
+      "url": "https://github.com/anchit-ai-hustle/lifecycle-os",
       "owner": "-",
       "status": "verified",
       "source": "github"

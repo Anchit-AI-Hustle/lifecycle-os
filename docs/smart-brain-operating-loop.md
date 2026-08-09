@@ -7,7 +7,7 @@
 > **Competitive-Intelligence collectors** (`/api/competitor?action=ci-*`,
 > `workers/collect-*`, the `ci-daily` cron) and the `ci_*` data model.
 
-This is the runbook for the KNICKGASM Lifecycle OS "Smart Brain" and the
+This is the runbook for the Lifecycle OS "Smart Brain" and the
 Competitive-Intelligence collection stream. It documents **how the system runs
 day-to-day**, the **clean contracts** between modules, and the **schema
 assumptions** for the linked backend DB.

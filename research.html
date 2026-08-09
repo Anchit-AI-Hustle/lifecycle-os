@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Market Study - KNICKGASM Lifecycle OS</title>
+<title>Market Study - Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#D0473E">
@@ -86,7 +86,7 @@
   <!-- ══ MAIN VIEWPORT ══ -->
   <main class="lc-main">
     <div id="regionTabs" class="flex flex-wrap items-center gap-2 mb-6"><span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Benchmark table</span><button type="button" class="rtab on" data-region="US">US</button><button type="button" class="rtab" data-region="UK">UK</button><button type="button" class="rtab" data-region="EU">EU</button><button type="button" class="rtab" data-region="Global">Global</button><span class="text-[12px]" style="color:#556059;margin-left:6px">Filtering the competitor benchmark table to <b class="text-vink" id="rgLabel">US</b>. (The full regional reports have their own Study selector below.)</span></div>
-    <div class="kicker">KNICKGASM Lifecycle OS · Market Study</div>
+    <div class="kicker">Lifecycle OS · Market Study</div>
     <h1 class="text-vink text-[36px] font-bold leading-tight mt-1">Market Study</h1>
     <p class="text-[#111111] max-w-3xl mt-2 text-[15px] leading-relaxed">A single, scannable reference that fuses the US coffee &amp; functional-beverage market map, the retention configuration blueprints, the buyer cohorts, live and predictive analytics from the DuckDB engine, and the content-automation + Shopify sync pipeline. Every figure below is production-grade and copy-ready.</p>
 
@@ -615,7 +615,7 @@ triggers:
   })();
 
   // -- Revenue projection (single source: day-end from today's pace, extended across horizons) --
-  var A=(window.KNICKGASM_ANALYTICS)||{markets:{}};
+  var A=(window.LIFECYCLE_ANALYTICS)||{markets:{}};
   function curSym(mk){ var c=(A.currency&&A.currency[mk])||'USD'; return c==='GBP'?'£':(c==='EUR'?'€':'$'); }
   function moneyC(v,mk){ return curSym(mk)+Math.round(v).toLocaleString(); }
   function avgDailyRevenue(mk){

@@ -1,6 +1,6 @@
 # US Custom-Sneaker & Streetwear D2C Landscape — Market Intelligence
 
-> Internal planning document for KNICKGASM Lifecycle OS. Focus: the US direct-to-consumer opportunity for a hand-painted, made-to-order custom-sneaker studio selling one-of-one pairs on 100% original Nike Air Force 1 / Air Jordan / Dunk / Court Vision / Converse / Adidas Samba bases, plus custom denim jackets and a sneaker accessories-and-care line.
+> Internal planning document for Lifecycle OS. Focus: the US direct-to-consumer opportunity for a hand-painted, made-to-order custom-sneaker studio selling one-of-one pairs on 100% original Nike Air Force 1 / Air Jordan / Dunk / Court Vision / Converse / Adidas Samba bases, plus custom denim jackets and a sneaker accessories-and-care line.
 >
 > **Filename note.** The slug `us-coffee-d2c-landscape.md` is legacy and is retained because `avatars.html`, `scripts/gen-playbook-hub.js`, and `knowledge/brand/06-market-intelligence-summary.md` link to this exact path. The contents are the sneaker-market study. (KNICKGASM's "coffee" reference is the **coffee-ART collection**: hand-painted coffee motifs on sneakers, not a drink.)
 >

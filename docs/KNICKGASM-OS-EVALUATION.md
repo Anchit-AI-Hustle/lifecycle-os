@@ -1,4 +1,4 @@
-# Knickgasm Lifecycle OS — Evaluation, Critique & Implementation Logic
+# Lifecycle OS — Evaluation, Critique & Implementation Logic
 
 > Grounded in your **actual** repo (static-HTML + 12 Vercel functions + Supabase) and your stated requirements (native iOS/Android apps, ≥95% per-feature accuracy, **100% commerce-data accuracy**, dual full apps + standalone superapp). Last updated 2026-06-20.
 

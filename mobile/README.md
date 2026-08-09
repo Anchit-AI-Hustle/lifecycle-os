@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS — Mobile (Android + iOS)
+# Lifecycle OS — Mobile (Android + iOS)
 
 Two ways the app runs on phones. **#1 works today, no build tools, no stores.**
 

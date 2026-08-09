@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DTC Data Engine - KNICKGASM Lifecycle OS</title>
+<title>DTC Data Engine - Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#D0473E">
@@ -42,7 +42,7 @@
 </head>
 <body>
   <main class="lc-main">
-    <div class="kicker">KNICKGASM Lifecycle OS &middot; DTC Data Engine</div>
+    <div class="kicker">Lifecycle OS &middot; DTC Data Engine</div>
     <h1 class="text-vcream text-[34px] font-bold leading-tight mt-1" style="color:#111111">DTC Data Engine</h1>
     <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The ingestion and analytics core that powers the OS. Matrixify, Shopify, Klaviyo and WebEngage exports are ingested into DuckDB, modelled, and synced to Supabase; the compiled market exports below render natively here, no external app and no server round-trip.</p>
 
@@ -60,7 +60,7 @@
       <div class="flow">
         <div class="node">Matrixify &middot; Shopify &middot; Klaviyo &middot; WebEngage exports</div>
         <span class="arrow">&rarr;</span>
-        <div class="node">DuckDB (ingest/run_all.py, KNICKGASM_DuckDB_DDL.sql)</div>
+        <div class="node">DuckDB (ingest/run_all.py, LIFECYCLE_DuckDB_DDL.sql)</div>
         <span class="arrow">&rarr;</span>
         <div class="node">Supabase (sync_to_supabase.py)</div>
         <span class="arrow">&rarr;</span>
@@ -104,7 +104,7 @@
   <script>
   (function(){
     "use strict";
-    var A = window.KNICKGASM_ANALYTICS;
+    var A = window.LIFECYCLE_ANALYTICS;
     if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:#b91c1c">Analytics module not loaded.</div>'; return; }
     var market = 'US';
     var symByCur = { USD:'$', GBP:'£' };

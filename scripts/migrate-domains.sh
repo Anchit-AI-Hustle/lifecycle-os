@@ -24,7 +24,7 @@ set -uo pipefail
 
 ROOT_DOMAIN="${ROOT_DOMAIN:-anchit-tandon.com}"
 VERCEL_CNAME="cname.vercel-dns.com"
-ALL_PROJECTS="knickgasm-lifecycle-os personal-ai-os the-third-eye music-gen-ai hey-yaara ai-tele-suite th-life-engine marketing-mailers-html-architect"
+ALL_PROJECTS="lifecycle-os personal-ai-os the-third-eye music-gen-ai hey-yaara ai-tele-suite th-life-engine marketing-mailers-html-architect"
 
 APPLY=0; ONLY=""; NO_OAUTH=0
 for a in "$@"; do

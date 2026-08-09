@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * WCAG contrast auditor for the KNICKGASM Lifecycle OS static pages.
+ * WCAG contrast auditor for the Lifecycle OS static pages.
  *
  * Heuristic, not a full CSS engine: for each HTML file it resolves the page's
  * palette custom properties, collects every `color:` value used for text

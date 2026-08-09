@@ -75,7 +75,7 @@ async function subscribersForBrand({ brand_id, brand_name, domain }, channel) {
 }
 
 // ── email send (minimal Resend, arbitrary recipient) ────────────────────────
-function fromAddress() { return process.env.ALERT_FROM || process.env.RESEND_FROM || 'KNICKGASM Lifecycle OS <onboarding@resend.dev>'; }
+function fromAddress() { return process.env.ALERT_FROM || process.env.RESEND_FROM || 'Lifecycle OS <onboarding@resend.dev>'; }
 
 async function sendEmailTo(to, subject, html, text) {
   const key = process.env.RESEND_API_KEY;
@@ -132,7 +132,7 @@ function assetEmailHtml({ channel, brand, asset }) {
       ${thumb ? `<img src="${esc(thumb)}" alt="asset" style="max-width:100%;border-radius:8px;border:1px solid #eee"/>` : ''}
       ${asset.preview ? `<p style="color:#556059;font-size:14px">${esc(String(asset.preview).slice(0, 240))}</p>` : ''}
       <p style="font-size:13px;margin-top:14px">${links.join(' &nbsp;·&nbsp; ')}</p>
-      <p style="font-size:11px;color:#8a8a80;margin-top:18px">You follow ${esc(brand)} in KNICKGASM Lifecycle OS Competitor Benchmarking. Real-time ${esc(channel)} updates.</p>
+      <p style="font-size:11px;color:#8a8a80;margin-top:18px">You follow ${esc(brand)} in Lifecycle OS Competitor Benchmarking. Real-time ${esc(channel)} updates.</p>
     </div>
   </div></body></html>`;
 }

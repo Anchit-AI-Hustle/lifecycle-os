@@ -138,7 +138,7 @@ function sidebar(prefix, activeKey) {
   return [
 '  <aside class="hidden lg:flex flex-col w-[288px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">',
 '    <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">',
-'      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>',
+'      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</div>',
 '      <div class="font-head text-[21px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>',
 '      <p class="text-[11px] mt-2" style="color:#cdd8d0;">A modular documentation and execution hub. One page per feature and per competitor.</p>',
 '    </div>',
@@ -774,7 +774,7 @@ const JS_SHOPIFY = String.raw`
 /* ---- HUB ---- */
 function buildHub() {
   const main = [
-hero("Knickgasm Lifecycle OS", "The Growth &amp; Automation Playbook",
+hero("Lifecycle OS", "The Growth &amp; Automation Playbook",
   "The master hub for how Knickgasm grows a hand-painted custom sneaker business. This is a modular, multi-page ecosystem: every feature and every competitor lives in its own deep-dive file, and this hub links out to all of them. KNICKGASM figures are read from the built catalogs; third-party market sizing is marked as a dependency rather than estimated."),
 
 // Feature 01

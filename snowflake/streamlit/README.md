@@ -45,6 +45,6 @@ Scripted — run `deploy.sql` (creates the stage + `CREATE STREAMLIT`). Upload
 
 This SiS app is the **analytics** surface (Data Analysis + Ads). The full
 marketing OS (Mailer Studio, calendars, KicksGPT, generation, landing pages)
-remains the web app at `knickgasm-lifecycle-os.anchit-tandon.com` — unchanged by
+remains the web app at `lifecycle-os.anchit-tandon.com` — unchanged by
 this folder, and it renders the SAME analysis via the web dashboard. Adding
 these files does not touch any web route or the Vercel build.

@@ -5,7 +5,7 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 
 // All tests share this URL — it's set in playwright.config.js
-const URL = process.env.TARGET_URL || 'file://' + path.resolve(__dirname, '..', 'knickgasm_mailer_architect_v34.html');
+const URL = process.env.TARGET_URL || 'file://' + path.resolve(__dirname, '..', 'lifecycle_mailer_architect_v34.html');
 
 // Skip auth modal: many SPAs gate behind sign-in. Studio uses an authOverlay.
 // We bypass it by setting localStorage before the first navigation.

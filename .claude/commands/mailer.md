@@ -10,7 +10,7 @@ Produce a Knickgasm HTML email for: `$ARGUMENTS`.
 ## Method
 1. Invoke the **`anthropic-skills:knickgasm-d2c-mailer`** skill as the primary engine. It encodes the Mailer Studio contract.
 2. If product specifics are needed, pull real catalog data from `data/catalog/products_{us,uk,global}.json` (built by `scripts/build-catalog.js`) — use real handles for PDP links `{storeBase}/products/{handle}`.
-3. Follow the Mailer Studio structure (`knickgasm_mailer_architect_v34.html`): compact ~1200–1500px, one of the 11 layout archetypes, brand-locked.
+3. Follow the Mailer Studio structure (`lifecycle_mailer_architect_v34.html`): compact ~1200–1500px, one of the 11 layout archetypes, brand-locked.
 
 ## Hard constraints
 - **@font-face / palette / logo / footer** per the brand asset code engine (strict HTML/CSS contract). Headings Montserrat, body Instrument Sans. Only the 4 brand colors.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Preflight credential check for KNICKGASM Lifecycle OS (and sibling apps).
+# Preflight credential check for Lifecycle OS (and sibling apps).
 #
 # Purpose: before any per-project management operation (Vercel deploy/env,
 # GoDaddy DNS, Supabase management), confirm the required credentials are
@@ -11,7 +11,7 @@
 #
 # Usage:
 #   bash scripts/preflight-credentials.sh                 # check all projects
-#   PROJECTS="knickgasm-lifecycle-os" bash scripts/preflight-credentials.sh
+#   PROJECTS="lifecycle-os" bash scripts/preflight-credentials.sh
 #   REQUIRE_GODADDY=1 bash scripts/preflight-credentials.sh   # also require DNS keys
 #   npm run preflight
 #
@@ -25,7 +25,7 @@ set -uo pipefail
 # ── Config ───────────────────────────────────────────────────────────────────
 # The projects this repo family deploys as separate Vercel projects (see
 # CLAUDE.md). Override with the PROJECTS env var (space-separated) to scope it.
-DEFAULT_PROJECTS="knickgasm-lifecycle-os personal-ai-os the-third-eye music-gen-ai hey-yaara ai-tele-suite th-life-engine marketing-mailers-html-architect"
+DEFAULT_PROJECTS="lifecycle-os personal-ai-os the-third-eye music-gen-ai hey-yaara ai-tele-suite th-life-engine marketing-mailers-html-architect"
 PROJECTS="${PROJECTS:-$DEFAULT_PROJECTS}"
 
 # Shared, account-level credentials. VERCEL_TOKEN + SUPABASE_ACCESS_TOKEN are
@@ -80,7 +80,7 @@ for p in $PROJECTS; do
   # Fallback: the primary app may use the un-prefixed SUPABASE_PROJECT_REF.
   if is_set "$ref_var"; then
     printf '  %s%-34s%s ref via %s%s%s\n' "$GREEN" "$p" "$RST" "$DIM" "$ref_var" "$RST"
-  elif [ "$p" = "knickgasm-lifecycle-os" ] && is_set "SUPABASE_PROJECT_REF"; then
+  elif [ "$p" = "lifecycle-os" ] && is_set "SUPABASE_PROJECT_REF"; then
     printf '  %s%-34s%s ref via %sSUPABASE_PROJECT_REF (shared)%s\n' "$GREEN" "$p" "$RST" "$DIM" "$RST"
   else
     printf '  %s%-34s ref MISSING%s  %sset %s%s\n' "$YEL" "$p" "$RST" "$DIM" "$ref_var" "$RST"

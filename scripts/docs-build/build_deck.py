@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the KNICKGASM Lifecycle OS pitch deck as brand-styled PPTX + print HTML
+"""Build the Lifecycle OS pitch deck as brand-styled PPTX + print HTML
 (the HTML is rendered to PDF by Chromium). One slide-data source -> both."""
 import html
 from pptx import Presentation

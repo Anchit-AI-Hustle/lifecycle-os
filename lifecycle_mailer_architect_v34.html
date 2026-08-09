@@ -1305,7 +1305,7 @@ console.log('%c[KNICKGASM Mailer] Build:','color:#D0473E;font-weight:bold','supa
 // 3. Run the SQL in the comment block below to create the required tables
 // ═══════════════════════════════════════════════════════════════════════════
 const SUPABASE_CONFIG={
-  // Unified to the real knickgasm-lifecycle-os project (fswdwmkgggzyxrdzabnh) — the
+  // Unified to the real lifecycle-os project (fswdwmkgggzyxrdzabnh) — the
   // same project auth.js + data/linked-db.json use. Was pointed at a stale third
   // project (ozlmmiyyjmmfdvvrtgdp). anon key only (public/publishable).
   url:'https://fswdwmkgggzyxrdzabnh.supabase.co',
@@ -1651,10 +1651,10 @@ async function loadKnowledgeBase(){
   var sb=getSupabase();if(!sb){window.KB.error='no-client';return null;}
   try{
     var [bkRes, mkRes, prRes, clRes] = await Promise.all([
-      sb.from('knickgasm_brand_kit').select('*').eq('id',1).maybeSingle(),
-      sb.from('knickgasm_market_config').select('*').eq('is_active',true),
-      sb.from('knickgasm_products').select('*').eq('is_active',true).order('is_featured',{ascending:false}).order('is_bestseller',{ascending:false}).limit(2000),
-      sb.from('knickgasm_collections').select('*')
+      sb.from('lifecycle_brand_kit').select('*').eq('id',1).maybeSingle(),
+      sb.from('lifecycle_market_config').select('*').eq('is_active',true),
+      sb.from('lifecycle_products').select('*').eq('is_active',true).order('is_featured',{ascending:false}).order('is_bestseller',{ascending:false}).limit(2000),
+      sb.from('lifecycle_collections').select('*')
     ]);
     if(bkRes.data) window.KB.brandKit=bkRes.data;
     if(mkRes.data) window.KB.markets=Object.fromEntries(mkRes.data.map(function(m){return [m.market,m];}));

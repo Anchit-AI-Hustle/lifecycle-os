@@ -5,8 +5,8 @@
 > Last updated: 2026-06-09.
 
 ## Where things stand
-- **Repo:** `Anchit-AI-Hustle/knickgasm-lifecycle-os` · branch `main` · HEAD `2c53c90`
-- **Live:** https://knickgasm-lifecycle-os-anchittandon-3589s-projects.vercel.app
+- **Repo:** `Anchit-AI-Hustle/lifecycle-os` · branch `main` · HEAD `2c53c90`
+- **Live:** https://lifecycle-os-anchittandon-3589s-projects.vercel.app
 - **State:** local = origin = production, all deploys READY, working tree clean.
 - **CLI session id (terminal resume only):** `c560fe34-d21e-4192-b5a4-e479ca4b63d7`
   - Resume in a fresh terminal: `claude --resume c560fe34-d21e-4192-b5a4-e479ca4b63d7`
@@ -29,7 +29,7 @@ serverless functions (`api/*.js`, CommonJS). Deployed on Vercel Hobby.
 ## Key pages
 | File | Purpose |
 |---|---|
-| `knickgasm_mailer_architect_v34.html` (748 KB) | Mailer Studio (`/studio`). Was truncated to 0 bytes in `53d16bc`, restored in `ce2242b` — that was the "blank page on create" bug. Now the SINGLE studio file: built-in light/dark toggle in the header (☾/☀), `data-theme="dark"` on `<html>`, persisted in `localStorage['knickgasm-theme']`, first visit follows OS `prefers-color-scheme`. Dark themes UI chrome only — the email preview (`.preview-wrap`/iframe) and generated mailer HTML stay on-brand white/chalk. |
+| `lifecycle_mailer_architect_v34.html` (748 KB) | Mailer Studio (`/studio`). Was truncated to 0 bytes in `53d16bc`, restored in `ce2242b` — that was the "blank page on create" bug. Now the SINGLE studio file: built-in light/dark toggle in the header (☾/☀), `data-theme="dark"` on `<html>`, persisted in `localStorage['knickgasm-theme']`, first visit follows OS `prefers-color-scheme`. Dark themes UI chrome only — the email preview (`.preview-wrap`/iframe) and generated mailer HTML stay on-brand white/chalk. |
 | `knickgasm_mailer_studio_v2_dark.html` | RETIRED. The dark rebuild was merged into the single studio above; this is now a redirect stub → `/studio` (presets dark theme). `/studio-v2` rewrite also points at the main file. Kept only so old bookmarks resolve. |
 | `cohort-definitions.html` | Cohort names + definitions + target audience (`/cohorts`) |
 | `competitor-benchmarking.html` | Discover/Mailers/Ads/Landing/Insights (`/competitor`, `#discover`) |

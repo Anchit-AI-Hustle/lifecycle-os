@@ -1,6 +1,6 @@
-# KNICKGASM Lifecycle OS — Consolidated Project Status
+# Lifecycle OS — Consolidated Project Status
 
-**As of:** 2026-07-17 · **Live:** https://knickgasm.vercel.app (→ knickgasm-lifecycle-os.anchit-tandon.com)
+**As of:** 2026-07-17 · **Live:** https://knickgasm.vercel.app (→ lifecycle-os.anchit-tandon.com)
 **Scope of this doc:** a single reconciled snapshot of everything built across all sessions. The
 **repository is the source of truth** — every merged PR from every session is reflected here
 (53 app pages, 71 `api/_shared` modules, 38 Supabase migrations, 60+ friendly routes, 12 serverless

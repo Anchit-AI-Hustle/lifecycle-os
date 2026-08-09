@@ -112,7 +112,7 @@ module.exports = async function handler(req, res) {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BRAND KIT — read/write the brand-truth singleton (knickgasm_brand_kit id=1)
+// BRAND KIT — read/write the brand-truth singleton (lifecycle_brand_kit id=1)
 // ═══════════════════════════════════════════════════════════════════════════
 // This is what /brand (brand.html) edits. Every generator reads the same row,
 // so a change here is the ONE place brand truth is set for the whole platform.
@@ -122,8 +122,8 @@ async function brandKit(req, res, env) {
 
   if (req.method === 'GET') {
     const [kitRes, mktRes] = await Promise.all([
-      fetch(`${base}/knickgasm_brand_kit?id=eq.1&select=*`, { headers: H }),
-      fetch(`${base}/knickgasm_market_config?select=*&order=market.asc`, { headers: H }).catch(() => null),
+      fetch(`${base}/lifecycle_brand_kit?id=eq.1&select=*`, { headers: H }),
+      fetch(`${base}/lifecycle_market_config?select=*&order=market.asc`, { headers: H }).catch(() => null),
     ]);
     if (!kitRes.ok) return res.status(502).json({ ok: false, error: `brand_kit read failed: ${await kitRes.text()}` });
     const rows = await kitRes.json();
@@ -149,7 +149,7 @@ async function brandKit(req, res, env) {
       guide_pdf_url: guide_pdf_url || null,
       updated_at: new Date().toISOString(),
     };
-    const r = await fetch(`${base}/knickgasm_brand_kit?on_conflict=id`, {
+    const r = await fetch(`${base}/lifecycle_brand_kit?on_conflict=id`, {
       method: 'POST',
       headers: { ...H, Prefer: 'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify([row]),

@@ -1,784 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KNICKGASM · Lifecycle OS</title>
-<link rel="icon" type="image/png" href="/favicon.png">
-<link rel="apple-touch-icon" href="/favicon.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lifecycle OS</title>
+<meta name="description" content="A lifecycle-marketing operating system. Onboard a brand and the whole suite runs as that brand: analytics, cohorts, a rolling campaign calendar, and generated mailers, ads and landing pages.">
+<link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#D0473E">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Lifecycle OS">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
-<script src="/auth.js?v=20260718light" defer></script>
-<script defer src="/_vercel/speed-insights/script.js"></script>
+<link rel="stylesheet" href="/theme.css">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --ink: #111111; --ink-dim: #556059; --ink-faint: #48524c;
-    --lava: #6A33D8; --chalk: #FFFFFF; --green: #D0473E;
-    --bg: #ffffff; --panel: #ffffff;
-    --line: rgba(171,135,67,0.18); --line-hot: rgba(171,135,67,0.5);
+  :root{
+    --head:var(--brand-font-heading,'Montserrat',-apple-system,BlinkMacSystemFont,Arial,sans-serif);
+    --body:var(--brand-font-body,'Instrument Sans','Helvetica Neue',Arial,sans-serif);
+    --ink:var(--brand-ink,#111111);
+    --bg:var(--brand-surface,#FFFFFF);
+    --panel:var(--brand-surface-alt,#F7F7F8);
+    --accent:var(--brand-primary,#D0473E);
+    --accent2:var(--brand-accent,#6A33D8);
+    --line:var(--brand-line,#EBEBEB);
+    --soft:var(--brand-ink-muted,#666666);
   }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--bg); color: var(--ink);
-    min-height: 100vh; padding: 36px 32px;
-  }
-  .wrap { max-width: 1180px; margin: 0 auto; }
-
-  /* ─── Hero ──────────────────────────────────────────────────────── */
-  .hero { margin-bottom: 34px; position: relative; }
-  .hero-aura {
-    position: absolute; top: -80px; right: -40px; width: 420px; height: 420px;
-    border-radius: 50%; pointer-events: none; filter: blur(70px); opacity: 0.5;
-    background: radial-gradient(circle at 40% 40%, rgba(0,74,43,0.55), rgba(171,135,67,0.18) 55%, transparent 72%);
-    animation: aura 14s ease-in-out infinite alternate;
-  }
-  @keyframes aura { from { transform: translate(0,0) scale(1); } to { transform: translate(-50px,28px) scale(1.12); } }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.22em; color: var(--lava); margin-bottom: 16px; font-weight: 600; }
-  h1 { font-family: 'Lora', serif; font-size: 42px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 16px; }
-  h1 em { font-style: italic; color: var(--lava); }
-  p.lede { color: var(--ink-dim); font-size: 15.5px; line-height: 1.65; max-width: 700px; }
-  p.lede b { color: var(--chalk); font-weight: 600; }
-
-  .hero-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
-  .kbd-hint {
-    display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
-    padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; font-family: inherit;
-    background: var(--panel); border: 1px solid var(--line-hot); color: var(--ink);
-    transition: border-color .15s, color .15s, box-shadow .15s;
-  }
-  .kbd-hint:hover { border-color: var(--lava); color: var(--chalk); box-shadow: 0 6px 24px rgba(171,135,67,0.15); }
-  .kbd-hint kbd {
-    font-family: inherit; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
-    padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line);
-    background: rgba(171,135,67,0.08); color: var(--lava);
-  }
-
-  /* ─── Filter chips ──────────────────────────────────────────────── */
-  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 8px 0 16px; flex-wrap: wrap; }
-  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-faint); font-weight: 600; }
-  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip {
-    font-family: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; cursor: pointer;
-    padding: 6px 13px; border-radius: 99px; border: 1px solid var(--line);
-    background: transparent; color: var(--ink-dim); transition: all .15s;
-  }
-  .chip:hover { border-color: var(--line-hot); color: var(--chalk); }
-  .chip[aria-pressed="true"] { background: var(--lava); border-color: var(--lava); color: var(--bg); }
-
-  /* ─── Card grid ─────────────────────────────────────────────────── */
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 32px; } }
-  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } body { padding: 24px 18px; } }
-
-  .card {
-    display: flex; flex-direction: column;
-    padding: 22px 22px 18px; border-radius: 16px;
-    background: var(--panel); border: 1px solid var(--line);
-    transition: transform .22s, border-color .22s, box-shadow .22s, opacity .3s;
-    position: relative; overflow: hidden;
-  }
-  /* Pointer-tracked spotlight: --mx/--my set by one delegated listener. */
-  .card::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
-    background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), rgba(171,135,67,0.10), transparent 65%);
-    transition: opacity .25s;
-  }
-  .card:hover::before { opacity: 1; }
-  .card:hover { transform: translateY(-3px); border-color: var(--line-hot); box-shadow: 0 16px 40px rgba(0,0,0,0.45); }
-  .card.dim { opacity: 0.18; pointer-events: none; }
-  .card-ic {
-    width: 42px; height: 42px; border-radius: 11px; margin-bottom: 14px;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(171,135,67,0.12); color: var(--lava);
-  }
-  .card-ic svg { width: 22px; height: 22px; }
-  .card-tag {
-    position: absolute; top: 18px; right: 18px;
-    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
-    color: var(--lava); background: rgba(171,135,67,0.12); padding: 3px 8px; border-radius: 99px;
-  }
-  .card h2 { font-family: 'Lora', serif; font-size: 20px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.01em; }
-  .card p { font-size: 13px; color: var(--ink-dim); line-height: 1.55; margin-bottom: 14px; flex: 1; }
-  .card-subs { font-size: 11px; color: var(--ink-faint); line-height: 1.7; list-style: none; margin-bottom: 16px; }
-  .card-subs li::before { content: '·'; color: var(--lava); font-weight: 700; margin-right: 7px; }
-  .card-ctas { display: flex; gap: 8px; }
-  .btn {
-    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 9px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
-    font-family: inherit; cursor: pointer; text-decoration: none; transition: all .14s;
-    border: 1px solid transparent; letter-spacing: 0.02em;
-  }
-  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #D0473E; }
-  .btn-ghost:hover { border-color: var(--lava); color: #D0473E; background: rgba(171,135,67,0.06); }
-  .btn-solid { background: var(--lava); color: var(--bg); }
-  .btn-solid:hover { opacity: 0.92; }
-  .btn-live { background: transparent; border-color: rgba(0,74,43,0.9); color: #D0473E; }
-  .btn-live:hover { background: #D0473E; color: #FFFFFF; }
-
-  /* ─── Pipeline flow ─────────────────────────────────────────────── */
-  .flow {
-    margin: 36px 0 8px; padding: 22px 24px; border-radius: 16px;
-    background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15);
-  }
-  .flow-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; }
-  .flow-steps { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .flow-step {
-    font-size: 13.5px; color: #556059; text-decoration: none; padding: 6px 10px; border-radius: 8px;
-    border: 1px solid transparent; transition: all .15s;
-  }
-  .flow-step:hover { border-color: var(--line-hot); color: var(--chalk); background: rgba(171,135,67,0.07); }
-  .flow-step b { color: var(--lava); font-weight: 700; margin-right: 6px; font-family: 'Lora', serif; }
-  .flow-arrow { color: var(--ink-faint); font-size: 14px; }
-  .btn-autopilot { background: var(--green); color: var(--chalk); border: 1px solid rgba(171,135,67,0.35); padding: 10px 18px; flex: 0 0 auto; }
-  .btn-autopilot:hover { border-color: var(--lava); box-shadow: 0 6px 24px rgba(0,74,43,0.5); }
-  @media (max-width: 620px) {
-    .flow-steps { flex-direction: column; align-items: flex-start; gap: 8px; }
-    .flow-arrow { display: none; }
-  }
-
-  /* ─── Footer + health ───────────────────────────────────────────── */
-  .foot { margin-top: 36px; padding-top: 22px; border-top: 1px solid rgba(171,135,67,0.15);
-    font-size: 11px; color: var(--ink-faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .foot code { font-family: 'JetBrains Mono', monospace; color: var(--lava); }
-  .foot-links { display: flex; align-items: center; gap: 8px; }
-  .foot-links a { color: var(--ink-faint); text-decoration: none; }
-  .foot-links a:hover { color: var(--lava); }
-  .health { display: inline-flex; align-items: center; gap: 7px; }
-  .health-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); transition: background .3s; }
-  .health-dot.ok { background: #3fa46a; box-shadow: 0 0 8px rgba(63,164,106,0.7); }
-  .health-dot.err { background: #b0483f; }
-
-  /* ─── Command palette ───────────────────────────────────────────── */
-  #cmdk { position: fixed; inset: 0; z-index: 9600; display: none; }
-  #cmdk.open { display: block; }
-  #cmdk .ck-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); }
-  #cmdk .ck-card {
-    position: absolute; left: 50%; top: 14vh; transform: translateX(-50%);
-    width: min(620px, 92vw); border-radius: 16px; overflow: hidden;
-    background: #f4f2ec; border: 1px solid var(--line-hot);
-    box-shadow: 0 40px 100px rgba(0,0,0,0.7);
-  }
-  #cmdk input {
-    width: 100%; padding: 17px 20px; font-family: inherit; font-size: 15px;
-    background: transparent; border: 0; outline: 0; color: var(--chalk);
-    border-bottom: 1px solid var(--line);
-  }
-  #cmdk input::placeholder { color: var(--ink-faint); }
-  #cmdk .ck-list { max-height: 46vh; overflow-y: auto; padding: 8px; }
-  #cmdk .ck-item {
-    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;
-    cursor: pointer; color: var(--ink-dim); font-size: 13.5px;
-  }
-  #cmdk .ck-item .ck-ic { width: 30px; height: 30px; border-radius: 8px; flex: 0 0 auto;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(171,135,67,0.1); color: var(--lava); }
-  #cmdk .ck-item .ck-ic svg { width: 16px; height: 16px; }
-  #cmdk .ck-item b { color: var(--ink); font-weight: 600; }
-  #cmdk .ck-item .ck-crumb { font-size: 11px; color: var(--ink-faint); margin-left: auto; }
-  #cmdk .ck-item.sel { background: rgba(171,135,67,0.12); color: var(--chalk); }
-  /* Grouped palette: section headers + subgroup (group → children) indent. */
-  #cmdk .ck-sec {
-    padding: 12px 12px 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--ink-faint);
-  }
-  #cmdk .ck-sec:first-child { padding-top: 4px; }
-  #cmdk .ck-item.ck-group b { color: var(--chalk); }
-  #cmdk .ck-item.ck-group .ck-crumb { text-transform: uppercase; letter-spacing: 0.1em; font-size: 9.5px;
-    color: var(--lava); opacity: 0.8; }
-  /* Children sit under their group with a guide rail so subgroups read clearly. */
-  #cmdk .ck-item.ck-child { margin-left: 20px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
-  #cmdk .ck-item.ck-child .ck-ic { width: 24px; height: 24px; background: rgba(171,135,67,0.06); }
-  #cmdk .ck-item.ck-child .ck-ic svg { width: 14px; height: 14px; }
-  #cmdk .ck-item.ck-child b { font-weight: 500; color: var(--ink-dim); }
-  #cmdk .ck-item.ck-child.sel b { color: var(--chalk); }
-  #cmdk .ck-empty { padding: 22px; text-align: center; color: var(--ink-faint); font-size: 13px; }
-  #cmdk .ck-foot { display: flex; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--line);
-    font-size: 10.5px; color: var(--ink-faint); }
-  #cmdk .ck-foot kbd { border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-family: inherit; color: var(--ink-dim); }
-
-  /* ─── Preview (peek) modal ──────────────────────────────────────── */
-  #preview-modal { position: fixed; inset: 0; z-index: 9500; display: none; }
-  #preview-modal.open { display: block; }
-  #preview-modal .pm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
-  #preview-modal .pm-card {
-    position: absolute; inset: 4vh 4vw; background: #f4f2ec;
-    border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden;
-    display: flex; flex-direction: column; box-shadow: 0 40px 100px rgba(0,0,0,0.7);
-  }
-  #preview-modal .pm-head {
-    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-    border-bottom: 1px solid var(--line); background: var(--bg);
-  }
-  #preview-modal .pm-title { font-family: 'Lora', serif; font-size: 16px; color: #D0473E; font-weight: 600; }
-  #preview-modal .pm-badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lava);
-    border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
-  #preview-modal .pm-spacer { flex: 1; }
-  #preview-modal .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
-    font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
-  #preview-modal .pm-detail { background: var(--lava); color: #111111; }
-  #preview-modal .pm-detail:hover { opacity: 0.92; }
-  #preview-modal .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059;
-    width: 34px; height: 34px; border-radius: 8px; font-size: 18px; line-height: 1; }
-  #preview-modal .pm-close:hover { border-color: var(--lava); color: #D0473E; }
-  #preview-modal .pm-body { flex: 1; position: relative; background: var(--bg); overflow-y: auto; }
-  #preview-modal .pm-body-content { max-width: 760px; margin: 0 auto; padding: 26px 28px 40px; }
-  #preview-modal .pm-lead { font-size: 15px; line-height: 1.65; color: #111111; margin: 0 0 22px; }
-  #preview-modal .pm-sec { margin: 0 0 20px; }
-  #preview-modal .pm-sec-h { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lava);
-    font-weight: 700; margin-bottom: 7px; }
-  #preview-modal .pm-sec p { font-size: 13.5px; line-height: 1.65; color: #556059; margin: 0; }
-  #preview-modal .pm-bullets { margin: 0; padding-left: 18px; color: #556059; font-size: 13.5px; line-height: 1.7; }
-  #preview-modal .pm-steps { list-style: none; margin: 4px 0 0; padding: 0; counter-reset: pmstep; }
-  #preview-modal .pm-steps li { counter-increment: pmstep; position: relative; padding: 0 0 16px 40px; }
-  #preview-modal .pm-steps li::before {
-    content: counter(pmstep); position: absolute; left: 0; top: 0;
-    width: 26px; height: 26px; border-radius: 50%;
-    background: rgba(171,135,67,0.16); border: 1px solid rgba(171,135,67,0.35);
-    color: var(--lava); font-size: 11px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #preview-modal .pm-steps li:not(:last-child)::after {
-    content: ''; position: absolute; left: 12.5px; top: 30px; bottom: 2px; width: 1px; background: rgba(171,135,67,0.2);
-  }
-  #preview-modal .pm-steps b { display: block; color: var(--chalk); font-size: 13.5px; margin-bottom: 2px; }
-  #preview-modal .pm-step-d { display: block; font-size: 13px; color: #556059; line-height: 1.55; }
-  #preview-modal .pm-step-via { display: inline-block; margin-top: 5px; font-family: 'JetBrains Mono', monospace;
-    font-size: 10.5px; color: #6f8278; background: rgba(171,135,67,0.08); border-radius: 5px; padding: 2px 8px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero-aura { animation: none; }
-    .card, .card::before, .btn, .chip, .flow-step { transition: none; }
-    html { scroll-behavior: auto; }
-  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:52px 22px 100px}
+  .kicker{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:12px}
+  h1{font-family:var(--head);font-weight:800;font-size:clamp(30px,6vw,46px);line-height:1.08;margin:0 0 16px;letter-spacing:-.025em}
+  h1 em{font-style:normal;color:var(--accent)}
+  h2{font-family:var(--head);font-weight:700;font-size:clamp(19px,3vw,23px);margin:44px 0 10px;letter-spacing:-.01em}
+  h3{font-family:var(--head);font-weight:700;font-size:15px;margin:0 0 5px}
+  p{margin:0 0 14px}
+  .lede{font-size:clamp(16px,2.3vw,19px);color:var(--soft);max-width:66ch;margin-bottom:10px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));margin:18px 0}
+  .card{border:1px solid var(--line);border-radius:14px;padding:17px 18px;background:var(--bg)}
+  .card p{font-size:13.5px;color:var(--soft);margin:0}
+  .steps{counter-reset:s;padding:0;margin:16px 0;list-style:none}
+  .steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:13px}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#fff;font-family:var(--head);font-weight:700;font-size:13px;display:grid;place-items:center}
+  .steps strong{font-family:var(--head)}
+  .pipe{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 4px}
+  .pipe span{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--panel);color:var(--soft);border:1px solid var(--line)}
+  .rule{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:16px 18px;margin:18px 0;background:var(--panel)}
+  .rule p{margin:0;font-size:14px}
+  .cta{display:flex;gap:11px;flex-wrap:wrap;margin-top:30px}
+  .btn{font-family:var(--head);font-weight:700;font-size:14.5px;border-radius:999px;padding:12px 24px;text-decoration:none;display:inline-block;border:1px solid transparent}
+  .btn-primary{background:var(--ink);color:var(--bg)}
+  .btn-ghost{border-color:rgba(0,0,0,.22);color:var(--ink)}
+  .brandline{font-size:13px;color:var(--soft);margin-top:14px}
+  .brandline b{color:var(--ink)}
+  code{background:var(--panel);padding:1px 6px;border-radius:5px;font-size:12.5px}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--soft)}
 </style>
 </head>
 <body>
-
 <div class="wrap">
+  <div class="kicker">Lifecycle OS</div>
+  <h1>Run your whole lifecycle programme <em>as one brand</em>.</h1>
+  <p class="lede">Onboard a brand once and the entire suite becomes that brand: its palette and
+    typography drive every screen, its voice and rules govern every generated asset, and its own
+    catalogue, cohorts and market study are the only data anyone sees.</p>
+  <p class="brandline" id="brandline">Checking which brand is active&hellip;</p>
 
-  <section class="hero">
-    <div class="hero-aura" aria-hidden="true"></div>
-    <div class="eyebrow">KNICKGASM · Lifecycle OS</div>
-    <h1>All your email work, <em>in one app</em>.</h1>
-    <p class="lede">
-      See your data. Watch competitors. Plan the month. Write the emails. Run the ads.
-    </p>
-    <p class="purpose" style="max-width:64ch;margin:14px 0 0;color:var(--muted,#6b7568);font-size:15px;line-height:1.6">
-      KNICKGASM Lifecycle OS is the internal retention and lifecycle-marketing workspace for the
-      KNICKGASM growth team. It brings customer-data analysis, campaign planning, email and
-      mailer generation, ad and landing-page creation, competitor intelligence, and a brand AI
-      assistant together in one place. Sign in with your Google account to access the tools;
-      your Google profile is used only to authenticate team members.
-    </p>
-    <div class="hero-actions">
-      <button class="kbd-hint" id="home-signin" type="button" hidden
-        style="background:var(--lava,#6A33D8);color:#0a1410;font-weight:800;border:none;padding:11px 20px;border-radius:10px;cursor:pointer">
-        Sign in with Google
-      </button>
-      <button class="kbd-hint" id="cmdk-open" type="button">
-        Jump to any tool… <kbd id="cmdk-key">⌘K</kbd>
-      </button>
-    </div>
-    <p class="legal-links" style="margin:16px 0 0;font-size:13px;color:var(--muted,#6b7568)">
-      <a href="/privacy" style="color:var(--lava,#6A33D8)">Privacy Policy</a>
-      &nbsp;·&nbsp;
-      <a href="/terms" style="color:var(--lava,#6A33D8)">Terms</a>
-    </p>
-  </section>
-  <script>
-    // Homepage sign-in CTA (Google OAuth). The homepage is public; this button
-    // offers sign-in and hides itself once a session exists. Auth is wired by
-    // auth.js (window.LifecycleAuth); we poll briefly for it to become ready.
-    (function () {
-      var btn = document.getElementById('home-signin');
-      if (!btn) return;
-      function sync() {
-        var signedIn = !!(window.LifecycleAuth && window.LifecycleAuth.user);
-        btn.hidden = signedIn;
-      }
-      btn.addEventListener('click', async function () {
-        var c = window.LifecycleAuth && window.LifecycleAuth.client;
-        if (!c) { return; }
-        try {
-          btn.disabled = true; btn.textContent = 'Redirecting to Google…';
-          await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/dashboard' } });
-        } catch (e) { btn.disabled = false; btn.textContent = 'Sign in with Google'; }
-      });
-      var n = 0, iv = setInterval(function () { sync(); if (++n > 25) clearInterval(iv); }, 400);
-      sync();
-    })();
-  </script>
-
-  <section class="v3d-showcase" aria-label="Official Website Designs — 3D store preview" style="margin:8px 0 26px;border:1px solid var(--line,rgba(171,135,67,.2));border-radius:18px;overflow:hidden;background:#07100d;position:relative">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;flex-wrap:wrap">
-      <div>
-        <div class="section-label" style="color:var(--lava,#6A33D8)">Official Website Designs · V2</div>
-        <div style="font-family:'Lora',Georgia,serif;font-size:18px;margin-top:2px;color:#FFFFFF">The store, as a live 3D scene</div>
-      </div>
-      <a href="/3d" class="btn" style="text-decoration:none;padding:8px 14px;border-radius:10px;background:var(--lava,#6A33D8);color:#0a1410;font-weight:800">Open full view →</a>
-    </div>
-    <div data-knickgasm3d data-region="us" id="v3d-home" style="width:100%;height:340px"></div>
-  </section>
-  <script type="module">
-    try {
-      const { mountKnickgasm3D } = await import('/assets/knickgasm3d-bridge.js');
-      const el = document.getElementById('v3d-home');
-      if (el) mountKnickgasm3D(el, { region: 'us' });
-    } catch (e) { /* bridge unavailable → widget simply absent, page unaffected */ }
-  </script>
-
-  <div class="toolbar">
-    <div class="section-label">What's inside</div>
-    <div class="chips" id="chips" role="group" aria-label="Filter tools by section"></div>
+  <h2>What it does</h2>
+  <div class="grid">
+    <div class="card"><h3>Analyse</h3><p>Cohorts and RFM over your own commerce and engagement exports. Nothing is shown until your data is connected.</p></div>
+    <div class="card"><h3>Plan</h3><p>A rolling campaign calendar built from your offerings and the moments that matter to your market.</p></div>
+    <div class="card"><h3>Create</h3><p>Mailers, ads and landing pages generated to your brand rules, with the exact prompt that produced each one.</p></div>
+    <div class="card"><h3>Benchmark</h3><p>Your competitive set and market study, researched and source-cited, never borrowed from another brand.</p></div>
+    <div class="card"><h3>Operate</h3><p>A brand assistant that can drive the stack through tools and quote the figures behind every recommendation.</p></div>
+    <div class="card"><h3>Ship</h3><p>Review, approve and export. Approved work is what ships, not a regenerated approximation of it.</p></div>
   </div>
-  <div class="grid" id="feature-grid"></div>
 
-  <section class="flow">
-    <div class="flow-row">
-      <div class="flow-steps">
-        <a class="flow-step" href="/dashboard.html"><b>1.</b> Look at your data</a>
-        <span class="flow-arrow">→</span>
-        <a class="flow-step" href="/calendar.html"><b>2.</b> Plan a month</a>
-        <span class="flow-arrow">→</span>
-        <a class="flow-step" href="/studio"><b>3.</b> Write the emails</a>
-        <span class="flow-arrow">→</span>
-        <a class="flow-step" href="/competitor-benchmarking.html"><b>4.</b> Send & compare</a>
-      </div>
-      <a class="btn btn-autopilot" href="/smart-brain.html">✨ Run Autopilot (Steps 1-3)</a>
-    </div>
-  </section>
+  <h2>How a brand works here</h2>
+  <ol class="steps">
+    <li><strong>Describe the brand.</strong> Identity, colour schema, typography, voice, and where its catalogue comes from. Start from a profile or enter your own.</li>
+    <li><strong>It becomes the system.</strong> Those values are compiled into design tokens and prompt rules, so the app re-skins and generated assets are on-brand by construction, not by review.</li>
+    <li><strong>Connect the catalogue.</strong> Products, or events, programmes, sections and plans. A publisher and a sneaker brand are modelled differently on purpose.</li>
+    <li><strong>Work.</strong> Plan, generate, review, ship. Switch brands and everything switches with you.</li>
+  </ol>
 
-  <footer class="foot">
-    <div>© KNICKGASM · Lifecycle OS · <code>v2.1</code></div>
-    <div class="foot-links">
-      <a href="/privacy.html">Privacy Policy</a>
-      <span>·</span>
-      <a href="/terms.html">Terms of Service</a>
-    </div>
-    <div class="health" id="health"><span class="health-dot" id="health-dot"></span><span id="health-txt">checking systems…</span></div>
+  <h2>The generation pipeline</h2>
+  <p class="lede" style="font-size:15px">Every content-producing feature runs the same ordered stages, and each one names the endpoint behind it.</p>
+  <div class="pipe">
+    <span>Ideology</span><span>Data &amp; hypothesis</span><span>Strategy</span><span>Content</span>
+    <span>Design &amp; layout</span><span>Audio / video</span><span>Coding</span><span>Compilation</span>
+  </div>
+
+  <h2>What it refuses to do</h2>
+  <div class="rule">
+    <p><strong>It will not invent.</strong> No made-up product, price, URL, review, rating or statistic.
+      A missing fact is reported as <code>[DATA REQUIRED BEFORE LAUNCH]</code> rather than filled in.</p>
+  </div>
+  <div class="rule">
+    <p><strong>It will not mix brands.</strong> One brand's catalogue, competitors, analytics or market
+      study never appear inside another's workspace. Where your brand has no data yet, you get an
+      empty state that says so.</p>
+  </div>
+  <div class="rule">
+    <p><strong>It will not ship an unreadable design.</strong> A palette that fails WCAG AA contrast, or
+      a dark-neutral page surface, is blocked at activation rather than shipped.</p>
+  </div>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="/onboarding">Set up or choose a brand</a>
+    <a class="btn btn-ghost" href="/about">About this platform</a>
+  </div>
+
+  <footer>
+    Lifecycle OS is brand-agnostic: the brand you activate supplies every fact, colour and word it uses.
   </footer>
 </div>
 
-<!-- Command palette -->
-<div id="cmdk" role="dialog" aria-modal="true" aria-label="Jump to a tool">
-  <div class="ck-backdrop" data-close="1"></div>
-  <div class="ck-card">
-    <input id="cmdk-input" type="text" placeholder="Type a tool, page or task…" autocomplete="off" spellcheck="false">
-    <div class="ck-list" id="cmdk-list"></div>
-    <div class="ck-foot"><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></div>
-  </div>
-</div>
-
-<!-- Peek preview -->
-<div id="preview-modal" role="dialog" aria-modal="true" aria-label="Page preview">
-  <div class="pm-backdrop" data-close="1"></div>
-  <div class="pm-card">
-    <div class="pm-head">
-      <span class="pm-title" id="pm-title"></span>
-      <span class="pm-badge">Preview</span>
-      <span class="pm-spacer"></span>
-      <a class="pm-act pm-detail" id="pm-open" href="#">Open full →</a>
-      <button class="pm-act pm-close" id="pm-close" type="button" aria-label="Close preview">×</button>
-    </div>
-    <div class="pm-body">
-      <div class="pm-body-content" id="pm-body-content"></div>
-    </div>
-  </div>
-</div>
-
 <script>
+/* The homepage is an explainer, not a dashboard: it deliberately shows NO brand
+   metrics. The only brand-specific thing here is one line naming the active
+   workspace, so it is obvious which brand the app is currently running as. */
 (function () {
-  // SVG icon set (matches the sidebar language).
-  const IC = {
-    analysis:   '<path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="13" width="3" height="3"/>',
-    competitor: '<path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6"/>',
-    mailer:     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
-    ads:        '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a4 4 0 0 1 0 8"/>',
-    kb:         '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 17H6a2 2 0 0 0-2 2"/>',
-    landing:    '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>',
-    brain:      '<path d="M12 3a4 4 0 0 0-4 4v1H7a4 4 0 0 0 0 8h1v1a4 4 0 0 0 8 0v-1h1a4 4 0 0 0 0-8h-1V7a4 4 0 0 0-4-4Z"/><path d="M9 8h6M9 16h6M8 12h8"/>',
-    agent:      '<path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z"/><path d="M8 10h8M8 14h5"/>',
-    assets:     '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
-    calendar:   '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
-    studio:     '<path d="M5 3v4M3 5h4M6 17v4M4 19h4"/><path d="m13 3 2.3 6.7L22 12l-6.7 2.3L13 21l-2.3-6.7L4 12l6.7-2.3z"/>',
-    social:     '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.7 6.8-4.4M8.6 13.3l6.8 4.4"/>',
-    cohort:     '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9.5" r="2.3"/><path d="M16 14.4c2.6.4 4.5 2.6 4.5 5.6"/>',
-    insights:   '<path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 4-6"/><circle cx="7" cy="14" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="13" cy="13" r="1.2"/><circle cx="17" cy="7" r="1.2"/>',
-  };
-  const svg = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]||''}</svg>`;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-  // Per-feature copy + icon overrides, keyed by NAV panel id or NAV group name.
-  // The widget SET is derived from the live LHS nav (window.__LC_NAV) so the
-  // homepage always mirrors EVERY sidebar item; this map only enriches the
-  // copy + picks a homepage icon. Anything missing falls back to sensible text.
-  const COPY = {
-    // top-level items (by id)
-    kicksgpt:  { icon: 'agent',    desc: "Internal tool for the KNICKGASM team (not customer-facing). The brand's own AI: it doesn't just chat, it operates the whole stack: analytics, calendar, campaign generation, competitor intel and Klaviyo lifecycle.",
-                subs: ['For the team, not customers', 'Ask in plain language, it runs the real tools', 'Analytics · calendar · generation · competitor · KB', 'Shows its tool-by-tool working like Claude'] },
-    brain:    { icon: 'brain',    desc: 'The end-to-end DB-linked autopilot: own knowledge base, daily analysis, isolated competitor benchmarks, 15-day calendar, generated mailers, ads and landing pages.',
-                subs: ['Daily automated review + 15-day rolling calendar', 'Own campaign winners filtered by performance', 'Separate competitor stream for benchmarks only', 'Platform-ready objects · no live push until Phase 2'] },
-    agent:    { icon: 'agent',    desc: 'Customer-facing voice + chat concierge that talks to your customers like a telecaller, and you can create your own agents by type (brand, collection, product or persona).',
-                subs: ['The tool your customers talk to', 'Create agents + pick the type', 'Talk by voice or text · female voice default', 'Embeds on Shopify with one script tag'],
-                live: { href: '/lp/best', label: 'View live page →' } },
-    analysis: { icon: 'analysis', title: 'Data Analysis', desc: 'See who buys, who drifts, what to send next. Drives every plan + brief in the rest of the app.',
-                subs: ['9 RFM segments + cohort retention', 'Top campaigns, channel mix, AOV trend', 'Auto-insights — what changed this week', 'Upload your CSV or link a database'] },
-    assets:   { icon: 'assets',   desc: 'Every mailer, ad and landing page the system has generated — in one searchable library you can preview, download and reuse.',
-                subs: ['Generated mailers · ads · landing pages', 'Preview, download HTML, clone & reuse', 'Synced across devices via Supabase'] },
-    lifecycle:{ icon: 'calendar', desc: 'The V2 lifecycle mailer calendar (UK): deterministically plans 14/30/45 days of sends for the engagement cohorts, then builds any slot into a Klaviyo-ready mailer.',
-                subs: ['Deterministic plan — no LLM until you build', 'Cohort A coffee-heavy · Cohort B T&B-first', 'One brand-gated LLM call per built mailer'] },
-    calendar: { icon: 'calendar', desc: 'The 30-day RFM plan (Draft 1): dated sends with segment, theme and offer mechanic — festival-aware, fed straight from your analytics.',
-                subs: ['One month of sends across the 9 RFM segments', 'Any row hands off to mailer generation'] },
-    ukhub:    { icon: 'insights', desc: 'Week-1 campaign hub for the UK non-engager program: 12 finished, Klaviyo-paste-ready emails across 2 cohorts × 3 slots × 2 variations.',
-                subs: ['Pick a slot · compare V1 vs V2 angles', 'Preview, copy HTML or download per variation'] },
-    cohorts:  { icon: 'cohort',   desc: 'The single source of truth for WHO we mail — every RFM segment and UK engagement cohort with its rules, objective and voice guide.',
-                subs: ['9 RFM segments + 2 UK engagement cohorts', 'Every planner and generator inherits these'] },
-    studio:   { icon: 'studio',   desc: 'The 5-step mailer wizard (Draft 1): Brief → Products → Generation → Review → Final HTML, producing 4 brand-gated variants with real catalog products.',
-                subs: ['4 variants · 11 layout archetypes', 'Region-correct catalogs and pricing', 'Export-ready, Klaviyo-safe HTML'] },
-    social:   { icon: 'social',   desc: 'The V2 daily social engine: a 7-agent pipeline produces one complete day-package across 11 platform formats — nothing publishes without your approve.',
-                subs: ['Instagram · TikTok · LinkedIn · X · more', 'Daily cron or Run Today on demand', 'Approve or skip per post in the console'] },
-    // groups (by group name) — title/href/icon + copy
-    'Knowledge Base': { href: '/knowledge-base.html', icon: 'kb',
-                desc: 'The single source of truth every generator reads from — brand kit, markets, product catalog, manual references and uploaded files.' },
-    'Competitor Benchmarking': { href: '/competitor-benchmarking.html', icon: 'competitor',
-                desc: 'Every competitor mailer captured automatically + live ad-library deep-links + a 60-brand registry across Sneaker/Coffee/Supplements × US/UK.' },
-    'Ad Campaigns': { href: '/ad-campaigns.html', icon: 'ads',
-                desc: 'Brief and track Google + Meta + TikTok campaigns on the same calendar as your emails. AI fills every field from one prompt.' },
-    'Landing Pages': { href: '/landing-pages.html', icon: 'landing',
-                desc: 'One brand-locked landing-page system that serves every channel. Pick channel + region + offer; AI generates the page in your brand voice.',
-                live: { href: '/lp/best', label: 'View live page →' } },
-  };
-
-  const stripHash = (h) => String(h || '').split('#')[0];
-
-  // Fallback nav (only used if auth.js hasn't published window.__LC_NAV yet) —
-  // keeps the homepage populated even in isolation.
-  const FALLBACK_NAV = [
-    { id: 'home', label: 'Home', href: '/' },
-    { section: 'Research & Benchmark' },
-    { group: 'Competitor Benchmarking', icon: 'competitor', children: [{ label: 'Discover Brands' }, { label: 'Mailers' }, { label: 'Meta / Google / TikTok Ads' }, { label: 'Insights' }] },
-    { group: 'Knowledge Base', icon: 'kb', children: [{ label: 'Mailers' }, { label: 'Meta Ads' }, { label: 'Google Ads' }, { label: 'TikTok Ads' }, { label: 'Landing Pages' }] },
-    { id: 'analysis', label: 'Data Analysis', href: '/dashboard.html', icon: 'analysis' },
-    { id: 'cohorts', label: 'Cohort Definitions', href: '/cohort-definitions.html', icon: 'cohort' },
-    { section: 'Plan' },
-    { id: 'lifecycle', label: 'Mailer Calendar', href: '/mailer-calendar', icon: 'calendar' },
-    { id: 'calendar', label: 'Plan Calendar', href: '/calendar.html', icon: 'calendar' },
-    { id: 'ukhub', label: 'UK Non-Engagers Hub', href: '/uk-non-engagers', icon: 'insights' },
-    { section: 'Design & Create' },
-    { id: 'studio', label: 'Mailer Studio', href: '/studio', icon: 'studio' },
-    { id: 'frameworks', label: 'Frameworks', href: '/frameworks', icon: 'kb' },
-    { group: 'Ad Campaigns', icon: 'ads', children: [{ label: 'Calendar' }, { label: 'Meta Ads' }, { label: 'Google Ads' }, { label: 'TikTok Ads' }] },
-    { group: 'Landing Pages', icon: 'landing', children: [{ label: '★ Live agent page' }, { label: 'For Mailers' }, { label: 'For Meta / Google / TikTok' }] },
-    { section: 'Share & Track' },
-    { id: 'social', label: 'Social Media OS', href: '/social', icon: 'social' },
-    { id: 'assets', label: 'Created Assets', href: '/assets', icon: 'assets' },
-    { section: 'Assistants' },
-    { id: 'kicksgpt', label: 'KicksGPT', href: '/kicksgpt', icon: 'agent' },
-    { id: 'brain', label: 'Smart Brain', href: '/smart-brain.html', icon: 'brain' },
-    { id: 'agent', label: 'Knickgasm Agent', href: '/agent', icon: 'agent' },
-  ];
-
-  const getNav = () => (Array.isArray(window.__LC_NAV) && window.__LC_NAV.length) ? window.__LC_NAV : FALLBACK_NAV;
-
-  // Turn the nav model into homepage widgets: one card per top-level item and
-  // one card per group (children become the sub-list) — mirroring the sidebar.
-  function widgetsFromNav(nav) {
-    const cards = [];
-    let section = '';
-    nav.forEach((n) => {
-      if (n.section) { section = n.section; return; }
-      if (n.group) {
-        const c = COPY[n.group] || {};
-        cards.push({
-          tag: section, icon: c.icon || n.icon || 'landing',
-          title: c.title || n.group,
-          href: c.href || stripHash((n.children && n.children[0] && n.children[0].href) || '/'),
-          desc: c.desc || ('Everything under ' + (c.title || n.group) + '.'),
-          subs: c.subs || (n.children || []).map((x) => x.label),
-          live: c.live,
-          // INFO key for the Peek preview (group id → sidebar INFO entry).
-          key: n.gid || '',
-        });
-      } else {
-        if (n.id === 'home') return;  // Home is this page
-        const c = COPY[n.id] || {};
-        cards.push({
-          tag: section, icon: c.icon || n.icon || 'analysis',
-          title: c.title || n.label,
-          href: n.href,
-          desc: c.desc || (n.label + '.'),
-          subs: c.subs || [],
-          live: c.live,
-          key: n.id || '',
-        });
-      }
-    });
-    return cards;
-  }
-
-  // ─── Grid + section filter chips ─────────────────────────────────
-  // The grid renders once; chips only toggle classes so the dim fade animates
-  // and in-flight clicks aren't lost to an innerHTML re-render.
-  let activeTag = '';
-  function applyFilter() {
-    document.querySelectorAll('#feature-grid .card').forEach((el) => {
-      el.classList.toggle('dim', !!activeTag && el.dataset.tag !== activeTag);
-    });
-    document.querySelectorAll('#chips .chip').forEach((b) => {
-      b.setAttribute('aria-pressed', String(b.dataset.tag === activeTag));
-    });
-  }
-  function renderChips(cards) {
-    const tags = [];
-    cards.forEach((c) => { const t = c.tag || 'Agents & Data'; if (!tags.includes(t)) tags.push(t); });
-    const el = document.getElementById('chips');
-    el.innerHTML = ['', ...tags].map((t) =>
-      `<button class="chip" type="button" data-tag="${esc(t)}" aria-pressed="${t === activeTag}">${t ? esc(t) : 'All'}</button>`
-    ).join('');
-    el.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => {
-      activeTag = b.dataset.tag === activeTag ? '' : b.dataset.tag;
-      applyFilter();
-    }));
-  }
-
-  // Rendered cards are kept module-level so the Peek preview can read the full
-  // card object (title, desc, subs, INFO key) by index without stuffing it all
-  // into data-attributes.
-  let CARDS = [];
-  function render() {
-    CARDS = widgetsFromNav(getNav());
-    renderChips(CARDS);
-    const grid = document.getElementById('feature-grid');
-    grid.innerHTML = CARDS.map((f, i) => {
-      const tag = f.tag || 'Agents & Data';
-      return `
-      <div class="card" data-tag="${esc(tag)}">
-        ${f.tag ? `<span class="card-tag">${esc(f.tag)}</span>` : ''}
-        <div class="card-ic">${svg(f.icon)}</div>
-        <h2>${esc(f.title)}</h2>
-        <p>${esc(f.desc)}</p>
-        ${f.subs && f.subs.length ? `<ul class="card-subs">${f.subs.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
-        <div class="card-ctas">
-          <a class="btn btn-solid" href="${esc(f.href)}">Open →</a>
-          <button class="btn btn-ghost" type="button" data-peek-idx="${i}">Peek</button>
-          ${f.live ? `<a class="btn btn-live" href="${esc(f.live.href)}" target="_blank" rel="noopener">${esc(f.live.label)}</a>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-    applyFilter();
-  }
-
-  // Card spotlight — one delegated pointermove sets --mx/--my per card.
-  document.addEventListener('pointermove', (e) => {
-    const card = e.target.closest && e.target.closest('.card');
-    if (!card) return;
-    const r = card.getBoundingClientRect();
-    card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-    card.style.setProperty('--my', (e.clientY - r.top) + 'px');
-  }, { passive: true });
-
-  // ─── Peek preview modal ──────────────────────────────────────────
-  // Peek is an EXPLANATORY preview: it shows WHAT the feature does, WHO it is
-  // for, HOW it works, its INPUT, and the step-by-step (multi-agent) working —
-  // sourced from the same sidebar INFO model (window.__LC_NAV_INFO). It does
-  // NOT run the feature. "Open full" navigates to the real feature for actual
-  // usage. (Previously Peek iframed the live page; the product-owner rule is
-  // that Peek previews and Open opens for real.)
-  const pm = document.getElementById('preview-modal');
-  const pmBody = document.getElementById('pm-body-content');
-
-  function infoModel() {
-    const m = window.__LC_NAV_INFO;
-    return (m && m.INFO && m.SUBQ) ? m : null;
-  }
-
-  function buildPeekHtml(card) {
-    const model = infoModel();
-    const info = model && card.key ? model.INFO[card.key] : null;
-    const parts = [];
-    // Lead paragraph: prefer the card's homepage copy, else INFO.what.
-    const lead = card.desc || (info && info.what) || '';
-    if (lead) parts.push(`<p class="pm-lead">${esc(lead)}</p>`);
-
-    if (info) {
-      const block = (label, text) => text
-        ? `<div class="pm-sec"><div class="pm-sec-h">${esc(label)}</div><p>${esc(text)}</p></div>` : '';
-      // "What" is already the lead when card.desc was empty; still show it when
-      // the homepage copy differs, so nothing is lost.
-      if (info.what && info.what !== lead) parts.push(block('What does it do?', info.what));
-      parts.push(block('Who is it for?', info.who));
-      parts.push(block('How does it work?', info.how));
-      parts.push(block('Input', info.input));
-      if (Array.isArray(info.steps) && info.steps.length) {
-        parts.push(`<div class="pm-sec"><div class="pm-sec-h">${info.pipeline ? 'Step-by-step working (multi-agent pipeline)' : 'Step-by-step working'}</div>
-          <ol class="pm-steps">${info.steps.map((s) => {
-            const name = Array.isArray(s) ? s[0] : (s && s.name) || '';
-            const detail = Array.isArray(s) ? (s[1] || '') : (s && s.detail) || '';
-            const via = Array.isArray(s) ? (s[2] || '') : (s && s.via) || '';
-            return `<li><b>${esc(name)}</b><span class="pm-step-d">${esc(detail)}</span>${via ? `<span class="pm-step-via">Runs via: ${esc(via)}</span>` : ''}</li>`;
-          }).join('')}</ol></div>`);
-      }
-    } else if (card.subs && card.subs.length) {
-      // No INFO entry (e.g. a group without a gid) — fall back to the card's
-      // highlight bullets so Peek is still informative.
-      parts.push(`<div class="pm-sec"><div class="pm-sec-h">Highlights</div>
-        <ul class="pm-bullets">${card.subs.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div>`);
+  function paint(brand) {
+    var el = document.getElementById('brandline');
+    if (!el) return;
+    if (!brand) {
+      el.innerHTML = 'No brand is active yet, so the features are locked. <b>Choose or create one</b> to begin.';
+      return;
     }
-    return parts.join('') || '<p class="pm-lead">Open the feature to explore it.</p>';
+    el.innerHTML = 'Currently running as <b>' + String(brand.name || 'your brand').replace(/[<>&]/g, '') + '</b>. ' +
+      'Every screen, rule and generated asset follows this brand until you switch.';
   }
-
-  function openPeek(idx) {
-    const card = CARDS[Number(idx)];
-    if (!card) return;
-    document.getElementById('pm-title').textContent = card.title;
-    const openBtn = document.getElementById('pm-open');
-    openBtn.setAttribute('href', card.href);
-    openBtn.textContent = 'Open for real usage →';
-    pmBody.innerHTML = buildPeekHtml(card);
-    pmBody.scrollTop = 0;
-    pm.classList.add('open');
+  function boot() {
+    if (window.BrandContext && window.BrandContext.ready) {
+      window.BrandContext.ready().then(paint).catch(function () { paint(null); });
+    } else { setTimeout(boot, 200); }
   }
-  function closePeek() { pm.classList.remove('open'); }
-  document.getElementById('pm-close').addEventListener('click', closePeek);
-  pm.querySelector('.pm-backdrop').addEventListener('click', closePeek);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pm.classList.contains('open')) closePeek(); });
-  document.addEventListener('click', (e) => {
-    const b = e.target.closest && e.target.closest('[data-peek-idx]');
-    if (b) openPeek(b.dataset.peekIdx);
-  });
-
-  // ─── Command palette (⌘K / Ctrl+K / "/") ─────────────────────────
-  const ck = document.getElementById('cmdk');
-  const ckInput = document.getElementById('cmdk-input');
-  const ckList = document.getElementById('cmdk-list');
-  let ckItems = [], ckSel = 0;
-
-  // Grouped palette model: sections → entries, where an entry is either a
-  // stand-alone item or a group that OWNS its children (kept nested, not
-  // flattened). Mirrors the sidebar IA so "jump to a tool" reads as clear
-  // groups and subgroups rather than one flat list.
-  function paletteModel() {
-    const secs = [];
-    let cur = null;
-    const ensure = () => { if (!cur) { cur = { section: 'App', entries: [] }; secs.push(cur); } return cur; };
-    getNav().forEach((n) => {
-      if (n.section) { cur = { section: n.section, entries: [] }; secs.push(cur); return; }
-      if (n.group) {
-        const c = COPY[n.group] || {};
-        const label = c.title || n.group;
-        const children = (n.children || []).filter((ch) => ch.href).map((ch) => ({
-          kind: 'child', label: ch.label, href: ch.href,
-          icon: ch.icon || c.icon || n.icon || 'landing', parent: label,
-        }));
-        const gHref = c.href || stripHash((n.children && n.children[0] && n.children[0].href) || '') || (children[0] && children[0].href);
-        if (gHref || children.length) {
-          ensure().entries.push({ kind: 'group', label, href: gHref || '', icon: c.icon || n.icon || 'landing', children });
-        }
-      } else if (n.href && n.id !== 'home') {
-        const c = COPY[n.id] || {};
-        ensure().entries.push({ kind: 'item', label: c.title || n.label, href: n.href, icon: c.icon || n.icon || 'analysis' });
-      }
-    });
-    return secs;
-  }
-
-  function ckRender() {
-    const q = ckInput.value.trim().toLowerCase();
-    const hit = (s) => !q || String(s || '').toLowerCase().includes(q);
-    // Build ordered render tokens (section headers + selectable rows) and the
-    // flat ckItems list keyboard nav operates on. Groups stay attached to their
-    // children: when the group name matches we show all its children; when only
-    // some children match we still show the group header for context, so an
-    // indented subgroup never orphans from its parent while searching.
-    ckItems = [];
-    const tokens = [];
-    paletteModel().forEach((sec) => {
-      const rows = [];
-      sec.entries.forEach((e) => {
-        if (e.kind === 'item') { if (hit(e.label)) rows.push(e); return; }
-        const groupHit = hit(e.label);
-        const kids = groupHit ? e.children : e.children.filter((ch) => hit(ch.label));
-        if (groupHit || kids.length) { rows.push(e); kids.forEach((ch) => rows.push(ch)); }
-      });
-      if (!rows.length) return;
-      tokens.push({ t: 'sec', label: sec.section });
-      rows.forEach((r) => { const i = ckItems.length; ckItems.push(r); tokens.push({ t: 'row', r, i }); });
-    });
-    if (ckSel >= ckItems.length) ckSel = 0;
-    ckList.innerHTML = tokens.length ? tokens.map((tok) => {
-      if (tok.t === 'sec') return `<div class="ck-sec">${esc(tok.label)}</div>`;
-      const r = tok.r, i = tok.i;
-      const cls = r.kind === 'child' ? 'ck-item ck-child' : (r.kind === 'group' ? 'ck-item ck-group' : 'ck-item');
-      const crumb = r.kind === 'group' && r.children && r.children.length
-        ? `<span class="ck-crumb">${r.children.length} inside</span>` : '';
-      return `
-      <div class="${cls}${i === ckSel ? ' sel' : ''}" data-i="${i}">
-        <span class="ck-ic">${svg(r.icon)}</span>
-        <span><b>${esc(r.label)}</b></span>
-        ${crumb}
-      </div>`;
-    }).join('')
-      : '<div class="ck-empty">Nothing matches — try "mailer", "ads", "brain"…</div>';
-    ckList.querySelectorAll('.ck-item').forEach((el) => {
-      el.addEventListener('click', () => ckGo(Number(el.dataset.i)));
-      el.addEventListener('pointerenter', () => { ckSel = Number(el.dataset.i); ckPaint(); });
-    });
-    // Keep the selected row in view when navigating with the keyboard.
-    const selEl = ckList.querySelector('.ck-item.sel');
-    if (selEl && selEl.scrollIntoView) selEl.scrollIntoView({ block: 'nearest' });
-  }
-  function ckPaint() {
-    ckList.querySelectorAll('.ck-item').forEach((el) => {
-      const on = Number(el.dataset.i) === ckSel;
-      el.classList.toggle('sel', on);
-      if (on && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
-    });
-  }
-  function ckGo(i) { const it = ckItems[i]; if (it) { location.href = it.href; } }
-  function ckOpen() { ck.classList.add('open'); ckInput.value = ''; ckSel = 0; ckRender(); ckInput.focus(); }
-  function ckClose() { ck.classList.remove('open'); }
-
-  document.getElementById('cmdk-open').addEventListener('click', ckOpen);
-  ck.querySelector('.ck-backdrop').addEventListener('click', ckClose);
-  ckInput.addEventListener('input', () => { ckSel = 0; ckRender(); });
-  document.addEventListener('keydown', (e) => {
-    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
-    if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); ckOpen(); return; }
-    if (e.key === '/' && !typing && !ck.classList.contains('open')) { e.preventDefault(); ckOpen(); return; }
-    if (e.key === 'Escape') {
-      if (ck.classList.contains('open')) { ckClose(); return; }
-      if (pm.classList.contains('open')) { closePeek(); return; }
-    }
-    if (!ck.classList.contains('open')) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); ckSel = Math.min(ckSel + 1, ckItems.length - 1); ckPaint(); }
-    if (e.key === 'ArrowUp') { e.preventDefault(); ckSel = Math.max(ckSel - 1, 0); ckPaint(); }
-    if (e.key === 'Enter') { e.preventDefault(); ckGo(ckSel); }
-  });
-  if (!/Mac|iPhone|iPad/.test(navigator.userAgent)) document.getElementById('cmdk-key').textContent = 'Ctrl K';
-
-  // ─── System health (footer) ──────────────────────────────────────
-  function checkHealth() {
-    const dot = document.getElementById('health-dot');
-    const txt = document.getElementById('health-txt');
-    fetch('/api/public-config?health=1', { cache: 'no-store' })
-      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
-      .then(() => { dot.className = 'health-dot ok'; txt.textContent = 'all systems operational'; })
-      .catch(() => { dot.className = 'health-dot err'; txt.textContent = 'api unreachable'; });
-  }
-
-  // auth.js is deferred (runs before DOMContentLoaded) and publishes __LC_NAV,
-  // so it's ready here; render on DOM ready and fall back gracefully.
-  function boot() { render(); checkHealth(); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
+<script src="/brand-catalog.js" defer></script>
+<script src="/auth.js?v=20260810lifecycle" defer></script>
 </body>
 </html>

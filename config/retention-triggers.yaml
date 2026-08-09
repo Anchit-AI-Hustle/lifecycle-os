@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS — Retention Triggers
+# Lifecycle OS — Retention Triggers
 # Automated webhook triggers + segmentation logic for the lifecycle engine.
 # Condition expressions reference fields from schemas/cohort-profile.json.
 # Verified to parse with: python3 -c "import yaml; yaml.safe_load(open('config/retention-triggers.yaml'))"

@@ -1,10 +1,10 @@
-# REPLICATION.md — Knickgasm Lifecycle OS
+# REPLICATION.md — Lifecycle OS
 
 > **Purpose of this file.** A single, self-contained runbook that lets any developer (or an AI agent) **clone this application to its exact current state and progress**, and a master prompt + knowledge base to regenerate/extend it on the same quality bar. Every project in "Anchit's AI Hustle" carries a `REPLICATION.md` like this. Keep it updated whenever architecture, env, or product scope changes.
 
 - **Last updated:** 2026-06-20
-- **Live:** https://knickgasm-lifecycle-os.anchit-tandon.com/
-- **Canonical repo:** github.com/anchittandon-create/KNICKGASM (working dir `~/KNICKGASM/knickgasm-lifecycle-os`)
+- **Live:** https://lifecycle-os.anchit-tandon.com/
+- **Canonical repo:** github.com/anchittandon-create/KNICKGASM (working dir `~/KNICKGASM/lifecycle-os`)
 - **Deploy target:** single Vercel project, `framework: null`, `outputDirectory: "."`
 
 ---
@@ -19,7 +19,7 @@ A retention/lifecycle-marketing toolkit for KNICKGASM. Multi-page static-HTML su
 | `/` | `index.html` home | live |
 | `/analytics` | `dashboard.html` (RFM/cohort) | live |
 | `/plan` | `calendar.html` (30-day plan) | live |
-| `/studio` | `knickgasm_mailer_architect_v34.html` (Mailer Studio) | live |
+| `/studio` | `lifecycle_mailer_architect_v34.html` (Mailer Studio) | live |
 | `/competitor` | `competitor-benchmarking.html` | live |
 | `/kb` | `knowledge-base.html` | live |
 | `/ads` | `ad-campaigns.html` | live |
@@ -74,7 +74,7 @@ Text LLMs: `OPENAI_API_KEY` (+`_2`/`_3`), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`,
 Storage: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (+ service-role for Smart Brain writes; NEVER exposed to the browser).
 Google Sheets (competitor data): `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_TAB` (or legacy `GOOGLE_SERVICE_ACCOUNT_*`).
 Cron: `CRON_SECRET`. Auto-set by Vercel: `VERCEL`, `VERCEL_ENV`, `VERCEL_URL`, `VERCEL_OIDC_TOKEN`. Full list in `.env.example`.
-Per-project Gemini key minted from GCP project `knickgasm-lifecycle-os`.
+Per-project Gemini key minted from GCP project `lifecycle-os`.
 
 ---
 
@@ -129,4 +129,4 @@ buildMasterPrompt({
 
 ## 7. Where to look next
 
-See `docs/UNIFIED-ARCHITECTURE.md` for the consolidation roadmap (single Knickgasm Lifecycle OS super-app: real-time + historical data, competitive benchmarking, automated calendar at day/week/month/year, marketing automation, and the dual-agent split — internal-employee agent vs user-facing sales personas — with the buyer-vs-internal data-classification matrix).
+See `docs/UNIFIED-ARCHITECTURE.md` for the consolidation roadmap (single Lifecycle OS super-app: real-time + historical data, competitive benchmarking, automated calendar at day/week/month/year, marketing automation, and the dual-agent split — internal-employee agent vs user-facing sales personas — with the buyer-vs-internal data-classification matrix).

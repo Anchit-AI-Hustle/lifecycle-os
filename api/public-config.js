@@ -227,7 +227,7 @@ module.exports = async function handler(req, res) {
       url: ldb.url || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       anonKey: ldb.anonKey || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
     },
-    app: { name: 'KNICKGASM Lifecycle OS', version: '1.0.0', regions: ['US', 'UK', 'Global', 'IN'] },
+    app: { name: 'Lifecycle OS', version: '1.0.0', regions: ['US', 'UK', 'Global', 'IN'] },
     flags: { real_facts_only: String(process.env.REAL_FACTS_ONLY || '') === '1' },
   });
 };

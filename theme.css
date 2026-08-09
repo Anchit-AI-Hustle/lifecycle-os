@@ -1,5 +1,5 @@
 /* ============================================================================
-   KNICKGASM Lifecycle OS — shared design system (theme.css)
+   Lifecycle OS — shared design system (theme.css)
    ----------------------------------------------------------------------------
    One token-driven stylesheet loaded on EVERY page via auth.js. It provides:
      1. Design tokens (palette, type scale, spacing, radius, shadow) as CSS vars

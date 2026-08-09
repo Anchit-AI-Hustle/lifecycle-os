@@ -1,5 +1,5 @@
 """
-KNICKGASM Lifecycle OS — Data Analysis + Ads Analytics (Streamlit in Snowflake).
+Lifecycle OS — Data Analysis + Ads Analytics (Streamlit in Snowflake).
 
 Runs NATIVELY inside Snowflake. Authentication and warehouse come from the
 logged-in Snowflake session via get_active_session() — no external keys, no PAT,
