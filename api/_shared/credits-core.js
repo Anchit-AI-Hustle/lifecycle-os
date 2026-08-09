@@ -274,6 +274,118 @@ async function withCredits(req, featureKey, opts, fn) {
   }
 }
 
+/**
+ * Endpoint guard — the one-liner that puts an existing endpoint on the meter.
+ *
+ *     const gate = await credits.enforce(req, res, 'mailer.generate');
+ *     if (!gate.ok) return;                 // 402/401 already sent
+ *     try { ...; await gate.settle(); } catch (e) { await gate.release(); throw e; }
+ *
+ * Declaring a price in credit-catalog.js does not by itself charge anything;
+ * this is what makes an endpoint actually consume credits. It writes the 402
+ * (or 401/503) response itself so callers stay a single `if`.
+ *
+ * `optional: true` lets an endpoint stay usable when the meter is not
+ * configured at all (no service-role key) instead of hard-failing — used for
+ * paths that predate the credit system so a misconfigured deployment degrades
+ * rather than breaking. The catalog price is still what gets charged when the
+ * meter IS configured.
+ */
+async function enforce(req, res, featureKey, opts) {
+  const o = opts || {};
+  if (!configured() && o.optional !== false) {
+    return { ok: true, free: true, unmetered: true, settle: async () => {}, release: async () => {}, receipt: null };
+  }
+  let m;
+  try {
+    m = await meter(req, featureKey, o);
+  } catch (err) {
+    // An unpriced feature key is a bug in the caller, not the user's problem —
+    // surface it loudly rather than silently running the feature for free.
+    res.status(err.status || 500).json({ ok: false, error: err.code || 'credit_check_failed', message: err.message });
+    return { ok: false };
+  }
+  if (!m.ok) {
+    res.status(m.status || 402).json(Object.assign({ ok: false }, m));
+    return { ok: false };
+  }
+  return m;
+}
+
+/**
+ * Put an EXISTING endpoint on the meter without rewriting its body.
+ *
+ *   module.exports = credits.metered(handler, (req, body) => 'mailer.generate');
+ *
+ * The wrapper reserves before the handler runs, then watches the response:
+ * a 2xx settles the hold into a spend and gets a `credits` receipt attached to
+ * its JSON payload; anything else releases the reservation in full. Because the
+ * balance moves at HOLD time, the user's balance is already correct the moment
+ * the run starts — settle only converts the hold into a spend.
+ *
+ * `featureFor` returns a catalog key, or null to let the request through free
+ * (used for read-only modes on an otherwise paid endpoint).
+ * `unitsFor` is optional and only matters for metered features.
+ */
+function metered(handler, featureFor, unitsFor) {
+  return async function meteredHandler(req, res) {
+    if (req.method === 'OPTIONS') return handler(req, res);
+
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
+    body = body || {};
+
+    let key = null;
+    try { key = featureFor(req, body); } catch (_) { key = null; }
+    if (!key) return handler(req, res);
+
+    const gate = await enforce(req, res, key, {
+      units: unitsFor ? unitsFor(req, body) : undefined,
+      meta: { endpoint: (req && req.url ? String(req.url).split('?')[0] : '') },
+      optional: true,
+    });
+    if (!gate.ok) return;                       // 402/401/503 already written
+    if (gate.unmetered) return handler(req, res);
+
+    let finished = false;
+    const finish = (statusCode) => {
+      if (finished) return;
+      finished = true;
+      // Fire and forget: the balance already moved at hold time, so settling
+      // after the response is sent cannot show the user a stale number.
+      const p = statusCode >= 200 && statusCode < 400
+        ? gate.settle(unitsFor ? unitsFor(req, body) : undefined)
+        : gate.release(`endpoint returned ${statusCode}`);
+      Promise.resolve(p).catch(() => {});
+    };
+
+    const origStatus = res.status.bind(res);
+    const origJson = res.json.bind(res);
+    const origEnd = res.end.bind(res);
+    let code = 200;
+
+    res.status = (c) => { code = c; return origStatus(c); };
+    res.json = (payload) => {
+      finish(code);
+      if (payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.credits) {
+        try { payload.credits = gate.receipt; } catch (_) { /* frozen payload */ }
+      }
+      return origJson(payload);
+    };
+    res.end = (...args) => { finish(code); return origEnd(...args); };
+
+    try {
+      return await handler(req, res);
+    } catch (err) {
+      finish(500);
+      throw err;
+    } finally {
+      // A handler that returned without writing anything must not hold credits.
+      if (!finished) finish(res.statusCode || 200);
+    }
+  };
+}
+
 /* ── recharge ─────────────────────────────────────────────────────────────── */
 
 /**
@@ -411,6 +523,6 @@ async function handle(req, res) {
 }
 
 module.exports = {
-  handle, meter, withCredits, wallet, ledger, usage, priceList, overrides,
+  handle, meter, withCredits, enforce, metered, wallet, ledger, usage, priceList, overrides,
   createOrder, fulfilOrder, configured, catalog,
 };

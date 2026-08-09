@@ -1715,6 +1715,11 @@
         if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
+        // Drop this account's cached brand. A browser is often shared, and the
+        // brand payload carries voice rules, regions and store URLs, so it must
+        // not survive into the next person's session.
+        try { if (window.BrandContext && window.BrandContext.clearCache) window.BrandContext.clearCache(); } catch (_) {}
+        try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
         applyAccessMode(null);
         location.reload();
       },

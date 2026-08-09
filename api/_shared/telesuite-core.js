@@ -623,8 +623,71 @@ OPS.data_analysis = async (ctx, input) => {
 
 /* ── Voice agents ─────────────────────────────────────────────────────────── */
 
-OPS.voice_turn = async (ctx, input) => {
+/**
+ * Server-side call session. A voice call is priced per minute, and turns are
+ * generated one request at a time, so billing has to be INCREMENTAL: the server
+ * owns the clock, and each turn charges only the minutes that have elapsed
+ * since the last charge.
+ *
+ * This is what stops both failure modes:
+ *   * charging per turn (a 3-turn call inside one minute pays for one minute), and
+ *   * unlimited free turns if the client never calls voice_finish (abandoning
+ *     the tab still leaves every minute already consumed paid for).
+ *
+ * The session row lives in telesuite_runs so it needs no extra table, and the
+ * server's own started_at is authoritative — a client cannot understate the
+ * elapsed time.
+ */
+async function voiceSession(ctx, callId, mode) {
+  const wid = encodeURIComponent(ctx.workspace_id);
+  const rows = await serviceRest(`telesuite_runs?select=id,created_at,units,output&workspace_id=eq.${wid}&feature=eq.voice_session&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+  if (Array.isArray(rows) && rows[0]) return rows[0];
+  const made = await logRun(ctx, {
+    feature: 'voice_session', status: 'in_progress',
+    title: `${mode} call session`,
+    input: { call_id: callId, mode },
+    output: { billed_minutes: 0 },
+    units: 0, credits: 0,
+  });
+  return made || null;
+}
+
+/** Charge whatever whole minutes have elapsed and are not yet billed. */
+async function billElapsed(ctx, session, mode, req) {
+  if (!session) return { charged: 0, billed: 0 };
+  const startedAt = new Date(session.created_at).getTime();
+  const elapsed = Math.max(1, Math.ceil((Date.now() - startedAt) / 60000));
+  const billed = Number((session.output && session.output.billed_minutes) || 0);
+  const due = elapsed - billed;
+  if (due <= 0) return { charged: 0, billed };
+
+  const key = mode === 'support' ? 'telesuite.voice_support' : 'telesuite.voice_sales';
+  const m = await credits.meter(req, key, {
+    auth: ctx.auth, workspace_id: ctx.workspace_id, units: due,
+    ref: session.id, meta: { op: 'voice_turn', call_session: session.id },
+  });
+  if (!m.ok) { const e = new Error(m.message || 'insufficient_credits'); e.status = m.status || 402; e.payload = m; throw e; }
+  await m.settle(due);
+
+  const total = billed + due;
+  await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+    method: 'PATCH',
+    body: { output: { billed_minutes: total }, units: total, credits: (Number(session.credits) || 0) + ((m.receipt && m.receipt.charged) || 0) },
+    prefer: 'return=minimal',
+  });
+  return { charged: (m.receipt && m.receipt.charged) || 0, billed: total, balance: m.balance };
+}
+
+OPS.voice_turn = async (ctx, input, req) => {
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
+  const callId = str(input.call_id, 64);
+  if (!callId) { const e = new Error('call_id is required — it is how the call is metered.'); e.status = 400; throw e; }
+
+  // Reserve and charge BEFORE generating, so an abandoned call is still paid
+  // for and repeated turns cannot buy unlimited provider usage for free.
+  const session = await voiceSession(ctx, callId, mode);
+  const bill = await billElapsed(ctx, session, mode, req);
+
   const history = Array.isArray(input.history) ? input.history.slice(-16) : [];
   const heard = str(input.utterance, 4000);
   const grounding = await groundingFor(ctx, { product: str(input.product), kbIds: input.kb });
@@ -647,7 +710,10 @@ OPS.voice_turn = async (ctx, input) => {
     ].join('\n'),
     user: `CONTEXT\n${grounding}\n\nCONVERSATION SO FAR\n${history.map((h) => `${h.role === 'agent' ? 'You' : 'Customer'}: ${str(h.text, 800)}`).join('\n') || '(the call just connected)'}\n\nCUSTOMER JUST SAID: ${heard || '(nothing yet — open the call)'}`,
   });
-  return { result: out.data, provider: out.provider, skip_log: true };  // turns are logged once, at call end
+  return {
+    result: out.data, provider: out.provider, skip_log: true,   // turns are logged once, at call end
+    credits_charged: bill.charged, billed_minutes: bill.billed, balance: bill.balance,
+  };
 };
 
 /**
@@ -657,7 +723,7 @@ OPS.voice_turn = async (ctx, input) => {
  * must not charge the call twice. The client sends a `call_id` it generated at
  * the start of the call, and an existing run with that id short-circuits.
  */
-OPS.voice_finish = async (ctx, input) => {
+OPS.voice_finish = async (ctx, input, req) => {
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
   const turns = Array.isArray(input.history) ? input.history : [];
   if (!turns.length) { const e = new Error('No conversation to save.'); e.status = 400; throw e; }
@@ -687,7 +753,7 @@ OPS.voice_finish = async (ctx, input) => {
   let scored = null;
   if (input.score !== false) {
     try {
-      const s = await OPS.call_scoring(ctx, { transcript, product: input.product, agent_name: `AI ${mode} agent`, kb: input.kb });
+      const s = await OPS.call_scoring(ctx, { transcript, product: input.product, agent_name: `AI ${mode} agent`, kb: input.kb }, req);
       scored = await logRun(ctx, {
         feature: mode === 'sales' ? 'voice_sales_score' : 'voice_support_score',
         title: s.title, product: str(input.product) || null,
@@ -699,10 +765,28 @@ OPS.voice_finish = async (ctx, input) => {
       scored = { error: String(err.message || err).slice(0, 300) };
     }
   }
+  // Charge any final part-minute. The call has been billed incrementally by
+  // voice_turn all along, so this is a top-up, not the whole call — which is
+  // why voice_finish itself carries no credit key.
+  let finalBill = { charged: 0, billed: 0 };
+  try {
+    const session = await voiceSession(ctx, callId, mode);
+    finalBill = await billElapsed(ctx, session, mode, req);
+    if (session) {
+      await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+        method: 'PATCH', body: { status: 'complete' }, prefer: 'return=minimal',
+      });
+    }
+  } catch (err) {
+    // Out of credits at the very end must not lose the transcript.
+    finalBill = { charged: 0, billed: 0, error: String(err.message || err).slice(0, 200) };
+  }
+
   return {
-    result: { call_id: call && call.id, transcript, turns: turns.length, minutes, score: scored },
-    units: minutes || 1,          // the call is billed on its real length, once
-    run_row_id: call && call.id,  // so the handler can stamp the real charge on it
+    result: {
+      call_id: call && call.id, transcript, turns: turns.length, minutes,
+      score: scored, billed_minutes: finalBill.billed, final_charge: finalBill.charged,
+    },
     skip_log: true,
   };
 };
@@ -782,20 +866,17 @@ const OP_TO_SUBFEATURE = {};
 for (const s of SUBFEATURES) if (s.op) OP_TO_SUBFEATURE[s.op] = s;
 OP_TO_SUBFEATURE.optimized_pitches = { credit_key: 'telesuite.optimized_pitches', label: 'Optimised pitches', key: 'combined-call-analysis' };
 
-// A voice call is priced PER MINUTE OF CALL, so it is charged ONCE, at the end,
-// for the call's real duration. `voice_turn` must therefore be free: it fires
-// several times per call and each turn carries the cumulative elapsed time, so
-// metering it would charge a three-turn call three times over — and would
-// re-charge every earlier minute on each later turn. `voice_finish` is the
-// billing boundary; it also refuses to run twice for the same call.
+// A voice call is priced PER MINUTE OF CALL and is billed INCREMENTALLY by the
+// server-side session (see voiceSession/billElapsed): each turn charges only
+// the minutes that have elapsed since the last charge. That is what makes a
+// three-turn call inside one minute cost one minute, while still ensuring an
+// abandoned call pays for the minutes it actually consumed. Neither op carries
+// a credit key here, because neither is a single flat charge.
 OP_TO_SUBFEATURE.voice_turn = { credit_key: null, label: 'Voice agent turn', key: 'voice-sales-agent' };
-OP_TO_SUBFEATURE.voice_finish = { credit_key: 'telesuite.voice_sales', label: 'Voice call', key: 'voice-sales-agent' };
+OP_TO_SUBFEATURE.voice_finish = { credit_key: null, label: 'Voice call', key: 'voice-sales-agent' };
 
-/** The price key for a run, which for a voice call depends on sales vs support. */
+/** The price key for a run. Voice ops bill themselves, per minute, as they go. */
 function creditKeyFor(op, input) {
-  if (op === 'voice_finish') {
-    return str(input && input.mode) === 'support' ? 'telesuite.voice_support' : 'telesuite.voice_sales';
-  }
   const sf = OP_TO_SUBFEATURE[op];
   return (sf && sf.credit_key) || null;
 }
@@ -803,7 +884,6 @@ function creditKeyFor(op, input) {
 /** Billable units for a run. Only metered features use this. */
 function unitsFor(op, input) {
   if (!input) return undefined;
-  if (op === 'voice_finish') return Number(input.minutes) > 0 ? Number(input.minutes) : 1;
   if (op === 'transcription') {
     // A pasted transcript generates nothing, so it bills zero — an explicit 0
     // quotes as free rather than falling back to the reservation estimate.
@@ -933,7 +1013,7 @@ async function handle(req, res) {
 
     // Free op (no credit key) — run it straight.
     if (!creditKey) {
-      const out = await fn(ctx, input);
+      const out = await fn(ctx, input, req);
       return res.status(200).json({ ok: true, ...out });
     }
 
@@ -946,7 +1026,7 @@ async function handle(req, res) {
 
     let out;
     try {
-      out = await fn(ctx, input);
+      out = await fn(ctx, input, req);
     } catch (err) {
       await m.release(String(err.message || err).slice(0, 200));
       await logRun(ctx, { feature: op, title: str(input.title) || null, status: 'failed', input, error: String(err.message || err).slice(0, 600), credits: 0 });
