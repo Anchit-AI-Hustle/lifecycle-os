@@ -40,11 +40,11 @@ const REGION = {
 function regionFacts(market) { return REGION[market] || REGION.Global; }
 
 // ── Product context ─────────────────────────────────────────────────────────
-function productLines(products = [], currency = '$') {
+function productLines(products = [], currency = '$', brandName = 'KNICKGASM') {
   const list = (Array.isArray(products) ? products : []).filter(Boolean).slice(0, 8);
-  if (!list.length) return '(no specific products supplied — refer to KNICKGASM offerings at CATEGORY level only, e.g. "one-of-one Jordan" or "coffee collection". Do NOT invent a specific product name, price, or handle/URL.)';
+  if (!list.length) return `(no specific products supplied — refer to ${brandName} offerings at CATEGORY level only. Do NOT invent a specific product name, price, or handle/URL.)`;
   return list.map((p) => {
-    const title = p.title || p.name || p.t || 'KNICKGASM sneaker';
+    const title = p.title || p.name || p.t || `${brandName} product`;
     const price = p.price ?? p.p;
     const handle = p.handle || p.h;
     const cat = p.category || p.cat || p.c || 'sneaker';
@@ -116,7 +116,7 @@ AUDIO for any video deliverable: use a KNICKGASM-owned original bed from /assets
 }
 
 function landingContract(facts) {
-  return `ASSET: Landing page in the try.knickgasm.* presell style (reference: https://${facts.presell}/...).
+  return `ASSET: Landing page in a direct-response presell style (reference: https://${facts.presell}/...).
 Build a conversion-focused, single-scroll-friendly page using the brand palette/typography.
 Sections, in order: sticky announcement bar · hero (headline + sub + primary CTA) · trust/credentials row · problem→solution narrative · product reveal with price (${facts.currency}) · design/collection grid · craft proof (original base sneaker, named artists, water & scratch resistant finish, 10-15 day build) · testimonials as mini-stories · FAQ (accordion) · risk-reversal/guarantee · sticky footer CTA.
 Every CTA links to the regional store (https://${facts.store}/products/{handle}). Mobile-first, fast, self-contained HTML/CSS (inline), no external fonts/scripts.
@@ -137,22 +137,39 @@ ${VISUAL_CASCADE}`;
  * @returns {string}
  */
 function buildMasterPrompt(o = {}) {
-  const { assetType = 'mailer', market = 'US', brief = '', products = [], variant = 'V2', platform = 'meta', cohort = '', extra = '' } = o;
-  const facts = regionFacts(market);
+  const { assetType = 'mailer', market = 'US', brief = '', products = [], variant = 'V2', platform = 'meta', cohort = '', extra = '', brand = null } = o;
+
+  // Multi-tenant: when the caller resolved an active brand workspace, the whole
+  // prompt is built from THAT brand instead of tenant zero. `brand` comes from
+  // _shared/brand-runtime.js `resolve(req)`. With no brand supplied this is
+  // byte-identical to what it produced before, so every existing caller is
+  // unaffected.
+  let BLOCK = BRAND_BLOCK;
+  let brandName = 'KNICKGASM';
+  let facts = regionFacts(market);
+  if (brand && brand.id) {
+    try {
+      const rt = require('./brand-runtime.js');
+      BLOCK = rt.brandBlock(brand);
+      brandName = brand.name || brandName;
+      facts = rt.regionFacts(brand, market) || facts;
+    } catch (_) { /* fall back to tenant zero rather than failing a generation */ }
+  }
+
   let contract;
   if (assetType === 'ad') contract = adContract(String(platform).toLowerCase());
   else if (assetType === 'landing_page' || assetType === 'lp') contract = landingContract(facts);
   else contract = mailerContract(variant === 'V1' ? 'V1' : 'V2');
 
   return [
-    `You are KNICKGASM's senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.`,
+    `You are ${brandName}'s senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.`,
     ``,
-    BRAND_BLOCK,
+    BLOCK,
     ``,
     `MARKET: ${market} · Store: https://${facts.store} · Currency: ${facts.currency}${cohort ? ` · Audience cohort: ${cohort}` : ''}`,
     brief ? `\nCAMPAIGN BRIEF:\n${String(brief).trim()}` : '',
     ``,
-    `PRODUCTS IN SCOPE:\n${productLines(products, facts.currency)}`,
+    `PRODUCTS IN SCOPE:\n${productLines(products, facts.currency, brandName)}`,
     ``,
     contract,
     ``,
@@ -161,4 +178,12 @@ function buildMasterPrompt(o = {}) {
   ].filter((l) => l !== '').join('\n').trim();
 }
 
-module.exports = { buildMasterPrompt, BRAND_BLOCK, regionFacts, REGION };
+// `brandBlockFor(brand)` lets any prompt site swap tenant zero's block for the
+// caller's active brand without importing brand-runtime directly.
+function brandBlockFor(brand) {
+  if (!brand || !brand.id) return BRAND_BLOCK;
+  try { return require('./brand-runtime.js').brandBlock(brand); }
+  catch (_) { return BRAND_BLOCK; }
+}
+
+module.exports = { buildMasterPrompt, BRAND_BLOCK, brandBlockFor, regionFacts, REGION };

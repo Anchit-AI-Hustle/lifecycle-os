@@ -78,6 +78,99 @@
     } catch (_) {}
   })();
 
+  // ─── Universal brand layer + credit meter ───────────────────────────────
+  // brand-context.js re-skins the whole app to the signed-in user's ACTIVE
+  // brand workspace (palette, fonts, name, favicon) and sends a user with no
+  // brand to /onboarding. credits.js renders the live balance pill, labels
+  // every [data-credit-feature] element with its cost, and guards runs.
+  // Both are additive, fail-safe and self-skip the frozen diff snapshot.
+  // brand-context loads FIRST so credits can read the active workspace id.
+  // ─── Same-origin API calls carry the session automatically ──────────────
+  // The credit meter identifies the caller from a Supabase bearer token, and
+  // several long-standing endpoints (/api/ai/generate, /api/ai/image,
+  // /api/calendar) are now metered. Dozens of pages call them with only a
+  // Content-Type header, so without this every signed-in user would get
+  // 401 sign_in_required the moment the meter is configured.
+  //
+  // Rather than editing every call site, fetch is wrapped once here: a
+  // SAME-ORIGIN request to /api/... gets the current access token attached,
+  // and only when the caller has not set an Authorization header itself (so
+  // CRON_SECRET callers and explicit tokens still win).
+  //
+  // Cross-origin requests are never touched — attaching the token to a third
+  // party would leak the user's session.
+  (function attachSessionToApiCalls() {
+    try {
+      if (window.__lcFetchPatched || typeof window.fetch !== 'function') return;
+      window.__lcFetchPatched = true;
+      var nativeFetch = window.fetch.bind(window);
+
+      function currentToken() {
+        try {
+          var a = window.LifecycleAuth;
+          if (a && a.session && a.session.access_token) return a.session.access_token;
+        } catch (_) {}
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf('-auth-token') < 0) continue;
+            var v = JSON.parse(localStorage.getItem(k) || 'null');
+            var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
+            if (t) return t;
+          }
+        } catch (_) {}
+        return '';
+      }
+
+      function isOwnApi(url) {
+        try {
+          var u = new URL(url, location.href);
+          return u.origin === location.origin && /^\/api\//.test(u.pathname);
+        } catch (_) { return false; }
+      }
+
+      window.fetch = function (input, init) {
+        try {
+          var url = (typeof input === 'string') ? input : (input && input.url) || '';
+          if (!isOwnApi(url)) return nativeFetch(input, init);
+
+          var token = currentToken();
+          if (!token) return nativeFetch(input, init);
+
+          // Request object: clone with the header added, leaving the body alone.
+          if (typeof input !== 'string' && input && typeof Request !== 'undefined' && input instanceof Request) {
+            if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
+            var req = new Request(input, init || undefined);
+            if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
+            return nativeFetch(req);
+          }
+
+          var opts = Object.assign({}, init || {});
+          var headers = new Headers((opts && opts.headers) || {});
+          if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
+          opts.headers = headers;
+          return nativeFetch(input, opts);
+        } catch (_) {
+          return nativeFetch(input, init);
+        }
+      };
+    } catch (_) {}
+  })();
+
+  (function ensurePlatformRuntimes() {
+    try {
+      if (IS_FROZEN_DIFF) return;
+      var d = document;
+      [['/brand-context.js?v=20260809', 'data-vh-brand'], ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
+        if (d.querySelector('script[' + pair[1] + ']')) return;
+        var s = d.createElement('script');
+        s.src = pair[0];
+        s.setAttribute(pair[1], '1');
+        (d.head || d.documentElement).appendChild(s);
+      });
+    } catch (_) {}
+  })();
+
   // Theme switcher removed — the theme is locked to green (see theme.css).
   // Clean up the old floating button if a cached page still has one.
   (function removeLegacyThemeSwitch() {
@@ -211,6 +304,36 @@
   const NAV = [
     { id: 'appaudit',   label: 'Overall App Audit', href: '/audit',      icon: 'insights', ver: 'v2', match: ['/audit', '/app-audit', '/app-audit.html'] },
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
+    { group: 'Brand & Credits', icon: 'studio', gid: 'platform', ver: 'v2', children: [
+      { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
+      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
+      { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
+    ]},
+    { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2', match: ['/telesuite', '/telesuite.html'], children: [
+      { id: 'ts-home',       label: 'TeleSuite Home',           href: '/telesuite#home',                       icon: 'home' },
+      { id: 'ts-products',   label: 'Products',                 href: '/telesuite#products',                   icon: 'kb' },
+      { id: 'ts-kb',         label: 'Knowledge Base',           href: '/telesuite#knowledge-base',             icon: 'kb' },
+      { id: 'ts-pitch',      label: 'AI Pitch Generator',       href: '/telesuite#pitch-generator',            icon: 'insights' },
+      { id: 'ts-rebuttal',   label: 'AI Rebuttal Assistant',    href: '/telesuite#rebuttal-generator',         icon: 'insights' },
+      { id: 'ts-transcribe', label: 'Audio Transcription',      href: '/telesuite#transcription',              icon: 'avatars' },
+      { id: 'ts-transdb',    label: 'Transcription DB',         href: '/telesuite#transcription-dashboard',    icon: 'analysis' },
+      { id: 'ts-scoring',    label: 'AI Call Scoring',          href: '/telesuite#call-scoring',               icon: 'insights' },
+      { id: 'ts-scoredb',    label: 'Call Scoring DB',          href: '/telesuite#call-scoring-dashboard',     icon: 'analysis' },
+      { id: 'ts-combined',   label: 'Combined Call Analysis',   href: '/telesuite#combined-call-analysis',     icon: 'insights' },
+      { id: 'ts-combineddb', label: 'Combined Analysis DB',     href: '/telesuite#combined-call-analysis-dashboard', icon: 'analysis' },
+      { id: 'ts-vsales',     label: 'AI Voice Sales Agent',     href: '/telesuite#voice-sales-agent',          icon: 'avatars' },
+      { id: 'ts-vsalesdb',   label: 'Voice Sales DB',           href: '/telesuite#voice-sales-dashboard',      icon: 'analysis' },
+      { id: 'ts-vsupport',   label: 'AI Voice Support Agent',   href: '/telesuite#voice-support-agent',        icon: 'avatars' },
+      { id: 'ts-vsupportdb', label: 'Voice Support DB',         href: '/telesuite#voice-support-dashboard',    icon: 'analysis' },
+      { id: 'ts-deck',       label: 'Training Material Creator',href: '/telesuite#create-training-deck',       icon: 'kb' },
+      { id: 'ts-deckdb',     label: 'Material DB',              href: '/telesuite#training-material-dashboard',icon: 'analysis' },
+      { id: 'ts-data',       label: 'AI Data Analyst',          href: '/telesuite#data-analysis',              icon: 'analysis' },
+      { id: 'ts-datadb',     label: 'Data Analysis DB',         href: '/telesuite#data-analysis-dashboard',    icon: 'analysis' },
+      { id: 'ts-batch',      label: 'Batch Audio Downloader',   href: '/telesuite#batch-audio-downloader',     icon: 'kb' },
+      { id: 'ts-activity',   label: 'Global Activity Log',      href: '/telesuite#activity-dashboard',         icon: 'analysis' },
+      { id: 'ts-clone',      label: 'Clone Full App',           href: '/telesuite#clone-app',                  icon: 'studio' },
+      { id: 'ts-n8n',        label: 'n8n Workflow',             href: '/telesuite#n8n-workflow',               icon: 'studio' },
+    ]},
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
       { id: 'research',        label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
       { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
@@ -1681,6 +1804,11 @@
         if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
+        // Drop this account's cached brand. A browser is often shared, and the
+        // brand payload carries voice rules, regions and store URLs, so it must
+        // not survive into the next person's session.
+        try { if (window.BrandContext && window.BrandContext.clearCache) window.BrandContext.clearCache(); } catch (_) {}
+        try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
         applyAccessMode(null);
         location.reload();
       },

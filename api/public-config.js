@@ -52,6 +52,24 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
+  // ── Brand workspaces (the multi-tenant layer) ────────────────────────────
+  // Every logged-in user onboards their own brands here and picks the ACTIVE
+  // one; the shell then re-skins to it. Mounted on this function rather than a
+  // new api/*.js file because the Hobby plan caps us at 12 serverless functions
+  // and we are already at the cap (see vercel.json `functions`).
+  if (req.query && req.query.action === 'brand') {
+    res.setHeader('Cache-Control', 'no-store');
+    try { return await require('./_shared/brand-workspace-core.js').handle(req, res); }
+    catch (e) { return res.status(500).json({ ok: false, error: e.message || 'brand_router_failed' }); }
+  }
+
+  // ── Credits (wallet, prices, usage, recharge) ────────────────────────────
+  if (req.query && req.query.action === 'credits') {
+    res.setHeader('Cache-Control', 'no-store');
+    try { return await require('./_shared/credits-core.js').handle(req, res); }
+    catch (e) { return res.status(500).json({ ok: false, error: e.message || 'credits_router_failed' }); }
+  }
+
   // Unified Data Analysis API. Reads are available to the authenticated app;
   // writes/runs verify either a KNICKGASM Supabase user or CRON_SECRET.
   const wantsDataAnalysis = req.query && req.query.action === 'data-analysis';

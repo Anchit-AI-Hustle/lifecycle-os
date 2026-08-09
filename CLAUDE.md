@@ -4,6 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # KNICKGASM Lifecycle OS — Project Memory
 
+## ⭐⭐ It is now a UNIVERSAL brand platform (2026-08-09) — read `docs/universal-brand-platform.md`
+This is no longer a single-brand app. Any signed-in user onboards their own brand and the whole app
+runs as that brand for them. Three layers, none of which added a serverless function (still 12/12 —
+all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `brain.js`):
+- **Brand layer** — `/onboarding` is the FIRST SCREEN (brand data → colour schema → typography →
+  voice → catalog → activate). `brand_workspaces` + `brand_user_prefs.active_workspace_id` (per
+  user, RLS-private). `brand-context.js` writes `--brand-*` tokens onto `<html>`; **`theme.css`
+  resolves every colour/font through them**, so all pages re-skin at once — never hardcode a brand
+  colour or font in a new page, always go through the `--vh-*` / `--brand-*` tokens.
+  `validatePalette()` BLOCKS activation on dark-neutral surfaces or sub-AA contrast.
+  KNICKGASM is now just tenant zero (`data/brands/_default.json`).
+- **Credits** — every feature costs credits. `api/_shared/credit-catalog.js` is the single source of
+  truth for prices; **a feature key missing from it throws rather than running free**. Spend via
+  `credits.meter()` hold → settle/release so a failed run is always refunded. The balance-moving SQL
+  functions are REVOKEd from `authenticated` (service-role only). Live balance via Supabase Realtime.
+  Mark any new UI action with `data-credit-feature="<key>"` and `credits.js` labels it automatically.
+- **TeleSuite** — `/telesuite`, all 23 subfeatures of the AI-TeleSuite repo, rendered entirely from
+  the `SUBFEATURES` registry in `_shared/telesuite-core.js`. Every dashboard is a filtered view of
+  the one `telesuite_runs` table (shared source of truth), not its own store.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating
