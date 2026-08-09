@@ -162,9 +162,7 @@
       </div>
       <div id="catfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
         <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Catalog</span>
-        <button class="mkchip on" data-cat="product" onclick="toggleCat('product')">Products &amp; Botanicals</button>
-        <button class="mkchip on" data-cat="coffee" onclick="toggleCat('coffee')">hero collection</button>
-        <button class="mkchip on" data-cat="supplement" onclick="toggleCat('supplement')">Supplements</button>
+        <!-- chips are injected per plan from the active brand's own offering kinds -->
         <span id="catcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
       </div>
       <div class="tblscroll">
@@ -260,15 +258,39 @@ window.toggleMkt = function(mkt){
 let SELECTED_DAYS = 90;
 function durCutoff(){ return SELECTED_DAYS==='all' ? null : new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10); }
 function durVisible(e){ if(SELECTED_DAYS==='all') return true; const today=new Date().toISOString().slice(0,10); const end=durCutoff(); return (!e.date) || (e.date>=today && e.date<=end); }
-// Catalog bucket: classify a slot by its hero product into one of the three
-// storefront catalogs. Default all three selected; at least one must stay on.
-const SELECTED_CAT = new Set(['sneaker','coffee','supplement']);
+// Catalog buckets are DERIVED from the plan itself (the active brand's own
+// offering kinds / hero categories), never a hardcoded storefront taxonomy -
+// a publisher's plan buckets into sections and events, a D2C brand's into its
+// product categories. Chips are rebuilt whenever a plan loads.
+let SELECTED_CAT = new Set();
+let ALL_CATS = [];
 function catBucket(e){
+  const off = e.offering || (e.payload && e.payload.offering) || {};
   const hp = e.heroProduct || {};
-  const s = ((hp.title||hp.name||'') + ' ' + (hp.category||hp.type||'') + ' ' + (e.theme||'')).toLowerCase();
-  if(/coffee|cold craft|espresso|latte/.test(s)) return 'coffee';
-  if(/supplement|capsule|tablet|gummies|gummy|curcumin|\d+\s*mg|ksm-?66|magnesium|probiotic|collagen|shilajit/.test(s)) return 'supplement';
-  return 'sneaker'; // sneakers, kicks, dunks, tisanes, herbals, botanicals (default)
+  const raw = off.kind || hp.kind || hp.category || hp.type || 'product';
+  return String(raw).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product';
+}
+function catLabel(b){
+  const nice = { product: 'Products', event: 'Events', programme: 'Programmes', section: 'Sections', plan: 'Plans', service: 'Services' };
+  if (nice[b]) return nice[b];
+  return b.replace(/-/g, ' ').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+}
+function buildCatChips(){
+  ALL_CATS = Array.from(new Set(PLAN.map(catBucket))).sort();
+  SELECTED_CAT = new Set(ALL_CATS);
+  const host = document.getElementById('catfilter');
+  if(!host) return;
+  host.querySelectorAll('.mkchip').forEach(function(b){ b.remove(); });
+  const anchor = document.getElementById('catcount');
+  ALL_CATS.forEach(function(b){
+    const btn = document.createElement('button');
+    btn.className = 'mkchip on';
+    btn.dataset.cat = b;
+    btn.textContent = catLabel(b);
+    btn.addEventListener('click', function(){ toggleCat(b); });
+    host.insertBefore(btn, anchor);
+  });
+  if(host.parentNode) host.style.display = ALL_CATS.length > 1 ? '' : 'none';
 }
 function catVisible(e){ return SELECTED_CAT.size===0 || SELECTED_CAT.has(catBucket(e)); }
 window.toggleCat = function(cat){
@@ -306,7 +328,7 @@ function renderPlan(){
   const shown = PLAN.filter(slotVisible).length;
   const mc = $('mktcount'); if(mc) mc.textContent = SELECTED_MKT.size ? `Region: showing ${shown}` : `all regions`;
   const dc = $('durcount'); if(dc) dc.textContent = `Showing ${shown} of ${PLAN.length} sends${SELECTED_DAYS==='all'?'':` · next ${SELECTED_DAYS} days`}`;
-  const cc = $('catcount'); if(cc) cc.textContent = SELECTED_CAT.size===3 ? 'all catalogs' : `${SELECTED_CAT.size} of 3 catalogs`;
+  const cc = $('catcount'); if(cc) cc.textContent = (ALL_CATS.length && SELECTED_CAT.size===ALL_CATS.length) ? 'all catalogs' : `${SELECTED_CAT.size} of ${ALL_CATS.length} catalogs`;
   // "Generate all" — appears when there are sends in view (region + duration)
   // that don't yet have their final assets built; counts what it will act on.
   const pendingVisible = PLAN.filter(e => !isGenerated(e) && slotVisible(e)).length;
@@ -825,6 +847,7 @@ async function loadPlan(){
     if(!data.ok) throw new Error(data.error || 'Failed to load plan');
     $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
     PLAN = data.entries || [];
+    buildCatChips();
     renderPlan();
     if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
     return data;
@@ -864,6 +887,7 @@ async function runSync(){
     $('insights').innerHTML = (data.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join('') || '<p>No insights.</p>';
     $('changes').innerHTML = (data.changes||[]).filter(c=>c.kind!=='kept_locked').map(c=>`<p><b>${esc(c.kind)}</b> — ${esc(c.detail)}</p>`).join('') || '<p>No material changes — plan already in sync with the data.</p>';
     PLAN = data.plan || [];
+    buildCatChips();
     Object.keys(PREVIEW_CACHE).forEach(k => delete PREVIEW_CACHE[k]);  // slots may have been re-planned
     clearPreview();
     renderPlan();
