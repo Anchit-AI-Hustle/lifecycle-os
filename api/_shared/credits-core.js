@@ -326,8 +326,12 @@ async function enforce(req, res, featureKey, opts) {
  * `featureFor` returns a catalog key, or null to let the request through free
  * (used for read-only modes on an otherwise paid endpoint).
  * `unitsFor` is optional and only matters for metered features.
+ * `opts.successIf(payload, statusCode)` lets an endpoint that answers 200 on a
+ * degraded result say so — a 200 carrying a fallback placeholder must refund,
+ * not charge, because the user did not get what they paid for.
  */
-function metered(handler, featureFor, unitsFor) {
+function metered(handler, featureFor, unitsFor, opts) {
+  const cfg = opts || {};
   return async function meteredHandler(req, res) {
     if (req.method === 'OPTIONS') return handler(req, res);
 
@@ -348,14 +352,19 @@ function metered(handler, featureFor, unitsFor) {
     if (gate.unmetered) return handler(req, res);
 
     let finished = false;
-    const finish = (statusCode) => {
+    const finish = (statusCode, payload) => {
       if (finished) return;
       finished = true;
+      let ok = statusCode >= 200 && statusCode < 400;
+      // An endpoint may answer 200 with a degraded result. Ask it.
+      if (ok && cfg.successIf) {
+        try { ok = cfg.successIf(payload, statusCode) !== false; } catch (_) { /* keep ok */ }
+      }
       // Fire and forget: the balance already moved at hold time, so settling
       // after the response is sent cannot show the user a stale number.
-      const p = statusCode >= 200 && statusCode < 400
+      const p = ok
         ? gate.settle(unitsFor ? unitsFor(req, body) : undefined)
-        : gate.release(`endpoint returned ${statusCode}`);
+        : gate.release(ok === false && statusCode < 400 ? 'endpoint returned a fallback result' : `endpoint returned ${statusCode}`);
       Promise.resolve(p).catch(() => {});
     };
 
@@ -366,9 +375,9 @@ function metered(handler, featureFor, unitsFor) {
 
     res.status = (c) => { code = c; return origStatus(c); };
     res.json = (payload) => {
-      finish(code);
+      finish(code, payload);
       if (payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.credits) {
-        try { payload.credits = gate.receipt; } catch (_) { /* frozen payload */ }
+        try { payload.credits = finished && gate.receipt ? gate.receipt : null; } catch (_) { /* frozen payload */ }
       }
       return origJson(payload);
     };

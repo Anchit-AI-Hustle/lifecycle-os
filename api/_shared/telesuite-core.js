@@ -732,7 +732,10 @@ OPS.voice_finish = async (ctx, input, req) => {
   const callId = str(input.call_id, 64);
 
   if (callId) {
-    const dupe = await serviceRest(`telesuite_runs?select=id,output&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+    // Must match only a COMPLETED call, never the billing session row — that
+    // row carries the same call_id, so an unfiltered lookup would always find
+    // it and short-circuit before the transcript was saved, scored or billed.
+    const dupe = await serviceRest(`telesuite_runs?select=id,output&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&feature=in.(voice_sales,voice_support)&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
     if (Array.isArray(dupe) && dupe[0]) {
       // Already saved and already paid for. Return it, bill nothing.
       return { result: { call_id: dupe[0].id, transcript, turns: turns.length, minutes, already_saved: true, score: null }, units: 0, skip_log: true };

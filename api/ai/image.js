@@ -440,6 +440,13 @@ module.exports = async function handler(req, res) {
 const _credits = require('../_shared/credits-core.js');
 module.exports = _credits.metered(
   module.exports,
-  (req, body) => (String(body.mode || '').toLowerCase() === 'reels' ? 'image.reels' : 'image.generate')
+  (req, body) => (String(body.mode || '').toLowerCase() === 'reels' ? 'image.reels' : 'image.generate'),
+  null,
+  {
+    // This endpoint never 502s: when every provider fails (or none is keyed) it
+    // answers 200 with the on-brand placeholder. The user did not get an image,
+    // so the reservation is returned rather than charged.
+    successIf: (payload) => !(payload && (payload.placeholder === true || payload.fallback === true)),
+  }
 );
 

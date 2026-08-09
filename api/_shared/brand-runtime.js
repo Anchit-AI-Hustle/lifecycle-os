@@ -61,12 +61,18 @@ async function resolve(req, opts) {
     const auth = o.auth || await brandCore.requireUser(req);
     if (!auth || !auth.ok) return defaultBrand();
 
-    const key = `${auth.user_id}|${explicit}`;
-    const hit = CACHE.get(key);
-    if (hit && Date.now() - hit.at < TTL) return hit.brand;
-
+    // Resolve WHICH workspace first, then cache the workspace row against that
+    // id. Caching against `<user>|<explicit>` instead would key every implicit
+    // request as `<user>|`, so for the whole TTL after someone switched their
+    // active brand they would keep generating with the previous brand's rules.
+    // Existing generator clients send no workspace_id, so that is the common
+    // path, not an edge case. The preference lookup is one cheap indexed read.
     const id = explicit || await brandCore.activeWorkspaceId(auth);
     if (!id) return defaultBrand();
+
+    const key = `${auth.user_id}|${id}`;
+    const hit = CACHE.get(key);
+    if (hit && Date.now() - hit.at < TTL) return hit.brand;
 
     // Read with the CALLER'S token, so RLS decides whether they may use it.
     const ws = await brandCore.getWorkspace(auth, id);
