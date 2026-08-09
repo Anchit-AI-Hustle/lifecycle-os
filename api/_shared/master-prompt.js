@@ -15,18 +15,17 @@
 
 const assetSpecs = require('./asset-specs');
 
-// ── Brand constants (source of truth: Brand style guide.pdf) ────────────────
-const BRAND_BLOCK = `BRAND: KNICKGASM — India's largest sneaker customisers. Hand-painted, one-of-one custom sneakers (Nike Air Force 1, Jordan 1, Dunks, Court Vision, Converse, Adidas Sambas), custom denim jackets and sneaker accessories. Made on 100% original brand sneakers by India's best artists; water & scratch resistant designs; express shipping worldwide (60+ countries).
-VOICE: bold, energetic, youth street-culture, hype but authentic. Confident and playful, never corporate. Testimonials read like a friend flexing their new pair, not a review.
-PALETTE (use ONLY these four — exact knickgasm.com theme): #D0473E lava red (primary accent, --color-primary on the live site) · #6A33D8 drip purple (secondary accent, sale/badge moments) · #111111 ink black (text + primary buttons) · #FFFFFF pure white (background).
-CONTRAST (strict): on white bg → body text MUST be #111111, headings #111111 or #D0473E (never white text). On red/purple/ink bg → ALL text MUST be #FFFFFF white (never ink). Red as text on white MUST use font-weight 600/700. Buttons follow the live site: ink #111111 button with white text is the default CTA; red is accent, never full-page background.
-TYPOGRAPHY (strict): Headings = 'Montserrat' 700/800 (fallback 'Raleway',Arial,sans-serif). Body = 'Instrument Sans' (fallback 'Helvetica Neue',Arial,sans-serif). Never introduce other fonts. For any HTML asset, inject these EXACT imports into the <head> <style> before app rules:
-  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap');
-LOGO (header, exact — never substitute): <img src="https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332" alt="KNICKGASM" /> at a restrained header height (~30px).
-FOOTER: "Privacy Policy" and "Terms of Service" must be plain labels with href="#" and no target/onclick routing.
-PREFERRED words: custom, hand-painted, one-of-one, grail, canvas, colorway, drop, rotation, crafted, original.
-BANNED phrases (never use): "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (in caps), "hurry", "don't miss out", "last chance", "while supplies last", and ANY counterfeit implication ("replica", "knock-off", "first copy", "fake pair") - the pairs are hand-painted on 100% original sneakers.
-NEVER: off-palette tints, counterfeit/replica implications (always "made on 100% original brand sneakers"), fake scarcity, ALL-CAPS urgency, fabricated filenames/URLs/selectors.`;
+// ── Brand constants ─────────────────────────────────────────────────────────
+// DERIVED, never hand-written. The single source of brand truth is
+// data/brands/_default.json (tenant zero); brand-runtime.brandBlock() renders
+// it into the prompt block below at require-time. A hardcoded copy here is what
+// previously let the palette be right in the CSS and wrong in the prompt.
+//
+// Per-request, brand-aware callers should prefer brandRuntime.brandBlock(brand)
+// with the resolved workspace; BRAND_BLOCK stays exported as tenant zero's
+// block so existing callers keep working unchanged.
+const brandRuntime = require('./brand-runtime.js');
+const BRAND_BLOCK = brandRuntime.brandBlock(brandRuntime.defaultBrand());
 
 // ── Regional facts ──────────────────────────────────────────────────────────
 const REGION = {

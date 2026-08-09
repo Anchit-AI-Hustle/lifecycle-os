@@ -1,0 +1,107 @@
+#!/usr/bin/env node
+'use strict';
+/**
+ * scripts/brand-sync.js — propagate the ONE brand record to every derived site.
+ *
+ *   node scripts/brand-sync.js          # rewrite derived artifacts   (npm run brand:sync)
+ *   node scripts/brand-sync.js --check  # verify only, exit 1 on drift (npm run brand:check)
+ *
+ * SOURCE OF TRUTH: data/brands/_default.json (tenant zero).
+ *
+ * Brand truth used to live in four hand-maintained places - the prompt block in
+ * api/_shared/master-prompt.js, the --brand-* fallbacks in theme.css, the
+ * knickgasm_brand_kit Supabase seed, and the Brand Constants section of
+ * CLAUDE.md. Keeping them in step by hand is how a palette ends up correct in
+ * the CSS and wrong in the prompt. Each is now GENERATED from the record above,
+ * between explicit BEGIN/END markers, and --check makes drift a build failure.
+ *
+ * master-prompt.js is not written by this script: it derives its BRAND_BLOCK at
+ * require-time from the same record via api/_shared/brand-runtime.js, so it can
+ * never drift in the first place.
+ */
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const CHECK = process.argv.includes('--check');
+const BRAND = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/brands/_default.json'), 'utf8'));
+
+const P = BRAND.palette || {};
+const T = BRAND.typography || {};
+const V = BRAND.voice || {};
+
+const BEGIN = (n) => `/* >>> BRAND-SYNC:${n} — generated from data/brands/_default.json, do not edit by hand */`;
+const END = (n) => `/* <<< BRAND-SYNC:${n} */`;
+const HBEGIN = (n) => `<!-- >>> BRAND-SYNC:${n} — generated from data/brands/_default.json, do not edit by hand -->`;
+const HEND = (n) => `<!-- <<< BRAND-SYNC:${n} -->`;
+const SBEGIN = (n) => `-- >>> BRAND-SYNC:${n} — generated from data/brands/_default.json, do not edit by hand`;
+const SEND = (n) => `-- <<< BRAND-SYNC:${n}`;
+
+const results = [];
+function apply(file, begin, end, body) {
+  const abs = path.join(ROOT, file);
+  const src = fs.readFileSync(abs, 'utf8');
+  const bi = src.indexOf(begin);
+  const ei = src.indexOf(end);
+  if (bi < 0 || ei < 0) { results.push({ file, status: 'NO_MARKERS' }); return; }
+  const current = src.slice(bi + begin.length, ei);
+  const next = `\n${body}\n`;
+  if (current === next) { results.push({ file, status: 'in sync' }); return; }
+  if (CHECK) { results.push({ file, status: 'DRIFTED' }); return; }
+  fs.writeFileSync(abs, src.slice(0, bi + begin.length) + next + src.slice(ei), 'utf8');
+  results.push({ file, status: 'updated' });
+}
+
+// ── 1. theme.css: the --brand-* fallback set ────────────────────────────────
+const cssBody = `  --vh-green:  var(--brand-primary, ${P.primary});
+  --vh-lava:   var(--brand-accent,  ${P.accent});
+  --vh-black:  var(--brand-ink,     ${P.ink});
+  --vh-chalk:  var(--brand-surface, ${P.surface});
+  --vh-muted-ink: var(--brand-ink-muted, ${P.muted});
+  --vh-hairline:  var(--brand-line,      ${P.line});
+  --vh-font-head: var(--brand-font-heading, ${T.heading && T.heading.stack});
+  --vh-font-body: var(--brand-font-body,    ${T.body && T.body.stack});`;
+apply('theme.css', BEGIN('palette'), END('palette'), cssBody);
+
+// ── 2. CLAUDE.md: the Brand Constants block ─────────────────────────────────
+const mdBody = [
+  `- **Source of truth:** \`data/brands/_default.json\`. Run \`npm run brand:sync\` after editing it; \`npm run brand:check\` fails the build on drift.`,
+  `- **Palette (ONLY these four)**: \`${P.primary}\` primary accent · \`${P.accent}\` secondary · \`${P.ink}\` ink (text + primary buttons) · \`${P.surface}\` background`,
+  `- **Typography (STRICT)**: Headings **${T.heading && T.heading.family}** — \`${T.heading && T.heading.stack}\`; Body **${T.body && T.body.family}** — \`${T.body && T.body.stack}\``,
+  `- **Voice**: ${V.tone}. ${V.notes || ''}`,
+  `- **PREFERRED**: ${(V.preferred || []).join(', ')}`,
+  `- **BANNED phrases**: ${(V.banned || []).join(', ')}`,
+  `- **No em/en dashes anywhere in output copy** - use commas, colons, or plain hyphens. (Enforced by \`scrubDashes()\`/\`sanitizeBrand()\` in \`api/_shared/scenario-model.js\`.)`,
+  `- **Verifiable claims** (never assert anything else as fact): ${(BRAND.claims || []).join(' · ')}`,
+  `- **Legal entity**: ${BRAND.legal_entity || '[DATA REQUIRED]'}`,
+].join('\n');
+apply('CLAUDE.md', `<!-- >>> BRAND-SYNC:constants -->`, `<!-- <<< BRAND-SYNC:constants -->`, mdBody);
+
+// ── 3. Supabase seed: the knickgasm_brand_kit singleton ─────────────────────
+const q = (o) => `'${JSON.stringify(o).replace(/'/g, "''")}'::jsonb`;
+const sqlBody = `INSERT INTO public.knickgasm_brand_kit (id, palette, typography, voice, footer_blocks, guide_pdf_url)
+VALUES (
+  1,
+  ${q({ primary: P.primary, accent: P.accent, bg: P.surface, text: P.ink })},
+  ${q({
+    primary: { family: T.heading && T.heading.family, stack: T.heading && T.heading.stack, usage: ['headings', 'titles', 'hero text'], weights: ['600', '700', '800'] },
+    secondary: { family: T.body && T.body.family, stack: T.body && T.body.stack, usage: ['body', 'buttons', 'labels', 'nav'], weights: ['400', '500', '600'] },
+  })},
+  ${q({ tone: V.tone, tagline: BRAND.tagline, dos: BRAND.claims || [], donts: V.banned || [] })},
+  ${q({ legal: BRAND.legal_entity, contact: { email: 'hello@knickgasm.com' }, social: [{ platform: 'instagram', url: 'https://www.instagram.com/knickgasm/' }], links: { privacy_policy: '/pages/privacy-policy', shipping: '/pages/shipping-policy', returns: '/pages/returns-and-refunds' } })},
+  null
+)
+ON CONFLICT (id) DO UPDATE SET
+  palette = EXCLUDED.palette, typography = EXCLUDED.typography, voice = EXCLUDED.voice,
+  footer_blocks = EXCLUDED.footer_blocks, updated_at = now();`;
+apply('supabase/seed/seed_brand_kit_and_markets.sql', SBEGIN('brand_kit'), SEND('brand_kit'), sqlBody);
+
+// ── Report ──────────────────────────────────────────────────────────────────
+const drift = results.filter((r) => r.status === 'DRIFTED' || r.status === 'NO_MARKERS');
+for (const r of results) console.log(`  ${r.status.padEnd(10)} ${r.file}`);
+if (CHECK && drift.length) {
+  console.error(`\nBrand drift: ${drift.length} artifact(s) out of sync with data/brands/_default.json.`);
+  console.error('Run `npm run brand:sync` to regenerate them.');
+  process.exit(1);
+}
+console.log(CHECK ? '\nBrand truth is in sync.' : `\nBrand truth propagated from data/brands/_default.json.`);

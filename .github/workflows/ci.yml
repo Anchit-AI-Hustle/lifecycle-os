@@ -29,6 +29,11 @@ jobs:
         # need not appear there — the only hard limit is the count (12 on Hobby).
         run: |
           node -e "const cp=require('child_process');const files=cp.execSync(\"find api -name '*.js' -not -path '*/_shared/*'\").toString().trim().split('\n').filter(Boolean);if(files.length>12){console.error('FAIL: '+files.length+' function files exceeds Hobby cap of 12:\n  '+files.join('\n  '));process.exit(1);}console.log('OK: '+files.length+'/12 Serverless Function files (Hobby cap = 12)');"
+      - name: Brand truth in sync
+        # data/brands/_default.json is the single source of brand truth; the
+        # theme.css tokens, CLAUDE.md constants and Supabase brand-kit seed are
+        # generated from it. Fail rather than let a hand-edit drift them apart.
+        run: npm run brand:check
       - name: Build catalog
         run: npm run build
 

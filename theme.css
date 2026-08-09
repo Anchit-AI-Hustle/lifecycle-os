@@ -34,10 +34,16 @@
      Fallbacks = tenant zero (KNICKGASM), taken from the live knickgasm.com
      theme: red is --color-primary, purple is the secondary accent, the page
      surface is pure white. */
+/* >>> BRAND-SYNC:palette — generated from data/brands/_default.json, do not edit by hand */
   --vh-green:  var(--brand-primary, #D0473E);
   --vh-lava:   var(--brand-accent,  #6A33D8);
   --vh-black:  var(--brand-ink,     #111111);
   --vh-chalk:  var(--brand-surface, #FFFFFF);
+  --vh-muted-ink: var(--brand-ink-muted, #666666);
+  --vh-hairline:  var(--brand-line,      #EBEBEB);
+  --vh-font-head: var(--brand-font-heading, 'Montserrat','Raleway',Arial,sans-serif);
+  --vh-font-body: var(--brand-font-body,    'Instrument Sans','Helvetica Neue',Arial,sans-serif);
+/* <<< BRAND-SYNC:palette */
 
   /* State (theme-independent) */
   --vh-ok:   var(--brand-ok,   #3fa46a);

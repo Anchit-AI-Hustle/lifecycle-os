@@ -1,17 +1,18 @@
 {
   "slug": "knickgasm",
   "name": "KNICKGASM",
-  "tagline": "Lifecycle OS",
+  "tagline": "India's Largest Sneaker Customisers",
   "industry": "Custom sneakers / D2C",
   "website": "https://knickgasm.com",
-  "_note": "Tenant zero. This is the brand the platform shipped with; it is now just the DEFAULT workspace, loaded when a request/session has no active brand workspace so nothing regresses. Every value here is an operator-approved brand constant (source: Brand style guide.pdf), not a generated guess.",
+  "_note": "SINGLE SOURCE OF BRAND TRUTH (tenant zero). Everything else is DERIVED from this file: api/_shared/master-prompt.js BRAND_BLOCK (via brand-runtime.brandBlock), the theme.css --brand-* fallbacks, the knickgasm_brand_kit Supabase seed, and the Brand Constants block in CLAUDE.md. Edit here, then run `npm run brand:sync` to regenerate them; `npm run brand:check` fails if they drift. Values verified against the live knickgasm.com theme 2026-08-09.",
   "palette": {
-    "primary": "#6A33D8",
-    "accent": "#D0473E",
+    "primary": "#D0473E",
+    "accent": "#6A33D8",
     "ink": "#111111",
-    "surface": "#F7F5F2",
-    "surface_alt": "#ffffff",
-    "muted": "#556059",
+    "surface": "#FFFFFF",
+    "surface_alt": "#FFFFFF",
+    "muted": "#666666",
+    "line": "#EBEBEB",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
@@ -19,37 +20,101 @@
   "typography": {
     "heading": {
       "family": "Montserrat",
-      "stack": "'Montserrat','Raleway',Georgia,serif",
+      "stack": "'Montserrat','Raleway',Arial,sans-serif",
       "google": true,
-      "weights": "400;600;700"
+      "weights": "600;700;800"
     },
     "body": {
       "family": "Instrument Sans",
       "stack": "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
       "google": true,
-      "weights": "400;500;600;700"
-    },
-    "mono": {
-      "family": "JetBrains Mono",
-      "stack": "'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace",
-      "google": false,
-      "weights": "400;600"
+      "weights": "400;500;600"
     }
   },
   "voice": {
-    "tone": "warm, sensory, emotionally resonant, story-driven",
-    "preferred": ["ritual", "restore", "balance", "origin", "one-of-one", "hand-painted", "lace-up", "heritage", "crafted"],
-    "banned": ["streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME", "hurry", "don't miss out", "last chance", "while supplies last"],
+    "tone": "bold, energetic, youth street-culture; confident and playful, never corporate",
+    "preferred": [
+      "custom",
+      "hand-painted",
+      "one-of-one",
+      "grail",
+      "canvas",
+      "colorway",
+      "drop",
+      "rotation",
+      "crafted",
+      "original"
+    ],
+    "banned": [
+      "wellness journey",
+      "transform",
+      "liquid gold",
+      "game-changer",
+      "LIMITED TIME",
+      "hurry",
+      "don't miss out",
+      "last chance",
+      "while supplies last",
+      "replica",
+      "knock-off",
+      "first copy",
+      "fake pair"
+    ],
     "no_em_dashes": true,
-    "notes": "Testimonials read as tiny personal stories, not reviews."
+    "notes": "Testimonials read like a friend flexing a new pair, not a review. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers."
   },
   "regions": [
-    { "code": "US", "currency": "USD", "symbol": "$", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" },
-    { "code": "UK", "currency": "GBP", "symbol": "£", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" },
-    { "code": "IN", "currency": "INR", "symbol": "₹", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" },
-    { "code": "GLOBAL", "currency": "USD", "symbol": "$", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" }
+    {
+      "code": "US",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "UK",
+      "currency": "GBP",
+      "symbol": "£",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "GLOBAL",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
   ],
-  "asset_hosts": ["knickgasm.com", "www.knickgasm.com", "try.knickgasm.com"],
-  "catalog_source": { "kind": "repo", "url": "data/catalog/products_{region}.json" },
-  "status": "active"
+  "asset_hosts": [
+    "knickgasm.com",
+    "www.knickgasm.com",
+    "try.knickgasm.com"
+  ],
+  "catalog_source": {
+    "kind": "repo",
+    "url": "data/catalog/products_{region}.json"
+  },
+  "status": "active",
+  "logo_url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332",
+  "legal_entity": "KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India",
+  "claims": [
+    "India's largest sneaker customisers",
+    "Made on 100% original brand sneakers",
+    "Hand-painted by India's best artists",
+    "Water and scratch resistant designs",
+    "Express shipping worldwide to 60+ countries",
+    "Free shipping in India and worldwide"
+  ]
 }
