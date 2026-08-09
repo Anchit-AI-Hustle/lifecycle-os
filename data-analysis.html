@@ -726,10 +726,14 @@
 
   function renderFootnote(){
     var m=d()||{}; var live=m.__live;
+    if(A.__demo){
+      document.getElementById('footnote').innerHTML='<b>DEMO DATA</b> - '+esc(A.generated_note||'generated from the active brand’s own offerings; not real performance.');
+      return;
+    }
     var src = live
       ? 'Source: <b>live Shopify Admin</b> snapshot for '+esc(mktLabel())+' ('+esc(live.store_url||live.shop||meta(MKT).store)+', pulled '+esc(live.pulled_at||'recently')+') overlaying the '+esc(mktLabel())+' market exports.'
-      : 'Source: live KNICKGASM '+esc(mktLabel())+' market exports in <span class="datalink">data/market/'+esc(meta(MKT).region)+'/</span>, compiled by <span class="datalink">scripts/build-market-analytics.js</span>.';
-    document.getElementById('footnote').innerHTML=src+' Trailing 12-month window. The upstream ingestion + DuckDB engine lives in <a class="datalink" href="https://github.com/Anchit-AI-Hustle/knickgasm_dtc_data_engine" target="_blank" rel="noopener">knickgasm_dtc_data_engine</a> (live: <a class="datalink" href="/data-engine">DTC Data Engine</a>).';
+      : 'Source: the active brand’s '+esc(mktLabel())+' market exports in <span class="datalink">data/market/'+esc(meta(MKT).region)+'/</span>, compiled by <span class="datalink">scripts/build-market-analytics.js</span>.';
+    document.getElementById('footnote').innerHTML=src+' Trailing 12-month window. The upstream ingestion + DuckDB engine lives in the brand’s own data-engine repo (live: <a class="datalink" href="/data-engine">DTC Data Engine</a>).';
   }
 
   function marketHasData(mk){ var m=A.markets[mk]; return !!(m && Object.keys(m).length && (m.summary || (m.monthly && m.monthly.length))); }
@@ -773,7 +777,19 @@
 
   // init — STRICT real-data-only: render only when real data is present;
   // otherwise an honest "no live data" state (never baked/sample numbers).
+  // Re-read the global on every boot: the brand-resolution script swaps
+  // window.LIFECYCLE_ANALYTICS after this IIFE has parsed (restore for the
+  // owner, labelled demo for other brands), and the parse-time binding would
+  // otherwise keep rendering the pending placeholder forever.
   function boot(){
+    A = window.LIFECYCLE_ANALYTICS || A;
+    Object.keys(A.markets||{}).forEach(function(mk){
+      var m = A.markets[mk];
+      if(!m) return;
+      if((!m.aov_trend || !m.aov_trend.length) && m.monthly && m.monthly.length){
+        m.aov_trend = m.monthly.map(function(x){ return { month:x.month, aov:x.aov, orders:x.orders, sales:x.sales }; });
+      }
+    });
     var hasData = A && A.markets && Object.keys(A.markets).some(function(k){ return A.markets[k] && Object.keys(A.markets[k]).length; });
     if(!hasData){
       var g=document.getElementById('grid');
@@ -788,6 +804,7 @@
   }
 
   var booted=false; function once(){ if(booted) return; booted=true; boot(); }
+  window.__daRefresh = boot;   // brand-resolution script re-renders after swapping the dataset
   fetch('/data/analytics/live-shopify.json',{cache:'no-store'})
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){ applyLive(j); })
@@ -798,6 +815,7 @@
 </script>
 <script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+<script src="/brand-demo.js"></script>
 
 <script>
 /* Resolve the active brand, then either restore the shipped dataset (tenant
@@ -818,9 +836,34 @@
     // Hide the widgets that would otherwise render zeros as if they were real.
     document.querySelectorAll('[data-widget],.da-grid,.da-tabs').forEach(function (n) { n.style.display = 'none'; });
   }
+  function demoBanner(brand) {
+    if (document.getElementById('demo-banner')) return;
+    var host = document.querySelector('main') || document.body;
+    var el = document.createElement('div');
+    el.id = 'demo-banner';
+    el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--brand-primary,#c00);border-radius:10px;font-family:var(--brand-font-body,system-ui,sans-serif);font-size:13px;line-height:1.55;opacity:.92';
+    el.innerHTML = '<b>DEMO DATA</b> - generated deterministically from <b>' + String((brand && brand.name) || 'this brand').replace(/[<>&]/g, '') + "</b>'s own offerings and regions. Not real performance. Connect this brand's exports to replace it.";
+    if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+  }
   function decide(brand) {
     var ok = window.__restoreAnalytics ? window.__restoreAnalytics(brand) : true;
-    if (!ok) emptyState((brand && brand.name) || 'this brand');
+    if (ok) { if (window.__daRefresh) window.__daRefresh(); return; }
+    // Another brand is active: use a labelled demo dataset built from ITS OWN
+    // offerings. Only a brand with no offerings on record keeps the empty state.
+    if (window.BrandDemo && window.BrandDemo.ready) {
+      window.BrandDemo.ready().then(function (ctx) {
+        if (ctx && ctx.analytics) {
+          window.LIFECYCLE_ANALYTICS = ctx.analytics;
+          if (window.KNICKGASM_ANALYTICS) window.KNICKGASM_ANALYTICS = ctx.analytics;
+          demoBanner(ctx.brand);
+          if (window.__daRefresh) window.__daRefresh();
+        } else {
+          emptyState((brand && brand.name) || 'this brand');
+        }
+      });
+    } else {
+      emptyState((brand && brand.name) || 'this brand');
+    }
   }
   function boot() {
     if (window.BrandContext && window.BrandContext.ready) {

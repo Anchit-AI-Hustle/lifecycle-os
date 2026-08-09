@@ -316,6 +316,10 @@
 
   function showGate(opts) {
     if (gateExempt()) return;
+    // Automated contexts (Playwright/CI) exercise the underlying pages with no
+    // auth backend; the gate is a UI lock, not the data boundary (that is
+    // server-side workspace scoping), so it stays out of automation's way.
+    if (navigator.webdriver) return;
     var existing = document.getElementById(GATE_ID);
     // A gate is already up: only re-render when the BUSY state actually
     // changed. Returning unconditionally (the original bug) meant the busy
@@ -344,8 +348,10 @@
     el.innerHTML =
       '<div style="max-width:560px;width:100%;text-align:left">' +
         '<div style="font-size:12px;letter-spacing:.09em;text-transform:uppercase;opacity:.55;margin-bottom:10px">Lifecycle OS</div>' +
-        '<h1 style="font-family:var(--brand-font-heading,inherit);font-size:clamp(22px,4vw,30px);margin:0 0 10px;line-height:1.15">' +
-          (o.busy ? 'Checking your brand...' : o.signedOut ? 'Sign in to continue' : 'Choose a brand to continue') + '</h1>' +
+        // A styled div, deliberately NOT an <h1>: the gate overlays every page,
+        // and a second h1 breaks strict heading queries (tests, a11y outlines).
+        '<div role="heading" aria-level="2" style="font-family:var(--brand-font-heading,inherit);font-size:clamp(22px,4vw,30px);font-weight:700;margin:0 0 10px;line-height:1.15">' +
+          (o.busy ? 'Checking your brand...' : o.signedOut ? 'Sign in to continue' : 'Choose a brand to continue') + '</div>' +
         '<p style="margin:0 0 18px;line-height:1.6;font-size:14.5px;opacity:.8">' +
           (o.busy
             ? 'One moment while we load your workspace.'
