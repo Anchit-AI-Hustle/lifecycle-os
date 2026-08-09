@@ -188,7 +188,9 @@
   // reload the page so the user instantly sees the new auth.js / shell.
   // Without this the user had to do a manual "hard reload" to see sidebar
   // changes — we now self-heal the cache on every navigation.
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // navigator.webdriver: automation (Playwright/CI) gets no service worker -
+  // the first-install controllerchange reload would restart pages mid-test.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !navigator.webdriver) {
     window.addEventListener('load', async () => {
       try {
         const reg = await navigator.serviceWorker.register('/sw.js');

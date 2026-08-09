@@ -102,6 +102,21 @@
 
   <script src="/auth.js"></script>
   <script>
+  (function () {
+    /* Same contract as data-analysis.html: the shipped dataset describes
+       tenant zero only. Stash it, render nothing, and let the brand decide
+       below - restore for the owner, labelled per-brand demo otherwise. */
+    var SHIPPED = window.LIFECYCLE_ANALYTICS || null;
+    window.LIFECYCLE_ANALYTICS = { markets: {}, currency: {}, __pending: true };
+    window.__restoreAnalytics = function (brand) {
+      var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+      var isOwner = !brand || brand.is_default || slug === 'knickgasm';
+      if (isOwner && SHIPPED) { window.LIFECYCLE_ANALYTICS = SHIPPED; return true; }
+      return false;
+    };
+  })();
+  </script>
+  <script>
   (function(){
     "use strict";
     var A = window.LIFECYCLE_ANALYTICS;
@@ -164,6 +179,48 @@
       render();
     });
     render();
+    // Re-read the swapped global and re-render once the active brand decides
+    // which dataset this page may show.
+    window.__deRefresh = function () {
+      A = window.LIFECYCLE_ANALYTICS || A;
+      if (A.markets && !A.markets[market]) {
+        var ks = Object.keys(A.markets);
+        if (ks.length) market = ks[0];
+      }
+      var lbl = document.getElementById('mktLabel');
+      if (lbl) lbl.textContent = market;
+      render();
+    };
+  })();
+  </script>
+  <script src="/brand-demo.js"></script>
+  <script>
+  (function () {
+    function note(text) {
+      var el = document.createElement('div');
+      el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--brand-primary,#c00);border-radius:10px;font-size:13px;line-height:1.55;opacity:.92;font-family:var(--brand-font-body,system-ui,sans-serif)';
+      el.innerHTML = text;
+      var host = document.querySelector('main') || document.body;
+      if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+    }
+    function decide(brand) {
+      if (window.__restoreAnalytics && window.__restoreAnalytics(brand)) { if (window.__deRefresh) window.__deRefresh(); return; }
+      window.BrandDemo.ready().then(function (ctx) {
+        if (ctx && ctx.analytics) {
+          window.LIFECYCLE_ANALYTICS = ctx.analytics;
+          note('<b>DEMO DATA</b> - generated deterministically from <b>' + String((ctx.brand && ctx.brand.name) || 'this brand').replace(/[<>&]/g, '') + "</b>'s own offerings and regions. Not real performance.");
+          if (window.__deRefresh) window.__deRefresh();
+        } else {
+          note('<b>[DATA REQUIRED BEFORE LAUNCH: analytics exports, ' + String((brand && brand.name) || 'this brand').replace(/[<>&]/g, '') + '.]</b> The dataset compiled into this build describes a different brand, so nothing is shown for it here.');
+        }
+      });
+    }
+    function boot() {
+      if (window.BrandContext && window.BrandContext.ready) {
+        window.BrandContext.ready().then(decide).catch(function () { decide(null); });
+      } else { setTimeout(boot, 150); }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   })();
   </script>
 </body>
