@@ -495,15 +495,39 @@
   (function scopeApiFetches() {
     var origFetch = window.fetch;
     if (!origFetch || origFetch.__lcScoped) return;
+    // The public-config router (config, presets, the brand ops themselves)
+    // resolves from the AUTH TOKEN, never a workspace param - and holding it
+    // would deadlock this module's own brand bootstrap.
+    var UNSCOPED = /\/api\/public-config/;
+    function glue(input, ws) {
+      var url = (typeof input === 'string') ? input : (input && input.url) || '';
+      if (url.indexOf('workspace_id=') >= 0) return input;
+      var glued = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'workspace_id=' + encodeURIComponent(ws);
+      return (typeof input === 'string') ? glued : new Request(glued, input);
+    }
     function stamped(input, init) {
       try {
         var url = (typeof input === 'string') ? input : (input && input.url) || '';
         var isApi = /^\/api\//.test(url) || url.indexOf(location.origin + '/api/') === 0;
-        var ws = state.brand && state.brand.id;
-        if (isApi && ws && url.indexOf('workspace_id=') < 0) {
-          var glued = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'workspace_id=' + encodeURIComponent(ws);
-          if (typeof input === 'string') input = glued;
-          else input = new Request(glued, input);
+        if (!isApi || UNSCOPED.test(url)) return origFetch.call(window, input, init);
+        if (state.brand && state.brand.id) return origFetch.call(window, glue(input, state.brand.id), init);
+        // The active brand is not resolved yet. An unstamped content request
+        // would fall back to the server's DEFAULT workspace and return another
+        // brand's rows (this is exactly how a Times of India workspace was
+        // shown a "Sneaker Assortment" plan). Hold the request until the brand
+        // resolves; after the deadline let it through unstamped (signed-out
+        // and cron-style pages keep today's behaviour).
+        if (!state.loaded) {
+          var self = this;
+          return new Promise(function (resolve, reject) {
+            var waited = 0;
+            (function poll() {
+              if (state.brand && state.brand.id) { resolve(origFetch.call(self || window, glue(input, state.brand.id), init)); return; }
+              if (state.loaded || waited >= 8000) { resolve(origFetch.call(self || window, input, init)); return; }
+              waited += 120;
+              setTimeout(poll, 120);
+            })();
+          });
         }
       } catch (_) { /* never break a fetch over scoping */ }
       return origFetch.call(window, input, init);
