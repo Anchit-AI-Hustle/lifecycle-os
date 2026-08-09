@@ -42,7 +42,7 @@ const PALETTE = Object.values(BRAND.palette || {}).filter((v) => typeof v === 's
 const BANNED = (BRAND.voice && BRAND.voice.banned) || [];
 
 // Tenant zero's OWN marketing pages. These describe that brand on purpose.
-const BRAND_ASSET = /(landing|presell|grail-drop|coffee-collection|storefront-3d|_sbtest|agent\.html|template-gallery|website-designs|official-designs|premium-experience)/i;
+const BRAND_ASSET = /(landing|presell|grail-drop|coffee-collection|storefront-3d|_sbtest|agent\.html|template-gallery|website-designs|official-designs|premium-experience|daily-email-calendar|usa-d2c-dashboard|usa-july|uk-non-engagers|lifecycle-campaign|avatars|diff-version|all-in-one|access-issues)/i;
 
 // Vocabulary from the previous brand's industry. Anything here in an APP page
 // is a relic of the rebrand, not deliberate copy.
@@ -72,8 +72,34 @@ function walkFiles() {
 }
 
 /** Strip tags, scripts and styles so word checks see COPY, not code. */
+// Market-study report bodies are BRAND DATA, not app chrome: they are generated
+// from the active brand's own market_study record (see
+// scripts/build-research-page.js) and re-render client-side per brand. Tenant
+// zero's study legitimately names its own industry there, so those blocks are
+// stripped (with a depth walk - the bodies nest divs) before text extraction.
+function stripBrandDataBlocks(html) {
+  const OPEN = '<div class="ms-report"';
+  let out = '', cursor = 0;
+  while (true) {
+    const start = html.indexOf(OPEN, cursor);
+    if (start < 0) break;
+    const bodyStart = html.indexOf('>', start) + 1;
+    let depth = 1, p = bodyStart;
+    while (p < html.length && depth > 0) {
+      const nextOpen = html.indexOf('<div', p);
+      const nextClose = html.indexOf('</div>', p);
+      if (nextClose < 0) { p = html.length; break; }
+      if (nextOpen >= 0 && nextOpen < nextClose) { depth++; p = nextOpen + 4; }
+      else { depth--; p = nextClose + 6; }
+    }
+    out += html.slice(cursor, start) + ' ';
+    cursor = p;
+  }
+  return out + html.slice(cursor);
+}
+
 function visibleText(html) {
-  return html
+  return stripBrandDataBlocks(html)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
@@ -210,6 +236,21 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
     if (!routeExists(href)) broken.add(href);
   }
   if (broken.size) add(file, 'BLOCKER', 'broken-link', `${broken.size} internal link(s) with no route or file: ${[...broken].slice(0, 5).join(', ')}`);
+
+  // 7b. Tenant vocabulary hardcoded into app chrome. The app surface renders
+  //     for EVERY brand, so no tenant's product language belongs in it - not
+  //     even tenant zero's. (Its own campaign hubs are classified as brand
+  //     assets above and are allowed their own vocabulary.)
+  if (!isAsset) {
+    const TENANT_VOCAB = /\b(sneakers?|kicks|hand-painted|grails?|colorways?|streetwear|rituals?)\b/gi;
+    let tHit = null;
+    for (const mm of text.matchAll(TENANT_VOCAB)) {
+      const around = text.slice(Math.max(0, mm.index - 100), mm.index + 100);
+      if (/banned|donts|forbidden|"default"\s*:\s*\[/i.test(around)) continue;   // documented rules
+      tHit = mm; break;
+    }
+    if (tHit) add(file, 'BLOCKER', 'tenant-vocab', `"${tHit[0]}" hardcoded in app chrome - the shell renders for every brand`);
+  }
 
   // 8. Hardcoded brand identity on an APP page.
   if (!isAsset) {

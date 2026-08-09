@@ -217,8 +217,8 @@
     });
   }
 
-  // ─── Brand mark (refreshed: sneaker panel with steam + depth gradients) ──
-  // Two layered ideas fuse: a symmetric sneaker-panel silhouette (the brand)
+  // ─── Brand mark (logo mark for the active brand; falls back to a monogram) ──
+  // Two layered ideas fuse: a symmetric panel silhouette (the mark)
   // and a subtle V (the monogram) read through the panel's central vein.
   // Topped with a chalk steam curl — fresh craft, lifecycle. Both tile
   // and panel use linear gradients for depth so the mark reads as crafted
@@ -513,7 +513,7 @@
     adsmaster: {
       title: "Ad Campaigns Master Dashboard",
       what: "The single source of truth for the USA paid ads program (Target + Costco): a performance dashboard over the KT spend workbook (125 Meta ads, 13 campaigns, May to 20 Jul) plus the complete ads knowledge base - every sheet, deck, drive folder and platform link from the KT emails as single-click links, the creative learnings from the Social Update deck, benchmarks, the UGC-dashboard automation runbook, the Costco dark-post launch config, owners and open gaps. Zero fabrication: every figure cites its KT source or a live connector read.",
-      who: "The paid ads team (Samvita, Kritagya, Anchit) and anyone onboarding onto the USA ads program - it IS the knowledge transfer, in product form.",
+      who: "The paid ads team and anyone onboarding onto the ads program - it IS the knowledge transfer, in product form.",
       how: "Live-first, snapshot-honest: Live Now, Calendar and Tracker read /api/brain?action=ads-live, which unions BOTH live US Meta ad accounts (the DTC account and the Target/Costco retail account) from the warehouse and treats today as a partial day; when no live source is configured the page falls back to a committed snapshot and labels it as one. The Accounts tab renders the whole ad-account studio from data/ads/ad-accounts.json, built from the single registry in api/_shared/ads-snowflake-core.js. Knowledge comes from data/ads/master-kb.json and the ad-level export. Links that could not be resolved from this account are listed as pending-access with their owner, never invented.",
       input: "Nothing to enter. Filters: objective, delivery status, free-text search, sort metric on the ads table; group, status and search on the knowledge base. New KT files extend master-kb.json.",
       steps: [
@@ -559,10 +559,10 @@
     },
     agent: {
       title: 'Knickgasm Agent',
-      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to a sneaker and streetwear expert that answers crafting and ritual questions and recommends real KNICKGASM products. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
+      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
       who: "Prospective and existing customers on-site; strongest for Non-Buyers who need guidance to a first purchase. The team uses this page to configure and demo agents.",
       how: "A chat UI over the shared 6-provider LLM waterfall, grounded in brand voice and the product catalog. Voice replies use ElevenLabs TTS with a browser-TTS fallback. Agent personas can be created, updated, and synced from this page.",
-      input: "A visitor question — taste preferences, a streetwear goal, crafting method, or gifting need. For the team: agent persona settings.",
+      input: "A visitor question — preferences, goals, or gifting needs. For the team: agent persona settings.",
       steps: [
         ['Ask', 'The visitor describes what they want — calm evenings, a coffee alternative, a gift.', '/api/brain?action=agent-chat'],
         ['Ground', 'The agent answers in brand voice, grounded in real catalog products and regional store URLs.'],
@@ -616,7 +616,7 @@
     avatars: {
       title: 'Avatars (Personas)',
       what: "The customer-persona layer of the OS: named, hyper-specific buyer avatars built on top of the cohort dictionary and the US coffee and functional-beverage market study. Each avatar bundles demographics, geography, price elasticity, core value driver, and churn triggers into one face a brief can target, so copy, imagery, and offers stay grounded in a real person rather than an abstract segment.",
-      who: "The growth and creative team. The avatars translate the analytics cohorts (RFM segments, engagement cohorts, lifecycle stages) into the four behavioural buyer profiles that drive KNICKGASM Coffee Collection and streetwear-sneaker growth: the Streetwear Optimiser, the Ritual Loyalist, the Gifting Connector, and the Curious Switcher.",
+      who: "The growth and creative team. The avatars translate the analytics cohorts (RFM segments, engagement cohorts, lifecycle stages) into behavioural buyer profiles for the active brand — e.g. the Identity Buyer, the Habitual Loyalist, the Gifting Connector, and the Curious Switcher.",
       how: "Personas are derived from the market-intelligence study (docs/market-intelligence) and the cohort model: each avatar maps to specific cohorts, carries hard planning numbers (age band, HHI, AOV, LTV:CAC, reactivation likelihood), and links to the schema that captures the same fields on a live profile (schemas/cohort-profile.json) and the retention triggers that fire for it (config/retention-triggers.yaml). Use the avatar name verbatim in a brief and every downstream tool inherits its targeting.",
       input: "Nothing to upload — the avatars are curated from the market study and the cohort dictionary. From you: pick the avatar a campaign targets, and read its value driver, elasticity, and churn triggers before writing the brief.",
       steps: [
@@ -656,7 +656,7 @@
     },
     competitor: {
       title: 'Competitor Benchmarking',
-      what: "Competitor intelligence: captures rival sneaker, coffee, and streetwear brands' marketing emails from a dedicated Gmail inbox into a Google Sheet, renders them for side-by-side study, and distils benchmarks — cadence, offer depth, creative angles. It also owns brand discovery.",
+      what: "Competitor intelligence: captures rival brands' marketing emails from a dedicated Gmail inbox into a Google Sheet, renders them for side-by-side study, and distils benchmarks — cadence, offer depth, creative angles. The competitor set is the ACTIVE brand's own universe. It also owns brand discovery.",
       who: "The strategy layer. Benchmarks feed KicksGPT's evidence contract, Smart Brain planning, and the human planner — informing campaigns for every cohort.",
       how: "One router dispatched by ?action=list|html|poll|sync. Poll reads the capture inbox over IMAP; parsed emails become rows (columns A–K) in the Google Sheet database; sync runs on a CRON_SECRET-protected schedule. Google auth is keyless via Workload Identity Federation (Vercel OIDC → Google STS → service-account impersonation), with a legacy JSON-key fallback.",
       input: "Subscribe the capture inbox to competitor newsletters — the system does the rest. Optionally add brands to discover and track.",

@@ -128,7 +128,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <div class="pl-4 mt-1 space-y-0.5">
           <a href="#supply-chain" class="nav-link block px-3 py-1.5 rounded-lg">Supply-Chain-to-Origin Metrics</a>
           <a href="#ingredient-verification" class="nav-link block px-3 py-1.5 rounded-lg">Ingredient Source Verification</a>
-          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Coffee/Sneaker Hybrid Cross-Sell Logic</a>
+          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Coffee/Product Hybrid Cross-Sell Logic</a>
         </div>
       </details>
 
@@ -276,7 +276,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
             <tbody>
               <tr>
                 <td class="font-semibold text-knickgasm-green">Moreiarty</td>
-                <td>Custom sneaker studio</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-1">Tier 1</span></td>
                 <td>D2C, Delhi studio</td>
                 <td>Shopify, Instagram DM</td>
@@ -284,15 +284,15 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
               </tr>
               <tr>
                 <td class="font-semibold text-knickgasm-green">The Leather Works</td>
-                <td>Custom sneaker studio</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-1">Tier 1</span></td>
                 <td>D2C plus studio walk-ins</td>
                 <td>Shopify</td>
-                <td>Hand-painted, premium finish</td>
+                <td>Custom, premium finish</td>
               </tr>
               <tr>
                 <td class="font-semibold text-knickgasm-green">Sneakboo</td>
-                <td>Custom sneaker studio</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-2">Tier 2</span></td>
                 <td>D2C, Noida</td>
                 <td>Shopify</td>
@@ -300,7 +300,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
               </tr>
               <tr>
                 <td class="font-semibold text-knickgasm-green">Shoes Your Daddy</td>
-                <td>Custom sneaker studio</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-2">Tier 2</span></td>
                 <td>D2C, Delhi</td>
                 <td>Instagram-first</td>
@@ -308,7 +308,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
               </tr>
               <tr>
                 <td class="font-semibold text-knickgasm-green">VegNonVeg</td>
-                <td>Sneaker retail</td>
+                <td>Product retail</td>
                 <td><span class="tier-1">Tier 1</span></td>
                 <td>Retail plus D2C</td>
                 <td>Shopify Plus</td>
@@ -316,7 +316,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
               </tr>
               <tr>
                 <td class="font-semibold text-knickgasm-green">Superkicks</td>
-                <td>Sneaker retail</td>
+                <td>Product retail</td>
                 <td><span class="tier-1">Tier 1</span></td>
                 <td>Retail plus D2C</td>
                 <td>Shopify</td>
@@ -367,7 +367,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         </div>
         <div class="card p-5">
           <h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3>
-          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance paired with a genuine functional payload (Coffee Collection) is a position none of the eleven hold at once. The move: pair ritual-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
+          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance paired with a genuine functional payload (Coffee Collection) is a position none of the eleven hold at once. The move: pair routine-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
         </div>
       </section>
 
@@ -419,7 +419,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       "required": ["roast", "format", "hero_products"],
       "properties": {
         "roast":  { "type": "string",
-                    "enum": ["light", "medium", "medium-dark", "dark", "statement piece-colorway"] },
+                    "enum": ["light", "medium", "medium-dark", "dark", "statement piece-variant"] },
         "format": { "type": "string",
                     "enum": ["whole-bean", "ground", "concentrate", "instant", "capsule"] },
         "hero_products": { "type": "array", "items": { "type": "string" } },
@@ -481,7 +481,7 @@ triggers:
     fires_on: days_since_last_order between 45 and 75
     delay_days: 0
     channel: [email, sms]
-    action: send_flow("winback-ritual-reset")
+    action: send_flow("winback-routine-reset")
     target_metric: reactivation_rate
 
   - id: discount-discipline
@@ -511,7 +511,7 @@ defaults:
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <span class="flow-node">Hand-painted at one of one</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Custom at one of one</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
           <span class="flow-node">Processed at origin factory in 24 to 72 hrs</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
           <span class="flow-node">Quality and grading, batch logged</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
           <span class="flow-node">Sealed, studio-fresh packing</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
@@ -537,11 +537,11 @@ defaults:
         <div class="grid gap-4 md:grid-cols-3">
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Single-studio origin</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Sneaker and coffee tied to a named studio and drop. Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Product and coffee tied to a named studio and drop. Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p>
           </div>
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Functional payload</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated statement piece dose per serving. Copy names the ingredient and the ritual benefit in plain, non-medical language.</p>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated statement piece dose per serving. Copy names the ingredient and the routine benefit in plain, non-medical language.</p>
           </div>
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Certification chain</h3>
@@ -554,8 +554,8 @@ defaults:
       <section data-section id="cross-sell" class="space-y-5">
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
-          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Coffee / Sneaker Hybrid Cross-Sell Logic</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time sneaker buyer into a subscriber. Move buyers along the frequency ladder toward the coffee and supplement franchise.</p>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Coffee / Product Hybrid Cross-Sell Logic</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time product buyer into a subscriber. Move buyers along the frequency ladder toward the coffee and supplement franchise.</p>
         </div>
 
         <div class="card overflow-x-auto">
@@ -564,10 +564,10 @@ defaults:
               <tr><th>From (habit category)</th><th>Bridge product</th><th>To (anchor)</th><th>Trigger</th></tr>
             </thead>
             <tbody>
-              <tr><td>Black sneaker / Kicks</td><td>Embroidery or themed functional colorway</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>
-              <tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Ritual-replacement, morning-swap framing</td></tr>
+              <tr><td>Black product / Products</td><td>Embroidery or themed functional variant</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>
+              <tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Routine-replacement, morning-swap framing</td></tr>
               <tr><td>Coffee Collection</td><td>Supplement companion</td><td>Multi-category subscription</td><td>Bundle logic, free-ship threshold above AOV</td></tr>
-              <tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal ritual subscription</td><td>January reframe of the gift they gave</td></tr>
+              <tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal routine subscription</td><td>January reframe of the gift they gave</td></tr>
             </tbody>
           </table>
         </div>
@@ -604,9 +604,9 @@ defaults:
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$70k to $140k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Statement Piece colorway, medium</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Statement Piece variant, medium</div></div>
             </div>
-            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily ritual.</p>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily routine.</p>
           </div>
 
           <div data-section id="cohort-003" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">

@@ -39,30 +39,58 @@ const REGION = {
 function regionFacts(market) { return REGION[market] || REGION.Global; }
 
 // ── Product context ─────────────────────────────────────────────────────────
-function productLines(products = [], currency = '$', brandName = 'KNICKGASM') {
+function productLines(products = [], currency = '$', brandName = brandRuntime.defaultBrand().name) {
   const list = (Array.isArray(products) ? products : []).filter(Boolean).slice(0, 8);
   if (!list.length) return `(no specific products supplied — refer to ${brandName} offerings at CATEGORY level only. Do NOT invent a specific product name, price, or handle/URL.)`;
   return list.map((p) => {
     const title = p.title || p.name || p.t || `${brandName} product`;
     const price = p.price ?? p.p;
     const handle = p.handle || p.h;
-    const cat = p.category || p.cat || p.c || 'sneaker';
+    const cat = p.category || p.cat || p.c || '';
     return `- ${title}${price != null ? ` (${currency}${price})` : ''}${cat ? ` · ${cat}` : ''}${handle ? ` · handle: ${handle}` : ''}`;
   }).join('\n');
+}
+
+// ── Brand-derived creative facts ────────────────────────────────────────────
+// Everything a contract needs that used to be hardcoded tenant-zero copy
+// (audio beds, audience, proposition, palette hexes) now derives from the
+// ACTIVE brand record, with an explicit DATA-REQUIRED marker where the brand
+// has not supplied the fact — never another brand's value.
+function creativeFacts(brand) {
+  const zero = brandRuntime.defaultBrand();
+  const b = (brand && brand.id) ? brand : zero;
+  const isZero = !brand || !brand.id || String(b.slug || '') === String(zero.slug || '');
+  const name = b.name || zero.name || 'the brand';
+  const p = b.palette || {};
+  const hexes = ['primary', 'accent', 'surface', 'ink'].map((k) => p[k]).filter(Boolean);
+  const paletteList = hexes.length ? hexes.join(' / ') : '[DATA REQUIRED BEFORE LAUNCH: brand palette, all, all]';
+  const t = b.typography || {};
+  const fonts = `${(t.heading && t.heading.family) || '[DATA REQUIRED BEFORE LAUNCH: heading font]'} headings / ${(t.body && t.body.family) || '[DATA REQUIRED BEFORE LAUNCH: body font]'} body`;
+  const claims = (Array.isArray(b.claims) && b.claims.length)
+    ? b.claims.join(' · ')
+    : '[DATA REQUIRED BEFORE LAUNCH: verifiable brand claims, all, all]';
+  const industry = b.industry || 'its industry';
+  // The named .wav beds are tenant zero's own repo assets. No other brand may
+  // be scored to them; a brand without a bed on file gets a marker, not a loan.
+  const audio = isZero
+    ? `a ${name}-owned original bed from /assets/media/ (knickgasm-brand-beat.wav 32s hero · knickgasm-reels-loop.wav 16s short · knickgasm-ad-underscore.wav 22s under-voiceover) — 90 BPM, F minor, seamless loop, royalty-free for paid media. State the bed by filename and the beat-sync points`
+    : `a ${name}-owned, original, royalty-free audio bed; if none is on file for this brand, write [DATA REQUIRED BEFORE LAUNCH: brand audio bed, all, all] instead of naming one`;
+  return { name, isZero, paletteList, fonts, claims, industry, audio };
 }
 
 // ── Per-asset output contracts ──────────────────────────────────────────────
 // The visual cascade for every visual asset, in the order the operator chose:
 const VISUAL_CASCADE = `VISUALS — use this source order: (1) if a hosted media URL is provided, embed it (product image/GIF/MP4, e.g. a Shopify product video); (2) else describe an auto-generated animated GIF (2–4 still frames, gentle Ken-Burns or cross-fade) the team can produce from product photography; (3) AI-generated video only as a last resort. Every visual must be photoreal, on-palette, text-free in the image itself (text lives in the layout, not burned into the photo) unless the asset is an ad creative.`;
 
-function mailerContract(variant) {
+function mailerContract(variant, cf) {
+  cf = cf || creativeFacts(null);
   if (variant === 'V1') {
     return `ASSET: Email mailer — VARIANT V1 (COMPLETE TEXTUAL CONTENT, no imagery).
 Produce a fully text-driven email that stands on its own with zero images.
 Deliver, in order:
 1. 3 subject-line options (≤50 chars) + 1 preheader (≤90 chars).
 2. Editorial hero headline + opening line that earns the scroll.
-3. Body: 2–3 short story-driven paragraphs (origin, ritual, why-now).
+3. Body: 2–3 short story-driven paragraphs (origin, everyday use, why-now).
 4. A benefit triplet (3 crisp lines).
 5. One tiny personal testimonial (story, not a star rating).
 6. Clear CTA copy + the destination store URL.
@@ -74,7 +102,7 @@ Produce the same persuasive copy as V1 PLUS a complete visual layout.
 Deliver, in order:
 1. 3 subject lines + preheader.
 2. Section-by-section layout: for each section give the COPY and the VISUAL (hero, lifestyle, product packshot, motion moment).
-3. At least one motion slot (animated GIF or short product video) with an exact creative brief and where it sits. If it is a video, name the KNICKGASM-owned audio bed it is scored to (/assets/media/knickgasm-brand-beat.wav hero · knickgasm-reels-loop.wav short · knickgasm-ad-underscore.wav under-voiceover) — original, royalty-free, 90 BPM F minor; never a licensed/trending sound.
+3. At least one motion slot (animated GIF or short product video) with an exact creative brief and where it sits. If it is a video, score it to ${cf.audio}. Never a licensed/trending sound.
 4. Benefit strip, social proof, offer bar, CTA — each with copy + visual direction.
 5. Responsive, email-client-safe structure (Outlook bgcolor on colored cells; max ~1200–1500px tall).
 ${VISUAL_CASCADE}`;
@@ -84,7 +112,8 @@ ${VISUAL_CASCADE}`;
 // the text overlay baked in. Be honest about that: list the exact static sizes
 // it produces and treat motion as an OPTIONAL hand-off brief, never a delivered
 // asset. The text fields (headlines/captions/scripts) are still authored as copy.
-function adContract(platform) {
+function adContract(platform, cf) {
+  cf = cf || creativeFacts(null);
   // Copy-field limits per platform (authored text). Produced creative SIZES are
   // sourced from asset-specs.js (single source of truth) so every placement size
   // stays canonical and complete across the whole app.
@@ -92,32 +121,33 @@ function adContract(platform) {
     google: 'Google (Responsive Search + Performance Max): 15 headlines (≤30 chars), 4 descriptions (≤90 chars), long headline (≤90), business name.',
     meta: 'Meta (Facebook/Instagram Feed + Reels + Stories): primary text (≤125 chars before truncation), headline (≤40), description.',
     instagram: 'Instagram (Feed + Reels + Stories): caption with hook in first line + hashtags.',
-    tiktok: 'TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, caption, and 3 hashtag options. AUDIO: score it to a KNICKGASM-owned original bed — /assets/media/knickgasm-reels-loop.wav (16s cutdown) or knickgasm-brand-beat.wav (32s hero) or knickgasm-ad-underscore.wav (under voiceover); 90 BPM, F minor, seamless loop, royalty-free. Give the exact beat-sync moments (which cut lands on which downbeat). NEVER specify a trending/licensed sound for a paid ad. Always burn in captions — most feed views start muted. The produced creative is a cover keyframe (the script is a brief for a separate shoot/edit).',
+    tiktok: `TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, caption, and 3 hashtag options. AUDIO: score it to ${cf.audio}. Give the exact beat-sync moments (which cut lands on which downbeat). NEVER specify a trending/licensed sound for a paid ad. Always burn in captions — most feed views start muted. The produced creative is a cover keyframe (the script is a brief for a separate shoot/edit).`,
   };
   const sizeKey = assetSpecs.ADS[platform] ? platform : 'meta';
   // onlyProduced: list ONLY the sizes the compositor actually renders, so the
   // prompt never claims deliverables the flow does not generate.
   const spec = (copyGuide[platform] || copyGuide.meta) + ' PRODUCED at each placement — ' + assetSpecs.adSpecText(sizeKey, { onlyProduced: true });
   return `ASSET: Paid ad creative for ${platform.toUpperCase()} — a FULL ad, not just copy.
-The PRODUCED creative is a still, photoreal, on-palette image at each size below, with the on-creative text overlay BAKED INTO the image — exactly like a real ${platform} ad. The text is part of the rendered creative, NOT a separate caption: specify the exact overlay wording, font (Montserrat headings / Instrument Sans body), colour (use ONLY #D0473E / #6A33D8 / #FFFFFF / #111111), size and pixel placement within the safe zones (on 9:16 keep all text clear of the bottom 20% platform-UI chrome), legible at a glance.
+The PRODUCED creative is a still, photoreal, on-palette image at each size below, with the on-creative text overlay BAKED INTO the image — exactly like a real ${platform} ad. The text is part of the rendered creative, NOT a separate caption: specify the exact overlay wording, font (${cf.fonts}), colour (use ONLY ${cf.paletteList}), size and pixel placement within the safe zones (on 9:16 keep all text clear of the bottom 20% platform-UI chrome), legible at a glance.
 
-━━ STRATEGY — SELL THE FEELING OF OWNING A ONE-OF-ONE ━━
-TARGET (P01): sneakerheads and fandom buyers 18-34 (anime, football, gaming, cars, F1, Taylor Swift), plus gift-buyers and couples shopping wedding pairs.
-SELL THE EMOTIONAL END-STATE, never the technique. The promise is identity and status — "the only pair on earth," "they will ask you where you got them," "your fandom on your feet." NEVER lead with technique or spec lists (airbrush, brush detail, sealant, embroidery, crystal setting); a spec may appear only as the *reason* the payoff is believable.
-THE 1-SECOND SCROLL-STOP: the visual must stop a scrolling sneakerhead in under one second — the artwork filling the frame, a recognisable character or crest on a recognisable silhouette. Do NOT lead with heavy text or process call-outs. Scaling depends on scroll-stop + engagement, not just the click.
-CURATE, DON'T INVENT: structure the creative on proven, replicable D2C streetwear formats (UGC, before/after of the blank vs the painted pair, painting-process time-lapse, day-in-the-life on-foot), not novel concepts.
-OFFER: transition cleanly from the emotional hook into the real proposition — a hand-painted one-of-one on a 100% original sneaker, made to order in 10-15 days, shipped express worldwide — a premium, frictionless CTA, never a cheap pop-up. Use only offers supplied in the brief; never invent a discount or a percentage.
+━━ STRATEGY — SELL THE OUTCOME, NOT THE TECHNIQUE ━━
+TARGET: the audience defined by THIS brand's own record and the campaign brief. Never borrow another brand's persona; if neither names an audience, write [DATA REQUIRED BEFORE LAUNCH: audience, campaign, market] instead of inventing one.
+SELL THE EMOTIONAL END-STATE, never the technique. Lead with what the buyer's life looks like after — belonging, status, relief, mastery — whatever THIS brand's proposition genuinely delivers. A spec or process detail may appear only as the *reason* the payoff is believable, never as the hook.
+THE 1-SECOND SCROLL-STOP: the visual must stop this brand's own audience in under one second, built from the brand's real offering imagery. Do NOT lead with heavy text or process call-outs. Scaling depends on scroll-stop + engagement, not just the click.
+CURATE, DON'T INVENT: structure the creative on proven, replicable formats native to ${cf.industry} (UGC, before/after, process time-lapse, day-in-the-life), not novel concepts.
+OFFER: transition cleanly from the emotional hook into the brand's real proposition, built ONLY from its verifiable claims (${cf.claims}) — a premium, frictionless CTA, never a cheap pop-up. Use only offers supplied in the brief; never invent a discount, a percentage, or a delivery promise.
 
 Platform spec: ${spec}
 Deliver: (a) every text field the platform requires; (b) for EACH static size above, a precise creative brief describing the still visual, the BAKED-IN overlay wording (headline + offer) + exact pixel placement + safe zones; (c) the destination URL.
 VISUALS (produced asset): one still, on-palette, photoreal image per size with the overlay baked in — this is exactly what the studio compositor renders. If a hosted product image/MP4 URL is supplied, its first frame is used as the base still. Motion (animated GIF / short video) is an OPTIONAL follow-up brief for the team — describe it only as a next step, NEVER as a delivered asset here. To produce the actual video ad from this brief, hand it to OpenMontage (open-source agentic video pipeline): https://github.com/Open-Montage/OpenMontage
-AUDIO for any video deliverable: use a KNICKGASM-owned original bed from /assets/media/ (knickgasm-brand-beat.wav 32s hero · knickgasm-reels-loop.wav 16s short · knickgasm-ad-underscore.wav 22s under-voiceover) — 90 BPM, F minor, seamless loop, royalty-free for paid media. State the bed by filename and the beat-sync points. Never a trending or licensed track.`;
+AUDIO for any video deliverable: use ${cf.audio}. Never a trending or licensed track.`;
 }
 
-function landingContract(facts) {
+function landingContract(facts, cf) {
+  cf = cf || creativeFacts(null);
   return `ASSET: Landing page in a direct-response presell style (reference: https://${facts.presell}/...).
 Build a conversion-focused, single-scroll-friendly page using the brand palette/typography.
-Sections, in order: sticky announcement bar · hero (headline + sub + primary CTA) · trust/credentials row · problem→solution narrative · product reveal with price (${facts.currency}) · design/collection grid · craft proof (original base sneaker, named artists, water & scratch resistant finish, 10-15 day build) · testimonials as mini-stories · FAQ (accordion) · risk-reversal/guarantee · sticky footer CTA.
+Sections, in order: sticky announcement bar · hero (headline + sub + primary CTA) · trust/credentials row · problem→solution narrative · offering reveal with price (${facts.currency}) · collection/offering grid · proof section built ONLY from the brand's verifiable claims (${cf.claims}) · testimonials as mini-stories (only supplied ones; none supplied = omit the section) · FAQ (accordion) · risk-reversal/guarantee (only if the brand states one) · sticky footer CTA.
 Every CTA links to the regional store (https://${facts.store}/products/{handle}). Mobile-first, fast, self-contained HTML/CSS (inline), no external fonts/scripts.
 ${VISUAL_CASCADE}`;
 }
@@ -144,21 +174,27 @@ function buildMasterPrompt(o = {}) {
   // byte-identical to what it produced before, so every existing caller is
   // unaffected.
   let BLOCK = BRAND_BLOCK;
-  let brandName = 'KNICKGASM';
+  let brandName = brandRuntime.defaultBrand().name;
   let facts = regionFacts(market);
+  const cf = creativeFacts(brand);
   if (brand && brand.id) {
     try {
-      const rt = require('./brand-runtime.js');
-      BLOCK = rt.brandBlock(brand);
+      BLOCK = brandRuntime.brandBlock(brand);
       brandName = brand.name || brandName;
-      facts = rt.regionFacts(brand, market) || facts;
+      // A brand with no store for this market gets an explicit marker, never
+      // tenant zero's store URL.
+      facts = brandRuntime.regionFacts(brand, market) || {
+        store: `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${market}]`,
+        presell: `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${market}]`,
+        currency: '', locale: 'en',
+      };
     } catch (_) { /* fall back to tenant zero rather than failing a generation */ }
   }
 
   let contract;
-  if (assetType === 'ad') contract = adContract(String(platform).toLowerCase());
-  else if (assetType === 'landing_page' || assetType === 'lp') contract = landingContract(facts);
-  else contract = mailerContract(variant === 'V1' ? 'V1' : 'V2');
+  if (assetType === 'ad') contract = adContract(String(platform).toLowerCase(), cf);
+  else if (assetType === 'landing_page' || assetType === 'lp') contract = landingContract(facts, cf);
+  else contract = mailerContract(variant === 'V1' ? 'V1' : 'V2', cf);
 
   return [
     `You are ${brandName}'s senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.`,

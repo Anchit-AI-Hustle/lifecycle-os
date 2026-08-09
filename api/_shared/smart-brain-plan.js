@@ -461,7 +461,7 @@ const D2C_KNOWLEDGE = `D2C GROWTH KNOWLEDGE BASE (apply, do not cite):
 - Value frameworks: Hook-Story-Offer (Brunson), Problem-Agitate-Solve (PAS), Identity-Driven (align the product with who the reader wants to become), Feature-Advantage-Benefit.
 - Email structure (Dimond/Sharma): a pattern-interrupt HOOK in the first scroll, one clear idea, visceral sensory benefits, objection-killing social proof, one low-friction CTA. No wall of text.
 - Creative (Murray): the offer and the transformation lead; the product is the proof, not the headline.
-- Competitor benchmarking aesthetics: high-contrast minimalism (Everyday Dose), rich origin-story education (KNICKGASM's own edge), problem-centric bold layouts (Space Goods), calm clinical clean-label (MUD\\WTR).`;
+- Competitor benchmarking aesthetics: study the ACTIVE brand's own competitive set (see its competitor universe) rather than a fixed list; common winning registers are high-contrast minimalism, rich origin-story education, problem-centric bold layouts, and calm clinical clean design.`;
 
 // Regional nuance matrix — what a given market responds to.
 function regionalNuance(market) {

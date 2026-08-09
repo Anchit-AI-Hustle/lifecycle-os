@@ -15,7 +15,14 @@
  * Rename the product: change BRAND_LLM_NAME below (single source of truth).
  */
 
+// Tenant zero ships with its own assistant name; every other brand's
+// assistant is named after THAT brand. Never show one tenant's product name
+// inside another tenant's workspace.
 const BRAND_LLM_NAME = 'KicksGPT';
+function assistantNameFor(brand) {
+  if (!brand || brand.is_default || String(brand.slug || '').toLowerCase() === 'knickgasm') return BRAND_LLM_NAME;
+  return `${brand.name || 'Brand'} Assistant`;
+}
 const BRAND_LLM_TAGLINE = "KNICKGASM's brand intelligence — laced in your own data";
 
 const core = require('./brain-core.js');
@@ -571,4 +578,4 @@ async function chat({ message, history = [], market = 'US', maxSteps = 3 } = {})
   return { ok: true, brand, provider, steps, assets, reply: synthFromWorking(working) };
 }
 
-module.exports = { chat, toolManifest, TOOLS, BRAND_LLM_NAME, BRAND_LLM_TAGLINE, sanitizeReply, catalogProducts };
+module.exports = { assistantNameFor, chat, toolManifest, TOOLS, BRAND_LLM_NAME, BRAND_LLM_TAGLINE, sanitizeReply, catalogProducts };
