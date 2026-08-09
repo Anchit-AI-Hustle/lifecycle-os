@@ -122,6 +122,10 @@ single-tenant tables, a workspace is private to its owner and members — not wo
 ## 2. Credits
 
 ### Model
+- The welcome grant is **per account, not per wallet**. Wallets are per (user, workspace) and anyone
+  can create unlimited workspaces, so a per-wallet trial was an unlimited credit faucet. A second
+  workspace's wallet starts empty; the uniqueness is enforced by a partial unique index on
+  `credit_ledger (user_id)`.
 - One wallet per **(user, brand workspace)**, so per-brand cost is visible. When a request does not
   name a workspace — which every pre-existing generator client does — the meter resolves the
   caller's **active** workspace before holding, so the wallet charged is always the one the header
@@ -255,7 +259,8 @@ this platform as one feature with 23 subfeatures at `/telesuite`.
 | Unmetered | credit-metered, with the price on the button before the run |
 
 Browser `SpeechRecognition` and `speechSynthesis` still run client-side; only the agent turn is
-generated on the server. Barge-in (customer speech cancels playback), turn-taking and automatic
+generated on the server. The site-wide `Permissions-Policy` sends `microphone=()`, which would block
+that outright, so `vercel.json` grants `microphone=(self)` on the TeleSuite paths only. Barge-in (customer speech cancels playback), turn-taking and automatic
 post-call scoring are preserved.
 
 **Voice calls are billed incrementally, per minute, by the server.** The price is per minute of

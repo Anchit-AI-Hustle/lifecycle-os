@@ -42,6 +42,10 @@
      is active these are re-labelled in text nodes. URLs are never touched. */
   var SHIPPED_NAME_RX = /\bKNICKGASM\b|\bKnickgasm\b/g;
   var SHIPPED_ASSISTANT = /\bKicksGPT\b/g;
+  // Non-global twins for `.test()`. A /g regex is stateful across calls, so the
+  // matching pass and the replacing pass must not share one.
+  var SHIPPED_NAME_TEST = /\bKNICKGASM\b|\bKnickgasm\b/;
+  var SHIPPED_ASSISTANT_TEST = /\bKicksGPT\b/;
 
   var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false };
   var listeners = [];
@@ -158,7 +162,7 @@
       if (brand.name) {
         // Keep the page's own subject, swap only the brand half of the title.
         var t = document.title || '';
-        if (SHIPPED_NAME_RX.test(t)) { SHIPPED_NAME_RX.lastIndex = 0; document.title = t.replace(SHIPPED_NAME_RX, brand.name); }
+        if (SHIPPED_NAME_TEST.test(t)) { SHIPPED_NAME_RX.lastIndex = 0; document.title = t.replace(SHIPPED_NAME_RX, brand.name); }
         else if (t.indexOf(brand.name) < 0) document.title = brand.name + (t ? ' · ' + t : '');
       }
       var primary = (brand.tokens && brand.tokens['--brand-primary']) || (brand.palette && brand.palette.primary);
@@ -195,7 +199,11 @@
           // Never rewrite anything that looks like a URL, host or identifier —
           // store links, CDN paths and env names must stay byte-exact.
           if (v.indexOf('://') >= 0 || /knickgasm\.(com|co|io|vercel)/i.test(v) || v.indexOf('_') >= 0) return NodeFilter.FILTER_REJECT;
-          return (SHIPPED_NAME_RX.test(v) || SHIPPED_ASSISTANT.test(v)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          // MUST use the non-global copies here. `.test()` on a /g regex
+          // advances lastIndex, so testing consecutive matching nodes with the
+          // shared global regexes would start the next test past the match and
+          // silently skip every other label.
+          return (SHIPPED_NAME_TEST.test(v) || SHIPPED_ASSISTANT_TEST.test(v)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
       });
       var hits = [], n;
