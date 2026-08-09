@@ -4,7 +4,7 @@
  * scripts/gen-demo-d2c-dashboard.js
  * ---------------------------------------------------------------------------
  * Rebuilds the embedded `const D={...}` dataset inside
- * knickgasm-usa-d2c-dashboard.html (the Sales & Business Review iframe).
+ * lifecycle-usa-d2c-dashboard.html (the Sales & Business Review iframe).
  *
  * WHY: that dashboard shipped carrying the PREVIOUS brand's real business data
  * - their actual multi-year revenue, their marketplace ASIN/SKU catalogue,
@@ -33,7 +33,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const FILE = path.join(ROOT, 'knickgasm-usa-d2c-dashboard.html');
+const FILE = path.join(ROOT, 'lifecycle-usa-d2c-dashboard.html');
 const CAT = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/catalog/products_us.json'), 'utf8'))
   .filter((p) => p.price && p.n);
 

@@ -1,4 +1,4 @@
-# DEVELOPMENT.md — How KNICKGASM Lifecycle OS is built
+# DEVELOPMENT.md — How Lifecycle OS is built
 
 A build-narrative + code-level architecture guide for engineers working on this
 repo. It documents **how** the system is put together and **why** the load-bearing
@@ -18,12 +18,12 @@ decisions were made. It complements — rather than repeats — the other docs:
 
 ## 1. What it is, and its lineage
 
-KNICKGASM Lifecycle OS is a D2C retention + marketing-generation platform for KNICKGASM
+Lifecycle OS is a D2C retention + marketing-generation platform for KNICKGASM
 India. One workflow, three stages: **Data Analysis → Marketing Calendar → Mailer
 Studio (4 variants)**, plus an autopilot ("Smart Brain") that runs the loop daily.
 
 It was **forked from `marketing_mailers__html_architect`** so the original Mailer
-Studio (`knickgasm_mailer_architect_v34.html`) keeps shipping untouched in production;
+Studio (`lifecycle_mailer_architect_v34.html`) keeps shipping untouched in production;
 the retention dashboard, calendar generator, Smart Brain, competitor intelligence,
 and mobile shells were layered on top. That lineage explains the shape of the repo:
 a very large, battle-tested single-file mailer app at the centre, with newer
@@ -95,7 +95,7 @@ add a 13th `api/*.js` — add an `?action=` to an existing router, or logic unde
 
 ```
 Stage 01 Data Analysis  ──▶  Stage 02 Marketing Calendar  ──▶  Stage 03 Mailer Studio
- dashboard.html (/rfm)        calendar.html (/plan)              knickgasm_mailer_architect_v34.html (/studio)
+ dashboard.html (/rfm)        calendar.html (/plan)              lifecycle_mailer_architect_v34.html (/studio)
  client-side RFM/cohorts      /api/calendar?action=generate      /api/ai/pipeline/* (5-stage)
 ```
 
@@ -109,7 +109,7 @@ Stage 01 Data Analysis  ──▶  Stage 02 Marketing Calendar  ──▶  Stage
   Stage-01 state, POSTs to `/api/calendar?action=generate` → a 30-day,
   segment-aware, festival-aware, capacity-guarded plan. Each row is one-click
   buildable via `?action=trigger-mailer`. Festivals from `data/festivals.json`.
-- **Stage 03 — Mailer Studio** (`knickgasm_mailer_architect_v34.html`, routes
+- **Stage 03 — Mailer Studio** (`lifecycle_mailer_architect_v34.html`, routes
   `/studio` `/app` `/mailer`): the original 778 KB mailer app. Produces **4 variants**
   per send — **A** Image·Hero, **B** Image·Lifestyle, **T1** Text·Editorial,
   **T2** Text·Founder-note — by driving the 5-stage pipeline (§5).
@@ -228,7 +228,7 @@ quota hits (5-min TTL) so the UI degrades gracefully instead of letting every jo
 CSV/XLSX exports (Matrixify · Shopify Analytics · Klaviyo · WebEngage)
         │  ingest/*.py  (duckdb + pandas)
         ▼
-   DuckDB  knickgasm_dtc.duckdb   ← local analytics warehouse (KNICKGASM_DuckDB_DDL.sql: 4 schemas, 46 tables)
+   DuckDB  knickgasm_dtc.duckdb   ← local analytics warehouse (LIFECYCLE_DuckDB_DDL.sql: 4 schemas, 46 tables)
         │  ingest/sync_to_supabase.py  (aggregate → push)
         ▼
    Supabase (Postgres / PostgREST)  ← runtime store, read by serverless via api/_shared/supa.js
@@ -239,8 +239,8 @@ CSV/XLSX exports (Matrixify · Shopify Analytics · Klaviyo · WebEngage)
   live: Smart Brain (`smart_calendar`, `smart_cohorts`, `smart_generated_assets`,
   `smart_generated_campaigns`, `smart_feedback`, `smart_confidence`,
   `smart_mvt_results`, `smart_festivals`, `smart_library_scores`) and mailer
-  (`mailers_generated`, `app_users`, `knickgasm_products`, `knickgasm_collections`,
-  `knickgasm_brand_kit`, `knickgasm_market_config`, `kb_knowledge`). Migrations in
+  (`mailers_generated`, `app_users`, `lifecycle_products`, `lifecycle_collections`,
+  `lifecycle_brand_kit`, `lifecycle_market_config`, `kb_knowledge`). Migrations in
   `supabase/migrations/` (timestamped + `COMBINED_RUN_THIS.sql`).
 - **Product catalog** is built at deploy by `scripts/build-catalog.js` from
   `Knickgasm Product Catalog RegionWise/products_export_{usa,uk,global}.csv` →

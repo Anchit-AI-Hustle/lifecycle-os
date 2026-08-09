@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KNICKGASM Brain — KNICKGASM Lifecycle OS</title>
+<title>Lifecycle OS Brain — Lifecycle OS</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/favicon.png">
@@ -103,7 +103,7 @@
 <main class="wrap">
   <section class="top">
     <div>
-      <div class="eyebrow">KNICKGASM Lifecycle OS · KNICKGASM Brain</div>
+      <div class="eyebrow">Lifecycle OS · KNICKGASM Brain</div>
       <h1>KNICKGASM Brain</h1>
       <p style="color:#556059;margin:.1em 0 .4em;font-size:14px">Agentic campaign planning, cohort orchestration, and content generation</p>
       <p>This engine keeps a tentative <b>90-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at 03:30 UTC, or manually below). Approving a slot generates the full funnel: mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
@@ -671,7 +671,7 @@ window.sbDownloadAll = function(){
   const items = window.__SB_EXPORTS || [];
   if(!items.length){ alert('Open View first so the assets are generated.'); return; }
   const parts = items.map(it => `<section style="margin:0 0 28px"><h2 style="font-family:sans-serif;border-bottom:2px solid #6A33D8;padding-bottom:6px">${String(it.name||'asset')}</h2>${it.html}</section>`);
-  const doc = `<!doctype html><meta charset="utf-8"><title>KNICKGASM campaign assets</title><body style="max-width:720px;margin:24px auto;padding:0 16px">${parts.join('\n')}</body>`;
+  const doc = `<!doctype html><meta charset="utf-8"><title>Lifecycle OS campaign assets</title><body style="max-width:720px;margin:24px auto;padding:0 16px">${parts.join('\n')}</body>`;
   const blob = new Blob([doc], { type:'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = 'knickgasm-campaign-all-assets.html';
@@ -724,7 +724,7 @@ function _zipDashboardHTML(rows){
     return `<h2>${esc(d)} <span class="cnt">${byDate[d].length} send${byDate[d].length>1?'s':''}</span></h2>`+
       `<table><thead><tr><th>Market</th><th>Cohort</th><th>Objective</th><th>Hero</th><th>Offer</th><th>Conf.</th><th>Assets</th></tr></thead><tbody>${cards}</tbody></table>`;
   }).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KNICKGASM Campaign Calendar — export</title><style>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lifecycle OS Campaign Calendar — export</title><style>
     :root{--g:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF}*{box-sizing:border-box}
     body{margin:0;background:var(--chalk);color:var(--ink);font:15px/1.55 'Instrument Sans',Arial,sans-serif;padding:28px max(20px,5vw)}
     h1{font-family:'Montserrat',Georgia,serif;color:var(--g);margin:0 0 4px;font-size:30px}
@@ -744,7 +744,7 @@ function _zipDashboardHTML(rows){
     <h1>KNICKGASM Campaign Calendar</h1>
     <p class="sub">${rows.length} generated send${rows.length===1?'':'s'} across ${dates.length} day${dates.length===1?'':'s'} · exported ${esc(new Date().toISOString().slice(0,16).replace('T',' '))} UTC. Every asset link opens the real generated file in this bundle.</p>
     ${body || '<p>No sends in this export.</p>'}
-    <footer>KNICKGASM Lifecycle OS · offline export. Open any mailer/landing HTML directly; ad JSON holds the platform-ready payload. See calendar.json for the machine-readable manifest.</footer>
+    <footer>Lifecycle OS · offline export. Open any mailer/landing HTML directly; ad JSON holds the platform-ready payload. See calendar.json for the machine-readable manifest.</footer>
   </body></html>`;
 }
 

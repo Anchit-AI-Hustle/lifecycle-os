@@ -1,7 +1,7 @@
 # Shared Source of Truth & Continuous Synchronization
 
 Status: **design + phased build** (contract is binding — see `campaign-orchestration-master-spec.md`
-§24b). This document maps the "one record, many views" rule onto the actual KNICKGASM Lifecycle OS
+§24b). This document maps the "one record, many views" rule onto the actual Lifecycle OS
 codebase and defines the phases to get there without a rewrite.
 
 ## The problem it solves

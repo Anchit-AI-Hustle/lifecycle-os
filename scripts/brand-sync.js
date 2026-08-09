@@ -10,7 +10,7 @@
  *
  * Brand truth used to live in four hand-maintained places - the prompt block in
  * api/_shared/master-prompt.js, the --brand-* fallbacks in theme.css, the
- * knickgasm_brand_kit Supabase seed, and the Brand Constants section of
+ * lifecycle_brand_kit Supabase seed, and the Brand Constants section of
  * CLAUDE.md. Keeping them in step by hand is how a palette ends up correct in
  * the CSS and wrong in the prompt. Each is now GENERATED from the record above,
  * between explicit BEGIN/END markers, and --check makes drift a build failure.
@@ -93,9 +93,9 @@ const mdBody = [
 ].join('\n');
 apply('CLAUDE.md', `<!-- >>> BRAND-SYNC:constants -->`, `<!-- <<< BRAND-SYNC:constants -->`, mdBody);
 
-// ── 3. Supabase seed: the knickgasm_brand_kit singleton ─────────────────────
+// ── 3. Supabase seed: the lifecycle_brand_kit singleton ─────────────────────
 const q = (o) => `'${JSON.stringify(o).replace(/'/g, "''")}'::jsonb`;
-const sqlBody = `INSERT INTO public.knickgasm_brand_kit (id, palette, typography, voice, footer_blocks, guide_pdf_url)
+const sqlBody = `INSERT INTO public.lifecycle_brand_kit (id, palette, typography, voice, footer_blocks, guide_pdf_url)
 VALUES (
   1,
   ${q({ primary: P.primary, accent: P.accent, bg: P.surface, text: P.ink })},

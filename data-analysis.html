@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data Analysis - KNICKGASM Lifecycle OS</title>
+<title>Data Analysis - Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
@@ -102,7 +102,7 @@
 </head>
 <body>
 <div class="wrap">
-  <span class="eyebrow">KNICKGASM Lifecycle OS - Research &amp; Benchmark</span>
+  <span class="eyebrow">Lifecycle OS - Research &amp; Benchmark</span>
 
   <div id="dash">
     <div class="topbar">
@@ -152,20 +152,20 @@
   // Synchronously stash and clear: the analytics IIFE below reads the global on
   // parse, so the decision has to be made before it runs. We restore it only
   // once the active brand is confirmed to be the one the dataset describes.
-  var SHIPPED = window.KNICKGASM_ANALYTICS || null;
-  window.KNICKGASM_ANALYTICS = { markets: {}, __pending: true };
+  var SHIPPED = window.LIFECYCLE_ANALYTICS || null;
+  window.LIFECYCLE_ANALYTICS = { markets: {}, __pending: true };
   window.__ANALYTICS_OWNER__ = 'knickgasm';
   window.__restoreAnalytics = function (brand) {
     var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
     var isOwner = !brand || brand.is_default || slug === window.__ANALYTICS_OWNER__;
-    if (isOwner && SHIPPED) { window.KNICKGASM_ANALYTICS = SHIPPED; return true; }
+    if (isOwner && SHIPPED) { window.LIFECYCLE_ANALYTICS = SHIPPED; return true; }
     return false;
   };
 })();
 </script>
 <script>
 (function(){
-  var A = (window.KNICKGASM_ANALYTICS) || {markets:{}};
+  var A = (window.LIFECYCLE_ANALYTICS) || {markets:{}};
   // MKT comes from the ?mkt= URL param — remap through a literal allowlist so the
   // stored value is always a constant (never the raw, potentially-hostile input).
   // This clears the taint at the source; every use below is then a fixed string.

@@ -451,7 +451,7 @@
     panel.innerHTML = panelTitle(tab.label, 'Business Review data is now embedded as a Data Analysis tab instead of a separate feature.') +
       (market !== 'US' ? note('This retained deep-dive source is the verified US D2C Business Review. The native Data Analysis tabs and live connector tabs above remain market-aware for ' + market + '.', '') : '') +
       '<div class="xreview-note">' + note('All original Business Review charts, calculations, source notes and drill-downs remain available below. The old standalone route is retained only as a compatibility alias.', 'good') + '</div>' +
-      '<iframe class="xreview-frame" id="xReviewFrame" title="Embedded KNICKGASM D2C Business Review" src="/knickgasm-usa-d2c-dashboard.html"></iframe>';
+      '<iframe class="xreview-frame" id="xReviewFrame" title="Embedded KNICKGASM D2C Business Review" src="/lifecycle-usa-d2c-dashboard.html"></iframe>';
     var frame = document.getElementById('xReviewFrame'); state.reviewFrame = frame; state.reviewReady = false;
     frame.addEventListener('load', function () { styleReviewFrame(frame, state.reviewIndex); });
   }

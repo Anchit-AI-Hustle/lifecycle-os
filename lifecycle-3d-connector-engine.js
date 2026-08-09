@@ -1,4 +1,4 @@
-/* Knickgasm3DConnectorEngine - generated from knickgasm-3d-connector-engine.ts by esbuild. Do not edit by hand. */
+/* Knickgasm3DConnectorEngine - generated from lifecycle-3d-connector-engine.ts by esbuild. Do not edit by hand. */
 var Knickgasm3D = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -20,7 +20,7 @@ var Knickgasm3D = (() => {
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
   var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-  // knickgasm-3d-connector-engine.ts
+  // lifecycle-3d-connector-engine.ts
   var knickgasm_3d_connector_engine_exports = {};
   __export(knickgasm_3d_connector_engine_exports, {
     DataResolver: () => DataResolver,

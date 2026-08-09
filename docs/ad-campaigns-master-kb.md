@@ -97,11 +97,11 @@ Ibotta media evaluation + Goli/airbrush redeemer targeting, USA DTC email announ
 | Platform | Status | Key facts |
 |---|---|---|
 | Snowflake | connected | `KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS` 129,741 rows (2024-05-15 → 2026-07-25, fresh); TikTok `DATON.RAW.TIKTOK_ADS_USA_*_REPORT_DAILY`; Google `GOOGLE_ADS_US_AD_GROUP_AD_REPORT` 91,135 rows (app default fixed — `GOOGLE_ADS_USA` did not exist) |
-| Supabase | connected | project `knickgasm-lifecycle-os` (fswdwmkgggzyxrdzabnh), 57 public tables; `ads_generated`/`landing_pages_generated` mirrors NOT found; RLS advisory on `ci_user_subscriptions`, `ci_notification_log` |
+| Supabase | connected | project `lifecycle-os` (fswdwmkgggzyxrdzabnh), 57 public tables; `ads_generated`/`landing_pages_generated` mirrors NOT found; RLS advisory on `ci_user_subscriptions`, `ci_notification_log` |
 | Klaviyo | connected (UK) | account UZL5NY KNICKGASM UK — the USA DTC coffee-launch email needs the USA account or `KLAVIYO_API_KEY` |
 | Shopify | storefront-only | Admin connector not authorized; US/UK/Global public storefronts + built catalogs |
 | Vercel | deployed | knickgasm.vercel.app; this dashboard is static JSON (no new function, 12-limit untouched) |
-| GitHub | active | anchit-ai-hustle/knickgasm-lifecycle-os |
+| GitHub | active | anchit-ai-hustle/lifecycle-os |
 
 ## 8. Link registry
 

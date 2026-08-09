@@ -3,7 +3,7 @@ import duckdb, os, re
 base = r"c:\Users\Archit Tandon\Desktop\knickgasm-dtc-data-engine"
 db = duckdb.connect(os.path.join(base, "knickgasm_dtc.duckdb"))
 
-with open(os.path.join(base, "KNICKGASM_DuckDB_DDL.sql")) as f:
+with open(os.path.join(base, "LIFECYCLE_DuckDB_DDL.sql")) as f:
     sql = f.read()
 
 # Remove comment lines, then split on semicolons

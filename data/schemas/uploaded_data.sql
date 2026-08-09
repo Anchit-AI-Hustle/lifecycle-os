@@ -1,4 +1,4 @@
--- KNICKGASM Lifecycle OS — schema for raw uploaded data.
+-- Lifecycle OS — schema for raw uploaded data.
 -- The "Link Database" UI accepts a schema name (default: uploaded_by_anchit)
 -- and runs this DDL against the chosen Supabase project before COPY-ing
 -- the CSVs from input/uploaded_by_anchit/ in.

@@ -6,7 +6,7 @@ internal — they're not meant to be entry points, only orchestrated by
 
 | Script | Purpose |
 |---|---|
-| `_init_db.py` | Create the DuckDB file + run `KNICKGASM_DuckDB_DDL.sql` |
+| `_init_db.py` | Create the DuckDB file + run `LIFECYCLE_DuckDB_DDL.sql` |
 | `_seed_data.py` | Load CSV exports (Matrixify / Shopify Analytics / Klaviyo / WebEngage) into DuckDB |
 | `_run_metrics.py` | Run `queries/metrics.sql` and emit JSON for the strategy report |
 | `_run_metrics2.py` | Second-pass metrics with cohort retention windows |

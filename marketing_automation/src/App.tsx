@@ -971,7 +971,7 @@ Assemble high-performance, responsive HTML layouts optimized for consumer retent
       <footer className="bg-[#D0473E] border-t border-[#6A33D8]/20 text-[#FFFFFF] py-8 mt-auto px-6 font-sans">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-center sm:text-left text-xs space-y-1">
-            <p className="font-serif text-sm font-semibold tracking-wide text-[#FFFFFF]">KNICKGASM Lifecycle OS &bull; Campaign Expansion Engine</p>
+            <p className="font-serif text-sm font-semibold tracking-wide text-[#FFFFFF]">Lifecycle OS &bull; Campaign Expansion Engine</p>
             <p className="text-[#FFFFFF]">Fully synced with knickgasm.vercel.app to optimize acquisition and retention funnels across the UK.</p>
           </div>
           <div className="text-xs text-[#FFFFFF] font-mono text-center sm:text-right">

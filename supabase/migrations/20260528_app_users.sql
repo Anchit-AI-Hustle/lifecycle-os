@@ -1,4 +1,4 @@
--- KNICKGASM Lifecycle OS — app_users table
+-- Lifecycle OS — app_users table
 -- Holds the optional profile info collected after Google sign-in.
 -- Row created automatically on first sign-in via trigger.
 -- Profile filling is NOT compulsory — name/mobile/region are nullable.

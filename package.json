@@ -1,8 +1,8 @@
 {
-  "name": "knickgasm-lifecycle-os",
+  "name": "lifecycle-os",
   "version": "1.0.0",
   "private": true,
-  "description": "KNICKGASM Lifecycle OS \u2014 Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
+  "description": "Lifecycle OS \u2014 Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
   "engines": {
     "node": ">=20.x"
   },

@@ -15,8 +15,8 @@ jobs:
       - run: npm ci
       - name: HTML smoke test
         run: |
-          test -f knickgasm_mailer_architect_v34.html
-          node -e "const fs=require('fs');const s=fs.readFileSync('knickgasm_mailer_architect_v34.html','utf8');if(!s.includes('<!DOCTYPE html>'))process.exit(1);console.log('v34 OK ('+s.length+' bytes)')"
+          test -f lifecycle_mailer_architect_v34.html
+          node -e "const fs=require('fs');const s=fs.readFileSync('lifecycle_mailer_architect_v34.html','utf8');if(!s.includes('<!DOCTYPE html>'))process.exit(1);console.log('v34 OK ('+s.length+' bytes)')"
       - name: JS syntax check (api / lib / workers / scripts + shared shells)
         run: |
           set -e

@@ -40,7 +40,7 @@ const ROOT_DOMAIN = process.env.ROOT_DOMAIN || 'anchit-tandon.com';
 const VERCEL_CNAME = 'cname.vercel-dns.com'; // Vercel's canonical target for subdomains
 
 const ALL_PROJECTS = [
-  'knickgasm-lifecycle-os', 'personal-ai-os', 'the-third-eye', 'music-gen-ai',
+  'lifecycle-os', 'personal-ai-os', 'the-third-eye', 'music-gen-ai',
   'hey-yaara', 'ai-tele-suite', 'th-life-engine', 'marketing-mailers-html-architect',
 ];
 

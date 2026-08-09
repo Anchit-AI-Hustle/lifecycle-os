@@ -1,6 +1,6 @@
 # KNICKGASM Brand Knowledge Base
 
-This directory is the **source of truth** for brand voice, products, offers, and lifecycle targeting used by every tool in the KNICKGASM Lifecycle OS — the Mailer Studio, the marketing calendar, KicksGPT, the Smart Brain daily loop, the ad/landing-page generators, and the competitor-intelligence stack. Any agent, prompt, or human editing brand output should ground its decisions here first.
+This directory is the **source of truth** for brand voice, products, offers, and lifecycle targeting used by every tool in the Lifecycle OS — the Mailer Studio, the marketing calendar, KicksGPT, the Smart Brain daily loop, the ad/landing-page generators, and the competitor-intelligence stack. Any agent, prompt, or human editing brand output should ground its decisions here first.
 
 ## What this is
 

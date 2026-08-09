@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// knickgasm-3d-connector-engine.ts
+// lifecycle-3d-connector-engine.ts
 //
 // Knickgasm3DConnectorEngine — the multi-region routing pipeline, dual-data
 // resolver (Shopify Storefront + Snowflake mirror), Meta-Ads lander detector,
-// and brand-token / 3D viewport orchestrator for the Knickgasm Lifecycle OS.
+// and brand-token / 3D viewport orchestrator for the Lifecycle OS.
 //
 // WHY THIS SHAPE (and where it diverges from the original brief, on purpose):
 //   • The Lifecycle OS is NOT a React/Three app — it is standalone inline-JS

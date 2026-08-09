@@ -1,4 +1,4 @@
-# Scrape Knickgasm Shopify storefronts and upsert into knickgasm_products
+# Scrape Knickgasm Shopify storefronts and upsert into lifecycle_products
 $ErrorActionPreference = "Stop"
 if (-not $env:SUPABASE_PAT) { Write-Error "Set the SUPABASE_PAT env var first (Supabase Personal Access Token)."; exit 1 }
 $SupabasePat = $env:SUPABASE_PAT
@@ -143,7 +143,7 @@ foreach ($m in $Markets) {
     for ($i = 0; $i -lt $batchValues.Count; $i += $chunkSize) {
       $end = [Math]::Min($i + $chunkSize - 1, $batchValues.Count - 1)
       $chunk = $batchValues[$i..$end]
-      $sql = "INSERT INTO public.knickgasm_products (shopify_id, market, handle, name, category, vendor, product_type, description, image_url, image_alt, price, compare_at, currency, sku, tags, pdp_url, is_featured, is_bestseller) VALUES " + ($chunk -join ", ") + " ON CONFLICT (market, handle) DO UPDATE SET shopify_id = EXCLUDED.shopify_id, name = EXCLUDED.name, category = EXCLUDED.category, vendor = EXCLUDED.vendor, product_type = EXCLUDED.product_type, description = EXCLUDED.description, image_url = EXCLUDED.image_url, image_alt = EXCLUDED.image_alt, price = EXCLUDED.price, compare_at = EXCLUDED.compare_at, currency = EXCLUDED.currency, sku = EXCLUDED.sku, tags = EXCLUDED.tags, pdp_url = EXCLUDED.pdp_url, is_featured = EXCLUDED.is_featured OR knickgasm_products.is_featured, is_bestseller = EXCLUDED.is_bestseller OR knickgasm_products.is_bestseller, refreshed_at = now();"
+      $sql = "INSERT INTO public.lifecycle_products (shopify_id, market, handle, name, category, vendor, product_type, description, image_url, image_alt, price, compare_at, currency, sku, tags, pdp_url, is_featured, is_bestseller) VALUES " + ($chunk -join ", ") + " ON CONFLICT (market, handle) DO UPDATE SET shopify_id = EXCLUDED.shopify_id, name = EXCLUDED.name, category = EXCLUDED.category, vendor = EXCLUDED.vendor, product_type = EXCLUDED.product_type, description = EXCLUDED.description, image_url = EXCLUDED.image_url, image_alt = EXCLUDED.image_alt, price = EXCLUDED.price, compare_at = EXCLUDED.compare_at, currency = EXCLUDED.currency, sku = EXCLUDED.sku, tags = EXCLUDED.tags, pdp_url = EXCLUDED.pdp_url, is_featured = EXCLUDED.is_featured OR lifecycle_products.is_featured, is_bestseller = EXCLUDED.is_bestseller OR lifecycle_products.is_bestseller, refreshed_at = now();"
       try {
         Run-Sql $sql | Out-Null
         Write-Host "  upserted rows $($i+1) to $($end+1)" -ForegroundColor DarkGreen
@@ -161,6 +161,6 @@ foreach ($m in $Markets) {
 Write-Host ""
 Write-Host "Catalog scrape complete - $totalUpserts total upserts" -ForegroundColor Green
 
-$verify = @{ query = "SELECT market, COUNT(*) AS n, COUNT(*) FILTER (WHERE is_featured) AS featured, COUNT(*) FILTER (WHERE is_bestseller) AS bestsellers FROM public.knickgasm_products GROUP BY market ORDER BY market;" } | ConvertTo-Json -Compress
+$verify = @{ query = "SELECT market, COUNT(*) AS n, COUNT(*) FILTER (WHERE is_featured) AS featured, COUNT(*) FILTER (WHERE is_bestseller) AS bestsellers FROM public.lifecycle_products GROUP BY market ORDER BY market;" } | ConvertTo-Json -Compress
 $r = Invoke-RestMethod -Method Post -Uri $ApiUrl -Headers @{ Authorization = "Bearer $SupabasePat"; "Content-Type" = "application/json" } -Body $verify
 $r | ConvertTo-Json -Depth 4

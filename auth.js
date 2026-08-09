@@ -224,7 +224,7 @@
   // and panel use linear gradients for depth so the mark reads as crafted
   // rather than flat at any size. Renders cleanly at 22px (mobile bar)
   // and 30px (desktop sidebar).
-  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="KNICKGASM Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
+  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="lnav-tile" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%"   stop-color="#0a6038"/>
@@ -402,7 +402,7 @@
     { section: 'Design & Create' },
     { id: 'frameworks', label: 'Frameworks', href: '/frameworks', icon: 'kb', ver: 'v2', match: ['/frameworks', '/frameworks.html'] },
     // Mailer Studio is an OPEN feature — works standalone without sign-in.
-    { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/knickgasm_mailer_architect_v34.html', '/app', '/mailer'] },
+    { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/lifecycle_mailer_architect_v34.html', '/app', '/mailer'] },
     // Independent LHS item (product-owner request 2026-07-25): the master ads
     // knowledge base + performance dashboard compiled from the KT handover
     // (emails, spend workbook, social update deck) + live connector reads.
@@ -483,7 +483,7 @@
       title: 'Brand Kit',
       what: "The single brand-truth record for the platform: the four-colour palette, the two type families, the voice (tone, tagline, do and banned lists) and the footer identity blocks. Every generator in the OS reads this one record, so it is the place brand truth is set once instead of being retyped into each feature.",
       who: "The brand owner. Brand Setup (/onboarding) is where a NEW brand workspace is created and activated - this page is where the active brand's kit is fine-tuned afterwards.",
-      how: "Reads and writes the knickgasm_brand_kit singleton in Supabase through /api/kb?action=brand-kit. Colours are validated as #RRGGBB and the body-text-on-background pair is contrast-checked against WCAG AA before a save is allowed to look healthy. The Verify panel compares the saved palette against the prompt-side brand block in api/_shared/master-prompt.js and flags drift, because generated copy reads that block rather than the database.",
+      how: "Reads and writes the lifecycle_brand_kit singleton in Supabase through /api/kb?action=brand-kit. Colours are validated as #RRGGBB and the body-text-on-background pair is contrast-checked against WCAG AA before a save is allowed to look healthy. The Verify panel compares the saved palette against the prompt-side brand block in api/_shared/master-prompt.js and flags drift, because generated copy reads that block rather than the database.",
       input: "Four hex colours, two font families with their CSS stacks, a tone line and tagline, the do and banned phrase lists, and the footer legal, contact and social values.",
       steps: [
         ['Ideology', 'One brand record, many consumers: never let a second copy of brand truth exist.'],

@@ -274,7 +274,7 @@
         method: 'POST', cache: 'no-store', headers: headers,
         body: JSON.stringify({
           mode: 'chat', message: msg, history: history.slice(-8),
-          chat_context: Object.assign({ page: pageName(), kb: KB.summary, app: 'KNICKGASM Lifecycle OS' }, CFG.context || {})
+          chat_context: Object.assign({ page: pageName(), kb: KB.summary, app: 'Lifecycle OS' }, CFG.context || {})
         })
       });
       var data = await res.json().catch(function () { return {}; });

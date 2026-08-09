@@ -1,4 +1,4 @@
-/* motion.js — KNICKGASM Lifecycle OS shared motion + depth layer (Design DNA / Motion).
+/* motion.js — Lifecycle OS shared motion + depth layer (Design DNA / Motion).
  * Loaded on every page by auth.js. STRICTLY ADDITIVE and fail-safe:
  *  - Content is only ever hidden-then-revealed when JS is running AND the user has
  *    NOT asked for reduced motion. If JS fails or is disabled, nothing is hidden.

@@ -41,7 +41,7 @@ async function fetchAllProducts(base) {
   const all = [];
   for (let page = 1; page <= 50; page++) {
     const url = `${base}/products.json?limit=250&page=${page}`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'knickgasm-lifecycle-os/catalog-scraper' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'lifecycle-os/catalog-scraper' } });
     if (!res.ok) throw new Error(`HTTP ${res.status} on ${url}`);
     const body = await res.json();
     const products = (body && body.products) || [];

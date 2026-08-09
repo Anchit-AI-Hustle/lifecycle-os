@@ -9,7 +9,7 @@
 > this PR actually ships and remain accurate.
 
 > Status: design spec. This document is the single source of truth for two
-> overlapping systems built into KNICKGASM Lifecycle OS:
+> overlapping systems built into Lifecycle OS:
 >
 > - **(A) Competitive Intelligence (CI) Collection System** — continuously
 >   discover, collect, normalize, dedupe, store and enrich competitor **ads**,

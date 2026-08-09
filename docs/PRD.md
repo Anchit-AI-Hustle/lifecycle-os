@@ -1,16 +1,16 @@
-# KNICKGASM Lifecycle OS — Product Requirements Document
+# Lifecycle OS — Product Requirements Document
 
 **Status:** v1.1 (complete) · **Owner:** Anchit Tandon (anchit.tandon@knickgasm.com) · **Last updated:** 2026-07-06
 **Supersedes:** v1.0 of 2026-07-02, and the v0.1 draft of 2026-06-04 (both preserved in git history — the draft documents the original consolidation thinking and is quoted where the "origin" of a feature matters).
 **What changed in v1.1 (2026-07-06):** the V1/V2 version taxonomy (§1.4) is now recorded; the demo/mock access gate has been removed, so every signed-in user gets full live access (§9); the app UI is locked to a single deep-purple theme, with the dark/dusk/light switcher removed (§7.1/§8); domain + OAuth migration tooling was added (§7.5); and the milestones (§11) run through 2026-07-06.
 
-**Live app:** https://knickgasm.vercel.app/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/knickgasm-lifecycle-os`
+**Live app:** https://knickgasm.vercel.app/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/lifecycle-os`
 
 ---
 
 ## 0. Executive summary
 
-**KNICKGASM Lifecycle OS is one application that runs the entire retention + acquisition growth loop for KNICKGASM:** read the customer data → watch what competitors send → plan the month → generate brand-locked mailers, ads and landing pages → review, approve and learn — with an AI "Smart Brain" doing the daily loop automatically and a brand LLM ("KicksGPT") that can operate every tool conversationally.
+**Lifecycle OS is one application that runs the entire retention + acquisition growth loop for KNICKGASM:** read the customer data → watch what competitors send → plan the month → generate brand-locked mailers, ads and landing pages → review, approve and learn — with an AI "Smart Brain" doing the daily loop automatically and a brand LLM ("KicksGPT") that can operate every tool conversationally.
 
 It replaced a scatter of disconnected tools (a dashboard here, a mailer builder there, competitor spreadsheets, ad-hoc briefs) with **one Vercel-hosted app, one login, one design system, one shared data layer** — built and operated at effectively **zero fixed infrastructure cost** (Vercel Hobby + Supabase free tier + free-tier LLM fallbacks), which is itself a deliberate engineering constraint that shaped the architecture (§7).
 
@@ -49,7 +49,7 @@ V1 features are upgraded by customising the base version only where needed. Wher
 
 The chronology matters because every module was pulled into existence by a concrete operational pain, not speculatively:
 
-1. **It started as the Mailer Studio** (`knickgasm_mailer_architect_v34.html` — the "v34" records 34 iterations of a single-file app). The original need: producing brand-correct lifecycle emails was slow, inconsistent, and dependent on a designer's availability; generic AI output drifted off-brand (wrong greens, wrong fonts, "streetwear journey" copy). The answer was a wizard that bakes the brand style guide into the generation itself.
+1. **It started as the Mailer Studio** (`lifecycle_mailer_architect_v34.html` — the "v34" records 34 iterations of a single-file app). The original need: producing brand-correct lifecycle emails was slow, inconsistent, and dependent on a designer's availability; generic AI output drifted off-brand (wrong greens, wrong fonts, "streetwear journey" copy). The answer was a wizard that bakes the brand style guide into the generation itself.
 2. **Generation needs targeting** → the **Data Analysis dashboard** was built so briefs come from RFM segments, cohort retention and send-time behavior instead of guesswork.
 3. **Targeting needs cadence** → the **Marketing Calendar** turned analytics into a 30-day, festival-aware send plan that feeds the Studio one click per row.
 4. **Cadence needs context** → the **Competitor Benchmarking** system began capturing every competitor email automatically (a dedicated Gmail inbox + IMAP sync into a Google Sheet), then grew ad libraries and landing-page tracking, because promo cadence decisions are made relative to the market.
@@ -152,7 +152,7 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 - **How it works.** `POST /api/calendar?action=generate` (`_shared/calendar-generate.js`) consumes the analytics summary from localStorage; `?action=trigger-mailer` (`calendar-trigger.js`) feeds the pipeline of §6.5.
 - **Future.** Fully absorbed by the Smart Brain's rolling plan (§6.9) — the 30-day generator remains the manual/what-if mode and the 5-scenario engine's base.
 
-### 6.5 Mailer Studio (`/studio`, `knickgasm_mailer_architect_v34.html`)
+### 6.5 Mailer Studio (`/studio`, `lifecycle_mailer_architect_v34.html`)
 
 - **Origin.** The founding application — 34 versions of iteration compressed into its filename. Every other module exists to feed or learn from it.
 - **Need.** Brand-correct lifecycle emails took days and still drifted: wrong palette tints, wrong fonts, banned urgency copy, inconsistent structure. Generic AI tools made it worse — fluent but off-brand.
@@ -238,11 +238,11 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 - **Purpose.** The entire Lifecycle OS, installable from a store or a link, always up-to-date.
 - **What it does & how it works.**
   - **PWA:** `manifest.webmanifest` + `sw.js` (`lifecycle-os-v16`) make the web app installable on Android/iOS with an offline shell; navigation is network-first with cache fallback; `/api/*` is never cached; the SW self-heals stale caches.
-  - **Native shells:** `capacitor.config.json` (appId `com.knickgasm.lifecycleos`, appName "KNICKGASM Lifecycle OS") with **`server.url` pointed at the production deployment** — the app is a hardened WebView over the live site. **This is the auto-sync guarantee:** every web deploy *is* a mobile release; the binaries never go stale because the code they render is served from production. **The complete native project code lives in this repo** — `android/` (Gradle project, minSdk 22 / target 34), `ios/` (Xcode project + Podfile), `mobile/` (self-contained Capacitor sub-project), `mobile-shell/` (web dir) — no separate mobile repo to keep in sync.
+  - **Native shells:** `capacitor.config.json` (appId `com.knickgasm.lifecycleos`, appName "Lifecycle OS") with **`server.url` pointed at the production deployment** — the app is a hardened WebView over the live site. **This is the auto-sync guarantee:** every web deploy *is* a mobile release; the binaries never go stale because the code they render is served from production. **The complete native project code lives in this repo** — `android/` (Gradle project, minSdk 22 / target 34), `ios/` (Xcode project + Podfile), `mobile/` (self-contained Capacitor sub-project), `mobile-shell/` (web dir) — no separate mobile repo to keep in sync.
   - **Downloadable builds:** the **Mobile Builds** GitHub Actions workflow (`.github/workflows/mobile-builds.yml`) builds the binaries and publishes them to the fixed release tag **`mobile-latest`**, giving stable download links:
-    - **Android APK (installable directly):** https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os.apk
-    - **iOS app (unsigned IPA — sideload via AltStore/Sideloadly, or sign for TestFlight):** https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os-ios-unsigned.ipa
-    - **All builds page:** https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/tag/mobile-latest
+    - **Android APK (installable directly):** https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os.apk
+    - **iOS app (unsigned IPA — sideload via AltStore/Sideloadly, or sign for TestFlight):** https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os-ios-unsigned.ipa
+    - **All builds page:** https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/tag/mobile-latest
     - Run the workflow once from the **Actions → Mobile Builds** tab (or push a change under `android/`/`ios/`) to mint/refresh the binaries; it re-publishes to the same links every time.
 - **Future.** Play Store / App Store listings (store metadata already scaffolded); push notifications for pending approvals; iOS signing pipeline.
 

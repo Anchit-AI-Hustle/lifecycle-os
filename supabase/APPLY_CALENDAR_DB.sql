@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- KNICKGASM Lifecycle OS — Automated Calendar persistence: ONE-PASTE apply file.
+-- Lifecycle OS — Automated Calendar persistence: ONE-PASTE apply file.
 --
 -- Paste this whole file into the Supabase SQL editor and Run. It creates exactly
 -- the four tables the Automated Calendar (/brain) reads and writes, plus the

@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS — Feature Quality Audit
+# Lifecycle OS — Feature Quality Audit
 **Date:** 2026-07-12 · **Bar for confidence:** every feature must reach **≥ 9.5 / 10**.
 **Method:** 5 parallel deep code audits (/brain, /data-analysis, /studio, /ad-campaigns, /lp + /social) plus direct review of /assets, /kicksgpt, /agent, and the "Aman's version" (frozen 3 Jul 2026) build. Ratings are grounded in specific file:line findings, not impressions.
 
