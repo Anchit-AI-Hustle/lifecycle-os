@@ -587,21 +587,101 @@ function rowsFromJson(text, region) {
   return { rows, columns: {}, skipped };
 }
 
+/* ── SSRF guard for the storefront importer ───────────────────────────────────
+   The importer fetches a URL supplied by any signed-in user, from inside the
+   serverless runtime. Without a guard that is a server-side request forgery
+   primitive against anything the runtime can reach (cloud metadata endpoints,
+   internal services). Everything below is refused:
+     * non-http(s) schemes and non-standard ports
+     * loopback / private / link-local / CGNAT / unique-local literals
+     * the cloud metadata addresses and *.internal / *.local style names
+     * any hostname whose DNS resolution lands on one of those ranges
+     * redirects (fetch is issued with redirect:'manual'), so a public host
+       cannot bounce us onto an internal one
+   DNS rebinding between the check and the connect is not fully preventable
+   without pinning the socket to the resolved IP, which needs a custom agent;
+   blocking redirects and re-validating every hop removes the practical paths. */
+
+const BLOCKED_HOST_RX = /^(localhost|.*\.localhost|.*\.internal|.*\.local|.*\.home\.arpa|metadata|metadata\.google\.internal)$/i;
+
+function isPrivateIp(host) {
+  // IPv4
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (v4) {
+    const o = v4.slice(1).map(Number);
+    if (o.some((n) => n > 255)) return true;
+    const [a, b] = o;
+    if (a === 0 || a === 10 || a === 127) return true;                 // this-host, private, loopback
+    if (a === 169 && b === 254) return true;                            // link-local + cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;                   // private
+    if (a === 192 && b === 168) return true;                            // private
+    if (a === 192 && b === 0) return true;                              // IETF protocol assignments
+    if (a === 100 && b >= 64 && b <= 127) return true;                  // CGNAT
+    if (a >= 224) return true;                                          // multicast + reserved
+    return false;
+  }
+  // IPv6 (brackets already stripped by URL parsing)
+  const h = String(host).toLowerCase();
+  if (h === '::1' || h === '::') return true;
+  if (/^f[cd][0-9a-f]{2}:/.test(h)) return true;                        // unique-local fc00::/7
+  if (/^fe[89ab][0-9a-f]:/.test(h)) return true;                        // link-local fe80::/10
+  if (/^::ffff:/.test(h)) return isPrivateIp(h.replace(/^::ffff:/, '')); // IPv4-mapped
+  return false;
+}
+
+async function assertPublicUrl(rawUrl) {
+  let u;
+  try { u = new URL(rawUrl); } catch (_) { const e = new Error('That is not a valid URL.'); e.status = 400; throw e; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') { const e = new Error('Only http and https URLs can be imported.'); e.status = 400; throw e; }
+  if (u.port && u.port !== '80' && u.port !== '443') { const e = new Error('Only the standard http and https ports can be imported.'); e.status = 400; throw e; }
+
+  const host = u.hostname.replace(/^\[|\]$/g, '');
+  if (BLOCKED_HOST_RX.test(host) || isPrivateIp(host)) {
+    const e = new Error('That address is on a private or internal network, so it cannot be imported.');
+    e.status = 400; throw e;
+  }
+
+  // Resolve the name and refuse if ANY answer is on an internal range.
+  try {
+    const dns = require('dns').promises;
+    const answers = await dns.lookup(host, { all: true, verbatim: true });
+    for (const a of answers) {
+      if (isPrivateIp(a.address)) {
+        const e = new Error('That hostname resolves to a private or internal address, so it cannot be imported.');
+        e.status = 400; throw e;
+      }
+    }
+  } catch (err) {
+    if (err && err.status === 400) throw err;
+    // A resolution failure is reported as unreachable, not silently allowed.
+    const e = new Error(`Could not resolve ${host}.`);
+    e.status = 400; throw e;
+  }
+  return u.toString().replace(/\/$/, '');
+}
+
 /**
  * Import from a PUBLIC storefront the operator owns. Read-only: GET only, no
- * credentials, and only the standard Shopify public products feed. Facts are
- * copied verbatim from the store; nothing is synthesised.
+ * credentials, no redirects, only the standard Shopify public products feed,
+ * and only after the SSRF guard above clears the destination. Facts are copied
+ * verbatim from the store; nothing is synthesised.
  */
 async function rowsFromStorefront(storeUrl, region) {
-  const base = httpUrl(storeUrl);
-  if (!base) { const e = new Error('Store URL is not a valid http(s) URL.'); e.status = 400; throw e; }
+  const candidate = httpUrl(storeUrl);
+  if (!candidate) { const e = new Error('Store URL is not a valid http(s) URL.'); e.status = 400; throw e; }
+  const base = await assertPublicUrl(candidate);
   const rows = [];
   let page = 1, skipped = 0;
   while (page <= 10 && rows.length < MAX_CATALOG_ROWS) {
     const url = `${base}/products.json?limit=250&page=${page}`;
     let res;
-    try { res = await fetch(url, { method: 'GET', headers: { accept: 'application/json' }, cache: 'no-store' }); }
-    catch (err) { const e = new Error(`Could not reach ${base}: ${err.message}`); e.status = 502; throw e; }
+    try {
+      res = await fetch(url, { method: 'GET', headers: { accept: 'application/json' }, cache: 'no-store', redirect: 'manual' });
+    } catch (err) { const e = new Error(`Could not reach ${base}: ${err.message}`); e.status = 502; throw e; }
+    if (res.status >= 300 && res.status < 400) {
+      const e = new Error(`${base} redirected the request. Enter the store's canonical URL directly (redirects are not followed, so a public host cannot bounce the import onto an internal one).`);
+      e.status = 400; throw e;
+    }
     if (!res.ok) {
       if (page === 1) { const e = new Error(`${base}/products.json returned ${res.status}. Public product feed not available at that URL.`); e.status = 502; throw e; }
       break;
@@ -927,7 +1007,7 @@ module.exports = {
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,
   readiness, shellPayload, slugify, DEFAULT_BRAND,
   // catalog
-  parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront,
+  parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
   importCatalog, listCatalog,

@@ -137,7 +137,14 @@ function quote(key, units, overrides) {
   const override = overrides && overrides[key];
   const cost = override && Number.isFinite(+override.cost) ? +override.cost : f.cost;
   const unit = (override && override.unit_label) || f.unit;
-  const n = f.metered ? Math.max(1, Math.ceil(Number(units) > 0 ? Number(units) : f.estimate)) : 1;
+  // An EXPLICIT zero means the caller knows this run does no billable work
+  // (e.g. a transcript pasted by hand rather than transcribed) — it must quote
+  // as free, not fall back to the reservation estimate. Only undefined/null
+  // means "we do not know yet, reserve the estimate".
+  const asked = Number(units);
+  const n = !f.metered ? 1
+    : (units != null && Number.isFinite(asked) && asked <= 0) ? 0
+    : Math.max(1, Math.ceil(asked > 0 ? asked : f.estimate));
   return { key: f.key, label: f.label, group: f.group, unit, why: f.why, cost, units: n, total: cost * n, metered: !!f.metered, estimate: f.estimate };
 }
 

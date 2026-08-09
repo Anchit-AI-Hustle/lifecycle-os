@@ -110,16 +110,26 @@ async function wallet(userId, workspaceId) {
   const rows = await serviceRest(q);
   if (Array.isArray(rows) && rows[0]) return rows[0];
 
-  // First touch: create the wallet and drop the welcome grant in, once.
+  // First touch: create the wallet and drop the welcome grant in, ONCE.
+  // The check-then-grant below is racy on its own (two tabs can both see no
+  // grant row), so the real guard is a partial unique index on the ledger —
+  // `credit_ledger_welcome_once_idx`, one row per wallet with ref='welcome'.
+  // The pre-check just avoids a pointless round-trip on the common path; the
+  // unique violation is what actually makes it idempotent.
   const id = await rpc('credit_wallet_id', { p_user: userId, p_workspace: workspaceId || null });
   const grant = catalog.welcomeGrant();
   if (grant > 0) {
-    const seen = await serviceRest(`credit_ledger?select=id&wallet_id=eq.${encodeURIComponent(id)}&kind=eq.grant&limit=1`);
+    const seen = await serviceRest(`credit_ledger?select=id&wallet_id=eq.${encodeURIComponent(id)}&ref=eq.welcome&limit=1`);
     if (!Array.isArray(seen) || !seen.length) {
-      await rpc('credit_grant', {
-        p_user: userId, p_workspace: workspaceId || null, p_amount: grant,
-        p_kind: 'grant', p_ref: 'welcome', p_note: 'Welcome credits', p_meta: { source: 'welcome_grant' },
-      });
+      try {
+        await rpc('credit_grant', {
+          p_user: userId, p_workspace: workspaceId || null, p_amount: grant,
+          p_kind: 'grant', p_ref: 'welcome', p_note: 'Welcome credits', p_meta: { source: 'welcome_grant' },
+        });
+      } catch (err) {
+        // 23505 = the index caught a concurrent first touch. Already granted.
+        if (!/duplicate key|23505|credit_ledger_welcome_once/i.test(String(err.message || ''))) throw err;
+      }
     }
   }
   const again = await serviceRest(q);
@@ -213,7 +223,13 @@ async function meter(req, featureKey, opts) {
     async settle(actualUnits, extra) {
       if (done) return { ok: true, already: true };
       done = true;
-      const units = q.metered && Number(actualUnits) > 0 ? Math.max(1, Math.ceil(Number(actualUnits))) : q.units;
+      // An explicit finite 0 must settle at zero (the run did no billable work
+      // and the whole reservation comes back). Only undefined/NaN falls back to
+      // what was reserved.
+      const asked = Number(actualUnits);
+      const units = !q.metered ? q.units
+        : (actualUnits != null && Number.isFinite(asked)) ? Math.max(0, Math.ceil(asked))
+        : q.units;
       const actual = q.cost * units;
       const r = await rpc('credit_settle', {
         p_hold: holdId, p_actual: actual, p_units: units,
@@ -287,18 +303,31 @@ async function createOrder(auth, { pack_key, workspace_id }) {
   };
 }
 
-/** Mark an order paid and move the credits. Server-side only. */
+/**
+ * Mark an order paid and move the credits. Server-side only.
+ *
+ * The pending -> paid transition is a COMPARE-AND-SET: the PATCH is filtered on
+ * `status=eq.pending`, so if two fulfilments race (a payment webhook and an
+ * operator retry, say) exactly one of them updates a row. Only the winner —
+ * the call that got a row back — grants the credits, so a pack can never be
+ * credited twice.
+ */
 async function fulfilOrder(orderId, { provider, provider_ref } = {}) {
   const rows = await serviceRest(`credit_orders?select=*&id=eq.${encodeURIComponent(orderId)}&limit=1`);
   const order = Array.isArray(rows) ? rows[0] : null;
   if (!order) { const e = new Error('Order not found.'); e.status = 404; throw e; }
   if (order.status === 'paid') return { ok: true, order, credited: false, message: 'Order was already fulfilled.' };
 
-  await serviceRest(`credit_orders?id=eq.${encodeURIComponent(orderId)}`, {
+  const claimed = await serviceRest(`credit_orders?id=eq.${encodeURIComponent(orderId)}&status=eq.pending&select=id`, {
     method: 'PATCH',
     body: { status: 'paid', provider: provider || order.provider, provider_ref: provider_ref || order.provider_ref, updated_at: new Date().toISOString() },
-    prefer: 'return=minimal',
+    prefer: 'return=representation',
   });
+  if (!Array.isArray(claimed) || !claimed.length) {
+    // Someone else moved it out of `pending` first. Do NOT grant again.
+    return { ok: true, order: Object.assign({}, order, { status: 'paid' }), credited: false, message: 'Order was already fulfilled by a concurrent request.' };
+  }
+
   const r = await rpc('credit_grant', {
     p_user: order.user_id, p_workspace: order.workspace_id, p_amount: order.credits,
     p_kind: 'topup', p_ref: order.id, p_note: `Recharge: ${order.pack_key}`,

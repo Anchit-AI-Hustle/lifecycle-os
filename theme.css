@@ -111,16 +111,27 @@
      are corrected per-page (e.g. app-audit remaps --chalk to violet). Two themed
      pages opt back to dark on purpose: diff-version (frozen dark diff) and /3d
      (WebGL storefront) — they carry their own high-specificity dark override. */
-  --vh-bg: #F7F5F2; --vh-panel: #ffffff; --vh-panel-2: #f4f2ec;
-  --vh-line: rgba(171,135,67,0.24); --vh-line-hot: rgba(171,135,67,0.5);
+  --vh-bg: var(--brand-surface, #F7F5F2); --vh-panel: var(--brand-surface-alt, #ffffff); --vh-panel-2: #f4f2ec;
+  --vh-line: var(--brand-line, rgba(171,135,67,0.24)); --vh-line-hot: var(--brand-line-strong, rgba(171,135,67,0.5));
   /* Text: near-black body, muted secondary, faint tertiary — readable on light. */
-  --vh-ink: #111111; --vh-ink-dim: #556059; --vh-ink-faint: #6b7770;
-  /* legacy aliases (family A + family B) — all point at the locked light set.
+  --vh-ink: var(--brand-ink, #111111); --vh-ink-dim: var(--brand-ink-muted, #556059); --vh-ink-faint: #6b7770;
+  /* legacy aliases (family A + family B). These are what MOST existing pages
+     actually consume, so they must resolve through the active brand too —
+     otherwise a custom brand would re-skin only the `vh-` components and leave
+     the rest of the suite in the shipped palette. Same indirection as above:
+     brand token first, shipped value as the fallback, so nothing changes until
+     a brand is active. NOTE `--chalk` and `--lava` are deliberately absent here
+     (they are page-owned; brand-context.js maps them inline on <html>, which
+     also lets it override a page's own `:root` block).
      --soft is a *dim text* color (never a surface): a readable muted tone. */
-  --bg: #F7F5F2; --panel: #ffffff; --surface: #ffffff; --card: #ffffff; --soft: #556059; --chip: #f4f2ec;
-  --ink: #111111; --ink-dim: #556059; --ink-faint: #6b7770; --muted: #556059; --head: #6A33D8;
-  --line: rgba(171,135,67,0.24); --line-hot: rgba(171,135,67,0.5);
-  --violet: #6A33D8; --green: #6A33D8; --accent: #D0473E; --moss: #eef3f0; --moss-deep: #e7efe9;
+  --bg: var(--brand-surface, #F7F5F2); --panel: var(--brand-surface-alt, #ffffff);
+  --surface: var(--brand-surface-alt, #ffffff); --card: var(--brand-surface-alt, #ffffff);
+  --soft: var(--brand-ink-muted, #556059); --chip: var(--brand-primary-tint, #f4f2ec);
+  --ink: var(--brand-ink, #111111); --ink-dim: var(--brand-ink-muted, #556059); --ink-faint: #6b7770;
+  --muted: var(--brand-ink-muted, #556059); --head: var(--brand-primary, #6A33D8);
+  --line: var(--brand-line, rgba(171,135,67,0.24)); --line-hot: var(--brand-line-strong, rgba(171,135,67,0.5));
+  --violet: var(--brand-primary, #6A33D8); --green: var(--brand-primary, #6A33D8);
+  --accent: var(--brand-accent, #D0473E); --moss: #eef3f0; --moss-deep: #e7efe9;
   color-scheme: light;
 }
 

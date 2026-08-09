@@ -37,6 +37,14 @@ pages are exempt, so there is no redirect loop.
    --vh-green: var(--brand-primary, #6A33D8);
    --vh-font-head: var(--brand-font-head, 'Lora', …);
    ```
+   This covers both the `--vh-*` component tokens **and** the legacy aliases (`--bg`, `--panel`,
+   `--surface`, `--ink`, `--muted`, `--green`, `--violet`, `--accent`, `--line`, `--head`) that most
+   existing pages actually consume.
+1b. Sets those legacy aliases **inline on `<html>`** as well. Many pages declare their own
+   `:root { --ink: …; --green: … }` block, which would beat a stylesheet rule — but `:root` *is* the
+   html element, so an inline declaration wins. `--chalk` maps to the contrast-checked
+   `--brand-on-primary` (its real role is text on a dark/primary band, not a surface) and `--lava`
+   maps to the brand accent.
 2. Loads the brand's Google Fonts.
 3. Swaps `<title>`, favicon and `theme-color`.
 4. Re-labels the shipped brand name in visible copy (text nodes only — never URLs, hosts or
@@ -71,6 +79,11 @@ list. Catalog rows keep `source` (`csv` / `json` / `shopify_public` / `manual`) 
 ### Catalog import
 Three routes, all operator-supplied:
 - **Storefront** — GETs `{store}/products.json` (Shopify and compatible), read-only, no credentials.
+  Because the URL comes from any signed-in user and the fetch runs inside the serverless runtime, it
+  is SSRF-guarded: non-http(s) schemes, non-standard ports, loopback / private / link-local / CGNAT /
+  unique-local literals, cloud-metadata addresses and `*.internal`-style names are refused; the
+  hostname is resolved and refused if **any** answer lands on an internal range; and the request is
+  issued with `redirect: 'manual'` so a public host cannot bounce the import onto an internal one.
 - **CSV** — RFC4180 parser (quotes, escaped quotes, embedded newlines) with automatic column
   matching for title/handle/sku/price/currency/image/url/type/collections/tags.
 - **JSON / file upload** — an array of products, or `{products: […]}`.
@@ -104,6 +117,14 @@ single-tenant tables, a workspace is private to its owner and members — not wo
   A failed run is always refunded. A metered feature reserves an estimate and returns the unused
   part on settle. `credit_settle` can never charge more than was reserved.
 - `credit_hold` takes `SELECT … FOR UPDATE` on the wallet, so two concurrent runs cannot overdraw.
+- An **explicit zero** unit count quotes and settles as free, so a run that did no billable work
+  (a hand-pasted transcript) is never charged the reservation estimate.
+- The welcome grant is idempotent through a partial unique index
+  (`credit_ledger_welcome_once_idx`), not just an application check, so two simultaneous first
+  touches cannot double-grant.
+- Recharge fulfilment is a **compare-and-set**: the pending → paid patch is filtered on
+  `status=eq.pending`, and only the caller that actually claimed the row grants the credits, so an
+  overlapping webhook and operator retry cannot credit a pack twice.
 
 ### Security
 `credit_grant`, `credit_hold`, `credit_settle`, `credit_release` and `credit_wallet_id` are
@@ -175,6 +196,16 @@ this platform as one feature with 23 subfeatures at `/telesuite`.
 Browser `SpeechRecognition` and `speechSynthesis` still run client-side; only the agent turn is
 generated on the server. Barge-in (customer speech cancels playback), turn-taking and automatic
 post-call scoring are preserved.
+
+**Voice calls are billed once, at the end.** The price is per minute of call, so metering each turn
+would charge a three-turn call three times and re-charge every earlier minute on each later turn.
+`voice_turn` is therefore free and `voice_finish` is the billing boundary, charging the call's real
+duration once. The client generates a `call_id` at the start of the call and the server
+short-circuits on a duplicate, so a retry or double click cannot bill the same call twice.
+
+**Roles are enforced server-side.** TeleSuite writes run with the service role and so bypass RLS —
+membership alone is not authorization. `context()` resolves the caller's role and a `viewer` is
+refused every mutating op (`WRITE_OPS`) with a 403.
 
 The page renders **entirely from the `SUBFEATURES` registry** in `telesuite-core.js`, so adding a
 subfeature is a one-object change and its cost can never drift out of sync with the UI.

@@ -652,6 +652,9 @@
 
   function runCall(s, cfg, SR) {
     var history = [], startedAt = Date.now(), listening = false, ended = false, recog = null, speaking = false;
+    // Stable id for the whole call. The server bills once, at the end, keyed
+    // on this — so a double click or a retry cannot charge the call twice.
+    var callId = 'call-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 
     $('setup').style.display = 'none';
     $('stage').innerHTML =
@@ -663,7 +666,7 @@
         '<div class="card"><button class="mic" id="mic">' + (SR ? 'Talk' : 'No mic') + '</button>' +
           '<div class="status" id="status">Connecting the call…</div>' +
           '<button class="btn danger" id="endCall" style="width:100%;margin-top:12px;justify-content:center">End call</button>' +
-          '<p class="muted" style="margin-top:10px;font-size:11px">Speech recognition and playback run in your browser. Only the agent turn is generated on the server.</p>' +
+          '<p class="muted" style="margin-top:10px;font-size:11px">Speech recognition and playback run in your browser. Only the agent turn is generated on the server. Individual turns are free: the call is charged once when it ends, for its real length.</p>' +
         '</div>' +
       '</div><div id="callout"></div>';
 
@@ -692,7 +695,7 @@
     async function agentTurn(utterance) {
       status('Thinking…');
       try {
-        var r = await ts('voice_turn', { input: Object.assign({}, cfg, { mode: s.mode, history: history, utterance: utterance, duration_minutes: elapsedMinutes() }) });
+        var r = await ts('voice_turn', { input: Object.assign({}, cfg, { mode: s.mode, history: history, utterance: utterance }) });
         var out = r.result || {};
         var say = out.say || 'Sorry, I did not catch that.';
         history.push({ role: 'agent', text: say, intent: out.intent, note: out.internal_note });
@@ -752,7 +755,7 @@
       try {
         var r = await ts('voice_finish', {
           input: Object.assign({}, cfg, {
-            mode: s.mode, history: history,
+            mode: s.mode, history: history, call_id: callId,
             minutes: elapsedMinutes(), duration_ms: Date.now() - startedAt
           })
         });
@@ -763,7 +766,9 @@
         $('callout').innerHTML =
           '<h2>Call saved</h2><div class="card"><p class="muted">' + res.turns + ' turns over about ' + res.minutes + ' minute(s). ' +
           'It is now in the ' + esc(s.mode === 'sales' ? 'Voice Sales DB' : 'Voice Support DB') + '.</p>' +
-          '<div class="transcript" style="margin-top:12px">' + esc(res.transcript) + '</div></div>' + scoreHtml;
+          '<div class="transcript" style="margin-top:12px">' + esc(res.transcript) + '</div>' +
+          (r.credits ? '<p class="muted" style="margin-top:12px">Charged <b>' + fmt(r.credits.charged) + '</b> credits for ' + r.credits.units + ' minute(s).</p>' : '') +
+          '</div>' + scoreHtml;
         status('Call ended and scored.');
       } catch (e) { handleRunError(e, $('callout')); status('Call ended.'); }
     }
