@@ -480,6 +480,32 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 
+  // ── Workspace-scope every API call ─────────────────────────────────────
+  // The server scopes reads/writes by workspace_id, falling back to the OLDEST
+  // workspace when none is supplied. Feature pages built before multi-tenancy
+  // never send one, so a user could be shown another workspace's rows. Rather
+  // than patching dozens of call sites, stamp the ACTIVE workspace onto every
+  // same-origin /api/ request here, once, for all pages that load this script.
+  (function scopeApiFetches() {
+    var origFetch = window.fetch;
+    if (!origFetch || origFetch.__lcScoped) return;
+    function stamped(input, init) {
+      try {
+        var url = (typeof input === 'string') ? input : (input && input.url) || '';
+        var isApi = /^\/api\//.test(url) || url.indexOf(location.origin + '/api/') === 0;
+        var ws = state.brand && state.brand.id;
+        if (isApi && ws && url.indexOf('workspace_id=') < 0) {
+          var glued = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'workspace_id=' + encodeURIComponent(ws);
+          if (typeof input === 'string') input = glued;
+          else input = new Request(glued, input);
+        }
+      } catch (_) { /* never break a fetch over scoping */ }
+      return origFetch.call(window, input, init);
+    }
+    stamped.__lcScoped = true;
+    window.fetch = stamped;
+  })();
+
   window.BrandContext = {
     get brand() { return state.brand; },
     get needsOnboarding() { return state.needsOnboarding; },

@@ -217,8 +217,8 @@ function segmentVoiceGuide(segment, contentType) {
   const map = {
     Champions:        'reward, don\'t discount. Surface something new or limited.',
     Loyal:            'depth, story, origin. Editorial tone over promo.',
-    Promising:        'continuity — show the next step in the ritual.',
-    New:              'guide the second step. Teach crafting, suggest pairings.',
+    Promising:        'continuity — show the natural next step for them.',
+    New:              'guide the second step. Educate on the craft, suggest what fits them next.',
     'Need-Attention': 'soft re-engagement, no aggressive discount yet.',
     'About-to-Sleep': 'gentle reminder + curated 3-pick. Question-based subject.',
     'At-Risk':        'one personal note, one fair offer, single CTA.',

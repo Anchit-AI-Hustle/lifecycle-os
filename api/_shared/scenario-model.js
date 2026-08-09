@@ -385,7 +385,7 @@ const BANNED_RX = /wellness journey|liquid gold|game[\s-]?changer|hurry|don'?t m
 // normalised, so the lookup matches whatever casing the model emitted.
 const BANNED_SUBS = {
   'wellness journey': 'rotation',
-  'liquid gold': 'grail pair',
+  'liquid gold': 'signature piece',
   'game changer': 'standout',
   'gamechanger': 'standout',
   'hurry': 'take your time',
@@ -393,12 +393,12 @@ const BANNED_SUBS = {
   'dont miss out': 'have a look',
   'last chance': 'still available',
   'while supplies last': 'while the slot is open',
-  'replica': 'hand-painted original',
-  'knock off': 'hand-painted original',
-  'knockoff': 'hand-painted original',
-  'counterfeit': 'hand-painted original',
-  'first copy': 'hand-painted original',
-  'first copies': 'hand-painted originals',
+  'replica': 'genuine original',
+  'knock off': 'genuine original',
+  'knockoff': 'genuine original',
+  'counterfeit': 'genuine original',
+  'first copy': 'genuine original',
+  'first copies': 'genuine originals',
   'fake pair': 'original pair',
 };
 
