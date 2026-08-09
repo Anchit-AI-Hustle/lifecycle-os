@@ -829,7 +829,22 @@ async function appendBrands(list, nowIso) {
 }
 
 /** Insert the priority seed brands (idempotent via domain dedupe). */
-async function seedBrands(nowIso) {
+// SEED_BRANDS is TENANT ZERO's competitive set: India's custom-sneaker studios,
+// sneaker retail, and the global customisation benchmarks. It is a fact about
+// one brand's market, so seeding it into any other workspace would hand a
+// publisher or a health vertical a sneaker competitor list. Seeding is
+// therefore refused for any brand that is not tenant zero; that brand's own
+// competitors must be added or discovered for it.
+async function seedBrands(nowIso, brand) {
+  const slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+  const isTenantZero = !brand || slug === 'knickgasm';
+  if (!isTenantZero) {
+    return {
+      ok: true, skipped: true, added: 0,
+      reason: `The shipped seed list is KNICKGASM's competitive set and does not describe ${brand.name || 'this brand'}. `
+            + 'Add this brand\'s own competitors, or run discovery for it - another brand\'s competitor list is never seeded.',
+    };
+  }
   return appendBrands(SEED_BRANDS.map((b) => ({ ...b, source: 'seed' })), nowIso);
 }
 
