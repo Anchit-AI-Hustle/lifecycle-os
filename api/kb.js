@@ -29,6 +29,7 @@
  */
 
 const crypto = require('crypto');
+const wsScope = require('./_shared/workspace-scope.js');
 
 // ── Shared: supabase config ────────────────────────────────────────────────
 function supaEnv() {
@@ -183,7 +184,9 @@ async function dailyDigest(req, res, env) {
   const sinceIso = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   let rows = [];
   try {
-    const q = `${env.url}/rest/v1/kb_knowledge?select=title,summary,key_points,market,vertical,url,added_at&status=eq.summarized&added_at=gte.${encodeURIComponent(sinceIso)}&order=added_at.desc&limit=80`;
+    const wsF = await wsScope.filterFor('kb_knowledge', env, req);
+    if (wsF === null) return [];   // no workspace resolved: return nothing, never everything
+    const q = `${env.url}/rest/v1/kb_knowledge?select=title,summary,key_points,market,vertical,url,added_at&status=eq.summarized&added_at=gte.${encodeURIComponent(sinceIso)}&order=added_at.desc&limit=80${wsF}`;
     const r = await fetch(q, { headers });
     if (r.ok) rows = await r.json();
   } catch (_) { rows = []; }
@@ -319,6 +322,7 @@ Rules:
   // Upsert initial 'queued' row
   let row;
   try {
+    row = await wsScope.stamp('kb_knowledge', row, env, req);
     const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=url_hash`, {
       method: 'POST',
       headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
