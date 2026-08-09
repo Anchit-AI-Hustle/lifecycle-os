@@ -6,8 +6,9 @@
  * Parallel to (and deliberately NOT touching) calendar-generate.js, which
  * plans by RFM segment. This planner works on ENGAGEMENT cohorts (see
  * lifecycle-cohorts.js) and product-type purchase rules (data/product-types.json):
- *   - T&B is one-time only (never a subscription CTA)
- *   - Coffee + Supplements are subscription-priority
+ *   - Every KNICKGASM lane is ONE-TIME purchase (never a subscription CTA):
+ *     'tb' custom sneakers, 'coffee' the coffee-ART collection, 'supplements'
+ *     the accessories lane (laces + lace tags, routed price-free to the PDP)
  *
  * Fully deterministic: same input → byte-identical plan. No Math.random —
  * rotation uses the same stableIndex() hash trick as calendar-generate.js,
@@ -97,7 +98,8 @@ function loadProductTypes() {
 
 // Weighted fair rotation over a cohort's product_mix: at each step pick the
 // type with the lowest used/weight ratio (ties resolved by mix declaration
-// order). Deterministic, and honours e.g. {tb:3, coffee:2, supplements:1}.
+// order). Deterministic, and honours e.g. {tb:3, coffee:2, supplements:1}
+// (legacy keys: custom sneakers, coffee-ART collection, accessories).
 function productTypeSequence(mix, length) {
   const keys = Object.keys(mix);
   const used = {};
@@ -140,14 +142,17 @@ function heroForSlot({ productType, playKey, seedKey, useCount }) {
     return {
       hero_handle: c.handle,
       hero_product: `${c.label} — ${pack.label}`,
-      hero_price: `${sym}${pack.subscription_gbp.toFixed(2)} subscription · ${sym}${pack.one_time_gbp.toFixed(2)} one-time`,
+      // Legacy pack fields both carry the SAME single live store price (there is
+      // no subscription) — quote it once, per base-model step of the ladder.
+      hero_price: `${sym}${pack.one_time_gbp.toFixed(2)}`,
       hero_image: null,
       handle_verified: c.handle_verified === true,
       pack: pack.key,
     };
   }
 
-  // supplements — zero purchase history, NO pricing may ever be stated.
+  // supplements = the accessories lane (rope laces, custom lace tags). Low-ticket
+  // attachment items, deliberately routed PRICE-FREE to the product page.
   const list = PT.types.supplements.products;
   const idx = (stableIndex(seedKey, list.length) + useCount) % list.length;
   const p = list[idx];
@@ -164,18 +169,18 @@ function heroForSlot({ productType, playKey, seedKey, useCount }) {
 
 function buildSubjectHint({ playKey, hero, festival, cohortKey }) {
   const name = hero.hero_product || '';
-  if (festival) return `${festival.name} · a quieter kind of ritual`;
+  if (festival) return `${festival.name} · a pair that exists once`;
   const map = {
     brand_story_intro: 'There is a moment the right pair makes — an introduction',
-    winback_warm: `Your box is still here · ${name}`,
-    gifts_unboxing_education: 'Seven gifts, one box — what actually arrives',
-    subscription_value_math: 'The quiet arithmetic of a better morning',
-    b2g1_offer: 'Two packs in, the third is on us',
-    cross_grade_launch_news: 'From the sneaker people you know: something new',
+    winback_warm: `Your pair is still here · ${name}`,
+    gifts_unboxing_education: 'One pair, painted once — what actually arrives',
+    subscription_value_math: 'The quiet arithmetic of a one-of-one',
+    b2g1_offer: 'Same artwork, your choice of base',
+    cross_grade_launch_news: 'From the artists who painted your pair: something new',
     new_launch_announcement: `Just launched · ${name}`,
-    occasion_bundle: 'A season worth setting the table for',
+    occasion_bundle: 'A season worth lacing up for',
   };
-  let hint = map[playKey] || `On the table today: ${name}`;
+  let hint = map[playKey] || `On the bench today: ${name}`;
   if (cohortKey === 'non_buyers_non_engagers' && playKey === 'brand_story_intro') {
     hint = 'Meet the pair we have been crafting for you';
   }
@@ -189,7 +194,7 @@ function buildRationale({ cohort, play, productType, purchaseMode, festival, her
   parts.push(
     purchaseMode === 'one_time_only'
       ? `Product type ${productType} is strictly one-time purchase — no subscription language.`
-      : `Product type ${productType} is subscription-priority — subscribe is the primary CTA.`
+      : `Product type ${productType} has no one-time restriction flagged — still never write subscription copy.`
   );
   if (festival) parts.push(`Timed to ${festival.name} (weight ${festival.weight}/10).`);
   parts.push(`Hero: ${hero.hero_product}${hero.handle_verified ? '' : ' (handle unverified — check before send)'}.`);
@@ -288,7 +293,8 @@ async function generateLifecycleCalendar(input = {}) {
 
       let productType = typeSeq[i];
       const festival = findFestivalForDate(market, dateStr);
-      // A festival slot reads better on sneaker/coffee than on a supplement launch.
+      // A festival slot reads better on a hero custom pair than on a lace-tag
+      // attachment send, so promote accessories slots to the sneaker lane.
       if (festival && productType === 'supplements' && festival.weight >= 5) productType = 'tb';
 
       const play = pickPlay({ cohortKey, productType, dateStr, lastUsedByPlay, isFirstSend: i === 0 });
@@ -304,7 +310,7 @@ async function generateLifecycleCalendar(input = {}) {
         { when: (i === 0), label: 'Cohort entry / first send', delta: 0.10, detail: 'Opening send of the cohort sequence, highest attention.' },
         { when: (festival && festival.weight >= 5), label: 'Festival window', delta: 0.08, detail: festival ? `Timed to ${festival.name} (weight ${festival.weight}/10).` : '' },
         { when: (hero.handle_verified === true), label: 'Verified hero product handle', delta: 0.08, detail: 'Product link is verified against the live catalog.' },
-        { when: (purchaseMode !== 'one_time_only'), label: 'Subscription-priority product', delta: 0.06, detail: 'Subscribe CTA raises repeat-revenue potential.' },
+        { when: (purchaseMode !== 'one_time_only'), label: 'Repeat-purchase-friendly product', delta: 0.06, detail: 'Attachment and reorder CTA raises repeat-revenue potential.' },
       ]);
       const analysisObj = buildEntryAnalysis({
         cohort: { name: cohort.label },
@@ -318,7 +324,7 @@ async function generateLifecycleCalendar(input = {}) {
       });
       // Layer in the play mechanic + purchase-mode rule as explicit drivers.
       analysisObj.drivers.push({ signal: 'Lifecycle play', value: play.name, implication: String(play.when_to_use || '').split(' — ')[0].split('.')[0] + '.' });
-      analysisObj.drivers.push({ signal: 'Purchase mode', value: purchaseMode, implication: purchaseMode === 'one_time_only' ? `${productType} is strictly one-time — no subscription language.` : `${productType} is subscription-priority — subscribe is the primary CTA.` });
+      analysisObj.drivers.push({ signal: 'Purchase mode', value: purchaseMode, implication: purchaseMode === 'one_time_only' ? `${productType} is strictly one-time — no subscription language.` : `${productType} carries no one-time flag — still never write subscription copy.` });
       if (hero.handle_verified !== true) analysisObj.drivers.push({ signal: 'Data caveat', value: 'Hero handle unverified', implication: 'Verify the product link against the live catalog before send.' });
 
       plan.push({

@@ -77,6 +77,10 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
@@ -92,7 +96,7 @@
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
@@ -126,10 +130,10 @@
   var STORE = { US:'knickgasm.com', UK:'knickgasm.com', Global:'knickgasm.com' };
   var CUR = { US:'$', UK:'£', Global:'$' };
   var AVATAR = {
-    '001': { name:'Third-Wave Purists', hook:'origin story and pair character', hero:'One-of-One Jordan First Flush', sub:'studio reserve' },
-    '002': { name:'Functional Optimizers', hook:'the daily refill rhythm', hero:'Coffee Collection', sub:'refill subscription' },
-    '003': { name:'Biohacking Performers', hook:'precise adaptogen payload', hero:'Coffee Collection, high-dose', sub:'performance stack' },
-    '004': { name:'Routine Convenience', hook:'a simpler morning', hero:'Ground Coffee Collection', sub:'auto-reorder' }
+    '001': { name:'Fandom Collectors', hook:'the design they already love', hero:'Air Force 1 custom', sub:'anime, gaming and football collections', price:'156' },
+    '002': { name:'Grail Collectors', hook:'a pair that is singular, not merely rare', hero:'Air Jordan custom', sub:'grail tier', price:'205' },
+    '003': { name:'Occasion and Gift Buyers', hook:'a gift that cannot be duplicated', hero:'wedding custom', sub:'wedding and gifting collection', price:'156' },
+    '004': { name:'Curious First-Timers', hook:'a first one-of-one without the risk', hero:'Converse custom', sub:'entry tier', price:'100' }
   };
   function mailerBlock(a, market){
     var store = STORE[market], cur = CUR[market];
@@ -139,10 +143,10 @@
 '  <tr><td align="center" style="padding:28px 16px;">',
 '    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid rgba(23,23,23,.12);border-radius:12px;overflow:hidden;">',
 '      <tr><td style="background:#D0473E;padding:22px 28px;"><span style="font-family:Montserrat,Georgia,serif;color:#FFFFFF;font-size:24px;">Knickgasm</span></td></tr>',
-'      <tr><td style="padding:34px 28px 8px;"><h1 style="margin:0;font-family:Montserrat,Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">There is a moment when the right pair does more than warm your hands.</h1></td></tr>',
-'      <tr><td style="padding:8px 28px 20px;"><p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. Lace-up the '+a.hero+', hand-painted and shipped studio-fresh from origin, and let the ritual restore the morning.</p></td></tr>',
-'      <tr><td style="padding:0 28px 26px;"><a href="https://'+store+'/products/coffee-collection" style="display:inline-block;background:#6A33D8;color:#D0473E;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Start the ritual, '+cur+'39.83</a></td></tr>',
-'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;"><p style="margin:0;font-size:12px;color:#5b5b57;">Single-studio. Hand-painted. Crafted at origin. Knickgasm.</p></td></tr>',
+'      <tr><td style="padding:34px 28px 8px;"><h1 style="margin:0;font-family:Montserrat,Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">There is a moment when the right pair stops being a shoe.</h1></td></tr>',
+'      <tr><td style="padding:8px 28px 20px;"><p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. The '+a.hero+' is hand-painted by our artists in Mumbai on a 100% original pair, finished water and scratch resistant, and made to order in 10 to 15 days.</p></td></tr>',
+'      <tr><td style="padding:0 28px 26px;"><a href="https://'+store+'/collections/best-sellers" style="display:inline-block;background:#6A33D8;color:#FFFFFF;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">See the designs, from '+cur+a.price+'</a></td></tr>',
+'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;"><p style="margin:0;font-size:12px;color:#5b5b57;">One of one. Hand-painted on original pairs. Express shipping to 60+ countries. Knickgasm.</p></td></tr>',
 '    </table>',
 '  </td></tr>',
 '</table>'
@@ -153,16 +157,16 @@
     return [
 '/* Paid social ad :: '+a.name+' :: '+market+' */',
 'PRIMARY TEXT:',
-'  Restore the morning with '+a.hero+'. Hand-painted at a one of one, crafted at origin,',
-'  and built for '+a.hook+'. This is the ritual worth keeping.',
+'  A '+a.hero+' painted by hand on a 100% original pair, for '+a.hook+'.',
+'  Water and scratch resistant. Made to order in 10 to 15 days. Nobody else will own it.',
 '',
-'HEADLINE:  Origin in every pair',
-'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+', shipped studio-fresh.',
+'HEADLINE:  One of one, on an original pair',
+'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+', hand-painted in Mumbai, shipped express.',
 'CTA:  Shop now',
-'LANDING:  https://'+store+'/products/coffee-collection',
-'PRICE POINT:  '+cur+'39.83',
+'LANDING:  https://'+store+'/collections/best-sellers',
+'PRICE POINT:  from '+cur+a.price+'',
 '',
-'PALETTE:  #D0473E violet / #6A33D8 lava / #111111 ink / #FFFFFF chalk',
+'PALETTE:  #D0473E lava red / #6A33D8 drip purple / #111111 ink / #FFFFFF white',
 'FONTS:    Montserrat (headline) / Instrument Sans (body)',
 'NOTE:     No banned phrases. Warm, sensory, story-driven register.'
     ].join('\n');
@@ -179,11 +183,11 @@
 '  "palette": ["#D0473E", "#6A33D8", "#111111", "#FFFFFF"],',
 '  "typography": { "headline": "Montserrat", "body": "Instrument Sans" },',
 '  "scenes": [',
-'    { "t": "0-2s", "shot": "steam rising off a fresh pour, chalk background", "text": "A moment to restore" },',
-'    { "t": "2-5s", "shot": "'+a.hero+' pack, one-of-one label in focus", "text": "Hand-painted at origin" },',
-'    { "t": "5-8s", "shot": "hands cradling the pair, warm light", "text": "Start the ritual" }',
+'    { "t": "0-2s", "shot": "blank white original pair on the workbench, first stroke of colour landing", "text": "It starts as an original" },',
+'    { "t": "2-5s", "shot": "macro of the brush and airbrush passes building the '+a.hero+' design", "text": "Hand-painted in Mumbai" },',
+'    { "t": "5-8s", "shot": "finished pair turned to camera, then worn out of frame", "text": "One of one. Yours only." }',
 '  ],',
-'  "cta": { "label": "Shop now", "url": "https://'+store+'/products/coffee-collection" },',
+'  "cta": { "label": "Shop now", "url": "https://'+store+'/collections/best-sellers" },',
 '  "hook": "'+a.hook+'"',
 '}'
     ].join('\n');

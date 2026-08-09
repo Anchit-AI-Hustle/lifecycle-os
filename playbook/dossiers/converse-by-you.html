@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vital Proteins Dossier :: Knickgasm Playbook</title>
+<title>Converse By You Dossier :: Knickgasm Playbook</title>
 <link rel="icon" href="/favicon.png">
-<meta name="description" content="Forensic competitor dossier for Vital Proteins: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
+<meta name="description" content="Forensic competitor dossier for Converse By You: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: {
@@ -77,15 +77,10 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
-
-/* vh-table-align: data-table column alignment — header cells sit over their
-   columns (table-layout:fixed, equal width), the first column (row labels) is
-   left-aligned and every other column is centered. Scoped to tables that have
-   <th> so layout tables are never affected; element-level so a page's own
-   table.<class> alignment still wins. */
-table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
-table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
-table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
@@ -101,7 +96,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
@@ -113,39 +108,39 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
     </div>
   </aside>
   <main class="flex-1 min-w-0">
-    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">Vital Proteins</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
+    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">Converse By You</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
     <div class="max-w-[1080px] mx-auto px-6 md:px-10 py-10 space-y-14">
-      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">Vital Proteins</span></nav>
+      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">Converse By You</span></nav>
       <header class="space-y-3">
         <span class="text-[11px] tracking-[.18em] uppercase font-bold lava-ink">Forensic Dossier</span>
-        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Vital Proteins</h1>
-        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Functional supplement. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
+        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Converse By You</h1>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Brand configurator. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
       </header>
       <section data-section id="snapshot" class="space-y-4">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb1"><b>Tier 1</b><i>High</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">$48.00</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">26.80%</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">B2B retail programmatic integration pull</div></div>        </div>
-        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Cross-catalog item value bundling</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Salesforce Commerce / Ordergroove</p></div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb2"><b>Tier 2</b><i>Med</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">undefined</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">undefined</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">Accessible canvas personalisation</div></div>        </div>
+        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Seasonal brand campaigns</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Converse.com</p></div>
       </section>
       <section data-section id="viewport" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">1. Viewport</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Desktop vs mobile UX</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Where the experience diverges across breakpoints, and where the gaps are.</p></div>
-        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Retail-grade omnichannel site with routine bundling, replenishment defaults, and a broad SKU catalog.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Competent mobile experience with clear reorder paths, though the wide catalog can overwhelm first-time choice.</p></div>        </div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Canvas-led builder with colour, print and patch libraries and a clear preview. Strong entry-level experience on a silhouette that takes print well.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Competent mobile builder, template-bound. Every choice is drawn from a fixed library, so two customers can and do arrive at the same pair.</p></div>        </div>
       </section>
       <section data-section id="wireframes" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">2. Wireframes</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">High-fidelity asset outlines</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Labelled bounding boxes standing in for layout screenshots.</p></div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <div class="wire"><div class="wl">[SCREENSHOT: Routine bundle builder]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Guided flow assembling a daily routine from complementary SKUs with a subscribe default.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Replenishment reminder]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Lifecycle email and on-site banner nudging reorder before the current supply runs out.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Broad catalog grid]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Dense product grid with filters where first-time choice can stall.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Mobile reorder card]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">One-tap reorder of the last routine from the account home.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Canvas builder]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Chuck Taylor preview with colour pickers per panel and a scrollable print library beneath.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Patch library]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Grid of licensed and seasonal patches, the closest the configurator gets to artwork.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Mobile preview]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Rotating preview with a persistent price bar and a build-time note.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Build window notice]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Made-to-order lead time stated before checkout, exactly the transparency a custom purchase needs.</p></div>
         </div>
       </section>
       <section data-section id="stack" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">3. Technical stack</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Infrastructure footprint</h2></div>
-        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Shopify Plus checkout</td></tr><tr><td>Subscription app</td><td>Recharge</td></tr><tr><td>Analytics suite</td><td>GA4 plus Amplitude</td></tr><tr><td>ESP / CRM</td><td>Klaviyo</td></tr><tr><td>Churn prevention hook</td><td>Routine bundling and replenishment reminders that anchor a daily supplement habit.</td></tr></tbody></table></div>
+        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Converse.com</td></tr><tr><td>Subscription app</td><td>None</td></tr><tr><td>Analytics suite</td><td>First-party</td></tr><tr><td>ESP / CRM</td><td>Brand CRM</td></tr><tr><td>Churn prevention hook</td><td>Seasonal brand campaigns rather than lifecycle marketing.</td></tr></tbody></table></div>
       </section>
       <section data-section id="battlecard" class="space-y-4">
-<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs Vital Proteins SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
-        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (Vital Proteins)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Omnichannel scale and retail trust</li><li>Mature replenishment and bundling</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Broad catalog overwhelms first-time triers</li><li>Ingredient story less origin-led</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>A cleaner functional-coffee entry ritual</li><li>Origin-led trust versus generic supplement framing</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Retail-scale competitors with big budgets</li><li>Category price competition</li></ul></div>        </div>
-        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs Vital Proteins</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Adopt replenishment reminders tuned to the coffee refill window.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Lead with a single hero ritual rather than a broad catalog to reduce first-choice friction.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Differentiate on one-of-one origin against generic supplement sourcing.</li></ul></div>
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs Converse By You SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (Converse By You)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Canvas takes print exceptionally well</li><li>Accessible entry price into personalisation</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Templated prints, not painted artwork</li><li>No character, portrait or scene work is possible</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Painted artwork on the identical silhouette</li><li>Fandom subjects a licensed library cannot include</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Independent painters on the same Chuck at lower prices</li><li>Marketplace listings with unverified bases</li></ul></div>        </div>
+        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs Converse By You</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Merchandise KNICKGASM Converse customs from $99.84 (UK from &pound;79.42) against the same silhouette.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Show the difference between a printed template and a hand-painted panel, side by side.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Own the fandom subjects a brand-licensed library will never carry.</li></ul></div>
         <div class="flex flex-wrap gap-3"><a href="../features/competitor-index.html" class="btn-lava inline-block px-5 py-2.5 text-sm">Back to all dossiers</a><a href="../index.html" class="btn-primary inline-block px-5 py-2.5 text-sm">Hub</a></div>
       </section>
     </div>

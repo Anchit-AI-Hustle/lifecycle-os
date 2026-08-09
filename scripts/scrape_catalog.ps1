@@ -31,19 +31,24 @@ function To-JsonbLit($obj) {
 
 function Categorize([string]$title, [string]$tagsCsv, [string]$productType) {
   $t = "$title $tagsCsv $productType".ToLower()
-  if ($t -match 'hand-painted kicks|kicks sneaker|chrome kicks') { return 'Hand-painted Kicks' }
-  if ($t -match 'detox|cleanse|embroidery neon') { return 'Detox Sneakers' }
-  if ($t -match 'immunity|airbrush|matte') { return 'Immunity Sneakers' }
-  if ($t -match 'sleep|pastel|calm|rest') { return 'Sleep & Calm Sneakers' }
-  if ($t -match 'gift set|box crate|sneaker gift') { return 'Sneaker Gift Sets' }
-  if ($t -match 'sampler|assorted|variety pack') { return 'Sneaker Samplers' }
-  if ($t -match 'jordan|first flush|second flush') { return 'Jordan Sneakers' }
-  if ($t -match 'green sneaker|dunks|signature green') { return 'Green Sneakers' }
-  if ($t -match 'iced|crimson|cold craft|summer') { return 'Bling Kickss' }
-  if ($t -match 'hightop') { return 'Hightop Sneakers' }
-  if ($t -match 'airforce|breakfast|black sneaker|earl grey|english') { return 'Airforce & Black Sneakers' }
-  if ($t -match 'themed|tisane') { return 'Themed Sneakers' }
-  return 'Specialty Sneakers'
+  if ($t -match 'lace|lace tag|care kit|cleaner|accessor') { return 'Accessories & Care' }
+  if ($t -match 'denim|jacket|apparel') { return 'Hand-painted Apparel' }
+  if ($t -match 'jordan') { return 'Air Jordan Customs' }
+  if ($t -match 'adidas|samba|gazelle') { return 'Adidas Customs' }
+  if ($t -match 'converse|chuck|all star') { return 'Converse Customs' }
+  if ($t -match 'court vision') { return 'Court Vision Customs' }
+  if ($t -match 'anime|demon slayer|jujutsu|naruto|one piece|dragon ball') { return 'Anime Customs' }
+  if ($t -match 'football|cricket|f1|formula|basketball|sport|club') { return 'Football & Sport Customs' }
+  if ($t -match 'gaming|playstation|xbox|valorant|minecraft') { return 'Gaming Customs' }
+  if ($t -match 'car|supercar|jdm|motorsport') { return 'Car & Motorsport Customs' }
+  if ($t -match 'wedding|bride|groom|couple') { return 'Wedding Customs' }
+  if ($t -match 'pet|dog|cat|portrait') { return 'Pet & Portrait Customs' }
+  if ($t -match 'bling|crystal|rhinestone|drip') { return 'Bling & Crystal Customs' }
+  if ($t -match 'embroider|patch|stitch') { return 'Embroidery Customs' }
+  if ($t -match 'coffee|latte|espresso') { return 'Coffee-ART Customs' }
+  if ($t -match 'taylor swift|celebrity|concert|tour') { return 'Celebrity & Music Customs' }
+  if ($t -match 'air force|airforce|af1') { return 'Air Force 1 Customs' }
+  return 'Specialty Customs'
 }
 
 $totalUpserts = 0

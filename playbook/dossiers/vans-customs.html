@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jot Dossier :: Knickgasm Playbook</title>
+<title>Vans Customs Dossier :: Knickgasm Playbook</title>
 <link rel="icon" href="/favicon.png">
-<meta name="description" content="Forensic competitor dossier for Jot: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
+<meta name="description" content="Forensic competitor dossier for Vans Customs: desktop vs mobile UX, wireframes, tech stack, and Knickgasm SWOT battle card.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: {
@@ -77,15 +77,10 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
-
-/* vh-table-align: data-table column alignment — header cells sit over their
-   columns (table-layout:fixed, equal width), the first column (row labels) is
-   left-aligned and every other column is centered. Scoped to tables that have
-   <th> so layout tables are never affected; element-level so a page's own
-   table.<class> alignment still wins. */
-table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
-table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
-table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
@@ -101,7 +96,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
@@ -113,39 +108,39 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
     </div>
   </aside>
   <main class="flex-1 min-w-0">
-    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">Jot</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
+    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);"><div class="font-head text-lg">Vans Customs</div><a href="../index.html" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Hub</a></div>
     <div class="max-w-[1080px] mx-auto px-6 md:px-10 py-10 space-y-14">
-      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">Jot</span></nav>
+      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">Vans Customs</span></nav>
       <header class="space-y-3">
         <span class="text-[11px] tracking-[.18em] uppercase font-bold lava-ink">Forensic Dossier</span>
-        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Jot</h1>
-        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Ultra-concentrate coffee. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
+        <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Vans Customs</h1>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">Brand configurator. Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data.</p>
       </header>
       <section data-section id="snapshot" class="space-y-4">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb2"><b>Tier 2</b><i>Med</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">$36.00</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">28.90%</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">Recipe video creative ad permutations</div></div>        </div>
-        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Automated multi-use recipe push tracks</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Shopify Core / Recharge Engine</p></div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Share tier</div><div class="mt-2"><span class="tierbadge tb2"><b>Tier 2</b><i>Med</i></span></div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">AOV</div><div class="mv text-4xl mt-1">undefined</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Estimated average order value</div></div><div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">D-180 retention</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">undefined</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Day-180 retained rate</div></div><div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">Subculture credibility plus print library</div></div>        </div>
+        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">Community and subculture programmes</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">Vans.com</p></div>
       </section>
       <section data-section id="viewport" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">1. Viewport</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Desktop vs mobile UX</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Where the experience diverges across breakpoints, and where the gaps are.</p></div>
-        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Concentrate-led site selling one-tablespoon-per-pair math; desktop is clean with a clear value-per-pair story.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Efficient mobile reorder with a low-friction path, though the concentrate format needs a quick usage explainer.</p></div>        </div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Desktop configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Playful builder with the widest print and material library of the configurators, plus genuine skate and music subculture credibility behind it.</p></div><div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Mobile configuration</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Strong mobile builder tuned for a young audience. Still template-bound: personalisation here reads as selection, not creation.</p></div>        </div>
       </section>
       <section data-section id="wireframes" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">2. Wireframes</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">High-fidelity asset outlines</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Labelled bounding boxes standing in for layout screenshots.</p></div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <div class="wire"><div class="wl">[SCREENSHOT: Value-per-pair calculator]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Interactive one-bottle-equals-many-pairs math driving perceived value.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Mobile reorder path]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Streamlined reorder from account with subscription cadence pre-set.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Usage explainer]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Quick how-to-pour panel teaching the concentrate ratio.</p></div>
-          <div class="wire"><div class="wl">[SCREENSHOT: Black-tie brand hero]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Minimalist premium hero framing concentrate as an upscale staple.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Print library grid]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Wide pattern and material library applied per panel, with live preview.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Silhouette switcher]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Authentic, Old Skool and Slip-On toggles carrying the same library across shapes.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Mobile build bar]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Persistent price and add-to-bag with the build window stated inline.</p></div>
+          <div class="wire"><div class="wl">[SCREENSHOT: Community campaign block]</div><p class="text-[13px] mt-2" style="color:var(--knickgasm-ink);">Subculture campaign content sitting alongside the builder, doing the brand work the product cannot.</p></div>
         </div>
       </section>
       <section data-section id="stack" class="space-y-4">
 <div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">3. Technical stack</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Infrastructure footprint</h2></div>
-        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Shopify checkout</td></tr><tr><td>Subscription app</td><td>Recharge</td></tr><tr><td>Analytics suite</td><td>GA4</td></tr><tr><td>ESP / CRM</td><td>Klaviyo</td></tr><tr><td>Churn prevention hook</td><td>One-bottle-a-month math and a low-friction reorder that make replenishment feel effortless.</td></tr></tbody></table></div>
+        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:520px;"><thead><tr><th>Layer</th><th>Tooling</th></tr></thead><tbody><tr><td>Checkout framework</td><td>Vans.com</td></tr><tr><td>Subscription app</td><td>None</td></tr><tr><td>Analytics suite</td><td>First-party</td></tr><tr><td>ESP / CRM</td><td>Brand CRM</td></tr><tr><td>Churn prevention hook</td><td>Community and subculture programmes rather than lifecycle automation.</td></tr></tbody></table></div>
       </section>
       <section data-section id="battlecard" class="space-y-4">
-<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs Jot SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
-        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (Jot)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Compelling value-per-pair math</li><li>Clean premium minimalism</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Concentrate format needs usage education</li><li>Narrow product range</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>A ready-to-craft ritual without ratio math</li><li>Functional payload beyond convenience</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Format novelty risk</li><li>Convenience-segment price pressure</li></ul></div>        </div>
-        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs Jot</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Match the value-per-pair clarity while removing the ratio learning step.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Add a functional benefit on top of convenience, which Jot does not offer.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Use the same low-friction reorder mechanics for the coffee refill rhythm.</li></ul></div>
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">4. Battle card</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Knickgasm vs Vans Customs SWOT</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The definitive read, mapped to an actionable path to progress.</p></div>
+        <div class="grid gap-4 md:grid-cols-2"><div class="card p-5"><h4 class="font-head text-knickgasm-green">Strengths (Vans Customs)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Genuine subculture credibility in skate and music</li><li>Broadest print and material library of the configurators</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Weaknesses</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Still a template; no painted artwork</li><li>Personalisation reads as selection rather than creation</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Opportunities (for Knickgasm)</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Customers who exhausted the library and still wanted something specific</li><li>Subjects a licensed library cannot include</li></ul></div><div class="card p-5"><h4 class="font-head text-knickgasm-green">Threats</h4><ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);"><li>Independent painters on the same silhouettes</li><li>Fandom-led studios with deeper subject matter</li></ul></div>        </div>
+        <div class="card p-6" style="border-color:var(--knickgasm-lava-ink);border-left-width:4px;"><h3 class="font-head text-xl text-knickgasm-green">Path to Progress: how Knickgasm leapfrogs Vans Customs</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">Step 1.</b> Answer the customer who finished the builder and still did not get the thing they pictured.</li><li><b style="color:var(--knickgasm-green);">Step 2.</b> Lead with subjects a brand library will never license.</li><li><b style="color:var(--knickgasm-green);">Step 3.</b> Use the same subculture language without inheriting the template ceiling.</li></ul></div>
         <div class="flex flex-wrap gap-3"><a href="../features/competitor-index.html" class="btn-lava inline-block px-5 py-2.5 text-sm">Back to all dossiers</a><a href="../index.html" class="btn-primary inline-block px-5 py-2.5 text-sm">Hub</a></div>
       </section>
     </div>

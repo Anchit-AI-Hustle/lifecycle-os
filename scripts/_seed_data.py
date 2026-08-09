@@ -23,16 +23,16 @@ PRODUCT_TYPES = ["Green Sneaker","Black Sneaker","Themed Sneaker","Streetwear Sn
 VENDORS = ["KNICKGASM","KNICKGASM Colorways"]
 
 PRODUCTS = [
-    ("p1001","original-hand-painted-kicks","Original Hand-painted Kicks",  "Green Sneaker",  12.99, 3.20),
-    ("p1002","signature-green-sneaker",  "Signature Green Sneaker",   "Green Sneaker",  14.99, 3.80),
-    ("p1003","embroidery-spice-themed","Embroidery Spice Themed", "Themed Sneaker", 16.99, 4.10),
-    ("p1004","airforce-classic-black",  "Airforce Classic Black",   "Black Sneaker",  11.99, 2.90),
-    ("p1005","immunity-boost-colorway", "Immunity Boost Colorway",  "Streetwear Sneaker",18.99,4.50),
-    ("p1006","earl-grey-supreme",    "Earl Grey Supreme",     "Black Sneaker",  13.99, 3.30),
-    ("p1007","rose-green-sneaker",       "Rose Green Sneaker",        "Green Sneaker",  15.99, 3.90),
-    ("p1008","sleep-well-colorway",     "Sleep Well Colorway",      "Themed Sneaker", 17.99, 4.30),
-    ("p1009","gift-set-premium",     "Premium Gift Set",      "Gift Sets",  39.99, 9.80),
-    ("p1010","neon-lemon-themed",  "Neon Lemon Themed",   "Themed Sneaker", 14.99, 3.60),
+    ("p1001","anime-x-nike-air-force-1",  "Anime x Nike Air Force 1",   "Air Force 1 Custom", 156.33, 62.00),
+    ("p1002","football-club-air-force-1", "Football Club Air Force 1",  "Air Force 1 Custom", 149.99, 60.00),
+    ("p1003","embroidery-air-force-1",    "Embroidery Air Force 1",     "Air Force 1 Custom", 178.50, 74.00),
+    ("p1004","gaming-nike-court-vision",  "Gaming Nike Court Vision",   "Court Vision Custom",115.87, 46.00),
+    ("p1005","motorsport-air-jordan",     "Motorsport Air Jordan",      "Air Jordan Custom",  204.69, 88.00),
+    ("p1006","pet-portrait-converse",     "Pet Portrait Converse",      "Converse Custom",    123.43, 49.00),
+    ("p1007","bling-crystal-air-force-1", "Bling Crystal Air Force 1",  "Air Force 1 Custom", 219.00, 96.00),
+    ("p1008","wedding-white-air-force-1", "Wedding White Air Force 1",  "Air Force 1 Custom", 189.00, 78.00),
+    ("p1009","adidas-samba-custom",       "Adidas Samba Custom",        "Adidas Custom",      198.86, 84.00),
+    ("p1010","chunky-rope-laces",         "Chunky Rope Laces",          "Accessories",          7.91,  2.10),
 ]
 
 # ── 1. MATRIXIFY ──────────────────────────────────────────────────────────────

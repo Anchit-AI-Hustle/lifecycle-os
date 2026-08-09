@@ -457,7 +457,7 @@ NEW_ARCH = """
       <span class="join-key">order_line_items.order_id = orders.id</span>
     </div>
     <div class="join-plain">
-      <strong>Plain English:</strong> An order is a basket receipt — it tells you the total and the customer. A line item is each individual product in that basket. This join lets you go from "KNICKGASM made $50 on this order" to "this customer bought Embroidery Latte (×2) and Earl Grey Box (×1)." Without it, you can measure revenue but not what people actually buy.
+      <strong>Plain English:</strong> An order is a basket receipt — it tells you the total and the customer. A line item is each individual product in that basket. This join lets you go from "KNICKGASM made $50 on this order" to "this customer bought an Anime x Air Force 1 custom (×1) and Chunky Rope Laces (×2)." Without it, you can measure revenue but not what people actually buy.
     </div>
     <div class="join-enables">
       <span>Enables:</span>

@@ -76,7 +76,7 @@
     Cohort A = Non-Buyers/Non-Engagers · Cohort B = T&amp;B Buyers/Non-Engagers.
     V1 vs V2 test distinct psychological angles per slot — pick one or split-test.
     Subject-line discipline for non-openers: short, human, curiosity-led, no spam triggers.
-    Coffee/supplement emails carry an image-generation prompt in an HTML comment where a product shot can slot in.
+    Design-led emails carry an image-generation prompt in an HTML comment where a real pair photo can slot in.
   </p>
 </div>
 
@@ -88,24 +88,29 @@
 
 <script>
 const BASE = '/lifecycle-campaigns/2026-07-03_week1/emails/';
+// NOTE: the `file:` values are the actual filenames on disk under
+// /lifecycle-campaigns/2026-07-03_week1/emails/ and are legacy names from an
+// earlier build. They are kept verbatim so the fetch/preview/download paths keep
+// resolving; the human-readable title, note and angle describe the real
+// custom-sneaker content of each send.
 const SLOTS = [
-  { date:'Thu 3 Jul', cohort:'A', title:'Coffee introduction', note:'First touch for cold non-buyers — earn the open, introduce Coffee Collection.',
-    v1:{ file:'2026-07-03_cohortA_story-intro-coffee.html', angle:'Sensory brand story (long-form warmth)' },
+  { date:'Thu 3 Jul', cohort:'A', title:'Introducing the customs', note:'First touch for cold non-buyers, earn the open and show what a hand-painted one-of-one actually is.',
+    v1:{ file:'2026-07-03_cohortA_story-intro-coffee.html', angle:'Studio story, from blank pair to finished design' },
     v2:{ file:'2026-07-03_cohortA_story-intro-coffee_v2.html', angle:'Short question-led pattern-interrupt' } },
-  { date:'Thu 3 Jul', cohort:'B', title:'Win-back · Wimbledon week', note:'Reactivate lapsed sneaker buyers with familiarity, zero guilt.',
-    v1:{ file:'2026-07-03_cohortB_winback-wimbledon.html', angle:'Warm letter + 4-product restock grid' },
-    v2:{ file:'2026-07-03_cohortB_winback-wimbledon_v2.html', angle:'Ultra-short personal note, one product' } },
-  { date:'Sun 6 Jul', cohort:'A', title:'Unboxing + subscription math', note:'Turn curiosity into a concrete decision.',
-    v1:{ file:'2026-07-06_cohortA_gifts-unboxing-subscription.html', angle:'Gifts-first unboxing, then price math' },
-    v2:{ file:'2026-07-06_cohortA_gifts-unboxing-subscription_v2.html', angle:'Price-math first, gifts as proof' } },
-  { date:'Sun 6 Jul', cohort:'B', title:'Coffee launch for sneaker lovers', note:'News as reactivation — your sneaker house made a coffee.',
-    v1:{ file:'2026-07-06_cohortB_coffee-launch-sneaker-lovers.html', angle:'Story-led bridge, then price card' },
-    v2:{ file:'2026-07-06_cohortB_coffee-launch-sneaker-lovers_v2.html', angle:'Product-card first, 3-point why' } },
-  { date:'Wed 9 Jul', cohort:'A', title:'Pack-of-3 conversion push', note:'The strongest honest offer — third pack free on subscription.',
-    v1:{ file:'2026-07-09_cohortA_pack-of-3-offer.html', angle:'Headline offer + price-math table' },
-    v2:{ file:'2026-07-09_cohortA_pack-of-3-offer_v2.html', angle:'Gift-value receipt stack, then offer' } },
-  { date:'Wed 9 Jul', cohort:'B', title:'Supplements launch', note:'Genuine news for lapsed buyers — first to know.',
-    v1:{ file:'2026-07-09_cohortB_supplements-launch.html', angle:'Announcement + two product cards + sneaker PS' },
+  { date:'Thu 3 Jul', cohort:'B', title:'Win-back &middot; Wimbledon week', note:'Reactivate lapsed buyers with a design moment they already care about, zero guilt.',
+    v1:{ file:'2026-07-03_cohortB_winback-wimbledon.html', angle:'Warm letter plus a four-design grid' },
+    v2:{ file:'2026-07-03_cohortB_winback-wimbledon_v2.html', angle:'Ultra-short personal note, one pair' } },
+  { date:'Sun 6 Jul', cohort:'A', title:'Unboxing and the price ladder', note:'Turn curiosity into a concrete decision.',
+    v1:{ file:'2026-07-06_cohortA_gifts-unboxing-subscription.html', angle:'Unboxing first, then the price ladder' },
+    v2:{ file:'2026-07-06_cohortA_gifts-unboxing-subscription_v2.html', angle:'Price ladder first, unboxing as proof' } },
+  { date:'Sun 6 Jul', cohort:'B', title:'Coffee-ART drop for AF1 owners', note:'News as reactivation, the coffee-ART collection is hand-painted coffee imagery on Air Force 1s.',
+    v1:{ file:'2026-07-06_cohortB_coffee-launch-tea-lovers.html', angle:'Story-led bridge, then the price card' },
+    v2:{ file:'2026-07-06_cohortB_coffee-launch-tea-lovers_v2.html', angle:'Design card first, three-point why' } },
+  { date:'Wed 9 Jul', cohort:'A', title:'Accessory attach push', note:'The strongest honest offer, rope laces and lace tags with every pair.',
+    v1:{ file:'2026-07-09_cohortA_pack-of-3-offer.html', angle:'Headline offer plus the price ladder table' },
+    v2:{ file:'2026-07-09_cohortA_pack-of-3-offer_v2.html', angle:'Gift-value receipt stack, then the offer' } },
+  { date:'Wed 9 Jul', cohort:'B', title:'Denim jacket launch', note:'Genuine news for lapsed buyers, hand-painted denim to match a pair.',
+    v1:{ file:'2026-07-09_cohortB_supplements-launch.html', angle:'Announcement plus two design cards plus a matching-pair PS' },
     v2:{ file:'2026-07-09_cohortB_supplements-launch_v2.html', angle:'Single-column editorial narrative' } },
 ];
 

@@ -77,15 +77,10 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
-
-/* vh-table-align: data-table column alignment — header cells sit over their
-   columns (table-layout:fixed, equal width), the first column (row labels) is
-   left-aligned and every other column is centered. Scoped to tables that have
-   <th> so layout tables are never affected; element-level so a page's own
-   table.<class> alignment still wins. */
-table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
-table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
-table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
@@ -101,7 +96,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
