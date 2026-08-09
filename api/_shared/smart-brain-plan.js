@@ -122,6 +122,7 @@ async function callLLMTiered(opts) {
 }
 const { buildMasterPrompt, regionFacts } = require('./master-prompt.js');
 const SM = require('./scenario-model.js');
+const OfferingCampaign = require('./offering-campaign.js');
 // Guaranteed-online fallback: a real catalog product photo (Shopify CDN) so a
 // creative never ships an unrenderable data: URI when generation/upload fails.
 const catalogImage = require('./catalog-image.js');
@@ -490,12 +491,35 @@ Be specific and quantitative where the data allows.
 ${D2C_KNOWLEDGE}
 Return STRICT JSON only, no markdown fences.`;
 
+
+/**
+ * Describe what this send is actually promoting.
+ *
+ * A send is not always about a product. When the slot carries an OFFERING
+ * (event, programme, section, plan, service) this returns the campaign
+ * mechanics for it - phase in the ramp, the real job of this send, and the
+ * exact call to action - so the model writes "register before it closes" for a
+ * marathon rather than "shop the edit". Falls back to the legacy product line
+ * so existing product slots are unchanged.
+ */
+function offeringBrief(entry) {
+  const off = entry.heroOffering || entry.offering || null;
+  if (off) {
+    const plan = OfferingCampaign.planSend(off, entry.date);
+    if (plan.viable) return plan.promptLines.join('\n');
+    return `- [SLOT NOT VIABLE: ${plan.reason}]`;
+  }
+  const p = entry.heroProduct;
+  if (!p) return '- [DATA REQUIRED BEFORE LAUNCH: no offering or product assigned to this slot]';
+  return `- Hero product: ${p.title} (${p.category || 'product'})\n- This is a PRODUCT. Standard merchandising applies.`;
+}
+
 function strategyPrompt(entry) {
   const hooks = (entry.competitorContext || []).flatMap((c) => (c.trendingHooks || []).map((h) => h.hook)).slice(0, 6);
   const d = entry.decision || {};
   return `Devise the strategy for ONE lifecycle send. Data:
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
-- Hero product: ${entry.heroProduct?.title} (${entry.heroProduct?.category || 'sneaker'})${(entry.supportingProducts || []).length ? ` | Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
+${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
 - Offer: ${d.offer ? (d.offer.code ? `${d.offer.code} (${Math.round((d.offer.pct || 0) * 100)}%)` : 'no discount') : 'n/a'}
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Reach target: ${entry.reach?.planned_recipients?.toLocaleString?.() || 'n/a'} recipients, ${entry.reach?.per_user_per_week?.min || 2}-${entry.reach?.per_user_per_week?.max || 3} mailers/user/week.
