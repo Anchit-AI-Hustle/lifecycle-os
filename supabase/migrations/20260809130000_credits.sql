@@ -82,6 +82,14 @@ do $$ begin
     for select using (user_id = auth.uid());
 exception when duplicate_object then null; end $$;
 
+-- The welcome grant must land exactly once per wallet even if two tabs (or two
+-- API calls) touch a brand-new wallet at the same instant. The application
+-- pre-check is racy by nature, so THIS index is the real guard: the loser of
+-- the race gets a unique violation, which credits-core treats as "already
+-- granted" rather than granting a second time.
+create unique index if not exists credit_ledger_welcome_once_idx
+  on public.credit_ledger (wallet_id) where ref = 'welcome' and kind = 'grant';
+
 create index if not exists credit_ledger_wallet_idx  on public.credit_ledger (wallet_id, created_at desc);
 create index if not exists credit_ledger_feature_idx on public.credit_ledger (user_id, feature_key);
 create index if not exists credit_ledger_hold_idx    on public.credit_ledger (hold_id) where hold_id is not null;

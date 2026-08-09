@@ -59,6 +59,37 @@
 
   /* ── painting ──────────────────────────────────────────────────────────── */
 
+  /* The suite predates the brand layer, so most pages consume LEGACY variable
+     names (--ink, --lava, --chalk, --green, --bg, --panel …) and many declare
+     them in their OWN `:root { }` block. theme.css now routes its copies of
+     those aliases through the brand tokens, but a page's own `:root` rule would
+     still win over the stylesheet.
+     Setting them inline on <html> solves that: `:root` IS the html element, and
+     an inline declaration beats any stylesheet rule on the same element — so
+     these reach even the pages that redeclare them locally.
+     Mapping notes:
+       --chalk is "text on a dark/violet band", not a surface, so it maps to the
+       contrast-checked on-primary colour rather than to the page surface.
+       --lava is the historical accent name. */
+  var LEGACY = {
+    '--ink': '--brand-ink', '--knickgasm-ink': '--brand-ink',
+    '--ink-dim': '--brand-ink-muted', '--muted': '--brand-ink-muted',
+    '--soft': '--brand-ink-muted', '--dim': '--brand-ink-muted',
+    '--bg': '--brand-surface',
+    '--panel': '--brand-surface-alt', '--panel2': '--brand-surface-alt',
+    '--surface': '--brand-surface-alt', '--card': '--brand-surface-alt',
+    '--green': '--brand-primary', '--knickgasm-green': '--brand-primary',
+    '--violet': '--brand-primary', '--head': '--brand-primary',
+    '--lava': '--brand-accent', '--knickgasm-lava': '--brand-accent',
+    '--accent': '--brand-accent',
+    '--chalk': '--brand-on-primary', '--knickgasm-chalk': '--brand-on-primary',
+    '--line': '--brand-line', '--line-hot': '--brand-line-strong',
+    '--chip': '--brand-primary-tint',
+    '--warn': '--brand-warn',
+    '--font-head': '--brand-font-head', '--font-body': '--brand-font-body',
+    '--sans': '--brand-font-body', '--mono': '--brand-font-mono',
+  };
+
   function applyTokens(tokens) {
     if (!tokens) return;
     var root = document.documentElement;
@@ -66,6 +97,10 @@
       if (k.indexOf('--brand-') !== 0) return;
       var v = tokens[k];
       if (typeof v === 'string' && v) root.style.setProperty(k, v);
+    });
+    Object.keys(LEGACY).forEach(function (alias) {
+      var v = tokens[LEGACY[alias]];
+      if (typeof v === 'string' && v) root.style.setProperty(alias, v);
     });
   }
 

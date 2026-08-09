@@ -208,7 +208,15 @@ async function serviceRest(pathAndQuery, { method = 'GET', body, prefer } = {}) 
   return json;
 }
 
-/** Resolve the caller's active brand workspace — TeleSuite is always per-brand. */
+/**
+ * Resolve the caller's active brand workspace — TeleSuite is always per-brand.
+ *
+ * Also resolves the caller's ROLE. This matters because every TeleSuite write
+ * below goes through the service role (to keep the queries simple), which
+ * bypasses RLS — so membership alone is not authorization. A workspace member
+ * with role `viewer` must not be able to write, and `canWrite` is what enforces
+ * that. The owner always has full rights.
+ */
 async function context(req) {
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return { ok: false, auth };
@@ -219,10 +227,28 @@ async function context(req) {
   if (!wsId) {
     return { ok: false, status: 409, error: 'no_active_brand', message: 'Onboard a brand first — TeleSuite runs against your active brand workspace.' };
   }
+  // Read through the CALLER'S token, so RLS is what decides they may see it.
   const brand = await brandCore.getWorkspace(auth, wsId);
   if (!brand) return { ok: false, status: 404, error: 'workspace_not_found' };
-  return { ok: true, auth, workspace_id: wsId, brand };
+
+  let role = 'viewer';
+  if (brand.owner_id && brand.owner_id === auth.user_id) role = 'owner';
+  else {
+    try {
+      const rows = await brandCore.restAs(auth.token, `brand_workspace_members?select=role&workspace_id=eq.${encodeURIComponent(wsId)}&user_id=eq.${encodeURIComponent(auth.user_id)}&limit=1`);
+      if (Array.isArray(rows) && rows[0] && rows[0].role) role = String(rows[0].role);
+    } catch (_) { /* fall through as viewer — least privilege on an unknown role */ }
+  }
+  return { ok: true, auth, workspace_id: wsId, brand, role, canWrite: role === 'owner' || role === 'editor' };
 }
+
+/** Ops that change state or spend credits. Viewers may do none of them. */
+const WRITE_OPS = new Set([
+  'item-save', 'item-delete', 'items-seed', 'run-delete',
+  'product_description', 'kb_ingest', 'pitch', 'rebuttal', 'transcription',
+  'call_scoring', 'combined_analysis', 'optimized_pitches', 'training_deck',
+  'data_analysis', 'voice_turn', 'voice_finish',
+]);
 
 /** The brand guardrails every TeleSuite prompt inherits. */
 function brandRules(brand) {
@@ -624,22 +650,37 @@ OPS.voice_turn = async (ctx, input) => {
   return { result: out.data, provider: out.provider, skip_log: true };  // turns are logged once, at call end
 };
 
-/** Called when a voice call ends: stores the call, then scores it. */
+/**
+ * Called ONCE when a voice call ends: stores the call, then scores it.
+ * This is the billing boundary for the whole call (see OP_TO_SUBFEATURE), so it
+ * is also where double-submission has to be stopped — a retry or a double click
+ * must not charge the call twice. The client sends a `call_id` it generated at
+ * the start of the call, and an existing run with that id short-circuits.
+ */
 OPS.voice_finish = async (ctx, input) => {
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
   const turns = Array.isArray(input.history) ? input.history : [];
   if (!turns.length) { const e = new Error('No conversation to save.'); e.status = 400; throw e; }
   const transcript = turns.map((t) => `${t.role === 'agent' ? 'Agent' : 'Customer'}: ${str(t.text, 2000)}`).join('\n');
   const minutes = Number(input.minutes) > 0 ? Number(input.minutes) : null;
+  const callId = str(input.call_id, 64);
+
+  if (callId) {
+    const dupe = await serviceRest(`telesuite_runs?select=id,output&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+    if (Array.isArray(dupe) && dupe[0]) {
+      // Already saved and already paid for. Return it, bill nothing.
+      return { result: { call_id: dupe[0].id, transcript, turns: turns.length, minutes, already_saved: true, score: null }, units: 0, skip_log: true };
+    }
+  }
 
   const call = await logRun(ctx, {
     feature: mode === 'sales' ? 'voice_sales' : 'voice_support',
     title: `${mode === 'sales' ? 'Sales' : 'Support'} call — ${str(input.product) || 'general'}`,
     product: str(input.product) || null,
-    input: { persona: str(input.persona), issue: str(input.issue), goal: str(input.goal), minutes },
+    input: { call_id: callId || null, persona: str(input.persona), issue: str(input.issue), goal: str(input.goal), minutes },
     output: { transcript, turns: turns.length },
     units: minutes, duration_ms: Number(input.duration_ms) || null,
-    credits: Number(input.credits_charged) || 0, credit_ref: str(input.credit_ref) || null,
+    credits: 0, credit_ref: null,   // patched with the real charge after settle
   });
 
   // Post-call scoring, exactly as the original app did automatically.
@@ -658,7 +699,12 @@ OPS.voice_finish = async (ctx, input) => {
       scored = { error: String(err.message || err).slice(0, 300) };
     }
   }
-  return { result: { call_id: call && call.id, transcript, turns: turns.length, minutes, score: scored }, skip_log: true };
+  return {
+    result: { call_id: call && call.id, transcript, turns: turns.length, minutes, score: scored },
+    units: minutes || 1,          // the call is billed on its real length, once
+    run_row_id: call && call.id,  // so the handler can stamp the real charge on it
+    skip_log: true,
+  };
 };
 
 /* ── System subfeatures ───────────────────────────────────────────────────── */
@@ -735,7 +781,38 @@ function cloneManifest() {
 const OP_TO_SUBFEATURE = {};
 for (const s of SUBFEATURES) if (s.op) OP_TO_SUBFEATURE[s.op] = s;
 OP_TO_SUBFEATURE.optimized_pitches = { credit_key: 'telesuite.optimized_pitches', label: 'Optimised pitches', key: 'combined-call-analysis' };
-OP_TO_SUBFEATURE.voice_finish = { credit_key: null, label: 'Save voice call', key: 'voice-sales-agent' };
+
+// A voice call is priced PER MINUTE OF CALL, so it is charged ONCE, at the end,
+// for the call's real duration. `voice_turn` must therefore be free: it fires
+// several times per call and each turn carries the cumulative elapsed time, so
+// metering it would charge a three-turn call three times over — and would
+// re-charge every earlier minute on each later turn. `voice_finish` is the
+// billing boundary; it also refuses to run twice for the same call.
+OP_TO_SUBFEATURE.voice_turn = { credit_key: null, label: 'Voice agent turn', key: 'voice-sales-agent' };
+OP_TO_SUBFEATURE.voice_finish = { credit_key: 'telesuite.voice_sales', label: 'Voice call', key: 'voice-sales-agent' };
+
+/** The price key for a run, which for a voice call depends on sales vs support. */
+function creditKeyFor(op, input) {
+  if (op === 'voice_finish') {
+    return str(input && input.mode) === 'support' ? 'telesuite.voice_support' : 'telesuite.voice_sales';
+  }
+  const sf = OP_TO_SUBFEATURE[op];
+  return (sf && sf.credit_key) || null;
+}
+
+/** Billable units for a run. Only metered features use this. */
+function unitsFor(op, input) {
+  if (!input) return undefined;
+  if (op === 'voice_finish') return Number(input.minutes) > 0 ? Number(input.minutes) : 1;
+  if (op === 'transcription') {
+    // A pasted transcript generates nothing, so it bills zero — an explicit 0
+    // quotes as free rather than falling back to the reservation estimate.
+    if (str(input.transcript)) return 0;
+    return Number(input.duration_minutes) > 0 ? Number(input.duration_minutes) : undefined;
+  }
+  const n = Number(input.duration_minutes != null ? input.duration_minutes : (input.minutes != null ? input.minutes : input.units));
+  return Number.isFinite(n) ? n : undefined;
+}
 
 async function handle(req, res) {
   const q = (req && req.query) || {};
@@ -759,6 +836,15 @@ async function handle(req, res) {
 
   const ctx = await context(req);
   if (!ctx.ok) return res.status(ctx.status || (ctx.auth && ctx.auth.status) || 401).json(ctx.auth && !ctx.auth.ok ? ctx.auth : ctx);
+
+  // Membership is not authorization: the writes below run with the service
+  // role and bypass RLS, so the role check has to happen here.
+  if (WRITE_OPS.has(op) && !ctx.canWrite) {
+    return res.status(403).json({
+      ok: false, error: 'read_only_role',
+      message: `Your role on this brand is "${ctx.role}", which can view TeleSuite but not run or change anything. Ask the workspace owner for editor access.`,
+    });
+  }
 
   try {
     /* ── library CRUD (Products / Knowledge Base) ────────────────────────── */
@@ -841,8 +927,8 @@ async function handle(req, res) {
     }
 
     const sf = OP_TO_SUBFEATURE[op] || {};
-    const creditKey = sf.credit_key;
     const input = (body.input && typeof body.input === 'object') ? body.input : body;
+    const creditKey = creditKeyFor(op, input);
     const started = Date.now();
 
     // Free op (no credit key) — run it straight.
@@ -853,7 +939,7 @@ async function handle(req, res) {
 
     const m = await credits.meter(req, creditKey, {
       auth: ctx.auth, workspace_id: ctx.workspace_id,
-      units: input.duration_minutes || input.minutes || input.units,
+      units: unitsFor(op, input),
       meta: { op, subfeature: sf.key },
     });
     if (!m.ok) return res.status(m.status || 402).json(m);
@@ -870,6 +956,16 @@ async function handle(req, res) {
     // A pasted-transcript run does no model work, so it settles at zero units.
     await m.settle(out.units != null ? out.units : undefined, { meta: { op } });
     const charged = (m.receipt && m.receipt.charged) || 0;
+
+    // An op that logged its own row (a voice call) gets the real charge stamped
+    // on it now that settle knows what it actually cost.
+    if (out.run_row_id) {
+      try {
+        await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(out.run_row_id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+          method: 'PATCH', body: { credits: charged, credit_ref: m.hold_id || null }, prefer: 'return=minimal',
+        });
+      } catch (_) { /* the ledger is the billing truth; this row is a convenience */ }
+    }
 
     let run = null;
     if (!out.skip_log) {
