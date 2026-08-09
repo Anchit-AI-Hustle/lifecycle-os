@@ -145,11 +145,24 @@ function shade(hex, t) {
   return '#' + out.map((v) => v.toString(16).padStart(2, '0')).join('');
 }
 
-/** Pick whichever of the brand's own ink/surface reads AA on `bg`. */
-function readableOn(bg, ink, surface) {
-  const cInk = contrast(bg, ink || '#111111');
-  const cSurf = contrast(bg, surface || '#ffffff');
-  return cInk >= cSurf ? (ink || '#111111') : (surface || '#ffffff');
+/**
+ * Pick whichever of the brand's own text-capable colours reads best on `bg`.
+ * Candidates are the ink, the PAGE surface and the card surface - all palette
+ * colours the shell already renders text in. Excluding the page surface was a
+ * real defect: a brand whose primary passes AA against its white page (a
+ * symmetric pairing the validator itself reports) was still blocked because
+ * only ink and the slightly-grey card colour were tried as button text.
+ */
+function readableOn(bg, ink, surface, surfaceAlt) {
+  const candidates = [ink || '#111111', surface || '#ffffff', surfaceAlt]
+    .filter(Boolean)
+    .filter((c, i, a) => a.indexOf(c) === i);
+  let best = candidates[0], bestC = -1;
+  for (const c of candidates) {
+    const r = contrast(bg, c);
+    if (r > bestC) { bestC = r; best = c; }
+  }
+  return best;
 }
 
 /* ── brand normalisation ──────────────────────────────────────────────────── */
@@ -295,7 +308,7 @@ function validatePalette(paletteInput) {
     ink_on_surface: contrast(p.ink, p.surface),
     ink_on_surface_alt: contrast(p.ink, p.surface_alt || '#ffffff'),
     primary_on_surface: contrast(p.primary, p.surface),
-    onprimary: contrast(p.primary, readableOn(p.primary, p.ink, p.surface_alt || '#ffffff')),
+    onprimary: contrast(p.primary, readableOn(p.primary, p.ink, p.surface, p.surface_alt || '#ffffff')),
     accent_on_surface: p.accent ? contrast(p.accent, p.surface) : null,
     muted_on_surface: p.muted ? contrast(p.muted, p.surface) : null,
   };
@@ -353,10 +366,10 @@ function tokens(brand) {
     '--brand-primary-dark': shade(primary, -0.25),
     '--brand-primary-soft': shade(primary, 0.86),
     '--brand-primary-tint': shade(primary, 0.94),
-    '--brand-on-primary': readableOn(primary, ink, surfaceAlt),
+    '--brand-on-primary': readableOn(primary, ink, surface, surfaceAlt),
     '--brand-accent': accent,
     '--brand-accent-soft': shade(accent, 0.88),
-    '--brand-on-accent': readableOn(accent, ink, surfaceAlt),
+    '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
     '--brand-ink': ink,
     '--brand-ink-muted': muted,
     '--brand-surface': surface,
