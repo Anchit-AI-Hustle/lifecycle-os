@@ -172,6 +172,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show
 document.querySelectorAll('.card.link').forEach(c=>c.addEventListener('click',()=>showTab(c.dataset.goto)));
 (function(){ const q=new URLSearchParams(location.search).get('tab'); const h=(location.hash||'').replace('#',''); showTab(q||h||'overview'); })();
 </script>
+<script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
 </body>
 </html>

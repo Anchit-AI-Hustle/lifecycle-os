@@ -703,6 +703,7 @@
     const region = /uk/i.test(market) ? 'uk' : /us/i.test(market) ? 'us' : 'global';
     if (_catalogCache[region]) return _catalogCache[region];
     try {
+      if (window.BrandCatalog) { const br = await window.BrandCatalog.load(region); return br.products; }
       const r = await fetch('/data/catalog/products_' + region + '.json', { cache: 'force-cache' });
       const rows = r.ok ? await r.json() : [];
       const prods = (Array.isArray(rows) ? rows : []).map((p) => ({
