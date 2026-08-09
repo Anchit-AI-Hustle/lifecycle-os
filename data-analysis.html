@@ -108,7 +108,7 @@
     <div class="topbar">
       <div>
         <h1>Data Analysis</h1>
-        <p class="lede">The full D2C growth analytics workbench, built on the live US and UK market exports. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
+        <p class="lede">The full growth analytics workbench for the active brand. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
       </div>
       <div class="mkt" id="mktToggle" role="tablist" aria-label="Market">
         <button data-mkt="US" class="on">🇺🇸 United States</button>
@@ -140,13 +140,29 @@
   <div id="detail"></div>
 </div>
 
-<!-- REAL market data (not synthetic): Knickgasm's actual Shopify/GA market exports,
-     compiled by scripts/build-market-analytics.js from data/market/*.csv into
-     window.KNICKGASM_ANALYTICS. These are real historical exports. When the live
-     connector pipeline (Shopify -> Supabase) is wired, a live read will set
-     window.KNICKGASM_ANALYTICS and supersede the file; until then this shows the
-     real exports rather than an empty page. No sample/synthetic numbers. -->
+<!-- The compiled market dataset describes TENANT ZERO only. It is a fact about
+     one brand's business, so it must never render inside another workspace: a
+     health-media or publisher brand was previously shown that brand's revenue,
+     AOV and order counts as if they were its own. The guard below clears the
+     global for any other brand and the page then renders its empty state. -->
 <script src="/data/analytics/market-data.js"></script>
+<script src="/brand-catalog.js"></script>
+<script>
+(function () {
+  // Synchronously stash and clear: the analytics IIFE below reads the global on
+  // parse, so the decision has to be made before it runs. We restore it only
+  // once the active brand is confirmed to be the one the dataset describes.
+  var SHIPPED = window.KNICKGASM_ANALYTICS || null;
+  window.KNICKGASM_ANALYTICS = { markets: {}, __pending: true };
+  window.__ANALYTICS_OWNER__ = 'knickgasm';
+  window.__restoreAnalytics = function (brand) {
+    var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+    var isOwner = !brand || brand.is_default || slug === window.__ANALYTICS_OWNER__;
+    if (isOwner && SHIPPED) { window.KNICKGASM_ANALYTICS = SHIPPED; return true; }
+    return false;
+  };
+})();
+</script>
 <script>
 (function(){
   var A = (window.KNICKGASM_ANALYTICS) || {markets:{}};
@@ -782,5 +798,37 @@
 </script>
 <script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+
+<script>
+/* Resolve the active brand, then either restore the shipped dataset (tenant
+   zero) or replace the workbench with an honest empty state naming the brand.
+   Analytics are the sharpest possible cross-brand leak: revenue and AOV read as
+   authoritative, so showing another brand's is worse than showing nothing. */
+(function () {
+  function emptyState(name) {
+    var host = document.querySelector('main') || document.body;
+    var el = document.createElement('div');
+    el.style.cssText = 'max-width:720px;margin:26px auto;padding:22px 24px;border:1px solid var(--brand-line,#e3e3e3);border-radius:14px;font-family:var(--brand-font-body,system-ui,sans-serif);line-height:1.6';
+    el.innerHTML =
+      '<h2 style="font-family:var(--brand-font-heading,inherit);margin:0 0 10px;font-size:20px">No analytics connected for ' + name + '</h2>' +
+      '<p style="margin:0 0 10px;opacity:.82">[DATA REQUIRED BEFORE LAUNCH: analytics exports, ' + name + '.] ' +
+      'The dataset compiled into this build describes a different brand, and revenue, AOV and order counts read as authoritative, so it is not substituted here.</p>' +
+      '<p style="margin:0;opacity:.82">Connect this brand\'s own commerce or analytics exports, then this workbench fills in.</p>';
+    if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+    // Hide the widgets that would otherwise render zeros as if they were real.
+    document.querySelectorAll('[data-widget],.da-grid,.da-tabs').forEach(function (n) { n.style.display = 'none'; });
+  }
+  function decide(brand) {
+    var ok = window.__restoreAnalytics ? window.__restoreAnalytics(brand) : true;
+    if (!ok) emptyState((brand && brand.name) || 'this brand');
+  }
+  function boot() {
+    if (window.BrandContext && window.BrandContext.ready) {
+      window.BrandContext.ready().then(decide).catch(function () { decide(null); });
+    } else { decide(null); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
 </body>
 </html>
