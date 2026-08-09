@@ -1,0 +1,55 @@
+{
+  "slug": "knickgasm",
+  "name": "KNICKGASM",
+  "tagline": "Lifecycle OS",
+  "industry": "Custom sneakers / D2C",
+  "website": "https://knickgasm.com",
+  "_note": "Tenant zero. This is the brand the platform shipped with; it is now just the DEFAULT workspace, loaded when a request/session has no active brand workspace so nothing regresses. Every value here is an operator-approved brand constant (source: Brand style guide.pdf), not a generated guess.",
+  "palette": {
+    "primary": "#6A33D8",
+    "accent": "#D0473E",
+    "ink": "#111111",
+    "surface": "#F7F5F2",
+    "surface_alt": "#ffffff",
+    "muted": "#556059",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Montserrat",
+      "stack": "'Montserrat','Raleway',Georgia,serif",
+      "google": true,
+      "weights": "400;600;700"
+    },
+    "body": {
+      "family": "Instrument Sans",
+      "stack": "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
+      "google": true,
+      "weights": "400;500;600;700"
+    },
+    "mono": {
+      "family": "JetBrains Mono",
+      "stack": "'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace",
+      "google": false,
+      "weights": "400;600"
+    }
+  },
+  "voice": {
+    "tone": "warm, sensory, emotionally resonant, story-driven",
+    "preferred": ["ritual", "restore", "balance", "origin", "one-of-one", "hand-painted", "lace-up", "heritage", "crafted"],
+    "banned": ["streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME", "hurry", "don't miss out", "last chance", "while supplies last"],
+    "no_em_dashes": true,
+    "notes": "Testimonials read as tiny personal stories, not reviews."
+  },
+  "regions": [
+    { "code": "US", "currency": "USD", "symbol": "$", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" },
+    { "code": "UK", "currency": "GBP", "symbol": "£", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" },
+    { "code": "IN", "currency": "INR", "symbol": "₹", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" },
+    { "code": "GLOBAL", "currency": "USD", "symbol": "$", "store_url": "https://knickgasm.com", "pdp_pattern": "{base}/products/{handle}", "collection_pattern": "{base}/collections/{slug}" }
+  ],
+  "asset_hosts": ["knickgasm.com", "www.knickgasm.com", "try.knickgasm.com"],
+  "catalog_source": { "kind": "repo", "url": "data/catalog/products_{region}.json" },
+  "status": "active"
+}

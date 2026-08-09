@@ -87,6 +87,16 @@ module.exports = async function handler(req, res) {
 
   try {
     switch (action) {
+      // ── TELESUITE ────────────────────────────────────────────────────────
+      // The AI tele-sales / tele-support suite (ported from AI-TeleSuite).
+      // Mounted here rather than as its own api/*.js file because the Hobby
+      // plan caps serverless functions at 12 and we are at the cap.
+      // Sub-dispatch is ?op= — see _shared/telesuite-core.js.
+      case 'telesuite': {
+        if (req.body && typeof req.body === 'string') req.body = b;
+        return await require('./_shared/telesuite-core.js').handle(req, res);
+      }
+
       // ── OPS ──────────────────────────────────────────────────────────────
       case 'status': {
         const d = core.db();

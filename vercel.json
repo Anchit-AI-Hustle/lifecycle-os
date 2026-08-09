@@ -32,6 +32,20 @@
     { "path": "/api/cron/social", "schedule": "0 19 * * *" }
   ],
   "rewrites": [
+    { "source": "/onboarding", "destination": "/onboarding.html" },
+    { "source": "/setup", "destination": "/onboarding.html" },
+    { "source": "/start", "destination": "/onboarding.html" },
+    { "source": "/brand", "destination": "/onboarding.html" },
+    { "source": "/brands", "destination": "/onboarding.html?step=6" },
+    { "source": "/credits", "destination": "/credits.html" },
+    { "source": "/wallet", "destination": "/credits.html" },
+    { "source": "/billing", "destination": "/credits.html" },
+    { "source": "/pricing", "destination": "/credits.html" },
+    { "source": "/telesuite", "destination": "/telesuite.html" },
+    { "source": "/tele", "destination": "/telesuite.html" },
+    { "source": "/api/brand", "destination": "/api/public-config?action=brand" },
+    { "source": "/api/credits", "destination": "/api/public-config?action=credits" },
+    { "source": "/api/telesuite", "destination": "/api/brain?action=telesuite" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/api/ai/pipeline/health", "destination": "/api/public-config?pipeline=1" },
@@ -160,6 +174,9 @@
       { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
       { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=()" },
       { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+    ]},
+    { "source": "/(telesuite|telesuite\\.html|tele)", "headers": [
+      { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(self), camera=(), payment=(), usb=()" }
     ]},
     { "source": "/(.*)\\.html", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]},
     { "source": "/sw.js", "headers": [
