@@ -308,6 +308,7 @@
       { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
       { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
       { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
+      { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
     ]},
     { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2', match: ['/telesuite', '/telesuite.html'], children: [

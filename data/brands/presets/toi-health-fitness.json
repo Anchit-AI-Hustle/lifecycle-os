@@ -1,0 +1,86 @@
+{
+  "slug": "toi-health-fitness",
+  "name": "TOI Health & Fitness",
+  "tagline": "Health, Fitness, Diet and Wellness",
+  "industry": "Health & fitness content / events",
+  "website": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+  "preset": {
+    "label": "TOI Health & Fitness",
+    "sector": "Health & fitness media",
+    "blurb": "The health vertical: fitness, diet and wellness content, plus seasonal event pushes such as marathon training and yoga-day campaigns.",
+    "verified_at": "2026-08-10",
+    "source": "timesofindia.indiatimes.com/life-style/health-fitness (live page, TOI red #e21b22/#eb1b24)"
+  },
+  "palette": {
+    "primary": "#EB1B24",
+    "accent": "#147014",
+    "ink": "#1A1A1A",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F4F4F4",
+    "muted": "#595959",
+    "line": "#ECECEC",
+    "ok": "#147014",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "google": true,
+      "weights": "600;700"
+    },
+    "body": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "google": true,
+      "weights": "400;500"
+    }
+  },
+  "voice": {
+    "tone": "encouraging, practical, evidence-led; coaches the reader without hype",
+    "preferred": [
+      "routine",
+      "training plan",
+      "recovery",
+      "nutrition",
+      "mobility",
+      "beginner-friendly",
+      "evidence"
+    ],
+    "banned": [
+      "miracle cure",
+      "detox tea",
+      "lose 10 kg in a week",
+      "doctors hate",
+      "burn fat fast",
+      "guaranteed results",
+      "cures"
+    ],
+    "no_em_dashes": true,
+    "notes": "OBSERVED from public output, not official guidelines. HEALTH SAFETY: never make medical claims, never promise outcomes, never present content as diagnosis or treatment; attribute clinical statements to a named qualified source and add a consult-your-doctor line on training and diet content."
+  },
+  "claims": [
+    "Health, fitness, diet and wellness coverage from The Times of India"
+  ],
+  "regions": [
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "timesofindia.indiatimes.com",
+    "static.toiimg.com"
+  ],
+  "catalog_source": {
+    "kind": "none",
+    "note": "Content vertical: articles, training plans and event campaigns (marathon, yoga day) rather than SKUs."
+  },
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

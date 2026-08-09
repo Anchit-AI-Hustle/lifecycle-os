@@ -1012,6 +1012,26 @@ async function handle(req, res) {
     const b = DEFAULT_BRAND;
     return res.status(200).json({ ok: true, brand: b ? shellPayload(b, { id: null, is_default: true }) : null });
   }
+  // `presets` is unauthenticated like `defaults`: the onboarding gallery must
+  // render before a workspace exists. Returns the starter brand library
+  // (data/brands/presets), or one full record with ?slug=. These are TEMPLATES
+  // built from each brand's own public site - never a licence to use the marks.
+  if (op === 'presets') {
+    try {
+      const dir = path.join(process.cwd(), 'data', 'brands', 'presets');
+      const slug = str(q.slug || body.slug).toLowerCase().replace(/[^a-z0-9-]/g, '');
+      if (slug) {
+        const f = path.join(dir, `${slug}.json`);
+        if (!fs.existsSync(f)) return res.status(404).json({ ok: false, error: 'preset_not_found' });
+        return res.status(200).json({ ok: true, preset: JSON.parse(fs.readFileSync(f, 'utf8')) });
+      }
+      const idx = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+      return res.status(200).json({ ok: true, ...idx });
+    } catch (e) {
+      return res.status(200).json({ ok: true, count: 0, presets: [], error: e.message });
+    }
+  }
+
   if (op === 'validate-palette') {
     return res.status(200).json(Object.assign({ ok: true }, validatePalette(body.palette || q.palette || {})));
   }

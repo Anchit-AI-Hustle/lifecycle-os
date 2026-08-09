@@ -36,7 +36,10 @@
 
   /* Pages that must render before a brand exists, or they would trap the user
      in a redirect loop (the onboarding wizard itself, auth, legal pages). */
-  var EXEMPT = /^\/(onboarding|setup|start|login|privacy|terms|access-issues|access)(\.html)?\/?$/i;
+  /* The ONLY surfaces reachable without an active brand: the wizard, the brand
+     editor, sign-in, legal pages, and the About view that explains what this
+     platform is. Everything else is gated - see enforceGate(). */
+  var EXEMPT = /^\/(onboarding|setup|start|brand|about|login|privacy|terms|access-issues|access)(\.html)?\/?$/i;
 
   /* Names the shipped app hardcodes into visible copy. When a different brand
      is active these are re-labelled in text nodes. URLs are never touched. */
@@ -291,14 +294,81 @@
     try { window.dispatchEvent(new CustomEvent('brandcontext:change', { detail: detail })); } catch (_) {}
   }
 
-  function gateToOnboarding() {
-    try {
-      var p = location.pathname.replace(/\/+$/, '') || '/';
-      if (EXEMPT.test(p)) return;
-      if (sessionStorage.getItem('lc-onboarding-skip') === '1') return;
-      location.replace(ONBOARDING_PATH + '?from=' + encodeURIComponent(p));
-    } catch (e) { log(e); }
+  /* ── The brand gate ────────────────────────────────────────────────────
+     No feature is usable until a brand is ACTIVE. The previous version only
+     fired when the account had zero workspaces, honoured a sessionStorage
+     "skip" flag that survived the whole session, and redirected after render
+     so the page was briefly interactive. This blocks on "no ACTIVE brand",
+     has no bypass, and paints a blocking layer immediately - so nothing behind
+     it can be clicked, tabbed to, or scrolled while the check resolves. */
+  var GATE_ID = 'lc-brand-gate';
+
+  function gateExempt() {
+    var p = location.pathname.replace(/\/+$/, '') || '/';
+    return EXEMPT.test(p);
   }
+
+  function removeGate() {
+    var el = document.getElementById(GATE_ID);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    document.documentElement.style.overflow = '';
+  }
+
+  function showGate(opts) {
+    if (gateExempt() || document.getElementById(GATE_ID)) return;
+    if (!document.body) { document.addEventListener('DOMContentLoaded', function () { showGate(opts); }); return; }
+    var o = opts || {};
+    var el = document.createElement('div');
+    el.id = GATE_ID;
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Choose a brand to continue');
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(255,255,255,.97);' +
+      'backdrop-filter:saturate(120%) blur(3px);display:flex;align-items:center;justify-content:center;' +
+      'padding:24px;font-family:var(--brand-font-body,system-ui,-apple-system,Segoe UI,sans-serif);color:#111';
+    el.innerHTML =
+      '<div style="max-width:560px;width:100%;text-align:left">' +
+        '<div style="font-size:12px;letter-spacing:.09em;text-transform:uppercase;opacity:.55;margin-bottom:10px">Lifecycle OS</div>' +
+        '<h1 style="font-family:var(--brand-font-heading,inherit);font-size:clamp(22px,4vw,30px);margin:0 0 10px;line-height:1.15">' +
+          (o.busy ? 'Checking your brand...' : 'Choose a brand to continue') + '</h1>' +
+        '<p style="margin:0 0 18px;line-height:1.6;font-size:14.5px;opacity:.8">' +
+          (o.busy
+            ? 'One moment while we load your workspace.'
+            : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
+        '</p>' +
+        (o.busy ? '' :
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
+          '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>' +
+          '<button type="button" data-gate-about style="background:transparent;color:#111;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer">About this platform</button>' +
+        '</div>' +
+        '<div data-gate-aboutbody hidden style="border-top:1px solid rgba(0,0,0,.12);padding-top:14px;font-size:13.5px;line-height:1.65;opacity:.85">' +
+          '<p style="margin:0 0 8px"><strong>What it is.</strong> A lifecycle-marketing operating system: analytics and cohorts, a rolling campaign calendar, and generation of mailers, ads and landing pages, with a brand assistant over the whole stack.</p>' +
+          '<p style="margin:0 0 8px"><strong>How brands work.</strong> You onboard a brand once - identity, colour schema, typography, voice, catalogue. Those become design tokens and prompt rules, so the entire suite re-skins and every generated asset obeys them. You can keep several brands and switch between them.</p>' +
+          '<p style="margin:0"><strong>Why it is locked.</strong> Showing one brand\'s catalogue, competitors or market study inside another brand\'s workspace would be misleading, so features stay closed until a brand is active.</p>' +
+        '</div>') +
+      '</div>';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.appendChild(el);
+    var btn = el.querySelector('[data-gate-about]');
+    if (btn) btn.addEventListener('click', function () {
+      var b = el.querySelector('[data-gate-aboutbody]');
+      if (b) { b.hidden = !b.hidden; btn.textContent = b.hidden ? 'About this platform' : 'Hide'; }
+    });
+    // Keep focus inside the gate: nothing behind it should be tabbable.
+    el.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') ev.preventDefault();
+    });
+    setTimeout(function () { var f = el.querySelector('a,button'); if (f) f.focus(); }, 0);
+  }
+
+  /* Called on every resolution of the brand state. */
+  function enforceGate() {
+    if (gateExempt()) { removeGate(); return; }
+    if (state.brand) { removeGate(); return; }
+    showGate({ busy: !state.loaded });
+  }
+
+  function gateToOnboarding() { enforceGate(); }
 
   async function refresh() {
     try {
@@ -310,7 +380,9 @@
       if (state.brand) { writeCache(state.brand); paint(state.brand); }
       else writeCache(null);
       emit();
-      if (!state.brand && state.needsOnboarding) gateToOnboarding();
+      // Gate whenever there is no ACTIVE brand - having workspaces but none
+      // selected is exactly the state that used to slip through.
+      enforceGate();
       return state.brand;
     } catch (e) {
       // 401 means this session is not (or no longer) valid. Anything cached
@@ -345,6 +417,12 @@
   // 1. Paint from cache immediately so the first frame is already the brand.
   var cached = readCache();
   if (cached) { state.brand = cached; paint(cached); }
+
+  // Paint the gate BEFORE the network check resolves. Without this the page is
+  // briefly live: links are clickable and forms focusable during the round
+  // trip. If a cached brand exists the gate never appears; if the revalidation
+  // then says there is no active brand, enforceGate() puts it up.
+  if (!cached) enforceGate();
 
   // 2. Revalidate. Wait for auth to have a session, but never wait forever.
   function start() {

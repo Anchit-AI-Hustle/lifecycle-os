@@ -116,5 +116,64 @@
     "Water and scratch resistant designs",
     "Express shipping worldwide to 60+ countries",
     "Free shipping in India and worldwide"
-  ]
+  ],
+  "contact": {
+    "email": "hello@knickgasm.com"
+  },
+  "social": [
+    {
+      "platform": "instagram",
+      "url": "https://www.instagram.com/knickgasm/"
+    }
+  ],
+  "market_study": {
+    "India": {
+      "headline": "India sneaker and sneaker-customisation market",
+      "sizing": [
+        {
+          "segment": "India sneaker market",
+          "size": "USD 3.88B (FY2024) to USD 5.93B (FY2032)",
+          "cagr": "5.45% (FY25-FY32)",
+          "source": "Markets & Data, via Business Today (Sep 2025)"
+        },
+        {
+          "segment": "India sneaker economy incl. resale + D2C",
+          "size": "~USD 6B narrative",
+          "cagr": "-",
+          "source": "Inc42 feature on sneaker resellers and D2C brands"
+        }
+      ],
+      "tiers": [
+        {
+          "name": "Tier 1, Global athletic majors",
+          "note": "Nike, Adidas, Puma. They supply the BLANK canvas Knickgasm paints on; they are not competitors for the customisation job."
+        },
+        {
+          "name": "Tier 2, India custom-sneaker studios",
+          "note": "Direct competitors: Moreiarty, Sneak Peek Shoes, The Leather Works (TLW Art House), Shoes Your Daddy, Sneakboo, Courtside, MD Customs."
+        },
+        {
+          "name": "Tier 3, Sneaker retail and marketplaces",
+          "note": "Compete for the same sneakerhead wallet: VegNonVeg, Superkicks, CrepDog Crew, Hype Fly, FindYourKicks, Mainstreet Marketplace."
+        },
+        {
+          "name": "Tier 4, Indie design-led Indian brands",
+          "note": "Comet, Gully Labs, Thaely, Banjaaran Studio. Design-forward originals rather than customisation."
+        },
+        {
+          "name": "Tier 5, Global customisation benchmarks",
+          "note": "The Shoe Surgeon, Kickstradomis, and the official programmes Nike By You and Converse By You."
+        }
+      ],
+      "reads": [
+        "Customisation is a service margin on someone else's silhouette: the moat is artist quality and turnaround, not tooling or distribution.",
+        "Fandom collections (anime, football, cars, gaming) are the demand engine; core AF1 blanks are the volume base.",
+        "Every claim must state the pairs are hand-painted on 100% original sneakers, never replicas."
+      ],
+      "gaps": [
+        "Category-level customisation spend in India is not separately published; only the broader sneaker market is sized.",
+        "No public share-of-market figure exists for any Indian customisation studio."
+      ]
+    }
+  }
 }
