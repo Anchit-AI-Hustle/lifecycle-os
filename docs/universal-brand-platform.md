@@ -1,0 +1,242 @@
+# Universal Brand Marketing Lifecycle Platform
+
+This app used to be one brand's lifecycle OS. It is now a **platform**: any user signs in, onboards
+their own brand (data, colour schema, typography, voice, catalog), and the entire app — shell,
+generators and TeleSuite — runs as that brand for that user. Everything is metered in **credits**.
+
+Three layers were added. They are independent: the brand layer works without credits, and credits
+work without TeleSuite.
+
+---
+
+## 1. The brand layer (multi-tenant)
+
+### First screen
+`/onboarding` (also `/setup`, `/start`, `/brand`) is a six-step wizard with a live preview of the
+app in the brand being defined:
+
+| Step | What it captures |
+|---|---|
+| 1. Brand | name, tagline, industry, website, logo URL |
+| 2. Colour schema | primary, accent, ink, page surface, card surface, secondary text |
+| 3. Typography | heading + body family (Google or self-hosted) |
+| 4. Voice | tone, preferred vocabulary, **banned phrases**, dash rule, notes |
+| 5. Data & catalog | regions + store URLs, and a catalog import |
+| 6. Review | readiness report, then **Activate** |
+
+A signed-in user with no brand is sent here by `brand-context.js`. The wizard itself and the legal
+pages are exempt, so there is no redirect loop.
+
+### What "customised for the user logged in" means concretely
+`brand_user_prefs.active_workspace_id` is per user. `brand-context.js` (loaded on every page by
+`auth.js`) reads it and:
+
+1. Writes the brand's `--brand-*` design tokens onto `<html>`. **`theme.css` resolves every colour
+   and font through those tokens**, so all ~100 pages re-skin at once without being touched:
+   ```css
+   --vh-green: var(--brand-primary, #6A33D8);
+   --vh-font-head: var(--brand-font-head, 'Lora', …);
+   ```
+2. Loads the brand's Google Fonts.
+3. Swaps `<title>`, favicon and `theme-color`.
+4. Re-labels the shipped brand name in visible copy (text nodes only — never URLs, hosts or
+   identifiers, and never inside `script`/`code`/`pre`/inputs or `[data-no-brand-swap]`).
+5. Paints from a localStorage cache on the first frame, so there is no flash of the wrong brand.
+
+Switching brands (step 6, or the **Switch Brand** nav item) re-skins immediately and switches the
+wallet with it.
+
+### Design rules are enforced at save time
+`brand-workspace-core.validatePalette()` runs on the server (and mirrored live in the wizard) and
+**blocks activation** when:
+
+- the page or card surface is a black / near-black / dark neutral, or
+- body text on the page or on cards is below WCAG AA 4.5:1, or
+- nothing in the palette reaches 4.5:1 on the primary (buttons would be unreadable).
+
+Below-3:1 primary, failing accent text and failing secondary text are warnings. A draft may be saved
+with an incomplete palette; an **active** brand may not.
+
+### Zero fabrication
+No field is ever machine-filled. Missing data is reported, in the spec's own format:
+
+```
+[DATA REQUIRED BEFORE LAUNCH: <field>, <product>, <region>]
+```
+
+`readiness()` returns `BRAND READY` or `NOT LAUNCH READY — DATA DEPENDENCY` with the full marker
+list. Catalog rows keep `source` (`csv` / `json` / `shopify_public` / `manual`) and the verbatim
+`raw` row, so no product fact can be traced back to a guess.
+
+### Catalog import
+Three routes, all operator-supplied:
+- **Storefront** — GETs `{store}/products.json` (Shopify and compatible), read-only, no credentials.
+- **CSV** — RFC4180 parser (quotes, escaped quotes, embedded newlines) with automatic column
+  matching for title/handle/sku/price/currency/image/url/type/collections/tags.
+- **JSON / file upload** — an array of products, or `{products: […]}`.
+
+### API
+`/api/brand` → `/api/public-config?action=brand&op=…`
+
+`defaults` · `list` · `active` · `get` · `save` · `activate` · `delete` · `catalog-import` ·
+`catalog` · `readiness` · `validate-palette`
+
+Reads and writes go through PostgREST **with the caller's JWT**, so the RLS policies in
+`supabase/migrations/20260809120000_brand_workspaces.sql` are the authority. Unlike the older
+single-tenant tables, a workspace is private to its owner and members — not world-readable.
+
+---
+
+## 2. Credits
+
+### Model
+- One wallet per **(user, brand workspace)**, so per-brand cost is visible.
+- `credit_ledger` is append-only truth; the wallet balance is derived state.
+- Spending is **hold → settle**, never a bare decrement:
+
+  ```js
+  const m = await credits.meter(req, 'mailer.generate', { units: 1 });
+  if (!m.ok) return res.status(402).json(m);
+  try   { const out = await work(); await m.settle(actualUnits); }
+  catch (e) { await m.release(); throw e; }
+  ```
+
+  A failed run is always refunded. A metered feature reserves an estimate and returns the unused
+  part on settle. `credit_settle` can never charge more than was reserved.
+- `credit_hold` takes `SELECT … FOR UPDATE` on the wallet, so two concurrent runs cannot overdraw.
+
+### Security
+`credit_grant`, `credit_hold`, `credit_settle`, `credit_release` and `credit_wallet_id` are
+`SECURITY DEFINER` and are **REVOKEd from `anon` and `authenticated`** — only `service_role` may
+execute them. `credits-core.js` verifies the caller's JWT first, then calls them with the service
+role. A signed-in browser cannot grant itself credits or cancel its own charge. `credit_wallets` has
+a select-only policy and no insert/update policy at all.
+
+### Prices are declared once
+`api/_shared/credit-catalog.js` is the versioned source of truth (51 features). The server charges
+from it, the UI labels every button from it, and the wallet page groups usage by it — so a feature
+can never cost something the user was not shown. `credit_prices` allows a per-feature override
+without a deploy.
+
+A feature key that is not in the catalog **throws** rather than running for free — an unpriced
+feature is a bug, not a discount.
+
+### Real-time
+`credit_wallets` is published to `supabase_realtime`. The header pill subscribes to this user's
+wallet row, so a debit from any tab or a scheduled job moves the number immediately. Fallbacks, in
+order: every API response carrying a balance is folded in via `Credits.applyReceipt()`, plus a
+60-second poll if Realtime is unavailable.
+
+### Cost shown per feature
+Any element can declare its feature:
+
+```html
+<button data-credit-feature="mailer.generate">Generate</button>
+```
+
+`credits.js` appends a cost chip with a popover explaining what consumes the credits, turns the chip
+red when the balance is short, and re-decorates on DOM mutation so dynamically rendered UIs are
+covered. `Credits.guard(key)` opens the recharge panel instead of letting the user hit a 402.
+
+### Wallet page
+`/credits` (also `/wallet`, `/billing`, `/pricing`): balance, live indicator, recharge packs, the
+full price list, usage by feature over 7/30/90 days, and the ledger.
+
+### Recharge
+No payment processor is wired up. `recharge` records a **pending** order; `fulfilOrder()` (operator
+only, `CRON_SECRET`) marks it paid and grants the credits. Set `CREDITS_ALLOW_SELF_SERVE=1` to
+fulfil immediately for dev/staging. New wallets get `CREDIT_WELCOME_GRANT` (default 500), once.
+
+---
+
+## 3. TeleSuite
+
+Every feature from [AI-TeleSuite](https://github.com/Anchit-AI-Hustle/AI-TeleSuite), ported into
+this platform as one feature with 23 subfeatures at `/telesuite`.
+
+| Group | Subfeatures |
+|---|---|
+| Core | TeleSuite Home · Products · Knowledge Base |
+| Sales & Support Tools | AI Pitch Generator · AI Rebuttal Assistant |
+| Analysis & Reporting | Audio Transcription · Transcription DB · AI Call Scoring · Call Scoring DB · Combined Call Analysis · Combined Analysis DB |
+| Voice Agents | AI Voice Sales Agent · Voice Sales DB · AI Voice Support Agent · Voice Support DB |
+| Content & Data Tools | Training Material Creator · Material DB · AI Data Analyst · Data Analysis DB · Batch Audio Downloader |
+| System | Global Activity Log · Clone Full App · n8n Workflow |
+
+### Deliberate changes from the original
+| Original | Here |
+|---|---|
+| Genkit / Gemini only | the repo's 6-provider waterfall (`_shared/llm.js`); Gemini multimodal only for audio |
+| `localStorage` | per-workspace Supabase tables — work is shared and survives a device change |
+| Seven separate dashboard stores | filtered views of one `telesuite_runs` table (shared source of truth) |
+| Single hardcoded tenant | every run scoped to the active brand and its voice guardrails |
+| Unmetered | credit-metered, with the price on the button before the run |
+
+Browser `SpeechRecognition` and `speechSynthesis` still run client-side; only the agent turn is
+generated on the server. Barge-in (customer speech cancels playback), turn-taking and automatic
+post-call scoring are preserved.
+
+The page renders **entirely from the `SUBFEATURES` registry** in `telesuite-core.js`, so adding a
+subfeature is a one-object change and its cost can never drift out of sync with the UI.
+
+### API
+`/api/telesuite` → `/api/brain?action=telesuite&op=…`
+
+`registry` · `items` · `item-save` · `item-delete` · `items-seed` · `runs` · `run-delete` ·
+`summary` · `clone` · `n8n` · and one op per generator (`pitch`, `rebuttal`, `transcription`,
+`call_scoring`, `combined_analysis`, `optimized_pitches`, `training_deck`, `data_analysis`,
+`voice_turn`, `voice_finish`, `product_description`, `kb_ingest`).
+
+### Honesty rules kept in the prompts
+- Call scoring must quote **verbatim** transcript evidence for every dimension.
+- The data analyst must mark each finding `computed_from: "rows" | "description"` and say plainly
+  when nothing was actually processed.
+- Combined analysis must report real counts and state the sample size in its caveats.
+- The rebuttal assistant has a deterministic fallback if every provider is down — it contains no
+  product claims, only the DATA REQUIRED marker.
+- A pasted transcript settles at **zero** units: nothing was generated, so nothing is charged.
+
+---
+
+## Serverless function budget
+
+The Hobby plan caps Serverless Functions at 12 and the repo is **at** the cap. Nothing here adds a
+function file:
+
+- brand → mounted on `api/public-config.js` (`?action=brand`)
+- credits → mounted on `api/public-config.js` (`?action=credits`)
+- TeleSuite → mounted on `api/brain.js` (`?action=telesuite`)
+
+All logic lives under `api/_shared/`, which Vercel excludes from the count. Friendly `/api/brand`,
+`/api/credits` and `/api/telesuite` paths are `vercel.json` rewrites, not files.
+
+---
+
+## Files
+
+| File | Role |
+|---|---|
+| `supabase/migrations/20260809120000_brand_workspaces.sql` | workspaces, members, catalog, per-user active brand |
+| `supabase/migrations/20260809130000_credits.sql` | wallets, ledger, prices, orders, hold/settle/release/grant/usage |
+| `supabase/migrations/20260809140000_telesuite.sql` | TeleSuite items + runs |
+| `api/_shared/brand-workspace-core.js` | brand CRUD, palette validation, catalog import, readiness, tokens |
+| `api/_shared/credit-catalog.js` | **what every feature costs** |
+| `api/_shared/credits-core.js` | the meter: hold / settle / release / grant / usage |
+| `api/_shared/telesuite-core.js` | TeleSuite registry + every operation |
+| `brand-context.js` | client re-skin, onboarding gate, brand switching |
+| `credits.js` | live balance pill, per-feature cost chips, guard, recharge |
+| `onboarding.html` | the first screen |
+| `credits.html` | wallet, prices, usage, ledger |
+| `telesuite.html` | the TeleSuite hub |
+| `data/brands/_default.json` | tenant zero — the shipped brand, so nothing regresses |
+
+## Environment
+
+Nothing new is required. Optional:
+
+| Var | Effect |
+|---|---|
+| `CREDIT_WELCOME_GRANT` | starting credits for a new wallet (default 500) |
+| `CREDITS_ALLOW_SELF_SERVE` | `1` fulfils recharge orders immediately (dev/staging) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **required** for the credit meter — without it paid features are disabled and say so |
+| `GEMINI_API_KEY` | required for TeleSuite audio transcription; pasting a transcript works without it |

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Set up your brand</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260809" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
+    --surface:var(--brand-surface,#F7F5F2);--card:var(--brand-surface-alt,#fff);
+    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#e3e0dc);
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);min-height:100vh;padding:64px 24px 60px}
+  .shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:32px;align-items:start}
+  @media(max-width:980px){.shell{grid-template-columns:1fr}.preview-wrap{position:static!important}}
+
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--head);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:10px}
+  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:26px}
+
+  .steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+  .step-pip{flex:1;min-width:74px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card);
+    font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:.15s}
+  .step-pip.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .step-pip.done{border-color:var(--primary);color:var(--primary)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:26px}
+  .card h2{font-family:var(--head);font-size:21px;font-weight:600;margin-bottom:6px}
+  .card .hint{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:20px}
+
+  .field{margin-bottom:16px}
+  label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;letter-spacing:.02em}
+  label .req{color:var(--accent)}
+  label .note{font-weight:400;color:var(--muted);margin-left:6px}
+  input[type=text],input[type=url],input[type=number],select,textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+    color:var(--ink);font:400 14px/1.5 var(--body)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+  textarea{min-height:88px;resize:vertical}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:620px){.row,.row3{grid-template-columns:1fr}}
+
+  .swatch-row{display:flex;align-items:center;gap:9px}
+  .swatch-row input[type=color]{width:44px;height:40px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+  .swatch-row input[type=text]{flex:1;font-family:ui-monospace,Menlo,monospace;text-transform:lowercase}
+
+  .verdict{margin-top:14px;border-radius:11px;padding:13px 15px;font-size:12.5px;line-height:1.65;border:1px solid}
+  .verdict.ok{background:color-mix(in srgb,var(--ok) 8%,transparent);border-color:color-mix(in srgb,var(--ok) 32%,transparent)}
+  .verdict.bad{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 32%,transparent)}
+  .verdict.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 36%,transparent)}
+  .verdict b{display:block;margin-bottom:5px}
+  .verdict ul{margin:6px 0 0 17px}.verdict li{margin-bottom:3px}
+  .ratios{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .ratio{font:600 11px/1 var(--body);padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+  .ratio.pass{border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
+  .ratio.fail{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+    background:color-mix(in srgb,var(--primary) 11%,transparent);border:1px solid color-mix(in srgb,var(--primary) 26%,transparent)}
+  .chip button{border:0;background:transparent;cursor:pointer;font-size:14px;line-height:1;color:inherit;padding:0}
+  .chip.ban{background:color-mix(in srgb,var(--err) 10%,transparent);border-color:color-mix(in srgb,var(--err) 28%,transparent);color:var(--err)}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font:600 13.5px/1 var(--body);cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--primary)}
+  .btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .actions{display:flex;gap:10px;justify-content:space-between;margin-top:24px;flex-wrap:wrap}
+
+  .preview-wrap{position:sticky;top:64px}
+  .preview{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.08)}
+  .pv-bar{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid}
+  .pv-logo{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-weight:700;font-size:12px;overflow:hidden}
+  .pv-logo img{width:100%;height:100%;object-fit:cover}
+  .pv-body{padding:20px}
+  .pv-h{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:6px}
+  .pv-p{font-size:12.5px;line-height:1.6;margin-bottom:14px}
+  .pv-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .pv-btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid}
+  .pv-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .pv-card{padding:12px;border-radius:9px;border:1px solid}
+  .pv-card b{display:block;font-size:15px;margin-bottom:3px}
+  .pv-card span{font-size:10.5px}
+  .pv-note{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.6}
+
+  .ws-list{margin-top:8px}
+  .ws{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;
+    margin-bottom:8px;cursor:pointer;background:var(--surface)}
+  .ws:hover{border-color:var(--primary)}
+  .ws.active{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,transparent)}
+  .ws-dot{width:24px;height:24px;border-radius:7px;flex:none}
+  .ws b{font-size:13.5px}.ws small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .ws .tag{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--primary)}
+
+  .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 14%,transparent);
+    padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:12px 20px;border-radius:10px;
+    background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.3);display:none}
+  .imp-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .imp-tab{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer}
+  .imp-tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .muted{color:var(--muted);font-size:12px;line-height:1.6}
+  .region-row{display:grid;grid-template-columns:80px 90px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
+  @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}}
+  .link{color:var(--primary);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div>
+    <div class="eyebrow" id="eyebrow">Universal Brand Marketing Lifecycle Platform</div>
+    <h1 id="title">Set up your brand</h1>
+    <p class="lede" id="lede">
+      Tell the platform who your brand is once. Its data, colour schema, typography, voice rules and product
+      catalog become the source of truth for every calendar, mailer, ad, landing page and TeleSuite run
+      after this, and the app itself takes on your brand for your account.
+    </p>
+
+    <div class="steps" id="steps"></div>
+    <div class="card" id="stepCard"></div>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="preview" id="preview"></div>
+    <p class="pv-note">Live preview. This is how the app will look for you once this brand is active.</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── model ──────────────────────────────────────────────────────────────
+     `brand` is exactly what gets persisted. Nothing here is ever auto-filled
+     with a guess: an untouched field stays empty and is reported on step 6 as
+     a [DATA REQUIRED BEFORE LAUNCH: ...] marker instead. */
+  var brand = {
+    id: '', slug: '', name: '', tagline: '', industry: '', website: '', logo_url: '',
+    palette: { primary: '#6A33D8', accent: '#D0473E', ink: '#111111', surface: '#F7F5F2', surface_alt: '#ffffff', muted: '#556059' },
+    typography: {
+      heading: { family: 'Lora', stack: "'Lora',Georgia,serif", google: true, weights: '500;600;700' },
+      body: { family: 'Inter', stack: "'Inter',system-ui,-apple-system,Segoe UI,sans-serif", google: true, weights: '400;500;600;700' }
+    },
+    voice: { tone: '', preferred: [], banned: [], no_em_dashes: true, notes: '' },
+    regions: [{ code: 'US', currency: 'USD', symbol: '$', store_url: '' }],
+    brand_data: {}, status: 'draft', onboarding_step: 1
+  };
+
+  var STEPS = [
+    { n: 1, key: 'brand',   label: 'Brand' },
+    { n: 2, key: 'colour',  label: 'Colour schema' },
+    { n: 3, key: 'type',    label: 'Typography' },
+    { n: 4, key: 'voice',   label: 'Voice' },
+    { n: 5, key: 'data',    label: 'Data & catalog' },
+    { n: 6, key: 'review',  label: 'Review' }
+  ];
+
+  var GOOGLE_FONTS = ['Inter','Lora','Montserrat','Playfair Display','DM Sans','Instrument Sans','Space Grotesk',
+    'Manrope','Work Sans','Source Serif 4','Fraunces','Poppins','Nunito','Karla','Libre Baskerville','IBM Plex Sans','Outfit','Bricolage Grotesque'];
+
+  var step = 1, paletteCheck = null, workspaces = [], catalogCount = null, busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function toast(msg, ms) {
+    var t = $('toast'); t.textContent = msg; t.style.display = 'block';
+    clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, ms || 2600);
+  }
+  function slugify(v) { return String(v || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48); }
+
+  async function api(op, body, query) {
+    if (!window.BrandContext) throw new Error('Still signing in. Give it a moment and try again.');
+    return window.BrandContext.api(op, { body: body, query: query || '' });
+  }
+
+  /* ── colour maths (mirrors the server so the UI can validate instantly) ── */
+  function rgb(h) { h = String(h || '').replace('#', ''); if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2]; return [parseInt(h.slice(0,2),16)||0, parseInt(h.slice(2,4),16)||0, parseInt(h.slice(4,6),16)||0]; }
+  function lum(h) { return rgb(h).map(function (v) { var s = v/255; return s <= 0.03928 ? s/12.92 : Math.pow((s+0.055)/1.055, 2.4); }).reduce(function (a, c, i) { return a + c * [0.2126,0.7152,0.0722][i]; }, 0); }
+  function contrast(a, b) { var x = lum(a), y = lum(b); var hi = Math.max(x,y), lo = Math.min(x,y); return Math.round(((hi+0.05)/(lo+0.05))*100)/100; }
+  function shade(h, t) { var tgt = t >= 0 ? 255 : 0, a = Math.abs(t); return '#' + rgb(h).map(function (v) { return Math.round(v + (tgt - v) * a).toString(16).padStart(2,'0'); }).join(''); }
+  function readableOn(bg) { var p = brand.palette; return contrast(bg, p.ink || '#111') >= contrast(bg, p.surface_alt || '#fff') ? (p.ink || '#111') : (p.surface_alt || '#fff'); }
+
+  /* ── live preview ───────────────────────────────────────────────────────
+     Painted from the in-progress brand, so a colour choice is judged on the
+     real UI it will produce rather than on swatches. */
+  function paintPreview() {
+    var p = brand.palette;
+    var onPrimary = readableOn(p.primary);
+    var head = brand.typography.heading, body = brand.typography.body;
+    var initials = (brand.name || 'Br').trim().slice(0, 2).toUpperCase();
+    $('preview').innerHTML =
+      '<div class="pv-bar" style="background:' + esc(p.surface_alt || '#fff') + ';border-color:' + esc(shade(p.ink, .84)) + '">' +
+        '<span class="pv-logo" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + '">' +
+          (brand.logo_url ? '<img src="' + esc(brand.logo_url) + '" alt="">' : esc(initials)) + '</span>' +
+        '<b style="font:600 13px ' + esc(body.stack) + ';color:' + esc(p.ink) + '">' + esc(brand.name || 'Your brand') + '</b>' +
+        '<span style="margin-left:auto;font:600 10px ' + esc(body.stack) + ';padding:4px 9px;border-radius:999px;background:' +
+          esc(p.primary) + ';color:' + esc(onPrimary) + '">500 credits</span>' +
+      '</div>' +
+      '<div class="pv-body" style="background:' + esc(p.surface) + '">' +
+        '<div class="pv-h" style="font-family:' + esc(head.stack) + ';color:' + esc(p.ink) + '">' + esc(brand.tagline || 'Lifecycle campaigns, built for you') + '</div>' +
+        '<div class="pv-p" style="font-family:' + esc(body.stack) + ';color:' + esc(p.muted || shade(p.ink, .35)) + '">' +
+          'Your cohorts, calendar, mailers and TeleSuite runs, all in your brand.</div>' +
+        '<div class="pv-btns">' +
+          '<span class="pv-btn" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + ';border-color:' + esc(p.primary) + ';font-family:' + esc(body.stack) + '">Generate calendar</span>' +
+          '<span class="pv-btn" style="background:transparent;color:' + esc(p.accent || p.primary) + ';border-color:' + esc(p.accent || p.primary) + ';font-family:' + esc(body.stack) + '">Open studio</span>' +
+        '</div>' +
+        '<div class="pv-cards">' +
+          ['Active cohorts,12','Credits left,500'].map(function (c) {
+            var parts = c.split(',');
+            return '<div class="pv-card" style="background:' + esc(p.surface_alt || '#fff') + ';border-color:' + esc(shade(p.ink, .84)) + '">' +
+              '<b style="font-family:' + esc(head.stack) + ';color:' + esc(p.primary) + '">' + esc(parts[1]) + '</b>' +
+              '<span style="font-family:' + esc(body.stack) + ';color:' + esc(p.muted || shade(p.ink, .35)) + '">' + esc(parts[0]) + '</span></div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ── palette validation ─────────────────────────────────────────────────
+     Runs locally on every keystroke (instant), and is re-confirmed by the
+     server on save — the server is the authority. */
+  function checkPalette() {
+    var p = brand.palette, errors = [], warnings = [], ratios = {};
+    var need = ['primary', 'ink', 'surface'];
+    for (var i = 0; i < need.length; i++) if (!/^#[0-9a-f]{6}$/i.test(p[need[i]] || '')) errors.push({ field: need[i], message: 'Pick a valid ' + need[i] + ' colour.' });
+    if (errors.length) return { ok: false, errors: errors, warnings: warnings, ratios: ratios };
+
+    var alt = p.surface_alt || '#ffffff';
+    ratios['Body on page'] = contrast(p.ink, p.surface);
+    ratios['Body on card'] = contrast(p.ink, alt);
+    ratios['Text on primary'] = contrast(p.primary, readableOn(p.primary));
+    ratios['Primary on page'] = contrast(p.primary, p.surface);
+    if (p.muted) ratios['Muted on page'] = contrast(p.muted, p.surface);
+
+    function darkNeutral(h) {
+      var c = rgb(h).map(function (v) { return v / 255; });
+      var mx = Math.max.apply(null, c), mn = Math.min.apply(null, c), l = (mx + mn) / 2;
+      var sat = mx === mn ? 0 : (l > 0.5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn));
+      return lum(h) < 0.12 && sat < 0.25;
+    }
+    if (darkNeutral(p.surface)) errors.push({ field: 'surface', message: 'The page surface is a dark neutral (near black). Use a light surface, or your primary as the dark ground — never a black or grey neutral.' });
+    if (alt && darkNeutral(alt)) errors.push({ field: 'surface_alt', message: 'The card surface is a dark neutral. Use a light surface or a tint of your primary.' });
+    if (ratios['Body on page'] < 4.5) errors.push({ field: 'ink', message: 'Body text on the page is ' + ratios['Body on page'] + ':1. WCAG AA needs 4.5:1.' });
+    if (ratios['Body on card'] < 4.5) errors.push({ field: 'surface_alt', message: 'Body text on cards is ' + ratios['Body on card'] + ':1. WCAG AA needs 4.5:1.' });
+    if (ratios['Text on primary'] < 4.5) errors.push({ field: 'primary', message: 'Nothing in your palette reaches 4.5:1 on the primary (best is ' + ratios['Text on primary'] + ':1), so buttons would be unreadable.' });
+    if (ratios['Primary on page'] < 3) warnings.push({ field: 'primary', message: 'Primary on the page is ' + ratios['Primary on page'] + ':1, below the 3:1 minimum for outlines, chips and icons.' });
+    if (ratios['Muted on page'] != null && ratios['Muted on page'] < 4.5) warnings.push({ field: 'muted', message: 'Secondary text is ' + ratios['Muted on page'] + ':1 and fails AA.' });
+    return { ok: errors.length === 0, errors: errors, warnings: warnings, ratios: ratios };
+  }
+
+  /* ── readiness (what is still missing, never invented) ──────────────── */
+  function readiness() {
+    var missing = [];
+    function add(f, prod, reg) { missing.push({ field: f, marker: '[DATA REQUIRED BEFORE LAUNCH: ' + f + ', ' + (prod || 'all') + ', ' + (reg || 'all') + ']' }); }
+    if (!brand.name) add('brand name');
+    if (!brand.website) add('brand website');
+    if (!brand.logo_url) add('logo URL');
+    var pc = checkPalette();
+    pc.errors.forEach(function (e) { add('palette.' + e.field); });
+    if (!brand.typography.heading || !brand.typography.heading.family) add('typography.heading');
+    if (!brand.typography.body || !brand.typography.body.family) add('typography.body');
+    if (!brand.voice.tone) add('voice.tone');
+    if (!brand.voice.banned.length) add('voice.banned phrases');
+    if (!brand.regions.length) add('regions');
+    brand.regions.forEach(function (r) { if (!r.store_url) add('region store URL', 'all', r.code); });
+    if (catalogCount === 0 || catalogCount === null) add('product catalog');
+    var blocking = missing.filter(function (m) { return /^(brand name|palette\.|typography\.|regions$|product catalog)/.test(m.field); });
+    return { ready: blocking.length === 0, missing: missing, blocking: blocking };
+  }
+
+  /* ── step rendering ─────────────────────────────────────────────────── */
+
+  function renderSteps() {
+    $('steps').innerHTML = STEPS.map(function (s) {
+      return '<button class="step-pip ' + (s.n === step ? 'on' : (s.n < step ? 'done' : '')) + '" data-step="' + s.n + '">' + s.n + '. ' + esc(s.label) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('steps').querySelectorAll('.step-pip'), function (b) {
+      b.addEventListener('click', function () { go(+b.dataset.step); });
+    });
+  }
+
+  function bindInputs(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-path]'), function (el) {
+      var path = el.dataset.path;
+      el.addEventListener(el.type === 'color' || el.tagName === 'SELECT' ? 'input' : 'input', function () {
+        var v = el.type === 'checkbox' ? el.checked : el.value;
+        var parts = path.split('.'), o = brand;
+        for (var i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+        o[parts[parts.length - 1]] = v;
+        if (path === 'name' && !brand.id) brand.slug = slugify(v);
+        if (path.indexOf('palette.') === 0) { syncColourPair(path, v); renderVerdict(); }
+        paintPreview();
+      });
+    });
+  }
+
+  function syncColourPair(path, v) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-path="' + path + '"]'), function (el) {
+      if (el.value !== v && /^#[0-9a-f]{6}$/i.test(v)) el.value = v;
+    });
+  }
+
+  function renderVerdict() {
+    var box = $('verdict'); if (!box) return;
+    var c = checkPalette();
+    paletteCheck = c;
+    var cls = c.errors.length ? 'bad' : (c.warnings.length ? 'warn' : 'ok');
+    var ratios = Object.keys(c.ratios).map(function (k) {
+      var v = c.ratios[k], pass = v >= (k === 'Primary on page' ? 3 : 4.5);
+      return '<span class="ratio ' + (pass ? 'pass' : 'fail') + '">' + esc(k) + ' ' + v + ':1</span>';
+    }).join('');
+    box.className = 'verdict ' + cls;
+    box.innerHTML =
+      '<b>' + (c.errors.length ? 'This colour schema cannot be activated yet' : (c.warnings.length ? 'Usable, with things to watch' : 'Passes every design rule')) + '</b>' +
+      (c.errors.length ? '<ul>' + c.errors.map(function (e) { return '<li>' + esc(e.message) + '</li>'; }).join('') + '</ul>' : '') +
+      (c.warnings.length ? '<ul>' + c.warnings.map(function (e) { return '<li>' + esc(e.message) + '</li>'; }).join('') + '</ul>' : '') +
+      (c.errors.length ? '' : '<div style="margin-top:4px">Every pairing the app renders was checked for WCAG AA contrast, and dark neutral backgrounds are blocked.</div>') +
+      '<div class="ratios">' + ratios + '</div>';
+  }
+
+  function colourField(key, label, note) {
+    var v = brand.palette[key] || '#000000';
+    return '<div class="field"><label>' + esc(label) + (note ? '<span class="note">' + esc(note) + '</span>' : '') + '</label>' +
+      '<div class="swatch-row">' +
+        '<input type="color" data-path="palette.' + key + '" value="' + esc(v) + '">' +
+        '<input type="text" data-path="palette.' + key + '" value="' + esc(v) + '" spellcheck="false">' +
+      '</div></div>';
+  }
+
+  function fontField(slot, label) {
+    var f = brand.typography[slot] || { family: '', weights: '400;600;700' };
+    return '<div class="field"><label>' + esc(label) + '</label>' +
+      '<select data-font-slot="' + slot + '">' +
+        GOOGLE_FONTS.map(function (g) { return '<option value="' + esc(g) + '"' + (g === f.family ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('') +
+        '<option value="__custom"' + (GOOGLE_FONTS.indexOf(f.family) < 0 ? ' selected' : '') + '>Custom (a font you host yourself)</option>' +
+      '</select>' +
+      '<div data-custom="' + slot + '" style="' + (GOOGLE_FONTS.indexOf(f.family) < 0 ? '' : 'display:none') + ';margin-top:9px">' +
+        '<input type="text" data-custom-family="' + slot + '" placeholder="Family name, e.g. Söhne" value="' + esc(GOOGLE_FONTS.indexOf(f.family) < 0 ? f.family : '') + '">' +
+        '<input type="text" style="margin-top:7px" data-custom-stack="' + slot + '" placeholder="CSS stack, e.g. \'Söhne\',Helvetica,sans-serif" value="' + esc(GOOGLE_FONTS.indexOf(f.family) < 0 ? (f.stack || '') : '') + '">' +
+        '<p class="muted" style="margin-top:6px">A custom family is not fetched from Google Fonts. Make sure your own @font-face is served, or the stack falls back.</p>' +
+      '</div></div>';
+  }
+
+  function bindFonts(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-font-slot]'), function (sel) {
+      sel.addEventListener('change', function () {
+        var slot = sel.dataset.fontSlot, v = sel.value;
+        var custom = root.querySelector('[data-custom="' + slot + '"]');
+        if (v === '__custom') { custom.style.display = ''; return; }
+        custom.style.display = 'none';
+        var generic = slot === 'heading' ? "Georgia,serif" : "system-ui,-apple-system,Segoe UI,sans-serif";
+        brand.typography[slot] = { family: v, stack: "'" + v + "'," + generic, google: true, weights: slot === 'heading' ? '500;600;700' : '400;500;600;700' };
+        loadPreviewFont(v);
+        paintPreview();
+      });
+    });
+    ['family', 'stack'].forEach(function (which) {
+      Array.prototype.forEach.call(root.querySelectorAll('[data-custom-' + which + ']'), function (el) {
+        el.addEventListener('input', function () {
+          var slot = el.getAttribute('data-custom-' + which);
+          var fam = root.querySelector('[data-custom-family="' + slot + '"]').value.trim();
+          var stack = root.querySelector('[data-custom-stack="' + slot + '"]').value.trim();
+          if (!fam) return;
+          brand.typography[slot] = { family: fam, stack: stack || ("'" + fam + "',sans-serif"), google: false, weights: '400;600;700' };
+          paintPreview();
+        });
+      });
+    });
+  }
+
+  var loadedFonts = {};
+  function loadPreviewFont(family) {
+    if (!family || loadedFonts[family]) return;
+    loadedFonts[family] = true;
+    var l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(family).replace(/%20/g, '+') + ':wght@400;500;600;700&display=swap';
+    document.head.appendChild(l);
+  }
+
+  function chipEditor(kind, list) {
+    return '<div class="chips" data-chips="' + kind + '">' +
+      list.map(function (w, i) { return '<span class="chip' + (kind === 'banned' ? ' ban' : '') + '">' + esc(w) + '<button data-rm="' + kind + '" data-i="' + i + '" aria-label="Remove">&times;</button></span>'; }).join('') +
+      '</div>';
+  }
+
+  function bindChips(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-rm]'), function (b) {
+      b.addEventListener('click', function () { brand.voice[b.dataset.rm].splice(+b.dataset.i, 1); render(); });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll('[data-add]'), function (inp) {
+      inp.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ',') return;
+        e.preventDefault();
+        var v = inp.value.trim().replace(/,$/, '');
+        if (!v) return;
+        var k = inp.dataset.add;
+        if (brand.voice[k].indexOf(v) < 0) brand.voice[k].push(v);
+        inp.value = '';
+        render();
+        var again = document.querySelector('[data-add="' + k + '"]');
+        if (again) again.focus();
+      });
+    });
+  }
+
+  function render() {
+    renderSteps();
+    var c = $('stepCard');
+
+    if (step === 1) {
+      c.innerHTML =
+        '<h2>Who is the brand?</h2>' +
+        '<p class="hint">This is the identity every generated asset will carry. Leave anything you are not sure of blank — the platform reports missing data rather than inventing it.</p>' +
+        '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. Northbound Coffee"></div>' +
+        '<div class="row">' +
+          '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="Slow roasted, small batch"></div>' +
+          '<div class="field"><label>Industry</label><input type="text" data-path="industry" value="' + esc(brand.industry) + '" placeholder="Coffee / D2C"></div>' +
+        '</div>' +
+        '<div class="row">' +
+          '<div class="field"><label>Website</label><input type="url" data-path="website" value="' + esc(brand.website) + '" placeholder="https://yourbrand.com"></div>' +
+          '<div class="field"><label>Logo URL <span class="note">must be a real hosted image</span></label><input type="url" data-path="logo_url" value="' + esc(brand.logo_url) + '" placeholder="https://yourbrand.com/logo.png"></div>' +
+        '</div>' +
+        actions(null, 'Colour schema');
+    }
+
+    else if (step === 2) {
+      c.innerHTML =
+        '<h2>Colour schema</h2>' +
+        '<p class="hint">These four colours become the design tokens for the entire app and every asset it generates. They are checked live against the platform\'s design rules: WCAG AA contrast on every pairing, and no black or dark neutral page surfaces.</p>' +
+        '<div class="row">' + colourField('primary', 'Primary', 'buttons, headings, brand ground') + colourField('accent', 'Accent', 'highlights, links') + '</div>' +
+        '<div class="row">' + colourField('ink', 'Text', 'body copy') + colourField('surface', 'Page surface', 'the page background') + '</div>' +
+        '<div class="row">' + colourField('surface_alt', 'Card surface', 'cards above the page') + colourField('muted', 'Secondary text', 'captions, labels') + '</div>' +
+        '<div class="verdict" id="verdict"></div>' +
+        actions('Brand', 'Typography');
+    }
+
+    else if (step === 3) {
+      c.innerHTML =
+        '<h2>Typography</h2>' +
+        '<p class="hint">Two families: one for headings, one for body. Google families are loaded automatically on every page; a custom family uses your own hosted @font-face.</p>' +
+        fontField('heading', 'Heading font') +
+        fontField('body', 'Body font') +
+        '<p class="muted">Every generated mailer, landing page and ad will use this pairing, and the app shell will too.</p>' +
+        actions('Colour schema', 'Voice');
+    }
+
+    else if (step === 4) {
+      c.innerHTML =
+        '<h2>Voice and guardrails</h2>' +
+        '<p class="hint">These rules are injected into every generation prompt in the platform, including TeleSuite. Banned phrases are enforced, not suggested.</p>' +
+        '<div class="field"><label>Tone <span class="note">how the brand sounds</span></label>' +
+          '<input type="text" data-path="voice.tone" value="' + esc(brand.voice.tone) + '" placeholder="warm, plain spoken, never hyped"></div>' +
+        '<div class="field"><label>Preferred vocabulary <span class="note">press Enter to add</span></label>' +
+          '<input type="text" data-add="preferred" placeholder="ritual, small batch, origin">' + chipEditor('preferred', brand.voice.preferred) + '</div>' +
+        '<div class="field"><label>Banned phrases <span class="note">press Enter to add</span></label>' +
+          '<input type="text" data-add="banned" placeholder="game-changer, hurry, last chance">' + chipEditor('banned', brand.voice.banned) + '</div>' +
+        '<div class="field"><label style="display:flex;align-items:center;gap:8px;font-weight:600">' +
+          '<input type="checkbox" data-path="voice.no_em_dashes" ' + (brand.voice.no_em_dashes ? 'checked' : '') + ' style="width:auto"> Never use em dashes or en dashes</label></div>' +
+        '<div class="field"><label>Notes for the writer</label><textarea data-path="voice.notes" placeholder="Testimonials read as short personal stories, not reviews.">' + esc(brand.voice.notes) + '</textarea></div>' +
+        actions('Typography', 'Data & catalog');
+    }
+
+    else if (step === 5) {
+      c.innerHTML =
+        '<h2>Data and catalog</h2>' +
+        '<p class="hint">Where you sell, and what you sell. Product facts are only ever read from a source you supply — the platform will never invent a price, a URL or a product.</p>' +
+        '<div class="field"><label>Regions and stores</label><div id="regions"></div>' +
+          '<button class="btn" id="addRegion" style="margin-top:6px;padding:7px 13px;font-size:12px">+ Add region</button></div>' +
+        '<div class="field" style="margin-top:22px"><label>Product catalog</label>' +
+          '<div class="imp-tabs">' +
+            '<button class="imp-tab on" data-imp="storefront">Import from your store</button>' +
+            '<button class="imp-tab" data-imp="csv">Paste CSV</button>' +
+            '<button class="imp-tab" data-imp="file">Upload a file</button>' +
+          '</div>' +
+          '<div data-panel="storefront">' +
+            '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc((brand.regions[0] && brand.regions[0].store_url) || '') + '">' +
+            '<p class="muted" style="margin-top:6px">Reads the store\'s public product feed at <code>/products.json</code> (Shopify and compatible). Read only, no credentials, and the source is recorded on every row.</p>' +
+          '</div>' +
+          '<div data-panel="csv" style="display:none">' +
+            '<textarea id="impCsv" placeholder="title,handle,sku,price,currency,image,url&#10;Ethiopia Guji,ethiopia-guji,EG-250,18.00,USD,https://...,https://..."></textarea>' +
+            '<p class="muted" style="margin-top:6px">The first row must be a header. Title (or name) is required; handle, sku, price, currency, image, url, type, collections and tags are matched automatically.</p>' +
+          '</div>' +
+          '<div data-panel="file" style="display:none">' +
+            '<input type="file" id="impFile" accept=".csv,.json,.txt">' +
+            '<p class="muted" style="margin-top:6px">A CSV or a JSON array of products.</p>' +
+          '</div>' +
+          '<div style="display:flex;gap:9px;align-items:center;margin-top:12px;flex-wrap:wrap">' +
+            '<button class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>' +
+            '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + ' products in this workspace.') + '</span>' +
+          '</div>' +
+        '</div>' +
+        actions('Voice', 'Review');
+      renderRegions();
+    }
+
+    else if (step === 6) {
+      var r = readiness();
+      c.innerHTML =
+        '<h2>Review and activate</h2>' +
+        '<p class="hint">Activating makes this brand the one the whole app runs as, for your account.</p>' +
+        '<div class="verdict ' + (r.ready ? 'ok' : 'warn') + '">' +
+          '<b>' + (r.ready ? 'BRAND READY' : 'NOT LAUNCH READY — DATA DEPENDENCY') + '</b>' +
+          (r.missing.length
+            ? 'These are missing. Nothing was filled in for you; each one is reported so you can supply the real value:' +
+              '<div style="margin-top:8px">' + r.missing.map(function (m) { return '<div class="marker">' + esc(m.marker) + '</div>'; }).join(' ') + '</div>'
+            : 'Everything the platform needs is present.') +
+        '</div>' +
+        '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
+          '<button class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
+          '<button class="btn" id="saveDraft">Save as draft</button>' +
+        '</div>' +
+        '<div style="margin-top:26px"><label>Your brands</label><div class="ws-list" id="wsList"><p class="muted">Loading…</p></div>' +
+          '<button class="btn" id="newBrand" style="margin-top:6px;padding:8px 14px;font-size:12px">+ Onboard another brand</button></div>';
+      loadWorkspaces();
+    }
+
+    bindInputs(c); bindFonts(c); bindChips(c);
+    if (step === 2) renderVerdict();
+    wireActions();
+    if (step === 5) wireImport();
+    if (step === 6) wireReview();
+    paintPreview();
+    if (window.Credits) window.Credits.decorate(c);
+  }
+
+  function actions(back, next) {
+    return '<div class="actions">' +
+      (back ? '<button class="btn" data-go="back">&larr; ' + esc(back) + '</button>' : '<span></span>') +
+      '<button class="btn primary" data-go="next">' + esc(next) + ' &rarr;</button></div>';
+  }
+
+  function wireActions() {
+    Array.prototype.forEach.call($('stepCard').querySelectorAll('[data-go]'), function (b) {
+      b.addEventListener('click', async function () {
+        if (b.dataset.go === 'back') return go(step - 1);
+        if (step === 1 && !brand.name.trim()) return toast('Give the brand a name first.');
+        if (step === 2 && !checkPalette().ok) return toast('Fix the colour issues before continuing.');
+        await save(true);
+        go(step + 1);
+      });
+    });
+  }
+
+  /* ── regions ────────────────────────────────────────────────────────── */
+  function renderRegions() {
+    var box = $('regions'); if (!box) return;
+    box.innerHTML = brand.regions.map(function (r, i) {
+      return '<div class="region-row">' +
+        '<input type="text" data-r="code" data-i="' + i + '" value="' + esc(r.code || '') + '" placeholder="US">' +
+        '<input type="text" data-r="currency" data-i="' + i + '" value="' + esc(r.currency || '') + '" placeholder="USD">' +
+        '<input type="url" data-r="store_url" data-i="' + i + '" value="' + esc(r.store_url || '') + '" placeholder="https://yourbrand.com">' +
+        '<button class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('[data-r]'), function (el) {
+      el.addEventListener('input', function () {
+        var v = el.value;
+        if (el.dataset.r === 'code' || el.dataset.r === 'currency') v = v.toUpperCase();
+        brand.regions[+el.dataset.i][el.dataset.r] = v;
+      });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-rmr]'), function (b) {
+      b.addEventListener('click', function () { brand.regions.splice(+b.dataset.rmr, 1); renderRegions(); });
+    });
+    var add = $('addRegion');
+    if (add) add.onclick = function () { brand.regions.push({ code: '', currency: '', symbol: '', store_url: '' }); renderRegions(); };
+  }
+
+  /* ── catalog import ─────────────────────────────────────────────────── */
+  function wireImport() {
+    var mode = 'storefront';
+    Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (t) {
+      t.addEventListener('click', function () {
+        mode = t.dataset.imp;
+        Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (x) { x.classList.toggle('on', x === t); });
+        Array.prototype.forEach.call($('stepCard').querySelectorAll('[data-panel]'), function (p) { p.style.display = p.dataset.panel === mode ? '' : 'none'; });
+      });
+    });
+
+    $('doImport').addEventListener('click', async function () {
+      if (busy) return;
+      var status = $('impStatus');
+      try {
+        if (!brand.id) { await save(true); }
+        if (!brand.id) throw new Error('Save the brand first.');
+        var payload = { workspace_id: brand.id, region: (brand.regions[0] && brand.regions[0].code || 'us').toLowerCase() };
+        if (mode === 'storefront') {
+          payload.kind = 'storefront';
+          payload.url = $('impUrl').value.trim();
+          if (!payload.url) throw new Error('Enter your store URL.');
+        } else if (mode === 'csv') {
+          payload.kind = 'csv';
+          payload.text = $('impCsv').value;
+          if (!payload.text.trim()) throw new Error('Paste your CSV first.');
+        } else {
+          var f = $('impFile').files[0];
+          if (!f) throw new Error('Choose a file first.');
+          payload.text = await f.text();
+          payload.kind = /\.json$/i.test(f.name) || payload.text.trim()[0] === '[' || payload.text.trim()[0] === '{' ? 'json' : 'csv';
+        }
+        busy = true; status.textContent = 'Importing…';
+        var r = await api('catalog-import', payload);
+        catalogCount = r.imported;
+        status.textContent = r.imported + ' products imported' + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+        toast('Imported ' + r.imported + ' products.');
+      } catch (e) {
+        status.textContent = e.message;
+        toast(e.message, 4200);
+      } finally { busy = false; }
+    });
+  }
+
+  /* ── review ─────────────────────────────────────────────────────────── */
+  async function loadWorkspaces() {
+    try {
+      var r = await window.BrandContext.list();
+      workspaces = r.workspaces || [];
+      var active = r.active_id;
+      $('wsList').innerHTML = workspaces.length ? workspaces.map(function (w) {
+        var p = w.palette || {};
+        return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '">' +
+          '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
+          '<span><b>' + esc(w.name) + '</b><small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
+          (w.id === active ? '<span class="tag">Active</span>' : '<span class="tag" style="opacity:.5">Switch</span>') +
+        '</div>';
+      }).join('') : '<p class="muted">No brands yet. Finish this one and it becomes your first.</p>';
+      Array.prototype.forEach.call($('wsList').querySelectorAll('[data-ws]'), function (el) {
+        el.addEventListener('click', async function () {
+          try { await window.BrandContext.setActive(el.dataset.ws); toast('Switched brand. The app is now in that brand.'); loadWorkspaces(); }
+          catch (e) { toast(e.message, 4000); }
+        });
+      });
+    } catch (e) { $('wsList').innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
+  }
+
+  function wireReview() {
+    $('saveDraft').addEventListener('click', async function () {
+      brand.status = 'draft';
+      try { await save(); toast('Saved as a draft.'); } catch (e) { toast(e.message, 4200); }
+    });
+    $('newBrand').addEventListener('click', function () {
+      brand = JSON.parse(JSON.stringify(brand));
+      brand.id = ''; brand.slug = ''; brand.name = ''; brand.website = ''; brand.logo_url = ''; brand.tagline = '';
+      catalogCount = null; go(1);
+    });
+    $('activate').addEventListener('click', async function () {
+      var pc = checkPalette();
+      if (!pc.ok) { toast('The colour schema still fails the design rules. Fix step 2 first.'); return go(2); }
+      brand.status = 'active';
+      try {
+        await save();
+        await window.BrandContext.setActive(brand.id);
+        toast('This brand is now live across the app.');
+        var from = new URLSearchParams(location.search).get('from');
+        setTimeout(function () { location.href = from && from !== '/onboarding' ? from : '/'; }, 900);
+      } catch (e) {
+        brand.status = 'draft';
+        toast(e.message, 5000);
+      }
+    });
+  }
+
+  /* ── persistence ────────────────────────────────────────────────────── */
+  async function save(silent) {
+    if (busy) return;
+    busy = true;
+    try {
+      brand.onboarding_step = step;
+      if (!brand.slug) brand.slug = slugify(brand.name);
+      var r = await api('save', { brand: brand });
+      if (r.brand) {
+        brand.id = r.brand.id;
+        brand.slug = r.brand.slug;
+        if (typeof r.brand.products === 'number') catalogCount = r.brand.products;
+      }
+      if (!silent) toast('Saved.');
+      return r.brand;
+    } catch (e) {
+      if (!silent) throw e;
+      // A draft save failing mid-wizard must not block the user; the final
+      // Activate re-saves and will surface the real error then.
+      console.warn('[onboarding] draft save failed:', e.message);
+    } finally { busy = false; }
+  }
+
+  function go(n) {
+    step = Math.max(1, Math.min(STEPS.length, n));
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── boot ───────────────────────────────────────────────────────────── */
+  async function boot() {
+    render();
+    // Do not bounce the user back out of the wizard while they are in it.
+    try { sessionStorage.setItem('lc-onboarding-skip', '1'); } catch (_) {}
+
+    if (!window.BrandContext) { setTimeout(boot, 250); return; }
+    try {
+      var existing = await window.BrandContext.ready();
+      var wanted = new URLSearchParams(location.search).get('id');
+      var target = wanted || (existing && existing.id);
+      if (target) {
+        var r = await api('get', null, '&id=' + encodeURIComponent(target));
+        if (r.brand) {
+          ['id','slug','name','tagline','industry','website','logo_url','status'].forEach(function (k) { brand[k] = r.brand[k] || ''; });
+          if (r.brand.palette && Object.keys(r.brand.palette).length) brand.palette = Object.assign(brand.palette, r.brand.palette);
+          if (r.brand.typography && r.brand.typography.heading) brand.typography = r.brand.typography;
+          if (r.brand.voice) brand.voice = Object.assign(brand.voice, r.brand.voice);
+          if (r.brand.regions && r.brand.regions.length) brand.regions = r.brand.regions;
+          catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
+          [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });
+          var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);
+          $('title').textContent = 'Edit ' + brand.name;
+          $('lede').textContent = 'Update this brand. Changes apply across the whole app the moment you save.';
+          go(s);
+          return;
+        }
+      }
+    } catch (e) { console.warn('[onboarding]', e.message); }
+    render();
+  }
+
+  window.addEventListener('beforeunload', function () { try { sessionStorage.removeItem('lc-onboarding-skip'); } catch (_) {} });
+  boot();
+})();
+</script>
+</body>
+</html>

@@ -78,6 +78,27 @@
     } catch (_) {}
   })();
 
+  // ─── Universal brand layer + credit meter ───────────────────────────────
+  // brand-context.js re-skins the whole app to the signed-in user's ACTIVE
+  // brand workspace (palette, fonts, name, favicon) and sends a user with no
+  // brand to /onboarding. credits.js renders the live balance pill, labels
+  // every [data-credit-feature] element with its cost, and guards runs.
+  // Both are additive, fail-safe and self-skip the frozen diff snapshot.
+  // brand-context loads FIRST so credits can read the active workspace id.
+  (function ensurePlatformRuntimes() {
+    try {
+      if (IS_FROZEN_DIFF) return;
+      var d = document;
+      [['/brand-context.js?v=20260809', 'data-vh-brand'], ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
+        if (d.querySelector('script[' + pair[1] + ']')) return;
+        var s = d.createElement('script');
+        s.src = pair[0];
+        s.setAttribute(pair[1], '1');
+        (d.head || d.documentElement).appendChild(s);
+      });
+    } catch (_) {}
+  })();
+
   // Theme switcher removed — the theme is locked to green (see theme.css).
   // Clean up the old floating button if a cached page still has one.
   (function removeLegacyThemeSwitch() {
@@ -211,6 +232,36 @@
   const NAV = [
     { id: 'appaudit',   label: 'Overall App Audit', href: '/audit',      icon: 'insights', ver: 'v2', match: ['/audit', '/app-audit', '/app-audit.html'] },
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
+    { group: 'Brand & Credits', icon: 'studio', gid: 'platform', ver: 'v2', children: [
+      { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
+      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
+      { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
+    ]},
+    { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2', match: ['/telesuite', '/telesuite.html'], children: [
+      { id: 'ts-home',       label: 'TeleSuite Home',           href: '/telesuite#home',                       icon: 'home' },
+      { id: 'ts-products',   label: 'Products',                 href: '/telesuite#products',                   icon: 'kb' },
+      { id: 'ts-kb',         label: 'Knowledge Base',           href: '/telesuite#knowledge-base',             icon: 'kb' },
+      { id: 'ts-pitch',      label: 'AI Pitch Generator',       href: '/telesuite#pitch-generator',            icon: 'insights' },
+      { id: 'ts-rebuttal',   label: 'AI Rebuttal Assistant',    href: '/telesuite#rebuttal-generator',         icon: 'insights' },
+      { id: 'ts-transcribe', label: 'Audio Transcription',      href: '/telesuite#transcription',              icon: 'avatars' },
+      { id: 'ts-transdb',    label: 'Transcription DB',         href: '/telesuite#transcription-dashboard',    icon: 'analysis' },
+      { id: 'ts-scoring',    label: 'AI Call Scoring',          href: '/telesuite#call-scoring',               icon: 'insights' },
+      { id: 'ts-scoredb',    label: 'Call Scoring DB',          href: '/telesuite#call-scoring-dashboard',     icon: 'analysis' },
+      { id: 'ts-combined',   label: 'Combined Call Analysis',   href: '/telesuite#combined-call-analysis',     icon: 'insights' },
+      { id: 'ts-combineddb', label: 'Combined Analysis DB',     href: '/telesuite#combined-call-analysis-dashboard', icon: 'analysis' },
+      { id: 'ts-vsales',     label: 'AI Voice Sales Agent',     href: '/telesuite#voice-sales-agent',          icon: 'avatars' },
+      { id: 'ts-vsalesdb',   label: 'Voice Sales DB',           href: '/telesuite#voice-sales-dashboard',      icon: 'analysis' },
+      { id: 'ts-vsupport',   label: 'AI Voice Support Agent',   href: '/telesuite#voice-support-agent',        icon: 'avatars' },
+      { id: 'ts-vsupportdb', label: 'Voice Support DB',         href: '/telesuite#voice-support-dashboard',    icon: 'analysis' },
+      { id: 'ts-deck',       label: 'Training Material Creator',href: '/telesuite#create-training-deck',       icon: 'kb' },
+      { id: 'ts-deckdb',     label: 'Material DB',              href: '/telesuite#training-material-dashboard',icon: 'analysis' },
+      { id: 'ts-data',       label: 'AI Data Analyst',          href: '/telesuite#data-analysis',              icon: 'analysis' },
+      { id: 'ts-datadb',     label: 'Data Analysis DB',         href: '/telesuite#data-analysis-dashboard',    icon: 'analysis' },
+      { id: 'ts-batch',      label: 'Batch Audio Downloader',   href: '/telesuite#batch-audio-downloader',     icon: 'kb' },
+      { id: 'ts-activity',   label: 'Global Activity Log',      href: '/telesuite#activity-dashboard',         icon: 'analysis' },
+      { id: 'ts-clone',      label: 'Clone Full App',           href: '/telesuite#clone-app',                  icon: 'studio' },
+      { id: 'ts-n8n',        label: 'n8n Workflow',             href: '/telesuite#n8n-workflow',               icon: 'studio' },
+    ]},
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
       { id: 'research',        label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
       { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },

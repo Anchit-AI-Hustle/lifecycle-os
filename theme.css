@@ -22,35 +22,44 @@
 
 :root {
   /* Brand core (locked, theme-independent accents) */
-  --vh-green:  #6A33D8;
-  --vh-lava:   #D0473E;
-  --vh-black:  #111111;
-  --vh-chalk:  #F7F5F2;
+  /* ── Multi-tenant indirection (Universal Brand Platform) ──────────────────
+     Every colour below resolves through a `--brand-*` token first and only
+     falls back to the shipped default when no brand is active. brand-context.js
+     writes the active workspace's `--brand-*` set onto <html> as an inline
+     style, so the ENTIRE suite re-skins to the logged-in user's brand without
+     any page needing to know about it. With no brand active the fallbacks
+     apply and nothing changes. The tokens themselves are validated for WCAG-AA
+     contrast at save time (brand-workspace-core.validatePalette), so a brand
+     can never paint the app into an unreadable state. */
+  --vh-green:  var(--brand-primary, #6A33D8);
+  --vh-lava:   var(--brand-accent,  #D0473E);
+  --vh-black:  var(--brand-ink,     #111111);
+  --vh-chalk:  var(--brand-surface, #F7F5F2);
 
   /* State (theme-independent) */
-  --vh-ok:   #3fa46a;
-  --vh-warn: #c9a227;
-  --vh-err:  #b0483f;
+  --vh-ok:   var(--brand-ok,   #3fa46a);
+  --vh-warn: var(--brand-warn, #c9a227);
+  --vh-err:  var(--brand-err,  #b0483f);
 
   /* ── US D2C Review design system (source: KNICKGASM_USA_D2C_Dashboard.html) ──
      The official business-review dashboard shares the same four brand colors,
      Montserrat + Instrument Sans, and adds this semantic set. Its CANONICAL page
      surface is brand CHALK (not #fff); dark ink text on chalk is the reference
      pairing. These tokens align the Lifecycle OS light theme to that review. */
-  --vh-surface:      #F7F5F2;  /* canonical light page surface (chalk) */
-  --vh-surface-card: #ffffff;  /* cards sit slightly above the chalk page */
+  --vh-surface:      var(--brand-surface,     #F7F5F2);  /* canonical light page surface */
+  --vh-surface-card: var(--brand-surface-alt, #ffffff);  /* cards sit slightly above the page */
   --vh-panel-tan:    #eadfce;  /* tan info panel */
   --vh-border-soft:  #cddbd2;  /* soft green-gray hairline */
   --vh-pos:          #1a7f37;  /* positive / uptrend (AA on chalk) */
   --vh-neg:          #c0392b;  /* negative / downtrend (AA on chalk) */
   --vh-coffee:       #6f4e37;  /* coffee-category accent */
-  --vh-text-on-light:#111111;  /* body text on any light surface */
-  --vh-text-muted:   #556059;  /* secondary text on light */
+  --vh-text-on-light:var(--brand-ink,       #111111);  /* body text on any light surface */
+  --vh-text-muted:   var(--brand-ink-muted, #556059);  /* secondary text on light */
 
   /* Type */
-  --vh-font-head: 'Lora', 'Montserrat', Georgia, serif;
-  --vh-font-body: 'Inter', 'Instrument Sans', system-ui, -apple-system, Segoe UI, sans-serif;
-  --vh-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --vh-font-head: var(--brand-font-head, 'Lora', 'Montserrat', Georgia, serif);
+  --vh-font-body: var(--brand-font-body, 'Inter', 'Instrument Sans', system-ui, -apple-system, Segoe UI, sans-serif);
+  --vh-font-mono: var(--brand-font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
 
   /* Type scale (fluid: clamps between mobile and desktop) */
   --vh-fs-xs:  11px;
