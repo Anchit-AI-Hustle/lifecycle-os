@@ -307,6 +307,7 @@
     { group: 'Brand & Credits', icon: 'studio', gid: 'platform', ver: 'v2', children: [
       { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
       { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
+      { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
     ]},
     { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2', match: ['/telesuite', '/telesuite.html'], children: [
@@ -360,7 +361,6 @@
       { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
       { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
     ]},
-    { id: 'brandinput', label: 'Brand Input', href: '/brand', icon: 'insights', ver: 'v2', match: ['/brand', '/brand.html'] },
     { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
     { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'], children: [
       { id: 'da-control',  label: 'Control Room',                  href: '/data-analysis?tab=control',              icon: 'analysis' },
@@ -479,9 +479,9 @@
     // Home is a plain landing link, not a content-producing feature, so it
     // deliberately has NO 5-sub-item IA entry — it renders as a simple link.
     brandinput: {
-      title: 'Brand Input',
+      title: 'Brand Kit',
       what: "The single brand-truth record for the platform: the four-colour palette, the two type families, the voice (tone, tagline, do and banned lists) and the footer identity blocks. Every generator in the OS reads this one record, so it is the place brand truth is set once instead of being retyped into each feature.",
-      who: "The brand owner and whoever stands the platform up for a brand. It is the first screen to fill when pointing this OS at a new brand.",
+      who: "The brand owner. Brand Setup (/onboarding) is where a NEW brand workspace is created and activated - this page is where the active brand's kit is fine-tuned afterwards.",
       how: "Reads and writes the knickgasm_brand_kit singleton in Supabase through /api/kb?action=brand-kit. Colours are validated as #RRGGBB and the body-text-on-background pair is contrast-checked against WCAG AA before a save is allowed to look healthy. The Verify panel compares the saved palette against the prompt-side brand block in api/_shared/master-prompt.js and flags drift, because generated copy reads that block rather than the database.",
       input: "Four hex colours, two font families with their CSS stacks, a tone line and tagline, the do and banned phrase lists, and the footer legal, contact and social values.",
       steps: [
