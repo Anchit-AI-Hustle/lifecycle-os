@@ -645,7 +645,10 @@
     $('startCall').onclick = function () {
       var cfg = collectInputs($('setup'));
       for (var j = 0; j < s.inputs.length; j++) { if (s.inputs[j].required && !String(cfg[s.inputs[j].name] || '').trim()) return toast('"' + s.inputs[j].label + '" is required.'); }
-      if (window.Credits && !window.Credits.guard(s.credit_key, 3)) return;
+      // Guard ONE minute, not the reservation estimate: the server bills
+      // incrementally per minute, so 12 credits is genuinely enough to start a
+      // call, and later minutes stop themselves when the balance runs out.
+      if (window.Credits && !window.Credits.guard(s.credit_key, 1)) return;
       runCall(s, cfg, SR);
     };
   }

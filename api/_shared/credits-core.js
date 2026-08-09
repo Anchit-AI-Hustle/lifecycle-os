@@ -110,16 +110,22 @@ async function wallet(userId, workspaceId) {
   const rows = await serviceRest(q);
   if (Array.isArray(rows) && rows[0]) return rows[0];
 
-  // First touch: create the wallet and drop the welcome grant in, ONCE.
+  // First touch: create the wallet and drop the welcome grant in, ONCE PER USER.
+  //
+  // Deliberately per user, NOT per wallet: wallets are per (user, workspace)
+  // and anyone can create unlimited workspaces, so a per-wallet trial would be
+  // an unlimited credit faucet — make a workspace, take another grant, spend,
+  // repeat. A second workspace's wallet therefore starts empty.
+  //
   // The check-then-grant below is racy on its own (two tabs can both see no
-  // grant row), so the real guard is a partial unique index on the ledger —
-  // `credit_ledger_welcome_once_idx`, one row per wallet with ref='welcome'.
+  // grant row), so the real guard is the partial unique index on the ledger,
+  // `credit_ledger_welcome_once_user_idx`, one row per USER with ref='welcome'.
   // The pre-check just avoids a pointless round-trip on the common path; the
   // unique violation is what actually makes it idempotent.
   const id = await rpc('credit_wallet_id', { p_user: userId, p_workspace: workspaceId || null });
   const grant = catalog.welcomeGrant();
   if (grant > 0) {
-    const seen = await serviceRest(`credit_ledger?select=id&wallet_id=eq.${encodeURIComponent(id)}&ref=eq.welcome&limit=1`);
+    const seen = await serviceRest(`credit_ledger?select=id&user_id=eq.${encodeURIComponent(userId)}&ref=eq.welcome&kind=eq.grant&limit=1`);
     if (!Array.isArray(seen) || !seen.length) {
       try {
         await rpc('credit_grant', {
@@ -128,7 +134,7 @@ async function wallet(userId, workspaceId) {
         });
       } catch (err) {
         // 23505 = the index caught a concurrent first touch. Already granted.
-        if (!/duplicate key|23505|credit_ledger_welcome_once/i.test(String(err.message || ''))) throw err;
+        if (!/duplicate key|23505|credit_ledger_welcome_once/i.test(String(err.message || ''))) throw err;  // already granted to this user
       }
     }
   }

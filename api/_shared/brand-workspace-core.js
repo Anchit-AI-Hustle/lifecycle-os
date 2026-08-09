@@ -836,8 +836,11 @@ function buildRow(input, existing) {
 
   // Colour schema is validated on save, so a broken palette can never reach the
   // shell. A DRAFT may still be saved with an incomplete palette (the wizard
-  // saves as it goes); anything active must pass.
-  if (Object.keys(row.palette).length && row.status === 'active') {
+  // saves as it goes); anything ACTIVE must pass — including an EMPTY palette,
+  // which previously skipped the check entirely and let a direct API client
+  // activate a brand with no colours at all, after which tokens() quietly
+  // filled it with the shipped tenant's defaults.
+  if (row.status === 'active') {
     const v = validatePalette(row.palette);
     if (!v.ok) { const e = new Error('Colour schema fails the design rules.'); e.status = 400; e.details = v.errors; throw e; }
   }

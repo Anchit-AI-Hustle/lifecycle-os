@@ -818,10 +818,28 @@ OPS.voice_finish = async (ctx, input, req) => {
     finalBill = { charged: 0, billed: 0, error: String(err.message || err).slice(0, 200) };
   }
 
+  // Record what the call actually cost ON THE CALL ROW. Billing accrues on the
+  // separate voice_session row, so without this the voice dashboards and the
+  // TeleSuite summary would report every completed call as costing zero while
+  // the wallet was charged.
+  let callCredits = 0;
+  try {
+    const sess = await serviceRest(`telesuite_runs?select=credits,units&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&feature=eq.voice_session&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+    callCredits = (Array.isArray(sess) && sess[0] && Number(sess[0].credits)) || 0;
+    if (call && call.id) {
+      await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(call.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+        method: 'PATCH',
+        body: { credits: callCredits, units: finalBill.billed || minutes || null },
+        prefer: 'return=minimal',
+      });
+    }
+  } catch (_) { /* the ledger is the billing truth; this row is the report */ }
+
   return {
     result: {
       call_id: call && call.id, transcript, turns: turns.length, minutes,
       score: scored, billed_minutes: finalBill.billed, final_charge: finalBill.charged,
+      credits_charged: callCredits,
     },
     skip_log: true,
   };
