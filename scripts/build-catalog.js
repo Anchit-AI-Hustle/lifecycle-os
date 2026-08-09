@@ -241,7 +241,26 @@ function processCSV(filePath, market) {
     if (price) product.price = price;
     if (compareAt && compareAt !== price) product.compare_at = compareAt;
     if (type) product.type = type;
-    if (subtitle) product.subtitle = subtitle;
+    // Descriptive line for mailer / landing-page product cards.
+    //
+    // The KNICKGASM export carries no subtitle or notes column, so every
+    // generated product card was rendering with an EMPTY note (consumers read
+    // `subtitle || tasting_notes`, both absent). Derive one from facts the
+    // catalogue actually states - the silhouette (Type) and the design family
+    // (derived tags). Nothing here is invented: it restates the product's own
+    // classification, e.g. "Hand-painted Nike Air force 1 - anime design".
+    const FAMILY_LABEL = {
+      anime: 'anime design', sport: 'football and sport design', auto: 'automotive design',
+      gaming: 'gaming and superhero design', wedding: 'wedding commission', pets: 'pet portrait',
+      bling: 'crystal and bling work', aesthetic: 'aesthetic colourway', celebrity: 'celebrity and concert design',
+      embroidery: 'embroidered detail', accessories: 'sneaker accessory', apparel: 'custom apparel',
+    };
+    const family = derivedTags.map((t) => FAMILY_LABEL[t]).filter(Boolean)[0];
+    const silhouette = type || 'custom sneaker';
+    const derivedSubtitle = derivedTags.includes('accessories') || derivedTags.includes('apparel')
+      ? (family ? `KNICKGASM ${family}` : `KNICKGASM ${silhouette}`)
+      : `Hand-painted ${silhouette}${family ? ` - ${family}` : ''}`;
+    product.subtitle = subtitle || derivedSubtitle;
     if (paint) product.paint = paint;
     if (design) product.tasting_notes = design;
     if (form) product.form = form;
