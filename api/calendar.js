@@ -381,3 +381,24 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   return res.status(400).json({ ok: false, error: 'Use ?action=generate, ?action=trigger-mailer, ?action=lp&id=…, ?action=smart-brain-run-daily, or ?action=lifecycle-generate|lifecycle-list|lifecycle-build-mailer' });
 };
+
+// ── Metering (Universal Brand Platform) ────────────────────────────────────
+// Only the generating actions cost credits; reads, the /lp/:id page server and
+// the cron-driven paths stay free. A cron call carries CRON_SECRET rather than
+// a user session, and has no wallet to charge, so it is never metered.
+const _credits = require('./_shared/credits-core.js');
+const _CAL_FEATURE = {
+  generate: 'calendar.generate',
+  'lifecycle-generate': 'calendar.generate',
+  'lifecycle-build-mailer': 'mailer.generate',
+  'trigger-mailer': 'mailer.generate',
+  triggermailer: 'mailer.generate',
+};
+module.exports = _credits.metered(module.exports, (req) => {
+  const auth = String((req.headers && req.headers.authorization) || '');
+  const secret = String(process.env.CRON_SECRET || '');
+  if (secret && auth === `Bearer ${secret}`) return null;      // scheduled run
+  const action = String((req.query || {}).action || '').toLowerCase();
+  return _CAL_FEATURE[action] || null;
+});
+

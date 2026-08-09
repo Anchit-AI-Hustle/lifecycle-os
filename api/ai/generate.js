@@ -31,14 +31,22 @@ const CF = require('../_shared/copy-frameworks.js');
 // Walk a parsed LLM JSON payload and brand-scrub (banned phrases + em/en dashes)
 // every generated STRING value. Object keys are never touched; URL-like values
 // are skipped so links/handles stay byte-identical.
-function deepScrubDashes(v) {
+// `brand` (optional) is the caller's active workspace. When present, its OWN
+// banned-phrase list is enforced on top of tenant zero's, so a custom brand's
+// guardrails actually bind the generated copy rather than only the prompt.
+function deepScrubDashes(v, brand) {
   if (typeof v === 'string') {
-    return /^(https?:\/\/|\/)/i.test(v.trim()) ? v : brandScrub(v);
+    if (/^(https?:\/\/|\/)/i.test(v.trim())) return v;
+    let out = brandScrub(v);
+    if (brand && brand.id) {
+      try { out = require('../_shared/brand-runtime.js').scrubForBrand(out, brand); } catch (_) {}
+    }
+    return out;
   }
-  if (Array.isArray(v)) return v.map(deepScrubDashes);
+  if (Array.isArray(v)) return v.map((x) => deepScrubDashes(x, brand));
   if (v && typeof v === 'object') {
     const out = {};
-    for (const k of Object.keys(v)) out[k] = deepScrubDashes(v[k]);
+    for (const k of Object.keys(v)) out[k] = deepScrubDashes(v[k], brand);
     return out;
   }
   return v;
@@ -750,6 +758,32 @@ Target market for this autofill: ${targetMarket}.`;
   // create_brief: 4000 tokens for 450-600 word detailed production brief with full structure
   const max_tokens = (mode === 'mailer_full' || mode === 'landing_page') ? 7000 : (mode === 'concepts' ? 4500 : (mode === 'suggested_prompts' ? 3000 : (mode === 'chat' ? 1200 : 4000)));
 
+  // ── Active-brand override (Universal Brand Platform) ───────────────────────
+  // The system prompts above are written for tenant zero. When the caller has
+  // an active brand workspace, prepend that brand's constraint block and say
+  // explicitly that it SUPERSEDES any brand named later in the prompt — so a
+  // custom workspace gets its own identity, palette, typography, voice and
+  // regions in the generated asset rather than tenant zero's. One insertion
+  // point covers every mode. No active brand means no change at all.
+  try {
+    const _b = body && body.__brand;
+    if (_b && _b.id) {
+      const _rt = require('../_shared/brand-runtime.js');
+      systemPrompt = [
+        'OPERATIVE BRAND — this block OVERRIDES every brand name, palette, typeface, product,',
+        'claim, URL and voice rule mentioned anywhere later in this prompt. Any other brand named',
+        'below is an EXAMPLE OF FORM ONLY; never name it, never use its colours or products.',
+        '',
+        _rt.brandBlock(_b),
+        '',
+        '--- The rest of this prompt describes the TASK and the OUTPUT FORMAT. Follow its structure,',
+        'but express everything as the operative brand above. ---',
+        '',
+        systemPrompt,
+      ].join('\n');
+    }
+  } catch (_) { /* fall through to the shipped prompt rather than failing */ }
+
   // ── Shared tier-routed cascade (api/_shared/llm.js) ────────────────────────
   // The 6-provider waterfall (OpenAI/Anthropic/Gemini/Grok/Groq/Cerebras),
   // key rotation, demotion rules, and APP_AI_PROVIDER preference all live in
@@ -869,12 +903,12 @@ Target market for this autofill: ${targetMarket}.`;
           console.warn('[generate] quality loop unavailable: ' + String(qe && qe.message || qe).slice(0, 120));
         }
         return res.status(200).json({
-          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data), portable_prompt,
+          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt,
           ...(quality ? { quality } : {})
         });
       }
 
-      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed), portable_prompt });
+      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt });
     }
 
     // ── Autofill on an ad surface: also return the portable master_prompt and a
@@ -890,7 +924,7 @@ Target market for this autofill: ${targetMarket}.`;
           const a = text.indexOf('{'), b = text.lastIndexOf('}');
           if (a !== -1 && b > a) { try { fields = JSON.parse(text.slice(a, b + 1)); } catch (_) {} }
         }
-        fields = deepScrubDashes(fields);
+        fields = deepScrubDashes(fields, body && body.__brand);
         const overlay = {
           headline: fields.overlay_headline || '',
           sub: fields.overlay_sub || '',
@@ -899,7 +933,7 @@ Target market for this autofill: ${targetMarket}.`;
         const creative_spec = AD_FORMATS[surf].map((f) => ({ size: f.size, format: f.format, ar: f.ar, overlay }));
         const targetMarket = body.market || body.region || market || 'US';
         const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
-        const master_prompt = buildMasterPrompt({ assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
+        const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null,  assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
         return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt });
       }
     }
@@ -910,3 +944,49 @@ Target market for this autofill: ${targetMarket}.`;
     return res.status(500).json({ error: 'server_error', provider: 'cascade', detail: String(e && e.message || e).substring(0, 300) });
   }
 };
+
+// ── Multi-tenant + metering (Universal Brand Platform) ──────────────────────
+// Two cross-cutting concerns are applied here rather than threaded through the
+// long handler above:
+//   1. BRAND. buildMasterPrompt() now accepts the caller's active brand, so a
+//      custom workspace gets prompts built from ITS identity, palette, fonts,
+//      voice and regions instead of tenant zero's. Resolution is cached and
+//      falls back to the shipped brand, so behaviour is unchanged when no
+//      workspace is active.
+//   2. CREDITS. Declaring a price is not the same as charging it, so the
+//      handler is wrapped by the meter. Each mode maps to its catalog key;
+//      read-only/cheap conversational modes map to the assistant key.
+const _credits = require('../_shared/credits-core.js');
+const _brandRuntime = require('../_shared/brand-runtime.js');
+
+const MODE_FEATURE = {
+  create_brief: 'mailer.brief',
+  concepts: 'mailer.concepts',
+  mailer_full: 'mailer.generate',
+  landing_page: 'landing.generate',
+  autofill: 'ads.generate',
+  audience_segment: 'analytics.narrative',
+  suggested_prompts: 'assistant.chat',
+  chat: 'assistant.chat',
+};
+
+const _rawHandler = module.exports;
+
+async function _brandAwareHandler(req, res) {
+  // Resolve once per request and hand it to the prompt builder via the body,
+  // which every prompt site in this file already reads from.
+  try {
+    if (req.body && typeof req.body === 'object') {
+      req.body.__brand = await _brandRuntime.resolve(req);
+    }
+  } catch (_) { /* tenant zero */ }
+  return _rawHandler(req, res);
+}
+
+module.exports = _credits.metered(
+  _brandAwareHandler,
+  (req, body) => {
+    if (req.query && req.query.action === 'landing-page') return 'landing.generate';
+    return MODE_FEATURE[body.mode || 'create_brief'] || 'assistant.chat';
+  }
+);
