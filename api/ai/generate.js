@@ -310,7 +310,7 @@ GROWTH-LEADER OUTPUT CHECKLIST (every brief MUST include all 8):
 3. Sub-copy: 2-3 sentences (40-70 words) that name the hero PRODUCT, the BENEFIT to the reader's day, and the SPECIFIC offer/code if present. Sensory but never floral-only.
 4. Benefit bullets: EXACTLY 4 short lines (≤9 words each). Each bullet starts with a verb or concrete claim. Mix functional + emotional. e.g. "Soothes digestion · feels lighter by lunch", "Steady energy · no paint crash", "Single-studio · zero artificial fillers".
 5. Offer banner copy: an EXPLICIT discount line with the % AND the code AND the urgency mechanic ("Use REVIVE15 · 15% off · Ends Sunday"). If the campaign has no discount, state the value-prop concretely ("Free shipping over $49 · 30-day guarantee").
-6. Social proof line: a specific number ("Trusted by 50,000+ sneaker lovers", "4.8/5 across 12,400 reviews"), not generic "loved by many".
+6. Social proof line: a specific number ("Trusted by India's largest sneaker customisers", "4.8/5 across 12,400 reviews"), not generic "loved by many".
 7. Urgency strip: one specific scarcity or time-bound trigger relevant to the campaign type ("⚡ Ends Sunday · Stock running low", "🎁 Order by Tuesday for guaranteed delivery", "✨ First batch — limited supply").
 8. Variant divergence: every brief is rendered as TWO mailers (A=conversion, B=narrative). Hero headline + sub-copy must read well in BOTH a conversion-led grid layout AND a story-led editorial layout. Avoid copy that only works in one frame.
 

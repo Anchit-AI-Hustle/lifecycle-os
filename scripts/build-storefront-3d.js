@@ -121,7 +121,7 @@ a{text-decoration:none;color:inherit}
 <section class="section"><h2>Shop by collection</h2><div class="sub">Real collections from the ${esc(r.label)} store</div><div class="colls">${collectionTiles}</div></section>
 <section class="section" style="background:var(--chalk)"><h2>Featured, in depth</h2><div class="sub">Hover any product — real catalogue, real prices${featured.length ? '' : ' (prices load from the approved-facts library)'}</div><div class="grid">${featured.map((p) => card(p, r, facts)).join('')}</div></section>
 <section class="section"><h2>The full shelf</h2><div class="sub">${grid.length} live products from ${esc(r.live)}</div><div class="grid">${grid.map((p) => card(p, r, facts)).join('')}</div></section>
-<div class="proof">Rated 4.9/5 · Judge.me verified reviews &nbsp;·&nbsp; 6 million customers &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
+<div class="proof">Made on 100% original brand sneakers &nbsp;·&nbsp; 60+ countries shipped &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
 <footer class="footer">KNICKGASM® ${esc(r.label)} &nbsp;·&nbsp; A 3D design variation hosted on <b>${esc(r.tryd)}</b><br>Live store: <a href="https://${r.live}" target="_blank" rel="noopener">${esc(r.live)}</a> &nbsp;·&nbsp; Every product links to its real page. Nothing here is fabricated.<br>440 N Barranca Ave #2812, Covina, CA 91723, United States</footer>
 </body></html>`;
 }

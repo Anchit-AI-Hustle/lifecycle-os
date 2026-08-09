@@ -79,7 +79,7 @@ KNOWN FAILURE MODES — FIX THESE BEFORE GENERATING:
    - Headline 44px+ serif, evocative poetic copy, 60px+ section padding (editorial needs air)
 
 ⑤ MISSING MARKETING SIGNALS — No ratings, no social proof numbers, no price context.
-   FIX: Include ⭐ 4.8/5 · 50,000+ reviews in product sections; use compare-at pricing where available; add "Free Shipping on $49+" in offer sections; include 1-2 trust badge rows (Farm Direct · B-Corp · 100% Natural · Ships Worldwide).
+   FIX: Include ⭐ 4.8/5 · India's largest sneaker customisers in product sections; use compare-at pricing where available; add "Free Shipping on $49+" in offer sections; include 1-2 trust badge rows (Farm Direct · B-Corp · Water & scratch resistant · Ships Worldwide).
 
 ⑥ NON-RESPONSIVE LAYOUT — Split columns and product grids break on mobile (portrait mode issue).
    FIX: Wrap the email in a <style> block with @media rules. Use MSO conditional comments for Outlook. Inner columns must stack on mobile. Add float:none!important and max-width:100%!important to .col2/.col3 to fix portrait orientation reflow in email clients.
@@ -289,7 +289,7 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
     <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#D0473E" bgcolor="#D0473E">
       <div style="font-size:20px;margin-bottom:5px">⭐</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#6A33D8;letter-spacing:0.1em;text-transform:uppercase">4.8/5 RATING</div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">50,000+ reviews</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">India's largest sneaker customisers</div>
     </td>
     <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#D0473E" bgcolor="#D0473E">
       <div style="font-size:20px;margin-bottom:5px">🚚</div>
@@ -303,7 +303,7 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 <table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#f5efe0;border-top:1px solid #e8dcc8;border-bottom:1px solid #e8dcc8;max-width:600px;margin:0 auto" bgcolor="#f5efe0">
   <tr><td style="padding:14px 24px;text-align:center;background:#f5efe0" bgcolor="#f5efe0">
     <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#D0473E;font-weight:700">⭐⭐⭐⭐⭐</span>
-    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#4a5568;margin-left:8px">Rated 4.8/5 by 50,000+ sneaker lovers · 100% Natural · Ships Worldwide</span>
+    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#4a5568;margin-left:8px">Made on 100% original brand sneakers · Water & scratch resistant · Ships worldwide</span>
   </td></tr>
 </table>
 
@@ -344,7 +344,7 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 <table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;max-width:600px;margin:0 auto" bgcolor="#FFFFFF">
   <tr><td class="mobile-pad" style="text-align:center;padding:28px 40px;background:#FFFFFF" bgcolor="#FFFFFF">
     <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;background:#6A33D8;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:16px 52px">[CTA TEXT e.g. SHOP THE COLLECTION]</a>
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;color:#888;margin-top:10px">Free shipping on $49+ · Easy returns · 100% natural</div>
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;color:#888;margin-top:10px">Free shipping on $49+ · Easy returns · water & scratch resistant</div>
   </td></tr>
 </table>
 
@@ -365,7 +365,7 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
     <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;display:block;margin-bottom:10px">[CATEGORY · ESTATE NAME · ORIGIN REGION]</span>
     <h2 class="mobile-h2" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:34px;color:#D0473E;font-weight:600;line-height:1.2;margin:0 0 14px 0">[FULL PRODUCT NAME — from plan]</h2>
     <p class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:14px;line-height:1.75;color:#4a5568;margin:0 0 18px 0">[PRODUCT DESCRIPTION — 2 evocative sentences. Use origin, drop, sensory detail. Never truncate.]</p>
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#888;margin-bottom:18px">⭐ 4.8/5 &nbsp;·&nbsp; 50,000+ reviews &nbsp;·&nbsp; One-of-One &nbsp;·&nbsp; Hand-Painted</div>
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#888;margin-bottom:18px">⭐ 4.8/5 &nbsp;·&nbsp; India's largest sneaker customisers &nbsp;·&nbsp; One-of-One &nbsp;·&nbsp; Hand-Painted</div>
     <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:16px;font-weight:700;color:#D0473E;margin-bottom:18px">$[PRICE] <span style="font-size:12px;color:#aaa;text-decoration:line-through;font-weight:400">$[COMPARE]</span></div>
     <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:inline-block;border:2px solid #D0473E;background:transparent;color:#D0473E;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;padding:13px 40px">[CTA e.g. EXPLORE THIS SNEAKER]</a>
   </td></tr>
@@ -419,7 +419,7 @@ PROVEN D2C EMAIL MARKETING PATTERNS — APPLY THESE:
 
 3. BENEFIT BULLETS IN HERO: 2-3 specific, concrete benefit bullets in the hero section outperform long subcopy paragraphs.
 
-4. SOCIAL PROOF NEAR CTA: Place "⭐ 4.8/5 · 50,000+ reviews" or a short testimonial directly above or below the main CTA.
+4. SOCIAL PROOF NEAR CTA: Place "⭐ 4.8/5 · India's largest sneaker customisers" or a short testimonial directly above or below the main CTA.
 
 5. TRUST BADGES: Include the 4-icon trust bar (Farm Direct · B-Corp · Rating · Free Shipping) at least once — after header or before CTA.
 
@@ -431,7 +431,7 @@ PROVEN D2C EMAIL MARKETING PATTERNS — APPLY THESE:
 
 9. MULTIPLE CTAs: Include at least 2 CTA opportunities: once in hero section, once at the end. For product grids, each card has its own Add-to-Cart link.
 
-10. SPECIFICITY OVER VAGUENESS: "50,000+ sneaker lovers" beats "thousands of customers". "First-flush, 7,000ft elevation" beats "premium quality".
+10. SPECIFICITY OVER VAGUENESS: "India's largest sneaker customisers" beats "thousands of customers". "First-flush, 7,000ft elevation" beats "premium quality".
 
 11. SOCIAL PROOF URGENCY IN PRODUCT CARDS: Add "🔥 [N] units sold in the last 24 hours" text below the product name. Use realistic N between 25-90. Pair with explicit review count: "⭐⭐⭐⭐⭐ (N reviews)" not just a generic "50K+ reviews" line. Specificity = credibility.
 

@@ -65,8 +65,8 @@ function renderLandingPage(o = {}) {
   <section style="max-width:920px;margin:0 auto;padding:36px 22px 10px;">
     <div style="display:flex;gap:16px;flex-wrap:wrap;">${benefits}</div>
   </section>
-  <div class="badges">Climate Neutral &nbsp;·&nbsp; Non-GMO Verified &nbsp;·&nbsp; Plastic Neutral</div>
-  <div class="stats">Rated 4.9/5 · Judge.me verified reviews &nbsp;·&nbsp; 6 million customers &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
+  <div class="badges">Climate Neutral &nbsp;·&nbsp; Original-pair verified Verified &nbsp;·&nbsp; Plastic Neutral</div>
+  <div class="stats">Made on 100% original brand sneakers &nbsp;·&nbsp; 60+ countries shipped &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
   ${testimonial}
   ${faq}
   <section style="text-align:center;padding:40px 22px;background:${PAL.chalk};">

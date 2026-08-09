@@ -427,7 +427,7 @@ function renderAd(ad){
     <div style="position:relative;border-radius:12px;height:190px;overflow:hidden;border:1px solid rgba(171,135,67,.3);${bg}">
       <span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;color:#FFFFFF;opacity:.85">${esc(ad.aspect||'1:1')}</span>
       <div style="position:absolute;top:12px;left:14px;right:14px;font-family:'Lora',Georgia,serif;font-size:19px;font-weight:700;color:#FFFFFF;text-shadow:0 1px 6px rgba(0,0,0,.5)">${esc(ov.headline||ad.headline||'')}</div>
-      <div style="position:absolute;bottom:14px;left:14px;font-size:11px;font-weight:700;color:#FFFFFF;background:rgba(0,0,0,.35);padding:4px 9px;border-radius:99px">★ ${esc(ov.proof||'Rated 4.9/5')}</div>
+      <div style="position:absolute;bottom:14px;left:14px;font-size:11px;font-weight:700;color:#FFFFFF;background:rgba(0,0,0,.35);padding:4px 9px;border-radius:99px">★ ${esc(ov.proof||'Hand-painted one-of-one')}</div>
       <div style="position:absolute;bottom:12px;right:14px;background:#6A33D8;color:#111111;font-weight:800;font-size:12px;padding:8px 15px;border-radius:8px">${esc(ov.cta||cta)}</div>
     </div>
     ${rows.join('')}</div>`;

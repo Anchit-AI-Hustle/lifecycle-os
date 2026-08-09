@@ -471,7 +471,7 @@ function regionalNuance(market) {
 }
 
 // The four selling components every KNICKGASM mailer must carry.
-const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt, transformation, or a high-intent offer); (2) core ingredient + product BENEFITS, sensory and specific; (3) SOCIAL PROOF and trust: a star rating with review count and 1-2 short reviews that each answer a real objection; (4) VALUE ADD-ONS: 2-3 brand badges (e.g. Non-GMO, Climate Neutral, Sugar-Free), a risk-reversal guarantee line, and a short FAQ.`;
+const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt, transformation, or a high-intent offer); (2) core ingredient + product BENEFITS, sensory and specific; (3) SOCIAL PROOF and trust: a star rating with review count and 1-2 short reviews that each answer a real objection; (4) VALUE ADD-ONS: 2-3 brand badges (e.g. Original-pair verified, Climate Neutral, Sugar-Free), a risk-reversal guarantee line, and a short FAQ.`;
 
 const BRAND_SYSTEM = `You are the senior lifecycle copywriter for KNICKGASM (premium Indian sneakers & streetwear, knickgasm.com).
 Voice: warm, sensory, emotionally resonant, story-driven. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
@@ -551,7 +551,7 @@ Every asset must ship with a CREATIVE as well as copy. For each asset write an "
 
 Return JSON with exactly this shape:
 {
- "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": {"value": 4.9, "count": "250,000+"}, "reviews": [{"quote":"short review that answers an objection","author":"first name, initial","stars":5}], "badges": ["Non-GMO","Climate Neutral",""], "guarantee": "a risk-reversal line", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
+ "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": {"value": 4.9, "count": "250,000+"}, "reviews": [{"quote":"short review that answers an objection","author":"first name, initial","stars":5}], "badges": ["Original-pair verified","Climate Neutral",""], "guarantee": "a risk-reversal line", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
  "landing": { "hero_headline": "", "hero_sub": "", "why_title": "", "why_bullets": ["","",""], "proof_quote": "", "proof_author": "", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
  "ads": {
    "meta": { "primary_text": "", "headline": "", "description": "", "image_brief": "" },

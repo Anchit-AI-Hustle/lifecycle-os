@@ -376,7 +376,32 @@ function projectMetrics(plan, levers, benchmark) {
 // Full CLAUDE.md banned-phrase list (superset of lib/smart-brain/services.js
 // safeCopy, which misses game-changer / last chance / while supplies last /
 // don't miss out). Applied at emit time to every generated scenario string.
-const BANNED_RX = /streetwear journey|liquid lava|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/gi;
+// Marketing clichés plus the claims that would be actively DANGEROUS for a
+// customiser working on genuine sneakers: anything implying the pairs are
+// replicas rather than originals hand-painted on authentic silhouettes.
+const BANNED_RX = /wellness journey|liquid gold|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last|replica|knock[\s-]?off|counterfeit|first cop(y|ies)|fake pair/gi;
+// Each banned phrase gets a sensible substitute; a single catch-all token made
+// output read like "custom pair pair". Keys are lowercased, whitespace/hyphen
+// normalised, so the lookup matches whatever casing the model emitted.
+const BANNED_SUBS = {
+  'wellness journey': 'rotation',
+  'liquid gold': 'grail pair',
+  'game changer': 'standout',
+  'gamechanger': 'standout',
+  'hurry': 'take your time',
+  "don't miss out": 'have a look',
+  'dont miss out': 'have a look',
+  'last chance': 'still available',
+  'while supplies last': 'while the slot is open',
+  'replica': 'hand-painted original',
+  'knock off': 'hand-painted original',
+  'knockoff': 'hand-painted original',
+  'counterfeit': 'hand-painted original',
+  'first copy': 'hand-painted original',
+  'first copies': 'hand-painted originals',
+  'fake pair': 'original pair',
+};
+
 const BANNED_TRANSFORM_RX = /\btransform(ing|ed|s|ation)?\b/gi;
 const BANNED_CAPS_RX = /LIMITED TIME/g; // caps form specifically
 
@@ -395,8 +420,8 @@ function sanitizeBrand(str) {
   if (str == null) return str;
   return scrubDashes(String(str)
     .replace(BANNED_CAPS_RX, 'time-bound')
-    .replace(BANNED_RX, 'premium daily ritual')
-    .replace(BANNED_TRANSFORM_RX, 'restore'))
+    .replace(BANNED_RX, (m) => BANNED_SUBS[m.toLowerCase().replace(/[\s-]+/g, ' ')] || 'one-of-one custom pair')
+    .replace(BANNED_TRANSFORM_RX, 'reimagine'))
     .replace(/\s{2,}/g, ' ')
     .trim();
 }

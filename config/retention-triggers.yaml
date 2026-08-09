@@ -42,7 +42,7 @@ triggers:
           profile_id: "{{identity.profile_id}}"
           rfm_segment: "{{lifecycle_health.rfm_segment}}"
           churn_risk: "{{lifecycle_health.churn_risk}}"
-          offer: "adaptogen_ritual_15pct"
+          offer: "statement piece_ritual_15pct"
           escalate_review: true
     channel: email
     throttle: "1_per_profile_per_14d"
@@ -94,7 +94,7 @@ triggers:
           profile_id: "{{identity.profile_id}}"
           region: "{{geography.region}}"
           product_vector_map:
-            northeast: "single_origin_plus_adaptogen"
+            northeast: "single_origin_plus_statement piece"
             west_coast: "functional_focus_blends"
             south_southeast: "functional_starter_kit"
             midwest: "replenishment_staples_and_gifts"
@@ -173,7 +173,7 @@ triggers:
               message: "we_miss_you_story"
               offer: none
             - step: 2
-              message: "whats_new_adaptogen"
+              message: "whats_new_statement piece"
               offer: "free_sample_with_order"
             - step: 3
               message: "final_winback"

@@ -67,11 +67,12 @@ function legacyDefineCohorts(users) {
   const daysSince = (ts) => (ts ? Math.floor((now - new Date(ts).getTime()) / day) : 9999);
   const defs = [
     { key: 'vip_ritualists', name: 'VIP Ritualists', test: (u) => u.orders_count >= 8 && u.total_spent >= 300, definition: { rule: 'orders_count >= 8 AND total_spent >= 300', intent: 'retention + early access' } },
-    // key kept ('wellness_seekers') so stored cohort references stay valid; the
-    // segment is really fandom / self-expression buyers.
-    { key: 'wellness_seekers', name: 'Streetwear Seekers', test: (u) => (u.categories || []).some((c) => ['streetwear', 'themed', 'sleep'].includes(c)), definition: { rule: "categories ∩ {streetwear,themed,sleep} ≠ ∅", intent: 'self-expression and fandom angle' } },
-    { key: 'chai_loyalists', name: 'Kicks Loyalists', test: (u) => (u.categories || []).includes('kicks'), definition: { rule: "'kicks' ∈ categories", intent: 'kicks stories, replenishment' } },
-    { key: 'gift_buyers', name: 'Gift Buyers', test: (u) => (u.categories || []).includes('gift') || (u.categories || []).includes('gear'), definition: { rule: "gift|gear ∈ categories", intent: 'festival gifting funnels' } },
+    // Fandom buyers: anime / sport / gaming / auto design families. Keys are the
+    // real catalogue tags (see scripts/build-catalog.js deriveTags).
+    { key: 'fandom_seekers', name: 'Fandom Seekers', test: (u) => (u.categories || []).some((c) => ['anime', 'sport', 'gaming', 'auto', 'celebrity'].includes(c)), definition: { rule: "categories ∩ {anime,sport,gaming,auto,celebrity} ≠ ∅", intent: 'self-expression and fandom angle' } },
+    { key: 'af1_loyalists', name: 'AF1 Loyalists', test: (u) => (u.categories || []).some((c) => ['af1', 'jordan', 'nike-other'].includes(c)), definition: { rule: "categories ∩ {af1,jordan,nike-other} ≠ ∅", intent: 'core silhouette stories, next-pair upsell' } },
+    { key: 'occasion_buyers', name: 'Occasion Buyers', test: (u) => (u.categories || []).some((c) => ['wedding', 'pets', 'bling'].includes(c)), definition: { rule: "categories ∩ {wedding,pets,bling} ≠ ∅", intent: 'personal-occasion commissions' } },
+    { key: 'gift_buyers', name: 'Gift Buyers', test: (u) => (u.categories || []).some((c) => ['gift', 'accessories'].includes(c)), definition: { rule: "categories ∩ {gift,accessories} ≠ ∅", intent: 'festival gifting funnels, care-kit attach' } },
     { key: 'new_customers', name: 'New Customers (≤60d)', test: (u) => daysSince(u.first_order_at) <= 60, definition: { rule: 'first_order ≤ 60 days', intent: 'onboarding funnel, second purchase' } },
     { key: 'at_risk_winback', name: 'At-Risk / Win-back', test: (u) => daysSince(u.last_order_at) > 120 && u.orders_count >= 2, definition: { rule: 'last_order > 120d AND orders ≥ 2', intent: 'win-back offer, low discount affinity guard' } },
     { key: 'discount_responsive', name: 'Discount Responsive', test: (u) => Number(u.discount_affinity) >= 0.25, definition: { rule: 'discount_affinity ≥ 0.25', intent: 'promo windows only — never brand-story slots' } },

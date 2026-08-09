@@ -154,21 +154,38 @@ fs.writeFileSync(path.join(ROOT, 'data/analytics/usa-d2c-report-2026-07-13.json'
   data_caveats: ['Synthetic demo dataset', 'Catalog titles/prices are real (knickgasm.com)', 'Replace via Shopify admin exports'],
 }, null, 2));
 
+// RFM cohorts are a PARTITION of the contactable base: they must sum to it.
+// (They previously used the US-only base while reporting a US+UK total, so the
+// nine segments silently under-counted by ~8%.)
+const BASE = usNew + usRet + Math.round(tUK.orders * 0.7);
+const COHORT_SHARE = { Champions: 0.06, 'Loyal Customers': 0.11, 'Potential Loyalist': 0.15, 'New Customers': 0.24, Promising: 0.12, 'Need Attention': 0.10, 'About to Sleep': 0.09, 'At Risk': 0.08, Hibernating: 0.05 };
+function cohortSizes() {
+  const keys = Object.keys(COHORT_SHARE);
+  const out = {}; let used = 0;
+  keys.forEach((k, i) => {
+    // last bucket absorbs the rounding remainder so the sum is exact
+    const n = i === keys.length - 1 ? BASE - used : Math.round(BASE * COHORT_SHARE[k]);
+    out[k] = n; used += n;
+  });
+  return out;
+}
+const COHORT_N = cohortSizes();
+
 fs.writeFileSync(path.join(ROOT, 'data/cohort-sizes.json'), JSON.stringify({
   _note: 'DEMO SAMPLE cohort sizing — synthetic scaffold generated from the demo dataset (scripts/gen-demo-analytics.js). NOT real KNICKGASM customer counts: real sizes come from Shopify/Klaviyo exports via the ingest pipeline. [DATA REQUIRED BEFORE LAUNCH: real cohort sizes, all segments, per region]',
   pulled: '2026-08-03 (synthetic)',
-  base_total_est: usNew + usRet + Math.round(tUK.orders * 0.7),
+  base_total_est: BASE,
   store: 'knickgasm.com',
   cohorts: {
-    Champions: { size: Math.round((usNew + usRet) * 0.06), definition: 'R5F5M5 — repeat custom buyers, 90d active' },
-    'Loyal Customers': { size: Math.round((usNew + usRet) * 0.11), definition: 'F>=3 or M top-quintile' },
-    'Potential Loyalist': { size: Math.round((usNew + usRet) * 0.15), definition: '2nd order within 60d window' },
-    'New Customers': { size: Math.round((usNew + usRet) * 0.24), definition: 'first order <=30d' },
-    Promising: { size: Math.round((usNew + usRet) * 0.12), definition: 'first order 31-90d, engaged' },
-    'Need Attention': { size: Math.round((usNew + usRet) * 0.10), definition: 'slipping recency, mid F/M' },
-    'About to Sleep': { size: Math.round((usNew + usRet) * 0.09), definition: 'R low, last order 90-180d' },
-    'At Risk': { size: Math.round((usNew + usRet) * 0.08), definition: 'high M historic, R very low' },
-    Hibernating: { size: Math.round((usNew + usRet) * 0.05), definition: '>180d inactive' },
+    Champions: { size: COHORT_N['Champions'], definition: 'R5F5M5 — repeat custom buyers, 90d active' },
+    'Loyal Customers': { size: COHORT_N['Loyal Customers'], definition: 'F>=3 or M top-quintile' },
+    'Potential Loyalist': { size: COHORT_N['Potential Loyalist'], definition: '2nd order within 60d window' },
+    'New Customers': { size: COHORT_N['New Customers'], definition: 'first order <=30d' },
+    Promising: { size: COHORT_N['Promising'], definition: 'first order 31-90d, engaged' },
+    'Need Attention': { size: COHORT_N['Need Attention'], definition: 'slipping recency, mid F/M' },
+    'About to Sleep': { size: COHORT_N['About to Sleep'], definition: 'R low, last order 90-180d' },
+    'At Risk': { size: COHORT_N['At Risk'], definition: 'high M historic, R very low' },
+    Hibernating: { size: COHORT_N['Hibernating'], definition: '>180d inactive' },
   },
 }, null, 2));
 
