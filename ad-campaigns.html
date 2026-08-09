@@ -407,9 +407,9 @@
     'BRAND RULES (strict — obey exactly):',
     '- Palette, ONLY these four: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
     "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
-    '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
+    '- Voice: bold, energetic, confident and playful, never corporate. Prefer: custom, hand-painted, one-of-one, grail, colorway, drop, crafted, original.',
     "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
-    '- KNICKGASM: premium Indian heritage sneaker · B-Corp · one-of-one · studio-fresh within 72 hours of drop.'
+    '- KNICKGASM: India\'s largest sneaker customisers · one-of-one · hand-painted on 100% original base sneakers.'
   ].join('\n');
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft, fix them, and return ONLY the corrected final output.';
   function buildAdPrompt(ch, c) {
@@ -579,7 +579,7 @@
     return [
       'Ambient lifestyle backdrop for KNICKGASM premium sneaker — an atmospheric sneaker scene with NO product and NO packaging in frame.',
       'Market: ' + market + '.',
-      'Show only: a freshly crafted pair with rising steam, loose sneaker panels, a marble or wood surface, warm natural light, shallow depth of field.',
+      'Show only: a freshly painted pair drying on a studio bench, taped panels and paint tools nearby, warm natural light, shallow depth of field.',
       'Brand palette accents: deep deep purple #D0473E, amber lava #6A33D8, chalk #FFFFFF.',
       orient + '. Photorealistic, premium, uncluttered. Absolutely NO product packaging, NO box, NO box, NO pouch, NO label, NO brand mark, NO text, NO words, NO logos, NO watermark.'
     ].join(' ');
@@ -655,7 +655,7 @@
     x.font = '700 ' + Math.round(base * 0.05) + "px 'Montserrat', Georgia, serif";
     x.fillText('V A H D A M', W / 2, H * 0.10);
     x.fillStyle = '#6A33D8'; x.font = '600 ' + Math.round(base * 0.022) + "px 'Instrument Sans', Arial, sans-serif";
-    x.fillText('SINGLE-ESTATE INDIAN SNEAKER', W / 2, H * 0.14);
+    x.fillText('HAND-PAINTED ONE-OF-ONES', W / 2, H * 0.14);
     // Offer pill (sits just above safe-zone floor) — ONLY drawn when a real
     // offer exists; with no verified offer, pillH=0 so no empty lava pill shows
     // and the headline block anchors to the safe floor.

@@ -299,12 +299,12 @@ function seedAnalytics() {
       { name: 'Hibernating',   count: 380,  revenue: 12000 },
     ],
     products: [
-      { sku:'DRJ-100', title:'Jordan Summer Black', category:'Black sneaker', revenue: 38500, units: 1700, promos: 4 },
-      { sku:'CHA-400', title:'Hand-painted Kicks Classic',     category:'Kicks',      revenue: 31200, units: 1450, promos: 5 },
-      { sku:'GFT-900', title:'Discovery Gift Set',      category:'Gift',      revenue: 28100, units: 580,  promos: 2 },
-      { sku:'GRN-300', title:'Signature Green',         category:'Green sneaker', revenue: 21500, units: 980,  promos: 3 },
-      { sku:'BLD-810', title:'Sleep Colorway',             category:'Streetwear',  revenue: 18600, units: 700,  promos: 1 },
-      { sku:'WHT-600', title:'Silver Tips White',       category:'White sneaker', revenue: 17200, units: 350,  promos: 0 },
+      { sku:'AF1-SPD', title:'Spiderman x Nike Air Force 1', category:'Anime & Fandom', revenue: 38500, units: 204, promos: 4 },
+      { sku:'AF1-DBZ', title:'Nike Air Force 1 x Dragon Ball Z Manga', category:'Anime & Fandom', revenue: 31200, units: 165, promos: 5 },
+      { sku:'GFT-900', title:'Custom Pair Gift Card',   category:'Gift',      revenue: 28100, units: 187,  promos: 2 },
+      { sku:'AF1-ESP', title:'Spain National F.C. x Nike Air Force 1', category:'Sport & Auto', revenue: 21500, units: 120, promos: 3 },
+      { sku:'CTL-PS5', title:'Custom PS5 Controller - Red Camo', category:'Controllers', revenue: 18600, units: 144, promos: 1 },
+      { sku:'AF1-WED', title:'Wedding Couple x Nike Air Force 1', category:'Wedding', revenue: 17200, units: 79, promos: 0 },
     ],
     bestHourByMarket: { US: 14, UK: 9, Global: 6, IN: 4 },
   };
@@ -726,5 +726,7 @@ $('btnExport').addEventListener('click', () => {
 if (loadAnalyticsSummary()) generatePlan();
 else generatePlan(); // uses seed
 </script>
+  <script src="/brand-demo.js"></script>
+  <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('The V1 30-day plan', "This Draft 1 planner runs on one brand's demo catalogue. Use the Smart Brain calendar for this brand: it plans from the brand's own offerings.");</script>
 </body>
 </html>

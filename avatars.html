@@ -89,7 +89,7 @@
 
   <section class="panel" id="panel-personas" role="tabpanel">
     <h2>The Four Avatars <span class="chip v2">V2 - active</span></h2>
-    <p class="lede">Four behavioural buyer profiles that drive KNICKGASM Coffee Collection and streetwear-sneaker growth. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--chalk);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), and carries hard planning numbers so a brief can be written against a person, not a percentage.</p>
+    <p class="lede">Four behavioural buyer profiles that drive KNICKGASM custom-sneaker and controller growth. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--chalk);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), and carries hard planning numbers so a brief can be written against a person, not a percentage.</p>
     <div id="personas"></div>
   </section>
 
@@ -108,17 +108,17 @@ const PERSONAS = [
     elasticity:'Low, will pay a premium for a proven functional benefit.',
     reactivation:'High, responds to new-benefit and refill-rhythm messaging.',
     churn:'Missed reorder before routine breaks; benefit fatigue if payload is not reinforced.',
-    cohorts:['Engagement: Cohort E - Coffee / Supplement Buyers / Non-Engagers','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-03 Subscriber / VIP-02 High-Value VIP','RFM: Champions / Loyal','Product: Coffee (Airbrush) / Supplements / Subscribers','Behavioral: Streetwear Seekers'] },
+    cohorts:['Engagement: Cohort E - Controller / Accessory Buyers / Non-Engagers','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-03 Subscriber / VIP-02 High-Value VIP','RFM: Champions / Loyal','Product: Custom Controllers / Care & Protection / Repeat Collectors','Behavioral: Streetwear Seekers'] },
   { init:'R', name:'The Ritual Loyalist', tag:'Routine-driven',
     quote:'The same pair, the same time, every day, that is the whole point.',
-    who:'Established sneaker and coffee drinkers with a fixed daily ritual and strong design loyalty. The subscription backbone.',
+    who:'Established collectors with a fixed rotation and strong design loyalty. The repeat-purchase backbone.',
     demo:'38 to 58, 55% female / 45% male, HHI $80K to $140K.',
     geo:'Affluent Suburban nationwide, indexes in the Northeast and Midwest.',
     driver:'Routine and consistency, disruption is the enemy.',
     elasticity:'Low to moderate, price-tolerant while the ritual is intact.',
     reactivation:'Moderate, best reached with your-colorway-restocked and easy-restart nudges.',
-    churn:'Out-of-stock on their colorway; a clumsy subscription change; a skipped shipment.',
-    cohorts:['Engagement: Cohort D - T&amp;B Buyers / Engaged','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-01 Repeat / Habitual / VIP-01 Loyal Core','RFM: Loyal / Can-not-Lose-Them','Product: Kicks / Black Sneaker / Subscribers','Behavioral: VIP Ritualists / Kicks Loyalists'] },
+    churn:'Out-of-stock on their base silhouette; a clumsy order change; a delayed build.',
+    cohorts:['Engagement: Cohort D - Pair Buyers / Engaged','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-01 Repeat / Habitual / VIP-01 Loyal Core','RFM: Loyal / Can-not-Lose-Them','Product: Anime &amp; Fandom / Black Sneaker / Repeat Collectors','Behavioral: VIP Collectors / Kicks Loyalists'] },
   { init:'G', name:'The Gifting Connector', tag:'Status + occasion-driven',
     quote:'I want to give something that feels considered, premium, and a little bit of a discovery.',
     who:'Occasion buyers with higher AOV and seasonal spikes. Care about presentation, provenance and the story behind the gift.',
@@ -174,5 +174,7 @@ document.querySelectorAll('.card.link').forEach(c=>c.addEventListener('click',()
 </script>
 <script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+  <script src="/brand-demo.js"></script>
+  <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('Buyer avatars', "Avatars build from a brand's own cohorts once its exports are connected.");</script>
 </body>
 </html>

@@ -76,7 +76,7 @@
     <div class="cards">
       <div class="card link" data-goto="engagement"><div class="n">6</div><div class="lbl">Engagement Cohorts <span class="chip v2">V2</span></div><div class="d">Purchase history crossed with engagement. Cohorts A and B are the active program.</div></div>
       <div class="card link" data-goto="englevel"><div class="n">8</div><div class="lbl">Engagement Levels</div><div class="d">Email and SMS behaviour bands, from highly engaged to suppressed.</div></div>
-      <div class="card link" data-goto="product"><div class="n">16</div><div class="lbl">Product Cohorts</div><div class="d">By category, collection and purchase mode, product, coffee, supplements.</div></div>
+      <div class="card link" data-goto="product"><div class="n">16</div><div class="lbl">Product Cohorts</div><div class="d">By category, collection and purchase mode: pairs, controllers, care and accessories.</div></div>
       <div class="card link" data-goto="lifecycle"><div class="n">12</div><div class="lbl">Lifecycle Stages <span class="chip">V1</span></div><div class="d">The full journey, prospect to churned, across 5 stages.</div></div>
       <div class="card link" data-goto="rfm"><div class="n">11</div><div class="lbl">RFM Segments <span class="chip">V1</span></div><div class="d">Recency, Frequency, Monetary buckets. Drives cadence.</div></div>
       <div class="card link" data-goto="behavioral"><div class="n">11</div><div class="lbl">Behavioral</div><div class="d">Interest groups the Smart Brain uses to theme content.</div></div>
@@ -133,23 +133,23 @@ const ENGAGEMENT = [
     def:'On the list, never purchased, and have not opened or clicked recently.',
     objective:'Earn the open, earn the click, first purchase.',
     voice:'No guilt, no pressure. Introduce the brand as if for the first time, warm, sensory, story-driven. Lead with what a pair feels like, not what it costs. One clear idea per email.',
-    mix:['Coffee x4','T&amp;B x1','Supplements x1'] },
-  { code:'Cohort B', name:'T&amp;B Buyers / Non-Engagers', badge:'V2',
-    def:'Bought Sneakers &amp; Botanicals before and have gone quiet.',
-    objective:'Reactivate with familiarity, then cross-grade to Coffee / Supplements subscription.',
-    voice:'Welcome back an old friend, acknowledge the relationship without guilt. Start from the sneakers they already know, then introduce what is new from the same sneaker people. Never make them feel watched or chased.',
-    mix:['T&amp;B x3','Coffee x2','Supplements x1'] },
+    mix:['Controllers x4','Pairs x1','Care x1'] },
+  { code:'Cohort B', name:'Pair Buyers / Non-Engagers', badge:'V2',
+    def:'Bought a custom pair before and have gone quiet.',
+    objective:'Reactivate with familiarity, then cross-grade to controllers and care kits.',
+    voice:'Welcome back an old friend, acknowledge the relationship without guilt. Start from the pair they already own, then introduce what is new from the same artists. Never make them feel watched or chased.',
+    mix:['Pairs x3','Controllers x2','Care x1'] },
   { code:'Cohort C', name:'Non-Buyers / Engaged', badge:'',
     def:'On the list, opening and clicking within 90 days, but has never purchased.',
     objective:'Convert warm interest into a first order while attention is high.',
     voice:'Reward the curiosity. Confident, specific, low-friction. Remove the last doubt with proof and one easy first step.',
-    mix:['T&amp;B x2','Coffee x2','Supplements x1'] },
-  { code:'Cohort D', name:'T&amp;B Buyers / Engaged', badge:'',
-    def:'Bought Sneakers &amp; Botanicals and still open and click regularly.',
-    objective:'Sustain the habit, grow the basket, cross-grade to Coffee / Supplements subscription.',
-    voice:'Talk to a friend who is already in. Depth, range and the next ritual, never a hard sell.',
+    mix:['Pairs x2','Controllers x2','Care x1'] },
+  { code:'Cohort D', name:'Pair Buyers / Engaged', badge:'',
+    def:'Bought a custom pair and still open and click regularly.',
+    objective:'Sustain the habit, grow the basket, cross-grade to controllers and care kits.',
+    voice:'Talk to a friend who is already in. Depth, range and the next pair, never a hard sell.',
     mix:['T&amp;B x2','Coffee x2','Supplements x2'] },
-  { code:'Cohort E', name:'Coffee / Supplement Buyers / Non-Engagers', badge:'',
+  { code:'Cohort E', name:'Controller / Accessory Buyers / Non-Engagers', badge:'',
     def:'Bought Coffee Collection or a supplement, then went quiet on email.',
     objective:'Protect the subscription window, win the reorder before the routine breaks.',
     voice:'Steady and useful. Reorder rhythm, refill value, the gifts they already earned. No pressure.',
@@ -171,26 +171,26 @@ const ENGLEVEL = [
   {code:'Unsubscribed / Suppressed', def:'Opted out of email or suppressed for deliverability.', use:'No email. Reach only on-site or other channels, and honour the opt-out.'},
 ];
 const PROD_CAT = [
-  {code:'Sneakers &amp; Botanicals', def:'Bought sneaker (hand-painted, lace sets, samplers, gifts). One-time purchase only.', use:'Replenishment and range discovery. Natural bridge into Coffee and Supplements.'},
-  {code:'Coffee (Airbrush)', def:'Bought Coffee Collection, one-time or subscription.', use:'Subscription is the priority: gifts worth 105 pounds a year, refill rhythm, B2G1 on Pack of 3.'},
-  {code:'Supplements', def:'Bought Embroidery Curcumin or Green Burner. New line, few buyers yet.', use:'Subscription-first framing, daily-rhythm story. First-to-try positioning while it is new.'},
-  {code:'Multi-Category', def:'Bought across two or more of Sneaker, Coffee, Supplements.', use:'Highest LTV potential. Bundle across worlds, lead with subscription and membership.'},
-  {code:'Accessories &amp; Kit', def:'Bought a frother, scoop, straw or gifting kit, with or without a consumable.', use:'Attach to a sneaker or coffee order as the ritual upgrade, never a standalone push.'},
+  {code:'Custom Pairs', def:'Bought a hand-painted pair (Air Force 1, Jordan or Dunk base). Made to order.', use:'Second-pair discovery and themed drops. Natural bridge into controllers and care kits.'},
+  {code:'Custom Controllers', def:'Bought a custom-painted controller (PlayStation or Xbox).', use:'Gaming-fandom angle: match a pair, gift for gamers, new-title drops.'},
+  {code:'Care &amp; Protection', def:'Bought care kits, sole shields or scuff-resistant finishes. New line, few buyers yet.', use:'Attach-first framing: protect the pair they already own. First-to-try positioning while it is new.'},
+  {code:'Multi-Category', def:'Bought across two or more of pairs, controllers, accessories.', use:'Highest LTV potential. Bundle across worlds, lead with pair-plus-controller sets.'},
+  {code:'Accessories &amp; Kit', def:'Bought lace sets, charms, cleaning kits or gift wrap, with or without a pair.', use:'Attach to a pair or controller order as the finishing touch, never a standalone push.'},
 ];
 const PROD_COLL = [
-  {code:'Black Sneaker', def:'Court Vision, Airforce, Jordan and breakfast colorways.', use:'Bold, everyday ritual. Cross-sell kicks and one-of-one.'},
-  {code:'Green Sneaker', def:'Signature green, designed greens, dunks.', use:'Lighter ritual and functional angle. Bridge to dunks and themed.'},
-  {code:'Kicks', def:'Hand-painted, spice and chrome kicks buyers.', use:'Strong design loyalty. Kicks-first launches, spice provenance, then embroidery.'},
-  {code:'Themed / Tisane', def:'Embroidery, neon, crimson and scuff-resistant tisanes.', use:'Streetwear-curious. Cleanest bridge to Supplements and Coffee Collection.'},
-  {code:'Dunks / Instant', def:'Dunks powders and instant lattes.', use:'Convenience ritual. Cross-sell frother and coffee.'},
-  {code:'Gifts / Samplers', def:'Bought gift sets or design samplers.', use:'Occasion timing and discovery. Higher AOV, seasonal spikes.'},
-  {code:'White &amp; Hightop', def:'Delicate whites and hightops, the premium tier.', use:'Connoisseur tone, one-of-one provenance, higher AOV, gentle pours.'},
-  {code:'Streetwear / Functional', def:'Embroidery-forward, sleep, immunity and calm colorways.', use:'Cleanest bridge to Supplements and Coffee Collection. Non-medical benefit framing.'},
+  {code:'Black Sneaker', def:'Court Vision, Air Force and Jordan bases in black.', use:'Bold, everyday staple. Cross-sell themed art and one-of-ones.'},
+  {code:'Green Sneaker', def:'Signature greens and Dunk bases.', use:'Lighter, fresher palettes. Bridge to sport and themed art.'},
+  {code:'Anime &amp; Fandom', def:'Naruto, One Piece, Spiderman and football-club art.', use:'Strong design loyalty. Fandom-first launches, character reveals, then gifting.'},
+  {code:'Wedding &amp; Couples', def:'Bride-and-groom pairs and date-stamped one-of-ones.', use:'Occasion-timed. Cleanest bridge to gifting and the premium tier.'},
+  {code:'Gaming', def:'Gamer-themed pairs and controller combos.', use:'Setup-in-one-order convenience. Cross-sell pair-plus-controller sets.'},
+  {code:'Gifts', def:'Bought gift sets or gift cards.', use:'Occasion timing and discovery. Higher AOV, seasonal spikes.'},
+  {code:'White &amp; Hightop', def:'Clean whites and high-top bases, the premium tier.', use:'Connoisseur tone, one-of-one provenance, higher AOV.'},
+  {code:'Sport &amp; Auto', def:'Football, F1 and car-fandom colourways.', use:'Season and race-calendar timing. Fan-art framing, never official-merch claims.'},
 ];
 const PROD_MODE = [
-  {code:'One-Time Buyers', def:'Buy per-order, no active subscription.', use:'Show the subscription value (price, gifts, rhythm) on Coffee and Supplements. Never sub-frame T&amp;B.'},
-  {code:'Subscribers', def:'Hold an active recurring order.', use:'Retention-first: rotation, easy skip/swap, surprise upgrades. Protect churn, never hard-sell.'},
-  {code:'Lapsed Subscribers', def:'Held a subscription, then cancelled or let it lapse.', use:'Win back the rhythm: what they will miss, an easy restart, and one fair incentive.'},
+  {code:'One-Time Buyers', def:'Buy per-order, no active subscription.', use:'Show the made-to-order value (their idea, hand-painted) on themed and gifting ranges. Never rush a custom brief.'},
+  {code:'Repeat Collectors', def:'Two or more pairs, returning for new art.', use:'Retention-first: rotation, early access to drops, surprise upgrades. Protect churn, never hard-sell.'},
+  {code:'Lapsed Collectors', def:'Bought before, now quiet past their usual cycle.', use:'Win back with new art on their known base, an easy restart, and one fair incentive.'},
 ];
 const STAGES = [
   { id:'new',label:'New &amp; Prospect',desc:'Winning trust and the first (and second) order.' },
@@ -227,17 +227,17 @@ const RFM = [
   {code:'Lost',def:'Lowest recency and engagement, effectively churned.',use:'One bold re-introduction, then reduce frequency to protect deliverability.'},
 ];
 const BEHAVIORAL = [
-  {code:'VIP Ritualists',def:'High-value buyers with a fixed daily ritual and consistent cadence.',use:'Provenance, one-of-one drops, membership tone.'},
-  {code:'Streetwear Seekers',def:'Drawn to functional benefits, themed, embroidery, calm and balance.',use:'Ingredient stories and gentle, non-medical benefit framing.'},
-  {code:'Kicks Loyalists',def:'Buy kicks repeatedly, strong design preference.',use:'Kicks-first launches, spice provenance, crafting rituals.'},
+  {code:'VIP Collectors',def:'High-value buyers with a consistent collecting cadence.',use:'Provenance, one-of-one drops, membership tone.'},
+  {code:'Streetwear Seekers',def:'Drawn to street culture: themed art, limited drops, statement pairs.',use:'Artist stories and drop-culture framing.'},
+  {code:'Kicks Loyalists',def:'Buy pairs repeatedly, strong design preference.',use:'Pair-first launches, artist provenance, crafting stories.'},
   {code:'Gift Buyers',def:'Purchase around occasions, higher AOV, seasonal spikes.',use:'Gift sets, bundles, occasion-timed sends.'},
   {code:'New Customers',def:'First 60 days, still forming an opinion.',use:'Onboarding education and a confident second-order path.'},
-  {code:'At-Risk Winback',def:'Previously active, recency past their normal cycle.',use:'Familiar-colorway restock plus a timely reason to return.'},
+  {code:'At-Risk Winback',def:'Previously active, recency past their normal cycle.',use:'New art on their familiar base plus a timely reason to return.'},
   {code:'Discount Responsive',def:'Historically convert mainly on promotions.',use:'Reserve offers for these, protect full-margin buyers from a discount habit.'},
   {code:'Engaged Non-buyers',def:'Open and click within 90 days but have never purchased.',use:'First-purchase nudges, low-risk samplers, remove friction.'},
-  {code:'Scuff-Resistant Seekers',def:'Prefer themed, tisane and decaf, avoid paint.',use:'Lead with scuff-resistant ranges, evening ritual and calm. Never push black sneaker or coffee.'},
-  {code:'Convenience / Instant',def:'Buy dunks powders, instant lattes and quick formats.',use:'Speed and ease, frother and single-serve, natural coffee cross-sell.'},
-  {code:'Sustainability-Driven',def:'Motivated by B-Corp, plastic-free and ethical sourcing.',use:'Provenance, certifications and impact stories, refills over single buys.'},
+  {code:'Scuff-Resistant Seekers',def:'Prefer subtle art and protective finishes.',use:'Lead with scuff-resistant finishes and understated palettes. Never push loud statement pairs.'},
+  {code:'Ready-to-Ship',def:'Buy ready-designed pairs over custom briefs.',use:'Speed and ease: in-stock designs, natural accessories cross-sell.'},
+  {code:'Authenticity-Driven',def:'Motivated by 100% original base sneakers and durable finishes.',use:'Authenticity proof, durability and care stories, repair over replace.'},
 ];
 
 function renderEngagement(){
@@ -296,5 +296,7 @@ document.querySelectorAll('.card.link').forEach(c=>c.addEventListener('click',()
 </script>
 <script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+  <script src="/brand-demo.js"></script>
+  <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('Cohort definitions', "The universal frameworks (engagement, lifecycle, RFM) apply to every brand, but the concrete cohorts here are built from one brand's catalogue and orders. This brand's cohorts appear as its data connects.");</script>
 </body>
 </html>

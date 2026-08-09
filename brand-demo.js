@@ -202,5 +202,23 @@
     });
   }
 
-  window.BrandDemo = { ready: ready, isOwner: isOwner, guardOwnerArtifact: guardOwnerArtifact };
+  /* Feature pages whose DEFINITIONS are derived from tenant zero's own
+     catalogue and orders (personas, the cohort dictionary): for any other
+     active brand, replace the tenant-zero data with an honest brand-scoped
+     state instead of showing another brand's customers. */
+  function guardOwnerDataset(label, hint) {
+    ready().then(function (ctx) {
+      if (ctx.owner) return;
+      var name = ((ctx.brand && ctx.brand.name) || 'the active brand').replace(/[<>&]/g, '');
+      var main = document.querySelector('main') || document.body;
+      main.innerHTML =
+        '<div style="max-width:680px;margin:60px auto;padding:26px 28px;border:1px solid var(--brand-line,#e3e3e3);border-radius:14px;font-family:var(--brand-font-body,system-ui,sans-serif);line-height:1.65">' +
+        '<h2 style="font-family:var(--brand-font-heading,inherit);font-size:21px;margin:0 0 12px">' + label + ' for ' + name + '</h2>' +
+        '<p style="margin:0 0 10px;opacity:.85">[DATA REQUIRED BEFORE LAUNCH: ' + label.toLowerCase() + ', ' + name + '.] ' +
+        'The definitions compiled into this build are derived from another brand\'s own catalogue and order history, so they are not shown here.</p>' +
+        '<p style="margin:0;opacity:.85">' + (hint || 'Connect this brand\'s commerce or engagement exports and its own definitions build from that data.') + '</p></div>';
+    });
+  }
+
+  window.BrandDemo = { ready: ready, isOwner: isOwner, guardOwnerArtifact: guardOwnerArtifact, guardOwnerDataset: guardOwnerDataset };
 })();
