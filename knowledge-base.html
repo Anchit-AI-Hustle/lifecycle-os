@@ -445,7 +445,12 @@
   // from competitor_brands once we hook the captured mailers to it.
   function regionOfBrand(brand) {
     if (!brand) return null;
-    const UK = ['Leather Works','Moreiarty','Yogi Europe','Bird & Colorway','Clipper','Teapigs','Whittard','Craft Sneaker','Newby','Pact Coffee','Grind','Origin Coffee','Square Mile','Workshop Coffee','MyProtein','Holland & Barrett','Bulk','Vitabiotics','Healthspan','Solgar UK','Wild Nutrition','Innermost','Vitl'];
+    // Tenant zero's known UK sellers; other brands get no cross-brand guess.
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (b && String(b.slug || '').toLowerCase() !== 'knickgasm') return null;
+    } catch (_) {}
+    const UK = ['Leather Works','Moreiarty','The Shoe Surgeon','Crep Protect','Sneaker LAB','Superkicks','CrepDog Crew'];
     if (UK.some((u) => brand.toLowerCase().includes(u.toLowerCase()))) return 'UK';
     return 'US';
   }

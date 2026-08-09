@@ -731,8 +731,17 @@
 
   // ── Ads: free public ad libraries (Meta / Google / TikTok) ──────────
   const ADS_KEY = 'knickgasm-comp-ads-brands';
+  // Tenant zero's own ad-tracking set. Any other active brand starts from its
+  // workspace competitor list (the API rows), never another brand's universe.
   const DEFAULT_BRANDS = ['Kickstradomis', 'Sneakboo', 'Moreiarty', 'The Shoe Surgeon', 'Gully Labs', 'The Republic of Sneaker'];
-  const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || DEFAULT_BRANDS.slice(); } catch { return DEFAULT_BRANDS.slice(); } };
+  function defaultBrandsForActive() {
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (b && String(b.slug || '').toLowerCase() !== 'knickgasm') return [];
+    } catch (_) {}
+    return DEFAULT_BRANDS.slice();
+  }
+  const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || defaultBrandsForActive(); } catch { return defaultBrandsForActive(); } };
   const saveBrands = (list) => localStorage.setItem(ADS_KEY, JSON.stringify(list));
 
   // ── Shared brand universe ───────────────────────────────────────────
