@@ -24,7 +24,7 @@
     { id: 'review-fulfilment', label: 'Fulfilment & Delivery', index: 5 },
     { id: 'review-support', label: 'Support & CX', index: 6 },
     { id: 'review-category', label: 'Category Performance', index: 7 },
-    { id: 'review-coffee', label: 'Coffee & Subscriptions', index: 8 },
+    { id: 'review-coffee', label: 'Category Deep-dive', index: 8 },
     { id: 'review-access', label: 'Access Audit', index: 9 },
   ];
   var LIVE_TABS = [
