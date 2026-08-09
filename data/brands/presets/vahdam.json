@@ -95,8 +95,13 @@
   ],
   "catalog_source": {
     "kind": "shopify_public",
-    "url": "https://www.vahdamteas.com/products.json"
+    "url": "https://www.vahdamteas.com/products.json",
+    "offering_kinds": [
+      "product",
+      "plan"
+    ]
   },
+  "offerings": [],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

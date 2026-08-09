@@ -77,9 +77,47 @@
     "img.etimg.com"
   ],
   "catalog_source": {
-    "kind": "none",
-    "note": "Publisher: the \"catalogue\" is sections, newsletters and subscription plans, not SKUs."
+    "kind": "manual",
+    "offering_kinds": [
+      "section",
+      "plan",
+      "programme"
+    ],
+    "note": "A publisher sells sections, newsletters and subscriptions, not SKUs."
   },
+  "offerings": [
+    {
+      "kind": "section",
+      "name": "Markets",
+      "url": "https://economictimes.indiatimes.com/markets",
+      "source": "ET site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "Industry",
+      "url": "https://economictimes.indiatimes.com/industry",
+      "source": "ET site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "Tech",
+      "url": "https://economictimes.indiatimes.com/tech",
+      "source": "ET site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "Wealth",
+      "url": "https://economictimes.indiatimes.com/wealth",
+      "source": "ET site navigation"
+    },
+    {
+      "kind": "plan",
+      "name": "ETPrime",
+      "period": "subscription",
+      "signup_url": "https://economictimes.indiatimes.com",
+      "source": "ETPrime appears in ET site navigation"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

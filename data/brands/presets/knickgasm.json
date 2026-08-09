@@ -109,8 +109,21 @@
   ],
   "catalog_source": {
     "kind": "shopify_public",
-    "url": "https://knickgasm.com/products.json"
+    "url": "https://knickgasm.com/products.json",
+    "offering_kinds": [
+      "product",
+      "service"
+    ]
   },
+  "offerings": [
+    {
+      "kind": "service",
+      "name": "Create Your Own Design (custom commission)",
+      "lead_time": "10-15 days",
+      "enquiry_url": "https://knickgasm.com",
+      "source": "knickgasm.com - custom design request flow"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
