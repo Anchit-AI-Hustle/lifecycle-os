@@ -22,7 +22,12 @@
       ],
       "heading_font": "Montserrat",
       "body_font": "Instrument Sans",
-      "has_catalog": true
+      "has_catalog": true,
+      "offering_kinds": [
+        "product",
+        "service"
+      ],
+      "offering_count": 1
     },
     {
       "slug": "economic-times",
@@ -43,7 +48,13 @@
       ],
       "heading_font": "Montserrat",
       "body_font": "Faustina",
-      "has_catalog": false
+      "has_catalog": true,
+      "offering_kinds": [
+        "section",
+        "plan",
+        "programme"
+      ],
+      "offering_count": 5
     },
     {
       "slug": "times-of-india",
@@ -64,7 +75,13 @@
       ],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
-      "has_catalog": false
+      "has_catalog": true,
+      "offering_kinds": [
+        "section",
+        "plan",
+        "programme"
+      ],
+      "offering_count": 4
     },
     {
       "slug": "toi-health-fitness",
@@ -85,7 +102,13 @@
       ],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
-      "has_catalog": false
+      "has_catalog": true,
+      "offering_kinds": [
+        "section",
+        "programme",
+        "event"
+      ],
+      "offering_count": 6
     },
     {
       "slug": "vahdam",
@@ -106,7 +129,12 @@
       ],
       "heading_font": "Lao MN",
       "body_font": "Proxima Nova",
-      "has_catalog": true
+      "has_catalog": true,
+      "offering_kinds": [
+        "product",
+        "plan"
+      ],
+      "offering_count": 0
     },
     {
       "slug": "apple",
@@ -127,7 +155,13 @@
       ],
       "heading_font": "SF Pro Display",
       "body_font": "SF Pro Text",
-      "has_catalog": false
+      "has_catalog": false,
+      "offering_kinds": [
+        "product",
+        "service",
+        "plan"
+      ],
+      "offering_count": 0
     }
   ]
 }

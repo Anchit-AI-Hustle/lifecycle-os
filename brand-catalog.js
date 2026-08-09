@@ -100,5 +100,46 @@
   function invalidate() { CACHE = {}; }
   try { window.addEventListener('brandcontext:change', invalidate); } catch (_) {}
 
-  window.BrandCatalog = { load: load, invalidate: invalidate, SHIPPED_SLUG: SHIPPED_SLUG };
+  /* ── Offerings ───────────────────────────────────────────────────────────
+     A brand's catalogue is not always products. A publisher's is sections,
+     newsletters and subscriptions; a health vertical's is programmes (a daily
+     morning series, a multi-week training plan) and date-bound events (a run,
+     a yoga day). loadOfferings() returns them split the way a calendar needs:
+     `upcoming` ramps to its date, `evergreen` can run any time, and `past` is
+     handed back separately so nothing ever promotes a finished event. */
+  var DATE_BOUND = { event: true, programme: true };
+
+  function normOffering(o) {
+    if (!o || typeof o !== 'object' || !o.name) return null;
+    var kind = o.kind || 'product';
+    return Object.assign({}, o, { kind: kind, dateBound: !!DATE_BOUND[kind] });
+  }
+
+  function loadOfferings(now) {
+    return activeBrand().then(function (brand) {
+      if (!brand) return { evergreen: [], upcoming: [], past: [], source: 'none', reason: 'no active brand' };
+      var today = now ? new Date(now) : new Date();
+      var list = (brand.offerings || []).map(normOffering).filter(Boolean);
+      var out = { evergreen: [], upcoming: [], past: [], source: list.length ? 'brand' : 'none', reason: '' };
+      list.forEach(function (o) {
+        if (!o.dateBound) { out.evergreen.push(o); return; }
+        var when = o.starts_at ? new Date(o.starts_at) : null;
+        if (!when || isNaN(when.getTime())) { out.evergreen.push(o); return; }
+        (when >= today ? out.upcoming : out.past).push(o);
+      });
+      out.upcoming.sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+      if (!list.length) {
+        out.reason = 'No offerings are listed for ' + (brand.name || 'this brand') +
+          '. Add products, events, programmes, sections or plans in the brand setup.';
+      }
+      return out;
+    }).catch(function () {
+      return { evergreen: [], upcoming: [], past: [], source: 'none', reason: 'offering lookup failed' };
+    });
+  }
+
+  window.BrandCatalog = {
+    load: load, loadOfferings: loadOfferings, invalidate: invalidate,
+    SHIPPED_SLUG: SHIPPED_SLUG, DATE_BOUND: DATE_BOUND,
+  };
 })();

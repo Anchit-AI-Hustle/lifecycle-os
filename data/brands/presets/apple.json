@@ -94,8 +94,14 @@
   ],
   "catalog_source": {
     "kind": "none",
-    "note": "No public product feed; wire a real catalogue before generating product-level assets."
+    "offering_kinds": [
+      "product",
+      "service",
+      "plan"
+    ],
+    "note": "No public product feed; connect a real catalogue before generating product-level assets."
   },
+  "offerings": [],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

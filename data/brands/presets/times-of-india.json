@@ -74,9 +74,41 @@
     "static.toiimg.com"
   ],
   "catalog_source": {
-    "kind": "none",
-    "note": "Publisher: sections and newsletters rather than SKUs."
+    "kind": "manual",
+    "offering_kinds": [
+      "section",
+      "plan",
+      "programme"
+    ],
+    "note": "A publisher sells sections, newsletters and subscriptions, not SKUs."
   },
+  "offerings": [
+    {
+      "kind": "section",
+      "name": "India",
+      "url": "https://timesofindia.indiatimes.com/india",
+      "source": "TOI site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "City",
+      "url": "https://timesofindia.indiatimes.com/city",
+      "source": "TOI site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "Videos",
+      "url": "https://timesofindia.indiatimes.com/videos",
+      "source": "TOI site navigation"
+    },
+    {
+      "kind": "plan",
+      "name": "TOI+",
+      "period": "subscription",
+      "signup_url": "https://timesofindia.indiatimes.com",
+      "source": "TOI+ appears in TOI site navigation"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

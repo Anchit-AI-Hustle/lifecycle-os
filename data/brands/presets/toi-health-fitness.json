@@ -78,9 +78,54 @@
     "static.toiimg.com"
   ],
   "catalog_source": {
-    "kind": "none",
-    "note": "Content vertical: articles, training plans and event campaigns (marathon, yoga day) rather than SKUs."
+    "kind": "manual",
+    "offering_kinds": [
+      "section",
+      "programme",
+      "event"
+    ],
+    "note": "A health vertical promotes content sections, recurring programmes (training plans, daily routines) and date-bound events (yoga days, runs) - not SKUs."
   },
+  "offerings": [
+    {
+      "kind": "section",
+      "name": "Health & Fitness",
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "source": "Live TOI vertical"
+    },
+    {
+      "kind": "section",
+      "name": "Diet",
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness/diet",
+      "source": "Live TOI vertical"
+    },
+    {
+      "kind": "section",
+      "name": "Weight Loss",
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness/weight-loss",
+      "source": "Live TOI vertical"
+    },
+    {
+      "kind": "programme",
+      "name": "Daily morning routine series",
+      "cadence": "daily",
+      "source": "Recurring content format on the vertical"
+    },
+    {
+      "kind": "programme",
+      "name": "Marathon training plan (multi-week)",
+      "cadence": "weekly",
+      "duration": "8-16 weeks",
+      "source": "Recurring content format on the vertical"
+    },
+    {
+      "kind": "event",
+      "name": "International Day of Yoga",
+      "starts_at": "2027-06-21",
+      "recurrence": "annual",
+      "source": "UN-designated fixed date (21 June), covered by the vertical each year"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

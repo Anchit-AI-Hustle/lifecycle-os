@@ -574,8 +574,10 @@
         '<div class="pname">' + esc(p.name) + '</div>' +
         '<div class="psector">' + esc(p.sector || '') + '</div>' +
         '<div class="pblurb">' + esc(p.blurb || '') + '</div>' +
-        '<div class="pmeta">' + esc(p.heading_font || '') + ' / ' + esc(p.body_font || '') +
-          (p.has_catalog ? ' &middot; live catalogue' : '') + '</div>' +
+        '<div class="pmeta">' + esc(p.heading_font || '') + ' / ' + esc(p.body_font || '') + '</div>' +
+        '<div class="pmeta" style="margin-top:4px">Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
+          (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
+          (p.has_catalog ? ' &middot; live feed' : '') + '</div>' +
       '</button>';
     }).join('') +
     '<p class="preset-note">Profiles are starting points built from each brand\'s own public site, not licensed brand kits. Replace with your approved guidelines before running a real programme.</p>';

@@ -56,7 +56,10 @@ const PRESETS = [
     claims: ["India's largest sneaker customisers", 'Made on 100% original brand sneakers', "Hand-painted by India's best artists", 'Water and scratch resistant designs', 'Express shipping worldwide to 60+ countries'],
     regions: [region('IN', 'INR', '₹', 'https://knickgasm.com'), region('US', 'USD', '$', 'https://knickgasm.com'), region('UK', 'GBP', '£', 'https://knickgasm.com')],
     asset_hosts: ['knickgasm.com', 'cdn.shopify.com'],
-    catalog_source: { kind: 'shopify_public', url: 'https://knickgasm.com/products.json' },
+    catalog_source: { kind: 'shopify_public', url: 'https://knickgasm.com/products.json', offering_kinds: ['product', 'service'] },
+    offerings: [
+      { kind: 'service', name: 'Create Your Own Design (custom commission)', lead_time: '10-15 days', enquiry_url: 'https://knickgasm.com', source: 'knickgasm.com - custom design request flow' },
+    ],
   },
   {
     slug: 'economic-times', name: 'The Economic Times', tagline: 'Business News, Markets, Economy',
@@ -77,7 +80,14 @@ const PRESETS = [
     claims: ['Business, markets and economy journalism from The Economic Times'],
     regions: [region('IN', 'INR', '₹', 'https://economictimes.indiatimes.com')],
     asset_hosts: ['economictimes.indiatimes.com', 'img.etimg.com'],
-    catalog_source: { kind: 'none', note: 'Publisher: the "catalogue" is sections, newsletters and subscription plans, not SKUs.' },
+    catalog_source: { kind: 'manual', offering_kinds: ['section', 'plan', 'programme'], note: 'A publisher sells sections, newsletters and subscriptions, not SKUs.' },
+    offerings: [
+      { kind: 'section', name: 'Markets', url: 'https://economictimes.indiatimes.com/markets', source: 'ET site navigation' },
+      { kind: 'section', name: 'Industry', url: 'https://economictimes.indiatimes.com/industry', source: 'ET site navigation' },
+      { kind: 'section', name: 'Tech', url: 'https://economictimes.indiatimes.com/tech', source: 'ET site navigation' },
+      { kind: 'section', name: 'Wealth', url: 'https://economictimes.indiatimes.com/wealth', source: 'ET site navigation' },
+      { kind: 'plan', name: 'ETPrime', period: 'subscription', signup_url: 'https://economictimes.indiatimes.com', source: 'ETPrime appears in ET site navigation' },
+    ],
   },
   {
     slug: 'times-of-india', name: 'The Times of India', tagline: 'India News, Latest News, Breaking News',
@@ -98,7 +108,13 @@ const PRESETS = [
     claims: ['General news coverage from The Times of India'],
     regions: [region('IN', 'INR', '₹', 'https://timesofindia.indiatimes.com')],
     asset_hosts: ['timesofindia.indiatimes.com', 'static.toiimg.com'],
-    catalog_source: { kind: 'none', note: 'Publisher: sections and newsletters rather than SKUs.' },
+    catalog_source: { kind: 'manual', offering_kinds: ['section', 'plan', 'programme'], note: 'A publisher sells sections, newsletters and subscriptions, not SKUs.' },
+    offerings: [
+      { kind: 'section', name: 'India', url: 'https://timesofindia.indiatimes.com/india', source: 'TOI site navigation' },
+      { kind: 'section', name: 'City', url: 'https://timesofindia.indiatimes.com/city', source: 'TOI site navigation' },
+      { kind: 'section', name: 'Videos', url: 'https://timesofindia.indiatimes.com/videos', source: 'TOI site navigation' },
+      { kind: 'plan', name: 'TOI+', period: 'subscription', signup_url: 'https://timesofindia.indiatimes.com', source: 'TOI+ appears in TOI site navigation' },
+    ],
   },
   {
     slug: 'toi-health-fitness', name: 'TOI Health & Fitness', tagline: 'Health, Fitness, Diet and Wellness',
@@ -119,7 +135,15 @@ const PRESETS = [
     claims: ['Health, fitness, diet and wellness coverage from The Times of India'],
     regions: [region('IN', 'INR', '₹', 'https://timesofindia.indiatimes.com/life-style/health-fitness')],
     asset_hosts: ['timesofindia.indiatimes.com', 'static.toiimg.com'],
-    catalog_source: { kind: 'none', note: 'Content vertical: articles, training plans and event campaigns (marathon, yoga day) rather than SKUs.' },
+    catalog_source: { kind: 'manual', offering_kinds: ['section', 'programme', 'event'], note: 'A health vertical promotes content sections, recurring programmes (training plans, daily routines) and date-bound events (yoga days, runs) - not SKUs.' },
+    offerings: [
+      { kind: 'section', name: 'Health & Fitness', url: 'https://timesofindia.indiatimes.com/life-style/health-fitness', source: 'Live TOI vertical' },
+      { kind: 'section', name: 'Diet', url: 'https://timesofindia.indiatimes.com/life-style/health-fitness/diet', source: 'Live TOI vertical' },
+      { kind: 'section', name: 'Weight Loss', url: 'https://timesofindia.indiatimes.com/life-style/health-fitness/weight-loss', source: 'Live TOI vertical' },
+      { kind: 'programme', name: 'Daily morning routine series', cadence: 'daily', source: 'Recurring content format on the vertical' },
+      { kind: 'programme', name: 'Marathon training plan (multi-week)', cadence: 'weekly', duration: '8-16 weeks', source: 'Recurring content format on the vertical' },
+      { kind: 'event', name: 'International Day of Yoga', starts_at: '2027-06-21', recurrence: 'annual', source: 'UN-designated fixed date (21 June), covered by the vertical each year' },
+    ],
   },
   {
     slug: 'vahdam', name: 'VAHDAM India', tagline: 'Wellness Teas, Direct from the Source',
@@ -140,7 +164,8 @@ const PRESETS = [
     claims: ['Teas sourced direct from Indian estates'],
     regions: [region('IN', 'INR', '₹', 'https://www.vahdamindia.com'), region('US', 'USD', '$', 'https://www.vahdamteas.com'), region('UK', 'GBP', '£', 'https://uk.vahdamteas.com')],
     asset_hosts: ['vahdamteas.com', 'www.vahdamteas.com', 'cdn.shopify.com'],
-    catalog_source: { kind: 'shopify_public', url: 'https://www.vahdamteas.com/products.json' },
+    catalog_source: { kind: 'shopify_public', url: 'https://www.vahdamteas.com/products.json', offering_kinds: ['product', 'plan'] },
+    offerings: [],
   },
   {
     slug: 'apple', name: 'Apple', tagline: 'Think Different',
@@ -161,7 +186,8 @@ const PRESETS = [
     claims: ['Consumer technology products from Apple'],
     regions: [region('US', 'USD', '$', 'https://www.apple.com'), region('IN', 'INR', '₹', 'https://www.apple.com/in'), region('UK', 'GBP', '£', 'https://www.apple.com/uk')],
     asset_hosts: ['apple.com', 'www.apple.com', 'store.storeimages.cdn-apple.com'],
-    catalog_source: { kind: 'none', note: 'No public product feed; wire a real catalogue before generating product-level assets.' },
+    catalog_source: { kind: 'none', offering_kinds: ['product', 'service', 'plan'], note: 'No public product feed; connect a real catalogue before generating product-level assets.' },
+    offerings: [],
   },
 ];
 
@@ -180,6 +206,8 @@ const index = PRESETS.map((p) => ({
   swatch: [p.palette.primary, p.palette.accent, p.palette.ink, p.palette.surface],
   heading_font: p.typography.heading.family, body_font: p.typography.body.family,
   has_catalog: p.catalog_source && p.catalog_source.kind !== 'none',
+  offering_kinds: (p.catalog_source && p.catalog_source.offering_kinds) || ['product'],
+  offering_count: (p.offerings || []).length,
 }));
 fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify({
   _note: 'Starter brand profiles for /onboarding. Generated by scripts/build-brand-presets.js - edit that file, not these. Every value was read from the brand\'s own live site on verified_at; voice is OBSERVED from public output, never presented as internal guidelines.',
