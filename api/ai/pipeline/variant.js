@@ -141,7 +141,7 @@ SCHEMA:
 }
 
 KNICKGASM BRAND:
-BANNED: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME caps / hurry / don't miss out
+BANNED: wellness journey / transform / liquid gold / game-changer / LIMITED TIME caps / hurry / don't miss out
 PREFERRED: ritual / restore / balance / origin / one-of-one / hand-painted / lace-up / heritage / crafted`;
 
 // ── Variant B: Story-first, editorial, emotional, dark-inverted ──────────────
@@ -217,7 +217,7 @@ SCHEMA: identical to Variant A schema but with:
 - All section types, copy, and image prompts must structurally differ from A
 
 KNICKGASM BRAND:
-BANNED: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME caps / hurry / don't miss out
+BANNED: wellness journey / transform / liquid gold / game-changer / LIMITED TIME caps / hurry / don't miss out
 PREFERRED: ritual / restore / balance / origin / one-of-one / hand-painted / lace-up / heritage / crafted`;
 
 module.exports = async function handler(req, res) {

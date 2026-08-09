@@ -38,14 +38,14 @@
 <style>
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root{
-  --g:#D0473E;--g2:#D0473E;--g3:#0a3320;
-  --lava:#6A33D8;--gold2:#c9a05a;
-  --chalk:#FFFFFF;--cream2:#f5efe0;
+  --g:#D0473E;--g2:#D0473E;--g3:var(--vh-ink);
+  --lava:#6A33D8;--gold2:var(--vh-lava);
+  --chalk:#FFFFFF;--cream2:var(--vh-panel-tan);
   --dark:#0f1923;--body-txt:#2d3748;
   --muted:#48524c;--subtle:#556059;
-  --border:#e8e3da;--border2:#d6cfc4;
-  --bg:#f5f0e8;--panel:#ffffff;
-  --lightg:#0a3d24;--lightgold:#FFFFFF;
+  --border:var(--vh-panel-tan);--border2:var(--vh-panel-tan);
+  --bg:var(--vh-panel-tan);--panel:#ffffff;
+  --lightg:var(--vh-ink);--lightgold:#FFFFFF;
   --shadow-xs:0 1px 2px rgba(0,0,0,0.06);
   --shadow-sm:0 2px 6px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
   --shadow-md:0 6px 18px rgba(0,0,0,0.09),0 2px 6px rgba(0,0,0,0.05);
@@ -131,7 +131,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 }
 
 /* ── Step wizard ────────────────────────────────────────────────────────────── */
-.steps{display:flex;align-items:center;margin:0 0 1.5rem;background:linear-gradient(135deg,#fff 0%,#fdfcfb 100%);border:1px solid var(--border);border-radius:var(--r2);padding:14px 20px;box-shadow:var(--shadow-sm)}
+.steps{display:flex;align-items:center;margin:0 0 1.5rem;background:linear-gradient(135deg,#fff 0%,var(--vh-panel-tan) 100%);border:1px solid var(--border);border-radius:var(--r2);padding:14px 20px;box-shadow:var(--shadow-sm)}
 .step{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0;position:relative}
 .step-n{
   width:30px;height:30px;border-radius:50%;
@@ -172,9 +172,9 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
   letter-spacing:0.01em
 }
 .btn-primary{background:var(--g);color:var(--chalk);box-shadow:0 1px 3px rgba(0,74,43,0.3)}
-.btn-primary:hover{background:#005c36;box-shadow:0 4px 12px rgba(0,74,43,0.3)}
+.btn-primary:hover{background:var(--vh-ink);box-shadow:0 4px 12px rgba(0,74,43,0.3)}
 .btn-lava{background:var(--lava);color:#fff;box-shadow:0 1px 3px rgba(171,135,67,0.3)}
-.btn-lava:hover{background:#9a7639;box-shadow:0 4px 12px rgba(171,135,67,0.35)}
+.btn-lava:hover{background:var(--vh-lava);box-shadow:0 4px 12px rgba(171,135,67,0.35)}
 .btn-outline{background:#fff;color:var(--g);border:1.5px solid var(--g)}
 .btn-outline:hover{background:var(--lightg)}
 .btn-ghost{background:transparent;color:#48524c;border:1.5px solid var(--border2)}
@@ -205,7 +205,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 }
 .cat-card:hover{border-color:var(--g);box-shadow:var(--shadow-md);transform:translateY(-2px)}
 .cat-card.sel{border-color:var(--g);background:var(--lightg);box-shadow:0 0 0 3px rgba(0,74,43,0.12)}
-.cat-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#f5f0e8}
+.cat-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--vh-panel-tan)}
 .cat-card .cn{font-size:9.5px;font-weight:600;color:#374151;padding:6px 8px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sel-info{font-size:12px;color:var(--g);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .prod-chips{display:flex;gap:8px;flex-wrap:wrap}
@@ -228,14 +228,14 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
   border-radius:var(--r);background:#f9fafb;border:1.5px solid transparent;transition:all .3s
 }
 .stage.active{background:var(--lightg);border-color:rgba(0,74,43,0.25)}
-.stage.done{background:#f0fdf4;border-color:#0a7d33}
+.stage.done{background:var(--vh-panel-tan);border-color:#0a7d33}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:all .3s}
 .dot.active{background:var(--g);box-shadow:0 0 0 3px rgba(0,74,43,0.18)}
-.dot.done{background:#22c55e}
+.dot.done{background:var(--vh-ink-dim)}
 .stage-txt{font-size:13px;color:#48524c;flex:1}
 .stage.active .stage-txt{color:var(--g);font-weight:600}
-.stage.done .stage-txt{color:#166534}
-.stage-check{color:#22c55e;font-weight:700;font-size:14px}
+.stage.done .stage-txt{color:var(--vh-ink)}
+.stage-check{color:var(--vh-ink-dim);font-weight:700;font-size:14px}
 
 /* ── Step 4 preview tabs ────────────────────────────────────────────────────── */
 .p4tabs{display:flex;gap:6px;margin-bottom:18px;padding:4px;background:#f3f4f6;border-radius:var(--r2);width:fit-content}
@@ -287,7 +287,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 .html-raw{font-family:monospace;font-size:11px;color:#e6edf3;padding:16px;white-space:pre-wrap;word-break:break-all;min-height:60px}
 .copy-row{display:flex;gap:10px;justify-content:flex-end}
 /* The "HTML Source Code" panel inside Step 5 — hidden empty state */
-.empty-state-html{padding:18px 16px;text-align:center;color:#48524c;font-size:11.5px;font-style:italic;background:#fff;border-radius:8px;border:1px dashed #d6cfc4}
+.empty-state-html{padding:18px 16px;text-align:center;color:#48524c;font-size:11.5px;font-style:italic;background:#fff;border-radius:8px;border:1px dashed var(--vh-panel-tan)}
 .prompt-mono{
   background:#0d1117;color:#e6edf3;font-family:monospace;font-size:11px;
   padding:14px;border-radius:var(--r);overflow:auto;white-space:pre-wrap;
@@ -295,10 +295,10 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 }
 
 /* ── Subject lines ──────────────────────────────────────────────────────────── */
-.subj-box{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:var(--r);padding:12px 14px;margin-top:12px}
+.subj-box{background:var(--vh-panel-tan);border:1px solid var(--vh-ink-dim);border-radius:var(--r);padding:12px 14px;margin-top:12px}
 .subj-box .slbl{color:var(--g)}
-.subj-line{font-size:12px;color:#065f46;padding:5px 8px;border-radius:6px;cursor:pointer;transition:background .15s}
-.subj-line:hover{background:#d1fae5}
+.subj-line{font-size:12px;color:var(--vh-ink);padding:5px 8px;border-radius:6px;cursor:pointer;transition:background .15s}
+.subj-line:hover{background:var(--vh-panel-tan)}
 
 /* ── Market chips & tabs ────────────────────────────────────────────────────── */
 .mkt-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
@@ -330,21 +330,21 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 .sugg-hdr{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 18px;
-  background:linear-gradient(90deg,#f6f3ee 0%,#FFFFFF 100%);
+  background:linear-gradient(90deg,var(--vh-panel-tan) 0%,#FFFFFF 100%);
   cursor:pointer;user-select:none;transition:background .18s;
   border-bottom:1px solid var(--border)
 }
-.sugg-hdr:hover{background:linear-gradient(90deg,#eeeae2 0%,#f5f1ea 100%)}
+.sugg-hdr:hover{background:linear-gradient(90deg,var(--vh-panel-tan) 0%,var(--vh-panel-tan) 100%)}
 .sugg-hdr-lbl{font-size:11px;font-weight:700;color:var(--g);letter-spacing:0.05em}
 .sugg-hdr-sub{font-size:10px;color:#556059;font-style:italic}
 .sugg-arrow{font-size:10px;color:var(--lava);transition:transform .22s cubic-bezier(.4,0,.2,1);display:inline-block}
 .sugg-grid{
   display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
-  padding:14px 14px 16px;background:#fdfcfa
+  padding:14px 14px 16px;background:var(--vh-panel-tan)
 }
 /* ── Skeleton shimmer for loading states (used by dashboard / KB hydration) ── */
 @keyframes vhdShimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-.vhd-skel{display:block;background:linear-gradient(90deg,#ede5d8 0%,#f6f1e6 50%,#ede5d8 100%);background-size:200% 100%;animation:vhdShimmer 1.4s ease-in-out infinite;border-radius:6px}
+.vhd-skel{display:block;background:linear-gradient(90deg,var(--vh-panel-tan) 0%,var(--vh-panel-tan) 50%,var(--vh-panel-tan) 100%);background-size:200% 100%;animation:vhdShimmer 1.4s ease-in-out infinite;border-radius:6px}
 .vhd-skel-row{height:14px;margin:4px 0}
 .vhd-skel-card{height:120px;border-radius:14px;margin-bottom:14px}
 /* Focus rings for keyboard a11y — every interactive element gets a visible ring */
@@ -397,9 +397,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 
 /* ── Analysis status ────────────────────────────────────────────────────────── */
 #analyzeStatus{
-  display:none;background:var(--lightg);border:1px solid #6ee7b7;
+  display:none;background:var(--lightg);border:1px solid var(--vh-ink-dim);
   border-radius:var(--r);padding:12px 16px;margin-bottom:12px;
-  font-size:13px;color:#065f46;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif
+  font-size:13px;color:var(--vh-ink);font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif
 }
 
 /* ── Dashboard ─────────────────────────────────────────────────────────────── */
@@ -502,10 +502,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
    blocks are already dark. Palette mirrors knickgasm_mailer_studio_v2_dark.html.
    ════════════════════════════════════════════════════════════════════════════ */
 html[data-theme="green"]{
-  --body-txt:#F5EFE0; --dark:#111111;
-  --muted:#cfe0d5; --subtle:#9fb8ab;
+  --body-txt:var(--vh-panel-tan); --dark:#111111;
+  --muted:var(--vh-panel-tan); --subtle:var(--vh-ink-dim);
   --border:rgba(171,135,67,.18); --border2:rgba(171,135,67,.32);
-  --bg:#D0473E; --panel:#075C39;
+  --bg:#D0473E; --panel:var(--vh-ink);
   --lightg:rgba(0,74,43,.28); --lightgold:rgba(171,135,67,.16);
   --shadow-xs:0 1px 2px rgba(0,0,0,.4);
   --shadow-sm:0 2px 6px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.3);
@@ -516,69 +516,69 @@ html[data-theme="green"]{
    :root[data-theme="green"] (spec 0,2,0) and would otherwise force --panel/--bg
    light while this UI's chrome + text are built dark. html[data-theme]:root wins
    (0,2,1) so the dark studio stays coherent (light text on dark surfaces). */
-html[data-theme="green"]:root{ --panel:#075C39; --bg:#D0473E; --muted:#cfe0d5; }
+html[data-theme="green"]:root{ --panel:var(--vh-ink); --bg:#D0473E; --muted:var(--vh-panel-tan); }
 html[data-theme="green"] body{
   background:#D0473E;
   background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,74,43,.18) 0%,transparent 70%);
 }
-html[data-theme="green"] .steps{background:linear-gradient(135deg,#075C39 0%,#003D24 100%)}
+html[data-theme="green"] .steps{background:linear-gradient(135deg,var(--vh-ink) 0%,var(--vh-ink) 100%)}
 html[data-theme="green"] .step-n{background:var(--panel);color:var(--subtle)}
 html[data-theme="green"] .step-l{color:var(--muted)}
 html[data-theme="green"] .field label{color:var(--muted)}
 html[data-theme="green"] .field input,
 html[data-theme="green"] .field select,
 html[data-theme="green"] .field textarea,
-html[data-theme="green"] .fb-area textarea{background:#003D24;color:var(--body-txt)}
+html[data-theme="green"] .fb-area textarea{background:var(--vh-ink);color:var(--body-txt)}
 html[data-theme="green"] .btn-outline{background:var(--panel)}
 html[data-theme="green"] .btn-ghost{color:var(--muted)}
 html[data-theme="green"] .cfbtn{background:var(--panel);color:var(--muted)}
 html[data-theme="green"] .cat-card{background:var(--panel)}
-html[data-theme="green"] .cat-card img{background:#003D24}
+html[data-theme="green"] .cat-card img{background:var(--vh-ink)}
 html[data-theme="green"] .cat-card .cn{color:var(--body-txt)}
-html[data-theme="green"] .pchip{background:#003D24}
+html[data-theme="green"] .pchip{background:var(--vh-ink)}
 html[data-theme="green"] .pchip-name{color:var(--body-txt)}
-html[data-theme="green"] .stage{background:#003D24}
+html[data-theme="green"] .stage{background:var(--vh-ink)}
 html[data-theme="green"] .stage.done{background:rgba(0,74,43,.25);border-color:rgba(34,197,94,.4)}
 html[data-theme="green"] .stage-txt{color:var(--muted)}
-html[data-theme="green"] .stage.done .stage-txt{color:#4ade80}
+html[data-theme="green"] .stage.done .stage-txt{color:var(--vh-ink-dim)}
 html[data-theme="green"] .p4tabs,
-html[data-theme="green"] .tab-bar{background:#003D24}
+html[data-theme="green"] .tab-bar{background:var(--vh-ink)}
 html[data-theme="green"] .p4tab,
 html[data-theme="green"] .tab{color:var(--muted)}
 html[data-theme="green"] .p4tab.on,
 html[data-theme="green"] .tab.on{background:var(--panel)}
-html[data-theme="green"] .canvas-area{background:#003D24}
-html[data-theme="green"] .canvas-label{color:var(--muted);background:#003D24}
+html[data-theme="green"] .canvas-area{background:var(--vh-ink)}
+html[data-theme="green"] .canvas-label{color:var(--muted);background:var(--vh-ink)}
 html[data-theme="green"] .regen-count{color:var(--subtle)}
-html[data-theme="green"] .sbox{background:#003D24}
+html[data-theme="green"] .sbox{background:var(--vh-ink)}
 html[data-theme="green"] .sval{color:var(--body-txt)}
-html[data-theme="green"] .copy-preview-hl{color:#7cc49b}
+html[data-theme="green"] .copy-preview-hl{color:var(--vh-ink-dim)}
 html[data-theme="green"] .copy-preview-sub{color:var(--muted)}
 html[data-theme="green"] .empty-state-html{color:var(--muted);background:var(--panel);border-color:var(--border2)}
 html[data-theme="green"] .subj-box{background:rgba(0,74,43,.22);border-color:rgba(110,231,183,.3)}
-html[data-theme="green"] .subj-line{color:#6ee7b7}
+html[data-theme="green"] .subj-line{color:var(--vh-ink-dim)}
 html[data-theme="green"] .subj-line:hover{background:rgba(0,74,43,.4)}
-html[data-theme="green"] #analyzeStatus{border-color:rgba(110,231,183,.3);color:#6ee7b7}
+html[data-theme="green"] #analyzeStatus{border-color:rgba(110,231,183,.3);color:var(--vh-ink-dim)}
 html[data-theme="green"] .mkt-chip,
 html[data-theme="green"] .type-chip,
 html[data-theme="green"] .mkt-tab-btn{background:var(--panel);color:var(--muted)}
 /* Selected chips in the green theme: green-on-green is invisible, so the selected
    state gets a bright lava ring + chalk text so it always pops from the panel. */
 html[data-theme="green"] .mkt-chip.on,
-html[data-theme="green"] .mkt-tab-btn.on{background:#0C6B41;color:var(--chalk);border-color:var(--lava);box-shadow:0 0 0 2px var(--lava),0 2px 10px rgba(0,0,0,.35)}
+html[data-theme="green"] .mkt-tab-btn.on{background:var(--vh-ink);color:var(--chalk);border-color:var(--lava);box-shadow:0 0 0 2px var(--lava),0 2px 10px rgba(0,0,0,.35)}
 html[data-theme="green"] .type-chip.on{background:var(--lava);color:#111111;border-color:var(--lava);box-shadow:0 0 0 2px rgba(251,245,234,.35),0 2px 10px rgba(0,0,0,.35)}
 html[data-theme="green"] .mkt-chip:hover:not(.on),
 html[data-theme="green"] .type-chip:hover:not(.on),
-html[data-theme="green"] .mkt-tab-btn:hover:not(.on){border-color:var(--lava);color:var(--chalk);background:#0A5A37}
-html[data-theme="green"] .sugg-hdr{background:linear-gradient(90deg,#075C39 0%,#003D24 100%)}
-html[data-theme="green"] .sugg-hdr:hover{background:linear-gradient(90deg,#12241d 0%,#0e1f18 100%)}
+html[data-theme="green"] .mkt-tab-btn:hover:not(.on){border-color:var(--lava);color:var(--chalk);background:var(--vh-ink)}
+html[data-theme="green"] .sugg-hdr{background:linear-gradient(90deg,var(--vh-ink) 0%,var(--vh-ink) 100%)}
+html[data-theme="green"] .sugg-hdr:hover{background:linear-gradient(90deg,var(--vh-ink) 0%,var(--vh-ink) 100%)}
 html[data-theme="green"] .sugg-hdr-sub{color:var(--subtle)}
 html[data-theme="green"] .sugg-hdr-lbl{color:#FFFFFF}
 html[data-theme="green"] .sugg-grid{background:var(--panel)}
-html[data-theme="green"] .sugg-card{background:#003D24}
+html[data-theme="green"] .sugg-card{background:var(--vh-ink)}
 html[data-theme="green"] .sugg-text{color:var(--muted)}
 html[data-theme="green"] .dash-card{background:var(--panel)}
-html[data-theme="green"] .vhd-skel{background:linear-gradient(90deg,#075C39 0%,#162a22 50%,#075C39 100%);background-size:200% 100%}
+html[data-theme="green"] .vhd-skel{background:linear-gradient(90deg,var(--vh-ink) 0%,var(--vh-ink) 50%,var(--vh-ink) 100%);background-size:200% 100%}
 /* Header theme toggle button */
 .app-hdr-theme{
   display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
@@ -607,7 +607,7 @@ html[data-theme="green"] .copilot-dock{background:rgba(10,20,16,.78);border-top:
 }
 .copilot-dock.open .copilot-history{max-height:min(60vh,520px);opacity:1}
 .copilot-hd{display:flex;align-items:center;gap:9px;padding:12px 16px;background:linear-gradient(90deg,var(--g3),var(--g));color:var(--chalk);font-weight:700;font-size:13px}
-.copilot-hd .dotlive{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:livePulse 2s infinite}
+.copilot-hd .dotlive{width:8px;height:8px;border-radius:50%;background:var(--vh-ink-dim);animation:livePulse 2s infinite}
 @keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 .copilot-hd .x{margin-left:auto;cursor:pointer;opacity:.85;font-size:16px;background:none;border:none;color:var(--chalk);padding:2px 4px;line-height:1}
 .copilot-hd .x:hover{opacity:1}
@@ -651,7 +651,7 @@ html[data-theme="green"] .copilot-btn{color:#FFFFFF}
 .copilot-exp{border:1px solid var(--border2);background:var(--panel);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:12px;flex-shrink:0;transition:var(--transition);display:inline-flex;align-items:center;justify-content:center}
 .copilot-exp:hover{border-color:var(--g);color:var(--g)}
 .copilot-dock.open .copilot-exp{transform:rotate(180deg)}
-html[data-theme="green"] .copilot-input,html[data-theme="green"] .copilot-exp{background:#003D24}
+html[data-theme="green"] .copilot-input,html[data-theme="green"] .copilot-exp{background:var(--vh-ink)}
 @media(max-width:600px){.copilot-bar{gap:7px;padding:9px 10px}.copilot-btn{padding:9px 12px}.copilot-btn .lbl{display:none}}
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -692,7 +692,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   <div style="background:#fff;border-radius:20px;padding:36px 44px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.3);min-width:280px">
     <div style="font-family:serif;font-size:22px;font-weight:700;color:#D0473E;letter-spacing:0.06em;margin-bottom:4px">KNICKGASM&#174;</div>
     <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#6A33D8;margin-bottom:22px">Mailer Studio</div>
-    <div id="linkLoadSpinner" style="width:44px;height:44px;border:4px solid #e0ede6;border-top-color:#D0473E;border-radius:50%;animation:spin 0.75s linear infinite;margin:0 auto 18px"></div>
+    <div id="linkLoadSpinner" style="width:44px;height:44px;border:4px solid var(--vh-panel-tan);border-top-color:#D0473E;border-radius:50%;animation:spin 0.75s linear infinite;margin:0 auto 18px"></div>
     <div id="linkLoadTitle" style="font-size:14px;font-weight:700;color:#111111;margin-bottom:6px">Opening tool…</div>
     <div id="linkLoadSub" style="font-size:11px;color:#888;line-height:1.5">Prompt copied to clipboard. Paste it when the page opens.</div>
   </div>
@@ -703,8 +703,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div id="dashRecordBody" style="display:flex;flex-direction:column"></div>
   </div>
 </div>
-<div id="authOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#f2ede4 0%,#e8f2ec 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:20px;padding:clamp(24px,4vw,44px);max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,74,43,0.14);border:1px solid #e0d8cc">
+<div id="authOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,var(--vh-panel-tan) 0%,var(--vh-panel-tan) 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:clamp(24px,4vw,44px);max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,74,43,0.14);border:1px solid var(--vh-panel-tan)">
     <div style="text-align:center;margin-bottom:18px">
       <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:30px;font-weight:600;letter-spacing:0.07em;color:#D0473E;margin-bottom:3px">KNICKGASM&#174;</div>
       <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#6A33D8;margin-bottom:14px">Mailer Studio</div>
@@ -712,18 +712,18 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <div style="font-size:12px;color:#999;margin-top:3px" id="authSub">Enter your name and email to sign in</div>
     </div>
     <!-- Sign In / Sign Up tab toggle -->
-    <div style="display:flex;background:#f5f0e8;border-radius:10px;padding:4px;margin-bottom:18px;gap:4px">
+    <div style="display:flex;background:var(--vh-panel-tan);border-radius:10px;padding:4px;margin-bottom:18px;gap:4px">
       <button id="authModeSignIn" onclick="setAuthMode('signin')" style="flex:1;padding:9px 8px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign In</button>
       <button id="authModeSignUp" onclick="setAuthMode('signup')" style="flex:1;padding:9px 8px;background:transparent;color:#888;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign Up</button>
     </div>
     <div id="authErrMsg" style="display:none;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;padding:9px 13px;font-size:12px;color:#b91c1c;margin-bottom:12px"></div>
     <div style="margin-bottom:12px">
       <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#888;display:block;margin-bottom:5px">Full Name</label>
-      <input type="text" id="authName" placeholder="e.g. Priya Sharma" autocomplete="name" style="width:100%;padding:11px 13px;border:1.5px solid #e0d8cc;border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown="if(event.key==='Enter')document.getElementById('authEmail').focus()">
+      <input type="text" id="authName" placeholder="e.g. Priya Sharma" autocomplete="name" style="width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown="if(event.key==='Enter')document.getElementById('authEmail').focus()">
     </div>
     <div style="margin-bottom:12px">
       <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#888;display:block;margin-bottom:5px">Email Address</label>
-      <input type="email" id="authEmail" placeholder="you@knickgasm.com" autocomplete="email" style="width:100%;padding:11px 13px;border:1.5px solid #e0d8cc;border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown="if(event.key==='Enter')authSubmit()">
+      <input type="email" id="authEmail" placeholder="you@knickgasm.com" autocomplete="email" style="width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown="if(event.key==='Enter')authSubmit()">
     </div>
     <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;user-select:none">
       <input type="checkbox" id="authRemember" checked style="width:14px;height:14px;accent-color:#D0473E">
@@ -734,7 +734,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <span style="font-size:11px;color:#888" id="authSwitch">No password needed — passwordless secure sign in</span><br>
       <span id="authToggleHint" style="font-size:11px;color:#aaa;margin-top:4px;display:inline-block">Don't have an account? <a href="#" onclick="setAuthMode('signup');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a></span>
     </div>
-    <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0ebe0;text-align:center">
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--vh-panel-tan);text-align:center">
       <span style="font-size:9px;color:#ccc;letter-spacing:0.09em">DATA STORED LOCALLY &#183; NO SERVER &#183; NO TRACKING</span>
     </div>
   </div>
@@ -795,7 +795,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 <div id="p1" class="panel" style="padding:0;overflow:hidden">
 
   <!-- Panel hero strip -->
-  <div style="background:linear-gradient(135deg,var(--g3) 0%,var(--g) 55%,#006b3e 100%);padding:22px 28px 18px;position:relative;overflow:hidden">
+  <div style="background:linear-gradient(135deg,var(--g3) 0%,var(--g) 55%,var(--vh-ink) 100%);padding:22px 28px 18px;position:relative;overflow:hidden">
     <div style="position:absolute;top:-20px;right:-20px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
     <div style="position:absolute;bottom:-30px;right:40px;width:80px;height:80px;border-radius:50%;background:rgba(171,135,67,0.12)"></div>
     <div style="position:relative">
@@ -804,7 +804,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.6)">Campaign Brief</span>
       </div>
       <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;font-weight:600;color:#FFFFFF;margin-bottom:6px;line-height:1.2">What are we sending today?</div>
-      <p style="font-size:12px;color:rgba(251,245,234,0.7);margin:0;line-height:1.6;max-width:520px">Describe your campaign idea — or let AI <strong style="color:#c9a05a">Create</strong> a director-grade brief from scratch. Then set your market and campaign type below.</p>
+      <p style="font-size:12px;color:rgba(251,245,234,0.7);margin:0;line-height:1.6;max-width:520px">Describe your campaign idea — or let AI <strong style="color:var(--vh-lava)">Create</strong> a director-grade brief from scratch. Then set your market and campaign type below.</p>
     </div>
   </div>
 
@@ -820,20 +820,20 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <textarea id="promptIn"
         style="min-height:120px;font-size:13px;line-height:1.7"
         oninput="(function(el){var c=document.getElementById('promptCharCount');if(c)c.textContent=el.value.length+' chars';_updateSmartAIBtn(el.value.trim().length>0);_autoUpdateChipsFromPrompt(el.value);})(this)"
-        placeholder="e.g. 20% off all embroidery &amp; neon sneakers with code DETOX20. Focus on gut health, daily streetwear ritual, natural ingredients. Free shipping on orders over $49. Warm, inspiring tone."></textarea>
+        placeholder="e.g. 20% off all embroidery &amp; neon sneakers with code DRIP20. Focus on the design story, everyday wear, and the craft behind the pair. Free shipping on orders over $49. Warm, inspiring tone."></textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap" id="smartAIRow">
         <!-- Primary CTA — adapts: Create (empty) or Enhance (has content) -->
-        <button id="smartAIBtn" onclick="smartAIBrief(event)" style="background:linear-gradient(135deg,#D0473E,#006b3e);color:#FFFFFF;font-weight:700;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:12px;letter-spacing:0.02em;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,74,43,0.25);transition:all 0.2s">&#127775; Create Brief with AI</button>
+        <button id="smartAIBtn" onclick="smartAIBrief(event)" style="background:linear-gradient(135deg,#D0473E,var(--vh-ink));color:#FFFFFF;font-weight:700;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:12px;letter-spacing:0.02em;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,74,43,0.25);transition:all 0.2s">&#127775; Create Brief with AI</button>
         <!-- Secondary: "Start New" — only visible after brief exists -->
         <button id="newBriefBtn" onclick="clearAndCreate()" style="display:none;background:#fff;color:#D0473E;border:1.5px solid #D0473E;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.02em;transition:all 0.2s">&#128260; New Brief</button>
         <span id="smartAIHint" style="font-size:10.5px;color:#556059;flex:1;line-height:1.5">AI creates a director-grade brief from scratch using your market, campaign type, and product picks. Or type any seed idea first.</span>
       </div>
       <!-- Brief creation progress panel -->
-      <div id="briefProgressPanel" style="display:none;margin-top:14px;background:linear-gradient(135deg,#f8faf9,#f0f4f2);border:1.5px solid #d4e5dc;border-radius:12px;padding:16px 18px;overflow:hidden">
+      <div id="briefProgressPanel" style="display:none;margin-top:14px;background:linear-gradient(135deg,var(--vh-panel-tan),var(--vh-panel-tan));border:1.5px solid var(--vh-panel-tan);border-radius:12px;padding:16px 18px;overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div id="briefProgressTitle" style="font-size:11px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Creating Brief...</div>
         </div>
-        <div style="height:4px;background:#e5ebe8;border-radius:4px;overflow:hidden;margin-bottom:14px">
+        <div style="height:4px;background:var(--vh-panel-tan);border-radius:4px;overflow:hidden;margin-bottom:14px">
           <div id="briefProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,#D0473E,#6A33D8);border-radius:4px;transition:width 0.6s ease"></div>
         </div>
         <div id="briefProgressSteps" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -844,7 +844,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div class="sugg-wrap" style="margin-bottom:22px">
       <div class="sugg-hdr" onclick="toggleSuggestedPrompts()">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--g),#006b3e);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">&#128161;</div>
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--g),var(--vh-ink));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">&#128161;</div>
           <div>
             <div class="sugg-hdr-lbl">Suggested Campaign Prompts</div>
             <div class="sugg-hdr-sub">Click any to instantly fill the description</div>
@@ -857,13 +857,13 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 
     <!-- Divider -->
     <div style="height:1px;background:var(--border);margin-bottom:22px;position:relative">
-      <span style="position:absolute;top:-8px;left:0;background:transparent;padding:0 10px 0 0;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#cfe0d5">Targeting</span>
+      <span style="position:absolute;top:-8px;left:0;background:transparent;padding:0 10px 0 0;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--vh-panel-tan)">Targeting</span>
     </div>
 
     <!-- Target Market -->
     <div style="margin-bottom:20px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
-        <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#cfe0d5;margin:0">Target Market <span class="req">*</span></label>
+        <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Target Market <span class="req">*</span></label>
         <span style="font-size:10px;color:#556059;font-weight:400">Multi-select — each market gets its own tailored mailer</span>
       </div>
       <div class="mkt-chips" id="mktChips">
@@ -880,11 +880,11 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <!-- Target User Segment -->
     <div class="field" style="margin-bottom:20px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
-        <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#cfe0d5;margin:0">Target User Segment</label>
+        <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Target User Segment</label>
         <span style="font-size:10px;color:#556059;font-weight:400">Who is this mailer for? — drives copy, imagery, and tone</span>
       </div>
       <textarea id="audienceIn"
-        style="min-height:64px;font-size:13px;line-height:1.65;width:100%;padding:11px 13px;border:1.5px solid #e0d8cc;border-radius:9px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;resize:vertical"
+        style="min-height:64px;font-size:13px;line-height:1.65;width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;resize:vertical"
         oninput="(function(el){S.audience=el.value;_audienceManualSet=el.value.trim().length>0;})(this)"
         onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'"
         placeholder="e.g. Urban streetwear-curious professionals, 28-42, in NYC/LA. Buy premium grocery, drink 1-2 pairs daily, trust farm-direct origin. Lapsed buyers in last 90 days who tried our kicks but didn't repeat."></textarea>
@@ -897,7 +897,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <!-- Campaign Type -->
     <div style="margin-bottom:20px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
-        <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#cfe0d5;margin:0">Campaign Type</label>
+        <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Campaign Type</label>
         <span style="font-size:10px;color:#556059;font-weight:400">Multi-select — pick 1-3 to colorway the vibe (e.g. Gift + Sale, Routine + Story)</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="typeChips">
@@ -984,7 +984,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 </div>
 <div id="p4" class="panel" style="display:none">
   <!-- Step 4 sticky navigation bar -->
-  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid #ede5d8;padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
+  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
     <button class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Back to Products</button>
     <button class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
     <span style="flex:1"></span>
@@ -1019,7 +1019,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <div class="img-side-panel">
         <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#48524c;margin-bottom:10px">Selected Products</div>
         <div class="prod-chips" id="prodChipsReview" style="flex-direction:column;gap:6px;margin-bottom:16px"></div>
-        <div style="background:#f8f6f2;border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;margin-bottom:14px">
+        <div style="background:var(--vh-panel-tan);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;margin-bottom:14px">
           <div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:4px">&#x1F5BC; Add a hero image</div>
           <p style="font-size:11px;color:#48524c;line-height:1.5;margin-bottom:8px">Generate one with ChatGPT, Claude or Gemini — then upload it below.</p>
           <button onclick="switchP4Tab('chatgpt',document.getElementById('tab-chatgpt'))" style="width:100%;padding:9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open AI Image Tools &#8599;</button>
@@ -1056,7 +1056,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       </div>
       <p style="font-size:11px;color:#FFFFFF;margin:8px 0 0;line-height:1.5">This is the exact content that will go into your final HTML mailer. Review headlines, subcopy, offer text, product cards, and CTAs. Use the feedback box to request changes, then regenerate.</p>
     </div>
-    <div id="contentPreviewBody" style="border:1.5px solid #ede5d8;border-radius:12px;overflow:hidden;background:#fff">
+    <div id="contentPreviewBody" style="border:1.5px solid var(--vh-panel-tan);border-radius:12px;overflow:hidden;background:#fff">
       <!-- Populated by renderContentPreview() -->
       <div style="padding:40px;text-align:center;color:#aaa;font-size:13px">Generating content preview...</div>
     </div>
@@ -1075,8 +1075,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px">
 
       <!-- ChatGPT Image 2 -->
-      <div style="border:1.5px solid #d1fae5;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(16,163,127,0.08)">
-        <div style="background:linear-gradient(135deg,#0d9966,#10a37f);padding:14px 16px;display:flex;align-items:center;gap:10px">
+      <div style="border:1.5px solid var(--vh-panel-tan);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(16,163,127,0.08)">
+        <div style="background:linear-gradient(135deg,var(--vh-ink),var(--vh-ink));padding:14px 16px;display:flex;align-items:center;gap:10px">
           <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">&#129302;</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:#fff">ChatGPT Image 2</div>
@@ -1087,7 +1087,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
           <p style="font-size:11px;color:#374151;line-height:1.6;margin-bottom:12px">Best for: detailed layout prompts, text rendering, multi-section email designs. Use the <strong>Full Layout Prompt</strong> below.</p>
           <div style="display:flex;gap:8px">
             <button onclick="copyPromptText();showCopyToast('Layout prompt copied — paste into ChatGPT')" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
-            <button onclick="openChatGPT()" style="flex:1;padding:7px 0;background:#10a37f;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open ChatGPT &#8599;</button>
+            <button onclick="openChatGPT()" style="flex:1;padding:7px 0;background:var(--vh-ink);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open ChatGPT &#8599;</button>
           </div>
         </div>
       </div>
@@ -1132,7 +1132,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <!-- (Region+Variant filter is persistent above all tabs — no duplicate switcher needed here) -->
     <div id="imageVariantSwitcher" style="display:none"></div>
     <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
-      <div style="background:#f8f6f2;padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+      <div style="background:var(--vh-panel-tan);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:700;color:#374151">&#128203; Campaign Image Prompt &mdash; <span id="activeImagePromptVariantLabel">Variant A</span></span>
         <div style="display:flex;gap:6px">
           <button onclick="copyImagePrompt('A')" style="font-size:10px;padding:4px 10px;background:transparent;color:#D0473E;border:1.5px solid #D0473E;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy A</button>
@@ -1178,13 +1178,13 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
         <img id="uploadedImg" src="" alt="Uploaded design" style="width:100%;display:block">
       </div>
-      <div style="background:#e8f2ec;border-radius:8px;padding:10px 14px;margin-top:10px;display:flex;align-items:center;gap:10px">
+      <div style="background:var(--vh-panel-tan);border-radius:8px;padding:10px 14px;margin-top:10px;display:flex;align-items:center;gap:10px">
         <span style="font-size:18px">&#10003;</span>
         <div style="flex:1">
           <p style="font-size:12px;font-weight:700;color:#D0473E;margin:0">Image ready</p>
-          <p style="font-size:11px;color:#2d6b4a;margin:0">Approve to generate a production-ready HTML email using Claude AI vision</p>
+          <p style="font-size:11px;color:var(--vh-ink);margin:0">Approve to generate a production-ready HTML email using Claude AI vision</p>
         </div>
-        <button onclick="document.getElementById('imgUploadInput').click()" style="font-size:11px;padding:5px 10px;background:transparent;border:1px solid #2d6b4a;border-radius:5px;cursor:pointer;color:#2d6b4a">Replace</button>
+        <button onclick="document.getElementById('imgUploadInput').click()" style="font-size:11px;padding:5px 10px;background:transparent;border:1px solid var(--vh-ink);border-radius:5px;cursor:pointer;color:var(--vh-ink)">Replace</button>
       </div>
     </div>
     <div class="btn-row" style="margin-top:14px">
@@ -1197,7 +1197,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 <div id="analyzeStatus"></div>
 <div id="p5" style="display:none">
   <!-- Step 5 sticky navigation bar — clear back / forward / restart options -->
-  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid #ede5d8;padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
+  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
     <button class="btn btn-outline btn-sm" onclick="goBack(4)" style="white-space:nowrap">&larr; Back to Refine</button>
     <button class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Products</button>
     <button class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
@@ -1988,7 +1988,7 @@ function updateSelInfo(){
           priceHtml='<div style="font-size:11px;font-weight:700;color:#D0473E">'+curr+p.price+'</div>';
         }
       }
-      return '<div style="flex:0 0 170px;background:#fff;border:1.5px solid #ede5d8;border-radius:10px;overflow:hidden;position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 16px rgba(0,74,43,0.15)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'none\'" onclick="toggleProd('+CAT.indexOf(p)+')">'+(p.i?'<img src="'+p.i+'" alt="" style="width:170px;height:130px;object-fit:cover;display:block" loading="lazy" onerror="this.style.display=\'none\'">':'<div style="width:170px;height:130px;background:#FFFFFF"></div>')+'<div style="padding:10px 12px"><div style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;font-size:12.5px;font-weight:700;color:#D0473E;line-height:1.3;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.n.split(',')[0]+'</div>'+priceHtml+(p.subtitle?'<div style="font-size:9.5px;color:#888;line-height:1.3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.subtitle+'</div>':'')+'</div><div style="position:absolute;top:6px;right:6px;width:22px;height:22px;background:#c0392b;border-radius:50%;color:#fff;font-size:13px;line-height:22px;text-align:center;cursor:pointer;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.15)" title="Remove">&times;</div></div>';
+      return '<div style="flex:0 0 170px;background:#fff;border:1.5px solid var(--vh-panel-tan);border-radius:10px;overflow:hidden;position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 16px rgba(0,74,43,0.15)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'none\'" onclick="toggleProd('+CAT.indexOf(p)+')">'+(p.i?'<img src="'+p.i+'" alt="" style="width:170px;height:130px;object-fit:cover;display:block" loading="lazy" onerror="this.style.display=\'none\'">':'<div style="width:170px;height:130px;background:#FFFFFF"></div>')+'<div style="padding:10px 12px"><div style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;font-size:12.5px;font-weight:700;color:#D0473E;line-height:1.3;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.n.split(',')[0]+'</div>'+priceHtml+(p.subtitle?'<div style="font-size:9.5px;color:#888;line-height:1.3;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.subtitle+'</div>':'')+'</div><div style="position:absolute;top:6px;right:6px;width:22px;height:22px;background:#c0392b;border-radius:50%;color:#fff;font-size:13px;line-height:22px;text-align:center;cursor:pointer;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.15)" title="Remove">&times;</div></div>';
     }).join('');
   }
 }
@@ -2806,7 +2806,7 @@ function renderMarketTabs(){
       return '<button class="mkt-tab-btn'+(mkt===S.activeMarket?' on':'')+'" onclick="showMarketMailer(\''+mkt+'\')">'+(mktLabels[mkt]||mkt)+'</button>';
     }).join('')+'</div>';
   // Second row: per-market grid — Preview (HTML render) + View HTML (source) + Download
-  var dlRow='<div style="background:#f0faf5;border:1px solid #b7e3c9;border-radius:10px;padding:12px 14px;margin-bottom:8px">'
+  var dlRow='<div style="background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:10px;padding:12px 14px;margin-bottom:8px">'
     +'<div style="font-size:11px;font-weight:700;color:#D0473E;margin-bottom:10px;letter-spacing:0.05em">&#128230; All '+mkts.length+' Market Mailers Generated — Preview, View HTML or Download Each:</div>'
     +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
     +mkts.map(function(mkt){
@@ -3886,7 +3886,7 @@ function prodPriceBlockHTML(p,prompt,market){
 
 // HTML snippet for a benefit chip — inline below product name
 function prodBenefitHTML(p){
-  return '<span style="display:inline-block;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6A33D8;background:#FFFFFF;padding:3px 8px;border-radius:12px;margin:4px 0 2px;border:1px solid #f0e3c4">&#x2728; '+prodBenefit(p.n)+'</span>';
+  return '<span style="display:inline-block;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#6A33D8;background:#FFFFFF;padding:3px 8px;border-radius:12px;margin:4px 0 2px;border:1px solid var(--vh-panel-tan)">&#x2728; '+prodBenefit(p.n)+'</span>';
 }
 
 // VALUE SUMMARY ROW — shown in the hero/offer band so user sees the full deal at-a-glance
@@ -5130,13 +5130,13 @@ function renderContentPreview(){
   var h='';
 
   // ── SUBJECT LINE ──
-  h+='<div style="padding:16px 20px;border-bottom:1px solid #ede5d8;background:#FFFFFF">';
+  h+='<div style="padding:16px 20px;border-bottom:1px solid var(--vh-panel-tan);background:#FFFFFF">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:6px">SUBJECT LINE</div>';
   h+='<div style="font-size:14px;font-weight:700;color:#111111;line-height:1.4">KNICKGASM &ndash; '+(typeof hl==='object'?hl.join(' '):hl)+'</div>';
   h+='</div>';
 
   // ── PREHEADER ──
-  h+='<div style="padding:12px 20px;border-bottom:1px solid #ede5d8;background:#fff">';
+  h+='<div style="padding:12px 20px;border-bottom:1px solid var(--vh-panel-tan);background:#fff">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888;margin-bottom:4px">PREHEADER TEXT <span style="font-weight:400;color:#bbb">(hidden preview text in inbox)</span></div>';
   h+='<div style="font-size:12px;color:#555;line-height:1.5">'+sc.substring(0,120)+' &ndash; KNICKGASM premium Indian sneakers. '+(ot||cta)+'</div>';
   h+='</div>';
@@ -5147,21 +5147,21 @@ function renderContentPreview(){
   h+='</div>';
 
   // ── S2: BRAND HEADER ──
-  h+='<div style="background:#fff;padding:18px 20px;text-align:center;border-bottom:1px solid #ede5d8">';
+  h+='<div style="background:#fff;padding:18px 20px;text-align:center;border-bottom:1px solid var(--vh-panel-tan)">';
   h+='<div style="font-size:8px;font-weight:700;letter-spacing:0.36em;text-transform:uppercase;color:#6A33D8;margin-bottom:4px">EST. 2015 &middot; NEW DELHI, INDIA</div>';
   h+='<div style="font-family:Georgia,serif;font-size:28px;font-weight:bold;letter-spacing:0.2em;color:#D0473E">KNICKGASM&reg;</div>';
   h+='<div style="font-size:8px;font-weight:600;letter-spacing:0.28em;text-transform:uppercase;color:#888;margin-top:2px">PREMIUM INDIAN SNEAKERS &middot; DIRECT FROM SOURCE</div>';
   h+='</div>';
 
   // ── S3: TRUST BADGES ──
-  h+='<div style="background:#fff;padding:10px 20px;display:flex;justify-content:center;gap:16px;border-bottom:1px solid #ede5d8;flex-wrap:wrap">';
+  h+='<div style="background:#fff;padding:10px 20px;display:flex;justify-content:center;gap:16px;border-bottom:1px solid var(--vh-panel-tan);flex-wrap:wrap">';
   ['🌿 100% Pure Indian Sneaker','🤝 Ethically Sourced','🌱 Direct from Farms'].forEach(function(b){
     h+='<span style="font-size:9px;font-weight:600;color:#888;letter-spacing:0.05em;text-transform:uppercase">'+b+'</span>';
   });
   h+='</div>';
 
   // ── S4: HERO SECTION ──
-  h+='<div style="border-bottom:1px solid #ede5d8">';
+  h+='<div style="border-bottom:1px solid var(--vh-panel-tan)">';
   h+='<div style="padding:14px 20px 8px;background:#FFFFFF">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:6px">HERO SECTION &middot; VARIANT '+variant+'</div>';
   h+='</div>';
@@ -5172,7 +5172,7 @@ function renderContentPreview(){
     h+='<div style="font-family:Georgia,serif;font-size:26px;font-weight:bold;color:#D0473E;line-height:1.2;margin-bottom:4px">'+(typeof hl==='object'?hl[0]:hl)+'</div>';
     if(typeof hl==='object'&&hl[1]) h+='<div style="font-family:Georgia,serif;font-size:19px;font-weight:bold;color:#6A33D8;line-height:1.2;margin-bottom:12px">'+hl[1]+'</div>';
     h+='<div style="width:40px;height:2px;background:#6A33D8;margin:14px auto 16px"></div>';
-    h+='<div style="font-size:13px;color:#4a4540;line-height:1.7;margin-bottom:20px;max-width:440px;margin-left:auto;margin-right:auto">'+sc+'</div>';
+    h+='<div style="font-size:13px;color:var(--vh-ink);line-height:1.7;margin-bottom:20px;max-width:440px;margin-left:auto;margin-right:auto">'+sc+'</div>';
     h+='<div style="display:inline-block;background:#6A33D8;color:#fff;padding:11px 26px;font-size:12px;font-weight:700;letter-spacing:0.1em;border-radius:4px">'+cta+'</div>';
     h+='</div>';
   } else {
@@ -5188,28 +5188,28 @@ function renderContentPreview(){
     h+='<div style="font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:8px">'+(secTitle||'A STORY IN EVERY STEEP')+'</div>';
     h+='<div style="font-family:Georgia,serif;font-size:24px;color:#FFFFFF;line-height:1.2;margin-bottom:4px">'+(typeof hl==='object'?hl[0]:hl)+'</div>';
     if(typeof hl==='object'&&hl[1]) h+='<div style="font-family:Georgia,serif;font-size:18px;color:#6A33D8;line-height:1.2;margin-bottom:12px">'+hl[1]+'</div>';
-    h+='<div style="font-size:13px;color:#c9bfb0;line-height:1.6;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">'+sc+'</div>';
+    h+='<div style="font-size:13px;color:var(--vh-lava);line-height:1.6;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">'+sc+'</div>';
     h+='<div style="display:inline-block;border:1px solid #FFFFFF;color:#FFFFFF;padding:11px 28px;font-size:12px;font-weight:700;letter-spacing:0.1em;border-radius:3px">'+cta+'</div>';
     h+='</div>';
   }
   h+='</div>';
 
   // ── S5: BENEFIT STRIP ──
-  h+='<div style="padding:16px 20px;background:'+(variant==='B'?'#D0473E':'#fff')+';display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;border-bottom:1px solid #ede5d8">';
+  h+='<div style="padding:16px 20px;background:'+(variant==='B'?'#D0473E':'#fff')+';display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--vh-panel-tan)">';
   feats.forEach(function(f){
-    h+='<div style="text-align:center;padding:4px 8px;font-size:11px;font-weight:600;color:'+(variant==='B'?'#c9bfb0':'#6b6255')+'">'+f+'</div>';
+    h+='<div style="text-align:center;padding:4px 8px;font-size:11px;font-weight:600;color:'+(variant==='B'?'var(--vh-lava)':'var(--vh-ink)')+'">'+f+'</div>';
   });
   h+='</div>';
 
   // ── S6: PRODUCT SECTION ──
-  h+='<div style="padding:20px;background:#fff;border-bottom:1px solid #ede5d8">';
+  h+='<div style="padding:20px;background:#fff;border-bottom:1px solid var(--vh-panel-tan)">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:6px">PRODUCT SECTION</div>';
   h+='<div style="font-family:Georgia,serif;font-size:18px;font-weight:bold;color:#D0473E;text-align:center;margin-bottom:16px">'+prodSecTitle+'</div>';
   // Product cards grid
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">';
   prods.forEach(function(prod,idx){
     var isHero=idx===0;
-    h+='<div style="border:1.5px solid '+(isHero?'#6A33D8':'#ede5d8')+';border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.05)">';
+    h+='<div style="border:1.5px solid '+(isHero?'#6A33D8':'var(--vh-panel-tan)')+';border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.05)">';
     // Product image
     if(prod.i){
       h+='<img src="'+prod.i+'" alt="'+prod.n.split(',')[0]+'" style="width:100%;height:140px;object-fit:cover;display:block">';
@@ -5246,7 +5246,7 @@ function renderContentPreview(){
   h+='</div>';
 
   // ── S7: SOCIAL PROOF ──
-  h+='<div style="padding:20px;background:'+(variant==='B'?'#D0473E':'#FFFFFF')+';text-align:center;border-bottom:1px solid #ede5d8">';
+  h+='<div style="padding:20px;background:'+(variant==='B'?'#D0473E':'#FFFFFF')+';text-align:center;border-bottom:1px solid var(--vh-panel-tan)">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:'+(variant==='B'?'#FFFFFF':'#888')+';margin-bottom:8px">SOCIAL PROOF</div>';
   h+='<div style="color:#6A33D8;font-size:14px;margin-bottom:6px">★★★★★</div>';
   // Pick testimonial based on type + market-specific reviewer name
@@ -5268,16 +5268,16 @@ function renderContentPreview(){
 
   // ── S9: OFFER BAR ──
   if(ot||oc){
-    h+='<div style="background:#6A33D8;padding:20px;text-align:center;border-bottom:1px solid #ede5d8">';
+    h+='<div style="background:#6A33D8;padding:20px;text-align:center;border-bottom:1px solid var(--vh-panel-tan)">';
     h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:8px">OFFER BAR</div>';
     h+='<div style="font-family:Georgia,serif;font-size:18px;font-weight:bold;color:#fff;margin-bottom:6px">'+ot+'</div>';
-    if(oc) h+='<div style="font-size:12px;color:#fff5eb;margin-bottom:12px">Use code <strong style="letter-spacing:0.1em">'+oc+'</strong> at checkout.</div>';
+    if(oc) h+='<div style="font-size:12px;color:var(--vh-panel-tan);margin-bottom:12px">Use code <strong style="letter-spacing:0.1em">'+oc+'</strong> at checkout.</div>';
     h+='<div style="display:inline-block;background:#D0473E;color:#FFFFFF;padding:10px 24px;font-size:12px;font-weight:700;letter-spacing:0.08em;border-radius:4px">'+(oct||'Shop the Collection')+'</div>';
     h+='</div>';
   }
 
   // ── S10: FINAL CTA ──
-  h+='<div style="padding:24px 20px;background:'+(variant==='B'?'#D0473E':'#FFFFFF')+';text-align:center;border-bottom:1px solid #ede5d8">';
+  h+='<div style="padding:24px 20px;background:'+(variant==='B'?'#D0473E':'#FFFFFF')+';text-align:center;border-bottom:1px solid var(--vh-panel-tan)">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:'+(variant==='B'?'#FFFFFF':'#888')+';margin-bottom:8px">FINAL CTA</div>';
   h+='<div style="font-family:Georgia,serif;font-size:20px;font-weight:bold;color:'+(variant==='B'?'#FFFFFF':'#D0473E')+';margin-bottom:12px">'+(variant==='B'?'Begin Your Ritual':'Shop KNICKGASM Today')+'</div>';
   h+='<div style="display:inline-block;background:'+(variant==='B'?'transparent':'#6A33D8')+';color:'+(variant==='B'?'#FFFFFF':'#fff')+';border:'+(variant==='B'?'1px solid #FFFFFF':'none')+';padding:13px 32px;font-size:13px;font-weight:700;letter-spacing:0.08em;border-radius:4px">Explore the Collection &rarr;</div>';
@@ -5293,7 +5293,7 @@ function renderContentPreview(){
   h+='</div>';
 
   // ── CONTENT AUDIT SUMMARY ──
-  h+='<div style="padding:16px 20px;background:#f0ebe0;border-top:2px solid #ede5d8">';
+  h+='<div style="padding:16px 20px;background:var(--vh-panel-tan);border-top:2px solid var(--vh-panel-tan)">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:10px">CONTENT AUDIT</div>';
   var checks=[];
   checks.push({ok:!!hl, label:'Headline', val:(typeof hl==='object'?hl[0]:hl)||'MISSING'});
@@ -5307,7 +5307,7 @@ function renderContentPreview(){
   checks.push({ok:true, label:'Variant', val:(variant==='A'?'V1 — Complete Text (no imagery)':'V2 — Text + Visual')});
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
   checks.forEach(function(c){
-    h+='<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:#fff;border-radius:6px;border:1px solid #ede5d8">';
+    h+='<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:#fff;border-radius:6px;border:1px solid var(--vh-panel-tan)">';
     h+='<span style="font-size:12px">'+(c.ok?'✅':'⚠️')+'</span>';
     h+='<div><div style="font-size:9px;font-weight:700;color:#888;letter-spacing:0.06em;text-transform:uppercase">'+c.label+'</div>';
     h+='<div style="font-size:11px;color:#111111;line-height:1.3">'+c.val+'</div></div>';
@@ -5511,7 +5511,7 @@ async function approveWithUpload(){
   // Pre-pick the primary variant suggested by the strategy (A=editorial / B=story)
   S.activeVariant=S.strategy.primaryVariant||'A';
   const fr=document.getElementById('emailFr');
-  const loadingHtml='<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial;background:#f0ebe0"><div style="text-align:center"><div style="width:40px;height:40px;border:3px solid #D0473E;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style><p style="color:#D0473E;font-weight:600">Building two strategic variants of your mailer…</p><p style="color:#666;font-size:12px;margin-top:8px">V1: Complete Text · V2: Text + Visual · '+mkts.length+' market'+(mkts.length>1?'s':'')+'</p></div></body></html>';
+  const loadingHtml='<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial;background:var(--vh-panel-tan)"><div style="text-align:center"><div style="width:40px;height:40px;border:3px solid #D0473E;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style><p style="color:#D0473E;font-weight:600">Building two strategic variants of your mailer…</p><p style="color:#666;font-size:12px;margin-top:8px">V1: Complete Text · V2: Text + Visual · '+mkts.length+' market'+(mkts.length>1?'s':'')+'</p></div></body></html>';
   if(fr)fr.srcdoc=loadingHtml;
   var rawEl=document.getElementById('htmlRaw');
   if(rawEl)rawEl.textContent='';
@@ -5713,7 +5713,7 @@ function renderCanvasFilterPanel(){
   var mktLabels={US:'🇺🇸 United States',UK:'🇬🇧 United Kingdom',IN:'🇮🇳 India',Global:'🌍 Global',ME:'🇦🇪 Middle East',AU:'🇦🇺 Australia',EU:'🇪🇺 Europe'};
   var variantMeta={A:{name:'V1 · Complete Text',accent:'#D0473E',sub:'Pure copy · no imagery · stands alone'},B:{name:'V2 · Text + Visual',accent:'#6A33D8',sub:'Copy + imagery/GIF/video'}};
   box.innerHTML=
-    '<div style="border:1.5px solid #ede5d8;border-radius:12px;overflow:hidden;background:#fff">'+
+    '<div style="border:1.5px solid var(--vh-panel-tan);border-radius:12px;overflow:hidden;background:#fff">'+
       '<div style="background:linear-gradient(135deg,#D0473E,#D0473E);padding:12px 16px;display:flex;align-items:center;gap:10px;color:#FFFFFF;flex-wrap:wrap">'+
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF">Region &amp; Variant Filter</span>'+
         '<span style="font-size:10.5px;color:#fff;font-weight:600">'+(mktLabels[aMkt]||aMkt)+' · Variant '+aVar+' · '+variantMeta[aVar].name+'</span>'+
@@ -5721,23 +5721,23 @@ function renderCanvasFilterPanel(){
         '<span style="font-size:9px;color:#FFFFFF;font-style:italic">Applies to: 👁 Canvas · 🌟 Prompts · 📤 Upload</span>'+
       '</div>'+
       // Region tabs
-      (mkts.length>1?'<div style="padding:12px 16px;border-bottom:1px solid #ede5d8;background:#fafaf6">'+
+      (mkts.length>1?'<div style="padding:12px 16px;border-bottom:1px solid var(--vh-panel-tan);background:var(--vh-panel-tan)">'+
         '<div style="font-size:8.5px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888;margin-bottom:8px">1. Region</div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           mkts.map(function(m){
             var act=m===aMkt;
             var short={US:'🇺🇸 US',UK:'🇬🇧 UK',IN:'🇮🇳 IN',Global:'🌍 Global',ME:'🇦🇪 ME',AU:'🇦🇺 AU',EU:'🇪🇺 EU'}[m]||m;
-            return '<button onclick="selectCanvasCell(\''+m+'\',\''+aVar+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'#ede5d8')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+short+'</button>';
+            return '<button onclick="selectCanvasCell(\''+m+'\',\''+aVar+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+short+'</button>';
           }).join('')+
         '</div></div>':'')+
       // Variant tabs
-      '<div style="padding:12px 16px;background:#fafaf6">'+
+      '<div style="padding:12px 16px;background:var(--vh-panel-tan)">'+
         '<div style="font-size:8.5px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888;margin-bottom:8px">'+(mkts.length>1?'2. ':'')+'Variant for '+(mktLabels[aMkt]||aMkt)+'</div>'+
         '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
           ['A','B'].map(function(v){
             var meta=variantMeta[v];
             var act=v===aVar;
-            return '<button onclick="selectCanvasCell(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:9px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'#ede5d8')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;flex:1;min-width:200px">'+
+            return '<button onclick="selectCanvasCell(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:9px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;flex:1;min-width:200px">'+
               '<div style="font-size:11px;font-weight:700;letter-spacing:0.04em;margin-bottom:2px">Variant '+v+' · '+meta.name+'</div>'+
               '<div style="font-size:9.5px;font-weight:400;line-height:1.4;'+(act?'opacity:0.9':'color:#888')+'">'+meta.sub+'</div>'+
             '</button>';
@@ -5911,7 +5911,7 @@ function renderRegionVariantPanel(config){
     return '<button onclick="'+a.onclick+'" style="'+(a.style||'padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em')+'">'+a.label+'</button>';
   }).join('');
   box.innerHTML=
-    '<div style="border:1.5px solid #ede5d8;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
+    '<div style="border:1.5px solid var(--vh-panel-tan);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
       // ── HEADER ──
       '<div style="background:linear-gradient(135deg,#D0473E,#D0473E);padding:14px 18px;display:flex;align-items:center;gap:10px;color:#FFFFFF;flex-wrap:wrap">'+
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF">'+(config.title||'Output')+'</span>'+
@@ -5920,32 +5920,32 @@ function renderRegionVariantPanel(config){
         extraTopHTML+
       '</div>'+
       // ── 1. REGION TABS ──
-      (config.regions.length>1?'<div style="background:#fafaf6;padding:12px 16px;border-bottom:1px solid #ede5d8">'+
+      (config.regions.length>1?'<div style="background:var(--vh-panel-tan);padding:12px 16px;border-bottom:1px solid var(--vh-panel-tan)">'+
         '<div style="font-size:8.5px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888;margin-bottom:8px">1. Region</div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           config.regions.map(function(m){
             var act=m===aMkt;
-            return '<button onclick="'+config.onSelectRegion+'(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'#ede5d8')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
+            return '<button onclick="'+config.onSelectRegion+'(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
           }).join('')+
         '</div>'+
       '</div>':'')+
       // ── 2. VARIANT TABS ──
-      '<div style="background:#fafaf6;padding:12px 16px;border-bottom:1px solid #ede5d8">'+
+      '<div style="background:var(--vh-panel-tan);padding:12px 16px;border-bottom:1px solid var(--vh-panel-tan)">'+
         '<div style="font-size:8.5px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888;margin-bottom:8px">'+(config.regions.length>1?'2.':'1.')+' Variant for '+(mktLabels[aMkt]||aMkt)+'</div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           ['A','B'].map(function(v){
             var meta=variantMeta[v];
             var act=v===aVar;
-            return '<button onclick="'+config.onSelectVariant+'(\''+v+'\')" style="padding:7px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'#ede5d8')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">Variant '+v+' · '+meta.name+'</button>';
+            return '<button onclick="'+config.onSelectVariant+'(\''+v+'\')" style="padding:7px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">Variant '+v+' · '+meta.name+'</button>';
           }).join('')+
         '</div>'+
       '</div>'+
       // ── 3. ACTIVE CONTENT (image / iframe / etc) ──
-      '<div style="padding:18px;background:#f0ebe0;display:flex;justify-content:center;min-height:200px">'+
+      '<div style="padding:18px;background:var(--vh-panel-tan);display:flex;justify-content:center;min-height:200px">'+
         content+
       '</div>'+
       // ── 4. TWO CTAS: PREVIEW + DOWNLOAD ──
-      '<div style="background:#fff;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #ede5d8;align-items:center">'+
+      '<div style="background:#fff;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--vh-panel-tan);align-items:center">'+
         '<span style="font-size:10px;color:#888;font-weight:600;letter-spacing:0.06em;text-transform:uppercase">Showing: '+aMkt+' · Variant '+aVar+'</span>'+
         '<span style="flex:1"></span>'+
         '<button onclick="'+config.onPreview+'(\''+aMkt+'\',\''+aVar+'\')" style="padding:9px 18px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em">&#128065; Preview</button>'+
@@ -5973,7 +5973,7 @@ function renderGeneratedImagesMatrix(){
     '<span style="font-size:9px;font-weight:700;color:#fff;background:#6A33D8;padding:3px 8px;border-radius:12px;letter-spacing:0.06em">REGEN ×'+S.feedbackHistory.length+'</span>':'';
   var ovId='imgLoad_'+aMkt;
   box.innerHTML=
-    '<div style="border:1.5px solid #ede5d8;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
+    '<div style="border:1.5px solid var(--vh-panel-tan);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
       // Header
       '<div style="background:linear-gradient(135deg,#D0473E,#D0473E);padding:14px 18px;display:flex;align-items:center;gap:10px;color:#FFFFFF;flex-wrap:wrap">'+
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF">Auto-Generated Hero Image</span>'+
@@ -5984,18 +5984,18 @@ function renderGeneratedImagesMatrix(){
         '<button onclick="downloadGeneratedImage(\''+aMkt+'\',\'A\')" style="padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download</button>'+
       '</div>'+
       // Region tabs only (no variant tabs)
-      (mkts.length>1?'<div style="background:#fafaf6;padding:12px 16px;border-bottom:1px solid #ede5d8">'+
+      (mkts.length>1?'<div style="background:var(--vh-panel-tan);padding:12px 16px;border-bottom:1px solid var(--vh-panel-tan)">'+
         '<div style="font-size:8.5px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888;margin-bottom:8px">Region</div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           mkts.map(function(m){
             var act=m===aMkt;
-            return '<button onclick="__selectHeroRegion(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'#ede5d8')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
+            return '<button onclick="__selectHeroRegion(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
           }).join('')+
         '</div>'+
       '</div>':'')+
       // Image display
-      '<div style="padding:18px;background:#f0ebe0;display:flex;justify-content:center">'+
-        '<div style="max-width:600px;width:100%;border:1px solid #e8e3da;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.08);position:relative">'+
+      '<div style="padding:18px;background:var(--vh-panel-tan);display:flex;justify-content:center">'+
+        '<div style="max-width:600px;width:100%;border:1px solid var(--vh-panel-tan);border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.08);position:relative">'+
           '<div id="'+ovId+'" style="position:absolute;inset:0;background:rgba(248,244,238,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:2">'+
             '<div style="width:36px;height:36px;border:3px solid #D0473E;border-top-color:transparent;border-radius:50%;animation:spinAnim .9s linear infinite"></div>'+
             '<div style="font-size:11px;font-weight:700;color:#D0473E;letter-spacing:0.06em">Generating '+aMkt+'…</div>'+
@@ -6008,7 +6008,7 @@ function renderGeneratedImagesMatrix(){
             'onerror="(function(){var o=document.getElementById(\''+ovId+'\');if(o)o.innerHTML=\'<div style=&quot;font-size:11px;color:#b91c1c;padding:20px;text-align:center&quot;>Image generation failed.</div>\';})()">'+
         '</div>'+
       '</div>'+
-      '<div style="background:#fff;padding:10px 16px;border-top:1px solid #ede5d8;font-size:10px;color:#888;font-style:italic">Showing: '+(mktLabels[aMkt]||aMkt)+' · This is a single illustrative hero render. Variant A vs B layout choice applies to the canvas mailer below.</div>'+
+      '<div style="background:#fff;padding:10px 16px;border-top:1px solid var(--vh-panel-tan);font-size:10px;color:#888;font-style:italic">Showing: '+(mktLabels[aMkt]||aMkt)+' · This is a single illustrative hero render. Variant A vs B layout choice applies to the canvas mailer below.</div>'+
     '</div>';
 }
 // Region tab handler (variant always 'A' for the hero render)
@@ -6049,9 +6049,9 @@ function _deviceToggleHTML(){
   var d=window._mailerDevice||'desktop';
   function btn(key,label,icon){
     var on=d===key;
-    return '<button aria-label="Preview at '+label+' size" data-device="'+key+'" onclick="setMailerDevice(\''+key+'\')" class="vhd-device-btn" style="font-size:10.5px;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(on?'#D0473E':'#ede5d8')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+'<span>'+label+'</span></button>';
+    return '<button aria-label="Preview at '+label+' size" data-device="'+key+'" onclick="setMailerDevice(\''+key+'\')" class="vhd-device-btn" style="font-size:10.5px;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+'<span>'+label+'</span></button>';
   }
-  return '<div role="group" aria-label="Device preview size" style="display:flex;gap:6px;align-items:center;justify-content:center;padding:10px 14px;background:#fafaf6;border-bottom:1px solid #ede5d8">'+
+  return '<div role="group" aria-label="Device preview size" style="display:flex;gap:6px;align-items:center;justify-content:center;padding:10px 14px;background:var(--vh-panel-tan);border-bottom:1px solid var(--vh-panel-tan)">'+
     '<span style="font-size:9px;font-weight:700;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-right:6px">View as</span>'+
     btn('mobile','Mobile','📱')+
     btn('tablet','Tablet','📲')+
@@ -6068,7 +6068,7 @@ function renderStrategicBrief(){
   var k=d.expected_impact||{};
   var seg=d.segment||{};
   var mktFlag={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
-  var html='<div style="border:2px solid #d6cdb8;border-radius:14px;background:#fff;box-shadow:0 4px 20px rgba(0,74,43,0.06);overflow:hidden">'+
+  var html='<div style="border:2px solid var(--vh-lava);border-radius:14px;background:#fff;box-shadow:0 4px 20px rgba(0,74,43,0.06);overflow:hidden">'+
     // Header
     '<div style="background:linear-gradient(135deg,#D0473E 0%,#D0473E 100%);padding:14px 20px;color:#FFFFFF">'+
       '<div style="font-size:9px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:#6A33D8;margin-bottom:4px">&#127919; Strategic Brief</div>'+
@@ -6078,25 +6078,25 @@ function renderStrategicBrief(){
     // Body grid
     '<div style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
       // 1. Target segment
-      '<div style="grid-column:1 / -1;background:#f9faf6;border:1px solid #ede5d8;border-radius:10px;padding:14px 16px">'+
+      '<div style="grid-column:1 / -1;background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:10px;padding:14px 16px">'+
         '<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:6px">&#128100; Target Segment</div>'+
         '<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;font-weight:600;color:#D0473E;line-height:1.3;margin-bottom:4px">'+(seg.primary||'')+'</div>'+
         (seg.sub?'<div style="font-size:11.5px;color:#444;margin-bottom:6px">'+seg.sub+'</div>':'')+
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">'+
-          (seg.size?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#0a3d24;color:#D0473E;border-radius:10px;border:1px solid #b7e3c9">Audience: '+seg.size+'</span>':'')+
-          '<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#FFFFFF;color:#6A33D8;border-radius:10px;border:1px solid #ecd9a8">Send: '+(d.send_window||'')+'</span>'+
+          (seg.size?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-ink);color:#D0473E;border-radius:10px;border:1px solid var(--vh-panel-tan)">Audience: '+seg.size+'</span>':'')+
+          '<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#FFFFFF;color:#6A33D8;border-radius:10px;border:1px solid var(--vh-panel-tan)">Send: '+(d.send_window||'')+'</span>'+
           (d.primary_market?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#fff;color:#374151;border-radius:10px;border:1px solid #d1d5db">'+(mktFlag[d.primary_market]||'')+' '+d.primary_market+'</span>':'')+
           (d.layout_variant?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#fff;color:#374151;border-radius:10px;border:1px solid #d1d5db">Layout '+d.layout_variant+'</span>':'')+
         '</div>'+
         (seg.rationale?'<div style="font-size:11.5px;color:#555;line-height:1.55;margin-top:6px;font-style:italic">'+seg.rationale+'</div>':'')+
       '</div>'+
       // 2. Intent
-      '<div style="background:#f9faf6;border:1px solid #ede5d8;border-radius:10px;padding:14px 16px">'+
+      '<div style="background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:10px;padding:14px 16px">'+
         '<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:6px">&#127919; Campaign Intent</div>'+
         '<div style="font-size:13px;color:#111111;line-height:1.55;font-weight:500">'+(d.intent||'')+'</div>'+
       '</div>'+
       // 3. Expected impact KPIs
-      '<div style="background:#f9faf6;border:1px solid #ede5d8;border-radius:10px;padding:14px 16px">'+
+      '<div style="background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:10px;padding:14px 16px">'+
         '<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:8px">&#128202; Expected Impact</div>'+
         '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px 12px;font-size:11px;color:#374151;line-height:1.5">'+
           '<div><span style="font-weight:700;color:#D0473E">Open rate:</span> '+(k.open||'')+'</div>'+
@@ -6105,10 +6105,10 @@ function renderStrategicBrief(){
           '<div><span style="font-weight:700;color:#D0473E">AOV:</span> '+(k.aov||'')+'</div>'+
           '<div style="grid-column:1 / -1"><span style="font-weight:700;color:#6A33D8">Revenue / send:</span> '+(k.rps||'')+'</div>'+
         '</div>'+
-        (k.notes?'<div style="font-size:11px;color:#666;font-style:italic;line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px dashed #e5e0d4">'+k.notes+'</div>':'')+
+        (k.notes?'<div style="font-size:11px;color:#666;font-style:italic;line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px dashed var(--vh-panel-tan)">'+k.notes+'</div>':'')+
       '</div>'+
       // 4. Justification
-      '<div style="grid-column:1 / -1;background:linear-gradient(135deg,#FFFFFF 0%,#fff 100%);border:1px solid #ecd9a8;border-radius:10px;padding:14px 16px">'+
+      '<div style="grid-column:1 / -1;background:linear-gradient(135deg,#FFFFFF 0%,#fff 100%);border:1px solid var(--vh-panel-tan);border-radius:10px;padding:14px 16px">'+
         '<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;margin-bottom:6px">&#9997; Justification &middot; Why these choices</div>'+
         '<div style="font-size:12px;color:#111111;line-height:1.7">'+(d.justification||'')+'</div>'+
       '</div>'+
@@ -6139,7 +6139,7 @@ function renderStep5UnifiedPanel(){
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+
       mkts.map(function(m){
         var on=m===activeMkt;
-        return '<button onclick="__step5SelectRegion(\''+m+'\')" style="padding:7px 14px;background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';border:1.5px solid '+(on?'#D0473E':'#ede5d8')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktFlags[m]||'')+' '+(mktNames[m]||m)+'</button>';
+        return '<button onclick="__step5SelectRegion(\''+m+'\')" style="padding:7px 14px;background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktFlags[m]||'')+' '+(mktNames[m]||m)+'</button>';
       }).join('')+
     '</div>';
   // ── Device toggles (shared across both variants) ──
@@ -6147,11 +6147,11 @@ function renderStep5UnifiedPanel(){
     var on=d===device;
     var icon={mobile:'📱',tablet:'🟦',desktop:'🖥️'}[d];
     var lbl={mobile:'Mobile · 360',tablet:'Tablet · 600',desktop:'Desktop · 680'}[d];
-    return '<button onclick="setMailerDevice(\''+d+'\')" style="padding:6px 14px;border-radius:6px;border:1.5px solid '+(on?'#D0473E':'#ede5d8')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+' <span>'+lbl+'</span></button>';
+    return '<button onclick="setMailerDevice(\''+d+'\')" style="padding:6px 14px;border-radius:6px;border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+' <span>'+lbl+'</span></button>';
   }).join('');
   // ── Build the side-by-side layout ──
   var html =
-    '<div style="background:#fff;border:1px solid #ede5d8;border-radius:12px;padding:18px 18px 22px;box-shadow:0 2px 12px rgba(0,74,43,0.05)">'+
+    '<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:12px;padding:18px 18px 22px;box-shadow:0 2px 12px rgba(0,74,43,0.05)">'+
       // Top bar: title + device toggles + global actions
       '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">'+
         '<div>'+
@@ -6166,8 +6166,8 @@ function renderStep5UnifiedPanel(){
       // Side-by-side variants
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">'+
         // VARIANT A
-        '<div style="display:flex;flex-direction:column;background:#FFFFFF;border-radius:10px;border:1.5px solid #ede5d8;overflow:hidden">'+
-          '<div style="background:linear-gradient(180deg,#D0473E,#003d23);color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+        '<div style="display:flex;flex-direction:column;background:#FFFFFF;border-radius:10px;border:1.5px solid var(--vh-panel-tan);overflow:hidden">'+
+          '<div style="background:linear-gradient(180deg,#D0473E,var(--vh-ink));color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
             '<span style="font-family:Montserrat,Georgia,serif;font-size:13px;font-weight:700;letter-spacing:0.06em">V1</span>'+
             '<span style="font-size:9.5px;color:#6A33D8;font-weight:700;letter-spacing:0.16em;text-transform:uppercase">Complete Text · No imagery</span>'+
             '<span style="flex:1"></span>'+
@@ -6179,7 +6179,7 @@ function renderStep5UnifiedPanel(){
           '</div>'+
         '</div>'+
         // VARIANT B
-        '<div style="display:flex;flex-direction:column;background:#FFFFFF;border-radius:10px;border:1.5px solid #ede5d8;overflow:hidden">'+
+        '<div style="display:flex;flex-direction:column;background:#FFFFFF;border-radius:10px;border:1.5px solid var(--vh-panel-tan);overflow:hidden">'+
           '<div style="background:linear-gradient(180deg,#111111,#2a2a2a);color:#FFFFFF;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
             '<span style="font-family:Montserrat,Georgia,serif;font-size:13px;font-weight:700;letter-spacing:0.06em">V2</span>'+
             '<span style="font-size:9.5px;color:#6A33D8;font-weight:700;letter-spacing:0.16em;text-transform:uppercase">Text + Visual</span>'+
@@ -6226,7 +6226,7 @@ function _wrapPreviewWithNav(mailerHtml, mkt, variant){
   var variantLabel = variant==='B' ? 'V2 · TEXT + VISUAL' : (variant==='A' ? 'V1 · COMPLETE TEXT' : 'PREVIEW');
   var safeHtml = String(mailerHtml||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   return '<!DOCTYPE html><html><head><title>KNICKGASM® '+variantLabel+' — '+(mktNames[mkt]||mkt)+'</title>'+
-    '<style>body{margin:0;padding:0;background:#f0ebe0;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:flex;flex-direction:column;height:100vh}'+
+    '<style>body{margin:0;padding:0;background:var(--vh-panel-tan);font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:flex;flex-direction:column;height:100vh}'+
     '.navbar{background:#111111;color:#FFFFFF;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}'+
     '.navbar button{background:transparent;color:#FFFFFF;border:1px solid rgba(251,245,234,0.25);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em}'+
     '.navbar button:hover{background:rgba(251,245,234,0.08);border-color:#6A33D8}'+
@@ -6263,7 +6263,7 @@ function _legacyImagesGrid_unused(){
     '<span style="font-size:9px;font-weight:700;color:#fff;background:#6A33D8;padding:3px 8px;border-radius:12px;letter-spacing:0.06em">REGEN ×'+S.feedbackHistory.length+'</span>':'';
   var totalCells=mkts.length*2;
   var html=
-    '<div style="border:1.5px solid #ede5d8;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
+    '<div style="border:1.5px solid var(--vh-panel-tan);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
       // Header
       '<div style="background:linear-gradient(135deg,#D0473E,#D0473E);padding:14px 18px;display:flex;align-items:center;gap:10px;color:#FFFFFF;flex-wrap:wrap">'+
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF">Auto-Generated Hero Images</span>'+
@@ -6274,16 +6274,16 @@ function _legacyImagesGrid_unused(){
         '<button onclick="downloadAllImages()" style="padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download All</button>'+
       '</div>'+
       // Each region as its own card with both variants side-by-side
-      '<div style="padding:14px;background:#fafaf6;display:grid;gap:14px">'+
+      '<div style="padding:14px;background:var(--vh-panel-tan);display:grid;gap:14px">'+
         mkts.map(function(mkt){
-          return '<div style="background:#fff;border:1px solid #ede5d8;border-radius:10px;overflow:hidden">'+
+          return '<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:10px;overflow:hidden">'+
             // Region header
-            '<div style="background:#f8f6f2;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ede5d8">'+
+            '<div style="background:var(--vh-panel-tan);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--vh-panel-tan)">'+
               '<span style="font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">'+(mktLabels[mkt]||mkt)+'</span>'+
               '<span style="font-size:9px;color:#bbb;font-weight:600">·</span>'+
               '<span style="font-size:9px;color:#888;font-weight:600;letter-spacing:0.06em;text-transform:uppercase">2 variants</span>'+
               '<span style="flex:1"></span>'+
-              '<span style="font-size:9.5px;color:'+(getRegionalCatalog?getRegionalCatalog(mkt).currencySymbol==='£'?'#7c2d12':'#888':'#888')+';font-weight:600">'+(getRegionalCatalog?getRegionalCatalog(mkt).currency:'')+'</span>'+
+              '<span style="font-size:9.5px;color:'+(getRegionalCatalog?getRegionalCatalog(mkt).currencySymbol==='£'?'var(--vh-ink)':'#888':'#888')+';font-weight:600">'+(getRegionalCatalog?getRegionalCatalog(mkt).currency:'')+'</span>'+
             '</div>'+
             // Two variant images side by side
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
@@ -6291,14 +6291,14 @@ function _legacyImagesGrid_unused(){
                 var meta=variantMeta[v];
                 var imgUrl=S.generatedImages[mkt][v];
                 var ovId='imgLoad_'+mkt+'_'+v;
-                return '<div style="border-right:'+(vi===0?'1px solid #ede5d8':'0')+';display:flex;flex-direction:column;background:'+meta.bg+'">'+
+                return '<div style="border-right:'+(vi===0?'1px solid var(--vh-panel-tan)':'0')+';display:flex;flex-direction:column;background:'+meta.bg+'">'+
                   // Variant header
                   '<div style="padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid '+meta.accent+'1f">'+
                     '<span style="font-size:9px;font-weight:800;color:#fff;background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">'+v+'</span>'+
                     '<span style="font-size:11px;font-weight:700;color:'+meta.accent+'">'+meta.name+'</span>'+
                   '</div>'+
                   // Image (with loading overlay)
-                  '<div style="position:relative;background:#f0ebe0;padding:8px;flex:1;display:flex;align-items:flex-start;justify-content:center;min-height:200px">'+
+                  '<div style="position:relative;background:var(--vh-panel-tan);padding:8px;flex:1;display:flex;align-items:flex-start;justify-content:center;min-height:200px">'+
                     '<div id="'+ovId+'" style="position:absolute;inset:8px;background:rgba(248,244,238,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:2;border-radius:6px">'+
                       '<div style="width:28px;height:28px;border:3px solid '+meta.accent+';border-top-color:transparent;border-radius:50%;animation:spinAnim .9s linear infinite"></div>'+
                       '<div style="font-size:10px;font-weight:700;color:'+meta.accent+';letter-spacing:0.06em">Generating…</div>'+
@@ -6310,7 +6310,7 @@ function _legacyImagesGrid_unused(){
                       'onerror="(function(){var o=document.getElementById(\''+ovId+'\');if(o)o.innerHTML=\'<div style=&quot;font-size:10px;color:#b91c1c;padding:14px;text-align:center&quot;>Generation failed.<br>Try Regenerate All.</div>\';})()">'+
                   '</div>'+
                   // Per-cell action row
-                  '<div style="padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:#fff;border-top:1px solid #ede5d8">'+
+                  '<div style="padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:#fff;border-top:1px solid var(--vh-panel-tan)">'+
                     '<button onclick="window.open(\''+imgUrl+'\',\'_blank\')" title="Open full-size" style="padding:6px 4px;background:'+meta.accent+';color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#128065;</button>'+
                     '<button onclick="downloadGeneratedImage(\''+mkt+'\',\''+v+'\')" title="Download PNG" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#11015;</button>'+
                     '<button onclick="regenerateImageVariant(\''+mkt+'\',\''+v+'\')" title="New seed" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#8635;</button>'+
@@ -6323,7 +6323,7 @@ function _legacyImagesGrid_unused(){
         }).join('')+
       '</div>'+
       // Footer hint
-      '<div style="background:#fff;padding:10px 16px;border-top:1px solid #ede5d8;font-size:10px;color:#666;line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<div style="background:#fff;padding:10px 16px;border-top:1px solid var(--vh-panel-tan);font-size:10px;color:#666;line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
         '<span style="font-size:11px">&#128065; preview · &#11015; download · &#8635; new seed · &rarr; use as design</span>'+
         '<span style="flex:1"></span>'+
         (S.feedbackHistory&&S.feedbackHistory.length?'<span style="font-style:italic;color:#6A33D8;font-weight:600">Last regen feedback: "'+S.feedbackHistory[S.feedbackHistory.length-1].substring(0,80)+'"</span>':'<span style="font-style:italic">Add feedback below to regenerate with changes.</span>')+
@@ -6495,7 +6495,7 @@ function renderAllMailersMatrix(){
   var mktLabels={US:'🇺🇸 United States',UK:'🇬🇧 United Kingdom',IN:'🇮🇳 India',Global:'🌍 Global',ME:'🇦🇪 Middle East',AU:'🇦🇺 Australia',EU:'🇪🇺 Europe'};
   var totalFiles=mkts.reduce(function(s,m){var e=entries[m];return s+(typeof e==='object'&&e.A&&e.B?2:1);},0);
   var html=
-    '<div style="border:1.5px solid var(--border);border-radius:12px;background:#fafaf6;overflow:hidden">'+
+    '<div style="border:1.5px solid var(--border);border-radius:12px;background:var(--vh-panel-tan);overflow:hidden">'+
       '<div style="background:linear-gradient(135deg,#D0473E,#D0473E);padding:12px 16px;display:flex;align-items:center;gap:10px;color:#FFFFFF;flex-wrap:wrap">'+
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF">Generated Mailers Matrix</span>'+
         '<span style="font-size:10.5px;color:#fff;font-weight:600">'+totalFiles+' files · '+mkts.length+' market'+(mkts.length===1?'':'s')+' × up to 2 variants each</span>'+
@@ -6509,9 +6509,9 @@ function renderAllMailersMatrix(){
           var variants=hasBoth
             ?[{key:'A',name:'V1 · Complete Text',html:stored.A,colorBg:'#D0473E'},{key:'B',name:'V2 · Text + Visual',html:stored.B,colorBg:'#6A33D8'}]
             :[{key:'A',name:'Generated',html:typeof stored==='string'?stored:(stored.A||stored.B||''),colorBg:'#D0473E'}];
-          return '<div style="background:#fff;border:1px solid #ede5d8;border-radius:10px;overflow:hidden">'+
+          return '<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:10px;overflow:hidden">'+
             // Market header
-            '<div style="background:#f8f6f2;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #ede5d8">'+
+            '<div style="background:var(--vh-panel-tan);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--vh-panel-tan)">'+
               '<span style="font-size:13px;font-weight:700;color:#D0473E">'+(mktLabels[mkt]||mkt)+'</span>'+
               '<span style="flex:1"></span>'+
               '<button onclick="showMarketMailer(\''+mkt+'\')" style="font-size:9.5px;font-weight:700;padding:4px 10px;background:'+(S.activeMarket===mkt?'#D0473E':'transparent')+';color:'+(S.activeMarket===mkt?'#FFFFFF':'#D0473E')+';border:1.5px solid #D0473E;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">'+(S.activeMarket===mkt?'● Active in main preview':'⤴ Make active')+'</button>'+
@@ -6521,8 +6521,8 @@ function renderAllMailersMatrix(){
             '<div style="display:grid;grid-template-columns:repeat('+variants.length+',1fr);gap:0">'+
               variants.map(function(v,vi){
                 var safeHtml=(v.html||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-                return '<div style="border-right:'+(vi<variants.length-1?'1px solid #ede5d8':'0')+';display:flex;flex-direction:column">'+
-                  '<div style="background:#fafaf6;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ede5d8">'+
+                return '<div style="border-right:'+(vi<variants.length-1?'1px solid var(--vh-panel-tan)':'0')+';display:flex;flex-direction:column">'+
+                  '<div style="background:var(--vh-panel-tan);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--vh-panel-tan)">'+
                     '<div><span style="font-size:9px;font-weight:800;color:#fff;background:'+v.colorBg+';padding:2px 8px;border-radius:3px;letter-spacing:0.18em">VARIANT '+v.key+'</span><span style="font-size:10px;color:#888;margin-left:6px;font-style:italic">'+v.name+'</span></div>'+
                     '<div style="display:flex;gap:5px">'+
                       '<button onclick="previewMatrixCell(\''+mkt+'\',\''+v.key+'\')" style="font-size:9.5px;font-weight:700;padding:4px 9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">👁 Preview</button>'+
@@ -6606,7 +6606,7 @@ function previewBothSideBySide(){
     '.navbar button{background:transparent;color:#FFFFFF;border:1px solid rgba(251,245,234,0.25);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px}'+
     '.navbar button:hover{background:rgba(251,245,234,0.08);border-color:#6A33D8}'+
     '.navbar .nav-title{font-family:Montserrat,Georgia,serif;font-size:12px;color:#FFFFFF;letter-spacing:0.08em;margin-left:auto}'+
-    '.bar{background:linear-gradient(180deg,#D0473E,#003d23);color:#FFFFFF;padding:14px 22px;display:flex;align-items:center;gap:18px;border-bottom:2px solid #6A33D8;flex-shrink:0;flex-wrap:wrap}'+
+    '.bar{background:linear-gradient(180deg,#D0473E,var(--vh-ink));color:#FFFFFF;padding:14px 22px;display:flex;align-items:center;gap:18px;border-bottom:2px solid #6A33D8;flex-shrink:0;flex-wrap:wrap}'+
     '.bar .brand{font-family:Montserrat,Georgia,serif;font-size:22px;font-weight:bold;letter-spacing:0.16em;color:#FFFFFF}'+
     '.bar .mkt{display:flex;align-items:center;gap:10px;background:rgba(171,135,67,0.18);border:1.5px solid #6A33D8;border-radius:8px;padding:8px 14px}'+
     '.bar .mkt-flag{font-size:24px;line-height:1}'+
@@ -6615,7 +6615,7 @@ function previewBothSideBySide(){
     '.bar .mkt-sub{font-size:10px;color:#6A33D8;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}'+
     '.bar .ttl{font-size:12px;color:#FFFFFF;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-left:auto}'+
     '.split{display:flex;flex:1;overflow:hidden}'+
-    '.col{flex:1;border-right:1px solid #D0473E;display:flex;flex-direction:column;background:#f0ebe0}'+
+    '.col{flex:1;border-right:1px solid #D0473E;display:flex;flex-direction:column;background:var(--vh-panel-tan)}'+
     '.col:last-child{border-right:0}'+
     '.lbl{background:#6A33D8;color:#fff;padding:10px 14px;font-size:11px;font-weight:800;letter-spacing:0.2em;text-align:center;flex-shrink:0;text-transform:uppercase}'+
     '.col iframe{flex:1;width:100%;border:0;background:#fff}'+
@@ -6714,7 +6714,7 @@ async function analyzeImageAndBuildEmail(base64DataUrl,prods,prompt,market){
 const _ARCH_FH='Montserrat,\'Raleway\',Georgia,serif';
 const _ARCH_FB='Instrument Sans,\'Helvetica Neue\',Arial,sans-serif';
 const _ARCH_BG='#FFFFFF';        // page background — chalk
-const _ARCH_BORDER='#ede5d8';    // subtle chalk-derived border (allowed neutral)
+const _ARCH_BORDER='var(--vh-panel-tan)';    // subtle chalk-derived border (allowed neutral)
 const _ARCH_PAPER='#ffffff';
 const _ARCH_GREEN='#D0473E';
 const _ARCH_GOLD='#6A33D8';
@@ -7339,9 +7339,9 @@ function _arch_renderEmail(strategy,archetype,variant,uploadedDesignImg,mt){
       '.pd20{padding:14px 16px!important}'+
     '}</style>\n'+
     '<!-- archetype:'+archetype+' · variant:'+variant+' -->\n'+
-    '</head>\n<body style="margin:0;padding:0;background:#f0ebe0;-webkit-text-size-adjust:100%">\n'+
-    '<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#f0ebe0">'+preheader+'</div>\n'+
-    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0ebe0;border-collapse:collapse"><tr><td align="center" style="padding:24px 10px">\n'+
+    '</head>\n<body style="margin:0;padding:0;background:var(--vh-panel-tan);-webkit-text-size-adjust:100%">\n'+
+    '<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:var(--vh-panel-tan)">'+preheader+'</div>\n'+
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:var(--vh-panel-tan);border-collapse:collapse"><tr><td align="center" style="padding:24px 10px">\n'+
     '<table class="email-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-collapse:collapse;background:'+_ARCH_PAPER+'">\n'+
     sectionsHtml+
     '</table></td></tr></table>\n</body></html>';
@@ -7387,7 +7387,7 @@ function _scrubBrandClient(html){
   if(!html) return html;
   var out=String(html)
     .replace(/LIMITED TIME/g,'time-bound')
-    .replace(/streetwear journey|liquid lava|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/gi,'premium daily ritual')
+    .replace(/wellness journey|liquid gold|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/gi,'premium daily ritual')
     .replace(/&mdash;|&#8212;/g,' - ').replace(/&ndash;|&#8211;/g,' - ')
     .replace(/\s[—–]\s/g,' - ').replace(/[—–]/g,' - ');
   if(window.__REAL_FACTS_ONLY){
@@ -7430,8 +7430,8 @@ function _legacy_buildEmailVariantB_replaced(uploadedDesignImg,mktOverride){
   // Vertical product row (full-width per product, image left + copy right)
   function prodRow(prod,idx){
     var isHero=idx===0;
-    return '<tr><td style="padding:0 32px 18px;background:#fff;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8">'+
-      '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#fafaf6;border-radius:10px;overflow:hidden;border:1px solid #ede5d8">'+
+    return '<tr><td style="padding:0 32px 18px;background:#fff;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)">'+
+      '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:var(--vh-panel-tan);border-radius:10px;overflow:hidden;border:1px solid var(--vh-panel-tan)">'+
       '<tr>'+
         '<td width="160" style="padding:0;line-height:0;font-size:0;background:#FFFFFF" valign="middle">'+
           (prod.i?'<img src="'+prod.i+'" alt="'+prod.n.replace(/"/g,'&quot;')+'" width="160" border="0" style="width:160px;height:200px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none">':'<div style="width:160px;height:200px;background:linear-gradient(135deg,#FFFFFF,#FFFFFF)"></div>')+
@@ -7468,22 +7468,22 @@ function _legacy_buildEmailVariantB_replaced(uploadedDesignImg,mktOverride){
     if(t==='Discovery')return 'A friend brought a box to my house one weekend. I ordered my own that same night. Some things you just know immediately.';
     return 'There is a moment every morning when I hold the warm pair and the world goes quiet. KNICKGASM gave me that ritual.';
   })(st.type);
-  const html='<!DOCTYPE html>\n<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<title>KNICKGASM&reg; &mdash; '+(st.rawPrompt||'').substring(0,60)+'</title>\n'+msoHead+'\n<style>\n@media only screen and (max-width:600px){.email-wrap{width:100%!important}.pcol{display:block!important;width:100%!important}.pd20{padding:14px 16px!important}}\n</style>\n</head>\n<body style="margin:0;padding:0;background:#f0ebe0;-webkit-text-size-adjust:100%">\n'+
-    '<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#f0ebe0">'+(sc||'').substring(0,100)+' &mdash; KNICKGASM&reg; '+( ot||cta)+' today.</div>\n'+
-    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0ebe0;border-collapse:collapse"><tr><td align="center" style="padding:24px 10px">\n'+
+  const html='<!DOCTYPE html>\n<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<title>KNICKGASM&reg; &mdash; '+(st.rawPrompt||'').substring(0,60)+'</title>\n'+msoHead+'\n<style>\n@media only screen and (max-width:600px){.email-wrap{width:100%!important}.pcol{display:block!important;width:100%!important}.pd20{padding:14px 16px!important}}\n</style>\n</head>\n<body style="margin:0;padding:0;background:var(--vh-panel-tan);-webkit-text-size-adjust:100%">\n'+
+    '<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:var(--vh-panel-tan)">'+(sc||'').substring(0,100)+' &mdash; KNICKGASM&reg; '+( ot||cta)+' today.</div>\n'+
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:var(--vh-panel-tan);border-collapse:collapse"><tr><td align="center" style="padding:24px 10px">\n'+
     '<table class="email-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-collapse:collapse;background:#fff">\n'+
     // S1 — Announcement bar (chalk on green)
     '<tr><td style="background:#D0473E;padding:10px 22px;text-align:center"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF;margin:0;font-weight:600">'+st.annBar+'</p></td></tr>\n'+
     // S2 — Brand logo header (centered, image logo)
-    '<tr><td style="background:#fff;padding:20px 22px 14px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8">'+
+    '<tr><td style="background:#fff;padding:20px 22px 14px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)">'+
       '<a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="180" border="0" style="width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none"></a>'+
       '<p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8px;color:#888;letter-spacing:0.16em;margin:8px 0 0;text-transform:uppercase">Premium Indian Sneakers &middot; Direct From Source</p>'+
     '</td></tr>\n'+
     // S3 — Full-width editorial hero IMAGE — taller, more cinematic
-    (uploadedDesignImg?'<tr><td style="padding:0;line-height:0;font-size:0;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><img src="'+uploadedDesignImg+'" alt="'+(hero.n||'').replace(/"/g,'&quot;')+'" width="598" border="0" style="width:100%;max-width:598px;height:auto;display:block;border:0;outline:none;text-decoration:none"></td></tr>\n'
-    :'<tr><td style="padding:0;line-height:0;font-size:0;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><img src="'+heroVisualPath+'" alt="'+(hero.n||'').replace(/"/g,'&quot;')+'" width="598" border="0" style="width:100%;max-width:598px;height:460px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;background:#FFFFFF"></td></tr>\n')+
+    (uploadedDesignImg?'<tr><td style="padding:0;line-height:0;font-size:0;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><img src="'+uploadedDesignImg+'" alt="'+(hero.n||'').replace(/"/g,'&quot;')+'" width="598" border="0" style="width:100%;max-width:598px;height:auto;display:block;border:0;outline:none;text-decoration:none"></td></tr>\n'
+    :'<tr><td style="padding:0;line-height:0;font-size:0;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><img src="'+heroVisualPath+'" alt="'+(hero.n||'').replace(/"/g,'&quot;')+'" width="598" border="0" style="width:100%;max-width:598px;height:460px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;background:#FFFFFF"></td></tr>\n')+
     // S4 — Compact centered headline + sub + CTA
-    '<tr><td class="pd20" style="background:#FFFFFF;padding:32px 36px 24px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8">'+
+    '<tr><td class="pd20" style="background:#FFFFFF;padding:32px 36px 24px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)">'+
       (ot?'<p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;font-weight:800;letter-spacing:0.28em;color:#6A33D8;margin:0 0 12px;text-transform:uppercase">'+ot+'</p>':'')+
       '<p style="font-family:Montserrat,Georgia,serif;font-size:36px;font-weight:bold;color:#D0473E;margin:0 0 6px;line-height:1.06">'+hl[0]+'</p>'+
       (hl[1]?'<p style="font-family:Montserrat,Georgia,serif;font-size:34px;font-weight:bold;color:#6A33D8;margin:0 0 14px;line-height:1.06;font-style:italic">'+hl[1]+'</p>':'')+
@@ -7493,7 +7493,7 @@ function _legacy_buildEmailVariantB_replaced(uploadedDesignImg,mktOverride){
       (oc?'<div style="margin:10px 0 0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8px;font-weight:800;color:#6A33D8;margin:0 0 3px;letter-spacing:0.16em;text-transform:uppercase">Use code</p><p style="font-family:Montserrat,Georgia,serif;font-size:18px;font-weight:bold;color:#fff;margin:0;letter-spacing:0.16em;background:#6A33D8;display:inline-block;padding:5px 14px;border-radius:4px">'+oc+'</p></div>':'')+
     '</td></tr>\n'+
     // S5 — Compact vertical product stack (max 3 products)
-    '<tr><td style="background:#fff;padding:20px 0 4px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8">'+
+    '<tr><td style="background:#fff;padding:20px 0 4px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)">'+
       '<p style="font-family:Montserrat,Georgia,serif;font-size:18px;font-weight:bold;color:#111111;margin:0 0 14px">'+st.productSectionTitle+'</p>'+
     '</td></tr>\n'+
     prods.slice(0,3).map(prodRow).join('')+
@@ -7563,13 +7563,13 @@ function _legacy_buildEmail_replaced(uploadedDesignImg,mktOverride){
     return '<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="'+href+'" style="height:40px;v-text-anchor:middle;width:180px" arcsize="10%" stroke="f" fillcolor="'+bg+'"><w:anchorlock/><center style="color:'+fg+';font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:bold;letter-spacing:0.1em;">'+label+'</center></v:roundrect><![endif]--><!--[if !mso]><!--><a href="'+href+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:'+bg+';color:'+fg+';padding:11px 26px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:bold;letter-spacing:0.1em;text-decoration:none;border-radius:4px">'+label+'</a><!--<![endif]-->';
   }
   function prodCard(prod){
-    return '<td width="'+colW+'" valign="top" style="width:'+colW+'px;padding:0 4px 16px;vertical-align:top"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td style="padding:0;line-height:0;font-size:0">'+(prod.i?'<img src="'+prod.i+'" alt="'+prod.n+'" width="'+(colW-8)+'" border="0" style="width:100%;height:150px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;border-radius:6px 6px 0 0;background:#FFFFFF">':'<div style="width:100%;height:150px;background:#FFFFFF;border-radius:6px 6px 0 0"></div>')+'</td></tr><tr><td style="background:#fff;padding:10px 8px 4px;border:1px solid #ede5d8;border-top:0"><p style="font-family:Montserrat,Georgia,serif;font-size:11px;font-weight:bold;color:#111111;margin:0 0 4px;line-height:1.35">'+prod.n.split(',')[0]+'</p></td></tr><tr><td style="background:#fff;padding:0 8px 6px;border:1px solid #ede5d8;border-top:0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#888;margin:0;line-height:1.5">'+prodShortDesc(prod.n)+'</p></td></tr><tr><td style="background:#fff;padding:4px 8px;border:1px solid #ede5d8;border-top:0"><span style="color:#6A33D8;font-size:12px">&#9733;&#9733;&#9733;&#9733;&#9733;</span><span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#aaa;margin-left:4px">4.8</span></td></tr><tr><td style="background:#fff;padding:4px 8px 10px;border:1px solid #ede5d8;border-top:0;border-radius:0 0 6px 6px"><a href="'+pdpUrl(prod,mt)+'" target="_blank" rel="noopener noreferrer" border="0" style="display:block;text-align:center;background:#D0473E;color:#FFFFFF;padding:8px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:0.1em;text-decoration:none;border-radius:4px">SHOP NOW</a></td></tr></table></td>';
+    return '<td width="'+colW+'" valign="top" style="width:'+colW+'px;padding:0 4px 16px;vertical-align:top"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td style="padding:0;line-height:0;font-size:0">'+(prod.i?'<img src="'+prod.i+'" alt="'+prod.n+'" width="'+(colW-8)+'" border="0" style="width:100%;height:150px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;border-radius:6px 6px 0 0;background:#FFFFFF">':'<div style="width:100%;height:150px;background:#FFFFFF;border-radius:6px 6px 0 0"></div>')+'</td></tr><tr><td style="background:#fff;padding:10px 8px 4px;border:1px solid var(--vh-panel-tan);border-top:0"><p style="font-family:Montserrat,Georgia,serif;font-size:11px;font-weight:bold;color:#111111;margin:0 0 4px;line-height:1.35">'+prod.n.split(',')[0]+'</p></td></tr><tr><td style="background:#fff;padding:0 8px 6px;border:1px solid var(--vh-panel-tan);border-top:0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#888;margin:0;line-height:1.5">'+prodShortDesc(prod.n)+'</p></td></tr><tr><td style="background:#fff;padding:4px 8px;border:1px solid var(--vh-panel-tan);border-top:0"><span style="color:#6A33D8;font-size:12px">&#9733;&#9733;&#9733;&#9733;&#9733;</span><span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#aaa;margin-left:4px">4.8</span></td></tr><tr><td style="background:#fff;padding:4px 8px 10px;border:1px solid var(--vh-panel-tan);border-top:0;border-radius:0 0 6px 6px"><a href="'+pdpUrl(prod,mt)+'" target="_blank" rel="noopener noreferrer" border="0" style="display:block;text-align:center;background:#D0473E;color:#FFFFFF;padding:8px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:0.1em;text-decoration:none;border-radius:4px">SHOP NOW</a></td></tr></table></td>';
   }
   if(uploadedDesignImg){
     const prodRows=prods.map(function(prod){
-      return '<tr><td style="padding:0 20px 10px"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td width="80" style="padding:0;vertical-align:top;background:#fff;border:1px solid #ede5d8;border-right:0;border-radius:6px 0 0 6px">'+(prod.i?'<img src="'+prod.i+'" alt="'+prod.n+'" width="80" border="0" style="width:80px;height:80px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;border-radius:6px 0 0 6px">':'<div style="width:80px;height:80px;background:#FFFFFF;border-radius:6px 0 0 6px"></div>')+'</td><td style="background:#fff;padding:10px 12px;vertical-align:top;border:1px solid #ede5d8;border-left:0;border-right:0"><p style="font-family:Montserrat,Georgia,serif;font-size:12px;font-weight:bold;color:#111111;margin:0 0 3px;line-height:1.3">'+prod.n.split(',')[0]+'</p><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#888;margin:0 0 6px">'+prodShortDesc(prod.n)+'</p><span style="color:#6A33D8;font-size:12px">&#9733;&#9733;&#9733;&#9733;&#9733;</span><span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#aaa;margin-left:4px">4.8 &middot; one-of-one designs</span></td><td width="110" style="background:#fff;padding:10px;vertical-align:middle;text-align:center;border:1px solid #ede5d8;border-left:0;border-radius:0 6px 6px 0"><a href="'+pdpUrl(prod,mt)+'" target="_blank" rel="noopener noreferrer" border="0" style="display:inline-block;background:#D0473E;color:#FFFFFF;padding:9px 14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:0.08em;text-decoration:none;border-radius:4px;white-space:nowrap">SHOP NOW</a></td></tr></table></td></tr>';
+      return '<tr><td style="padding:0 20px 10px"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr><td width="80" style="padding:0;vertical-align:top;background:#fff;border:1px solid var(--vh-panel-tan);border-right:0;border-radius:6px 0 0 6px">'+(prod.i?'<img src="'+prod.i+'" alt="'+prod.n+'" width="80" border="0" style="width:80px;height:80px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;border-radius:6px 0 0 6px">':'<div style="width:80px;height:80px;background:#FFFFFF;border-radius:6px 0 0 6px"></div>')+'</td><td style="background:#fff;padding:10px 12px;vertical-align:top;border:1px solid var(--vh-panel-tan);border-left:0;border-right:0"><p style="font-family:Montserrat,Georgia,serif;font-size:12px;font-weight:bold;color:#111111;margin:0 0 3px;line-height:1.3">'+prod.n.split(',')[0]+'</p><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#888;margin:0 0 6px">'+prodShortDesc(prod.n)+'</p><span style="color:#6A33D8;font-size:12px">&#9733;&#9733;&#9733;&#9733;&#9733;</span><span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#aaa;margin-left:4px">4.8 &middot; one-of-one designs</span></td><td width="110" style="background:#fff;padding:10px;vertical-align:middle;text-align:center;border:1px solid var(--vh-panel-tan);border-left:0;border-radius:0 6px 6px 0"><a href="'+pdpUrl(prod,mt)+'" target="_blank" rel="noopener noreferrer" border="0" style="display:inline-block;background:#D0473E;color:#FFFFFF;padding:9px 14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:0.08em;text-decoration:none;border-radius:4px;white-space:nowrap">SHOP NOW</a></td></tr></table></td></tr>';
     }).join('');
-    const html='<!DOCTYPE html>\n<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<title>KNICKGASM® -- '+p.substring(0,60)+'</title>\n'+msoHead+'\n<style>@media only screen and (max-width:600px){.email-wrap{width:100%!important}.pcol{display:block!important;width:100%!important}}</style>\n</head>\n<body style="margin:0;padding:0;background:#f0ebe0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">\n<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#f0ebe0">'+sc.substring(0,100)+' -- KNICKGASM® '+( ot||cta)+' today. Farm direct Indian sneakers.</div>\n<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0ebe0;border-collapse:collapse"><tr><td align="center" style="padding:20px 10px">\n<table class="email-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-collapse:collapse">\n<tr><td style="background:#D0473E;padding:8px 20px;text-align:center;border-radius:6px 6px 0 0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF;margin:0">'+annBarLine(p,mt)+'</p></td></tr>\n<tr><td style="background:#ffffff;padding:18px 30px 14px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="180" border="0" style="width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;margin-bottom:6px"></a><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:1px solid #ede5d8"><tr><td width="33%" style="text-align:center;padding:8px 0;border-right:1px solid #ede5d8"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;color:#888;margin:0;letter-spacing:0.05em">🌿 100% PURE INDIAN SNEAKER</p></td><td width="34%" style="text-align:center;padding:8px 0;border-right:1px solid #ede5d8"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;color:#888;margin:0;letter-spacing:0.05em">🤝 ETHICALLY SOURCED</p></td><td width="33%" style="text-align:center;padding:8px 0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;color:#888;margin:0;letter-spacing:0.05em">🌱 DIRECT FROM FARMS</p></td></tr></table></td></tr>\n<tr><td style="padding:0;line-height:0;font-size:0;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><img src="'+uploadedDesignImg+'" alt="'+hero.n+' -- KNICKGASM® Campaign" width="598" border="0" style="width:100%;max-width:598px;height:auto;display:block;border:0;outline:none;text-decoration:none"></td></tr>\n<tr><td style="background:#D0473E;padding:20px 30px;text-align:center;border-left:1px solid #D0473E;border-right:1px solid #D0473E"><p style="font-family:Montserrat,Georgia,serif;font-size:20px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;line-height:1.3">'+(ot||hl[0])+'</p>'+(oc?'<p style="font-family:Montserrat,Georgia,serif;font-size:26px;font-weight:bold;color:#6A33D8;letter-spacing:0.2em;margin:0 0 14px;border:2px solid #6A33D8;display:inline-block;padding:4px 20px">'+oc+'</p><br>':'')+bulletBtn(collectionUrl(p,mt),oct,'#6A33D8','#ffffff')+'<br><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#FFFFFF;margin:10px 0 0;letter-spacing:0.05em">🚚 FREE SHIPPING ON ORDERS $49+ &middot; '+os+'</p></td></tr>\n<tr><td style="background:#ffffff;padding:20px 20px 8px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><p style="font-family:Montserrat,Georgia,serif;font-size:15px;font-weight:bold;color:#111111;margin:0;letter-spacing:0.05em">-- '+prodSecTitle+' --</p></td></tr>\n<tr><td style="background:#ffffff;padding-bottom:8px;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">'+prodRows+'</table></td></tr>\n<tr><td style="background:#D0473E;padding:12px 24px;text-align:center"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#FFFFFF;margin:0;letter-spacing:0.04em">&#9733;&#9733;&#9733;&#9733;&#9733;&nbsp;&nbsp;Made on 100% original brand sneakers&nbsp;|&nbsp;Water & scratch resistant&nbsp;|&nbsp;🤝 Ethically Sourced</p></td></tr>\n<tr><td style="background:#FFFFFF;padding:16px 10px;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>'+['🌿 SUSTAINABLE','💚 WOMEN-LED','🤝 ETHICAL','👥 COMMUNITY','❤ LOVED'].map(function(b){return '<td style="text-align:center;padding:0 4px"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8.5px;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin:0;line-height:1.6">'+b+'</p></td>';}).join('')+'</tr></table></td></tr>\n<tr><td style="background:#D0473E;padding:20px 24px;text-align:center;border-radius:0 0 6px 6px"><a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="120" border="0" style="width:120px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;margin-bottom:8px"></a><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#FFFFFF;margin:0 0 8px"><a href="https://www.instagram.com/knickgasm" target="_blank" rel="noopener noreferrer" style="color:#FFFFFF;text-decoration:none">Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/knickgasm" target="_blank" rel="noopener noreferrer" style="color:#FFFFFF;text-decoration:none">Facebook</a>&nbsp;&middot;&nbsp;<a href="https://www.youtube.com/@knickgasm" target="_blank" rel="noopener noreferrer" style="color:#FFFFFF;text-decoration:none">YouTube</a></p><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8px;color:#FFFFFF;margin:0;line-height:1.7">KNICKGASM Pvt. Ltd.&nbsp;&middot;&nbsp;New Delhi, India<br><a href="'+base+'/pages/unsubscribe" style="color:#FFFFFF">Unsubscribe</a>&nbsp;&middot;&nbsp;<a href="'+base+'/pages/privacy-policy" style="color:#FFFFFF">Privacy Policy</a></p></td></tr>\n</table></td></tr></table>\n</body></html>';
+    const html='<!DOCTYPE html>\n<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<title>KNICKGASM® -- '+p.substring(0,60)+'</title>\n'+msoHead+'\n<style>@media only screen and (max-width:600px){.email-wrap{width:100%!important}.pcol{display:block!important;width:100%!important}}</style>\n</head>\n<body style="margin:0;padding:0;background:var(--vh-panel-tan);-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">\n<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:var(--vh-panel-tan)">'+sc.substring(0,100)+' -- KNICKGASM® '+( ot||cta)+' today. Farm direct Indian sneakers.</div>\n<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:var(--vh-panel-tan);border-collapse:collapse"><tr><td align="center" style="padding:20px 10px">\n<table class="email-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-collapse:collapse">\n<tr><td style="background:#D0473E;padding:8px 20px;text-align:center;border-radius:6px 6px 0 0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF;margin:0">'+annBarLine(p,mt)+'</p></td></tr>\n<tr><td style="background:#ffffff;padding:18px 30px 14px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="180" border="0" style="width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;margin-bottom:6px"></a><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:1px solid var(--vh-panel-tan)"><tr><td width="33%" style="text-align:center;padding:8px 0;border-right:1px solid var(--vh-panel-tan)"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;color:#888;margin:0;letter-spacing:0.05em">🌿 100% PURE INDIAN SNEAKER</p></td><td width="34%" style="text-align:center;padding:8px 0;border-right:1px solid var(--vh-panel-tan)"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;color:#888;margin:0;letter-spacing:0.05em">🤝 ETHICALLY SOURCED</p></td><td width="33%" style="text-align:center;padding:8px 0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;color:#888;margin:0;letter-spacing:0.05em">🌱 DIRECT FROM FARMS</p></td></tr></table></td></tr>\n<tr><td style="padding:0;line-height:0;font-size:0;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><img src="'+uploadedDesignImg+'" alt="'+hero.n+' -- KNICKGASM® Campaign" width="598" border="0" style="width:100%;max-width:598px;height:auto;display:block;border:0;outline:none;text-decoration:none"></td></tr>\n<tr><td style="background:#D0473E;padding:20px 30px;text-align:center;border-left:1px solid #D0473E;border-right:1px solid #D0473E"><p style="font-family:Montserrat,Georgia,serif;font-size:20px;font-weight:bold;color:#FFFFFF;margin:0 0 8px;line-height:1.3">'+(ot||hl[0])+'</p>'+(oc?'<p style="font-family:Montserrat,Georgia,serif;font-size:26px;font-weight:bold;color:#6A33D8;letter-spacing:0.2em;margin:0 0 14px;border:2px solid #6A33D8;display:inline-block;padding:4px 20px">'+oc+'</p><br>':'')+bulletBtn(collectionUrl(p,mt),oct,'#6A33D8','#ffffff')+'<br><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#FFFFFF;margin:10px 0 0;letter-spacing:0.05em">🚚 FREE SHIPPING ON ORDERS $49+ &middot; '+os+'</p></td></tr>\n<tr><td style="background:#ffffff;padding:20px 20px 8px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><p style="font-family:Montserrat,Georgia,serif;font-size:15px;font-weight:bold;color:#111111;margin:0;letter-spacing:0.05em">-- '+prodSecTitle+' --</p></td></tr>\n<tr><td style="background:#ffffff;padding-bottom:8px;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">'+prodRows+'</table></td></tr>\n<tr><td style="background:#D0473E;padding:12px 24px;text-align:center"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#FFFFFF;margin:0;letter-spacing:0.04em">&#9733;&#9733;&#9733;&#9733;&#9733;&nbsp;&nbsp;Made on 100% original brand sneakers&nbsp;|&nbsp;Water & scratch resistant&nbsp;|&nbsp;🤝 Ethically Sourced</p></td></tr>\n<tr><td style="background:#FFFFFF;padding:16px 10px;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>'+['🌿 SUSTAINABLE','💚 WOMEN-LED','🤝 ETHICAL','👥 COMMUNITY','❤ LOVED'].map(function(b){return '<td style="text-align:center;padding:0 4px"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8.5px;font-weight:bold;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin:0;line-height:1.6">'+b+'</p></td>';}).join('')+'</tr></table></td></tr>\n<tr><td style="background:#D0473E;padding:20px 24px;text-align:center;border-radius:0 0 6px 6px"><a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="120" border="0" style="width:120px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;margin-bottom:8px"></a><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#FFFFFF;margin:0 0 8px"><a href="https://www.instagram.com/knickgasm" target="_blank" rel="noopener noreferrer" style="color:#FFFFFF;text-decoration:none">Instagram</a>&nbsp;&middot;&nbsp;<a href="https://www.facebook.com/knickgasm" target="_blank" rel="noopener noreferrer" style="color:#FFFFFF;text-decoration:none">Facebook</a>&nbsp;&middot;&nbsp;<a href="https://www.youtube.com/@knickgasm" target="_blank" rel="noopener noreferrer" style="color:#FFFFFF;text-decoration:none">YouTube</a></p><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8px;color:#FFFFFF;margin:0;line-height:1.7">KNICKGASM Pvt. Ltd.&nbsp;&middot;&nbsp;New Delhi, India<br><a href="'+base+'/pages/unsubscribe" style="color:#FFFFFF">Unsubscribe</a>&nbsp;&middot;&nbsp;<a href="'+base+'/pages/privacy-policy" style="color:#FFFFFF">Privacy Policy</a></p></td></tr>\n</table></td></tr></table>\n</body></html>';
     if(!mktOverride){S.finalHTML=html;document.getElementById('emailFr').srcdoc=html;document.getElementById('htmlRaw').textContent=html;buildStep5UI(p,prods,mt);}
     return html;
   }
@@ -7581,7 +7581,7 @@ function _legacy_buildEmail_replaced(uploadedDesignImg,mktOverride){
   function compactCard(prod,idx){
     var isHero=idx===0;
     return '<td width="'+gcW+'" valign="top" style="width:'+gcW+'px;padding:0 4px 12px;vertical-align:top">'+
-      '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-radius:8px;border:1px solid #ede5d8'+(isHero?';border-top:2px solid #6A33D8':'')+'">'+
+      '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-radius:8px;border:1px solid var(--vh-panel-tan)'+(isHero?';border-top:2px solid #6A33D8':'')+'">'+
       '<tr><td style="padding:0;line-height:0;font-size:0">'+(prod.i?'<img src="'+prod.i+'" alt="'+prod.n.replace(/"/g,'&quot;')+'" width="'+(gcW-8)+'" border="0" style="width:100%;height:140px;object-fit:cover;display:block;border:0;outline:none;text-decoration:none;background:#FFFFFF;border-radius:7px 7px 0 0">':'<div style="width:100%;height:140px;background:linear-gradient(135deg,#FFFFFF,#FFFFFF);border-radius:7px 7px 0 0"></div>')+'</td></tr>'+
       '<tr><td style="background:#fff;padding:8px 10px 4px"><p style="font-family:Montserrat,Georgia,serif;font-size:11px;font-weight:bold;color:#111111;margin:0;line-height:1.3">'+prod.n.split(',')[0]+'</p></td></tr>'+
       '<tr><td style="background:#fff;padding:2px 10px 4px">'+prodPriceBlockHTML(prod,p,mt)+'</td></tr>'+
@@ -7592,19 +7592,19 @@ function _legacy_buildEmail_replaced(uploadedDesignImg,mktOverride){
   // Compact testimonial
   var revList=_getReviewList(mt,campaignType);
   var rev0=revList[0]||['Great sneaker!','Customer','US'];
-  let html='<!DOCTYPE html>\n<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<title>KNICKGASM&reg; &ndash; '+p.substring(0,60)+'</title>\n'+msoHead+'\n<style>\n@media only screen and (max-width:600px){\n  .email-wrap{width:100%!important}\n  .pcol{display:block!important;width:100%!important;padding-left:0!important;padding-right:0!important}\n  .hero-left{display:block!important;width:100%!important;padding:24px 20px!important}\n  .hero-right{display:none!important}\n  .pd20{padding:14px 16px!important}\n}\n</style>\n</head>\n<body style="margin:0;padding:0;background:#f0ebe0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">\n';
+  let html='<!DOCTYPE html>\n<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta http-equiv="X-UA-Compatible" content="IE=edge">\n<title>KNICKGASM&reg; &ndash; '+p.substring(0,60)+'</title>\n'+msoHead+'\n<style>\n@media only screen and (max-width:600px){\n  .email-wrap{width:100%!important}\n  .pcol{display:block!important;width:100%!important;padding-left:0!important;padding-right:0!important}\n  .hero-left{display:block!important;width:100%!important;padding:24px 20px!important}\n  .hero-right{display:none!important}\n  .pd20{padding:14px 16px!important}\n}\n</style>\n</head>\n<body style="margin:0;padding:0;background:var(--vh-panel-tan);-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%">\n';
   // S0 — Preheader
-  html+='<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#f0ebe0">'+sc.substring(0,110)+' &ndash; KNICKGASM&reg; '+(ot||cta)+' &ndash; farm direct.&zwnj;&nbsp;</div>\n';
+  html+='<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:var(--vh-panel-tan)">'+sc.substring(0,110)+' &ndash; KNICKGASM&reg; '+(ot||cta)+' &ndash; farm direct.&zwnj;&nbsp;</div>\n';
   // Outer wrapper
-  html+='<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0ebe0;border-collapse:collapse"><tr><td align="center" style="padding:20px 10px">\n';
+  html+='<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:var(--vh-panel-tan);border-collapse:collapse"><tr><td align="center" style="padding:20px 10px">\n';
   html+='<table class="email-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-collapse:collapse">\n';
   // S1 — Announcement bar
   const annLine=annBarLine(p,mt,campaignType);
   html+='<tr><td style="background:#D0473E;padding:9px 20px;text-align:center;border-radius:6px 6px 0 0"><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#FFFFFF;margin:0">'+annLine+'</p></td></tr>\n';
   // S2 — Logo header (brand image)
-  html+='<tr><td style="background:#fff;padding:16px 24px 10px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8"><a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="180" border="0" style="width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none"></a><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#888;margin:6px 0 0">PREMIUM INDIAN SNEAKERS &middot; EST. 2015 &middot; NEW DELHI</p></td></tr>\n';
+  html+='<tr><td style="background:#fff;padding:16px 24px 10px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)"><a href="'+base+'" target="_blank" rel="noopener noreferrer"><img src="'+KNICKGASM_LOGO_URL+'" alt="KNICKGASM" width="180" border="0" style="width:180px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none"></a><p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#888;margin:6px 0 0">PREMIUM INDIAN SNEAKERS &middot; EST. 2015 &middot; NEW DELHI</p></td></tr>\n';
   // S3 — Hero split (left: copy, right: product image) — COMPACT
-  html+='<tr><td style="padding:0;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8">\n';
+  html+='<tr><td style="padding:0;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)">\n';
   html+='<table width="600" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#FFFFFF"><tr>\n';
   html+='<td class="hero-left" width="300" valign="middle" style="width:300px;padding:28px 24px 24px 30px;vertical-align:middle;background:#FFFFFF">\n';
   if(ot){
@@ -7630,7 +7630,7 @@ function _legacy_buildEmail_replaced(uploadedDesignImg,mktOverride){
   }
   html+='</td>\n</tr></table>\n</td></tr>\n';
   // S4 — Compact product grid (max 4 products, single row)
-  html+='<tr><td class="pd20" style="background:#f8f4ee;padding:20px 16px 12px;text-align:center;border-left:1px solid #ede5d8;border-right:1px solid #ede5d8">\n';
+  html+='<tr><td class="pd20" style="background:var(--vh-panel-tan);padding:20px 16px 12px;text-align:center;border-left:1px solid var(--vh-panel-tan);border-right:1px solid var(--vh-panel-tan)">\n';
   html+='<p style="font-family:Montserrat,Georgia,serif;font-size:16px;font-weight:bold;color:#111111;margin:0 0 14px;letter-spacing:0.03em">'+prodSecTitle+'</p>\n';
   html+='<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>\n';
   prods.slice(0,GRID_COLS).forEach(function(prod,idx){html+=compactCard(prod,idx);});
@@ -7755,7 +7755,7 @@ function buildStep5UI(prompt,prods,market){
     gridHtml+='<div style="font-size:11px;color:#FFFFFF;line-height:1.6;font-style:italic">&ldquo;'+((prompt||'').substring(0,220)+((prompt||'').length>220?'&hellip;':''))+'&rdquo;</div>';
     gridHtml+='</div>';
     // ── Row 2: Mailer copy preview (full-width) ──────────────────────────
-    gridHtml+='<div class="sbox sbox-wide" style="background:#f8f4ee;border:1.5px solid #d6c9a8;padding:18px 22px">';
+    gridHtml+='<div class="sbox sbox-wide" style="background:var(--vh-panel-tan);border:1.5px solid var(--vh-lava);padding:18px 22px">';
     gridHtml+='<div class="slbl" style="color:#6A33D8;margin-bottom:10px">&#9997; Mailer Copy</div>';
     gridHtml+='<div style="border-left:3px solid #6A33D8;padding-left:14px;margin-bottom:12px">';
     gridHtml+='<div class="copy-preview-hl">'+_hl[0]+'</div>';
@@ -8845,7 +8845,7 @@ function saveMailerToDashboard(){
         var t=await _resolveTables();
         var {error}=await sb.from(t.mailers).update(patch).eq('id',inserted.id);
         if(error)console.warn('[Supabase] update with hosted URLs failed:',error.message);
-        else console.log('%c[Supabase] hosted URLs attached to row','color:#3ecf8e',inserted.id);
+        else console.log('%c[Supabase] hosted URLs attached to row','color:var(--vh-ink-dim)',inserted.id);
       }
     })();
     if(user&&user.email)supabaseUpsertUser(user).catch(function(){});
@@ -9000,7 +9000,7 @@ async function renderDashboard(page){
   window._dashLogs=logs;
   if(!logs.length && !allLogs.length){
     _dashPage=0;
-    el.innerHTML='<div style="text-align:center;padding:32px 16px;color:#bbb"><div style="font-size:32px;margin-bottom:10px">&#128203;</div><div style="font-size:13px">No campaigns yet. Generate your first mailer to see it here.</div></div>';
+    el.innerHTML='<div style="text-align:center;padding:32px 16px;color:#bbb"><div style="font-size:32px;margin-bottom:10px">&var(--vh-ink);</div><div style="font-size:13px">No campaigns yet. Generate your first mailer to see it here.</div></div>';
     return;
   }
   if(typeof page==='number')_dashPage=Math.max(0,Math.min(page,Math.ceil(logs.length/_dashPageSize)-1));
@@ -9011,11 +9011,11 @@ async function renderDashboard(page){
   var uniqueUsers=[...new Set(logs.map(function(l){return l.userEmail||l.userName||'Unknown';}))];
   var allMarkets=[...new Set(logs.flatMap(function(l){return l.markets||[l.market||'US'];}))];
   var statsBar='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px 10px;background:linear-gradient(135deg,#D0473E,#D0473E);border-radius:10px;color:#FFFFFF;align-items:center">'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&#128203;</span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&#128100;</span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&#127758;</span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
     +'<div style="flex:1"></div>'
     +(totalPages>1?'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
       +'<button onclick="renderDashboard('+(_dashPage-1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"'+(_dashPage===0?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>&#8592; Prev</button>'
@@ -9027,19 +9027,19 @@ async function renderDashboard(page){
   var allTypes=[...new Set(allLogs.map(function(l){return l.type||'Campaign';}))].sort();
   var allMarketsForChips=[...new Set(allLogs.flatMap(function(l){return l.markets||[l.market||'US'];}))].sort();
   var allUsersForChips=[...new Set(allLogs.map(function(l){return l.userName||'Unknown';}))].filter(function(u){return u && u!=='Unknown';}).sort();
-  var typeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'#2d6a4f',Story:'#5a3e28',Seasonal:'#7a5c1e',Campaign:'#D0473E'};
+  var typeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'var(--vh-ink)',Story:'var(--vh-ink)',Seasonal:'var(--vh-ink)',Campaign:'#D0473E'};
   function chip(label,active,color,onclick){
-    return '<button onclick="'+onclick+'" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(active?color:'#d6cdb8')+';background:'+(active?color:'#fff')+';color:'+(active?'#fff':'#374151')+';letter-spacing:0.04em;transition:all .15s">'+label+'</button>';
+    return '<button onclick="'+onclick+'" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(active?color:'var(--vh-lava)')+';background:'+(active?color:'#fff')+';color:'+(active?'#fff':'#374151')+';letter-spacing:0.04em;transition:all .15s">'+label+'</button>';
   }
   var anyActive=!!(f.type||f.market||f.user||f.q||(f.mineOnly===false));
   var hasMe=window._currentUser && window._currentUser.email;
-  var filterBar='<div style="background:#fff;border:1.5px solid #ede5d8;border-radius:12px;padding:12px 14px;margin-bottom:14px">'+
+  var filterBar='<div style="background:#fff;border:1.5px solid var(--vh-panel-tan);border-radius:12px;padding:12px 14px;margin-bottom:14px">'+
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
       '<span style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888">Filters</span>'+
       (hasMe?
-        '<button aria-label="Toggle between only my campaigns and all team campaigns" onclick="window._dashFilters.mineOnly=!window._dashFilters.mineOnly;_dashPage=0;renderDashboard(0)" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(f.mineOnly?'#D0473E':'#d6cdb8')+';background:'+(f.mineOnly?'#D0473E':'#fff')+';color:'+(f.mineOnly?'#fff':'#374151')+';letter-spacing:0.04em">'+(f.mineOnly?'👤 Mine only':'🌐 Show all team')+'</button>'
+        '<button aria-label="Toggle between only my campaigns and all team campaigns" onclick="window._dashFilters.mineOnly=!window._dashFilters.mineOnly;_dashPage=0;renderDashboard(0)" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(f.mineOnly?'#D0473E':'var(--vh-lava)')+';background:'+(f.mineOnly?'#D0473E':'#fff')+';color:'+(f.mineOnly?'#fff':'#374151')+';letter-spacing:0.04em">'+(f.mineOnly?'👤 Mine only':'🌐 Show all team')+'</button>'
       :'')+
-      '<input id="dashSearch" type="text" placeholder="Search prompts, products, users…" oninput="dashSearch(this.value)" value="'+(f.q||'').replace(/"/g,'&quot;')+'" aria-label="Search dashboard records" style="flex:1;min-width:200px;padding:5px 11px;font-size:11.5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid #ede5d8;border-radius:14px;outline:none;color:#111111">'+
+      '<input id="dashSearch" type="text" placeholder="Search prompts, products, users…" oninput="dashSearch(this.value)" value="'+(f.q||'').replace(/"/g,'&quot;')+'" aria-label="Search dashboard records" style="flex:1;min-width:200px;padding:5px 11px;font-size:11.5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid var(--vh-panel-tan);border-radius:14px;outline:none;color:#111111">'+
       (anyActive?'<button onclick="dashClearFilters()" aria-label="Clear all filters" style="font-size:10px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid #b91c1c;background:#fff;color:#b91c1c;letter-spacing:0.04em">✕ Clear</button>':'')+
     '</div>'+
     (allTypes.length>1?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:#bbb;letter-spacing:0.1em;text-transform:uppercase;min-width:50px">Type</span>'+
@@ -9051,7 +9051,7 @@ async function renderDashboard(page){
     '<div style="font-size:10px;color:#888;margin-top:6px">Showing <strong>'+logs.length+'</strong> of '+allLogs.length+' records</div>'+
   '</div>';
   if(!logs.length){
-    el.innerHTML=statsBar+filterBar+'<div style="text-align:center;padding:32px 16px;color:#bbb;background:#fff;border:1.5px solid #ede5d8;border-radius:12px"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-size:13px">No records match your filters.</div></div>';
+    el.innerHTML=statsBar+filterBar+'<div style="text-align:center;padding:32px 16px;color:#bbb;background:#fff;border:1.5px solid var(--vh-panel-tan);border-radius:12px"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-size:13px">No records match your filters.</div></div>';
     return;
   }
   // Render only current page logs — clear row demarcation between campaigns
@@ -9064,20 +9064,20 @@ async function renderDashboard(page){
     var mkts=(e.markets||[e.market||'US']).join(', ');
     var prods=(e.products||[]).slice(0,3).join(' · ')+(e.products&&e.products.length>3?' +more':'');
     var userBadge=!window._anonStudio&&e.userName&&e.userName!=='Unknown'
-      ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border-radius:20px;white-space:nowrap">&#128100; '+e.userName+'</span>'
+      ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border-radius:20px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>'
       :'';
     // ── Per-region per-variant TILE matrix for THIS record ──
     var mktKeys=Object.keys(e.fullMailers||{});
     var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
     var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
     var variantMeta={
-      A:{name:'V1 · Complete Text',sub:'Pure copy, no imagery',accent:'#D0473E',accentBg:'#0a3d24'},
+      A:{name:'V1 · Complete Text',sub:'Pure copy, no imagery',accent:'#D0473E',accentBg:'var(--vh-ink)'},
       B:{name:'V2 · Text + Visual',sub:'Copy + imagery/GIF/video',accent:'#6A33D8',accentBg:'#FFFFFF'}
     };
     var mailerMatrix='';
     if(mktKeys.length){
-      mailerMatrix='<div style="margin-top:12px;padding:12px 12px 4px;background:#fafaf6;border:1px solid #ede5d8;border-radius:10px">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#888">&#128228; Generated Mailers</span><span style="font-size:9px;color:#bbb;font-weight:500">'+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &middot; '+mktKeys.reduce(function(s,m){var ee=e.fullMailers[m];return s+(typeof ee==='object'&&ee.A&&ee.B?2:1);},0)+' files</span></div>'
+      mailerMatrix='<div style="margin-top:12px;padding:12px 12px 4px;background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:10px">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#888">&var(--vh-ink); Generated Mailers</span><span style="font-size:9px;color:#bbb;font-weight:500">'+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &middot; '+mktKeys.reduce(function(s,m){var ee=e.fullMailers[m];return s+(typeof ee==='object'&&ee.A&&ee.B?2:1);},0)+' files</span></div>'
         +mktKeys.map(function(mkt){
           var stored=e.fullMailers[mkt];
           var hasBoth=stored&&typeof stored==='object'&&stored.A&&stored.B;
@@ -9105,7 +9105,7 @@ async function renderDashboard(page){
                   +'</div>'
                   // Tile body (action buttons)
                   +'<div style="padding:7px 8px;display:flex;gap:5px">'
-                    +'<button onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&#128065; Preview</button>'
+                    +'<button onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&var(--vh-ink); Preview</button>'
                     +'<button onclick="event.stopPropagation();downloadDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&#11015; Download</button>'
                   +'</div>'
                 +'</div>';
@@ -9116,7 +9116,7 @@ async function renderDashboard(page){
         }).join('')
       +'</div>';
     }
-    return '<div style="border:2px solid #d6cdb8;border-radius:14px;background:#fff;box-shadow:0 4px 16px rgba(0,74,43,0.06);overflow:hidden;position:relative">'
+    return '<div style="border:2px solid var(--vh-lava);border-radius:14px;background:#fff;box-shadow:0 4px 16px rgba(0,74,43,0.06);overflow:hidden;position:relative">'
       // ── Card row header strip — instantly tells you where one campaign ends + the next begins ──
       +'<div style="background:linear-gradient(90deg,#D0473E 0%,#D0473E 100%);padding:9px 18px;display:flex;align-items:center;gap:10px;color:#FFFFFF;flex-wrap:wrap">'
         +'<span style="background:#6A33D8;color:#fff;font-size:10px;font-weight:800;letter-spacing:0.08em;padding:3px 10px;border-radius:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">#'+rowNum+'</span>'
@@ -9124,23 +9124,23 @@ async function renderDashboard(page){
         +'<span style="font-size:10px;font-weight:600;letter-spacing:0.04em;opacity:0.7">·</span>'
         +'<span style="font-size:10.5px;font-weight:600;color:#FFFFFF;opacity:0.95">'+dateStr+'</span>'
         +'<span style="flex:1"></span>'
-        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:rgba(171,135,67,0.22);color:#FFFFFF;border:1px solid rgba(171,135,67,0.5);border-radius:14px;white-space:nowrap">&#128100; '+e.userName+'</span>':'')
+        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:rgba(171,135,67,0.22);color:#FFFFFF;border:1px solid rgba(171,135,67,0.5);border-radius:14px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>':'')
       +'</div>'
       // ── Card body ──
       +'<div style="padding:16px 18px">'
       +'<div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start">'
         +'<div>'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
-        +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#0a3d24;color:#D0473E;border-radius:10px;border:1px solid #b7e3c9">'+mkts+'</span>'
-        +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#FFFFFF;color:#6A33D8;border-radius:10px;border:1px solid #ecd9a8">'+(e.type||'Campaign')+'</span>'
+        +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-ink);color:#D0473E;border-radius:10px;border:1px solid var(--vh-panel-tan)">'+mkts+'</span>'
+        +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#FFFFFF;color:#6A33D8;border-radius:10px;border:1px solid var(--vh-panel-tan)">'+(e.type||'Campaign')+'</span>'
         +'</div>'
         +'<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;color:#D0473E;font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||['US'])[0]))+'</div>'
         +'<div style="font-size:11.5px;color:#555;font-weight:400;margin-bottom:5px;line-height:1.5">'+((e.prompt||'').substring(0,160)+(e.prompt&&e.prompt.length>160?'…':''))+'</div>'
-        +(prods?'<div style="font-size:10.5px;color:#666;margin-bottom:3px">&#127873; '+prods+'</div>':'')
+        +(prods?'<div style="font-size:10.5px;color:#666;margin-bottom:3px">&var(--vh-ink); '+prods+'</div>':'')
         +(e.userEmail?'<div style="font-size:10px;color:#aaa">&#9993; '+e.userEmail+'</div>':'')
         +'</div>'
         +'<div style="display:flex;flex-direction:column;gap:6px;min-width:120px">'
-        +'<button onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&#128065; View Details</button>'
+        +'<button onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&var(--vh-ink); View Details</button>'
         +'<button onclick="regenerateFromRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:#fff;color:#D0473E;border:1.5px solid #D0473E;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&#8635; Regenerate</button>'
         +(mktKeys.length?'<button onclick="downloadDashboardAll('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#11015; All Files</button>':'')
         +'</div>'
@@ -9175,7 +9175,7 @@ function viewDashRecord(logIdx){
     var intentMap={Sale:'Drive immediate conversions with urgency + discount mechanics',Launch:'Generate excitement and early-adopter desire for new product',Seasonal:'Anchor purchase intent to seasonal ritual and gifting occasion',Bestseller:'Re-engage warm audiences with social proof and familiarity',Gift:'Inspire gifting decisions with premium framing and recipient empathy',Discovery:'Expand basket depth by surfacing new designs to existing buyers',Routine:'Build long-term subscription and habit loop with streetwear framing',Story:'Deepen brand affinity through emotional origin narrative',Campaign:'Engage and convert target audience with on-brand messaging'};
     var impactMap={Sale:'15–25% lift in conversion rate; 2–3× email revenue per send',Launch:'30–40% open-rate boost vs. standard; high social share potential',Seasonal:'2× AOV on gifting SKUs; drives bundle and subscription upsell',Bestseller:'Reliable 10–18% CTR; strong reactivation for lapsed subscribers',Gift:'Highest AOV segment; 3× basket vs. solo product emails',Discovery:'Increases SKU exposure; reduces churn by broadening taste profile',Routine:'Strongest subscription conversion vehicle; 40% lower CAC over 90 days',Story:'Brand equity builder; lifts future send open rates by 8–12%',Campaign:'Positive uplift in engagement and email-driven revenue'};
     var mktLabels={US:'🇺🇸 United States',UK:'🇬🇧 United Kingdom',IN:'🇮🇳 India',Global:'🌍 Global',ME:'🇦🇪 Middle East',AU:'🇦🇺 Australia',EU:'🇪🇺 Europe'};
-    var typeBadgeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'#2d6a4f',Story:'#5a3e28',Seasonal:'#7a5c1e',Campaign:'#D0473E'};
+    var typeBadgeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'var(--vh-ink)',Story:'var(--vh-ink)',Seasonal:'var(--vh-ink)',Campaign:'#D0473E'};
     var dt=new Date(e.date);
     var dateStr=dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' · '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     var mkts=(e.markets||['US']);
@@ -9198,19 +9198,19 @@ function viewDashRecord(logIdx){
     html+='</div>';
     html+='</div>';
     // ── Campaign Brief ───────────────────────────────────────────────────
-    html+='<div style="padding:18px 24px;background:#fdfcfa;border-bottom:1px solid #ede5d8">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:8px">&#128196; Campaign Brief</div>';
-    html+='<div style="font-size:12px;color:#374151;line-height:1.7;background:#fff;border:1px solid #ede5d8;border-radius:8px;padding:12px 14px;max-height:130px;overflow-y:auto;font-style:italic">&ldquo;'+(p||'(no description saved)')+'&rdquo;</div>';
+    html+='<div style="padding:18px 24px;background:var(--vh-panel-tan);border-bottom:1px solid var(--vh-panel-tan)">';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:8px">&var(--vh-ink); Campaign Brief</div>';
+    html+='<div style="font-size:12px;color:#374151;line-height:1.7;background:#fff;border:1px solid var(--vh-panel-tan);border-radius:8px;padding:12px 14px;max-height:130px;overflow-y:auto;font-style:italic">&ldquo;'+(p||'(no description saved)')+'&rdquo;</div>';
     // markets + products row
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">';
     html+='<div><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Target Markets</div><div style="font-size:12px;font-weight:600;color:#D0473E;line-height:1.5">'+mkts.map(function(m){return mktLabels[m]||m;}).join('<br>')+'</div></div>';
     html+='<div><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Products Featured</div>';
-    if(e.products&&e.products.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px">'+(e.products||[]).map(function(pr){return '<span style="font-size:9px;font-weight:600;padding:2px 8px;background:#0a3d24;color:#D0473E;border-radius:12px;border:1px solid #b7e3c9">'+pr+'</span>';}).join('')+'</div>';}
+    if(e.products&&e.products.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px">'+(e.products||[]).map(function(pr){return '<span style="font-size:9px;font-weight:600;padding:2px 8px;background:var(--vh-ink);color:#D0473E;border-radius:12px;border:1px solid var(--vh-panel-tan)">'+pr+'</span>';}).join('')+'</div>';}
     else{html+='<span style="font-size:11px;color:#bbb">Not recorded</span>';}
     html+='</div></div>';
     html+='</div>';
     // ── Mailer Copy Preview ──────────────────────────────────────────────
-    html+='<div style="padding:18px 24px;background:#f8f4ee;border-bottom:1px solid #ede5d8">';
+    html+='<div style="padding:18px 24px;background:var(--vh-panel-tan);border-bottom:1px solid var(--vh-panel-tan)">';
     html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:10px">&#9997; Mailer Copy</div>';
     html+='<div style="border-left:3px solid #6A33D8;padding-left:14px;margin-bottom:10px">';
     html+='<div style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;font-size:22px;font-weight:600;color:#D0473E;line-height:1.2">'+_hl[0]+'</div>';
@@ -9241,20 +9241,20 @@ function viewDashRecord(logIdx){
     }
     var dep=savedDepth||live||{segment:{primary:'Active Subscribers',sub:'',size:'',rationale:''},intent:intentMap[typ]||intentMap.Campaign,expected_impact:{open:'',click:'',conversion:'',aov:'',rps:'',notes:impactMap[typ]||impactMap.Campaign},justification:'',send_window:''};
     var seg=dep.segment||{}; var k=dep.expected_impact||{};
-    html+='<div style="padding:18px 24px;border-bottom:1px solid #ede5d8;background:#fdfcfa">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:12px">&#127919; Strategic Brief</div>';
+    html+='<div style="padding:18px 24px;border-bottom:1px solid var(--vh-panel-tan);background:var(--vh-panel-tan)">';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:12px">&var(--vh-ink); Strategic Brief</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     // Target segment (full width)
-    html+='<div style="grid-column:1 / -1;background:#fff;border:1.5px solid #d6cdb8;border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#6A33D8;margin-bottom:4px">&#128100; Target Segment</div><div style="font-family:\'Montserrat\',Georgia,serif;font-size:16px;font-weight:600;color:#D0473E;line-height:1.3">'+(seg.primary||'')+'</div>'+(seg.sub?'<div style="font-size:11px;color:#444;margin-top:4px">'+seg.sub+'</div>':'')+'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+(seg.size?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:#0a3d24;color:#D0473E;border-radius:9px;border:1px solid #b7e3c9">Audience: '+seg.size+'</span>':'')+(dep.send_window?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:#FFFFFF;color:#6A33D8;border-radius:9px;border:1px solid #ecd9a8">Send: '+dep.send_window+'</span>':'')+'</div>'+(seg.rationale?'<div style="font-size:11px;color:#555;font-style:italic;margin-top:6px;line-height:1.5">'+seg.rationale+'</div>':'')+'</div>';
+    html+='<div style="grid-column:1 / -1;background:#fff;border:1.5px solid var(--vh-lava);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#6A33D8;margin-bottom:4px">&var(--vh-ink); Target Segment</div><div style="font-family:\'Montserrat\',Georgia,serif;font-size:16px;font-weight:600;color:#D0473E;line-height:1.3">'+(seg.primary||'')+'</div>'+(seg.sub?'<div style="font-size:11px;color:#444;margin-top:4px">'+seg.sub+'</div>':'')+'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+(seg.size?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-ink);color:#D0473E;border-radius:9px;border:1px solid var(--vh-panel-tan)">Audience: '+seg.size+'</span>':'')+(dep.send_window?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:#FFFFFF;color:#6A33D8;border-radius:9px;border:1px solid var(--vh-panel-tan)">Send: '+dep.send_window+'</span>':'')+'</div>'+(seg.rationale?'<div style="font-size:11px;color:#555;font-style:italic;margin-top:6px;line-height:1.5">'+seg.rationale+'</div>':'')+'</div>';
     // Intent
     html+='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6A33D8;margin-bottom:4px">Campaign Intent</div><div style="font-size:11.5px;color:#111111;line-height:1.55;font-weight:500">'+(dep.intent||'')+'</div></div>';
     // Expected impact
     html+='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6A33D8;margin-bottom:6px">Expected Impact</div>';
     if(k.open){html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px 10px;font-size:10.5px;color:#374151"><div><strong style="color:#D0473E">OR:</strong> '+k.open+'</div><div><strong style="color:#D0473E">CTR:</strong> '+k.click+'</div><div><strong style="color:#D0473E">Conv:</strong> '+k.conversion+'</div><div><strong style="color:#D0473E">AOV:</strong> '+k.aov+'</div><div style="grid-column:1 / -1"><strong style="color:#6A33D8">RPS:</strong> '+k.rps+'</div></div>';}
-    if(k.notes)html+='<div style="font-size:10.5px;color:#666;font-style:italic;line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e0d4">'+k.notes+'</div>';
+    if(k.notes)html+='<div style="font-size:10.5px;color:#666;font-style:italic;line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px dashed var(--vh-panel-tan)">'+k.notes+'</div>';
     html+='</div>';
     // Justification (full width)
-    if(dep.justification)html+='<div style="grid-column:1 / -1;background:linear-gradient(135deg,#FFFFFF 0%,#fff 100%);border:1px solid #ecd9a8;border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6A33D8;margin-bottom:4px">Justification</div><div style="font-size:11.5px;color:#111111;line-height:1.65">'+dep.justification+'</div></div>';
+    if(dep.justification)html+='<div style="grid-column:1 / -1;background:linear-gradient(135deg,#FFFFFF 0%,#fff 100%);border:1px solid var(--vh-panel-tan);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6A33D8;margin-bottom:4px">Justification</div><div style="font-size:11.5px;color:#111111;line-height:1.65">'+dep.justification+'</div></div>';
     // Offer + CTA
     html+='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6A33D8;margin-bottom:4px">Offer Mechanic</div><div style="font-size:11px;color:#374151;line-height:1.5">'+(_oc?'Promo code <strong>'+_oc+'</strong> &mdash; '+_ot:(_ot||'Brand value — no promo code'))+'</div></div>';
     html+='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6A33D8;margin-bottom:4px">CTA &amp; Section Titles</div><div style="font-size:11px;color:#374151;line-height:1.5">CTA: <strong>'+_cta+'</strong><br>Hero section: <em>'+sectionTitle(p,typ)+'</em><br>Products: <em>'+productSectionTitle(p,typ)+'</em></div></div>';
@@ -9263,45 +9263,45 @@ function viewDashRecord(logIdx){
     var fullRec=e._full||{};
     var imgPrompts=fullRec.image_prompts_full||{};
     var activePrompt=fullRec.active_prompt||fullRec.prompt_full||'';
-    html+='<div style="padding:18px 24px;border-bottom:1px solid #ede5d8;background:#f8f4ee">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:12px">&#128231; Inputs Used &amp; Prompts to Replicate</div>';
+    html+='<div style="padding:18px 24px;border-bottom:1px solid var(--vh-panel-tan);background:var(--vh-panel-tan)">';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:12px">&var(--vh-ink); Inputs Used &amp; Prompts to Replicate</div>';
     html+='<div style="display:grid;gap:10px">';
-    html+='<div style="background:#fff;border:1px solid #ede5d8;border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">User-supplied brief (raw)</div><div style="font-size:11px;color:#111111;line-height:1.55;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;background:#fafaf6;padding:8px;border-radius:6px;max-height:120px;overflow:auto">'+(p||'(none)')+'</div></div>';
+    html+='<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">User-supplied brief (raw)</div><div style="font-size:11px;color:#111111;line-height:1.55;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;background:var(--vh-panel-tan);padding:8px;border-radius:6px;max-height:120px;overflow:auto">'+(p||'(none)')+'</div></div>';
     if(activePrompt && activePrompt!==p){
-      html+='<div style="background:#fff;border:1px solid #ede5d8;border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Active prompt (with regen feedback)</div><div style="font-size:11px;color:#111111;line-height:1.55;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;background:#fafaf6;padding:8px;border-radius:6px;max-height:120px;overflow:auto">'+activePrompt+'</div></div>';
+      html+='<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Active prompt (with regen feedback)</div><div style="font-size:11px;color:#111111;line-height:1.55;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;background:var(--vh-panel-tan);padding:8px;border-radius:6px;max-height:120px;overflow:auto">'+activePrompt+'</div></div>';
     }
     var imgPromptKeys=Object.keys(imgPrompts);
     if(imgPromptKeys.length){
-      html+='<div style="background:#fff;border:1px solid #ede5d8;border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">FLUX image prompts &mdash; '+imgPromptKeys.length+' market(s) &times; 2 variants</div>';
+      html+='<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">FLUX image prompts &mdash; '+imgPromptKeys.length+' market(s) &times; 2 variants</div>';
       imgPromptKeys.forEach(function(mkt){
         var entry=imgPrompts[mkt]||{};
         ['A','B'].forEach(function(v){
           if(!entry[v])return;
-          html+='<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:#D0473E;background:#0a3d24;padding:2px 8px;border-radius:9px;border:1px solid #b7e3c9">'+mkt+' · '+v+'</span><div style="font-size:10.5px;color:#444;font-family:ui-monospace,Menlo,monospace;background:#fafaf6;padding:6px 8px;border-radius:6px;margin-top:3px;line-height:1.5;max-height:60px;overflow:auto">'+entry[v]+'</div></div>';
+          html+='<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:#D0473E;background:var(--vh-ink);padding:2px 8px;border-radius:9px;border:1px solid var(--vh-panel-tan)">'+mkt+' · '+v+'</span><div style="font-size:10.5px;color:#444;font-family:ui-monospace,Menlo,monospace;background:var(--vh-panel-tan);padding:6px 8px;border-radius:6px;margin-top:3px;line-height:1.5;max-height:60px;overflow:auto">'+entry[v]+'</div></div>';
         });
       });
       html+='</div>';
     }
     if(fullRec.feedback_history && fullRec.feedback_history.length){
-      html+='<div style="background:#fff;border:1px solid #ede5d8;border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Regen feedback history ('+fullRec.feedback_history.length+')</div>';
+      html+='<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Regen feedback history ('+fullRec.feedback_history.length+')</div>';
       fullRec.feedback_history.forEach(function(fb,fi){
-        html+='<div style="font-size:10.5px;color:#444;line-height:1.5;margin-bottom:4px;padding:4px 8px;background:#fafaf6;border-left:2px solid #6A33D8;border-radius:0 4px 4px 0"><strong>#'+(fi+1)+':</strong> '+fb+'</div>';
+        html+='<div style="font-size:10.5px;color:#444;line-height:1.5;margin-bottom:4px;padding:4px 8px;background:var(--vh-panel-tan);border-left:2px solid #6A33D8;border-radius:0 4px 4px 0"><strong>#'+(fi+1)+':</strong> '+fb+'</div>';
       });
       html+='</div>';
     }
-    html+='<div style="background:#fff;border:1px solid #ede5d8;border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Build &amp; provenance</div><div style="font-size:10.5px;color:#444;line-height:1.6">Build version: <code style="background:#fafaf6;padding:2px 6px;border-radius:3px">'+(fullRec.build_version||'(unknown)')+'</code><br>Origin: <code style="background:#fafaf6;padding:2px 6px;border-radius:3px;font-size:10px">'+(fullRec.origin||'')+'</code></div></div>';
+    html+='<div style="background:#fff;border:1px solid var(--vh-panel-tan);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Build &amp; provenance</div><div style="font-size:10.5px;color:#444;line-height:1.6">Build version: <code style="background:var(--vh-panel-tan);padding:2px 6px;border-radius:3px">'+(fullRec.build_version||'(unknown)')+'</code><br>Origin: <code style="background:var(--vh-panel-tan);padding:2px 6px;border-radius:3px;font-size:10px">'+(fullRec.origin||'')+'</code></div></div>';
     html+='</div></div>';
     // ── Subject Lines ────────────────────────────────────────────────────
     var subjMap={Sale:['Last chance: '+_ot+' ends tonight',(_oc?'Use '+_oc+' – '+_ot+' on all KNICKGASM® sneakers':'Limited: '+_ot+' on premium Indian sneakers'),'Your cart deserves a treat – '+_ot+' inside'],Launch:['Introducing: something special – now crafting','First step: our newest arrival is here','New release: exclusively from Indian studios'],Bestseller:['Our best-sellers, back in focus','India's largest sneaker customisers can\'t be wrong – try their favourites','The sneakers everyone is talking about'],Gift:['Give the gift of pure Indian sneaker','For someone who deserves the finest – KNICKGASM® gift sets','The gift that crafts happiness, every morning'],Discovery:['A new sneaker discovery is waiting for you','Curious palates only – explore your next favourite','Beyond the ordinary: rare Indian sneakers, delivered'],Routine:['Your morning ritual, elevated','Make every pair count – build your sneaker routine','The streetwear pair your day has been missing'],Story:['From the hills of Jordan – a story in every step','Meet the farmers behind your favourite pair','The journey from panel to pair'],Seasonal:['Your seasonal pair, perfectly blended','The season\'s finest – now in your inbox','Season\'s curated picks, delivered warm']};
     var subjs=(subjMap[typ]||subjMap['Bestseller']);
-    html+='<div style="padding:16px 24px;background:#ecfdf5;border-bottom:1px solid #d1fae5">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#065f46;margin-bottom:8px">&#9993; Suggested Subject Lines <span style="font-weight:400;font-size:9px;color:#6ee7b7;text-transform:none;letter-spacing:0">(click to copy)</span></div>';
-    html+=subjs.map(function(s,si){return '<div onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+s.replace(/'/g,"\\'")+'\')" style="font-size:12px;color:#065f46;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background .15s;margin-bottom:4px;background:rgba(255,255,255,0.6)" onmouseover="this.style.background=\'#d1fae5\'" onmouseout="this.style.background=\'rgba(255,255,255,0.6)\'">'+s+'</div>';}).join('');
+    html+='<div style="padding:16px 24px;background:var(--vh-panel-tan);border-bottom:1px solid var(--vh-panel-tan)">';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-ink);margin-bottom:8px">&#9993; Suggested Subject Lines <span style="font-weight:400;font-size:9px;color:var(--vh-ink-dim);text-transform:none;letter-spacing:0">(click to copy)</span></div>';
+    html+=subjs.map(function(s,si){return '<div onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+s.replace(/'/g,"\\'")+'\')" style="font-size:12px;color:var(--vh-ink);padding:6px 10px;border-radius:6px;cursor:pointer;transition:background .15s;margin-bottom:4px;background:rgba(255,255,255,0.6)" onmouseover="this.style.background=\'var(--vh-panel-tan)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.6)\'">'+s+'</div>';}).join('');
     html+='</div>';
     // ── Mailers — uniform Region → Variant → Preview + Download pattern ──
     var mktKeys=Object.keys(e.fullMailers||{});
     html+='<div style="padding:18px 24px">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:12px">&#128228; Generated Mailers · '+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &times; up to 2 variants</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;margin-bottom:12px">&var(--vh-ink); Generated Mailers · '+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &times; up to 2 variants</div>';
     if(!mktKeys.length){html+='<div style="font-size:12px;color:#bbb;padding:12px 0">No mailer HTML saved for this record.</div>';}
     else{
       // Use a placeholder div that renderRegionVariantPanel will populate after modal opens
@@ -9352,7 +9352,7 @@ function _renderDashRecordPanel(){
       var safeHtml=(html||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       var deviceWidth=({mobile:360,tablet:600,desktop:800})[window._mailerDevice||'desktop']||800;
       return _deviceToggleHTML()+
-        '<div style="max-width:'+deviceWidth+'px;width:100%;margin:0 auto;border:1px solid #e8e3da;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:max-width 0.25s ease">'+
+        '<div style="max-width:'+deviceWidth+'px;width:100%;margin:0 auto;border:1px solid var(--vh-panel-tan);border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.08);transition:max-width 0.25s ease">'+
         '<iframe class="vhd-mailer-frame" srcdoc="'+safeHtml+'" style="width:100%;height:540px;border:0;display:block;background:#fff"></iframe>'+
       '</div>';
     }
@@ -9600,7 +9600,7 @@ function renderHandoffVariants(variants, strategy, ctaUrl){
   if(!available.length){ box.style.display='none'; return box; }
   var head = '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;">'
     + '<div style="font-family:Montserrat,Raleway,Georgia,serif;font-size:18px;color:#D0473E;font-weight:600;">Mailer drafted from this plan row</div>'
-    + '<div style="font-size:11px;color:#7a6e5a;">2 variants · V1 complete text · V2 text + visual · subject "'+escStudio(strategy.subject_line||'')+'"</div>'
+    + '<div style="font-size:11px;color:var(--vh-lava);">2 variants · V1 complete text · V2 text + visual · subject "'+escStudio(strategy.subject_line||'')+'"</div>'
     + '</div>';
   var tabs = '<div id="vhdHvTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
     + available.map(function(k,i){
@@ -9613,19 +9613,19 @@ function renderHandoffVariants(variants, strategy, ctaUrl){
     var v = variants[k];
     var inner = '';
     if(v.html){
-      inner += '<iframe srcdoc="'+escStudio(v.html).replace(/&quot;/g,'&#34;')+'" style="width:100%;height:520px;border:1px solid #ece4d2;border-radius:8px;background:#fff;"></iframe>';
+      inner += '<iframe srcdoc="'+escStudio(v.html).replace(/&quot;/g,'&#34;')+'" style="width:100%;height:520px;border:1px solid var(--vh-panel-tan);border-radius:8px;background:#fff;"></iframe>';
     }
     // V2 (text + visual) also carries a visual brief + source cascade.
     if(v.hero_image_brief){
-      inner += '<div style="margin-top:10px;padding:18px;border:1px dashed #ece4d2;border-radius:10px;background:#faf6ef;">'
+      inner += '<div style="margin-top:10px;padding:18px;border:1px dashed var(--vh-panel-tan);border-radius:10px;background:var(--vh-panel-tan);">'
         + '<div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#6A33D8;font-weight:700;margin-bottom:6px;">Visual brief</div>'
         + '<div style="font-size:13px;line-height:1.6;color:#111111;">'+escStudio(v.hero_image_brief)+'</div>'
         + (v.hosted_media_url ? '<div style="margin-top:8px;font-size:11px;color:#D0473E;">Hosted media: <a href="'+escStudio(v.hosted_media_url)+'" target="_blank" rel="noopener" style="color:#D0473E;text-decoration:underline;">'+escStudio(v.hosted_media_url)+'</a></div>' : '')
-        + '<div style="margin-top:12px;font-size:11px;color:#7a6e5a;">Visual source order: hosted media URL → auto-generated GIF from product frames → AI video (last resort).</div>'
+        + '<div style="margin-top:12px;font-size:11px;color:var(--vh-lava);">Visual source order: hosted media URL → auto-generated GIF from product frames → AI video (last resort).</div>'
         + '</div>';
     }
-    if(!inner){ inner = '<div style="padding:18px;color:#7a6e5a;font-size:12px;">No preview available.</div>'; }
-    var foot = ctaUrl ? '<div style="margin-top:8px;font-size:11px;color:#7a6e5a;">CTA → <a href="'+escStudio(ctaUrl)+'" target="_blank" rel="noopener" style="color:#D0473E;text-decoration:underline;">'+escStudio(ctaUrl)+'</a></div>' : '';
+    if(!inner){ inner = '<div style="padding:18px;color:var(--vh-lava);font-size:12px;">No preview available.</div>'; }
+    var foot = ctaUrl ? '<div style="margin-top:8px;font-size:11px;color:var(--vh-lava);">CTA → <a href="'+escStudio(ctaUrl)+'" target="_blank" rel="noopener" style="color:#D0473E;text-decoration:underline;">'+escStudio(ctaUrl)+'</a></div>' : '';
     return '<div data-panel="'+k+'" style="'+(i===0?'':'display:none;')+'">'+inner+foot+'</div>';
   }).join('');
   box.innerHTML = head + tabs + '<div id="vhdHvPanels">'+panels+'</div>';

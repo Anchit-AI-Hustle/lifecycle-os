@@ -8,8 +8,8 @@
   /* Violet-green canvas, consistent with the locked shell theme (theme.css).
      --ink stays dark for text ON the lava badge/button; body text is chalk. */
   :root{--moss:#D0473E;--chalk:#FFFFFF;--lava:#6A33D8;--ink:#111111;
-    --canvas:var(--bg,#D0473E);--panel:var(--surface,#075C39);--panel2:var(--chip,#f4f2ec);
-    --txt:var(--vh-ink,#FFFFFF);--dim:var(--ink-dim,#E4CF94);--line:rgba(171,135,67,0.28)}
+    --canvas:var(--bg,#D0473E);--panel:var(--surface,var(--vh-ink));--panel2:var(--chip,var(--vh-panel-tan));
+    --txt:var(--vh-ink,#FFFFFF);--dim:var(--ink-dim,var(--vh-lava));--line:rgba(171,135,67,0.28)}
   *{box-sizing:border-box}
   body{margin:0;background:var(--canvas);color:var(--txt);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;line-height:1.55}
   .head{background:#D0473E;color:var(--chalk);padding:18px 22px}

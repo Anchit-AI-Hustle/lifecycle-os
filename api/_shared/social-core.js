@@ -80,7 +80,7 @@ function festivalsUK() { const f = loadJson('data/festivals.json'); return (f &&
 // ── Brand scrub — every emitted string passes through here ───────────────────
 // scenario-model sanitizeBrand collapses whitespace, which would flatten blog
 // markdown — so we only rewrite strings that actually contain a violation.
-const SCRUB_RX = /streetwear journey|liquid lava|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/i;
+const SCRUB_RX = /wellness journey|liquid gold|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/i;
 const SCRUB_TRANSFORM_RX = /\btransform(ing|ed|s|ation)?\b/i;
 const SCRUB_CAPS_RX = /LIMITED TIME/; // caps form specifically
 function scrubString(s) {
@@ -198,7 +198,7 @@ async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs 
 
 const BRAND_GATES = [
   'HARD BRAND GATES (a violation rejects the whole output):',
-  '- BANNED phrases, never use in any casing: "streetwear journey", "transform" (any form), "liquid lava", "game-changer", "LIMITED TIME", "hurry", "don\'t miss out", "last chance", "while supplies last".',
+  '- BANNED phrases, never use in any casing: "wellness journey", "transform" (any form), "liquid gold", "game-changer", "LIMITED TIME", "hurry", "don\'t miss out", "last chance", "while supplies last".',
   '- NO founder voice: no first-person-singular "I", no founder letters, no personal-name sign-offs. The brand speaks as "we".',
   '- NO health, medical or performance claims of any kind. The only claims allowed: 100% original base sneakers, hand-painted by India\'s best sneaker artists, water and scratch resistant, made to order in 10 to 15 days, express shipping to 60+ countries, worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.',
   '- Accessories (laces, lace tags): NEVER state a price — link the product page. coffee-ART pricing must match the catalog EXACTLY by base model: Court Vision £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91. EVERY lane is ONE-TIME purchase — never subscription, refill or auto-ship language anywhere.',

@@ -11,7 +11,7 @@
      so this page renders as a coherent LIGHT tool page regardless of the dark
      suite default. --chalk is used ONLY as heading text here, so it resolves to
      deep purple (readable on the light canvas), never light-on-light. */
-  html:root, html:root[data-theme]{ --bg:#FFFFFF; --panel:#ffffff; --panel2:#f4f2ec; --line:rgba(171,135,67,.28);
+  html:root, html:root[data-theme]{ --bg:#FFFFFF; --panel:#ffffff; --panel2:var(--vh-panel-tan); --line:rgba(171,135,67,.28);
     --green:#D0473E; --lava:#6A33D8; --chalk:#D0473E; --ink:#111111; --soft:#556059;
     --good:#2f8f57; --watch:#9a7420; --bad:#c0492e; }
   *{box-sizing:border-box;}
@@ -21,7 +21,7 @@
   h1{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--chalk);font-size:32px;margin:6px 0 4px;}
   .lede{color:var(--soft);font-size:14px;line-height:1.6;max-width:760px;margin:0 0 20px;}
   /* overall gauge */
-  .overall{display:flex;gap:22px;align-items:center;flex-wrap:wrap;background:linear-gradient(160deg,#ffffff,#f4f2ec);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 26px;box-shadow:0 1px 3px rgba(23,23,23,.05);}
+  .overall{display:flex;gap:22px;align-items:center;flex-wrap:wrap;background:linear-gradient(160deg,#ffffff,var(--vh-panel-tan));border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 26px;box-shadow:0 1px 3px rgba(23,23,23,.05);}
   .score-ring{position:relative;width:132px;height:132px;flex:0 0 auto;}
   .score-ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
   .score-ring .num b{font-family:'Montserrat',Georgia,serif;font-size:34px;color:var(--chalk);line-height:1;}
@@ -31,8 +31,8 @@
   /* card is a dark panel → its muted text must be LIGHT, not --soft (#556059),
      which was near-invisible on the dark surface. */
   .overall .meta p{color:#556059;font-size:13px;line-height:1.6;margin:0 0 8px;}
-  .overall .target{color:#7a5f28;}
-  .target{display:inline-block;background:rgba(171,135,67,.16);color:#7a5f28;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;}
+  .overall .target{color:var(--vh-ink);}
+  .target{display:inline-block;background:rgba(171,135,67,.16);color:var(--vh-ink);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;}
   .axes{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
   .axis{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--soft);}
   .axis b{color:var(--ink);font-size:15px;display:block;font-family:'Montserrat',Georgia,serif;}
@@ -64,7 +64,7 @@
   .road{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 20px;}
   .road li{margin:9px 0;line-height:1.55;font-size:13.5px;color:var(--ink);}
   .road li b{color:var(--chalk);}
-  a.dl{display:inline-block;margin-top:14px;color:#7a5f28;font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--lava);border-radius:9px;padding:9px 16px;}
+  a.dl{display:inline-block;margin-top:14px;color:var(--vh-ink);font-size:13px;font-weight:700;text-decoration:none;border:1px solid var(--lava);border-radius:9px;padding:9px 16px;}
   .foot{color:var(--soft);font-size:11.5px;margin-top:24px;line-height:1.6;}
 </style>
 </head>
@@ -88,7 +88,7 @@
   <div class="blockers" id="blockers"></div>
 
   <div class="sec-h">Feature scorecard</div>
-  <div class="legend">Colour: <b style="color:#3fa46a">≥8.5 strong</b> · <b style="color:#d9b25a">7–8.4 needs work</b> · <b style="color:#d1795f">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
+  <div class="legend">Colour: <b style="color:#3fa46a">≥8.5 strong</b> · <b style="color:var(--vh-lava)">7–8.4 needs work</b> · <b style="color:#d1795f">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
   <div class="grid" id="grid" style="margin-top:10px;"></div>
 
   <div class="sec-h">Roadmap to ≥ 9.5 everywhere</div>

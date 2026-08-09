@@ -19,7 +19,7 @@ async function ideate({ analysis = {}, calendar = {}, review = {}, market = 'US'
   };
   if (callLLM) {
     try {
-      const sys = "You are KNICKGASM's Head of Growth. Given the current analysis, plan, and a freshly generated campaign, propose the 3-5 highest-leverage NEXT actions the team should take that are NOT already on the calendar — new segments to test, untapped channels, creative experiments, retention plays, or data gaps to close. Return STRICT JSON {\"ideas\":[{\"title\",\"why\",\"action\",\"impact\":\"high|medium|low\",\"effort\":\"low|medium|high\"}]}. Be specific to the data provided; no platitudes, no banned phrases (no 'streetwear journey', 'transform', 'game-changer').";
+      const sys = "You are KNICKGASM's Head of Growth. Given the current analysis, plan, and a freshly generated campaign, propose the 3-5 highest-leverage NEXT actions the team should take that are NOT already on the calendar — new segments to test, untapped channels, creative experiments, retention plays, or data gaps to close. Return STRICT JSON {\"ideas\":[{\"title\",\"why\",\"action\",\"impact\":\"high|medium|low\",\"effort\":\"low|medium|high\"}]}. Be specific to the data provided; no platitudes, no banned phrases (no 'wellness journey', 'transform', 'game-changer').";
       const user = `MARKET: ${market}\nCONTEXT JSON:\n${JSON.stringify(ctx)}\n\nReturn the JSON now.`;
       const out = await callLLM({ systemPrompt: sys, userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 900, tier, stage: 'agentic-ideation' });
       const parsed = callLLM.parseJSON(typeof out === 'string' ? out : out.text);

@@ -7,14 +7,14 @@
 <link rel="icon" href="/favicon.png">
 <style>
   :root{
-    --green:#D0473E; --lava:#6A33D8; --lava-deep:#7a5a1e; --ink:#111111; --chalk:#FFFFFF;
-    --bg:#F3EEE2; --surface:#ffffff; --surface-2:#FFFFFF; --line:#E3D8BF; --line-strong:#CBB98C;
+    --green:#D0473E; --lava:#6A33D8; --lava-deep:var(--vh-ink); --ink:#111111; --chalk:#FFFFFF;
+    --bg:var(--vh-panel-tan); --surface:#ffffff; --surface-2:#FFFFFF; --line:var(--vh-panel-tan); --line-strong:var(--vh-lava);
     /* Contrast tokens — every pair below is dark-on-light and clears WCAG-AA
-       (>=4.5:1) on --surface and --surface-2. --dim was #5c6b60 (4.9:1) and is
-       now #3D4A42 (8.2:1); lava text only ever uses the deep lava. */
-    --text:#1F2A23; --dim:#3D4A42; --head:#D0473E;
-    --good:#0E5C36; --good-bg:#DCEDE3; --warn:#6E4A0C; --warn-bg:#F7ECD2; --bad:#7A2718; --bad-bg:#F7DED6;
-    --live:#0E5C36; --live-bg:#D6EBDD;
+       (>=4.5:1) on --surface and --surface-2. --dim was var(--vh-ink) (4.9:1) and is
+       now var(--vh-ink) (8.2:1); lava text only ever uses the deep lava. */
+    --text:var(--vh-ink); --dim:var(--vh-ink); --head:#D0473E;
+    --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan); --bad:#7A2718; --bad-bg:var(--vh-panel-tan);
+    --live:var(--vh-ink); --live-bg:var(--vh-panel-tan);
     --shadow:0 4px 16px rgba(0,74,43,.08);
     --sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
     --serif:'Montserrat','Raleway',Georgia,serif;
@@ -110,7 +110,7 @@
   .cal .cell.pad{background:transparent;border:0}
   .cal .cell.past{background:var(--surface)}
   .cal .cell.today{border:2px solid var(--live);background:var(--live-bg);box-shadow:0 0 0 3px rgba(14,92,54,.10)}
-  .cal .cell.future{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 7px,#F4EDDC 7px,#F4EDDC 14px)}
+  .cal .cell.future{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 7px,var(--vh-panel-tan) 7px,var(--vh-panel-tan) 14px)}
   .cal .cell .dn{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--head)}
   .cal .cell .sp{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--head);margin-top:3px}
   .cal .cell .mt{font-size:10.5px;color:var(--dim);font-weight:600;line-height:1.35}
@@ -148,8 +148,8 @@
   .acard .mx div{min-width:0}
   .acard .mx .k{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
   .acard .mx .v{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums}
-  .notice{background:var(--warn-bg);border:1px solid var(--warn);border-left:4px solid var(--warn);border-radius:9px;padding:11px 14px;margin:10px 0;font-size:13px;color:#4A3208;font-weight:500}
-  .notice b{color:#3A2706}
+  .notice{background:var(--warn-bg);border:1px solid var(--warn);border-left:4px solid var(--warn);border-radius:9px;padding:11px 14px;margin:10px 0;font-size:13px;color:var(--vh-ink);font-weight:500}
+  .notice b{color:var(--vh-ink)}
 </style>
 </head>
 <body>
@@ -208,7 +208,7 @@
     <div class="legend">
       <span><i style="background:var(--surface)"></i> Past day — actuals</span>
       <span><i style="background:var(--live-bg);border-color:var(--live)"></i> Today — live, partial day</span>
-      <span><i style="background:#F4EDDC"></i> Future — planned only, no figures</span>
+      <span><i style="background:var(--vh-panel-tan)"></i> Future — planned only, no figures</span>
       <span><i style="background:var(--live);border-radius:50%"></i> ads delivering</span>
     </div>
     <div class="cal" id="cal-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
@@ -328,7 +328,7 @@
   </div>
 
   <div class="panel" id="p-kb">
-    <div class="notice" style="background:var(--live-bg);border-color:var(--live);border-left-color:var(--live);color:#0B3D24">
+    <div class="notice" style="background:var(--live-bg);border-color:var(--live);border-left-color:var(--live);color:var(--vh-ink)">
       <b>The final SOP for ad campaigns is the standing procedure</b> — scoring, nomenclature, landing pages, the 26 tracker columns, the three-level UGC flow, budgets and turnaround.
       It has its own tab: <a href="#sop" id="kb-to-sop" style="font-weight:700">open the SOP tab</a>. The master tracking sheet is the source of truth over every document here.
     </div>

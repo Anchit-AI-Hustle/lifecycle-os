@@ -428,7 +428,7 @@ function sanitizeBrand(str) {
 
 // Dev-only tripwire: throw outside production if a banned phrase survives, so a
 // future edit to the static profiles can't silently reintroduce one.
-const ALL_BANNED_RX = /streetwear journey|\btransform\b|liquid lava|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
+const ALL_BANNED_RX = /wellness journey|\btransform\b|liquid gold|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
 function assertNoBanned(str, where = '') {
   if (str == null) return;
   if (process.env.VERCEL_ENV !== 'production' && ALL_BANNED_RX.test(String(str))) {

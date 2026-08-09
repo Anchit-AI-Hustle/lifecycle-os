@@ -7,10 +7,10 @@
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
-  :root{--violet:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--bg:#FFFFFF;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--chip:#f0e7d3;--head:#D0473E;--accent:#6A33D8;}
-  @media (prefers-color-scheme: dark){:root{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}}
-  :root[data-theme="dark"]{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}
-  :root[data-theme="light"]{--bg:#FFFFFF;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--ink:#111111;--head:#D0473E;--accent:#6A33D8;--chip:#f0e7d3;}
+  :root{--violet:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--bg:#FFFFFF;--surface:#ffffff;--line:var(--vh-panel-tan);--soft:var(--vh-ink);--chip:var(--vh-panel-tan);--head:#D0473E;--accent:#6A33D8;}
+  @media (prefers-color-scheme: dark){:root{--bg:var(--vh-ink);--surface:var(--vh-ink);--line:var(--vh-ink);--soft:var(--vh-lava);--ink:var(--vh-panel-tan);--head:var(--vh-ink-dim);--accent:var(--vh-lava);--chip:var(--vh-ink);}}
+  :root[data-theme="dark"]{--bg:var(--vh-ink);--surface:var(--vh-ink);--line:var(--vh-ink);--soft:var(--vh-lava);--ink:var(--vh-panel-tan);--head:var(--vh-ink-dim);--accent:var(--vh-lava);--chip:var(--vh-ink);}
+  :root[data-theme="light"]{--bg:#FFFFFF;--surface:#ffffff;--line:var(--vh-panel-tan);--soft:var(--vh-ink);--ink:#111111;--head:#D0473E;--accent:#6A33D8;--chip:var(--vh-panel-tan);}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
   .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}

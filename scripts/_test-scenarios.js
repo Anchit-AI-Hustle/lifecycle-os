@@ -9,7 +9,7 @@ const path = require('path');
 const generate = require(path.join('..', 'api', '_shared', 'calendar-generate.js'));
 const SM = require(path.join('..', 'api', '_shared', 'scenario-model.js'));
 
-const BANNED = /streetwear journey|\btransform\b|liquid lava|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
+const BANNED = /wellness journey|\btransform\b|liquid gold|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
 
 const SEED = {
   segments: [

@@ -9,12 +9,12 @@
 <style>
   :root{
     --violet:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
-    --bg:#FFFFFF; --surface:#ffffff; --line:#e3d8c2; --soft:#5c5347; --chip:#f0e7d3;
+    --bg:#FFFFFF; --surface:#ffffff; --line:var(--vh-panel-tan); --soft:var(--vh-ink); --chip:var(--vh-panel-tan);
     --head:#D0473E; --accent:#6A33D8;
   }
-  @media (prefers-color-scheme: dark){:root{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}}
-  :root[data-theme="dark"]{--bg:#131711;--surface:#1c231b;--line:#333d30;--soft:#a99f8c;--ink:#ede5d3;--head:#9fc7ad;--accent:#c9a35f;--chip:#2a3227;}
-  :root[data-theme="light"]{--bg:#FFFFFF;--surface:#ffffff;--line:#e3d8c2;--soft:#5c5347;--ink:#111111;--head:#D0473E;--accent:#6A33D8;--chip:#f0e7d3;}
+  @media (prefers-color-scheme: dark){:root{--bg:var(--vh-ink);--surface:var(--vh-ink);--line:var(--vh-ink);--soft:var(--vh-lava);--ink:var(--vh-panel-tan);--head:var(--vh-ink-dim);--accent:var(--vh-lava);--chip:var(--vh-ink);}}
+  :root[data-theme="dark"]{--bg:var(--vh-ink);--surface:var(--vh-ink);--line:var(--vh-ink);--soft:var(--vh-lava);--ink:var(--vh-panel-tan);--head:var(--vh-ink-dim);--accent:var(--vh-lava);--chip:var(--vh-ink);}
+  :root[data-theme="light"]{--bg:#FFFFFF;--surface:#ffffff;--line:var(--vh-panel-tan);--soft:var(--vh-ink);--ink:#111111;--head:#D0473E;--accent:#6A33D8;--chip:var(--vh-panel-tan);}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
   .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
@@ -27,9 +27,9 @@
   .frozen-banner .t{font-size:13.5px;color:var(--ink);}
   .frozen-banner b{color:var(--head);}
   .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;border:1px solid var(--line);}
-  .chip.frozen{background:#efe3c9;color:#7a5a12;border-color:#e0cfa3;}
-  @media (prefers-color-scheme:dark){.chip.frozen{background:#332913;color:#d9b768;border-color:#4a3a1a;}}
-  :root[data-theme="dark"] .chip.frozen{background:#332913;color:#d9b768;border-color:#4a3a1a;}
+  .chip.frozen{background:var(--vh-panel-tan);color:var(--vh-ink);border-color:var(--vh-lava);}
+  @media (prefers-color-scheme:dark){.chip.frozen{background:var(--vh-ink);color:var(--vh-lava);border-color:var(--vh-ink);}}
+  :root[data-theme="dark"] .chip.frozen{background:var(--vh-ink);color:var(--vh-lava);border-color:var(--vh-ink);}
   .section-h{display:flex;align-items:baseline;gap:10px;margin:30px 0 6px;flex-wrap:wrap;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:14px 0;}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:flex;flex-direction:column;}
@@ -37,7 +37,7 @@
   .card .d{color:var(--soft);font-size:13px;margin-top:8px;flex:1;}
   .card .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
   a.btn{display:inline-block;text-decoration:none;background:var(--violet);color:#FFFFFF;border-radius:6px;padding:7px 13px;font-size:12.5px;font-weight:700;border:1px solid var(--violet);}
-  a.btn:hover{background:#013a22;}
+  a.btn:hover{background:var(--vh-ink);}
   a.btn.ghost{background:transparent;color:var(--head);border-color:var(--line);}
   a.btn.ghost:hover{border-color:var(--accent);}
   table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;}
@@ -47,9 +47,9 @@
   .learn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:12px 0;}
   .learn .top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
   .learn .st{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:5px;padding:2px 8px;}
-  .st.ported{background:#e7f0e9;color:#D0473E;} .st.kept{background:#f0e7d3;color:#7a5a12;} .st.doc{background:var(--chip);color:var(--soft);}
-  @media (prefers-color-scheme:dark){.st.ported{background:#1d3326;color:#9fd0ae;}}
-  :root[data-theme="dark"] .st.ported{background:#1d3326;color:#9fd0ae;}
+  .st.ported{background:var(--vh-panel-tan);color:#D0473E;} .st.kept{background:var(--vh-panel-tan);color:var(--vh-ink);} .st.doc{background:var(--chip);color:var(--soft);}
+  @media (prefers-color-scheme:dark){.st.ported{background:var(--vh-ink);color:var(--vh-ink-dim);}}
+  :root[data-theme="dark"] .st.ported{background:var(--vh-ink);color:var(--vh-ink-dim);}
   .learn .d{color:var(--soft);font-size:13px;margin-top:7px;}
   .learn .name{font-weight:700;color:var(--head);}
   .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:30px;padding-top:14px;}
@@ -98,16 +98,16 @@
   </div>
 
   <div class="section-h"><h2>Frozen week-1 email campaign</h2><span class="chip frozen">read-only</span></div>
-  <p class="lede">The first lifecycle campaign, 3 sends per cohort across Jul 3, 6 and 9, each with a variation. Klaviyo paste-ready HTML, exactly as authored that day. <a href="/diff-version/emails/strategy.md">Strategy doc</a> &middot; <a href="/diff-version/emails/facts.md">Locked facts</a>.</p>
+  <p class="lede">The first lifecycle campaign, 3 sends per cohort across Jul 3, 6 and 9, each with a variation. Klaviyo paste-ready HTML, exactly as authored that day. <span class="muted">Strategy doc (archived)</span> &middot; <span class="muted">Locked facts (archived)</span>.</p>
   <table>
     <thead><tr><th>Date</th><th>Cohort</th><th>Play</th><th>Variation A</th><th>Variation B</th></tr></thead>
     <tbody>
-      <tr><td>Thu 3 Jul</td><td>A &middot; Non-Buyers</td><td>Brand/origin story, coffee intro</td><td><a href="/diff-version/emails/2026-07-03_cohortA_story-intro-coffee.html">Open</a></td><td><a href="/diff-version/emails/2026-07-03_cohortA_story-intro-coffee_v2.html">Open</a></td></tr>
-      <tr><td>Thu 3 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Warm win-back, Wimbledon</td><td><a href="/diff-version/emails/2026-07-03_cohortB_winback-wimbledon.html">Open</a></td><td><a href="/diff-version/emails/2026-07-03_cohortB_winback-wimbledon_v2.html">Open</a></td></tr>
-      <tr><td>Sun 6 Jul</td><td>A &middot; Non-Buyers</td><td>Gifts unboxing, subscription value</td><td><a href="/diff-version/emails/2026-07-06_cohortA_gifts-unboxing-subscription.html">Open</a></td><td><a href="/diff-version/emails/2026-07-06_cohortA_gifts-unboxing-subscription_v2.html">Open</a></td></tr>
-      <tr><td>Sun 6 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Coffee launch for sneaker-lovers</td><td><a href="/diff-version/emails/2026-07-06_cohortB_coffee-launch-sneaker-lovers.html">Open</a></td><td><a href="/diff-version/emails/2026-07-06_cohortB_coffee-launch-sneaker-lovers_v2.html">Open</a></td></tr>
-      <tr><td>Wed 9 Jul</td><td>A &middot; Non-Buyers</td><td>B2G1 Pack-of-3 offer</td><td><a href="/diff-version/emails/2026-07-09_cohortA_pack-of-3-offer.html">Open</a></td><td><a href="/diff-version/emails/2026-07-09_cohortA_pack-of-3-offer_v2.html">Open</a></td></tr>
-      <tr><td>Wed 9 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Supplements launch</td><td><a href="/diff-version/emails/2026-07-09_cohortB_supplements-launch.html">Open</a></td><td><a href="/diff-version/emails/2026-07-09_cohortB_supplements-launch_v2.html">Open</a></td></tr>
+      <tr><td>Thu 3 Jul</td><td>A &middot; Non-Buyers</td><td>Brand/origin story, coffee intro</td><td><span class="muted">Open (archived)</span></td><td><span class="muted">Open (archived)</span></td></tr>
+      <tr><td>Thu 3 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Warm win-back, Wimbledon</td><td><span class="muted">Open (archived)</span></td><td><span class="muted">Open (archived)</span></td></tr>
+      <tr><td>Sun 6 Jul</td><td>A &middot; Non-Buyers</td><td>Gifts unboxing, subscription value</td><td><span class="muted">Open (archived)</span></td><td><span class="muted">Open (archived)</span></td></tr>
+      <tr><td>Sun 6 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Coffee launch for sneaker-lovers</td><td><span class="muted">Open (archived)</span></td><td><span class="muted">Open (archived)</span></td></tr>
+      <tr><td>Wed 9 Jul</td><td>A &middot; Non-Buyers</td><td>B2G1 Pack-of-3 offer</td><td><span class="muted">Open (archived)</span></td><td><span class="muted">Open (archived)</span></td></tr>
+      <tr><td>Wed 9 Jul</td><td>B &middot; T&amp;B Lapsed</td><td>Supplements launch</td><td><span class="muted">Open (archived)</span></td><td><span class="muted">Open (archived)</span></td></tr>
     </tbody>
   </table>
 

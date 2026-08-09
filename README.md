@@ -130,7 +130,7 @@ All inherited from the parent repo (see `CLAUDE.md`):
 - Palette: `#D0473E` deep purple · `#6A33D8` lava · `#111111` ink · `#FFFFFF`
   chalk
 - Type: Montserrat (headings) + Instrument Sans (body)
-- Banned phrases enforced: "streetwear journey", "transform", "liquid lava",
+- Banned phrases enforced: "wellness journey", "transform", "liquid gold",
   "LIMITED TIME", "hurry", "don't miss out"
 
 ---

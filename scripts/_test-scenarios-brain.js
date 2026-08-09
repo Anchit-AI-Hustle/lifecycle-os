@@ -8,7 +8,7 @@ const path = require('path');
 const SM = require(path.join('..', 'api', '_shared', 'scenario-model.js'));
 const plan = require(path.join('..', 'api', '_shared', 'smart-brain-plan.js'));
 
-const BANNED = /streetwear journey|\btransform\b|liquid lava|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
+const BANNED = /wellness journey|\btransform\b|liquid gold|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
 
 let failures = 0;
 function ok(cond, msg) { if (cond) { console.log('  ✓', msg); } else { console.error('  ✗', msg); failures++; } }

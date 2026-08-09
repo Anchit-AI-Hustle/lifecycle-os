@@ -9,7 +9,7 @@
     --knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF;
     --font-head:"Montserrat",Georgia,"Times New Roman",serif;
     --font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
-    --bg:#06120d; --panel:#0b1a13; --hair:rgba(171,135,67,.22); --muted:#556059; --lava:var(--knickgasm-lava);
+    --bg:var(--vh-ink); --panel:var(--vh-ink); --hair:rgba(171,135,67,.22); --muted:#556059; --lava:var(--knickgasm-lava);
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:#111111;font-family:var(--font-body);line-height:1.55}
@@ -39,8 +39,8 @@
   td{padding:12px 12px;border-bottom:1px solid rgba(171,135,67,.12);vertical-align:top}
   td.obj{font-weight:600;color:#111111;max-width:220px}
   td .sub{color:var(--muted);font-size:12px}
-  .pill{display:inline-block;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:#7a5f28}
-  .slotbadge{display:inline-block;background:#2a2411;color:#7a5f28;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+  .pill{display:inline-block;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:var(--vh-ink)}
+  .slotbadge{display:inline-block;background:var(--vh-ink);color:var(--vh-ink);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
   .note{color:var(--muted);font-size:12.5px}
 </style>
 <script src="/auth.js?v=20260718light" defer></script>

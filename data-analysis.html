@@ -10,10 +10,10 @@
   /* Palette locked to the /all-in-one dashboard (near-black-green canvas). */
   :root{
     --violet:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
-    --bg:#ffffff; --surface:#ffffff; --tile:#f4f2ec; --line:rgba(171,135,67,.18); --soft:#556059; --chip:#f4f2ec;
+    --bg:#ffffff; --surface:#ffffff; --tile:var(--vh-panel-tan); --line:rgba(171,135,67,.18); --soft:#556059; --chip:var(--vh-panel-tan);
     --head:#111111; --accent:#6A33D8;
     /* Chart categorical palette — chosen for contrast on the dark canvas */
-    --c1:#6A33D8; --c2:#E4CF94; --c3:#5FB487; --c4:#C7A65C; --c5:#8FD3B0; --c6:#F2E6C9;
+    --c1:#6A33D8; --c2:var(--vh-lava); --c3:#5FB487; --c4:var(--vh-lava); --c5:#8FD3B0; --c6:var(--vh-panel-tan);
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.5;}
@@ -63,7 +63,7 @@
   /* charts */
   svg{display:block;max-width:100%;height:auto;overflow:visible;}
   /* time-granularity view toggle (detail drill-down) */
-  .tv-toggle{display:inline-flex;gap:4px;background:var(--chip,#f4f2ec);border:1px solid var(--line);border-radius:11px;padding:4px;margin-top:14px;flex-wrap:wrap;}
+  .tv-toggle{display:inline-flex;gap:4px;background:var(--chip,var(--vh-panel-tan));border:1px solid var(--line);border-radius:11px;padding:4px;margin-top:14px;flex-wrap:wrap;}
   .tv-tile{border:none;background:transparent;color:var(--soft);font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;}
   .tv-tile:hover:not(.dis):not(.on){color:var(--ink);}
   .tv-tile.on{background:#D0473E;color:#FFFFFF;}
@@ -125,9 +125,9 @@
       <button data-tab="cohort">Cohort &amp; Calendar</button>
     </div>
 
-    <a href="/usa-d2c-report" id="reviewCta" style="display:block;margin:14px 0 6px;padding:14px 18px;border:1px solid var(--line-strong,#CBB98C);border-left:4px solid var(--accent,#6A33D8);border-radius:11px;background:var(--surface,#fff);text-decoration:none;box-shadow:0 4px 14px rgba(0,74,43,.08)">
+    <a href="/usa-d2c-report" id="reviewCta" style="display:block;margin:14px 0 6px;padding:14px 18px;border:1px solid var(--line-strong,var(--vh-lava));border-left:4px solid var(--accent,#6A33D8);border-radius:11px;background:var(--surface,#fff);text-decoration:none;box-shadow:0 4px 14px rgba(0,74,43,.08)">
       <span style="display:block;font-weight:700;color:var(--head,#D0473E);font-size:15.5px">Full D2C Business Review — 8 deep-dive areas &nbsp;→</span>
-      <span style="display:block;margin-top:4px;color:var(--soft,#31483B);font-size:13px">Website performance · customer cohorts &amp; reactivation · catalog &amp; Amazon price parity · order fulfilment &amp; delivery · support / CX tickets · category performance · coffee deep-dive · apps &amp; access audit.</span>
+      <span style="display:block;margin-top:4px;color:var(--soft,var(--vh-ink));font-size:13px">Website performance · customer cohorts &amp; reactivation · catalog &amp; Amazon price parity · order fulfilment &amp; delivery · support / CX tickets · category performance · coffee deep-dive · apps &amp; access audit.</span>
     </a>
 
     <div class="kpis" id="kpis"></div>
@@ -600,7 +600,7 @@
   };
   function unlockCard(u){
     return '<div class="w span6"><div class="wh"><span class="wt">'+esc(u.t)+'</span>'+
-      '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c79a3a;background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">🔒 Connect '+esc(u.need)+'</span></div>'+
+      '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--vh-lava);background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">🔒 Connect '+esc(u.need)+'</span></div>'+
       '<div class="ws">'+esc(u.s)+'</div>'+
       '<div class="wbody"><div class="empty" style="padding:22px 16px;text-align:center;line-height:1.6">'+esc(u.why)+'</div></div></div>';
   }

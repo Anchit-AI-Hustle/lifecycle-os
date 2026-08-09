@@ -263,7 +263,7 @@ CSV/XLSX exports (Matrixify · Shopify Analytics · Klaviyo · WebEngage)
   (`IMAGE_PROMPT_PREAMBLE`, `DESIGN_PROMPT_PREAMBLE`, `AD_PROMPT_PREAMBLE`,
   `QUALITY_SUFFIX`) and the pipeline HTML system prompts.
 - **Banned phrases + no-dash rule** (`api/_shared/scenario-model.js`): `BANNED_RX`
-  (streetwear journey, liquid lava, game-changer, hurry, don't miss out, last chance,
+  (wellness journey, liquid gold, game-changer, hurry, don't miss out, last chance,
   while supplies last), `BANNED_TRANSFORM_RX`, `BANNED_CAPS_RX` (LIMITED TIME).
   `sanitizeBrand()` rewrites offenders; `scrubDashes()` strips em/en dashes
   (product-owner rule, 2026-07-04). A dev-only tripwire `assertNoBanned()` throws

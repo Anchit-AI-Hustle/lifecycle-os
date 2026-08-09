@@ -77,7 +77,7 @@ function brandGatesBlock() {
     'BRAND GATES (hard fail if violated):',
     '- Palette: only deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. Never mention other colors.',
     "- Fonts are fixed by the template (Montserrat headings, Instrument Sans body) - do not reference fonts in copy.",
-    '- BANNED phrases (any casing unless noted): "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" in caps, "hurry", "don\'t miss out", "last chance", "while supplies last".',
+    '- BANNED phrases (any casing unless noted): "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" in caps, "hurry", "don\'t miss out", "last chance", "while supplies last".',
     '- NO FOUNDER VOICE - no founder letters, no "from our founder/CEO", no personal-name sign-offs, no first-person-singular ("I") narration. The brand speaks as "we".',
     '- NO health, medical or performance claims of ANY kind - KNICKGASM sells hand-painted sneakers, not remedies. The only claims allowed are: 100% original base sneakers, hand-painted by India\'s best artists, water and scratch resistant, made to order in 10 to 15 days, express shipping to 60+ countries, worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.',
     '- No invented discounts or codes. Only the exact prices/mechanics in the product facts.',

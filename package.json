@@ -33,7 +33,10 @@
     "mobile:ios:open": "cap open ios",
     "brand:sync": "node scripts/brand-sync.js",
     "brand:check": "node scripts/brand-sync.js --check",
-    "brand:presets": "node scripts/build-brand-presets.js"
+    "brand:presets": "node scripts/build-brand-presets.js",
+    "audit:pages": "node scripts/audit-pages.js",
+    "audit:pages:ci": "node scripts/audit-pages.js --fail",
+    "retheme": "node scripts/retheme-legacy-palette.js"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",

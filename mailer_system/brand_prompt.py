@@ -11,7 +11,7 @@ TONE ALWAYS: Calm, confident, premium. Evocative without confusion. Specific ove
 
 TONE NEVER: Urgent, pushy, countdown-driven. Generic streetwear clichés. Spammy subject line tactics. Overlong paragraphs.
 
-BANNED WORDS: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME in caps / You won't believe / Hurry / Don't miss out
+BANNED WORDS: wellness journey / transform / liquid gold / game-changer / LIMITED TIME in caps / You won't believe / Hurry / Don't miss out
 
 PREFERRED WORDS: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Phrases: "Your morning ritual" / "From the studios of…" / "Laced in tradition"
 

@@ -105,7 +105,7 @@
     content: attr(data-tip);
     position: absolute; left: calc(100% + 8px); top: 50%;
     transform: translateY(-50%) translateX(-4px);
-    background: #eef3f0; border: 1px solid rgba(171,135,67,0.3);
+    background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3);
     color: #111111; padding: 6px 10px; border-radius: 6px;
     font-size: 11px; white-space: nowrap;
     opacity: 0; pointer-events: none; transition: opacity 0.12s, transform 0.12s;
@@ -197,7 +197,7 @@
   .b-US { background:rgba(59,130,246,0.15); color:#1d4ed8; }
   .b-UK { background:rgba(234,88,12,0.15); color:#b45309; }
   .b-Global { background:rgba(171,135,67,0.18); color:#6A33D8; }
-  .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#eef3f0; }
+  .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:var(--vh-panel-tan); }
   .seg-name { font-weight:700; font-size:13px; }
   .seg-meta { font-size:11px; color:#556059; margin-top:4px; }
   .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
@@ -205,7 +205,7 @@
   .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:#ffffff; font-weight:600; border-radius:2px; }
   .apex-tooltip-custom { background:#ffffff !important; border:1px solid #6A33D8 !important; color:#111111 !important; font-family:'Inter',sans-serif !important; }
   .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; }
-  .delta-up { color:#22c55e; background:rgba(34,197,94,0.1); }
+  .delta-up { color:var(--vh-ink-dim); background:rgba(34,197,94,0.1); }
   .delta-down { color:#ef4444; background:rgba(239,68,68,0.1); }
 </style>
 </head>

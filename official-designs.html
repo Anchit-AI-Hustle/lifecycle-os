@@ -14,12 +14,12 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 70px; }
-  .badge { display: inline-block; border: 1px solid rgba(171,135,67,.4); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: #7a5f28; font-weight: 700; margin-bottom: 10px; }
-  .eyebrow { color: #7a5f28; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
+  .badge { display: inline-block; border: 1px solid rgba(171,135,67,.4); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--vh-ink); font-weight: 700; margin-bottom: 10px; }
+  .eyebrow { color: var(--vh-ink); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
   h1 { font-family: 'Lora', serif; font-size: 34px; line-height: 1.05; margin: 8px 0 10px; color: #111111; }
-  h1 em { font-style: italic; color: #7a5f28; }
+  h1 em { font-style: italic; color: var(--vh-ink); }
   p { color: #556059; line-height: 1.6; max-width: 760px; }
-  .stage { margin: 20px 0; border: 1px solid rgba(171,135,67,.22); border-radius: 16px; overflow: hidden; height: 66vh; min-height: 460px; position: relative; background: #f7f5f0; }
+  .stage { margin: 20px 0; border: 1px solid rgba(171,135,67,.22); border-radius: 16px; overflow: hidden; height: 66vh; min-height: 460px; position: relative; background: var(--vh-panel-tan); }
   .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
   .grp { display: inline-flex; gap: 6px; align-items: center; padding: 4px; border: 1px solid rgba(171,135,67,.22); border-radius: 12px; }
   .grp .lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #48524c; font-weight: 700; padding: 0 6px; }
@@ -38,7 +38,7 @@
   <div class="badge">V2 · 3D Engine</div>
   <div class="eyebrow">Official Website Designs</div>
   <h1>The store, rebuilt as a <em>3D scene</em></h1>
-  <p>A true-to-brand replica of Knickgasm's digital signature rendered as a continuous WebGL scene: floating
+  <p>A true-to-brand recreation of Knickgasm's digital signature rendered as a continuous WebGL scene: floating
      product panels, glassmorphic surfaces, brand-cloned colours and typography. Live catalog and pricing come
      from the regional Shopify storefront; historical metrics from the Snowflake to Supabase daily mirror. The
      scene ships in <b>both variations</b> — dark background with light text, and light background with dark

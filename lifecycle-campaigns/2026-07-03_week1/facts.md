@@ -103,7 +103,7 @@ No beverage framing anywhere (nothing is brewed, poured, tasted or consumed).
 - **Palette — ONLY these hex values may appear anywhere in the HTML**: `#D0473E` (lava red, primary accent), `#6A33D8` (drip purple, secondary), `#111111` (ink, text and primary buttons), `#FFFFFF` (white background). No greys, no other tints. (Case-insensitive; 3-digit shorthand also banned.)
 - **Never a black or dark-neutral section background** — sections are white or lava red; keep WCAG-AA contrast.
 - **Fonts**: headings `'Montserrat','Raleway',Georgia,serif` · body `'Instrument Sans','Helvetica Neue',Arial,sans-serif`. No other families.
-- **BANNED phrases** (any casing unless noted): "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
+- **BANNED phrases** (any casing unless noted): "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
 - **No em/en dashes anywhere in output copy** - use commas, colons, or plain hyphens.
 - **NO FOUNDER VOICE — HARD RULE**: no founder letters, no "from our founder/CEO", no personal-name sign-offs, no first-person-singular ("I") narration. The brand speaks as "we".
 - **No health, wellness or medical language of any kind.** KNICKGASM sells artwork on footwear.

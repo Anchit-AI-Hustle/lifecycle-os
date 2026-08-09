@@ -18,7 +18,7 @@
     .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
     @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
-    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #7a5f28; font-weight: 600; margin-bottom: 10px; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--vh-ink); font-weight: 600; margin-bottom: 10px; }
     .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
     h1 { font-family: 'Lora', serif; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
     h1 em { font-style: italic; color: #6A33D8; }
@@ -58,20 +58,20 @@
     .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
     .btn-ghost:hover { border-color: #6A33D8; color: #111111; }
 
-    .pill { display: inline-block; background: rgba(171,135,67,0.14); color: #7a5f28; font-size: 11px; padding: 3px 9px; border-radius: 99px; margin: 2px; }
+    .pill { display: inline-block; background: rgba(171,135,67,0.14); color: var(--vh-ink); font-size: 11px; padding: 3px 9px; border-radius: 99px; margin: 2px; }
 
     .lp-list { display: flex; flex-direction: column; gap: 10px; }
     .lp-row { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #ffffff; border: 1px solid rgba(171,135,67,0.14); border-radius: 12px; }
     .lp-row .body { flex: 1; min-width: 0; }
     .lp-row .name { font-size: 13.5px; font-weight: 600; color: #111111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lp-row .meta-row { font-size: 11.5px; color: #556059; margin-top: 3px; }
-    .lp-row .region-tag { background: rgba(171,135,67,0.14); color: #7a5f28; font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
+    .lp-row .region-tag { background: rgba(171,135,67,0.14); color: var(--vh-ink); font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
     .lp-btn { font-family: inherit; font-size: 11.5px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.3); border-radius: 7px; padding: 5px 11px; cursor: pointer; }
     .lp-btn:hover { border-color: #6A33D8; color: #111111; }
     .empty { padding: 30px; text-align: center; color: #48524c; font-size: 13px; background: rgba(171,135,67,0.04); border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
 
     .channel-info { background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; font-size: 12.5px; color: #556059; line-height: 1.55; }
-    .channel-info b { color: #7a5f28; }
+    .channel-info b { color: var(--vh-ink); }
 
     .status { font-size: 12.5px; color: #556059; min-height: 16px; margin-top: 8px; }
   </style>
@@ -89,7 +89,7 @@
   <section class="card" style="padding: 16px; margin-bottom: 24px;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
       <div class="label" style="margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600;">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #7a5f28; text-decoration: none;">Open real analysis →</a>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open real analysis →</a>
     </div>
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
       <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
@@ -319,7 +319,7 @@
         <div class="meta">Performance</div>
         <h3>Winning Page Structures</h3>
         <div style="margin-top: 12px; font-size: 13px; color: #556059;">
-          <p style="font-size:11px;color:#7a5f28;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns — not measured on KNICKGASM data</p>
+          <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns — not measured on KNICKGASM data</p>
           <p>Placing the "Us vs Them" comparison table above the fold on mobile is a widely used conversion pattern worth testing.</p>
           <p style="margin-top: 8px;"><b>Trend:</b> "Listicle" style advertorials are common on Meta traffic.</p>
         </div>
@@ -337,7 +337,7 @@
         <div class="meta">Discover Radar</div>
         <h3>Emerging Trends</h3>
         <div style="margin-top: 12px; font-size: 13px; color: #556059; line-height: 1.6;">
-          <p style="font-size:11px;color:#7a5f28;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns to test — not measured KNICKGASM figures</p>
+          <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns to test — not measured KNICKGASM figures</p>
           <p>• <b>Micro-animations</b> on Add-to-Cart buttons.</p>
           <p>• <b>Interactive pricing sliders</b> for subscription tiers.</p>
           <p>• <b>Video-first hero sections</b> shot natively on iPhone for TikTok traffic.</p>
@@ -351,7 +351,7 @@
     <div class="channel-info">
       <b>3D landing templates</b> — powered by the Knickgasm3DConnectorEngine. Each renders as a continuous WebGL scene of floating product panels with an automatic fast 2D fallback for mobile / reduced-motion / crawler traffic. Meta-ads landers (knickgasm.com, knickgasm.com) auto-collapse to a single-product spatial checkout. Live catalog and pricing come from Shopify; historical metrics from the Snowflake to Supabase mirror.
     </div>
-    <div style="border:1px solid rgba(171,135,67,.18);border-radius:16px;overflow:hidden;background:#07100d;margin-bottom:16px">
+    <div style="border:1px solid rgba(171,135,67,.18);border-radius:16px;overflow:hidden;background:var(--vh-ink);margin-bottom:16px">
       <div data-knickgasm3d data-region="us" id="lp-threed-preview" style="width:100%;height:360px"></div>
     </div>
     <div class="grid-2">
@@ -372,7 +372,7 @@
         </div>
       </div>
     </div>
-    <div style="margin-top:14px"><a href="/official-designs" style="color:#7a5f28;font-weight:700;text-decoration:none">Open the full Official Website Designs showcase →</a></div>
+    <div style="margin-top:14px"><a href="/official-designs" style="color:var(--vh-ink);font-weight:700;text-decoration:none">Open the full Official Website Designs showcase →</a></div>
   </section>
 
 </div>
@@ -466,7 +466,7 @@
     const s = document.createElement('style'); s.id = 'lp-ai-bar-style';
     s.textContent = `
       .ai-bar{background:rgba(171,135,67,0.06);border:1px solid rgba(171,135,67,0.22);border-radius:10px;padding:12px 14px;margin:0 0 14px}
-      .ai-bar label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:#7a5f28;font-weight:600;margin-bottom:6px}
+      .ai-bar label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--vh-ink);font-weight:600;margin-bottom:6px}
       .ai-bar textarea{width:100%;min-height:64px;background:#ffffff;border:1px solid rgba(171,135,67,0.22);border-radius:8px;color:#111111;padding:9px 11px;font-size:13px;font-family:inherit;resize:vertical}
       .ai-bar textarea:focus{outline:none;border-color:#6A33D8}
     `;
@@ -653,7 +653,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">There is a mome
       '- Colour palette ONLY: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
       '- Headings in a Montserrat / serif stack; body in a Instrument Sans / sans-serif stack.',
       '- Voice: warm, sensory, story-driven, premium. Prefer words like ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
       '- Currency in all copy must match the ' + region + ' market.',
       '',
       'PAGE BRIEF:',
