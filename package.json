@@ -33,7 +33,7 @@
     "mobile:ios:open": "cap open ios"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.4.2",
+    "@capacitor/cli": "^8.5.0",
     "@playwright/test": "^1.61.0"
   },
   "dependencies": {
