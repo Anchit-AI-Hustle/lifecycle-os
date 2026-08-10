@@ -86,7 +86,7 @@ function collectionForEntry(entry) {
     case 'launch':   return 'new-arrivals';
     case 'editorial':return 'bestsellers';
     case 'winback':  return 'bestsellers';
-    case 'lifecycle':return 'sneaker';
+    case 'lifecycle':return 'bestsellers';   // no tenant-specific category default
     case 'promo':    return 'bestsellers';
     default:         return 'bestsellers';
   }

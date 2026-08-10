@@ -127,6 +127,21 @@ function sampleAround(blob, needle) {
   // brand and scanned the same way.
   const probes = [
     {
+      // The LLM-copy email renderer. buildCampaign's noLLM path never reaches
+      // it, which is exactly how a hardcoded wordmark, palette and CTA survived
+      // the first sweep - so it is exercised directly with fabricated copy.
+      name: 'emailHtml (LLM copy path)',
+      run: (brand) => {
+        const mod = require(path.join(ROOT, 'api/_shared/smart-brain-plan.js'));
+        const fn = mod.__test_emailHtml;
+        if (!fn) throw new Error('emailHtml not exported for test');
+        const entry = entryFor(brand);
+        return fn(entry, { email: {
+          subject: 'S', hero_headline: 'H', intro_paragraph: 'a', body_paragraph: 'b', cta: 'Go',
+        } }, '');
+      },
+    },
+    {
       name: 'landing-fallback (live: /api/calendar)',
       run: (brand) => {
         const { buildFallbackLanding } = require(path.join(ROOT, 'api/_shared/landing-fallback.js'));
