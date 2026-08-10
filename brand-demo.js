@@ -212,13 +212,34 @@
     ready().then(function (ctx) {
       if (ctx.owner) return;
       var name = ((ctx.brand && ctx.brand.name) || 'the active brand').replace(/[<>&]/g, '');
-      var main = document.querySelector('main') || document.body;
-      main.innerHTML =
-        '<div style="max-width:680px;margin:60px auto;padding:26px 28px;border:1px solid var(--brand-line,#e3e3e3);border-radius:14px;font-family:var(--brand-font-body,system-ui,sans-serif);line-height:1.65">' +
-        '<h2 style="font-family:var(--brand-font-heading,inherit);font-size:21px;margin:0 0 12px">' + label + ' for ' + name + '</h2>' +
-        '<p style="margin:0 0 10px;opacity:.85">[DATA REQUIRED BEFORE LAUNCH: ' + label.toLowerCase() + ', ' + name + '.] ' +
-        'The definitions compiled into this build are derived from another brand\'s own catalogue and order history, so they are not shown here.</p>' +
-        '<p style="margin:0;opacity:.85">' + (hint || 'Connect this brand\'s commerce or engagement exports and its own definitions build from that data.') + '</p></div>';
+      // NON-DESTRUCTIVE. An earlier version replaced main.innerHTML, which took
+      // the navigation and page chrome with it and left the user stranded on a
+      // blank screen. Insert the notice, then hide only the DATA regions, so
+      // the page still navigates and its own controls still work.
+      if (!document.getElementById('lc-owner-guard')) {
+        var el = document.createElement('div');
+        el.id = 'lc-owner-guard';
+        el.style.cssText = 'max-width:760px;margin:22px auto;padding:18px 20px;border:1px solid var(--brand-line,#e3e3e3);'
+          + 'border-left:4px solid var(--brand-primary,#c0392b);border-radius:12px;background:var(--brand-surface,#fff);'
+          + 'font-family:var(--brand-font-body,system-ui,sans-serif);line-height:1.6';
+        el.innerHTML =
+          '<h2 style="font-family:var(--brand-font-heading,inherit);font-size:19px;margin:0 0 8px">'
+            + label + ' for ' + name + '</h2>'
+          + '<p style="margin:0 0 8px;opacity:.85">[DATA REQUIRED BEFORE LAUNCH: ' + label.toLowerCase() + ', ' + name + '.] '
+          + 'The definitions compiled into this build are derived from another brand\'s catalogue and order history, so they are not shown here.</p>'
+          + '<p style="margin:0;opacity:.85">' + (hint || 'Connect this brand\'s exports and its own definitions build from that data.') + '</p>';
+        var host = document.querySelector('main') || document.body;
+        if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+      }
+      // Hide the tenant-zero data blocks only. Never the nav, header or the
+      // page's own tab strip.
+      var SEL = '.panel, .cards, .grid, table, .row, .avatar, .persona, .cohort, [data-widget], #grid, #kpis, #signals';
+      try {
+        document.querySelectorAll(SEL).forEach(function (n) {
+          if (n.closest && (n.closest('#lifecycle-nav') || n.closest('#lc-owner-guard'))) return;
+          n.style.display = 'none';
+        });
+      } catch (_) {}
     });
   }
 
