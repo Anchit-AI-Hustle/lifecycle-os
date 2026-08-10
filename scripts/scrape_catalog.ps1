@@ -1,4 +1,4 @@
-# Scrape Knickgasm Shopify storefronts and upsert into knickgasm_products
+# Scrape Knickgasm Shopify storefronts and upsert into lifecycle_products
 $ErrorActionPreference = "Stop"
 if (-not $env:SUPABASE_PAT) { Write-Error "Set the SUPABASE_PAT env var first (Supabase Personal Access Token)."; exit 1 }
 $SupabasePat = $env:SUPABASE_PAT
@@ -31,19 +31,24 @@ function To-JsonbLit($obj) {
 
 function Categorize([string]$title, [string]$tagsCsv, [string]$productType) {
   $t = "$title $tagsCsv $productType".ToLower()
-  if ($t -match 'hand-painted kicks|kicks sneaker|chrome kicks') { return 'Hand-painted Kicks' }
-  if ($t -match 'detox|cleanse|embroidery neon') { return 'Detox Sneakers' }
-  if ($t -match 'immunity|airbrush|matte') { return 'Immunity Sneakers' }
-  if ($t -match 'sleep|pastel|calm|rest') { return 'Sleep & Calm Sneakers' }
-  if ($t -match 'gift set|box crate|sneaker gift') { return 'Sneaker Gift Sets' }
-  if ($t -match 'sampler|assorted|variety pack') { return 'Sneaker Samplers' }
-  if ($t -match 'jordan|first flush|second flush') { return 'Jordan Sneakers' }
-  if ($t -match 'green sneaker|dunks|signature green') { return 'Green Sneakers' }
-  if ($t -match 'iced|crimson|cold craft|summer') { return 'Bling Kickss' }
-  if ($t -match 'hightop') { return 'Hightop Sneakers' }
-  if ($t -match 'airforce|breakfast|black sneaker|earl grey|english') { return 'Airforce & Black Sneakers' }
-  if ($t -match 'themed|tisane') { return 'Themed Sneakers' }
-  return 'Specialty Sneakers'
+  if ($t -match 'lace|lace tag|care kit|cleaner|accessor') { return 'Accessories & Care' }
+  if ($t -match 'denim|jacket|apparel') { return 'Hand-painted Apparel' }
+  if ($t -match 'jordan') { return 'Air Jordan Customs' }
+  if ($t -match 'adidas|samba|gazelle') { return 'Adidas Customs' }
+  if ($t -match 'converse|chuck|all star') { return 'Converse Customs' }
+  if ($t -match 'court vision') { return 'Court Vision Customs' }
+  if ($t -match 'anime|demon slayer|jujutsu|naruto|one piece|dragon ball') { return 'Anime Customs' }
+  if ($t -match 'football|cricket|f1|formula|basketball|sport|club') { return 'Football & Sport Customs' }
+  if ($t -match 'gaming|playstation|xbox|valorant|minecraft') { return 'Gaming Customs' }
+  if ($t -match 'car|supercar|jdm|motorsport') { return 'Car & Motorsport Customs' }
+  if ($t -match 'wedding|bride|groom|couple') { return 'Wedding Customs' }
+  if ($t -match 'pet|dog|cat|portrait') { return 'Pet & Portrait Customs' }
+  if ($t -match 'bling|crystal|rhinestone|drip') { return 'Bling & Crystal Customs' }
+  if ($t -match 'embroider|patch|stitch') { return 'Embroidery Customs' }
+  if ($t -match 'coffee|latte|espresso') { return 'Coffee-ART Customs' }
+  if ($t -match 'taylor swift|celebrity|concert|tour') { return 'Celebrity & Music Customs' }
+  if ($t -match 'air force|airforce|af1') { return 'Air Force 1 Customs' }
+  return 'Specialty Customs'
 }
 
 $totalUpserts = 0
@@ -138,7 +143,7 @@ foreach ($m in $Markets) {
     for ($i = 0; $i -lt $batchValues.Count; $i += $chunkSize) {
       $end = [Math]::Min($i + $chunkSize - 1, $batchValues.Count - 1)
       $chunk = $batchValues[$i..$end]
-      $sql = "INSERT INTO public.knickgasm_products (shopify_id, market, handle, name, category, vendor, product_type, description, image_url, image_alt, price, compare_at, currency, sku, tags, pdp_url, is_featured, is_bestseller) VALUES " + ($chunk -join ", ") + " ON CONFLICT (market, handle) DO UPDATE SET shopify_id = EXCLUDED.shopify_id, name = EXCLUDED.name, category = EXCLUDED.category, vendor = EXCLUDED.vendor, product_type = EXCLUDED.product_type, description = EXCLUDED.description, image_url = EXCLUDED.image_url, image_alt = EXCLUDED.image_alt, price = EXCLUDED.price, compare_at = EXCLUDED.compare_at, currency = EXCLUDED.currency, sku = EXCLUDED.sku, tags = EXCLUDED.tags, pdp_url = EXCLUDED.pdp_url, is_featured = EXCLUDED.is_featured OR knickgasm_products.is_featured, is_bestseller = EXCLUDED.is_bestseller OR knickgasm_products.is_bestseller, refreshed_at = now();"
+      $sql = "INSERT INTO public.lifecycle_products (shopify_id, market, handle, name, category, vendor, product_type, description, image_url, image_alt, price, compare_at, currency, sku, tags, pdp_url, is_featured, is_bestseller) VALUES " + ($chunk -join ", ") + " ON CONFLICT (market, handle) DO UPDATE SET shopify_id = EXCLUDED.shopify_id, name = EXCLUDED.name, category = EXCLUDED.category, vendor = EXCLUDED.vendor, product_type = EXCLUDED.product_type, description = EXCLUDED.description, image_url = EXCLUDED.image_url, image_alt = EXCLUDED.image_alt, price = EXCLUDED.price, compare_at = EXCLUDED.compare_at, currency = EXCLUDED.currency, sku = EXCLUDED.sku, tags = EXCLUDED.tags, pdp_url = EXCLUDED.pdp_url, is_featured = EXCLUDED.is_featured OR lifecycle_products.is_featured, is_bestseller = EXCLUDED.is_bestseller OR lifecycle_products.is_bestseller, refreshed_at = now();"
       try {
         Run-Sql $sql | Out-Null
         Write-Host "  upserted rows $($i+1) to $($end+1)" -ForegroundColor DarkGreen
@@ -156,6 +161,6 @@ foreach ($m in $Markets) {
 Write-Host ""
 Write-Host "Catalog scrape complete - $totalUpserts total upserts" -ForegroundColor Green
 
-$verify = @{ query = "SELECT market, COUNT(*) AS n, COUNT(*) FILTER (WHERE is_featured) AS featured, COUNT(*) FILTER (WHERE is_bestseller) AS bestsellers FROM public.knickgasm_products GROUP BY market ORDER BY market;" } | ConvertTo-Json -Compress
+$verify = @{ query = "SELECT market, COUNT(*) AS n, COUNT(*) FILTER (WHERE is_featured) AS featured, COUNT(*) FILTER (WHERE is_bestseller) AS bestsellers FROM public.lifecycle_products GROUP BY market ORDER BY market;" } | ConvertTo-Json -Compress
 $r = Invoke-RestMethod -Method Post -Uri $ApiUrl -Headers @{ Authorization = "Bearer $SupabasePat"; "Content-Type" = "application/json" } -Body $verify
 $r | ConvertTo-Json -Depth 4

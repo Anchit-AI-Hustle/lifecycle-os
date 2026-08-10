@@ -21,7 +21,7 @@ This is the operator recipe for clearing the two env/secret blockers on the `/au
 npm i -g vercel                 # Vercel CLI
 npm i -g supabase               # Supabase CLI (only needed for the local-DB path)
 vercel login                    # once per machine
-vercel link                     # run in repo root -> links to the knickgasm-lifecycle-os project
+vercel link                     # run in repo root -> links to the lifecycle-os project
 ```
 
 `vercel link` writes `.vercel/project.json` (git-ignored). Confirm you are on the right project before
@@ -67,15 +67,15 @@ vercel --prod                   # or: npm run deploy
 ### 4. Verify
 
 ```bash
-curl -s https://knickgasm-lifecycle-os.anchit-tandon.com/api/health | jq .
+curl -s https://lifecycle-os.anchit-tandon.com/api/health | jq .
 # Anonymous health returns liveness only: {ok, build, ts}.
 # The DETAILED payload (providers/region/env) and the operator-only pipeline /
 # probe modes need an operator bearer token (Supabase access token on an allowed
 # domain, or CRON_SECRET). probe spends provider quota - operators only.
 curl -s -H "Authorization: Bearer $CRON_SECRET" \
-  "https://knickgasm-lifecycle-os.anchit-tandon.com/api/public-config?health=1" | jq .
+  "https://lifecycle-os.anchit-tandon.com/api/public-config?health=1" | jq .
 curl -s -H "Authorization: Bearer $CRON_SECRET" \
-  "https://knickgasm-lifecycle-os.anchit-tandon.com/api/public-config?pipeline=1" | jq .
+  "https://lifecycle-os.anchit-tandon.com/api/public-config?pipeline=1" | jq .
 ```
 
 A healthy response shows Supabase reachable and no 401. The `/audit` page's Master Dashboard / Created
@@ -126,7 +126,7 @@ When done: `supabase stop`. Never copy a local key into Vercel or a prod key int
 3. Redeploy, then verify the integration flips from stub to live:
 
    ```bash
-   curl -s "https://knickgasm-lifecycle-os.anchit-tandon.com/api/klaviyo?action=klaviyo&op=status" | jq .
+   curl -s "https://lifecycle-os.anchit-tandon.com/api/klaviyo?action=klaviyo&op=status" | jq .
    ```
 
    Until a key is set, `klaviyo-core.js` returns `{connected:false, would_request:{...}}` stubs — so the

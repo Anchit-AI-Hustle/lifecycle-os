@@ -176,7 +176,7 @@ async function build(link) {
   const wb = XLSX.utils.book_new();
   // Meta sheet
   const meta = tablesToSheet([{
-    title: 'KNICKGASM Lifecycle OS — Complete analysis',
+    title: 'Lifecycle OS — Complete analysis',
     columns: [{ key: 'k', label: 'Field' }, { key: 'v', label: 'Value' }],
     rows: [
       { k: 'Generated', v: new Date().toISOString() },

@@ -225,10 +225,10 @@ export interface Knickgasm3DConnectorEngineProps {
 
 /** The ONLY four brand colours + the two mandated font families. */
 export const BRAND = {
-  primary: '#6A33D8', // deep purple
-  accent: '#D0473E', // lava
+  primary: '#D0473E', // deep purple
+  accent: '#6A33D8', // lava
   ink: '#111111', // near-black
-  surface: '#F7F5F2', // chalk
+  surface: '#FFFFFF', // chalk
   headingFont: "'Montserrat','Raleway',Georgia,serif",
   bodyFont: "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
 } as const;

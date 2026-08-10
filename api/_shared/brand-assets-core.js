@@ -91,7 +91,7 @@ async function fetchPdpImage(pdpUrl) {
   if (!isOriginValid(pdpUrl)) return { ok: false, reason: 'pdp origin not on allowlist' };
   let html = '';
   try {
-    const res = await fetch(pdpUrl, { headers: { 'User-Agent': 'knickgasm-lifecycle-os/asset-pipeline' } });
+    const res = await fetch(pdpUrl, { headers: { 'User-Agent': 'lifecycle-os/asset-pipeline' } });
     if (!res.ok) return { ok: false, reason: `pdp ${res.status}` };
     html = await res.text();
   } catch (e) { return { ok: false, reason: e.message }; }

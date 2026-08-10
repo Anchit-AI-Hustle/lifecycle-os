@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KNICKGASM DTC — Retention Intelligence</title>
+<title>Lifecycle OS DTC — Retention Intelligence</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,9 +29,9 @@
       colors: {
         bg:    { DEFAULT:'#ffffff', soft:'#ffffff', card:'#eef3f0', deep:'#eef3f0' },
         ink:   { DEFAULT:'#111111', dim:'#556059', mute:'#48524c' },
-        green: { DEFAULT:'#6A33D8', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
-        lava:  { DEFAULT:'#D0473E', soft:'rgba(171,135,67,0.12)' },
-        chalk: '#F7F5F2',
+        green: { DEFAULT:'#D0473E', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
+        lava:  { DEFAULT:'#6A33D8', soft:'rgba(171,135,67,0.12)' },
+        chalk: '#FFFFFF',
         red:   '#ef4444',
         amber: '#f59e0b',
         blue:  '#3b82f6',
@@ -75,9 +75,9 @@
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
   .nav-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:#556059; transition:all .15s; cursor:pointer; position:relative; }
   .nav-item:hover { background:rgba(171,135,67,0.08); color:#111111; }
-  .nav-item.active { background:rgba(171,135,67,0.14); color:#111111; border-left:2px solid #D0473E; padding-left:10px; }
+  .nav-item.active { background:rgba(171,135,67,0.14); color:#111111; border-left:2px solid #6A33D8; padding-left:10px; }
   .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; margin-top:1px; }
-  .nav-item.active svg { opacity:1; color:#D0473E; }
+  .nav-item.active svg { opacity:1; color:#6A33D8; }
   .nav-text { display:flex; flex-direction:column; gap:1px; line-height:1.2; min-width:0; }
   .nav-title { font-weight:600; font-size:12.5px; }
   .nav-sub { font-size:10px; color:#48524c; font-weight:400; }
@@ -105,7 +105,7 @@
     content: attr(data-tip);
     position: absolute; left: calc(100% + 8px); top: 50%;
     transform: translateY(-50%) translateX(-4px);
-    background: #eef3f0; border: 1px solid rgba(171,135,67,0.3);
+    background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3);
     color: #111111; padding: 6px 10px; border-radius: 6px;
     font-size: 11px; white-space: nowrap;
     opacity: 0; pointer-events: none; transition: opacity 0.12s, transform 0.12s;
@@ -125,7 +125,7 @@
     transition:all .15s;
   }
   .sb-hamburger:hover { border-color:rgba(171,135,67,0.5); background:rgba(171,135,67,0.08); }
-  .sb-hamburger span { display:block; height:2px; border-radius:2px; background:#D0473E; transition:transform .22s, opacity .22s; }
+  .sb-hamburger span { display:block; height:2px; border-radius:2px; background:#6A33D8; transition:transform .22s, opacity .22s; }
   .sb-hamburger span:nth-child(1){ width:18px; }
   .sb-hamburger span:nth-child(2){ width:14px; }
   .sb-hamburger span:nth-child(3){ width:18px; }
@@ -164,7 +164,7 @@
       width:40px; height:34px; flex:none; padding:8px 9px; border-radius:8px;
       border:1px solid rgba(171,135,67,0.3); background:transparent; cursor:pointer;
     }
-    .sb-mobile-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:#D0473E; }
+    .sb-mobile-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:#6A33D8; }
   }
   @media (max-width: 640px) {
     /* tighten the filter header so chips never overlap */
@@ -173,8 +173,8 @@
     main > .p-6 { padding:16px 14px !important; }
   }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#556059; cursor:pointer; transition:all .15s; user-select:none; }
-  .filter-chip:hover { border-color:#D0473E; color:#111111; }
-  .filter-chip.active { background:#D0473E; color:#ffffff; border-color:#D0473E; }
+  .filter-chip:hover { border-color:#6A33D8; color:#111111; }
+  .filter-chip.active { background:#6A33D8; color:#ffffff; border-color:#6A33D8; }
   .view { display:none; }
   .view.active { display:block; animation: fadeIn .25s ease; }
   /* Honest empty state — shown when no real data is connected/uploaded. */
@@ -196,16 +196,16 @@
   .badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
   .b-US { background:rgba(59,130,246,0.15); color:#1d4ed8; }
   .b-UK { background:rgba(234,88,12,0.15); color:#b45309; }
-  .b-Global { background:rgba(171,135,67,0.18); color:#D0473E; }
-  .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#eef3f0; }
+  .b-Global { background:rgba(171,135,67,0.18); color:#6A33D8; }
+  .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:var(--vh-panel-tan); }
   .seg-name { font-weight:700; font-size:13px; }
   .seg-meta { font-size:11px; color:#556059; margin-top:4px; }
   .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
   .modal-backdrop.open { display:flex; }
   .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:#ffffff; font-weight:600; border-radius:2px; }
-  .apex-tooltip-custom { background:#ffffff !important; border:1px solid #D0473E !important; color:#111111 !important; font-family:'Inter',sans-serif !important; }
+  .apex-tooltip-custom { background:#ffffff !important; border:1px solid #6A33D8 !important; color:#111111 !important; font-family:'Inter',sans-serif !important; }
   .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; }
-  .delta-up { color:#22c55e; background:rgba(34,197,94,0.1); }
+  .delta-up { color:var(--vh-ink-dim); background:rgba(34,197,94,0.1); }
   .delta-down { color:#ef4444; background:rgba(239,68,68,0.1); }
 </style>
 </head>
@@ -866,44 +866,44 @@ const SUBJECT_PATTERNS = [
 ];
 
 const SUBJECTS = [
-  "The morning ritual you've been missing",
+  "The one-of-one you've been putting off",
   "{name}, your sneaker colorway just dropped",
   "20% off everything — ends tonight",
-  "Why our customers won't switch back ☕",
-  "Three sneakers under £10 worth trying",
+  "Why our collectors never buy stock pairs again",
+  "Three customs everyone asks us about",
   "Hand-painted, one-of-one, in stock",
   "We have a confession",
-  "What we'd craft for you today",
+  "What our artists would paint for you today",
   "The Jordan everyone's talking about",
   "Free shipping on your next reorder",
   "Black Friday: best deal of the year ✨",
-  "Hurry — only 200 boxes left",
+  "This month's build slots are almost full",
   "Your favourite is back",
-  "Crafted for cold mornings",
+  "Painted for centre stage",
   "Hey, it's been a while",
-  "Sneaker isn't a habit. It's a moment.",
-  "Lace-up less, taste more",
-  "The kicks that changed our roastery",
+  "A custom pair isn't a purchase. It's a statement.",
+  "One pair, no twins anywhere",
+  "The pair that put our studio on the map",
   "30% off + free gift inside",
-  "Your streetwear ritual, made personal",
+  "Your rotation, made personal",
 ];
 
 const PRODUCTS = [
-  { sku:'DRJ-100', title:'Jordan Summer Black', category:'Black sneaker', price:18.50 },
-  { sku:'ASM-100', title:'Airforce Breakfast', category:'Black sneaker', price:14.50 },
-  { sku:'EGT-200', title:'Earl Grey Citrus', category:'Black sneaker', price:16.00 },
-  { sku:'GRN-300', title:'Signature Green', category:'Green sneaker', price:17.00 },
-  { sku:'GRN-310', title:'Jasmine Green Pearls', category:'Green sneaker', price:19.00 },
-  { sku:'CHA-400', title:'Hand-painted Kicks Classic', category:'Kicks', price:15.50 },
-  { sku:'CHA-410', title:'Neon Embroidery Kicks', category:'Kicks', price:16.50 },
-  { sku:'HRB-500', title:'Matte Streetwear', category:'Themed', price:13.50 },
-  { sku:'HRB-510', title:'Pastel Calm', category:'Themed', price:13.00 },
-  { sku:'WHT-600', title:'Silver Tips White', category:'White sneaker', price:24.00 },
-  { sku:'OOL-700', title:'Hightop Reserve', category:'Hightop', price:21.00 },
-  { sku:'GFT-900', title:'Discovery Gift Set', category:'Gift', price:42.00 },
-  { sku:'GFT-910', title:'Festive Trio', category:'Gift', price:35.00 },
-  { sku:'BLD-800', title:'Detox Colorway', category:'Streetwear', price:18.00 },
-  { sku:'BLD-810', title:'Sleep Colorway', category:'Streetwear', price:18.50 },
+  { sku:'AF1-SPD', title:'Spiderman x Nike Air Force 1', category:'Anime & Fandom', price:189.00 },
+  { sku:'AF1-DBZ', title:'Nike Air Force 1 x Dragon Ball Z Manga', category:'Anime & Fandom', price:189.00 },
+  { sku:'AF1-ESP', title:'Spain National F.C. x Nike Air Force 1', category:'Sport & Auto', price:179.00 },
+  { sku:'AF1-GLD', title:'Nike Air Force 1 x Liquid Golden Drip', category:'Statement', price:169.00 },
+  { sku:'AF1-SKR', title:'Sakura Dream x Nike Air Force 1', category:'Themed', price:169.00 },
+  { sku:'AF1-MOO', title:'Nike Air Force 1 x Moo Swoosh', category:'Statement', price:159.00 },
+  { sku:'AF1-GTA', title:'Nike Air Force 1 x Grand Theft Auto', category:'Gaming', price:189.00 },
+  { sku:'AF1-FER', title:'Ferrari F1 x Nike Air Force 1', category:'Sport & Auto', price:189.00 },
+  { sku:'AF1-PET', title:'Nike Air Force 1 x Pet Portrait', category:'Pets', price:199.00 },
+  { sku:'AF1-WED', title:'Wedding Couple x Nike Air Force 1', category:'Wedding', price:219.00 },
+  { sku:'AJ1-CMC', title:'Green Comic x Air Jordan 1 High', category:'Hightop', price:229.00 },
+  { sku:'GFT-900', title:'Custom Pair Gift Card', category:'Gift', price:150.00 },
+  { sku:'GFT-910', title:'Sneaker Care Gift Kit', category:'Gift', price:49.00 },
+  { sku:'CTL-PS5', title:'Custom PS5 Controller - Red Camo', category:'Controllers', price:129.00 },
+  { sku:'CTL-XBX', title:'Custom Xbox Controller - Neon Splash', category:'Controllers', price:129.00 },
 ];
 
 const CATEGORY_AFFINITY = {
@@ -1535,7 +1535,7 @@ const APEX_BASE = {
   legend: { labels: { colors: '#556059' }, fontSize: '11px' },
 };
 
-const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#D0473E', IN: '#22c55e' };
+const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#6A33D8', IN: '#22c55e' };
 
 // ─── 1. Executive Overview ──────────────────────────────────────────────
 function renderExec() {
@@ -1666,7 +1666,7 @@ function renderCampaigns(filter='') {
       { title: { text: 'Revenue', style: { color: '#48524c', fontSize: '11px' } }, labels: { formatter: (v) => '$' + (v/1000).toFixed(1) + 'k' } },
       { opposite: true, title: { text: 'CVR %', style: { color: '#48524c', fontSize: '11px' } } }
     ],
-    colors: ['#D0473E', '#16a34a'],
+    colors: ['#6A33D8', '#16a34a'],
     tooltip: { theme: 'light', shared: true, intersect: false },
   });
   charts.campScatter.render();
@@ -1719,7 +1719,7 @@ function renderCampaigns(filter='') {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 240 },
     series: [{ name: 'Open rate lift vs baseline', data: subjectPerf.map((p) => +(p.lift * 100).toFixed(1)) }],
     xaxis: { categories: subjectPerf.map((p) => `${p.label} (${p.n})`), labels: { formatter: (v) => v + '%' } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { horizontal: true, borderRadius: 3 } },
     tooltip: { theme: 'light', y: { formatter: (v) => v + '%' } },
   });
@@ -1780,7 +1780,7 @@ function renderSegments() {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 340 },
     series: [{ name: 'Customers', data: ltvBins }],
     xaxis: { categories: ltvBins.map((_, i) => i < 9 ? `$${i*100}-${(i+1)*100}` : '$900+') },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { borderRadius: 4 } },
     tooltip: { theme: 'light' },
   });
@@ -1847,12 +1847,12 @@ function renderProducts() {
     ...APEX_BASE,
     chart: { ...APEX_BASE.chart, type: 'heatmap', height: 340 },
     series: matrix.map((row) => ({ name: row.name, data: row.data.map((c) => ({ x: c.x, y: +(c.y * 100).toFixed(0) })) })),
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { heatmap: { colorScale: { ranges: [
       { from: 0, to: 5, color: '#eef3f0', name: '0–5%' },
       { from: 5, to: 15, color: '#3d4d2e', name: '5–15%' },
       { from: 15, to: 25, color: '#7a6a3a', name: '15–25%' },
-      { from: 25, to: 50, color: '#D0473E', name: '25–50%' },
+      { from: 25, to: 50, color: '#6A33D8', name: '25–50%' },
       { from: 50, to: 100, color: '#16a34a', name: '50%+' },
     ] } } },
     dataLabels: { enabled: true, style: { fontSize: '9px', colors: ['#111111'] }, formatter: (v) => v + '%' },
@@ -1920,13 +1920,13 @@ function renderTime() {
     ...APEX_BASE,
     chart: { ...APEX_BASE.chart, type: 'heatmap', height: 380 },
     series,
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { heatmap: {
       colorScale: { ranges: [
         { from: 0, to: 0.001, color: '#ffffff', name: 'no sends' },
         { from: 0.001, to: 20, color: '#3d4d2e', name: '<20%' },
         { from: 20, to: 35, color: '#7a6a3a', name: '20–35%' },
-        { from: 35, to: 50, color: '#D0473E', name: '35–50%' },
+        { from: 35, to: 50, color: '#6A33D8', name: '35–50%' },
         { from: 50, to: 70, color: '#16a34a', name: '50–70%' },
         { from: 70, to: 100, color: '#22c55e', name: '70%+' },
       ] }
@@ -1977,7 +1977,7 @@ function renderTime() {
     series: [{ name: 'Revenue index (Mon=100)', data: indexed }],
     xaxis: { categories: DAYS },
     yaxis: { labels: { formatter: (v) => Math.round(v) } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { borderRadius: 4, columnWidth: '55%', distributed: false,
       colors: { backgroundBarColors: [], ranges: [{ from: 100, to: 100000, color: '#22c55e' }] } } },
     dataLabels: { enabled: true, style: { fontSize: '10px', colors: ['#ffffff'] }, formatter: (v) => Math.round(v) },
@@ -2032,7 +2032,7 @@ function renderCohorts() {
     series: [{ name: 'Avg retention %', data: avgRet }],
     xaxis: { categories: avgRet.map((_, i) => 'M+' + i) },
     yaxis: { labels: { formatter: (v) => v + '%' } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     stroke: { curve: 'smooth', width: 2 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0 } },
     tooltip: { theme: 'light', y: { formatter: (v) => v.toFixed(1) + '%' } },
@@ -2421,7 +2421,7 @@ const VIEW_LABELS = {
   cohorts: 'Cohorts & Retention', insights: 'Strategic Insights',
 };
 
-// lava (#D0473E) blended over white at alpha — matches the on-screen heat cell
+// lava (#6A33D8) blended over white at alpha — matches the on-screen heat cell
 function goldFillHex(pct) {
   const a = Math.min((pct || 0) / 60, 1);
   if (a <= 0) return null;
@@ -2717,5 +2717,7 @@ if (stored) {
 }
 rerender();
 </script>
+  <script src="/brand-demo.js"></script>
+  <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('The V1 analytics workbench', "This Draft 1 workbench renders one brand's demo exports. Use Data Analysis (V2) for this brand: it builds a labelled demo from the brand's own offerings, or its real exports once connected.");</script>
 </body>
 </html>

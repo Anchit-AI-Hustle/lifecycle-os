@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS — iOS & Android (Capacitor)
+# Lifecycle OS — iOS & Android (Capacitor)
 
 The native apps are a **Capacitor** shell that loads the live web app
 (`https://knickgasm.vercel.app`) in a full-screen

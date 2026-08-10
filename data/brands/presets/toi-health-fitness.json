@@ -1,0 +1,131 @@
+{
+  "slug": "toi-health-fitness",
+  "name": "TOI Health & Fitness",
+  "tagline": "Health, Fitness, Diet and Wellness",
+  "industry": "Health & fitness content / events",
+  "website": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+  "preset": {
+    "label": "TOI Health & Fitness",
+    "sector": "Health & fitness media",
+    "blurb": "The health vertical: fitness, diet and wellness content, plus seasonal event pushes such as marathon training and yoga-day campaigns.",
+    "verified_at": "2026-08-10",
+    "source": "timesofindia.indiatimes.com/life-style/health-fitness (live page, TOI red #e21b22/#eb1b24)"
+  },
+  "palette": {
+    "primary": "#EB1B24",
+    "accent": "#147014",
+    "ink": "#1A1A1A",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F4F4F4",
+    "muted": "#595959",
+    "line": "#ECECEC",
+    "ok": "#147014",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "google": true,
+      "weights": "600;700"
+    },
+    "body": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "google": true,
+      "weights": "400;500"
+    }
+  },
+  "voice": {
+    "tone": "encouraging, practical, evidence-led; coaches the reader without hype",
+    "preferred": [
+      "routine",
+      "training plan",
+      "recovery",
+      "nutrition",
+      "mobility",
+      "beginner-friendly",
+      "evidence"
+    ],
+    "banned": [
+      "miracle cure",
+      "detox tea",
+      "lose 10 kg in a week",
+      "doctors hate",
+      "burn fat fast",
+      "guaranteed results",
+      "cures"
+    ],
+    "no_em_dashes": true,
+    "notes": "OBSERVED from public output, not official guidelines. HEALTH SAFETY: never make medical claims, never promise outcomes, never present content as diagnosis or treatment; attribute clinical statements to a named qualified source and add a consult-your-doctor line on training and diet content."
+  },
+  "claims": [
+    "Health, fitness, diet and wellness coverage from The Times of India"
+  ],
+  "regions": [
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "timesofindia.indiatimes.com",
+    "static.toiimg.com"
+  ],
+  "catalog_source": {
+    "kind": "manual",
+    "offering_kinds": [
+      "section",
+      "programme",
+      "event"
+    ],
+    "note": "A health vertical promotes content sections, recurring programmes (training plans, daily routines) and date-bound events (yoga days, runs) - not SKUs."
+  },
+  "offerings": [
+    {
+      "kind": "section",
+      "name": "Health & Fitness",
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "source": "Live TOI vertical"
+    },
+    {
+      "kind": "section",
+      "name": "Diet",
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness/diet",
+      "source": "Live TOI vertical"
+    },
+    {
+      "kind": "section",
+      "name": "Weight Loss",
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness/weight-loss",
+      "source": "Live TOI vertical"
+    },
+    {
+      "kind": "programme",
+      "name": "Daily morning routine series",
+      "cadence": "daily",
+      "source": "Recurring content format on the vertical"
+    },
+    {
+      "kind": "programme",
+      "name": "Marathon training plan (multi-week)",
+      "cadence": "weekly",
+      "duration": "8-16 weeks",
+      "source": "Recurring content format on the vertical"
+    },
+    {
+      "kind": "event",
+      "name": "International Day of Yoga",
+      "starts_at": "2027-06-21",
+      "recurrence": "annual",
+      "source": "UN-designated fixed date (21 June), covered by the vertical each year"
+    }
+  ],
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

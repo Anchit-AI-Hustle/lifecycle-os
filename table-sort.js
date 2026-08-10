@@ -82,7 +82,7 @@
         cursor: pointer; user-select: none; position: relative;
         transition: color .12s;
       }
-      th[data-sortable-col]:hover { color: #F7F5F2; }
+      th[data-sortable-col]:hover { color: #FFFFFF; }
       /* Sort affordance is ALWAYS visible (both chevrons) so every column
          reads as sortable without hovering; the active column shows one solid
          arrow in lava. Opacity .72 keeps it legible on the green header. */

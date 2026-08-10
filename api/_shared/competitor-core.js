@@ -699,57 +699,50 @@ const BRAND_COLUMNS = [
 
 // Our OWN brand domains — never treated as competitors (excluded from seed,
 // discovery, and display).
-const OWN_DOMAINS = ['knickgasm.com', 'knickgasm.com', 'knickgasm.com'];
+const OWN_DOMAINS = ['knickgasm.com'];
 function isOwnBrand(domainOrUrl) {
   const d = normalizeDomain(domainOrUrl);
   return OWN_DOMAINS.some((o) => d === o || d.endsWith('.' + o));
 }
 
-// Priority seed brands — the curated baseline DTC streetwear competitor set
-// (sneaker, coffee & supplements, US + UK). KNICKGASM is the reference, NOT a
-// competitor, so it is intentionally excluded. Domains here are real and
-// verified; appendBrands() dedupes by domain, so re-seeding is idempotent.
+// Priority seed brands — the curated KNICKGASM competitive set, researched and
+// URL-verified 2026-08-03. Direct competitors are India's custom-sneaker studios;
+// retail/marketplaces and indie brands compete for the same sneakerhead wallet;
+// the official programs (Nike By You, Converse By You) and custom-controller
+// players are the global personalization benchmarks. KNICKGASM is the reference,
+// NOT a competitor, so it is intentionally excluded. appendBrands() dedupes by
+// domain, so re-seeding is idempotent.
 const SEED_BRANDS = [
-  // ── Sneaker (US) ──
-  { brandName: 'Pique', websiteUrl: 'https://www.piquelife.com', category: 'Sneaker', country: 'United States', positioning: 'Premium' },
-  { brandName: 'CrepDog Crew', websiteUrl: 'https://crepdogcrew-sneaker.com', category: 'Sneaker', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Tiesta Sneaker', websiteUrl: 'https://tiestatea.com', category: 'Sneaker', country: 'United States', positioning: 'Mid-market' },
-  { brandName: 'The Sneaker Spot', websiteUrl: 'https://theteaspot.com', category: 'Sneaker', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Buddha Sneakers', websiteUrl: 'https://buddhateas.com', category: 'Sneaker', country: 'United States', positioning: 'Mid-market' },
-  { brandName: 'Sneaker Drops', websiteUrl: 'https://myteadrops.com', category: 'Sneaker', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Sneakboo', websiteUrl: 'https://sneakboo.com', category: 'Sneaker', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Shoes Your Daddy', websiteUrl: 'https://yogiproducts.com', category: 'Sneaker', country: 'United States', positioning: 'Mid-market' },
-  { brandName: 'Teeccino', websiteUrl: 'https://teeccino.com', category: 'Sneaker', country: 'United States', positioning: 'Mid-market' },
-  // ── Sneaker (UK) ──
-  { brandName: 'The Leather Works', websiteUrl: 'https://theleatherworks.in', category: 'Sneaker', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'Teapigs', websiteUrl: 'https://teapigs.co.uk', category: 'Sneaker', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'JING Sneaker', websiteUrl: 'https://jingtea.com', category: 'Sneaker', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'Bird & Colorway Sneaker Co.', websiteUrl: 'https://birdandblend.com', category: 'Sneaker', country: 'United Kingdom', positioning: 'Premium' },
-  // ── Functional coffee / beverages (US) ──
-  { brandName: 'Four Sigmatic', websiteUrl: 'https://foursigmatic.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
-  { brandName: 'MUD\\WTR', websiteUrl: 'https://mudwtr.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
-  { brandName: 'RYZE', websiteUrl: 'https://ryzesuperfoods.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Everyday Dose', websiteUrl: 'https://everydaydose.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Rasa', websiteUrl: 'https://wearerasa.com', category: 'Functional Coffee', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Laird Superfood', websiteUrl: 'https://lairdsuperfood.com', category: 'Functional Coffee', country: 'United States', positioning: 'Mid-market' },
-  { brandName: 'Blume', websiteUrl: 'https://itsblume.com', category: 'Streetwear Beverages', country: 'Canada', positioning: 'Premium' },
-  // ── Functional coffee (UK) ──
-  { brandName: 'London Nootropics', websiteUrl: 'https://londonnootropics.com', category: 'Functional Coffee', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'Pact Coffee', websiteUrl: 'https://pactcoffee.com', category: 'Functional Coffee', country: 'United Kingdom', positioning: 'Mid-market' },
-  // ── Supplements / adaptogens (US) ──
-  { brandName: 'AG1', websiteUrl: 'https://drinkag1.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Ritual', websiteUrl: 'https://ritual.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Beam', websiteUrl: 'https://beamorganics.com', category: 'Streetwear Beverages', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Moon Juice', websiteUrl: 'https://moonjuice.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
-  { brandName: 'HUM Nutrition', websiteUrl: 'https://humnutrition.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Cymbiotika', websiteUrl: 'https://cymbiotika.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
-  { brandName: 'Vital Proteins', websiteUrl: 'https://vitalproteins.com', category: 'Supplements', country: 'United States', positioning: 'Mid-market' },
-  { brandName: 'Seed', websiteUrl: 'https://seed.com', category: 'Supplements', country: 'United States', positioning: 'Premium' },
-  // ── Supplements (UK) ──
-  { brandName: 'The Nue Co.', websiteUrl: 'https://thenueco.com', category: 'Supplements', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'DIRTEA', websiteUrl: 'https://dirteaworld.com', category: 'Supplements', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'Wild Nutrition', websiteUrl: 'https://wildnutrition.com', category: 'Supplements', country: 'United Kingdom', positioning: 'Premium' },
-  { brandName: 'Form Nutrition', websiteUrl: 'https://formnutrition.com', category: 'Supplements', country: 'United Kingdom', positioning: 'Premium' },
+  // ── Custom-sneaker studios (direct competitors) ──
+  { brandName: 'Cheeky Sneeky', websiteUrl: 'https://cheekysneeky.com', category: 'Custom Sneakers', country: 'India', positioning: 'Mid-market' },  // INR 9,499 – 17,499 across pre-made collections and customs, observed on cheekysneeky.com 2026-08-03
+  { brandName: 'Courtside', websiteUrl: 'https://www.courtside.store', category: 'Custom Sneakers', country: 'India', positioning: 'Premium' },  // New Delhi · INR 9,490 – 27,990 for custom sneaker products (most items ₹13,990–₹19,990), prices scraped from courtside.store homepage 2026-08-03
+  { brandName: 'Kickstradomis', websiteUrl: 'https://kickstradomis.com', category: 'Custom Sneakers', country: 'USA', positioning: 'Premium' },  // Los Angeles · Entry point of US$1,200 for custom paint work, plus the cost of the shoes (per Forbes interview, March 2021; no public price list on kickstradomis.com as of 2026-08-03)
+  { brandName: 'MD Customs', websiteUrl: 'https://www.mdcustoms.in/en-us', category: 'Custom Sneakers', country: 'India', positioning: 'Premium' },  // New Delhi · Rs. 25,000 – 45,000 (e.g. 'TIFFANY AF1' Rs.25,000, 'LV Birkinstock' Rs.45,000), observed on mdcustoms.in 2026-08-03
+  { brandName: 'Moreiarty', websiteUrl: 'https://www.moreiarty.in', category: 'Custom Sneakers', country: 'India', positioning: 'Premium' },  // New Delhi · INR 4,990 – 19,990+ per customization (Essential to Signature tiers; base shoe cost separate), observed on moreiarty.in 2026-08-03
+  { brandName: 'Shoes Your Daddy', websiteUrl: 'https://www.shoesyourdaddy.in', category: 'Custom Sneakers', country: 'India', positioning: 'Premium' },  // New Delhi · Pre-designed sneakers Rs. 16,999 – 28,000, made-to-order with 2–3 week turnaround, observed on shoesyourdaddy.in 2026-08-03
+  { brandName: 'Sneak Peek Shoes', websiteUrl: 'https://www.handpaintedsneaker.com', category: 'Custom Sneakers', country: 'India', positioning: 'Premium' },  // Mumbai · INR 10,999 – 24,999 (no cash-on-delivery), observed on handpaintedsneaker.com 2026-08-03
+  { brandName: 'Sneakaboo', websiteUrl: 'https://www.instagram.com/sneakaboo.in', category: 'Custom Sneakers', country: 'India', positioning: 'Accessible' },  // Noida · INR 1,500 and up per LBB/Homegrown coverage (own website sneakaboo.in did not resolve when opened 2026-08-03; orders taken via Instagram/Facebook)
+  { brandName: 'The Leather Works (TLW Art House)', websiteUrl: 'https://theleatherworks.in', category: 'Custom Sneakers', country: 'India', positioning: 'Premium' },  // Ahmedabad · INR 5,999 – 24,999 for custom sneaker art depending on complexity; sourced Nike AF1s approx INR 8,500 plus personalization, observed on theleatherworks.in/pages/custom-sneakers 2026-08-03
+  { brandName: 'The Shoe Surgeon (SRGN)', websiteUrl: 'https://www.thesurgeon.com', category: 'Custom Sneakers', country: 'USA', positioning: 'Premium' },  // Los Angeles · USD $20 (paint pens/socks) to $10,000+ for 1-of-1 custom sneakers; most ready-made custom sneakers listed at US$5,000 (observed via thesurgeon.com Shopify catalog, 2026-08-03). Press reports bespoke commissions up to $200,000.
+  // ── Sneaker retail & marketplaces (wallet-share competitors) ──
+  { brandName: 'CrepDog Crew', websiteUrl: 'https://crepdogcrew.com', category: 'Sneaker Retail & Marketplace', country: 'India', positioning: 'Premium' },  // New Delhi · Sneakers INR 9,749-254,499; apparel from INR 1,509; catalog spans to INR 500,000+ (observed on crepdogcrew.com, 2026-08-03)
+  { brandName: 'FindYourKicks India', websiteUrl: 'https://www.findyourkicks.com', category: 'Sneaker Retail & Marketplace', country: 'India', positioning: 'Premium' },  // Ludhiana · Not observable: site showed a 'Maintenance | Find Your Kicks' holding page when fetched on 2026-08-03
+  { brandName: 'Hype Fly India', websiteUrl: 'https://hypefly.co.in', category: 'Sneaker Retail & Marketplace', country: 'India', positioning: 'Premium' },  // Mumbai · INR pricing across sneakers/streetwear (Yeezy, Jordan, Dunks, Essentials); specific prices not shown on homepage at fetch time (hypefly.co.in, 2026-08-03)
+  { brandName: 'Mainstreet Marketplace', websiteUrl: 'https://marketplace.mainstreet.co.in', category: 'Sneaker Retail & Marketplace', country: 'India', positioning: 'Premium' },  // Mumbai · Premium hype resale (Yeezy/Jordan/Nike, luxury apparel); 7,000+ SKUs claimed; specific INR range not captured at fetch time (marketplace.mainstreet.co.in, 2026-08-03)
+  { brandName: 'Superkicks', websiteUrl: 'https://www.superkicks.in', category: 'Sneaker Retail & Marketplace', country: 'India', positioning: 'Premium' },  // Mumbai · INR 449 (socks) to ~23,999; sneakers typically INR 6,599-19,995 (observed on superkicks.in, 2026-08-03)
+  { brandName: 'VegNonVeg', websiteUrl: 'https://www.vegnonveg.com', category: 'Sneaker Retail & Marketplace', country: 'India', positioning: 'Premium' },  // New Delhi · INR ~1,300 (accessories) to ~42,000; sneakers typically INR 9,999-18,999 (observed on vegnonveg.com, 2026-08-03)
+  // ── Indie / design-led sneaker brands ──
+  { brandName: 'Banjaaran Studio', websiteUrl: 'https://banjaaran.in', category: 'Indie Sneaker Brand', country: 'India', positioning: 'Premium' },  // Delhi · INR ~4,999-6,999; e.g. Luna Bomber Sneakers ₹6,490, Maharaja Brogues ₹5,990 (observed on banjaaran.in men's collection, 2026-08-03; many styles marked Discontinued/made-to-order)
+  { brandName: 'Comet', websiteUrl: 'https://www.wearcomet.com', category: 'Indie Sneaker Brand', country: 'India', positioning: 'Mid-market' },  // Bengaluru · INR 4,299 (X Lows Cortado) to INR 6,299 (Apex Onyx) observed on wearcomet.com, 2026-08-03
+  { brandName: 'Gully Labs', websiteUrl: 'https://gullylabs.com', category: 'Indie Sneaker Brand', country: 'India', positioning: 'Mid-market' },  // New Delhi · INR 1,990-9,490; most popular styles INR 4,490-5,490 (observed on gullylabs.com, 2026-08-03)
+  { brandName: 'Thaely', websiteUrl: 'https://thaely.com', category: 'Indie Sneaker Brand', country: 'India', positioning: 'Accessible' },  // Mumbai · Sneakers Rs 3,500-3,750 (Tech Tabi); accessories from Rs 900; free shipping across India, $30 international (observed on thaely.com, 2026-08-03)
+  // ── Official brand customization programs ──
+  { brandName: 'Converse By You', websiteUrl: 'https://www.converse.com/c/custom', category: 'Official Customization Program', country: 'USA', positioning: 'Accessible' },  // US$90-$120: Custom Chuck Taylor All Star By You from $90, Lift Platform By You from $105, Lift Platform Leather $115, Chuck 70 By You from $120 (converse.com pricing surfaced via search of converse.com product pages, observed 2026-08-03; site blocks direct bot fetch)
+  { brandName: 'Nike By You', websiteUrl: 'https://www.nike.com/w/nike-by-you-6ealh', category: 'Official Customization Program', country: 'USA', positioning: 'Mid-market' },  // Roughly US$50-$319 across models; typical custom shoes US$120-$250 (e.g. Nike Cortez By You $120, Ja 3 By You $145 on nike.com, per pricing guide updated May 2026; nike.com blocks direct scraping so exact live prices observed via secondary source)
+  { brandName: 'Vans Customs', websiteUrl: 'https://www.vans.com/en-us/customs', category: 'Official Customization Program', country: 'USA', positioning: 'Accessible' },  // Custom pairs from around US$90, most in the US$75-$125 band (vans.com pricing surfaced via search of vans.com custom pages, observed 2026-08-03; site blocks direct bot fetch)
+  // ── Custom controllers & tech personalization ──
+  { brandName: 'ColorWare', websiteUrl: 'https://www.colorware.com', category: 'Custom Controllers & Tech', country: 'USA', positioning: 'Premium' },  // Winona, Minnesota · US$124 (custom DualSense PS5 controller) to US$899 (custom Xbox Series X console); custom AirPods Pro 3 US$439-$499, AirPods Max 2 US$849, Sony WH-1000XM6 US$499 (observed via colorware.com Shopify product JSON, 2026-08-03)
+  { brandName: 'Xbox Design Lab', websiteUrl: 'https://xboxdesignlab.xbox.com', category: 'Custom Controllers & Tech', country: 'USA', positioning: 'Mid-market' },  // Redmond, Washington · Custom Xbox Wireless Controller from US$79.99; Elite Series 2 from US$169.99 (per Windows Central review and 2025 coverage; official configurator at xboxdesignlab.xbox.com verified live 2026-08-03 but renders prices client-side)
 ];
 
 function normalizeDomain(url) {
@@ -836,7 +829,22 @@ async function appendBrands(list, nowIso) {
 }
 
 /** Insert the priority seed brands (idempotent via domain dedupe). */
-async function seedBrands(nowIso) {
+// SEED_BRANDS is TENANT ZERO's competitive set: India's custom-sneaker studios,
+// sneaker retail, and the global customisation benchmarks. It is a fact about
+// one brand's market, so seeding it into any other workspace would hand a
+// publisher or a health vertical a sneaker competitor list. Seeding is
+// therefore refused for any brand that is not tenant zero; that brand's own
+// competitors must be added or discovered for it.
+async function seedBrands(nowIso, brand) {
+  const slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+  const isTenantZero = !brand || slug === 'knickgasm';
+  if (!isTenantZero) {
+    return {
+      ok: true, skipped: true, added: 0,
+      reason: `The shipped seed list is KNICKGASM's competitive set and does not describe ${brand.name || 'this brand'}. `
+            + 'Add this brand\'s own competitors, or run discovery for it - another brand\'s competitor list is never seeded.',
+    };
+  }
   return appendBrands(SEED_BRANDS.map((b) => ({ ...b, source: 'seed' })), nowIso);
 }
 
@@ -875,8 +883,10 @@ async function markBrandSubscribed(opts) {
   return { ok: true, domain: target, row: rowNum, status, dateSubscribed };
 }
 
-const DISCOVERY_CATEGORIES = ['Sneaker', 'Coffee', 'Functional Coffee', 'Botanicals', 'Adaptogens', 'Streetwear Beverages', 'Supplements', 'Superfoods'];
-const DISCOVERY_GEOS = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Europe', 'Global DTC Brands'];
+// Categories mirror the SEED_BRANDS taxonomy above so discovered brands slot
+// into the same competitive set.
+const DISCOVERY_CATEGORIES = ['Custom Sneakers', 'Sneaker Customisation Studio', 'Sneaker Retail & Marketplace', 'Indie Sneaker Brand', 'Official Customization Program', 'Sneaker Care & Restoration', 'Streetwear'];
+const DISCOVERY_GEOS = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Europe', 'Global DTC Brands'];
 
 /**
  * Ask the LLM waterfall for a batch of real competitor brands, excluding
@@ -891,9 +901,9 @@ async function discoverBrands(opts) {
   const existing = await getBrands();
   const excludeDomains = [...new Set([...existing.map((b) => b.domain).filter(Boolean), ...OWN_DOMAINS])];
 
-  const system = 'You are a competitor-intelligence research engine specializing in premium DTC streetwear brands (sneaker, coffee, functional beverages, adaptogens, supplements, superfoods). You only output strict JSON. Use REAL, currently-operating brands with their REAL primary website domains. Never invent brands or fake domains.';
+  const system = 'You are a competitor-intelligence research engine specializing in custom sneakers and streetwear (hand-painted one-of-one sneaker studios, official brand customisation programs, sneaker retail and resale marketplaces, indie sneaker labels, sneaker care and restoration). You only output strict JSON. Use REAL, currently-operating brands with their REAL primary website domains. Never invent brands or fake domains.';
   const user = [
-    `Find up to ${limit} high-quality competitor brands similar to KNICKGASM and to: Pique, Four Sigmatic, AG1, Everyday Dose, MUD\\WTR, Beam, RYZE. Do NOT include KNICKGASM itself (we are KNICKGASM — it is not a competitor).`,
+    `Find up to ${limit} high-quality competitor brands similar to KNICKGASM and to: The Shoe Surgeon, Kickstradomis, Shoes Your Daddy, Moreiarty, MD Customs, Nike By You, Vans Customs. Do NOT include KNICKGASM itself (we are KNICKGASM — it is not a competitor).`,
     `Categories to cover: ${categories.join(', ')}.`,
     `Geographies: ${geographies.join(', ')}.`,
     excludeDomains.length ? `EXCLUDE these domains already in our database (do not return them): ${excludeDomains.slice(0, 200).join(', ')}.` : '',

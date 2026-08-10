@@ -33,24 +33,24 @@ back to `redirectTo`**. That routing decides where the domain matters.
 needs nothing for the Supabase flow (its redirect URI is the fixed Supabase
 callback); a JavaScript origin is optional and can only be added in the Console.
 
-## This project (knickgasm-lifecycle-os) — canonical origin, verified 2026-07-12
+## This project (lifecycle-os) — canonical origin, verified 2026-07-12
 
 The **canonical production origin is the custom domain**
-`https://knickgasm-lifecycle-os.anchit-tandon.com`. The Vercel default
+`https://lifecycle-os.anchit-tandon.com`. The Vercel default
 `https://knickgasm.vercel.app` **308-redirects** to it (confirmed via
 `/api/health`), so users land on the custom domain and sign-in fires
-`redirectTo: https://knickgasm-lifecycle-os.anchit-tandon.com/...`.
+`redirectTo: https://lifecycle-os.anchit-tandon.com/...`.
 
 Required Supabase Auth config (Authentication → URL Configuration):
-- **Site URL:** `https://knickgasm-lifecycle-os.anchit-tandon.com` (the canonical
+- **Site URL:** `https://lifecycle-os.anchit-tandon.com` (the canonical
   origin — not the `.vercel.app`, since that only redirects here).
 - **Redirect URLs (allowlist):**
-  - `https://knickgasm-lifecycle-os.anchit-tandon.com/**` (**required** — the
+  - `https://lifecycle-os.anchit-tandon.com/**` (**required** — the
     canonical origin; without it `redirectTo` is rejected and Supabase falls
     back to Site URL, bouncing the user to the wrong origin / a redirect loop)
   - `https://knickgasm.vercel.app/**` (keep — direct `.vercel.app`
     visits before the 308)
-  - `https://knickgasm-lifecycle-os-*.vercel.app/**` (optional — only if Google
+  - `https://lifecycle-os-*.vercel.app/**` (optional — only if Google
     sign-in must work on PR **preview** deploys; not needed for production)
 
 Common miss: allowlisting only `…vercel.app/**` while the app actually serves
@@ -91,7 +91,7 @@ VERCEL_TOKEN=... GODADDY_KEY=... GODADDY_SECRET=... SUPABASE_ACCESS_TOKEN=... \
 
 # Just the OAuth half (Supabase allowlist + Google plan), one project:
 SUPABASE_ACCESS_TOKEN=... KNICKGASM_LIFECYCLE_OS_SUPABASE_PROJECT_REF=abcd \
-  node scripts/migrate-oauth.js --project=knickgasm-lifecycle-os --apply
+  node scripts/migrate-oauth.js --project=lifecycle-os --apply
 
 # Also promote the new domain to the Supabase Site URL (canonical origin):
 node scripts/migrate-oauth.js --apply --promote-site-url

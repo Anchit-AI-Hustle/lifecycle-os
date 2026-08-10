@@ -79,8 +79,9 @@ function pickCampaignHubLP(slot, products) {
   if (!lpCompiler || !Array.isArray(lpCompiler.THEMES) || !lpCompiler.THEMES.length) return null;
   const hay = [slot.theme, slot.angle, slot.cohort_id, slot.festival,
     ...(products || []).flatMap((p) => [p.title, p.category, ...((p.tags) || [])])].filter(Boolean).join(' ').toLowerCase();
-  // Only consider the Hub for streetwear/functional-coffee intents.
-  const gate = /(grail-drop|stress|anxiety|jitter|sleep|bloat|gut|digest|hormone|perimenopaus|puffin|water retention|weight|belly|burnout|adrenal|airbrush|streetwear|coffee)/;
+  // Only consider the Hub for design/fandom/occasion intents (the themes the
+  // campaign-hub landing pages are actually written for).
+  const gate = /(grail-drop|anime|football|soccer|gaming|car|f1|formula|wedding|bride|groom|gift|pet|bling|crystal|embroider|celebrity|taylor|coffee-art|custom|hand-painted|one-of-one|airbrush|streetwear|collector)/;
   if (!gate.test(hay)) return null;
   const score = (t) => {
     const kws = `${t.name} ${t.slug} ${t.coreProblem} ${t.scientificHook}`.toLowerCase().match(/[a-z]{4,}/g) || [];
@@ -215,19 +216,19 @@ function fallbackCopy(slot, products) {
     landing: {
       hero_eyebrow: fest ? `${fest} · Single-studio` : `Single-studio · Hand-painted`,
       hero_headline: fest ? `Crafted for ${fest}` : `The daily ritual, restored`,
-      hero_sub: `Single-studio sneakers and streetwear colorways, hand-painted and shipped studio-fresh from India.`,
-      offer_bar: `Welcome gift: free sampler + free shipping over ${slot.market === 'UK' ? '£30' : '$35'}`,
-      trust_badges: ['Single-studio origin', 'Packed days after drop', 'Carbon & plastic neutral', '1M+ pairs poured'],
+      hero_sub: `One-of-one custom sneakers, hand-painted on 100% original silhouettes and shipped express from Mumbai.`,
+      offer_bar: `Welcome gift: free rope laces and lace tag with every custom pair`,
+      trust_badges: ['100% original base sneakers', 'Hand-painted one-of-one', 'Water & scratch resistant', 'Ships to 60+ countries'],
       problem: {
-        headline: `Most sneaker is older than you think`,
-        body: `Supermarket sneaker can sit in warehouses and on shelves for a year or more before it reaches your pair. The oils that carry colorway fade, the leaves flatten, and what is left is colour without character. You lace-up it out of habit, not pleasure.`,
+        headline: `Every pair on the shelf is a pair somebody else already owns`,
+        body: `A stock colourway is made a hundred thousand times over. It says nothing about the person wearing it. You lace it up out of habit, not because it means anything.`,
       },
       mechanism: {
-        headline: `Why origin-fresh tastes different`,
+        headline: `How a one-of-one is made`,
         steps: [
-          { title: 'Hand-painted at a one of one', desc: 'Two leaves and a bud, plucked at peak — never blended-down floor sweepings.' },
-          { title: 'Packed at origin in days', desc: 'Sealed at the studio within days of drop, so the colorway oils stay locked in.' },
-          { title: 'Shipped direct to you', desc: 'No middle warehouses or years on a shelf — months fresher in your pair.' },
+          { title: 'Start on an original', desc: 'A 100% original Nike Air Force 1, Jordan, Dunk, Converse or Adidas Samba — we customise, never replicate.' },
+          { title: 'Hand-painted in the Mumbai studio', desc: 'Brush and airbrush work by India\'s best sneaker artists, built up in layers over 10 to 15 days.' },
+          { title: 'Sealed and shipped', desc: 'Cured to be water and scratch resistant, then sent express to 60+ countries.' },
         ],
       },
       benefits: [
@@ -281,12 +282,12 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
   const collectionUrl = /kicks/.test(heroType) ? `${store}/collections/kicks-sneaker`
     : /green/.test(heroType) ? `${store}/collections/green-sneaker`
     : /black/.test(heroType) ? `${store}/collections/black-sneaker`
-    : /themed|embroidery|streetwear|supplement|tisane/.test(heroType) ? `${store}/collections/streetwear-sneaker`
+    : /themed|embroidery|streetwear|jacket|accessor/.test(heroType) ? `${store}/collections/streetwear-sneaker`
     : `${store}/collections/all`;
   const esc = (s) => String(s == null ? '' : s).replace(/[<>]/g, (c) => (c === '<' ? '&lt;' : '&gt;'));
   const L = copy.landing || {};
-  const offerBar = L.offer_bar || `Welcome gift: free sampler + free shipping over ${cur}${slot.market === 'UK' ? '30' : '35'}`;
-  const badges = (L.trust_badges && L.trust_badges.length ? L.trust_badges : ['Single-studio', 'Origin-packed', 'Carbon neutral', '1M+ pairs']).slice(0, 4);
+  const offerBar = L.offer_bar || `Welcome gift: free rope laces and lace tag with every custom pair`;
+  const badges = (L.trust_badges && L.trust_badges.length ? L.trust_badges : ['100% original bases', 'Hand-painted', 'Water & scratch resistant', 'Ships to 60+ countries']).slice(0, 4);
   const steps = ((L.mechanism || {}).steps || []).slice(0, 3);
   const testis = gateTestis((L.testimonials && L.testimonials.length ? L.testimonials : [copy.testimonial].filter(Boolean).map((t) => ({ quote: t.quote, name: t.name, location: '' }))), slot, p).slice(0, 2);
   const guarantee = L.guarantee || null;
@@ -466,7 +467,7 @@ function landingHtml(slot, copy, products, brand, agentUrl) {
   const eyebrow = L.hero_eyebrow || slot.festival || slot.theme || 'Single-studio · Hand-painted';
   const heroH = L.hero_headline || copy.headline;
   const heroSub = L.hero_sub || copy.subheadline;
-  const offerBar = L.offer_bar || `Welcome gift: free sampler + free shipping over ${cur}${slot.market === 'UK' ? '30' : '35'}`;
+  const offerBar = L.offer_bar || `Welcome gift: free rope laces and lace tag with every custom pair`;
   const badges = (L.trust_badges && L.trust_badges.length ? L.trust_badges : ['Single-studio origin', 'Packed days after drop', 'Carbon & plastic neutral', '1M+ pairs poured']);
   const problem = L.problem || { headline: 'Most sneaker is older than you think', body: copy.body_intro };
   const mech = L.mechanism || { headline: 'Why origin-fresh tastes different', steps: [] };

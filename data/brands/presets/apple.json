@@ -1,0 +1,107 @@
+{
+  "slug": "apple",
+  "name": "Apple",
+  "tagline": "Think Different",
+  "industry": "Consumer technology",
+  "website": "https://www.apple.com",
+  "preset": {
+    "label": "Apple",
+    "sector": "Consumer technology",
+    "blurb": "Minimal, product-led design system. Useful as a restraint benchmark: huge whitespace, one accent, no decoration.",
+    "verified_at": "2026-08-10",
+    "source": "apple.com globalheader.css (#0071e3 accent, #1d1d1f ink, #f5f5f7 surface, SF Pro Text stack)"
+  },
+  "palette": {
+    "primary": "#0071E3",
+    "accent": "#1D1D1F",
+    "ink": "#1D1D1F",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F5F7",
+    "muted": "#6E6E73",
+    "line": "#D2D2D7",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "SF Pro Display",
+      "stack": "'SF Pro Display','SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
+      "google": false,
+      "weights": "600;700"
+    },
+    "body": {
+      "family": "SF Pro Text",
+      "stack": "'SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
+      "google": false,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "calm, confident, product-first; short sentences, concrete benefits, no superlative stacking",
+    "preferred": [
+      "designed",
+      "built",
+      "so you can",
+      "simply",
+      "powerful",
+      "seamless"
+    ],
+    "banned": [
+      "cheap",
+      "discount blowout",
+      "hurry",
+      "limited stock",
+      "act now",
+      "best ever in the world"
+    ],
+    "no_em_dashes": true,
+    "notes": "OBSERVED from public output, not official guidelines. Let the product carry the claim; never stack superlatives or invent specifications."
+  },
+  "claims": [
+    "Consumer technology products from Apple"
+  ],
+  "regions": [
+    {
+      "code": "US",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://www.apple.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://www.apple.com/in",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "UK",
+      "currency": "GBP",
+      "symbol": "£",
+      "store_url": "https://www.apple.com/uk",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "apple.com",
+    "www.apple.com",
+    "store.storeimages.cdn-apple.com"
+  ],
+  "catalog_source": {
+    "kind": "none",
+    "offering_kinds": [
+      "product",
+      "service",
+      "plan"
+    ],
+    "note": "No public product feed; connect a real catalogue before generating product-level assets."
+  },
+  "offerings": [],
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

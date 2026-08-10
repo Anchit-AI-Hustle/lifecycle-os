@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS — Feature Quality Audit
+# Lifecycle OS — Feature Quality Audit
 **Date:** 2026-07-12 · **Bar for confidence:** every feature must reach **≥ 9.5 / 10**.
 **Method:** 5 parallel deep code audits (/brain, /data-analysis, /studio, /ad-campaigns, /lp + /social) plus direct review of /assets, /kicksgpt, /agent, and the "Aman's version" (frozen 3 Jul 2026) build. Ratings are grounded in specific file:line findings, not impressions.
 
@@ -6,7 +6,7 @@
 
 ## Update log (post-audit fixes shipped this session)
 These landed AFTER the audit was first written and are reflected in the "Now" scores below:
-- **/social** — code-level caption validators added (strip non-PDP URLs + supplement prices, flag medical claims, budget hashtags into the char cap). Prompt-only gate is now code-enforced. (6.5 → 7.5)
+- **/social** — code-level caption validators added (strip non-PDP URLs + unverified prices, flag any health or absolute-durability claim, budget hashtags into the char cap). Prompt-only gate is now code-enforced. (6.5 → 7.5)
 - **/ad-campaigns** — per-platform char-limit clamps enforced at save (Google 30/90, Meta 40/125, TikTok 100); the fabricated "65% OFF" default offer was already removed. The char-limit gap is **closed**. (6.5 → 7)
 - **/lp** — the hardcoded 5-star trust bar, testimonial and guarantee are now routed through the B1 approved-facts gate (below). (7 → 7.5)
 - **B1 infrastructure** — the approved-facts library + master gate now exists (`api/_shared/brand-facts.js`, `data/brand-facts/<region>.json`), shipping **dark** behind `REAL_FACTS_ONLY`. Flip the flag once the library is populated to make /lp (and, once wired, the rest) real-only. Data + flip still pending; `/studio` + flagship mailer wiring still to do.
@@ -65,7 +65,7 @@ Genuinely real-data-only, honestly gates unavailable metrics, decomposition now 
 
 ### `/studio` — Mailer Studio — **5** (lowest)
 Excellent plumbing (cascade fallthrough, key rotation, OpenAI-400 quota detection, A/B archetype-family divergence). Disqualifying correctness gaps:
-- **B1** — invents reviewer names, testimonial quotes, `4.8/50,000+ reviews`, and **guesses prices** (name-heuristic FX) with fake SAVE badges when catalog price is missing.
+- **B1** — invents reviewer names, testimonial quotes, `4.8/India's largest sneaker customisers`, and **guesses prices** (name-heuristic FX) with fake SAVE badges when catalog price is missing.
 - **Brand gates run only on LLM text, not the deterministic render path** — "LIMITED TIME ONLY" and em/en-dashes leak into shipped copy. → port `sanitizeBrand`/`scrubDashes` to the client render step.
 - **Palette check is a 6-item denylist** → make it a 4-colour allowlist.
 - **`design` image mode** bakes a full email (garbled text/price/reviews) into the hero → restrict to text-free photography.
@@ -85,7 +85,7 @@ Robust: unknown/garbage ids 404 cleanly, no injection, images real-catalog-only,
 ### `/social` — Social OS — **6.5**
 Excellent pipeline hygiene (single bounded run, full fallbacks, no fan-out, honest degradation, no XSS).
 - **Fixed this session:** diffused fake-box hero → real catalog photo; scrub no longer flattens blog/caption paragraphs.
-- Remaining: caption/blog claim gates are **prompt-only** → add code validators (no invented price/discount, no medical claim, PDP-only URLs); hashtags not budgeted into char limit; hardcoded "best time UTC" reads as data.
+- Remaining: caption/blog claim gates are **prompt-only** → add code validators (no invented price/discount, no health or absolute-durability claim, PDP-only URLs); hashtags not budgeted into char limit; hardcoded "best time UTC" reads as data.
 - **To 9.5:** code-level content validators + honest labelling.
 
 ### `/assets` — **7.5** · `/kicksgpt` — **7.5** · `/agent` — **7**

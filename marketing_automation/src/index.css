@@ -2,7 +2,7 @@
 
 :root {
   color: #111111;
-  background: #f7f5f2;
+  background: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -10,7 +10,7 @@
 body {
   margin: 0;
   min-width: 320px;
-  background: #f7f5f2;
+  background: #ffffff;
   color: #111111;
   line-height: 1.6;
 }
@@ -27,7 +27,7 @@ body {
   display: inline-flex;
   width: fit-content;
   border-radius: 9999px;
-  background-color: #d0473e;
+  background-color: #6a33d8;
   color: #111111;
   padding: 0.3rem 0.75rem;
   font-size: 0.75rem;
@@ -47,11 +47,11 @@ a {
 }
 
 :where(button, select, a):focus-visible {
-  outline: 3px solid #d0473e;
+  outline: 3px solid #6a33d8;
   outline-offset: 3px;
 }
 
 ::selection {
-  background: #d0473e;
+  background: #6a33d8;
   color: #111111;
 }

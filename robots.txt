@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS — internal growth/lifecycle operations tool.
+# Lifecycle OS — internal growth/lifecycle operations tool.
 # This is a private, sign-in-gated application, not a public website.
 # Do not index or crawl any of it (the live customer store is knickgasm.com).
 User-agent: *

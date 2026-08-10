@@ -122,6 +122,7 @@ async function callLLMTiered(opts) {
 }
 const { buildMasterPrompt, regionFacts } = require('./master-prompt.js');
 const SM = require('./scenario-model.js');
+const OfferingCampaign = require('./offering-campaign.js');
 // Guaranteed-online fallback: a real catalog product photo (Shopify CDN) so a
 // creative never ships an unrenderable data: URI when generation/upload fails.
 const catalogImage = require('./catalog-image.js');
@@ -460,7 +461,7 @@ const D2C_KNOWLEDGE = `D2C GROWTH KNOWLEDGE BASE (apply, do not cite):
 - Value frameworks: Hook-Story-Offer (Brunson), Problem-Agitate-Solve (PAS), Identity-Driven (align the product with who the reader wants to become), Feature-Advantage-Benefit.
 - Email structure (Dimond/Sharma): a pattern-interrupt HOOK in the first scroll, one clear idea, visceral sensory benefits, objection-killing social proof, one low-friction CTA. No wall of text.
 - Creative (Murray): the offer and the transformation lead; the product is the proof, not the headline.
-- Competitor benchmarking aesthetics: high-contrast minimalism (Everyday Dose), rich origin-story education (KNICKGASM's own edge), problem-centric bold layouts (Space Goods), calm clinical clean-label (MUD\\WTR).`;
+- Competitor benchmarking aesthetics: study the ACTIVE brand's own competitive set (see its competitor universe) rather than a fixed list; common winning registers are high-contrast minimalism, rich origin-story education, problem-centric bold layouts, and calm clinical clean design.`;
 
 // Regional nuance matrix — what a given market responds to.
 function regionalNuance(market) {
@@ -471,11 +472,11 @@ function regionalNuance(market) {
 }
 
 // The four selling components every KNICKGASM mailer must carry.
-const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt, transformation, or a high-intent offer); (2) core ingredient + product BENEFITS, sensory and specific; (3) SOCIAL PROOF and trust: a star rating with review count and 1-2 short reviews that each answer a real objection; (4) VALUE ADD-ONS: 2-3 brand badges (e.g. Non-GMO, Climate Neutral, Sugar-Free), a risk-reversal guarantee line, and a short FAQ.`;
+const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt, transformation, or a high-intent offer); (2) core ingredient + product BENEFITS, sensory and specific; (3) SOCIAL PROOF and trust: a star rating with review count and 1-2 short reviews that each answer a real objection; (4) VALUE ADD-ONS: 2-3 brand badges (e.g. Original-pair verified, Climate Neutral, Sugar-Free), a risk-reversal guarantee line, and a short FAQ.`;
 
 const BRAND_SYSTEM = `You are the senior lifecycle copywriter for KNICKGASM (premium Indian sneakers & streetwear, knickgasm.com).
 Voice: warm, sensory, emotionally resonant, story-driven. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
-NEVER use: "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" in caps, "hurry", "don't miss out", "last chance", "while supplies last".
+NEVER use: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" in caps, "hurry", "don't miss out", "last chance", "while supplies last".
 ${D2C_KNOWLEDGE}
 Return STRICT JSON only, no markdown fences.`;
 
@@ -490,12 +491,35 @@ Be specific and quantitative where the data allows.
 ${D2C_KNOWLEDGE}
 Return STRICT JSON only, no markdown fences.`;
 
+
+/**
+ * Describe what this send is actually promoting.
+ *
+ * A send is not always about a product. When the slot carries an OFFERING
+ * (event, programme, section, plan, service) this returns the campaign
+ * mechanics for it - phase in the ramp, the real job of this send, and the
+ * exact call to action - so the model writes "register before it closes" for a
+ * marathon rather than "shop the edit". Falls back to the legacy product line
+ * so existing product slots are unchanged.
+ */
+function offeringBrief(entry) {
+  const off = entry.heroOffering || entry.offering || null;
+  if (off) {
+    const plan = OfferingCampaign.planSend(off, entry.date);
+    if (plan.viable) return plan.promptLines.join('\n');
+    return `- [SLOT NOT VIABLE: ${plan.reason}]`;
+  }
+  const p = entry.heroProduct;
+  if (!p) return '- [DATA REQUIRED BEFORE LAUNCH: no offering or product assigned to this slot]';
+  return `- Hero product: ${p.title} (${p.category || 'product'})\n- This is a PRODUCT. Standard merchandising applies.`;
+}
+
 function strategyPrompt(entry) {
   const hooks = (entry.competitorContext || []).flatMap((c) => (c.trendingHooks || []).map((h) => h.hook)).slice(0, 6);
   const d = entry.decision || {};
   return `Devise the strategy for ONE lifecycle send. Data:
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
-- Hero product: ${entry.heroProduct?.title} (${entry.heroProduct?.category || 'sneaker'})${(entry.supportingProducts || []).length ? ` | Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
+${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
 - Offer: ${d.offer ? (d.offer.code ? `${d.offer.code} (${Math.round((d.offer.pct || 0) * 100)}%)` : 'no discount') : 'n/a'}
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Reach target: ${entry.reach?.planned_recipients?.toLocaleString?.() || 'n/a'} recipients, ${entry.reach?.per_user_per_week?.min || 2}-${entry.reach?.per_user_per_week?.max || 3} mailers/user/week.
@@ -551,7 +575,7 @@ Every asset must ship with a CREATIVE as well as copy. For each asset write an "
 
 Return JSON with exactly this shape:
 {
- "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": {"value": 4.9, "count": "250,000+"}, "reviews": [{"quote":"short review that answers an objection","author":"first name, initial","stars":5}], "badges": ["Non-GMO","Climate Neutral",""], "guarantee": "a risk-reversal line", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
+ "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": {"value": 4.9, "count": "250,000+"}, "reviews": [{"quote":"short review that answers an objection","author":"first name, initial","stars":5}], "badges": ["Original-pair verified","Climate Neutral",""], "guarantee": "a risk-reversal line", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
  "landing": { "hero_headline": "", "hero_sub": "", "why_title": "", "why_bullets": ["","",""], "proof_quote": "", "proof_author": "", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
  "ads": {
    "meta": { "primary_text": "", "headline": "", "description": "", "image_brief": "" },
@@ -606,7 +630,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || 'KNICKGASM')}</title>
 <style>
-:root{--moss:#6A33D8;--moss-deep:#021c12;--moss-near:#00150a;--chalk:#F7F5F2;--chalk-warm:#f3ebd6;--lava:#D0473E;--ink:#111111;--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
+:root{--moss:#D0473E;--moss-deep:#021c12;--moss-near:#00150a;--chalk:#FFFFFF;--chalk-warm:#f3ebd6;--lava:#6A33D8;--ink:#111111;--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
@@ -687,7 +711,7 @@ ${proofSection}
 // shared renderer is unavailable (caller keeps the single local mailer).
 function emailPlaceholder(label, w, h) {
   const t = String(label || 'Product image').replace(/[<&>]/g, ' ').slice(0, 42);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#F7F5F2"/><rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#D0473E" stroke-width="2" stroke-dasharray="9 7"/><text x="50%" y="45%" text-anchor="middle" fill="#6A33D8" font-family="Georgia,serif" font-size="21">${t}</text><text x="50%" y="59%" text-anchor="middle" fill="#D0473E" font-family="Arial,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#FFFFFF"/><rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#6A33D8" stroke-width="2" stroke-dasharray="9 7"/><text x="50%" y="45%" text-anchor="middle" fill="#D0473E" font-family="Georgia,serif" font-size="21">${t}</text><text x="50%" y="59%" text-anchor="middle" fill="#6A33D8" font-family="Arial,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text></svg>`;
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 function variantMeta(copy) {
@@ -713,7 +737,7 @@ function slotLinks(entry) {
   const collectionSlug = /kicks/.test(cat) ? 'kicks-sneaker'
     : /green/.test(cat) ? 'green-sneaker'
     : /black/.test(cat) ? 'black-sneaker'
-    : /themed|embroidery|streetwear|tisane|supplement/.test(cat) ? 'streetwear-sneaker'
+    : /themed|embroidery|streetwear|jacket|accessor/.test(cat) ? 'streetwear-sneaker'
     : 'all';
   const collectionUrl = `${store}/collections/${collectionSlug}`;
   // Every product CTA must land on a REAL product page. Prefer the
@@ -805,19 +829,19 @@ function emailHtml(entry, copy, creativeUrl) {
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || 'KNICKGASM').replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${E.subject}</title></head>
-<body style="margin:0;background:#F7F5F2;color:#111111;font-family:${FONT_BODY}">
+<body style="margin:0;background:#FFFFFF;color:#111111;font-family:${FONT_BODY}">
 <main style="max-width:680px;margin:auto;background:#ffffff">
-  <section style="background:#6A33D8;color:#F7F5F2;padding:44px 36px;text-align:center">
-    <p style="color:#D0473E;letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">KNICKGASM</p>
+  <section style="background:#D0473E;color:#FFFFFF;padding:44px 36px;text-align:center">
+    <p style="color:#6A33D8;letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">KNICKGASM</p>
     <h1 style="font-family:${FONT_HEAD};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
   </section>
   ${heroImg}
   <section style="padding:36px">
     <p style="line-height:1.7">${E.intro_paragraph}</p>
     <p style="line-height:1.7">${E.body_paragraph}</p>
-    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:#D0473E;color:#111111;padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || 'Shop the edit'}</a></p>
+    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:#6A33D8;color:#111111;padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || 'Shop the edit'}</a></p>
   </section>
-  <footer style="background:#6A33D8;color:#F7F5F299;text-align:center;padding:22px;font-size:11px">You're receiving this as a KNICKGASM ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
+  <footer style="background:#D0473E;color:#FFFFFF99;text-align:center;padding:22px;font-size:11px">You're receiving this as a KNICKGASM ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
 </main>
 </body></html>`;
 }
@@ -958,7 +982,13 @@ function attachMasterPrompts(campaign, entry) {
   const cohort = entry.cohort?.name || '';
   const brief = entry.rationale || entry.objective || '';
   const products = entry.heroProduct ? [entry.heroProduct] : [];
-  const base = { market, cohort, brief, products };
+  // The brand this campaign is FOR. Without it every prompt was built from
+  // tenant zero, so a mailer generated inside another workspace carried that
+  // brand's palette, voice, claims and logo - the asset looked like the wrong
+  // company. entry.brand is stamped when the slot is planned; fall back to the
+  // campaign's own brand before ever falling back to the default.
+  const brand = entry.brand || campaign.brand || null;
+  const base = { brand, market, cohort, brief, products };
   if (campaign.assets.email) {
     // Both mailer variants the operator requires, per region.
     campaign.assets.email.master_prompt_v1 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V1' });
@@ -1066,14 +1096,41 @@ async function generateCreatives(copy, entry, { only = null, lean = false } = {}
 // LLM-written copy applied to the email + landing page + ads. Pure: it does NOT
 // touch the DB or change any slot's status. Both previewEntry() and approveEntry()
 // call this so a reviewer sees EXACTLY what approving will produce.
+/**
+ * Resolve the brand this entry belongs to and stamp it onto the entry, so every
+ * downstream prompt and renderer builds from the RIGHT brand.
+ *
+ * Server-side generation runs without a user token, so it cannot use the
+ * RLS-protected brand router. It resolves through the entry's workspace with
+ * the service-role key instead. If no brand can be resolved the entry is left
+ * unstamped and the prompt builder falls back to tenant zero - which is only
+ * correct when tenant zero IS the workspace, so the caller logs it.
+ */
+async function stampBrand(entry, config) {
+  if (!entry || entry.brand) return entry;
+  try {
+    const wsScope = require('./workspace-scope.js');
+    const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+    if (!url || !key) return entry;
+    const env = { url, key };
+    const wsId = entry.workspace_id || (config && config.workspace_id) || await wsScope.defaultWorkspaceId(env);
+    const brand = await wsScope.brandForWorkspace(env, wsId);
+    if (brand) entry.brand = brand;
+    else try { console.warn(`[smart-brain] no brand resolved for workspace ${wsId}; prompts will use the default brand`); } catch (_) {}
+  } catch (_) { /* never fail a generation on brand lookup */ }
+  return entry;
+}
+
 async function buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
+  await stampBrand(entry, config);
   // Review-recovery slots are a review INVITATION, not a promo: email-only, no
   // offer, no ads/landing page, CTA to the product's own review section. Render
   // the dedicated brand-compliant template directly (no LLM promo pipeline).
   if (reviewRecovery && (entry.objective === 'review_recovery' || entry.review_recovery)) {
     const product = entry.heroProduct || {};
     const html = reviewRecovery.reviewMailerHtml(product, entry.market);
-    const subject = `A quick word on your ${product.title || 'last KNICKGASM sneaker'}?`;
+    const subject = `A quick word on your ${product.title || 'recent order'}?`;
     return {
       campaign_id: id || `review_${entry.id || entry.date}`,
       calendar_entry_id: entry.id || id || null,

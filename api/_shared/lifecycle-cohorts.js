@@ -18,6 +18,23 @@
  *
  * Facts source of truth: data/product-types.json (locked from
  * lifecycle-campaigns/2026-07-03_week1/facts.md).
+ *
+ * PRODUCT-TYPE KEYS are stable identifiers shared with the planner, the mailer
+ * builder and data/product-types.json, so they are NOT renamed. What they mean
+ * for KNICKGASM:
+ *   'tb'          -> Custom Sneakers: the hero line, hand-painted one-of-one
+ *                    pairs on 100% original bases (Nike Air Force 1 from
+ *                    GBP 91.85), made to order in 10-15 days.
+ *   'coffee'      -> the coffee-ART Collection: coffee-dip washes and latte-swirl
+ *                    motifs PAINTED onto original sneakers (Court Vision base
+ *                    GBP 89.09 · Air Force 1 GBP 108.27 · Air Jordan 1 Low
+ *                    GBP 141.91). A paint theme, never a drink.
+ *   'supplements' -> Accessories: Chunky Rope Laces and Lace Tags (Custom) that
+ *                    finish a pair — low-ticket attachment, routed price-free
+ *                    to the PDP.
+ * KNICKGASM runs NO subscription of any kind: every lane is one-time purchase.
+ * The purchase-mode key 'subscription_priority' is retained only for consumer
+ * compatibility and is never selected.
  */
 
 // Renderer styles this program is allowed to use (calendar-trigger.js branches).
@@ -35,21 +52,22 @@ const COHORTS = {
     voice_guide:
       'No guilt, no pressure. Introduce the brand as if for the first time — warm, sensory, ' +
       'story-driven. Lead with what a pair feels like, not what it costs. One clear idea per email.',
-    // Product-type rotation weights: coffee-heavy, with an occasional T&B
-    // sampler as the low-commitment first step; supplements as a light touch.
+    // Rotation weights: coffee-ART led for discovery (a distinctive, scroll-
+    // stopping theme), with the wider custom-sneaker range and a low-ticket
+    // accessory as the low-commitment first step.
     product_mix: { coffee: 4, tb: 1, supplements: 1 },
   },
   tb_buyers_non_engagers: {
     key: 'tb_buyers_non_engagers',
-    label: 'Cohort B — T&B Buyers / Non-Engagers',
+    label: 'Cohort B — Custom-Sneaker Buyers / Non-Engagers',
     objective:
-      'Reactivate with familiarity, then cross-grade to Coffee/Supplements subscription. ' +
-      'They bought Sneakers & Botanicals before and have gone quiet.',
+      'Reactivate with familiarity, then cross-grade to the coffee-ART collection and the ' +
+      'accessories that finish a pair. They already own a custom pair and have gone quiet.',
     voice_guide:
       'Welcome back an old friend — acknowledge the relationship without guilt. Start from the ' +
-      'sneakers they already know, then introduce what is new from the same sneaker people. Never make ' +
+      'sneakers they already own, then introduce what is new from the same studio. Never make ' +
       'them feel watched or chased.',
-    // T&B-familiar first, then coffee/supplements cross-grade.
+    // Their own lane first (familiar), then coffee-ART and accessory cross-grade.
     product_mix: { tb: 3, coffee: 2, supplements: 1 },
   },
 };
@@ -68,14 +86,15 @@ const PLAYS = {
       'Cold audiences meeting the brand (again) for the first time — lead sends for Cohort A, ' +
       'or any slot where trust must precede any offer.',
     mechanic:
-      'Sensory ritual narrative — origin, one-of-one sourcing, what the first pair feels like. ' +
-      'Soft mention of the 7 free gifts with every coffee order; no hard offer.',
+      'Studio narrative — the Mumbai studio, the artists, why every pair starts on a 100% original ' +
+      'sneaker and is painted once and never repeated. Soft mention that rope laces and a custom ' +
+      'lace tag can ride along with the pair; no hard offer.',
     applicable_product_types: ['coffee', 'tb'],
     cta_framing_by_purchase_mode: {
-      one_time_only: 'Invite a single low-pressure purchase: "Try the {product}" / "Begin with one box".',
+      one_time_only: 'Invite a single low-pressure purchase: "Try the {product}" / "Begin with one pair".',
       subscription_priority:
-        'Soft-lead to the product page; mention subscription pricing exists without making the ' +
-        'email about it: "See the coffee" first, subscribe framing secondary.',
+        'Not applicable — no subscription exists. Soft-lead to the product page: "See the designs" ' +
+        'first, the made-to-order timeline second.',
     },
     template_style: 'editorial',
     min_gap_days: 10,
@@ -85,14 +104,14 @@ const PLAYS = {
     name: 'Warm win-back',
     when_to_use:
       'Lapsed buyers (Cohort B) — reopen the relationship with familiarity, not discounts. ' +
-      'Pairs well with a seasonal moment (e.g. Wimbledon afternoon sneaker).',
+      'Pairs well with a cultural moment (e.g. a new anime season, a derby weekend, wedding season).',
     mechanic:
-      '"Your box, still here" familiarity + honest compare-at prices from the store export. ' +
-      'No discount codes, no urgency — the season and the memory do the work.',
+      '"Your pair, still here" familiarity + honest compare-at prices from the store export. ' +
+      'No discount codes, no urgency — the moment and the memory do the work.',
     applicable_product_types: ['tb'],
     cta_framing_by_purchase_mode: {
-      one_time_only: 'Replenishment CTA: "Restock your {product}" / "Lace-up it again". One-time purchase only.',
-      subscription_priority: 'Not applicable — this play is T&B (one-time) territory.',
+      one_time_only: 'Replenishment CTA: "Restock your {product}" / "Re-lace them". One-time purchase only.',
+      subscription_priority: 'Not applicable — every KNICKGASM lane is one-time purchase.',
     },
     template_style: 'visual',
     min_gap_days: 12,
@@ -104,52 +123,56 @@ const PLAYS = {
       'Second-touch for audiences who opened but did not click, or any slot that needs proof ' +
       'over poetry — show exactly what arrives in the box.',
     mechanic:
-      'Walk through the 7 free gifts (Electric Frother, Recipe Booklet, Plantable Paper, Colorway ' +
-      'Bean Pouch, Mystery Gift of 5 Lace Sets, Wooden Scoop, Stainless Steel Straw) that come ' +
-      'with EVERY coffee order, plus why airbrush in coffee — no medical claims.',
+      'Walk through exactly what arrives: the hand-painted pair on its original box, and the ' +
+      'accessories that can ride with it (Chunky Rope Laces £6.29, Lace Tags (Custom) £7.27, ' +
+      'Ultimate Sneaker Care Kit £13.63), plus how the paint is sealed water and scratch ' +
+      'resistant. No invented gifts, no health or performance claims.',
     applicable_product_types: ['coffee'],
     cta_framing_by_purchase_mode: {
-      one_time_only: 'N/A for this play — coffee is subscription-priority.',
-      subscription_priority:
-        'Subscription-first CTA with the value math visible: "Subscribe at £29.99" with the ' +
-        '£49.99 one-time price as the honest comparison.',
+      one_time_only:
+        'Single-pair CTA with the honest numbers visible: the coffee-ART Court Vision at £89.09, ' +
+        'the Air Force 1 at £108.27, made to order in 10 to 15 days, real compare-at prices only.',
+      subscription_priority: 'Not applicable — no subscription exists.',
     },
     template_style: 'visual',
     min_gap_days: 10,
   },
   subscription_value_math: {
     key: 'subscription_value_math',
-    name: 'Subscription value math',
+    name: 'One-of-one value math',
     when_to_use:
-      'Audiences already aware of the product — make the subscription case with plain arithmetic.',
+      'Audiences already aware of the product — make the value case with plain arithmetic.',
     mechanic:
-      'Pack of 1: £29.99 subscription vs £49.99 one-time. Plus the subscription-only hook: ' +
-      'gifts worth more than £105 across the year, arriving with refills. Numbers, calmly stated.',
+      'A custom Air Force 1 starts at £91.85 against its live compare-at from the store export: you are ' +
+      'buying an original silhouette plus an artwork that exists exactly once. Show the coffee-ART base ' +
+      'ladder as the honest step-up (Court Vision £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91). ' +
+      'Numbers, calmly stated, straight from the catalog — never an invented bundle or code.',
     applicable_product_types: ['coffee', 'supplements'],
     cta_framing_by_purchase_mode: {
       one_time_only: 'N/A for this play.',
       subscription_priority:
-        'Primary CTA is subscribe ("Start your subscription"); one-time purchase is the quiet ' +
-        'secondary option, never the headline. For supplements, never state a price — CTA to the product page.',
+        'Not applicable — no subscription exists. Route the CTA to the product page and let the ' +
+        'catalog price carry it; for accessories, stay price-free and link the PDP.',
     },
     template_style: 'pure',
     min_gap_days: 10,
   },
   b2g1_offer: {
     key: 'b2g1_offer',
-    name: 'B2G1 offer (Pack of 3)',
+    name: 'Base-model step-up ladder',
     when_to_use:
       'Offer-forward closer after story + education touches have landed — the strongest existing ' +
-      'mechanic, used sparingly.',
+      'mechanic, used sparingly. (Key kept as b2g1_offer for downstream consumers.)',
     mechanic:
-      'Pack of 3 subscription at £59.99 = 2 × £29.99 — buy two packs, the third is free (B2G1). ' +
-      'One-time Pack of 3 is £99.99. A soft deadline ("closes Sunday") is allowed; no countdown ' +
-      'clocks, no caps urgency, no invented codes.',
+      'Same hand-painted coffee-ART artwork, stepped up a base model: Court Vision £89.09, ' +
+      'Air Force 1 £108.27, Air Jordan 1 Low £141.91. State the ladder so the reader picks their ' +
+      'silhouette. A soft deadline ("closes Sunday") is allowed; no countdown clocks, no caps ' +
+      'urgency, never an invented bundle or discount code.',
     applicable_product_types: ['coffee'],
     cta_framing_by_purchase_mode: {
-      one_time_only: 'N/A for this play.',
-      subscription_priority:
-        'Subscribe-to-the-Pack-of-3 is the single CTA: "Claim the third pack" / "Subscribe to the Pack of 3".',
+      one_time_only:
+        'One CTA on the chosen base: "Pick your base" / "See it on the Air Force 1". One-time purchase only.',
+      subscription_priority: 'Not applicable — no subscription exists.',
     },
     template_style: 'visual',
     min_gap_days: 14,
@@ -158,16 +181,17 @@ const PLAYS = {
     key: 'cross_grade_launch_news',
     name: 'Cross-grade launch news',
     when_to_use:
-      'Existing T&B buyers (Cohort B) — introduce coffee/supplements as news from the sneaker people ' +
-      'they already trust: "from the sneaker people you know, our first coffee".',
+      'Existing custom-sneaker buyers (Cohort B) — introduce the coffee-ART collection and the ' +
+      'finishing accessories as news from the studio they already trust: "from the artists who ' +
+      'painted your pair, a new theme".',
     mechanic:
-      'Brand-voice launch narrative anchored in the existing sneaker relationship, plus the 7 gifts ' +
-      'and the £105/yr subscription gift hook as the reasons to cross over now.',
+      'Brand-voice launch narrative anchored in the pair they already own, plus the one-of-one promise ' +
+      'and the 10-15 day made-to-order build as the reasons to cross over now.',
     applicable_product_types: ['coffee', 'supplements'],
     cta_framing_by_purchase_mode: {
       one_time_only: 'N/A for this play.',
       subscription_priority:
-        'Subscription-first CTA; frame as joining early from the inside track. Supplements: no prices, product-page CTA only.',
+        'Not applicable. Use the one-time CTA: product-page link, catalog price for sneakers, price-free for accessories.',
     },
     template_style: 'editorial',
     min_gap_days: 12,
@@ -176,17 +200,18 @@ const PLAYS = {
     key: 'new_launch_announcement',
     name: 'New-launch announcement',
     when_to_use:
-      'Genuinely new products with zero purchase history (supplements) — the truthful ' +
-      '"be among the first" founding-customer angle.',
+      'Genuinely new designs and collection capsules with no purchase history — the truthful ' +
+      '"be among the first" founding-customer angle. Because every pair is a one-of-one, first ' +
+      'really does mean first.',
     mechanic:
-      'Straight launch news: what it is, why it exists, who it is for. "Be among the first" is ' +
-      'TRUE and allowed for supplements. No prices for supplements — ever. No medical claims.',
+      'Straight launch news: what it is, why it exists, who it is for. "Be among the first" is TRUE ' +
+      'for a new capsule. Quote only catalog prices. No health or performance claims, ever.',
     applicable_product_types: ['supplements', 'coffee'],
     cta_framing_by_purchase_mode: {
       one_time_only: 'N/A for this play.',
       subscription_priority:
-        'Subscription-first framing ("Be first — subscribe from day one"), product-page CTA; a ' +
-        'T&B sampler may appear as a PS, framed one-time only.',
+        'Not applicable. Use "Be first — claim the pair" with a product-page CTA; a low-ticket ' +
+        'accessory may appear as a PS, framed one-time only.',
     },
     template_style: 'editorial',
     min_gap_days: 14,
@@ -196,14 +221,15 @@ const PLAYS = {
     name: 'Occasion / seasonal bundle',
     when_to_use:
       'A festival or cultural moment on the calendar (from data/festivals.json) — let the ' +
-      'occasion pick the products, e.g. Wimbledon afternoon sneaker.',
+      'occasion pick the products, e.g. a wedding pair for the season, a derby-weekend football pair.',
     mechanic:
-      'Seasonal curation around the moment. T&B: real compare-at prices only. Coffee: existing ' +
-      'subscription pricing. No occasion-specific codes may be invented.',
+      'Seasonal curation around the moment. Custom pairs: real catalog pricing, live compare-at values ' +
+      'and the honest 10-15 day build time. Accessories: PDP link, no price. No occasion-specific codes ' +
+      'may be invented.',
     applicable_product_types: ['tb', 'coffee'],
     cta_framing_by_purchase_mode: {
-      one_time_only: 'One-time seasonal purchase: "Set the table" / "Shop the {occasion} pick".',
-      subscription_priority: 'Subscription remains the primary CTA even inside a seasonal frame.',
+      one_time_only: 'One-time seasonal purchase: "Shop the {occasion} pick".',
+      subscription_priority: 'Not applicable — the one-time pair CTA holds even inside a seasonal frame.',
     },
     template_style: 'visual',
     min_gap_days: 10,
@@ -211,13 +237,15 @@ const PLAYS = {
 };
 
 // ─── Purchase-mode resolution ────────────────────────────────────────────────
-// T&B is strictly one-time; coffee + supplements are subscription-priority.
+// EVERY KNICKGASM lane is one-time: custom sneakers ('tb'), the coffee-ART
+// collection ('coffee') and accessories ('supplements'). There is no
+// subscription program, so 'subscription_priority' is never returned — the mode
+// key survives only because downstream consumers still switch on it.
 // Kept in code (not just JSON) so callers without the JSON loaded stay correct.
 function purchaseModeForProductType(productType) {
   const t = String(productType || '').toLowerCase();
-  if (t === 'tb') return 'one_time_only';
-  if (t === 'coffee' || t === 'supplements') return 'subscription_priority';
-  return 'one_time_only'; // safe default: never over-claim subscription
+  if (t === 'tb' || t === 'coffee' || t === 'supplements') return 'one_time_only';
+  return 'one_time_only'; // safe default: never claim a subscription
 }
 
 // ─── Load-time invariants (fail fast, never in a request path) ───────────────

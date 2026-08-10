@@ -12,8 +12,8 @@
      making dark-on-chalk text render light-on-light (unreadable). !important on
      a custom property wins the cascade regardless of order, so the page keeps
      its own readable, WCAG-AA palette. */
-  :root { --green:#6A33D8 !important; --lava:#D0473E !important; --lava-ink:#8a6a2f !important; --ink:#111111 !important; --chalk:#F7F5F2 !important; }
-  /* readable lava for TEXT on light backgrounds (brand lava #D0473E fails contrast as small text on chalk) */
+  :root { --green:#D0473E !important; --lava:#6A33D8 !important; --lava-ink:var(--vh-ink) !important; --ink:#111111 !important; --chalk:#FFFFFF !important; }
+  /* readable lava for TEXT on light backgrounds (brand lava #6A33D8 fails contrast as small text on chalk) */
   input::placeholder, textarea::placeholder { color:#6f6f6f; opacity:1; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--chalk); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--ink); }
@@ -74,7 +74,7 @@
 </head>
 <body>
 <div class="shell">
-  <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700">KNICKGASM · Voice &amp; Chat Concierge <span style="background:#14532d;color:#bbf7d0;border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
+  <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700">KNICKGASM · Voice &amp; Chat Concierge <span style="background:var(--vh-ink);color:var(--vh-panel-tan);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
   <h1>Talk to a Knickgasm expert</h1>
   <div class="sub">This is the customer-facing concierge, the tool your customers talk to. Ask about benefits, crafting, how long results take, or whether a colorway is worth it, by voice or text. Honest answers, zero pressure. Pick a specialist:</div>
   <div class="agentbar" id="agentbar"></div>
@@ -104,7 +104,7 @@
       </div>
       <div>
         <label for="afScope">Focus — categories (optional)</label>
-        <input id="afScope" placeholder="comma-separated, e.g. Coffee, Adaptogens" autocomplete="off">
+        <input id="afScope" placeholder="comma-separated, e.g. Coffee, Statement Pieces" autocomplete="off">
       </div>
       <div class="full">
         <label for="afGreeting">Greeting (optional)</label>
@@ -144,14 +144,14 @@
 <script src="/chat-history.js"></script>
 <style>
   .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
-  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:#7a5f28;cursor:pointer}
+  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:var(--vh-ink);cursor:pointer}
   .cbtn:hover{background:rgba(171,135,67,.24)}
   .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:#fff;border:1px solid rgba(171,135,67,.5);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.18)}
   .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#2a2a2a}
   .hitem:hover{background:rgba(171,135,67,.12)} .hitem.on{background:rgba(171,135,67,.2)}
   .htitle{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hdel{background:none;border:0;color:#9a8a5f;cursor:pointer;font-size:12px} .hdel:hover{color:#c0392b}
-  .hempty{padding:14px;color:#9a8a5f;font-size:12px;text-align:center}
+  .hdel{background:none;border:0;color:var(--vh-lava);cursor:pointer;font-size:12px} .hdel:hover{color:#c0392b}
+  .hempty{padding:14px;color:var(--vh-lava);font-size:12px;text-align:center}
 </style>
 <script>
 (function(){

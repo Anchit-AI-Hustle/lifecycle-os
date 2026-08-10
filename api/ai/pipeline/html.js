@@ -43,7 +43,7 @@ MASTER MARKETING PRINCIPLES — NON-NEGOTIABLE
 
 ② PRICE ALWAYS VISIBLE — Every product shows: current price + strikethrough compare-at + % OFF badge. If no price in plan → derive from product data. Never omit price.
 
-③ EXPLICIT ADD TO CART — Every product card has a full-width "🛒 ADD TO CART" button (dark green #6A33D8, display:block). Never rely on clicking the product image.
+③ EXPLICIT ADD TO CART — Every product card has a full-width "🛒 ADD TO CART" button (dark green #D0473E, display:block). Never rely on clicking the product image.
 
 ④ SHORT AND HIGH-IMPACT — MAX 7 SECTIONS. Every section earns its place. No filler, no padding-only sections.
 
@@ -72,30 +72,30 @@ KNOWN FAILURE MODES — FIX THESE BEFORE GENERATING:
 
 ④ VARIANT B = VARIANT A — Same amber button, same chalk background, same product-first structure.
    FIX FOR VARIANT B:
-   - First 2–3 sections: dark background (#6A33D8) with chalk text (#F7F5F2) — mandatory
+   - First 2–3 sections: dark background (#D0473E) with chalk text (#FFFFFF) — mandatory
    - No product in sections 1–2. Narrative/lifestyle/mood opens the email
    - Ghost-button CTA only: border:2px solid [matching text color]; background:transparent
    - Single editorial product with large image, not a product grid
    - Headline 44px+ serif, evocative poetic copy, 60px+ section padding (editorial needs air)
 
 ⑤ MISSING MARKETING SIGNALS — No ratings, no social proof numbers, no price context.
-   FIX: Include ⭐ 4.8/5 · 50,000+ reviews in product sections; use compare-at pricing where available; add "Free Shipping on $49+" in offer sections; include 1-2 trust badge rows (Farm Direct · B-Corp · 100% Natural · Ships Worldwide).
+   FIX: Include ⭐ 4.8/5 · India's largest sneaker customisers in product sections; use compare-at pricing where available; add "Free Shipping on $49+" in offer sections; include 1-2 trust badge rows (Farm Direct · B-Corp · Water & scratch resistant · Ships Worldwide).
 
 ⑥ NON-RESPONSIVE LAYOUT — Split columns and product grids break on mobile (portrait mode issue).
    FIX: Wrap the email in a <style> block with @media rules. Use MSO conditional comments for Outlook. Inner columns must stack on mobile. Add float:none!important and max-width:100%!important to .col2/.col3 to fix portrait orientation reflow in email clients.
 
 ⑦ HIDDEN DISCOUNT — Offer/discount not visible in first 500px. Buyer has to scroll to find the price.
    FIX: Inside the hero section (BEFORE the CTA button), include a prominent offer badge as a dark block:
-   <div style="display:inline-block;background:#6A33D8;color:#F7F5F2;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:10px 18px;margin-bottom:14px;line-height:1.5">UP TO [X%] OFF<br><span style="font-size:9px;font-weight:400;color:#D0473E;letter-spacing:0.04em">ON SELECTED [PRODUCT CATEGORY]</span></div>
+   <div style="display:inline-block;background:#D0473E;color:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:10px 18px;margin-bottom:14px;line-height:1.5">UP TO [X%] OFF<br><span style="font-size:9px;font-weight:400;color:#6A33D8;letter-spacing:0.04em">ON SELECTED [PRODUCT CATEGORY]</span></div>
 
 ⑧ WEAK ADD TO CART — Small inline "Add to Cart" link colorways into product card. No urgency signals on products.
    FIX: Product cards MUST use a FULL-WIDTH dark green button spanning the entire card width:
-   <a href="..." style="display:block;background:#6A33D8;color:#F7F5F2;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;text-decoration:none;padding:11px 16px;text-align:center">🛒 ADD TO CART</a>
+   <a href="..." style="display:block;background:#D0473E;color:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;text-decoration:none;padding:11px 16px;text-align:center">🛒 ADD TO CART</a>
    AND add "🔥 [N] units sold in the last 24 hours" (N=25-90) above the price for social proof urgency.
 
 ⑨ MISSING GIFTING TAGLINE — CTA button has no emotional reinforcement for gifting campaigns.
    FIX: For any gift/Mother's Day/holiday campaign, add this line BELOW the hero CTA button:
-   <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#D0473E;margin-top:10px">MAKE HER SMILE, GIFT RIGHT!</div>
+   <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6A33D8;margin-top:10px">MAKE HER SMILE, GIFT RIGHT!</div>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HTML STRUCTURE RULES
@@ -121,9 +121,9 @@ Failure to do this = dark sections appear white in Outlook (breaks Variant B ent
 
 RULE: Every <td> with a CSS background value MUST also have the matching bgcolor attribute.
 Examples:
-  <td style="background:#6A33D8" bgcolor="#6A33D8">        ← dark section
-  <td style="background:#F7F5F2" bgcolor="#F7F5F2">        ← chalk section
-  <td style="background:#D0473E" bgcolor="#D0473E">        ← amber announcement bar
+  <td style="background:#D0473E" bgcolor="#D0473E">        ← dark section
+  <td style="background:#FFFFFF" bgcolor="#FFFFFF">        ← chalk section
+  <td style="background:#6A33D8" bgcolor="#6A33D8">        ← amber announcement bar
   <td style="background:#f5efe0" bgcolor="#f5efe0">        ← trust badge bar
   <td style="background:#ffffff" bgcolor="#ffffff">        ← white section
 
@@ -136,7 +136,7 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 <style>
   /* Outlook reset */
   table{border-collapse:collapse!important}
-  a{color:#D0473E}
+  a{color:#6A33D8}
   @media only screen and (max-width:600px){
     .email-container{width:100%!important;max-width:100%!important}
     .col2,.col3{display:block!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;float:none!important}
@@ -156,24 +156,24 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 ━━ SECTION LIBRARY — EXACT HTML FOR EACH LAYOUT TYPE ━━
 
 ── ANNOUNCEMENT BAR (always add this before KNICKGASM header) ──
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E" bgcolor="#D0473E">
-  <tr><td style="text-align:center;padding:9px 16px" bgcolor="#D0473E">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8" bgcolor="#6A33D8">
+  <tr><td style="text-align:center;padding:9px 16px" bgcolor="#6A33D8">
     <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#ffffff">[OFFER LINE — e.g. FREE SHIPPING ON ORDERS $49+ &nbsp;·&nbsp; USE CODE: KNICKGASM15]</span>
   </td></tr>
 </table>
 
 ── KNICKGASM HEADER ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8;max-width:600px;margin:0 auto" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E;max-width:600px;margin:0 auto" bgcolor="#D0473E">
   <tr>
-    <td width="200" style="padding:10px 16px 10px 24px;vertical-align:middle;background:#6A33D8" bgcolor="#6A33D8">
+    <td width="200" style="padding:10px 16px 10px 24px;vertical-align:middle;background:#D0473E" bgcolor="#D0473E">
       <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:rgba(253,246,232,0.5);letter-spacing:0.08em">EST. 2015 · NEW DELHI, INDIA</span>
     </td>
-    <td style="text-align:center;padding:14px 16px;vertical-align:middle;background:#6A33D8" bgcolor="#6A33D8">
-      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:#F7F5F2;letter-spacing:0.18em;font-weight:400;line-height:1">KNICKGASM<span style="font-size:14px;vertical-align:super;letter-spacing:0">®</span></div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8.5px;color:#D0473E;letter-spacing:0.22em;text-transform:uppercase;margin-top:4px">PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE</div>
+    <td style="text-align:center;padding:14px 16px;vertical-align:middle;background:#D0473E" bgcolor="#D0473E">
+      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:#FFFFFF;letter-spacing:0.18em;font-weight:400;line-height:1">KNICKGASM<span style="font-size:14px;vertical-align:super;letter-spacing:0">®</span></div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:8.5px;color:#6A33D8;letter-spacing:0.22em;text-transform:uppercase;margin-top:4px">PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE</div>
     </td>
-    <td width="200" style="text-align:right;padding:10px 24px 10px 16px;vertical-align:middle;background:#6A33D8" bgcolor="#6A33D8">
-      <a href="https://knickgasm.com/collections/all" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#D0473E;text-decoration:none;letter-spacing:0.06em">SHOP ALL →</a>
+    <td width="200" style="text-align:right;padding:10px 24px 10px 16px;vertical-align:middle;background:#D0473E" bgcolor="#D0473E">
+      <a href="https://knickgasm.com/collections/all" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#6A33D8;text-decoration:none;letter-spacing:0.06em">SHOP ALL →</a>
     </td>
   </tr>
 </table>
@@ -190,16 +190,16 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 </table>
 
 ── SPLIT-HERO (image 55% left, copy 45% right — Variant A default) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5F2;max-width:600px;margin:0 auto" bgcolor="#F7F5F2">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;max-width:600px;margin:0 auto" bgcolor="#FFFFFF">
   <tr>
     <!--[if mso]><td width="330" valign="top"><![endif]-->
-    <td class="col2 hero-img" width="330" valign="top" style="vertical-align:top;padding:0;background:#F7F5F2" bgcolor="#F7F5F2">
+    <td class="col2 hero-img" width="330" valign="top" style="vertical-align:top;padding:0;background:#FFFFFF" bgcolor="#FFFFFF">
       <img src="IMAGE_HERO_URL" width="330" height="auto" class="hero-img" style="display:block;border:0;width:330px;max-width:330px" alt="[PRODUCT NAME] — KNICKGASM">
     </td>
     <!--[if mso]></td><td width="270" valign="middle"><![endif]-->
-    <td class="col2 mobile-pad" width="270" valign="middle" style="vertical-align:middle;padding:28px 24px 28px 20px;background:#F7F5F2" bgcolor="#F7F5F2">
-      <span class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#D0473E;display:block;margin-bottom:8px">[EYEBROW]</span>
-      <h1 class="mobile-h1" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:30px;line-height:1.15;color:#6A33D8;font-weight:700;margin:0 0 12px 0">[HEADLINE — use verbatim from plan]</h1>
+    <td class="col2 mobile-pad" width="270" valign="middle" style="vertical-align:middle;padding:28px 24px 28px 20px;background:#FFFFFF" bgcolor="#FFFFFF">
+      <span class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;display:block;margin-bottom:8px">[EYEBROW]</span>
+      <h1 class="mobile-h1" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:30px;line-height:1.15;color:#D0473E;font-weight:700;margin:0 0 12px 0">[HEADLINE — use verbatim from plan]</h1>
       <!-- BENEFIT BULLETS — always include 2-3 short benefit lines derived from product -->
       <ul style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:13px;line-height:1.7;color:#3d5a40;margin:0 0 14px 0;padding:0 0 0 16px">
         <li>[BENEFIT 1 — specific product attribute or drop detail]</li>
@@ -208,11 +208,11 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
       </ul>
       <p class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:13px;line-height:1.65;color:#4a5568;margin:0 0 14px 0">[SUBCOPY — full sentence from plan. For gifting: end with "She'll enjoy it every day and remember you."]</p>
       <!-- OFFER BADGE — visible in first scroll, before CTA — MANDATORY for discount campaigns -->
-      <div style="display:inline-block;background:#6A33D8;color:#F7F5F2;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:10px 18px;margin-bottom:14px;line-height:1.5">UP TO [X%] OFF<br><span style="font-size:9px;font-weight:400;color:#D0473E;letter-spacing:0.04em">ON SELECTED [PRODUCT CATEGORY e.g. GIFTS]</span></div>
+      <div style="display:inline-block;background:#D0473E;color:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:10px 18px;margin-bottom:14px;line-height:1.5">UP TO [X%] OFF<br><span style="font-size:9px;font-weight:400;color:#6A33D8;letter-spacing:0.04em">ON SELECTED [PRODUCT CATEGORY e.g. GIFTS]</span></div>
       <br>
-      <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:inline-block;background:#D0473E;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:13px 28px">[CTA e.g. SHOP GIFTS]</a>
+      <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:inline-block;background:#6A33D8;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:13px 28px">[CTA e.g. SHOP GIFTS]</a>
       <!-- GIFTING TAGLINE — for gift/Mother's Day/holiday campaigns -->
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#D0473E;margin-top:10px">MAKE HER SMILE, GIFT RIGHT!</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6A33D8;margin-top:10px">MAKE HER SMILE, GIFT RIGHT!</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#8a9a8a;margin-top:8px">🚚 Free shipping on orders $49+</div>
     </td>
     <!--[if mso]></td><![endif]-->
@@ -220,13 +220,13 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 </table>
 
 ── FULL-BLEED HERO (image full width, copy below — Variant B default) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;background:#6A33D8" bgcolor="#6A33D8">
-  <tr><td style="padding:0;background:#6A33D8" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto;background:#D0473E" bgcolor="#D0473E">
+  <tr><td style="padding:0;background:#D0473E" bgcolor="#D0473E">
     <img src="IMAGE_HERO_URL" width="600" height="auto" style="display:block;border:0;width:100%;max-width:600px" alt="[CAMPAIGN MOOD] — KNICKGASM">
   </td></tr>
-  <tr><td class="mobile-pad" style="padding:40px 48px;background:#6A33D8;text-align:center" bgcolor="#6A33D8">
-    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#D0473E;display:block;margin-bottom:12px">[EYEBROW]</span>
-    <h1 class="mobile-h1" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:44px;line-height:1.1;color:#F7F5F2;font-weight:400;margin:0 0 18px 0;letter-spacing:-0.01em">[HEADLINE — use verbatim from plan]</h1>
+  <tr><td class="mobile-pad" style="padding:40px 48px;background:#D0473E;text-align:center" bgcolor="#D0473E">
+    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;display:block;margin-bottom:12px">[EYEBROW]</span>
+    <h1 class="mobile-h1" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:44px;line-height:1.1;color:#FFFFFF;font-weight:400;margin:0 0 18px 0;letter-spacing:-0.01em">[HEADLINE — use verbatim from plan]</h1>
     <p class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:15px;line-height:1.75;color:rgba(253,246,232,0.75);margin:0 0 24px 0;max-width:460px;margin-left:auto;margin-right:auto">[SUBCOPY — full sentence from plan]</p>
   </td></tr>
 </table>
@@ -253,47 +253,47 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 </table>
 
 ── PRODUCT CARD (use inside grid cells — replace ALL bracketed placeholders with real content) ──
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5F2;border:1px solid #e5ddd0" bgcolor="#F7F5F2">
-  <tr><td style="padding:0;background:#F7F5F2" bgcolor="#F7F5F2">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;border:1px solid #e5ddd0" bgcolor="#FFFFFF">
+  <tr><td style="padding:0;background:#FFFFFF" bgcolor="#FFFFFF">
     <img src="IMAGE_PRODUCT_URL" width="100%" height="auto" style="display:block;border:0;max-width:100%" alt="[FULL PRODUCT NAME] — KNICKGASM Premium Sneaker">
   </td></tr>
-  <tr><td style="padding:12px 12px 4px;text-align:left;background:#F7F5F2" bgcolor="#F7F5F2">
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#D0473E;margin-bottom:3px">⭐⭐⭐⭐⭐ <span style="color:#888;font-size:10px">([REVIEW_COUNT — realistic number e.g. 70] reviews)</span></div>
-    <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:15px;color:#6A33D8;font-weight:600;line-height:1.3;margin-bottom:4px">[FULL PRODUCT NAME — no truncation]</div>
+  <tr><td style="padding:12px 12px 4px;text-align:left;background:#FFFFFF" bgcolor="#FFFFFF">
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#6A33D8;margin-bottom:3px">⭐⭐⭐⭐⭐ <span style="color:#888;font-size:10px">([REVIEW_COUNT — realistic number e.g. 70] reviews)</span></div>
+    <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:15px;color:#D0473E;font-weight:600;line-height:1.3;margin-bottom:4px">[FULL PRODUCT NAME — no truncation]</div>
     <!-- URGENCY LINE — social proof, use realistic N between 25-90 -->
     <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#cc4400;font-weight:600;margin-bottom:7px">🔥 [N] units sold in the last 24 hours</div>
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:14px;font-weight:700;color:#6A33D8;margin-bottom:4px">
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:14px;font-weight:700;color:#D0473E;margin-bottom:4px">
       $[PRICE] <span style="font-size:10px;color:#aaa;text-decoration:line-through;font-weight:400">$[ORIG_PRICE]</span>
       &nbsp;<span style="font-size:9px;font-weight:800;color:#2a7a3a">[X%] OFF</span>
     </div>
   </td></tr>
   <!-- FULL-WIDTH ADD TO CART — spans entire card width, dark green background -->
-  <tr><td style="padding:8px 12px 12px;background:#F7F5F2" bgcolor="#F7F5F2">
-    <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:block;background:#6A33D8;color:#F7F5F2;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;text-decoration:none;padding:11px 0;text-align:center">🛒 ADD TO CART</a>
+  <tr><td style="padding:8px 12px 12px;background:#FFFFFF" bgcolor="#FFFFFF">
+    <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:block;background:#D0473E;color:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;text-decoration:none;padding:11px 0;text-align:center">🛒 ADD TO CART</a>
   </td></tr>
 </table>
 
 ── BENEFIT STRIP / ICON ROW ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8;max-width:600px;margin:0 auto" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E;max-width:600px;margin:0 auto" bgcolor="#D0473E">
   <tr>
-    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#6A33D8" bgcolor="#6A33D8">
+    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#D0473E" bgcolor="#D0473E">
       <div style="font-size:20px;margin-bottom:5px">🌿</div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#D0473E;letter-spacing:0.1em;text-transform:uppercase">FARM DIRECT</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#6A33D8;letter-spacing:0.1em;text-transform:uppercase">FARM DIRECT</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">Source to pair</div>
     </td>
-    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#6A33D8" bgcolor="#6A33D8">
+    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#D0473E" bgcolor="#D0473E">
       <div style="font-size:20px;margin-bottom:5px">♻️</div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#D0473E;letter-spacing:0.1em;text-transform:uppercase">B-CORP CERTIFIED</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#6A33D8;letter-spacing:0.1em;text-transform:uppercase">B-CORP CERTIFIED</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">Ethical sourcing</div>
     </td>
-    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#6A33D8" bgcolor="#6A33D8">
+    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#D0473E" bgcolor="#D0473E">
       <div style="font-size:20px;margin-bottom:5px">⭐</div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#D0473E;letter-spacing:0.1em;text-transform:uppercase">4.8/5 RATING</div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">50,000+ reviews</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#6A33D8;letter-spacing:0.1em;text-transform:uppercase">4.8/5 RATING</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">India's largest sneaker customisers</div>
     </td>
-    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#6A33D8" bgcolor="#6A33D8">
+    <td width="150" style="padding:16px 8px;text-align:center;vertical-align:top;background:#D0473E" bgcolor="#D0473E">
       <div style="font-size:20px;margin-bottom:5px">🚚</div>
-      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#D0473E;letter-spacing:0.1em;text-transform:uppercase">FREE SHIPPING</div>
+      <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;color:#6A33D8;letter-spacing:0.1em;text-transform:uppercase">FREE SHIPPING</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.65);margin-top:3px">Orders $49+</div>
     </td>
   </tr>
@@ -302,38 +302,38 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 ── SOCIAL PROOF STRIP ──
 <table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#f5efe0;border-top:1px solid #e8dcc8;border-bottom:1px solid #e8dcc8;max-width:600px;margin:0 auto" bgcolor="#f5efe0">
   <tr><td style="padding:14px 24px;text-align:center;background:#f5efe0" bgcolor="#f5efe0">
-    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#6A33D8;font-weight:700">⭐⭐⭐⭐⭐</span>
-    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#4a5568;margin-left:8px">Rated 4.8/5 by 50,000+ sneaker lovers · 100% Natural · Ships Worldwide</span>
+    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#D0473E;font-weight:700">⭐⭐⭐⭐⭐</span>
+    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#4a5568;margin-left:8px">Made on 100% original brand sneakers · Water & scratch resistant · Ships worldwide</span>
   </td></tr>
 </table>
 
 ── TESTIMONIAL (2-col layout) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5F2;max-width:600px;margin:0 auto" bgcolor="#F7F5F2">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;max-width:600px;margin:0 auto" bgcolor="#FFFFFF">
   <tr>
-    <td class="col2" width="290" style="padding:20px 10px 20px 24px;vertical-align:top;background:#F7F5F2" bgcolor="#F7F5F2">
-      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:17px;font-style:italic;color:#6A33D8;line-height:1.6;border-left:3px solid #D0473E;padding-left:14px;margin-bottom:10px">"[REAL REVIEW TEXT — specific and authentic, 1-2 sentences]"</div>
+    <td class="col2" width="290" style="padding:20px 10px 20px 24px;vertical-align:top;background:#FFFFFF" bgcolor="#FFFFFF">
+      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:17px;font-style:italic;color:#D0473E;line-height:1.6;border-left:3px solid #6A33D8;padding-left:14px;margin-bottom:10px">"[REAL REVIEW TEXT — specific and authentic, 1-2 sentences]"</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;color:#888;letter-spacing:0.06em">— [FIRST NAME], [CITY, STATE]</div>
     </td>
-    <td class="col2" width="290" style="padding:20px 24px 20px 10px;vertical-align:top;background:#F7F5F2" bgcolor="#F7F5F2">
-      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:17px;font-style:italic;color:#6A33D8;line-height:1.6;border-left:3px solid #D0473E;padding-left:14px;margin-bottom:10px">"[REAL REVIEW TEXT — specific and authentic, 1-2 sentences]"</div>
+    <td class="col2" width="290" style="padding:20px 24px 20px 10px;vertical-align:top;background:#FFFFFF" bgcolor="#FFFFFF">
+      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:17px;font-style:italic;color:#D0473E;line-height:1.6;border-left:3px solid #6A33D8;padding-left:14px;margin-bottom:10px">"[REAL REVIEW TEXT — specific and authentic, 1-2 sentences]"</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;color:#888;letter-spacing:0.06em">— [FIRST NAME], [CITY, STATE]</div>
     </td>
   </tr>
 </table>
 
 ── OFFER BANNER (Variant A — prominent) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8;max-width:600px;margin:0 auto" bgcolor="#6A33D8">
-  <tr><td class="mobile-pad" style="text-align:center;padding:20px 32px;background:#6A33D8" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E;max-width:600px;margin:0 auto" bgcolor="#D0473E">
+  <tr><td class="mobile-pad" style="text-align:center;padding:20px 32px;background:#D0473E" bgcolor="#D0473E">
     <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(212,135,58,0.8);margin-bottom:6px">[OFFER EYEBROW e.g. LIMITED BATCH · THIS SEASON ONLY]</div>
-    <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;color:#F7F5F2;font-weight:600;margin-bottom:6px">[OFFER HEADLINE e.g. Save 20% on Your First Order]</div>
+    <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;color:#FFFFFF;font-weight:600;margin-bottom:6px">[OFFER HEADLINE e.g. Save 20% on Your First Order]</div>
     <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;color:rgba(253,246,232,0.7);margin-bottom:14px">[OFFER DETAIL — code: KNICKGASM20 · min order $49 · ends [DATE]]</div>
-    <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;background:#D0473E;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:13px 36px">[CTA TEXT e.g. SHOP NOW]</a>
+    <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;background:#6A33D8;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:13px 36px">[CTA TEXT e.g. SHOP NOW]</a>
   </td></tr>
 </table>
 
 ── SUBTLE OFFER ROW (Variant B — inline, understated) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8;border-top:1px solid rgba(212,135,58,0.25);max-width:600px;margin:0 auto" bgcolor="#6A33D8">
-  <tr><td style="padding:14px 32px;text-align:center;background:#6A33D8" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E;border-top:1px solid rgba(212,135,58,0.25);max-width:600px;margin:0 auto" bgcolor="#D0473E">
+  <tr><td style="padding:14px 32px;text-align:center;background:#D0473E" bgcolor="#D0473E">
     <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11.5px;color:rgba(253,246,232,0.75)">
       [OFFER TEXT — e.g. 'Complimentary shipping on orders above $49. Use code KNICKGASM at checkout.']
     </span>
@@ -341,45 +341,45 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 </table>
 
 ── PRIMARY CTA SECTION (Variant A — amber button, prominent) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5F2;max-width:600px;margin:0 auto" bgcolor="#F7F5F2">
-  <tr><td class="mobile-pad" style="text-align:center;padding:28px 40px;background:#F7F5F2" bgcolor="#F7F5F2">
-    <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;background:#D0473E;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:16px 52px">[CTA TEXT e.g. SHOP THE COLLECTION]</a>
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;color:#888;margin-top:10px">Free shipping on $49+ · Easy returns · 100% natural</div>
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;max-width:600px;margin:0 auto" bgcolor="#FFFFFF">
+  <tr><td class="mobile-pad" style="text-align:center;padding:28px 40px;background:#FFFFFF" bgcolor="#FFFFFF">
+    <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;background:#6A33D8;color:#ffffff;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:16px 52px">[CTA TEXT e.g. SHOP THE COLLECTION]</a>
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;color:#888;margin-top:10px">Free shipping on $49+ · Easy returns · water & scratch resistant</div>
   </td></tr>
 </table>
 
 ── GHOST CTA SECTION (Variant B — understated, on dark background) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8;max-width:600px;margin:0 auto" bgcolor="#6A33D8">
-  <tr><td style="text-align:center;padding:40px 48px;background:#6A33D8" bgcolor="#6A33D8">
-    <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;border:1.5px solid rgba(253,246,232,0.7);background:transparent;color:#F7F5F2;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;padding:14px 44px">[CTA TEXT e.g. DISCOVER THE COLLECTION]</a>
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E;max-width:600px;margin:0 auto" bgcolor="#D0473E">
+  <tr><td style="text-align:center;padding:40px 48px;background:#D0473E" bgcolor="#D0473E">
+    <a href="{{STORE_BASE}}/collections/all" style="display:inline-block;border:1.5px solid rgba(253,246,232,0.7);background:transparent;color:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;padding:14px 44px">[CTA TEXT e.g. DISCOVER THE COLLECTION]</a>
     <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:rgba(253,246,232,0.4);margin-top:12px;letter-spacing:0.06em">[SUBTEXT e.g. Complimentary shipping on orders $49+]</div>
   </td></tr>
 </table>
 
 ── EDITORIAL PRODUCT FEATURE (Variant B — large single product reveal, section 3+) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#F7F5F2;max-width:600px;margin:0 auto" bgcolor="#F7F5F2">
-  <tr><td style="padding:0;background:#F7F5F2" bgcolor="#F7F5F2">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#FFFFFF;max-width:600px;margin:0 auto" bgcolor="#FFFFFF">
+  <tr><td style="padding:0;background:#FFFFFF" bgcolor="#FFFFFF">
     <img src="IMAGE_PRODUCT_URL" width="600" height="auto" style="display:block;border:0;max-width:100%" alt="[FULL PRODUCT NAME] — KNICKGASM Premium Sneaker">
   </td></tr>
-  <tr><td class="mobile-pad" style="padding:32px 48px;text-align:center;background:#F7F5F2" bgcolor="#F7F5F2">
-    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#D0473E;display:block;margin-bottom:10px">[CATEGORY · ESTATE NAME · ORIGIN REGION]</span>
-    <h2 class="mobile-h2" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:34px;color:#6A33D8;font-weight:600;line-height:1.2;margin:0 0 14px 0">[FULL PRODUCT NAME — from plan]</h2>
+  <tr><td class="mobile-pad" style="padding:32px 48px;text-align:center;background:#FFFFFF" bgcolor="#FFFFFF">
+    <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#6A33D8;display:block;margin-bottom:10px">[CATEGORY · ESTATE NAME · ORIGIN REGION]</span>
+    <h2 class="mobile-h2" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:34px;color:#D0473E;font-weight:600;line-height:1.2;margin:0 0 14px 0">[FULL PRODUCT NAME — from plan]</h2>
     <p class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:14px;line-height:1.75;color:#4a5568;margin:0 0 18px 0">[PRODUCT DESCRIPTION — 2 evocative sentences. Use origin, drop, sensory detail. Never truncate.]</p>
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#888;margin-bottom:18px">⭐ 4.8/5 &nbsp;·&nbsp; 50,000+ reviews &nbsp;·&nbsp; One-of-One &nbsp;·&nbsp; Hand-Painted</div>
-    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:16px;font-weight:700;color:#6A33D8;margin-bottom:18px">$[PRICE] <span style="font-size:12px;color:#aaa;text-decoration:line-through;font-weight:400">$[COMPARE]</span></div>
-    <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:inline-block;border:2px solid #6A33D8;background:transparent;color:#6A33D8;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;padding:13px 40px">[CTA e.g. EXPLORE THIS SNEAKER]</a>
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#888;margin-bottom:18px">⭐ 4.8/5 &nbsp;·&nbsp; India's largest sneaker customisers &nbsp;·&nbsp; One-of-One &nbsp;·&nbsp; Hand-Painted</div>
+    <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:16px;font-weight:700;color:#D0473E;margin-bottom:18px">$[PRICE] <span style="font-size:12px;color:#aaa;text-decoration:line-through;font-weight:400">$[COMPARE]</span></div>
+    <a href="{{STORE_BASE}}/products/[HANDLE]" style="display:inline-block;border:2px solid #D0473E;background:transparent;color:#D0473E;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;padding:13px 40px">[CTA e.g. EXPLORE THIS SNEAKER]</a>
   </td></tr>
 </table>
 
 ── ORIGIN / PROVENANCE SECTION (Variant B narrative — image left, story right) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto" bgcolor="#D0473E">
   <tr>
     <td class="col2" width="300" style="padding:0;vertical-align:top">
       <img src="IMAGE_LIFESTYLE_URL" width="300" height="auto" style="display:block;border:0;width:300px;max-width:100%" alt="[ESTATE NAME] sneaker studio — KNICKGASM">
     </td>
-    <td class="col2 mobile-pad" width="300" valign="middle" style="vertical-align:middle;padding:32px 28px;background:#6A33D8" bgcolor="#6A33D8">
-      <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:#D0473E;display:block;margin-bottom:10px">[REGION · ALTITUDE ft. · HARVEST SEASON]</span>
-      <h3 class="mobile-h2" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;color:#F7F5F2;font-weight:400;line-height:1.25;margin:0 0 14px 0">[SECTION HEADLINE — poetic, place-anchored]</h3>
+    <td class="col2 mobile-pad" width="300" valign="middle" style="vertical-align:middle;padding:32px 28px;background:#D0473E" bgcolor="#D0473E">
+      <span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;color:#6A33D8;display:block;margin-bottom:10px">[REGION · ALTITUDE ft. · HARVEST SEASON]</span>
+      <h3 class="mobile-h2" style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;color:#FFFFFF;font-weight:400;line-height:1.25;margin:0 0 14px 0">[SECTION HEADLINE — poetic, place-anchored]</h3>
       <p class="mobile-text" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:13px;line-height:1.75;color:rgba(253,246,232,0.72);margin:0 0 16px 0">[ORIGIN STORY — 2-3 evocative sentences about drop, altitude, the farmers, the landscape. Specific, not generic.]</p>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:rgba(212,135,58,0.7);letter-spacing:0.08em">✦ One-of-One &nbsp; ✦ Hand-Painted &nbsp; ✦ First-Flush</div>
     </td>
@@ -387,16 +387,16 @@ Apply bgcolor to EVERY <td> that has a background color — no exceptions.
 </table>
 
 ── KNICKGASM FOOTER (always last — include on every email) ──
-<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#6A33D8;max-width:600px;margin:0 auto" bgcolor="#6A33D8">
+<table width="600" class="email-container" cellpadding="0" cellspacing="0" border="0" style="background:#D0473E;max-width:600px;margin:0 auto" bgcolor="#D0473E">
   <tr>
-    <td style="padding:28px 32px 12px;text-align:center;background:#6A33D8" bgcolor="#6A33D8">
-      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;color:#F7F5F2;letter-spacing:0.14em;margin-bottom:8px">KNICKGASM<span style="font-size:11px;vertical-align:super;letter-spacing:0">®</span> India</div>
+    <td style="padding:28px 32px 12px;text-align:center;background:#D0473E" bgcolor="#D0473E">
+      <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;color:#FFFFFF;letter-spacing:0.14em;margin-bottom:8px">KNICKGASM<span style="font-size:11px;vertical-align:super;letter-spacing:0">®</span> India</div>
       <div style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;color:#7a9a7a;line-height:2;margin-bottom:14px">One-of-One Heritage Sneakers &nbsp;·&nbsp; B-Corp Certified &nbsp;·&nbsp; Hand-Painted &nbsp;·&nbsp; Free Shipping $49+</div>
       <div style="margin-bottom:14px">
-        <a href="{{STORE_BASE}}/collections/all" style="color:#D0473E;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Shop All Sneakers</a>
-        <a href="{{STORE_BASE}}/pages/our-story" style="color:#D0473E;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Our Story</a>
-        <a href="{{STORE_BASE}}/collections/bestsellers" style="color:#D0473E;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Bestsellers</a>
-        <a href="{{STORE_BASE}}/collections/gift-sets" style="color:#D0473E;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Gift Sets</a>
+        <a href="{{STORE_BASE}}/collections/all" style="color:#6A33D8;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Shop All Sneakers</a>
+        <a href="{{STORE_BASE}}/pages/our-story" style="color:#6A33D8;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Our Story</a>
+        <a href="{{STORE_BASE}}/collections/bestsellers" style="color:#6A33D8;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Bestsellers</a>
+        <a href="{{STORE_BASE}}/collections/gift-sets" style="color:#6A33D8;text-decoration:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;margin:0 10px">Gift Sets</a>
       </div>
       <div style="border-top:1px solid rgba(253,246,232,0.12);padding-top:12px;margin-top:4px">
         <a href="{{UNSUBSCRIBE_URL}}" style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;color:rgba(253,246,232,0.35);text-decoration:underline;margin:0 8px">Unsubscribe</a>
@@ -419,7 +419,7 @@ PROVEN D2C EMAIL MARKETING PATTERNS — APPLY THESE:
 
 3. BENEFIT BULLETS IN HERO: 2-3 specific, concrete benefit bullets in the hero section outperform long subcopy paragraphs.
 
-4. SOCIAL PROOF NEAR CTA: Place "⭐ 4.8/5 · 50,000+ reviews" or a short testimonial directly above or below the main CTA.
+4. SOCIAL PROOF NEAR CTA: Place "⭐ 4.8/5 · India's largest sneaker customisers" or a short testimonial directly above or below the main CTA.
 
 5. TRUST BADGES: Include the 4-icon trust bar (Farm Direct · B-Corp · Rating · Free Shipping) at least once — after header or before CTA.
 
@@ -431,13 +431,13 @@ PROVEN D2C EMAIL MARKETING PATTERNS — APPLY THESE:
 
 9. MULTIPLE CTAs: Include at least 2 CTA opportunities: once in hero section, once at the end. For product grids, each card has its own Add-to-Cart link.
 
-10. SPECIFICITY OVER VAGUENESS: "50,000+ sneaker lovers" beats "thousands of customers". "First-flush, 7,000ft elevation" beats "premium quality".
+10. SPECIFICITY OVER VAGUENESS: "India's largest sneaker customisers" beats "thousands of customers". "First-flush, 7,000ft elevation" beats "premium quality".
 
 11. SOCIAL PROOF URGENCY IN PRODUCT CARDS: Add "🔥 [N] units sold in the last 24 hours" text below the product name. Use realistic N between 25-90. Pair with explicit review count: "⭐⭐⭐⭐⭐ (N reviews)" not just a generic "50K+ reviews" line. Specificity = credibility.
 
 12. OFFER CONTINUITY: Show the discount at two points — (a) as a badge inside the hero section visible without scrolling, AND (b) as a "% OFF" label on each product card. Never surface the offer only once in the email.
 
-13. FULL-WIDTH ADD TO CART: Product card CTAs must span the FULL card width using display:block. Use dark green background (#6A33D8). Text: "🛒 ADD TO CART" all-caps. Never use a small inline button — it gets missed on mobile.
+13. FULL-WIDTH ADD TO CART: Product card CTAs must span the FULL card width using display:block. Use dark green background (#D0473E). Text: "🛒 ADD TO CART" all-caps. Never use a small inline button — it gets missed on mobile.
 
 14. GIFTING CAMPAIGN TAGLINE: For any campaign involving gifts, Mother's Day, birthdays, or celebrating her: add "MAKE HER SMILE, GIFT RIGHT!" as a small uppercase line directly below the hero CTA button. This emotional hook lifts gifting click-through.
 
@@ -463,7 +463,7 @@ PRODUCT SECTION must include per card:
 - Product name (full, not truncated)
 - "🔥 [N] units sold in the last 24 hours" urgency line (N between 25-90)
 - Price with strikethrough compare-at AND "[X%] OFF" badge in green
-- FULL-WIDTH "🛒 ADD TO CART" button spanning entire card (display:block, dark green bg #6A33D8)
+- FULL-WIDTH "🛒 ADD TO CART" button spanning entire card (display:block, dark green bg #D0473E)
 
 SOCIAL PROOF must include:
 - Actual review text (2 reviews, quoted)
@@ -492,8 +492,8 @@ Before outputting, verify:
 □ Responsive <style> block with Outlook reset present in <head>
 □ EVERY <td> with background-color CSS also has matching bgcolor="" attribute
 □ Preheader <div> present immediately after <body> tag
-□ Variant B: dark opening sections (#6A33D8 bg), ghost CTA, no product grid, 44px+ headlines
-□ Variant A: chalk background (#F7F5F2 bg), amber CTA (#D0473E), product in section 1, benefit bullets
+□ Variant B: dark opening sections (#D0473E bg), ghost CTA, no product grid, 44px+ headlines
+□ Variant A: chalk background (#FFFFFF bg), amber CTA (#6A33D8), product in section 1, benefit bullets
 ━━ QA SELF-CHECK — CONFIRM ALL BEFORE OUTPUTTING ━━
 ✔ Offer visible above the fold (announcement bar + hero badge)
 ✔ CTA button present in hero section (above fold)
@@ -524,7 +524,7 @@ If ANY QA check fails → fix it inline before outputting the HTML.
 - IMAGE_LIFESTYLE_URL = exact placeholder string for lifestyle image
 
 ━━ BRAND VOCABULARY ━━
-BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all-caps), hurry, don't miss out, last chance
+BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all-caps), hurry, don't miss out, last chance
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted, first-flush
 
 ━━ OUTPUT FORMAT ━━
@@ -639,9 +639,9 @@ module.exports = async function handler(req, res) {
 
   // Extract color scheme from variant plan for explicit injection
   const colorScheme = layoutPlan.color_scheme || {};
-  const bgColor     = colorScheme.background || (variant === 'B' ? '#6A33D8' : '#F7F5F2');
-  const primColor   = colorScheme.primary    || (variant === 'B' ? '#F7F5F2' : '#6A33D8');
-  const accentColor = colorScheme.accent     || '#D0473E';
+  const bgColor     = colorScheme.background || (variant === 'B' ? '#D0473E' : '#FFFFFF');
+  const primColor   = colorScheme.primary    || (variant === 'B' ? '#FFFFFF' : '#D0473E');
+  const accentColor = colorScheme.accent     || '#6A33D8';
 
   const userMessage = `━━ BUILD VARIANT ${variant} HTML EMAIL ━━
 
@@ -657,7 +657,7 @@ COLOR SCHEME FOR THIS VARIANT:
   Background: ${bgColor} (use this for the opening sections — MANDATORY)
   Primary text: ${primColor}
   Accent: ${accentColor}
-  ${variant === 'B' ? '→ DARK BACKGROUND: sections 1-2 must use background:'+bgColor+' with color:'+primColor+' text. This is the primary visual differentiator from Variant A.' : '→ LIGHT BACKGROUND: use #F7F5F2 for section backgrounds throughout.'}
+  ${variant === 'B' ? '→ DARK BACKGROUND: sections 1-2 must use background:'+bgColor+' with color:'+primColor+' text. This is the primary visual differentiator from Variant A.' : '→ LIGHT BACKGROUND: use #FFFFFF for section backgrounds throughout.'}
 
 ${regen > 0 ? `REGENERATE #${regen}: Vary padding values, section backgrounds, headline emphasis — keep same structure.` : ''}
 
@@ -710,7 +710,7 @@ PRODUCT CARD REQUIREMENT: For each product, show:
 Flow: ${layoutPlan.flow || ''}
 Spacing: ${layoutPlan.spacing || 'max 28px between content sections — NO excessive whitespace'}
 Hero layout: ${layoutPlan.hero || ''}
-Color scheme: background=${((layoutPlan.color_scheme || {}).background) || '#F7F5F2'} primary=${((layoutPlan.color_scheme || {}).primary) || '#6A33D8'} accent=${((layoutPlan.color_scheme || {}).accent) || '#D0473E'}
+Color scheme: background=${((layoutPlan.color_scheme || {}).background) || '#FFFFFF'} primary=${((layoutPlan.color_scheme || {}).primary) || '#D0473E'} accent=${((layoutPlan.color_scheme || {}).accent) || '#6A33D8'}
 
 ━━ COPY FRAMEWORK ━━
 Tone: ${copyFramework.tone || ''}
@@ -734,10 +734,10 @@ ${sectionSpec || `(no sections provided — generate ${variant === 'B' ? '7' : '
 ━━ BUILD THE HTML NOW ━━
 EMAIL STRUCTURE ORDER — follow this exactly:
 1. <!DOCTYPE html> + <html lang="en"> + <head> with <meta charset="UTF-8">, <meta name="viewport">, <title>, responsive <style> block (includes Outlook reset + @media rules)
-2. <body style="margin:0;padding:0;background:#F7F5F2"> with outer 600px centering wrapper table
+2. <body style="margin:0;padding:0;background:#FFFFFF"> with outer 600px centering wrapper table
 3. PREHEADER — immediately after <body>: hidden div with preheader text (see template above)
-4. Announcement bar (amber #D0473E background, offer/shipping line — bgcolor="#D0473E" on td)
-5. KNICKGASM Header (dark green #6A33D8 — bgcolor on all tds, 3-column: EST date · KNICKGASM® · SHOP ALL)
+4. Announcement bar (amber #6A33D8 background, offer/shipping line — bgcolor="#6A33D8" on td)
+5. KNICKGASM Header (dark green #D0473E — bgcolor on all tds, 3-column: EST date · KNICKGASM® · SHOP ALL)
 6. Trust badges bar (light chalk background, 4 trust signals: 🌿 Pure Indian Sneaker · ✦ Ethically Sourced · 🌱 Farm Direct · ★ 4.8/5)
 7. All sections from the plan IN ORDER — each content-complete, bgcolor on every colored td
 8. Social proof strip (⭐⭐⭐⭐⭐ rating + review count)
@@ -878,9 +878,9 @@ Output starts <!DOCTYPE html>, ends </html>. Nothing before or after.`;
     const subjectLines = plan.subject_lines || [(isB ? 'A sneaker worth slowing down for' : heroHeadline)];
     const preheader = plan.preheader || 'Premium one-of-one sneakers, crafted for your ritual';
 
-    const bgColor = isB ? '#6A33D8' : '#F7F5F2';
-    const textColor = isB ? '#F7F5F2' : '#6A33D8';
-    const accentColor = '#D0473E';
+    const bgColor = isB ? '#D0473E' : '#FFFFFF';
+    const textColor = isB ? '#FFFFFF' : '#D0473E';
+    const accentColor = '#6A33D8';
 
     const html = `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -908,12 +908,12 @@ body{margin:0;padding:0;width:100%!important;-webkit-font-smoothing:antialiased;
 }
 </style>
 </head>
-<body style="margin:0;padding:0;background:#F7F5F2" bgcolor="#F7F5F2">
+<body style="margin:0;padding:0;background:#FFFFFF" bgcolor="#FFFFFF">
 <!-- PREHEADER -->
-<div style="display:none;font-size:1px;color:#F7F5F2;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${preheader}</div>
+<div style="display:none;font-size:1px;color:#FFFFFF;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">${preheader}</div>
 
 <!-- OUTER WRAPPER -->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F7F5F2" bgcolor="#F7F5F2"><tr><td align="center" style="padding:0">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#FFFFFF" bgcolor="#FFFFFF"><tr><td align="center" style="padding:0">
 
 <!-- ANNOUNCEMENT BAR -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
@@ -924,7 +924,7 @@ body{margin:0;padding:0;width:100%!important;-webkit-font-smoothing:antialiased;
 
 <!-- HEADER -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="background:#6A33D8;padding:16px 24px;text-align:center;font-family:Georgia,serif;font-size:12px;color:#a89f91;letter-spacing:2px" bgcolor="#6A33D8">
+<tr><td style="background:#D0473E;padding:16px 24px;text-align:center;font-family:Georgia,serif;font-size:12px;color:#a89f91;letter-spacing:2px" bgcolor="#D0473E">
 <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
 <td style="text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#a89f91;letter-spacing:1px" class="mobile-hide">EST. 2015</td>
 <td style="text-align:center"><img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1756808809&width=310" alt="KNICKGASM" height="30" style="display:inline-block;border:0;height:30px;width:auto"></td>
@@ -935,7 +935,7 @@ body{margin:0;padding:0;width:100%!important;-webkit-font-smoothing:antialiased;
 
 <!-- TRUST BADGES -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="background:#F7F5F2;padding:10px 16px;text-align:center;font-family:Arial,sans-serif;font-size:11px;color:#6b6255;letter-spacing:0.3px" bgcolor="#F7F5F2">
+<tr><td style="background:#FFFFFF;padding:10px 16px;text-align:center;font-family:Arial,sans-serif;font-size:11px;color:#6b6255;letter-spacing:0.3px" bgcolor="#FFFFFF">
 &#127807; Pure Indian Sneaker &nbsp;&bull;&nbsp; ✦ Ethically Sourced &nbsp;&bull;&nbsp; &#127793; Farm Direct &nbsp;&bull;&nbsp; ★ 4.8/5
 </td></tr>
 </table>
@@ -948,11 +948,11 @@ ${isB ? `
 <div style="position:relative;background:${bgColor}">
 <img src="IMAGE_HERO_URL" alt="${heroHeadline}" width="600" class="hero-img" style="width:600px;height:auto;display:block">
 </div>
-<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#6A33D8;padding:48px 40px;text-align:center" bgcolor="#6A33D8">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#D0473E;padding:48px 40px;text-align:center" bgcolor="#D0473E">
 <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;color:${accentColor};letter-spacing:2px;text-transform:uppercase">${(heroSection.copy || {}).eyebrow || 'A STORY IN EVERY STEEP'}</p>
-<h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:32px;color:#F7F5F2;line-height:1.2;font-weight:normal">${heroHeadline}</h1>
+<h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:32px;color:#FFFFFF;line-height:1.2;font-weight:normal">${heroHeadline}</h1>
 <p style="margin:0 0 28px;font-family:Arial,sans-serif;font-size:15px;color:#c9bfb0;line-height:1.6;max-width:440px;margin-left:auto;margin-right:auto">${heroSubcopy}</p>
-<a href="${heuristicHeroUrl}" style="display:inline-block;padding:14px 36px;font-family:Arial,sans-serif;font-size:13px;color:#F7F5F2;border:1px solid #F7F5F2;text-decoration:none;letter-spacing:1px">${heroCta}</a>
+<a href="${heuristicHeroUrl}" style="display:inline-block;padding:14px 36px;font-family:Arial,sans-serif;font-size:13px;color:#FFFFFF;border:1px solid #FFFFFF;text-decoration:none;letter-spacing:1px">${heroCta}</a>
 </td></tr></table>
 ` : `
 <!-- VARIANT A: Split hero -->
@@ -962,7 +962,7 @@ ${isB ? `
 </td>
 <td class="col2" width="300" style="vertical-align:middle;background:${bgColor};padding:32px 28px" bgcolor="${bgColor}">
 <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:12px;color:${accentColor};letter-spacing:2px;text-transform:uppercase">${(heroSection.copy || {}).eyebrow || 'NEW ARRIVAL'}</p>
-<h1 style="margin:0 0 14px;font-family:Georgia,serif;font-size:28px;color:#6A33D8;line-height:1.2">${heroHeadline}</h1>
+<h1 style="margin:0 0 14px;font-family:Georgia,serif;font-size:28px;color:#D0473E;line-height:1.2">${heroHeadline}</h1>
 <p style="margin:0 0 24px;font-family:Arial,sans-serif;font-size:14px;color:#4a4540;line-height:1.6">${heroSubcopy}</p>
 <a href="${heuristicHeroUrl}" style="display:inline-block;padding:14px 32px;background:${accentColor};font-family:Arial,sans-serif;font-size:13px;color:#ffffff;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${heroCta}</a>
 </td>
@@ -985,18 +985,18 @@ ${isB ? `
 
 <!-- PRODUCT SECTION -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="background:${isB ? '#6A33D8' : '#ffffff'};padding:36px 24px;text-align:center" bgcolor="${isB ? '#6A33D8' : '#ffffff'}">
+<tr><td style="background:${isB ? '#D0473E' : '#ffffff'};padding:36px 24px;text-align:center" bgcolor="${isB ? '#D0473E' : '#ffffff'}">
 ${isB ? `<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:12px;color:${accentColor};letter-spacing:2px;text-transform:uppercase">THE COLLECTION</p>` : ''}
 <h2 style="margin:0 0 12px;font-family:Georgia,serif;font-size:24px;color:${textColor};line-height:1.3">${productName}</h2>
 <img src="IMAGE_PRODUCT_URL" alt="${productName}" width="${isB ? 400 : 260}" style="width:${isB ? 400 : 260}px;height:auto;display:block;margin:16px auto;border-radius:4px">
 <p style="margin:12px auto 20px;font-family:Arial,sans-serif;font-size:14px;color:${isB ? '#c9bfb0' : '#4a4540'};line-height:1.6;max-width:420px">${productCopy}</p>
-<a href="${heuristicHeroUrl}" style="display:inline-block;padding:14px 32px;${isB ? 'border:1px solid #F7F5F2;color:#F7F5F2' : 'background:' + accentColor + ';color:#ffffff'};font-family:Arial,sans-serif;font-size:13px;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${productCta}</a>
+<a href="${heuristicHeroUrl}" style="display:inline-block;padding:14px 32px;${isB ? 'border:1px solid #FFFFFF;color:#FFFFFF' : 'background:' + accentColor + ';color:#ffffff'};font-family:Arial,sans-serif;font-size:13px;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${productCta}</a>
 </td></tr>
 </table>
 
 <!-- SOCIAL PROOF -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="background:${isB ? '#0a1f13' : '#F7F5F2'};padding:32px 36px;text-align:center" bgcolor="${isB ? '#0a1f13' : '#F7F5F2'}">
+<tr><td style="background:${isB ? '#0a1f13' : '#FFFFFF'};padding:32px 36px;text-align:center" bgcolor="${isB ? '#0a1f13' : '#FFFFFF'}">
 <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;color:${accentColor}">★★★★★</p>
 <p style="margin:0 0 8px;font-family:Georgia,serif;font-size:16px;color:${textColor};font-style:italic;line-height:1.5">${proofCopy}</p>
 <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:${isB ? '#8a8175' : '#8a8175'};letter-spacing:1px">15,000+ 5-STAR REVIEWS</p>
@@ -1005,7 +1005,7 @@ ${isB ? `<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:12px;co
 
 <!-- LIFESTYLE IMAGE -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="background:${isB ? '#6A33D8' : '#ffffff'};padding:0" bgcolor="${isB ? '#6A33D8' : '#ffffff'}">
+<tr><td style="background:${isB ? '#D0473E' : '#ffffff'};padding:0" bgcolor="${isB ? '#D0473E' : '#ffffff'}">
 <img src="IMAGE_LIFESTYLE_URL" alt="Sneaker lifestyle" width="600" style="width:600px;height:auto;display:block">
 </td></tr>
 </table>
@@ -1015,7 +1015,7 @@ ${isB ? `<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:12px;co
 <tr><td style="background:${accentColor};padding:24px 28px;text-align:center" bgcolor="${accentColor}">
 <h3 style="margin:0 0 8px;font-family:Georgia,serif;font-size:20px;color:#ffffff">${offerHeadline}</h3>
 <p style="margin:0 0 16px;font-family:Arial,sans-serif;font-size:13px;color:#fff5eb">${offerSubcopy}</p>
-<a href="${heuristicShopUrl}" style="display:inline-block;padding:12px 28px;background:#6A33D8;font-family:Arial,sans-serif;font-size:13px;color:#F7F5F2;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${(offerSection.copy || {}).cta || 'Shop the Collection'}</a>
+<a href="${heuristicShopUrl}" style="display:inline-block;padding:12px 28px;background:#D0473E;font-family:Arial,sans-serif;font-size:13px;color:#FFFFFF;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${(offerSection.copy || {}).cta || 'Shop the Collection'}</a>
 </td></tr>
 </table>
 
@@ -1023,14 +1023,14 @@ ${isB ? `<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:12px;co
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
 <tr><td style="background:${bgColor};padding:36px 28px;text-align:center" bgcolor="${bgColor}">
 <h3 style="margin:0 0 16px;font-family:Georgia,serif;font-size:22px;color:${textColor}">${(ctaSection.copy || {}).headline || (isB ? 'Begin Your Ritual' : 'Shop KNICKGASM Today')}</h3>
-<a href="${heuristicShopUrl}" style="display:inline-block;padding:16px 40px;${isB ? 'border:1px solid #F7F5F2;color:#F7F5F2' : 'background:' + accentColor + ';color:#ffffff'};font-family:Arial,sans-serif;font-size:14px;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${finalCta}</a>
+<a href="${heuristicShopUrl}" style="display:inline-block;padding:16px 40px;${isB ? 'border:1px solid #FFFFFF;color:#FFFFFF' : 'background:' + accentColor + ';color:#ffffff'};font-family:Arial,sans-serif;font-size:14px;text-decoration:none;letter-spacing:0.5px;border-radius:2px">${finalCta}</a>
 </td></tr>
 </table>
 
 <!-- FOOTER -->
 <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;margin:0 auto">
-<tr><td style="background:#6A33D8;padding:28px 24px;text-align:center" bgcolor="#6A33D8">
-<p style="margin:0 0 12px;font-family:Georgia,serif;font-size:18px;color:#F7F5F2;letter-spacing:2px">KNICKGASM&reg;</p>
+<tr><td style="background:#D0473E;padding:28px 24px;text-align:center" bgcolor="#D0473E">
+<p style="margin:0 0 12px;font-family:Georgia,serif;font-size:18px;color:#FFFFFF;letter-spacing:2px">KNICKGASM&reg;</p>
 <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:12px;color:#8a8175">
 <a href="${heuristicStoreBase}/collections/all" style="color:${accentColor};text-decoration:none">Shop All</a> &nbsp;&bull;&nbsp;
 <a href="${heuristicStoreBase}/pages/our-story" style="color:${accentColor};text-decoration:none">Our Story</a> &nbsp;&bull;&nbsp;

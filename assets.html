@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KNICKGASM · Created Assets</title>
+<title>Lifecycle OS · Created Assets</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <script src="/auth.js?v=20260718light" defer></script>
@@ -19,9 +19,9 @@
   @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
   .page-head { margin-bottom: 8px; }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #D0473E; font-weight: 600; margin-bottom: 10px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #6A33D8; font-weight: 600; margin-bottom: 10px; }
   h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-  h1 em { font-style: italic; color: #D0473E; }
+  h1 em { font-style: italic; color: #6A33D8; }
   .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
 
   /* Controls */
@@ -29,8 +29,8 @@
   .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
   .chip { font-size: 12px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.25);
     border-radius: 99px; padding: 7px 14px; cursor: pointer; font-family: inherit; transition: all .14s; white-space: nowrap; }
-  .chip:hover { border-color: #D0473E; color: #111111; }
-  .chip.active { color: #ffffff; background: #D0473E; border-color: #D0473E; }
+  .chip:hover { border-color: #6A33D8; color: #111111; }
+  .chip.active { color: #ffffff; background: #6A33D8; border-color: #6A33D8; }
   .chip .n { opacity: 0.7; font-weight: 700; margin-left: 3px; }
   .spacer { flex: 1; }
   .search { display: flex; align-items: center; gap: 7px; background: #ffffff; border: 1px solid rgba(171,135,67,0.25);
@@ -38,17 +38,17 @@
   .search input { flex: 1; background: transparent; border: none; outline: none; color: #111111; font-family: inherit; font-size: 13px; }
   .scope { display: flex; gap: 6px; }
   .btn { font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 14px; cursor: pointer; border: 1px solid rgba(171,135,67,0.3); background: transparent; color: #556059; }
-  .btn:hover { border-color: #D0473E; }
+  .btn:hover { border-color: #6A33D8; }
 
   /* Asset grid */
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
   @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-  .asset { background: linear-gradient(160deg, #ffffff, #0c1814); border: 1px solid rgba(171,135,67,0.18);
+  .asset { background: linear-gradient(160deg, #ffffff, var(--vh-ink)); border: 1px solid rgba(171,135,67,0.18);
     border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: transform .14s, border-color .14s; }
   .asset:hover { transform: translateY(-2px); border-color: rgba(171,135,67,0.4); }
   .asset .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top center; background: #fff; display: block; border-bottom: 1px solid rgba(171,135,67,0.12); }
-  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: #33473d; font-size: 30px; background: #ffffff; }
+  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: var(--vh-ink); font-size: 30px; background: #ffffff; }
   /* Live mailer/landing preview: render the real HTML, scaled to card width, so
      the card shows the ACTUAL rendered mailer — not a raw product photo. */
   .asset .thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/10; overflow: hidden; background: #fff; border-bottom: 1px solid rgba(171,135,67,0.12); }
@@ -59,14 +59,14 @@
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .asset .meta { font-size: 11px; color: #556059; margin-bottom: 11px; flex: 1; }
   .tag { font-size: 9.5px; padding: 2px 7px; border-radius: 99px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 5px; }
-  .tag.mailer { background: rgba(171,135,67,0.16); color: #7a5f28; }
+  .tag.mailer { background: rgba(171,135,67,0.16); color: var(--vh-ink); }
   .tag.ad { background: rgba(59,130,246,0.14); color: #1d4ed8; }
   .tag.landing { background: rgba(22,163,74,0.16); color: #0a7d33; }
   .acts { display: flex; gap: 6px; flex-wrap: wrap; }
   .abtn { flex: 1; min-width: 62px; text-align: center; font-family: inherit; font-size: 11.5px; font-weight: 600;
     color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.28); border-radius: 8px; padding: 7px 8px; cursor: pointer; text-decoration: none; transition: all .12s; }
-  .abtn:hover { border-color: #D0473E; color: #111111; background: rgba(171,135,67,0.06); }
-  .abtn.primary { color: #ffffff; background: #D0473E; border-color: #D0473E; }
+  .abtn:hover { border-color: #6A33D8; color: #111111; background: rgba(171,135,67,0.06); }
+  .abtn.primary { color: #ffffff; background: #6A33D8; border-color: #6A33D8; }
 
   .empty { grid-column: 1 / -1; font-size: 13px; color: #48524c; padding: 40px 4px; text-align: center; }
   .src { font-size: 11px; color: #48524c; margin: 22px 0 0; }
@@ -152,10 +152,10 @@
   function brandBlock() {
     return [
       'BRAND RULES (strict — obey exactly):',
-      '- Palette, ONLY these four: deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2.',
+      '- Palette, ONLY these four: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
       "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
       '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
       '- KNICKGASM: premium Indian heritage sneaker · B-Corp · one-of-one · studio-fresh within 72 hours of drop.'
     ].join('\n');
   }
@@ -420,7 +420,7 @@
       const dot = stale > 0 ? '#d9b25a' : '#3fa46a';
       const label = stale > 0
         ? ('<b style="color:#111111">' + stale + ' of ' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' need regeneration — a source fact changed since they were built'
-           + ' <span style="color:#d9b25a">(STALE)</span>')
+           + ' <span style="color:var(--vh-lava)">(STALE)</span>')
         : ('<b style="color:#111111">' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' tracked, all current against source');
       strip.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:' + dot + ';display:inline-block;flex:0 0 auto"></span>'
         + '<span>Source sync · ' + label + '</span>'

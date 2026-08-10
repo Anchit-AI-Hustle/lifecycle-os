@@ -1,4 +1,4 @@
--- KNICKGASM Lifecycle OS — initial schema
+-- Lifecycle OS — initial schema
 -- Run via: supabase db push  (or psql $SUPABASE_DATABASE_URL -f this file)
 --
 -- 4 schemas mirror the operational tools:

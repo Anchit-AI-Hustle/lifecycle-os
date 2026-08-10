@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20260711120000_brand_assets.sql
--- KNICKGASM Lifecycle OS — approved-assets service (brand_assets).
+-- Lifecycle OS — approved-assets service (brand_assets).
 --
 -- The single source of truth for REAL, origin-validated creative assets that
 -- mailers / ads / landing pages are allowed to embed. Every asset URL is either

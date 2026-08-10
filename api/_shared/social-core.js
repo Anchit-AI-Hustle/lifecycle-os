@@ -80,7 +80,7 @@ function festivalsUK() { const f = loadJson('data/festivals.json'); return (f &&
 // ── Brand scrub — every emitted string passes through here ───────────────────
 // scenario-model sanitizeBrand collapses whitespace, which would flatten blog
 // markdown — so we only rewrite strings that actually contain a violation.
-const SCRUB_RX = /streetwear journey|liquid lava|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/i;
+const SCRUB_RX = /wellness journey|liquid gold|game[\s-]?changer|hurry|don'?t miss out|last chance|while supplies last/i;
 const SCRUB_TRANSFORM_RX = /\btransform(ing|ed|s|ation)?\b/i;
 const SCRUB_CAPS_RX = /LIMITED TIME/; // caps form specifically
 function scrubString(s) {
@@ -120,9 +120,10 @@ function dayOfYear(iso) {
   return Math.floor((d - new Date(Date.UTC(d.getUTCFullYear(), 0, 0))) / 86400000);
 }
 
-// Product-focus rotation, weighted like the purchase modes in product-types.json:
-// coffee + supplements are subscription_priority (the growth bets), T&B is the
-// established one-time base → 7-day cycle: coffee x3, tb x3, supplements x1.
+// Product-focus rotation over the legacy product-type keys in product-types.json:
+//   'tb' = the core custom-sneaker range · 'coffee' = the coffee-ART collection
+//   (a paint theme, not a drink) · 'supplements' = the accessories lane.
+// Every lane is one-time purchase. 7-day cycle: coffee x3, tb x3, accessories x1.
 const FOCUS_CYCLE = ['coffee', 'tb', 'coffee', 'supplements', 'tb', 'coffee', 'tb'];
 function focusFor(dateIso, facts) {
   const doy = dayOfYear(dateIso);
@@ -131,15 +132,15 @@ function focusFor(dateIso, facts) {
   const base = (facts.store && facts.store.base_url) || 'https://knickgasm.com';
   let product;
   if (type === 'coffee') {
-    product = { title: t.label || 'Coffee Collection', handle: t.handle || 'coffee-collection' };
+    product = { title: t.label || 'coffee-ART Collection', handle: t.handle || 'nike-air-force-1-coffee-dip-rope-laces' };
   } else {
     const list = t.products || [];
-    product = list.length ? list[doy % list.length] : { title: 'Airforce Spice Hand-painted Kicks, 200g hand-painted', handle: 'airforce-spice-hand-painted-kicks-sneaker' };
+    product = list.length ? list[doy % list.length] : { title: 'CR7 x Nike Air Force 1, hand-painted one-of-one', handle: 'cr7-x-nike-air-force-1' };
   }
   return {
     type,
     label: t.label || type,
-    purchase_mode: t.purchase_mode || (type === 'tb' ? 'one_time_only' : 'subscription_priority'),
+    purchase_mode: t.purchase_mode || 'one_time_only', // KNICKGASM runs no subscription
     product: {
       title: product.title,
       handle: product.handle,
@@ -197,10 +198,11 @@ async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs 
 
 const BRAND_GATES = [
   'HARD BRAND GATES (a violation rejects the whole output):',
-  '- BANNED phrases, never use in any casing: "streetwear journey", "transform" (any form), "liquid lava", "game-changer", "LIMITED TIME", "hurry", "don\'t miss out", "last chance", "while supplies last".',
+  '- BANNED phrases, never use in any casing: "wellness journey", "transform" (any form), "liquid gold", "game-changer", "LIMITED TIME", "hurry", "don\'t miss out", "last chance", "while supplies last".',
   '- NO founder voice: no first-person-singular "I", no founder letters, no personal-name sign-offs. The brand speaks as "we".',
-  '- NO medical claims for airbrush / embroidery / supplements: no disease, stress-cure, grail-drop, sleep-fix or weight-loss claims. Softest allowed register: "calm", "steady", "balance", "a gentler kind of energy".',
-  '- Supplements: NEVER state a price (none is public). Coffee pricing must match EXACTLY: Pack of 1 £49.99 one-time / £29.99 subscription; Pack of 3 £99.99 / £59.99 (£59.99 = 2 x £29.99 — buy two packs, the third is free). 7 free gifts with EVERY coffee order. Sneakers & Botanicals: ONE-TIME purchase only — never subscription language for sneakers.',
+  '- NO health, medical or performance claims of any kind. The only claims allowed: 100% original base sneakers, hand-painted by India\'s best sneaker artists, water and scratch resistant, made to order in 10 to 15 days, express shipping to 60+ countries, worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.',
+  '- Accessories (laces, lace tags): NEVER state a price — link the product page. coffee-ART pricing must match the catalog EXACTLY by base model: Court Vision £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91. EVERY lane is ONE-TIME purchase — never subscription, refill or auto-ship language anywhere.',
+  '- The coffee-ART collection is a PAINT THEME (coffee-dip washes and latte-swirl motifs hand-painted onto original sneakers), NOT a drink. Never write beverage, roast, brew or caffeine copy.',
   '- Links: ONLY https://knickgasm.com/products/{handle} using the handles provided — never invent a URL or discount code.',
   '- Voice: warm, sensory, story-driven. Preferred words: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
 ].join('\n');
@@ -210,8 +212,8 @@ function fallbackIdeology(ctx) {
   const f = ctx.festival;
   const p = ctx.focus.product;
   return {
-    theme: f ? (f.name + ' — a quieter kind of celebration') : ('The daily ritual, done well: ' + p.title),
-    narrative: 'One good pair can reset a whole afternoon. Today we slow down with ' + p.title + ' — origin-first, hand-painted, crafted to lace-up into something worth pausing for.',
+    theme: f ? (f.name + ' — a pair that exists once') : ('One of one, and only one: ' + p.title),
+    narrative: 'One good pair changes how a whole fit reads. Today we sit with ' + p.title + ' — an original silhouette, hand-painted by our artists, finished so it survives the streets it was made for.',
     mood: 'calm, warm, sensory',
     visual_direction: 'Golden-hour still life on chalk linen: ' + p.title + ' as hero, deep deep-purple ceramics, steam catching the light, small lava accents; generous negative space.',
     calendar_moment: f ? f.name : null,
@@ -221,7 +223,7 @@ async function ideologyAgent(ctx, timeoutMs) {
   const f = ctx.festival;
   const out = await llmJson({
     tier: 'premium', stage: 'social-ideology', timeoutMs, maxTokens: 700,
-    system: 'You are the creative director for KNICKGASM (premium one-of-one Indian sneakers, new Coffee Collection, just-launched supplements; UK market). Set today\'s single creative theme for all social channels. Reply as strict JSON: {"theme":"","narrative":"","mood":"","visual_direction":"","calendar_moment":null}.\n' + BRAND_GATES,
+    system: 'You are the creative director for KNICKGASM (India\'s largest sneaker customiser: hand-painted one-of-one custom sneakers on 100% original bases, the coffee-ART painted collection, and the accessories that finish a pair; UK market). Set today\'s single creative theme for all social channels. Reply as strict JSON: {"theme":"","narrative":"","mood":"","visual_direction":"","calendar_moment":null}.\n' + BRAND_GATES,
     user: 'Date: ' + ctx.date + ' (UK).\nCalendar moment: ' + (f ? (f.name + (f.upcoming ? ' in ' + f.days_away + ' day(s)' : ' today') + ', tags: ' + (f.tags || []).join(', ')) : 'none — lean on the everyday ritual') + '.\nProduct focus today (rotation): ' + ctx.focus.label + ' — hero product: ' + ctx.focus.product.title + '.\nRecent themes to NOT repeat: ' + JSON.stringify(ctx.recentThemes.slice(0, 8)) + '.\nGive one theme that works across Instagram, TikTok, LinkedIn, X, Pinterest, YouTube Shorts, Threads and a blog post.',
   });
   const fb = fallbackIdeology(ctx);
@@ -269,7 +271,7 @@ const DEFAULT_OBJECTIVE = {
 };
 function defaultCta(focus) {
   if (focus.type === 'tb') return 'Shop ' + focus.product.title.split(',')[0];
-  return 'Subscribe & save on ' + focus.product.title; // coffee + supplements: subscription is the priority CTA
+  return 'Shop ' + focus.product.title.split(',')[0]; // every lane is one-time purchase
 }
 function fallbackStrategy(ctx, keys) {
   const per = {};
@@ -287,7 +289,7 @@ async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
   const out = await llmJson({
     tier: 'premium', stage: 'social-strategy', timeoutMs, maxTokens: 1400, temperature: 0.4,
     system: 'You are the business strategist for KNICKGASM social. Decide the objective (awareness | traffic | conversion), CTA and link target per platform. The ONLY allowed link is the provided product URL (real handle). Reply as strict JSON: {"per_platform":{"<key>":{"objective":"","cta":"","link":""}}} with exactly these keys: ' + keys.join(', ') + '.\n' + BRAND_GATES,
-    user: 'Theme: ' + ideology.theme + '\nHypothesis: ' + hypothesis.hypothesis + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nPurchase mode: ' + ctx.focus.purchase_mode + (ctx.focus.type === 'tb' ? ' (one-time only — never subscription language)' : ' (SUBSCRIPTION IS THE PRIORITY CTA)'),
+    user: 'Theme: ' + ideology.theme + '\nHypothesis: ' + hypothesis.hypothesis + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nPurchase mode: ' + ctx.focus.purchase_mode + ' (ONE-TIME purchase only — never subscription language; KNICKGASM runs no subscription)',
   });
   const fb = fallbackStrategy(ctx, keys);
   const per = {};
@@ -305,10 +307,10 @@ async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
 
 // ── Agent 4: Content (premium) — per-platform copy incl. blog ────────────────
 const TAG_POOLS = {
-  brand: ['#KNICKGASM', '#KnickgasmTeas'],
-  tb: ['#LooseLeafTea', '#TeaRitual', '#MasalaChai', '#GreenTea', '#TeaTime', '#SingleEstate', '#TeaLover', '#SlowMornings', '#EarlGrey', '#TeaOfInstagram'],
-  coffee: ['#AirbrushCoffee', '#CoffeeRitual', '#MorningRitual', '#CalmEnergy', '#CoffeeLover', '#Airbrush', '#SlowMornings', '#CoffeeTime'],
-  supplements: ['#Embroidery', '#Airbrush', '#DailyRitual', '#Balance', '#JustLaunched', '#Curcumin'],
+  brand: ['#KNICKGASM', '#KnickgasmCustoms'],
+  tb: ['#CustomSneakers', '#HandPainted', '#OneOfOne', '#SneakerArt', '#AirForce1', '#CustomKicks', '#SneakerCustomiser', '#WearableArt', '#SneakerHead', '#CustomAF1'],
+  coffee: ['#CoffeeART', '#CoffeeDip', '#SneakerArt', '#HandPainted', '#CustomAF1', '#LatteSwirl', '#OneOfOne', '#CustomKicks'],
+  supplements: ['#RopeLaces', '#LaceTags', '#SneakerCare', '#FinishTheFit', '#CustomKicks', '#SneakerDetails'],
 };
 function tagsFor(key, focus) {
   const spec = PLATFORM_SPECS[key];
@@ -320,19 +322,19 @@ function tagsFor(key, focus) {
 }
 function focusLine(focus) {
   if (focus.type === 'coffee') {
-    return 'Slow-roasted coffee with airbrush — a gentler kind of energy for the hours that matter. Pack of 1 is £29.99 on subscription (£49.99 one-time), and every order arrives with 7 free gifts.';
+    return 'coffee-ART: coffee-dip washes and latte-swirl artwork hand-painted onto an original sneaker. Court Vision base £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91. Made to order in 10 to 15 days, one pair only.';
   }
   if (focus.type === 'supplements') {
-    return focus.product.title + ' has just launched — be among the first. Crafted to bring a little more balance to the everyday.';
+    return focus.product.title + ' — the small detail that finishes a pair. See it on the product page.';
   }
   const p = focus.product;
   const price = p.price_gbp ? ('£' + p.price_gbp + (p.compare_at_gbp ? ' (was £' + p.compare_at_gbp + ')' : '')) : '';
-  return p.title + ' — hand-painted at origin, shipped fresh from one-of-one studios' + (price ? ', ' + price : '') + '. A one-time pack, no strings.';
+  return p.title + ' — hand-painted in our Mumbai studio on a 100% original base' + (price ? ', ' + price : '') + '. Made to order in 10 to 15 days, and never painted twice.';
 }
 function fallbackContent(ctx, ideology, strategy, keys) {
   const p = ctx.focus.product;
   const line = focusLine(ctx.focus);
-  const opener = 'There is a moment when the right pair does more than warm your hands.';
+  const opener = 'There is a moment when the right pair stops being footwear and starts being a signature.';
   const hook = ctx.focus.type === 'coffee' ? 'Your 3pm deserved better. So we rebuilt the pair.' : 'The slowest two minutes of your day, done properly.';
   const alt = 'Editorial still life of ' + p.title + ' on chalk linen with deep-purple ceramics and steam rising, in the KNICKGASM palette.';
   const posts = {};
@@ -372,20 +374,20 @@ function fallbackBlog(ctx, ideology, st) {
   const p = ctx.focus.product;
   const name = p.title.split(',')[0];
   const paras = [
-    'There is a moment when the right pair does more than warm your hands. It marks the seam between one part of the day and the next — the point where you stop reacting and start choosing. At KNICKGASM, everything we make is built for that moment, and today we want to spend it with ' + p.title + '.',
+    'There is a moment when the right pair stops being footwear and starts being a signature. It is the second someone looks down, then looks again. At KNICKGASM, everything we make is built for that moment, and today we want to spend it with ' + p.title + '.',
     ideology.narrative,
-    'Most of what is sold as sneaker and coffee in the UK has travelled through months of warehouses before it reaches a kit. We built KNICKGASM to short-circuit that journey: dropped at origin in India, packed at source, and shipped fresh, so what lands in your pair still tastes of the studio it came from. It is a supply chain designed around freshness and fairness — one-of-one sourcing, hand-painted leaves, and a direct line from grower to drinker.',
+    'Most of what is sold as a limited sneaker in the UK was made a hundred thousand times over. We built KNICKGASM to do the opposite: start with a 100% original Nike, Jordan, Converse or Adidas base, then hand-paint it once, in our Mumbai studio, for one person. No stencil runs, no reprints, no second pair. India\'s largest sneaker customiser, and every order still passes through an artist\'s hands.',
     ctx.focus.type === 'coffee'
-      ? 'Coffee Collection is our answer to a familiar problem: the afternoon pair that lifts you and then drops you. We slow-roast Indian coffee and pair it with airbrush — a root used in Indian households for generations — for a gentler kind of energy. It is available one-time at £49.99 for a single pack, but the subscription is where it makes most sense: £29.99 a pack, and a Pack of 3 at £59.99, which works out to two packs paid and the third free. Every order — one-time or subscription — arrives with seven free gifts, from an electric frother to a recipe booklet, and subscribers collect gifts worth more than £105 across the year.'
+      ? 'The coffee-ART collection is our answer to a familiar problem: you want something warm and unmistakable on foot without it looking like a costume. It is a paint theme, not a drink — coffee-dip washes, latte-swirl gradients and cartoon-coffee motifs hand-painted onto an original base. Pick your silhouette and the price follows the shoe: Court Vision at £89.09, Air Force 1 at £108.27, Air Jordan 1 Low at £141.91. Each one is made to order over 10 to 15 days, sealed water and scratch resistant, and painted exactly once.'
       : ctx.focus.type === 'supplements'
-        ? p.title + ' has just launched, which means something rare in this category: you can genuinely be among the first. We have carried embroidery and airbrush in our tisanes for years; the new supplements line distils that same origin-first sourcing into a simpler daily form. We will not make grand promises — just ingredients grown where they have always grown, prepared with care, for people who want a little more balance and a little more steadiness in the everyday.'
-        : name + ' is one of the quiet heroes of our range. Hand-painted from one-of-one studios and shipped within days of drop, it lace-ups into a pair with real depth — the kind that rewards two unhurried minutes with the kit. It is a one-time purchase, currently ' + (p.price_gbp ? '£' + p.price_gbp : 'listed on the product page') + (p.compare_at_gbp ? ' against a compare-at price of £' + p.compare_at_gbp : '') + ', and it belongs in the small rotation of things you reach for without thinking.',
-    'How we suggest you take it: give it a ritual, not a slot. Boil the kit and let it settle for a breath. Warm the pair first. Lace-up or craft without a screen in front of you. The point is not productivity; the point is the pause. Heritage crafts survive because they hold a small ceremony inside an ordinary act, and sneaker and coffee are the most democratic ceremonies we have.',
-    '## Getting the most from your pair\n\nA few notes from the design table. Water matters more than most people expect: freshly drawn, brought just to the boil and given a breath to settle, keeps delicate notes from scalding away. Quantities matter less than consistency — find the strength you like and repeat it, the way the studios do. Store your pack away from light and strong kitchen smells; sneaker and coffee are both generous hosts and will absorb whatever sits beside them. And if you take milk, warm it: a cold splash flattens a pair that fifteen seconds of heat would have opened up.',
-    '## Why origin-fresh is different\n\nThe industry standard is consolidation: crops from many studios, blended for uniformity, aged in transit until the label is the freshest thing about the box. We took the opposite bet. Single-studio lots keep their character — the malt of Airforce, the brightness of a Signature spring picking — and shipping direct from India within days of packing keeps that character intact. You can taste the difference most clearly in the finish: fresh-packed panel and bean end clean, without the flat, papery note of long storage. Once you have tasted the difference, the standard becomes hard to go back to.',
-    '## A ritual worth keeping\n\nRituals survive on smallness. Nobody keeps a habit that demands half an hour and special equipment; everybody keeps the one that asks only for a kit and a short pause. That is the whole design brief behind our range — sneakers that reward attention but do not require it, coffee that steadies an afternoon instead of spiking it, and daily staples that fold into the life you already have. Start where you are: one pair, taken properly, at the same seam of the day. Let the rest build from there.',
-    'Every KNICKGASM purchase also carries our commitment to the people who grow these leaves and beans: a share of revenue funds the education of our farmers\' children through our TEACH Me initiative. When you choose origin-fresh over warehouse-stale, you are also choosing that.',
-    'If today is the day you upgrade the pause in your afternoon, start here: ' + st.link + '. ' + st.cta + ', and let the pair do the rest.',
+        ? p.title + ' is the kind of detail that decides whether a pair looks finished or nearly finished. Chunky rope laces change the whole proportion of a silhouette; a custom lace tag turns a pair into a signed piece. We keep this lane deliberately simple and deliberately cheap to try, so the price lives on the product page rather than in the story. It is the last five per cent, and it is usually the five per cent people notice.'
+        : name + ' is one of the quiet heroes of our range. Painted by hand onto an original base and finished so the artwork flexes with the leather instead of cracking at the toe box, it is the pair people ask about before they ask your name. It is a one-time purchase, currently ' + (p.price_gbp ? '£' + p.price_gbp : 'listed on the product page') + (p.compare_at_gbp ? ' against a compare-at price of £' + p.compare_at_gbp : '') + ', made to order in 10 to 15 days.',
+    'How we suggest you wear it: like it is yours, because it is. These are not display pieces. The paint system is layered and cured so it survives rain, scuffs and a full day on concrete. Lace them for the fit you actually walk in, not the one that photographs best, and let the artwork earn its wear.',
+    '## Getting the most from your pair\n\nA few notes from the studio. Clean with a damp microfibre and a soft brush, not a machine and never direct heat — hand-painted layers do not enjoy a tumble dryer. Store them out of long direct sunlight, the same way you would any pigment. Swap in fresh laces before you swap out the shoe; it costs almost nothing and resets the whole pair. And because the artwork was applied by hand, it can be touched up by hand: a scuffed panel is a repair, not an ending.',
+    '## Why one-of-one is different\n\nThe industry standard is scale: one design, one hundred thousand pairs, a raffle to decide who gets to look identical. We took the opposite bet. Every KNICKGASM pair begins as an original branded sneaker and ends as a single painted object — your reference, your palette, your fit. That is why it takes 10 to 15 days instead of two: the wait is not a delay, it is the product. You see the difference most clearly up close, in the brush edges and the airbrush fades that no factory line produces.',
+    '## A pair worth keeping\n\nMost sneakers are replaced. A few are kept. The difference is rarely the shoe and almost always the story attached to it — the character you grew up on, the club you have followed since you were eight, the car you will probably never own, the day you got married. That is the whole design brief behind our range: put the thing you actually care about on the silhouette you actually wear. Start with one pair. The rest of the rack can wait.',
+    'Every KNICKGASM purchase also supports the artists behind it: a studio of full-time painters in Mumbai whose work ships to more than 60 countries and has been worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor. When you choose one-of-one over mass-produced, you are also choosing that.',
+    'If today is the day the rack finally gets something that is only yours, start here: ' + st.link + '. ' + st.cta + ', and let the pair do the rest.',
   ];
   return {
     title: (ideology.theme + ' — with ' + name).slice(0, 90),
@@ -403,7 +405,7 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
   }).join('\n');
   const out = await llmJson({
     tier: 'premium', stage: 'social-content', timeoutMs, maxTokens: 6500,
-    system: 'You are the senior content writer for KNICKGASM (premium one-of-one Indian sneakers, Coffee Collection, just-launched supplements; UK). Write today\'s copy for EVERY platform key listed, obeying each platform\'s limits and tone. Reply as strict JSON: {"posts":{"<key>":{"caption":"","hook":"","hashtags":[""],"alt_text":"","title":""}}}. The "blog" key instead needs {"title","slug","meta_description","body_markdown"} where body_markdown is a full 800-1200 word editorial SEO post. Hashtags without the pound sign are invalid.\n' + BRAND_GATES,
+    system: 'You are the senior content writer for KNICKGASM (India\'s largest sneaker customiser: hand-painted one-of-one custom sneakers, the coffee-ART painted collection, and finishing accessories; UK). Write today\'s copy for EVERY platform key listed, obeying each platform\'s limits and tone. Reply as strict JSON: {"posts":{"<key>":{"caption":"","hook":"","hashtags":[""],"alt_text":"","title":""}}}. The "blog" key instead needs {"title","slug","meta_description","body_markdown"} where body_markdown is a full 800-1200 word editorial SEO post. Hashtags without the pound sign are invalid.\n' + BRAND_GATES,
     user: 'Date: ' + ctx.date + ' (UK)\nTheme: ' + ideology.theme + '\nNarrative: ' + ideology.narrative + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nProduct facts you may state: ' + focusLine(ctx.focus) + '\nPlatform specs:\n' + specLines,
   });
   const fb = fallbackContent(ctx, ideology, strategy, keys);
@@ -439,7 +441,7 @@ function heroPrompt(ideology, focus) {
   return 'Premium editorial product photography for KNICKGASM. ' + ideology.visual_direction +
     ' Hero product: ' + focus.product.title + '.' +
     ' Composition with generous negative space so the frame crops cleanly to 4:5 portrait, 9:16 vertical and 2:3 pin.' +
-    ' Color palette strictly limited to deep deep purple #6A33D8, antique lava #D0473E, near-black #111111 and warm chalk #F7F5F2.' +
+    ' Color palette strictly limited to deep deep purple #D0473E, antique lava #6A33D8, near-black #111111 and warm chalk #FFFFFF.' +
     ' NO text, NO logos, NO watermarks, NO faces.';
 }
 async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line no-unused-vars
@@ -473,7 +475,7 @@ function fallbackStoryboard(ctx, ideology) {
     storyboard: [
       '0-2s — HOOK: extreme close-up, steam curling off the pair in golden-hour light (9:16, product barely out of focus behind).',
       '2-5s — RITUAL: hands warming the pair / pouring; ' + name + ' pack visible on chalk linen with deep-purple ceramics.',
-      '5-8s — REVEAL: pack front and centre on #F7F5F2, lava accent light; end card text in Montserrat over chalk: "' + name + ' — KNICKGASM".',
+      '5-8s — REVEAL: pack front and centre on #FFFFFF, lava accent light; end card text in Montserrat over chalk: "' + name + ' — KNICKGASM".',
     ],
     audio: 'No voiceover after the hook; natural kit/pour foley, soft room tone. Music: sparse, warm, no percussion.',
     on_screen_text: [ideology.theme, ctx.focus.type === 'tb' ? 'One-time pack. No strings.' : 'Subscribe & save.'],
@@ -502,7 +504,7 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
   }
   if (!board) board = fallbackStoryboard(ctx, ideology);
 
-  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for KNICKGASM. ' + board.storyboard.join(' ') + ' Palette locked to #6A33D8, #D0473E, #111111, #F7F5F2. No on-screen text (added in edit), no faces, no logos.';
+  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for KNICKGASM. ' + board.storyboard.join(' ') + ' Palette locked to #D0473E, #6A33D8, #111111, #FFFFFF. No on-screen text (added in edit), no faces, no logos.';
   let job = null;
   if (ctx.dry_run && video.isConnected()) {
     job = { status: 'skipped_dry_run', note: 'video keys present but dry_run — no render submitted' };
@@ -520,8 +522,8 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
 // Code-level content gate (the BRAND_GATES rules were prompt-only; the LLM could
 // still slip a fabricated price, a raw non-PDP URL, or a medical claim through).
 // SAFE auto-fixes: strip any URL in the copy that is not a verified PDP link (the
-// CTA link is a separate, guarded field), and strip price tokens from supplement
-// copy (compliance: supplements never quote a price). JUDGMENT calls are FLAGGED,
+// CTA link is a separate, guarded field), and strip price tokens from accessory
+// copy (the accessories lane is deliberately routed price-free). JUDGMENT calls are FLAGGED,
 // not rewritten (auto-rewriting brand copy mangles it): medical / drug-like
 // claims are surfaced in _compliance for human review.
 const MEDICAL_RX = /\b(clinically proven|cures?|treats? (?:anxiety|insomnia|depression|disease|illness|stress)|reduces? (?:grail-drop|blood pressure|inflammation)|prevents? (?:disease|illness|cancer)|fda[- ]approved|big pharma|guaranteed results)\b/gi;
@@ -529,7 +531,7 @@ function sanitizeContent(text, ctx, flags) {
   if (typeof text !== 'string' || !text) return text;
   let t = text.replace(/https?:\/\/\S+/gi, (u) => { if (/\/products\//.test(u)) return u; flags.push('removed non-PDP URL'); return ''; });
   if (ctx && ctx.focus && ctx.focus.type === 'supplements') {
-    t = t.replace(/[£$€]\s?\d[\d.,]*/g, () => { flags.push('removed price from supplement copy'); return ''; });
+    t = t.replace(/[£$€]\s?\d[\d.,]*/g, () => { flags.push('removed price from accessories copy'); return ''; });
   }
   const med = t.match(MEDICAL_RX);
   if (med) flags.push('medical-claim review: ' + [...new Set(med.map((x) => x.toLowerCase()))].join(', '));

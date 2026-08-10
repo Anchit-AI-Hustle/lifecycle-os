@@ -1,8 +1,8 @@
-# Mobile Builds — produces downloadable binaries for the KNICKGASM Lifecycle OS super app.
+# Mobile Builds — produces downloadable binaries for the Lifecycle OS super app.
 #
 # Publishes to the fixed release tag `mobile-latest`, so these links are stable:
-#   Android APK : https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os.apk
-#   iOS IPA     : https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os-ios-unsigned.ipa
+#   Android APK : https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os.apk
+#   iOS IPA     : https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os-ios-unsigned.ipa
 #
 # The apps are Capacitor WebView shells over the live deployment (server.url in
 # capacitor.config.json), so binaries stay current automatically — the app renders
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # @capacitor/cli 8.x hard-requires Node >=22 (not just a warning —
           # `cap sync` refuses to run under 20). The rest of the repo targets
@@ -44,7 +44,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5.7.0
         with:
           distribution: temurin
           # @capacitor/android 8.x generates capacitor.build.gradle targeting
@@ -65,20 +65,20 @@ jobs:
           ./gradlew assembleDebug --no-daemon
 
       - name: Rename artifact
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk knickgasm-lifecycle-os.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk lifecycle-os.apk
 
       - name: Publish to the mobile-latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create mobile-latest \
-            --title "KNICKGASM Lifecycle OS — mobile builds (latest)" \
+            --title "Lifecycle OS — mobile builds (latest)" \
             --notes "Auto-published by the Mobile Builds workflow. The apps render the live deployment, so they stay current without rebuilds. Android: install the APK directly. iOS: unsigned IPA — sideload or sign for TestFlight." \
             || true
           # GitHub's release API returns transient 503s; the build is fine, so retry
           # the upload with backoff instead of failing the whole job on a blip.
           for i in 1 2 3 4 5; do
-            gh release upload mobile-latest knickgasm-lifecycle-os.apk --clobber && exit 0
+            gh release upload mobile-latest lifecycle-os.apk --clobber && exit 0
             echo "upload attempt $i failed (likely a transient GitHub 503) — retrying in $((i*15))s"
             sleep $((i*15))
           done
@@ -91,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # @capacitor/cli 8.x hard-requires Node >=22 (not just a warning —
           # `cap sync` refuses to run under 20). The rest of the repo targets
@@ -133,19 +133,19 @@ jobs:
         run: |
           mkdir -p Payload
           cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
-          zip -qry knickgasm-lifecycle-os-ios-unsigned.ipa Payload
+          zip -qry lifecycle-os-ios-unsigned.ipa Payload
 
       - name: Publish to the mobile-latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create mobile-latest \
-            --title "KNICKGASM Lifecycle OS — mobile builds (latest)" \
+            --title "Lifecycle OS — mobile builds (latest)" \
             --notes "Auto-published by the Mobile Builds workflow." \
             || true
           # Retry the upload past transient GitHub 503s (see the Android job).
           for i in 1 2 3 4 5; do
-            gh release upload mobile-latest knickgasm-lifecycle-os-ios-unsigned.ipa --clobber && exit 0
+            gh release upload mobile-latest lifecycle-os-ios-unsigned.ipa --clobber && exit 0
             echo "upload attempt $i failed (likely a transient GitHub 503) — retrying in $((i*15))s"
             sleep $((i*15))
           done

@@ -1,16 +1,16 @@
-# KNICKGASM Lifecycle OS — Product Requirements Document
+# Lifecycle OS — Product Requirements Document
 
 **Status:** v1.1 (complete) · **Owner:** Anchit Tandon (anchit.tandon@knickgasm.com) · **Last updated:** 2026-07-06
 **Supersedes:** v1.0 of 2026-07-02, and the v0.1 draft of 2026-06-04 (both preserved in git history — the draft documents the original consolidation thinking and is quoted where the "origin" of a feature matters).
 **What changed in v1.1 (2026-07-06):** the V1/V2 version taxonomy (§1.4) is now recorded; the demo/mock access gate has been removed, so every signed-in user gets full live access (§9); the app UI is locked to a single deep-purple theme, with the dark/dusk/light switcher removed (§7.1/§8); domain + OAuth migration tooling was added (§7.5); and the milestones (§11) run through 2026-07-06.
 
-**Live app:** https://knickgasm.vercel.app/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/knickgasm-lifecycle-os`
+**Live app:** https://knickgasm.vercel.app/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/lifecycle-os`
 
 ---
 
 ## 0. Executive summary
 
-**KNICKGASM Lifecycle OS is one application that runs the entire retention + acquisition growth loop for KNICKGASM:** read the customer data → watch what competitors send → plan the month → generate brand-locked mailers, ads and landing pages → review, approve and learn — with an AI "Smart Brain" doing the daily loop automatically and a brand LLM ("KicksGPT") that can operate every tool conversationally.
+**Lifecycle OS is one application that runs the entire retention + acquisition growth loop for KNICKGASM:** read the customer data → watch what competitors send → plan the month → generate brand-locked mailers, ads and landing pages → review, approve and learn — with an AI "Smart Brain" doing the daily loop automatically and a brand LLM ("KicksGPT") that can operate every tool conversationally.
 
 It replaced a scatter of disconnected tools (a dashboard here, a mailer builder there, competitor spreadsheets, ad-hoc briefs) with **one Vercel-hosted app, one login, one design system, one shared data layer** — built and operated at effectively **zero fixed infrastructure cost** (Vercel Hobby + Supabase free tier + free-tier LLM fallbacks), which is itself a deliberate engineering constraint that shaped the architecture (§7).
 
@@ -49,7 +49,7 @@ V1 features are upgraded by customising the base version only where needed. Wher
 
 The chronology matters because every module was pulled into existence by a concrete operational pain, not speculatively:
 
-1. **It started as the Mailer Studio** (`knickgasm_mailer_architect_v34.html` — the "v34" records 34 iterations of a single-file app). The original need: producing brand-correct lifecycle emails was slow, inconsistent, and dependent on a designer's availability; generic AI output drifted off-brand (wrong greens, wrong fonts, "streetwear journey" copy). The answer was a wizard that bakes the brand style guide into the generation itself.
+1. **It started as the Mailer Studio** (`lifecycle_mailer_architect_v34.html` — the "v34" records 34 iterations of a single-file app). The original need: producing brand-correct lifecycle emails was slow, inconsistent, and dependent on a designer's availability; generic AI output drifted off-brand (wrong greens, wrong fonts, "wellness journey" copy). The answer was a wizard that bakes the brand style guide into the generation itself.
 2. **Generation needs targeting** → the **Data Analysis dashboard** was built so briefs come from RFM segments, cohort retention and send-time behavior instead of guesswork.
 3. **Targeting needs cadence** → the **Marketing Calendar** turned analytics into a 30-day, festival-aware send plan that feeds the Studio one click per row.
 4. **Cadence needs context** → the **Competitor Benchmarking** system began capturing every competitor email automatically (a dedicated Gmail inbox + IMAP sync into a Google Sheet), then grew ad libraries and landing-page tracking, because promo cadence decisions are made relative to the market.
@@ -152,7 +152,7 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 - **How it works.** `POST /api/calendar?action=generate` (`_shared/calendar-generate.js`) consumes the analytics summary from localStorage; `?action=trigger-mailer` (`calendar-trigger.js`) feeds the pipeline of §6.5.
 - **Future.** Fully absorbed by the Smart Brain's rolling plan (§6.9) — the 30-day generator remains the manual/what-if mode and the 5-scenario engine's base.
 
-### 6.5 Mailer Studio (`/studio`, `knickgasm_mailer_architect_v34.html`)
+### 6.5 Mailer Studio (`/studio`, `lifecycle_mailer_architect_v34.html`)
 
 - **Origin.** The founding application — 34 versions of iteration compressed into its filename. Every other module exists to feed or learn from it.
 - **Need.** Brand-correct lifecycle emails took days and still drifted: wrong palette tints, wrong fonts, banned urgency copy, inconsistent structure. Generic AI tools made it worse — fluent but off-brand.
@@ -167,7 +167,7 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 - **Origin.** Started as a separately-deployed "competitor hub" reading a Gmail inbox; merged into the OS during consolidation, then expanded into a full CI system (June 17–20) with off-Vercel collectors.
 - **Need.** Promo-cadence and creative decisions are relative: "should we discount this week?" depends on what Mainstreet Marketplace, Gully Labs and 30+ others are sending *right now*. Manually forwarding competitor emails didn't scale and lost the HTML.
 - **Purpose.** An always-fresh, searchable archive of competitor lifecycle activity — mailers, ads, landing pages, offers — that both humans and the Brain benchmark against (informing prioritization but *never* qualifying our own winners — the two streams are deliberately isolated).
-- **What it does.** Tabs: **Discover Brands** (registry of tracked brands across Sneaker/Coffee/Supplements × US/UK; live seeded list), **Mailers** (every captured email: brand, subject, promo codes, received-at, full stored HTML rendered in-place, attachments/screenshots; search + platform/promo filters; live 45s polling), **Meta / Google / TikTok Ads** (deep links per tracked brand into the free public ad libraries; collected ads via workers), **Landing Pages**, **Insights**. Also serves the Mailer Discovery view (`/discover`).
+- **What it does.** Tabs: **Discover Brands** (registry of tracked brands across Custom Sneakers/Streetwear/Sneaker Accessories × US/UK; live seeded list), **Mailers** (every captured email: brand, subject, promo codes, received-at, full stored HTML rendered in-place, attachments/screenshots; search + platform/promo filters; live 45s polling), **Meta / Google / TikTok Ads** (deep links per tracked brand into the free public ad libraries; collected ads via workers), **Landing Pages**, **Insights**. Also serves the Mailer Discovery view (`/discover`).
 - **How it works.** A dedicated capture inbox is auto-subscribed to competitor lists by a local **Playwright worker** (`workers/auto-subscribe.js`); Gmail **IMAP** (`imapflow` + `mailparser`) ingestion parses each mail (subject, body, promo-code regex, inline images, attachments) into the Google-Sheet database (columns A–K, raw HTML capped at 49k) and mirrors into Supabase `ci_emails`; `?action=poll` gives near-real-time freshness while the page is open; a Cloudflare-Email-Routing webhook (`?action=ingest`) offers a zero-cost push path; `ci-collect-*` actions + off-Vercel collectors (`collect-ads.js`, `collect-landing.js`, `collect-wayback.js`) populate ads/landing/offers; `ci-enrich` runs lazy LLM tagging; `ci-funnel` reconstructs funnels. **Auth to Google is keyless** via Workload Identity Federation (§7.5).
 - **Claims.** Competitor emails appear in the hub ~minutes after they land; the archive keeps full render-quality HTML, not screenshots of screenshots; $0/month capture stack.
 - **Future.** Scale to 50+ sources with a queue+worker model; move artifacts to object storage + CDN; automated creative-tagging into the KB schema.
@@ -183,8 +183,8 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 
 ### 6.8 Ad Campaigns (`/ads`, `ad-campaigns.html`) & Landing Pages (`/landing`, `landing-pages.html`)
 
-- **Origin.** Email covered retention; paid acquisition briefs still lived in slides. Both modules extend the same brand kernel to paid. The landing-page system additionally absorbed a real campaign need — the Airbrush-coffee presell funnel — which produced the `/lp/*` hosted-page contract and the battle-tested LP compiler.
-- **Need.** Ad creative was produced ad-hoc per platform and size; landing pages required a developer for every campaign; neither enforced the brand system; and **Aman's P01 mandate** — *"sell happiness, not ingredients"* (target women 45+/busy mums, emotional end-state, 1-second scroll-stop, baked-in offer text) — needed to be encoded, not remembered.
+- **Origin.** Email covered retention; paid acquisition briefs still lived in slides. Both modules extend the same brand kernel to paid. The landing-page system additionally absorbed a real campaign need — the airbrush-matrix presell funnel (one page per design collection: anime, football, cars, gaming, wedding, gifting, pets, bling) — which produced the `/lp/*` hosted-page contract and the battle-tested LP compiler.
+- **Need.** Ad creative was produced ad-hoc per platform and size; landing pages required a developer for every campaign; neither enforced the brand system; and **Aman's P01 mandate** — *"sell the feeling of owning the only pair like it, not the spec sheet"* (target women 45+/busy mums, emotional end-state, 1-second scroll-stop, baked-in offer text) — needed to be encoded, not remembered.
 - **Purpose.** One calendar for paid; per-platform ad objects with **copy baked into the creative**; landing pages generated in the same brand system as the email/ad that drives traffic to them.
 - **What it does.**
   - **Ads:** compiled KPI dashboard (spend, ROAS, CPA, top channel); tabs Calendar / Google / Meta / TikTok; a one-prompt **autofill** that populates every field; a client-side compositor that renders **one still PNG per ad size with the text overlay baked in** (Google 1200×628 & 1200×1200; Meta/IG 1080×1080 & 1080×1920; TikTok 1080×1920). Shipped "sell-happiness" reference creatives (Meta static + Reels video) live in the repo.
@@ -238,11 +238,11 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 - **Purpose.** The entire Lifecycle OS, installable from a store or a link, always up-to-date.
 - **What it does & how it works.**
   - **PWA:** `manifest.webmanifest` + `sw.js` (`lifecycle-os-v16`) make the web app installable on Android/iOS with an offline shell; navigation is network-first with cache fallback; `/api/*` is never cached; the SW self-heals stale caches.
-  - **Native shells:** `capacitor.config.json` (appId `com.knickgasm.lifecycleos`, appName "KNICKGASM Lifecycle OS") with **`server.url` pointed at the production deployment** — the app is a hardened WebView over the live site. **This is the auto-sync guarantee:** every web deploy *is* a mobile release; the binaries never go stale because the code they render is served from production. **The complete native project code lives in this repo** — `android/` (Gradle project, minSdk 22 / target 34), `ios/` (Xcode project + Podfile), `mobile/` (self-contained Capacitor sub-project), `mobile-shell/` (web dir) — no separate mobile repo to keep in sync.
+  - **Native shells:** `capacitor.config.json` (appId `com.knickgasm.lifecycleos`, appName "Lifecycle OS") with **`server.url` pointed at the production deployment** — the app is a hardened WebView over the live site. **This is the auto-sync guarantee:** every web deploy *is* a mobile release; the binaries never go stale because the code they render is served from production. **The complete native project code lives in this repo** — `android/` (Gradle project, minSdk 22 / target 34), `ios/` (Xcode project + Podfile), `mobile/` (self-contained Capacitor sub-project), `mobile-shell/` (web dir) — no separate mobile repo to keep in sync.
   - **Downloadable builds:** the **Mobile Builds** GitHub Actions workflow (`.github/workflows/mobile-builds.yml`) builds the binaries and publishes them to the fixed release tag **`mobile-latest`**, giving stable download links:
-    - **Android APK (installable directly):** https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os.apk
-    - **iOS app (unsigned IPA — sideload via AltStore/Sideloadly, or sign for TestFlight):** https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os-ios-unsigned.ipa
-    - **All builds page:** https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/tag/mobile-latest
+    - **Android APK (installable directly):** https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os.apk
+    - **iOS app (unsigned IPA — sideload via AltStore/Sideloadly, or sign for TestFlight):** https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os-ios-unsigned.ipa
+    - **All builds page:** https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/tag/mobile-latest
     - Run the workflow once from the **Actions → Mobile Builds** tab (or push a change under `android/`/`ios/`) to mint/refresh the binaries; it re-publishes to the same links every time.
 - **Future.** Play Store / App Store listings (store metadata already scaffolded); push notifications for pending approvals; iOS signing pipeline.
 
@@ -293,9 +293,9 @@ Built at every deploy from Shopify exports: **US 173 · UK 101 · Global 102 act
 
 Source of truth: `Brand style guide.pdf`, codified in `_shared/master-prompt.js` and enforced client-side (`brandPaletteCheck`), server-side (`safeCopy` scrub), and in every prompt:
 
-- **Palette — ONLY four colors:** `#6A33D8` deep purple · `#D0473E` lava · `#111111` near-black · `#F7F5F2` chalk. Known drift tints are explicitly banned and were purged.
+- **Palette — ONLY four colors:** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk. Known drift tints are explicitly banned and were purged.
 - **Typography:** headings **Montserrat**, body **Instrument Sans** (with exact fallback stacks and `@font-face` sources). No substitute primaries.
-- **Banned phrases:** "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
+- **Banned phrases:** "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
 - **Preferred vocabulary:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 - **Voice:** warm, sensory, story-driven; testimonials read as tiny personal stories with region-matched names.
 - **P01 ad mandate (Aman):** *sell happiness, not ingredients* — emotional end-state creative for women 45+/busy mums, 1-second scroll-stop, offer text baked into the image ("Starter Pack 65% OFF + free frother + scoop").

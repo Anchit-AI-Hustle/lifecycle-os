@@ -53,16 +53,16 @@ BRAND TOKENS, EXACT
 :root {
   --font-head: "Montserrat", Georgia, "Times New Roman", serif;
   --font-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
-  --knickgasm-green: #6A33D8;
-  --knickgasm-lava: #D0473E;
+  --knickgasm-green: #D0473E;
+  --knickgasm-lava: #6A33D8;
   --knickgasm-ink: #111111;
-  --knickgasm-chalk: #F7F5F2;
+  --knickgasm-chalk: #FFFFFF;
 }
 Only these four hex colours may appear. Apply var(--font-head) to h1, h2, h3, h4, .heading, .title, .subhead, .eyebrow. Apply var(--font-body) to body, p, li, span, button, input, label, .body-text.
 Primary CTA: green background and chalk text. Secondary CTA: lava border or background and green text. Headings green on light surfaces and chalk on dark surfaces. Body text ink. Default section background chalk. Lava for rule lines, badges, hover and active accents.
 
 VOICE
-Warm, sensory, story-driven, premium. Prefer ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Never use streetwear journey, transform, liquid lava, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last. No fabricated ratings, review counts, medical claims, prices, products or guarantees.
+Warm, sensory, story-driven, premium. Prefer ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Never use wellness journey, transform, liquid gold, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last. No fabricated ratings, review counts, medical claims, prices, products or guarantees.
 
 FRAMER AND MOTION-INSPIRED INTERACTION SYSTEM
 Treat 3D, 4D and 5D as concrete interaction layers, not labels pasted onto the page.

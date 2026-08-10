@@ -1,2497 +1,2498 @@
 {
- "id": "ad-campaigns-master-kb",
- "title": "Ad Campaigns Master Knowledge Base - KNICKGASM USA (Target + Costco)",
- "version": "2026-07-25",
- "compiled_by": "Claude Code from 5 KT files + live connector retrievals (Snowflake, Supabase, Klaviyo, Google Drive)",
- "kt_sources": [
-  {
-   "id": "kt-ugc-mail",
-   "label": "Email thread: UGC Dashboard Automation (Jul 14-16, 2026)",
-   "type": "email-pdf",
-   "people": [
-    "Aviral Agrawal",
-    "Samvita Sarkar",
-    "Anchit Tandon",
-    "Vinya Mahajan"
-   ]
-  },
-  {
-   "id": "kt-costco-mail",
-   "label": "Email thread: Dark Stories Ads for Costco Launch (Jul 11-17, 2026)",
-   "type": "email-pdf",
-   "people": [
-    "Samvita Sarkar",
-    "Sudhanshu Srivastava",
-    "Sneha Kaul",
-    "Anchit Tandon",
-    "Kalpesh Tiwari"
-   ]
-  },
-  {
-   "id": "kt-datareq-mail",
-   "label": "Email thread: Data Request - consultant repository (Jul 15-24, 2026)",
-   "type": "email-pdf",
-   "people": [
-    "Srishti Bansal",
-    "Samvita Sarkar",
-    "Vinya Mahajan",
-    "Pratyashu Shekhar",
-    "Sneha Kaul",
-    "Tushar Gulabani",
-    "Ishita Goel"
-   ]
-  },
-  {
-   "id": "kt-spends-xlsx",
-   "label": "Ad Spends May - 20th July (Meta + TikTok).xlsx - Target Spends + 125 Meta ad rows",
-   "type": "xlsx",
-   "as_of": "2026-07-20"
-  },
-  {
-   "id": "kt-social-pptx",
-   "label": "Social Update USA - 17th July 2026.pptx (28 slides)",
-   "type": "pptx",
-   "as_of": "2026-07-17"
-  },
-  {
-   "id": "sop-pdf",
-   "label": "KNICKGASM Ad Campaign SOP (final) - UGC, Target, Costco, D2C",
-   "type": "pdf",
-   "as_of": "live from Monday"
-  },
-  {
-   "id": "sop-xlsx",
-   "label": "KNICKGASM Master Ad Tracking Sheet - 9 tabs, 26 columns per channel",
-   "type": "xlsx",
-   "as_of": "2026-07-26"
-  }
- ],
- "spend": {
-  "as_of": "2026-07-20",
-  "currency": "USD",
-  "months": [
-   {
-    "month": "May 2026",
-    "total": 3608.06,
-    "meta": 3608.06,
-    "tiktok": 0.0
-   },
-   {
-    "month": "June 2026",
-    "total": 18778.01,
-    "meta": 14422.93,
-    "tiktok": 4355.08
-   },
-   {
-    "month": "July 2026 (till 20th)",
-    "total": 23484.54,
-    "meta": 23484.54,
-    "tiktok": 0.0
-   }
+  "id": "ad-campaigns-master-kb",
+  "title": "Ad Campaigns Master Knowledge Base - KNICKGASM USA (Target + Costco)",
+  "version": "2026-07-25",
+  "compiled_by": "Claude Code from 5 KT files + live connector retrievals (Snowflake, Supabase, Klaviyo, Google Drive)",
+  "kt_sources": [
+    {
+      "id": "kt-ugc-mail",
+      "label": "Email thread: UGC Dashboard Automation (Jul 14-16, 2026)",
+      "type": "email-pdf",
+      "people": [
+        "Aviral Agrawal",
+        "Samvita Sarkar",
+        "Anchit Tandon",
+        "Vinya Mahajan"
+      ]
+    },
+    {
+      "id": "kt-costco-mail",
+      "label": "Email thread: Dark Stories Ads for Costco Launch (Jul 11-17, 2026)",
+      "type": "email-pdf",
+      "people": [
+        "Samvita Sarkar",
+        "Sudhanshu Srivastava",
+        "Sneha Kaul",
+        "Anchit Tandon",
+        "Kalpesh Tiwari"
+      ]
+    },
+    {
+      "id": "kt-datareq-mail",
+      "label": "Email thread: Data Request - consultant repository (Jul 15-24, 2026)",
+      "type": "email-pdf",
+      "people": [
+        "Srishti Bansal",
+        "Samvita Sarkar",
+        "Vinya Mahajan",
+        "Pratyashu Shekhar",
+        "Sneha Kaul",
+        "Tushar Gulabani",
+        "Ishita Goel"
+      ]
+    },
+    {
+      "id": "kt-spends-xlsx",
+      "label": "Ad Spends May - 20th July (Meta + TikTok).xlsx - Target Spends + 125 Meta ad rows",
+      "type": "xlsx",
+      "as_of": "2026-07-20"
+    },
+    {
+      "id": "kt-social-pptx",
+      "label": "Social Update USA - 17th July 2026.pptx (28 slides)",
+      "type": "pptx",
+      "as_of": "2026-07-17"
+    },
+    {
+      "id": "sop-pdf",
+      "label": "KNICKGASM Ad Campaign SOP (final) - UGC, Target, Costco, D2C",
+      "type": "pdf",
+      "as_of": "live from Monday"
+    },
+    {
+      "id": "sop-xlsx",
+      "label": "KNICKGASM Master Ad Tracking Sheet - 9 tabs, 26 columns per channel",
+      "type": "xlsx",
+      "as_of": "2026-07-26"
+    }
   ],
-  "total": 45870.61,
-  "meta_total": 41515.53,
-  "tiktok_total": 4355.08,
-  "note": "Source: Target Spends sheet in the KT workbook. June total in the source sheet reads 18,778.01 (= Meta 14,422.93 + TikTok 4,355.08). July shows Meta only; TikTok July spend is not reported in the sheet.",
-  "ad_level_note": "The Target Ads sheet carries 125 Meta ad rows totalling $41,515.58 with reporting window ending 2026-07-20."
- },
- "objective_rollup": [
-  {
-   "spend": 29113.85,
-   "impressions": 2140866,
-   "clicks": 101683,
-   "results": 36376,
-   "ads": 83,
-   "ctr": 4.75,
-   "cpc": 0.286,
-   "cost_per_result": 0.8,
-   "objective": "Sales"
+  "spend": {
+    "as_of": "2026-07-20",
+    "currency": "USD",
+    "months": [
+      {
+        "month": "May 2026",
+        "total": 3608.06,
+        "meta": 3608.06,
+        "tiktok": 0.0
+      },
+      {
+        "month": "June 2026",
+        "total": 18778.01,
+        "meta": 14422.93,
+        "tiktok": 4355.08
+      },
+      {
+        "month": "July 2026 (till 20th)",
+        "total": 23484.54,
+        "meta": 23484.54,
+        "tiktok": 0.0
+      }
+    ],
+    "total": 45870.61,
+    "meta_total": 41515.53,
+    "tiktok_total": 4355.08,
+    "note": "Source: Target Spends sheet in the KT workbook. June total in the source sheet reads 18,778.01 (= Meta 14,422.93 + TikTok 4,355.08). July shows Meta only; TikTok July spend is not reported in the sheet.",
+    "ad_level_note": "The Target Ads sheet carries 125 Meta ad rows totalling $41,515.58 with reporting window ending 2026-07-20."
   },
-  {
-   "spend": 8946.82,
-   "impressions": 1607146,
-   "clicks": 64588,
-   "results": 67562,
-   "ads": 26,
-   "ctr": 4.02,
-   "cpc": 0.139,
-   "cost_per_result": 0.132,
-   "objective": "Traffic"
-  },
-  {
-   "spend": 3344.45,
-   "impressions": 1798422,
-   "clicks": 1284,
-   "results": 1347707,
-   "ads": 15,
-   "ctr": 0.07,
-   "cpc": 2.605,
-   "cost_per_result": 0.002,
-   "objective": "Awareness"
-  },
-  {
-   "spend": 110.46,
-   "impressions": 4163,
-   "clicks": 10,
-   "results": 1108,
-   "ads": 1,
-   "ctr": 0.24,
-   "cpc": 11.046,
-   "cost_per_result": 0.1,
-   "objective": "Engagement"
-  }
- ],
- "campaign_rollup": [
-  {
-   "spend": 19436.35,
-   "impressions": 1503732,
-   "clicks": 72996,
-   "results": 24314,
-   "ads": 44,
-   "ctr": 4.85,
-   "cpc": 0.266,
-   "cost_per_result": 0.799,
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "result_indicator": "actions:offsite_conversion.fb_pixel_initiate_checkout"
-  },
-  {
-   "spend": 7638.31,
-   "impressions": 488948,
-   "clicks": 21448,
-   "results": 7565,
-   "ads": 30,
-   "ctr": 4.39,
-   "cpc": 0.356,
-   "cost_per_result": 1.01,
-   "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
-   "objective": "Sales",
-   "result_indicator": "actions:offsite_conversion.fb_pixel_initiate_checkout"
-  },
-  {
-   "spend": 4309.41,
-   "impressions": 604265,
-   "clicks": 30679,
-   "results": 33646,
-   "ads": 15,
-   "ctr": 5.08,
-   "cpc": 0.14,
-   "cost_per_result": 0.128,
-   "campaign": "Traffic_Target_Statics_US_Coffee",
-   "objective": "Traffic",
-   "result_indicator": "actions:link_click"
-  },
-  {
-   "spend": 3326.41,
-   "impressions": 847105,
-   "clicks": 14930,
-   "results": 14937,
-   "ads": 7,
-   "ctr": 1.76,
-   "cpc": 0.223,
-   "cost_per_result": 0.223,
-   "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
-   "objective": "Traffic",
-   "result_indicator": "actions:link_click"
-  },
-  {
-   "spend": 2501.64,
-   "impressions": 1457634,
-   "clicks": 1164,
-   "results": 1070671,
-   "ads": 7,
-   "ctr": 0.08,
-   "cpc": 2.149,
-   "cost_per_result": 0.002,
-   "campaign": "TARGET_Awareness_CAMP01",
-   "objective": "Awareness",
-   "result_indicator": "reach"
-  },
-  {
-   "spend": 1527.96,
-   "impressions": 92924,
-   "clicks": 4845,
-   "results": 2101,
-   "ads": 7,
-   "ctr": 5.21,
-   "cpc": 0.315,
-   "cost_per_result": 0.727,
-   "campaign": "Target-Influencer-Link Click-Page Deck",
-   "objective": "Sales",
-   "result_indicator": "actions:offsite_conversion.fb_pixel_initiate_checkout"
-  },
-  {
-   "spend": 1311.0,
-   "impressions": 155776,
-   "clicks": 18979,
-   "results": 18979,
-   "ads": 4,
-   "ctr": 12.18,
-   "cpc": 0.069,
-   "cost_per_result": 0.069,
-   "campaign": "UGC Target JoinBrands - Traffic Campaign",
-   "objective": "Traffic",
-   "result_indicator": "actions:link_click"
-  },
-  {
-   "spend": 677.11,
-   "impressions": 253201,
-   "clicks": 78,
-   "results": 218619,
-   "ads": 5,
-   "ctr": 0.03,
-   "cpc": 8.681,
-   "cost_per_result": 0.003,
-   "campaign": "Social Media - Target Awareness",
-   "objective": "Awareness",
-   "result_indicator": "reach"
-  },
-  {
-   "spend": 511.23,
-   "impressions": 55262,
-   "clicks": 2394,
-   "results": 2396,
-   "ads": 2,
-   "ctr": 4.33,
-   "cpc": 0.214,
-   "cost_per_result": 0.213,
-   "campaign": "Target Sales Campaign - Statics Ads - 23 Jun",
-   "objective": "Sales",
-   "result_indicator": "actions:link_click"
-  },
-  {
-   "spend": 156.77,
-   "impressions": 82316,
-   "clicks": 39,
-   "results": 53246,
-   "ads": 1,
-   "ctr": 0.05,
-   "cpc": 4.02,
-   "cost_per_result": 0.003,
-   "campaign": "Trendyfavefinds - Target Awareness",
-   "objective": "Awareness",
-   "result_indicator": "reach"
-  },
-  {
-   "spend": 110.46,
-   "impressions": 4163,
-   "clicks": 10,
-   "results": 1108,
-   "ads": 1,
-   "ctr": 0.24,
-   "cpc": 11.046,
-   "cost_per_result": 0.1,
-   "campaign": "Giveaway - Target - Engagement",
-   "objective": "Engagement",
-   "result_indicator": "actions:post_engagement"
-  },
-  {
-   "spend": 8.93,
-   "impressions": 5271,
-   "clicks": 3,
-   "results": 5171,
-   "ads": 1,
-   "ctr": 0.06,
-   "cpc": 2.977,
-   "cost_per_result": 0.002,
-   "campaign": "Giveaway - Target",
-   "objective": "Awareness",
-   "result_indicator": "reach"
-  },
-  {
-   "spend": 0.0,
-   "impressions": 0,
-   "clicks": 0,
-   "results": 0,
-   "ads": 1,
-   "ctr": null,
-   "cpc": null,
-   "cost_per_result": null,
-   "campaign": "New Awareness campaign",
-   "objective": "Awareness",
-   "result_indicator": "reach"
-  }
- ],
- "top_ads_by_efficiency": [
-  {
-   "ad": "JB-UGC-4-irish",
-   "adset": "Traffic - UGCset1 - max link clicks -40+ US",
-   "campaign": "UGC Target JoinBrands - Traffic Campaign",
-   "objective": "Traffic",
-   "spend": 792.5,
-   "ctr": 16.37,
-   "cpc": 0.05,
-   "cost_per_result": 0.05,
-   "thumb_stop": 0.676
-  },
-  {
-   "ad": "4th July - Target - Engagement",
-   "adset": "4th July Campaign - Engagement",
-   "campaign": "Giveaway - Target - Engagement",
-   "objective": "Engagement",
-   "spend": 110.46,
-   "ctr": 0.24,
-   "cpc": 10.042,
-   "cost_per_result": 0.1,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "Coffee gut loves",
-   "adset": "Traffic_Statics_12May_Broad_USA",
-   "campaign": "Traffic_Target_Statics_US_Coffee",
-   "objective": "Traffic",
-   "spend": 3055.57,
-   "ctr": 5.56,
-   "cpc": 0.125,
-   "cost_per_result": 0.125,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "Your paint crash fixed2",
-   "adset": "Traffic_Statics_12May_Broad_USA",
-   "campaign": "Traffic_Target_Statics_US_Coffee",
-   "objective": "Traffic",
-   "spend": 234.09,
-   "ctr": 5.57,
-   "cpc": 0.128,
-   "cost_per_result": 0.128,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "3_20May_From Morning Puffiness to Morning Confidence-Adv+ creative enhance",
-   "adset": "Traffic_Statics_20May_All_Store_Pincodes",
-   "campaign": "Traffic_Target_Statics_US_Coffee",
-   "objective": "Traffic",
-   "spend": 803.91,
-   "ctr": 5.04,
-   "cpc": 0.128,
-   "cost_per_result": 0.128,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "JB-UGC-1-Ingas",
-   "adset": "Traffic - UGCset1 - max link clicks -40+ US",
-   "campaign": "UGC Target JoinBrands - Traffic Campaign",
-   "objective": "Traffic",
-   "spend": 508.78,
-   "ctr": 5.42,
-   "cpc": 0.171,
-   "cost_per_result": 0.171,
-   "thumb_stop": 0.213
-  },
-  {
-   "ad": "1-sales- glp1 no thanks",
-   "adset": "Target Sales - 23 June - Statics - All coffee pincodes",
-   "campaign": "Target Sales Campaign - Statics Ads - 23 Jun",
-   "objective": "Sales",
-   "spend": 419.45,
-   "ctr": 5.07,
-   "cpc": 0.201,
-   "cost_per_result": 0.201,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "New Traffic ad memorial day",
-   "adset": "New Traffic ad set",
-   "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
-   "objective": "Traffic",
-   "spend": 132.82,
-   "ctr": 1.2,
-   "cpc": 0.212,
-   "cost_per_result": 0.212,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "New Traffic ad - memorial day",
-   "adset": "New Traffic ad set",
-   "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
-   "objective": "Traffic",
-   "spend": 189.16,
-   "ctr": 1.18,
-   "cpc": 0.214,
-   "cost_per_result": 0.214,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "Your paint crash fixed",
-   "adset": "New Traffic ad set",
-   "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
-   "objective": "Traffic",
-   "spend": 688.46,
-   "ctr": 1.92,
-   "cpc": 0.215,
-   "cost_per_result": 0.215,
-   "thumb_stop": 0.007
-  }
- ],
- "worst_ads_by_efficiency": [
-  {
-   "ad": "Sweatfitness - NN at 50",
-   "adset": "Social Media Content - May",
-   "campaign": "Social Media - Target Awareness",
-   "objective": "Awareness",
-   "spend": 482.31,
-   "ctr": 0.03,
-   "cpc": 9.1,
-   "cost_per_result": 3.278,
-   "thumb_stop": 0.11
-  },
-  {
-   "ad": "New Awareness ad",
-   "adset": "AS01",
-   "campaign": "TARGET_Awareness_CAMP01",
-   "objective": "Awareness",
-   "spend": 365.16,
-   "ctr": 0.1,
-   "cpc": 2.099,
-   "cost_per_result": 3.254,
-   "thumb_stop": 0.004
-  },
-  {
-   "ad": "New Awareness Ad - trendyfavefinds",
-   "adset": "New Awareness Ad Set - trendyfavfinds",
-   "campaign": "Trendyfavefinds - Target Awareness",
-   "objective": "Awareness",
-   "spend": 156.77,
-   "ctr": 0.05,
-   "cpc": 4.02,
-   "cost_per_result": 2.944,
-   "thumb_stop": 0.106
-  },
-  {
-   "ad": "New Awareness ad â€“ 3",
-   "adset": "AS02",
-   "campaign": "TARGET_Awareness_CAMP01",
-   "objective": "Awareness",
-   "spend": 1346.6,
-   "ctr": 0.08,
-   "cpc": 2.208,
-   "cost_per_result": 2.809,
-   "thumb_stop": 0.04
-  },
-  {
-   "ad": "New Awareness ad - 4",
-   "adset": "AS04",
-   "campaign": "TARGET_Awareness_CAMP01",
-   "objective": "Awareness",
-   "spend": 282.27,
-   "ctr": 0.03,
-   "cpc": 7.841,
-   "cost_per_result": 2.713,
-   "thumb_stop": 0.092
-  },
-  {
-   "ad": "New Awareness ad -6",
-   "adset": "AS03",
-   "campaign": "TARGET_Awareness_CAMP01",
-   "objective": "Awareness",
-   "spend": 157.22,
-   "ctr": 0.04,
-   "cpc": 4.367,
-   "cost_per_result": 2.432,
-   "thumb_stop": 0.048
-  },
-  {
-   "ad": "31UGC-Targetshelf-CTA-graci.barros.ugc \"",
-   "adset": "Target-Targetpage-Influencer-Page Deck",
-   "campaign": "Target-Influencer-Link Click-Page Deck",
-   "objective": "Sales",
-   "spend": 123.82,
-   "ctr": 3.0,
-   "cpc": 0.541,
-   "cost_per_result": 1.848,
-   "thumb_stop": 0.355
-  },
-  {
-   "ad": "18UGC-Taste-CTA-malkomes1",
-   "adset": "3UGC Videos-Taste-Scored-CTA",
-   "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
-   "objective": "Sales",
-   "spend": 108.66,
-   "ctr": 4.1,
-   "cpc": 0.632,
-   "cost_per_result": 1.725,
-   "thumb_stop": 0.613
-  },
-  {
-   "ad": "22UGC-Gummies-CTA-teesmithforgood",
-   "adset": "4UGC Videos-Gummies-Scored-CTA",
-   "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
-   "objective": "Sales",
-   "spend": 1098.29,
-   "ctr": 5.38,
-   "cpc": 0.445,
-   "cost_per_result": 1.525,
-   "thumb_stop": 0.58
-  },
-  {
-   "ad": "26UGC-Targetshelf-CTA-advancedskincarebynikkole",
-   "adset": "5UGC Videos-Targetshelf-Scored-CTA",
-   "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
-   "objective": "Sales",
-   "spend": 113.13,
-   "ctr": 5.55,
-   "cpc": 0.536,
-   "cost_per_result": 1.331,
-   "thumb_stop": 0.513
-  }
- ],
- "top_ads_by_spend": [
-  {
-   "ad": "Coffee gut loves",
-   "adset": "Traffic_Statics_12May_Broad_USA",
-   "campaign": "Traffic_Target_Statics_US_Coffee",
-   "objective": "Traffic",
-   "spend": 3055.57,
-   "ctr": 5.56,
-   "cpc": 0.125,
-   "cost_per_result": 0.125,
-   "thumb_stop": 0.0
-  },
-  {
-   "ad": "7-sales-goodbye menopausal weight gain",
-   "adset": "Ad Set1 - Sales PDP - Static1 - 24th June",
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "spend": 2960.45,
-   "ctr": 4.07,
-   "cpc": 0.232,
-   "cost_per_result": 0.619,
-   "thumb_stop": 0.008
-  },
-  {
-   "ad": "26-sales-adset4-ugc/reviews-what i bought at target",
-   "adset": "Ad Set4 - Sales PDP - Static - UGC/Reviews",
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "spend": 2846.8,
-   "ctr": 5.44,
-   "cpc": 0.249,
-   "cost_per_result": 0.864,
-   "thumb_stop": 0.005
-  },
-  {
-   "ad": "38-sales-adset5-AIvideo-woman in car with knickgasm pair",
-   "adset": "Ad Set5 - Sales PDP - AI Videos",
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "spend": 2223.13,
-   "ctr": 7.65,
-   "cpc": 0.319,
-   "cost_per_result": 0.903,
-   "thumb_stop": 0.581
-  },
-  {
-   "ad": "22-sales-adset2-grail-drop/benefits-women over 50 calm grail-drop",
-   "adset": "Ad Set2 - Sales PDP - Static - Grail-Drop/Benefits",
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "spend": 2110.78,
-   "ctr": 4.77,
-   "cpc": 0.244,
-   "cost_per_result": 0.807,
-   "thumb_stop": 0.003
-  },
-  {
-   "ad": "23-sales-adset3-weightloss/transformation-say hello toned arms",
-   "adset": "Ad Set3 - Sales PDP - Static - Weightloss/Transformation",
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "spend": 2010.04,
-   "ctr": 5.02,
-   "cpc": 0.257,
-   "cost_per_result": 0.798,
-   "thumb_stop": 0.006
-  },
-  {
-   "ad": "28% grail-drop",
-   "adset": "New Traffic ad set",
-   "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
-   "objective": "Traffic",
-   "spend": 1757.05,
-   "ctr": 2.41,
-   "cpc": 0.229,
-   "cost_per_result": 0.229,
-   "thumb_stop": 0.002
-  },
-  {
-   "ad": "1-sales- glp1 no thanks2",
-   "adset": "Ad Set1 - Sales PDP - Static1 - 24th June",
-   "campaign": "Target - In-house - Sales PageDeck Campaign",
-   "objective": "Sales",
-   "spend": 1445.72,
-   "ctr": 6.04,
-   "cpc": 0.205,
-   "cost_per_result": 0.675,
-   "thumb_stop": 0.003
-  },
-  {
-   "ad": "New Awareness ad â€“ 3",
-   "adset": "AS02",
-   "campaign": "TARGET_Awareness_CAMP01",
-   "objective": "Awareness",
-   "spend": 1346.6,
-   "ctr": 0.08,
-   "cpc": 2.208,
-   "cost_per_result": 2.809,
-   "thumb_stop": 0.04
-  },
-  {
-   "ad": "2UGC-Mushroom-CTA-malkomes1",
-   "adset": "1UGC Videos-Mushroom-Scored-CTA",
-   "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
-   "objective": "Sales",
-   "spend": 1236.85,
-   "ctr": 4.74,
-   "cpc": 0.336,
-   "cost_per_result": 0.893,
-   "thumb_stop": 0.524
-  }
- ],
- "benchmarks": [
-  {
-   "id": "bm-sales-inhouse",
-   "segment": "Sales - in-house statics (Target In-house Sales PageDeck)",
-   "ctr_pct": 4.85,
-   "cpc_usd": 0.27,
-   "cost_per_initiate_checkout_usd": 0.8,
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "bm-sales-ugc",
-   "segment": "Sales - scored UGC videos (JoinBrands creators)",
-   "ctr_pct": 4.39,
-   "cpc_usd": 0.36,
-   "cost_per_initiate_checkout_usd": 1.01,
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "bm-sales-influencer",
-   "segment": "Sales - influencer whitelisted (Page Deck)",
-   "ctr_pct": 5.21,
-   "cpc_usd": 0.32,
-   "cost_per_initiate_checkout_usd": 0.73,
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "bm-traffic-statics",
-   "segment": "Traffic - statics (broad USA + store pincodes)",
-   "ctr_pct": 5.08,
-   "cpc_usd": 0.14,
-   "cost_per_link_click_usd": 0.13,
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "bm-traffic-jb",
-   "segment": "Traffic - JoinBrands UGC (40+ US)",
-   "ctr_pct": 12.18,
-   "cpc_usd": 0.07,
-   "cost_per_link_click_usd": 0.07,
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "bm-awareness",
-   "segment": "Awareness campaigns (all)",
-   "ctr_pct": 0.08,
-   "cpc_usd": 2.15,
-   "cpm_usd": 1.86,
-   "source": "kt-spends-xlsx",
-   "warning": "CTR 0.03-0.10 pct and CPC $2-11 across all awareness ad sets - the portfolio drag; every ad in the worst-10 list is an Awareness or unscored social ad."
-  },
-  {
-   "id": "bm-video-thumbstop",
-   "segment": "Video thumb-stop (winners)",
-   "thumb_stop_min": 0.45,
-   "thumb_stop_max": 0.68,
-   "source": "kt-spends-xlsx",
-   "note": "Scaled UGC/AI video winners hold 0.45-0.68 thumb-stop; JB-UGC-4-irish peaks at 0.676."
-  },
-  {
-   "id": "bm-organic-cpr",
-   "segment": "Organic creator cost per reach",
-   "cpr_usd_apr": 0.04,
-   "cpr_usd_may": 0.05,
-   "cpr_usd_june": 0.04,
-   "cpr_usd_july": 0.05,
-   "source": "kt-social-pptx"
-  }
- ],
- "creative_learnings": [
-  {
-   "id": "cl-identity",
-   "title": "Identity-first hooks win",
-   "detail": "Top UGC scripts open with identity - I am a mom, I am 76, I am an herbalist, I shop at Target - then follow: Identity, relatable routine or problem, curiosity, product reveal, one meaningful transformation, proof (taste or science), simple CTA.",
-   "source": "kt-social-pptx slide 13"
-  },
-  {
-   "id": "cl-specific-curiosity",
-   "title": "Specific curiosity beats withholding",
-   "detail": "Rydel July (coffee popsicle, relatable premise) reached 100.5K vs June mystery hook 73.7K, a 36 pct reach lift; skip rate improved even though the product appeared later.",
-   "source": "kt-social-pptx slide 5"
-  },
-  {
-   "id": "cl-three-modes",
-   "title": "Three organic retention modes",
-   "detail": "Comedy earns retention (Maryandbri), authentic messengers lower skip (Nadja, 34 pct skip), educational content wins saves and shares (Jess, herbalist authority + grail-drop science).",
-   "source": "kt-social-pptx slide 6"
-  },
-  {
-   "id": "cl-funnel",
-   "title": "Hook fixed the funnel in June",
-   "detail": "Skip rate fell 57.5 to 45.3 pct May to June; 57 pct passed the hook vs 38; high-intent 75 pct-watched views rose 53 pct (32K to 49K); cost per reach improved $0.065 to $0.057. Only about 6 pct of views reach 75 pct of the video.",
-   "source": "kt-social-pptx slide 14"
-  },
-  {
-   "id": "cl-menopause",
-   "title": "Menopause and grail-drop angles carry paid Sales",
-   "detail": "goodbye menopausal weight gain ($2,960 spend, $0.62 per initiate-checkout), women over 50 calm grail-drop ($2,111, $0.81), GLP-1 no thanks ($1,446, $0.67), say hello toned arms ($2,010, $0.80), what i bought at target UGC static ($2,847, $0.86) are the scaled winners.",
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "cl-aivideo",
-   "title": "AI videos: high CTR, expensive delivery",
-   "detail": "AI video ad set runs CTR 6.7-7.6 pct but CPM $23-24 and $0.90-1.22 per initiate-checkout; woman in car with knickgasm pair scaled to $2,223 at $0.90.",
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "cl-awareness-drag",
-   "title": "Awareness objective is the drag",
-   "detail": "All 10 worst cost-per-result ads with $100+ spend are Awareness/unscored social ads (CPC $2.10-$9.10, CTR 0.03-0.10 pct). Recommendation on the data: reallocate to Sales/Traffic structures that already clear the $0.80 benchmark.",
-   "source": "kt-spends-xlsx"
-  },
-  {
-   "id": "cl-jb-traffic",
-   "title": "JoinBrands UGC traffic is the cheapest click in the account",
-   "detail": "Traffic - UGCset1 (40+ US): 12.18 pct CTR at $0.07 CPC across $1,311 spend; JB-UGC-4-irish alone: 16.37 pct CTR, $0.05 CPC, 0.676 thumb-stop.",
-   "source": "kt-spends-xlsx"
-  }
- ],
- "organic": {
-  "as_of": "2026-07-17",
-  "months": [
-   {
-    "month": "May",
-    "views": 1151051,
-    "reach": 655370,
-    "influencers": "33 (20 influencers + 13 Target deals pages)",
-    "influencer_cost_usd": 34783,
-    "organic_cpr_usd": 0.1,
-    "platform_reach": {
-     "instagram": 534920,
-     "facebook": 8805,
-     "tiktok": 108112,
-     "youtube": 3533
+  "objective_rollup": [
+    {
+      "spend": 29113.85,
+      "impressions": 2140866,
+      "clicks": 101683,
+      "results": 36376,
+      "ads": 83,
+      "ctr": 4.75,
+      "cpc": 0.286,
+      "cost_per_result": 0.8,
+      "objective": "Sales"
     },
-    "platform_views": {
-     "instagram": 970340,
-     "facebook": 17609,
-     "tiktok": 154446,
-     "youtube": 8656
-    }
-   },
-   {
-    "month": "June",
-    "views": 2142324,
-    "reach": 775130,
-    "influencers": "14 (11 influencers + 2 Target special + 1 Target deals page)",
-    "influencer_cost_usd": 28865,
-    "organic_cpr_usd": 0.04,
-    "ugc_videos": 219,
-    "platform_reach": {
-     "instagram": 518951,
-     "facebook": 9774,
-     "tiktok": 242912,
-     "youtube": 3493
+    {
+      "spend": 8946.82,
+      "impressions": 1607146,
+      "clicks": 64588,
+      "results": 67562,
+      "ads": 26,
+      "ctr": 4.02,
+      "cpc": 0.139,
+      "cost_per_result": 0.132,
+      "objective": "Traffic"
     },
-    "platform_views": {
-     "instagram": 1435838,
-     "facebook": 210977,
-     "tiktok": 488523,
-     "youtube": 6986
-    }
-   },
-   {
-    "month": "July (to 17th)",
-    "views": 293177,
-    "reach": 153529,
-    "influencers": "9 (5 influencers + 2 KOLs + 2 Target pages, 2 live)",
-    "influencer_cost_usd": 44000,
-    "organic_cpr_usd": 0.05,
-    "ugc_videos": 148,
-    "platform_reach": {
-     "instagram": 134729,
-     "facebook": 5316,
-     "tiktok": 13484,
-     "youtube": 0
+    {
+      "spend": 3344.45,
+      "impressions": 1798422,
+      "clicks": 1284,
+      "results": 1347707,
+      "ads": 15,
+      "ctr": 0.07,
+      "cpc": 2.605,
+      "cost_per_result": 0.002,
+      "objective": "Awareness"
     },
-    "platform_views": {
-     "instagram": 255579,
-     "facebook": 10631,
-     "tiktok": 26967,
-     "youtube": 0
+    {
+      "spend": 110.46,
+      "impressions": 4163,
+      "clicks": 10,
+      "results": 1108,
+      "ads": 1,
+      "ctr": 0.24,
+      "cpc": 11.046,
+      "cost_per_result": 0.1,
+      "objective": "Engagement"
     }
-   }
   ],
-  "totals": {
-   "views": 3586552,
-   "reach": 1584029,
-   "influencer_count": 69,
-   "influencer_cost_usd": 107648,
-   "ugc_videos": 367,
-   "ugc_cost_usd": 43308,
-   "total_creator_cost_usd": 150956,
-   "note": "62 of 69 influencers live; UGC $43,308 parked for 400 creators; utilized so far $69,948."
-  },
-  "top_creators": [
-   {
-    "name": "Rydelfunk",
-    "followers": "1.6M",
-    "reach": "100K",
-    "skip_rate_pct": 56.9,
-    "product_at_pct": 20.83,
-    "post_reveal_retention_pct": 21,
-    "awt_sec": 9
-   },
-   {
-    "name": "Jess",
-    "followers": "945K",
-    "reach": "67K",
-    "skip_rate_pct": 48,
-    "product_at_pct": 18,
-    "post_reveal_retention_pct": 15,
-    "awt_sec": 11
-   },
-   {
-    "name": "Nadja",
-    "followers": "531K",
-    "reach": "51K",
-    "skip_rate_pct": 34,
-    "product_at_pct": 17,
-    "post_reveal_retention_pct": 32,
-    "awt_sec": 17
-   },
-   {
-    "name": "Maryandbri",
-    "followers": "199K",
-    "reach": "23.7K",
-    "skip_rate_pct": 34.5,
-    "product_at_pct": 1.25,
-    "post_reveal_retention_pct": 42,
-    "awt_sec": 32
-   }
-  ],
-  "ugc_june_buckets": {
-   "total_live": 136,
-   "grail-drop": 30,
-   "countering_mushroom": 13,
-   "gummies_vs_coffee": 16,
-   "target_shelf": 41,
-   "taste": 16,
-   "over_40": 20,
-   "tiktok": 70,
-   "instagram": 60,
-   "youtube": 6
-  },
-  "retention_funnel": {
-   "note": "Instagram creator campaign, May vs June 2026",
-   "stages": [
+  "campaign_rollup": [
     {
-     "stage": "Total impressions",
-     "may": "509K (287K reach)",
-     "june": "844K (352K reach)"
+      "spend": 19436.35,
+      "impressions": 1503732,
+      "clicks": 72996,
+      "results": 24314,
+      "ads": 44,
+      "ctr": 4.85,
+      "cpc": 0.266,
+      "cost_per_result": 0.799,
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "result_indicator": "actions:offsite_conversion.fb_pixel_initiate_checkout"
     },
     {
-     "stage": "Passed the hook",
-     "may": "191K - 38 pct",
-     "june": "484K - 57 pct"
+      "spend": 7638.31,
+      "impressions": 488948,
+      "clicks": 21448,
+      "results": 7565,
+      "ads": 30,
+      "ctr": 4.39,
+      "cpc": 0.356,
+      "cost_per_result": 1.01,
+      "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
+      "objective": "Sales",
+      "result_indicator": "actions:offsite_conversion.fb_pixel_initiate_checkout"
     },
     {
-     "stage": "Saw the product",
-     "may": "211K - 42 pct",
-     "june": "288K - 34 pct"
+      "spend": 4309.41,
+      "impressions": 604265,
+      "clicks": 30679,
+      "results": 33646,
+      "ads": 15,
+      "ctr": 5.08,
+      "cpc": 0.14,
+      "cost_per_result": 0.128,
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
+      "objective": "Traffic",
+      "result_indicator": "actions:link_click"
     },
     {
-     "stage": "Product + 5 secs",
-     "may": "74K - 14 pct",
-     "june": "140K - 17 pct"
+      "spend": 3326.41,
+      "impressions": 847105,
+      "clicks": 14930,
+      "results": 14937,
+      "ads": 7,
+      "ctr": 1.76,
+      "cpc": 0.223,
+      "cost_per_result": 0.223,
+      "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
+      "objective": "Traffic",
+      "result_indicator": "actions:link_click"
     },
     {
-     "stage": "Watched 75 pct+",
-     "may": "32K - 6 pct",
-     "june": "49K - 6 pct"
+      "spend": 2501.64,
+      "impressions": 1457634,
+      "clicks": 1164,
+      "results": 1070671,
+      "ads": 7,
+      "ctr": 0.08,
+      "cpc": 2.149,
+      "cost_per_result": 0.002,
+      "campaign": "TARGET_Awareness_CAMP01",
+      "objective": "Awareness",
+      "result_indicator": "reach"
+    },
+    {
+      "spend": 1527.96,
+      "impressions": 92924,
+      "clicks": 4845,
+      "results": 2101,
+      "ads": 7,
+      "ctr": 5.21,
+      "cpc": 0.315,
+      "cost_per_result": 0.727,
+      "campaign": "Target-Influencer-Link Click-Page Deck",
+      "objective": "Sales",
+      "result_indicator": "actions:offsite_conversion.fb_pixel_initiate_checkout"
+    },
+    {
+      "spend": 1311.0,
+      "impressions": 155776,
+      "clicks": 18979,
+      "results": 18979,
+      "ads": 4,
+      "ctr": 12.18,
+      "cpc": 0.069,
+      "cost_per_result": 0.069,
+      "campaign": "UGC Target JoinBrands - Traffic Campaign",
+      "objective": "Traffic",
+      "result_indicator": "actions:link_click"
+    },
+    {
+      "spend": 677.11,
+      "impressions": 253201,
+      "clicks": 78,
+      "results": 218619,
+      "ads": 5,
+      "ctr": 0.03,
+      "cpc": 8.681,
+      "cost_per_result": 0.003,
+      "campaign": "Social Media - Target Awareness",
+      "objective": "Awareness",
+      "result_indicator": "reach"
+    },
+    {
+      "spend": 511.23,
+      "impressions": 55262,
+      "clicks": 2394,
+      "results": 2396,
+      "ads": 2,
+      "ctr": 4.33,
+      "cpc": 0.214,
+      "cost_per_result": 0.213,
+      "campaign": "Target Sales Campaign - Statics Ads - 23 Jun",
+      "objective": "Sales",
+      "result_indicator": "actions:link_click"
+    },
+    {
+      "spend": 156.77,
+      "impressions": 82316,
+      "clicks": 39,
+      "results": 53246,
+      "ads": 1,
+      "ctr": 0.05,
+      "cpc": 4.02,
+      "cost_per_result": 0.003,
+      "campaign": "Trendyfavefinds - Target Awareness",
+      "objective": "Awareness",
+      "result_indicator": "reach"
+    },
+    {
+      "spend": 110.46,
+      "impressions": 4163,
+      "clicks": 10,
+      "results": 1108,
+      "ads": 1,
+      "ctr": 0.24,
+      "cpc": 11.046,
+      "cost_per_result": 0.1,
+      "campaign": "Giveaway - Target - Engagement",
+      "objective": "Engagement",
+      "result_indicator": "actions:post_engagement"
+    },
+    {
+      "spend": 8.93,
+      "impressions": 5271,
+      "clicks": 3,
+      "results": 5171,
+      "ads": 1,
+      "ctr": 0.06,
+      "cpc": 2.977,
+      "cost_per_result": 0.002,
+      "campaign": "Giveaway - Target",
+      "objective": "Awareness",
+      "result_indicator": "reach"
+    },
+    {
+      "spend": 0.0,
+      "impressions": 0,
+      "clicks": 0,
+      "results": 0,
+      "ads": 1,
+      "ctr": null,
+      "cpc": null,
+      "cost_per_result": null,
+      "campaign": "New Awareness campaign",
+      "objective": "Awareness",
+      "result_indicator": "reach"
     }
-   ],
-   "headline": "June: skip rate 45.3 vs 57.5 pct, high-intent views +53 pct, cost per reach $0.057 vs $0.065"
+  ],
+  "top_ads_by_efficiency": [
+    {
+      "ad": "JB-UGC-4-irish",
+      "adset": "Traffic - UGCset1 - max link clicks -40+ US",
+      "campaign": "UGC Target JoinBrands - Traffic Campaign",
+      "objective": "Traffic",
+      "spend": 792.5,
+      "ctr": 16.37,
+      "cpc": 0.05,
+      "cost_per_result": 0.05,
+      "thumb_stop": 0.676
+    },
+    {
+      "ad": "4th July - Target - Engagement",
+      "adset": "4th July Campaign - Engagement",
+      "campaign": "Giveaway - Target - Engagement",
+      "objective": "Engagement",
+      "spend": 110.46,
+      "ctr": 0.24,
+      "cpc": 10.042,
+      "cost_per_result": 0.1,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "Coffee-ART collectors love",
+      "adset": "Traffic_Statics_12May_Broad_USA",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
+      "objective": "Traffic",
+      "spend": 3055.57,
+      "ctr": 5.56,
+      "cpc": 0.125,
+      "cost_per_result": 0.125,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "Your paint crack fixed2",
+      "adset": "Traffic_Statics_12May_Broad_USA",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
+      "objective": "Traffic",
+      "spend": 234.09,
+      "ctr": 5.57,
+      "cpc": 0.128,
+      "cost_per_result": 0.128,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "3_20May_From Stock Pair to Statement Pair-Adv+ creative enhance",
+      "adset": "Traffic_Statics_20May_All_Store_Pincodes",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
+      "objective": "Traffic",
+      "spend": 803.91,
+      "ctr": 5.04,
+      "cpc": 0.128,
+      "cost_per_result": 0.128,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "JB-UGC-1-Ingas",
+      "adset": "Traffic - UGCset1 - max link clicks -40+ US",
+      "campaign": "UGC Target JoinBrands - Traffic Campaign",
+      "objective": "Traffic",
+      "spend": 508.78,
+      "ctr": 5.42,
+      "cpc": 0.171,
+      "cost_per_result": 0.171,
+      "thumb_stop": 0.213
+    },
+    {
+      "ad": "1-sales- factory pair no thanks",
+      "adset": "Target Sales - 23 June - Statics - All coffee-ART pincodes",
+      "campaign": "Target Sales Campaign - Statics Ads - 23 Jun",
+      "objective": "Sales",
+      "spend": 419.45,
+      "ctr": 5.07,
+      "cpc": 0.201,
+      "cost_per_result": 0.201,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "New Traffic ad memorial day",
+      "adset": "New Traffic ad set",
+      "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
+      "objective": "Traffic",
+      "spend": 132.82,
+      "ctr": 1.2,
+      "cpc": 0.212,
+      "cost_per_result": 0.212,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "New Traffic ad - memorial day",
+      "adset": "New Traffic ad set",
+      "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
+      "objective": "Traffic",
+      "spend": 189.16,
+      "ctr": 1.18,
+      "cpc": 0.214,
+      "cost_per_result": 0.214,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "Your paint crack fixed",
+      "adset": "New Traffic ad set",
+      "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
+      "objective": "Traffic",
+      "spend": 688.46,
+      "ctr": 1.92,
+      "cpc": 0.215,
+      "cost_per_result": 0.215,
+      "thumb_stop": 0.007
+    }
+  ],
+  "worst_ads_by_efficiency": [
+    {
+      "ad": "Sweatfitness - NN at 50",
+      "adset": "Social Media Content - May",
+      "campaign": "Social Media - Target Awareness",
+      "objective": "Awareness",
+      "spend": 482.31,
+      "ctr": 0.03,
+      "cpc": 9.1,
+      "cost_per_result": 3.278,
+      "thumb_stop": 0.11
+    },
+    {
+      "ad": "New Awareness ad",
+      "adset": "AS01",
+      "campaign": "TARGET_Awareness_CAMP01",
+      "objective": "Awareness",
+      "spend": 365.16,
+      "ctr": 0.1,
+      "cpc": 2.099,
+      "cost_per_result": 3.254,
+      "thumb_stop": 0.004
+    },
+    {
+      "ad": "New Awareness Ad - trendyfavefinds",
+      "adset": "New Awareness Ad Set - trendyfavfinds",
+      "campaign": "Trendyfavefinds - Target Awareness",
+      "objective": "Awareness",
+      "spend": 156.77,
+      "ctr": 0.05,
+      "cpc": 4.02,
+      "cost_per_result": 2.944,
+      "thumb_stop": 0.106
+    },
+    {
+      "ad": "New Awareness ad â€“ 3",
+      "adset": "AS02",
+      "campaign": "TARGET_Awareness_CAMP01",
+      "objective": "Awareness",
+      "spend": 1346.6,
+      "ctr": 0.08,
+      "cpc": 2.208,
+      "cost_per_result": 2.809,
+      "thumb_stop": 0.04
+    },
+    {
+      "ad": "New Awareness ad - 4",
+      "adset": "AS04",
+      "campaign": "TARGET_Awareness_CAMP01",
+      "objective": "Awareness",
+      "spend": 282.27,
+      "ctr": 0.03,
+      "cpc": 7.841,
+      "cost_per_result": 2.713,
+      "thumb_stop": 0.092
+    },
+    {
+      "ad": "New Awareness ad -6",
+      "adset": "AS03",
+      "campaign": "TARGET_Awareness_CAMP01",
+      "objective": "Awareness",
+      "spend": 157.22,
+      "ctr": 0.04,
+      "cpc": 4.367,
+      "cost_per_result": 2.432,
+      "thumb_stop": 0.048
+    },
+    {
+      "ad": "31UGC-Targetshelf-CTA-graci.barros.ugc \"",
+      "adset": "Target-Targetpage-Influencer-Page Deck",
+      "campaign": "Target-Influencer-Link Click-Page Deck",
+      "objective": "Sales",
+      "spend": 123.82,
+      "ctr": 3.0,
+      "cpc": 0.541,
+      "cost_per_result": 1.848,
+      "thumb_stop": 0.355
+    },
+    {
+      "ad": "18UGC-PaintDetail-CTA-malkomes1",
+      "adset": "3UGC Videos-PaintDetail-Scored-CTA",
+      "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
+      "objective": "Sales",
+      "spend": 108.66,
+      "ctr": 4.1,
+      "cpc": 0.632,
+      "cost_per_result": 1.725,
+      "thumb_stop": 0.613
+    },
+    {
+      "ad": "22UGC-Laces-CTA-teesmithforgood",
+      "adset": "4UGC Videos-Laces-Scored-CTA",
+      "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
+      "objective": "Sales",
+      "spend": 1098.29,
+      "ctr": 5.38,
+      "cpc": 0.445,
+      "cost_per_result": 1.525,
+      "thumb_stop": 0.58
+    },
+    {
+      "ad": "26UGC-Targetshelf-CTA-advancedskincarebynikkole",
+      "adset": "5UGC Videos-Targetshelf-Scored-CTA",
+      "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
+      "objective": "Sales",
+      "spend": 113.13,
+      "ctr": 5.55,
+      "cpc": 0.536,
+      "cost_per_result": 1.331,
+      "thumb_stop": 0.513
+    }
+  ],
+  "top_ads_by_spend": [
+    {
+      "ad": "Coffee-ART collectors love",
+      "adset": "Traffic_Statics_12May_Broad_USA",
+      "campaign": "Traffic_Target_Statics_US_CoffeeArt",
+      "objective": "Traffic",
+      "spend": 3055.57,
+      "ctr": 5.56,
+      "cpc": 0.125,
+      "cost_per_result": 0.125,
+      "thumb_stop": 0.0
+    },
+    {
+      "ad": "7-sales-goodbye plain white air force 1",
+      "adset": "Ad Set1 - Sales PDP - Static1 - 24th June",
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "spend": 2960.45,
+      "ctr": 4.07,
+      "cpc": 0.232,
+      "cost_per_result": 0.619,
+      "thumb_stop": 0.008
+    },
+    {
+      "ad": "26-sales-adset4-ugc/reviews-what i bought at target",
+      "adset": "Ad Set4 - Sales PDP - Static - UGC/Reviews",
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "spend": 2846.8,
+      "ctr": 5.44,
+      "cpc": 0.249,
+      "cost_per_result": 0.864,
+      "thumb_stop": 0.005
+    },
+    {
+      "ad": "38-sales-adset5-AIvideo-woman in car with knickgasm pair",
+      "adset": "Ad Set5 - Sales PDP - AI Videos",
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "spend": 2223.13,
+      "ctr": 7.65,
+      "cpc": 0.319,
+      "cost_per_result": 0.903,
+      "thumb_stop": 0.581
+    },
+    {
+      "ad": "22-sales-adset2-craft/benefits-collectors quiet grail drop",
+      "adset": "Ad Set2 - Sales PDP - Static - Craft/Benefits",
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "spend": 2110.78,
+      "ctr": 4.77,
+      "cpc": 0.244,
+      "cost_per_result": 0.807,
+      "thumb_stop": 0.003
+    },
+    {
+      "ad": "23-sales-adset3-before-after-say hello hand-painted panels",
+      "adset": "Ad Set3 - Sales PDP - Static - Before/After Custom",
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "spend": 2010.04,
+      "ctr": 5.02,
+      "cpc": 0.257,
+      "cost_per_result": 0.798,
+      "thumb_stop": 0.006
+    },
+    {
+      "ad": "28 day grail drop",
+      "adset": "New Traffic ad set",
+      "campaign": "TARGET_AC_CLICK_CAMP_02 (Traffic - Link Clicks)",
+      "objective": "Traffic",
+      "spend": 1757.05,
+      "ctr": 2.41,
+      "cpc": 0.229,
+      "cost_per_result": 0.229,
+      "thumb_stop": 0.002
+    },
+    {
+      "ad": "1-sales- factory pair no thanks2",
+      "adset": "Ad Set1 - Sales PDP - Static1 - 24th June",
+      "campaign": "Target - In-house - Sales PageDeck Campaign",
+      "objective": "Sales",
+      "spend": 1445.72,
+      "ctr": 6.04,
+      "cpc": 0.205,
+      "cost_per_result": 0.675,
+      "thumb_stop": 0.003
+    },
+    {
+      "ad": "New Awareness ad â€“ 3",
+      "adset": "AS02",
+      "campaign": "TARGET_Awareness_CAMP01",
+      "objective": "Awareness",
+      "spend": 1346.6,
+      "ctr": 0.08,
+      "cpc": 2.208,
+      "cost_per_result": 2.809,
+      "thumb_stop": 0.04
+    },
+    {
+      "ad": "2UGC-Anime-CTA-malkomes1",
+      "adset": "1UGC Videos-Anime-Scored-CTA",
+      "campaign": "UGC Videos-Target-Sales-PageDeck-Scored-CTA",
+      "objective": "Sales",
+      "spend": 1236.85,
+      "ctr": 4.74,
+      "cpc": 0.336,
+      "cost_per_result": 0.893,
+      "thumb_stop": 0.524
+    }
+  ],
+  "benchmarks": [
+    {
+      "id": "bm-sales-inhouse",
+      "segment": "Sales - in-house statics (Target In-house Sales PageDeck)",
+      "ctr_pct": 4.85,
+      "cpc_usd": 0.27,
+      "cost_per_initiate_checkout_usd": 0.8,
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "bm-sales-ugc",
+      "segment": "Sales - scored UGC videos (JoinBrands creators)",
+      "ctr_pct": 4.39,
+      "cpc_usd": 0.36,
+      "cost_per_initiate_checkout_usd": 1.01,
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "bm-sales-influencer",
+      "segment": "Sales - influencer whitelisted (Page Deck)",
+      "ctr_pct": 5.21,
+      "cpc_usd": 0.32,
+      "cost_per_initiate_checkout_usd": 0.73,
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "bm-traffic-statics",
+      "segment": "Traffic - statics (broad USA + store pincodes)",
+      "ctr_pct": 5.08,
+      "cpc_usd": 0.14,
+      "cost_per_link_click_usd": 0.13,
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "bm-traffic-jb",
+      "segment": "Traffic - JoinBrands UGC (40+ US)",
+      "ctr_pct": 12.18,
+      "cpc_usd": 0.07,
+      "cost_per_link_click_usd": 0.07,
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "bm-awareness",
+      "segment": "Awareness campaigns (all)",
+      "ctr_pct": 0.08,
+      "cpc_usd": 2.15,
+      "cpm_usd": 1.86,
+      "source": "kt-spends-xlsx",
+      "warning": "CTR 0.03-0.10 pct and CPC $2-11 across all awareness ad sets - the portfolio drag; every ad in the worst-10 list is an Awareness or unscored social ad."
+    },
+    {
+      "id": "bm-video-thumbstop",
+      "segment": "Video thumb-stop (winners)",
+      "thumb_stop_min": 0.45,
+      "thumb_stop_max": 0.68,
+      "source": "kt-spends-xlsx",
+      "note": "Scaled UGC/AI video winners hold 0.45-0.68 thumb-stop; JB-UGC-4-irish peaks at 0.676."
+    },
+    {
+      "id": "bm-organic-cpr",
+      "segment": "Organic creator cost per reach",
+      "cpr_usd_apr": 0.04,
+      "cpr_usd_may": 0.05,
+      "cpr_usd_june": 0.04,
+      "cpr_usd_july": 0.05,
+      "source": "kt-social-pptx"
+    }
+  ],
+  "creative_learnings": [
+    {
+      "id": "cl-identity",
+      "title": "Identity-first hooks win",
+      "detail": "Top UGC scripts open with identity - I am a mom, I am 76, I am a sneaker artist, I shop at Target - then follow: Identity, relatable routine or problem, curiosity, product reveal, one meaningful transformation, proof (close-up paint detail or studio process), simple CTA.",
+      "source": "kt-social-pptx slide 13"
+    },
+    {
+      "id": "cl-specific-curiosity",
+      "title": "Specific curiosity beats withholding",
+      "detail": "Rydel July (coffee-ART unboxing, relatable premise) reached 100.5K vs June mystery hook 73.7K, a 36 pct reach lift; skip rate improved even though the product appeared later.",
+      "source": "kt-social-pptx slide 5"
+    },
+    {
+      "id": "cl-three-modes",
+      "title": "Three organic retention modes",
+      "detail": "Comedy earns retention (Maryandbri), authentic messengers lower skip (Nadja, 34 pct skip), educational content wins saves and shares (Jess, artist authority + grail-drop craft).",
+      "source": "kt-social-pptx slide 6"
+    },
+    {
+      "id": "cl-funnel",
+      "title": "Hook fixed the funnel in June",
+      "detail": "Skip rate fell 57.5 to 45.3 pct May to June; 57 pct passed the hook vs 38; high-intent 75 pct-watched views rose 53 pct (32K to 49K); cost per reach improved $0.065 to $0.057. Only about 6 pct of views reach 75 pct of the video.",
+      "source": "kt-social-pptx slide 14"
+    },
+    {
+      "id": "cl-plain-pair",
+      "title": "Plain-pair-upgrade and grail-drop angles carry paid Sales",
+      "detail": "goodbye plain white air force 1 ($2,960 spend, $0.62 per initiate-checkout), collectors quiet grail drop ($2,111, $0.81), factory pair no thanks ($1,446, $0.67), say hello hand-painted panels ($2,010, $0.80), what i bought at target UGC static ($2,847, $0.86) are the scaled winners.",
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "cl-aivideo",
+      "title": "AI videos: high CTR, expensive delivery",
+      "detail": "AI video ad set runs CTR 6.7-7.6 pct but CPM $23-24 and $0.90-1.22 per initiate-checkout; woman in car with knickgasm pair scaled to $2,223 at $0.90.",
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "cl-awareness-drag",
+      "title": "Awareness objective is the drag",
+      "detail": "All 10 worst cost-per-result ads with $100+ spend are Awareness/unscored social ads (CPC $2.10-$9.10, CTR 0.03-0.10 pct). Recommendation on the data: reallocate to Sales/Traffic structures that already clear the $0.80 benchmark.",
+      "source": "kt-spends-xlsx"
+    },
+    {
+      "id": "cl-jb-traffic",
+      "title": "JoinBrands UGC traffic is the cheapest click in the account",
+      "detail": "Traffic - UGCset1 (40+ US): 12.18 pct CTR at $0.07 CPC across $1,311 spend; JB-UGC-4-irish alone: 16.37 pct CTR, $0.05 CPC, 0.676 thumb-stop.",
+      "source": "kt-spends-xlsx"
+    }
+  ],
+  "organic": {
+    "as_of": "2026-07-17",
+    "months": [
+      {
+        "month": "May",
+        "views": 1151051,
+        "reach": 655370,
+        "influencers": "33 (20 influencers + 13 Target deals pages)",
+        "influencer_cost_usd": 34783,
+        "organic_cpr_usd": 0.1,
+        "platform_reach": {
+          "instagram": 534920,
+          "facebook": 8805,
+          "tiktok": 108112,
+          "youtube": 3533
+        },
+        "platform_views": {
+          "instagram": 970340,
+          "facebook": 17609,
+          "tiktok": 154446,
+          "youtube": 8656
+        }
+      },
+      {
+        "month": "June",
+        "views": 2142324,
+        "reach": 775130,
+        "influencers": "14 (11 influencers + 2 Target special + 1 Target deals page)",
+        "influencer_cost_usd": 28865,
+        "organic_cpr_usd": 0.04,
+        "ugc_videos": 219,
+        "platform_reach": {
+          "instagram": 518951,
+          "facebook": 9774,
+          "tiktok": 242912,
+          "youtube": 3493
+        },
+        "platform_views": {
+          "instagram": 1435838,
+          "facebook": 210977,
+          "tiktok": 488523,
+          "youtube": 6986
+        }
+      },
+      {
+        "month": "July (to 17th)",
+        "views": 293177,
+        "reach": 153529,
+        "influencers": "9 (5 influencers + 2 KOLs + 2 Target pages, 2 live)",
+        "influencer_cost_usd": 44000,
+        "organic_cpr_usd": 0.05,
+        "ugc_videos": 148,
+        "platform_reach": {
+          "instagram": 134729,
+          "facebook": 5316,
+          "tiktok": 13484,
+          "youtube": 0
+        },
+        "platform_views": {
+          "instagram": 255579,
+          "facebook": 10631,
+          "tiktok": 26967,
+          "youtube": 0
+        }
+      }
+    ],
+    "totals": {
+      "views": 3586552,
+      "reach": 1584029,
+      "influencer_count": 69,
+      "influencer_cost_usd": 107648,
+      "ugc_videos": 367,
+      "ugc_cost_usd": 43308,
+      "total_creator_cost_usd": 150956,
+      "note": "62 of 69 influencers live; UGC $43,308 parked for 400 creators; utilized so far $69,948."
+    },
+    "top_creators": [
+      {
+        "name": "Rydelfunk",
+        "followers": "1.6M",
+        "reach": "100K",
+        "skip_rate_pct": 56.9,
+        "product_at_pct": 20.83,
+        "post_reveal_retention_pct": 21,
+        "awt_sec": 9
+      },
+      {
+        "name": "Jess",
+        "followers": "945K",
+        "reach": "67K",
+        "skip_rate_pct": 48,
+        "product_at_pct": 18,
+        "post_reveal_retention_pct": 15,
+        "awt_sec": 11
+      },
+      {
+        "name": "Nadja",
+        "followers": "531K",
+        "reach": "51K",
+        "skip_rate_pct": 34,
+        "product_at_pct": 17,
+        "post_reveal_retention_pct": 32,
+        "awt_sec": 17
+      },
+      {
+        "name": "Maryandbri",
+        "followers": "199K",
+        "reach": "23.7K",
+        "skip_rate_pct": 34.5,
+        "product_at_pct": 1.25,
+        "post_reveal_retention_pct": 42,
+        "awt_sec": 32
+      }
+    ],
+    "ugc_june_buckets": {
+      "total_live": 136,
+      "grail-drop": 30,
+      "countering_mushroom": 13,
+      "gummies_vs_coffee": 16,
+      "target_shelf": 41,
+      "taste": 16,
+      "over_40": 20,
+      "tiktok": 70,
+      "instagram": 60,
+      "youtube": 6,
+      "_legacy_key_note": "LEGACY KEYS kept because ad-campaigns-master.html reads them by name. Read 'countering_mushroom' as the countering-factory-colourways bucket and 'gummies_vs_coffee' as the laces-vs-full-custom bucket; 'taste' is the paint-detail bucket."
+    },
+    "retention_funnel": {
+      "note": "Instagram creator campaign, May vs June 2026",
+      "stages": [
+        {
+          "stage": "Total impressions",
+          "may": "509K (287K reach)",
+          "june": "844K (352K reach)"
+        },
+        {
+          "stage": "Passed the hook",
+          "may": "191K - 38 pct",
+          "june": "484K - 57 pct"
+        },
+        {
+          "stage": "Saw the product",
+          "may": "211K - 42 pct",
+          "june": "288K - 34 pct"
+        },
+        {
+          "stage": "Product + 5 secs",
+          "may": "74K - 14 pct",
+          "june": "140K - 17 pct"
+        },
+        {
+          "stage": "Watched 75 pct+",
+          "may": "32K - 6 pct",
+          "june": "49K - 6 pct"
+        }
+      ],
+      "headline": "June: skip rate 45.3 vs 57.5 pct, high-intent views +53 pct, cost per reach $0.057 vs $0.065"
+    },
+    "next_lineup": "10 influencers + 500 UGC creators planned: 5 BAU influencers, 2 KOL/doctor, 2 new Target pages; quoted costs $12,000 (2 reels), $3,500, $3,500, $3,000, $2,500 per reel. Costco Bay Area: 12 influencers (10 Costco Bay Area pages + 2 Bay Area influencers) + 100 UGC.",
+    "competitor_share_themes": "Summer recipe content, in-house humour-led content, meme-style statics, community events and activations, vox pop street interviews (top share-driving themes, last 30 days)."
   },
-  "next_lineup": "10 influencers + 500 UGC creators planned: 5 BAU influencers, 2 KOL/doctor, 2 new Target pages; quoted costs $12,000 (2 reels), $3,500, $3,500, $3,000, $2,500 per reel. Costco Bay Area: 12 influencers (10 Costco Bay Area pages + 2 Bay Area influencers) + 100 UGC.",
-  "competitor_share_themes": "Summer recipe content, in-house humour-led content, meme-style statics, community events and activations, vox pop street interviews (top share-driving themes, last 30 days)."
- },
- "ops": {
-  "ugc_dashboard_automation": {
-   "summary": "Creator-performance dashboard fully automated: one skill builds the whole sheet (columns A to AN) as a live snapshot - pulls posted IG Reels + TikTok posts from JoinBrands, joins Meta + TikTok ad spend from Snowflake, computes organic scores and ad-recommendation logic, outputs Excel.",
-   "prerequisites": [
-    "Install and run the skill (no manual steps in between).",
-    "Fill and maintain the Video ID to Ad ID mapping sheet - Meta and TikTok ad tables do not store the original video ID; without the mapping, ad columns (spend, impressions, clicks, CTR, CPC) cannot be attributed to the creator/video. The one ongoing manual task.",
-    "Snowflake connected before running - Meta from KNICKGASM_DB.MAPLEMONK, TikTok from DATON.RAW; connector authenticates per user, so the runner needs their own Snowflake read access.",
-    "One-time: Chrome connector signed into JoinBrands and Instagram (organic data pull)."
-   ],
-   "owners": {
-    "automation": "Aviral Agrawal",
-    "ads_next_step": "Samvita Sarkar + Anchit Tandon",
-    "output_validation": "Vinya Mahajan"
-   },
-   "status": "Output snapshot delivered Jul 16; Samvita granted Snowflake access Jul 15; mapping sheet to be kept current as new ads go live."
+  "ops": {
+    "ugc_dashboard_automation": {
+      "summary": "Creator-performance dashboard fully automated: one skill builds the whole sheet (columns A to AN) as a live snapshot - pulls posted IG Reels + TikTok posts from JoinBrands, joins Meta + TikTok ad spend from Snowflake, computes organic scores and ad-recommendation logic, outputs Excel.",
+      "prerequisites": [
+        "Install and run the skill (no manual steps in between).",
+        "Fill and maintain the Video ID to Ad ID mapping sheet - Meta and TikTok ad tables do not store the original video ID; without the mapping, ad columns (spend, impressions, clicks, CTR, CPC) cannot be attributed to the creator/video. The one ongoing manual task.",
+        "Snowflake connected before running - Meta from KNICKGASM_DB.MAPLEMONK, TikTok from DATON.RAW; connector authenticates per user, so the runner needs their own Snowflake read access.",
+        "One-time: Chrome connector signed into JoinBrands and Instagram (organic data pull)."
+      ],
+      "owners": {
+        "automation": "Aviral Agrawal",
+        "ads_next_step": "Samvita Sarkar + Anchit Tandon",
+        "output_validation": "Vinya Mahajan"
+      },
+      "status": "Output snapshot delivered Jul 16; Samvita granted Snowflake access Jul 15; mapping sheet to be kept current as new ads go live."
+    },
+    "costco_launch": {
+      "summary": "Dark posts (not on the brand page) run as Meta ads to the Indian diaspora in the US for the Costco launch.",
+      "creatives": "6 Story ads + 6 Carousel ads (static, categorized: Value Pack, Summer Drink, Social Proof, Indian Diaspora, Benefit-Led) + Indian Diaspora Ad-1.mp4 and Ad-2.mp4 videos.",
+      "landing_page": "https://www.instacart.com/products/80435594",
+      "objective": "Traffic - link clicks",
+      "daily_budget_usd": 100,
+      "open_items": [
+        "Targeting parameters were requested by Sneha and pending confirmation in-thread.",
+        "Conversion objective was raised as an alternative to link clicks.",
+        "Founder ads were missing from the shared folder - RCA closed via email to Bala with the date founder ads were received (Kalpesh, Jul 17)."
+      ],
+      "owners": {
+        "creatives": "Sudhanshu Srivastava",
+        "meta_account_access": "Aman Gupta",
+        "execution": "Anchit Tandon + Samvita Sarkar"
+      }
+    },
+    "data_request": {
+      "summary": "Consultant (Megan) repository for Target + coffee-ART USA data; Ishita collates everything into one drive. All ad-campaign information sourced from Kritagya Prakash going forward.",
+      "deliverables_confirmed": [
+        "Target Ad Campaign Performance and Creative Insights deck",
+        "Meta Ad Report Till Date / May / June / July (till 15th)",
+        "TikTok Ad Report June",
+        "Day-wise Target Ads update (till 15th July)",
+        "Aisle, Ibotta (impressions/redemptions/unlocks), Roundel (campaign + search terms) exports",
+        "Social media calendar, Instagram metrics analysis, goal analysis, creator formats deck, scripts (Target July, Costco July, August), UGC campaign + performance trackers, monthly influencer content, UGC content libraries (Target, Costco)"
+      ],
+      "priority_explorations": [
+        "Spins custom-sneaker seasonality: current data is one-time, 52-week combined - no monthly split; Tushar checking for month-wise data.",
+        "Demo slots for August: 50 shared demos funded by brand marketing budget (Ishita).",
+        "Ibotta: on-platform media evaluation + targeting other sneaker-customisation offer redeemers and streetwear accessory redeemers.",
+        "USA DTC sneaker-consumer email announcing the coffee launch and Target placement."
+      ]
+    }
   },
-  "costco_launch": {
-   "summary": "Dark posts (not on the brand page) run as Meta ads to the Indian diaspora in the US for the Costco launch.",
-   "creatives": "6 Story ads + 6 Carousel ads (static, categorized: Value Pack, Summer Drink, Social Proof, Indian Diaspora, Benefit-Led) + Indian Diaspora Ad-1.mp4 and Ad-2.mp4 videos.",
-   "landing_page": "https://www.instacart.com/products/80435594",
-   "objective": "Traffic - link clicks",
-   "daily_budget_usd": 100,
-   "open_items": [
-    "Targeting parameters were requested by Sneha and pending confirmation in-thread.",
-    "Conversion objective was raised as an alternative to link clicks.",
-    "Founder ads were missing from the shared folder - RCA closed via email to Bala with the date founder ads were received (Kalpesh, Jul 17)."
-   ],
-   "owners": {
-    "creatives": "Sudhanshu Srivastava",
-    "meta_account_access": "Aman Gupta",
-    "execution": "Anchit Tandon + Samvita Sarkar"
-   }
+  "platforms": [
+    {
+      "id": "snowflake",
+      "name": "Snowflake (warehouse of record for ad data)",
+      "status": "connected - verified 2026-07-25 via Snowflake connector",
+      "details": [
+        "Meta USA: KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS - 129,741 rows, fresh to 2026-07-25/26 (includes the current partial day)",
+        "Meta cohort breakdowns VERIFIED PRESENT (an earlier note in this KB wrongly said they were missing): MAPLEMONK1.META_USA_ADS_INSIGHTS_AGE_AND_GENDER 11,521 rows (cols AGE, GENDER, SPEND, DATE_START); MAPLEMONK1.META_USA_ADS_INSIGHTS_PLATFORM_AND_DEVICE 11,511 rows (PUBLISHER_PLATFORM, IMPRESSION_DEVICE, PLATFORM_POSITION); MAPLEMONK1.META_USA_AD_CREATIVES 9,544 rows",
+        "TikTok USA: DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY 1,012 rows, fresh to 2026-07-23, $68,178.71 total spend; columns are STAT_TIME_DAY and ACCOUNTNAME (NOT date_start/account_name)",
+        "Google US is LIVE, in KNICKGASM_DB.MAPLEMONK.US_GOOGLE_ADS_CONSOLIDATED (fresh to 2026-07-25; 23 campaigns and $72,343.46 spend against $142,983.81 conversion value in 2026 YTD, ROAS 1.98). Its columns are bare UPPER_CASE with SPEND already in dollars: SEGMENTS_DATE, CAMPAIGN_NAME, AD_GROUP_NAME, SPEND, IMPRESSIONS, CLICKS, CONVERSIONS, CONVERSION_VALUE, ACCOUNT, CHANNEL. Filter ACCOUNT = 'Google US CONSOLIDATED' — the same table also holds the archived 'Google US' label that stops 2023-11-24. Ad-level detail (ad strength, approval status, headlines) is in US_GADS_AD_GROUP_AD_REPORT, which uses dotted lower-case GAQL names requiring quotes and cost in micros: \"segments.date\", \"customer.descriptive_name\", \"metrics.cost_micros\" (divide by 1e6). GOOGLE_ADS_US_AD_GROUP_AD_REPORT is the RETIRED customer 2769294429 and legitimately ends 2023-11-24 — do not report from it",
+        "Fixed 2026-07-26 in ads-snowflake-core.js: metrics() and cohort() previously hardcoded date_start/account_name, which threw 'invalid identifier' for TikTok and Google. Both now resolve the real columns per table from INFORMATION_SCHEMA, quote dotted identifiers and convert micros. Verified live: TikTok 254 rows and Meta 500 rows returned for 2026-05-01 to 2026-07-26; Meta age/gender cohort returns real spend splits."
+      ],
+      "links": [
+        "https://app.snowflake.com/uxdeihw/mo06981/#/homepage",
+        "https://app.snowflake.com/streamlit/uxdeihw/mo06981/#/apps/KNICKGASM_DB.MAPLEMONK.ADSDASHBOARDUSA"
+      ]
+    },
+    {
+      "id": "meta-live",
+      "name": "Meta ad account (real-time link)",
+      "status": "live via warehouse mirror for DTC; direct API pending token for retail",
+      "details": [
+        "DTC account 'Knickgasm India USA New EST Main Account' (1303870183798748): per-day rows incl. the current partial day, verified fresh to 2026-07-25 - 129,741 rows, 106 campaigns",
+        "Live reads: /api/brain?action=ads-live&op=today | op=daily | op=calendar - Meta Marketing API first (META_ACCESS_TOKEN + META_AD_ACCOUNT_ID), else the Snowflake mirror, else an honest not_connected envelope carrying the exact SQL",
+        "Today is treated as a PARTIAL day: an ad is 'live' once it has impressions today, 'starting' with spend but no impressions, 'not live yet' with neither",
+        "Reporting timezone America/New_York (ADS_REPORT_TZ) so the current day is not empty after UTC midnight",
+        "Target/Costco IS in the warehouse: KNICKGASM_DB.MAPLEMONK.USA_TEA_ADS_ADS_INSIGHTS, account 804570870670763, 6,556 rows, 26 campaigns, 214 ads, $50,248.24, 2025-09-24 to 2026-07-25 including the current partial day. It was missed on the first pass because the table name does not match META_USA%. Its May ($3,608.06) and June ($14,422.93) spend match the KT Master Ad Tracking Sheet to the cent. The older DC_RAW mirror (FB2_KNICKGASM_KNICKGASMUSATEA_US_FBADS_ADPERFORMANCE) ends 2026-05-31 and holds only 7 of the 26 campaigns - do not report from it"
+      ],
+      "links": [
+        "/ads-master#live",
+        "/ads-master#calendar"
+      ]
+    },
+    {
+      "id": "supabase",
+      "name": "Supabase (app persistence)",
+      "status": "connected - verified 2026-07-25",
+      "details": [
+        "Project lifecycle-os (fswdwmkgggzyxrdzabnh, ap-south-1, Postgres 17) - 57 public tables",
+        "Campaign system live: smart_generated_campaigns 90 rows, smart_calendar_entries 182, smart_campaigns 96, smart_calendar 290",
+        "ads_generated / landing_pages_generated mirror tables were NOT found in the live schema - verify migration state before relying on the Brain approval mirror",
+        "Security advisory: RLS disabled on ci_user_subscriptions and ci_notification_log (flagged by Supabase advisor)"
+      ]
+    },
+    {
+      "id": "klaviyo",
+      "name": "Klaviyo (lifecycle email)",
+      "status": "connected - verified 2026-07-25",
+      "details": [
+        "Connected account: UZL5NY - KNICKGASM UK (GBP, sender help@knickgasm.com, Europe/London)",
+        "Gap: the USA account is not the one connected here; the USA DTC coffee-ART launch email (priority item 4) needs USA-account access or the in-app KLAVIYO_API_KEY env (currently scaffolded, returns request stubs)"
+      ]
+    },
+    {
+      "id": "shopify",
+      "name": "Shopify (storefronts)",
+      "status": "public storefront only - Admin connector not authorized (project policy)",
+      "details": [
+        "US knickgasm.com | UK knickgasm.com | Global knickgasm.com | IN knickgasm.com",
+        "Catalog builds at deploy: US 173 / UK 101 / Global 102 active products via scripts/build-catalog.js"
+      ]
+    },
+    {
+      "id": "vercel",
+      "name": "Vercel (hosting + crons)",
+      "status": "deployed",
+      "details": [
+        "knickgasm.vercel.app - lifecycle-os.anchit-tandon.com; 12-function Hobby limit governs API layout",
+        "Crons: /api/brain?action=cron 18:30 UTC daily, /api/cron/social 19:00 UTC daily",
+        "This dashboard is static (data/ads/*.json) - it adds zero serverless functions"
+      ]
+    },
+    {
+      "id": "github",
+      "name": "GitHub (source of truth)",
+      "status": "active",
+      "details": [
+        "anchit-ai-hustle/lifecycle-os - this page, the KB JSON and the flow fixes ship via branch claude/ad-campaigns-master-dashboard-h40ugs"
+      ]
+    }
+  ],
+  "people": [
+    {
+      "name": "Samvita Sarkar",
+      "role": "Paid ads lead (Target Meta + TikTok); shares paid campaign sheets; owns UGC master tracking"
+    },
+    {
+      "name": "Kritagya Prakash",
+      "role": "Go-forward source for ALL ad-campaign information (per Samvita, Jul 24)"
+    },
+    {
+      "name": "Aviral Agrawal",
+      "role": "Data/automation - built the UGC dashboard skill; grants Snowflake access"
+    },
+    {
+      "name": "Anchit Tandon",
+      "role": "Target Meta ads execution; Costco dark-post launch; this dashboard"
+    },
+    {
+      "name": "Vinya Mahajan",
+      "role": "Sr Manager Community - social calendar, UGC trackers, content libraries; validates UGC dashboard output"
+    },
+    {
+      "name": "Sudhanshu Srivastava",
+      "role": "Creative - Costco dark posts, static/video ad buckets"
+    },
+    {
+      "name": "Sneha Kaul",
+      "role": "Marketing oversight - objectives/targeting sign-off, consultant data list"
+    },
+    {
+      "name": "Aman Gupta",
+      "role": "Meta ad account access"
+    },
+    {
+      "name": "Pratyashu Shekhar",
+      "role": "PM Offline Revenue - Aisle, Ibotta, Roundel, Target daily sales"
+    },
+    {
+      "name": "Ishita Goel",
+      "role": "Target demos planning; collates the consultant drive"
+    },
+    {
+      "name": "Srishti Bansal",
+      "role": "Regional Head North America - consultant repository owner"
+    },
+    {
+      "name": "Tushar Gulabani",
+      "role": "VP Global Offline Sales - Spins data"
+    },
+    {
+      "name": "Purnima Bali",
+      "role": "Positioning / messaging / brand guiderails docs"
+    },
+    {
+      "name": "Bhavya Singla",
+      "role": "Assignment routing"
+    },
+    {
+      "name": "Kalpesh Tiwari",
+      "role": "RCA closure"
+    },
+    {
+      "name": "Dinesh Dua",
+      "role": "CC on Costco launch"
+    },
+    {
+      "name": "Tanvi Binani",
+      "role": "CC on UGC automation"
+    },
+    {
+      "name": "Yakshit Bansal",
+      "role": "CC on UGC automation"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "gap-retail-account-not-live",
+      "severity": "high",
+      "item": "The Target/Costco Meta ad account (KT workbook, account id begins 805) is NOT mirrored in Snowflake - the warehouse carries only 'Knickgasm India USA New EST Main Account' (1303870183798748). So Target/Costco figures on the dashboard are the 20 Jul 2026 KT snapshot, not live. To make them real-time: add that ad account to the Maplemonk/Snowflake pipeline, or set META_ACCESS_TOKEN + META_AD_ACCOUNT_ID for it so /api/brain?action=ads-live reads it straight from the Meta Marketing API."
+    },
+    {
+      "id": "gap-google-feed-stale",
+      "severity": "resolved",
+      "item": "RESOLVED 2026-07-26: US Google was never stale. GOOGLE_ADS_US_AD_GROUP_AD_REPORT holds the RETIRED customer 2769294429 and correctly stops 2023-11-24; the live account is 9797311905 in US_GOOGLE_ADS_CONSOLIDATED, fresh to 2026-07-25. The Google panels were pointed at the retired table and now read the live one. No pipeline work is needed."
+    },
+    {
+      "id": "gap-credentials",
+      "severity": "high",
+      "item": "Snowflake credentials (username + password) were shared in plain text in the UGC Dashboard Automation email thread - rotate that password and move to per-user access."
+    },
+    {
+      "id": "gap-tiktok-july",
+      "severity": "medium",
+      "item": "July TikTok spend reads $0.00 in the KT workbook while Meta ran $23,484 - confirm whether TikTok was paused in July or simply unreported."
+    },
+    {
+      "id": "gap-pending-links",
+      "severity": "medium",
+      "item": "Several documents referenced in the Data Request thread are hyperlinks whose URLs are not resolvable from this account (Meta Ad Report May/June/July, TikTok Ad Report June, Day-wise update, social calendar, scripts, trackers, Aisle/Ibotta/Roundel exports). They are catalogued below with owner and status pending-access."
+    },
+    {
+      "id": "gap-mirror-tables",
+      "severity": "medium",
+      "item": "ads_generated / landing_pages_generated mirror tables not present in the live Supabase schema - the Brain approval mirror needs its migration applied."
+    },
+    {
+      "id": "gap-klaviyo-usa",
+      "severity": "medium",
+      "item": "Klaviyo connection is the UK account; USA DTC coffee-ART launch email needs the USA account (or KLAVIYO_API_KEY in Vercel)."
+    },
+    {
+      "id": "gap-spins",
+      "severity": "low",
+      "item": "Spins custom-sneaker seasonality: only 52-week combined data exists; month-wise split requested (Tushar)."
+    },
+    {
+      "id": "gap-rls",
+      "severity": "low",
+      "item": "Supabase advisor: RLS disabled on ci_user_subscriptions and ci_notification_log."
+    }
+  ],
+  "links": [
+    {
+      "group": "SOP (FINAL)",
+      "title": "KNICKGASM Ad Campaign SOP (final standing procedure, PDF)",
+      "url": "/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf",
+      "owner": "Anchit Tandon / KNICKGASM Growth",
+      "status": "verified",
+      "source": "sop-pdf",
+      "note": "Committed in-repo copy. Live from Monday; covers UGC, Target, Costco and D2C."
+    },
+    {
+      "group": "SOP (FINAL)",
+      "title": "KNICKGASM Master Ad Tracking Sheet (source of truth, Google Sheet)",
+      "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
+      "owner": "Anchit Tandon",
+      "status": "from-sop",
+      "note": "9 tabs. The sheet is authoritative over the SOP document wherever they differ."
+    },
+    {
+      "group": "SOP (FINAL)",
+      "title": "KNICKGASM Master Ad Tracking Sheet (committed XLSX snapshot)",
+      "url": "/docs/sop/KNICKGASM_Master_Ad_Tracking_Sheet.xlsx",
+      "owner": "Anchit Tandon",
+      "status": "verified",
+      "source": "sop-xlsx"
+    },
+    {
+      "group": "SOP (FINAL)",
+      "title": "June USA UGC scoring dashboard (scoring reference)",
+      "url": "https://knickgasm-june-usa-ugc-dashboard.netlify.app/",
+      "owner": "KNICKGASM Growth",
+      "status": "from-sop",
+      "source": "sop-xlsx"
+    },
+    {
+      "group": "Paid ads - reports & decks",
+      "title": "Target Paid Ads Update (Performance & Creative Insights deck)",
+      "url": "https://docs.google.com/presentation/d/1mYQGKd8lYAYNPQ4OM61TyzwJCmL5H1vTQLvK8sqgDZU/edit",
+      "owner": "Samvita Sarkar",
+      "status": "verified",
+      "source": "kt-datareq-mail",
+      "note": "Meta + TikTok paid performance, awareness/traffic/sales campaigns, page-deck performance, creative insights, winning messaging, best UGC/static/AI/influencer creatives, Target-specific creatives. Resolved live in Drive (modified Jul 24)."
+    },
+    {
+      "group": "Paid ads - reports & decks",
+      "title": "Target Paid Ads Update - Anchit working copy (Slides)",
+      "url": "https://docs.google.com/presentation/d/1qnhiS-yaBPYfL1va2q5xe4SUa5FLQA69ChjbAnPpd3A/edit",
+      "owner": "Anchit Tandon",
+      "status": "verified",
+      "source": "drive-connector"
+    },
+    {
+      "group": "Paid ads - reports & decks",
+      "title": "Target Paid Ads Update.pptx (raw file)",
+      "url": "https://drive.google.com/file/d/1YJv2yvtnglQuOuFYJJpKDoAMldco_3YT/view",
+      "owner": "Anchit Tandon",
+      "status": "verified",
+      "source": "drive-connector"
+    },
+    {
+      "group": "UGC & creators",
+      "title": "UGC creator-performance dashboard - automated output snapshot (columns A-AN)",
+      "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
+      "owner": "Aviral Agrawal / Samvita Sarkar",
+      "status": "from-email",
+      "source": "kt-ugc-mail"
+    },
+    {
+      "group": "UGC & creators",
+      "title": "Video ID to Ad ID mapping sheet (REQUIRED manual input for the UGC dashboard)",
+      "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
+      "owner": "Ads team (keep current as ads go live)",
+      "status": "from-email",
+      "source": "kt-ugc-mail"
+    },
+    {
+      "group": "UGC & creators",
+      "title": "KNICKGASM_UGC_Master_v6 (UGC master tracker)",
+      "url": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
+      "owner": "Samvita Sarkar",
+      "status": "verified",
+      "source": "drive-connector",
+      "note": "Live sheet, last modified Jul 25."
+    },
+    {
+      "group": "UGC & creators",
+      "title": "KNICKGASM_UGC_Creator_Sheet_Fallback.csv",
+      "url": "https://drive.google.com/file/d/1QqhOX2o1nEFEIaakfLO0nnLn-qOsG-aJ/view",
+      "owner": "Anchit Tandon",
+      "status": "verified",
+      "source": "drive-connector"
+    },
+    {
+      "group": "Costco launch",
+      "title": "Costco US Ads - creative folder (Static: Value Pack / Summer Drink / Social Proof / Indian Diaspora / Benefit-Led; Video: Indian Diaspora Ad-1 and Ad-2)",
+      "url": "https://drive.google.com/drive/folders/1wArzxJ-YYQ1hbW92Y3MZlm76sb5o5jcg",
+      "owner": "Sudhanshu Srivastava",
+      "status": "verified",
+      "source": "kt-costco-mail"
+    },
+    {
+      "group": "Costco launch",
+      "title": "Costco landing page (Instacart PDP)",
+      "url": "https://www.instacart.com/products/80435594",
+      "owner": "-",
+      "status": "from-email",
+      "source": "kt-costco-mail"
+    },
+    {
+      "group": "Ops & governance",
+      "title": "Consultant data-request doc (Megan - Target + coffee-ART USA data, yellow = priority)",
+      "url": "https://docs.google.com/document/d/1p6wz9UG3AXg5vkRSWBvjR8GrM1H0MMuY/edit",
+      "owner": "Sneha Kaul / Srishti Bansal",
+      "status": "from-email",
+      "source": "kt-datareq-mail"
+    },
+    {
+      "group": "Platforms",
+      "title": "Snowflake console (org uxdeihw / account mo06981)",
+      "url": "https://app.snowflake.com/uxdeihw/mo06981/#/homepage",
+      "owner": "Aviral Agrawal (access grants)",
+      "status": "verified",
+      "source": "kt-ugc-mail"
+    },
+    {
+      "group": "Platforms",
+      "title": "Snowflake Streamlit - native Ads Dashboard USA",
+      "url": "https://app.snowflake.com/streamlit/uxdeihw/mo06981/#/apps/KNICKGASM_DB.MAPLEMONK.ADSDASHBOARDUSA",
+      "owner": "-",
+      "status": "verified",
+      "source": "repo"
+    },
+    {
+      "group": "Platforms",
+      "title": "In-app live Ads Analysis (Snowflake-backed)",
+      "url": "/ads-dashboard",
+      "owner": "-",
+      "status": "verified",
+      "source": "repo"
+    },
+    {
+      "group": "Platforms",
+      "title": "Supabase project (lifecycle-os)",
+      "url": "https://supabase.com/dashboard/project/fswdwmkgggzyxrdzabnh",
+      "owner": "-",
+      "status": "verified",
+      "source": "supabase-connector"
+    },
+    {
+      "group": "Platforms",
+      "title": "GitHub repo (anchit-ai-hustle/lifecycle-os)",
+      "url": "https://github.com/anchit-ai-hustle/lifecycle-os",
+      "owner": "-",
+      "status": "verified",
+      "source": "github"
+    },
+    {
+      "group": "Platforms",
+      "title": "Live app (Vercel)",
+      "url": "https://knickgasm.vercel.app/",
+      "owner": "-",
+      "status": "verified",
+      "source": "repo"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Grail-Drop - @jenwinkel (TikTok)",
+      "url": "https://www.tiktok.com/@jenwinkel/video/7651609390692306190",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Grail-Drop - @mama_sparks19 (TikTok)",
+      "url": "https://www.tiktok.com/@mama_sparks19/video/7652798064142470430",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Countering factory colourways - @lorrainealbernazugc (TikTok)",
+      "url": "https://www.tiktok.com/@lorrainealbernazugc/video/7654602616927735053",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Countering factory colourways - @jamesmelissaugc (TikTok)",
+      "url": "https://www.tiktok.com/@jamesmelissaugc/video/7654194686193650957",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Over 40 - @familiawestcoast (TikTok)",
+      "url": "https://www.tiktok.com/@familiawestcoast/video/7654646282463497502",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Over 40 - @its.noelle.not.ni (TikTok)",
+      "url": "https://www.tiktok.com/@its.noelle.not.ni/video/7654230778036997406",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Laces vs full custom - @jamesmelissaugc (TikTok)",
+      "url": "https://www.tiktok.com/@jamesmelissaugc/video/7654195508097010957",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Paint detail - Instagram reel",
+      "url": "https://www.instagram.com/reel/DZwDsSHuxbC/",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Paint detail - @almitaa1125 (TikTok)",
+      "url": "https://www.tiktok.com/@almitaa1125/video/7652431091403361549",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Target shelf - @cece_marie503 (TikTok)",
+      "url": "https://www.tiktok.com/@cece_marie503/video/7652774509883231502",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "UGC example content (June buckets)",
+      "title": "Target shelf - Instagram reel",
+      "url": "https://www.instagram.com/reels/DZaANsPoNEn/",
+      "owner": "JoinBrands creators",
+      "status": "from-deck",
+      "source": "kt-social-pptx"
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Meta Ad Report - Till Date",
+      "url": null,
+      "owner": "Samvita Sarkar / Kritagya Prakash",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Meta Ad Report - May",
+      "url": null,
+      "owner": "Samvita Sarkar / Kritagya Prakash",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Meta Ad Report - June",
+      "url": null,
+      "owner": "Samvita Sarkar / Kritagya Prakash",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Meta Ad Report - July (till 15th)",
+      "url": null,
+      "owner": "Samvita Sarkar / Kritagya Prakash",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "TikTok Ad Report - June",
+      "url": null,
+      "owner": "Samvita Sarkar / Kritagya Prakash",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Day-wise Target Ads update (till 15th July)",
+      "url": null,
+      "owner": "Samvita Sarkar / Kritagya Prakash",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Consultant repository drive (Ishita's collation folder)",
+      "url": null,
+      "owner": "Ishita Goel",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Social Media Calendar (monthly content plan)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Detailed Instagram Metrics Analysis (weekly)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Goal Analysis - July (platform-wise vs goals)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Creator Formats Deck (top 2 best-performing formats)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Scripts - Target (July)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Scripts - Costco (July)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Scripts - August (Target + Costco)",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "UGC Campaign tracker",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "UGC Performance tracker",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Monthly Influencer Content",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "UGC Content Library - Target",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "UGC Content Library - Costco",
+      "url": null,
+      "owner": "Vinya Mahajan",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Target daily sales tracker",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Aisle - Dashboard View Download.pdf",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Ibotta - Impressions Trend.pdf",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Ibotta - Redemptions Trend.pdf",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Ibotta - Unlocks Trend.pdf",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Roundel - Campaign Data.csv",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Roundel - Search Term.csv",
+      "url": null,
+      "owner": "Pratyashu Shekhar",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    },
+    {
+      "group": "Pending access (named in mails - URL not shared with this account)",
+      "title": "Sneha's consolidated drive (Data Request 'this drive')",
+      "url": null,
+      "owner": "Sneha Kaul",
+      "status": "pending-access",
+      "source": "kt-datareq-mail",
+      "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
+    }
+  ],
+  "executive_overview": "The USA paid program sells the KNICKGASM coffee-ART collection through two retail funnels: Target (Meta + TikTok ads into page-deck and PDP funnels, in-house statics + scored JoinBrands UGC + whitelisted influencers) and Costco (dark posts to the Indian diaspora in the US, landing on the Instacart PDP). Paid spend May 1 to July 20 was $45,870.61 (Meta $41,515.53 across 125 ads in 13 campaigns; TikTok $4,355.08, June only). The Sales engine clears its own benchmark ($0.80 per initiate-checkout on in-house statics; $0.73 on influencer page-deck), JoinBrands UGC traffic delivers the cheapest clicks in the account ($0.07), and Awareness structures are the portfolio drag (CTR 0.03-0.10 pct at $2-9 CPC). Organic ran 3.59M views / 1.58M reach Apr to Jul 17 on $150,956 total creator cost (69 influencers, 367 UGC videos; 300+ UGC pieces produced monthly). The creator- performance dashboard is fully automated (JoinBrands + Snowflake + mapping sheet); ad-campaign information is owned by Kritagya Prakash going forward, with Samvita leading paid and Anchit executing Target Meta. A consultant repository (for Megan) collates every report; priority explorations are Spins seasonality, August demos, Ibotta redeemer targeting, and the USA DTC coffee-ART launch email.",
+  "narratives": [
+    {
+      "id": "nr-ugc",
+      "title": "KT thread 1 - UGC Dashboard Automation",
+      "period": "Jul 14-16, 2026",
+      "overview": "The creator-performance dashboard went from manual builds to a one-skill automation; access and ownership were being settled.",
+      "details": [
+        "Jul 14 - Aviral: the UGC creator-performance dashboard is automated end-to-end. One skill produces the full sheet (columns A to AN) as a live snapshot: posted Instagram Reels + TikTok posts pulled from JoinBrands, Meta + TikTok ad spend joined from Snowflake, organic scores and ad-recommendation logic computed, Excel built.",
+        "Three prerequisites: (1) install and run the skill; (2) fill and maintain the Video ID to Ad ID mapping sheet - Meta/TikTok ad tables do not store the source video ID, so without it spend/impressions/clicks/CTR/CPC cannot be attributed to a creator (the one ongoing manual task); (3) Snowflake connected per user before running - Meta from KNICKGASM_DB.MAPLEMONK, TikTok from DATON.RAW.",
+        "One-time setup: Chrome connector signed into JoinBrands and Instagram for the organic pull.",
+        "Jul 15 - Aviral granted Samvita Snowflake access (credentials were shared in plain text in the mail - rotation recommended; see gaps). Mapping sheet to be updated with all current ad mappings before the trial run.",
+        "Jul 16 - output snapshot delivered. Vinya to validate and configure on her device; Samvita + Anchit to connect on the next step for ads (6 pm)."
+      ]
+    },
+    {
+      "id": "nr-costco",
+      "title": "KT thread 2 - Dark Stories Ads for Costco Launch",
+      "period": "Jul 11-17, 2026",
+      "overview": "Dark posts targeting the Indian diaspora in the US went live for the Costco launch; a founder-ads RCA closed the thread.",
+      "details": [
+        "Jul 11 - Sudhanshu: 6 Story + 6 Carousel dark-post creatives ready, shared via the Costco US Ads drive folder.",
+        "Jul 13 - Samvita assigned Target Meta Ads execution to Anchit; Aman to provide Meta ad account access. Config: landing page = Instacart PDP (product 80435594), goal Traffic (link clicks), daily budget $100.",
+        "Jul 14 - Sneha asked for targeting parameters and whether Conversion would beat Link Clicks; Anchit confirmed the launch configuration and took the ads live after aligning with Samvita.",
+        "Jul 15 - Sudhanshu added the Indian Diaspora Ad-1 video (plus Ad-2) and categorized statics into five buckets: Value Pack, Summer Drink, Social Proof, Indian Diaspora, Benefit-Led.",
+        "Jul 17 - Samvita's live screenshots showed no founder ads in the shared folder; Kalpesh asked to close the RCA with an email to Bala stating the date the founder ads were received."
+      ]
+    },
+    {
+      "id": "nr-datareq",
+      "title": "KT thread 3 - Data Request (consultant repository)",
+      "period": "Jul 15-24, 2026",
+      "overview": "Everything the ads/social/retail program produces was collated into one repository for the consultant (Megan); ownership of ad-campaign information moved to Kritagya.",
+      "details": [
+        "Jul 15 - Sneha shared the consultant doc: Target + coffee-ART USA data, yellow-marked items prioritised. Asks included: which ads work across DTC/TikTok/retail media with stats, current content links, the UGC flywheel shape, and influencer partnerships.",
+        "Jul 22-23 - Srishti chased delivery; Pratyashu shared Aisle, Ibotta (impressions/redemptions/unlocks trends) and Roundel (campaign data + search terms) exports plus the Target daily sales tracker; Ishita uploaded in-store demos data and collated everything into the shared drive.",
+        "Jul 23 - Vinya shared the social stack: Social Media Calendar, Detailed Instagram Metrics Analysis, Goal Analysis July, Creator Formats Deck, scripts (Target July, Costco July, August), UGC campaign + performance trackers, monthly influencer content, and the UGC content libraries (Target, Costco). 300+ UGC pieces produced monthly; JoinBrands approvals reviewed daily.",
+        "Jul 24 - Tushar on Spins: only one-time, 52-week combined category data exists (no monthly split); checking whether month-wise data is possible.",
+        "Jul 24 - Samvita delivered the Target Ad Campaign Performance & Creative Insights deck and the ad reports (Meta till-date/May/June/July-to-15th, TikTok June, day-wise update), and named Kritagya Prakash the go-forward source for all ad-campaign information."
+      ]
+    },
+    {
+      "id": "nr-workbook",
+      "title": "KT file 4 - Ad Spends workbook (May to 20 Jul)",
+      "period": "as of Jul 20, 2026",
+      "overview": "The quantitative backbone: monthly Meta/TikTok spend plus 125 Meta ad rows with full funnel metrics.",
+      "details": [
+        "Target Spends sheet: May $3,608.06 (all Meta), June $18,778.01 (Meta $14,422.93 + TikTok $4,355.08), July-to-20th $23,484.54 (Meta only reported).",
+        "Target Ads sheet: 125 ad rows, 44 columns (reach, impressions, outbound clicks/CTR, CPC, CPM, landing page views, results + indicator, cost per result, frequency, quality/engagement/conversion rankings, thumb-stop ratio, budgets, IDs).",
+        "This workbook feeds the Campaigns & Ads tab and every benchmark; the committed copy is data/ads/target-ads-meta-2026-07-20.json."
+      ]
+    },
+    {
+      "id": "nr-social",
+      "title": "KT file 5 - Social Update USA deck (17 Jul)",
+      "period": "Apr to Jul 17, 2026",
+      "overview": "Organic, influencer and UGC performance: June was the breakout month and the hook was the reason.",
+      "details": [
+        "Monthly organic: May 1.15M views / 655K reach; June 2.14M views / 775K reach; July 293K views / 154K reach by the 17th.",
+        "Creator economics: 69 influencers at $107,648 (62 live); 367 UGC videos at $43,308 (parked for 400 creators); total creator cost $150,956, utilized $69,948; organic CPR $0.04-0.10.",
+        "Retention funnel May vs June (Instagram): skip rate 57.5 to 45.3 pct; passed-hook 38 to 57 pct; 75 pct-watched views +53 pct (32K to 49K); cost per reach $0.065 to $0.057. Only ~6 pct of views reach 75 pct of the video.",
+        "Creator learnings: identity-first openers (mom / 76 / sneaker artist / Target shopper); specific curiosity beats withholding (Rydel July +36 pct reach); comedy retains (Maryandbri), authenticity lowers skip (Nadja), education earns saves (Jess).",
+        "June UGC buckets (136 live): Target shelf 41, Grail-Drop 30, Over 40 20, Laces vs full custom 16, Paint detail 16, countering-factory 13. Next line-up: 10 influencers + 500 UGC creators; Costco Bay Area 12 influencers + 100 UGC."
+      ]
+    }
+  ],
+  "sop": {
+    "id": "sop-ad-campaign",
+    "title": "KNICKGASM Ad Campaign SOP — the final standing procedure",
+    "status": "FINAL — live from Monday",
+    "scope": "Ad execution across UGC, Target, Costco and D2C.",
+    "authority": "The master tracking sheet is the source of truth. Where the sheet and the SOP differ, the sheet is correct and the SOP is corrected to match. The SOP carries the process; the sheet carries the data.",
+    "master_sheet": "https://docs.google.com/spreadsheets/d/SET_GOOGLE_SHEET_ID_FOR_KNICKGASM/edit",
+    "local_copies": {
+      "sop_pdf": "/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf",
+      "tracker_xlsx": "/docs/sop/KNICKGASM_Master_Ad_Tracking_Sheet.xlsx"
+    },
+    "tabs": [
+      {
+        "tab": "Index",
+        "holds": "Tab guide, row layout, colour coding, setup",
+        "owner": "Orientation / reference"
+      },
+      {
+        "tab": "Scoring Legend",
+        "holds": "Score bands, thresholds, weights, view penalties, run status",
+        "owner": "Reference only"
+      },
+      {
+        "tab": "Nomenclature",
+        "holds": "Naming syntax, rules, token values, URL parameters",
+        "owner": "Reference only"
+      },
+      {
+        "tab": "Landing Pages",
+        "holds": "PageDeck destinations by content bucket, with performance",
+        "owner": "Anchit"
+      },
+      {
+        "tab": "Master UGC Tracker",
+        "holds": "Real-time IMPORTRANGE pull from Vinya's team's sheet",
+        "owner": "Read only"
+      },
+      {
+        "tab": "UGC",
+        "holds": "UGC campaigns, 26 columns; landing page differs per campaign",
+        "owner": "Sneha's team, Sudhanshu, Agency"
+      },
+      {
+        "tab": "Target",
+        "holds": "Target campaigns, 26 columns",
+        "owner": "Sneha's team, Sudhanshu, Agency"
+      },
+      {
+        "tab": "Costco",
+        "holds": "Costco campaigns, 26 columns",
+        "owner": "Sneha's team, Sudhanshu, Agency"
+      },
+      {
+        "tab": "D2C",
+        "holds": "D2C campaigns, 26 columns; every input from Anchit",
+        "owner": "Anchit, Agency"
+      }
+    ],
+    "row_layout": [
+      {
+        "row": "1",
+        "contents": "Column header",
+        "editable": false
+      },
+      {
+        "row": "2",
+        "contents": "Who fills that column",
+        "editable": false
+      },
+      {
+        "row": "3",
+        "contents": "Worked example (the template, copied down)",
+        "editable": false
+      },
+      {
+        "row": "4 onward",
+        "contents": "Live entries",
+        "editable": true
+      }
+    ],
+    "formula_columns": "CTR, CPC, CPA and ROAS are formulas. Inputs are Spend, Impressions, Clicks, Conversions and Revenue. Overwriting a formula cell stops it calculating for every row below. Ad Code is plain text so codes are not converted to currency or scientific notation.",
+    "scoring": {
+      "formulas": {
+        "tiktok": "6-sec View % x 40% + Shares x 25% + (Likes + Comments) x 20% + Views x 15%",
+        "instagram": "Views x 40% + Likes x 35% + Comments x 15%  (sums to 90%, under review with Samvita; the Organic Score column is authoritative until resolved)"
+      },
+      "reference_dashboard": "https://knickgasm-june-usa-ugc-dashboard.netlify.app/",
+      "tiktok_weights": [
+        {
+          "metric": "6-sec View %",
+          "weight": "40%",
+          "why": "Strongest signal - hook worked, TikTok rewards this directly"
+        },
+        {
+          "metric": "Shares",
+          "weight": "25%",
+          "why": "Viral intent - the highest organic endorsement"
+        },
+        {
+          "metric": "Likes + Comments",
+          "weight": "20%",
+          "why": "Active engagement; comments = a real reaction"
+        },
+        {
+          "metric": "Views",
+          "weight": "15%",
+          "why": "Reach without resonance - deliberately the smallest weight"
+        }
+      ],
+      "instagram_weights": [
+        {
+          "metric": "Views (Plays)",
+          "weight": "40%",
+          "why": "Reach indicates the algorithm is distributing the content"
+        },
+        {
+          "metric": "Likes",
+          "weight": "35%",
+          "why": "Primary Instagram engagement signal"
+        },
+        {
+          "metric": "Comments",
+          "weight": "15%",
+          "why": "Rarer on Instagram, strong when present"
+        }
+      ],
+      "bands": [
+        {
+          "score": "70-100",
+          "label": "Elite",
+          "meaning": "Top-tier organic. Strong hook, high retention, real engagement. First to boost."
+        },
+        {
+          "score": "50-69",
+          "label": "High",
+          "meaning": "Solid hold and engagement. Boost with confidence."
+        },
+        {
+          "score": "30-49",
+          "label": "Good",
+          "meaning": "Meets the Ad Recommended threshold. Worth testing with budget."
+        },
+        {
+          "score": "20-29",
+          "label": "Consider",
+          "meaning": "Some signal. Small spend first."
+        },
+        {
+          "score": "0-19",
+          "label": "Not ready",
+          "meaning": "No spend. Creative requires rework."
+        }
+      ],
+      "thresholds": [
+        {
+          "platform": "TikTok",
+          "label": "Ad Recommended",
+          "condition": "Score >= 30 OR 6-sec view rate >= 25%"
+        },
+        {
+          "platform": "TikTok",
+          "label": "Consider",
+          "condition": "Score >= 20 OR 6-sec >= 18% OR ER >= 8%"
+        },
+        {
+          "platform": "TikTok",
+          "label": "No",
+          "condition": "Below all of the above"
+        },
+        {
+          "platform": "Instagram",
+          "label": "Ad Recommended",
+          "condition": "Score >= 20"
+        },
+        {
+          "platform": "Instagram",
+          "label": "Consider",
+          "condition": "Score >= 13 OR likes/views >= 5%"
+        },
+        {
+          "platform": "Instagram",
+          "label": "No",
+          "condition": "Below all of the above"
+        }
+      ],
+      "six_second_rule": "A 6-sec view rate of 25% or above auto-qualifies a TikTok post regardless of total score - a hook holding past six seconds has already beaten the platform's skip behaviour.",
+      "view_penalties": [
+        {
+          "platform": "TikTok",
+          "views": "Under 50",
+          "multiplier": "0.45",
+          "why": "Sample too small to be reliable"
+        },
+        {
+          "platform": "TikTok",
+          "views": "50-199",
+          "multiplier": "0.70",
+          "why": "Small and growing"
+        },
+        {
+          "platform": "TikTok",
+          "views": "200-499",
+          "multiplier": "0.85",
+          "why": "Reasonable sample, minor discount"
+        },
+        {
+          "platform": "TikTok",
+          "views": "500+",
+          "multiplier": "none",
+          "why": "Full confidence"
+        },
+        {
+          "platform": "Instagram",
+          "views": "Under 100",
+          "multiplier": "0.50",
+          "why": "Unreliable"
+        },
+        {
+          "platform": "Instagram",
+          "views": "100-499",
+          "multiplier": "0.75",
+          "why": "Small but trackable"
+        },
+        {
+          "platform": "Instagram",
+          "views": "500+",
+          "multiplier": "none",
+          "why": "Sufficient reach"
+        }
+      ],
+      "run_status": {
+        "note": "Two columns look similar; only one is an instruction. Ad Recommended = scoring output. Ads Activated = the run instruction. No ad goes live unless Ads Activated reads 'Review before running ads'.",
+        "values": [
+          {
+            "value": "Review before running ads",
+            "meaning": "Cleared Level 2, queued for the agency",
+            "action": "Review spelling, grammar and formatting, then set live"
+          },
+          {
+            "value": "Yes",
+            "meaning": "Already live",
+            "action": "None. Reporting only."
+          },
+          {
+            "value": "No",
+            "meaning": "Did not clear the benchmark",
+            "action": "Do not set live"
+          },
+          {
+            "value": "(blank)",
+            "meaning": "Not yet assessed",
+            "action": "Wait"
+          }
+        ]
+      }
+    },
+    "nomenclature": {
+      "principle": "One syntax everywhere. The string entered into the platform as a campaign, ad set or ad name is the same string carried in the URL as a UTM value. There is no second, human-readable form.",
+      "character_set": "Lowercase only. Underscore between fields. Hyphen inside a field. Dates as yyyy-mm-dd.",
+      "patterns": [
+        {
+          "what": "Campaign name",
+          "syntax": "yyyy-mm _ platform _ objective _ type",
+          "example": "2026-06_meta_conv_target"
+        },
+        {
+          "what": "Ad Set name",
+          "syntax": "yyyy-mm-dd _ audience _ placement",
+          "example": "2026-06-11_over40-high-performer_ig-reels"
+        },
+        {
+          "what": "Ad name",
+          "syntax": "yyyy-mm-dd _ type _ product _ audience _ surface _ videoid",
+          "example": "2026-06-11_target_coffee-art_over40-high-performer_instagram_7644934695515393294"
+        },
+        {
+          "what": "utm_source",
+          "syntax": "platform-surface",
+          "example": "meta-instagram"
+        },
+        {
+          "what": "utm_medium",
+          "syntax": "fixed literal",
+          "example": "paid-social"
+        },
+        {
+          "what": "utm_campaign",
+          "syntax": "the campaign name",
+          "example": "2026-06_meta_conv_target"
+        },
+        {
+          "what": "utm_term",
+          "syntax": "the ad set name",
+          "example": "2026-06-11_over40-high-performer_ig-reels"
+        },
+        {
+          "what": "utm_content",
+          "syntax": "the ad name",
+          "example": "2026-06-11_target_coffee-art_over40-high-performer_instagram_7644934695515393294"
+        },
+        {
+          "what": "acq_source",
+          "syntax": "type _ platform",
+          "example": "target_meta"
+        },
+        {
+          "what": "acq_subsource",
+          "syntax": "creator _ bucket _ hook",
+          "example": "jeorginaugc_grail-drop_problem-pain"
+        }
+      ],
+      "macros": "Where Meta provides one, the macro is used rather than the literal string: {{campaign.name}}, {{adset.name}}, {{ad.name}}, {{site_source_name}}. acq_source and acq_subsource have no macro and are copied from the sheet row.",
+      "costco_note": "Costco runs on TikTok, giving utm_source tiktok-tiktok and acq_source costco_tiktok.",
+      "rules": [
+        {
+          "n": 1,
+          "rule": "No space, /, comma, &, ?, %, + or # in any name or parameter",
+          "consequence": "Space becomes %20, slash %2F, comma breaks CSV export, & and ? break the query string, # truncates the URL"
+        },
+        {
+          "n": 2,
+          "rule": "Lowercase only",
+          "consequence": "GA4 and several platform APIs are case-sensitive; mixed case splits one campaign across multiple report rows"
+        },
+        {
+          "n": 3,
+          "rule": "videoid mandatory on every ad name and inside utm_content",
+          "consequence": "The ad cannot be mapped to its organic performance"
+        },
+        {
+          "n": 4,
+          "rule": "acq_subsource carries creator, bucket and hook",
+          "consequence": "Revenue by creator, content angle and hook style is unavailable"
+        },
+        {
+          "n": 5,
+          "rule": "Target and Costco names kept strictly separate",
+          "consequence": "Reporting overlap; Costco campaigns have previously been built using Target keywords"
+        },
+        {
+          "n": 6,
+          "rule": "Token values copied, not retyped",
+          "consequence": "One mistyped token splits a single audience across two report rows"
+        },
+        {
+          "n": 7,
+          "rule": "Names in Ad Manager match the tracker exactly",
+          "consequence": "The asset is paused"
+        }
+      ],
+      "tokens": {
+        "platform": "meta tiktok",
+        "surface": "instagram facebook tiktok",
+        "objective": "conv",
+        "type": "target costco d2c ugc",
+        "audience": "over40 high-performer over40-high-performer broad-lookalike",
+        "placement": "ig-reels ig-stories fb-feed tiktok-infeed advantage-plus",
+        "product": "coffee-art embroidery-sneaker",
+        "bucket": "grail-drop laces-vs-custom target-shelf anti-factory paint-detail over40-high-performer target-instore",
+        "hook": "curiosity problem-pain age-stage personal-discovery comparison callout-ifyou lifestyle paint-sensory",
+        "lang": "en es pt"
+      }
+    },
+    "landing_pages": {
+      "principle": "UGC ads route to a dedicated PageDeck page built for that content angle, not to the product page. Each new UGC campaign receives its own page. Anchit supplies the URL with the brief and it is used as given - the generic product page is not substituted, because the page is the attribution.",
+      "pages": [
+        {
+          "bucket": "Grail-Drop",
+          "slug": "coffee-cta-ugc-grail-drop",
+          "url": "https://buy.knickgasm.com/coffee-cta-ugc-grail-drop",
+          "visitors": 6561,
+          "page_views": 7521,
+          "avg_view": "56s",
+          "external_clicks": 2720,
+          "ctr": "41.46%"
+        },
+        {
+          "bucket": "Countering Factory Colourways",
+          "slug": "coffee-cta-ugc-factory",
+          "url": "https://buy.knickgasm.com/coffee-cta-ugc-factory",
+          "visitors": 5768,
+          "page_views": 6727,
+          "avg_view": "57s",
+          "external_clicks": 2387,
+          "ctr": "41.38%"
+        },
+        {
+          "bucket": "Taste",
+          "slug": "coffee-cta-ugc-paint-detail",
+          "url": "https://buy.knickgasm.com/coffee-cta-ugc-paint-detail",
+          "visitors": 4129,
+          "page_views": 4962,
+          "avg_view": "32s",
+          "external_clicks": 1574,
+          "ctr": "38.12%"
+        },
+        {
+          "bucket": "Target Shelf Showdown",
+          "slug": "coffee-cta-ugc-targetstore",
+          "url": "https://buy.knickgasm.com/coffee-cta-ugc-targetstore",
+          "visitors": 3875,
+          "page_views": 4437,
+          "avg_view": "29s",
+          "external_clicks": 1463,
+          "ctr": "37.75%"
+        },
+        {
+          "bucket": "Laces vs Full Custom",
+          "slug": "coffee-cta-ugc-laces",
+          "url": "https://buy.knickgasm.com/coffee-cta-ugc-laces",
+          "visitors": 3455,
+          "page_views": 4013,
+          "avg_view": "54s",
+          "external_clicks": 1194,
+          "ctr": "34.56%"
+        },
+        {
+          "bucket": "Over 40 / High Performer",
+          "slug": "coffee-cta-ugc-over-40-woman",
+          "url": "https://buy.knickgasm.com/coffee-cta-ugc-over-40-woman",
+          "visitors": 1806,
+          "page_views": 2112,
+          "avg_view": "31s",
+          "external_clicks": 827,
+          "ctr": "45.79%"
+        },
+        {
+          "bucket": "Target In-Store Discovery",
+          "slug": "(none)",
+          "url": "https://knickgasm.com/products/nike-air-force-1-coffee-dip-rope-laces",
+          "note": "Target PDP direct. No PageDeck page at present."
+        },
+        {
+          "bucket": "(generic, not a UGC bucket)",
+          "slug": "coffee-60",
+          "url": "https://buy.knickgasm.com/coffee-60",
+          "visitors": 70393,
+          "page_views": 84312,
+          "avg_view": "1m 20s",
+          "external_clicks": 27873,
+          "ctr": "39.60%"
+        }
+      ],
+      "reconciliation": "Traffic reconciles: 23,570 ad clicks against 25,594 visitors across the six UGC bucket pages (92% match) - the pages are receiving the paid traffic correctly and the remainder is organic.",
+      "conversion_gap": "Those pages produced 10,165 external clicks onward, yet PageDeck reports 0 conversions and $0 revenue on every page. Purchases complete on target.com, instacart.com or Shopify - outside PageDeck's visibility - so zero is EXPECTED on retail destinations. For any page routing to knickgasm.com it is NOT expected and points to a missing pixel or goal.",
+      "measure_sources": [
+        {
+          "measure": "Traffic and engagement",
+          "source": "PageDeck"
+        },
+        {
+          "measure": "Conversion and revenue",
+          "source": "Platform reporting and Shopify"
+        }
+      ],
+      "open_items": [
+        "Two pages carrying 7,111 visitors between them are still truncated in the PageDeck export as 'coffee-cta...cer-target' - full slugs needed before they can be attributed.",
+        "targetstore vs targetshelf is not a mismatch: both exist, targetstore carries the live traffic (3,875 visitors), targetshelf is an alternate with 1 visitor. Use targetstore."
+      ]
+    },
+    "campaign_tab_columns": [
+      {
+        "n": 1,
+        "column": "Ad To Be Run (Brief)",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 2,
+        "column": "Campaign Level Name",
+        "by": "Agency, from the brief"
+      },
+      {
+        "n": 3,
+        "column": "Ad Set Level Name",
+        "by": "Agency, from the brief"
+      },
+      {
+        "n": 4,
+        "column": "Ad Level Name",
+        "by": "Agency, from the brief"
+      },
+      {
+        "n": 5,
+        "column": "Platform",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 6,
+        "column": "Placement / Format",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 7,
+        "column": "Product / SKU",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 8,
+        "column": "Target Audience",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 9,
+        "column": "Target Audience Criteria Set for Campaign",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 10,
+        "column": "Budget",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 11,
+        "column": "Goal / KPI",
+        "by": "Sneha's team. Anchit for D2C."
+      },
+      {
+        "n": 12,
+        "column": "Creative Link",
+        "by": "Sudhanshu"
+      },
+      {
+        "n": 13,
+        "column": "Landing Page URL",
+        "by": "Anchit. New page per campaign for UGC."
+      },
+      {
+        "n": 14,
+        "column": "Ad Code",
+        "by": "Agency, on going live"
+      },
+      {
+        "n": 15,
+        "column": "Ad Link",
+        "by": "Agency, on going live"
+      },
+      {
+        "n": 16,
+        "column": "Ad Report Link",
+        "by": "Agency, on going live"
+      },
+      {
+        "n": 17,
+        "column": "Status",
+        "by": "Agency, and on every change"
+      },
+      {
+        "n": 18,
+        "column": "Spend",
+        "by": "Agency, within 72 hours"
+      },
+      {
+        "n": 19,
+        "column": "Impressions",
+        "by": "Agency, within 72 hours"
+      },
+      {
+        "n": 20,
+        "column": "Clicks",
+        "by": "Agency, within 72 hours"
+      },
+      {
+        "n": 21,
+        "column": "CTR",
+        "by": "Auto-calculated"
+      },
+      {
+        "n": 22,
+        "column": "CPC",
+        "by": "Auto-calculated"
+      },
+      {
+        "n": 23,
+        "column": "Conversions",
+        "by": "Agency, within 72 hours"
+      },
+      {
+        "n": 24,
+        "column": "CPA",
+        "by": "Auto-calculated"
+      },
+      {
+        "n": 25,
+        "column": "ROAS",
+        "by": "Auto-calculated"
+      },
+      {
+        "n": 26,
+        "column": "Revenue",
+        "by": "Agency, within 72 hours"
+      }
+    ],
+    "ugc_flow": [
+      {
+        "level": "Level 1 — Vinya's team",
+        "owns": "The master UGC sheet and all organic data: creator post, URL, platform, publish date, content bucket, views, likes, comments, shares, 2-sec and 6-sec view rates, average view time, engagement rate.",
+        "function": "Accuracy at source, and the first quality filter on whether a post is usable.",
+        "dependency": "The tracker pulls from this sheet live. An error here passes directly into scoring and then into what the agency runs. No manual checkpoint exists in between."
+      },
+      {
+        "level": "Level 2 — Anchit",
+        "owns": "The scoring decision, the Ads Activated column, all landing pages and URL parameters, and the full brief for D2C.",
+        "function": "Each post is scored with the formula and view penalties, checked against the platform threshold, and marked in Ads Activated. Clearing sets 'Review before running ads'; failing sets 'No'.",
+        "dependency": "The decision is quantitative, not creative. Level 2 does not assess whether a video is good - it checks whether the market has already indicated so."
+      },
+      {
+        "level": "Level 3 — Kanish and the Bharat Maven team",
+        "owns": "The final quality check, campaign build, naming, launch and performance reporting.",
+        "function": "Everything marked 'Review before running ads' is checked for spelling, grammar, on-screen text, formatting and aspect ratio, then built and named per the Nomenclature standard and taken live. Ad Code, Ad Link and Ad Report Link filled on going live; performance within 72 hours.",
+        "dependency": "Strategic input expected additionally: where a creative clears the threshold but reads weak, or a pattern appears across creatives, that observation forms part of the deliverable."
+      }
+    ],
+    "budgets": {
+      "ownership": [
+        {
+          "channel": "Target",
+          "by": "Sneha's team"
+        },
+        {
+          "channel": "Costco",
+          "by": "Sneha's team"
+        },
+        {
+          "channel": "UGC",
+          "by": "Sneha's team"
+        },
+        {
+          "channel": "D2C",
+          "by": "Anchit"
+        }
+      ],
+      "rules": "Budgets are entered in the Budget column as a daily figure. Nothing is agreed verbally. A row without a budget in the sheet is not ready to build.",
+      "target_cap": "Target spend cap $1,000 per day, paced with automated rules in Meta. Directive agreed with Bala; corrects the $1,700 spike on 19 July. Overpacing is flagged proactively."
+    },
+    "required_before_build": [
+      "Ad To Be Run (Brief) - one or two lines on purpose and intended outcome",
+      "Platform - Meta or TikTok",
+      "Placement / Format - IG Reels, IG Stories, FB Feed, TikTok In-Feed or Advantage+",
+      "Product / SKU - the exact product advertised",
+      "Target Audience - selected from the dropdown",
+      "Target Audience Criteria - the actual targeting, e.g. 'Age 40+, Interests: Business, Streetwear'",
+      "Budget - daily figure",
+      "Goal / KPI - e.g. 'ROAS > 2.0' or 'CPA < $25'",
+      "Creative Link - opens without a permission request (Sudhanshu)",
+      "Landing Page URL - full URL including all UTM and acquisition parameters (Anchit)",
+      "Ads Activated - set to 'Review before running ads' once Level 2 clears (Anchit)"
+    ],
+    "automation": {
+      "chain": "organic post URL -> videoid -> ad name -> ad code -> paid performance",
+      "how": "The video id is taken from the end of the organic video URL, appears at the end of every ad name and therefore inside utm_content. When the agency enters the Ad Code for a live ad, the backend matches the ad code to the video id inside the ad name, and the video id back to its row in the Master UGC Tracker. Organic and paid join automatically - no manual matching, no lookups.",
+      "makes_measurable": [
+        "Whether a high organic score predicts better paid performance",
+        "Which content buckets return best against spend",
+        "Which hook types convert",
+        "Which creators drive revenue rather than views"
+      ],
+      "warning": "An ad name without the video id still runs, but is excluded from the analysis, and the spend on it produces no learning.",
+      "acq_subsource": "Carries creator _ bucket _ hook, so one split on the underscore returns revenue attributed by creator, content angle and hook style directly from the URL."
+    },
+    "turnaround": [
+      {
+        "step": "Brief and creative complete in the sheet",
+        "owner": "Sneha's team, Sudhanshu, Anchit",
+        "timing": "Before build begins"
+      },
+      {
+        "step": "Ads Activated set after Level 2 scoring",
+        "owner": "Anchit",
+        "timing": "Same day the data lands"
+      },
+      {
+        "step": "Campaigns built, paused and named",
+        "owner": "Agency",
+        "timing": "2 working days"
+      },
+      {
+        "step": "Approval",
+        "owner": "Anchit",
+        "timing": "1 working day"
+      },
+      {
+        "step": "Live",
+        "owner": "Agency",
+        "timing": "Same day as approval"
+      },
+      {
+        "step": "Ad Code, Ad Link, Ad Report Link",
+        "owner": "Agency",
+        "timing": "On going live"
+      },
+      {
+        "step": "Spend, Impressions, Clicks, Conversions, Revenue",
+        "owner": "Agency",
+        "timing": "Within 72 hours"
+      },
+      {
+        "step": "Performance refresh",
+        "owner": "Agency",
+        "timing": "Weekly, before the Monday review"
+      }
+    ],
+    "standing_conditions": {
+      "handles": "All ads run from KNICKGASM brand handles. Creator post URLs in the tracker are performance reference only.",
+      "build_state": "Campaigns are built paused. Spend begins only after Level 2 clearance and row approval.",
+      "cohort_direction": [
+        {
+          "cohort": "Over 40",
+          "emphasis": "Inflammation, recovery, grail-drop management"
+        },
+        {
+          "cohort": "High Performer",
+          "emphasis": "Clean lines, one-of-one artwork, no factory sameness"
+        }
+      ],
+      "channel_product": [
+        {
+          "channel": "Target",
+          "product": "Coffee Dip x Nike Air Force 1, hand-painted",
+          "destination": "Target PDP"
+        },
+        {
+          "channel": "Costco",
+          "product": "Chunky Rope Laces and Custom Lace Tags, accessories multipack",
+          "destination": "Instacart"
+        },
+        {
+          "channel": "D2C",
+          "product": "coffee-ART Collection, expanding into denim jackets, laces and sneaker care",
+          "destination": "knickgasm.com"
+        },
+        {
+          "channel": "UGC",
+          "product": "Coffee Collection",
+          "destination": "Dedicated PageDeck page per content bucket"
+        }
+      ],
+      "corrections": "Discrepancies between the SOP and the sheet are raised with Anchit and corrected in the SOP."
+    }
   },
-  "data_request": {
-   "summary": "Consultant (Megan) repository for Target + Coffee USA data; Ishita collates everything into one drive. All ad-campaign information sourced from Kritagya Prakash going forward.",
-   "deliverables_confirmed": [
-    "Target Ad Campaign Performance and Creative Insights deck",
-    "Meta Ad Report Till Date / May / June / July (till 15th)",
-    "TikTok Ad Report June",
-    "Day-wise Target Ads update (till 15th July)",
-    "Aisle, Ibotta (impressions/redemptions/unlocks), Roundel (campaign + search terms) exports",
-    "Social media calendar, Instagram metrics analysis, goal analysis, creator formats deck, scripts (Target July, Costco July, August), UGC campaign + performance trackers, monthly influencer content, UGC content libraries (Target, Costco)"
-   ],
-   "priority_explorations": [
-    "Spins coffee seasonality: current data is one-time, 52-week combined - no monthly split; Tushar checking for month-wise data.",
-    "Demo slots for August: 50 shared demos funded by brand marketing budget (Ishita).",
-    "Ibotta: on-platform media evaluation + targeting other functional-coffee offer redeemers and Goli/airbrush supplement redeemers.",
-    "USA DTC sneaker-consumer email announcing the coffee launch and Target placement."
-   ]
+  "ad_accounts_registry": {
+    "canonical_source": "adAccounts() in api/_shared/ads-snowflake-core.js",
+    "served_as": "/data/ads/ad-accounts.json (built by scripts/build-ads-live-snapshot.js) and /api/brain?action=ads-snowflake&op=accounts",
+    "summary": "13 distinct KNICKGASM ad accounts across 17 warehouse feeds (Meta 10, Google 6, TikTok 1); 9 feeds are live. Enumerated live 2026-07-26 by unioning every base insights and ad-performance table in KNICKGASM_DB and grouping by account.",
+    "us_live": [
+      "Meta 1303870183798748 Knickgasm India USA New EST Main Account - US D2C on knickgasm.com, judged on ROAS (pixel fires)",
+      "Meta 804570870670763 KNICKGASM USA - Sneaker Ad Account - Target and Costco sell-through, judged on CTR/CPC/CPM (third-party checkout, no attribution possible)",
+      "Google 9797311905 KNICKGASM - US search, Shopping, PMax, Demand Gen, judged on ROAS",
+      "Google 3036820580 Raghuvansh - Amazon marketplace via Ampd, one campaign per ASIN, judged on CTR/CPC (sales land in Seller Central)",
+      "TikTok 7393105007056388112 KNICKGASM USA - paused, last spend 2026-07-14"
+    ],
+    "kpi_rule": "Accounts are not comparable on one KPI. Where a pixel or Google conversion is tracked, revenue/ROAS/CPA are real. Where checkout happens on target.com, Instacart or amazon.com, no purchase can ever be attributed, so those accounts report null rather than 0 and must be judged on CTR, CPC, CPM and reach. A 0.00x ROAS on a retail account is a measurement artefact, not a result.",
+    "currency_rule": "India reports INR and UK reports GBP. Never sum them with the USD accounts."
   }
- },
- "platforms": [
-  {
-   "id": "snowflake",
-   "name": "Snowflake (warehouse of record for ad data)",
-   "status": "connected - verified 2026-07-25 via Snowflake connector",
-   "details": [
-    "Meta USA: KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS - 129,741 rows, fresh to 2026-07-25/26 (includes the current partial day)",
-    "Meta cohort breakdowns VERIFIED PRESENT (an earlier note in this KB wrongly said they were missing): MAPLEMONK1.META_USA_ADS_INSIGHTS_AGE_AND_GENDER 11,521 rows (cols AGE, GENDER, SPEND, DATE_START); MAPLEMONK1.META_USA_ADS_INSIGHTS_PLATFORM_AND_DEVICE 11,511 rows (PUBLISHER_PLATFORM, IMPRESSION_DEVICE, PLATFORM_POSITION); MAPLEMONK1.META_USA_AD_CREATIVES 9,544 rows",
-    "TikTok USA: DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY 1,012 rows, fresh to 2026-07-23, $68,178.71 total spend; columns are STAT_TIME_DAY and ACCOUNTNAME (NOT date_start/account_name)",
-    "Google US is LIVE, in KNICKGASM_DB.MAPLEMONK.US_GOOGLE_ADS_CONSOLIDATED (fresh to 2026-07-25; 23 campaigns and $72,343.46 spend against $142,983.81 conversion value in 2026 YTD, ROAS 1.98). Its columns are bare UPPER_CASE with SPEND already in dollars: SEGMENTS_DATE, CAMPAIGN_NAME, AD_GROUP_NAME, SPEND, IMPRESSIONS, CLICKS, CONVERSIONS, CONVERSION_VALUE, ACCOUNT, CHANNEL. Filter ACCOUNT = 'Google US CONSOLIDATED' — the same table also holds the archived 'Google US' label that stops 2023-11-24. Ad-level detail (ad strength, approval status, headlines) is in US_GADS_AD_GROUP_AD_REPORT, which uses dotted lower-case GAQL names requiring quotes and cost in micros: \"segments.date\", \"customer.descriptive_name\", \"metrics.cost_micros\" (divide by 1e6). GOOGLE_ADS_US_AD_GROUP_AD_REPORT is the RETIRED customer 2769294429 and legitimately ends 2023-11-24 — do not report from it",
-    "Fixed 2026-07-26 in ads-snowflake-core.js: metrics() and cohort() previously hardcoded date_start/account_name, which threw 'invalid identifier' for TikTok and Google. Both now resolve the real columns per table from INFORMATION_SCHEMA, quote dotted identifiers and convert micros. Verified live: TikTok 254 rows and Meta 500 rows returned for 2026-05-01 to 2026-07-26; Meta age/gender cohort returns real spend splits."
-   ],
-   "links": [
-    "https://app.snowflake.com/uxdeihw/mo06981/#/homepage",
-    "https://app.snowflake.com/streamlit/uxdeihw/mo06981/#/apps/KNICKGASM_DB.MAPLEMONK.ADSDASHBOARDUSA"
-   ]
-  },
-  {
-   "id": "meta-live",
-   "name": "Meta ad account (real-time link)",
-   "status": "live via warehouse mirror for DTC; direct API pending token for retail",
-   "details": [
-    "DTC account 'Knickgasm India USA New EST Main Account' (1303870183798748): per-day rows incl. the current partial day, verified fresh to 2026-07-25 - 129,741 rows, 106 campaigns",
-    "Live reads: /api/brain?action=ads-live&op=today | op=daily | op=calendar - Meta Marketing API first (META_ACCESS_TOKEN + META_AD_ACCOUNT_ID), else the Snowflake mirror, else an honest not_connected envelope carrying the exact SQL",
-    "Today is treated as a PARTIAL day: an ad is 'live' once it has impressions today, 'starting' with spend but no impressions, 'not live yet' with neither",
-    "Reporting timezone America/New_York (ADS_REPORT_TZ) so the current day is not empty after UTC midnight",
-    "Target/Costco IS in the warehouse: KNICKGASM_DB.MAPLEMONK.USA_TEA_ADS_ADS_INSIGHTS, account 804570870670763, 6,556 rows, 26 campaigns, 214 ads, $50,248.24, 2025-09-24 to 2026-07-25 including the current partial day. It was missed on the first pass because the table name does not match META_USA%. Its May ($3,608.06) and June ($14,422.93) spend match the KT Master Ad Tracking Sheet to the cent. The older DC_RAW mirror (FB2_KNICKGASM_KNICKGASMUSATEA_US_FBADS_ADPERFORMANCE) ends 2026-05-31 and holds only 7 of the 26 campaigns - do not report from it"
-   ],
-   "links": [
-    "/ads-master#live",
-    "/ads-master#calendar"
-   ]
-  },
-  {
-   "id": "supabase",
-   "name": "Supabase (app persistence)",
-   "status": "connected - verified 2026-07-25",
-   "details": [
-    "Project knickgasm-lifecycle-os (gubbckgjujwqodghcavv, ap-south-1, Postgres 17) - 57 public tables",
-    "Campaign system live: smart_generated_campaigns 90 rows, smart_calendar_entries 182, smart_campaigns 96, smart_calendar 290",
-    "ads_generated / landing_pages_generated mirror tables were NOT found in the live schema - verify migration state before relying on the Brain approval mirror",
-    "Security advisory: RLS disabled on ci_user_subscriptions and ci_notification_log (flagged by Supabase advisor)"
-   ]
-  },
-  {
-   "id": "klaviyo",
-   "name": "Klaviyo (lifecycle email)",
-   "status": "connected - verified 2026-07-25",
-   "details": [
-    "Connected account: UZL5NY - KNICKGASM UK (GBP, sender help@knickgasm.com, Europe/London)",
-    "Gap: the USA account is not the one connected here; the USA DTC coffee-launch email (priority item 4) needs USA-account access or the in-app KLAVIYO_API_KEY env (currently scaffolded, returns request stubs)"
-   ]
-  },
-  {
-   "id": "shopify",
-   "name": "Shopify (storefronts)",
-   "status": "public storefront only - Admin connector not authorized (project policy)",
-   "details": [
-    "US knickgasm.com | UK knickgasm.com | Global knickgasm.com | IN knickgasm.com",
-    "Catalog builds at deploy: US 173 / UK 101 / Global 102 active products via scripts/build-catalog.js"
-   ]
-  },
-  {
-   "id": "vercel",
-   "name": "Vercel (hosting + crons)",
-   "status": "deployed",
-   "details": [
-    "knickgasm.vercel.app - knickgasm-lifecycle-os.anchit-tandon.com; 12-function Hobby limit governs API layout",
-    "Crons: /api/brain?action=cron 18:30 UTC daily, /api/cron/social 19:00 UTC daily",
-    "This dashboard is static (data/ads/*.json) - it adds zero serverless functions"
-   ]
-  },
-  {
-   "id": "github",
-   "name": "GitHub (source of truth)",
-   "status": "active",
-   "details": [
-    "anchit-ai-hustle/knickgasm-lifecycle-os - this page, the KB JSON and the flow fixes ship via branch claude/ad-campaigns-master-dashboard-h40ugs"
-   ]
-  }
- ],
- "people": [
-  {
-   "name": "Samvita Sarkar",
-   "role": "Paid ads lead (Target Meta + TikTok); shares paid campaign sheets; owns UGC master tracking"
-  },
-  {
-   "name": "Kritagya Prakash",
-   "role": "Go-forward source for ALL ad-campaign information (per Samvita, Jul 24)"
-  },
-  {
-   "name": "Aviral Agrawal",
-   "role": "Data/automation - built the UGC dashboard skill; grants Snowflake access"
-  },
-  {
-   "name": "Anchit Tandon",
-   "role": "Target Meta ads execution; Costco dark-post launch; this dashboard"
-  },
-  {
-   "name": "Vinya Mahajan",
-   "role": "Sr Manager Community - social calendar, UGC trackers, content libraries; validates UGC dashboard output"
-  },
-  {
-   "name": "Sudhanshu Srivastava",
-   "role": "Creative - Costco dark posts, static/video ad buckets"
-  },
-  {
-   "name": "Sneha Kaul",
-   "role": "Marketing oversight - objectives/targeting sign-off, consultant data list"
-  },
-  {
-   "name": "Aman Gupta",
-   "role": "Meta ad account access"
-  },
-  {
-   "name": "Pratyashu Shekhar",
-   "role": "PM Offline Revenue - Aisle, Ibotta, Roundel, Target daily sales"
-  },
-  {
-   "name": "Ishita Goel",
-   "role": "Target demos planning; collates the consultant drive"
-  },
-  {
-   "name": "Srishti Bansal",
-   "role": "Regional Head North America - consultant repository owner"
-  },
-  {
-   "name": "Tushar Gulabani",
-   "role": "VP Global Offline Sales - Spins data"
-  },
-  {
-   "name": "Purnima Bali",
-   "role": "Positioning / messaging / brand guiderails docs"
-  },
-  {
-   "name": "Bhavya Singla",
-   "role": "Assignment routing"
-  },
-  {
-   "name": "Kalpesh Tiwari",
-   "role": "RCA closure"
-  },
-  {
-   "name": "Dinesh Dua",
-   "role": "CC on Costco launch"
-  },
-  {
-   "name": "Tanvi Binani",
-   "role": "CC on UGC automation"
-  },
-  {
-   "name": "Yakshit Bansal",
-   "role": "CC on UGC automation"
-  }
- ],
- "gaps": [
-  {
-   "id": "gap-retail-account-not-live",
-   "severity": "high",
-   "item": "The Target/Costco Meta ad account (KT workbook, account id begins 805) is NOT mirrored in Snowflake - the warehouse carries only 'Knickgasm India USA New EST Main Account' (1303870183798748). So Target/Costco figures on the dashboard are the 20 Jul 2026 KT snapshot, not live. To make them real-time: add that ad account to the Maplemonk/Snowflake pipeline, or set META_ACCESS_TOKEN + META_AD_ACCOUNT_ID for it so /api/brain?action=ads-live reads it straight from the Meta Marketing API."
-  },
-  {
-   "id": "gap-google-feed-stale",
-   "severity": "resolved",
-   "item": "RESOLVED 2026-07-26: US Google was never stale. GOOGLE_ADS_US_AD_GROUP_AD_REPORT holds the RETIRED customer 2769294429 and correctly stops 2023-11-24; the live account is 9797311905 in US_GOOGLE_ADS_CONSOLIDATED, fresh to 2026-07-25. The Google panels were pointed at the retired table and now read the live one. No pipeline work is needed."
-  },
-  {
-   "id": "gap-credentials",
-   "severity": "high",
-   "item": "Snowflake credentials (username + password) were shared in plain text in the UGC Dashboard Automation email thread - rotate that password and move to per-user access."
-  },
-  {
-   "id": "gap-tiktok-july",
-   "severity": "medium",
-   "item": "July TikTok spend reads $0.00 in the KT workbook while Meta ran $23,484 - confirm whether TikTok was paused in July or simply unreported."
-  },
-  {
-   "id": "gap-pending-links",
-   "severity": "medium",
-   "item": "Several documents referenced in the Data Request thread are hyperlinks whose URLs are not resolvable from this account (Meta Ad Report May/June/July, TikTok Ad Report June, Day-wise update, social calendar, scripts, trackers, Aisle/Ibotta/Roundel exports). They are catalogued below with owner and status pending-access."
-  },
-  {
-   "id": "gap-mirror-tables",
-   "severity": "medium",
-   "item": "ads_generated / landing_pages_generated mirror tables not present in the live Supabase schema - the Brain approval mirror needs its migration applied."
-  },
-  {
-   "id": "gap-klaviyo-usa",
-   "severity": "medium",
-   "item": "Klaviyo connection is the UK account; USA DTC coffee-launch email needs the USA account (or KLAVIYO_API_KEY in Vercel)."
-  },
-  {
-   "id": "gap-spins",
-   "severity": "low",
-   "item": "Spins coffee seasonality: only 52-week combined data exists; month-wise split requested (Tushar)."
-  },
-  {
-   "id": "gap-rls",
-   "severity": "low",
-   "item": "Supabase advisor: RLS disabled on ci_user_subscriptions and ci_notification_log."
-  }
- ],
- "links": [
-  {
-   "group": "SOP (FINAL)",
-   "title": "KNICKGASM Ad Campaign SOP (final standing procedure, PDF)",
-   "url": "/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf",
-   "owner": "Anchit Tandon / KNICKGASM Growth",
-   "status": "verified",
-   "source": "sop-pdf",
-   "note": "Committed in-repo copy. Live from Monday; covers UGC, Target, Costco and D2C."
-  },
-  {
-   "group": "SOP (FINAL)",
-   "title": "KNICKGASM Master Ad Tracking Sheet (source of truth, Google Sheet)",
-   "url": "https://docs.google.com/spreadsheets/d/1SoYc6YFGa6SM_GpvrCVZDaN0otpshG_E6grxw-BljVA/edit?usp=sharing",
-   "owner": "Anchit Tandon",
-   "status": "from-sop",
-   "note": "9 tabs. The sheet is authoritative over the SOP document wherever they differ."
-  },
-  {
-   "group": "SOP (FINAL)",
-   "title": "KNICKGASM Master Ad Tracking Sheet (committed XLSX snapshot)",
-   "url": "/docs/sop/KNICKGASM_Master_Ad_Tracking_Sheet.xlsx",
-   "owner": "Anchit Tandon",
-   "status": "verified",
-   "source": "sop-xlsx"
-  },
-  {
-   "group": "SOP (FINAL)",
-   "title": "June USA UGC scoring dashboard (scoring reference)",
-   "url": "https://knickgasm-june-usa-ugc-dashboard.netlify.app/",
-   "owner": "KNICKGASM Growth",
-   "status": "from-sop",
-   "source": "sop-xlsx"
-  },
-  {
-   "group": "Paid ads - reports & decks",
-   "title": "Target Paid Ads Update (Performance & Creative Insights deck)",
-   "url": "https://docs.google.com/presentation/d/1mYQGKd8lYAYNPQ4OM61TyzwJCmL5H1vTQLvK8sqgDZU/edit",
-   "owner": "Samvita Sarkar",
-   "status": "verified",
-   "source": "kt-datareq-mail",
-   "note": "Meta + TikTok paid performance, awareness/traffic/sales campaigns, page-deck performance, creative insights, winning messaging, best UGC/static/AI/influencer creatives, Target-specific creatives. Resolved live in Drive (modified Jul 24)."
-  },
-  {
-   "group": "Paid ads - reports & decks",
-   "title": "Target Paid Ads Update - Anchit working copy (Slides)",
-   "url": "https://docs.google.com/presentation/d/1qnhiS-yaBPYfL1va2q5xe4SUa5FLQA69ChjbAnPpd3A/edit",
-   "owner": "Anchit Tandon",
-   "status": "verified",
-   "source": "drive-connector"
-  },
-  {
-   "group": "Paid ads - reports & decks",
-   "title": "Target Paid Ads Update.pptx (raw file)",
-   "url": "https://drive.google.com/file/d/1YJv2yvtnglQuOuFYJJpKDoAMldco_3YT/view",
-   "owner": "Anchit Tandon",
-   "status": "verified",
-   "source": "drive-connector"
-  },
-  {
-   "group": "UGC & creators",
-   "title": "UGC creator-performance dashboard - automated output snapshot (columns A-AN)",
-   "url": "https://docs.google.com/spreadsheets/d/12s2MfnKPB5T1ta2IlDkuNITGOLMWigal2TvMcmVkQ3s/edit",
-   "owner": "Aviral Agrawal / Samvita Sarkar",
-   "status": "from-email",
-   "source": "kt-ugc-mail"
-  },
-  {
-   "group": "UGC & creators",
-   "title": "Video ID to Ad ID mapping sheet (REQUIRED manual input for the UGC dashboard)",
-   "url": "https://docs.google.com/spreadsheets/d/1O3rKasfrw8vr70na4kH1Nmu-D_o0siPGE0YiIDjnSEo/edit",
-   "owner": "Ads team (keep current as ads go live)",
-   "status": "from-email",
-   "source": "kt-ugc-mail"
-  },
-  {
-   "group": "UGC & creators",
-   "title": "KNICKGASM_UGC_Master_v6 (UGC master tracker)",
-   "url": "https://docs.google.com/spreadsheets/d/1lLxCx4uLeV52MazFQj_y9ZC_XRwXlzvugepEkP18yNc/edit",
-   "owner": "Samvita Sarkar",
-   "status": "verified",
-   "source": "drive-connector",
-   "note": "Live sheet, last modified Jul 25."
-  },
-  {
-   "group": "UGC & creators",
-   "title": "KNICKGASM_UGC_Creator_Sheet_Fallback.csv",
-   "url": "https://drive.google.com/file/d/1QqhOX2o1nEFEIaakfLO0nnLn-qOsG-aJ/view",
-   "owner": "Anchit Tandon",
-   "status": "verified",
-   "source": "drive-connector"
-  },
-  {
-   "group": "Costco launch",
-   "title": "Costco US Ads - creative folder (Static: Value Pack / Summer Drink / Social Proof / Indian Diaspora / Benefit-Led; Video: Indian Diaspora Ad-1 and Ad-2)",
-   "url": "https://drive.google.com/drive/folders/1wArzxJ-YYQ1hbW92Y3MZlm76sb5o5jcg",
-   "owner": "Sudhanshu Srivastava",
-   "status": "verified",
-   "source": "kt-costco-mail"
-  },
-  {
-   "group": "Costco launch",
-   "title": "Costco landing page (Instacart PDP)",
-   "url": "https://www.instacart.com/products/80435594",
-   "owner": "-",
-   "status": "from-email",
-   "source": "kt-costco-mail"
-  },
-  {
-   "group": "Ops & governance",
-   "title": "Consultant data-request doc (Megan - Target + Coffee USA data, yellow = priority)",
-   "url": "https://docs.google.com/document/d/1p6wz9UG3AXg5vkRSWBvjR8GrM1H0MMuY/edit",
-   "owner": "Sneha Kaul / Srishti Bansal",
-   "status": "from-email",
-   "source": "kt-datareq-mail"
-  },
-  {
-   "group": "Platforms",
-   "title": "Snowflake console (org uxdeihw / account mo06981)",
-   "url": "https://app.snowflake.com/uxdeihw/mo06981/#/homepage",
-   "owner": "Aviral Agrawal (access grants)",
-   "status": "verified",
-   "source": "kt-ugc-mail"
-  },
-  {
-   "group": "Platforms",
-   "title": "Snowflake Streamlit - native Ads Dashboard USA",
-   "url": "https://app.snowflake.com/streamlit/uxdeihw/mo06981/#/apps/KNICKGASM_DB.MAPLEMONK.ADSDASHBOARDUSA",
-   "owner": "-",
-   "status": "verified",
-   "source": "repo"
-  },
-  {
-   "group": "Platforms",
-   "title": "In-app live Ads Analysis (Snowflake-backed)",
-   "url": "/ads-dashboard",
-   "owner": "-",
-   "status": "verified",
-   "source": "repo"
-  },
-  {
-   "group": "Platforms",
-   "title": "Supabase project (knickgasm-lifecycle-os)",
-   "url": "https://supabase.com/dashboard/project/gubbckgjujwqodghcavv",
-   "owner": "-",
-   "status": "verified",
-   "source": "supabase-connector"
-  },
-  {
-   "group": "Platforms",
-   "title": "GitHub repo (anchit-ai-hustle/knickgasm-lifecycle-os)",
-   "url": "https://github.com/anchit-ai-hustle/knickgasm-lifecycle-os",
-   "owner": "-",
-   "status": "verified",
-   "source": "github"
-  },
-  {
-   "group": "Platforms",
-   "title": "Live app (Vercel)",
-   "url": "https://knickgasm.vercel.app/",
-   "owner": "-",
-   "status": "verified",
-   "source": "repo"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Grail-Drop - @jenwinkel (TikTok)",
-   "url": "https://www.tiktok.com/@jenwinkel/video/7651609390692306190",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Grail-Drop - @mama_sparks19 (TikTok)",
-   "url": "https://www.tiktok.com/@mama_sparks19/video/7652798064142470430",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Countering mushroom coffee - @lorrainealbernazugc (TikTok)",
-   "url": "https://www.tiktok.com/@lorrainealbernazugc/video/7654602616927735053",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Countering mushroom coffee - @jamesmelissaugc (TikTok)",
-   "url": "https://www.tiktok.com/@jamesmelissaugc/video/7654194686193650957",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Over 40 - @familiawestcoast (TikTok)",
-   "url": "https://www.tiktok.com/@familiawestcoast/video/7654646282463497502",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Over 40 - @its.noelle.not.ni (TikTok)",
-   "url": "https://www.tiktok.com/@its.noelle.not.ni/video/7654230778036997406",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Gummies vs coffee - @jamesmelissaugc (TikTok)",
-   "url": "https://www.tiktok.com/@jamesmelissaugc/video/7654195508097010957",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Taste - Instagram reel",
-   "url": "https://www.instagram.com/reel/DZwDsSHuxbC/",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Taste - @almitaa1125 (TikTok)",
-   "url": "https://www.tiktok.com/@almitaa1125/video/7652431091403361549",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Target shelf - @cece_marie503 (TikTok)",
-   "url": "https://www.tiktok.com/@cece_marie503/video/7652774509883231502",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "UGC example content (June buckets)",
-   "title": "Target shelf - Instagram reel",
-   "url": "https://www.instagram.com/reels/DZaANsPoNEn/",
-   "owner": "JoinBrands creators",
-   "status": "from-deck",
-   "source": "kt-social-pptx"
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Meta Ad Report - Till Date",
-   "url": null,
-   "owner": "Samvita Sarkar / Kritagya Prakash",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Meta Ad Report - May",
-   "url": null,
-   "owner": "Samvita Sarkar / Kritagya Prakash",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Meta Ad Report - June",
-   "url": null,
-   "owner": "Samvita Sarkar / Kritagya Prakash",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Meta Ad Report - July (till 15th)",
-   "url": null,
-   "owner": "Samvita Sarkar / Kritagya Prakash",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "TikTok Ad Report - June",
-   "url": null,
-   "owner": "Samvita Sarkar / Kritagya Prakash",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Day-wise Target Ads update (till 15th July)",
-   "url": null,
-   "owner": "Samvita Sarkar / Kritagya Prakash",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Consultant repository drive (Ishita's collation folder)",
-   "url": null,
-   "owner": "Ishita Goel",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Social Media Calendar (monthly content plan)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Detailed Instagram Metrics Analysis (weekly)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Goal Analysis - July (platform-wise vs goals)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Creator Formats Deck (top 2 best-performing formats)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Scripts - Target (July)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Scripts - Costco (July)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Scripts - August (Target + Costco)",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "UGC Campaign tracker",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "UGC Performance tracker",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Monthly Influencer Content",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "UGC Content Library - Target",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "UGC Content Library - Costco",
-   "url": null,
-   "owner": "Vinya Mahajan",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Target daily sales tracker",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Aisle - Dashboard View Download.pdf",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Ibotta - Impressions Trend.pdf",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Ibotta - Redemptions Trend.pdf",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Ibotta - Unlocks Trend.pdf",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Roundel - Campaign Data.csv",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Roundel - Search Term.csv",
-   "url": null,
-   "owner": "Pratyashu Shekhar",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  },
-  {
-   "group": "Pending access (named in mails - URL not shared with this account)",
-   "title": "Sneha's consolidated drive (Data Request 'this drive')",
-   "url": null,
-   "owner": "Sneha Kaul",
-   "status": "pending-access",
-   "source": "kt-datareq-mail",
-   "note": "Referenced as a hyperlink in the email; request the link from the owner or the consultant drive. No URL is invented."
-  }
- ],
- "executive_overview": "The USA paid program sells KNICKGASM coffee collection through two retail funnels: Target (Meta + TikTok ads into page-deck and PDP funnels, in-house statics + scored JoinBrands UGC + whitelisted influencers) and Costco (dark posts to the Indian diaspora in the US, landing on the Instacart PDP). Paid spend May 1 to July 20 was $45,870.61 (Meta $41,515.53 across 125 ads in 13 campaigns; TikTok $4,355.08, June only). The Sales engine clears its own benchmark ($0.80 per initiate-checkout on in-house statics; $0.73 on influencer page-deck), JoinBrands UGC traffic delivers the cheapest clicks in the account ($0.07), and Awareness structures are the portfolio drag (CTR 0.03-0.10 pct at $2-9 CPC). Organic ran 3.59M views / 1.58M reach Apr to Jul 17 on $150,956 total creator cost (69 influencers, 367 UGC videos; 300+ UGC pieces produced monthly). The creator- performance dashboard is fully automated (JoinBrands + Snowflake + mapping sheet); ad-campaign information is owned by Kritagya Prakash going forward, with Samvita leading paid and Anchit executing Target Meta. A consultant repository (for Megan) collates every report; priority explorations are Spins seasonality, August demos, Ibotta redeemer targeting, and the USA DTC coffee-launch email.",
- "narratives": [
-  {
-   "id": "nr-ugc",
-   "title": "KT thread 1 - UGC Dashboard Automation",
-   "period": "Jul 14-16, 2026",
-   "overview": "The creator-performance dashboard went from manual builds to a one-skill automation; access and ownership were being settled.",
-   "details": [
-    "Jul 14 - Aviral: the UGC creator-performance dashboard is automated end-to-end. One skill produces the full sheet (columns A to AN) as a live snapshot: posted Instagram Reels + TikTok posts pulled from JoinBrands, Meta + TikTok ad spend joined from Snowflake, organic scores and ad-recommendation logic computed, Excel built.",
-    "Three prerequisites: (1) install and run the skill; (2) fill and maintain the Video ID to Ad ID mapping sheet - Meta/TikTok ad tables do not store the source video ID, so without it spend/impressions/clicks/CTR/CPC cannot be attributed to a creator (the one ongoing manual task); (3) Snowflake connected per user before running - Meta from KNICKGASM_DB.MAPLEMONK, TikTok from DATON.RAW.",
-    "One-time setup: Chrome connector signed into JoinBrands and Instagram for the organic pull.",
-    "Jul 15 - Aviral granted Samvita Snowflake access (credentials were shared in plain text in the mail - rotation recommended; see gaps). Mapping sheet to be updated with all current ad mappings before the trial run.",
-    "Jul 16 - output snapshot delivered. Vinya to validate and configure on her device; Samvita + Anchit to connect on the next step for ads (6 pm)."
-   ]
-  },
-  {
-   "id": "nr-costco",
-   "title": "KT thread 2 - Dark Stories Ads for Costco Launch",
-   "period": "Jul 11-17, 2026",
-   "overview": "Dark posts targeting the Indian diaspora in the US went live for the Costco launch; a founder-ads RCA closed the thread.",
-   "details": [
-    "Jul 11 - Sudhanshu: 6 Story + 6 Carousel dark-post creatives ready, shared via the Costco US Ads drive folder.",
-    "Jul 13 - Samvita assigned Target Meta Ads execution to Anchit; Aman to provide Meta ad account access. Config: landing page = Instacart PDP (product 80435594), goal Traffic (link clicks), daily budget $100.",
-    "Jul 14 - Sneha asked for targeting parameters and whether Conversion would beat Link Clicks; Anchit confirmed the launch configuration and took the ads live after aligning with Samvita.",
-    "Jul 15 - Sudhanshu added the Indian Diaspora Ad-1 video (plus Ad-2) and categorized statics into five buckets: Value Pack, Summer Drink, Social Proof, Indian Diaspora, Benefit-Led.",
-    "Jul 17 - Samvita's live screenshots showed no founder ads in the shared folder; Kalpesh asked to close the RCA with an email to Bala stating the date the founder ads were received."
-   ]
-  },
-  {
-   "id": "nr-datareq",
-   "title": "KT thread 3 - Data Request (consultant repository)",
-   "period": "Jul 15-24, 2026",
-   "overview": "Everything the ads/social/retail program produces was collated into one repository for the consultant (Megan); ownership of ad-campaign information moved to Kritagya.",
-   "details": [
-    "Jul 15 - Sneha shared the consultant doc: Target + Coffee USA data, yellow-marked items prioritised. Asks included: which ads work across DTC/TikTok/retail media with stats, current content links, the UGC flywheel shape, and influencer partnerships.",
-    "Jul 22-23 - Srishti chased delivery; Pratyashu shared Aisle, Ibotta (impressions/redemptions/unlocks trends) and Roundel (campaign data + search terms) exports plus the Target daily sales tracker; Ishita uploaded in-store demos data and collated everything into the shared drive.",
-    "Jul 23 - Vinya shared the social stack: Social Media Calendar, Detailed Instagram Metrics Analysis, Goal Analysis July, Creator Formats Deck, scripts (Target July, Costco July, August), UGC campaign + performance trackers, monthly influencer content, and the UGC content libraries (Target, Costco). 300+ UGC pieces produced monthly; JoinBrands approvals reviewed daily.",
-    "Jul 24 - Tushar on Spins: only one-time, 52-week combined coffee data exists (no monthly split); checking whether month-wise data is possible.",
-    "Jul 24 - Samvita delivered the Target Ad Campaign Performance & Creative Insights deck and the ad reports (Meta till-date/May/June/July-to-15th, TikTok June, day-wise update), and named Kritagya Prakash the go-forward source for all ad-campaign information."
-   ]
-  },
-  {
-   "id": "nr-workbook",
-   "title": "KT file 4 - Ad Spends workbook (May to 20 Jul)",
-   "period": "as of Jul 20, 2026",
-   "overview": "The quantitative backbone: monthly Meta/TikTok spend plus 125 Meta ad rows with full funnel metrics.",
-   "details": [
-    "Target Spends sheet: May $3,608.06 (all Meta), June $18,778.01 (Meta $14,422.93 + TikTok $4,355.08), July-to-20th $23,484.54 (Meta only reported).",
-    "Target Ads sheet: 125 ad rows, 44 columns (reach, impressions, outbound clicks/CTR, CPC, CPM, landing page views, results + indicator, cost per result, frequency, quality/engagement/conversion rankings, thumb-stop ratio, budgets, IDs).",
-    "This workbook feeds the Campaigns & Ads tab and every benchmark; the committed copy is data/ads/target-ads-meta-2026-07-20.json."
-   ]
-  },
-  {
-   "id": "nr-social",
-   "title": "KT file 5 - Social Update USA deck (17 Jul)",
-   "period": "Apr to Jul 17, 2026",
-   "overview": "Organic, influencer and UGC performance: June was the breakout month and the hook was the reason.",
-   "details": [
-    "Monthly organic: May 1.15M views / 655K reach; June 2.14M views / 775K reach; July 293K views / 154K reach by the 17th.",
-    "Creator economics: 69 influencers at $107,648 (62 live); 367 UGC videos at $43,308 (parked for 400 creators); total creator cost $150,956, utilized $69,948; organic CPR $0.04-0.10.",
-    "Retention funnel May vs June (Instagram): skip rate 57.5 to 45.3 pct; passed-hook 38 to 57 pct; 75 pct-watched views +53 pct (32K to 49K); cost per reach $0.065 to $0.057. Only ~6 pct of views reach 75 pct of the video.",
-    "Creator learnings: identity-first openers (mom / 76 / herbalist / Target shopper); specific curiosity beats withholding (Rydel July +36 pct reach); comedy retains (Maryandbri), authenticity lowers skip (Nadja), education earns saves (Jess).",
-    "June UGC buckets (136 live): Target shelf 41, Grail-Drop 30, Over 40 20, Gummies vs coffee 16, Taste 16, countering-mushroom 13. Next line-up: 10 influencers + 500 UGC creators; Costco Bay Area 12 influencers + 100 UGC."
-   ]
-  }
- ],
- "sop": {
-  "id": "sop-ad-campaign",
-  "title": "KNICKGASM Ad Campaign SOP — the final standing procedure",
-  "status": "FINAL — live from Monday",
-  "scope": "Ad execution across UGC, Target, Costco and D2C.",
-  "authority": "The master tracking sheet is the source of truth. Where the sheet and the SOP differ, the sheet is correct and the SOP is corrected to match. The SOP carries the process; the sheet carries the data.",
-  "master_sheet": "https://docs.google.com/spreadsheets/d/1SoYc6YFGa6SM_GpvrCVZDaN0otpshG_E6grxw-BljVA/edit?usp=sharing",
-  "local_copies": {
-   "sop_pdf": "/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf",
-   "tracker_xlsx": "/docs/sop/KNICKGASM_Master_Ad_Tracking_Sheet.xlsx"
-  },
-  "tabs": [
-   {
-    "tab": "Index",
-    "holds": "Tab guide, row layout, colour coding, setup",
-    "owner": "Orientation / reference"
-   },
-   {
-    "tab": "Scoring Legend",
-    "holds": "Score bands, thresholds, weights, view penalties, run status",
-    "owner": "Reference only"
-   },
-   {
-    "tab": "Nomenclature",
-    "holds": "Naming syntax, rules, token values, URL parameters",
-    "owner": "Reference only"
-   },
-   {
-    "tab": "Landing Pages",
-    "holds": "PageDeck destinations by content bucket, with performance",
-    "owner": "Anchit"
-   },
-   {
-    "tab": "Master UGC Tracker",
-    "holds": "Real-time IMPORTRANGE pull from Vinya's team's sheet",
-    "owner": "Read only"
-   },
-   {
-    "tab": "UGC",
-    "holds": "UGC campaigns, 26 columns; landing page differs per campaign",
-    "owner": "Sneha's team, Sudhanshu, Agency"
-   },
-   {
-    "tab": "Target",
-    "holds": "Target campaigns, 26 columns",
-    "owner": "Sneha's team, Sudhanshu, Agency"
-   },
-   {
-    "tab": "Costco",
-    "holds": "Costco campaigns, 26 columns",
-    "owner": "Sneha's team, Sudhanshu, Agency"
-   },
-   {
-    "tab": "D2C",
-    "holds": "D2C campaigns, 26 columns; every input from Anchit",
-    "owner": "Anchit, Agency"
-   }
-  ],
-  "row_layout": [
-   {
-    "row": "1",
-    "contents": "Column header",
-    "editable": false
-   },
-   {
-    "row": "2",
-    "contents": "Who fills that column",
-    "editable": false
-   },
-   {
-    "row": "3",
-    "contents": "Worked example (the template, copied down)",
-    "editable": false
-   },
-   {
-    "row": "4 onward",
-    "contents": "Live entries",
-    "editable": true
-   }
-  ],
-  "formula_columns": "CTR, CPC, CPA and ROAS are formulas. Inputs are Spend, Impressions, Clicks, Conversions and Revenue. Overwriting a formula cell stops it calculating for every row below. Ad Code is plain text so codes are not converted to currency or scientific notation.",
-  "scoring": {
-   "formulas": {
-    "tiktok": "6-sec View % x 40% + Shares x 25% + (Likes + Comments) x 20% + Views x 15%",
-    "instagram": "Views x 40% + Likes x 35% + Comments x 15%  (sums to 90%, under review with Samvita; the Organic Score column is authoritative until resolved)"
-   },
-   "reference_dashboard": "https://knickgasm-june-usa-ugc-dashboard.netlify.app/",
-   "tiktok_weights": [
-    {
-     "metric": "6-sec View %",
-     "weight": "40%",
-     "why": "Strongest signal - hook worked, TikTok rewards this directly"
-    },
-    {
-     "metric": "Shares",
-     "weight": "25%",
-     "why": "Viral intent - the highest organic endorsement"
-    },
-    {
-     "metric": "Likes + Comments",
-     "weight": "20%",
-     "why": "Active engagement; comments = a real reaction"
-    },
-    {
-     "metric": "Views",
-     "weight": "15%",
-     "why": "Reach without resonance - deliberately the smallest weight"
-    }
-   ],
-   "instagram_weights": [
-    {
-     "metric": "Views (Plays)",
-     "weight": "40%",
-     "why": "Reach indicates the algorithm is distributing the content"
-    },
-    {
-     "metric": "Likes",
-     "weight": "35%",
-     "why": "Primary Instagram engagement signal"
-    },
-    {
-     "metric": "Comments",
-     "weight": "15%",
-     "why": "Rarer on Instagram, strong when present"
-    }
-   ],
-   "bands": [
-    {
-     "score": "70-100",
-     "label": "Elite",
-     "meaning": "Top-tier organic. Strong hook, high retention, real engagement. First to boost."
-    },
-    {
-     "score": "50-69",
-     "label": "High",
-     "meaning": "Solid hold and engagement. Boost with confidence."
-    },
-    {
-     "score": "30-49",
-     "label": "Good",
-     "meaning": "Meets the Ad Recommended threshold. Worth testing with budget."
-    },
-    {
-     "score": "20-29",
-     "label": "Consider",
-     "meaning": "Some signal. Small spend first."
-    },
-    {
-     "score": "0-19",
-     "label": "Not ready",
-     "meaning": "No spend. Creative requires rework."
-    }
-   ],
-   "thresholds": [
-    {
-     "platform": "TikTok",
-     "label": "Ad Recommended",
-     "condition": "Score >= 30 OR 6-sec view rate >= 25%"
-    },
-    {
-     "platform": "TikTok",
-     "label": "Consider",
-     "condition": "Score >= 20 OR 6-sec >= 18% OR ER >= 8%"
-    },
-    {
-     "platform": "TikTok",
-     "label": "No",
-     "condition": "Below all of the above"
-    },
-    {
-     "platform": "Instagram",
-     "label": "Ad Recommended",
-     "condition": "Score >= 20"
-    },
-    {
-     "platform": "Instagram",
-     "label": "Consider",
-     "condition": "Score >= 13 OR likes/views >= 5%"
-    },
-    {
-     "platform": "Instagram",
-     "label": "No",
-     "condition": "Below all of the above"
-    }
-   ],
-   "six_second_rule": "A 6-sec view rate of 25% or above auto-qualifies a TikTok post regardless of total score - a hook holding past six seconds has already beaten the platform's skip behaviour.",
-   "view_penalties": [
-    {
-     "platform": "TikTok",
-     "views": "Under 50",
-     "multiplier": "0.45",
-     "why": "Sample too small to be reliable"
-    },
-    {
-     "platform": "TikTok",
-     "views": "50-199",
-     "multiplier": "0.70",
-     "why": "Small and growing"
-    },
-    {
-     "platform": "TikTok",
-     "views": "200-499",
-     "multiplier": "0.85",
-     "why": "Reasonable sample, minor discount"
-    },
-    {
-     "platform": "TikTok",
-     "views": "500+",
-     "multiplier": "none",
-     "why": "Full confidence"
-    },
-    {
-     "platform": "Instagram",
-     "views": "Under 100",
-     "multiplier": "0.50",
-     "why": "Unreliable"
-    },
-    {
-     "platform": "Instagram",
-     "views": "100-499",
-     "multiplier": "0.75",
-     "why": "Small but trackable"
-    },
-    {
-     "platform": "Instagram",
-     "views": "500+",
-     "multiplier": "none",
-     "why": "Sufficient reach"
-    }
-   ],
-   "run_status": {
-    "note": "Two columns look similar; only one is an instruction. Ad Recommended = scoring output. Ads Activated = the run instruction. No ad goes live unless Ads Activated reads 'Review before running ads'.",
-    "values": [
-     {
-      "value": "Review before running ads",
-      "meaning": "Cleared Level 2, queued for the agency",
-      "action": "Review spelling, grammar and formatting, then set live"
-     },
-     {
-      "value": "Yes",
-      "meaning": "Already live",
-      "action": "None. Reporting only."
-     },
-     {
-      "value": "No",
-      "meaning": "Did not clear the benchmark",
-      "action": "Do not set live"
-     },
-     {
-      "value": "(blank)",
-      "meaning": "Not yet assessed",
-      "action": "Wait"
-     }
-    ]
-   }
-  },
-  "nomenclature": {
-   "principle": "One syntax everywhere. The string entered into the platform as a campaign, ad set or ad name is the same string carried in the URL as a UTM value. There is no second, human-readable form.",
-   "character_set": "Lowercase only. Underscore between fields. Hyphen inside a field. Dates as yyyy-mm-dd.",
-   "patterns": [
-    {
-     "what": "Campaign name",
-     "syntax": "yyyy-mm _ platform _ objective _ type",
-     "example": "2026-06_meta_conv_target"
-    },
-    {
-     "what": "Ad Set name",
-     "syntax": "yyyy-mm-dd _ audience _ placement",
-     "example": "2026-06-11_over40-high-performer_ig-reels"
-    },
-    {
-     "what": "Ad name",
-     "syntax": "yyyy-mm-dd _ type _ product _ audience _ surface _ videoid",
-     "example": "2026-06-11_target_ashwa-coffee_over40-high-performer_instagram_7644934695515393294"
-    },
-    {
-     "what": "utm_source",
-     "syntax": "platform-surface",
-     "example": "meta-instagram"
-    },
-    {
-     "what": "utm_medium",
-     "syntax": "fixed literal",
-     "example": "paid-social"
-    },
-    {
-     "what": "utm_campaign",
-     "syntax": "the campaign name",
-     "example": "2026-06_meta_conv_target"
-    },
-    {
-     "what": "utm_term",
-     "syntax": "the ad set name",
-     "example": "2026-06-11_over40-high-performer_ig-reels"
-    },
-    {
-     "what": "utm_content",
-     "syntax": "the ad name",
-     "example": "2026-06-11_target_ashwa-coffee_over40-high-performer_instagram_7644934695515393294"
-    },
-    {
-     "what": "acq_source",
-     "syntax": "type _ platform",
-     "example": "target_meta"
-    },
-    {
-     "what": "acq_subsource",
-     "syntax": "creator _ bucket _ hook",
-     "example": "jeorginaugc_grail-drop_problem-pain"
-    }
-   ],
-   "macros": "Where Meta provides one, the macro is used rather than the literal string: {{campaign.name}}, {{adset.name}}, {{ad.name}}, {{site_source_name}}. acq_source and acq_subsource have no macro and are copied from the sheet row.",
-   "costco_note": "Costco runs on TikTok, giving utm_source tiktok-tiktok and acq_source costco_tiktok.",
-   "rules": [
-    {
-     "n": 1,
-     "rule": "No space, /, comma, &, ?, %, + or # in any name or parameter",
-     "consequence": "Space becomes %20, slash %2F, comma breaks CSV export, & and ? break the query string, # truncates the URL"
-    },
-    {
-     "n": 2,
-     "rule": "Lowercase only",
-     "consequence": "GA4 and several platform APIs are case-sensitive; mixed case splits one campaign across multiple report rows"
-    },
-    {
-     "n": 3,
-     "rule": "videoid mandatory on every ad name and inside utm_content",
-     "consequence": "The ad cannot be mapped to its organic performance"
-    },
-    {
-     "n": 4,
-     "rule": "acq_subsource carries creator, bucket and hook",
-     "consequence": "Revenue by creator, content angle and hook style is unavailable"
-    },
-    {
-     "n": 5,
-     "rule": "Target and Costco names kept strictly separate",
-     "consequence": "Reporting overlap; Costco campaigns have previously been built using Target keywords"
-    },
-    {
-     "n": 6,
-     "rule": "Token values copied, not retyped",
-     "consequence": "One mistyped token splits a single audience across two report rows"
-    },
-    {
-     "n": 7,
-     "rule": "Names in Ad Manager match the tracker exactly",
-     "consequence": "The asset is paused"
-    }
-   ],
-   "tokens": {
-    "platform": "meta tiktok",
-    "surface": "instagram facebook tiktok",
-    "objective": "conv",
-    "type": "target costco d2c ugc",
-    "audience": "over40 high-performer over40-high-performer broad-lookalike",
-    "placement": "ig-reels ig-stories fb-feed tiktok-infeed advantage-plus",
-    "product": "ashwa-coffee embroidery-sneaker",
-    "bucket": "grail-drop gummies-vs-coffee target-shelf anti-mushroom taste over40-high-performer target-instore",
-    "hook": "curiosity problem-pain age-stage personal-discovery comparison callout-ifyou lifestyle taste-sensory",
-    "lang": "en es pt"
-   }
-  },
-  "landing_pages": {
-   "principle": "UGC ads route to a dedicated PageDeck page built for that content angle, not to the product page. Each new UGC campaign receives its own page. Anchit supplies the URL with the brief and it is used as given - the generic product page is not substituted, because the page is the attribution.",
-   "pages": [
-    {
-     "bucket": "Grail-Drop",
-     "slug": "coffee-cta-ugc-grail-drop",
-     "url": "https://buy.knickgasm.com/coffee-cta-ugc-grail-drop",
-     "visitors": 6561,
-     "page_views": 7521,
-     "avg_view": "56s",
-     "external_clicks": 2720,
-     "ctr": "41.46%"
-    },
-    {
-     "bucket": "Countering Mushroom Coffee Trend",
-     "slug": "coffee-cta-ugc-mushroom",
-     "url": "https://buy.knickgasm.com/coffee-cta-ugc-mushroom",
-     "visitors": 5768,
-     "page_views": 6727,
-     "avg_view": "57s",
-     "external_clicks": 2387,
-     "ctr": "41.38%"
-    },
-    {
-     "bucket": "Taste",
-     "slug": "coffee-cta-ugc-taste",
-     "url": "https://buy.knickgasm.com/coffee-cta-ugc-taste",
-     "visitors": 4129,
-     "page_views": 4962,
-     "avg_view": "32s",
-     "external_clicks": 1574,
-     "ctr": "38.12%"
-    },
-    {
-     "bucket": "Target Shelf Showdown",
-     "slug": "coffee-cta-ugc-targetstore",
-     "url": "https://buy.knickgasm.com/coffee-cta-ugc-targetstore",
-     "visitors": 3875,
-     "page_views": 4437,
-     "avg_view": "29s",
-     "external_clicks": 1463,
-     "ctr": "37.75%"
-    },
-    {
-     "bucket": "Gummies vs Coffee",
-     "slug": "coffee-cta-ugc-gummies",
-     "url": "https://buy.knickgasm.com/coffee-cta-ugc-gummies",
-     "visitors": 3455,
-     "page_views": 4013,
-     "avg_view": "54s",
-     "external_clicks": 1194,
-     "ctr": "34.56%"
-    },
-    {
-     "bucket": "Over 40 / High Performer",
-     "slug": "coffee-cta-ugc-over-40-woman",
-     "url": "https://buy.knickgasm.com/coffee-cta-ugc-over-40-woman",
-     "visitors": 1806,
-     "page_views": 2112,
-     "avg_view": "31s",
-     "external_clicks": 827,
-     "ctr": "45.79%"
-    },
-    {
-     "bucket": "Target In-Store Discovery",
-     "slug": "(none)",
-     "url": "https://www.target.com/p/knickgasm-airbrush-medium-roast-calm-energy-and-focus-support-instant-coffee-2-11oz/-/A-95055145",
-     "note": "Target PDP direct. No PageDeck page at present."
-    },
-    {
-     "bucket": "(generic, not a UGC bucket)",
-     "slug": "coffee-60",
-     "url": "https://buy.knickgasm.com/coffee-60",
-     "visitors": 70393,
-     "page_views": 84312,
-     "avg_view": "1m 20s",
-     "external_clicks": 27873,
-     "ctr": "39.60%"
-    }
-   ],
-   "reconciliation": "Traffic reconciles: 23,570 ad clicks against 25,594 visitors across the six UGC bucket pages (92% match) - the pages are receiving the paid traffic correctly and the remainder is organic.",
-   "conversion_gap": "Those pages produced 10,165 external clicks onward, yet PageDeck reports 0 conversions and $0 revenue on every page. Purchases complete on target.com, instacart.com or Shopify - outside PageDeck's visibility - so zero is EXPECTED on retail destinations. For any page routing to knickgasm.com it is NOT expected and points to a missing pixel or goal.",
-   "measure_sources": [
-    {
-     "measure": "Traffic and engagement",
-     "source": "PageDeck"
-    },
-    {
-     "measure": "Conversion and revenue",
-     "source": "Platform reporting and Shopify"
-    }
-   ],
-   "open_items": [
-    "Two pages carrying 7,111 visitors between them are still truncated in the PageDeck export as 'coffee-cta...cer-target' - full slugs needed before they can be attributed.",
-    "targetstore vs targetshelf is not a mismatch: both exist, targetstore carries the live traffic (3,875 visitors), targetshelf is an alternate with 1 visitor. Use targetstore."
-   ]
-  },
-  "campaign_tab_columns": [
-   {
-    "n": 1,
-    "column": "Ad To Be Run (Brief)",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 2,
-    "column": "Campaign Level Name",
-    "by": "Agency, from the brief"
-   },
-   {
-    "n": 3,
-    "column": "Ad Set Level Name",
-    "by": "Agency, from the brief"
-   },
-   {
-    "n": 4,
-    "column": "Ad Level Name",
-    "by": "Agency, from the brief"
-   },
-   {
-    "n": 5,
-    "column": "Platform",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 6,
-    "column": "Placement / Format",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 7,
-    "column": "Product / SKU",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 8,
-    "column": "Target Audience",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 9,
-    "column": "Target Audience Criteria Set for Campaign",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 10,
-    "column": "Budget",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 11,
-    "column": "Goal / KPI",
-    "by": "Sneha's team. Anchit for D2C."
-   },
-   {
-    "n": 12,
-    "column": "Creative Link",
-    "by": "Sudhanshu"
-   },
-   {
-    "n": 13,
-    "column": "Landing Page URL",
-    "by": "Anchit. New page per campaign for UGC."
-   },
-   {
-    "n": 14,
-    "column": "Ad Code",
-    "by": "Agency, on going live"
-   },
-   {
-    "n": 15,
-    "column": "Ad Link",
-    "by": "Agency, on going live"
-   },
-   {
-    "n": 16,
-    "column": "Ad Report Link",
-    "by": "Agency, on going live"
-   },
-   {
-    "n": 17,
-    "column": "Status",
-    "by": "Agency, and on every change"
-   },
-   {
-    "n": 18,
-    "column": "Spend",
-    "by": "Agency, within 72 hours"
-   },
-   {
-    "n": 19,
-    "column": "Impressions",
-    "by": "Agency, within 72 hours"
-   },
-   {
-    "n": 20,
-    "column": "Clicks",
-    "by": "Agency, within 72 hours"
-   },
-   {
-    "n": 21,
-    "column": "CTR",
-    "by": "Auto-calculated"
-   },
-   {
-    "n": 22,
-    "column": "CPC",
-    "by": "Auto-calculated"
-   },
-   {
-    "n": 23,
-    "column": "Conversions",
-    "by": "Agency, within 72 hours"
-   },
-   {
-    "n": 24,
-    "column": "CPA",
-    "by": "Auto-calculated"
-   },
-   {
-    "n": 25,
-    "column": "ROAS",
-    "by": "Auto-calculated"
-   },
-   {
-    "n": 26,
-    "column": "Revenue",
-    "by": "Agency, within 72 hours"
-   }
-  ],
-  "ugc_flow": [
-   {
-    "level": "Level 1 — Vinya's team",
-    "owns": "The master UGC sheet and all organic data: creator post, URL, platform, publish date, content bucket, views, likes, comments, shares, 2-sec and 6-sec view rates, average view time, engagement rate.",
-    "function": "Accuracy at source, and the first quality filter on whether a post is usable.",
-    "dependency": "The tracker pulls from this sheet live. An error here passes directly into scoring and then into what the agency runs. No manual checkpoint exists in between."
-   },
-   {
-    "level": "Level 2 — Anchit",
-    "owns": "The scoring decision, the Ads Activated column, all landing pages and URL parameters, and the full brief for D2C.",
-    "function": "Each post is scored with the formula and view penalties, checked against the platform threshold, and marked in Ads Activated. Clearing sets 'Review before running ads'; failing sets 'No'.",
-    "dependency": "The decision is quantitative, not creative. Level 2 does not assess whether a video is good - it checks whether the market has already indicated so."
-   },
-   {
-    "level": "Level 3 — Kanish and the Bharat Maven team",
-    "owns": "The final quality check, campaign build, naming, launch and performance reporting.",
-    "function": "Everything marked 'Review before running ads' is checked for spelling, grammar, on-screen text, formatting and aspect ratio, then built and named per the Nomenclature standard and taken live. Ad Code, Ad Link and Ad Report Link filled on going live; performance within 72 hours.",
-    "dependency": "Strategic input expected additionally: where a creative clears the threshold but reads weak, or a pattern appears across creatives, that observation forms part of the deliverable."
-   }
-  ],
-  "budgets": {
-   "ownership": [
-    {
-     "channel": "Target",
-     "by": "Sneha's team"
-    },
-    {
-     "channel": "Costco",
-     "by": "Sneha's team"
-    },
-    {
-     "channel": "UGC",
-     "by": "Sneha's team"
-    },
-    {
-     "channel": "D2C",
-     "by": "Anchit"
-    }
-   ],
-   "rules": "Budgets are entered in the Budget column as a daily figure. Nothing is agreed verbally. A row without a budget in the sheet is not ready to build.",
-   "target_cap": "Target spend cap $1,000 per day, paced with automated rules in Meta. Directive agreed with Bala; corrects the $1,700 spike on 19 July. Overpacing is flagged proactively."
-  },
-  "required_before_build": [
-   "Ad To Be Run (Brief) - one or two lines on purpose and intended outcome",
-   "Platform - Meta or TikTok",
-   "Placement / Format - IG Reels, IG Stories, FB Feed, TikTok In-Feed or Advantage+",
-   "Product / SKU - the exact product advertised",
-   "Target Audience - selected from the dropdown",
-   "Target Audience Criteria - the actual targeting, e.g. 'Age 40+, Interests: Business, Streetwear'",
-   "Budget - daily figure",
-   "Goal / KPI - e.g. 'ROAS > 2.0' or 'CPA < $25'",
-   "Creative Link - opens without a permission request (Sudhanshu)",
-   "Landing Page URL - full URL including all UTM and acquisition parameters (Anchit)",
-   "Ads Activated - set to 'Review before running ads' once Level 2 clears (Anchit)"
-  ],
-  "automation": {
-   "chain": "organic post URL -> videoid -> ad name -> ad code -> paid performance",
-   "how": "The video id is taken from the end of the organic video URL, appears at the end of every ad name and therefore inside utm_content. When the agency enters the Ad Code for a live ad, the backend matches the ad code to the video id inside the ad name, and the video id back to its row in the Master UGC Tracker. Organic and paid join automatically - no manual matching, no lookups.",
-   "makes_measurable": [
-    "Whether a high organic score predicts better paid performance",
-    "Which content buckets return best against spend",
-    "Which hook types convert",
-    "Which creators drive revenue rather than views"
-   ],
-   "warning": "An ad name without the video id still runs, but is excluded from the analysis, and the spend on it produces no learning.",
-   "acq_subsource": "Carries creator _ bucket _ hook, so one split on the underscore returns revenue attributed by creator, content angle and hook style directly from the URL."
-  },
-  "turnaround": [
-   {
-    "step": "Brief and creative complete in the sheet",
-    "owner": "Sneha's team, Sudhanshu, Anchit",
-    "timing": "Before build begins"
-   },
-   {
-    "step": "Ads Activated set after Level 2 scoring",
-    "owner": "Anchit",
-    "timing": "Same day the data lands"
-   },
-   {
-    "step": "Campaigns built, paused and named",
-    "owner": "Agency",
-    "timing": "2 working days"
-   },
-   {
-    "step": "Approval",
-    "owner": "Anchit",
-    "timing": "1 working day"
-   },
-   {
-    "step": "Live",
-    "owner": "Agency",
-    "timing": "Same day as approval"
-   },
-   {
-    "step": "Ad Code, Ad Link, Ad Report Link",
-    "owner": "Agency",
-    "timing": "On going live"
-   },
-   {
-    "step": "Spend, Impressions, Clicks, Conversions, Revenue",
-    "owner": "Agency",
-    "timing": "Within 72 hours"
-   },
-   {
-    "step": "Performance refresh",
-    "owner": "Agency",
-    "timing": "Weekly, before the Monday review"
-   }
-  ],
-  "standing_conditions": {
-   "handles": "All ads run from KNICKGASM brand handles. Creator post URLs in the tracker are performance reference only.",
-   "build_state": "Campaigns are built paused. Spend begins only after Level 2 clearance and row approval.",
-   "cohort_direction": [
-    {
-     "cohort": "Over 40",
-     "emphasis": "Inflammation, recovery, grail-drop management"
-    },
-    {
-     "cohort": "High Performer",
-     "emphasis": "Clean energy, focus, no afternoon crash"
-    }
-   ],
-   "channel_product": [
-    {
-     "channel": "Target",
-     "product": "KNICKGASM Airbrush Medium Roast Instant Coffee",
-     "destination": "Target PDP"
-    },
-    {
-     "channel": "Costco",
-     "product": "Organic Embroidery Sneaker Variety Pack, 100-count",
-     "destination": "Instacart"
-    },
-    {
-     "channel": "D2C",
-     "product": "Coffee Collection, expanding into capsules, supplements and sneakers",
-     "destination": "knickgasm.com"
-    },
-    {
-     "channel": "UGC",
-     "product": "Coffee Collection",
-     "destination": "Dedicated PageDeck page per content bucket"
-    }
-   ],
-   "corrections": "Discrepancies between the SOP and the sheet are raised with Anchit and corrected in the SOP."
-  }
- },
- "ad_accounts_registry": {
-  "canonical_source": "adAccounts() in api/_shared/ads-snowflake-core.js",
-  "served_as": "/data/ads/ad-accounts.json (built by scripts/build-ads-live-snapshot.js) and /api/brain?action=ads-snowflake&op=accounts",
-  "summary": "13 distinct KNICKGASM ad accounts across 17 warehouse feeds (Meta 10, Google 6, TikTok 1); 9 feeds are live. Enumerated live 2026-07-26 by unioning every base insights and ad-performance table in KNICKGASM_DB and grouping by account.",
-  "us_live": [
-   "Meta 1303870183798748 Knickgasm India USA New EST Main Account - US D2C on knickgasm.com, judged on ROAS (pixel fires)",
-   "Meta 804570870670763 KNICKGASM USA - Sneaker Ad Account - Target and Costco sell-through, judged on CTR/CPC/CPM (third-party checkout, no attribution possible)",
-   "Google 9797311905 KNICKGASM - US search, Shopping, PMax, Demand Gen, judged on ROAS",
-   "Google 3036820580 Raghuvansh - Amazon marketplace via Ampd, one campaign per ASIN, judged on CTR/CPC (sales land in Seller Central)",
-   "TikTok 7393105007056388112 KNICKGASM USA - paused, last spend 2026-07-14"
-  ],
-  "kpi_rule": "Accounts are not comparable on one KPI. Where a pixel or Google conversion is tracked, revenue/ROAS/CPA are real. Where checkout happens on target.com, Instacart or amazon.com, no purchase can ever be attributed, so those accounts report null rather than 0 and must be judged on CTR, CPC, CPM and reach. A 0.00x ROAS on a retail account is a measurement artefact, not a result.",
-  "currency_rule": "India reports INR and UK reports GBP. Never sum them with the USD accounts."
- }
 }

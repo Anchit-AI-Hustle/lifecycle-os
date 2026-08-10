@@ -41,7 +41,7 @@ function parseMoney(s) {
   return n;
 }
 
-// window.KNICKGASM_ANALYTICS = {...}; -> object
+// window.LIFECYCLE_ANALYTICS = {...}; -> object
 function loadMarketData() {
   const txt = fs.readFileSync(path.join(ROOT, 'data', 'analytics', 'market-data.js'), 'utf8');
   const start = txt.indexOf('{');

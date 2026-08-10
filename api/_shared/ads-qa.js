@@ -13,7 +13,7 @@
 // Returns per-ad verdicts + a summary, and stamps each ad with `__qa` so the studio
 // can badge it. buildCampaign attaches the summary + an "Ads QA Critic" trace step.
 
-const BANNED = /streetwear journey|\btransform\b|liquid lava|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
+const BANNED = /wellness journey|\btransform\b|liquid gold|game[\s-]?changer|LIMITED TIME|hurry|don'?t miss out|last chance|while supplies last/i;
 const DASH = /[–—]/; // en / em dash — brand forbids both
 // Signals of an offer/claim we cannot invent (there is no approved offer/claims lib).
 const OFFER = /\b\d{1,3}\s?%\s?off\b|\bcode[:\s]|\bpromo\b|\bcoupon\b|\bBOGO\b|\bmoney[\s-]?back\b|\bguarantee\b|\blowest price\b/i;

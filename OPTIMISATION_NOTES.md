@@ -6,7 +6,7 @@ Tracks the move from v23 baseline (B/B+ overall) toward A+ across the rated axes
 
 | Build | What landed | Axes moved |
 |---|---|---|
-| `kb-backed-v23` | Knowledge base in Supabase: `knickgasm_brand_kit` (1 row from PDF), `knickgasm_market_config` (7), `knickgasm_products` (313 real Shopify rows scraped from US/UK/IN/Global), `knickgasm_collections` (schema + 356-row seed). HTML now hydrates `window.KB` on boot and the Claude system prompt is generated from `KB.brandKit`. | Knowledge base D → B+, Brand fidelity B+ → A− |
+| `kb-backed-v23` | Knowledge base in Supabase: `lifecycle_brand_kit` (1 row from PDF), `lifecycle_market_config` (7), `lifecycle_products` (313 real Shopify rows scraped from US/UK/IN/Global), `lifecycle_collections` (schema + 356-row seed). HTML now hydrates `window.KB` on boot and the Claude system prompt is generated from `KB.brandKit`. | Knowledge base D → B+, Brand fidelity B+ → A− |
 | `renamed-tables-v24` | DB tables renamed: `knickgasm_users` → `app_users`, `knickgasm_campaigns` → `mailers_generated`. HTML uses a boot-time table resolver that auto-falls-back to legacy names if rename hasn't run. `knickgasm_users` slot reserved for future Knickgasm-customer-segment data. | Architecture B → B+, Naming sanity F → A |
 | `strategic-brief-v25` | `buildStrategicDepth(strategy)` produces target segment + sub-segment + audience size + rationale + intent + KPI ranges (open/CTR/conversion/AOV/RPS) + justification + recommended send window. Rendered as a premium card in Step 5. Dashboard "View Details" modal now shows the strategic brief plus all inputs + every FLUX image prompt + regen feedback history + provenance. Wipes stale Step 4/5 panels at the start of every new generation. | Strategic depth D → A−, Dashboard B → A− |
 | `orphan-controls-removed-v26` | Deleted 17 orphan duplicate Step 5 controls (htmlRaw / Copy HTML / Variant A·B / Side-by-Side) that sat outside any `<div id="p?">` and rendered on every step. | UI/UX C → B+ |
@@ -24,8 +24,8 @@ The live `mailers_generated` table doesn't yet have the renamed name or the stra
 3. Verify with:
    ```sql
    SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;
-   -- expect: app_users, mailers_generated, knickgasm_brand_kit, knickgasm_collections, knickgasm_market_config, knickgasm_products
-   SELECT COUNT(*) FROM knickgasm_collections;  -- expect ~356
+   -- expect: app_users, mailers_generated, lifecycle_brand_kit, lifecycle_collections, lifecycle_market_config, lifecycle_products
+   SELECT COUNT(*) FROM lifecycle_collections;  -- expect ~356
    SELECT target_segment, expected_impact->>'rps' AS rps FROM mailers_generated WHERE target_segment IS NOT NULL LIMIT 5;
    ```
 

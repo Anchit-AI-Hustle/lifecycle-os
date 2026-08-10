@@ -321,17 +321,38 @@ function _notConnected(wouldRequest) {
  * With NO keys at all, returns the Klaviyo-style { connected:false, would_request }
  * stub for the best rung (Veo 3.1).
  */
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null } = {}) {
+// KNICKGASM-owned original audio beds (scripts/gen-brand-audio.py). Text-to-video
+// providers return SILENT clips, so every generated video carries the bed to lay
+// under it in the edit — a paid video ad must never ship silent, and a licensed
+// or trending track is never an option for paid media.
+const AUDIO_BEDS = {
+  hero:       '/assets/media/knickgasm-brand-beat.wav',
+  reels:      '/assets/media/knickgasm-reels-loop.wav',
+  underscore: '/assets/media/knickgasm-ad-underscore.wav',
+};
+function audioBedFor(duration_s, { voiceover = false } = {}) {
+  const bed = voiceover ? AUDIO_BEDS.underscore : (duration_s <= 18 ? AUDIO_BEDS.reels : AUDIO_BEDS.hero);
+  return {
+    bed,
+    origin: 'KNICKGASM original (royalty-free, cleared for paid media)',
+    spec: '90 BPM, F minor, seamless loop',
+    mix: voiceover ? 'bed -18 LUFS, duck 6 dB under VO' : 'music-forward -14 LUFS',
+    note: 'Generated video arrives SILENT — lay this bed under it in the edit and burn in captions.',
+  };
+}
+
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false } = {}) {
   const p = String(prompt || '').trim();
   if (!p) return { ok: false, error: 'prompt required' };
   const opts = { prompt: p, duration_s, aspect };
+  const audio = audioBedFor(duration_s, { voiceover });
   const k = keys();
 
   if (!anyKey()) {
     // Best rung's exact request shape — honour the caller's first preference.
     const first = (preferProviders && preferProviders[0]) || 'veo';
     const shape = { higgsfield: higgsfieldRequest, openmontage: openMontageRequest, sora: soraRequest, runway: runwayRequest, veo: veoRequest }[first] || veoRequest;
-    return _notConnected(shape(opts));
+    return Object.assign(_notConnected(shape(opts)), { audio });
   }
 
   let rungs = [
@@ -387,4 +408,4 @@ async function getVideoStatus({ provider, job_id } = {}) {
 
 function isConnected() { return anyKey(); }
 
-module.exports = { generateVideo, getVideoStatus, isConnected };
+module.exports = { generateVideo, getVideoStatus, isConnected, AUDIO_BEDS, audioBedFor };

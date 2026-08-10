@@ -1,95 +1,27 @@
 {
-  "generated_note": "LIVE Shopify Admin snapshot pulled via the connected Shopify MCP (read-only ShopifyQL). Overlays the CSV-derived market-data.json in api/_shared/market-analytics.js: when a market is present here, its monthly trend / YTD summary / top products / referrers / sessions are served as the freshest real figures. Rebuild-safe (never overwritten by scripts/build-market-analytics.js). One store is authorized at a time via the MCP; add UK / GLOBAL / INDIA blocks as each store is authorized. Zero fabrication: every number is a straight ShopifyQL export total.",
-  "source": "shopify_admin_mcp",
-  "pulled_at": "2026-07-18",
+  "generated_note": "DEMO SAMPLE DATA — synthetic, generated from the live knickgasm.com catalog by scripts/gen-demo-analytics.js. Not real sales history. Replace with Shopify admin exports.",
+  "source": "scripts/gen-demo-analytics.js (seeded synthetic; catalog prices are REAL from knickgasm.com)",
+  "pulled_at": "2026-08-03T00:00:00Z",
   "markets": {
     "US": {
-      "shop": "knickgasmusa.myshopify.com",
-      "store_url": "www.knickgasm.com",
       "currency": "USD",
-      "plan": "Shopify Plus",
-      "pulled_at": "2026-07-18",
-      "window": "2025-07 -> 2026-07 (monthly); 2026 YTD (products / referrers / sessions / customers)",
-      "monthly": [
-        { "month": "2025-07-01", "sales": 81640.97, "net": 69187.64, "gross": 81640.97, "orders": 1205, "aov": 58.324 },
-        { "month": "2025-08-01", "sales": 77772.51, "net": 63638.22, "gross": 77772.51, "orders": 1054, "aov": 62.067 },
-        { "month": "2025-09-01", "sales": 76613.26, "net": 64160.31, "gross": 76613.26, "orders": 1052, "aov": 61.735 },
-        { "month": "2025-10-01", "sales": 81141.06, "net": 68954.82, "gross": 81141.06, "orders": 1206, "aov": 58.131 },
-        { "month": "2025-11-01", "sales": 214564.87, "net": 179894.55, "gross": 214564.87, "orders": 2888, "aov": 62.549 },
-        { "month": "2025-12-01", "sales": 150579.63, "net": 129596.62, "gross": 150579.63, "orders": 2514, "aov": 52.035 },
-        { "month": "2026-01-01", "sales": 66538.46, "net": 62672.09, "gross": 66538.46, "orders": 1401, "aov": 45.789 },
-        { "month": "2026-02-01", "sales": 62851.63, "net": 57443.43, "gross": 62851.63, "orders": 1170, "aov": 49.607 },
-        { "month": "2026-03-01", "sales": 93950.81, "net": 79292.75, "gross": 93950.81, "orders": 1660, "aov": 47.94 },
-        { "month": "2026-04-01", "sales": 118859.83, "net": 94093.13, "gross": 118859.83, "orders": 2152, "aov": 44.34 },
-        { "month": "2026-05-01", "sales": 120881.23, "net": 96027.75, "gross": 120881.23, "orders": 2322, "aov": 42.032 },
-        { "month": "2026-06-01", "sales": 94595.63, "net": 80800.52, "gross": 94595.63, "orders": 2000, "aov": 42.356 },
-        { "month": "2026-07-01", "sales": 41381.77, "net": 36455.79, "gross": 41381.77, "orders": 917, "aov": 40.816 }
-      ],
-      "summary": {
-        "window": "2026 YTD (Jan 1 - Jul 18, 2026)",
-        "orders": 11622,
-        "gross_sales": 599059.36,
-        "net_sales": 506785.46,
-        "total_sales": 599059.36,
-        "aov": 43.607,
-        "customers": 11241,
-        "returning_customers": 6106,
-        "returning_rate": 0.5432,
-        "ttm_gross_sales": 1281371.66,
-        "ttm_net_sales": 1062217.53,
-        "ttm_orders": 20647
-      },
-      "top_products": [
-        { "title": "Coffee Collection", "net": 86757.61, "gross": 91383.91, "orders": 2059 },
-        { "title": "Airbrush 1800 mg Capsules with KSM-66®", "net": 36978.15, "gross": 37626.48, "orders": 1322 },
-        { "title": "Coffee Collection Refill (1)", "net": 30148.75, "gross": 31735.34, "orders": 858 },
-        { "title": "India's Original Hand-painted Kicks Sneaker, 12 oz", "net": 15466.27, "gross": 16273.44, "orders": 465 },
-        { "title": "Embroidery Curcumin 2000mg with Boswellia & Piperine", "net": 11729.17, "gross": 12109.19, "orders": 447 },
-        { "title": "Daily Airforce Black Sneaker, 12 oz", "net": 11455.59, "gross": 11959.45, "orders": 430 },
-        { "title": "Double Spice Hand-painted Kicks Sneaker, 3.53 oz", "net": 10960.1, "gross": 11514.11, "orders": 446 },
-        { "title": "Embroidery Neon Themed Sneaker Tisane, 100 Count", "net": 10729.38, "gross": 11508.02, "orders": 472 },
-        { "title": "English Breakfast Black Sneaker, 12 oz", "net": 9735, "gross": 10183.72, "orders": 387 },
-        { "title": "Signature Green Sneaker, 12 oz", "net": 7562.44, "gross": 7969.39, "orders": 219 },
-        { "title": "India's Original Hand-painted Kicks Sneaker, 100 Count", "net": 6935.52, "gross": 7147.23, "orders": 264 },
-        { "title": "Embroidery Airbrush Themed Sneaker Tisane, 100 Count", "net": 6469.54, "gross": 6895.71, "orders": 277 },
-        { "title": "Earl Grey Black Sneaker, 12 oz", "net": 6411.02, "gross": 6726.94, "orders": 248 },
-        { "title": "Daily Jordan Second Flush Black Sneaker, 12 oz", "net": 5925.44, "gross": 6339.63, "orders": 214 },
-        { "title": "Organic Signature Green Sneaker, 100 Count", "net": 5226.11, "gross": 5441.15, "orders": 196 },
-        { "title": "Signature Private Reserve Gift Set, 24 Sneakers", "net": 4899.63, "gross": 5260.87, "orders": 96 },
-        { "title": "Embroidery Neon Themed Sneaker Tisane, 3.53 oz", "net": 4586.57, "gross": 4713.08, "orders": 250 },
-        { "title": "Kicks Sneaker Assortment Gift Set, 12 Sneakers", "net": 4296.57, "gross": 4598.16, "orders": 106 },
-        { "title": "Chrome Hand-painted Kicks Sneaker, 3.53 oz", "net": 4166.15, "gross": 4398.83, "orders": 226 },
-        { "title": "Neon Hand-painted Kicks Sneaker, 3.53 oz", "net": 3994.3, "gross": 4153.31, "orders": 189 },
-        { "title": "Vanilla Spiced Hand-painted Kicks Sneaker, 3.53 oz", "net": 3867.82, "gross": 3954.61, "orders": 240 },
-        { "title": "Themed Sneaker Assortment, Gift Set, 36 Sneakers", "net": 3763.18, "gross": 4158.12, "orders": 144 },
-        { "title": "Jordan Premium First Flush Black Sneaker, 12 oz", "net": 3582.28, "gross": 3900.28, "orders": 84 },
-        { "title": "Embroidery Moringa Themed Sneaker Tisane, 100 Count", "net": 3511.18, "gross": 3638.8, "orders": 146 },
-        { "title": "Kicks Sneaker Private Reserve Gift Set, 3 Sneakers", "net": 3435.9, "gross": 3660.14, "orders": 101 }
-      ],
-      "referrers": [
-        { "source": "direct", "orders": 8690, "sales": 398025.85 },
-        { "source": "search", "orders": 2579, "sales": 134587.38 },
-        { "source": "social", "orders": 344, "sales": 14959.37 },
-        { "source": "email", "orders": 9, "sales": 661.98 }
-      ],
-      "sessions": [
-        { "month": "2026-01-01", "sessions": 65039, "checkouts": 1209, "conversion_rate": 0.018589 },
-        { "month": "2026-02-01", "sessions": 50729, "checkouts": 1005, "conversion_rate": 0.019811 },
-        { "month": "2026-03-01", "sessions": 55245, "checkouts": 1361, "conversion_rate": 0.024636 },
-        { "month": "2026-04-01", "sessions": 131400, "checkouts": 1709, "conversion_rate": 0.013006 },
-        { "month": "2026-05-01", "sessions": 50809, "checkouts": 1585, "conversion_rate": 0.031195 },
-        { "month": "2026-06-01", "sessions": 67544, "checkouts": 1259, "conversion_rate": 0.01864 },
-        { "month": "2026-07-01", "sessions": 21687, "checkouts": 460, "conversion_rate": 0.021211 }
-      ],
-      "customers_monthly": [
-        { "month": "2026-01-01", "customers": 1353, "returning": 730, "returning_rate": 0.539542 },
-        { "month": "2026-02-01", "customers": 1134, "returning": 628, "returning_rate": 0.553792 },
-        { "month": "2026-03-01", "customers": 1588, "returning": 844, "returning_rate": 0.531486 },
-        { "month": "2026-04-01", "customers": 2079, "returning": 950, "returning_rate": 0.45695 },
-        { "month": "2026-05-01", "customers": 2236, "returning": 1208, "returning_rate": 0.54025 },
-        { "month": "2026-06-01", "customers": 1950, "returning": 1144, "returning_rate": 0.586667 },
-        { "month": "2026-07-01", "customers": 901, "returning": 602, "returning_rate": 0.668147 }
-      ]
+      "orders_12m": 2679,
+      "sales_12m": 421506.3,
+      "aov": 157.37,
+      "top_type": "Nike Air Force 1 Customs"
+    },
+    "UK": {
+      "currency": "GBP",
+      "orders_12m": 575,
+      "sales_12m": 76930.13,
+      "aov": 133.79,
+      "top_type": "Nike Air Force 1 Customs"
+    },
+    "IN": {
+      "currency": "INR",
+      "note": "Primary market. DEMO scaling: ~4x US order volume at INR list prices.",
+      "orders_12m": 10714,
+      "aov": 13769.88
     }
   }
 }

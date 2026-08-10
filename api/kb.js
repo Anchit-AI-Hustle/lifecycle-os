@@ -29,6 +29,7 @@
  */
 
 const crypto = require('crypto');
+const wsScope = require('./_shared/workspace-scope.js');
 
 // ── Shared: supabase config ────────────────────────────────────────────────
 function supaEnv() {
@@ -100,9 +101,66 @@ module.exports = async function handler(req, res) {
   if (action === 'digest' || action === 'daily-digest') {
     return dailyDigest(req, res, env);
   }
+  // ── 7. BRAND-KIT — the single brand-truth record the whole OS reads ──────
+  //   GET  → the singleton brand kit + market config.
+  //   POST → upsert it (palette / typography / voice / footer blocks).
+  if (action === 'brand-kit' || action === 'brandkit') {
+    return brandKit(req, res, env);
+  }
 
-  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|list|top-emails|brands|classify-emails|digest' });
+  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|list|top-emails|brands|classify-emails|digest|brand-kit' });
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BRAND KIT — read/write the brand-truth singleton (lifecycle_brand_kit id=1)
+// ═══════════════════════════════════════════════════════════════════════════
+// This is what /brand (brand.html) edits. Every generator reads the same row,
+// so a change here is the ONE place brand truth is set for the whole platform.
+async function brandKit(req, res, env) {
+  const base = `${env.url}/rest/v1`;
+  const H = sbHeaders(env);
+
+  if (req.method === 'GET') {
+    const [kitRes, mktRes] = await Promise.all([
+      fetch(`${base}/lifecycle_brand_kit?id=eq.1&select=*`, { headers: H }),
+      fetch(`${base}/lifecycle_market_config?select=*&order=market.asc`, { headers: H }).catch(() => null),
+    ]);
+    if (!kitRes.ok) return res.status(502).json({ ok: false, error: `brand_kit read failed: ${await kitRes.text()}` });
+    const rows = await kitRes.json();
+    let markets = [];
+    if (mktRes && mktRes.ok) markets = await mktRes.json().catch(() => []);
+    return res.status(200).json({ ok: true, brand_kit: rows[0] || null, markets });
+  }
+
+  if (req.method === 'POST' || req.method === 'PUT') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const { palette, typography, voice, footer_blocks, guide_pdf_url } = body;
+    if (!palette || !typography || !voice) {
+      return res.status(400).json({ ok: false, error: 'palette, typography and voice are required' });
+    }
+    // Guard the load-bearing invariant: exactly four hex colours, all valid.
+    const hexes = ['primary', 'accent', 'bg', 'text'].map((k) => palette[k]);
+    if (hexes.some((h) => !/^#[0-9A-Fa-f]{6}$/.test(String(h || '')))) {
+      return res.status(400).json({ ok: false, error: 'palette needs primary, accent, bg and text as #RRGGBB' });
+    }
+    const row = {
+      id: 1, palette, typography, voice,
+      footer_blocks: footer_blocks || {},
+      guide_pdf_url: guide_pdf_url || null,
+      updated_at: new Date().toISOString(),
+    };
+    const r = await fetch(`${base}/lifecycle_brand_kit?on_conflict=id`, {
+      method: 'POST',
+      headers: { ...H, Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify([row]),
+    });
+    if (!r.ok) return res.status(502).json({ ok: false, error: `brand_kit write failed: ${await r.text()}` });
+    const saved = await r.json();
+    return res.status(200).json({ ok: true, brand_kit: saved[0] || row });
+  }
+
+  return res.status(405).json({ ok: false, error: 'GET or POST only' });
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 6. DAILY D2C DIGEST — synthesise the clean 24h learning log into one lesson
@@ -126,7 +184,9 @@ async function dailyDigest(req, res, env) {
   const sinceIso = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   let rows = [];
   try {
-    const q = `${env.url}/rest/v1/kb_knowledge?select=title,summary,key_points,market,vertical,url,added_at&status=eq.summarized&added_at=gte.${encodeURIComponent(sinceIso)}&order=added_at.desc&limit=80`;
+    const wsF = await wsScope.filterFor('kb_knowledge', env, req);
+    if (wsF === null) return [];   // no workspace resolved: return nothing, never everything
+    const q = `${env.url}/rest/v1/kb_knowledge?select=title,summary,key_points,market,vertical,url,added_at&status=eq.summarized&added_at=gte.${encodeURIComponent(sinceIso)}&order=added_at.desc&limit=80${wsF}`;
     const r = await fetch(q, { headers });
     if (r.ok) rows = await r.json();
   } catch (_) { rows = []; }
@@ -140,7 +200,7 @@ async function dailyDigest(req, res, env) {
   let digest_md = '';
   let signals = [];
   const callLLM = require('./_shared/llm.js');
-  const SYS = `You are a D2C market-intelligence analyst for a US/UK sneaker, coffee, supplements & streetwear brand. Synthesise the last 24 hours of clean competitor/market signals into ONE concise operational daily lesson (2-4 short paragraphs). Group by PATTERN not by source: name the brands, quote hard numbers/changes where present, and call out coordinated shifts (e.g. several brands moving to the same hook, a shared offer-architecture change). Cover only Offer Architecture, Acquisition Hooks, Retention Flows, and US/UK retail expansion. No fluff, no thought-leadership. Return STRICT JSON: {"digest_md":"<markdown lesson>","signals":[{"pattern":"<short>","brands":["..."],"vertical":"Sneaker|Coffee|Supplements|Streetwear","market":"US|UK","evidence":"<one line>"}]}.`;
+  const SYS = `You are a D2C market-intelligence analyst for a US/UK custom sneaker, streetwear and sneaker-care brand. Synthesise the last 24 hours of clean competitor/market signals into ONE concise operational daily lesson (2-4 short paragraphs). Group by PATTERN not by source: name the brands, quote hard numbers/changes where present, and call out coordinated shifts (e.g. several brands moving to the same hook, a shared offer-architecture change). Cover only Offer Architecture, Acquisition Hooks, Retention Flows, and US/UK retail expansion. No fluff, no thought-leadership. Return STRICT JSON: {"digest_md":"<markdown lesson>","signals":[{"pattern":"<short>","brands":["..."],"vertical":"Custom Sneakers|Sneaker Retail|Sneaker Care|Streetwear","market":"US|UK","evidence":"<one line>"}]}.`;
   const logLines = rows.map((x, i) => `[${i + 1}] (${x.market || '?'}/${x.vertical || '?'}) ${x.title || ''} — ${String(x.summary || '').slice(0, 300)}`).join('\n');
   try {
     const out = await callLLM({ systemPrompt: SYS, userMessage: `CLEAN LEARNING LOG (last 24h, ${rows.length} entries):\n${logLines}\n\nReturn the JSON digest.`, responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.4, timeoutMs: 40000, stage: 'kb-daily-digest', tier: 'fast' });
@@ -262,6 +322,7 @@ Rules:
   // Upsert initial 'queued' row
   let row;
   try {
+    row = await wsScope.stamp('kb_knowledge', row, env, req);
     const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=url_hash`, {
       method: 'POST',
       headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
@@ -292,7 +353,8 @@ Rules:
   const rawText = stripHtml(pageHtml);
 
   // ── Ingest guardrail ──────────────────────────────────────────────────────
-  // Keep the knowledge base ON-CONTEXT: US/UK D2C sneaker/coffee/supplements/streetwear
+  // Keep the knowledge base ON-CONTEXT: US/UK D2C custom sneakers / sneaker retail /
+  // streetwear / sneaker care
   // only. Phase 1 (deterministic: brand whitelist, US/UK geo + $/£ currency,
   // relevance lexicon, junk blocklist) then Phase 2 (LLM relevance gate, fails
   // open if no LLM). Junk is dropped BEFORE we spend tokens summarising it or let

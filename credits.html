@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Credits &amp; Usage</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260809" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
+    --surface:var(--brand-surface,var(--vh-panel-tan));--card:var(--brand-surface-alt,#fff);
+    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,var(--vh-panel-tan));
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 70px;min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--head);font-size:33px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
+  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:700px;margin-bottom:28px}
+  h2{font-family:var(--head);font-size:20px;font-weight:600;margin:34px 0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+
+  .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:stretch}
+  @media(max-width:840px){.hero{grid-template-columns:1fr}}
+  .bal{font-family:var(--head);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--primary)}
+  .bal small{font-family:var(--body);font-size:14px;font-weight:600;color:var(--muted);margin-left:9px;letter-spacing:0}
+  .kpis{display:flex;gap:22px;flex-wrap:wrap;margin-top:18px}
+  .kpi b{display:block;font-size:18px;font-weight:600}
+  .kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--ok);margin-top:14px}
+  .live i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;animation:blink 2s infinite}
+  .live.off{color:var(--muted)}.live.off i{background:var(--muted);animation:none}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){.live i{animation:none}}
+
+  .packs{display:grid;gap:9px}
+  .pack{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 15px;border:1px solid var(--line);
+    border-radius:11px;cursor:pointer;background:var(--surface);transition:.14s}
+  .pack:hover{border-color:var(--primary);transform:translateY(-1px)}
+  .pack b{font-size:14.5px}.pack small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;font-weight:400}
+  .pack .amt{text-align:right;font-size:17px;font-weight:700;color:var(--primary)}
+  .pack .amt small{color:var(--muted);font-weight:500;font-size:10.5px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    padding:9px 10px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap}
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tbl-scroll{overflow-x:auto}
+
+  .grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--primary);
+    padding:16px 10px 7px}
+  .free{color:var(--ok);font-weight:600}
+  .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--primary) 18%,transparent);overflow:hidden;min-width:60px}
+  .bar i{display:block;height:100%;background:var(--primary)}
+  .kind{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .k-spend{background:color-mix(in srgb,var(--err) 12%,transparent);color:var(--err)}
+  .k-grant,.k-topup,.k-refund,.k-release{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok)}
+  .k-hold{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--vh-ink)}
+  .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-size:12.5px;font-weight:600;cursor:pointer}
+  .tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .banner{border-radius:11px;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:20px;border:1px solid}
+  .banner.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 34%,transparent)}
+  .banner.err{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 32%,transparent)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:12px 20px;border-radius:10px;
+    background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow" id="brandLabel">Credits</div>
+  <h1>Credits &amp; usage</h1>
+  <p class="lede">
+    Every feature in the platform runs on credits. What each one costs is listed below and shown on the
+    button before you run it, and this balance updates live the moment anything is charged.
+  </p>
+
+  <div id="banner"></div>
+
+  <div class="hero">
+    <div class="card">
+      <div class="bal" id="balance">—<small>credits</small></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="live off" id="live"><i></i> connecting…</div>
+    </div>
+    <div class="card">
+      <h2 style="margin:0 0 4px;font-size:17px">Add credits</h2>
+      <p class="muted" style="margin-bottom:14px">Pick a pack to record a recharge order.</p>
+      <div class="packs" id="packs"></div>
+    </div>
+  </div>
+
+  <h2>What each feature costs</h2>
+  <p class="muted" style="margin-bottom:14px">
+    This is the full price list. A metered feature is charged on what you actually use, with an estimate
+    reserved up front and the unused part returned automatically.
+  </p>
+  <div class="card tbl-scroll"><table id="prices"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+
+  <h2>Your usage</h2>
+  <div class="tabs" id="usageTabs">
+    <button class="tab on" data-days="7">Last 7 days</button>
+    <button class="tab" data-days="30">Last 30 days</button>
+    <button class="tab" data-days="90">Last 90 days</button>
+  </div>
+  <div class="card tbl-scroll"><table id="usage"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+
+  <h2>Ledger</h2>
+  <p class="muted" style="margin-bottom:14px">
+    Every movement, newest first. A run reserves credits (hold), then charges what it used (spend);
+    anything unused, or a run that failed, comes straight back (refund / release).
+  </p>
+  <div class="card tbl-scroll"><table id="ledger"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function fmt(n) { return (Number(n) || 0).toLocaleString(); }
+  function when(t) { try { return new Date(t).toLocaleString(); } catch (_) { return t || ''; } }
+  function toast(m) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, 3000); }
+
+  function waitFor(test, cb, tries) {
+    tries = tries || 0;
+    if (test()) return cb();
+    if (tries > 60) return cb();
+    setTimeout(function () { waitFor(test, cb, tries + 1); }, 200);
+  }
+
+  /* ── balance + packs ────────────────────────────────────────────────── */
+  function renderBalance() {
+    var C = window.Credits;
+    if (!C || C.balance == null) return;
+    $('balance').innerHTML = fmt(C.balance) + '<small>credits</small>';
+    var w = null;
+    try { w = C.__wallet; } catch (_) {}
+    $('kpis').innerHTML =
+      (C.held ? '<div class="kpi"><b>' + fmt(C.held) + '</b><span>reserved by runs in flight</span></div>' : '') +
+      (w ? '<div class="kpi"><b>' + fmt(w.lifetime_spent) + '</b><span>spent all time</span></div>' +
+           '<div class="kpi"><b>' + fmt(w.lifetime_granted) + '</b><span>added all time</span></div>' : '');
+
+    var b = $('banner');
+    if (C.configured === false) {
+      b.innerHTML = '<div class="banner err">The credit meter is not configured on this deployment, so paid features are disabled. An operator needs to set <code>SUPABASE_SERVICE_ROLE_KEY</code>. Prices are still shown below.</div>';
+    } else if (C.balance <= 0) {
+      b.innerHTML = '<div class="banner err">You are out of credits. Free features still work; everything else needs a top-up.</div>';
+    } else if (C.balance < 100) {
+      b.innerHTML = '<div class="banner warn">Your balance is running low.</div>';
+    } else b.innerHTML = '';
+  }
+
+  function renderPacks() {
+    var packs = (window.Credits && window.Credits.packs) || [];
+    $('packs').innerHTML = packs.length ? packs.map(function (p) {
+      var total = p.credits + (p.bonus || 0);
+      return '<div class="pack" data-pack="' + esc(p.key) + '">' +
+        '<span><b>' + esc(p.label) + '</b><small>' + esc(p.blurb) + '</small></span>' +
+        '<span class="amt">' + fmt(total) + '<small style="display:block">' +
+          (p.bonus ? fmt(p.credits) + ' + ' + fmt(p.bonus) + ' bonus' : 'credits') + '</small></span></div>';
+    }).join('') : '<p class="muted">Loading packs…</p>';
+
+    Array.prototype.forEach.call($('packs').querySelectorAll('[data-pack]'), function (el) {
+      el.addEventListener('click', async function () {
+        el.style.opacity = '.5';
+        try {
+          var r = await window.Credits.api('recharge', { pack_key: el.dataset.pack });
+          if (r.credited) { await window.Credits.refresh(); toast('Added ' + fmt(r.credits) + ' credits.'); loadAll(); }
+          else toast(r.message || 'Recharge order recorded.');
+        } catch (e) { toast(e.message); }
+        el.style.opacity = '';
+      });
+    });
+  }
+
+  /* ── price list ─────────────────────────────────────────────────────── */
+  function renderPrices() {
+    var feats = window.Credits && window.Credits.features;
+    if (!feats) return;
+    var list = Object.keys(feats).map(function (k) { return feats[k]; });
+    if (!list.length) return;
+    var groups = {};
+    list.forEach(function (f) { (groups[f.group] = groups[f.group] || []).push(f); });
+    var html = '<thead><tr><th>Feature</th><th>Cost</th><th>Charged</th><th>What uses the credits</th></tr></thead><tbody>';
+    Object.keys(groups).forEach(function (g) {
+      html += '<tr><td class="grp" colspan="4">' + esc(g) + '</td></tr>';
+      groups[g].forEach(function (f) {
+        html += '<tr>' +
+          '<td><b>' + esc(f.label) + '</b><br><span class="muted" style="font-size:11px;font-family:ui-monospace,Menlo,monospace">' + esc(f.key) + '</span></td>' +
+          '<td class="num">' + (f.cost === 0 ? '<span class="free">Free</span>' : '<b>' + fmt(f.cost) + '</b>') + '</td>' +
+          '<td class="muted">' + esc(f.unit) + (f.metered ? '<br><span style="font-size:11px">metered, ' + f.estimate + ' reserved up front</span>' : '') +
+            (f.overridden ? '<br><span style="font-size:11px">price overridden by your operator</span>' : '') + '</td>' +
+          '<td class="muted">' + esc(f.why || '') + '</td></tr>';
+      });
+    });
+    $('prices').innerHTML = html + '</tbody>';
+  }
+
+  /* ── usage + ledger ─────────────────────────────────────────────────── */
+  async function loadUsage(days) {
+    try {
+      var r = await window.Credits.api('usage&days=' + (days || 30));
+      var rows = r.usage || [];
+      if (!rows.length) { $('usage').innerHTML = '<tbody><tr><td class="muted">Nothing spent in this window yet.</td></tr></tbody>'; return; }
+      var max = Math.max.apply(null, rows.map(function (x) { return Number(x.credits) || 0; })) || 1;
+      var total = rows.reduce(function (a, c) { return a + (Number(c.credits) || 0); }, 0);
+      $('usage').innerHTML = '<thead><tr><th>Feature</th><th class="num">Runs</th><th class="num">Credits</th><th style="width:26%">Share</th><th>Last used</th></tr></thead><tbody>' +
+        rows.map(function (x) {
+          var pct = Math.round((Number(x.credits) || 0) / max * 100);
+          return '<tr><td><b>' + esc(x.feature_label || x.feature_key) + '</b></td>' +
+            '<td class="num">' + fmt(x.runs) + '</td>' +
+            '<td class="num"><b>' + fmt(x.credits) + '</b></td>' +
+            '<td><div class="bar"><i style="width:' + pct + '%"></i></div></td>' +
+            '<td class="muted">' + esc(when(x.last_used)) + '</td></tr>';
+        }).join('') +
+        '<tr><td><b>Total</b></td><td class="num"><b>' + fmt(rows.reduce(function (a, c) { return a + Number(c.runs || 0); }, 0)) + '</b></td>' +
+        '<td class="num"><b>' + fmt(total) + '</b></td><td colspan="2"></td></tr></tbody>';
+    } catch (e) { $('usage').innerHTML = '<tbody><tr><td class="muted">' + esc(e.message) + '</td></tr></tbody>'; }
+  }
+
+  async function loadLedger() {
+    try {
+      var r = await window.Credits.api('ledger&limit=80');
+      var rows = r.entries || [];
+      if (!rows.length) { $('ledger').innerHTML = '<tbody><tr><td class="muted">No movements yet.</td></tr></tbody>'; return; }
+      $('ledger').innerHTML = '<thead><tr><th>When</th><th>Type</th><th>Feature</th><th class="num">Change</th><th class="num">Balance</th><th>Note</th></tr></thead><tbody>' +
+        rows.map(function (e) {
+          var d = Number(e.delta) || 0;
+          return '<tr><td class="muted" style="white-space:nowrap">' + esc(when(e.created_at)) + '</td>' +
+            '<td><span class="kind k-' + esc(e.kind) + '">' + esc(e.kind) + '</span></td>' +
+            '<td>' + esc(e.feature_label || e.feature_key || '—') +
+              (e.units && e.unit_label ? '<br><span class="muted" style="font-size:11px">' + esc(e.units + ' ' + e.unit_label) + '</span>' : '') + '</td>' +
+            '<td class="num" style="color:' + (d > 0 ? 'var(--ok)' : (d < 0 ? 'var(--err)' : 'var(--muted)')) + '"><b>' + (d > 0 ? '+' : '') + fmt(d) + '</b></td>' +
+            '<td class="num">' + fmt(e.balance_after) + '</td>' +
+            '<td class="muted">' + esc(e.note || '') + '</td></tr>';
+        }).join('') + '</tbody>';
+    } catch (e) { $('ledger').innerHTML = '<tbody><tr><td class="muted">' + esc(e.message) + '</td></tr></tbody>'; }
+  }
+
+  var currentDays = 7;
+  function wireTabs() {
+    Array.prototype.forEach.call($('usageTabs').querySelectorAll('.tab'), function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call($('usageTabs').querySelectorAll('.tab'), function (x) { x.classList.toggle('on', x === t); });
+        currentDays = +t.dataset.days;
+        loadUsage(currentDays);
+      });
+    });
+  }
+
+  function loadAll() { loadUsage(currentDays); loadLedger(); }
+
+  /* ── boot ───────────────────────────────────────────────────────────── */
+  waitFor(function () { return !!window.Credits; }, function () {
+    if (!window.Credits) { $('banner').innerHTML = '<div class="banner err">The credit runtime did not load. Refresh the page.</div>'; return; }
+    wireTabs();
+    renderPacks(); renderPrices(); renderBalance();
+
+    window.Credits.onChange(function () { renderBalance(); renderPrices(); renderPacks(); });
+    // A live debit anywhere in the app should refresh the tables here too.
+    window.addEventListener('credits:change', function () {
+      $('live').className = 'live';
+      $('live').innerHTML = '<i></i> live — updates the moment credits move';
+      clearTimeout(window.__ledgerReload);
+      window.__ledgerReload = setTimeout(loadAll, 700);
+    });
+
+    window.Credits.refresh().then(function () { renderBalance(); loadAll(); });
+
+    if (window.BrandContext) {
+      window.BrandContext.onChange(function (d) {
+        if (d.brand) { $('brandLabel').textContent = d.brand.name + ' · Credits'; loadAll(); }
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

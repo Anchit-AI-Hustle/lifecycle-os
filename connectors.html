@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Connectors — KNICKGASM Lifecycle OS</title>
+<title>Connectors — Lifecycle OS</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <style>
-  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--muted:#48524c}
+  :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--muted:#48524c}
   *{box-sizing:border-box} body{margin:0;background:#ffffff;color:#111111;font-family:Inter,system-ui,Arial,sans-serif;padding:28px}
   .wrap{max-width:1180px;margin:0 auto}
   .top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
@@ -31,12 +31,12 @@
   .conn .pv{font-size:11px;color:#48524c}
   .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap}
   .st.connected{background:rgba(29,107,69,.3);color:#0a7d33}
-  .st.partial{background:rgba(171,135,67,.16);color:#7a5f28}
+  .st.partial{background:rgba(171,135,67,.16);color:var(--vh-ink)}
   .st.not_connected{background:rgba(180,60,60,.22);color:#e89a9a}
-  .pill{display:inline-block;border:1px solid rgba(171,135,67,.3);border-radius:999px;padding:2px 8px;margin:1px 2px 1px 0;font-size:11px;color:#7a5f28}
+  .pill{display:inline-block;border:1px solid rgba(171,135,67,.3);border-radius:999px;padding:2px 8px;margin:1px 2px 1px 0;font-size:11px;color:var(--vh-ink)}
   .pill.miss{border-color:rgba(232,154,154,.4);color:#e89a9a}
   .k{font-size:10px;color:#48524c;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
-  .setup{font-size:12px;color:#556059;line-height:1.5;background:#f4f2ec;border:1px solid rgba(171,135,67,.12);border-radius:10px;padding:10px}
+  .setup{font-size:12px;color:#556059;line-height:1.5;background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.12);border-radius:10px;padding:10px}
   .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
   .lastsync{font-size:11px;color:#48524c}
   a{color:var(--lava)}
@@ -53,7 +53,7 @@
 <div class="wrap">
   <div class="top">
     <div>
-      <div class="eyebrow">KNICKGASM Lifecycle OS · Settings</div>
+      <div class="eyebrow">Lifecycle OS · Settings</div>
       <h1>Connectors</h1>
       <p>Connection status is checked server-side against real environment variables — never faked. Missing credentials show an honest Not Connected state with the exact setup steps. Secrets are set in Vercel and never exposed to the browser.</p>
     </div>

@@ -27,10 +27,10 @@ const THREE_CDN = 'https://esm.sh/three@0.169.0';
 
 /* ── Brand constants (source of truth: Brand style guide) ─────────────────── */
 export const BRAND = {
-  primary: '#6A33D8',
-  accent: '#D0473E',
+  primary: '#D0473E',
+  accent: '#6A33D8',
   ink: '#111111',
-  surface: '#F7F5F2',
+  surface: '#FFFFFF',
   headingFont: "'Montserrat','Raleway',Georgia,serif",
   bodyFont: "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
 };

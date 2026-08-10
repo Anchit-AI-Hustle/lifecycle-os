@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Social Media OS — KNICKGASM Lifecycle OS</title>
+<title>Social Media OS — Lifecycle OS</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Social OS">
 <style>
-  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--muted:#556059}
+  :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--muted:#556059}
   *{box-sizing:border-box}
   body{margin:0;background:#ffffff;color:#111111;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:28px}
   .wrap{max-width:1280px;margin:0 auto}
@@ -30,18 +30,18 @@
   label.chk{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;margin-left:8px}
   .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
   .banner{display:none;border:1px solid rgba(232,154,154,.4);background:rgba(180,60,60,.12);color:#e89a9a;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px}
-  .banner.info{border-color:rgba(171,135,67,.4);background:rgba(171,135,67,.08);color:#7a5f28}
+  .banner.info{border-color:rgba(171,135,67,.4);background:rgba(171,135,67,.08);color:var(--vh-ink)}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   .card{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
   .card h3{margin:0;font-size:14px;color:var(--green);display:flex;justify-content:space-between;align-items:center;gap:8px}
   .plat{color:var(--lava);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
   .meta{font-size:11px;color:var(--muted)}
-  .copy{font-size:13px;line-height:1.55;color:#111111;white-space:pre-wrap;max-height:180px;overflow:auto;background:#f4f2ec;border:1px solid rgba(171,135,67,.14);border-radius:10px;padding:10px}
-  .tags{font-size:12px;color:#7a5f28;word-break:break-word}
+  .copy{font-size:13px;line-height:1.55;color:#111111;white-space:pre-wrap;max-height:180px;overflow:auto;background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.14);border-radius:10px;padding:10px}
+  .tags{font-size:12px;color:var(--vh-ink);word-break:break-word}
   .heroimg{width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid rgba(171,135,67,.2);display:block}
-  .prompt{font-size:11px;color:#556059;background:#f4f2ec;border:1px dashed rgba(171,135,67,.35);border-radius:10px;padding:8px;max-height:110px;overflow:auto}
+  .prompt{font-size:11px;color:#556059;background:var(--vh-panel-tan);border:1px dashed rgba(171,135,67,.35);border-radius:10px;padding:8px;max-height:110px;overflow:auto}
   .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
-  .st.draft{background:rgba(171,135,67,.16);color:#7a5f28}
+  .st.draft{background:rgba(171,135,67,.16);color:var(--vh-ink)}
   .st.approved{background:rgba(29,107,69,.3);color:#0a7d33}
   .st.skipped{background:rgba(180,60,60,.22);color:#e89a9a}
   .st.posted{background:#1d6b45;color:#111111}
@@ -52,20 +52,20 @@
   .tstep{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(171,135,67,.1);font-size:13px}
   .tstep:last-child{border-bottom:0}
   .tbadge{min-width:110px;color:var(--lava);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;padding-top:2px}
-  .tsrc{font-size:11px;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:1px 8px;color:#7a5f28;white-space:nowrap}
+  .tsrc{font-size:11px;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:1px 8px;color:var(--vh-ink);white-space:nowrap}
   .tsrc.fb{border-color:rgba(232,154,154,.4);color:#e89a9a}
-  .tnote{color:#cfe0d7;line-height:1.5;word-break:break-word}
+  .tnote{color:var(--vh-panel-tan);line-height:1.5;word-break:break-word}
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .empty{color:var(--muted);font-size:14px;padding:26px;text-align:center;border:1px dashed rgba(171,135,67,.3);border-radius:14px;grid-column:1/-1}
   details.blog summary{cursor:pointer;color:var(--lava);font-size:12px;font-weight:700}
-  .blogbody{font-size:13px;line-height:1.65;color:#111111;white-space:pre-wrap;max-height:340px;overflow:auto;background:#f4f2ec;border-radius:10px;padding:12px;margin-top:8px}
+  .blogbody{font-size:13px;line-height:1.65;color:#111111;white-space:pre-wrap;max-height:340px;overflow:auto;background:var(--vh-panel-tan);border-radius:10px;padding:12px;margin-top:8px}
   .so-modal-ov{position:fixed;inset:0;background:rgba(4,10,8,.72);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:80;overflow:auto}
   .so-modal-ov.open{display:flex}
   .so-modal{background:#ffffff;border:1px solid rgba(171,135,67,.4);border-radius:16px;max-width:760px;width:100%;padding:20px;position:relative}
   .so-modal h2{margin:0 32px 12px 0;font-size:18px;color:var(--green);font-family:'Montserrat','Raleway',Georgia,serif}
-  .so-modal-body{font-size:13px;line-height:1.6;color:#111111;white-space:pre-wrap;background:#f4f2ec;border:1px solid rgba(171,135,67,.14);border-radius:10px;padding:14px;max-height:62vh;overflow:auto;word-break:break-word}
-  .so-modal-x{position:absolute;top:12px;right:14px;background:transparent;border:1px solid rgba(171,135,67,.35);color:#7a5f28;border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer}
+  .so-modal-body{font-size:13px;line-height:1.6;color:#111111;white-space:pre-wrap;background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.14);border-radius:10px;padding:14px;max-height:62vh;overflow:auto;word-break:break-word}
+  .so-modal-x{position:absolute;top:12px;right:14px;background:transparent;border:1px solid rgba(171,135,67,.35);color:var(--vh-ink);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer}
   .so-modal-dl{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
   @media(max-width:1024px){.grid{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:680px){.grid{grid-template-columns:1fr}h1{font-size:30px}body{padding:16px}}
@@ -76,7 +76,7 @@
 <main class="wrap">
   <section class="top">
     <div>
-      <div class="eyebrow">KNICKGASM Lifecycle OS · Social Media OS</div>
+      <div class="eyebrow">Lifecycle OS · Social Media OS</div>
       <h1>Daily Social Post Generator</h1>
       <p>A 7-agent pipeline (ideology → data &amp; hypothesis → strategy → content → design → video → compilation) drafts one full day of posts across Instagram, Facebook, TikTok, LinkedIn, X, Pinterest, YouTube Shorts, Threads and the blog. Runs daily at <b>04:30 UTC</b> via cron, or on demand below. Everything lands as a <b>draft</b> for human approval — platform push is Phase&nbsp;2.</p>
     </div>
@@ -284,7 +284,7 @@
       (p.hashtags && p.hashtags.length ? '<div class="tags">' + esc(p.hashtags.join(' ')) + '</div>' : '') +
       mediaHtml(p.media) +
       (p.alt_text ? '<div class="meta">Alt: ' + esc(p.alt_text) + '</div>' : '') +
-      '<div class="meta">CTA: <b>' + esc(p.cta || '') + '</b> → <a style="color:#7a5f28" href="' + esc(p.link || '#') + '" target="_blank" rel="noopener">' + esc(p.link || '') + '</a></div>' +
+      '<div class="meta">CTA: <b>' + esc(p.cta || '') + '</b> → <a style="color:var(--vh-ink)" href="' + esc(p.link || '#') + '" target="_blank" rel="noopener">' + esc(p.link || '') + '</a></div>' +
       '<div class="meta">Push: ' + esc(post.push_status || p.push_status || '') + '</div>' +
       '<div class="actions">' +
         '<button class="btn sm secondary" data-view="1">View full</button>' +

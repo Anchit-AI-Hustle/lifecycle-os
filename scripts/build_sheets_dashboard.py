@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the KNICKGASM Lifecycle OS visual dashboard as an .xlsx (multi-tab + native
+"""Build the Lifecycle OS visual dashboard as an .xlsx (multi-tab + native
 charts) that uploads/converts cleanly into Google Sheets.
 
 Catalog tabs are populated from REAL data (data/catalog/products_{us,uk,global}.json).
@@ -290,10 +290,10 @@ for c, h in enumerate(hdr, 1):
 style_header_row(ws, hr, len(hdr))
 # A few illustrative rows with formulas for rate columns (so visuals work on paste).
 demo = [
-    ("2026-06-01", "Email", "Monsoon Ritual — Winback", 12000, 3120, 480, 980),
+    ("2026-06-01", "Email", "Monsoon Drop, Winback", 12000, 3120, 480, 980),
     ("2026-06-08", "Email", "One-of-One Spotlight", 14500, 4060, 610, 1240),
-    ("2026-06-15", "SMS", "Restock — Embroidery Latte", 5200, 1560, 290, 760),
-    ("2026-06-22", "Email", "Founder Note — Heritage", 13900, 4170, 700, 1510),
+    ("2026-06-15", "SMS", "Restock, Embroidery Air Force 1", 5200, 1560, 290, 760),
+    ("2026-06-22", "Email", "Founder Note, Behind the Studio", 13900, 4170, 700, 1510),
 ]
 for i, (d, ch, name, sent, opens, clicks, rev) in enumerate(demo):
     rr = hr + 1 + i

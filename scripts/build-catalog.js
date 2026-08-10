@@ -92,22 +92,34 @@ function deriveTags(tagsStr, type, title) {
   const tl = (tagsStr || '').toLowerCase();
   const titleL = (title || '').toLowerCase();
 
-  // Category tags from Shopify tags field — Knickgasm custom-sneaker taxonomy.
-  // Key namespace is unchanged (kicks/green/black/detox/immunity/sleep/gift/
-  // discovery/bestseller/summer/premium) so every downstream consumer keeps
-  // working; the detection rules map Knickgasm attributes onto those keys:
+  // Category tags — KNICKGASM's real customisation taxonomy.
+  //
+  // These keys are SEMANTIC: downstream code reasons about what a tag MEANS
+  // (cohort rules in api/_shared/rfm-core.js and brain-analysis.js pick
+  // products by tag intent). An earlier pass kept the previous brand's key
+  // names and changed only the detection rules, which silently made "sleep"
+  // mean wedding pairs and "immunity" mean football pairs - every consumer then
+  // reasoned on a lie. Keys and meaning must change together.
   const both = tl + ' ' + titleL;
-  if (both.includes('air force') || both.includes('airforce') || both.includes('af1') || both.includes('nike')) tags.push('kicks');
-  if (both.includes('anime') || both.includes('demon slayer') || both.includes('jujutsu') || both.includes('jujustu') || both.includes('dragon ball') || both.includes('naruto') || both.includes('one piece') || both.includes('cartoon')) tags.push('green');
-  if (both.includes('black') || both.includes('jordan') || both.includes('dunk')) tags.push('black');
-  if (both.includes('dye') || both.includes('aesthetic') || both.includes('butterfly') || both.includes('pastel')) tags.push('detox');
-  if (both.includes('football') || both.includes('sport') || both.includes('cricket') || both.includes('basketball') || both.includes('f1') || both.includes('car')) tags.push('immunity');
-  if (both.includes('wedding') || both.includes('couple') || both.includes('bride') || both.includes('groom')) tags.push('sleep');
-  if (both.includes('gift') || both.includes('pet') || both.includes('dog') || both.includes('cat')) tags.push('gift');
-  if (both.includes('lace') || both.includes('accessor') || both.includes('care kit') || both.includes('cleaner') || both.includes('tag')) tags.push('discovery');
+  if (both.includes('air force') || both.includes('airforce') || both.includes('af1')) tags.push('af1');
+  if (both.includes('jordan')) tags.push('jordan');
+  if (both.includes('dunk') || both.includes('court vision') || both.includes('air max') || both.includes('ebernon')) tags.push('nike-other');
+  if (both.includes('converse') || both.includes('chuck')) tags.push('converse');
+  if (both.includes('adidas') || both.includes('samba') || both.includes('stan smith')) tags.push('adidas');
+  if (both.includes('anime') || both.includes('demon slayer') || both.includes('jujutsu') || both.includes('jujustu') || both.includes('dragon ball') || both.includes('naruto') || both.includes('one piece') || both.includes('cartoon') || both.includes('goku') || both.includes('tanjiro')) tags.push('anime');
+  if (both.includes('football') || both.includes('soccer') || both.includes('cricket') || both.includes('basketball') || both.includes('sport') || both.includes('united') || both.includes('madrid') || both.includes('cr7')) tags.push('sport');
+  if (both.includes('car') || both.includes('gtr') || both.includes('bmw') || both.includes('porsche') || both.includes('ferrari') || both.includes('f1') || both.includes('nfs')) tags.push('auto');
+  if (both.includes('game') || both.includes('gaming') || both.includes('mario') || both.includes('valorant') || both.includes('spiderman') || both.includes('batman') || both.includes('marvel')) tags.push('gaming');
+  if (both.includes('wedding') || both.includes('bride') || both.includes('groom') || both.includes('carnival') || both.includes('couple')) tags.push('wedding');
+  if (both.includes('pet') || both.includes('dog') || both.includes('doggo') || both.includes('cat ')) tags.push('pets');
+  if (both.includes('bling') || both.includes('crystal') || both.includes('pearl') || both.includes('rhinestone')) tags.push('bling');
+  if (both.includes('dye') || both.includes('aesthetic') || both.includes('butterfly') || both.includes('pastel') || both.includes('floral')) tags.push('aesthetic');
+  if (both.includes('celebrity') || both.includes('concert') || both.includes('taylor swift') || both.includes('eras')) tags.push('celebrity');
+  if (both.includes('lace') || both.includes('accessor') || both.includes('care kit') || both.includes('cleaner') || both.includes('crease')) tags.push('accessories');
+  if (both.includes('denim') || both.includes('jacket')) tags.push('apparel');
+  if (both.includes('embroider')) tags.push('embroidery');
+  if (both.includes('gift')) tags.push('gift');
   if (both.includes('bestseller') || both.includes('best-seller') || both.includes('best seller')) tags.push('bestseller');
-  if (both.includes('bling') || both.includes('drip') || both.includes('gaming') || both.includes('celebrity') || both.includes('concert') || both.includes('taylor swift')) tags.push('summer');
-  if (both.includes('jordan') || both.includes('boot') || both.includes('embroider') || both.includes('denim') || both.includes('premium')) tags.push('premium');
 
   // Deduplicate
   return [...new Set(tags)];
@@ -151,7 +163,7 @@ function processCSV(filePath, market) {
   const iType        = colIdx(headers, 'Type');
   const iCategory    = colIdx(headers, 'Product Category');
   const iSubtitle    = colIdx(headers, 'Subtitle (product.metafields.custom.subtitle)', 'Product Card Subtitle');
-  const iCaffeine    = colIdx(headers, 'Paint (product.metafields.custom.paint)', 'Paint content');
+  const iPaint    = colIdx(headers, 'Paint (product.metafields.custom.paint)', 'Paint content');
   const iTasting     = colIdx(headers, 'Design Notes');
   const iForm        = colIdx(headers, 'Form (product.metafields.custom.form)');
   const iCups        = colIdx(headers, 'No. of Pairs');
@@ -208,7 +220,7 @@ function processCSV(filePath, market) {
 
     // Extract metafields from first row
     const subtitle   = iSubtitle >= 0 ? (first[iSubtitle] || '').trim() : '';
-    const paint   = iCaffeine >= 0 ? (first[iCaffeine] || '').trim() : '';
+    const paint   = iPaint >= 0 ? (first[iPaint] || '').trim() : '';
     const design    = iTasting >= 0 ? (first[iTasting] || '').trim() : '';
     const form       = iForm >= 0 ? (first[iForm] || '').trim() : '';
     const pairs       = iCups >= 0 ? (first[iCups] || '').trim() : '';
@@ -229,7 +241,26 @@ function processCSV(filePath, market) {
     if (price) product.price = price;
     if (compareAt && compareAt !== price) product.compare_at = compareAt;
     if (type) product.type = type;
-    if (subtitle) product.subtitle = subtitle;
+    // Descriptive line for mailer / landing-page product cards.
+    //
+    // The KNICKGASM export carries no subtitle or notes column, so every
+    // generated product card was rendering with an EMPTY note (consumers read
+    // `subtitle || tasting_notes`, both absent). Derive one from facts the
+    // catalogue actually states - the silhouette (Type) and the design family
+    // (derived tags). Nothing here is invented: it restates the product's own
+    // classification, e.g. "Hand-painted Nike Air force 1 - anime design".
+    const FAMILY_LABEL = {
+      anime: 'anime design', sport: 'football and sport design', auto: 'automotive design',
+      gaming: 'gaming and superhero design', wedding: 'wedding commission', pets: 'pet portrait',
+      bling: 'crystal and bling work', aesthetic: 'aesthetic colourway', celebrity: 'celebrity and concert design',
+      embroidery: 'embroidered detail', accessories: 'sneaker accessory', apparel: 'custom apparel',
+    };
+    const family = derivedTags.map((t) => FAMILY_LABEL[t]).filter(Boolean)[0];
+    const silhouette = type || 'custom sneaker';
+    const derivedSubtitle = derivedTags.includes('accessories') || derivedTags.includes('apparel')
+      ? (family ? `KNICKGASM ${family}` : `KNICKGASM ${silhouette}`)
+      : `Hand-painted ${silhouette}${family ? ` - ${family}` : ''}`;
+    product.subtitle = subtitle || derivedSubtitle;
     if (paint) product.paint = paint;
     if (design) product.tasting_notes = design;
     if (form) product.form = form;

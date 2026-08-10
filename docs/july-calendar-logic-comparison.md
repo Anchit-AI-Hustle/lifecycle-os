@@ -1,7 +1,7 @@
 # Calendar-generation logic: our app vs. the reference July studio
 
 A side-by-side of how the **automated mailer calendar in this app** builds a plan
-versus how the **attached `knickgasm-usa-july-calendar-mailer-studio.html`** (the
+versus how the **attached `lifecycle-usa-july-calendar-mailer-studio.html`** (the
 `assemble_v2.py` artifact) was produced. Both target the same output — a US July
 cohort calendar with per-send mailers — but they sit at different points on the
 "static artifact ↔ live system" spectrum.

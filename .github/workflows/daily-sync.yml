@@ -13,7 +13,7 @@ name: Daily Intelligence Sync (noon IST + manual)
 # SETUP (one-time): add two repo secrets under Settings -> Secrets and variables
 # -> Actions:
 #   CRON_SECRET   = the same value as the Vercel CRON_SECRET env var
-#   APP_BASE_URL  = https://knickgasm-lifecycle-os.anchit-tandon.com   (optional;
+#   APP_BASE_URL  = https://lifecycle-os.anchit-tandon.com   (optional;
 #                   falls back to that default below if unset)
 
 on:
@@ -37,7 +37,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
         run: |
-          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          BASE="${APP_BASE_URL:-https://lifecycle-os.anchit-tandon.com}"
           if [ -z "$CRON_SECRET" ]; then
             echo "CRON_SECRET repo secret is not set — add it under Settings -> Secrets and variables -> Actions." >&2
             exit 1

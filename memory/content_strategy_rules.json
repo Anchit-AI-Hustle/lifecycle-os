@@ -166,7 +166,7 @@
     },
     "rating": {
       "always_show": true,
-      "format": "5 lava stars + '4.8 · 1,000+ reviews'"
+      "format": "5 lava stars + '4.8 · one-of-one designs'"
     },
     "price_display": {
       "show_compare_at": true,

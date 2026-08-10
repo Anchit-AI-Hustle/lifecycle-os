@@ -1,0 +1,179 @@
+{
+  "slug": "knickgasm",
+  "name": "KNICKGASM",
+  "tagline": "India's Largest Sneaker Customisers",
+  "industry": "Custom sneakers / D2C",
+  "website": "https://knickgasm.com",
+  "_note": "SINGLE SOURCE OF BRAND TRUTH (tenant zero). Everything else is DERIVED from this file: api/_shared/master-prompt.js BRAND_BLOCK (via brand-runtime.brandBlock), the theme.css --brand-* fallbacks, the knickgasm_brand_kit Supabase seed, and the Brand Constants block in CLAUDE.md. Edit here, then run `npm run brand:sync` to regenerate them; `npm run brand:check` fails if they drift. Values verified against the live knickgasm.com theme 2026-08-09.",
+  "palette": {
+    "primary": "#D0473E",
+    "accent": "#6A33D8",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#FFFFFF",
+    "muted": "#666666",
+    "line": "#EBEBEB",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Montserrat",
+      "stack": "'Montserrat','Raleway',Arial,sans-serif",
+      "google": true,
+      "weights": "600;700;800"
+    },
+    "body": {
+      "family": "Instrument Sans",
+      "stack": "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
+      "google": true,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "bold, energetic, youth street-culture; confident and playful, never corporate",
+    "preferred": [
+      "custom",
+      "hand-painted",
+      "one-of-one",
+      "grail",
+      "canvas",
+      "colorway",
+      "drop",
+      "rotation",
+      "crafted",
+      "original"
+    ],
+    "banned": [
+      "wellness journey",
+      "transform",
+      "liquid gold",
+      "game-changer",
+      "LIMITED TIME",
+      "hurry",
+      "don't miss out",
+      "last chance",
+      "while supplies last",
+      "replica",
+      "knock-off",
+      "first copy",
+      "fake pair"
+    ],
+    "no_em_dashes": true,
+    "notes": "Testimonials read like a friend flexing a new pair, not a review. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers."
+  },
+  "regions": [
+    {
+      "code": "US",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "UK",
+      "currency": "GBP",
+      "symbol": "£",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    },
+    {
+      "code": "GLOBAL",
+      "currency": "USD",
+      "symbol": "$",
+      "store_url": "https://knickgasm.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "knickgasm.com",
+    "www.knickgasm.com",
+    "try.knickgasm.com"
+  ],
+  "catalog_source": {
+    "kind": "repo",
+    "url": "data/catalog/products_{region}.json"
+  },
+  "status": "active",
+  "logo_url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332",
+  "legal_entity": "KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India",
+  "claims": [
+    "India's largest sneaker customisers",
+    "Made on 100% original brand sneakers",
+    "Hand-painted by India's best artists",
+    "Water and scratch resistant designs",
+    "Express shipping worldwide to 60+ countries",
+    "Free shipping in India and worldwide"
+  ],
+  "contact": {
+    "email": "hello@knickgasm.com"
+  },
+  "social": [
+    {
+      "platform": "instagram",
+      "url": "https://www.instagram.com/knickgasm/"
+    }
+  ],
+  "market_study": {
+    "India": {
+      "headline": "India sneaker and sneaker-customisation market",
+      "sizing": [
+        {
+          "segment": "India sneaker market",
+          "size": "USD 3.88B (FY2024) to USD 5.93B (FY2032)",
+          "cagr": "5.45% (FY25-FY32)",
+          "source": "Markets & Data, via Business Today (Sep 2025)"
+        },
+        {
+          "segment": "India sneaker economy incl. resale + D2C",
+          "size": "~USD 6B narrative",
+          "cagr": "-",
+          "source": "Inc42 feature on sneaker resellers and D2C brands"
+        }
+      ],
+      "tiers": [
+        {
+          "name": "Tier 1, Global athletic majors",
+          "note": "Nike, Adidas, Puma. They supply the BLANK canvas Knickgasm paints on; they are not competitors for the customisation job."
+        },
+        {
+          "name": "Tier 2, India custom-sneaker studios",
+          "note": "Direct competitors: Moreiarty, Sneak Peek Shoes, The Leather Works (TLW Art House), Shoes Your Daddy, Sneakboo, Courtside, MD Customs."
+        },
+        {
+          "name": "Tier 3, Sneaker retail and marketplaces",
+          "note": "Compete for the same sneakerhead wallet: VegNonVeg, Superkicks, CrepDog Crew, Hype Fly, FindYourKicks, Mainstreet Marketplace."
+        },
+        {
+          "name": "Tier 4, Indie design-led Indian brands",
+          "note": "Comet, Gully Labs, Thaely, Banjaaran Studio. Design-forward originals rather than customisation."
+        },
+        {
+          "name": "Tier 5, Global customisation benchmarks",
+          "note": "The Shoe Surgeon, Kickstradomis, and the official programmes Nike By You and Converse By You."
+        }
+      ],
+      "reads": [
+        "Customisation is a service margin on someone else's silhouette: the moat is artist quality and turnaround, not tooling or distribution.",
+        "Fandom collections (anime, football, cars, gaming) are the demand engine; core AF1 blanks are the volume base.",
+        "Every claim must state the pairs are hand-painted on 100% original sneakers, never replicas."
+      ],
+      "gaps": [
+        "Category-level customisation spend in India is not separately published; only the broader sneaker market is sized.",
+        "No public share-of-market figure exists for any Indian customisation studio."
+      ]
+    }
+  }
+}
