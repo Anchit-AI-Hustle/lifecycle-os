@@ -371,11 +371,16 @@ module.exports = async function handler(req, res) {
       //   3. AI-generated video (last resort)
       visual_cascade: ['hosted_media_url', 'auto_gif_from_product_frames', 'ai_generated_video'],
       hosted_media_url: entry.hero_media_url || entry.hero_video_url || null,
-      hero_image_brief:
-        `On-brand KNICKGASM email visual for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
-        `Editorial photography or gentle product-frame motion (animated GIF), one-of-one provenance, ` +
-        `elegant negative space, cinematic light. Brand palette only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). ` +
-        `Mood: warm, restrained, gift-worthy. No on-image text.`,
+      hero_image_brief: (function () {
+        var b = entry.brand || null;
+        var name = (b && b.name) || 'the brand';
+        var p = (b && b.palette) || {};
+        var pal = `primary ${p.primary || '#D0473E'}, accent ${p.accent || '#6A33D8'}, surface ${p.surface || '#FFFFFF'}`;
+        return `On-brand ${name} email visual for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
+          `Editorial photography or gentle product-frame motion (animated GIF), true to this brand's own world, ` +
+          `elegant negative space, cinematic light. Brand palette only (${pal}). ` +
+          `Mood: on-voice for this brand. No on-image text.`;
+      })(),
       master_prompt: buildMasterPrompt({
         brand: entry.brand || null,
         assetType: 'mailer', variant: 'V2', market, brief, products: promptProducts, cohort: entry.segment,
