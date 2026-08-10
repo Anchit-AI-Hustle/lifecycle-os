@@ -44,7 +44,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
           # @capacitor/android 8.x generates capacitor.build.gradle targeting
