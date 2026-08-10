@@ -297,7 +297,15 @@ function offeringPlanEntries(brand, offerings, startDate, days) {
         cta_url: rotated.cta_url || null,
         phase: rotated.phase,
         why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
-        analysis: { summary: `Slot derived from ${brand.name}'s own offerings and regions. No cross-brand data used.`, data_source: 'brand-offerings' },
+        analysis: buildEntryAnalysis({
+          cohort: { name: cohort, size: 0 },
+          product: { title: useOff.name, category: useOff.kind },
+          channels: ['email', 'meta', 'google', 'landing_page'],
+          objective: rotated.job,
+          market,
+          confidence: { score: confidence, reasons: [{ label: 'Derived from the brand\'s own catalogue', delta: 0, detail: `${useOff.kind} "${useOff.name}"` }] },
+          dataSource: 'brand-offerings',
+        }),
         reach: {
           cohort_size: null, cohort_size_estimated: true,
           widen_note: `[DATA REQUIRED BEFORE LAUNCH: real eligible-segment size for "${cohort}" in ${market}. Reach is never estimated.]`,

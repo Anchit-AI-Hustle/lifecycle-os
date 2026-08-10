@@ -209,10 +209,14 @@ function buildGenerationAnalysis(entry = {}, opts = {}) {
   const channels = Array.isArray(entry.channels) ? entry.channels : [];
   const hero = firstText((entry.heroProduct || entry.hero_product || {}).title, 'the hero product');
   const cohortName = firstText((entry.cohort || {}).name, 'the cohort');
+  // A caller may supply a PARTIAL analysis (an offering-based plan carries a
+  // summary without the full driver list). Missing arrays must degrade to empty
+  // rather than throwing - a reasoning gap must never fail a whole generation.
+  const drivers = Array.isArray(base.drivers) ? base.drivers : [];
   return {
     summary: `Assets built for ${cohortName} around ${hero} to deliver "${firstText(entry.objective, 'the objective')}".`,
     why_generated: base.summary,
-    targeting_logic: base.drivers.filter((d) => ['Target cohort', 'Hero product', 'Calendar moment'].includes(d.signal)),
+    targeting_logic: drivers.filter((d) => d && ['Target cohort', 'Hero product', 'Calendar moment'].includes(d.signal)),
     channel_logic: channels.map((c) => ({ channel: c, role: channelRole(c) })),
     hypothesis: base.hypothesis,
     expected_impact: base.expected_impact,
