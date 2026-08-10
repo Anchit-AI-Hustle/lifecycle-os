@@ -23,7 +23,7 @@ function assistantNameFor(brand) {
   if (!brand || brand.is_default || String(brand.slug || '').toLowerCase() === 'knickgasm') return BRAND_LLM_NAME;
   return `${brand.name || 'Brand'} Assistant`;
 }
-const BRAND_LLM_TAGLINE = "KNICKGASM's brand intelligence — laced in your own data";
+const BRAND_LLM_TAGLINE = "your brand's own intelligence, grounded in your own data";
 
 const core = require('./brain-core.js');
 const analysis = require('./brain-analysis.js');
@@ -115,7 +115,7 @@ function catalogProducts({ query, market } = {}) {
 const TOOLS = {
   catalog_products: {
     mutates: false,
-    desc: 'Look up REAL KNICKGASM products with their exact names, prices and verified store URLs from the live product catalog. ALWAYS call this before naming a product or giving a product link. params: {query} (optional name/keyword to filter, e.g. "coffee collection"), {market} (US|UK|Global|IN, defaults to current market). Returns [{name, handle, price, url}] — the ONLY valid product names and URLs. Never invent or edit a handle or domain.',
+    desc: 'Look up REAL products for the ACTIVE brand with their exact names, prices and verified store URLs from its own catalog. ALWAYS call this before naming a product or giving a product link. params: {query} (optional name/keyword to filter, e.g. "coffee collection"), {market} (US|UK|Global|IN, defaults to current market). Returns [{name, handle, price, url}] — the ONLY valid product names and URLs. Never invent or edit a handle or domain.',
     run: async (a) => catalogProducts(a),
   },
   market_performance: {
@@ -362,22 +362,27 @@ function synthFromWorking(working) {
   return 'I could not compose an answer just now. Please rephrase, or check that a text-LLM key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY) is set and not quota-exhausted for this deployment.';
 }
 
-function systemPrompt(market) {
+function systemPrompt(market, brand) {
+  // The persona, store domains and claims all derive from the ACTIVE brand.
+  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = {}; } }
+  const _stores = (Array.isArray(brand.regions) && brand.regions.length)
+    ? brand.regions.map((r) => `${r.code} ${String(r.store_url || '').replace(/^https?:\/\//, '')}`).join(' · ')
+    : '[DATA REQUIRED BEFORE LAUNCH: region store URLs]';
   const mk = (market && String(market).trim()) || '';
   const regionBlock = mk
-    ? `CURRENT MARKET: ${mk} — this is the region the user SELECTED in the UI. It is the ACTIVE region (store domains: US knickgasm.com · UK knickgasm.com · Global knickgasm.com · IN knickgasm.in).
+    ? `CURRENT MARKET: ${mk} — this is the region the user SELECTED in the UI. It is the ACTIVE region (store domains: ${_stores}).
 
 REGION CONTEXT (important):
 - The ACTIVE region above is already set by the user's selector. Use it for EVERY region-dependent answer and action — performance, catalog, pricing, calendar, audience, cohorts, revenue, ad insights AND asset generation (mailers/ads/landing pages). Do NOT ask "which region" — it is already chosen. Pass this market to every tool that takes one.
 - Only override it for a single answer if the user EXPLICITLY names a different region in their message (e.g. "and in the UK?"). Then go back to the active region.
 - Real-data coverage: live Shopify-export sales exist for US and UK only; for IN/Global say so plainly and offer what IS available.`
-    : `CURRENT MARKET: NOT YET SPECIFIED (store domains: US knickgasm.com · UK knickgasm.com · Global knickgasm.com · IN knickgasm.in).
+    : `CURRENT MARKET: NOT YET SPECIFIED (store domains: ${_stores}).
 
 REGION CONTEXT (important):
 - If the question depends on region (performance, catalog, pricing, calendar, audience, cohorts, revenue, ad insights) and no region is set and the user has NOT stated one earlier in this conversation, ASK ONE short clarifying question first — "Which region should I use — US, UK, IN, or Global?" — and stop there (action:final). Do not guess or default to US.
 - Once the user states a region, treat it as the ACTIVE region for every following answer WITHOUT asking again — until they explicitly change it.
 - Real-data coverage: live Shopify-export sales exist for US and UK only; for IN/Global say so plainly and offer what IS available.`;
-  return `You are ${BRAND_LLM_NAME} — ${BRAND_LLM_TAGLINE}. You are the in-house AI operator for KNICKGASM (premium Indian heritage sneaker, B-Corp, one-of-one, studio-fresh within 72 hours). You don't just chat — you OPERATE the brand's growth stack by calling tools, then explain the results like a sharp, warm growth lead.
+  return `You are ${assistantNameFor(brand)} — ${BRAND_LLM_TAGLINE}. You are the in-house AI operator for ${(brand && brand.name) || 'this brand'}${(brand && brand.industry) ? ` (${brand.industry})` : ''}. You don't just chat — you OPERATE the brand's growth stack by calling tools, then explain the results like a sharp, warm growth lead.
 
 ${regionBlock}
 
@@ -449,14 +454,29 @@ function renderTranscript(history, message, working) {
  * The conversational tool-calling loop.
  * @returns {ok, reply, steps:[{tool,args,summary}], provider, brand}
  */
-async function chat({ message, history = [], market = 'US', maxSteps = 3 } = {}) {
-  const brand = { name: BRAND_LLM_NAME, tagline: BRAND_LLM_TAGLINE };
+async function chat({ message, history = [], market = 'US', maxSteps = 3, workspaceId = null } = {}) {
+  // Resolve the ACTIVE workspace's brand record so the assistant speaks as
+  // THAT brand (name, industry, regions, claims). Falls back to tenant zero
+  // only for a userless call.
+  let brandRecord = null;
+  if (workspaceId) {
+    try {
+      const wsScope = require('./workspace-scope.js');
+      brandRecord = await wsScope.brandForWorkspace({
+        url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+        key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+      }, workspaceId);
+    } catch (_) { brandRecord = null; }
+  }
+  const brand = brandRecord && brandRecord.id
+    ? Object.assign({}, brandRecord, { tagline: brandRecord.tagline || BRAND_LLM_TAGLINE })
+    : { name: BRAND_LLM_NAME, tagline: BRAND_LLM_TAGLINE };
   if (!message || !String(message).trim()) return { ok: false, error: 'message required', brand };
   if (!callLLM) {
     return { ok: true, brand, reply: `${BRAND_LLM_NAME} needs an LLM provider. Set GEMINI_API_KEY (free) or another provider in Vercel env. All data tools still work via the dashboards.`, steps: [] };
   }
 
-  const sys = systemPrompt(market);
+  const sys = systemPrompt(market, brand);
   const working = [];
   const steps = [];
   const assets = []; // client-only: real generated assets for clickable View/Download

@@ -409,7 +409,7 @@ module.exports = async function handler(req, res) {
       case 'brand-chat': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         if (!b.message) return res.status(400).json({ ok: false, error: 'message required' });
-        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || 'US' });
+        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || 'US', workspaceId: req.__workspaceId || null });
         return res.json(out);
       }
       case 'brand-tools': {
@@ -582,6 +582,7 @@ module.exports = async function handler(req, res) {
           return res.status(401).json({ ok: false, error: 'unauthorized (POST from the console, or cron with CRON_SECRET)' });
         }
         const out = await social.runDaily({
+          workspaceId: req.__workspaceId || null,
           date: b.date || req.query.date,
           platforms: b.platforms,
           dry_run: b.dry_run === true || req.query.dry_run === '1',

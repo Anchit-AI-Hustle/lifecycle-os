@@ -74,7 +74,7 @@ const ALL_KEYS = Object.keys(PLATFORM_SPECS);
 function loadJson(rel) {
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', rel), 'utf8')); } catch (_) { return null; }
 }
-function productTypes() { return loadJson('data/product-types.json') || { store: { base_url: 'https://knickgasm.com', product_url_pattern: 'https://knickgasm.com/products/{handle}' }, types: {} }; }
+function productTypes() { return loadJson('data/product-types.json') || { store: { base_url: '', product_url_pattern: '{base}/products/{handle}' }, types: {} }; }
 function festivalsUK() { const f = loadJson('data/festivals.json'); return (f && f.UK) || []; }
 
 // ── Brand scrub — every emitted string passes through here ───────────────────
@@ -129,18 +129,18 @@ function focusFor(dateIso, facts) {
   const doy = dayOfYear(dateIso);
   const type = FOCUS_CYCLE[doy % FOCUS_CYCLE.length];
   const t = (facts.types || {})[type] || {};
-  const base = (facts.store && facts.store.base_url) || 'https://knickgasm.com';
+  const base = (facts.store && facts.store.base_url) || '';
   let product;
   if (type === 'coffee') {
     product = { title: t.label || 'coffee-ART Collection', handle: t.handle || 'nike-air-force-1-coffee-dip-rope-laces' };
   } else {
     const list = t.products || [];
-    product = list.length ? list[doy % list.length] : { title: 'CR7 x Nike Air Force 1, hand-painted one-of-one', handle: 'cr7-x-nike-air-force-1' };
+    product = list.length ? list[doy % list.length] : { title: '[DATA REQUIRED BEFORE LAUNCH: catalogue item]', handle: '' };
   }
   return {
     type,
     label: t.label || type,
-    purchase_mode: t.purchase_mode || 'one_time_only', // KNICKGASM runs no subscription
+    purchase_mode: t.purchase_mode || 'one_time_only', // default unless the brand declares a subscription
     product: {
       title: product.title,
       handle: product.handle,
@@ -196,16 +196,38 @@ async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs 
   throw lastErr;
 }
 
-const BRAND_GATES = [
-  'HARD BRAND GATES (a violation rejects the whole output):',
-  '- BANNED phrases, never use in any casing: "wellness journey", "transform" (any form), "liquid gold", "game-changer", "LIMITED TIME", "hurry", "don\'t miss out", "last chance", "while supplies last".',
-  '- NO founder voice: no first-person-singular "I", no founder letters, no personal-name sign-offs. The brand speaks as "we".',
-  '- NO health, medical or performance claims of any kind. The only claims allowed: 100% original base sneakers, hand-painted by India\'s best sneaker artists, water and scratch resistant, made to order in 10 to 15 days, express shipping to 60+ countries, worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.',
-  '- Accessories (laces, lace tags): NEVER state a price — link the product page. coffee-ART pricing must match the catalog EXACTLY by base model: Court Vision £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91. EVERY lane is ONE-TIME purchase — never subscription, refill or auto-ship language anywhere.',
-  '- The coffee-ART collection is a PAINT THEME (coffee-dip washes and latte-swirl motifs hand-painted onto original sneakers), NOT a drink. Never write beverage, roast, brew or caffeine copy.',
-  '- Links: ONLY https://knickgasm.com/products/{handle} using the handles provided — never invent a URL or discount code.',
-  '- Voice: warm, sensory, story-driven. Preferred words: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-].join('\n');
+function brandName(ctx) {
+  let b = (ctx && ctx.brand && ctx.brand.id) ? ctx.brand : null;
+  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  return b.name || 'this brand';
+}
+function brandRecord(ctx) {
+  let b = (ctx && ctx.brand && ctx.brand.id) ? ctx.brand : null;
+  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  return b || {};
+}
+function brandPersona(ctx, role) {
+  const b = brandRecord(ctx);
+  const bits = [b.name || 'this brand'];
+  if (b.industry) bits.push(b.industry);
+  return 'You are the ' + role + ' for ' + bits.join(' - ') + '.';
+}
+// Brand gates DERIVED from the active brand: its own banned phrases, its own
+// verifiable claims, its own voice and store. Never a fixed tenant's.
+function brandGates(ctx) {
+  const b = brandRecord(ctx);
+  const v = b.voice || {};
+  const claims = (Array.isArray(b.claims) && b.claims.length) ? b.claims.join('; ') : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims]';
+  const host = String(b.website || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const out = ['HARD BRAND GATES (a violation rejects the whole output):'];
+  if (Array.isArray(v.banned) && v.banned.length) out.push('- BANNED phrases, never use in any casing: ' + v.banned.map(function (x) { return '"' + x + '"'; }).join(', ') + '.');
+  out.push('- NO founder voice: the brand speaks as "we".');
+  out.push('- NO health, medical or performance claims of any kind. The ONLY claims allowed are this brand\'s own: ' + claims + '.');
+  out.push('- Never state a price, discount code or URL that was not supplied in the brief.');
+  out.push(host ? '- Links: ONLY pages on ' + host + ' using the handles provided.' : '- Links: ONLY URLs supplied in the brief.');
+  if (v.tone) out.push('- Voice: ' + v.tone + '.' + (Array.isArray(v.preferred) && v.preferred.length ? ' Preferred words: ' + v.preferred.join(', ') + '.' : ''));
+  return out.join('\n');
+}
 
 // ── Agent 1: Ideology (premium) ───────────────────────────────────────────────
 function fallbackIdeology(ctx) {
@@ -213,7 +235,7 @@ function fallbackIdeology(ctx) {
   const p = ctx.focus.product;
   return {
     theme: f ? (f.name + ' — a pair that exists once') : ('One of one, and only one: ' + p.title),
-    narrative: 'One good pair changes how a whole fit reads. Today we sit with ' + p.title + ' — an original silhouette, hand-painted by our artists, finished so it survives the streets it was made for.',
+    narrative: 'Today we sit with ' + p.title + ', from ' + brandName(ctx) + '.',
     mood: 'calm, warm, sensory',
     visual_direction: 'Golden-hour still life on chalk linen: ' + p.title + ' as hero, deep deep-purple ceramics, steam catching the light, small lava accents; generous negative space.',
     calendar_moment: f ? f.name : null,
@@ -223,7 +245,7 @@ async function ideologyAgent(ctx, timeoutMs) {
   const f = ctx.festival;
   const out = await llmJson({
     tier: 'premium', stage: 'social-ideology', timeoutMs, maxTokens: 700,
-    system: 'You are the creative director for KNICKGASM (India\'s largest sneaker customiser: hand-painted one-of-one custom sneakers on 100% original bases, the coffee-ART painted collection, and the accessories that finish a pair; UK market). Set today\'s single creative theme for all social channels. Reply as strict JSON: {"theme":"","narrative":"","mood":"","visual_direction":"","calendar_moment":null}.\n' + BRAND_GATES,
+    system: brandPersona(ctx, 'creative director') + ' Set today\'s single creative theme for all social channels. Reply as strict JSON: {"theme":"","narrative":"","mood":"","visual_direction":"","calendar_moment":null}.\n' + brandGates(ctx),
     user: 'Date: ' + ctx.date + ' (UK).\nCalendar moment: ' + (f ? (f.name + (f.upcoming ? ' in ' + f.days_away + ' day(s)' : ' today') + ', tags: ' + (f.tags || []).join(', ')) : 'none — lean on the everyday ritual') + '.\nProduct focus today (rotation): ' + ctx.focus.label + ' — hero product: ' + ctx.focus.product.title + '.\nRecent themes to NOT repeat: ' + JSON.stringify(ctx.recentThemes.slice(0, 8)) + '.\nGive one theme that works across Instagram, TikTok, LinkedIn, X, Pinterest, YouTube Shorts, Threads and a blog post.',
   });
   const fb = fallbackIdeology(ctx);
@@ -252,7 +274,7 @@ function fallbackHypothesis(ctx) {
 async function hypothesisAgent(ctx, ideology, timeoutMs) {
   const out = await llmJson({
     tier: 'standard', stage: 'social-hypothesis', timeoutMs, maxTokens: 600,
-    system: 'You are the growth analyst for KNICKGASM social. Given today\'s signals, state a falsifiable hypothesis on what will perform. Reply as strict JSON: {"hypothesis":"","signals":[""],"avoid":[""]}.',
+    system: brandPersona(ctx, 'growth analyst') + ' Given today\'s signals, state a falsifiable hypothesis on what will perform. Reply as strict JSON: {"hypothesis":"","signals":[""],"avoid":[""]}.',
     user: 'Theme: ' + ideology.theme + '\nFocus: ' + ctx.focus.label + ' / ' + ctx.focus.product.title + ' (' + ctx.focus.purchase_mode + ')\nCalendar: ' + (ctx.festival ? ctx.festival.name : 'none') + '\nRecent post themes (avoid repeating): ' + JSON.stringify(ctx.recentThemes.slice(0, 10)),
   });
   const fb = fallbackHypothesis(ctx);
@@ -288,8 +310,8 @@ function fallbackStrategy(ctx, keys) {
 async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
   const out = await llmJson({
     tier: 'premium', stage: 'social-strategy', timeoutMs, maxTokens: 1400, temperature: 0.4,
-    system: 'You are the business strategist for KNICKGASM social. Decide the objective (awareness | traffic | conversion), CTA and link target per platform. The ONLY allowed link is the provided product URL (real handle). Reply as strict JSON: {"per_platform":{"<key>":{"objective":"","cta":"","link":""}}} with exactly these keys: ' + keys.join(', ') + '.\n' + BRAND_GATES,
-    user: 'Theme: ' + ideology.theme + '\nHypothesis: ' + hypothesis.hypothesis + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nPurchase mode: ' + ctx.focus.purchase_mode + ' (ONE-TIME purchase only — never subscription language; KNICKGASM runs no subscription)',
+    system: brandPersona(ctx, 'business strategist') + ' Decide the objective (awareness | traffic | conversion), CTA and link target per platform. The ONLY allowed link is the provided product URL (real handle). Reply as strict JSON: {"per_platform":{"<key>":{"objective":"","cta":"","link":""}}} with exactly these keys: ' + keys.join(', ') + '.\n' + brandGates(ctx),
+    user: 'Theme: ' + ideology.theme + '\nHypothesis: ' + hypothesis.hypothesis + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nPurchase mode: ' + ctx.focus.purchase_mode + ' (use only this purchase mode; never introduce subscription language the brand does not offer)',
   });
   const fb = fallbackStrategy(ctx, keys);
   const per = {};
@@ -307,10 +329,10 @@ async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
 
 // ── Agent 4: Content (premium) — per-platform copy incl. blog ────────────────
 const TAG_POOLS = {
-  brand: ['#KNICKGASM', '#KnickgasmCustoms'],
-  tb: ['#CustomSneakers', '#HandPainted', '#OneOfOne', '#SneakerArt', '#AirForce1', '#CustomKicks', '#SneakerCustomiser', '#WearableArt', '#SneakerHead', '#CustomAF1'],
-  coffee: ['#CoffeeART', '#CoffeeDip', '#SneakerArt', '#HandPainted', '#CustomAF1', '#LatteSwirl', '#OneOfOne', '#CustomKicks'],
-  supplements: ['#RopeLaces', '#LaceTags', '#SneakerCare', '#FinishTheFit', '#CustomKicks', '#SneakerDetails'],
+  brand: [],
+  tb: [],
+  coffee: [],
+  supplements: [],
 };
 function tagsFor(key, focus) {
   const spec = PLATFORM_SPECS[key];
@@ -322,21 +344,21 @@ function tagsFor(key, focus) {
 }
 function focusLine(focus) {
   if (focus.type === 'coffee') {
-    return 'coffee-ART: coffee-dip washes and latte-swirl artwork hand-painted onto an original sneaker. Court Vision base £89.09, Air Force 1 £108.27, Air Jordan 1 Low £141.91. Made to order in 10 to 15 days, one pair only.';
+    return '[DATA REQUIRED BEFORE LAUNCH: collection description and pricing]';
   }
   if (focus.type === 'supplements') {
     return focus.product.title + ' — the small detail that finishes a pair. See it on the product page.';
   }
   const p = focus.product;
   const price = p.price_gbp ? ('£' + p.price_gbp + (p.compare_at_gbp ? ' (was £' + p.compare_at_gbp + ')' : '')) : '';
-  return p.title + ' — hand-painted in our Mumbai studio on a 100% original base' + (price ? ', ' + price : '') + '. Made to order in 10 to 15 days, and never painted twice.';
+  return p.title + (price ? ' - ' + price : '');
 }
 function fallbackContent(ctx, ideology, strategy, keys) {
   const p = ctx.focus.product;
   const line = focusLine(ctx.focus);
   const opener = 'There is a moment when the right pair stops being footwear and starts being a signature.';
   const hook = ctx.focus.type === 'coffee' ? 'Your 3pm deserved better. So we rebuilt the pair.' : 'The slowest two minutes of your day, done properly.';
-  const alt = 'Editorial still life of ' + p.title + ' on chalk linen with deep-purple ceramics and steam rising, in the KNICKGASM palette.';
+  const alt = 'Editorial still life of ' + p.title + " in " + brandName(ctx) + "'s own palette.";
   const posts = {};
   for (const key of keys) {
     const st = strategy.per_platform[key];
@@ -352,13 +374,13 @@ function fallbackContent(ctx, ideology, strategy, keys) {
       case 'tiktok':
         posts[key] = { caption: hook + ' ' + (ctx.focus.type === 'tb' ? 'Lacing ' + p.title.split(',')[0] + ' the way the studio taught us.' : line), hook, alt_text: alt }; break;
       case 'linkedin':
-        posts[key] = { caption: 'At KNICKGASM we ship ' + (ctx.focus.type === 'tb' ? 'one-of-one Indian sneakers' : ctx.focus.label.toLowerCase()) + ' from origin within days of drop — a supply chain built on heritage, not warehouses.\n\nToday that means ' + p.title + '. ' + line + '\n\n' + st.cta + ': ' + st.link, hook: '', alt_text: alt }; break;
+        posts[key] = { caption: 'Today from ' + brandName(ctx) + ': ' + p.title + '. ' + line + '\n\n' + st.cta + ': ' + st.link, hook: '', alt_text: alt }; break;
       case 'x':
         posts[key] = { caption: hook + ' ' + p.title.split(',')[0] + ' → ' + st.link, hook, alt_text: alt }; break;
       case 'pinterest':
-        posts[key] = { title: (p.title + ' — the KNICKGASM ritual').slice(0, 100), caption: line + ' ' + st.cta + '.', hook: '', alt_text: alt }; break;
+        posts[key] = { title: (p.title + ' | ' + brandName(ctx)).slice(0, 100), caption: line + ' ' + st.cta + '.', hook: '', alt_text: alt }; break;
       case 'youtube_shorts':
-        posts[key] = { title: (hook + ' | KNICKGASM').slice(0, 100), caption: line + ' ' + st.cta + ': ' + st.link, hook, alt_text: alt }; break;
+        posts[key] = { title: (hook + ' | ' + brandName(ctx)).slice(0, 100), caption: line + ' ' + st.cta + ': ' + st.link, hook, alt_text: alt }; break;
       case 'threads':
         posts[key] = { caption: hook + ' ' + line, hook, alt_text: alt }; break;
       case 'blog':
@@ -374,20 +396,14 @@ function fallbackBlog(ctx, ideology, st) {
   const p = ctx.focus.product;
   const name = p.title.split(',')[0];
   const paras = [
-    'There is a moment when the right pair stops being footwear and starts being a signature. It is the second someone looks down, then looks again. At KNICKGASM, everything we make is built for that moment, and today we want to spend it with ' + p.title + '.',
+    'Today we want to spend a moment with ' + p.title + ', from ' + brandName(ctx) + '.',
     ideology.narrative,
-    'Most of what is sold as a limited sneaker in the UK was made a hundred thousand times over. We built KNICKGASM to do the opposite: start with a 100% original Nike, Jordan, Converse or Adidas base, then hand-paint it once, in our Mumbai studio, for one person. No stencil runs, no reprints, no second pair. India\'s largest sneaker customiser, and every order still passes through an artist\'s hands.',
+    '[DATA REQUIRED BEFORE LAUNCH: origin story for ' + brandName(ctx) + ']',
     ctx.focus.type === 'coffee'
-      ? 'The coffee-ART collection is our answer to a familiar problem: you want something warm and unmistakable on foot without it looking like a costume. It is a paint theme, not a drink — coffee-dip washes, latte-swirl gradients and cartoon-coffee motifs hand-painted onto an original base. Pick your silhouette and the price follows the shoe: Court Vision at £89.09, Air Force 1 at £108.27, Air Jordan 1 Low at £141.91. Each one is made to order over 10 to 15 days, sealed water and scratch resistant, and painted exactly once.'
-      : ctx.focus.type === 'supplements'
-        ? p.title + ' is the kind of detail that decides whether a pair looks finished or nearly finished. Chunky rope laces change the whole proportion of a silhouette; a custom lace tag turns a pair into a signed piece. We keep this lane deliberately simple and deliberately cheap to try, so the price lives on the product page rather than in the story. It is the last five per cent, and it is usually the five per cent people notice.'
-        : name + ' is one of the quiet heroes of our range. Painted by hand onto an original base and finished so the artwork flexes with the leather instead of cracking at the toe box, it is the pair people ask about before they ask your name. It is a one-time purchase, currently ' + (p.price_gbp ? '£' + p.price_gbp : 'listed on the product page') + (p.compare_at_gbp ? ' against a compare-at price of £' + p.compare_at_gbp : '') + ', made to order in 10 to 15 days.',
-    'How we suggest you wear it: like it is yours, because it is. These are not display pieces. The paint system is layered and cured so it survives rain, scuffs and a full day on concrete. Lace them for the fit you actually walk in, not the one that photographs best, and let the artwork earn its wear.',
-    '## Getting the most from your pair\n\nA few notes from the studio. Clean with a damp microfibre and a soft brush, not a machine and never direct heat — hand-painted layers do not enjoy a tumble dryer. Store them out of long direct sunlight, the same way you would any pigment. Swap in fresh laces before you swap out the shoe; it costs almost nothing and resets the whole pair. And because the artwork was applied by hand, it can be touched up by hand: a scuffed panel is a repair, not an ending.',
-    '## Why one-of-one is different\n\nThe industry standard is scale: one design, one hundred thousand pairs, a raffle to decide who gets to look identical. We took the opposite bet. Every KNICKGASM pair begins as an original branded sneaker and ends as a single painted object — your reference, your palette, your fit. That is why it takes 10 to 15 days instead of two: the wait is not a delay, it is the product. You see the difference most clearly up close, in the brush edges and the airbrush fades that no factory line produces.',
-    '## A pair worth keeping\n\nMost sneakers are replaced. A few are kept. The difference is rarely the shoe and almost always the story attached to it — the character you grew up on, the club you have followed since you were eight, the car you will probably never own, the day you got married. That is the whole design brief behind our range: put the thing you actually care about on the silhouette you actually wear. Start with one pair. The rest of the rack can wait.',
-    'Every KNICKGASM purchase also supports the artists behind it: a studio of full-time painters in Mumbai whose work ships to more than 60 countries and has been worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor. When you choose one-of-one over mass-produced, you are also choosing that.',
-    'If today is the day the rack finally gets something that is only yours, start here: ' + st.link + '. ' + st.cta + ', and let the pair do the rest.',
+      ? '[DATA REQUIRED BEFORE LAUNCH: collection narrative for ' + brandName(ctx) + ']'
+      : '[DATA REQUIRED BEFORE LAUNCH: product narrative for ' + brandName(ctx) + ']',
+    '## Getting the most from it\n\n[DATA REQUIRED BEFORE LAUNCH: care and usage notes for ' + brandName(ctx) + ']',
+    '## Worth keeping\n\n[DATA REQUIRED BEFORE LAUNCH: closing narrative for ' + brandName(ctx) + ']'
   ];
   return {
     title: (ideology.theme + ' — with ' + name).slice(0, 90),
@@ -395,7 +411,7 @@ function fallbackBlog(ctx, ideology, st) {
     meta_description: ('The story behind ' + p.title + ' — origin-fresh, one-of-one, and how to build a daily ritual around it.').slice(0, 158),
     body_markdown: '# ' + ideology.theme + '\n\n' + paras.join('\n\n'),
     hashtags: [],
-    alt_text: 'Editorial hero image of ' + p.title + ' in the KNICKGASM palette.',
+    alt_text: 'Editorial hero image of ' + p.title + " in " + brandName(ctx) + "'s own palette.",
   };
 }
 async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
@@ -405,7 +421,7 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
   }).join('\n');
   const out = await llmJson({
     tier: 'premium', stage: 'social-content', timeoutMs, maxTokens: 6500,
-    system: 'You are the senior content writer for KNICKGASM (India\'s largest sneaker customiser: hand-painted one-of-one custom sneakers, the coffee-ART painted collection, and finishing accessories; UK). Write today\'s copy for EVERY platform key listed, obeying each platform\'s limits and tone. Reply as strict JSON: {"posts":{"<key>":{"caption":"","hook":"","hashtags":[""],"alt_text":"","title":""}}}. The "blog" key instead needs {"title","slug","meta_description","body_markdown"} where body_markdown is a full 800-1200 word editorial SEO post. Hashtags without the pound sign are invalid.\n' + BRAND_GATES,
+    system: brandPersona(ctx, 'senior content writer') + ' Write today\'s copy for EVERY platform key listed, obeying each platform\'s limits and tone. Reply as strict JSON: {"posts":{"<key>":{"caption":"","hook":"","hashtags":[""],"alt_text":"","title":""}}}. The "blog" key instead needs {"title","slug","meta_description","body_markdown"} where body_markdown is a full 800-1200 word editorial SEO post. Hashtags without the pound sign are invalid.\n' + brandGates(ctx),
     user: 'Date: ' + ctx.date + ' (UK)\nTheme: ' + ideology.theme + '\nNarrative: ' + ideology.narrative + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nProduct facts you may state: ' + focusLine(ctx.focus) + '\nPlatform specs:\n' + specLines,
   });
   const fb = fallbackContent(ctx, ideology, strategy, keys);
@@ -438,7 +454,7 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
 
 // ── Agent 5: Design — one hero image reused with per-platform crops ──────────
 function heroPrompt(ideology, focus) {
-  return 'Premium editorial product photography for KNICKGASM. ' + ideology.visual_direction +
+  return 'Premium editorial product photography for ' + brandName(ctx) + '. ' + ideology.visual_direction +
     ' Hero product: ' + focus.product.title + '.' +
     ' Composition with generous negative space so the frame crops cleanly to 4:5 portrait, 9:16 vertical and 2:3 pin.' +
     ' Color palette strictly limited to deep deep purple #D0473E, antique lava #6A33D8, near-black #111111 and warm chalk #FFFFFF.' +
@@ -475,7 +491,7 @@ function fallbackStoryboard(ctx, ideology) {
     storyboard: [
       '0-2s — HOOK: extreme close-up, steam curling off the pair in golden-hour light (9:16, product barely out of focus behind).',
       '2-5s — RITUAL: hands warming the pair / pouring; ' + name + ' pack visible on chalk linen with deep-purple ceramics.',
-      '5-8s — REVEAL: pack front and centre on #FFFFFF, lava accent light; end card text in Montserrat over chalk: "' + name + ' — KNICKGASM".',
+      '5-8s - REVEAL: product front and centre, brand accent light; end card text: "' + name + ' | ' + brandName(ctx) + '".',
     ],
     audio: 'No voiceover after the hook; natural kit/pour foley, soft room tone. Music: sparse, warm, no percussion.',
     on_screen_text: [ideology.theme, ctx.focus.type === 'tb' ? 'One-time pack. No strings.' : 'Subscribe & save.'],
@@ -488,7 +504,7 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
     try {
       const out = await llmJson({
         tier: 'standard', stage: 'social-video', timeoutMs: budget, maxTokens: 700,
-        system: 'You are the short-form video director for KNICKGASM. Write an 8-second 9:16 storyboard for TikTok / Reels / Shorts. Reply as strict JSON: {"script":"","storyboard":["shot 1","shot 2","shot 3"],"audio":"","on_screen_text":[""]}.\n' + BRAND_GATES,
+        system: brandPersona(ctx, 'short-form video director') + ' Write an 8-second 9:16 storyboard for TikTok / Reels / Shorts. Reply as strict JSON: {"script":"","storyboard":["shot 1","shot 2","shot 3"],"audio":"","on_screen_text":[""]}.\n' + brandGates(ctx),
         user: 'Theme: ' + ideology.theme + '\nProduct: ' + ctx.focus.product.title + '\nHook to open on: ' + ((content.posts.tiktok && content.posts.tiktok.hook) || ideology.theme),
       });
       if (out && (out.storyboard || out.script)) {
@@ -504,7 +520,7 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
   }
   if (!board) board = fallbackStoryboard(ctx, ideology);
 
-  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for KNICKGASM. ' + board.storyboard.join(' ') + ' Palette locked to #D0473E, #6A33D8, #111111, #FFFFFF. No on-screen text (added in edit), no faces, no logos.';
+  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for ' + brandName(ctx) + '. ' + board.storyboard.join(' ') + ' Palette locked to this brand\'s own tokens. No on-screen text (added in edit), no faces, no logos.';
   let job = null;
   if (ctx.dry_run && video.isConnected()) {
     job = { status: 'skipped_dry_run', note: 'video keys present but dry_run — no render submitted' };
@@ -519,7 +535,7 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
 }
 
 // ── Agent 7: Compilation (fast) + limits + content validation ────────────────
-// Code-level content gate (the BRAND_GATES rules were prompt-only; the LLM could
+// Code-level content gate (the brandGates(ctx) rules were prompt-only; the LLM could
 // still slip a fabricated price, a raw non-PDP URL, or a medical claim through).
 // SAFE auto-fixes: strip any URL in the copy that is not a verified PDP link (the
 // CTA link is a separate, guarded field), and strip price tokens from accessory
@@ -649,7 +665,7 @@ function resolveKeys(platforms) {
  * dry_run: no persistence, no image render (prompt placeholder), no video
  * submission when real video keys exist (keyless stubs still returned).
  */
-async function runDaily({ date, platforms, dry_run = false } = {}) {
+async function runDaily({ date, platforms, dry_run = false, workspaceId = null } = {}) {
   const t0 = Date.now();
   const deadline = t0 + PIPELINE_BUDGET_MS;
   const remaining = () => deadline - Date.now();
@@ -657,8 +673,21 @@ async function runDaily({ date, platforms, dry_run = false } = {}) {
 
   const iso = normDate(date);
   const facts = productTypes();
+  // The ACTIVE brand travels with the context, so every agent persona, gate
+  // and fallback line speaks as that brand rather than tenant zero.
+  let __brand = null;
+  if (workspaceId) {
+    try {
+      const wsScope = require('./workspace-scope.js');
+      __brand = await wsScope.brandForWorkspace({
+        url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+        key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+      }, workspaceId);
+    } catch (_) { __brand = null; }
+  }
   const ctx = {
     date: iso, dry_run: dry_run === true,
+    brand: __brand,
     focus: focusFor(iso, facts),
     festival: festivalFor(iso),
     recentThemes: await recentThemes(14),
