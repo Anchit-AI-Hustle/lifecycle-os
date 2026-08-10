@@ -625,9 +625,31 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
   const config = _ctxFallback?.config || smartConfig(cfg);
   const db = _ctxFallback?.db || new SmartBrainDbAdapter(config);
   if (db.connected) {
-    const rows = (await db.select(config.tableNames.calendarEntries, {
+    let rows = (await db.select(config.tableNames.calendarEntries, {
       filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc,market.asc', limit: 1000,
     }).catch(() => [])) || [];
+    if (rows.length) {
+      // STALENESS GUARD. A workspace can be renamed or re-pointed at a
+      // different brand (it happened: an Economic Times workspace became TOI
+      // Health & Fitness). Its stored rows then describe the OLD identity's
+      // offerings, and nothing else would ever notice. If none of the stored
+      // heroes exist in the brand's CURRENT offerings, the plan is stale:
+      // fall through and re-plan from what the brand is NOW.
+      try {
+        const pbNow = await planningBrand(config, db);
+        if (!pbNow.isZero && pbNow.brand) {
+          const own = _resolveBrandOfferings(pbNow.brand).map((o) => String(o.name || '').toLowerCase());
+          if (own.length) {
+            const heroes = rows.map((r) => String(((r.payload || {}).heroProduct || {}).title || '').toLowerCase()).filter(Boolean);
+            const overlap = heroes.filter((h) => own.includes(h)).length;
+            if (heroes.length && overlap === 0) {
+              try { console.warn('[smart-brain] stored plan does not match this brand\'s current offerings - re-planning'); } catch (_) {}
+              rows = [];
+            }
+          }
+        }
+      } catch (_) { /* a guard failure must never block the stored plan */ }
+    }
     if (rows.length) {
       return {
         ok: true, mode: 'db-linked', stored: true,
@@ -1390,7 +1412,7 @@ async function buildCampaign(entry, config, { id = null, withCreatives = true, n
   // the dedicated brand-compliant template directly (no LLM promo pipeline).
   if (reviewRecovery && (entry.objective === 'review_recovery' || entry.review_recovery)) {
     const product = entry.heroProduct || {};
-    const html = reviewRecovery.reviewMailerHtml(product, entry.market);
+    const html = reviewRecovery.reviewMailerHtml(product, entry.market, entry.brand || null);
     const subject = `A quick word on your ${product.title || 'recent order'}?`;
     return {
       campaign_id: id || `review_${entry.id || entry.date}`,

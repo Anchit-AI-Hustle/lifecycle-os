@@ -561,7 +561,7 @@ function _renderVariantBody(o) {
       <tr><td align="center" style="padding:18px 0 6px;">
         <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block;">
           <div style="font-family:${HEAD};font-size:22px;letter-spacing:0.28em;color:${palette.green};font-weight:700;">${esc(brandNameOf(o).toUpperCase())}</div>
-          <div style="font-family:${BODY};font-size:10px;letter-spacing:0.22em;color:${palette.lava};text-transform:uppercase;margin-top:4px;">${esc(market)} · One-of-One Sneaker</div>
+          <div style="font-family:${BODY};font-size:10px;letter-spacing:0.22em;color:${palette.lava};text-transform:uppercase;margin-top:4px;">${esc(market)}${_brand(o).tagline ? ' · ' + esc(_brand(o).tagline) : ''}</div>
         </a>
       </td></tr>`;
   // Optional lava offer bar (only when an offer string is supplied).

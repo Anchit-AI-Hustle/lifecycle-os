@@ -399,7 +399,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
   <tr><td align="center" style="padding:18px 0 8px">
     <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block">
       <div style="font-family:${heads};font-size:22px;letter-spacing:0.28em;color:${P.forest_green};font-weight:700">KNICKGASM</div>
-      <div style="font-family:${body};font-size:10px;letter-spacing:0.22em;color:${P.lava};text-transform:uppercase;margin-top:4px">USA · One-of-One Sneaker</div>
+      <div style="font-family:${body};font-size:10px;letter-spacing:0.22em;color:${P.lava};text-transform:uppercase;margin-top:4px">${esc(String(market || '').toUpperCase())}</div>
     </a>
   </td></tr>
   ${bodyRows}
