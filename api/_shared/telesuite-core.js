@@ -39,15 +39,15 @@ const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
 
 const SUBFEATURES = [
   /* ── Core ─────────────────────────────────────────────────────────────── */
-  { key: 'home', label: 'TeleSuite Home', group: 'Core', kind: 'home', icon: 'home',
+  { key: 'home', label: 'Home', group: '', kind: 'home', icon: 'home',
     blurb: 'At-a-glance view of every TeleSuite module, its recent runs and its credit spend.' },
 
-  { key: 'products', label: 'Products', group: 'Core', kind: 'library', item_kind: 'product', icon: 'box',
+  { key: 'products', label: 'Products', group: '', kind: 'library', item_kind: 'product', icon: 'box',
     blurb: 'The product catalog every TeleSuite generator is grounded in. Seeded from your brand catalog, editable here.',
     credit_key: 'telesuite.product_description',
     generate: { op: 'product_description', label: 'Generate description with AI' } },
 
-  { key: 'knowledge-base', label: 'Knowledge Base', group: 'Core', kind: 'library', item_kind: 'knowledge', icon: 'book',
+  { key: 'knowledge-base', label: 'Knowledge Base', group: '', kind: 'library', item_kind: 'knowledge', icon: 'book',
     blurb: 'Central repository of contextual documents and snippets used as grounding for pitches, rebuttals and scoring.',
     credit_key: 'telesuite.kb_ingest',
     generate: { op: 'kb_ingest', label: 'Summarise and categorise' } },

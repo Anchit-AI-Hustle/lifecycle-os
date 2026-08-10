@@ -131,6 +131,7 @@
   .spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
   pre.json{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:13px;overflow-x:auto;font-size:11.5px;line-height:1.6}
+  .rsep{height:1px;background:var(--brand-line,rgba(0,0,0,.12));margin:10px 12px}
 </style>
 </head>
 <body>
@@ -267,13 +268,18 @@
     var groups = [];
     REG.subfeatures.forEach(function (s) { if (groups.indexOf(s.group) < 0) groups.push(s.group); });
     var html = '<div class="brandline"><b>TeleSuite</b><small>' + esc(brand ? brand.name : 'no brand selected') + '</small></div>';
+    // Match the AI-TeleSuite source app exactly: Home / Products / Knowledge
+    // Base are TOP-LEVEL items followed by a separator - not a labelled "Core"
+    // group - and every other section keeps its own group heading.
     groups.forEach(function (g) {
-      html += '<div class="rgrp">' + esc(g) + '</div>';
-      REG.subfeatures.filter(function (s) { return s.group === g; }).forEach(function (s) {
+      if (g) html += '<div class="rgrp">' + esc(g) + '</div>';
+      else html += '';
+      REG.subfeatures.filter(function (s) { return (s.group || '') === g; }).forEach(function (s) {
         var price = s.credit_key && window.Credits ? window.Credits.costText(s.credit_key) : '';
         html += '<a class="rlink' + (s.key === current ? ' on' : '') + '" href="#' + esc(s.key) + '">' +
           esc(s.label) + (price ? '<span class="c">' + esc(price) + '</span>' : '') + '</a>';
       });
+      if (!g) html += '<div class="rsep" role="separator"></div>';
     });
     $('rail').innerHTML = html;
   }
@@ -281,7 +287,7 @@
   /* ── views ──────────────────────────────────────────────────────────── */
 
   function head(s, extra) {
-    return '<div class="eyebrow">TeleSuite · ' + esc(s.group) + '</div>' +
+    return '<div class="eyebrow">TeleSuite' + (s.group ? ' · ' + esc(s.group) : '') + '</div>' +
       '<h1>' + esc(s.label) + '</h1>' +
       '<p class="lede">' + esc(s.blurb || '') + '</p>' + (extra || '');
   }

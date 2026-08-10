@@ -75,8 +75,15 @@ function productImage(p, market) {
 // Match a calendar slot to a Campaign-Hub theme by keyword overlap. Returns
 // { theme, variant } only on a real match, so a Jordan slot never gets a
 // grail-drop page. null → fall back to the generic LLM landing page.
-function pickCampaignHubLP(slot, products) {
+function pickCampaignHubLP(slot, products, brand) {
   if (!lpCompiler || !Array.isArray(lpCompiler.THEMES) || !lpCompiler.THEMES.length) return null;
+  // The Campaign-Hub themes are a hand-written CONTENT LIBRARY for tenant zero:
+  // its angles, its copy, its Shopify image URLs. There is no brand-agnostic
+  // version of "Naruto on an Air Force 1", so any other brand must never be
+  // served these pages - it falls through to the brand-derived generator.
+  const slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+  const isZero = !brand || brand.is_default || slug === 'knickgasm';
+  if (!isZero) return null;
   const hay = [slot.theme, slot.angle, slot.cohort_id, slot.festival,
     ...(products || []).flatMap((p) => [p.title, p.category, ...((p.tags) || [])])].filter(Boolean).join(' ').toLowerCase();
   // Only consider the Hub for design/fandom/occasion intents (the themes the
@@ -761,7 +768,7 @@ async function generateForSlot(slotId, { persist = true } = {}) {
   }
   if (slot.channel.startsWith('landing')) {
     const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
-    const hub = pickCampaignHubLP(slot, picked);
+    const hub = pickCampaignHubLP(slot, picked, (slot && slot.brand) || (typeof entry !== "undefined" && entry && entry.brand) || null);
     if (hub) {
       // Premium curated themed LP from the Campaign Hub compiler.
       push('landing_html', `Landing · ${hub.theme.name} · ${slot.market}`, lpCompiler.compileHTML(hub.theme, hub.variant, store),
