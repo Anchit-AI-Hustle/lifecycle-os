@@ -62,6 +62,58 @@ function urlHash(url) { return crypto.createHash('sha1').update(canonicalUrl(url
 // ═══════════════════════════════════════════════════════════════════════════
 // HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
+/**
+ * INGEST-FILES — accept uploaded files of any extension, extract what can
+ * honestly be read, analyse it for the ACTIVE brand, and store it as knowledge.
+ *
+ * The client posts one small batch at a time as base64 (Vercel caps a request
+ * body at ~4.5MB), so a 500-file folder streams through as many small calls.
+ * A file we cannot read is still recorded, with an explicit note saying what is
+ * missing - never a fabricated summary.
+ */
+async function ingestFiles(req, res, env) {
+  const kbFiles = require('./_shared/kb-files.js');
+  const wsScope = require('./_shared/workspace-scope.js');
+  const body = (req.body && typeof req.body === 'object') ? req.body
+    : (() => { try { return JSON.parse(req.body || '{}'); } catch (_) { return {}; } })();
+  const files = Array.isArray(body.files) ? body.files.slice(0, 12) : [];
+  if (!files.length) return res.status(400).json({ ok: false, error: 'files[] required' });
+
+  // The knowledge belongs to the ACTIVE workspace, and the analysis is written
+  // for THAT brand. Without a workspace we refuse rather than filing it blind.
+  const wsId = await wsScope.resolve(env, req);
+  if (!wsId) return res.status(200).json({ ok: false, error: 'workspace_unresolved', note: 'No active brand workspace on this request, so nothing was filed.' });
+  let brand = null;
+  try { brand = await wsScope.brandForWorkspace(env, wsId); } catch (_) { brand = null; }
+
+  const results = [];
+  for (const f of files) {
+    const name = String(f.name || 'file');
+    try {
+      const buf = Buffer.from(String(f.data_base64 || ''), 'base64');
+      if (!buf.length) { results.push({ name, ok: false, error: 'empty file' }); continue; }
+      const built = await kbFiles.buildRecord({ name, path: f.path || name, size: buf.length, buf, brand });
+      const row = Object.assign({}, built.row, { workspace_id: wsId, market: String(f.market || '') || null });
+      const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=url_hash`, {
+        method: 'POST',
+        headers: { apikey: env.key, Authorization: `Bearer ${env.key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify([row]),
+      });
+      if (!r.ok) { results.push({ name, ok: false, error: `store failed: ${r.status} ${(await r.text()).slice(0, 140)}` }); continue; }
+      results.push({ name, ok: true, title: row.title, ...built.extracted });
+    } catch (e) {
+      results.push({ name, ok: false, error: e.message });
+    }
+  }
+  const stored = results.filter((x) => x.ok).length;
+  return res.status(200).json({
+    ok: true, stored, total: results.length, workspace_id: wsId,
+    brand: brand ? brand.name : null,
+    needs_attention: results.filter((x) => x.ok && x.extracted === false).length,
+    results,
+  });
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
@@ -78,6 +130,11 @@ module.exports = async function handler(req, res) {
   if (action === 'ingest') {
     if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
     return ingest(req, res, env);
+  }
+  // ── 1b. INGEST-FILES — a folder or file set of ANY type ─────────────────
+  if (action === 'ingest-files') {
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+    return ingestFiles(req, res, env);
   }
   // ── 2. LIST — read kb_knowledge ─────────────────────────────────────────
   if (action === 'list') {

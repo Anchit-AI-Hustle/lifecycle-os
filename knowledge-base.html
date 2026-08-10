@@ -478,28 +478,86 @@
     return { sb: window.supabase.createClient(sbUrl, anon), sbUrl, anon };
   }
 
+  // Read a File as base64 without blowing memory on large binaries.
+  function fileToBase64(file, maxBytes) {
+    return new Promise(function (resolve) {
+      const blob = (maxBytes && file.size > maxBytes) ? file.slice(0, maxBytes) : file;
+      const fr = new FileReader();
+      fr.onload = function () {
+        const s = String(fr.result || '');
+        resolve({ b64: s.slice(s.indexOf(',') + 1), truncated: blob.size < file.size });
+      };
+      fr.onerror = function () { resolve({ b64: '', truncated: false }); };
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  // Types whose bytes are worth sending for text extraction. Everything else
+  // (video, audio, images, huge binaries) is recorded as a REFERENCE with an
+  // honest note instead of pretending it was read.
+  const READABLE = /\.(txt|md|markdown|csv|tsv|json|xml|html?|log|ya?ml|srt|vtt|rtf|ini|conf|js|ts|py|sql|sh|pdf|docx|pptx|xlsx|xlsm|xls)$/i;
+  const SEND_LIMIT = 3 * 1024 * 1024;   // ~4.5MB request cap once base64-encoded
+
   async function uploadToKb(fileList) {
     const status = $('kbAddStatus');
-    const ctx = await getSb();
-    if (!ctx) { status.textContent = 'Supabase not configured.'; return; }
-    const { sb } = ctx;
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
     const category = bucketCategory();
     const region = state.region || null;
-    let done=0, total=fileList.length, failed=0;
-    for (const f of fileList) {
-      status.textContent = `Uploading ${++done}/${total}: ${f.name}…`;
-      // Preserve folder structure in the path when a folder was picked.
-      const rel = (f.webkitRelativePath || f.name).replace(/[^\w./\-]+/g,'_');
-      const path = `${category}/${Date.now()}_${rel}`;
+
+    // 1. Keep the original file (storage is optional: analysis still runs
+    //    without it, so a missing bucket never blocks knowledge capture).
+    let sbCtx = null;
+    try { sbCtx = await getSb(); } catch (_) { sbCtx = null; }
+
+    let done = 0, analysed = 0, refOnly = 0, failed = 0;
+    const notes = [];
+    for (const f of files) {
+      done++;
+      status.textContent = 'Reading ' + done + '/' + files.length + ': ' + f.name + '…';
+      const rel = (f.webkitRelativePath || f.name);
+      if (sbCtx && sbCtx.sb) {
+        try {
+          const path = category + '/' + Date.now() + '_' + rel.replace(/[^\w./\-]+/g, '_');
+          await sbCtx.sb.storage.from('knowledge-base').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' });
+          const pub = sbCtx.sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
+          await sbCtx.sb.from('kb_files').insert({ storage_path: path, file_name: f.name, mime_type: f.type || 'application/octet-stream', size_bytes: f.size, category, region, public_url: pub, uploaded_by: 'dashboard' });
+        } catch (err) { console.warn('[kb] storage', f.name, err.message); }
+      }
+
+      // 2. Interpret it. Readable types send their bytes; everything else is
+      //    filed as a reference so the record still exists and says why.
+      const readable = READABLE.test(f.name) && f.size > 0;
+      let payload = { name: f.name, path: rel, market: region || '' };
+      if (readable) {
+        const r = await fileToBase64(f, SEND_LIMIT);
+        payload.data_base64 = r.b64;
+        if (r.truncated) payload.truncated = true;
+      } else {
+        // A 1-byte placeholder keeps the server contract simple; the extractor
+        // classifies by extension and records the honest "needs a transcript /
+        // text export" note.
+        payload.data_base64 = btoa(String(f.type || 'binary') + ' ' + f.size + ' bytes');
+      }
       try {
-        const { error: upErr } = await sb.storage.from('knowledge-base').upload(path, f, { upsert:false, contentType: f.type||'application/octet-stream' });
-        if (upErr) throw upErr;
-        const pub = sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
-        const { error: rowErr } = await sb.from('kb_files').insert({ storage_path:path, file_name:f.name, mime_type:f.type||'application/octet-stream', size_bytes:f.size, category, region, public_url:pub, uploaded_by:'dashboard' });
-        if (rowErr) throw rowErr;
-      } catch (err) { failed++; console.warn('[kb] upload', f.name, err.message); }
+        const resp = await fetch('/api/kb?action=ingest-files', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: [payload] }),
+        });
+        const j = await resp.json();
+        const one = (j.results || [])[0] || {};
+        if (!j.ok || !one.ok) { failed++; notes.push(f.name + ': ' + (one.error || j.error || 'not stored')); }
+        else if (one.ok && one.chars > 0) { analysed++; }
+        else { refOnly++; if (one.note) notes.push(f.name + ': ' + one.note); }
+      } catch (err) { failed++; notes.push(f.name + ': ' + err.message); }
     }
-    status.textContent = failed ? `Done. ${total-failed} uploaded, ${failed} failed.` : `Uploaded ${total} file${total>1?'s':''} to ${category}.`;
+
+    const bits = [];
+    if (analysed) bits.push(analysed + ' analysed into knowledge');
+    if (refOnly) bits.push(refOnly + ' stored as reference (no readable text)');
+    if (failed) bits.push(failed + ' failed');
+    status.innerHTML = '<b>' + files.length + ' file(s) processed.</b> ' + bits.join(' · ')
+      + (notes.length ? '<div style="margin-top:6px;font-size:12px;opacity:.85">' + notes.slice(0, 6).map(function (n) { return '• ' + n.replace(/[<>&]/g, ''); }).join('<br>') + '</div>' : '');
     loadBucketFiles();
   }
 
