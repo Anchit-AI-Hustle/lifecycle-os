@@ -101,7 +101,32 @@
       "plan"
     ]
   },
-  "offerings": [],
+  "offerings": [
+    {
+      "kind": "product",
+      "name": "Teas (single-estate)",
+      "url": "https://www.vahdamteas.com/collections/teas",
+      "source": "vahdamteas.com navigation"
+    },
+    {
+      "kind": "product",
+      "name": "Turmeric blends",
+      "url": "https://www.vahdamteas.com/collections/turmeric",
+      "source": "vahdamteas.com navigation"
+    },
+    {
+      "kind": "product",
+      "name": "Gift sets",
+      "url": "https://www.vahdamteas.com/collections/gifts",
+      "source": "vahdamteas.com navigation"
+    },
+    {
+      "kind": "product",
+      "name": "Drinkware and accessories",
+      "url": "https://www.vahdamteas.com/collections/drinkware",
+      "source": "vahdamteas.com navigation"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

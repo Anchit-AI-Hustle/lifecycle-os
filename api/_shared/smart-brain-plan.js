@@ -170,24 +170,131 @@ const SYNC_WRITABLE_STATUSES = 'in.(tentative,rejected)';
 // top it reads as that brand's own plan ("The Economic Times Sneaker
 // Assortment"). Fail CLOSED: if the workspace cannot be confirmed as tenant
 // zero, no fallback plan is generated.
-async function tenantZeroPlanningAllowed(config, db) {
+async function planningBrand(config, db) {
   const wsId = (config && config.workspace_id) || (db && db.workspaceId) || null;
-  if (!wsId) return true; // userless (cron) default resolves to tenant zero
+  if (!wsId) return { isZero: true, brand: null }; // userless (cron) default = tenant zero
   try {
     const wsScope = require('./workspace-scope.js');
     const env = {
       url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
       key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
     };
-    if (!env.url || !env.key) return false;
+    if (!env.url || !env.key) return { isZero: false, brand: null };
     const brand = await wsScope.brandForWorkspace(env, wsId);
-    return !!brand && /^knickgasm$/i.test(String(brand.slug || brand.name || ''));
-  } catch (_) { return false; }
+    const isZero = !!brand && /^knickgasm$/i.test(String(brand.slug || brand.name || ''));
+    return { isZero, brand };
+  } catch (_) { return { isZero: false, brand: null }; }
 }
 
 const EMPTY_PLAN_NOTE = '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, this workspace, all] '
   + 'The plan generates only from this brand\'s own offerings and data; nothing is borrowed from another brand. '
   + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+
+// ── Brand-true planning for non-tenant-zero workspaces ─────────────────────
+// The plan for any other workspace is built from THAT brand's OWN offerings
+// (its record, else its matching preset on disk), its OWN regions as the
+// market list (a brand sold only in India plans only IN slots), and the
+// offering-campaign machinery for kind-correct mechanics (event ramps,
+// Register/Subscribe/Start-reading CTAs, never promoting a past event).
+// Only the NUMBERS are demo: deterministic per brand+slot, and every reach or
+// feasibility figure that would need real analytics stays DATA REQUIRED.
+function _resolveBrandOfferings(brand) {
+  const fs = require('fs');
+  const path = require('path');
+  const KINDS = require('./offering-kinds.js');
+  const own = (brand && brand.brand_data && Array.isArray(brand.brand_data.offerings) && brand.brand_data.offerings.length)
+    ? brand.brand_data.offerings
+    : (brand && Array.isArray(brand.offerings) && brand.offerings.length) ? brand.offerings : null;
+  let raw = own;
+  if (!raw) {
+    try {
+      const dir = path.join(process.cwd(), 'data', 'brands', 'presets');
+      const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
+      const toks = (s) => String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2);
+      for (const f of fs.readdirSync(dir)) {
+        if (!f.endsWith('.json') || f === 'index.json') continue;
+        let p; try { p = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (_) { continue; }
+        const hostHit = host(brand.website) && host(brand.website) === host(p.website);
+        const bs = String(brand.slug || '').toLowerCase(), ps = String(p.slug || '').toLowerCase();
+        const slugHit = bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0);
+        const bn = toks(brand.name), pn = toks(p.name);
+        const nameHit = bn.filter((t) => pn.indexOf(t) >= 0).length >= 2;
+        if ((hostHit || slugHit || nameHit) && Array.isArray(p.offerings) && p.offerings.length) { raw = p.offerings; break; }
+      }
+    } catch (_) { /* no preset dir - fall through */ }
+  }
+  if (!raw) return [];
+  return raw.map((o) => KINDS.normalizeOffering(o)).filter(Boolean);
+}
+
+function _mulberry32(seedStr) {
+  let h = 1779033703 ^ String(seedStr).length;
+  for (let i = 0; i < String(seedStr).length; i++) { h = Math.imul(h ^ String(seedStr).charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  let a = h >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function offeringPlanEntries(brand, offerings, startDate, days) {
+  const oc = require('./offering-campaign.js');
+  const regions = (Array.isArray(brand.regions) && brand.regions.length) ? brand.regions : [];
+  const markets = regions.map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+  if (!markets.length || !offerings.length) return [];
+  const rnd = _mulberry32(String(brand.slug || brand.name || 'brand'));
+  const cohorts = ['Nurture', 'Engaged', 'At Risk', 'Winback'];
+  const entries = [];
+  for (let i = 0; i < days; i++) {
+    const date = addDaysIso(startDate, i);
+    for (const market of markets) {
+      const send = oc.pickForDate(offerings, date);
+      if (!send || !send.viable) continue;
+      const off = send.offering;
+      // Rotate evergreen offerings so a brand with several sections/plans sees
+      // them all covered, while a closing event window always wins in pickForDate.
+      const rotated = (send.phase === 'evergreen')
+        ? (function () {
+            const ever = offerings.filter((o) => !require('./offering-kinds.js').isDateBound(o.kind));
+            if (ever.length < 2) return send;
+            const alt = ever[(i + markets.indexOf(market)) % ever.length];
+            const p = oc.planSend(alt, date);
+            return p.viable ? p : send;
+          })()
+        : send;
+      const useOff = rotated.offering || off;
+      const cohort = cohorts[(i + markets.indexOf(market)) % cohorts.length];
+      const confidence = Math.round((0.45 + rnd() * 0.3) * 100) / 100;   // demo, deterministic
+      entries.push({
+        id: stableId(date, market, cohort),
+        date, market,
+        status: 'needs_human_verification',
+        confidence,
+        cohort: { name: cohort, size: 0, estimated: true },
+        objective: rotated.job,
+        theme: `${useOff.name} (${useOff.kind})`,
+        heroOffering: useOff,
+        offering: useOff,
+        heroProduct: { title: useOff.name, category: useOff.kind },
+        channels: ['email', 'meta', 'google', 'landing_page'],
+        cta: rotated.cta,
+        cta_url: rotated.cta_url || null,
+        phase: rotated.phase,
+        why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
+        analysis: { summary: `Slot derived from ${brand.name}'s own offerings and regions. No cross-brand data used.`, data_source: 'brand-offerings' },
+        reach: {
+          cohort_size: null, cohort_size_estimated: true,
+          widen_note: `[DATA REQUIRED BEFORE LAUNCH: real eligible-segment size for "${cohort}" in ${market}. Reach is never estimated.]`,
+        },
+        feasibility: { status: 'DATA REQUIRED', note: `Plan built from ${brand.name}'s own catalogue; connect its analytics for real feasibility.` },
+        demo_numbers: true,
+      });
+    }
+  }
+  return entries;
+}
 
 async function buildContext(config, db) {
   const ownData = await db.ownData();
@@ -336,13 +443,33 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
   // without a material plan change.
   const refreshDays = Number.isFinite(+config.prebuildRefreshDays) ? +config.prebuildRefreshDays : 7;
   const refreshUntil = addDaysIso(start, refreshDays);
-  // Same guard as getPlan: never synthesize a tenant-zero-shaped plan into
-  // another brand's workspace.
-  if (!(await tenantZeroPlanningAllowed(config, db))) {
-    return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', synced_at: new Date().toISOString(), horizon_days: horizon, changes: [], entries: [], note: EMPTY_PLAN_NOTE };
+  // A non-tenant-zero workspace plans from ITS OWN offerings and regions; the
+  // shipped context (catalogue, analytics, moments) describes tenant zero only
+  // and is never synthesized into another brand's workspace.
+  const pb = await planningBrand(config, db);
+  let ctx, fresh;
+  if (!pb.isZero) {
+    const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
+    fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon) : [];
+    if (!fresh.length) {
+      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', synced_at: new Date().toISOString(), horizon_days: horizon, changes: [], entries: [], note: EMPTY_PLAN_NOTE };
+    }
+    const markets = Array.from(new Set(fresh.map((e) => e.market)));
+    ctx = {
+      analysis: {
+        dailyInsights: [
+          `Plan generated from ${pb.brand.name}'s own catalogue (${offs.length} offerings) for its real region(s): ${markets.join(', ')}.`,
+          'Confidence figures are DEMO values; reach and feasibility stay DATA REQUIRED until this brand\'s own analytics connect.',
+        ],
+        cohorts: [],
+      },
+      competitorBenchmarks: { byChannel: {}, trendingHooks: [] },
+      ownData: { feedback: [] },
+    };
+  } else {
+    ctx = await buildContext(config, db);
+    fresh = freshEntries(config, ctx, start, horizon);
   }
-  const ctx = await buildContext(config, db);
-  const fresh = freshEntries(config, ctx, start, horizon);
 
   const changes = [];
   let stored = [];
@@ -474,10 +601,22 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
       };
     }
   }
-  // Stateless preview: no DB (or empty table) — generate on the fly, but ONLY
-  // for tenant zero (the shipped data describes no one else).
-  if (!(await tenantZeroPlanningAllowed(config, db))) {
-    return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
+  // Stateless preview: no DB (or empty table) — generate on the fly. The
+  // shipped catalogue describes tenant zero only, so any other workspace plans
+  // from ITS OWN offerings and regions (demo numbers, real catalogue), or gets
+  // an honest empty state when it has none.
+  const pb = await planningBrand(config, db);
+  if (!pb.isZero) {
+    const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
+    const entries = pb.brand ? offeringPlanEntries(pb.brand, offs, todayIso(), config.calendarDays) : [];
+    if (!entries.length) {
+      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
+    }
+    return {
+      ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false,
+      entries: entries.map((e) => ({ ...e, status: 'tentative' })),
+      note: `Plan generated from ${pb.brand.name}'s own catalogue and regions. Confidence figures are DEMO until real analytics connect.`,
+    };
   }
   const ctx = _ctxFallback?.ctx || await buildContext(config, db);
   const entries = _ctxFallback?.fresh || freshEntries(config, ctx, todayIso(), config.calendarDays);

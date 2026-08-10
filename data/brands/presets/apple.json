@@ -101,7 +101,38 @@
     ],
     "note": "No public product feed; connect a real catalogue before generating product-level assets."
   },
-  "offerings": [],
+  "offerings": [
+    {
+      "kind": "product",
+      "name": "iPhone",
+      "url": "https://www.apple.com/iphone/",
+      "source": "apple.com navigation"
+    },
+    {
+      "kind": "product",
+      "name": "Mac",
+      "url": "https://www.apple.com/mac/",
+      "source": "apple.com navigation"
+    },
+    {
+      "kind": "product",
+      "name": "iPad",
+      "url": "https://www.apple.com/ipad/",
+      "source": "apple.com navigation"
+    },
+    {
+      "kind": "product",
+      "name": "Apple Watch",
+      "url": "https://www.apple.com/watch/",
+      "source": "apple.com navigation"
+    },
+    {
+      "kind": "plan",
+      "name": "Apple One (services bundle)",
+      "url": "https://www.apple.com/apple-one/",
+      "source": "apple.com navigation"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

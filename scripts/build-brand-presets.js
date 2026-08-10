@@ -165,7 +165,14 @@ const PRESETS = [
     regions: [region('IN', 'INR', '₹', 'https://www.vahdamindia.com'), region('US', 'USD', '$', 'https://www.vahdamteas.com'), region('UK', 'GBP', '£', 'https://uk.vahdamteas.com')],
     asset_hosts: ['vahdamteas.com', 'www.vahdamteas.com', 'cdn.shopify.com'],
     catalog_source: { kind: 'shopify_public', url: 'https://www.vahdamteas.com/products.json', offering_kinds: ['product', 'plan'] },
-    offerings: [],
+    // Top-level collections as read from vahdamteas.com site navigation on
+    // verified_at - category-level only, no invented SKUs or prices.
+    offerings: [
+      { kind: 'product', name: 'Teas (single-estate)', url: 'https://www.vahdamteas.com/collections/teas', source: 'vahdamteas.com navigation' },
+      { kind: 'product', name: 'Turmeric blends', url: 'https://www.vahdamteas.com/collections/turmeric', source: 'vahdamteas.com navigation' },
+      { kind: 'product', name: 'Gift sets', url: 'https://www.vahdamteas.com/collections/gifts', source: 'vahdamteas.com navigation' },
+      { kind: 'product', name: 'Drinkware and accessories', url: 'https://www.vahdamteas.com/collections/drinkware', source: 'vahdamteas.com navigation' },
+    ],
   },
   {
     slug: 'apple', name: 'Apple', tagline: 'Think Different',
@@ -187,7 +194,15 @@ const PRESETS = [
     regions: [region('US', 'USD', '$', 'https://www.apple.com'), region('IN', 'INR', '₹', 'https://www.apple.com/in'), region('UK', 'GBP', '£', 'https://www.apple.com/uk')],
     asset_hosts: ['apple.com', 'www.apple.com', 'store.storeimages.cdn-apple.com'],
     catalog_source: { kind: 'none', offering_kinds: ['product', 'service', 'plan'], note: 'No public product feed; connect a real catalogue before generating product-level assets.' },
-    offerings: [],
+    // Product lines as read from apple.com global navigation on verified_at -
+    // line level only, no invented models or prices.
+    offerings: [
+      { kind: 'product', name: 'iPhone', url: 'https://www.apple.com/iphone/', source: 'apple.com navigation' },
+      { kind: 'product', name: 'Mac', url: 'https://www.apple.com/mac/', source: 'apple.com navigation' },
+      { kind: 'product', name: 'iPad', url: 'https://www.apple.com/ipad/', source: 'apple.com navigation' },
+      { kind: 'product', name: 'Apple Watch', url: 'https://www.apple.com/watch/', source: 'apple.com navigation' },
+      { kind: 'plan', name: 'Apple One (services bundle)', url: 'https://www.apple.com/apple-one/', source: 'apple.com navigation' },
+    ],
   },
 ];
 

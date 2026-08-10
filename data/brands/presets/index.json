@@ -134,7 +134,7 @@
         "product",
         "plan"
       ],
-      "offering_count": 0
+      "offering_count": 4
     },
     {
       "slug": "apple",
@@ -161,7 +161,7 @@
         "service",
         "plan"
       ],
-      "offering_count": 0
+      "offering_count": 5
     }
   ]
 }
