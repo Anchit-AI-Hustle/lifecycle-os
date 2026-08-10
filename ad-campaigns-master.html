@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ad Campaigns Master Dashboard — Lifecycle OS</title>
+<title>Ad Campaigns Master Dashboard, Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <style>
   :root{
@@ -13,7 +13,7 @@
        (>=4.5:1) on --surface and --surface-2. --dim was var(--vh-ink) (4.9:1) and is
        now var(--vh-ink) (8.2:1); lava text only ever uses the deep lava. */
     --text:var(--vh-ink); --dim:var(--vh-ink); --head:#D0473E;
-    --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan); --bad:#7A2718; --bad-bg:var(--vh-panel-tan);
+    --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan); --bad:var(--brand-ink, #111111); --bad-bg:var(--vh-panel-tan);
     --live:var(--vh-ink); --live-bg:var(--vh-panel-tan);
     --shadow:0 4px 16px rgba(0,74,43,.08);
     --sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
@@ -175,8 +175,8 @@
     <div class="livebar">
       <span class="pulse" id="live-pulse"><i></i> <span id="live-pulse-t">Checking the ad account…</span></span>
       <span>
-        <span class="srcchip" id="live-src">source: —</span>
-        <span class="srcchip" id="live-upd">updated: —</span>
+        <span class="srcchip" id="live-src">source: - </span>
+        <span class="srcchip" id="live-upd">updated: - </span>
         <button class="btn ghost" id="live-refresh" style="cursor:pointer;font-family:inherit">Refresh now</button>
       </span>
     </div>
@@ -190,7 +190,7 @@
       <div class="rangetiles" id="rt-spend"></div>
       <div id="chart-spend"></div>
     </div>
-    <p class="eyebrow">Live now — ad level (is it delivering yet?)</p>
+    <p class="eyebrow">Live now, ad level (is it delivering yet?)</p>
     <div class="bar">
       <label>Status<select id="lv-status"><option value="">All</option><option value="live">live</option><option value="starting">starting</option><option value="not_live_yet">not live yet</option></select></label>
       <label>Search<input type="search" id="lv-q" placeholder="ad, ad set, campaign…"></label>
@@ -203,12 +203,12 @@
     <div class="bar">
       <label>Month<select id="cal-month"></select></label>
       <label>&nbsp;<button class="apply" id="cal-today" style="cursor:pointer;font-family:inherit;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px">Jump to today</button></label>
-      <span class="srcchip" id="cal-src">source: —</span>
+      <span class="srcchip" id="cal-src">source: - </span>
     </div>
     <div class="legend">
-      <span><i style="background:var(--surface)"></i> Past day — actuals</span>
-      <span><i style="background:var(--live-bg);border-color:var(--live)"></i> Today — live, partial day</span>
-      <span><i style="background:var(--vh-panel-tan)"></i> Future — planned only, no figures</span>
+      <span><i style="background:var(--surface)"></i> Past day, actuals</span>
+      <span><i style="background:var(--live-bg);border-color:var(--live)"></i> Today, live, partial day</span>
+      <span><i style="background:var(--vh-panel-tan)"></i> Future, planned only, no figures</span>
       <span><i style="background:var(--live);border-radius:50%"></i> ads delivering</span>
     </div>
     <div class="cal" id="cal-grid"><div class="empty" style="grid-column:1/-1">Loading…</div></div>
@@ -218,11 +218,11 @@
   </div>
 
   <div class="panel" id="p-tracker">
-    <p class="eyebrow">Campaign tracker — every campaign, its window, status and efficiency</p>
+    <p class="eyebrow">Campaign tracker, every campaign, its window, status and efficiency</p>
     <div class="cards" id="trk-cards"></div>
     <div class="bar">
       <label>Status<select id="trk-status"><option value="">All</option><option value="live">live today</option><option value="ended">ended</option></select></label>
-      <label>Account<select id="trk-acct"><option value="">Both accounts</option><option value="dtc">DTC — own site</option><option value="retail">Target / Costco — retail</option></select></label>
+      <label>Account<select id="trk-acct"><option value="">Both accounts</option><option value="dtc">DTC, own site</option><option value="retail">Target / Costco, retail</option></select></label>
       <label>Search<input type="search" id="trk-q" placeholder="campaign…"></label>
       <label>Sort<select id="trk-sort"><option value="spend">Spend</option><option value="ctr">CTR</option><option value="cpc">CPC</option><option value="last_day">Last active day</option></select></label>
     </div>
@@ -237,7 +237,7 @@
   </div>
 
   <div class="panel" id="p-accounts">
-    <p class="eyebrow">The ad-account studio — what each account is, what it is for, and what it can be judged on</p>
+    <p class="eyebrow">The ad-account studio, what each account is, what it is for, and what it can be judged on</p>
     <div class="cards" id="acct-cards"></div>
     <div class="notice" id="acct-kpi-note"></div>
     <div class="chipbar" id="acct-filters"></div>
@@ -245,7 +245,7 @@
     <p class="eyebrow">Every feed in the warehouse</p>
     <div class="tbl-wrap" id="acct-tbl"><div class="empty">Loading…</div></div>
     <p class="note" id="acct-note"></p>
-    <p class="eyebrow">Retail funnel — the only way the Target programme can be measured</p>
+    <p class="eyebrow">Retail funnel, the only way the Target programme can be measured</p>
     <div class="notice" id="rf-note"></div>
     <div class="cards" id="rf-cards"></div>
     <div class="tbl-wrap" id="rf-tbl"><div class="empty">Loading…</div></div>
@@ -260,7 +260,7 @@
   </div>
 
   <div class="panel" id="p-overview">
-    <p class="eyebrow">Paid spend — May to 20 Jul 2026 (source: KT workbook)</p>
+    <p class="eyebrow">Paid spend, May to 20 Jul 2026 (source: KT workbook)</p>
     <div class="cards" id="ov-cards"><div class="empty">Loading…</div></div>
     <div class="two">
       <div>
@@ -277,7 +277,7 @@
   </div>
 
   <div class="panel" id="p-campaigns">
-    <p class="eyebrow">Campaign rollup — 13 Meta campaigns (Target account, to 20 Jul)</p>
+    <p class="eyebrow">Campaign rollup, 13 Meta campaigns (Target account, to 20 Jul)</p>
     <div class="tbl-wrap" id="camp-tbl"></div>
     <div class="bar">
       <label>Objective<select id="f-obj"><option value="">All</option><option>Sales</option><option>Traffic</option><option>Awareness</option><option>Engagement</option></select></label>
@@ -308,7 +308,7 @@
   </div>
 
   <div class="panel" id="p-organic">
-    <p class="eyebrow">Organic performance — Apr to 17 Jul 2026 (source: Social Update deck)</p>
+    <p class="eyebrow">Organic performance, Apr to 17 Jul 2026 (source: Social Update deck)</p>
     <div class="cards" id="org-cards"></div>
     <div class="tbl-wrap" id="org-months"></div>
     <div class="two">
@@ -319,7 +319,7 @@
         <div class="tbl-wrap" id="org-ugc"></div>
       </div>
       <div>
-        <p class="eyebrow">Instagram retention funnel — May vs June</p>
+        <p class="eyebrow">Instagram retention funnel, May vs June</p>
         <div class="frame funnel" id="org-funnel"></div>
         <p class="note" id="org-funnel-note"></p>
       </div>
@@ -329,20 +329,19 @@
 
   <div class="panel" id="p-kb">
     <div class="notice" style="background:var(--live-bg);border-color:var(--live);border-left-color:var(--live);color:var(--vh-ink)">
-      <b>The final SOP for ad campaigns is the standing procedure</b> — scoring, nomenclature, landing pages, the 26 tracker columns, the three-level UGC flow, budgets and turnaround.
-      It has its own tab: <a href="#sop" id="kb-to-sop" style="font-weight:700">open the SOP tab</a>. The master tracking sheet is the source of truth over every document here.
+      <b>The final SOP for ad campaigns is the standing procedure</b>, scoring, nomenclature, landing pages, the 26 tracker columns, the three-level UGC flow, budgets and turnaround. It has its own tab: <a href="#sop" id="kb-to-sop" style="font-weight:700">open the SOP tab</a>. The master tracking sheet is the source of truth over every document here.
     </div>
-    <p class="eyebrow">The complete knowledge — overview first, expand any section for the details</p>
+    <p class="eyebrow">The complete knowledge, overview first, expand any section for the details</p>
     <div class="frame" id="kb-exec"><div class="empty">Loading…</div></div>
     <div id="kb-full"></div>
-    <p class="eyebrow">Link registry — single-click access to every referenced sheet, deck, folder and platform</p>
+    <p class="eyebrow">Link registry, single-click access to every referenced sheet, deck, folder and platform</p>
     <div class="bar">
       <label>Group<select id="kb-group"><option value="">All groups</option></select></label>
       <label>Status<select id="kb-status"><option value="">All</option><option value="verified">verified (live in Drive/platform)</option><option value="from-email">from email URL</option><option value="from-deck">from deck</option><option value="pending-access">pending access</option></select></label>
       <label>Search<input type="search" id="kb-q" placeholder="title, owner…"></label>
     </div>
     <div class="frame" id="kb-links"><div class="empty">Loading…</div></div>
-    <p class="eyebrow">People — who owns what</p>
+    <p class="eyebrow">People, who owns what</p>
     <div class="tbl-wrap" id="kb-people"></div>
     <p class="eyebrow">Open gaps &amp; risks</p>
     <div id="kb-gaps"></div>
@@ -351,11 +350,11 @@
   <div class="panel" id="p-ops">
     <p class="eyebrow">Platform status (live connector reads, 25 Jul 2026)</p>
     <div id="ops-platforms"></div>
-    <p class="eyebrow">UGC dashboard automation — runbook</p>
+    <p class="eyebrow">UGC dashboard automation, runbook</p>
     <div class="frame" id="ops-ugc"></div>
-    <p class="eyebrow">Costco dark-post launch — configuration of record</p>
+    <p class="eyebrow">Costco dark-post launch, configuration of record</p>
     <div class="frame" id="ops-costco"></div>
-    <p class="eyebrow">Consultant data request — deliverables &amp; priority explorations</p>
+    <p class="eyebrow">Consultant data request, deliverables &amp; priority explorations</p>
     <div class="frame" id="ops-datareq"></div>
   </div>
 </div>

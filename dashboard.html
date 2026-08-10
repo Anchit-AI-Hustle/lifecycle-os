@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lifecycle OS DTC — Retention Intelligence</title>
+<title>Lifecycle OS DTC, Retention Intelligence</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -283,8 +286,8 @@
         ↓ Export…
       </button>
       <div class="text-[10px] text-ink-mute mt-3 font-mono leading-snug">
-        Data source: <span id="dataSourceLabel">no data — link a database or upload</span><br>
-        Last refresh: <span id="lastRefresh">—</span>
+        Data source: <span id="dataSourceLabel">no data, link a database or upload</span><br>
+        Last refresh: <span id="lastRefresh"> - </span>
       </div>
     </div>
   </aside>
@@ -438,7 +441,7 @@
         <div class="flex items-end justify-between mb-5">
           <div>
             <h1 class="text-2xl font-bold tracking-tight">Customer Segmentation</h1>
-            <p class="text-sm text-ink-dim mt-1">9 RFM segments + behavioural overlays — discount sensitivity, category affinity, retention responsiveness.</p>
+            <p class="text-sm text-ink-dim mt-1">9 RFM segments + behavioural overlays, discount sensitivity, category affinity, retention responsiveness.</p>
           </div>
         </div>
 
@@ -458,7 +461,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div class="card p-4">
             <h3 class="text-sm font-semibold mb-1">Discount sensitivity × LTV</h3>
-            <p class="text-xs text-ink-dim mb-3">Top-right = engaged but discount-trained — pricing risk.</p>
+            <p class="text-xs text-ink-dim mb-3">Top-right = engaged but discount-trained, pricing risk.</p>
             <div id="chartSegSensitivity" data-chart-host data-chart-id="segSens" data-chart-title="Discount sensitivity × LTV · pricing-risk scatter" style="height:260px"></div>
           </div>
           <div class="card p-4">
@@ -482,7 +485,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
           <div class="card p-4">
-            <h3 class="text-sm font-semibold mb-1">Promoted vs purchased — gap analysis</h3>
+            <h3 class="text-sm font-semibold mb-1">Promoted vs purchased, gap analysis</h3>
             <p class="text-xs text-ink-dim mb-3">When a campaign features SKU X, what actually gets bought?</p>
             <div id="chartProdGap" data-chart-host data-chart-id="prodGap" data-chart-title="Promoted vs purchased · campaigns featuring vs units sold" style="height:340px"></div>
           </div>
@@ -509,7 +512,7 @@
         <div class="flex items-end justify-between mb-5">
           <div>
             <h1 class="text-2xl font-bold tracking-tight">Time-Based Behavior</h1>
-            <p class="text-sm text-ink-dim mt-1">Send-time heatmaps, purchase-window lag, seasonal patterns — by region.</p>
+            <p class="text-sm text-ink-dim mt-1">Send-time heatmaps, purchase-window lag, seasonal patterns, by region.</p>
           </div>
         </div>
 
@@ -588,7 +591,7 @@
     <div class="flex items-start justify-between mb-4">
       <div>
         <h2 class="text-lg font-semibold">Upload campaign + customer data</h2>
-        <p class="text-xs text-ink-dim mt-1">CSV or XLSX. Drop one or more files — the dashboard auto-recomputes.</p>
+        <p class="text-xs text-ink-dim mt-1">CSV or XLSX. Drop one or more files, the dashboard auto-recomputes.</p>
       </div>
       <button id="uploadClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
     </div>
@@ -645,7 +648,7 @@
     <div class="flex items-start justify-between mb-4">
       <div>
         <h2 class="text-lg font-semibold">Link a database</h2>
-        <p class="text-xs text-ink-dim mt-1">Connect a source and the dashboard recomputes <b>scoped to that database only</b> — the synthetic seed is set aside until you reset.</p>
+        <p class="text-xs text-ink-dim mt-1">Connect a source and the dashboard recomputes <b>scoped to that database only</b>, the synthetic seed is set aside until you reset.</p>
       </div>
       <button id="linkDbClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
     </div>
@@ -723,7 +726,7 @@
         <label class="flex items-start gap-2 cursor-pointer">
           <input type="radio" name="expScope" value="all" class="mt-1 accent-lava">
           <div>
-            <div class="text-sm font-medium">Complete analysis — every page</div>
+            <div class="text-sm font-medium">Complete analysis, every page</div>
             <div class="text-[11px] text-ink-mute">All tables of all pages compiled into one workbook (a sheet per page + a combined sheet). Reflects the data currently loaded.</div>
           </div>
         </label>
@@ -748,7 +751,7 @@
     <div class="mb-4">
       <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Format</div>
       <div class="flex gap-2" id="exportFormatChips">
-        <button class="filter-chip active" data-fmt="xlsx">Excel (.xlsx) — keeps colours</button>
+        <button class="filter-chip active" data-fmt="xlsx">Excel (.xlsx), keeps colours</button>
         <button class="filter-chip" data-fmt="csv">CSV (.csv)</button>
       </div>
     </div>

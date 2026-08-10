@@ -85,6 +85,34 @@ module.exports = async function handler(req, res) {
   const action = String((req.query || {}).action || '').toLowerCase();
   const b = body(req);
 
+  // ── Workspace scoping (same contract as api/calendar.js) ──────────────────
+  // Resolve ONCE per request: explicit param, else the caller's JWT -> their
+  // active workspace, else the default only for userless (cron) calls. An
+  // unattributed BROWSER request is refused rather than served the default
+  // workspace's data.
+  let __wsId = null;
+  try {
+    const wsScope = require('./_shared/workspace-scope.js');
+    const scopeEnv = {
+      url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    };
+    __wsId = await wsScope.resolve(scopeEnv, req);
+    const q0 = (req && req.query) || {};
+    const b0 = (req && req.body && typeof req.body === 'object') ? req.body : {};
+    const hadExplicit = !!(q0.workspace_id || b0.workspace_id);
+    const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization));
+    const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
+    if (!hadExplicit && !hadAuth && fromBrowser) {
+      return res.status(200).json({
+        ok: true, error: 'workspace_unresolved', items: [], entries: [], brands: [], posts: [],
+        note: 'This request arrived without an active workspace, so no data is returned. Another brand\'s workspace is never substituted. Hard-refresh the page and try again.',
+      });
+    }
+    req.__workspaceId = __wsId;
+    if (req.query) req.query.workspace_id = req.query.workspace_id || __wsId || undefined;
+  } catch (_) { /* scoping must never hard-fail the router */ }
+
   try {
     switch (action) {
       // ── TELESUITE ────────────────────────────────────────────────────────

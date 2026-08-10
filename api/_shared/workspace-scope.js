@@ -21,9 +21,19 @@
  */
 
 const SCOPED_TABLES = new Set([
+  // Content that belongs to exactly ONE brand. Every table here carries a
+  // workspace_id column; a read must filter by it and a write must stamp it.
+  // Keep this list in sync with api/_shared/workspace-scope.js SCOPED_TABLES -
+  // a table with workspace_id that is MISSING here reads across brands and
+  // writes NULL (invisible rows), which is exactly how competitor rows and
+  // social posts previously landed unattributed.
   'kb_knowledge', 'brand_assets', 'smart_calendar_entries',
-  'smart_generated_campaigns', 'ads_generated', 'landing_pages_generated',
-  'mailers_generated',
+  'smart_generated_campaigns', 'smart_generated_assets', 'ads_generated',
+  'landing_pages_generated', 'mailers_generated', 'social_posts_generated',
+  'competitor_brands', 'competitor_emails_classified', 'competitor_landing_pages',
+  'smart_competitor_campaigns', 'smart_competitor_signals', 'smart_products',
+  'smart_orders', 'smart_users', 'smart_events', 'smart_campaigns',
+  'smart_cohorts', 'smart_festivals', 'smart_funnels', 'smart_sales_history',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

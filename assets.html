@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lifecycle OS · Created Assets</title>
@@ -85,7 +88,7 @@
   <div class="page-head">
     <div class="eyebrow">Lifecycle OS</div>
     <h1>Created <em>Assets</em></h1>
-    <p class="sub">Every mailer, ad and landing page this suite has produced — filter, search, preview, clone, or copy a ready-to-run AI prompt for any of them.</p>
+    <p class="sub">Every mailer, ad and landing page this suite has produced, filter, search, preview, clone, or copy a ready-to-run AI prompt for any of them.</p>
   </div>
 
   <div class="controls">
@@ -108,7 +111,7 @@
 
   <div class="grid" id="grid"><div class="empty">Loading…</div></div>
 
-  <p class="src" id="srcline">Reading from <b>your browser</b> — connecting to the shared database…</p>
+  <p class="src" id="srcline">Reading from <b>your browser</b>, connecting to the shared database…</p>
 </div>
 <div id="toast"></div>
 
