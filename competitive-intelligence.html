@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Competitive Intelligence · Lifecycle OS</title>
@@ -55,7 +58,7 @@
 <body>
   <div class="wrap">
     <h1>Competitive Intelligence</h1>
-    <p class="sub">Continuously-updating repository of competitor ads, emails, landing pages &amp; offers. <span class="muted">Real-time competitor stream — kept separate from KNICKGASM own-data.</span></p>
+    <p class="sub">Continuously-updating repository of competitor ads, emails, landing pages &amp; offers. <span class="muted">Real-time competitor stream, kept separate from KNICKGASM own-data.</span></p>
 
     <div class="row" style="margin-bottom:6px;">
       <select id="brand"><option value="">All brands</option></select>

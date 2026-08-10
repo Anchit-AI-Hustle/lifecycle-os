@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Knickgasm Agent — talk to our sneaker &amp; streetwear expert</title>
+<title>Knickgasm Agent, talk to our sneaker &amp; streetwear expert</title>
 <style>
   /* This page is an intentionally LIGHT surface (dark ink on chalk). auth.js
      injects theme.css AFTER this inline style, and theme.css redefines :root
@@ -89,10 +92,10 @@
       <div>
         <label for="afType">Agent type</label>
         <select id="afType">
-          <option value="brand">Brand — whole catalogue</option>
-          <option value="collection" selected>Collection — a category</option>
-          <option value="product">Product — one product</option>
-          <option value="persona">Persona — custom role</option>
+          <option value="brand">Brand, whole catalogue</option>
+          <option value="collection" selected>Collection, a category</option>
+          <option value="product">Product, one product</option>
+          <option value="persona">Persona, custom role</option>
         </select>
       </div>
       <div>
@@ -103,7 +106,7 @@
         </select>
       </div>
       <div>
-        <label for="afScope">Focus — categories (optional)</label>
+        <label for="afScope">Focus, categories (optional)</label>
         <input id="afScope" placeholder="comma-separated, e.g. Coffee, Statement Pieces" autocomplete="off">
       </div>
       <div class="full">

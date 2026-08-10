@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Team Copilot · Lifecycle OS</title>
@@ -36,9 +39,9 @@
 <body>
 <div class="head">
   <h1>KNICKGASM Growth Copilot <span class="badge">Internal · full access</span></h1>
-  <div class="sub">Employee assistant — analytics with exact numbers, campaign &amp; calendar drafting, and how-to for every Lifecycle OS module.</div>
+  <div class="sub">Employee assistant, analytics with exact numbers, campaign &amp; calendar drafting, and how-to for every Lifecycle OS module.</div>
 </div>
-<div class="wrap"><div id="thread"><div class="empty">Ask anything — e.g. “What are our top 5 products by revenue this period?”, “Draft a Champions win-back mailer for the UK”, or “Plan next week's calendar for all channels”.</div></div></div>
+<div class="wrap"><div id="thread"><div class="empty">Ask anything, e.g. “What are our top 5 products by revenue this period?”, “Draft a Champions win-back mailer for the UK”, or “Plan next week's calendar for all channels”.</div></div></div>
 <div class="bar">
   <div class="row">
     <textarea id="q" placeholder="Ask the Growth Copilot… (Enter to send, Shift+Enter for newline)"></textarea>

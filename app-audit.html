@@ -72,7 +72,7 @@
 <div class="wrap">
   <div class="eyebrow">Lifecycle OS</div>
   <h1>Overall App Audit</h1>
-  <p class="lede">Every feature scored on four axes — <b>accuracy</b> (is the output factually true, no fabrication), <b>implementation</b> (code robustness), <b>execution</b> (does it work end-to-end in production), and <b>results</b> (does it drive a usable outcome). The confidence bar is <b>9.5</b>: no feature is "done" below it. Scores are honest current-state after the <b>2026-07-19</b> fixes (live US Shopify data, KicksGPT speed+reliability+clickable assets, conversation history, asset persistence, storefront + landing-page rebuilds), grounded in file-level findings. The score reflects what the data and code actually support — it is never inflated to hit the target.</p>
+  <p class="lede">Every feature scored on four axes, <b>accuracy</b> (is the output factually true, no fabrication), <b>implementation</b> (code robustness), <b>execution</b> (does it work end-to-end in production), and <b>results</b> (does it drive a usable outcome). The confidence bar is <b>9.5</b>: no feature is "done" below it. Scores are honest current-state after the <b>2026-07-19</b> fixes (live US Shopify data, KicksGPT speed+reliability+clickable assets, conversation history, asset persistence, storefront + landing-page rebuilds), grounded in file-level findings. The score reflects what the data and code actually support, it is never inflated to hit the target.</p>
 
   <div class="overall">
     <div class="score-ring" id="ring"></div>
@@ -84,11 +84,11 @@
     </div>
   </div>
 
-  <div class="sec-h">Systemic blockers — B1 + B2 cleared ✓; only B3 (feeds) remains</div>
+  <div class="sec-h">Systemic blockers, B1 + B2 cleared ✓; only B3 (feeds) remains</div>
   <div class="blockers" id="blockers"></div>
 
   <div class="sec-h">Feature scorecard</div>
-  <div class="legend">Colour: <b style="color:#3fa46a">≥8.5 strong</b> · <b style="color:var(--vh-lava)">7–8.4 needs work</b> · <b style="color:#d1795f">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
+  <div class="legend">Colour: <b style="color:#3fa46a">≥8.5 strong</b> · <b style="color:var(--vh-lava)">7 - 8.4 needs work</b> · <b style="color:#d1795f">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
   <div class="grid" id="grid" style="margin-top:10px;"></div>
 
   <div class="sec-h">Roadmap to ≥ 9.5 everywhere</div>
@@ -96,7 +96,7 @@
 
   <a class="dl" href="/docs/feature-audit-2026-07-12.md">⬇ Download the full written audit (PDF)</a>
 
-  <p class="foot">Second audit pass DONE (2026-07-12): the 11 previously-unaudited pages (/competitor, /kb, /cohorts, /landing builder, /avatars, /market-study, /master-dashboard, /retention-playbook, /frameworks, /connectors, /music) are now scored at file level above — the whole app is covered. They landed 7.0–9.4 (mostly 8.5–9.4); none fabricate core facts, and the few undisclosed-stat / demo-price surfaces found were fixed in the same pass. Remaining gap to a blanket ≥9.5 is B3 (real feeds → results axis) plus the per-feature residuals noted on each card. "Aman's version" (frozen 3 Jul build) is kept in code for reference.</p>
+  <p class="foot">Second audit pass DONE (2026-07-12): the 11 previously-unaudited pages (/competitor, /kb, /cohorts, /landing builder, /avatars, /market-study, /master-dashboard, /retention-playbook, /frameworks, /connectors, /music) are now scored at file level above, the whole app is covered. They landed 7.0 - 9.4 (mostly 8.5 - 9.4); none fabricate core facts, and the few undisclosed-stat / demo-price surfaces found were fixed in the same pass. Remaining gap to a blanket ≥9.5 is B3 (real feeds → results axis) plus the per-feature residuals noted on each card. "Aman's version" (frozen 3 Jul build) is kept in code for reference.</p>
 </div>
 
 <script>

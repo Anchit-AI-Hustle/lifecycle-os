@@ -60,6 +60,30 @@ module.exports = async function handler(req, res) {
   const url = new URL(req.url, 'http://x');
   const action = url.searchParams.get('action') || 'list';
 
+  // ── Workspace scoping ─────────────────────────────────────────────────────
+  // The competitor set is the ACTIVE brand's own universe. This router reads a
+  // shared Google Sheet and the workspace-scoped competitor_* tables, so an
+  // unattributed browser request must not be answered with the default
+  // workspace's competitors.
+  try {
+    const wsScope = require('./_shared/workspace-scope.js');
+    const scopeEnv = {
+      url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    };
+    const wsId = await wsScope.resolve(scopeEnv, req);
+    const hadExplicit = !!url.searchParams.get('workspace_id');
+    const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization));
+    const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
+    if (!hadExplicit && !hadAuth && fromBrowser) {
+      return res.status(200).json({
+        ok: true, error: 'workspace_unresolved', emails: [], brands: [], total: 0,
+        note: 'No active workspace on this request, so no competitor data is returned. Another brand\'s competitor set is never substituted. Hard-refresh and try again.',
+      });
+    }
+    req.__workspaceId = wsId;
+  } catch (_) { /* never hard-fail the router on scoping */ }
+
   try {
     if (action === 'list') {
       const emails = await core.getAllEmails();

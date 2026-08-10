@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KNICKGASM® Mailer Studio</title>
@@ -731,7 +734,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     </label>
     <button onclick="authSubmit()" style="width:100%;padding:12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;cursor:pointer;transition:opacity .2s;letter-spacing:0.04em" id="authBtn" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In &rarr;</button>
     <div style="text-align:center;margin-top:14px">
-      <span style="font-size:11px;color:#888" id="authSwitch">No password needed — passwordless secure sign in</span><br>
+      <span style="font-size:11px;color:#888" id="authSwitch">No password needed, passwordless secure sign in</span><br>
       <span id="authToggleHint" style="font-size:11px;color:#aaa;margin-top:4px;display:inline-block">Don't have an account? <a href="#" onclick="setAuthMode('signup');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a></span>
     </div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--vh-panel-tan);text-align:center">
@@ -766,7 +769,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   <div class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:10px">
       <div>
-        <div class="plbl" style="margin-bottom:2px">&#128202; Team Dashboard — All Campaigns</div>
+        <div class="plbl" style="margin-bottom:2px">&#128202; Team Dashboard, All Campaigns</div>
         <p style="font-size:11px;color:#888;margin:0">Every mailer generated on this device by every user &mdash; shared across the whole team. Sorted newest first.</p>
       </div>
       <button onclick="renderDashboard()" style="font-size:11px;padding:5px 14px;background:var(--lightg);border:1.5px solid var(--g);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;color:var(--g);font-weight:700;flex-shrink:0">&#8635; Refresh</button>
@@ -804,7 +807,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <span style="font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.6)">Campaign Brief</span>
       </div>
       <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;font-weight:600;color:#FFFFFF;margin-bottom:6px;line-height:1.2">What are we sending today?</div>
-      <p style="font-size:12px;color:rgba(251,245,234,0.7);margin:0;line-height:1.6;max-width:520px">Describe your campaign idea — or let AI <strong style="color:var(--vh-lava)">Create</strong> a director-grade brief from scratch. Then set your market and campaign type below.</p>
+      <p style="font-size:12px;color:rgba(251,245,234,0.7);margin:0;line-height:1.6;max-width:520px">Describe your campaign idea, or let AI <strong style="color:var(--vh-lava)">Create</strong> a director-grade brief from scratch. Then set your market and campaign type below.</p>
     </div>
   </div>
 
@@ -864,7 +867,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div style="margin-bottom:20px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
         <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Target Market <span class="req">*</span></label>
-        <span style="font-size:10px;color:#556059;font-weight:400">Multi-select — each market gets its own tailored mailer</span>
+        <span style="font-size:10px;color:#556059;font-weight:400">Multi-select, each market gets its own tailored mailer</span>
       </div>
       <div class="mkt-chips" id="mktChips">
         <button class="mkt-chip on" data-mkt="US" onclick="toggleMarket('US',this)">&#127482;&#127480; United States</button>
@@ -881,7 +884,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div class="field" style="margin-bottom:20px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
         <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Target User Segment</label>
-        <span style="font-size:10px;color:#556059;font-weight:400">Who is this mailer for? — drives copy, imagery, and tone</span>
+        <span style="font-size:10px;color:#556059;font-weight:400">Who is this mailer for?, drives copy, imagery, and tone</span>
       </div>
       <textarea id="audienceIn"
         style="min-height:64px;font-size:13px;line-height:1.65;width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;resize:vertical"
@@ -890,7 +893,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         placeholder="e.g. Urban lifestyle-curious professionals, 28-42, in NYC/LA. Buy premium grocery, drink 1-2 pairs daily, trust farm-direct origin. Lapsed buyers in last 90 days who tried our products but didn't repeat."></textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button id="audienceAIBtn" type="button" onclick="generateAudienceWithAI(event)" style="background:#fff;color:#D0473E;border:1.5px solid #D0473E;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.02em;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s">&#129504; Generate with AI</button>
-        <span style="font-size:10.5px;color:#556059;flex:1;line-height:1.5">AI infers a precise segment from your brief, market, and campaign type — refine if needed.</span>
+        <span style="font-size:10.5px;color:#556059;flex:1;line-height:1.5">AI infers a precise segment from your brief, market, and campaign type, refine if needed.</span>
       </div>
     </div>
 
@@ -898,7 +901,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div style="margin-bottom:20px">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
         <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Campaign Type</label>
-        <span style="font-size:10px;color:#556059;font-weight:400">Multi-select — pick 1-3 to variant the vibe (e.g. Gift + Sale, Routine + Story)</span>
+        <span style="font-size:10px;color:#556059;font-weight:400">Multi-select, pick 1-3 to variant the vibe (e.g. Gift + Sale, Routine + Story)</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="typeChips">
         <button class="type-chip on" data-type="" onclick="selectType('',this)">&#x1F916; Auto</button>
@@ -930,14 +933,12 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <span>Select Products</span>
       <span style="font-size:18px;line-height:1">&rarr;</span>
     </button>
-    <p style="text-align:center;font-size:11px;color:#bbb;margin:10px 0 0;line-height:1.5">
-      We'll auto-pick the best matching products from the KNICKGASM catalog — or you can choose manually in the next step.
-    </p>
+    <p style="text-align:center;font-size:11px;color:#bbb;margin:10px 0 0;line-height:1.5"> We'll auto-pick the best matching products from the KNICKGASM catalog, or you can choose manually in the next step. </p>
 
   </div>
 </div>
 <div id="p2" class="panel" style="display:none">
-  <div class="plbl">Step 2 — Choose Products</div>
+  <div class="plbl">Step 2, Choose Products</div>
   <!-- Campaign context injected by go2() -->
   <div id="p2CampaignCtx" style="display:none;background:linear-gradient(90deg,#D0473E,#D0473E);border-radius:10px;padding:12px 16px;margin-bottom:16px;align-items:flex-start;gap:12px;flex-wrap:wrap"></div>
   <p style="font-size:12px;color:#888;margin-top:-4px;margin-bottom:14px;line-height:1.6">Browse and tap products to include in your mailer. Skip to auto-select the best matches for your campaign type and brief.</p>
@@ -977,7 +978,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   </div>
 </div>
 <div id="p3" class="panel" style="display:none">
-  <div class="plbl">Step 3 — Generating Your Campaign</div>
+  <div class="plbl">Step 3, Generating Your Campaign</div>
   <!-- Campaign context injected by go3() -->
   <div id="p3CampaignCtx" style="display:none;background:linear-gradient(90deg,#D0473E,#D0473E);border-radius:10px;padding:12px 16px;margin-bottom:16px;align-items:flex-start;gap:12px;flex-wrap:wrap"></div>
   <div class="stages" id="stagesList"></div>
@@ -988,11 +989,11 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <button class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Back to Products</button>
     <button class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
     <span style="flex:1"></span>
-    <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Step 4 — Review &amp; Refine</span>
+    <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Step 4, Review &amp; Refine</span>
     <span style="flex:1"></span>
     <button class="btn btn-primary btn-sm" onclick="gateFinalOutput()" style="white-space:nowrap">Final Output &rarr;</button>
   </div>
-  <div class="plbl">Step 4 — Review &amp; Refine</div>
+  <div class="plbl">Step 4, Review &amp; Refine</div>
   <!-- Campaign context injected by runGeneration() -->
   <div id="p4CampaignCtx" style="display:none;background:linear-gradient(90deg,#D0473E,#D0473E);border-radius:10px;padding:12px 16px;margin-bottom:16px;align-items:flex-start;gap:12px;flex-wrap:wrap"></div>
 
@@ -1021,7 +1022,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <div class="prod-chips" id="prodChipsReview" style="flex-direction:column;gap:6px;margin-bottom:16px"></div>
         <div style="background:var(--vh-panel-tan);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;margin-bottom:14px">
           <div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:4px">&#x1F5BC; Add a hero image</div>
-          <p style="font-size:11px;color:#48524c;line-height:1.5;margin-bottom:8px">Generate one with ChatGPT, Claude or Gemini — then upload it below.</p>
+          <p style="font-size:11px;color:#48524c;line-height:1.5;margin-bottom:8px">Generate one with ChatGPT, Claude or Gemini, then upload it below.</p>
           <button onclick="switchP4Tab('chatgpt',document.getElementById('tab-chatgpt'))" style="width:100%;padding:9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open AI Image Tools &#8599;</button>
         </div>
         <div class="fb-area">
@@ -1146,7 +1147,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div class="btn-row">
       <button class="btn btn-outline btn-sm" onclick="goBack(2)">&larr; Back</button>
       <div style="flex:1"></div>
-      <button class="btn btn-lava" onclick="switchP4Tab('upload',document.getElementById('tab-upload'))">Done — Upload Generated Image &rarr;</button>
+      <button class="btn btn-lava" onclick="switchP4Tab('upload',document.getElementById('tab-upload'))">Done, Upload Generated Image &rarr;</button>
     </div>
   </div>
   <div id="p4-upload" style="display:none">
@@ -1163,7 +1164,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <button onclick="generateServerImage('B')" style="flex:1;padding:10px;background:#6A33D8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9889; Generate Variant B</button>
       </div>
     </div>
-    <div style="text-align:center;font-size:11px;color:#999;margin-bottom:12px;letter-spacing:0.1em">— OR upload your own design —</div>
+    <div style="text-align:center;font-size:11px;color:#999;margin-bottom:12px;letter-spacing:0.1em"> - OR upload your own design - </div>
     <div id="uploadZone" onclick="document.getElementById('imgUploadInput').click()"
       style="border:2px dashed #ccc;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;background:#FFFFFF;transition:border-color .15s"
       onmouseover="this.style.borderColor='#D0473E'" onmouseout="this.style.borderColor='#ccc'">
@@ -1174,7 +1175,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <input type="file" id="imgUploadInput" accept="image/*,.pdf,.psd,.ai,.svg,.fig,.sketch,.eps,.tiff,.heic,.heif,.gif,.bmp,.webp" style="display:none" onchange="handleImgUpload(event)">
     </div>
     <div id="uploadPreview" style="display:none;margin-top:14px">
-      <p style="font-size:12px;color:#666;margin-bottom:8px">&#10003; Image ready — this will be used as the hero visual in your HTML email mailer:</p>
+      <p style="font-size:12px;color:#666;margin-bottom:8px">&#10003; Image ready, this will be used as the hero visual in your HTML email mailer:</p>
       <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
         <img id="uploadedImg" src="" alt="Uploaded design" style="width:100%;display:block">
       </div>
@@ -1202,7 +1203,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <button class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Products</button>
     <button class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
     <span style="flex:1"></span>
-    <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Step 5 — Final Output</span>
+    <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Step 5, Final Output</span>
     <span style="flex:1"></span>
     <button class="btn btn-ghost btn-sm" onclick="if(confirm('Start a new campaign? Current work will be cleared.'))clearAndCreate()" style="white-space:nowrap;color:#c0392b">&#8635; Start New</button>
   </div>
