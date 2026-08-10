@@ -163,6 +163,32 @@ const SYNC_WRITABLE_STATUSES = 'in.(tentative,rejected)';
 
 // ── Analysis context (shared by sync + preview) ─────────────────────────────
 
+// ── Tenant-zero guard for on-the-fly planning ───────────────────────────────
+// buildContext/freshEntries read the SHIPPED catalogue, analytics and moments,
+// which describe tenant zero only. A plan generated from them must therefore
+// never be produced for any other workspace - with a brand name relabelled on
+// top it reads as that brand's own plan ("The Economic Times Sneaker
+// Assortment"). Fail CLOSED: if the workspace cannot be confirmed as tenant
+// zero, no fallback plan is generated.
+async function tenantZeroPlanningAllowed(config, db) {
+  const wsId = (config && config.workspace_id) || (db && db.workspaceId) || null;
+  if (!wsId) return true; // userless (cron) default resolves to tenant zero
+  try {
+    const wsScope = require('./workspace-scope.js');
+    const env = {
+      url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    };
+    if (!env.url || !env.key) return false;
+    const brand = await wsScope.brandForWorkspace(env, wsId);
+    return !!brand && /^knickgasm$/i.test(String(brand.slug || brand.name || ''));
+  } catch (_) { return false; }
+}
+
+const EMPTY_PLAN_NOTE = '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, this workspace, all] '
+  + 'The plan generates only from this brand\'s own offerings and data; nothing is borrowed from another brand. '
+  + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+
 async function buildContext(config, db) {
   const ownData = await db.ownData();
   const competitorData = await db.competitorData();
@@ -310,6 +336,11 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
   // without a material plan change.
   const refreshDays = Number.isFinite(+config.prebuildRefreshDays) ? +config.prebuildRefreshDays : 7;
   const refreshUntil = addDaysIso(start, refreshDays);
+  // Same guard as getPlan: never synthesize a tenant-zero-shaped plan into
+  // another brand's workspace.
+  if (!(await tenantZeroPlanningAllowed(config, db))) {
+    return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', synced_at: new Date().toISOString(), horizon_days: horizon, changes: [], entries: [], note: EMPTY_PLAN_NOTE };
+  }
   const ctx = await buildContext(config, db);
   const fresh = freshEntries(config, ctx, start, horizon);
 
@@ -443,7 +474,11 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
       };
     }
   }
-  // Stateless preview: no DB (or empty table) — generate on the fly.
+  // Stateless preview: no DB (or empty table) — generate on the fly, but ONLY
+  // for tenant zero (the shipped data describes no one else).
+  if (!(await tenantZeroPlanningAllowed(config, db))) {
+    return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
+  }
   const ctx = _ctxFallback?.ctx || await buildContext(config, db);
   const entries = _ctxFallback?.fresh || freshEntries(config, ctx, todayIso(), config.calendarDays);
   return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, status: 'tentative' })) };
