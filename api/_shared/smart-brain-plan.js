@@ -123,6 +123,7 @@ async function callLLMTiered(opts) {
 const { buildMasterPrompt, regionFacts } = require('./master-prompt.js');
 const SM = require('./scenario-model.js');
 const OfferingCampaign = require('./offering-campaign.js');
+const { buildEntryAnalysis } = require('./output-reasoning.js');
 // Guaranteed-online fallback: a real catalog product photo (Shopify CDN) so a
 // creative never ships an unrenderable data: URI when generation/upload fails.
 const catalogImage = require('./catalog-image.js');
