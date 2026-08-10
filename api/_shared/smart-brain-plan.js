@@ -1307,6 +1307,8 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}) {
     }
     ad.creative_brief = ad.creative.brief || ad.creative_brief || '';
   }
+  traceRun(__run, 'build:done', { slot: entry && entry.id, assets: (function(){ try { return Object.keys(campaign && campaign.assets || {}).join(','); } catch(_) { return ''; } })() });
+
   return campaign;
 }
 
@@ -1458,7 +1460,32 @@ async function stampBrand(entry, config) {
   return entry;
 }
 
+// ── Run tracing ──────────────────────────────────────────────────────────────
+// One id threaded through a whole generation so strategy, content and assets
+// can be correlated in the logs. Today's stale-prebuilt puzzle took far longer
+// than it should have because nothing tied those stages together per brand.
+function _runId(entry) {
+  const base = `${(entry && entry.id) || 'slot'}_${Date.now().toString(36)}`;
+  return base.replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 48);
+}
+function traceRun(run, stage, fields) {
+  try {
+    console.log(JSON.stringify(Object.assign({
+      at: new Date().toISOString(), run, stage, mod: 'smart-brain',
+    }, fields || {})));
+  } catch (_) { /* logging must never break a generation */ }
+}
+
 async function buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
+  const __run = _runId(entry);
+  traceRun(__run, 'build:start', {
+    slot: entry && entry.id, date: entry && entry.date, market: entry && entry.market,
+    brand: (entry && entry.brand && entry.brand.name) || null,
+    workspace: (config && config.workspace_id) || null,
+    offering: (entry && entry.offering && entry.offering.kind) || null,
+    withCreatives, noLLM,
+  });
+
   await stampBrand(entry, config);
   // Review-recovery slots are a review INVITATION, not a promo: email-only, no
   // offer, no ads/landing page, CTA to the product's own review section. Render
