@@ -798,7 +798,13 @@
       return;
     }
     if(!marketHasData(MKT)){ var k=Object.keys(A.markets).filter(marketHasData); if(k.length) MKT=k[0]; }
-    document.querySelectorAll('#mktToggle button').forEach(function(b){ b.classList.toggle('on', b.dataset.mkt===MKT); });
+    // Regions are BRAND-TRUE: a brand sold only in India shows only an India
+    // toggle. Buttons for markets the active dataset has no data for are
+    // hidden, not rendered as dead tabs.
+    document.querySelectorAll('#mktToggle button').forEach(function(b){
+      b.classList.toggle('on', b.dataset.mkt===MKT);
+      b.style.display = marketHasData(b.dataset.mkt) ? '' : 'none';
+    });
     renderMarket();
     if(marketHasData(MKT)){ var hash=(location.hash||'').replace('#',''); if(hash && WIDGETS.find(function(w){return w.id===hash;})) openDetail(hash); }
   }
