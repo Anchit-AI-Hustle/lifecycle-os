@@ -519,18 +519,42 @@
     // resolves from the AUTH TOKEN, never a workspace param - and holding it
     // would deadlock this module's own brand bootstrap.
     var UNSCOPED = /\/api\/public-config/;
-    function glue(input, ws) {
+    function glue(input, ws, init) {
       var url = (typeof input === 'string') ? input : (input && input.url) || '';
-      if (url.indexOf('workspace_id=') >= 0) return input;
-      var glued = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'workspace_id=' + encodeURIComponent(ws);
-      return (typeof input === 'string') ? glued : new Request(glued, input);
+      var glued = (url.indexOf('workspace_id=') >= 0)
+        ? url
+        : url + (url.indexOf('?') >= 0 ? '&' : '?') + 'workspace_id=' + encodeURIComponent(ws);
+      // Also send the user's token. The server resolves the ACTIVE workspace
+      // from the JWT when no param survives (a stale cached script, a request
+      // built before this wrapper installed), so scoping no longer depends on
+      // the client getting the query string right.
+      try {
+        var t = token();
+        if (t) {
+          var hasAuth = (init && init.headers && (init.headers.Authorization || init.headers.authorization))
+            || (typeof input !== 'string' && input && input.headers && input.headers.get && input.headers.get('Authorization'));
+          if (!hasAuth) {
+            if (typeof input === 'string') {
+              init = init || {};
+              var h = new Headers(init.headers || {});
+              h.set('Authorization', 'Bearer ' + t);
+              init.headers = h;
+              return { input: glued, init: init };
+            }
+            var req = new Request(glued, input);
+            req.headers.set('Authorization', 'Bearer ' + t);
+            return { input: req, init: init };
+          }
+        }
+      } catch (_) { /* header attach is best-effort */ }
+      return { input: (typeof input === 'string') ? glued : new Request(glued, input), init: init };
     }
     function stamped(input, init) {
       try {
         var url = (typeof input === 'string') ? input : (input && input.url) || '';
         var isApi = /^\/api\//.test(url) || url.indexOf(location.origin + '/api/') === 0;
         if (!isApi || UNSCOPED.test(url)) return origFetch.call(window, input, init);
-        if (state.brand && state.brand.id) return origFetch.call(window, glue(input, state.brand.id), init);
+        if (state.brand && state.brand.id) { var g = glue(input, state.brand.id, init); return origFetch.call(window, g.input, g.init); }
         // The active brand is not resolved yet. An unstamped content request
         // would fall back to the server's DEFAULT workspace and return another
         // brand's rows (this is exactly how a Times of India workspace was
@@ -542,7 +566,7 @@
           return new Promise(function (resolve, reject) {
             var waited = 0;
             (function poll() {
-              if (state.brand && state.brand.id) { resolve(origFetch.call(self || window, glue(input, state.brand.id), init)); return; }
+              if (state.brand && state.brand.id) { var g2 = glue(input, state.brand.id, init); resolve(origFetch.call(self || window, g2.input, g2.init)); return; }
               if (state.loaded || waited >= 8000) { resolve(origFetch.call(self || window, input, init)); return; }
               waited += 120;
               setTimeout(poll, 120);
