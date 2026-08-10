@@ -53,8 +53,10 @@
     if (bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0)) return true;
     var bn = String(brand.name || '').toLowerCase(), pn = String(preset.name || '').toLowerCase();
     if (bn && pn && (bn.indexOf(pn) >= 0 || pn.indexOf(bn) >= 0)) return true;
-    // token overlap ("Times Health+ Marathon" vs "TOI Health & Fitness")
-    var toks = function (s) { return String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(function (t) { return t.length > 2; }); };
+    // token overlap, stopword-free: "The Times of India" and "The Economic
+    // Times" share {the, times} and are NOT the same brand.
+    var STOP = { the: 1, and: 1, for: 1 };
+    var toks = function (s) { return String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(function (t) { return t.length > 2 && !STOP[t]; }); };
     var a = toks(bn), b = toks(pn), hits = 0;
     for (var i = 0; i < a.length; i++) if (b.indexOf(a[i]) >= 0) hits++;
     return hits >= 2;

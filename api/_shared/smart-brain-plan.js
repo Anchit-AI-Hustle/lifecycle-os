@@ -210,17 +210,31 @@ function _resolveBrandOfferings(brand) {
     try {
       const dir = path.join(process.cwd(), 'data', 'brands', 'presets');
       const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
-      const toks = (s) => String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2);
+      // Stopwords excluded: "The Times of India" and "The Economic Times"
+      // share {the, times}, which is NOT a match. Exact identity (host, slug,
+      // full name) is checked across ALL presets before any fuzzy pass.
+      const STOP = { the: 1, and: 1, for: 1, india: 0 };
+      const toks = (s) => String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2 && !STOP[t]);
+      const presets = [];
       for (const f of fs.readdirSync(dir)) {
         if (!f.endsWith('.json') || f === 'index.json') continue;
-        let p; try { p = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (_) { continue; }
-        const hostHit = host(brand.website) && host(brand.website) === host(p.website);
-        const bs = String(brand.slug || '').toLowerCase(), ps = String(p.slug || '').toLowerCase();
-        const slugHit = bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0);
-        const bn = toks(brand.name), pn = toks(p.name);
-        const nameHit = bn.filter((t) => pn.indexOf(t) >= 0).length >= 2;
-        if ((hostHit || slugHit || nameHit) && Array.isArray(p.offerings) && p.offerings.length) { raw = p.offerings; break; }
+        try { presets.push(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))); } catch (_) {}
       }
+      const bs = String(brand.slug || '').toLowerCase();
+      const bn = String(brand.name || '').trim().toLowerCase();
+      const exact = presets.find((p) =>
+        (host(brand.website) && host(brand.website) === host(p.website)) ||
+        (bs && String(p.slug || '').toLowerCase() === bs) ||
+        (bn && String(p.name || '').trim().toLowerCase() === bn));
+      const prefix = exact || presets.find((p) => {
+        const ps = String(p.slug || '').toLowerCase();
+        return bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0);
+      });
+      const fuzzy = prefix || presets.find((p) => {
+        const bt = toks(brand.name), pt = toks(p.name);
+        return bt.filter((t) => pt.indexOf(t) >= 0).length >= 2;
+      });
+      if (fuzzy && Array.isArray(fuzzy.offerings) && fuzzy.offerings.length) raw = fuzzy.offerings;
     } catch (_) { /* no preset dir - fall through */ }
   }
   if (!raw) return [];

@@ -83,8 +83,10 @@
     if (hostOf(brand.website) && hostOf(brand.website) === hostOf(preset.website)) return true;
     var bs = String(brand.slug || '').toLowerCase(), ps = String(preset.slug || '').toLowerCase();
     if (bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0)) return true;
-    var bn = String(brand.name || '').toLowerCase(), pn = String(preset.name || '').toLowerCase();
-    return !!(bn && pn && (bn.indexOf(pn) >= 0 || pn.indexOf(bn) >= 0));
+    var bn = String(brand.name || '').trim().toLowerCase(), pn = String(preset.name || '').trim().toLowerCase();
+    // Full-string containment only - never token overlap, which would match
+    // "The Times of India" to "The Economic Times" on {the, times}.
+    return !!(bn && pn && (bn === pn || bn.indexOf(pn) >= 0 || pn.indexOf(bn) >= 0));
   }
   function brandOfferings(brand) {
     if (Array.isArray(brand.offerings) && brand.offerings.length) return Promise.resolve(brand.offerings);
