@@ -1159,24 +1159,37 @@ function emailVariants(entry, copyA, copyB, fwA, fwB, creativeUrl) {
 
 function emailHtml(entry, copy, creativeUrl) {
   const E = copy.email;
+  // Brand-derived: this renders for whichever brand owns the slot, so the
+  // wordmark, palette, CTA and footer must come from its record, not a fixed
+  // tenant's. (This path only runs when an LLM produced the copy, which is why
+  // it survived the first sweep.)
+  const b = (entry.brand && entry.brand.id) ? entry.brand
+    : (() => { try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; } })();
+  const bName = b.name || '';
+  const pal = b.palette || {};
+  const P = pal.primary || '#111111';
+  const ACC = pal.accent || P;
+  const INK = pal.ink || '#111111';
+  const SURF = pal.surface || '#FFFFFF';
+  const onP = pal.surface || '#FFFFFF';
   const img = creativeUrl || catalogImage.imageFor(entry, entry.market);
   const heroImg = img
-    ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || 'KNICKGASM').replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
+    ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${E.subject}</title></head>
-<body style="margin:0;background:#FFFFFF;color:#111111;font-family:${FONT_BODY}">
-<main style="max-width:680px;margin:auto;background:#ffffff">
-  <section style="background:#D0473E;color:#FFFFFF;padding:44px 36px;text-align:center">
-    <p style="color:#6A33D8;letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">KNICKGASM</p>
+<body style="margin:0;background:${SURF};color:${INK};font-family:${FONT_BODY}">
+<main style="max-width:680px;margin:auto;background:${SURF}">
+  <section style="background:${P};color:${onP};padding:44px 36px;text-align:center">
+    <p style="letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px;opacity:.85">${bName}</p>
     <h1 style="font-family:${FONT_HEAD};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
   </section>
   ${heroImg}
   <section style="padding:36px">
     <p style="line-height:1.7">${E.intro_paragraph}</p>
     <p style="line-height:1.7">${E.body_paragraph}</p>
-    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:#6A33D8;color:#111111;padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || 'Shop the edit'}</a></p>
+    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:${ACC};color:${onP};padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || entry.cta || 'See more'}</a></p>
   </section>
-  <footer style="background:#D0473E;color:#FFFFFF99;text-align:center;padding:22px;font-size:11px">You're receiving this as a KNICKGASM ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
+  <footer style="background:${P};color:${onP}99;text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName} ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
 </main>
 </body></html>`;
 }
@@ -2160,6 +2173,8 @@ async function dbCheck({ config: cfg = {} } = {}) {
 }
 
 module.exports = {
+  // exported for scripts/test-brand-isolation.js only
+  __test_emailHtml: emailHtml,
   syncDaily, getPlan, previewEntry, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
   prebuildAssets, healOrphans, dbCheck, syncStatus,
   // exported for unit testing (pure scenario helpers)
