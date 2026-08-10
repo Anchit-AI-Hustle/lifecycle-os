@@ -110,8 +110,43 @@ async function syncStatus({ config: cfg = {}, limit = 60 } = {}) {
 // standard then fast tiers reaches smaller real models (incl. the free tiers),
 // so generation succeeds whenever ANY provider/model works. Honours "premium
 // first" while never dropping the whole mailer to template on a premium miss.
+/**
+ * Tiered LLM call. The STARTING tier is chosen by model-router from two
+ * signals - how apt the job is for a bigger model, and how much credit the
+ * workspace has left - instead of every caller hardcoding 'premium'. The
+ * existing quality->cheaper demotion still runs underneath, so a provider
+ * failure degrades exactly as before.
+ *
+ * opts.stage names the job (used for aptness); opts.workspaceId + opts.feature
+ * enable the budget cap. With neither supplied the behaviour is unchanged.
+ */
 async function callLLMTiered(opts) {
-  const wanted = (opts && opts.tier) || 'premium';
+  let wanted = (opts && opts.tier) || 'premium';
+  let routeNote = '';
+  try {
+    const mr = require('./model-router.js');
+    const env = {
+      url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    };
+    const decision = await mr.route({
+      stage: (opts && (opts.stage || opts.feature)) || '',
+      featureKey: opts && opts.feature,
+      workspaceId: opts && opts.workspaceId,
+      env,
+      requested: opts && opts.tier,
+    });
+    if (decision && decision.allowed && decision.tier) { wanted = decision.tier; routeNote = decision.reason; }
+    else if (decision && !decision.allowed) {
+      const err = new Error(decision.reason);
+      err.code = 'insufficient_credits';
+      throw err;
+    }
+  } catch (e) {
+    if (e && e.code === 'insufficient_credits') throw e;   // a real decision, not a routing failure
+    /* any other routing problem: fall back to the caller's tier */
+  }
+  if (routeNote) { try { console.log(`[model-router] ${(opts && (opts.stage || opts.feature)) || 'llm'} -> ${wanted} (${routeNote})`); } catch (_) {} }
   const tiers = [...new Set([wanted, 'standard', 'fast'])];
   let lastErr;
   for (const tier of tiers) {
@@ -806,6 +841,7 @@ async function strategyBrief(entry) {
   try {
     const res = await callLLMTiered({
       systemPrompt: strategySystem(entry.brand),
+      stage: 'strategy', feature: 'brain.strategy', workspaceId: (entry && entry.workspace_id) || null,
       userMessage: strategyPrompt(entry),
       responseFormat: { type: 'json_object' },
       maxTokens: 900,
@@ -1174,6 +1210,7 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
     try {
       res = await callLLMTiered({
         systemPrompt: brandSystem(entry.brand) + sysLine,
+        stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (entry && entry.workspace_id) || null,
         userMessage: copyPrompt(entry, fw, brief),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
