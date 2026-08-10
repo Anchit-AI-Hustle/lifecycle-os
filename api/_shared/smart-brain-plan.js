@@ -481,6 +481,14 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
       ownData: { feedback: [] },
     };
   } else {
+    // Markets are BRAND-TRUE for tenant zero too: derive them from its own
+    // regions rather than the shipped ['US','UK'] default, so a brand selling
+    // in India plans India slots.
+    try {
+      const zero = require('./brand-runtime.js').defaultBrand();
+      const codes = (zero.regions || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+      if (codes.length) config = Object.assign({}, config, { markets: codes });
+    } catch (_) { /* keep the shipped default if the record is unreadable */ }
     ctx = await buildContext(config, db);
     fresh = freshEntries(config, ctx, start, horizon);
   }
@@ -632,8 +640,14 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
       note: `Plan generated from ${pb.brand.name}'s own catalogue and regions. Confidence figures are DEMO until real analytics connect.`,
     };
   }
-  const ctx = _ctxFallback?.ctx || await buildContext(config, db);
-  const entries = _ctxFallback?.fresh || freshEntries(config, ctx, todayIso(), config.calendarDays);
+  let cfg2 = config;
+  try {
+    const zero = require('./brand-runtime.js').defaultBrand();
+    const codes = (zero.regions || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+    if (codes.length) cfg2 = Object.assign({}, config, { markets: codes });
+  } catch (_) {}
+  const ctx = _ctxFallback?.ctx || await buildContext(cfg2, db);
+  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays);
   return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, status: 'tentative' })) };
 }
 
