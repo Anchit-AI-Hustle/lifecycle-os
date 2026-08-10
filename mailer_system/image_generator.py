@@ -31,7 +31,7 @@ SECTION_SPECS = {
         "size": "1792x1024",
         "quality": "high",
         "description": (
-            "Wide cinematic hero crop. Dark deep deep-purple background (#6A33D8). "
+            "Wide cinematic hero crop. Dark deep deep-purple background (#D0473E). "
             "Centrally composed. Dramatic atmospheric depth. "
             "Luxury sneaker lifestyle or origin studio scene."
         ),
@@ -54,7 +54,7 @@ BASE_STYLE = (
     "Cinematic studio lighting — warm amber key, cool deep-purple fill. "
     "Shot on Phase One medium format. "
     "Visual language of Condé Nast Traveler, Monocle, and Kinfolk magazine. "
-    "Color palette: deep deep purple #6A33D8, warm amber #D0473E, chalk #F7F5F2. "
+    "Color palette: deep deep purple #D0473E, warm amber #6A33D8, chalk #FFFFFF. "
     "Photorealistic. 8K resolution. Studio grade. "
     "No text overlays. No logos. No watermarks. No people unless specified. "
     "Rule of thirds composition. Shallow depth of field. "

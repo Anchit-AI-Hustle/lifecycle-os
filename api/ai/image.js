@@ -33,7 +33,7 @@ const IMAGE_PROMPT_PREAMBLE = `Photoreal product lifestyle photograph for KNICKG
 Scene:
 `;
 
-const DESIGN_PROMPT_PREAMBLE = `High-fidelity flat graphic design mockup of a complete marketing email for KNICKGASM premium sneaker brand. This is a DESIGN LAYOUT showing the full email as it would appear in an inbox — NOT a photograph. Polished marketing creative, magazine-quality email design. Deep deep-purple (#6A33D8) header, ivory/chalk (#F7F5F2) body background, warm lava (#D0473E) CTA buttons and accents. Elegant serif typography for headlines, clean sans-serif for body text. Professional email marketing aesthetic.
+const DESIGN_PROMPT_PREAMBLE = `High-fidelity flat graphic design mockup of a complete marketing email for KNICKGASM premium sneaker brand. This is a DESIGN LAYOUT showing the full email as it would appear in an inbox — NOT a photograph. Polished marketing creative, magazine-quality email design. Deep deep-purple (#D0473E) header, ivory/chalk (#FFFFFF) body background, warm lava (#6A33D8) CTA buttons and accents. Elegant serif typography for headlines, clean sans-serif for body text. Professional email marketing aesthetic.
 
 Design:
 `;
@@ -41,7 +41,7 @@ Design:
 // Paid-social ad creative: a FINISHED ad, with the headline + offer text BAKED
 // INTO the image (server-generated Smart Brain creatives have no client-side
 // canvas step, so the text must be rendered here). Used when mode === 'ad'.
-const AD_PROMPT_PREAMBLE = `Scroll-stopping paid social ad creative for KNICKGASM premium sneaker brand — a photoreal lifestyle scene WITH a clean marketing text overlay rendered as part of the image (a finished ad, NOT a bare photo). Render the supplied headline and offer line as crisp, correctly-spelled, perfectly-legible on-brand typography in a clear safe-zone band: elegant serif headline, clean sans-serif offer, on the KNICKGASM palette — deep deep-purple #6A33D8, lava #D0473E, chalk #F7F5F2. The emotional end-state (calm, steady energy, "feeling like myself again") leads; never an ingredient list. NO garbled or fake letterforms, NO logos, NO watermarks, NO inbox/UI chrome; product packaging shows a botanical illustration only with NO readable lettering. Gallery-print resolution.
+const AD_PROMPT_PREAMBLE = `Scroll-stopping paid social ad creative for KNICKGASM premium sneaker brand — a photoreal lifestyle scene WITH a clean marketing text overlay rendered as part of the image (a finished ad, NOT a bare photo). Render the supplied headline and offer line as crisp, correctly-spelled, perfectly-legible on-brand typography in a clear safe-zone band: elegant serif headline, clean sans-serif offer, on the KNICKGASM palette — deep deep-purple #D0473E, lava #6A33D8, chalk #FFFFFF. The emotional end-state (calm, steady energy, "feeling like myself again") leads; never an ingredient list. NO garbled or fake letterforms, NO logos, NO watermarks, NO inbox/UI chrome; product packaging shows a botanical illustration only with NO readable lettering. Gallery-print resolution.
 
 Ad creative:
 `;
@@ -51,7 +51,7 @@ Ad creative:
 // models fabricate garbled fake boxes/labels, and ad branding + packaging must be
 // REAL. So this depicts only an empty sneaker scene (crafted pair, leaves, surface,
 // light) with no product, no box, no box, no label, no text.
-const AMBIENT_PROMPT_PREAMBLE = `Photoreal ambient lifestyle backdrop for KNICKGASM premium sneaker brand — an atmospheric sneaker scene with NO product and NO packaging in frame. Show only: a freshly crafted pair of kicks with rising steam, loose sneaker panels, a marble or wood surface, warm natural light, soft shallow depth of field. ABSOLUTELY NO product packaging, NO box, NO box, NO pouch, NO label, NO brand mark, NO logo, NO text, NO words, NO watermark, NO UI. The real product photo is added separately, so this frame must stay a clean product-free backdrop. Brand palette accents allowed: deep deep-purple #6A33D8, lava #D0473E, chalk #F7F5F2. Gallery-print resolution, zero AI smear artifacts.
+const AMBIENT_PROMPT_PREAMBLE = `Photoreal ambient lifestyle backdrop for KNICKGASM premium sneaker brand — an atmospheric sneaker scene with NO product and NO packaging in frame. Show only: a freshly crafted pair of kicks with rising steam, loose sneaker panels, a marble or wood surface, warm natural light, soft shallow depth of field. ABSOLUTELY NO product packaging, NO box, NO box, NO pouch, NO label, NO brand mark, NO logo, NO text, NO words, NO watermark, NO UI. The real product photo is added separately, so this frame must stay a clean product-free backdrop. Brand palette accents allowed: deep deep-purple #D0473E, lava #6A33D8, chalk #FFFFFF. Gallery-print resolution, zero AI smear artifacts.
 
 Scene:
 `;
@@ -61,7 +61,7 @@ Scene:
 // baked-in text (kinetic type is layered at motion time), strong depth
 // separation for parallax, and clear negative space where type will land.
 // Used when mode === 'reels'.
-const REELS_PROMPT_PREAMBLE = `Cinematic 9:16 hero frame for a KNICKGASM premium sneaker Reel — the opening shot of a high-end social video, graded like a film still. Composition rules: strong foreground / midground / background depth separation (for parallax animation), a single clear subject, generous negative space in the upper third where kinetic typography will be layered later — so NO text, NO logos, NO watermarks, NO UI in the frame. Movement cues frozen mid-action welcome: steam curling, sneaker pouring, leaves drifting. Palette accents: deep deep-purple #6A33D8, lava #D0473E, chalk #F7F5F2. Packaging, if present, shows a lava botanical illustration only — NO readable lettering (label out of focus or angled away; never garbled fake text). Editorial food-film lighting, shallow depth of field, filmic colour grade.
+const REELS_PROMPT_PREAMBLE = `Cinematic 9:16 hero frame for a KNICKGASM premium sneaker Reel — the opening shot of a high-end social video, graded like a film still. Composition rules: strong foreground / midground / background depth separation (for parallax animation), a single clear subject, generous negative space in the upper third where kinetic typography will be layered later — so NO text, NO logos, NO watermarks, NO UI in the frame. Movement cues frozen mid-action welcome: steam curling, sneaker pouring, leaves drifting. Palette accents: deep deep-purple #D0473E, lava #6A33D8, chalk #FFFFFF. Packaging, if present, shows a lava botanical illustration only — NO readable lettering (label out of focus or angled away; never garbled fake text). Editorial food-film lighting, shallow depth of field, filmic colour grade.
 
 Frame:
 `;
@@ -433,3 +433,20 @@ module.exports = async function handler(req, res) {
       : 'All image providers failed (OpenAI gpt-image-2/1, Gemini, Pollinations). Usually the OpenAI org is not verified for image generation or has no credits — verify at platform.openai.com → Settings → Organization. Showing brand placeholder.'
   });
 };
+
+// ── Metering (Universal Brand Platform) ────────────────────────────────────
+// Image generation is the second most expensive call in the app, so it must be
+// charged. 'reels' mode is a distinct, pricier product in the catalog.
+const _credits = require('../_shared/credits-core.js');
+module.exports = _credits.metered(
+  module.exports,
+  (req, body) => (String(body.mode || '').toLowerCase() === 'reels' ? 'image.reels' : 'image.generate'),
+  null,
+  {
+    // This endpoint never 502s: when every provider fails (or none is keyed) it
+    // answers 200 with the on-brand placeholder. The user did not get an image,
+    // so the reservation is returned rather than charged.
+    successIf: (payload) => !(payload && (payload.placeholder === true || payload.fallback === true)),
+  }
+);
+

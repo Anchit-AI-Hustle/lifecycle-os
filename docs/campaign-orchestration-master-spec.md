@@ -14,8 +14,9 @@ compliance-aware CRM operator, (6) senior QA & Brand Governance reviewer.
 
 ### 1.1 Zero fabrication
 Never invent, estimate, assume, reconstruct, approximate, or infer any KNICKGASM-specific fact:
-product names/IDs/SKUs, URLs (product/collection/landing), images, packaging, pack counts/sizes,
-descriptions, design notes, usage, ingredients + quantities, benefits, claims (product/scientific),
+product names/IDs/SKUs, URLs (product/collection/landing), images, packaging/box art, unit counts/sizes,
+descriptions, design notes, usage/care, materials + finish spec (base silhouette, paint system,
+embroidery/crystal add-ons, build timeline), benefits, claims (product/craft/durability),
 certifications, prices/compare-at/discounts/offers/bundle+gift values, inventory, shipping
 thresholds, subscription terms, guarantees, ratings, rating counts, review text, reviewer
 names/photos, verified-buyer status, customer counts, trust metrics, competitor stats, campaign
@@ -51,9 +52,9 @@ product cannot be matched: `[DATA REQUIRED BEFORE LAUNCH: EXACT REGIONAL PRODUCT
 campaign `DATA BLOCKED`. Never select the nearest/most similar product.
 
 ### 1.5 Cross-region restrictions
-Never transfer descriptions, benefits, ingredient benefits/quantities, claims, prices, discounts,
+Never transfer descriptions, benefits, material/finish specs, claims, prices, discounts,
 currency, URLs, ratings, review counts/quotes/reviewer details, shipping terms, guarantees,
-certifications, packshots, packaging, pack sizes, labels, offers, promo/subscription terms, images,
+certifications, product shots, packaging, size runs, labels, offers, promo/subscription terms, images,
 PDP content, legal copy, or disclaimers between regions unless an explicit approved repo record
 permits that exact reuse. US uses US facts/pricing/packaging/reviews/claims/assets/URLs; likewise
 UK and IN. Never transfer merely because a name looks similar.
@@ -90,20 +91,22 @@ Internal authenticated dashboard may show aggregate/anonymized rationale via a
 
 ### 1.9 Compliance-first
 Only use claims explicitly approved for the exact product + region + channel. Do not diagnose/treat/
-cure/prevent disease, promise guaranteed outcomes, use unsupported medical claims, infer claims from
-ingredient reputation, convert ingredient-level evidence to product-level without approval, say
-"clinically proven" unless the exact product+formulation+dosage+claim is approved, present 4.8/4.9 as
+cure/prevent disease, promise guaranteed outcomes, use unsupported medical or health claims of any
+kind (KNICKGASM makes none), infer claims from a material's reputation, convert material-level or
+technique-level evidence to product-level without approval, say "guaranteed for life" or any absolute
+durability claim unless the exact product+paint system+claim is approved, present 4.8/4.9 as
 5.0, use US claim language in UK (or vice-versa) without approval, use a general brand claim as a
-product claim, or cite scientific references absent from approved sources. Use "supports/designed to
-support/may help" only when that exact wording is approved.
+product claim, or cite sources absent from the approved set. Use hedged craft wording ("water and
+scratch resistant", "designed to flex with the leather", "typically 10 to 15 days") only when that
+exact wording is approved.
 
 ### 1.10 Mandatory proofreading & factual review
 Every output is proofread before "complete": spelling, grammar, punctuation, sentence completeness,
-product/ingredient-name accuracy, capitalization, trademark/currency/price/rating formatting, review
+product/silhouette/collection-name accuracy, capitalization, trademark/currency/price/rating formatting, review
 quotation accuracy, region naming, CTA clarity, URL correctness, offer/claim consistency, heading
 clarity, repetition, awkward/contradictory phrasing, unsupported superlatives, truncation,
 placeholders, fragments, pluralization, terminology consistency. Forbid senseless subheadings,
-incomplete sentences, wrong ingredient refs, generic non-explanatory copy, accidental cross-product/
+incomplete sentences, wrong base-model or collection refs, generic non-explanatory copy, accidental cross-product/
 region references, unclear CTAs, typos in prices/ratings/dates/claims/names. Every output passes both
 a language-quality review and a factual-source review. A polished asset with wrong/poor copy fails.
 
@@ -122,14 +125,16 @@ semantic HTML, responsive.
 
 ## 3. Data contracts
 Define + validate schemas before implementation: CampaignRegion, Channel, SourceReference,
-IngredientRecord, ApprovedClaimRecord, ReviewSummaryRecord, ProductRecord, ReviewRecord,
+IngredientRecord (legacy type name; for KNICKGASM it carries the material/finish spec: base
+silhouette, paint system, embroidery/crystal add-ons, lace and care add-ons),
+ApprovedClaimRecord, ReviewSummaryRecord, ProductRecord, ReviewRecord,
 CustomerProfile, CampaignPerformanceRecord, ForecastScenario, AssetStatus, CreativeFingerprint,
 CampaignPlan. (See the source message / types/ for exact field lists.)
 
 ## 4. Brand design system
 Use the approved repo design system as primary. Approved tokens:
 `--font-head:"Montserrat",Georgia,"Times New Roman",serif; --font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;`
-`--knickgasm-green:#6A33D8; --knickgasm-lava:#D0473E; --knickgasm-ink:#111111; --knickgasm-chalk:#F7F5F2; --knickgasm-white:#FFFFFF (only if repo authorizes)`.
+`--knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF; --knickgasm-white:#FFFFFF (only if repo authorizes)`.
 Headings/titles/eyebrows -> font-head; body/p/li/span/button/input/label -> font-body.
 Primary CTA: green bg, chalk text. Secondary CTA: lava border, transparent bg, green text.
 
@@ -160,7 +165,7 @@ stacking. All designs pass a visual sanity review.
 
 ### 4.4 Premium quality via composition/lighting/typography/whitespace/art-direction/image quality/
 staging/texture/depth/crop/rhythm/balanced density/contrast/accurate product — NOT via unapproved
-fonts/colours/gradients/logos/packaging/black backgrounds/low-contrast/clutter. Never alter brand
+fonts/colours/gradients/logos/product artwork/black backgrounds/low-contrast/clutter. Never alter brand
 identity to look premium.
 
 ## 5. Accessibility & readability
@@ -171,20 +176,21 @@ widths, no overflow/clipping/illegible-over-image/dark-on-dark/light-on-light/lo
 copy. Visually inspect every screen + email at target viewports.
 
 ## 6. Product & media rules
-6.1 Never use an isolated packshot as a full-width standalone section; integrate with copy/ingredient
+6.1 Never use an isolated product shot as a full-width standalone section; integrate with copy/craft
 callout/benefit/ritual/design/offer/comparison/lifestyle/review/bundle. 6.2 Use only real approved
-product/brand images from repo or exact regional PDP; never synthesize a packshot replacement; never
-alter packaging/labels/logo/name/size/count/colours/certs/on-pack typography/claims/compliance copy/
-trademarks/net weight/proportions. 6.3 AI imagery ONLY for lifestyle/editorial/ingredient/botanical/
-ritual/atmosphere/props/textures/background — premium, photoreal, editorial, regional, on-system,
-free of malformed text/packaging/hands/faces/ingredients, no third-party or competitor branding, no
-black section backgrounds. When a product appears: use the exact real regional packshot as immutable,
+product/brand images from repo or exact regional PDP; never synthesize a product-shot replacement; never
+alter the silhouette/base-model branding/swoosh/logo/name/size/count/colourway/artwork/on-shoe typography/
+claims/compliance copy/trademarks/proportions. 6.3 AI imagery ONLY for lifestyle/editorial/studio/
+material-texture/ritual/atmosphere/props/backgrounds — premium, photoreal, editorial, regional,
+on-system, free of malformed text/shoe geometry/hands/faces, no third-party or competitor branding, no
+black section backgrounds. When a product appears: use the exact real regional product shot as immutable,
 generate the environment around it, prefer deterministic compositing, validate fidelity; if fidelity
-not guaranteed, generate scene without product + reserve area + composite real packshot + validate.
-Every product-image prompt states: use exact approved real regional packshot; preserve packaging/logo/
-name/typography/colours/certs/dimensions/count/label; do NOT redraw/reinterpret/regenerate/distort/
-replace/modify packaging; generate only the surrounding environment. 6.4 Validate region/product/
-variant/size/count/logo/name/colour/label/certs/typography/proportions, no invented on-pack text, no
+not guaranteed, generate scene without product + reserve area + composite real product shot + validate.
+Every product-image prompt states: use the exact approved real regional product shot; preserve the
+painted artwork/base-model branding/swoosh/name/typography/colourway/dimensions/count; do NOT redraw/
+reinterpret/regenerate/distort/replace/modify the shoe; generate only the surrounding environment.
+6.4 Validate region/product/
+variant/size/count/logo/name/colourway/artwork/typography/proportions, no invented on-shoe text, no
 trademark alteration/distortion/duplication, no competitor branding, no cross-region mismatch, no black
 content-surface background, space + contrast for overlay text. Visual appeal alone is insufficient.
 
@@ -192,7 +198,7 @@ content-surface background, space + contrast for overlay text. Visual appeal alo
 Footer logo links only to the approved regional homepage. Product CTAs link only to approved product/
 bundle/collection/landing URLs. Never infer/construct a URL; missing ->
 `[DATA REQUIRED BEFORE LAUNCH: APPROVED DESTINATION URL]`. Generic footer copy is non-clickable. Footer
-backgrounds are not black/ink; use purple/chalk/white/lava red (lava red only with validated contrast).
+backgrounds are not black/ink; use white/ink/red (red only with validated contrast; follow the live knickgasm.com theme: white bg, ink text/buttons, red accents).
 Footer text fully legible.
 
 ## 8. Email technical rules
@@ -280,7 +286,7 @@ duplicated previous-day layouts; document intentional repetition (A/B control).
   region-matched, approved-imagery, approved-URL, claim-checked, proofread, source-validated,
   contrast-validated, UI-sane campaigns. Default batch = full metadata for duration + full creative for
   next 3 approved + rest queued as briefs. Each approved campaign gets 3 materially differentiated
-  variations, each with 4 zones (hook + commercial proposition; product/ingredient/design/ritual/
+  variations, each with 4 zones (hook + commercial proposition; product/craft/design/ritual/
   benefit education; verified review + accurate social proof; value-add: FAQ/badges/guarantees/
   shipping/trust). V1 Structure-Heavy Hybrid; V2 High-End Editorial; V3 Immersive Rich Media (all with
   static email-safe versions, GIF/poster fallbacks, reduced-motion, Outlook fallback, equal cards,
@@ -294,14 +300,14 @@ duplicated previous-day layouts; document intentional repetition (A/B control).
 - Part C ads: Google (3 RSA headlines <30 chars, 2 descriptions <90 chars, 1 static banner directive,
   approved URL, keyword intent, claim-safety + char-count + proofread + source map); TikTok/Reels 15s
   9:16 3-column script (timestamp/visual/VO+overlay) with pattern interrupt in 1-2s, product early,
-  approved claims, clear CTA, packshot end frame, safe zones, readable overlays, proofread; plus asset/
+  approved claims, clear CTA, product-shot end frame, safe zones, readable overlays, proofread; plus asset/
   shot/prop lists, location/lighting/wardrobe, editing rhythm, caption, thumbnail, filename, compliance
-  + source + packaging-fidelity notes. No unsupported guarantees.
-- Visual asset package (per campaign): hero/lifestyle/ingredient/social-vertical/video-poster prompts,
+  + source + product-fidelity notes. No unsupported guarantees.
+- Visual asset package (per campaign): hero/lifestyle/studio-craft/social-vertical/video-poster prompts,
   optional GIF storyboard, filename, alt text, aspect ratio, crop, placement, exact source-product ref,
-  packaging-preservation instruction, rendering status, contrast + text-safe-zone guidance, background
+  artwork-preservation instruction, rendering status, contrast + text-safe-zone guidance, background
   validation, source ref. Formats 1:1/4:5/9:16/email landscape+portrait. Every prompt states the
-  packaging-preservation + no-black-background + approved-surface + contrast rules.
+  artwork-preservation + no-black-background + approved-surface + contrast rules.
 
 ## 20. Output & file contract
 Adapt to the existing repo architecture (do not force). Default Next.js layout: app/campaigns +
@@ -314,7 +320,7 @@ generated records in the existing persistence layer; never commit sensitive cust
 Type-check, lint, build, unit tests (forecasting/frequency/mutual-exclusivity/regional-matching/cross-
 region contamination/URL/missing-data-blocking/creative-novelty/timezone), responsive/accessibility/
 empty/error checks, email markup + Outlook fallback, ad char counts, source-trace completeness, claim
-approval, review authenticity, inventory, packaging fidelity, no-PII client payload, proofreading/
+approval, review authenticity, inventory, product fidelity, no-PII client payload, proofreading/
 spelling/grammar/product-name/price+currency/rating+count, contrast + dark-on-dark + light-on-light +
 black-background detection, equal-card + CTA-alignment + text-overflow/clipping + image-overlay
 readability, desktop/tablet/mobile/email visual sanity, source + proofreading report generation. Render
@@ -325,11 +331,11 @@ Weights: data completeness 8, product accuracy 8, URL accuracy 5, asset accuracy
 review authenticity 5, segment eligibility 7, frequency safety 8, inventory 5, revenue-model 5, brand
 consistency 6, copy quality+proofreading 7, email compatibility 5, accessibility+contrast 7, mobile 4,
 UI/UX sanity 6 (=100). Critical dims: product/URL accuracy, claim compliance, segment eligibility,
-frequency safety, privacy, build validity, exact regional matching, packaging fidelity, proofreading,
+frequency safety, privacy, build validity, exact regional matching, product fidelity, proofreading,
 factual accuracy, source traceability, contrast readability, black-background prohibition, UI/UX sanity.
 LAUNCH READY only when weighted >= 9.5/10 AND no critical dim < 9/10 AND none of the blocking
 conditions hold (missing URL/image, unverified claim, fabricated review, inventory conflict, absolute
-frequency violation, build failure, a11y blocker, client PII, regional/packaging mismatch, unresolved
+frequency violation, build failure, a11y blocker, client PII, regional/product mismatch, unresolved
 source conflict, black bg, dark-on-dark, light-on-light, unreadable/unproofread/truncated copy,
 misaligned/unequal cards, unsourced fact). Don't regenerate on subjective scoring — validate, fix
 lowest dims, re-render, re-inspect, revalidate, stop at pass or real dependency. Blocked ->
@@ -355,8 +361,8 @@ REMAIN | PARTIAL — DESIGN OR PROOFREADING DEPENDENCIES REMAIN | BLOCKED — CR
 - **Five-Situation library is subordinate:** Demand Capture / Product Education / Cross-Sell & Repeat / Winback & Re-engagement / Seasonal-Cultural-Brand-Moment are strategy archetypes, classification, guardrails, fallbacks, test structures and audit labels — NOT a parallel calendar generator. The agentic engine selects/adapts/rejects them from real data (eligibility, product relevance, exposure, inventory, claims, seasonality, objective, revenue need, novelty, region). Never blindly emit one campaign per situation per day.
 - **Revenue feasibility (real math, no assumption-fudging):** default target $1,500/day attributed email revenue; at $42-43 AOV that is ~35-36 orders; at 3% click-to-purchase and 1-2% unique-click-of-delivered that is ~1,200 clicks and **~60,000-120,000 delivered emails/day**. A ~90-recipient send yields ~$1-2 and MUST be flagged. Per-date status one of: TARGET FEASIBLE [/HIGH/LOW CONFIDENCE] · REQUIRES MORE ELIGIBLE REACH · REQUIRES HIGHER CONVERSION · REQUIRES HIGHER AOV · REQUIRES MULTIPLE COHORTS · NOT FEASIBLE WITH CURRENT INPUTS. Distinguish target vs forecast vs actual vs confidence vs assumption source.
 - **Multi-cohort day view:** up to 3 mutually exclusive send slots/day, each with its own campaign/objective/product/cohort/eligible/sends/forecast/frequency/creative/time; group all slots under the date; date-level totals = sum of slots (never evaluate each mailer against the full $1,500). If combined < target: re-evaluate cohort size/product/offer/situation/history, add another eligible exclusive cohort, raise AOV via approved bundle, delay low-value sends, or report the gap — never break the frequency cap to hit revenue.
-- **Ads are cohesive compositions, not image+text:** mandatory hierarchy (pattern-interrupt/visual -> product recognition -> core message -> approved benefit -> offer -> CTA -> brand -> visual path); concept-first workflow before rendering; per-format layouts (1:1/4:5/9:16/16:9/Meta/Stories/TikTok/Pinterest/LinkedIn), not crops; quality gate >= 9.5/10; reject on "looks like separate image + text", wrong packaging, tiny product, unclear message/hierarchy, unreadable text, wrong region, unverified claim/price, black background, generic-template look.
-- **Multimodal assets:** the engine chooses the best format (image / video / GIF / table / flowchart / lifecycle+funnel+cohort diagram / infographic / carousel / storyboard) per content; each with strategic purpose, source map, brand+contrast+proofread+packaging-fidelity+format validation, quality score.
+- **Ads are cohesive compositions, not image+text:** mandatory hierarchy (pattern-interrupt/visual -> product recognition -> core message -> approved benefit -> offer -> CTA -> brand -> visual path); concept-first workflow before rendering; per-format layouts (1:1/4:5/9:16/16:9/Meta/Stories/TikTok/Pinterest/LinkedIn), not crops; quality gate >= 9.5/10; reject on "looks like separate image + text", wrong base model or artwork, tiny product, unclear message/hierarchy, unreadable text, wrong region, unverified claim/price, black background, generic-template look.
+- **Multimodal assets:** the engine chooses the best format (image / video / GIF / table / flowchart / lifecycle+funnel+cohort diagram / infographic / carousel / storyboard) per content; each with strategic purpose, source map, brand+contrast+proofread+product-fidelity+format validation, quality score.
 - **Error diagnostics (no unexplained generic error):** every error surfaces human message, failed operation+step, campaign/asset id, region, product, connector/dependency, retry-safe flag, recovery action, timestamp, internal code, expandable technical details (no secrets/PII). Categories: SOURCE_DATA_MISSING · REGIONAL_PRODUCT_MISMATCH · CONNECTOR_UNAVAILABLE · AUTHENTICATION_FAILED · RATE_LIMITED · INVALID_CONFIGURATION · REVENUE_TARGET_INFEASIBLE · FREQUENCY_CAP_BLOCKED · ASSET_GENERATION_FAILED · PACKAGING_FIDELITY_FAILED · AD_QUALITY_FAILED · EMAIL_RENDER_FAILED · BUILD_FAILED · DATABASE_FAILED · UNKNOWN_ERROR.
 - **Naming/nav:** nav item is **KNICKGASM Brain** (not "Automated Calendar Creation"); primary CTA **Run Agentic Flow**; assistant is **SteepSense** (not KicksGPT) everywhere; the raw `/uk-non-engagers` URL is not a user-facing nav item (route may stay reachable).
 
@@ -401,10 +407,10 @@ Full architecture + phased build: `docs/shared-source-of-truth.md`.
 Proceed autonomously when repo + tools + data suffice; make safe reasonable decisions from the repo
 without asking. Never: silently omit hard requirements, simulate tool calls, fabricate data, expose
 PII, force audience volume, create unsupported email interactions, invent URLs/ratings/reviews/claims/
-prices/images/results, use the wrong regional source, recreate/alter packaging, mark untested work
+prices/images/results, use the wrong regional source, recreate/alter the product artwork, mark untested work
 verified, use black/ink section backgrounds, dark-on-dark or light-on-light text, misaligned/unequal
 cards, unproofread copy, unsourced facts, visually broken layouts, or source-conflicted campaigns
 marked launch-ready. Complete all unaffected work when a dependency is missing; mark blocked areas
 precisely. Build the strongest complete implementation using only verified repo data/assets, exact
 official regional sources, approved brand tokens, real available tools, verified+proofread content,
-validated+readable UI, and exact real product packaging/branding.
+validated+readable UI, and exact real product artwork/branding.

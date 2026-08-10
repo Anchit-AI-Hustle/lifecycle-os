@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://knickgasm.vercel.app/schemas/cohort-profile.json",
   "title": "KNICKGASM Cohort Profile",
-  "description": "Canonical user/cohort profile payload for the KNICKGASM Lifecycle OS retention engine. Captures identity, demographics, geography, purchase vectors, lifecycle health flags, and cohort assignments used by segmentation and automated retention triggers.",
+  "description": "Canonical user/cohort profile payload for the Lifecycle OS retention engine. Captures identity, demographics, geography, purchase vectors, lifecycle health flags, and cohort assignments used by segmentation and automated retention triggers.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -249,7 +249,7 @@
             "type": "string",
             "enum": [
               "airbrush_coffee",
-              "adaptogen_blends",
+              "statement piece_blends",
               "heritage_tea",
               "supplements",
               "gifting",

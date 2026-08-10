@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DTC Data Engine - KNICKGASM Lifecycle OS</title>
+<title>DTC Data Engine - Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/data/analytics/market-data.js"></script>
 <script>
   if (window.tailwind) {
     tailwind.config = { theme: { extend: { colors: {
-      vgreen: '#6A33D8', vgold: '#D0473E', vink: '#111111', vcream: '#F7F5F2'
+      vgreen: '#D0473E', vgold: '#6A33D8', vink: '#111111', vcream: '#FFFFFF'
     } } } };
   }
 </script>
 <style>
-  :root{ --knickgasm-green:#6A33D8; --knickgasm-lava:#D0473E; --knickgasm-ink:#111111; --knickgasm-chalk:#F7F5F2; }
+  :root{ --knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF; }
   html{scroll-behavior:smooth;}
   body{background:#ffffff;color:#111111;font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:26px 30px;}
   .lc-main{max-width:1080px;margin:0 auto;}
@@ -26,13 +26,13 @@
   .kicker{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--knickgasm-lava);font-weight:800;}
   .divider{height:2px;background:linear-gradient(90deg,var(--knickgasm-lava),transparent);border:0;margin:0;}
   .metric-lg{font-family:'Lora',serif;font-size:32px;color:#111111;font-weight:700;line-height:1;}
-  .pill{display:inline-block;background:rgba(171,135,67,.16);color:#7a5f28;border:1px solid rgba(171,135,67,.4);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
+  .pill{display:inline-block;background:rgba(171,135,67,.16);color:var(--vh-ink);border:1px solid rgba(171,135,67,.4);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
   .rtab{cursor:pointer;border:1.5px solid rgba(171,135,67,.4);background:transparent;color:#111111;border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
-  .rtab:hover{border-color:#D0473E;} .rtab.on{background:#6A33D8;color:#F7F5F2;border-color:#6A33D8;}
+  .rtab:hover{border-color:#6A33D8;} .rtab.on{background:#D0473E;color:#FFFFFF;border-color:#D0473E;}
   .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
-  .flow .node{background:#f4f2ec;border:1px solid rgba(171,135,67,.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#111111;}
+  .flow .node{background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#111111;}
   .flow .arrow{color:var(--knickgasm-lava);font-weight:800;}
-  .bar{background:linear-gradient(180deg,var(--knickgasm-lava),#6f5525);border-radius:4px 4px 0 0;min-height:2px;transition:height .2s;}
+  .bar{background:linear-gradient(180deg,var(--knickgasm-lava),var(--vh-ink));border-radius:4px 4px 0 0;min-height:2px;transition:height .2s;}
   .bar.partial{background:repeating-linear-gradient(45deg,rgba(171,135,67,.55),rgba(171,135,67,.55) 4px,rgba(171,135,67,.25) 4px,rgba(171,135,67,.25) 8px);}
   table.grid{width:100%;border-collapse:collapse;font-size:12.5px;}
   table.grid th,table.grid td{border-bottom:1px solid rgba(171,135,67,.18);padding:9px 12px;text-align:left;}
@@ -42,12 +42,12 @@
 </head>
 <body>
   <main class="lc-main">
-    <div class="kicker">KNICKGASM Lifecycle OS &middot; DTC Data Engine</div>
+    <div class="kicker">Lifecycle OS &middot; DTC Data Engine</div>
     <h1 class="text-vcream text-[34px] font-bold leading-tight mt-1" style="color:#111111">DTC Data Engine</h1>
     <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The ingestion and analytics core that powers the OS. Matrixify, Shopify, Klaviyo and WebEngage exports are ingested into DuckDB, modelled, and synced to Supabase; the compiled market exports below render natively here, no external app and no server round-trip.</p>
 
     <div class="flex flex-wrap items-center gap-2 mt-5" id="mktTabs">
-      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#D0473E;margin-right:4px">Market</span>
+      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Market</span>
       <button type="button" class="rtab on" data-mkt="US">US</button>
       <button type="button" class="rtab" data-mkt="UK">UK</button>
       <span class="text-[12px]" style="color:#556059;margin-left:6px">Showing <b style="color:#111111" id="mktLabel">US</b></span>
@@ -60,7 +60,7 @@
       <div class="flow">
         <div class="node">Matrixify &middot; Shopify &middot; Klaviyo &middot; WebEngage exports</div>
         <span class="arrow">&rarr;</span>
-        <div class="node">DuckDB (ingest/run_all.py, KNICKGASM_DuckDB_DDL.sql)</div>
+        <div class="node">DuckDB (ingest/run_all.py, LIFECYCLE_DuckDB_DDL.sql)</div>
         <span class="arrow">&rarr;</span>
         <div class="node">Supabase (sync_to_supabase.py)</div>
         <span class="arrow">&rarr;</span>
@@ -102,9 +102,24 @@
 
   <script src="/auth.js"></script>
   <script>
+  (function () {
+    /* Same contract as data-analysis.html: the shipped dataset describes
+       tenant zero only. Stash it, render nothing, and let the brand decide
+       below - restore for the owner, labelled per-brand demo otherwise. */
+    var SHIPPED = window.LIFECYCLE_ANALYTICS || null;
+    window.LIFECYCLE_ANALYTICS = { markets: {}, currency: {}, __pending: true };
+    window.__restoreAnalytics = function (brand) {
+      var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+      var isOwner = !brand || brand.is_default || slug === 'knickgasm';
+      if (isOwner && SHIPPED) { window.LIFECYCLE_ANALYTICS = SHIPPED; return true; }
+      return false;
+    };
+  })();
+  </script>
+  <script>
   (function(){
     "use strict";
-    var A = window.KNICKGASM_ANALYTICS;
+    var A = window.LIFECYCLE_ANALYTICS;
     if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:#b91c1c">Analytics module not loaded.</div>'; return; }
     var market = 'US';
     var symByCur = { USD:'$', GBP:'£' };
@@ -164,6 +179,48 @@
       render();
     });
     render();
+    // Re-read the swapped global and re-render once the active brand decides
+    // which dataset this page may show.
+    window.__deRefresh = function () {
+      A = window.LIFECYCLE_ANALYTICS || A;
+      if (A.markets && !A.markets[market]) {
+        var ks = Object.keys(A.markets);
+        if (ks.length) market = ks[0];
+      }
+      var lbl = document.getElementById('mktLabel');
+      if (lbl) lbl.textContent = market;
+      render();
+    };
+  })();
+  </script>
+  <script src="/brand-demo.js"></script>
+  <script>
+  (function () {
+    function note(text) {
+      var el = document.createElement('div');
+      el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--brand-primary,#c00);border-radius:10px;font-size:13px;line-height:1.55;opacity:.92;font-family:var(--brand-font-body,system-ui,sans-serif)';
+      el.innerHTML = text;
+      var host = document.querySelector('main') || document.body;
+      if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+    }
+    function decide(brand) {
+      if (window.__restoreAnalytics && window.__restoreAnalytics(brand)) { if (window.__deRefresh) window.__deRefresh(); return; }
+      window.BrandDemo.ready().then(function (ctx) {
+        if (ctx && ctx.analytics) {
+          window.LIFECYCLE_ANALYTICS = ctx.analytics;
+          note('<b>DEMO DATA</b> - generated deterministically from <b>' + String((ctx.brand && ctx.brand.name) || 'this brand').replace(/[<>&]/g, '') + "</b>'s own offerings and regions. Not real performance.");
+          if (window.__deRefresh) window.__deRefresh();
+        } else {
+          note('<b>[DATA REQUIRED BEFORE LAUNCH: analytics exports, ' + String((brand && brand.name) || 'this brand').replace(/[<>&]/g, '') + '.]</b> The dataset compiled into this build describes a different brand, so nothing is shown for it here.');
+        }
+      });
+    }
+    function boot() {
+      if (window.BrandContext && window.BrandContext.ready) {
+        window.BrandContext.ready().then(decide).catch(function () { decide(null); });
+      } else { setTimeout(boot, 150); }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
   })();
   </script>
 </body>

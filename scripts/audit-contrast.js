@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * WCAG contrast auditor for the KNICKGASM Lifecycle OS static pages.
+ * WCAG contrast auditor for the Lifecycle OS static pages.
  *
  * Heuristic, not a full CSS engine: for each HTML file it resolves the page's
  * palette custom properties, collects every `color:` value used for text
@@ -73,7 +73,7 @@ files.forEach(function (rel) {
   // candidate backgrounds text may sit on
   const bgs = isDark
     ? [bgVal, parseColor("#0f1d18", vars) || bgVal]
-    : [bgVal, [255, 255, 255], hexToRgb("#F7F5F2")];
+    : [bgVal, [255, 255, 255], hexToRgb("#FFFFFF")];
 
   // collect text colors from color: declarations (skip background-color)
   const colorRe = /(?<!background-)(?<!border-)color\s*:\s*([^;"}]+)/gi;

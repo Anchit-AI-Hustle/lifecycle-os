@@ -432,7 +432,7 @@ async function attachStrategistNarratives(scenarios) {
     },
     assumptions: s.assumptions,
   }));
-  const sys = "You are KNICKGASM's senior growth strategist. Voice: warm, precise, story-driven. NEVER use: \"streetwear journey\", \"transform\", \"liquid lava\", \"game-changer\", \"LIMITED TIME\" in caps, \"hurry\", \"don't miss out\", \"last chance\", \"while supplies last\". Return STRICT JSON only, no markdown fences.";
+  const sys = "You are KNICKGASM's senior growth strategist. Voice: warm, precise, story-driven. NEVER use: \"wellness journey\", \"transform\", \"liquid gold\", \"game-changer\", \"LIMITED TIME\" in caps, \"hurry\", \"don't miss out\", \"last chance\", \"while supplies last\". Return STRICT JSON only, no markdown fences.";
   const user = `For each calendar scenario, write a 2-3 sentence strategist_narrative: why these levers fit, what must be true for the projection to hold, and — for best, why it is a stretch ceiling not a committed target; for emergency, why it is the right floor. Scenarios:\n${JSON.stringify(summary)}\n\nReturn JSON: { "narratives": { "best": "", "medium": "", "conservative": "", "emergency": "", "instant": "" } }`;
 
   let timer;

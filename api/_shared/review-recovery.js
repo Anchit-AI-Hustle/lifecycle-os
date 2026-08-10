@@ -90,7 +90,7 @@ function reviewMailerHtml(product, market) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff">
   <tr><td style="height:32px"></td></tr>
-  <tr><td align="center" style="padding:18px 0 4px"><div style="font-family:${BODY};font-size:22px;letter-spacing:.28em;color:#6A33D8;font-weight:700">KNICKGASM</div><div style="font-family:${BODY};font-size:10px;letter-spacing:.22em;color:#D0473E;text-transform:uppercase;margin-top:4px">${esc(String(market).toUpperCase())} · One-of-One Sneaker</div></td></tr>
+  <tr><td align="center" style="padding:18px 0 4px"><div style="font-family:${BODY};font-size:22px;letter-spacing:.28em;color:#D0473E;font-weight:700">KNICKGASM</div><div style="font-family:${BODY};font-size:10px;letter-spacing:.22em;color:#6A33D8;text-transform:uppercase;margin-top:4px">${esc(String(market).toUpperCase())} · One-of-One Sneaker</div></td></tr>
   <tr><td style="height:18px"></td></tr>
   <tr><td style="padding:0 24px"><h1 style="margin:0;font-family:${HEAD};font-size:26px;line-height:1.3;color:#1b1612;text-align:center">How did the ${esc(title)} land for you?</h1></td></tr>
   <tr><td style="height:16px"></td></tr>
@@ -98,9 +98,9 @@ function reviewMailerHtml(product, market) {
   <tr><td style="padding:0 24px"><p style="margin:0 0 16px;font-family:${BODY};font-size:16px;color:#4a4a4a;line-height:1.6;text-align:center">Hi {{ first_name|default:'there' }}, you finished your ${esc(title)} a little while ago, so it is fresh in the pair memory. Before the reorder, we would value your honest read.</p>
   <p style="margin:0;font-family:${BODY};font-size:16px;color:#4a4a4a;line-height:1.6;text-align:center">A rating and a line or two, exactly as you would tell a friend. The rough notes help us as much as the kind ones.</p></td></tr>
   <tr><td style="height:26px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#F7F5F2;border:2px solid #6A33D8;border-radius:14px;padding:16px 22px;text-align:center"><p style="margin:0 0 6px;font-family:${BODY};font-size:11px;color:#6A33D8;font-weight:700;text-transform:uppercase;letter-spacing:2px">Three small prompts</p><p style="margin:0;font-family:${BODY};font-size:15px;color:#1b1612;line-height:1.6">The headline first · the detail that stuck · whether you would craft it again.</p></td></tr></table></td></tr>
+  <tr><td style="padding:0 24px" align="center"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#FFFFFF;border:2px solid #D0473E;border-radius:14px;padding:16px 22px;text-align:center"><p style="margin:0 0 6px;font-family:${BODY};font-size:11px;color:#D0473E;font-weight:700;text-transform:uppercase;letter-spacing:2px">Three small prompts</p><p style="margin:0;font-family:${BODY};font-size:15px;color:#1b1612;line-height:1.6">The headline first · the detail that stuck · whether you would craft it again.</p></td></tr></table></td></tr>
   <tr><td style="height:26px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><a href="${esc(cta)}" style="display:inline-block;background:#6A33D8;color:#ffffff;text-decoration:none;padding:15px 38px;border-radius:8px;font-family:${BODY};font-size:16px;font-weight:600">Leave a rating</a></td></tr>
+  <tr><td style="padding:0 24px" align="center"><a href="${esc(cta)}" style="display:inline-block;background:#D0473E;color:#ffffff;text-decoration:none;padding:15px 38px;border-radius:8px;font-family:${BODY};font-size:16px;font-weight:600">Leave a rating</a></td></tr>
   <tr><td style="height:12px"></td></tr>
   <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:13px;color:#9ca3af">Rating plus a line · done before the next pair</p></td></tr>
   <tr><td style="height:28px"></td></tr>

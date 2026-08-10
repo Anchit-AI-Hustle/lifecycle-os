@@ -42,9 +42,10 @@ function segmentFor(r, f, m) {
 }
 
 const INTEREST_TAGS = [
-  { tag: 'kicks', test: (u) => (u.categories || []).includes('kicks') },
-  { tag: 'streetwear', test: (u) => (u.categories || []).some((c) => ['streetwear', 'themed', 'sleep'].includes(c)) },
-  { tag: 'gift', test: (u) => (u.categories || []).some((c) => ['gift', 'gear'].includes(c)) },
+  { tag: 'core_silhouette', test: (u) => (u.categories || []).some((c) => ['af1', 'jordan', 'nike-other', 'converse', 'adidas'].includes(c)) },
+  { tag: 'fandom', test: (u) => (u.categories || []).some((c) => ['anime', 'sport', 'gaming', 'auto', 'celebrity'].includes(c)) },
+  { tag: 'occasion', test: (u) => (u.categories || []).some((c) => ['wedding', 'pets', 'bling'].includes(c)) },
+  { tag: 'gift', test: (u) => (u.categories || []).some((c) => ['gift', 'accessories'].includes(c)) },
   { tag: 'discount_responsive', test: (u) => Number(u.discount_affinity) >= 0.25 },
   { tag: 'email_engaged', test: (u) => !!u.email_engaged },
 ];

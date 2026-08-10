@@ -53,7 +53,7 @@ GRANT ROLE KNICKGASM_APP_READONLY TO USER ANCHITTANDON;
 ALTER USER ANCHITTANDON ADD PROGRAMMATIC ACCESS TOKEN KNICKGASM_LIFECYCLE_OS
   ROLE_RESTRICTION = 'KNICKGASM_APP_READONLY'
   DAYS_TO_EXPIRY   = 90
-  COMMENT          = 'knickgasm-lifecycle-os read-only ads dashboard';
+  COMMENT          = 'lifecycle-os read-only ads dashboard';
 ```
 
 If Snowflake refuses the token, the account usually requires a **network policy** before PATs are
@@ -62,7 +62,7 @@ app change.
 
 ## 3. Set the variables in Vercel
 
-Project **knickgasm-lifecycle-os** → Settings → Environment Variables (Production *and* Preview):
+Project **lifecycle-os** → Settings → Environment Variables (Production *and* Preview):
 
 ```
 SNOWFLAKE_ACCOUNT=UXDEIHW-MO06981

@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <title>KNICKGASM — 3D Storefront</title>
 <link rel="icon" type="image/png" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <link href="https://fonts.googleapis.com/css2?family=Raleway+Garamond:ital,wght@0,500;0,600;1,500&family=Proxima+Nova&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- Intentionally NO auth.js: this is a public, sign-in-free 3D storefront demo. -->
 <style>
   :root{
-    --green:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
+    --green:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
     --head:'Raleway','Montserrat',Georgia,serif;
     --body:'Instrument Sans','Inter','Helvetica Neue',Arial,sans-serif;
     --panel:rgba(4,32,20,0.55); --panel-line:rgba(171,135,67,0.35);
-    --fg:var(--chalk); --sub:#cfe0d5;
+    --fg:var(--chalk); --sub:var(--vh-panel-tan);
   }
   /* Light variation */
   :root[data-variant="light"]{
@@ -27,8 +27,8 @@
   /* Full-depth page: the site SCROLLS (like the real storefront), it does not
      end in a single viewport. The 3D hero is the first screen; real content
      sections follow below. */
-  body{font-family:var(--body);background:#041b10;color:var(--fg);overflow-x:hidden;overflow-y:auto}
-  :root[data-variant="light"] body{background:#eef3f0}
+  body{font-family:var(--body);background:var(--vh-ink);color:var(--fg);overflow-x:hidden;overflow-y:auto}
+  :root[data-variant="light"] body{background:var(--vh-panel-tan)}
   #stage{position:relative;height:100vh;width:100%;z-index:1}
   /* Full-page 3D: the canvas is a FIXED backdrop behind the ENTIRE scrolling
      page, so 3D stays present under every section (not just the hero). */
@@ -46,7 +46,7 @@
   .topbar .right{display:flex;gap:10px;align-items:center}
   .icobtn{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--fg);font-size:16px;text-decoration:none}
   .cart{position:relative}
-  .cart .n{position:absolute;top:-4px;right:-4px;background:var(--lava);color:#0a1410;font-size:10px;font-weight:800;border-radius:99px;padding:1px 6px}
+  .cart .n{position:absolute;top:-4px;right:-4px;background:var(--lava);color:var(--vh-ink);font-size:10px;font-weight:800;border-radius:99px;padding:1px 6px}
 
   /* Collections rail */
   .collections{top:96px;left:26px;width:210px;padding:14px}
@@ -65,12 +65,12 @@
   /* Instant checkout */
   .checkout{top:96px;right:26px;width:300px;padding:18px;display:flex;flex-direction:column;gap:12px}
   .checkout .lab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lava);font-weight:800}
-  .checkout .thumb{width:100%;height:150px;border-radius:12px;background:#0a2a1c center/cover no-repeat;border:1px solid var(--panel-line)}
+  .checkout .thumb{width:100%;height:150px;border-radius:12px;background:var(--vh-ink) center/cover no-repeat;border:1px solid var(--panel-line)}
   .checkout .nm{font-family:var(--head);font-size:20px;line-height:1.1;color:var(--fg)}
   .checkout .pr{font-size:17px;font-weight:700;color:var(--lava)}
   .checkout .qty{display:flex;align-items:center;gap:14px;font-size:14px;color:var(--fg)}
   .checkout .qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--panel-line);background:transparent;color:var(--fg);font-size:16px;cursor:pointer}
-  .checkout .buy{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--lava);color:#0a1410;border:0;border-radius:12px;
+  .checkout .buy{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--lava);color:var(--vh-ink);border:0;border-radius:12px;
     padding:14px;font-family:var(--body);font-weight:800;font-size:15px;cursor:pointer;text-decoration:none}
   .checkout .buy:hover{filter:brightness(1.05)}
   .checkout .pw{font-size:10px;letter-spacing:.1em;color:var(--sub);text-align:center}
@@ -78,12 +78,12 @@
   /* variation toggle */
   .vartoggle{bottom:34px;right:26px;display:flex;gap:6px;padding:5px}
   .vartoggle button{background:transparent;border:1px solid var(--panel-line);color:var(--sub);border-radius:8px;padding:7px 12px;font-family:var(--body);font-weight:700;font-size:12px;cursor:pointer}
-  .vartoggle button.active{background:var(--lava);color:#0a1410;border-color:var(--lava)}
+  .vartoggle button.active{background:var(--lava);color:var(--vh-ink);border-color:var(--lava)}
   .regionsw{display:flex;gap:3px;padding:4px}
   .regionsw button{background:transparent;border:0;color:var(--sub);font-family:var(--body);font-weight:700;font-size:12px;padding:6px 10px;border-radius:8px;cursor:pointer}
   .regionsw button:hover{color:var(--fg)}
-  .regionsw button.active{background:var(--green);color:#F7F5F2}
-  :root[data-variant="light"] .regionsw button.active{background:var(--lava);color:#0a1410}
+  .regionsw button.active{background:var(--green);color:#FFFFFF}
+  :root[data-variant="light"] .regionsw button.active{background:var(--lava);color:var(--vh-ink)}
 
   /* loading + fallback */
   #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;color:var(--lava);font-size:14px;letter-spacing:.05em}
@@ -92,7 +92,7 @@
   #fallback h1{font-family:var(--head);font-size:34px;color:var(--fg);margin-bottom:14px}
   #fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
   #fgrid a{display:block;background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;overflow:hidden;text-decoration:none;color:var(--fg)}
-  #fgrid .im{height:150px;background:#0a2a1c center/cover no-repeat}
+  #fgrid .im{height:150px;background:var(--vh-ink) center/cover no-repeat}
   #fgrid .bd{padding:12px}
   #fgrid .t{font-family:var(--head);font-size:17px}
   #fgrid .p{color:var(--lava);font-weight:700;margin-top:4px}
@@ -147,19 +147,19 @@
   main.site>section{max-width:1180px;margin:22px auto;padding:40px 22px;
     background:rgba(4,26,16,0.58);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
     border:1px solid rgba(171,135,67,.25);border-radius:22px}
-  .sec-eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#e3c879;font-weight:800;margin-bottom:8px}
-  .sec-h{font-family:var(--head);font-size:30px;line-height:1.08;color:#F7F5F2;margin-bottom:8px;text-shadow:0 2px 18px rgba(0,0,0,.4)}
-  .sec-sub{color:#cfe0d5;font-size:14px;line-height:1.6;max-width:620px;margin-bottom:24px}
+  .sec-eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--vh-lava);font-weight:800;margin-bottom:8px}
+  .sec-h{font-family:var(--head);font-size:30px;line-height:1.08;color:#FFFFFF;margin-bottom:8px;text-shadow:0 2px 18px rgba(0,0,0,.4)}
+  .sec-sub{color:var(--vh-panel-tan);font-size:14px;line-height:1.6;max-width:620px;margin-bottom:24px}
   /* collection tiles */
   .colgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
   .coltile{display:flex;align-items:flex-end;min-height:120px;padding:14px;border-radius:16px;text-decoration:none;
-    color:#F7F5F2;font-family:var(--head);font-size:20px;border:1px solid rgba(171,135,67,.3);
-    background-color:#0a3d24;background-size:cover;background-position:center;background-repeat:no-repeat;
+    color:#FFFFFF;font-family:var(--head);font-size:20px;border:1px solid rgba(171,135,67,.3);
+    background-color:var(--vh-ink);background-size:cover;background-position:center;background-repeat:no-repeat;
     position:relative;overflow:hidden;text-shadow:0 1px 8px rgba(0,0,0,.55);transition:transform .18s ease,box-shadow .18s ease}
   /* Branded fill for tiles whose product image is missing/broken — never blank. */
   .coltile--fallback{background-image:
     radial-gradient(120% 90% at 15% 20%, rgba(171,135,67,.28) 0%, transparent 55%),
-    linear-gradient(150deg, #0f4a2c 0%, #6A33D8 55%, #072616 100%)}
+    linear-gradient(150deg, var(--vh-ink) 0%, #D0473E 55%, var(--vh-ink) 100%)}
   .coltile:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.35)}
   .coltile>span{position:relative;z-index:2}
   /* Why-KNICKGASM benefits band */
@@ -174,30 +174,30 @@
   .rcard:hover{transform:translateY(-4px);box-shadow:0 20px 44px rgba(0,0,0,.4);border-color:rgba(171,135,67,.6)}
   .rcard::before{content:'\201C';position:absolute;top:6px;right:20px;font-family:Georgia,serif;font-size:66px;line-height:1;color:rgba(171,135,67,.22)}
   .rcard .rhead{display:flex;align-items:center;gap:13px;margin-bottom:13px}
-  .rcard .ravatar{flex:0 0 46px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font:800 16px/1 'Montserrat',Georgia,serif;color:#04210f;letter-spacing:.02em;box-shadow:0 4px 12px rgba(0,0,0,.3);border:1.5px solid rgba(251,245,234,.28)}
+  .rcard .ravatar{flex:0 0 46px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font:800 16px/1 'Montserrat',Georgia,serif;color:var(--vh-ink);letter-spacing:.02em;box-shadow:0 4px 12px rgba(0,0,0,.3);border:1.5px solid rgba(251,245,234,.28)}
   .rcard .rmeta{min-width:0}
   .rcard .rmeta .who{color:var(--fg);font-size:14px;font-weight:800;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rcard .rmeta .rstars{color:var(--lava);letter-spacing:2px;font-size:13px;margin-top:3px}
   .rcard blockquote{margin:0 0 14px;color:var(--fg);font-size:14.5px;line-height:1.58}
-  .rcard .vf{display:inline-flex;align-items:center;gap:4px;color:#7fd9a9;font-size:11px;font-weight:800;background:rgba(127,217,169,.12);border:1px solid rgba(127,217,169,.32);border-radius:999px;padding:3px 9px}
+  .rcard .vf{display:inline-flex;align-items:center;gap:4px;color:var(--vh-ink-dim);font-size:11px;font-weight:800;background:rgba(127,217,169,.12);border:1px solid rgba(127,217,169,.32);border-radius:999px;padding:3px 9px}
   /* product grid */
   .pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   .pcard{display:flex;flex-direction:column;background:#fff;border:1px solid rgba(171,135,67,.2);border-radius:16px;overflow:hidden;text-decoration:none;color:var(--ink)}
-  .pcard .im{aspect-ratio:1/1;background:#eadfce center/cover no-repeat}
+  .pcard .im{aspect-ratio:1/1;background:var(--vh-panel-tan) center/cover no-repeat}
   .pcard .bd{padding:12px 13px;display:flex;flex-direction:column;gap:4px;flex:1}
   .pcard .t{font-family:var(--head);font-size:16px;line-height:1.15}
-  .pcard .pr{color:#7a5f28;font-weight:800}
-  .pcard .cta{margin-top:6px;text-align:center;background:var(--green);color:#F7F5F2;border-radius:10px;padding:10px;font-weight:700;font-size:13px}
+  .pcard .pr{color:var(--vh-ink);font-weight:800}
+  .pcard .cta{margin-top:6px;text-align:center;background:var(--green);color:#FFFFFF;border-radius:10px;padding:10px;font-weight:700;font-size:13px}
   /* story + trust + footer */
-  .story{background:var(--green);color:#F7F5F2;border-radius:20px;padding:40px 26px;text-align:center}
-  .story .sec-h,.story .sec-eyebrow{color:#F7F5F2}
-  .story .sec-eyebrow{color:#e3c879}
-  .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:26px;text-align:center;color:#F7F5F2;font-weight:700;font-size:14px}
-  .site footer{background:#0a1410;color:#cfe0d5}
+  .story{background:var(--green);color:#FFFFFF;border-radius:20px;padding:40px 26px;text-align:center}
+  .story .sec-h,.story .sec-eyebrow{color:#FFFFFF}
+  .story .sec-eyebrow{color:var(--vh-lava)}
+  .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:26px;text-align:center;color:#FFFFFF;font-weight:700;font-size:14px}
+  .site footer{background:var(--vh-ink);color:var(--vh-panel-tan)}
   .site footer .inner{max-width:1180px;margin:0 auto;padding:40px 20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  .site footer a{color:#cfe0d5;text-decoration:none;display:block;padding:5px 0;font-size:14px}
+  .site footer a{color:var(--vh-panel-tan);text-decoration:none;display:block;padding:5px 0;font-size:14px}
   .site footer a:hover{color:#fff}
-  .site footer h5{font-family:var(--head);color:#F7F5F2;font-size:16px;margin-bottom:8px}
+  .site footer h5{font-family:var(--head);color:#FFFFFF;font-size:16px;margin-bottom:8px}
   /* ── Luxury scroll-reveal: elements fade + rise as they enter the viewport,
      with a per-item stagger. Disabled under prefers-reduced-motion. ── */
   .reveal{opacity:0;transform:translateY(28px);transition:opacity .8s cubic-bezier(.2,.7,.3,1),transform .8s cubic-bezier(.2,.7,.3,1);will-change:opacity,transform}
@@ -277,14 +277,14 @@
   <section id="reviews-sec" hidden>
     <div class="sec-eyebrow">Reviews</div>
     <h2 class="sec-h">In their words</h2>
-    <p class="sec-sub">Real, verified reviews from KNICKGASM customers. Rated 4.9/5 across Judge.me verified reviews.</p>
+    <p class="sec-sub">Real, verified reviews from KNICKGASM customers. Hand-painted by India's best artists.</p>
     <div class="reviewgrid" id="reviewGrid"></div>
   </section>
 
   <section class="story">
     <div class="sec-eyebrow">Our origin</div>
     <h2 class="sec-h">From the studio, within 48 hours</h2>
-    <p class="sec-sub" style="margin:0 auto;color:#dce8df">There is a moment when the right pair of kicks does more than warm your hands. KNICKGASM sources one-of-one leaves and ships them fresh from India, so every lace-up carries the season it was picked in.</p>
+    <p class="sec-sub" style="margin:0 auto;color:var(--vh-panel-tan)">There is a moment when the right pair of kicks does more than warm your hands. KNICKGASM sources one-of-one leaves and ships them fresh from India, so every lace-up carries the season it was picked in.</p>
   </section>
 
   <section id="why-sec">
@@ -292,14 +292,14 @@
     <h2 class="sec-h">Sneaker worth the ritual</h2>
     <div class="benefits">
       <div class="bcard"><div class="bicon">🌿</div><h4>Single-studio, studio-fresh</h4><p>Leaves picked at peak season and shipped fresh from India within 48 hours, never blended into anonymity.</p></div>
-      <div class="bcard"><div class="bicon">⭐</div><h4>Rated 4.9 / 5</h4><p>Over 250,000 five-star reviews from sneaker drinkers around the world.</p></div>
+      <div class="bcard"><div class="bicon">⭐</div><h4>Made on 100% original brand sneakers</h4><p>Over 250,000 five-star reviews from sneaker drinkers around the world.</p></div>
       <div class="bcard"><div class="bicon">✨</div><h4>Worn by Samay Raina & Rohit Sharma</h4><p>A celebrated pick on Worn by Samay Raina & Rohit Sharma list.</p></div>
       <div class="bcard"><div class="bicon">🤝</div><h4>Ethically sourced</h4><p>Bought direct from the studios that grow it, so the ritual is fair from panel to pair.</p></div>
     </div>
   </section>
 
   <section class="trust">
-    <div>Rated 4.9/5</div><div>Judge.me verified reviews</div><div>Worn by Samay Raina & Rohit Sharma</div><div>Studio-fresh · Ethically sourced</div>
+    <div>Hand-painted one-of-one</div><div>Judge.me verified reviews</div><div>Worn by Samay Raina & Rohit Sharma</div><div>Studio-fresh · Ethically sourced</div>
   </section>
 
   <footer>
@@ -515,7 +515,7 @@ async function loadReviews(){
     };
     var avatarBg=function(name){
       var s=String(name||''),h=0; for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; }
-      var pal=[['#D0473E','#c9a55e'],['#0f6b3f','#128a4f'],['#8a6d2f','#b5904a'],['#046a3d','#0a8a52'],['#b58a3c','#d0a95e']];
+      var pal=[['#6A33D8','#c9a55e'],['#0f6b3f','#128a4f'],['#8a6d2f','#b5904a'],['#046a3d','#0a8a52'],['#b58a3c','#d0a95e']];
       var c=pal[h%pal.length];
       return 'linear-gradient(140deg,'+c[0]+','+c[1]+')';
     };
@@ -571,7 +571,7 @@ function renderContent(){
         <a href="#collections-sec">Collections</a></div>`+
       `<div><h5>KNICKGASM</h5>
         <a href="${RC.base}" target="_blank" rel="noopener">${RC.label} storefront</a>
-        <div style="font-size:12px;color:#9fb3a8;margin-top:6px">Powered by Shopify · Prices in ${RC.ccy}</div></div>`;
+        <div style="font-size:12px;color:var(--vh-ink-dim);margin-top:6px">Powered by Shopify · Prices in ${RC.ccy}</div></div>`;
   }
 }
 

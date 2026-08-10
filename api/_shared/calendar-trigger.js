@@ -1,4 +1,5 @@
 'use strict';
+const OfferingCampaign = require('./offering-campaign.js');
 
 /**
  * /api/calendar/trigger-mailer
@@ -105,7 +106,7 @@ function buildBriefFromEntry(entry, fw) {
     (entry.feedback && String(entry.feedback).trim()) ? `\nREVIEWER FEEDBACK to incorporate on this regeneration (highest priority, override earlier guidance where it conflicts): ${String(entry.feedback).trim()}` : null,
     '',
     'Strategist guidance:',
-    `- Stay strictly on KNICKGASM brand voice: warm, sensory, story-driven. No "transform", no "streetwear journey", no all-caps urgency.`,
+    `- Stay strictly on KNICKGASM brand voice: warm, sensory, story-driven. No "transform", no "wellness journey", no all-caps urgency.`,
     `- Match the archetype layout convention (see project brand spec).`,
     `- One CTA, one hero product, optional 2-3 supporting products.`,
     `- For ${entry.segment}: ${segmentVoiceGuide(entry.segment, entry.content_type)}`,
@@ -119,31 +120,105 @@ function buildBriefFromEntry(entry, fw) {
 // Derive on-brand copy from a calendar entry when the LLM strategy stage cannot
 // return parseable JSON. Keeps the mailer build alive instead of 503-ing.
 function heuristicStrategy(entry, market, framework) {
-  const hero = entry.hero_product || entry.hero_sku || 'our one-of-one edit';
   const seg = entry.segment || 'you';
   const type = String(entry.content_type || '').toLowerCase();
   const subjectHint = entry.subject_hint || '';
-  const subject = (subjectHint || `A quieter morning with ${hero}`).toString().slice(0, 60);
-  const preview = (`Single-studio, hand-painted, and laced for the ${seg} ritual.`).slice(0, 90);
-  const headline = (subjectHint ? subjectHint.split(/[.!?]/)[0] : `The ${hero} ritual`).toString().split(/\s+/).slice(0, 8).join(' ');
-  const subline = `Origin-first sneaker, crafted to restore balance to your day.`;
-  const ctaText = type === 'promo' ? 'Shop the edit'
-    : type === 'launch' ? 'Discover it'
-    : type === 'winback' ? 'Come back' : 'Lace-up now';
-  const body_blocks = [
-    { heading: 'Where it begins', body: `Every panel in ${hero} is hand-painted at origin and shipped studio-fresh, so what reaches your pair is the way it was meant to taste.` },
-    { heading: 'Made for your ritual', body: `Whether it opens your morning or closes your evening, this is sneaker built to be returned to, one unhurried pair at a time.` },
-    { heading: 'Why it matters', body: `Single-studio sourcing, heritage craft, and a story you can trace back to the hillside it grew on.` },
-  ];
-  return { subject_line: subject, preview_text: preview, hero_headline: headline, hero_subline: subline, body_blocks, cta_text: ctaText };
+
+  // What is this send actually about? An offering can be an event, a
+  // programme, a section, a plan or a service - not only a product. The
+  // fallback used to assume a product and shipped shopping copy (plus prose
+  // inherited from a previous brand), which read as nonsense for an event.
+  const offering = entry.heroOffering || entry.offering || null;
+  const plan = offering ? OfferingCampaign.planSend(offering, entry.date) : null;
+
+  // A finished event must not be written about as if it were upcoming.
+  if (plan && !plan.viable) {
+    return {
+      subject_line: `[SLOT NOT VIABLE]`,
+      preview_text: plan.reason.slice(0, 90),
+      hero_headline: 'Nothing to promote for this slot',
+      hero_subline: plan.reason,
+      body_blocks: [{ heading: 'Why this is empty', body: plan.reason }],
+      cta_text: '',
+      not_viable: true,
+    };
+  }
+
+  const name = (plan && plan.offering.name) || entry.hero_product || entry.hero_sku || 'this';
+  const kind = plan ? plan.kind : 'product';
+  const cta = plan ? plan.cta
+    : (type === 'promo' ? 'Shop now' : type === 'launch' ? 'Discover it' : type === 'winback' ? 'Come back' : 'See more');
+
+  // Copy shaped by what the reader is being asked to DO.
+  let subject, preview, headline, subline, body_blocks;
+  if (kind === 'event') {
+    const when = String(plan.offering.starts_at || '').slice(0, 10);
+    const days = plan.days_until;
+    subject = subjectHint || (plan.phase === 'follow-up' ? `Thank you for joining ${name}` : `${name}, ${when}`);
+    preview = plan.phase === 'follow-up'
+      ? `How ${name} went, and what is next.`
+      : `${when}${days > 0 ? ` - ${days} day${days === 1 ? '' : 's'} away` : ' - today'}.`;
+    headline = plan.phase === 'follow-up' ? `That is a wrap on ${name}` : name;
+    subline = plan.job;
+    body_blocks = plan.phase === 'follow-up'
+      ? [{ heading: 'Thank you', body: `${name} has happened. This is a note of thanks and a look at what comes next - nothing here asks anyone to register.` }]
+      : [
+          { heading: 'What it is', body: `${name}${plan.offering.venue ? `, at ${plan.offering.venue}` : ''}${when ? `, on ${when}` : ''}.` },
+          { heading: 'Who it is for', body: `Written for the ${seg} segment: why this is worth their time.` },
+          { heading: 'How to take part', body: plan.cta_url ? `Registration: ${plan.cta_url}` : '[DATA REQUIRED BEFORE LAUNCH: registration link]' },
+        ];
+  } else if (kind === 'programme') {
+    subject = subjectHint || `${name}, every ${plan.offering.cadence || 'week'}`;
+    preview = `A routine you can actually keep.`;
+    headline = name;
+    subline = plan.job;
+    body_blocks = [
+      { heading: 'The routine', body: `${name} runs ${plan.offering.cadence || 'on a regular cadence'}${plan.offering.duration ? ` over ${plan.offering.duration}` : ''}.` },
+      { heading: 'What changes', body: 'What the reader can expect by the end, stated without promising an outcome that cannot be evidenced.' },
+    ];
+  } else if (kind === 'section' || kind === 'plan') {
+    subject = subjectHint || name;
+    preview = kind === 'plan' ? 'What your subscription unlocks.' : 'Worth your next five minutes.';
+    headline = name;
+    subline = plan.job;
+    body_blocks = [{ heading: 'Why now', body: `Why ${name} is worth returning to for the ${seg} segment.` }];
+  } else if (kind === 'service') {
+    subject = subjectHint || `Commission ${name}`;
+    preview = plan.offering.lead_time ? `Made to order, ${plan.offering.lead_time}.` : 'Made to order.';
+    headline = name;
+    subline = plan.job;
+    body_blocks = [
+      { heading: 'How it works', body: `Brief, then made to order${plan.offering.lead_time ? ` in ${plan.offering.lead_time}` : ''}.` },
+    ];
+  } else {
+    subject = (subjectHint || `${name}`).toString().slice(0, 60);
+    preview = `Chosen for the ${seg} segment.`;
+    headline = (subjectHint ? subjectHint.split(/[.!?]/)[0] : name).toString().split(/\s+/).slice(0, 8).join(' ');
+    subline = `Why this one, for this reader, now.`;
+    body_blocks = [
+      { heading: 'What it is', body: `${name}: the facts the catalogue actually states, never invented ones.` },
+      { heading: 'Why this reader', body: `What makes it right for the ${seg} segment.` },
+    ];
+  }
+
+  return {
+    subject_line: String(subject).slice(0, 60),
+    preview_text: String(preview).slice(0, 90),
+    hero_headline: String(headline),
+    hero_subline: String(subline),
+    body_blocks,
+    cta_text: cta,
+    cta_url: plan ? plan.cta_url : null,
+    campaign_phase: plan ? plan.phase : 'evergreen',
+  };
 }
 
 function segmentVoiceGuide(segment, contentType) {
   const map = {
     Champions:        'reward, don\'t discount. Surface something new or limited.',
     Loyal:            'depth, story, origin. Editorial tone over promo.',
-    Promising:        'continuity — show the next step in the ritual.',
-    New:              'guide the second step. Teach crafting, suggest pairings.',
+    Promising:        'continuity — show the natural next step for them.',
+    New:              'guide the second step. Educate on the craft, suggest what fits them next.',
     'Need-Attention': 'soft re-engagement, no aggressive discount yet.',
     'About-to-Sleep': 'gentle reminder + curated 3-pick. Question-based subject.',
     'At-Risk':        'one personal note, one fair offer, single CTA.',
@@ -278,6 +353,7 @@ module.exports = async function handler(req, res) {
       cta_url: ctaUrl,
       html: renderTextVariant({ ...sharedText, style: 'pure' }),
       master_prompt: buildMasterPrompt({
+        brand: entry.brand || null,
         assetType: 'mailer', variant: 'V1', market, brief, products: promptProducts, cohort: entry.segment,
       }),
     },
@@ -298,9 +374,10 @@ module.exports = async function handler(req, res) {
       hero_image_brief:
         `On-brand KNICKGASM email visual for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
         `Editorial photography or gentle product-frame motion (animated GIF), one-of-one provenance, ` +
-        `elegant negative space, cinematic light. Brand palette only (violet #6A33D8, lava #D0473E, chalk #F7F5F2). ` +
+        `elegant negative space, cinematic light. Brand palette only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). ` +
         `Mood: warm, restrained, gift-worthy. No on-image text.`,
       master_prompt: buildMasterPrompt({
+        brand: entry.brand || null,
         assetType: 'mailer', variant: 'V2', market, brief, products: promptProducts, cohort: entry.segment,
       }),
     },
@@ -366,7 +443,7 @@ module.exports = async function handler(req, res) {
     cta_url: ctaUrl, preview_text: S.preview_text,
     hero_image_url: variants.V2.hero_image_url || null,
     hero_image_provider: variants.V2.hero_image_provider || null,
-    hero_image_brief: `${heroBriefBase} Composition: wide lifestyle scene, the pair in a real ritual moment (kitchen window or one-of-one hillside table), generous negative space, atmospheric dusk light.`,
+    hero_image_brief: `${heroBriefBase} Composition: wide lifestyle scene showing the offering in genuine use by its audience, generous negative space, natural light. Never invent a setting the brand does not actually have.`,
     master_prompt: variants.V2.master_prompt,
   };
   variants.B1 = { ...variants.V2, kind: 'text', type: 'B1', label: 'B1 · Text + Visual' };
@@ -430,7 +507,16 @@ function _productNote(p, market) {
   return s ? String(s) : '';
 }
 
+function _brandClaims() {
+  // Only claims the brand itself states. No fallback copy: an unstated claim is
+  // not written, because a trust bar is exactly where an invented one would do
+  // the most damage.
+  try { return (require('./brand-runtime.js').defaultBrand().claims || []).slice(0, 3); }
+  catch (_) { return []; }
+}
+
 function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market, hero_product, hero_sku, hero_image_url, hero_prompt, products, offer_bar, collection_url }) {
+  const brandClaims = _brandClaims();
   // CTA points at the resolved product/collection page; the brand domain still
   // falls back per-market if no specific destination was provided.
   const baseUrl = cta_url || regionBase(market);
@@ -440,7 +526,7 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
   const BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
   const palette = {
-    green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2',
+    green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF',
   };
 
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
@@ -487,11 +573,11 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
       </td></tr>`;
   // CAN-SPAM footer — nothing clickable except the brand mark (in the header).
   // Brand HARD rule: NEVER a black / near-black section background. The footer
-  // sits on deep purple (#6A33D8); chalk + lava text stay high-contrast on it.
+  // sits on deep purple (#D0473E); chalk + lava text stay high-contrast on it.
   const brandFooter = `
       <tr><td align="center" style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.chalk};">KNICKGASM</div>
-        <div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.lava};margin:8px 0;">Single-studio · Hand-painted · Shipped fresh from origin</div>
+        ${brandClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.lava};margin:8px 0;">${brandClaims.join(" &middot; ")}</div>` : ""}
         <div style="font-family:${BODY};font-size:11px;color:${palette.chalk}99;line-height:1.7;">${ORG_NAME} &middot; ${ORG_ADDRESS}<br>You are receiving this as a valued KNICKGASM ${esc(market)} customer. Carbon &amp; plastic neutral.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 

@@ -1,6 +1,9 @@
 # Email Inspiration Library — Visual Formatting Patterns
 
-**What this is:** A visual-formatting knowledge base extracted from 33 screenshots of marketing emails (captured from milled.com, ~3 emails per screenshot, ~99 emails total) from DTC coffee-alternative / supplement / sneaker brands: RYZE Superfoods, AG1, Space Goods, Grüns, Kickstradomis, and others. The focus is LAYOUT MECHANICS — hero treatments, section order, CTA styling, product presentation, promo devices, palette and typography habits — so future KNICKGASM lifecycle emails can borrow proven visual structures while staying inside KNICKGASM's brand gates.
+**What this is:** A visual-formatting knowledge base extracted from 33 screenshots of marketing emails (captured from milled.com, ~3 emails per screenshot, ~99 emails total) sent by high-cadence DTC brands OUTSIDE our category: RYZE Superfoods, AG1, Space Goods, Grüns, Kickstradomis, and others. We study them because they run the highest-frequency, most tested email programmes in DTC, not because we sell anything like what they sell. The focus is LAYOUT MECHANICS — hero treatments, section order, CTA styling, product presentation, promo devices, palette and typography habits — so future KNICKGASM lifecycle emails can borrow proven visual structures while staying inside KNICKGASM's brand gates.
+
+> **Reading rule (load-bearing).** Everything in sections 01–33 is a DESCRIPTION OF SOMEONE ELSE'S EMAIL. Their product nouns and claim language (supplement, superfood, creamer, latte, gut support, energy) are recorded verbatim as evidence and must NEVER be carried into a KNICKGASM asset. KNICKGASM sells hand-painted one-of-one custom sneakers, denim jackets and sneaker accessories made on 100% original brand footwear. Nothing we sell is ingested, and we make no health claim of any kind. Steal the LAYOUT. Never the vocabulary, and never the claim.
+
 
 **Source:** Google Drive screenshots dated 2026-07-03. Scanned: 2026-07-03.
 
@@ -12,7 +15,7 @@
 ## 01 — Screenshot 1.36.00 PM (id 1wPw-a2hvyJZYNbghghR2ExnRfIOPK5kU)
 Milled grid view, 4 email previews (top fold only).
 
-**Email 1 — RYZE Superfoods (US, Jul 2) — 4th of July sale.**
+**Email 1 — RYZE Superfoods (US, Jul 2) — 4th of July sale.** *(external brand, other category)*
 - Hero: stacked promo system, not a single hero. Top utility bar (chalk bg, 3 columns: "SHOP 42% OFF | RYZE | COMMUNITY" in rust/brown caps) → slim festive banner (sky-blue bg, navy "4TH OF JULY SALE" + mascot illustration + US flag + "UP TO 42% OFF + FREE Gifts With Any Bundle" + small navy SHOP NOW pill) → giant typographic headline on chalk: "BIG WEEKENDS" (rust serif-ish display, ~2x body) over "REQUIRE BIG ENERGY" (dark brown, letterspaced).
 - CTA: full-width-ish rounded rectangle, rust/terracotta fill, dark outline + hard drop shadow (retro sticker feel), white caps "SAVE UP TO 42%". Sits directly under 2 lines of supporting copy.
 - Below CTA: full-width lifestyle photo (fireworks + whipped drink) as a visual reward strip.
@@ -31,7 +34,7 @@ Milled grid view, 4 email previews (top fold only).
 - Hero: typographic-first. Warm off-white/chalk bg, large deep-purple SERIF headline ("Healthy habits shouldn't stop when vacation starts.") centered, 3–4 lines of small centered sans body beneath.
 - Product: single hero object — green travel pouch photographed straight-on on seamless chalk bg (product-cutout feel).
 - Promo device: white starburst/scalloped sticker overlapping the product top-left: "FREE KIT with first subscription" in small caps — GWP called out as a badge, not a banner.
-- Palette: chalk + deep deep purple only (2 colors!). Very close to KNICKGASM's #F7F5F2/#6A33D8. Serif headline + tiny sans support = high size contrast, calm and premium.
+- Palette: chalk + deep deep purple only (2 colors!). Very close to KNICKGASM's #FFFFFF/#D0473E. Serif headline + tiny sans support = high size contrast, calm and premium.
 - Image:text ~50:50. No visible discount, no urgency — gift framing instead.
 - Steal: AG1's serif-headline-on-chalk + single-object product shot + scalloped "FREE GIFT" sticker is essentially a ready-made KNICKGASM template.
 
@@ -372,13 +375,13 @@ Milled search "kickstradomis": same Kickstradomis plain-text teaser x3 locales (
 
 ## Formatting playbook for KNICKGASM
 
-The 15 most reusable visual patterns across all 33 screenshots, adapted to KNICKGASM's gates (4-color palette, Montserrat/Instrument Sans, no caps-urgency or banned phrases, brand-as-"we", warm sensory voice). Cohort A = Non-Buyers/Non-Engagers; Cohort B = T&B-Buyers/Non-Engagers. "Implemented" = already live in week-1 emails.
+The 15 most reusable visual patterns across all 33 screenshots, adapted to KNICKGASM's gates (4-color palette, Montserrat/Instrument Sans, no caps-urgency or banned phrases, brand-as-"we", warm sensory voice). Cohort A = Non-Buyers/Non-Engagers; Cohort B = Custom-Buyers/Non-Engagers. "Implemented" = already live in week-1 emails.
 
-**1. Serif-on-chalk single-object hero** — AG1's signature (01, 02, 03, 04, 24). Large serif headline centered on chalk, one product cutout, tiny sans support. The single strongest fit: Montserrat in #6A33D8 on #F7F5F2 is literally AG1's grammar. A: welcome/education; B: reintroduce one hero SKU. Adaptation: near-zero. NEW.
+**1. Serif-on-chalk single-object hero** — AG1's signature (01, 02, 03, 04, 24). Large serif headline centered on chalk, one product cutout, tiny sans support. The single strongest fit: Montserrat in #D0473E on #FFFFFF is literally AG1's grammar. A: welcome/education; B: reintroduce one hero SKU. Adaptation: near-zero. NEW.
 
-**2. Scalloped gift sticker (badge-as-offer)** — AG1, RYZE, Space Goods, Grüns (01, 03, 04, 13, 16, 20, 21). GWP lives as a sticker overlapping the product so the headline stays editorial. A: "free sampler" first-order hook; B: gift-with-reorder. Adaptation: lava #D0473E scallop, ink sentence-case text ("Free with your first order") — no neon, no caps. Numbered gift badges are implemented; the scalloped value-sticker ("$39 value") is NEW.
+**2. Scalloped gift sticker (badge-as-offer)** — AG1, RYZE, Space Goods, Grüns (01, 03, 04, 13, 16, 20, 21). GWP lives as a sticker overlapping the product so the headline stays editorial. A: "free sampler" first-order hook; B: gift-with-reorder. Adaptation: lava #6A33D8 scallop, ink sentence-case text ("Free with your first order") — no neon, no caps. Numbered gift badges are implemented; the scalloped value-sticker ("$39 value") is NEW.
 
-**3. Slim offer bar above the hero** — RYZE, AG1, Space Goods (01, 07, 13, 14, 22, 26). Discount confined to a slim top band; hero stays emotional. Higher-energy device: execute as a chalk band, Instrument Sans sentence case, lava only on the figure ("Save 20% on your first ritual"). Both cohorts, any promo send. NEW.
+**3. Slim offer bar above the hero** — RYZE, AG1, Space Goods (01, 07, 13, 14, 22, 26). Discount confined to a slim top band; hero stays emotional. Higher-energy device: execute as a chalk band, Instrument Sans sentence case, lava only on the figure, and only where a real catalog compare-at price supports it. Both cohorts, any promo send. NEW.
 
 **4. Highlighter-swipe on offer words** — AG1's systemized device (07, 08, 14, 15, 16, 18). Marker-highlight only the discount words inside an otherwise quiet utility line. Adaptation: soft lava swipe behind "Save 20%", ink text. A: subordinates the offer so story leads. NEW.
 
@@ -388,19 +391,19 @@ The 15 most reusable visual patterns across all 33 screenshots, adapted to KNICK
 
 **7. Leader-line callout annotations** — AG1, Space Goods (17, 25). Thin lines labeling each item in a kit or each pouch in a bundle — education as diagram. A: "what's in your first box"; B: trial-kit cross-sell. Adaptation: 1px lava lines, small Instrument Sans labels. NEW.
 
-**8. CTA-before-image** — RYZE's fixed habit, Grüns too (03, 07, 09, 12, 22, 26). Button sits between copy and photo so the fold always contains the ask. Adaptation: violet #6A33D8 rounded button, chalk text, sentence case, no offset shadow. Both cohorts. NEW as an explicit rule.
+**8. CTA-before-image** — RYZE's fixed habit, Grüns too (03, 07, 09, 12, 22, 26). Button sits between copy and photo so the fold always contains the ask. Adaptation: violet #D0473E rounded button, chalk text, sentence case, no offset shadow. Both cohorts. NEW as an explicit rule.
 
 **9. Offer-inside-the-CTA pill** — Grüns, AG1 (04, 17, 21, 22, 24, 26). Price or offer baked into button text ("Start for just £59") so headline stays emotional. Adjacent to the implemented price-decision tiers; the price-in-button variant is NEW. B: reorder pricing; A: starter-price entry.
 
 **10. Fixed skeleton, reskinned per send** — RYZE, Grüns, AG1 (09, 16, 18, 19, 25, 26). One locked layout (bar/headline/body/CTA/photo-card) with only words and photo swapped; sale states ("is live → extended → final day") change one slim banner. KNICKGASM's week-1 system (court-stripe divider, lava ✦ dividers) IS this skeleton — formalize and reuse it for cadence at low design cost.
 
-**11. Palette inversion for serious sends** — AG1 (05, 07, 18). Flip to deep-purple background with chalk serif headline to flag science/craft content inside the same system. A: sourcing/lacing-science emails. Adaptation: #6A33D8 bg, #F7F5F2 Montserrat, lava accents. NEW.
+**11. Palette inversion for serious sends** — AG1 (05, 07, 18). Flip to deep-purple background with chalk serif headline to flag science/craft content inside the same system. A: how-a-one-of-one-is-made emails (base pair, paint system, 10 to 15 day studio window). Adaptation: #D0473E bg, #FFFFFF Montserrat, lava accents. NEW.
 
 **12. Stat-or-milestone-as-headline** — AG1, Grüns (05, 23). A verified number ("60,000 five-star reviews") is the hero; CTA as a quiet caption bar. A: trust-building before any offer. Adaptation: serif stat in violet, no confetti — a single lava ✦ instead. NEW.
 
 **13. Magazine pull-quote testimonial** — AG1 (09), echoed by Kickstradomis's bold centered quotes (29, 30). Oversized ghost quote glyph + serif pull-quote styled as an editorial feature, not a review card. Adaptation: customer's words curated by "we" ("A reader in Leeds wrote…") — never founder persona. A and B. NEW.
 
-**14. Ingredient-texture macro hero** — AG1, Space Goods (11, 16, 19). Full-width macro of raw panel/powder as the entire hero — quiet credibility, no packshot. Perfect for one-of-one panel photography. A: origin stories; B: new-drop announcements. NEW.
+**14. Material-texture macro hero** — AG1, Space Goods (11, 16, 19). Full-width macro of the raw material as the entire hero, quiet credibility, no packshot. For us that is brush-on-leather: a macro of wet paint on an AF1 toe box, a stitched embroidery panel, a crystal-set swoosh. A: craft/origin stories; B: new-drop announcements. NEW.
 
 **15. Zero-ask ritual note** — Kickstradomis Pause Series (32), plain-text interrupts (06, 15, 27, 28). A near-empty, offer-free reflective send as a retention ritual, with its own series opt-out. Adaptation: no founder signature — "we" voice ("A Sunday pause, from all of us at KNICKGASM"), one question, one lava ✦, generous whitespace. B: re-engagement without discounting. NEW.
 

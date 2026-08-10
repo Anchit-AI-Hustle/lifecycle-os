@@ -3,7 +3,7 @@
 
 /**
  * build-july-studio.js — KNICKGASM USA July calendar + mailer studio
- * (knickgasm-usa-july-calendar-mailer-studio.html, served at /july-studio · /usa-july).
+ * (lifecycle-usa-july-calendar-mailer-studio.html, served at /july-studio · /usa-july).
  *
  * Reads the manifest (data/calendar/usa-july-2026.json) written by
  * build-july-mailers.js and emits ONE self-contained studio page with:
@@ -52,7 +52,7 @@ function main() {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KNICKGASM USA July · Calendar + Mailer Studio</title>
 <style>
-  :root{--green:#6A33D8;--lava:#D0473E;--ink:#111111;--chalk:#F7F5F2;--line:#e6dcc7;--muted:#7a6e5a;}
+  :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--line:#e6dcc7;--muted:#7a6e5a;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--chalk);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;}
   a{color:var(--green);}
@@ -147,7 +147,7 @@ function main() {
   </div>
   <div id="view"></div>
 </div>
-<footer>KNICKGASM Lifecycle OS · US market (knickgasm.com) · Scenario C executed model · assets origin-validated against the KNICKGASM allowlist.</footer>
+<footer>Lifecycle OS · US market (knickgasm.com) · Scenario C executed model · assets origin-validated against the KNICKGASM allowlist.</footer>
 
 <script id="data" type="application/json">${DATA}</script>
 <script>
@@ -351,9 +351,9 @@ function main() {
 </body>
 </html>`;
 
-  const out = path.join(ROOT, 'knickgasm-usa-july-calendar-mailer-studio.html');
+  const out = path.join(ROOT, 'lifecycle-usa-july-calendar-mailer-studio.html');
   fs.writeFileSync(out, page);
-  console.log(`✓ wrote knickgasm-usa-july-calendar-mailer-studio.html (${Math.round(page.length / 1024)} KB, ${manifest.slots.length} sends, card+list toggle, iframe src previews)`);
+  console.log(`✓ wrote lifecycle-usa-july-calendar-mailer-studio.html (${Math.round(page.length / 1024)} KB, ${manifest.slots.length} sends, card+list toggle, iframe src previews)`);
 }
 
 main();

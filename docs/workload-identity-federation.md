@@ -13,17 +13,17 @@ If a teammate ever deletes the SA again, you re-grant federation access in 2 min
 ## One-time GCP setup (~10 minutes)
 
 Run from your local machine where `gcloud` is authenticated to the
-`knickgasm-lifecycle-os` project.
+`lifecycle-os` project.
 
 ```bash
 # Variables you need
-export PROJECT_ID="knickgasm-lifecycle-os"
+export PROJECT_ID="lifecycle-os"
 export PROJECT_NUMBER="$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')"
 export POOL_ID="vercel-pool"
 export PROVIDER_ID="vercel-provider"
 export SA_NAME="lifecycle-os-bot"
 export VERCEL_TEAM_SLUG="anchittandon-3589s-projects"   # your team slug
-export VERCEL_PROJECT="knickgasm-lifecycle-os"             # this project's slug
+export VERCEL_PROJECT="lifecycle-os"             # this project's slug
 ```
 
 ### 1. Enable the APIs
@@ -72,7 +72,7 @@ gcloud iam workload-identity-pools providers create-oidc $PROVIDER_ID \
 ```
 
 > The `attribute-condition` is a hard guardrail: only OIDC tokens whose
-> `project` claim matches `knickgasm-lifecycle-os` can use this provider.
+> `project` claim matches `lifecycle-os` can use this provider.
 > A token from a different Vercel project on the same team gets rejected.
 
 ### 4. Bind the SA so federation principals can impersonate it
@@ -84,12 +84,12 @@ gcloud iam service-accounts add-iam-policy-binding $SA_EMAIL \
   --project $PROJECT_ID
 ```
 
-This says: *"any workload from Vercel project `knickgasm-lifecycle-os` can call
+This says: *"any workload from Vercel project `lifecycle-os` can call
 generateAccessToken on this service account."* That's the federation grant.
 
 ### 5. Share the Google Sheet with the SA
 
-In the Google Sheet → Share → add `lifecycle-os-bot@knickgasm-lifecycle-os.iam.gserviceaccount.com`
+In the Google Sheet → Share → add `lifecycle-os-bot@lifecycle-os.iam.gserviceaccount.com`
 as **Editor**. (Same step as before — only the auth mechanism changes, not the
 sheet's permission model.)
 
@@ -117,7 +117,7 @@ vercel env add GCP_WORKLOAD_IDENTITY_PROVIDER production
 # Paste: projects/123456789012/locations/global/workloadIdentityPools/vercel-pool/providers/vercel-provider
 
 vercel env add GCP_SERVICE_ACCOUNT_EMAIL production
-# Paste: lifecycle-os-bot@knickgasm-lifecycle-os.iam.gserviceaccount.com
+# Paste: lifecycle-os-bot@lifecycle-os.iam.gserviceaccount.com
 ```
 
 ### 3. Remove the old key-based env vars (after WIF is confirmed working)
@@ -146,7 +146,7 @@ vercel --prod
 After the first deploy with the new env vars:
 
 ```bash
-curl -s "https://knickgasm-lifecycle-os-anchittandon-3589s-projects.vercel.app/api/competitor?action=list" \
+curl -s "https://lifecycle-os-anchittandon-3589s-projects.vercel.app/api/competitor?action=list" \
   | jq '.emails | length'
 # Should return your row count, not 0 / error.
 ```

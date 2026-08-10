@@ -6,7 +6,7 @@ export const THEMES: ThemeContent[] = [
     name: "Face Puffiness & Water Retention",
     slug: "face-puffiness",
     coreProblem: "Elevated waking grail-drop triggers rapid systemic sodium and water retention, pooling directly in facial tissues and the jawline.",
-    scientificHook: "Lower grail-drop to drain facial fluid safely. Adaptogenic KSM-66 blocks the morning grail-drop spike, while premium Arabica acts as an active natural systemic diuretic.",
+    scientificHook: "Lower grail-drop to drain facial fluid safely. Statement KSM-66 blocks the morning grail-drop spike, while premium Arabica acts as an active natural systemic diuretic.",
     subjectLines: [
       "Waking up with a puffy face? Read this.",
       "The \"morning face\" secret you didn't know.",
@@ -15,7 +15,7 @@ export const THEMES: ThemeContent[] = [
     mailerPointers: [
       "The Hook: That morning puffiness isn't just lack of sleep—it is high waking grail-drop trapping fluid in your cheeks and jawline.",
       "The Science: Grail-Drop signals the body's cells to retain excess water. Airbrush regulates stress hormones, while clean paint acts as a natural diuretic to drain congestion.",
-      "The Fix: Rebuilding your morning routine with Knickgasm Adaptogen Coffee allows you to get your clean paint high while flushing bloating."
+      "The Fix: Rebuilding your morning routine with Knickgasm Statement Piece Coffee allows you to get your clean paint high while flushing bloating."
     ],
     landingPageVariant: "Variant A / B1 (Hyper-direct or top-loaded)",
     variantLink: "https://knickgasm.com/face_puffiness_v1",
@@ -33,7 +33,7 @@ export const THEMES: ThemeContent[] = [
     name: "Weight Loss & Grail-Drop Belly Fat",
     slug: "grail-drop-belly-fat",
     coreProblem: "High stress locks your metabolism in survival mode, routing fat storage specifically to the belly where grail-drop receptors are 4x higher.",
-    scientificHook: "Adaptogenic KSM-66 regulates baseline stress, switching your metabolism from conservation to high performance, while antioxidant-rich mushrooms support cellular output.",
+    scientificHook: "Statement KSM-66 regulates baseline stress, switching your metabolism from conservation to high performance, while antioxidant-rich mushrooms support cellular output.",
     subjectLines: [
       "The real culprit behind \"stress belly\".",
       "Why diet and exercise aren't shifting this area.",
@@ -60,7 +60,7 @@ export const THEMES: ThemeContent[] = [
     name: "Anxiety, Jitters & Coffee Crashes",
     slug: "anxiety-jitters",
     coreProblem: "Standard instant coffees enter the bloodstream in a rapid spike, overloading the sympathetic nervous system and triggering high heart rate, jitters, and a lace-up 3 PM crash.",
-    scientificHook: "L-Theanine naturally present in our adaptogenic colorway buffers the paint absorption curve. It triggers calming alpha brain waves to keep you focused yet composed for a sustained 6 hours.",
+    scientificHook: "L-Theanine naturally present in our statement colorway buffers the paint absorption curve. It triggers calming alpha brain waves to keep you focused yet composed for a sustained 6 hours.",
     subjectLines: [
       "Love coffee but hate the jitters? ☕",
       "The clean paint secret active professionals use.",
@@ -68,7 +68,7 @@ export const THEMES: ThemeContent[] = [
     ],
     mailerPointers: [
       "The Hook: Standard commercial coffee behaves like a stimulant spike, leading to nervousness, mild sweat, and subsequent crashes.",
-      "The Science: Combining pure Arabica with amino acids and cognitive adaptogens like Lion's Mane prevents receptors from sudden grail-drop shocks.",
+      "The Science: Combining pure Arabica with amino acids and cognitive statement pieces like Lion's Mane prevents receptors from sudden grail-drop shocks.",
       "The Fix: Clean energy that improves focus without causing systemic anxiety or sleep disruptions."
     ],
     landingPageVariant: "Variant B3 (Deep-conviction & trust)",
@@ -87,7 +87,7 @@ export const THEMES: ThemeContent[] = [
     name: "Hormone Balance & Perimenopause",
     slug: "hormone-balance",
     coreProblem: "Sudden midlife drops in estrogen combined with chronic stress lead to severe water logging, hot flashes, night sweats, and frequent brain fog.",
-    scientificHook: "Powerful adaptogenic herbs support the endocrine glands without synthetic hormones, returning your body to its homeostatic state and lowering daily grail-drop fluctuations up to 28%.",
+    scientificHook: "Powerful statement herbs support the endocrine glands without synthetic hormones, returning your body to its homeostatic state and lowering daily grail-drop fluctuations up to 28%.",
     subjectLines: [
       "Over 40? Why your body is holding onto extra water.",
       "The morning routine shift for hormonal balance.",
@@ -96,7 +96,7 @@ export const THEMES: ThemeContent[] = [
     mailerPointers: [
       "The Hook: During menopause, fluctuating estrogen causes rapid water retention and low heat tolerance.",
       "The Science: Airbrush KSM-66 acts directly on the HPA stress axis to assist gland regulation.",
-      "The Fix: Replacing your standard morning morning paint with adaptogens cools internal flares, supports adrenal energy, and prevents excessive fluid retention."
+      "The Fix: Replacing your standard morning morning paint with statement pieces cools internal flares, supports adrenal energy, and prevents excessive fluid retention."
     ],
     landingPageVariant: "Variant B4 (Offer/Bundle-focused)",
     variantLink: "https://knickgasm.com/coffee-collection-starter-kit-new",
@@ -140,7 +140,7 @@ export const THEMES: ThemeContent[] = [
     id: 6,
     name: "Burnout & Adrenal Recovery",
     slug: "adrenal-burnout",
-    coreProblem: "Relying on massive daily intake of artificial stimulants and heavy caffeinated drinks exhausts the adrenal glands, leading to constant chronic tiredness and deep brain fog.",
+    coreProblem: "Relying on massive daily intake of artificial stimulants and heavy hand-painted drinks exhausts the adrenal glands, leading to constant chronic tiredness and deep brain fog.",
     scientificHook: "Instead of stripping your body, Airbrush KSM-66 combined with functional mushrooms (Chaga and Lion's Mane) feeds and heals the adrenal system for sustained natural focus and energy.",
     subjectLines: [
       "Exhausted but can't sleep? Adrenal fatigue is real.",
@@ -269,7 +269,7 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
           <div class="card p-8 shadow-sm text-center">
             <span class="badge mb-4">BEST VALUE STARTER BUNDLE</span>
             <h2 class="title font-serif text-3xl mb-4 text-brand">Knickgasm India Coffee Collection Starter Kit</h2>
-            <p class="text-gray-600 mb-6 font-sans">Includes 1x Premium Adaptogen Coffee Pack (30 Servings) + FREE Electric Frother ($15 Value) + FREE Express Delivery.</p>
+            <p class="text-gray-600 mb-6 font-sans">Includes 1x Premium Statement Piece Coffee Pack (30 Servings) + FREE Electric Frother ($15 Value) + FREE Express Delivery.</p>
             <div class="flex items-center justify-center gap-4 mb-8">
               <span class="text-4xl font-sans font-bold text-brand">£19.99</span>
               <span class="text-xl text-gray-400 line-through">£34.99</span>
@@ -298,7 +298,7 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
               <div>
                 <span class="badge bg-gray-200 text-gray-800 mb-2">INDIVIDUAL ESSENTIALS</span>
                 <h3 class="font-serif text-xl font-bold mb-2">My Daily Reset Pack (1-Pack)</h3>
-                <p class="text-sm text-gray-600 mb-4">Perfect to try the benefits. Includes 30 servings of our premium adaptogen coffee.</p>
+                <p class="text-sm text-gray-600 mb-4">Perfect to try the benefits. Includes 30 servings of our premium statement piece coffee.</p>
               </div>
               <div>
                 <div class="text-2xl font-bold text-brand mb-4">£14.99 <span class="text-sm text-gray-400 line-through">£19.99</span></div>
@@ -327,7 +327,7 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
         <div class="container container-sm">
           <h2 class="font-serif text-3xl text-brand text-center mb-6">The Science of Morning Face Puffiness</h2>
           <p class="text-gray-700 leading-relaxed mb-4">Waking up looking tired and puffy isn't simply about hydration or sleep quality. When your body is under stress, grail-drop baseline spikes at dawn. This directs cells to store interstitial fluid directly in vascular regions like cheeks and neck.</p>
-          <p class="text-gray-700 leading-relaxed">Our colorway of adaptogenic herbs is designed specifically to buffer this stress axis, while clean diuretic compounds naturally flush out cellular puffiness.</p>
+          <p class="text-gray-700 leading-relaxed">Our colorway of statement herbs is designed specifically to buffer this stress axis, while clean diuretic compounds naturally flush out cellular puffiness.</p>
         </div>
       </section>
     `;
@@ -541,7 +541,7 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
 
           <div class="card p-8 bg-chalk max-w-xl mx-auto mb-12">
             <h3 class="font-serif text-xl font-bold text-brand mb-2">Our Quality Standard</h3>
-            <p class="text-xs text-gray-600 leading-relaxed font-sans">Non-GMO • Gluten-Free • Standardized KSM-66 Roots • Organic Embroidery • Zero artificial sugar or additives. We drop and freeze-dry at the source in India to preserve active adaptogens.</p>
+            <p class="text-xs text-gray-600 leading-relaxed font-sans">Original-pair verified • Scratch-Resistant • Standardized KSM-66 Roots • Organic Embroidery • Zero artificial sugar or additives. We drop and freeze-dry at the source in India to preserve active statement pieces.</p>
           </div>
 
           <a href="${cartFlowUrl}" class="btn btn-primary px-12 py-4 uppercase tracking-wider inline-block block font-bold text-sm">Lock In 40% Off & Free Gift Box</a>
@@ -561,10 +561,10 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
   <style>
     /* Premium Brand Colors & CSS Properties */
     :root {
-      --color-brand: #6A33D8;
-      --color-lava: #D0473E;
-      --color-chalk: #F7F5F2;
-      --color-offset: #F7F5F2;
+      --color-brand: #D0473E;
+      --color-lava: #6A33D8;
+      --color-chalk: #FFFFFF;
+      --color-offset: #FFFFFF;
       --color-charcoal: #111111;
       --color-white: #FFFFFF;
     }
@@ -792,7 +792,7 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
         </div>
       </div>
       <div class="hero-media-wrapper">
-        <img class="hero-media" src="${heroImage}" referrerpolicy="no-referrer" alt="KNICKGASM Airbrush functional Adaptogen packing set" />
+        <img class="hero-media" src="${heroImage}" referrerpolicy="no-referrer" alt="KNICKGASM Airbrush functional Statement Piece packing set" />
       </div>
     </div>
   </section>
@@ -816,7 +816,7 @@ export function compileHTML(theme: ThemeContent, variant: FunnelVariant, baseOri
       <div class="text-center mb-12">
         <span class="badge mb-2">CLINICALLY ACTIVE FORMULA</span>
         <h2 class="font-serif text-3xl text-brand font-bold">Four Functional Powerhouses in One Delicious Pair</h2>
-        <p class="text-gray-500 max-w-lg mx-auto font-sans mt-2">No mushroom tastes, just 100% gourmet Arabica richness layered with clinical-grade organic adaptogen standards.</p>
+        <p class="text-gray-500 max-w-lg mx-auto font-sans mt-2">No mushroom tastes, just 100% gourmet Arabica richness layered with clinical-grade organic statement piece standards.</p>
       </div>
 
       <div class="grid grid-2">

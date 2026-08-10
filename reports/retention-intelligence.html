@@ -6,7 +6,7 @@
 <title>Knickgasm D2C · Retention Intelligence</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js"></script>
@@ -18,9 +18,9 @@
       colors: {
         bg:    { DEFAULT:'#0a1410', soft:'#0f1d18', card:'#142822', deep:'#06100c' },
         ink:   { DEFAULT:'#e8ede9', dim:'#9aaaa1', mute:'#5d6e64' },
-        green: { DEFAULT:'#6A33D8', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
-        lava:  { DEFAULT:'#D0473E', soft:'rgba(171,135,67,0.12)' },
-        chalk: '#F7F5F2',
+        green: { DEFAULT:'#D0473E', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
+        lava:  { DEFAULT:'#6A33D8', soft:'rgba(171,135,67,0.12)' },
+        chalk: '#FFFFFF',
         red:   '#ef4444',
         amber: '#f59e0b',
         blue:  '#3b82f6',
@@ -46,12 +46,12 @@
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
   .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:13px; color:#9aaaa1; transition:all .15s; cursor:pointer; }
   .nav-item:hover { background:rgba(171,135,67,0.08); color:#e8ede9; }
-  .nav-item.active { background:rgba(171,135,67,0.14); color:#F7F5F2; border-left:2px solid #D0473E; padding-left:10px; }
+  .nav-item.active { background:rgba(171,135,67,0.14); color:#FFFFFF; border-left:2px solid #6A33D8; padding-left:10px; }
   .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; }
-  .nav-item.active svg { opacity:1; color:#D0473E; }
+  .nav-item.active svg { opacity:1; color:#6A33D8; }
   .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#9aaaa1; cursor:pointer; transition:all .15s; user-select:none; }
-  .filter-chip:hover { border-color:#D0473E; color:#e8ede9; }
-  .filter-chip.active { background:#D0473E; color:#0a1410; border-color:#D0473E; }
+  .filter-chip:hover { border-color:#6A33D8; color:#e8ede9; }
+  .filter-chip.active { background:#6A33D8; color:#0a1410; border-color:#6A33D8; }
   .view { display:none; }
   .view.active { display:block; animation: fadeIn .25s ease; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
@@ -69,14 +69,14 @@
   .badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
   .b-US { background:rgba(59,130,246,0.15); color:#93c5fd; }
   .b-UK { background:rgba(234,88,12,0.15); color:#fdba74; }
-  .b-Global { background:rgba(171,135,67,0.18); color:#D0473E; }
+  .b-Global { background:rgba(171,135,67,0.18); color:#6A33D8; }
   .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#142822; }
   .seg-name { font-weight:700; font-size:13px; }
   .seg-meta { font-size:11px; color:#9aaaa1; margin-top:4px; }
   .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
   .modal-backdrop.open { display:flex; }
   .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:#0a1410; font-weight:600; border-radius:2px; }
-  .apex-tooltip-custom { background:#0a1410 !important; border:1px solid #D0473E !important; color:#e8ede9 !important; font-family:'Inter',sans-serif !important; }
+  .apex-tooltip-custom { background:#0a1410 !important; border:1px solid #6A33D8 !important; color:#e8ede9 !important; font-family:'Inter',sans-serif !important; }
   .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; }
   .delta-up { color:#22c55e; background:rgba(34,197,94,0.1); }
   .delta-down { color:#ef4444; background:rgba(239,68,68,0.1); }
@@ -514,44 +514,43 @@ const SUBJECTS = [
   "The Jordan everyone's talking about",
   "Free shipping on your next reorder",
   "Black Friday: best deal of the year ✨",
-  "Hurry — only 200 boxes left",
+  "Hurry, only 200 boxes left",
   "Your favourite is back",
-  "Crafted for cold mornings",
+  "Painted for the people who noticed",
   "Hey, it's been a while",
-  "Sneaker isn't a habit. It's a moment.",
-  "Lace-up less, taste more",
-  "The kicks that changed our roastery",
+  "A pair nobody else will ever own",
+  "Lace up something that is only yours",
+  "The design that took our artists three days",
   "30% off + free gift inside",
-  "Your streetwear ritual, made personal",
+  "Your pair, hand-painted to order",
 ];
 
 const PRODUCTS = [
-  { sku:'DRJ-100', title:'Jordan Summer Black', category:'Black sneaker', price:18.50 },
-  { sku:'ASM-100', title:'Airforce Breakfast', category:'Black sneaker', price:14.50 },
-  { sku:'EGT-200', title:'Earl Grey Citrus', category:'Black sneaker', price:16.00 },
-  { sku:'GRN-300', title:'Signature Green', category:'Green sneaker', price:17.00 },
-  { sku:'GRN-310', title:'Jasmine Green Pearls', category:'Green sneaker', price:19.00 },
-  { sku:'CHA-400', title:'Hand-painted Kicks Classic', category:'Kicks', price:15.50 },
-  { sku:'CHA-410', title:'Neon Embroidery Kicks', category:'Kicks', price:16.50 },
-  { sku:'HRB-500', title:'Matte Streetwear', category:'Themed', price:13.50 },
-  { sku:'HRB-510', title:'Pastel Calm', category:'Themed', price:13.00 },
-  { sku:'WHT-600', title:'Silver Tips White', category:'White sneaker', price:24.00 },
-  { sku:'OOL-700', title:'Hightop Reserve', category:'Hightop', price:21.00 },
-  { sku:'GFT-900', title:'Discovery Gift Set', category:'Gift', price:42.00 },
-  { sku:'GFT-910', title:'Festive Trio', category:'Gift', price:35.00 },
-  { sku:'BLD-800', title:'Detox Colorway', category:'Streetwear', price:18.00 },
-  { sku:'BLD-810', title:'Sleep Colorway', category:'Streetwear', price:18.50 },
+  { sku:'AF1-100', title:'Anime x Air Force 1', category:'Air Force 1', price:156.33 },
+  { sku:'AF1-110', title:'Football Club Air Force 1', category:'Air Force 1', price:149.99 },
+  { sku:'AF1-120', title:'Embroidery Air Force 1', category:'Air Force 1', price:178.50 },
+  { sku:'AF1-130', title:'Bling Crystal Air Force 1', category:'Air Force 1', price:219.00 },
+  { sku:'CTV-200', title:'Gaming Court Vision', category:'Court Vision', price:115.87 },
+  { sku:'CTV-210', title:'Pastel Aesthetic Court Vision', category:'Court Vision', price:110.00 },
+  { sku:'JRD-300', title:'Motorsport Air Jordan', category:'Air Jordan', price:204.69 },
+  { sku:'JRD-310', title:'Celebrity Portrait Air Jordan', category:'Air Jordan', price:226.29 },
+  { sku:'CNV-400', title:'Pet Portrait Converse', category:'Converse', price:123.43 },
+  { sku:'CNV-410', title:'Coffee-ART Converse', category:'Converse', price:118.00 },
+  { sku:'ADI-500', title:'Adidas Samba Custom', category:'Adidas', price:198.86 },
+  { sku:'DNM-600', title:'Travis Scott Denim Jacket', category:'Apparel', price:64.35 },
+  { sku:'DNM-610', title:'Juice WRLD Denim Jacket', category:'Apparel', price:64.35 },
+  { sku:'ACC-700', title:'Chunky Rope Laces', category:'Accessories', price:7.91 },
+  { sku:'ACC-710', title:'Lace Tags (Custom)', category:'Accessories', price:9.14 },
 ];
 
 const CATEGORY_AFFINITY = {
-  'Black sneaker':   ['Kicks','Black sneaker'],
-  'Green sneaker':   ['Streetwear','Themed'],
-  'Kicks':        ['Black sneaker','Streetwear'],
-  'Themed':      ['Streetwear','Green sneaker'],
-  'White sneaker':   ['Hightop','Green sneaker'],
-  'Hightop':      ['White sneaker','Black sneaker'],
-  'Gift':        ['Gift','Black sneaker','Streetwear'],
-  'Streetwear':    ['Themed','Kicks'],
+  'Air Force 1':  ['Accessories','Air Jordan'],
+  'Court Vision': ['Air Force 1','Accessories'],
+  'Air Jordan':   ['Adidas','Accessories'],
+  'Converse':     ['Court Vision','Accessories'],
+  'Adidas':       ['Air Jordan','Air Force 1'],
+  'Apparel':      ['Air Force 1','Accessories'],
+  'Accessories':  ['Air Force 1','Court Vision'],
 };
 
 function genSeed() {
@@ -1048,10 +1047,10 @@ function computeInsights() {
     out.push({
       sev: 'crit',
       title: 'Lifecycle / replenishment flow underbuilt',
-      body: `Only ${lifecycleCount} of ${camps.length} sends (${fmtPct(lifecycleCount / camps.length, 0)}) are lifecycle / replenishment messages. Consumable categories (sneaker, coffee, supplements) should be at 25–35%.`,
-      why: 'A 50g sneaker box lasts ~6 weeks of daily use. Without a replenishment trigger, repurchase is left to memory.',
+      body: `Only ${lifecycleCount} of ${camps.length} sends (${fmtPct(lifecycleCount / camps.length, 0)}) are lifecycle / replenishment messages. A made-to-order catalogue still needs post-purchase and occasion flows; these should be at 25 to 35 percent of sends.`,
+      why: 'A one-of-one pair is not a consumable, so the return trigger has to be built rather than assumed: care follow-up, a new design in the same fandom, or an occasion date.',
       impact: 'Industry benchmark: lifecycle flows drive 28–40% of retention revenue. Even capturing half of that = ' + fmtCur(kpis.totalRevenue * 0.12) + ' incremental.',
-      action: 'Build a 4-step replenishment flow: order day +28 (educate lacing) · +42 (subtle reorder CTA) · +56 (incentive) · +75 (last chance + cross-sell).',
+      action: 'Build a 4-step post-purchase flow: order day +2 (in-progress build update) &middot; +18 (care and lacing guidance once worn) &middot; +45 (new designs in their collection) &middot; +90 (occasion and gifting prompt).',
     });
   }
 
@@ -1145,7 +1144,7 @@ const APEX_BASE = {
   }]
 };
 
-const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#D0473E' };
+const REGION_COLORS = { US: '#3b82f6', UK: '#f97316', Global: '#6A33D8' };
 
 // ─── 1. Executive Overview ──────────────────────────────────────────────
 function renderExec() {
@@ -1324,7 +1323,7 @@ function renderCampaigns(filter='') {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 240 },
     series: [{ name: 'Open rate lift vs baseline', data: subjectPerf.map((p) => +(p.lift * 100).toFixed(1)) }],
     xaxis: { categories: subjectPerf.map((p) => `${p.label} (${p.n})`), labels: { formatter: (v) => v + '%' } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { horizontal: true, borderRadius: 3 } },
     tooltip: { theme: 'dark', y: { formatter: (v) => v + '%' } },
   });
@@ -1385,7 +1384,7 @@ function renderSegments() {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 340 },
     series: [{ name: 'Customers', data: ltvBins }],
     xaxis: { categories: ltvBins.map((_, i) => i < 9 ? `$${i*100}-${(i+1)*100}` : '$900+') },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { bar: { borderRadius: 4 } },
     tooltip: { theme: 'dark' },
   });
@@ -1452,12 +1451,12 @@ function renderProducts() {
     ...APEX_BASE,
     chart: { ...APEX_BASE.chart, type: 'heatmap', height: 340 },
     series: matrix.map((row) => ({ name: row.name, data: row.data.map((c) => ({ x: c.x, y: +(c.y * 100).toFixed(0) })) })),
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { heatmap: { colorScale: { ranges: [
       { from: 0, to: 5, color: '#1a2820', name: '0–5%' },
       { from: 5, to: 15, color: '#3d4d2e', name: '5–15%' },
       { from: 15, to: 25, color: '#7a6a3a', name: '15–25%' },
-      { from: 25, to: 50, color: '#D0473E', name: '25–50%' },
+      { from: 25, to: 50, color: '#6A33D8', name: '25–50%' },
       { from: 50, to: 100, color: '#16a34a', name: '50%+' },
     ] } } },
     dataLabels: { enabled: true, style: { fontSize: '9px', colors: ['#e8ede9'] }, formatter: (v) => v + '%' },
@@ -1525,13 +1524,13 @@ function renderTime() {
     ...APEX_BASE,
     chart: { ...APEX_BASE.chart, type: 'heatmap', height: 380 },
     series,
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     plotOptions: { heatmap: {
       colorScale: { ranges: [
         { from: 0, to: 0.001, color: '#0f1d18', name: 'no sends' },
         { from: 0.001, to: 20, color: '#3d4d2e', name: '<20%' },
         { from: 20, to: 35, color: '#7a6a3a', name: '20–35%' },
-        { from: 35, to: 50, color: '#D0473E', name: '35–50%' },
+        { from: 35, to: 50, color: '#6A33D8', name: '35–50%' },
         { from: 50, to: 70, color: '#16a34a', name: '50–70%' },
         { from: 70, to: 100, color: '#22c55e', name: '70%+' },
       ] }
@@ -1581,7 +1580,7 @@ function renderTime() {
     chart: { ...APEX_BASE.chart, type: 'radar', height: 280 },
     series: [{ name: 'Revenue index (Mon=100)', data: indexed }],
     xaxis: { categories: DAYS },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     fill: { opacity: 0.3 },
     markers: { size: 4 },
     tooltip: { theme: 'dark' },
@@ -1635,7 +1634,7 @@ function renderCohorts() {
     series: [{ name: 'Avg retention %', data: avgRet }],
     xaxis: { categories: avgRet.map((_, i) => 'M+' + i) },
     yaxis: { labels: { formatter: (v) => v + '%' } },
-    colors: ['#D0473E'],
+    colors: ['#6A33D8'],
     stroke: { curve: 'smooth', width: 2 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.5, opacityTo: 0 } },
     tooltip: { theme: 'dark', y: { formatter: (v) => v.toFixed(1) + '%' } },

@@ -4,7 +4,7 @@
  * api/_shared/mailer-format.js — the ONE source of truth for the KNICKGASM
  * "lava standard" mailer format, reverse-engineered from the hand-authored
  * reference at
- *   lifecycle-campaigns/2026-07-03_week1/emails/2026-07-09_cohortB_supplements-launch.html
+ *   lifecycle-campaigns/2026-07-03_week1/emails/2026-07-09_cohortB_anime-drop-launch.html
  *
  * Every mailer generator (lifecycle-mailer-build, smart-brain, the AI pipeline,
  * generate.js) routes its final HTML through here so the output is uniform:
@@ -80,7 +80,7 @@ function assetSlot({ kind = 'image', slot = 'hero', displayW, displayH, prompt, 
   const src = existingUrl || PLACEHOLDER[k] || PLACEHOLDER.image;
   const comment = assetPromptComment({ kind: k, slot, displayW, displayH, prompt, negative_prompt });
   const img = `<img src="${esc(src)}" width="${displayW}" height="${displayH}" alt="${esc(alt || slot)}" ` +
-    `style="display:block;width:100%;max-width:${displayW}px;height:auto;border:0;background:#6A33D8;" />`;
+    `style="display:block;width:100%;max-width:${displayW}px;height:auto;border:0;background:#D0473E;" />`;
   return `${comment}\n${img}`;
 }
 

@@ -2,7 +2,57 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# KNICKGASM Lifecycle OS — Project Memory
+# Lifecycle OS — Project Memory
+
+## ⭐⭐ It is now a UNIVERSAL brand platform (2026-08-09) — read `docs/universal-brand-platform.md`
+This is no longer a single-brand app. Any signed-in user onboards their own brand and the whole app
+runs as that brand for them. Three layers, none of which added a serverless function (still 12/12 —
+all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `brain.js`):
+- **Brand layer** — `/onboarding` is the FIRST SCREEN (brand data → colour schema → typography →
+  voice → catalog → activate). `brand_workspaces` + `brand_user_prefs.active_workspace_id` (per
+  user, RLS-private). `brand-context.js` writes `--brand-*` tokens onto `<html>`; **`theme.css`
+  resolves every colour/font through them**, so all pages re-skin at once — never hardcode a brand
+  colour or font in a new page, always go through the `--vh-*` / `--brand-*` tokens.
+  `validatePalette()` BLOCKS activation on dark-neutral surfaces or sub-AA contrast.
+  KNICKGASM is now just tenant zero (`data/brands/_default.json`).
+- **Credits** — every feature costs credits. `api/_shared/credit-catalog.js` is the single source of
+  truth for prices; **a feature key missing from it throws rather than running free**. Spend via
+  `credits.meter()` hold → settle/release so a failed run is always refunded. The balance-moving SQL
+  functions are REVOKEd from `authenticated` (service-role only). Live balance via Supabase Realtime.
+  Mark any new UI action with `data-credit-feature="<key>"` and `credits.js` labels it automatically.
+- **TeleSuite** — `/telesuite`, all 23 subfeatures of the AI-TeleSuite repo, rendered entirely from
+  the `SUBFEATURES` registry in `_shared/telesuite-core.js`. Every dashboard is a filtered view of
+  the one `telesuite_runs` table (shared source of truth), not its own store.
+
+## Brand layer: one record, many derived sites, any brand
+`data/brands/_default.json` is tenant zero and the SINGLE source of brand truth. Nothing else is
+hand-maintained:
+- `api/_shared/master-prompt.js` DERIVES `BRAND_BLOCK` at require-time via
+  `brand-runtime.brandBlock(defaultBrand())` — it cannot drift.
+- `scripts/brand-sync.js` regenerates the `theme.css` tokens, this file's Brand Constants block and
+  the Supabase brand-kit seed between `BRAND-SYNC` markers. **Never hand-edit inside those markers.**
+- `npm run brand:check` exits 1 on drift, runs first in `npm run build`, and is a required CI step.
+
+**The mechanism is brand-agnostic, and that is demonstrable:**
+```bash
+npm run brand:presets                 # regenerate the starter library
+npm run brand:sync                    # propagate tenant zero
+node scripts/brand-sync.js --brand=apple   # re-skin the WHOLE suite to any preset
+npm run brand:check                   # always validates tenant zero; fails on drift
+```
+`data/brands/presets/` ships starter profiles across deliberately different sectors — KNICKGASM
+(D2C commerce), The Economic Times and The Times of India (news), TOI Health & Fitness (health
+media, with medical-claim guardrails in its banned list), VAHDAM India (D2C tea) and Apple
+(consumer tech). `/onboarding` renders them as a gallery above the "enter your own" form, served by
+`/api/public-config?action=brand&op=presets` (unauthenticated, like `op=defaults`, because the
+gallery must paint before a workspace exists).
+
+**Preset provenance rule:** every palette/typography value was read from that brand's OWN live site
+or stylesheet on its `verified_at` date, with the exact source recorded per preset. Voice is written
+as OBSERVED from public output, never presented as a company's internal guidelines. Presets are
+TEMPLATES for building and demos, not licences to use a third party's marks — each carries
+`rights_note` saying so, and the gallery repeats it. Regenerate via `scripts/build-brand-presets.js`
+(edit that file, not the generated JSON).
 
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
@@ -12,7 +62,7 @@ any of those, obey it. Load-bearing rules (full detail in the doc):
   segment sizes, or performance. Missing data -> `[DATA REQUIRED BEFORE LAUNCH: field, product, region]`.
 - **Closed source-of-truth** — only the repo + the exact official KNICKGASM regional site for the exact
   product/region. No cross-region reuse of facts/assets/reviews/claims/URLs.
-- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use purple); enforce
+- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use red or white); enforce
   WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards; proofread all
   copy; source-map every fact.
 - **Frequency** — promotional cap 2 (absolute 3) per rolling 7 days; do not assume all ~111k are
@@ -33,9 +83,9 @@ Known current gaps vs this spec (data feeds to wire before launch): approved rev
 claims library, approved URL map, real eligible-segment sizes, valid `SUPABASE_SERVICE_ROLE_KEY`.
 
 
-A retention/lifecycle-marketing toolkit for KNICKGASM, deployed as a **single Vercel project** (no framework — `framework: null`, `outputDirectory: "."`). It started as the Mailer Studio (`knickgasm_mailer_architect_v34.html`) and grew into a multi-page suite: data analysis → marketing calendar → mailer creation → competitor intelligence → knowledge base → ad/landing-page generation.
+A retention/lifecycle-marketing toolkit for KNICKGASM, deployed as a **single Vercel project** (no framework — `framework: null`, `outputDirectory: "."`). It started as the Mailer Studio (`lifecycle_mailer_architect_v34.html`) and grew into a multi-page suite: data analysis → marketing calendar → mailer creation → competitor intelligence → knowledge base → ad/landing-page generation.
 
-Live: https://knickgasm.vercel.app/ (→ https://knickgasm-lifecycle-os.anchit-tandon.com/) — this is the project that receives `main` deploys (health `build:"lifecycle-os"`). · Canonical repo: github.com/anchittandon-create/KNICKGASM, working dir ~/KNICKGASM/knickgasm-lifecycle-os. Replicated from vahdam-lifecycle-os on 2026-08-03, fully rebranded for KNICKGASM (custom sneakers).
+Live: https://knickgasm.vercel.app/ (→ https://lifecycle-os.anchit-tandon.com/) — this is the project that receives `main` deploys (health `build:"lifecycle-os"`). · Canonical repo: github.com/anchittandon-create/KNICKGASM, working dir ~/KNICKGASM/lifecycle-os. Built 2026-08-03 by replicating the architecture of a sibling lifecycle-OS project, then rebranded end to end for KNICKGASM (custom sneakers). No product, catalogue, customer or performance data from that project is retained - see scripts/gen-demo-analytics.js and scripts/gen-demo-d2c-dashboard.js, which generate all sample data from the live knickgasm.com catalogue.
 
 ## Version taxonomy (V1 vs V2) — product-owner convention, 2026-07-03
 - **V1 = the legacy base app**: everything that existed before 2026-07-03 (dashboard/analytics, /plan RFM calendar, Mailer Studio /studio, competitor, KB, ads, landing pages, KicksGPT, smart-brain).
@@ -70,10 +120,10 @@ There is no real `dev` server (the `dev` script is a no-op stub). For local serv
 ## Architecture — the big picture
 
 ### Frontend: independent static HTML pages sharing one auth/nav shell
-Each page is a **standalone, self-contained `.html` file** (inline CSS + JS, often huge — `knickgasm_mailer_architect_v34.html` is ~7700 lines / 700KB+). They are NOT a component tree; they share state via **localStorage** and a common script:
+Each page is a **standalone, self-contained `.html` file** (inline CSS + JS, often huge — `lifecycle_mailer_architect_v34.html` is ~7700 lines / 700KB+). They are NOT a component tree; they share state via **localStorage** and a common script:
 
 - **`auth.js`** — dropped into every page via `<script>`. It (1) boots a Supabase client from `window.__SUPABASE__` or `/api/public-config`, (2) forces one-time Google sign-in, (3) renders the shared top-bar / cross-step navigation, (4) registers the service worker (`sw.js`) for PWA install + aggressive cache self-healing, (5) exposes `window.LifecycleAuth.{client, session, signOut}`.
-- Pages: `index.html` (home), `dashboard.html` (RFM/cohort analytics), `calendar.html` (30-day plan), `knickgasm_mailer_architect_v34.html` (Mailer Studio — the main app, served at `/studio`), `competitor-benchmarking.html`, `knowledge-base.html`, `ad-campaigns.html`, `landing-pages.html`, `cohort-definitions.html`.
+- Pages: `index.html` (home), `dashboard.html` (RFM/cohort analytics), `calendar.html` (30-day plan), `lifecycle_mailer_architect_v34.html` (Mailer Studio — the main app, served at `/studio`), `competitor-benchmarking.html`, `knowledge-base.html`, `ad-campaigns.html`, `landing-pages.html`, `cohort-definitions.html`.
 - Friendly URLs are wired in `vercel.json` `rewrites` (e.g. `/studio`, `/analytics`, `/plan`, `/competitor`, `/kb`, `/ads`). When adding a page, add its rewrite there.
 - Shared front-end helpers: `chart-enhance.js`, `table-sort.js`.
 
@@ -120,14 +170,14 @@ Competitor data lives in a Google Sheet. Auth has **two modes** (see `docs/workl
 - **Google Sheet** — the competitor-email "database" (columns A–K defined in `competitor-core.js`).
 
 ### Offline Python data engines (run locally, not on Vercel)
-- `ingest/` — `run_all.py` runs `ingest_{matrixify,shopify_analytics,klaviyo,webengage}.py` into DuckDB (`KNICKGASM_DuckDB_DDL.sql`), then `sync_to_supabase.py`.
+- `ingest/` — `run_all.py` runs `ingest_{matrixify,shopify_analytics,klaviyo,webengage}.py` into DuckDB (`LIFECYCLE_DuckDB_DDL.sql`), then `sync_to_supabase.py`.
 - `mailer_system/` — Python Claude-API campaign trigger engine (thresholds in `targets.json`, outputs to `outputs/`).
 - `marketing_automation/` — React 19 + Vite + Express (`server.ts`) interactive campaign compiler (its own `package.json`).
 - `scripts/` — mix of JS build tools (`build-catalog.js`, `seed-festivals*.js`) and Python `_*.py` HTML/codegen patchers used during development.
 
 ## Approved-assets service + USA July calendar (2026-07-11)
 - **`brand_assets` table** (`supabase/migrations/20260711120000_brand_assets.sql`) is the origin-validated asset store: `sku_key, asset_type, url, alt, w/h, source_pdp, origin_validated, status(verified|placeholder), region`. Logic in `api/_shared/brand-assets-core.js` (not a function file): PREFIX-match allowlist (`knickgasm.com`, `knickgasm.com`, `knickgasm.com`, `try.knickgasm.*`), rewrites a Shopify store-CDN URL to the brand host (`www.knickgasm.com/cdn/shop/files/…`, byte-identical asset) so it validates, and NEVER fabricates a URL — an unverifiable slot is stored `status='placeholder'`. Seed with `npm run seed:assets` (`scripts/seed-brand-assets.js`): resolves the US SKU→handle map from the built catalog, writes `data/brand-assets/us.json` + `supabase/seed/brand_assets_us.sql`, and upserts live when Supabase env is present.
-- **USA July calendar + mailers** (`npm run build:july`): `scripts/build-july-mailers.js` keeps the automated-calendar 4-variant STRUCTURE (2 Text + 2 Text+Visual, framework A/B) and the same `sanitizeBrand`/`assertNoBanned` gates (`scenario-model.js`), but renders each variant in the **flagship design system** (`scripts/lib/flagship-mailer.js`: web fonts, green utility bar, colorway hero band — violet/midnight/daylight, price pill, MSO-safe CTA, trust badges, "Rated 4.9/5 · Judge.me verified reviews · Worn by Samay Raina & Rohit Sharma" proof bar, non-clickable footer). Hosted image URLs only (never base64). 12 cohort sends × 4 = 48 files in `mailers/usa-july/`; hero images come ONLY from verified `brand_assets` rows (image-free otherwise, never a fake URL). The same pass also renders, per send, a paid-social **ad set** (Meta/Google/TikTok, `scripts/lib/ad-creative.js` → `ads/usa-july/`) and a flagship **landing page** (`scripts/lib/landing-page.js` → `landing-pages/usa-july/`), all from the same scrubbed copy + verified assets (no invented discount codes). `scripts/build-july-studio.js` assembles `knickgasm-usa-july-calendar-mailer-studio.html` (served at `/july-studio` · `/usa-july`): Card/List toggle, scenario tabs (C = executed model, 2-3 emails/user/week), per-send **Mailers / Ads / Landing** tabs whose preview = the exact embedded downloadable file (Blob URL, no `srcdoc`), plus the data-grounded reasoning per row. Manifest: `data/calendar/usa-july-2026.json`. Event hooks wired into reasoning: WC Final Jul 19 @ MetLife, National Ice Cream Day Jul 19, Parents' Day Jul 26, Int'l Day of Friendship Jul 30, National Streetwear Month (Aug) ramp.
+- **USA July calendar + mailers** (`npm run build:july`): `scripts/build-july-mailers.js` keeps the automated-calendar 4-variant STRUCTURE (2 Text + 2 Text+Visual, framework A/B) and the same `sanitizeBrand`/`assertNoBanned` gates (`scenario-model.js`), but renders each variant in the **flagship design system** (`scripts/lib/flagship-mailer.js`: web fonts, green utility bar, colorway hero band — violet/midnight/daylight, price pill, MSO-safe CTA, trust badges, "Made on 100% original brand sneakers · Worn by Samay Raina & Rohit Sharma" proof bar, non-clickable footer). Hosted image URLs only (never base64). 12 cohort sends × 4 = 48 files in `mailers/usa-july/`; hero images come ONLY from verified `brand_assets` rows (image-free otherwise, never a fake URL). The same pass also renders, per send, a paid-social **ad set** (Meta/Google/TikTok, `scripts/lib/ad-creative.js` → `ads/usa-july/`) and a flagship **landing page** (`scripts/lib/landing-page.js` → `landing-pages/usa-july/`), all from the same scrubbed copy + verified assets (no invented discount codes). `scripts/build-july-studio.js` assembles `lifecycle-usa-july-calendar-mailer-studio.html` (served at `/july-studio` · `/usa-july`): Card/List toggle, scenario tabs (C = executed model, 2-3 emails/user/week), per-send **Mailers / Ads / Landing** tabs whose preview = the exact embedded downloadable file (Blob URL, no `srcdoc`), plus the data-grounded reasoning per row. Manifest: `data/calendar/usa-july-2026.json`. Event hooks wired into reasoning: WC Final Jul 19 @ MetLife, National Ice Cream Day Jul 19, Parents' Day Jul 26, Int'l Day of Friendship Jul 30, National Streetwear Month (Aug) ramp.
 - **Selected-collection coverage rule:** `SELECTED_COLLECTIONS` in `build-july-mailers.js` (default: kicks-sneakers, samplers, gifts, best-sellers) MUST each be represented by ≥1 send — the build **hard-fails** if any is uncovered, so a selected collection is never silently dropped. Each slot carries `collections` + a `collection_cta`; the collection is wired into asset generation (landing-page "Explore all {collection}" CTA) and surfaced in the studio (chips + a "Collections covered" stat). `manifest.selected_collections` lists each with its covering send dates.
 
 ## Agent memory (TencentDB-Agent-Memory bridge, 2026-07-19)
@@ -149,17 +199,19 @@ US → knickgasm.com | UK → knickgasm.com | IN → knickgasm.com | EU → knic
 - PDP: `{base}/products/{handle}` (handle = catalog JSON `h` field) · Collection: `{base}/collections/{slug}` (via `heroMap` in `collectionUrl()`)
 
 ## Brand Constants (source of truth: `Brand style guide.pdf`)
-- **Palette (ONLY these four)**: `#6A33D8` deep purple · `#D0473E` lava · `#111111` near-black · `#F7F5F2` chalk
-- **Typography (STRICT — style guide forbids any other font for emailers)**:
-  - Headings: **Montserrat** Regular & Bold — fallback `'Montserrat','Raleway',Georgia,serif`
-  - Body: **Instrument Sans** — fallback `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
-- ⚠️ Do NOT introduce off-palette tints (`#0f2a1c`, `#d4873a`, `#fdf6e8`, `#1a3a28`, `#1a1a1a`, `#faf8f4`) or Raleway/DM Sans as the *primary* family — these were drift, now removed.
-- **BANNED phrases**: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last
+<!-- >>> BRAND-SYNC:constants -->
+- **Source of truth:** `data/brands/_default.json`. Run `npm run brand:sync` after editing it; `npm run brand:check` fails the build on drift.
+- **Palette (ONLY these four)**: `#D0473E` primary accent · `#6A33D8` secondary · `#111111` ink (text + primary buttons) · `#FFFFFF` background
+- **Typography (STRICT)**: Headings **Montserrat** — `'Montserrat','Raleway',Arial,sans-serif`; Body **Instrument Sans** — `'Instrument Sans','Helvetica Neue',Arial,sans-serif`
+- **Voice**: bold, energetic, youth street-culture; confident and playful, never corporate. Testimonials read like a friend flexing a new pair, not a review. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers.
+- **PREFERRED**: custom, hand-painted, one-of-one, grail, canvas, colorway, drop, rotation, crafted, original
+- **BANNED phrases**: wellness journey, transform, liquid gold, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last, replica, knock-off, first copy, fake pair
 - **No em/en dashes anywhere in output copy** - use commas, colons, or plain hyphens. (Enforced by `scrubDashes()`/`sanitizeBrand()` in `api/_shared/scenario-model.js`.)
-- **PREFERRED**: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted
-- **Copy voice**: warm, sensory, emotionally resonant, story-driven ("There is a moment when the right pair of kicks does more than warm your hands"). Testimonials read as tiny personal stories, not reviews.
+- **Verifiable claims** (never assert anything else as fact): India's largest sneaker customisers · Made on 100% original brand sneakers · Hand-painted by India's best artists · Water and scratch resistant designs · Express shipping worldwide to 60+ countries · Free shipping in India and worldwide
+- **Legal entity**: KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India
+<!-- <<< BRAND-SYNC:constants -->
 
-## Mailer Studio specifics (`knickgasm_mailer_architect_v34.html`)
+## Mailer Studio specifics (`lifecycle_mailer_architect_v34.html`)
 - 5-step wizard: Brief → Products → Generation → Review & Refine → Final HTML.
 - Produces **4 variants**: A (Image · Hero close-up), B (Image · Lifestyle wide), T1 (Text · Editorial), T2 (Text · Founder note). Structural divergence forced via `_alternateArchetypeForVariantB()`.
 - 11 layout archetypes: hero-led-editorial, product-grid-conversion, storytelling-narrative, single-product-spotlight, gift-bundle-showcase, ritual-journey, comparison-discovery, founder-note, editorial-trend-roundup, limited-drop-countdown, subscription-anchor.
@@ -185,7 +237,7 @@ Text: `OPENAI_API_KEY`(+`_2`/`_3`), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_
 Each sibling project moves to `<slug>.anchit-tandon.com`. `migrate-domains` adds the Vercel domain + GoDaddy CNAME, then hands the same scope to `migrate-oauth` so Google sign-in survives the move (skip with `--no-oauth`). Sign-in is **Supabase-mediated** (`signInWithOAuth({provider:'google', redirectTo: origin+pathname})`), so the change that actually matters is the **Supabase Auth redirect allowlist** (Site URL + Redirect URLs) — auto-applied via the Supabase Management API (`SUPABASE_ACCESS_TOKEN` + per-project `<SLUG>_SUPABASE_PROJECT_REF`). The Google OAuth client's redirect URI is the fixed `https://<ref>.supabase.co/auth/v1/callback` and does NOT change on a domain move; the only web-client tweak (a new JavaScript origin) is **Console-only** — there is no gcloud command or public API to edit a Web-application OAuth client, so the tooling emits an exact plan + Console deep-link rather than faking a mutation. Dry-run by default; `--apply` to write. Full detail in `docs/oauth-redirect-migration.md`.
 
 ## API Keys (2026-05-30) — per-project Gemini via gcloud
-Each app has its OWN restricted Gemini key minted from its own GCP project, pushed to Vercel (Production+Development): knickgasm-lifecycle-os ← GCP knickgasm-lifecycle-os (others: personal-ai-os, the-third-eye, music-gen-ai, hey-yaara, ai-tele-suite, th-life-engine, marketing-mailers-html-architect). Other providers left as-is.
+Each app has its OWN restricted Gemini key minted from its own GCP project, pushed to Vercel (Production+Development): lifecycle-os ← GCP lifecycle-os (others: personal-ai-os, the-third-eye, music-gen-ai, hey-yaara, ai-tele-suite, th-life-engine, marketing-mailers-html-architect). Other providers left as-is.
 
 ## Marketing skills pack + reels-grade creative standard (2026-07-24)
 Ten job-complete marketing skills in `.claude/commands/` (mega-prompt discipline: clear,

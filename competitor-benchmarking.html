@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Competitor Benchmarking · KNICKGASM Lifecycle OS</title>
+  <title>Competitor Benchmarking · Lifecycle OS</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#6A33D8">
+  <meta name="theme-color" content="#D0473E">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="/auth.js?v=20260718light" defer></script>
@@ -17,10 +17,10 @@
     .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
     @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
-    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #D0473E; font-weight: 600; margin-bottom: 10px; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #6A33D8; font-weight: 600; margin-bottom: 10px; }
     .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
     h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-    h1 em { font-style: italic; color: #D0473E; }
+    h1 em { font-style: italic; color: #6A33D8; }
     .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
 
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 22px 0; }
@@ -33,16 +33,16 @@
     .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .search { position: relative; flex: 1; min-width: 220px; max-width: 420px; }
     .search input { width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 9px 11px 9px 34px; font-size: 13px; font-family: inherit; }
-    .search input:focus { outline: none; border-color: #D0473E; }
+    .search input:focus { outline: none; border-color: #6A33D8; }
     .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: #48524c; }
     .toolbar { row-gap: 14px; column-gap: 18px; }
     .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .filters .live { margin-left: 4px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
     select, .chk { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
     .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #556059; }
-    .chk input { accent-color: #D0473E; }
+    .chk input { accent-color: #6A33D8; }
     .btn-ghost { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; border-radius: 9px; padding: 8px 11px; cursor: pointer; font-family: inherit; }
-    .btn-ghost:hover { border-color: #D0473E; color: #111111; }
+    .btn-ghost:hover { border-color: #6A33D8; color: #111111; }
     .live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #16a34a; font-weight: 600; }
     .live.stale { color: #48524c; }
     .live .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: lp 1.8s ease-in-out infinite; }
@@ -50,7 +50,7 @@
 
     .table-wrap { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
     table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
-    thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; font-weight: 600; padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #eef3f0; }
+    thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; font-weight: 600; padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.18); background: var(--vh-panel-tan); }
     thead th.sortable { cursor: pointer; }
     thead th.sortable:hover { color: #111111; }
     tbody td { padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.08); vertical-align: middle; }
@@ -69,12 +69,12 @@
     .date { color: #48524c; white-space: nowrap; font-size: 12px; }
     .code { display: inline-block; background: rgba(34,197,94,0.14); color: #0a7d33; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 99px; margin: 1px; }
     .files { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #556059; background: rgba(171,135,67,0.12); padding: 2px 8px; border-radius: 99px; }
-    .muted { color: #3f4d45; }
+    .muted { color: var(--vh-ink); }
     .actions { display: flex; gap: 6px; justify-content: flex-end; }
     .a-btn { font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; font-family: inherit; text-decoration: none; }
     .a-prev { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
-    .a-prev:hover { border-color: #D0473E; color: #111111; }
-    .a-detail { background: #D0473E; color: #ffffff; }
+    .a-prev:hover { border-color: #6A33D8; color: #111111; }
+    .a-detail { background: #6A33D8; color: #ffffff; }
     .a-detail:hover { opacity: 0.92; }
     .empty { padding: 40px; text-align: center; color: #48524c; }
     .count { margin-top: 12px; font-size: 11.5px; color: #48524c; }
@@ -97,41 +97,41 @@
     @media (max-width: 620px) {
       .frame-wrap iframe { min-width: 100%; }
     }
-    .ph { padding: 30px; text-align: center; color: #48524c; font-size: 12.5px; background: #eef3f0; border: 1px dashed rgba(171,135,67,0.2); border-radius: 10px; }
-    pre.body { max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; background: #eef3f0; border: 1px solid rgba(171,135,67,0.14); border-radius: 10px; padding: 14px; font-family: inherit; font-size: 12.5px; line-height: 1.6; color: #111111; }
+    .ph { padding: 30px; text-align: center; color: #48524c; font-size: 12.5px; background: var(--vh-panel-tan); border: 1px dashed rgba(171,135,67,0.2); border-radius: 10px; }
+    pre.body { max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.14); border-radius: 10px; padding: 14px; font-family: inherit; font-size: 12.5px; line-height: 1.6; color: #111111; }
 
     /* ── Preview modal ── */
     #pm, #jm, #fcm { position: fixed; inset: 0; z-index: 9500; display: none; }
     #pm.open, #jm.open, #fcm.open { display: block; }
     #pm .bk, #jm .bk, #fcm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
-    #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background: #f4f2ec; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
     #jm .mc, #fcm .mc { inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; height: auto; max-height: 90vh; }
     #pm .mh, #jm .mh, #fcm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
-    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #D0473E; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6A33D8; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
     #pm .mh .t, #jm .mh .t, #fcm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #pm .mh .sp, #jm .mh .sp, #fcm .mh .sp { flex: 1; }
     #pm .mb, #jm .mb, #fcm .mb { flex: 1; overflow-y: auto; padding: 18px; }
     .form-grp { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
     .form-grp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; }
     .form-grp input, .form-grp select { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px; color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
-    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #D0473E; }
+    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #6A33D8; }
     /* Brand-detail modal — mirrors the #pm preview modal chrome. */
     #bm { position: fixed; inset: 0; z-index: 9500; display: none; }
     #bm.open { display: block; }
     #bm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
-    #bm .mc { position: absolute; inset: 4vh 4vw; background: #f4f2ec; border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #bm .mc { position: absolute; inset: 4vh 4vw; background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
     #bm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
-    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #D0473E; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
+    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6A33D8; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
     #bm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #bm .mh .sp { flex: 1; }
     #bm .mb { flex: 1; overflow-y: auto; padding: 18px; }
     /* Landing sub-tabs, groups, and follow chips */
-    .lp-subtab.active { background: #6A33D8; color: #F7F5F2; border-color: #6A33D8; }
+    .lp-subtab.active { background: #D0473E; color: #FFFFFF; border-color: #D0473E; }
     .lp-group { margin-top: 20px; }
-    .lp-group-h { font-family: 'Lora', serif; color: #6A33D8; font-size: 17px; margin: 0 0 10px; }
+    .lp-group-h { font-family: 'Lora', serif; color: #D0473E; font-size: 17px; margin: 0 0 10px; }
     .follow-wrap { display: inline-flex; gap: 6px; }
-    .follow-chip { font: inherit; font-size: 11px; font-weight: 700; border: 1px solid rgba(171,135,67,0.4); background: #fff; color: #7a5f28; border-radius: 99px; padding: 3px 9px; cursor: pointer; }
-    .follow-chip.on { background: #6A33D8; color: #F7F5F2; border-color: #6A33D8; }
+    .follow-chip { font: inherit; font-size: 11px; font-weight: 700; border: 1px solid rgba(171,135,67,0.4); background: #fff; color: var(--vh-ink); border-radius: 99px; padding: 3px 9px; cursor: pointer; }
+    .follow-chip.on { background: #D0473E; color: #FFFFFF; border-color: #D0473E; }
     .follow-chip:disabled { opacity: 0.5; cursor: default; }
     .brand-link { cursor: pointer; }
     /* On a phone, use the entire screen so the email render gets every pixel. */
@@ -145,7 +145,7 @@
       .pm-close { width: 32px; height: 32px; }
     }
     .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
-    .pm-detail { background: #D0473E; color: #ffffff; }
+    .pm-detail { background: #6A33D8; color: #ffffff; }
     .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
 
     /* ── Section sub-nav (Mailers | Ads) + header CTAs ── */
@@ -156,9 +156,9 @@
     .snav.active { color: #111111; background: rgba(171,135,67,0.16); }
     .cb-cta-group { display: flex; flex-wrap: wrap; gap: 10px; }
     .cb-cta { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; white-space: nowrap; }
-    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #D0473E; }
-    .cb-cta-ghost:hover { border-color: #D0473E; color: #7a5f28; }
-    .cb-cta-solid { background: #D0473E; color: #ffffff; }
+    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #6A33D8; }
+    .cb-cta-ghost:hover { border-color: #6A33D8; color: var(--vh-ink); }
+    .cb-cta-solid { background: #6A33D8; color: #ffffff; }
     .cb-cta-solid:hover { opacity: 0.92; }
     @media (max-width: 620px) { .cb-actions { gap: 12px; } .cb-cta-group { width: 100%; } .cb-cta { flex: 1; text-align: center; } }
 
@@ -172,10 +172,10 @@
     .ad-card .ad-x { position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: #48524c; cursor: pointer; font-size: 15px; }
     .ad-card .ad-x:hover { color: #ef4444; }
     .ad-src { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); color: #556059; text-decoration: none; font-size: 12.5px; margin-bottom: 7px; transition: all .14s; }
-    .ad-src:hover { border-color: #D0473E; color: #111111; background: rgba(171,135,67,0.06); }
+    .ad-src:hover { border-color: #6A33D8; color: #111111; background: rgba(171,135,67,0.06); }
     .ad-src .src-ic { width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     .src-meta { background: rgba(59,130,246,0.2); color: #93c5fd; }
-    .src-google { background: rgba(234,179,8,0.18); color: #fde047; }
+    .src-google { background: rgba(234,179,8,0.18); color: var(--vh-lava); }
     .src-tiktok { background: rgba(236,72,153,0.18); color: #f9a8d4; }
     .ad-thumbs { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:8px; }
     .ad-thumb { display:block; border:1px solid rgba(171,135,67,0.18); border-radius:8px; overflow:hidden; text-decoration:none; background:#ffffff; }
@@ -192,7 +192,7 @@
     body.detail-mode #insights-view,
     body.detail-mode #cb-head { display: none; }
     body.detail-mode #detail { display: block; }
-    .back { display: inline-flex; align-items: center; gap: 6px; color: #D0473E; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: #6A33D8; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
     .detail-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
     @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
   </style>
@@ -314,7 +314,7 @@
   <div class="ads-note">
     The competitor <b>brand universe</b> — the database that powers monitoring &amp; benchmarking.
     Every brand listed below has its newsletter, ads, and landing pages tracked.
-    Goal: 200–300 active DTC streetwear brands across sneaker, coffee, supplements &amp; functional beverages — de-duplicated by domain.
+    Goal: 200–300 active DTC lifestyle brands across product, coffee, supplements &amp; functional beverages — de-duplicated by domain.
   </div>
 
   <!-- Two clearly-labelled action cards explaining exactly what each button does -->
@@ -322,14 +322,14 @@
     <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
       <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">✨ Find &amp; add new brands with AI</div>
       <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
-        Runs an AI research pass to find DTC streetwear brands you don't already track (excludes KNICKGASM + brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
+        Runs an AI research pass to find DTC lifestyle brands you don't already track (excludes KNICKGASM + brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
       </div>
       <button id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
     </div>
     <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
       <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed the priority DTC brand list</div>
       <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
-        One-click bulk-add of the curated priority brands across Sneaker, Coffee &amp; Supplements (US + UK). Skips any already in your universe — so it's safe to re-run. Best run once when starting.
+        One-click bulk-add of the curated priority brands across Product, Coffee &amp; Supplements (US + UK). Skips any already in your universe — so it's safe to re-run. Best run once when starting.
       </div>
       <button id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Add priority brands</button>
     </div>
@@ -343,7 +343,7 @@
 
   <!-- Column legend so the Newsletter / Subscription columns are self-explanatory -->
   <div style="background:rgba(171,135,67,0.04); border:1px solid rgba(171,135,67,0.15); border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:#556059; line-height:1.6">
-    <b style="color:#D0473E">Column key:</b>
+    <b style="color:#6A33D8">Column key:</b>
     <span style="margin:0 14px 0 6px"><b>Newsletter</b> — direct signup link for this brand's mailing list (opens in new tab).</span>
     <span style="margin-right:14px"><b>Follow (real-time)</b> — toggle <b>Mailers</b> and/or <b>Ads</b> to get a real-time email to your logged-in address for every new mailer or ad captured for that brand. <b>Newsletter</b> is a direct signup link for the brand's own list (opens a new tab).</span>
   </div>
@@ -406,9 +406,9 @@
     <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
       <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Trending Promotions</div>
       <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: #556059; line-height: 1.8;">
-        <li><span style="color:#D0473E; font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Sneaker &amp; Coffee brands.</li>
-        <li><span style="color:#D0473E; font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
-        <li><span style="color:#D0473E; font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
+        <li><span style="color:#6A33D8; font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Product &amp; Coffee brands.</li>
+        <li><span style="color:#6A33D8; font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
+        <li><span style="color:#6A33D8; font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
       </ul>
     </div>
   </div>
@@ -459,7 +459,7 @@
       </div>
       <div class="form-grp">
         <label>Type of Product(s)</label>
-        <input type="text" id="fcm-products" placeholder="e.g. Loose panel sneaker, dunks, gear...">
+        <input type="text" id="fcm-products" placeholder="e.g. Loose panel product, dunks, gear...">
       </div>
       <div style="margin-top: 24px; text-align: right;">
         <button class="pm-act pm-detail" onclick="alert('Finding competitors...'); this.closest('#fcm').classList.remove('open')">Find Competitors →</button>
@@ -731,8 +731,17 @@
 
   // ── Ads: free public ad libraries (Meta / Google / TikTok) ──────────
   const ADS_KEY = 'knickgasm-comp-ads-brands';
+  // Tenant zero's own ad-tracking set. Any other active brand starts from its
+  // workspace competitor list (the API rows), never another brand's universe.
   const DEFAULT_BRANDS = ['Kickstradomis', 'Sneakboo', 'Moreiarty', 'The Shoe Surgeon', 'Gully Labs', 'The Republic of Sneaker'];
-  const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || DEFAULT_BRANDS.slice(); } catch { return DEFAULT_BRANDS.slice(); } };
+  function defaultBrandsForActive() {
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (b && String(b.slug || '').toLowerCase() !== 'knickgasm') return [];
+    } catch (_) {}
+    return DEFAULT_BRANDS.slice();
+  }
+  const adBrands = () => { try { return JSON.parse(localStorage.getItem(ADS_KEY)) || defaultBrandsForActive(); } catch { return defaultBrandsForActive(); } };
   const saveBrands = (list) => localStorage.setItem(ADS_KEY, JSON.stringify(list));
 
   // ── Shared brand universe ───────────────────────────────────────────
@@ -764,11 +773,15 @@
   // Known real domains for common brands so Google ATC's domain= search
   // resolves to the right advertiser (a wrong slug guess loads nothing).
   const BRAND_DOMAINS = {
-    'kickstradomis':'kickstradomis.com', 'sneakboo':'sneakboo.com', 'moreiarty':'moreiarty.in',
-    'shoesurgeon & sons':'theshoesurgeon.com', 'Gully Labs':'gullylabs.com',
-    'the republic of sneaker':'republicoftea.com', 'leatherworks herbs':'theleatherworks.in',
-    'yogi':'yogiproducts.com', 'sneaker forté':'sneakboo.com', 'Comet':'wearcomet.com',
-    'everyday dose':'everydaydose.com', 'javvy coffee':'javvycoffee.com', 'ryze':'ryzesuperfoods.com',
+    'cheeky sneeky':'cheekysneeky.com', 'courtside':'courtside.store', 'kickstradomis':'kickstradomis.com',
+    'md customs':'mdcustoms.in', 'moreiarty':'moreiarty.in', 'shoes your daddy':'shoesyourdaddy.in',
+    'sneak peek shoes':'handpaintedsneaker.com', 'sneakaboo':'instagram.com', 'the leather works (tlw art house)':'theleatherworks.in',
+    'the shoe surgeon (srgn)':'thesurgeon.com', 'crepdog crew':'crepdogcrew.com', 'findyourkicks india':'findyourkicks.com',
+    'hype fly india':'hypefly.co.in', 'mainstreet marketplace':'marketplace.mainstreet.co.in', 'superkicks':'superkicks.in',
+    'vegnonveg':'vegnonveg.com', 'banjaaran studio':'banjaaran.in', 'comet':'wearcomet.com',
+    'gully labs':'gullylabs.com', 'thaely':'thaely.com', 'converse by you':'converse.com',
+    'nike by you':'nike.com', 'vans customs':'vans.com', 'colorware':'colorware.com',
+    'xbox design lab':'xboxdesignlab.xbox.com',
   };
   // Normalize a brand entry to {name, domain}. Meta uses name (q=), Google
   // uses domain (domain=), TikTok library uses name (adv_name=). Domain comes
@@ -949,7 +962,7 @@
             <a class="ad-src" style="margin:0;flex:1" href="${home}" target="_blank" rel="noopener">Website ↗</a>
             <a class="ad-src" style="margin:0;flex:1" href="${home}/collections" target="_blank" rel="noopener">Collections ↗</a>
           </div>
-          <button class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#6A33D8;color:#F7F5F2" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
+          <button class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#D0473E;color:#FFFFFF" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
           <div style="font-size:11px;color:#48524c;margin-top:8px">${esc(o.domain)}</div>
         </div>
       </div>`; }).join('') + (withDomain.length > MAX_TILES ? `<div class="count" style="grid-column:1/-1">Showing first ${MAX_TILES} of ${withDomain.length} brands — narrow the universe in Discover.</div>` : '') : '<div class="empty">No brands with a known domain yet — add some under <b>Discover Brands</b> (the brand DB stores each domain).</div>';
@@ -1059,12 +1072,12 @@
       if (!g.items.length) return `<div class="lp-group"><h3 class="lp-group-h">${esc(g.platform)}</h3><div class="empty" style="margin:0">No captured ${esc(g.platform)} landing pages yet.</div></div>`;
       const cards = g.items.map((it) => `
         <div class="ad-card" style="padding:0;overflow:hidden">
-          ${it.asset_url ? `<a href="${esc(it.landing_url)}" target="_blank" rel="noopener"><img src="${esc(it.asset_url)}" alt="${esc(it.brand || '')} ${esc(g.platform)} creative" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:#f3eee1;display:flex;align-items:center;justify-content:center;color:#8a8a80;font-size:12px">creative pending</div>'}
+          ${it.asset_url ? `<a href="${esc(it.landing_url)}" target="_blank" rel="noopener"><img src="${esc(it.asset_url)}" alt="${esc(it.brand || '')} ${esc(g.platform)} creative" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:var(--vh-panel-tan);display:flex;align-items:center;justify-content:center;color:#8a8a80;font-size:12px">creative pending</div>'}
           <div style="padding:12px 14px">
             <div style="font-weight:700;font-size:13px">${esc(it.brand || 'Unknown')}</div>
             ${it.headline ? `<div style="font-size:12px;color:#556059;margin:4px 0">${esc(String(it.headline).slice(0, 90))}</div>` : ''}
             <a class="ad-src" style="margin-top:6px" href="${esc(it.landing_url)}" target="_blank" rel="noopener">Open landing page ↗</a>
-            <div style="font-size:11px;color:#8a8a80;margin-top:6px">${it.captured_lp ? '📸 snapshot captured' : 'live destination'}${it.source_link ? ` · <a href="${esc(it.source_link)}" target="_blank" rel="noopener" style="color:#D0473E">source</a>` : ''}</div>
+            <div style="font-size:11px;color:#8a8a80;margin-top:6px">${it.captured_lp ? '📸 snapshot captured' : 'live destination'}${it.source_link ? ` · <a href="${esc(it.source_link)}" target="_blank" rel="noopener" style="color:#6A33D8">source</a>` : ''}</div>
           </div>
         </div>`).join('');
       return `<div class="lp-group"><h3 class="lp-group-h">${esc(g.platform)} <span style="color:#8a8a80;font-weight:400;font-size:13px">${g.items.length}</span></h3><div class="ad-grid">${cards}</div></div>`;
@@ -1089,7 +1102,7 @@
     const mailers = d.emails || [], landing = d.landing || [];
     const assetCard = (img, title, sub, href) => `
       <div class="ad-card" style="padding:0;overflow:hidden">
-        ${img ? `<a href="${esc(href || '#')}" target="_blank" rel="noopener"><img src="${esc(img)}" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:#f3eee1"></div>'}
+        ${img ? `<a href="${esc(href || '#')}" target="_blank" rel="noopener"><img src="${esc(img)}" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:var(--vh-panel-tan)"></div>'}
         <div style="padding:10px 12px"><div style="font-weight:600;font-size:12px">${esc(String(title || '').slice(0, 80))}</div>${sub ? `<div style="font-size:11px;color:#8a8a80;margin-top:3px">${esc(sub)}</div>` : ''}</div>
       </div>`;
     const section = (label, count, inner) => `<div class="d-section"><div class="sh"><h4>${label} <span style="color:#8a8a80">${count}</span></h4></div>${count ? inner : '<div class="empty" style="margin:0">None captured yet.</div>'}</div>`;
@@ -1115,7 +1128,7 @@
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const el = $('cb-insights-top');
     if (el) el.innerHTML = top.length
-      ? top.map(([b, n]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(171,135,67,0.08)"><span>${esc(b)}</span><b style="color:#D0473E">${n}</b></div>`).join('')
+      ? top.map(([b, n]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(171,135,67,0.08)"><span>${esc(b)}</span><b style="color:#6A33D8">${n}</b></div>`).join('')
       : '<div style="color:#48524c">No mailers captured yet. Subscribe brands under Discover to start the feed.</div>';
   }
   $('adRegion').addEventListener('change', renderAds);
@@ -1135,14 +1148,14 @@
     await fetchBrandUniverse(true);
     $('bd-count').textContent = `${brands.length} brands · target ~${BRAND_TARGET}`;
     $('bd-empty').style.display = brands.length ? 'none' : 'block';
-    const pill = (s) => { const ok = /subscribed/i.test(s) && !/not/i.test(s); return `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${ok ? 'rgba(34,197,94,.15)' : 'rgba(171,135,67,.12)'};color:${ok ? '#0a7d33' : '#7a5f28'}">${esc(s || 'Not subscribed')}</span>`; };
+    const pill = (s) => { const ok = /subscribed/i.test(s) && !/not/i.test(s); return `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${ok ? 'rgba(34,197,94,.15)' : 'rgba(171,135,67,.12)'};color:${ok ? '#0a7d33' : 'var(--vh-ink)'}">${esc(s || 'Not subscribed')}</span>`; };
     $('bd-rows').innerHTML = brands.map((b) => `
       <tr style="border-top:1px solid rgba(171,135,67,0.1)">
         <td style="padding:9px 12px"><span class="brand-link" data-brand="${esc(b.brandName)}" data-domain="${esc(b.domain || '')}" style="color:#111111;font-weight:600">${esc(b.brandName)}</span><div style="font-size:11px;color:#48524c">${esc(b.domain)}</div></td>
         <td style="padding:9px 12px;color:#556059">${esc(b.category)}</td>
         <td style="padding:9px 12px;color:#556059">${esc(b.country)}</td>
         <td style="padding:9px 12px;color:#556059">${esc(b.positioning)}</td>
-        <td style="padding:9px 12px">${(b.newsletterSignupUrl || b.websiteUrl) ? `<a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#D0473E">Signup ↗</a>` : '<span style="color:#48524c">—</span>'}</td>
+        <td style="padding:9px 12px">${(b.newsletterSignupUrl || b.websiteUrl) ? `<a href="${esc(b.newsletterSignupUrl || b.websiteUrl)}" target="_blank" rel="noopener" style="color:#6A33D8">Signup ↗</a>` : '<span style="color:#48524c">—</span>'}</td>
         <td style="padding:9px 12px;white-space:nowrap">${followChips(b.brandName, b.domain || '')}</td>
       </tr>`).join('');
   }

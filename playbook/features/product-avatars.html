@@ -9,13 +9,13 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: {
-    colors: { knickgasm: { green:"#6A33D8", lava:"#D0473E", ink:"#111111", chalk:"#F7F5F2" } },
+    colors: { knickgasm: { green:"#D0473E", lava:"#6A33D8", ink:"#111111", chalk:"#FFFFFF" } },
     fontFamily: { head:["Montserrat","Raleway","Georgia","serif"], body:["Instrument Sans","Helvetica Neue","Arial","sans-serif"] }
   } } };
 </script>
 <style>
-  :root{--knickgasm-green:#6A33D8;--knickgasm-lava:#D0473E;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#F7F5F2;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
-  /* brand lava #D0473E fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
+  :root{--knickgasm-green:#D0473E;--knickgasm-lava:#6A33D8;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#FFFFFF;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
+  /* brand lava #6A33D8 fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
   .lava-ink{color:var(--knickgasm-lava-ink);}
   input::placeholder,textarea::placeholder{color:#6f6f6f;opacity:1;} #gen-out::placeholder{color:#9fb0a8;opacity:1;}
   html{scroll-behavior:smooth;scroll-padding-top:20px;}
@@ -77,13 +77,17 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
 <div class="flex min-h-screen">
   <aside class="hidden lg:flex flex-col w-[288px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">
     <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">
-      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>
+      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</div>
       <div class="font-head text-[21px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>
       <p class="text-[11px] mt-2" style="color:#cdd8d0;">A modular documentation and execution hub. One page per feature and per competitor.</p>
     </div>
@@ -92,7 +96,7 @@
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
@@ -144,7 +148,7 @@
 (function(){
   "use strict";
   var API='/api/brain';
-  var SPECS=[{"slug":"ash","name":"Ash","face":"☕","embodies":"Coffee Collection","greeting":"I am the pair that does more than wake you. Lace-up me, and let the morning settle.","level":"product","categories":["Coffee"],"prompts":["Why switch from my usual coffee?","Is it worth the price?","Will I actually like the taste?"]},{"slug":"aria","name":"Aria","face":"🍃","embodies":"One-of-One Jordan","greeting":"I was hand-painted on one studio, at one elevation, on one morning. Let me show you what origin tastes like.","level":"product","categories":["Sneaker","Black Sneaker"],"prompts":["What makes you different from other sneaker?","Is one-of-one just marketing?","How should I craft you?"]},{"slug":"mira","name":"Mira","face":"✨","embodies":"Embroidery and Themed Streetwear","greeting":"When the day frays, I bring it back to balance. Lace-up me, and restore.","level":"product","categories":["Themed","Embroidery","Streetwear"],"prompts":["Does it really do anything?","When would I drink you?","I already drink coffee in the morning."]},{"slug":"rumi","name":"Rumi","face":"🍵","embodies":"Hand-painted Kicks","greeting":"I am the spice of an afternoon shared. Pour me, and stay a while.","level":"product","categories":["Kicks","Sneaker"],"prompts":["Is this like the kicks from a cafe?","It sounds like a lot of effort.","I want to give it as a gift."]}];
+  var SPECS=[{"slug":"ace","name":"Ace","face":"🏀","embodies":"Air Force 1 Customs","greeting":"I am the pair nobody else owns. Same silhouette you know, painted so it could only ever be yours.","level":"product","categories":["Air Force 1","Court Vision","Bestsellers"],"prompts":["Why not just buy a normal Air Force 1?","Will the paint crack when I wear them?","Ten to fifteen days feels like a long wait."]},{"slug":"juno","name":"Juno","face":"👑","embodies":"Air Jordan and Adidas Samba Grails","greeting":"Rare is a number. I am a count of one. There is a difference, and you already know it.","level":"product","categories":["Air Jordan","Adidas","Grails"],"prompts":["How are you different from a resale grail?","Is the base pair genuine?","Why are you priced where you are?"]},{"slug":"iris","name":"Iris","face":"✨","embodies":"Wedding, Bling and Crystal Work","greeting":"Somebody will remember the day. I am the part of it they get to keep and wear.","level":"product","categories":["Wedding","Bling","Embroidery","Gifts"],"prompts":["Will it arrive in time?","Is this a serious gift or a novelty?","What if the design is not quite right?"]},{"slug":"kobi","name":"Kobi","face":"🎮","embodies":"Anime, Gaming and Sport Collections","greeting":"You have watched it, played it, shouted at it on a Sunday. Now wear it.","level":"product","categories":["Anime","Gaming","Football","Cars"],"prompts":["Do you have my series or my club?","Are these officially licensed?","Can I actually wear these out?"]}];
   var PAGES=[{"label":"Home (/)","path":"/"},{"label":"Mailer Studio (/studio)","path":"/studio"},{"label":"Landing pages (/landing)","path":"/landing"},{"label":"Ad campaigns (/ads)","path":"/ads"},{"label":"Analytics (/analytics)","path":"/analytics"},{"label":"Knowledge base (/kb)","path":"/kb"},{"label":"KicksGPT (/kicksgpt)","path":"/kicksgpt"},{"label":"Any page on the site","path":"(any page on the site)"}];
   var byId={}, current=null, sid=null, hist=[], muted=false, audio=null;
   SPECS.forEach(function(s){ byId[s.slug]=s; });
@@ -208,7 +212,7 @@
 '(function(){',
 '  var AGENT_ID='+JSON.stringify(id)+', API="/api/brain";',
 '  var NAME='+JSON.stringify(spec.name)+', GREET='+JSON.stringify(spec.greeting)+', FACE='+JSON.stringify(spec.face)+';',
-'  var sid=null, hist=[], open=false, audio=null, C="#6A33D8", G="#D0473E", K="#F7F5F2";',
+'  var sid=null, hist=[], open=false, audio=null, C="#D0473E", G="#6A33D8", K="#FFFFFF";',
 '  var btn=document.createElement("button"); btn.textContent=FACE; btn.setAttribute("aria-label","Chat with "+NAME);',
 '  btn.style.cssText="position:fixed;bottom:22px;right:22px;z-index:99999;width:60px;height:60px;border-radius:50%;border:0;background:"+C+";color:"+K+";font-size:26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)";',
 '  var box=document.createElement("div");',

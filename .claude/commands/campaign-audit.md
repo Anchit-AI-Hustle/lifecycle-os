@@ -20,7 +20,7 @@ Campaign/ad-set/ad rows (spend, impressions, reach, clicks, link clicks, purchas
 1) Verdict line (total wasted spend found). 2) Findings table (Finding | Evidence | $ at stake | Action). 3) Top 3 reallocation moves. Nothing without evidence.
 
 ## Brand guardrails (always)
-- Palette #6A33D8 / #D0473E / #111111 / #F7F5F2; Montserrat headlines + Instrument Sans body.
-- BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
+- Palette #D0473E / #6A33D8 / #111111 / #FFFFFF; Montserrat headlines + Instrument Sans body.
+- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
 - Zero fabrication: never invent numbers, benchmarks, reviews, prices or URLs. Missing input -> ask for it or mark [DATA REQUIRED].
 - Mega-prompt discipline: be clear, concise and highly specific; every claim quotes the exact figure or line it came from.

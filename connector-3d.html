@@ -8,7 +8,7 @@
 <style>
   @font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");font-display:swap;}
   :root{
-    --v-deep-purple:#6A33D8; --v-lava:#D0473E; --v-ink:#111111; --v-chalk:#F7F5F2;
+    --v-deep-purple:#D0473E; --v-lava:#6A33D8; --v-ink:#111111; --v-chalk:#FFFFFF;
     --v-font-heading:'Montserrat','Raleway',Georgia,serif;
     --v-font-body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
   }
@@ -21,24 +21,24 @@
   header.brand img{width:140px;height:auto;margin:0 auto;}
   .wrap{max-width:1120px;margin:0 auto;padding:0 20px 64px;}
   h1{font-family:var(--v-font-heading);font-size:38px;line-height:1.1;margin:18px 0 6px;color:var(--v-deep-purple);}
-  .lede{font-size:15px;color:#3a4a40;max-width:640px;margin:0 0 24px;}
+  .lede{font-size:15px;color:var(--vh-ink);max-width:640px;margin:0 0 24px;}
 
   /* Engine status panel */
   .panel{border:1px solid rgba(0,74,43,.18);border-radius:14px;background:#fff;padding:18px 20px;margin:18px 0 26px;}
   .panel h2{font-family:var(--v-font-heading);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--v-lava);margin:0 0 14px;}
   .grid-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
   .stat{background:var(--v-chalk);border-radius:10px;padding:12px 14px;}
-  .stat .k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7a6a48;}
+  .stat .k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-ink);}
   .stat .v{font-size:16px;font-weight:700;color:var(--v-ink);margin-top:4px;word-break:break-word;}
   .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;padding:3px 9px;border-radius:999px;}
   .pill.on{background:var(--v-deep-purple);color:var(--v-chalk);}
-  .pill.off{background:#e7e0d0;color:#6a5c3f;}
+  .pill.off{background:var(--vh-panel-tan);color:var(--vh-ink);}
   .swatches{display:flex;gap:8px;margin-top:6px;}
   .sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.12);}
 
   /* Controls */
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px;}
-  .controls .lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7a6a48;margin-right:2px;}
+  .controls .lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--vh-ink);margin-right:2px;}
   .btn{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1.5px solid var(--v-deep-purple);color:var(--v-deep-purple);background:#fff;}
   .btn.sel{background:var(--v-deep-purple);color:var(--v-chalk);}
   .btn.lava{border-color:var(--v-lava);color:var(--v-ink);}
@@ -62,9 +62,9 @@
   .checkout h3{font-family:var(--v-font-heading);font-size:30px;line-height:1.1;color:var(--v-deep-purple);margin:10px 0;}
   .checkout .price{font-size:22px;font-weight:700;margin:8px 0 4px;}
   .checkout .cta{display:inline-block;margin-top:16px;background:var(--v-deep-purple);color:var(--v-chalk);font-weight:700;padding:15px 34px;border-radius:9px;text-decoration:none;font-size:15px;}
-  .checkout .proof{margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.06em;color:#6a5c3f;}
-  .note{font-size:12px;color:#7a6a48;margin-top:10px;}
-  .err{background:#fff;border:1px solid var(--v-lava);border-radius:12px;padding:18px;color:#6a4a1a;}
+  .checkout .proof{margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--vh-ink);}
+  .note{font-size:12px;color:var(--vh-ink);margin-top:10px;}
+  .err{background:#fff;border:1px solid var(--v-lava);border-radius:12px;padding:18px;color:var(--vh-ink);}
   .skeleton{opacity:.55;}
   @media(max-width:720px){.checkout{grid-template-columns:1fr;} h1{font-size:30px;}}
 </style>
@@ -104,8 +104,8 @@
     <div id="main"></div>
   </div>
 
-  <!-- The engine: generated from knickgasm-3d-connector-engine.ts, dropped in as a plain global. -->
-  <script src="/knickgasm-3d-connector-engine.js"></script>
+  <!-- The engine: generated from lifecycle-3d-connector-engine.ts, dropped in as a plain global. -->
+  <script src="/lifecycle-3d-connector-engine.js"></script>
   <script>
   (function(){
     var V = window.Knickgasm3D;

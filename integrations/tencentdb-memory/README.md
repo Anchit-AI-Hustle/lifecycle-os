@@ -74,7 +74,7 @@ claude mcp add tencentdb-memory -- node "$PWD/integrations/tencentdb-memory/mcp-
   "mcpServers": {
     "tencentdb-memory": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/knickgasm-lifecycle-os/integrations/tencentdb-memory/mcp-server.mjs"],
+      "args": ["/ABSOLUTE/PATH/lifecycle-os/integrations/tencentdb-memory/mcp-server.mjs"],
       "env": { "TDAI_GATEWAY_URL": "http://127.0.0.1:8420" }
     }
   }
@@ -93,7 +93,7 @@ npm run smoke     # capture → flush → recall → search against the live gat
 |---|---|---|
 | `TDAI_GATEWAY_URL` | `http://127.0.0.1:8420` | Where the gateway listens. |
 | `TDAI_GATEWAY_API_KEY` | _(none)_ | Bearer token — set **only** if the gateway was started with one (must match `TDAI_GATEWAY_API_KEY` in `gateway.env`). |
-| `TDAI_SESSION` | `claude-default` (repo: `knickgasm-lifecycle-os`) | Default session id when a call omits it. |
+| `TDAI_SESSION` | `claude-default` (repo: `lifecycle-os`) | Default session id when a call omits it. |
 | `TDAI_HTTP_TIMEOUT_MS` | `20000` | Per-request timeout. |
 
 ## Using it well (suggested habit)

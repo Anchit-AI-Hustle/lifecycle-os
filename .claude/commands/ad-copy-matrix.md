@@ -17,7 +17,7 @@ Each cell: Hook (<=10 words) + Primary text (<=25 words) + CTA. Product facts on
 1) The 20-cell table (ID A1-E4 | Hook | Primary | CTA). 2) Top 5 picks with one-line reasons. 3) Test plan: which 3 cells to run first and what each isolates. Then offer /ad-creative to render them.
 
 ## Brand guardrails (always)
-- Palette #6A33D8 / #D0473E / #111111 / #F7F5F2; Montserrat headlines + Instrument Sans body.
-- BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
+- Palette #D0473E / #6A33D8 / #111111 / #FFFFFF; Montserrat headlines + Instrument Sans body.
+- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
 - Zero fabrication: never invent numbers, benchmarks, reviews, prices or URLs. Missing input -> ask for it or mark [DATA REQUIRED].
 - Mega-prompt discipline: be clear, concise and highly specific; every claim quotes the exact figure or line it came from.

@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Macro Market Intelligence :: Knickgasm Playbook</title>
 <link rel="icon" href="/favicon.png">
-<meta name="description" content="TAM/SAM/SOM sizing and blended D2C lifecycle benchmarks for the US coffee and functional-beverage market.">
+<meta name="description" content="Catalog-true sizing and lifecycle benchmarks for the US custom-sneaker arena, with third-party dependencies named rather than estimated.">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { theme: { extend: {
-    colors: { knickgasm: { green:"#6A33D8", lava:"#D0473E", ink:"#111111", chalk:"#F7F5F2" } },
+    colors: { knickgasm: { green:"#D0473E", lava:"#6A33D8", ink:"#111111", chalk:"#FFFFFF" } },
     fontFamily: { head:["Montserrat","Raleway","Georgia","serif"], body:["Instrument Sans","Helvetica Neue","Arial","sans-serif"] }
   } } };
 </script>
 <style>
-  :root{--knickgasm-green:#6A33D8;--knickgasm-lava:#D0473E;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#F7F5F2;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
-  /* brand lava #D0473E fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
+  :root{--knickgasm-green:#D0473E;--knickgasm-lava:#6A33D8;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#FFFFFF;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}
+  /* brand lava #6A33D8 fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */
   .lava-ink{color:var(--knickgasm-lava-ink);}
   input::placeholder,textarea::placeholder{color:#6f6f6f;opacity:1;} #gen-out::placeholder{color:#9fb0a8;opacity:1;}
   html{scroll-behavior:smooth;scroll-padding-top:20px;}
@@ -77,22 +77,17 @@
   a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
   section[data-section]{scroll-margin-top:18px;}
-
-/* vh-table-align: data-table column alignment — header cells sit over their
-   columns (table-layout:fixed, equal width), the first column (row labels) is
-   left-aligned and every other column is centered. Scoped to tables that have
-   <th> so layout tables are never affected; element-level so a page's own
-   table.<class> alignment still wins. */
-table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
-table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
-table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
+  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */
+  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}
+  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}
+  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 </style>
 </head>
 <body class="font-body">
 <div class="flex min-h-screen">
   <aside class="hidden lg:flex flex-col w-[288px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">
     <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">
-      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>
+      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</div>
       <div class="font-head text-[21px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>
       <p class="text-[11px] mt-2" style="color:#cdd8d0;">A modular documentation and execution hub. One page per feature and per competitor.</p>
     </div>
@@ -101,7 +96,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <a href="../features/market-intelligence.html" class="nav-link block px-3 py-2 rounded-lg active"><span class="mr-2">📊</span>Macro Market Intelligence</a>
         <a href="../features/market-study.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📚</span>Complete Market Study</a>
         <a href="../features/competitor-index.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">🕵</span>Forensic Competitor Dossiers</a>
-        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Direct-to-Origin Knowledge Base</a>
+        <a href="../features/knowledge-base.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📘</span>Studio-to-Doorstep Knowledge Base</a>
         <a href="../features/product-avatars.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">👥</span>Product Avatars</a>
         <a href="../features/analytics-engine.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">📈</span>Intraday Pace & Predictive</a>
         <a href="../features/asset-workspace.html" class="nav-link block px-3 py-2 rounded-lg"><span class="mr-2">⚙️</span>Marketing Asset Workspace</a>
@@ -118,21 +113,21 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       <header class="space-y-3">
         <span class="text-[11px] tracking-[.18em] uppercase font-bold lava-ink">Feature 01</span>
         <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">Macro Market Intelligence</h1>
-        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">The full sizing and benchmark report behind the hub summary. Top-down market frame, blended lifecycle benchmarks, and the cross-vertical read that positions Knickgasm.</p>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">The full sizing and benchmark report behind the hub summary. Top-down market frame, lifecycle benchmarks, and the cross-tier read that positions Knickgasm in the custom-sneaker arena.</p>
       </header>
       <section data-section id="sizing" class="space-y-4">
-<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">Sizing</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">TAM / SAM / SOM</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Total market, the served D2C slice, and the obtainable share at current positioning.</p></div>
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">Sizing</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">What we can state, and what we still owe</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Custom sneakers are not broken out by any research firm, so the catalog facts are exact and the third-party sizing is named as a dependency.</p></div>
         <div class="grid gap-4 sm:grid-cols-3">
-<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">TAM</div><div class="mv text-4xl mt-1">$117.94B</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Total US coffee market value, all channels and formats.</div></div>
-<div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SAM</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">$26.40B</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Serviceable D2C and premium/functional segment.</div></div>
-<div class="metric p-5" style="border-color:var(--knickgasm-green);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SOM</div><div class="mv text-4xl mt-1">$5.85B</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Obtainable US coffee D2C value within reach.</div></div>
+<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Live SKUs</div><div class="mv text-4xl mt-1">436</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Finished one-of-one designs across every collection.</div></div>
+<div class="metric p-5" style="border-color:var(--knickgasm-lava);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Price band</div><div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava-ink);">$99.84 to $261.95</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Full custom pair, US. UK &pound;79.42 to &pound;208.37.</div></div>
+<div class="metric p-5" style="border-color:var(--knickgasm-green);border-width:2px;"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Lead time</div><div class="mv text-4xl mt-1">10 to 15 days</div><div class="text-[12.5px] mt-1" style="color:var(--soft);">Made-to-order, stated before checkout.</div></div>
         </div>
-        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Reading the funnel</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">SAM is 22.4% of TAM.</b> The D2C and premium/functional slice is where provenance and a real functional payload win.</li><li><b style="color:var(--knickgasm-green);">SOM is 22.2% of SAM.</b> Obtainable share is gated by acquisition efficiency and retention, not demand.</li><li><b style="color:var(--knickgasm-green);">Leverage.</b> Lifting day-180 retention a few points expands realised SOM faster than raising spend.</li></ul></div>
+        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Reading the arena</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);"><li><b style="color:var(--knickgasm-green);">The gap is structural.</b> Bespoke studios will not list a price, configurators will not paint artwork, and the marketplace long tail will not guarantee an original base.</li><li><b style="color:var(--knickgasm-green);">Demand is created for us.</b> Brand configurators educate an enormous audience that personalisation is worth paying for, then stop at colour.</li><li><b style="color:var(--knickgasm-green);">Third-party sizing is a dependency.</b> [DATA REQUIRED BEFORE LAUNCH: US custom-sneaker service market size, cited firm, US]. Own order data is the better source and should be wired in first.</li></ul></div>
       </section>
       <section data-section id="benchmarks" class="space-y-4">
-<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">Benchmarks</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">Standard vs functional coffee D2C</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Blended lifecycle economics across the two segments Knickgasm straddles.</p></div>
-        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:560px;"><thead><tr><th>Metric</th><th>Standard coffee D2C</th><th>Functional / streetwear</th></tr></thead><tbody><tr><td>Blended CAC</td><td>$18 to $32</td><td>$38 to $65</td></tr><tr><td>Day-30 retention</td><td>34 to 42%</td><td>44 to 55%</td></tr><tr><td>Day-180 retention</td><td>16 to 24%</td><td>28 to 38%</td></tr><tr><td>AOV</td><td>$26 to $38</td><td>$42 to $68</td></tr><tr><td>12-month LTV</td><td>$70 to $110</td><td>$150 to $260</td></tr><tr><td>Subscription attach</td><td>12 to 20%</td><td>22 to 34%</td></tr></tbody></table></div>
-        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance plus a genuine functional payload (Airbrush) is a position rivals hold only in halves. Pair ritual-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher. Figures are stated planning benchmarks.</p></div>
+<div><div class="text-[11px] tracking-[.16em] uppercase font-bold lava-ink">Benchmarks</div><h2 class="font-head text-3xl text-knickgasm-green mt-1">The catalog, tier by tier</h2><p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The real price ladder, read from the built catalogs rather than estimated.</p></div>
+        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:560px;"><thead><tr><th>Tier</th><th>US price</th><th>UK price</th></tr></thead><tbody><tr><td>Accessories (rope laces, lace tags)</td><td>$7.91 to $9.14</td><td>&pound;6.29 to &pound;7.27</td></tr><tr><td>Hand-painted denim jackets</td><td>$64.35</td><td>&pound;51.19</td></tr><tr><td>Entry customs (Converse, Court Vision)</td><td>$99.84 to $152.06</td><td>&pound;79.42 to &pound;120.96</td></tr><tr><td>Core customs (Air Force 1, 349 SKUs)</td><td>$115.47 to $261.95</td><td>&pound;91.85 to &pound;208.37</td></tr><tr><td>Grail customs (Air Jordan, Adidas)</td><td>$153.60 to $226.29</td><td>&pound;122.18 to &pound;180.00</td></tr><tr><td>Lead time, every made-to-order pair</td><td>10 to 15 days</td><td>10 to 15 days</td></tr></tbody></table></div>
+        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">A browsable catalog of finished one-of-one designs, every one painted on a 100% original pair and sealed with a water and scratch resistant finish, delivered in 10 to 15 days. Rivals hold that position only in halves. Lead with the base and the finish, never with a discount. Prices are read from the built catalogs.</p></div>
         <div class="flex flex-wrap gap-3"><a href="./market-study.html" class="btn-primary inline-block px-5 py-2.5 text-sm">Read the complete market study &rarr;</a><a href="./competitor-index.html" class="btn-lava inline-block px-5 py-2.5 text-sm">See the competitor grid &rarr;</a></div>
       </section>
     </div>

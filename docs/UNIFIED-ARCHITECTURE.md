@@ -1,6 +1,6 @@
-# Knickgasm Lifecycle OS — Unified Architecture & Consolidation Blueprint
+# Lifecycle OS — Unified Architecture & Consolidation Blueprint
 
-> **Goal.** Collapse the separate Knickgasm apps (data engine, mailer studio, calendar, competitor benchmarking, super-app) into **one** application: **Knickgasm Lifecycle OS**. One auth shell, one nav, one Supabase, one deploy. This doc is the north star + the phased build plan.
+> **Goal.** Collapse the separate Knickgasm apps (data engine, mailer studio, calendar, competitor benchmarking, super-app) into **one** application: **Lifecycle OS**. One auth shell, one nav, one Supabase, one deploy. This doc is the north star + the phased build plan.
 
 - **Last updated:** 2026-06-20
 - **Absorbs these sibling projects:** `knickgasm_dtc_data_engine`, `marketing_mailers__html_architect`, `Knickgasm-Super-App`, `Data Analysis + Mailer Calendar Creation + Mailer Generation`.
@@ -64,7 +64,7 @@ HOME            /                     Super-app hub
    Daily Review /brain                smart-brain.html (approve/reject)
    Automation   /automation           NEW: run granularity + campaign-type matrix
 ─ CREATE (manual studio)
-   Mailers      /studio               knickgasm_mailer_architect_v34.html
+   Mailers      /studio               lifecycle_mailer_architect_v34.html
    Ads          /ads                  ad-campaigns.html
    Landing Pages/landing-pages        landing-pages.html
    Knowledge    /kb                   knowledge-base.html

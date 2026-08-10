@@ -27,7 +27,7 @@ const FEATURES = [
   { key: "market-intelligence", icon: "\u{1F4CA}", label: "Macro Market Intelligence",       file: "features/market-intelligence.html" },
   { key: "market-study",        icon: "\u{1F4DA}", label: "Complete Market Study",            file: "features/market-study.html" },
   { key: "competitor-index",    icon: "\u{1F575}", label: "Forensic Competitor Dossiers",    file: "features/competitor-index.html" },
-  { key: "knowledge-base",      icon: "\u{1F4D8}", label: "Direct-to-Origin Knowledge Base", file: "features/knowledge-base.html" },
+  { key: "knowledge-base",      icon: "\u{1F4D8}", label: "Studio-to-Doorstep Knowledge Base", file: "features/knowledge-base.html" },
   { key: "product-avatars",     icon: "\u{1F465}", label: "Product Avatars",                  file: "features/product-avatars.html" },
   { key: "analytics-engine",    icon: "\u{1F4C8}", label: "Intraday Pace & Predictive",      file: "features/analytics-engine.html" },
   { key: "asset-workspace",     icon: "⚙️", label: "Marketing Asset Workspace",    file: "features/asset-workspace.html" },
@@ -49,13 +49,13 @@ function head(title, desc) {
 '<script src="https://cdn.tailwindcss.com"></script>',
 '<script>',
 '  tailwind.config = { theme: { extend: {',
-'    colors: { knickgasm: { green:"#6A33D8", lava:"#D0473E", ink:"#111111", chalk:"#F7F5F2" } },',
+'    colors: { knickgasm: { green:"#D0473E", lava:"#6A33D8", ink:"#111111", chalk:"#FFFFFF" } },',
 '    fontFamily: { head:["Montserrat","Raleway","Georgia","serif"], body:["Instrument Sans","Helvetica Neue","Arial","sans-serif"] }',
 '  } } };',
 '</script>',
 '<style>',
-'  :root{--knickgasm-green:#6A33D8;--knickgasm-lava:#D0473E;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#F7F5F2;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}',
-'  /* brand lava #D0473E fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */',
+'  :root{--knickgasm-green:#D0473E;--knickgasm-lava:#6A33D8;--knickgasm-lava-ink:#8a6a2f;--knickgasm-ink:#111111;--knickgasm-chalk:#FFFFFF;--knickgasm-card:#FFFFFF;--line:rgba(23,23,23,.12);--soft:#5b5b57;}',
+'  /* brand lava #6A33D8 fails WCAG as small text on chalk/white; use the darker lava-ink for lava TEXT on light backgrounds */',
 '  .lava-ink{color:var(--knickgasm-lava-ink);}',
 '  input::placeholder,textarea::placeholder{color:#6f6f6f;opacity:1;} #gen-out::placeholder{color:#9fb0a8;opacity:1;}',
 '  html{scroll-behavior:smooth;scroll-padding-top:20px;}',
@@ -138,7 +138,7 @@ function sidebar(prefix, activeKey) {
   return [
 '  <aside class="hidden lg:flex flex-col w-[288px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">',
 '    <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">',
-'      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>',
+'      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</div>',
 '      <div class="font-head text-[21px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>',
 '      <p class="text-[11px] mt-2" style="color:#cdd8d0;">A modular documentation and execution hub. One page per feature and per competitor.</p>',
 '    </div>',
@@ -211,267 +211,267 @@ function wireBox(label, desc) {
 /* ================================================================ COMPETITORS */
 const COMPETITORS = [
   {
-    slug: "blue-bottle", name: "Blue Bottle", category: "Premium coffee", tier: 1,
-    desktopUX: "Mega-menu split by roast and craft method, sticky cart drawer, editorial PDPs rich with design notes. Gap: the subscription configurator sits below the fold and there is no persistent compare tray.",
-    mobileUX: "Clean typography, but the primary add-to-cart falls mid-scroll with no persistent bottom buy-bar, and heavy hero carousels slow first paint on mid-tier connections.",
-    stack: { checkout: "Shopify Plus checkout", subscription: "Recharge", analytics: "GA4 plus Fathom", esp: "Klaviyo" },
-    churnHook: "Roast-freshness cadence emails and a cafe-to-subscription bridge for lapsed in-store buyers.",
+    slug: "shoe-surgeon", name: "The Shoe Surgeon", category: "Bespoke commission studio", tier: 1,
+    desktopUX: "Portfolio-led site built to impress rather than to sell: full-bleed build photography, collaboration case studies and a build-class booking flow. Gap: there is no catalog and no checkout for a finished pair, so the only path is an enquiry form.",
+    mobileUX: "Editorial gallery that scrolls beautifully and converts nothing directly. No price, no add-to-bag, no lead time; the mobile journey ends at a contact form.",
+    stack: { checkout: "Custom, enquiry-led", subscription: "None", analytics: "GA4", esp: "Klaviyo" },
+    churnHook: "Reputation and a waiting list carry repeat demand instead of any lifecycle programme.",
     wires: [
-      ["[SCREENSHOT: Desktop roast mega-menu]", "Two-column flyout grouping single-origin and colorways by craft method, with a featured seasonal tile on the right rail."],
-      ["[SCREENSHOT: Mobile PDP mid-scroll CTA]", "Product hero, price, then a static add-to-cart that scrolls away; no thumb-zone sticky bar keeping the buy action in reach."],
-      ["[SCREENSHOT: Subscription config modal]", "Frequency and grind selectors buried in a modal opened from below the fold, adding a step before the first subscribe decision."],
-      ["[SCREENSHOT: Slide-in cart drawer]", "Right-side drawer with upsell row and free-shipping progress meter pegged to a fixed threshold."]
+      ["[SCREENSHOT: Desktop build gallery]", "Full-bleed commission photography with material call-outs and collaboration credits, no price anywhere on the page."],
+      ["[SCREENSHOT: Enquiry form]", "Commission request form asking for silhouette, budget range and timeline, replacing a product page entirely."],
+      ["[SCREENSHOT: Build class booking]", "Workshop and build-class scheduling, a secondary revenue line that also functions as brand marketing."],
+      ["[SCREENSHOT: Mobile gallery scroll]", "Long image scroll with no persistent action; the buy decision cannot be made on the page."]
     ],
     swot: {
-      s: ["Category-defining brand equity and cafe halo", "Editorial content that teaches crafting and justifies premium"],
-      w: ["Subscribe decision is buried below the fold", "No persistent mobile buy-bar hurts thumb-zone conversion"],
-      o: ["Functional payload storytelling they do not own", "Refill-rhythm reminders to protect the recurring base"],
-      t: ["Discount-led rivals compressing entry price", "Retail dependence dilutes first-party data"]
+      s: ["Defines the craft ceiling of the entire category", "Collaboration and press equity that cannot be bought"],
+      w: ["Nothing browsable and nothing buyable today", "Capacity is structurally capped by hands and hours"],
+      o: ["Finished designs at listed prices, which they will never sell", "Committed lead times against an open-ended queue"],
+      t: ["Studio-scale customisers serving the same appetite faster", "Brand configurators absorbing the mainstream personalisation demand"]
     },
     path: [
-      "Surface subscribe-first above the fold on the coffee franchise, the way Knickgasm anchors Coffee Collection.",
-      "Ship a persistent mobile bottom buy-bar so the add-to-cart never leaves the thumb zone.",
-      "Own the functional-ritual story Blue Bottle cannot claim, pairing origin with a real adaptogen benefit."
+      "Serve the customer who wants a one-of-one this month rather than next year.",
+      "Publish a real price on a real finished design, which the commission model structurally cannot do.",
+      "Keep KNICKGASM's own craft proof visible so the price gap reads as access, not as lower quality."
     ]
   },
   {
-    slug: "trade", name: "Trade Coffee", category: "Coffee marketplace", tier: 1,
-    desktopUX: "Quiz-matched roaster marketplace with a strong desktop quiz flow and clear swap-and-skip subscription controls in-account.",
-    mobileUX: "The onboarding quiz runs long on mobile with many steps, creating drop-off before the first match and checkout.",
-    stack: { checkout: "Custom headless checkout", subscription: "Recharge", analytics: "Segment plus GA4", esp: "Klaviyo" },
-    churnHook: "Quiz-matched roasts with one-tap swap and skip that keep the subscription feeling personalised.",
+    slug: "nike-by-you", name: "Nike By You", category: "Brand configurator", tier: 1,
+    desktopUX: "Full 3D configurator with panel-by-panel colour and material selection, saved builds and a share link. Best-in-class build experience, and the single largest personalisation funnel in footwear.",
+    mobileUX: "Native app configurator with smooth rotation and quick colour switching. The build is delightful; the ceiling arrives the moment a customer wants an image rather than a colour.",
+    stack: { checkout: "Nike.com and Nike app", subscription: "None", analytics: "First-party", esp: "Nike membership" },
+    churnHook: "Membership programme, app engagement and launch calendar rather than any subscription mechanic.",
     wires: [
-      ["[SCREENSHOT: Desktop match quiz]", "Progressive multi-step quiz with a visible progress bar and a results page mapping taste inputs to roaster matches."],
-      ["[SCREENSHOT: Mobile quiz drop-off point]", "Step 6 of a long mobile quiz where momentum stalls; no save-and-resume, no shortcut to browse."],
-      ["[SCREENSHOT: In-account swap and skip]", "Subscription management with prominent skip, swap, and reschedule controls on the next shipment card."],
-      ["[SCREENSHOT: Roaster spotlight PDP]", "Editorial roaster story above the buy box building trust in the marketplace curation."]
+      ["[SCREENSHOT: Desktop 3D configurator]", "Rotatable shoe with a panel list on the left and a swatch tray on the right; every option is a colour or a material."],
+      ["[SCREENSHOT: Saved build gallery]", "Member-saved builds with share links, turning personalisation into a social artefact."],
+      ["[SCREENSHOT: Mobile app builder]", "Thumb-driven panel selection with a persistent price and add-to-bag bar."],
+      ["[SCREENSHOT: Build summary]", "Order summary showing the made-to-order build window before checkout, the mechanic KNICKGASM should match in clarity."]
     ],
     swot: {
-      s: ["Personalisation via the taste quiz", "Frictionless swap and skip retention controls"],
-      w: ["Long mobile quiz creates onboarding drop-off", "Marketplace model dilutes a single brand story"],
-      o: ["Shorter mobile quiz with save-and-resume", "First-order match paired with a second-order nudge"],
-      t: ["Roaster-direct brands cutting out the marketplace", "Thin margins on a curation model"]
+      s: ["The largest personalisation funnel in the world", "Official supply, brand trust and local fulfilment in every market"],
+      w: ["Colour swaps only, no artwork of any kind is possible", "Every build reads as a variant, never as a one-of-one"],
+      o: ["Artwork demand it creates and then refuses to serve", "Fandom subjects a brand-owned library will never carry"],
+      t: ["Independent customisers absorbing the graduates", "Marketplace listings undercutting on price"]
     },
     path: [
-      "Borrow the quiz-to-match idea but compress it to a two-tap cohort match on mobile.",
-      "Layer Knickgasm one-of-one provenance on top of personalisation, which a marketplace cannot own.",
-      "Trigger the second-order nudge immediately after the first match to lift repeat rate."
+      "Target the configurator graduate directly: they wanted a design and were offered a colour.",
+      "Show artwork the configurator structurally cannot produce, on the same silhouettes.",
+      "Match their base credibility with the 100% original claim, then out-design them."
     ]
   },
   {
-    slug: "onyx", name: "Onyx Coffee Lab", category: "Specialty coffee", tier: 2,
-    desktopUX: "Transparency-scored PDPs with farm-level sourcing detail and rich taste-note visuals; desktop feels like a specialty print magazine.",
-    mobileUX: "Information-dense PDPs get cramped on mobile; the sourcing detail that sells the premium is hard to scan on a small screen.",
-    stack: { checkout: "Shopify checkout", subscription: "Recharge", analytics: "GA4", esp: "Klaviyo" },
-    churnHook: "Transparency scoring and taste-note storytelling that build a connoisseur relationship.",
+    slug: "converse-by-you", name: "Converse By You", category: "Brand configurator", tier: 2,
+    desktopUX: "Canvas-led builder with colour, print and patch libraries and a clear preview. Strong entry-level experience on a silhouette that takes print well.",
+    mobileUX: "Competent mobile builder, template-bound. Every choice is drawn from a fixed library, so two customers can and do arrive at the same pair.",
+    stack: { checkout: "Converse.com", subscription: "None", analytics: "First-party", esp: "Brand CRM" },
+    churnHook: "Seasonal brand campaigns rather than lifecycle marketing.",
     wires: [
-      ["[SCREENSHOT: Desktop transparency score]", "Sourcing transparency badge with farm-gate price and elevation, positioned beside the buy box."],
-      ["[SCREENSHOT: Mobile dense PDP]", "Long stacked specs that require heavy scrolling; the buy action is pushed far down the page."],
-      ["[SCREENSHOT: Taste-note wheel]", "Interactive design wheel that maps each lot to sensory descriptors."],
-      ["[SCREENSHOT: Subscription tier card]", "Curated rotating-selection subscription with a fixed cadence."]
+      ["[SCREENSHOT: Canvas builder]", "Chuck Taylor preview with colour pickers per panel and a scrollable print library beneath."],
+      ["[SCREENSHOT: Patch library]", "Grid of licensed and seasonal patches, the closest the configurator gets to artwork."],
+      ["[SCREENSHOT: Mobile preview]", "Rotating preview with a persistent price bar and a build-time note."],
+      ["[SCREENSHOT: Build window notice]", "Made-to-order lead time stated before checkout, exactly the transparency a custom purchase needs."]
     ],
     swot: {
-      s: ["Elite specialty credibility and sourcing transparency", "Strong taste-note education"],
-      w: ["Dense mobile layout buries the buy action", "Narrow to the connoisseur segment"],
-      o: ["Cleaner mobile PDP hierarchy", "Provenance storytelling for a wider premium audience"],
-      t: ["Larger premium brands with deeper media budgets", "Specialty niche caps the addressable market"]
+      s: ["Canvas takes print exceptionally well", "Accessible entry price into personalisation"],
+      w: ["Templated prints, not painted artwork", "No character, portrait or scene work is possible"],
+      o: ["Painted artwork on the identical silhouette", "Fandom subjects a licensed library cannot include"],
+      t: ["Independent painters on the same Chuck at lower prices", "Marketplace listings with unverified bases"]
     },
     path: [
-      "Match the sourcing transparency but present it in a scannable mobile-first hierarchy.",
-      "Extend provenance from a connoisseur cue to a mainstream premium hook, as Knickgasm does with studio stories.",
-      "Anchor a subscription with a functional benefit rather than rotation novelty alone."
+      "Merchandise KNICKGASM Converse customs from $99.84 (UK from &pound;79.42) against the same silhouette.",
+      "Show the difference between a printed template and a hand-painted panel, side by side.",
+      "Own the fandom subjects a brand-licensed library will never carry."
     ]
   },
   {
-    slug: "four-sigmatic", name: "Four Sigmatic", category: "Functional / mushroom", tier: 1,
-    desktopUX: "Subscribe-first onboarding with a desktop bundle builder and clear benefit-led PDPs; the default path pushes subscription hard.",
-    mobileUX: "Strong mobile sticky add-to-cart and a fast bundle flow; benefit claims sometimes crowd the fold before the buy action.",
-    stack: { checkout: "Shopify Plus checkout", subscription: "Stay AI", analytics: "Triple Whale plus GA4", esp: "Klaviyo" },
-    churnHook: "Ritual-replacement copy and subscribe-first onboarding that reframe the morning coffee habit.",
+    slug: "vans-customs", name: "Vans Customs", category: "Brand configurator", tier: 2,
+    desktopUX: "Playful builder with the widest print and material library of the configurators, plus genuine skate and music subculture credibility behind it.",
+    mobileUX: "Strong mobile builder tuned for a young audience. Still template-bound: personalisation here reads as selection, not creation.",
+    stack: { checkout: "Vans.com", subscription: "None", analytics: "First-party", esp: "Brand CRM" },
+    churnHook: "Community and subculture programmes rather than lifecycle automation.",
     wires: [
-      ["[SCREENSHOT: Desktop bundle builder]", "Grid selector for building a functional bundle with a live price and subscribe toggle."],
-      ["[SCREENSHOT: Mobile sticky ATC]", "Persistent bottom add-to-cart with subscribe-and-save pre-selected in the thumb zone."],
-      ["[SCREENSHOT: Benefit-led hero]", "Above-fold benefit claims with an ingredient callout and a subscribe-first CTA."],
-      ["[SCREENSHOT: Onboarding email capture]", "Post-purchase flow entry that starts the ritual-replacement education sequence."]
+      ["[SCREENSHOT: Print library grid]", "Wide pattern and material library applied per panel, with live preview."],
+      ["[SCREENSHOT: Silhouette switcher]", "Authentic, Old Skool and Slip-On toggles carrying the same library across shapes."],
+      ["[SCREENSHOT: Mobile build bar]", "Persistent price and add-to-bag with the build window stated inline."],
+      ["[SCREENSHOT: Community campaign block]", "Subculture campaign content sitting alongside the builder, doing the brand work the product cannot."]
     ],
     swot: {
-      s: ["Subscribe-first funnel and strong retention app", "Clear functional benefit framing"],
-      w: ["Claim-heavy folds can crowd the buy action", "Taste polarises new triers"],
-      o: ["Provenance and one-of-one credibility they lack", "Taste-forward functional coffee positioning"],
-      t: ["Crowded functional-mushroom category", "Regulatory scrutiny on benefit claims"]
+      s: ["Genuine subculture credibility in skate and music", "Broadest print and material library of the configurators"],
+      w: ["Still a template; no painted artwork", "Personalisation reads as selection rather than creation"],
+      o: ["Customers who exhausted the library and still wanted something specific", "Subjects a licensed library cannot include"],
+      t: ["Independent painters on the same silhouettes", "Fandom-led studios with deeper subject matter"]
     },
     path: [
-      "Adopt subscribe-first as the default on Coffee Collection, matching their onboarding discipline.",
-      "Win on taste and provenance where mushroom-forward brands struggle with palate acceptance.",
-      "Keep benefit claims non-medical and pair them with the origin story for differentiated trust."
+      "Answer the customer who finished the builder and still did not get the thing they pictured.",
+      "Lead with subjects a brand library will never license.",
+      "Use the same subculture language without inheriting the template ceiling."
     ]
   },
   {
-    slug: "mudwtr", name: "MUD\\Wtr", category: "Adaptogen coffee alternative", tier: 1,
-    desktopUX: "Long-form editorial landing pages that sell the anti-jitter narrative, with a starter-kit as the primary entry offer.",
-    mobileUX: "Best-in-class mobile bottom buy-bar and starter-kit flow; the story-first landing pages are tuned for paid social traffic.",
-    stack: { checkout: "Shopify Plus checkout", subscription: "Stay AI", analytics: "Triple Whale", esp: "Klaviyo plus Postscript" },
-    churnHook: "Starter-kit onboarding that rebrands the morning habit and a heavy SMS relationship.",
+    slug: "ceeze", name: "Ceeze", category: "Artist commission studio", tier: 2,
+    desktopUX: "Portfolio gallery with athlete and music placements front and centre, and an enquiry path in place of a buy path. Credibility is high, friction is total.",
+    mobileUX: "Instagram-first discovery with the site acting as an archive. No price, no lead time, no checkout.",
+    stack: { checkout: "Enquiry and DM-led", subscription: "None", analytics: "GA4", esp: "None visible" },
+    churnHook: "Personal relationship and reputation instead of lifecycle marketing.",
     wires: [
-      ["[SCREENSHOT: Mobile persistent buy-bar]", "Fixed bottom bar with price and subscribe CTA that stays through the long landing page."],
-      ["[SCREENSHOT: Starter-kit offer block]", "Bundle of base, frother, and guide framed as the ritual starting point."],
-      ["[SCREENSHOT: Long-form paid-social LP]", "Story-first landing page with staged proof, testimonials, and repeated CTAs."],
-      ["[SCREENSHOT: SMS opt-in modal]", "Aggressive but well-timed SMS capture tied to a first-order incentive."]
+      ["[SCREENSHOT: Placement gallery]", "High-profile client pairs presented as an archive, establishing credibility rather than availability."],
+      ["[SCREENSHOT: Commission enquiry]", "Short enquiry form asking for the idea, the pair and the timeline."],
+      ["[SCREENSHOT: Instagram-first funnel]", "Social profile doing the discovery work the site does not attempt."],
+      ["[SCREENSHOT: Archive grid]", "Past commissions with no path to order anything similar."]
     ],
     swot: {
-      s: ["Category-leading DTC funnel and SMS program", "Starter-kit onboarding that lands the habit"],
-      w: ["Taste is an acquired-preference barrier", "Paint-averse positioning limits coffee loyalists"],
-      o: ["A functional coffee that keeps real coffee taste", "Provenance credibility MUD\\Wtr cannot claim"],
-      t: ["High paid-acquisition dependence", "Adaptogen-category noise"]
+      s: ["Genuine artist credibility and high-profile placement", "A personal relationship with every client"],
+      w: ["Capacity is one artist's hands", "No catalog, no listed price, no committed date"],
+      o: ["Studio volume across many fandoms at once", "International express fulfilment they do not offer"],
+      t: ["Studio-scale customisers meeting the same demand faster", "Configurators absorbing the mainstream"]
     },
     path: [
-      "Copy the starter-kit onboarding and persistent mobile buy-bar for Coffee Collection.",
-      "Position as functional coffee that still tastes like coffee, capturing loyalists MUD\\Wtr loses on taste.",
-      "Build an owned SMS relationship rather than leaning on discount-led paid acquisition."
+      "Publish many builds a week rather than one, across different fandoms.",
+      "Make every filmed design immediately buyable rather than an example of past work.",
+      "Commit to 10 to 15 days made-to-order against an open-ended queue."
     ]
   },
   {
-    slug: "ryze", name: "Ryze", category: "Mushroom coffee", tier: 2,
-    desktopUX: "Simple conversion-focused site with subscribe-and-save as the default and heavy creator and review proof.",
-    mobileUX: "Lightweight and fast on mobile with subscribe pre-selected, though the brand story is thin beyond the offer.",
-    stack: { checkout: "Shopify checkout", subscription: "Skio", analytics: "GA4", esp: "Klaviyo" },
-    churnHook: "Subscribe-and-save default with strong creator proof driving first purchase.",
+    slug: "kickstradomis", name: "Kickstradomis", category: "Artist commission studio", tier: 2,
+    desktopUX: "Gallery-led site with a recognisable house style and long-running sport associations. Enquiry rather than checkout, as with every commission studio.",
+    mobileUX: "Social-first discovery; the site is an archive rather than a storefront.",
+    stack: { checkout: "Enquiry-led", subscription: "None", analytics: "GA4", esp: "None visible" },
+    churnHook: "Reputation and sport ties rather than any lifecycle system.",
     wires: [
-      ["[SCREENSHOT: Subscribe-default PDP]", "Add-to-cart with subscription pre-selected and one-time relegated to a smaller toggle."],
-      ["[SCREENSHOT: Creator proof wall]", "Grid of creator videos and reviews acting as the primary trust driver."],
-      ["[SCREENSHOT: Mobile fast checkout]", "Minimal-step express checkout optimised for paid-social first-time buyers."],
-      ["[SCREENSHOT: Amazon parity banner]", "Cross-channel reassurance for buyers who also see the brand on Amazon."]
+      ["[SCREENSHOT: House-style gallery]", "Instantly recognisable painted style across a grid of past commissions."],
+      ["[SCREENSHOT: Sport placement feature]", "Athlete pairs presented as the proof of credibility."],
+      ["[SCREENSHOT: Enquiry path]", "Contact route replacing a product page."],
+      ["[SCREENSHOT: Mobile archive]", "Long scroll of past work with no action available."]
     ],
     swot: {
-      s: ["High-velocity subscribe-default funnel", "Strong creator-led social proof"],
-      w: ["Thin brand narrative beyond the offer", "Heavy Amazon reliance weakens first-party data"],
-      o: ["A defensible origin and provenance story", "Owned-channel retention beyond the initial discount"],
-      t: ["Commoditised mushroom-coffee pricing wars", "Marketplace margin compression"]
+      s: ["Instantly recognisable style", "Deep sport and athlete relationships"],
+      w: ["The single-artist ceiling on capacity", "Nothing browsable and nothing buyable"],
+      o: ["Breadth of subject matter rather than one house style", "A catalog that can be searched instead of a queue that must be joined"],
+      t: ["Studios offering reliability and a date", "Marketplace price pressure at the low end"]
     },
     path: [
-      "Keep subscribe-as-default but reinforce it with a provenance narrative Ryze lacks.",
-      "Move buyers off marketplace dependence into owned lifecycle flows for durable retention.",
-      "Compete on story and taste rather than the discount treadmill."
+      "Compete on breadth of subject matter across anime, gaming, football, cars and celebrity.",
+      "Offer a searchable catalog instead of a queue.",
+      "Promise reliability and a date, which no single artist can."
     ]
   },
   {
-    slug: "vital-proteins", name: "Vital Proteins", category: "Functional supplement", tier: 1,
-    desktopUX: "Retail-grade omnichannel site with routine bundling, replenishment defaults, and a broad SKU catalog.",
-    mobileUX: "Competent mobile experience with clear reorder paths, though the wide catalog can overwhelm first-time choice.",
-    stack: { checkout: "Shopify Plus checkout", subscription: "Recharge", analytics: "GA4 plus Amplitude", esp: "Klaviyo" },
-    churnHook: "Routine bundling and replenishment reminders that anchor a daily supplement habit.",
+    slug: "etsy-customs", name: "Etsy custom-sneaker sellers", category: "Marketplace long tail", tier: 1,
+    desktopUX: "Marketplace search and listing grid where thousands of independent painters compete on thumbnail, review count and price. This is where most first-time custom buyers begin.",
+    mobileUX: "Marketplace app browsing driven by reviews and price. Base originality and paint durability are rarely evidenced and frequently overstated.",
+    stack: { checkout: "Etsy marketplace", subscription: "None", analytics: "Marketplace analytics", esp: "Marketplace messaging" },
+    churnHook: "Marketplace favourites and coupons; no seller owns the customer relationship.",
     wires: [
-      ["[SCREENSHOT: Routine bundle builder]", "Guided flow assembling a daily routine from complementary SKUs with a subscribe default."],
-      ["[SCREENSHOT: Replenishment reminder]", "Lifecycle email and on-site banner nudging reorder before the current supply runs out."],
-      ["[SCREENSHOT: Broad catalog grid]", "Dense product grid with filters where first-time choice can stall."],
-      ["[SCREENSHOT: Mobile reorder card]", "One-tap reorder of the last routine from the account home."]
+      ["[SCREENSHOT: Marketplace search grid]", "Dozens of near-identical hand-painted AF1 listings sorted by price and review count."],
+      ["[SCREENSHOT: Listing detail]", "Seller-written specification with no verifiable claim about the base pair or the finish."],
+      ["[SCREENSHOT: Review wall]", "Review volume doing the trust work that provenance evidence should be doing."],
+      ["[SCREENSHOT: Coupon banner]", "Marketplace-level discounting that anchors the whole category's price expectation."]
     ],
     swot: {
-      s: ["Omnichannel scale and retail trust", "Mature replenishment and bundling"],
-      w: ["Broad catalog overwhelms first-time triers", "Ingredient story less origin-led"],
-      o: ["A cleaner functional-coffee entry ritual", "Origin-led trust versus generic supplement framing"],
-      t: ["Retail-scale competitors with big budgets", "Category price competition"]
+      s: ["Enormous aggregate supply and search visibility", "Sets the price anchor buyers arrive with"],
+      w: ["Base originality frequently unverified", "Paint durability and delivery are unmanaged and unpredictable"],
+      o: ["Originality and finish claims this tier cannot make", "A studio that answers, with a stated window"],
+      t: ["Continued downward price pressure", "Category reputation damage from poor-quality pairs"]
     },
     path: [
-      "Adopt replenishment reminders tuned to the coffee refill window.",
-      "Lead with a single hero ritual rather than a broad catalog to reduce first-choice friction.",
-      "Differentiate on one-of-one origin against generic supplement sourcing."
+      "Never answer this tier with a discount; answer it with the 100% original base.",
+      "Show the water and scratch resistant finish being applied, on camera.",
+      "State the 10 to 15 day window and then keep it, which the long tail rarely does."
     ]
   },
   {
-    slug: "obvi", name: "Obvi", category: "Collagen / streetwear", tier: 2,
-    desktopUX: "Community-led, design-forward brand with gamified loyalty and playful desktop merchandising.",
-    mobileUX: "Mobile-first and SMS-heavy with quick add flows; loyalty mechanics are surfaced prominently in the thumb zone.",
-    stack: { checkout: "Shopify checkout", subscription: "Recharge", analytics: "GA4", esp: "Klaviyo plus Postscript" },
-    churnHook: "Community-led SMS and gamified loyalty points that make reorder feel like a game.",
+    slug: "stockx", name: "StockX", category: "Sneaker resale marketplace", tier: 1,
+    desktopUX: "Bid-ask market interface with full price history, sizing liquidity and an authentication promise. Ruthlessly efficient for buying a pair that already exists.",
+    mobileUX: "App-first with price alerts and a drop calendar. Fast, transparent and completely impersonal, which is exactly its appeal.",
+    stack: { checkout: "Proprietary marketplace", subscription: "None", analytics: "First-party", esp: "App push and email" },
+    churnHook: "Drop calendar, price alerts and portfolio-style engagement.",
     wires: [
-      ["[SCREENSHOT: Loyalty points dock]", "Persistent loyalty widget showing points balance and next-reward progress."],
-      ["[SCREENSHOT: Mobile quick-add designs]", "Design selector with fast add-to-cart tuned for repeat mobile buyers."],
-      ["[SCREENSHOT: SMS-led launch]", "Time-sensitive design drop announced primarily through SMS."],
-      ["[SCREENSHOT: Community UGC wall]", "User photos and reviews stacked as the core trust layer."]
+      ["[SCREENSHOT: Bid-ask interface]", "Live market with lowest ask, highest bid and sale history per size."],
+      ["[SCREENSHOT: Authentication badge]", "Verification promise presented as the core trust product."],
+      ["[SCREENSHOT: Price alert flow]", "Alerts that bring buyers back without any brand relationship."],
+      ["[SCREENSHOT: Drop calendar]", "Release schedule turning scarcity into a repeat visit mechanic."]
     ],
     swot: {
-      s: ["Strong community and SMS retention", "Gamified loyalty driving repeat"],
-      w: ["Design-novelty dependence", "Positioning skews promotional"],
-      o: ["Premium provenance versus promo-led rivals", "Ritual depth over novelty churn"],
-      t: ["Discount-habit erosion of margin", "Crowded collagen category"]
+      s: ["Authentication is a genuinely valuable trust product", "Unmatched liquidity and price transparency"],
+      w: ["Nothing unique is ever produced", "Rare, but never singular; no craft and no story"],
+      o: ["Gifting, where duplication is precisely the problem", "Grail budget redirected toward Jordan and Samba customs"],
+      t: ["Nothing here threatens a customiser directly; it competes for the same budget"]
     },
     path: [
-      "Borrow the community and SMS retention muscle without the discount habit.",
-      "Use loyalty to reward the ritual, protecting full-margin loyalists from a promo reflex.",
-      "Anchor identity in origin and craft rather than design novelty."
+      "Compete on singular versus rare, the one argument a marketplace cannot answer.",
+      "Own gifting and occasion demand, which resale serves badly.",
+      "Point the grail budget at Air Jordan and Adidas Samba customs."
     ]
   },
   {
-    slug: "cometeer", name: "Cometeer", category: "Frozen coffee format", tier: 3,
-    desktopUX: "Format-led narrative selling frozen coffee capsules; desktop leans on convenience proof and quality claims.",
-    mobileUX: "The freezer-shelf habit needs explaining on mobile; the novel format adds a comprehension step before purchase.",
-    stack: { checkout: "Custom subscription checkout", subscription: "Recharge", analytics: "GA4", esp: "Klaviyo" },
-    churnHook: "Convenience proof and freezer-shelf habit framing that lock in a recurring format.",
+    slug: "goat", name: "GOAT", category: "Sneaker resale marketplace", tier: 2,
+    desktopUX: "Editorial merchandising layered over a resale catalog, which raises perceived quality above a pure market interface.",
+    mobileUX: "Strong app browsing with editorial content and clean authentication messaging.",
+    stack: { checkout: "Proprietary marketplace", subscription: "None", analytics: "First-party", esp: "App push and email" },
+    churnHook: "Editorial content and app engagement rather than lifecycle flows.",
     wires: [
-      ["[SCREENSHOT: Format explainer hero]", "Animated sequence showing capsule to pair, teaching the frozen format fast."],
-      ["[SCREENSHOT: Mobile comprehension step]", "Extra how-it-works panel on mobile before the buy action to reduce format confusion."],
-      ["[SCREENSHOT: Freezer-habit framing]", "Lifestyle imagery placing capsules in the freezer as a daily-ritual cue."],
-      ["[SCREENSHOT: Subscription cadence picker]", "Delivery frequency tuned to average consumption."]
+      ["[SCREENSHOT: Editorial home]", "Curated stories sitting above the resale catalog, doing brand work a market interface cannot."],
+      ["[SCREENSHOT: Product page]", "Sizing, condition and authentication messaging on a resale listing."],
+      ["[SCREENSHOT: App browse]", "Editorial-led discovery in a mobile-first surface."],
+      ["[SCREENSHOT: Authentication explainer]", "Verification process presented as the reason to trust the platform."]
     ],
     swot: {
-      s: ["Differentiated frozen format and quality story", "Strong convenience narrative"],
-      w: ["Format needs education and freezer space", "Higher logistics and price barrier"],
-      o: ["A no-new-behaviour ritual coffee", "Lower comprehension friction at purchase"],
-      t: ["Format fatigue and cold-chain cost", "Convenience rivals with simpler formats"]
+      s: ["Editorial curation raises perceived quality", "Authentication plus a strong app experience"],
+      w: ["Produces nothing unique", "Competes on access and hype, not on creation"],
+      o: ["Their editorial standard as the bar for KNICKGASM design storytelling", "Gifting budget won on uniqueness"],
+      t: ["Competes for the same discretionary sneaker spend"]
     },
     path: [
-      "Win the buyers Cometeer loses to format friction with a familiar craft ritual.",
-      "Keep the convenience promise without asking for a new behaviour or freezer space.",
-      "Lead with taste and origin rather than a format learning curve."
+      "Raise KNICKGASM's design storytelling to their editorial standard.",
+      "Argue uniqueness against curation, which is a different and stronger claim.",
+      "Take gifting budget with a pair that cannot be bought twice."
     ]
   },
   {
-    slug: "jot", name: "Jot", category: "Ultra-concentrate coffee", tier: 3,
-    desktopUX: "Concentrate-led site selling one-tablespoon-per-pair math; desktop is clean with a clear value-per-pair story.",
-    mobileUX: "Efficient mobile reorder with a low-friction path, though the concentrate format needs a quick usage explainer.",
-    stack: { checkout: "Shopify checkout", subscription: "Recharge", analytics: "GA4", esp: "Klaviyo" },
-    churnHook: "One-bottle-a-month math and a low-friction reorder that make replenishment feel effortless.",
+    slug: "crepdog-crew", name: "CrepDog Crew", category: "India resale and drops", tier: 2,
+    desktopUX: "Drop-led merchandising with strong youth energy and community framing; authentication carries the trust in a market that needs it.",
+    mobileUX: "Social-first with drop reminders. Built for speed and scarcity rather than for considered browsing.",
+    stack: { checkout: "Shopify", subscription: "None", analytics: "GA4", esp: "Klaviyo-class ESP" },
+    churnHook: "Drop cadence and community membership rather than replenishment.",
     wires: [
-      ["[SCREENSHOT: Value-per-pair calculator]", "Interactive one-bottle-equals-many-pairs math driving perceived value."],
-      ["[SCREENSHOT: Mobile reorder path]", "Streamlined reorder from account with subscription cadence pre-set."],
-      ["[SCREENSHOT: Usage explainer]", "Quick how-to-pour panel teaching the concentrate ratio."],
-      ["[SCREENSHOT: Black-tie brand hero]", "Minimalist premium hero framing concentrate as an upscale staple."]
+      ["[SCREENSHOT: Drop landing]", "Countdown-led release page with limited stock framing."],
+      ["[SCREENSHOT: Authentication note]", "Verification messaging positioned as the core reason to buy here."],
+      ["[SCREENSHOT: Community feed]", "Customer wear and community content used as the primary proof asset."],
+      ["[SCREENSHOT: Mobile drop reminder]", "Push and reminder mechanics that bring the same buyers back for the next release."]
     ],
     swot: {
-      s: ["Compelling value-per-pair math", "Clean premium minimalism"],
-      w: ["Concentrate format needs usage education", "Narrow product range"],
-      o: ["A ready-to-craft ritual without ratio math", "Functional payload beyond convenience"],
-      t: ["Format novelty risk", "Convenience-segment price pressure"]
+      s: ["Strong youth reach and community credibility in India", "Authentication as a trust product where it matters most"],
+      w: ["Produces nothing unique", "Competes on hype and access, both of which expire"],
+      o: ["Grail budget won on singular rather than rare", "Gifting and occasion, which resale serves badly"],
+      t: ["Competes directly for the Indian collector wallet"]
     },
     path: [
-      "Match the value-per-pair clarity while removing the ratio learning step.",
-      "Add a functional benefit on top of convenience, which Jot does not offer.",
-      "Use the same low-friction reorder mechanics for the coffee refill rhythm."
+      "Take grail budget with a pair that is singular rather than merely rare.",
+      "Use the same community language without depending on drop scarcity.",
+      "Own wedding, festive and gifting demand, which resale cannot serve well."
     ]
   },
   {
-    slug: "bruvi", name: "Bruvi", category: "Coffee hardware and pods", tier: 3,
-    desktopUX: "Razor-and-blade model selling a brewer plus recurring pods; desktop centers on the hardware PDP and pod economics.",
-    mobileUX: "Hardware purchase is a considered mobile decision; the pod auto-ship subscription is the retention engine post-hardware.",
-    stack: { checkout: "Shopify checkout", subscription: "Recharge", analytics: "GA4", esp: "Klaviyo" },
-    churnHook: "Razor-and-blade lock-in with auto-ship pods that guarantee recurring consumable revenue.",
+    slug: "vegnonveg", name: "VegNonVeg", category: "India sneaker and streetwear retail", tier: 2,
+    desktopUX: "Editorial retail merchandising with genuine cultural curation, plus physical stores that anchor the brand's standing.",
+    mobileUX: "Clean retail browsing; the experience is considered rather than drop-driven.",
+    stack: { checkout: "Shopify", subscription: "None", analytics: "GA4", esp: "Klaviyo-class ESP" },
+    churnHook: "Curation, community and store experience rather than automated lifecycle.",
     wires: [
-      ["[SCREENSHOT: Hardware PDP]", "Brewer product page with financing framing and pod-cost economics."],
-      ["[SCREENSHOT: Pod auto-ship setup]", "Post-hardware subscription setup for recurring pod replenishment."],
-      ["[SCREENSHOT: Mobile considered-purchase flow]", "Longer mobile evaluation flow for the hardware decision with specs and comparisons."],
-      ["[SCREENSHOT: Ecosystem lock-in banner]", "Messaging tying pod compatibility to the brewer to secure recurring revenue."]
+      ["[SCREENSHOT: Editorial home]", "Curated streetwear merchandising that reads as a magazine rather than a catalog."],
+      ["[SCREENSHOT: Collaboration page]", "Brand collaborations presented as cultural moments."],
+      ["[SCREENSHOT: Store locator]", "Physical retail anchoring the online brand."],
+      ["[SCREENSHOT: Mobile product grid]", "Straightforward retail browsing with no personalisation layer."]
     ],
     swot: {
-      s: ["Hardware lock-in guarantees recurring pods", "Predictable consumable revenue"],
-      w: ["High upfront hardware barrier", "Pod-format sustainability concerns"],
-      o: ["No-hardware entry with lower friction", "Sustainability and origin story"],
-      t: ["Established pod ecosystems and inertia", "Environmental sentiment against pods"]
+      s: ["Arguably India's most culturally credible sneaker retailer", "Curation and community rather than discounting"],
+      w: ["Sells only pairs that already exist", "No customisation capability at all"],
+      o: ["Their curation standard applied to KNICKGASM collection merchandising", "Uniqueness as the competing argument"],
+      t: ["Competes for the same discretionary sneaker budget"]
     },
     path: [
-      "Offer the recurring-consumable retention without a hardware barrier to entry.",
-      "Lead on sustainability and origin against pod-waste sentiment.",
-      "Use auto-ship replenishment mechanics for coffee refills, minus the machine lock-in."
+      "Match their curation standard in how KNICKGASM merchandises collections.",
+      "Compete for the same wallet on uniqueness, never on price.",
+      "Treat them as the local proof that curation beats discounting."
     ]
   }
 ];
@@ -479,21 +479,21 @@ const COMPETITORS = [
 /* Reference matrix data (share tier, AOV, D-180 retention, primary hook,
    core tech stack one-liner, churn strategy) merged onto each competitor. */
 const REF = {
-  "blue-bottle":    { tier: 1, tierLabel: "High", aov: "$38.50", d180: "34.20%", hook: "Retail crossover synergy",              stackShort: "Shopify Plus / Recharge Suite",       churnShort: "48-hour interactive pre-shipment SMS" },
-  "trade":          { tier: 1, tierLabel: "High", aov: "$45.00", d180: "31.10%", hook: "Personalized algorithmic onboarding quiz", stackShort: "Headless engine / Next.js / Stripe", churnShort: "Dynamic personalized bean-profile rotations" },
-  "onyx":           { tier: 2, tierLabel: "Med",  aov: "$42.00", d180: "36.50%", hook: "Specialty roaster transparency content", stackShort: "Shopify Plus / Skio Subscription",    churnShort: "Subscriber-only vintage lot reservations" },
-  "four-sigmatic":  { tier: 1, tierLabel: "High", aov: "$52.00", d180: "22.50%", hook: "Top functional host audio endorsements", stackShort: "Shopify Plus / Stay AI Hub",          churnShort: "Down-dose optimization on exit intents" },
-  "mudwtr":         { tier: 1, tierLabel: "High", aov: "$60.00", d180: "21.80%", hook: "Aggressive alternative-ritual video",     stackShort: "Headless pipeline / Recharge API",    churnShort: "Complimentary hardware-kit locking values" },
-  "ryze":           { tier: 2, tierLabel: "Med",  aov: "$55.00", d180: "23.10%", hook: "High-frequency TikTok Shop loops",        stackShort: "Shopify Core / Skio Sub / Klaviyo",   churnShort: "Gamified milestone rewards interface" },
-  "vital-proteins": { tier: 1, tierLabel: "High", aov: "$48.00", d180: "26.80%", hook: "B2B retail programmatic integration pull", stackShort: "Salesforce Commerce / Ordergroove",  churnShort: "Cross-catalog item value bundling" },
-  "obvi":           { tier: 2, tierLabel: "Med",  aov: "$50.00", d180: "24.50%", hook: "Highly managed VIP Facebook forums",      stackShort: "Shopify Plus / Skio / Postscript",    churnShort: "Community streetwear challenge onboarding" },
-  "cometeer":       { tier: 1, tierLabel: "High", aov: "$64.00", d180: "41.10%", hook: "Luxury gifting and tech pioneer seeding", stackShort: "Custom proprietary Next.js stack",    churnShort: "Hardware storage cross-subsidization" },
-  "jot":            { tier: 2, tierLabel: "Med",  aov: "$36.00", d180: "28.90%", hook: "Recipe video creative ad permutations",   stackShort: "Shopify Core / Recharge Engine",      churnShort: "Automated multi-use recipe push tracks" },
-  "bruvi":          { tier: 3, tierLabel: "Low",  aov: "$58.00", d180: "25.40%", hook: "Machine-plus-pod ecosystem seeding",      stackShort: "Shopify Core / Recharge Engine",      churnShort: "Auto-ship pod replenishment lock-in" }
+  "shoe-surgeon":    { tier: 1, tierLabel: "High", price: "POA (commission)", lead: "Commission-length", hook: "Craft ceiling and collaboration halo",        stackShort: "Custom site / enquiry-led",        churnShort: "Reputation and waiting list, no lifecycle" },
+  "nike-by-you":     { tier: 1, tierLabel: "High", price: "Brand list (n/v)", lead: "Brand-stated",      hook: "The largest personalisation funnel there is", stackShort: "Nike.com / Nike app",              churnShort: "Membership programme and app engagement" },
+  "converse-by-you": { tier: 2, tierLabel: "Med",  price: "Brand list (n/v)", lead: "Brand-stated",      hook: "Accessible canvas personalisation",           stackShort: "Converse.com",                     churnShort: "Seasonal brand campaigns" },
+  "vans-customs":    { tier: 2, tierLabel: "Med",  price: "Brand list (n/v)", lead: "Brand-stated",      hook: "Subculture credibility plus print library",   stackShort: "Vans.com",                         churnShort: "Community and subculture programmes" },
+  "ceeze":           { tier: 2, tierLabel: "Med",  price: "POA (commission)", lead: "Commission-length", hook: "Named artist, high-profile placement",        stackShort: "Enquiry and DM-led",               churnShort: "Personal relationship and reputation" },
+  "kickstradomis":   { tier: 2, tierLabel: "Med",  price: "POA (commission)", lead: "Commission-length", hook: "Recognisable house style and sport ties",     stackShort: "Enquiry-led custom site",          churnShort: "Reputation and sport association" },
+  "etsy-customs":    { tier: 1, tierLabel: "High", price: "Long tail (n/v)",  lead: "Seller-stated",     hook: "Price anchoring at enormous scale",           stackShort: "Etsy marketplace",                 churnShort: "Marketplace favourites, no owned relationship" },
+  "stockx":          { tier: 1, tierLabel: "High", price: "Market (n/v)",     lead: "Ships from stock",  hook: "Authentication and market liquidity",         stackShort: "Proprietary marketplace",          churnShort: "Drop calendar and price alerts" },
+  "goat":            { tier: 2, tierLabel: "Med",  price: "Market (n/v)",     lead: "Ships from stock",  hook: "Editorial curation over resale",              stackShort: "Proprietary marketplace",          churnShort: "Editorial content and app engagement" },
+  "crepdog-crew":    { tier: 2, tierLabel: "Med",  price: "Market (n/v)",     lead: "Ships from stock",  hook: "Drop culture and community in India",         stackShort: "Shopify storefront",               churnShort: "Drop cadence and community" },
+  "vegnonveg":       { tier: 2, tierLabel: "Med",  price: "Retail (n/v)",     lead: "Ships from stock",  hook: "Cultural curation and physical retail",       stackShort: "Shopify plus physical stores",     churnShort: "Curation, community and store experience" }
 };
 COMPETITORS.forEach(function (c) {
   const r = REF[c.slug];
-  if (r) { c.tier = r.tier; c.tierLabel = r.tierLabel; c.aov = r.aov; c.d180 = r.d180; c.hook = r.hook; c.stackShort = r.stackShort; c.churnShort = r.churnShort; }
+  if (r) { c.tier = r.tier; c.tierLabel = r.tierLabel; c.price = r.price; c.lead = r.lead; c.hook = r.hook; c.stackShort = r.stackShort; c.churnShort = r.churnShort; }
 });
 
 function tierSpan(t) { return '<span class="tier-' + t + '">Tier ' + t + '</span>'; }
@@ -506,8 +506,8 @@ function competitorMatrix(dossierPrefix) {
     return '<tr>' +
       '<td><a href="' + href + '" class="font-semibold" style="color:var(--knickgasm-green);text-decoration:underline;">' + c.name + '</a><div class="text-[11px]" style="color:var(--soft);">' + c.category + '</div></td>' +
       '<td>' + tierBadge(c) + '</td>' +
-      '<td class="num">' + c.aov + '</td>' +
-      '<td class="num">' + c.d180 + '</td>' +
+      '<td>' + c.price + '</td>' +
+      '<td>' + c.lead + '</td>' +
       '<td>' + c.hook + '</td>' +
       '<td class="code-out" style="font-size:11.5px;">' + c.stackShort + '</td>' +
       '<td>' + c.churnShort + '</td>' +
@@ -519,7 +519,7 @@ function competitorMatrix(dossierPrefix) {
 '        <div class="card overflow-x-auto">',
 '          <table class="grid-tbl" style="min-width:1180px;">',
 '            <thead><tr>',
-'              <th>Brand Name</th><th>Share Tier</th><th>AOV</th><th>D-180 Ret</th><th>Primary Hook</th><th>Core Tech Stack</th><th>Churn Strategy</th><th>Deep-Dive</th>',
+'              <th>Brand Name</th><th>Arena Tier</th><th>Price posture</th><th>Lead time</th><th>Primary Hook</th><th>Commerce Stack</th><th>Retention Strategy</th><th>Deep-Dive</th>',
 '            </tr></thead>',
 '            <tbody>',
 '              ' + rows,
@@ -530,15 +530,18 @@ function competitorMatrix(dossierPrefix) {
 }
 
 /* ------------------------------------------------------ cohort data + cards */
+/* The `roast` key is a legacy field name kept so downstream consumers keep
+   working; it now carries the cohort's DESIGN preference (rendered as
+   "Design preference"), not a coffee roast. */
 const COHORTS = [
-  { id: "third-wave-purists", n: "Third-Wave Purists", tag: "Loyalist", income: "$95k to $180k", roast: "Light to medium, single-origin",
-    desc: "Buys on provenance and craft. Reads taste notes and studio names. Full-margin, protect from a discount habit. Hook: origin story and pair character." },
-  { id: "functional-optimizers", n: "Functional Optimizers", tag: "Subscriber", income: "$70k to $140k", roast: "Adaptogen colorway, medium",
-    desc: "Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily ritual." },
-  { id: "biohacking-performers", n: "Biohacking Performers", tag: "High-intent", income: "$110k to $220k", roast: "Medium-dark, high-dose adaptogen",
-    desc: "Optimises inputs and tracks outcomes. Responds to dose, sourcing, and stacking logic. Hook: precise payload and companion supplements." },
-  { id: "routine-convenience", n: "Routine Convenience", tag: "Switcher", income: "$55k to $110k", roast: "Medium, ground or instant",
-    desc: "Buys for ease and price sensitivity. The discount-responsive switcher. Hook: convenience proof, low-friction reorder, second-order nudge." }
+  { id: "fandom-collectors", n: "Fandom Collectors", tag: "Loyalist", income: "$60k to $140k", roast: "Anime, gaming, football, cars",
+    desc: "Buys the design, not the shoe. Arrives searching a character, a club or a game. Full-margin, protect from a discount habit. Hook: the design nobody else will own." },
+  { id: "grail-collectors", n: "Grail Collectors", tag: "High-intent", income: "$100k to $220k", roast: "Air Jordan and Adidas Samba customs",
+    desc: "Buys rarity and craft. Compares against resale grails and bespoke commissions. Highest order value in the catalog. Hook: singular beats rare, on a 100% original base." },
+  { id: "occasion-gifters", n: "Occasion &amp; Gift Buyers", tag: "Seasonal", income: "$70k to $180k", roast: "Wedding, milestone, celebrity, bling",
+    desc: "Buys for a person and a date. Least price-sensitive, most deadline-sensitive demand in the range. Hook: a gift that cannot be duplicated, delivered on time." },
+  { id: "curious-first-timers", n: "Curious First-Timers", tag: "Switcher", income: "$45k to $95k", roast: "Converse and Court Vision customs",
+    desc: "Has seen cheaper painted pairs and is weighing the risk. Price-aware and proof-hungry. Hook: the original base, the durable finish, and a stated 10 to 15 day window." }
 ];
 function cohortCards() {
   return '<div class="grid gap-5 md:grid-cols-2">' + COHORTS.map(function (c, i) {
@@ -549,7 +552,7 @@ function cohortCards() {
       '<span class="pill" style="background:var(--knickgasm-chalk);color:' + tagColor + ';">' + c.tag + '</span></div>' +
       '<div class="grid grid-cols-2 gap-3 mt-4 text-sm">' +
       '<div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">' + c.income + '</div></div>' +
-      '<div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">' + c.roast + '</div></div></div>' +
+      '<div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Design preference</div><div class="mt-0.5">' + c.roast + '</div></div></div>' +
       '<p class="text-sm mt-3" style="color:var(--knickgasm-ink);">' + c.desc + '</p></div>';
   }).join("") + '</div>';
 }
@@ -622,23 +625,23 @@ const JS_WORKSPACE = String.raw`
   var STORE = { US:'knickgasm.com', UK:'knickgasm.com', Global:'knickgasm.com' };
   var CUR = { US:'$', UK:'£', Global:'$' };
   var AVATAR = {
-    '001': { name:'Third-Wave Purists', hook:'origin story and pair character', hero:'One-of-One Jordan First Flush', sub:'studio reserve' },
-    '002': { name:'Functional Optimizers', hook:'the daily refill rhythm', hero:'Coffee Collection', sub:'refill subscription' },
-    '003': { name:'Biohacking Performers', hook:'precise adaptogen payload', hero:'Coffee Collection, high-dose', sub:'performance stack' },
-    '004': { name:'Routine Convenience', hook:'a simpler morning', hero:'Ground Coffee Collection', sub:'auto-reorder' }
+    '001': { name:'Fandom Collectors', hook:'the design they already love', hero:'Air Force 1 custom', sub:'anime, gaming and football collections', price:'156' },
+    '002': { name:'Grail Collectors', hook:'a pair that is singular, not merely rare', hero:'Air Jordan custom', sub:'grail tier', price:'205' },
+    '003': { name:'Occasion and Gift Buyers', hook:'a gift that cannot be duplicated', hero:'wedding custom', sub:'wedding and gifting collection', price:'156' },
+    '004': { name:'Curious First-Timers', hook:'a first one-of-one without the risk', hero:'Converse custom', sub:'entry tier', price:'100' }
   };
   function mailerBlock(a, market){
     var store = STORE[market], cur = CUR[market];
     return [
 '<!-- Knickgasm mailer :: '+a.name+' :: '+market+' -->',
-'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F2;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;color:#111111;">',
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;color:#111111;">',
 '  <tr><td align="center" style="padding:28px 16px;">',
 '    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid rgba(23,23,23,.12);border-radius:12px;overflow:hidden;">',
-'      <tr><td style="background:#6A33D8;padding:22px 28px;"><span style="font-family:Montserrat,Georgia,serif;color:#F7F5F2;font-size:24px;">Knickgasm</span></td></tr>',
-'      <tr><td style="padding:34px 28px 8px;"><h1 style="margin:0;font-family:Montserrat,Georgia,serif;color:#6A33D8;font-size:28px;line-height:1.15;">There is a moment when the right pair does more than warm your hands.</h1></td></tr>',
-'      <tr><td style="padding:8px 28px 20px;"><p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. Lace-up the '+a.hero+', hand-painted and shipped studio-fresh from origin, and let the ritual restore the morning.</p></td></tr>',
-'      <tr><td style="padding:0 28px 26px;"><a href="https://'+store+'/products/coffee-collection" style="display:inline-block;background:#D0473E;color:#6A33D8;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Start the ritual, '+cur+'39.83</a></td></tr>',
-'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;"><p style="margin:0;font-size:12px;color:#5b5b57;">Single-studio. Hand-painted. Crafted at origin. Knickgasm.</p></td></tr>',
+'      <tr><td style="background:#D0473E;padding:22px 28px;"><span style="font-family:Montserrat,Georgia,serif;color:#FFFFFF;font-size:24px;">Knickgasm</span></td></tr>',
+'      <tr><td style="padding:34px 28px 8px;"><h1 style="margin:0;font-family:Montserrat,Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">There is a moment when the right pair stops being a shoe.</h1></td></tr>',
+'      <tr><td style="padding:8px 28px 20px;"><p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. The '+a.hero+' is hand-painted by our artists in Mumbai on a 100% original pair, finished water and scratch resistant, and made to order in 10 to 15 days.</p></td></tr>',
+'      <tr><td style="padding:0 28px 26px;"><a href="https://'+store+'/collections/best-sellers" style="display:inline-block;background:#6A33D8;color:#FFFFFF;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">See the designs, from '+cur+a.price+'</a></td></tr>',
+'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;"><p style="margin:0;font-size:12px;color:#5b5b57;">One of one. Hand-painted on original pairs. Express shipping to 60+ countries. Knickgasm.</p></td></tr>',
 '    </table>',
 '  </td></tr>',
 '</table>'
@@ -649,16 +652,16 @@ const JS_WORKSPACE = String.raw`
     return [
 '/* Paid social ad :: '+a.name+' :: '+market+' */',
 'PRIMARY TEXT:',
-'  Restore the morning with '+a.hero+'. Hand-painted at a one of one, crafted at origin,',
-'  and built for '+a.hook+'. This is the ritual worth keeping.',
+'  A '+a.hero+' painted by hand on a 100% original pair, for '+a.hook+'.',
+'  Water and scratch resistant. Made to order in 10 to 15 days. Nobody else will own it.',
 '',
-'HEADLINE:  Origin in every pair',
-'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+', shipped studio-fresh.',
+'HEADLINE:  One of one, on an original pair',
+'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+', hand-painted in Mumbai, shipped express.',
 'CTA:  Shop now',
-'LANDING:  https://'+store+'/products/coffee-collection',
-'PRICE POINT:  '+cur+'39.83',
+'LANDING:  https://'+store+'/collections/best-sellers',
+'PRICE POINT:  from '+cur+a.price+'',
 '',
-'PALETTE:  #6A33D8 violet / #D0473E lava / #111111 ink / #F7F5F2 chalk',
+'PALETTE:  #D0473E lava red / #6A33D8 drip purple / #111111 ink / #FFFFFF white',
 'FONTS:    Montserrat (headline) / Instrument Sans (body)',
 'NOTE:     No banned phrases. Warm, sensory, story-driven register.'
     ].join('\n');
@@ -672,14 +675,14 @@ const JS_WORKSPACE = String.raw`
 '  "market": "'+market+'",',
 '  "formats": ["mp4_9x16", "mp4_1x1", "gif_1x1"],',
 '  "duration_seconds": 8,',
-'  "palette": ["#6A33D8", "#D0473E", "#111111", "#F7F5F2"],',
+'  "palette": ["#D0473E", "#6A33D8", "#111111", "#FFFFFF"],',
 '  "typography": { "headline": "Montserrat", "body": "Instrument Sans" },',
 '  "scenes": [',
-'    { "t": "0-2s", "shot": "steam rising off a fresh pour, chalk background", "text": "A moment to restore" },',
-'    { "t": "2-5s", "shot": "'+a.hero+' pack, one-of-one label in focus", "text": "Hand-painted at origin" },',
-'    { "t": "5-8s", "shot": "hands cradling the pair, warm light", "text": "Start the ritual" }',
+'    { "t": "0-2s", "shot": "blank white original pair on the workbench, first stroke of colour landing", "text": "It starts as an original" },',
+'    { "t": "2-5s", "shot": "macro of the brush and airbrush passes building the '+a.hero+' design", "text": "Hand-painted in Mumbai" },',
+'    { "t": "5-8s", "shot": "finished pair turned to camera, then worn out of frame", "text": "One of one. Yours only." }',
 '  ],',
-'  "cta": { "label": "Shop now", "url": "https://'+store+'/products/coffee-collection" },',
+'  "cta": { "label": "Shop now", "url": "https://'+store+'/collections/best-sellers" },',
 '  "hook": "'+a.hook+'"',
 '}'
     ].join('\n');
@@ -771,34 +774,34 @@ const JS_SHOPIFY = String.raw`
 /* ---- HUB ---- */
 function buildHub() {
   const main = [
-hero("Knickgasm Lifecycle OS", "The Growth &amp; Automation Playbook",
-  "The master hub for how Knickgasm grows a premium coffee and functional-beverage franchise. This is a modular, multi-page ecosystem: every feature and every competitor lives in its own deep-dive file, and this hub links out to all of them. Figures are live-engine readings or stated planning benchmarks, labelled as such."),
+hero("Lifecycle OS", "The Growth &amp; Automation Playbook",
+  "The master hub for how Knickgasm grows a hand-painted custom sneaker business. This is a modular, multi-page ecosystem: every feature and every competitor lives in its own deep-dive file, and this hub links out to all of them. KNICKGASM figures are read from the built catalogs; third-party market sizing is marked as a dependency rather than estimated."),
 
 // Feature 01
 '      <section data-section id="market" class="space-y-4">',
-secHead("Feature 01", "Macro Market Intelligence War Room", "The US coffee and functional-beverage opportunity, framed top-down."),
+secHead("Feature 01", "Macro Market Intelligence War Room", "The US custom sneaker opportunity, framed top-down."),
 '        <div class="grid gap-4 sm:grid-cols-3">',
-metricCard("TAM", "$117.94B", "Total US coffee market value, all channels."),
-metricCard("SAM", "$26.40B", "Serviceable D2C and premium/functional segment.", "lava"),
-metricCard("SOM", "$5.85B", "Obtainable US coffee D2C value at current positioning.", "green"),
+metricCard("Live SKUs", "436", "Finished one-of-one designs in the built catalog."),
+metricCard("AF1 median", "$156", "Median US price of an Air Force 1 custom (UK ~&pound;124).", "lava"),
+metricCard("Countries", "60+", "Markets reached by express shipping.", "green"),
 '        </div>',
 '        <div class="flex flex-wrap gap-3">' + linkBtn("./features/market-intelligence.html", "Open Comprehensive Market Report &rarr;") + linkBtn("./features/market-study.html", "Read the Complete Market Study &rarr;", true) + '</div>',
 '      </section>',
 
 // Feature 02
 '      <section data-section id="competitors" class="space-y-4">',
-secHead("Feature 02", "Forensic Competitor Dossiers", "Eleven rivals across premium coffee, functional beverage, and supplements. Each brand name and deep-dive link opens its own independent dossier file covering desktop vs mobile UX, wireframes, tech stack, and a Knickgasm battle card."),
+secHead("Feature 02", "Forensic Competitor Dossiers", "Eleven players across bespoke commission studios, brand configurators, the marketplace long tail, resale and Indian sneaker retail. Each brand name and deep-dive link opens its own independent dossier file covering desktop vs mobile UX, wireframes, commerce stack, and a Knickgasm battle card."),
 competitorMatrix("./"),
 '        <div>' + linkBtn("./features/competitor-index.html", "Open the full dossier index &rarr;") + '</div>',
 '      </section>',
 
 // Feature 03 + 04
 '      <section data-section id="knowledge" class="space-y-4">',
-secHead("Feature 03 &amp; 04", "Knowledge Base &amp; Product Avatars", "The origin truth behind the premium, and the product characters that carry it to the shopper."),
+secHead("Feature 03 &amp; 04", "Knowledge Base &amp; Product Avatars", "The craft truth behind the premium, and the product characters that carry it to the shopper."),
 '        <div class="grid gap-4 md:grid-cols-3">',
-'          <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Direct-to-origin speed</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">48 to 72 hours from crop drop to vacuum processing plants, with no auction-house middlemen between studio and pack.</p></div>',
-'          <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Cryptographic tracking</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Batch-level traceability to the source studio, held to an optimum 6.5% moisture threshold at pack.</p></div>',
-'          <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Sneaker-to-coffee cross-sell</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Bridge themed and embroidery buyers into Coffee Collection and supplements, the cleanest path from one-time buyer to subscriber.</p></div>',
+'          <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Made-to-order in 10 to 15 days</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Every pair is painted after it is ordered, in the Mumbai studio, then finished and shipped express. The window is stated before checkout, never discovered at it.</p></div>',
+'          <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Original bases, durable finish</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Every design is painted on a 100% original Nike, Jordan, Converse or Adidas pair and sealed with a water and scratch resistant finish. Both claims are checkable, which is the whole differentiation.</p></div>',
+'          <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Accessory and care attach</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Rope laces at $7.91 and lace tags at $9.14 lift basket value without discounting the pair, and open the care conversation that brings a grail buyer back.</p></div>',
 '        </div>',
 avatarPreview("./"),
 '        <div class="flex flex-wrap gap-3">' + linkBtn("./features/knowledge-base.html", "Open Knowledge Base &rarr;") + linkBtn("./features/product-avatars.html", "Meet the Product Avatars &rarr;", true) + '</div>',
@@ -827,72 +830,74 @@ secHead("Feature 08", "KicksGPT Internal Intelligence Engine Dock", "The brand L
 '        </div>',
 '      </section>',
 
-'      <footer class="pt-8 border-t text-[12.5px]" style="border-color:var(--line);color:var(--soft);">Knickgasm Growth &amp; Automation Playbook hub. Modular by design: every feature and competitor is its own file. Market figures are stated planning benchmarks; competitor intelligence is directional and labelled, not audited data.</footer>'
+'      <footer class="pt-8 border-t text-[12.5px]" style="border-color:var(--line);color:var(--soft);">Knickgasm Growth &amp; Automation Playbook hub. Modular by design: every feature and competitor is its own file. KNICKGASM figures are read from the built catalogs; competitor intelligence is directional and labelled, and unverifiable figures are marked rather than estimated.</footer>'
   ].join("\n");
 
-  return page({ title: "Knickgasm Growth & Automation Playbook", desc: "Master hub for the Knickgasm growth and automation playbook: market intelligence, competitor dossiers, knowledge base, cohorts, analytics, asset workspace, Shopify loop, and KicksGPT config.", prefix: "", activeKey: "hub", crumb: "Playbook Hub", main: main });
+  return page({ title: "Knickgasm Growth & Automation Playbook", desc: "Master hub for the Knickgasm custom-sneaker growth and automation playbook: market intelligence, competitor dossiers, knowledge base, cohorts, analytics, asset workspace, Shopify loop, and KicksGPT config.", prefix: "", activeKey: "hub", crumb: "Playbook Hub", main: main });
 }
 
 /* ---- FEATURE 01: market intelligence ---- */
 function buildMarketIntelligence() {
   const main = [
 hero("Feature 01", "Macro Market Intelligence",
-  "The full sizing and benchmark report behind the hub summary. Top-down market frame, blended lifecycle benchmarks, and the cross-vertical read that positions Knickgasm."),
+  "The full sizing and benchmark report behind the hub summary. Top-down market frame, lifecycle benchmarks, and the cross-tier read that positions Knickgasm in the custom-sneaker arena."),
 '      <section data-section id="sizing" class="space-y-4">',
-secHead("Sizing", "TAM / SAM / SOM", "Total market, the served D2C slice, and the obtainable share at current positioning."),
+secHead("Sizing", "What we can state, and what we still owe", "Custom sneakers are not broken out by any research firm, so the catalog facts are exact and the third-party sizing is named as a dependency."),
 '        <div class="grid gap-4 sm:grid-cols-3">',
-metricCard("TAM", "$117.94B", "Total US coffee market value, all channels and formats."),
-metricCard("SAM", "$26.40B", "Serviceable D2C and premium/functional segment.", "lava"),
-metricCard("SOM", "$5.85B", "Obtainable US coffee D2C value within reach.", "green"),
+metricCard("Live SKUs", "436", "Finished one-of-one designs across every collection."),
+metricCard("Price band", "$99.84 to $261.95", "Full custom pair, US. UK &pound;79.42 to &pound;208.37.", "lava"),
+metricCard("Lead time", "10 to 15 days", "Made-to-order, stated before checkout.", "green"),
 '        </div>',
-'        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Reading the funnel</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);">' +
-'<li><b style="color:var(--knickgasm-green);">SAM is 22.4% of TAM.</b> The D2C and premium/functional slice is where provenance and a real functional payload win.</li>' +
-'<li><b style="color:var(--knickgasm-green);">SOM is 22.2% of SAM.</b> Obtainable share is gated by acquisition efficiency and retention, not demand.</li>' +
-'<li><b style="color:var(--knickgasm-green);">Leverage.</b> Lifting day-180 retention a few points expands realised SOM faster than raising spend.</li></ul></div>',
+'        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Reading the arena</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);">' +
+'<li><b style="color:var(--knickgasm-green);">The gap is structural.</b> Bespoke studios will not list a price, configurators will not paint artwork, and the marketplace long tail will not guarantee an original base.</li>' +
+'<li><b style="color:var(--knickgasm-green);">Demand is created for us.</b> Brand configurators educate an enormous audience that personalisation is worth paying for, then stop at colour.</li>' +
+'<li><b style="color:var(--knickgasm-green);">Third-party sizing is a dependency.</b> [DATA REQUIRED BEFORE LAUNCH: US custom-sneaker service market size, cited firm, US]. Own order data is the better source and should be wired in first.</li></ul></div>',
 '      </section>',
 '      <section data-section id="benchmarks" class="space-y-4">',
-secHead("Benchmarks", "Standard vs functional coffee D2C", "Blended lifecycle economics across the two segments Knickgasm straddles."),
+secHead("Benchmarks", "The catalog, tier by tier", "The real price ladder, read from the built catalogs rather than estimated."),
 '        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:560px;">' +
-'<thead><tr><th>Metric</th><th>Standard coffee D2C</th><th>Functional / streetwear</th></tr></thead><tbody>' +
-'<tr><td>Blended CAC</td><td>$18 to $32</td><td>$38 to $65</td></tr>' +
-'<tr><td>Day-30 retention</td><td>34 to 42%</td><td>44 to 55%</td></tr>' +
-'<tr><td>Day-180 retention</td><td>16 to 24%</td><td>28 to 38%</td></tr>' +
-'<tr><td>AOV</td><td>$26 to $38</td><td>$42 to $68</td></tr>' +
-'<tr><td>12-month LTV</td><td>$70 to $110</td><td>$150 to $260</td></tr>' +
-'<tr><td>Subscription attach</td><td>12 to 20%</td><td>22 to 34%</td></tr>' +
+'<thead><tr><th>Tier</th><th>US price</th><th>UK price</th></tr></thead><tbody>' +
+'<tr><td>Accessories (rope laces, lace tags)</td><td>$7.91 to $9.14</td><td>&pound;6.29 to &pound;7.27</td></tr>' +
+'<tr><td>Hand-painted denim jackets</td><td>$64.35</td><td>&pound;51.19</td></tr>' +
+'<tr><td>Entry customs (Converse, Court Vision)</td><td>$99.84 to $152.06</td><td>&pound;79.42 to &pound;120.96</td></tr>' +
+'<tr><td>Core customs (Air Force 1, 349 SKUs)</td><td>$115.47 to $261.95</td><td>&pound;91.85 to &pound;208.37</td></tr>' +
+'<tr><td>Grail customs (Air Jordan, Adidas)</td><td>$153.60 to $226.29</td><td>&pound;122.18 to &pound;180.00</td></tr>' +
+'<tr><td>Lead time, every made-to-order pair</td><td>10 to 15 days</td><td>10 to 15 days</td></tr>' +
 '</tbody></table></div>',
-'        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance plus a genuine functional payload (Airbrush) is a position rivals hold only in halves. Pair ritual-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher. Figures are stated planning benchmarks.</p></div>',
+'        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">A browsable catalog of finished one-of-one designs, every one painted on a 100% original pair and sealed with a water and scratch resistant finish, delivered in 10 to 15 days. Rivals hold that position only in halves. Lead with the base and the finish, never with a discount. Prices are read from the built catalogs.</p></div>',
 '        <div class="flex flex-wrap gap-3">' + linkBtn("./market-study.html", "Read the complete market study &rarr;") + linkBtn("./competitor-index.html", "See the competitor grid &rarr;", true) + '</div>',
 '      </section>'
   ].join("\n");
-  return page({ title: "Macro Market Intelligence :: Knickgasm Playbook", desc: "TAM/SAM/SOM sizing and blended D2C lifecycle benchmarks for the US coffee and functional-beverage market.", prefix: "../", activeKey: "market-intelligence", crumb: "Market Intelligence", main: main });
+  return page({ title: "Macro Market Intelligence :: Knickgasm Playbook", desc: "Catalog-true sizing and lifecycle benchmarks for the US custom-sneaker arena, with third-party dependencies named rather than estimated.", prefix: "../", activeKey: "market-intelligence", crumb: "Market Intelligence", main: main });
 }
 
-/* ---- FEATURE: complete market study (renders docs/market-intelligence/us-coffee-d2c-landscape.md) ---- */
+/* ---- FEATURE: complete market study (renders the four regional studies from market-study-content.js) ---- */
 function buildMarketStudy() {
   // brand matrix rows from the study; slug links to the dossier where one exists
   const SM = [
-    ["Blue Bottle", "blue-bottle", "Premium whole bean / subscription", "Tier 1 (premium share leader)", "SEO, brand/retail, Meta retarget", "Recharge + Klaviyo", "Flexible cadence and curated seasonal drops keep subscribers collecting; retail halo lowers online churn"],
-    ["Trade Coffee", "trade", "Premium subscription marketplace", "Tier 1 subscription-native", "Affiliate/referral, Meta, SEO", "Recharge + Klaviyo", "Quiz-driven personalization and easy roaster swaps; match guarantee reduces first-bag churn"],
-    ["Onyx Coffee Lab", "onyx", "Premium specialty roaster", "Tier 2 (cult / high-end)", "SEO, community, Instagram", "Recharge + Klaviyo", "Scarcity and competition-grade sourcing story; loyalty via limited lots"],
-    ["Four Sigmatic", "four-sigmatic", "Functional (mushroom / nootropic)", "Tier 1 functional", "Amazon, Meta, affiliate, retail", "Recharge/Skio + Klaviyo", "Bundle and subscribe-and-save; heavy educational flows; multi-SKU cross-sell raises switching cost"],
-    ["MUD\\WTR", "mudwtr", "Functional coffee alternative", "Tier 1 functional", "Podcast/creator, Meta, DR YouTube", "Stay AI + Klaviyo", "Ritual positioning and starter-kit funnel; aggressive win-back and pause-instead-of-cancel"],
-    ["Ryze", "ryze", "Functional (mushroom coffee)", "Tier 2 (fast-scaling DR)", "TikTok, Meta DR, affiliate", "Recharge/Skio + Klaviyo", "Lace-up intro discount into sub; UGC-led proof to fight ingredient skepticism"],
-    ["Vital Proteins", "vital-proteins", "Functional (collagen, streetwear)", "Tier 1 (category-defining)", "Retail, Amazon, Meta, influencer", "Klaviyo + native Shopify sub", "Multi-format range locks routine; Nestle-owned retail distribution"],
-    ["Cometeer", "cometeer", "Form-factor (flash-frozen capsules)", "Tier 2 (emerging premium)", "Meta, PR, referral", "Recharge + Klaviyo", "Proprietary format is hardware-style lock-in; box-cadence subscription"],
-    ["Jot", "jot", "Form-factor (ultra-concentrate)", "Tier 2", "Meta, TikTok, SEO", "Recharge + Klaviyo", "Concentrate frames a low cost per pair; replenishment predictability"],
-    ["Bruvi", "bruvi", "Form-factor (pod machine + pods)", "Tier 3 (device-led)", "Meta, retail, connected-device", "Klaviyo + native sub", "Razor-and-blade: device locks pod reorder; app-nudged replenishment"]
+    ["The Shoe Surgeon", "shoe-surgeon", "Bespoke commission studio", "Tier 1 (craft ceiling)", "Press, collaborations, Instagram", "Custom site, enquiry-led", "Reputation and a waiting list carry demand; there is no lifecycle programme and nothing to buy today"],
+    ["Nike By You", "nike-by-you", "Brand-run configurator", "Tier 1 (mass personalisation)", "Brand marketing, app, retail", "Nike.com + Nike app", "Membership and launch calendar drive return visits; the product itself stops at colour selection"],
+    ["Converse By You", "converse-by-you", "Brand-run configurator", "Tier 2 (accessible)", "Brand, retail, social", "Converse.com", "Seasonal campaigns rather than lifecycle; templated prints and patches, no painted artwork"],
+    ["Vans Customs", "vans-customs", "Brand-run configurator", "Tier 2 (youth reach)", "Brand, skate and music culture", "Vans.com", "Subculture community programmes; widest print library of the configurators but still a template"],
+    ["Ceeze", "ceeze", "Artist commission studio", "Tier 2 (named artist)", "Instagram, athlete placement", "Enquiry and DM-led", "Personal relationship and reputation; capacity is one artist's hands and there is no catalog"],
+    ["Kickstradomis", "kickstradomis", "Artist commission studio", "Tier 2 (house style)", "Instagram, sport partnerships", "Enquiry-led custom site", "Reputation and sport association; same single-artist ceiling on capacity and no listed price"],
+    ["Etsy custom-sneaker sellers", "etsy-customs", "Marketplace long tail", "Tier 1 (price anchor)", "Marketplace search, Pinterest, social", "Etsy marketplace", "Marketplace favourites and coupons; no seller owns the customer and base originality is rarely evidenced"],
+    ["StockX", "stockx", "Sneaker resale marketplace", "Tier 1 (liquidity)", "App, SEO, drop calendar", "Proprietary marketplace", "Drop calendar and price alerts; authentication is the trust product and nothing unique is produced"],
+    ["GOAT", "goat", "Sneaker resale marketplace", "Tier 2 (curation)", "App, editorial, social", "Proprietary marketplace", "Editorial curation and app engagement raise perceived quality over a pure market interface"],
+    ["CrepDog Crew", "crepdog-crew", "India resale and drops", "Tier 2 (community)", "Instagram, community, drops", "Shopify", "Drop cadence and community membership; competes for grail budget on hype rather than uniqueness"]
   ];
+
   const smRows = SM.map(function (r) {
     return '<tr><td><a href="../dossiers/' + r[1] + '.html" style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + r[0] + '</a></td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td>' + r[5] + '</td><td>' + r[6] + '</td></tr>';
   }).join("\n              ");
 
   const COH = [
-    { n: "Cohort A: The Optimizer", driver: "Functionality-driven", demo: "Age 28 to 42, 58% male / 42% female, HHI $90K to $160K. Knowledge-worker, fitness and biohacking-adjacent.", geo: "High-index: California, Washington, Colorado, Texas (Austin), Massachusetts. Urban coastal plus affluent tech-suburb.", mech: "Price elasticity low to moderate (pays a premium for proof, not hype). Core driver: functionality (grail-drop/stress, focus, clean energy). High reactivation with new-benefit or lab-backed content. Churn trigger: did not feel a difference at week 3, or a louder competitor efficacy claim.", map: "Coffee Collection plus focus/adaptogen SKUs on subscription." },
-    { n: "Cohort B: The Ritualist", driver: "Routine-driven", demo: "Age 35 to 55, 63% female / 37% male, HHI $75K to $130K. Streetwear-lifestyle, yoga and meditation, existing sneaker drinkers.", geo: "High-index: New York, New Jersey, Illinois, Oregon, North Carolina. Affluent suburban plus inner-ring urban.", mech: "Price elasticity low (routine equals habit equals sticky). Core driver: routine (morning ritual, calm energy, replaces the afternoon crash). Very high reactivation with a replenishment nudge. Churn trigger: cadence mismatch or life disruption.", map: "Coffee plus sneaker multi-format routine bundle." },
-    { n: "Cohort C: The Status Seeker", driver: "Status-driven", demo: "Age 30 to 50, 51% female / 49% male, HHI $140K to $300K+. Design-conscious, gifting-heavy, premium-brand collectors.", geo: "High-index: California (LA/SF), New York (Manhattan/Brooklyn), Florida (Miami), Texas (Dallas). Urban coastal luxury plus high-net-worth suburban.", mech: "Price elasticity very low (price is a signal, not a barrier). Core driver: status (heritage, one-of-one provenance, limited drops, packaging). Moderate reactivation, needs a novelty hook not a discount. Churn trigger: brand feels mass, or discount-heavy messaging that cheapens the halo.", map: "Single-studio limited drops plus premium gift sets." },
-    { n: "Cohort D: The Curious Convert", driver: "Trial-driven, streetwear-curious", demo: "Age 24 to 38, 60% female / 40% male, HHI $55K to $95K. First-time functional-coffee buyer, price-aware, review-driven.", geo: "Broad, indexes in Georgia, Arizona, Tennessee, Ohio, Pennsylvania. Affluent suburban plus emerging urban.", mech: "Price elasticity high (converts on an intro offer or starter kit). Core driver: functionality plus routine, gated by trust. Moderate to high reactivation if the second-order nudge lands with social proof. Churn trigger: first-bag price shock after the intro discount, unmet expectation, or choice overload.", map: "Starter kit or sampler into a second-order nudge into subscribe-and-save." }
+    { n: "Cohort A: The Fandom Collector", driver: "Design-driven", demo: "Age 18 to 34, broadly balanced by gender. Anime, gaming, football and motorsport communities; buys identity, not footwear.", geo: "High-index: California, New York, Texas, Illinois, plus every major metro with a convention or club culture.", mech: "Price elasticity low to moderate once the design is right. Core driver: the specific subject. Very high reactivation on a new collection in their fandom. Churn trigger: the catalog stops speaking their language.", map: "Anime, gaming, football and sport, cars and celebrity collections on Air Force 1." },
+    { n: "Cohort B: The Grail Collector", driver: "Rarity-driven", demo: "Age 25 to 45, skews male. Already buys resale grails and compares KNICKGASM against StockX and bespoke commissions.", geo: "High-index: coastal US metros, London, Dubai, Mumbai and Delhi.", mech: "Price elasticity very low; price is a signal. Core driver: nobody else has this pair. Moderate reactivation, needs a genuinely new grail rather than a discount. Churn trigger: the range starts to feel repeatable.", map: "Air Jordan and Adidas Samba customs, bling and crystal work." },
+    { n: "Cohort C: The Occasion and Gift Buyer", driver: "Date-driven", demo: "Age 25 to 55, skews female for gifting. Buying for a wedding, a birthday, an anniversary or a milestone.", geo: "Broad; peaks with festive and wedding seasons in every market, strongest in India and the GCC.", mech: "Price elasticity very low, deadline sensitivity very high. Core driver: a gift that cannot be duplicated. Reactivation is annual and calendar-led. Churn trigger: a missed date, which costs far more than the order.", map: "Wedding, pets, celebrity and personalised designs, plus denim jackets." },
+    { n: "Cohort D: The Curious First-Timer", driver: "Trial-driven, proof-gated", demo: "Age 18 to 30, price-aware, has already seen cheaper painted pairs online and is weighing the risk.", geo: "Broad, including Tier-II and Tier-III cities in India and non-metro markets everywhere.", mech: "Price elasticity high, but the objection is trust rather than price. Core driver: uniqueness gated by the fear the paint will crack. Moderate to high reactivation once the first pair survives real wear. Churn trigger: a surprise lead time or a finish that fails.", map: "Converse and Court Vision customs, with rope laces and lace tags attached." }
   ];
+
   const cohCards = COH.map(function (c) {
     return '<div class="card p-6"><div class="flex items-center justify-between flex-wrap gap-2"><h3 class="font-head text-xl text-knickgasm-green">' + c.n + '</h3><span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava-ink);">' + c.driver + '</span></div>' +
       '<dl class="mt-3 text-sm grid gap-2" style="color:var(--knickgasm-ink);">' +
@@ -906,23 +911,24 @@ function buildMarketStudy() {
   // ---- region-tabbed competitor set ----
   const REGIONS = ["US", "UK", "Global", "India"];
   const MB = [
-    { n: "Blue Bottle", s: "blue-bottle", v: "Premium whole bean / subscription", t: "Tier 1", r: ["US", "Global"], site: "bluebottlecoffee.com", aov: "$38.50", hook: "Retail crossover + roast-freshness cadence", churn: "Flexible cadence, seasonal drops, cafe halo", detail: true },
-    { n: "Trade Coffee", s: "trade", v: "Subscription marketplace", t: "Tier 1", r: ["US"], site: "drinktrade.com", aov: "$45.00", hook: "Quiz-matched roaster onboarding", churn: "Easy swap/skip, match guarantee", detail: true },
-    { n: "Onyx Coffee Lab", s: "onyx", v: "Specialty roaster", t: "Tier 2", r: ["US"], site: "onyxcoffeelab.com", aov: "$42.00", hook: "Transparency-scored sourcing", churn: "Limited lots, connoisseur loyalty", detail: true },
-    { n: "Four Sigmatic", s: "four-sigmatic", v: "Functional / mushroom", t: "Tier 1", r: ["US", "UK", "Global"], site: "foursigmatic.com", aov: "$52.00", hook: "Subscribe-first, host endorsements", churn: "Multi-SKU cross-sell, education", detail: true },
-    { n: "MUD\\WTR", s: "mudwtr", v: "Adaptogen alt-coffee", t: "Tier 1", r: ["US", "Global"], site: "mudwtr.com", aov: "$60.00", hook: "Ritual video, starter-kit funnel", churn: "Pause-not-cancel, SMS win-back", detail: true },
-    { n: "Ryze", s: "ryze", v: "Mushroom coffee", t: "Tier 2", r: ["US", "Global"], site: "ryze.co", aov: "$55.00", hook: "TikTok Shop loops, UGC proof", churn: "Subscribe-by-default, milestones", detail: true },
-    { n: "Vital Proteins", s: "vital-proteins", v: "Collagen / functional", t: "Tier 1", r: ["US", "UK", "Global", "India"], site: "vitalproteins.com", aov: "$48.00", hook: "Retail ubiquity, routine SKUs", churn: "Multi-format routine, replenishment", detail: true },
-    { n: "Obvi", s: "obvi", v: "Collagen / streetwear", t: "Tier 2", r: ["US"], site: "myobvi.com", aov: "$50.00", hook: "VIP community + design drops", churn: "Gamified loyalty, SMS-led winback", detail: true },
-    { n: "Cometeer", s: "cometeer", v: "Flash-frozen capsules", t: "Tier 1", r: ["US"], site: "cometeer.com", aov: "$64.00", hook: "Format innovation, premium gifting", churn: "Format lock-in, box cadence", detail: true },
-    { n: "Jot", s: "jot", v: "Ultra-concentrate", t: "Tier 2", r: ["US"], site: "jot.co", aov: "$36.00", hook: "Value-per-pair math", churn: "Low-friction reorder", detail: true },
-    { n: "Bruvi", s: "bruvi", v: "Pod hardware system", t: "Tier 3", r: ["US"], site: "bruvi.com", aov: "$58.00", hook: "Machine + pod ecosystem", churn: "Razor-and-blade pod lock-in", detail: true },
-    { n: "Grind", s: "grind", v: "Premium coffee + pods (UK)", t: "Tier 1 UK", r: ["UK"], site: "grind.co.uk", aov: "£30 (approx)", hook: "Design-led brand, compostable pods", churn: "Subscription pods, cafe halo", detail: false },
-    { n: "Pact Coffee", s: "pact", v: "Specialty subscription (UK)", t: "Tier 2 UK", r: ["UK"], site: "pactcoffee.com", aov: "£22 (approx)", hook: "Freshly roasted, personalised match", churn: "Flexible subscription, swaps", detail: false },
-    { n: "Exhale Coffee", s: "exhale", v: "Functional coffee (UK)", t: "Tier 3 UK", r: ["UK"], site: "exhalecoffee.com", aov: "£30 (approx)", hook: "High-antioxidant functional beans", churn: "Subscribe-and-save, education", detail: false },
-    { n: "London Nootropics", s: "london-nootropics", v: "Adaptogenic coffee (UK/EU)", t: "Tier 3", r: ["UK", "Global"], site: "londonnootropics.com", aov: "£25 (approx)", hook: "Adaptogen lace tags, focus/calm", churn: "Subscription, sampler funnel", detail: false }
+    { n: "The Shoe Surgeon", s: "shoe-surgeon", v: "Bespoke commission studio", t: "Tier 1", r: ["US", "Global"], site: "theshoesurgeon.com", aov: "POA", hook: "Craft ceiling, collaboration halo", churn: "Reputation and waiting list", detail: true },
+    { n: "Nike By You", s: "nike-by-you", v: "Brand configurator", t: "Tier 1", r: ["US", "UK", "Global"], site: "nike.com", aov: "Brand list (n/v)", hook: "Mass personalisation at brand scale", churn: "Membership and app engagement", detail: true },
+    { n: "Converse By You", s: "converse-by-you", v: "Brand configurator", t: "Tier 2", r: ["US", "UK", "Global"], site: "converse.com", aov: "Brand list (n/v)", hook: "Accessible canvas personalisation", churn: "Seasonal brand campaigns", detail: true },
+    { n: "Vans Customs", s: "vans-customs", v: "Brand configurator", t: "Tier 2", r: ["US", "UK", "Global"], site: "vans.com", aov: "Brand list (n/v)", hook: "Subculture reach, widest print library", churn: "Community programmes", detail: true },
+    { n: "Ceeze", s: "ceeze", v: "Artist commission studio", t: "Tier 2", r: ["US"], site: "ceeze.com", aov: "POA", hook: "Named artist, athlete placement", churn: "Personal relationship", detail: true },
+    { n: "Kickstradomis", s: "kickstradomis", v: "Artist commission studio", t: "Tier 2", r: ["US"], site: "kickstradomis.com", aov: "POA", hook: "House style, sport ties", churn: "Reputation and sport association", detail: true },
+    { n: "Etsy custom-sneaker sellers", s: "etsy-customs", v: "Marketplace long tail", t: "Tier 1", r: ["US", "UK", "Global"], site: "etsy.com", aov: "Long tail (n/v)", hook: "Price anchoring at scale", churn: "Marketplace favourites, no owned relationship", detail: true },
+    { n: "StockX", s: "stockx", v: "Sneaker resale marketplace", t: "Tier 1", r: ["US", "UK", "Global"], site: "stockx.com", aov: "Market (n/v)", hook: "Authentication and liquidity", churn: "Drop calendar, price alerts", detail: true },
+    { n: "GOAT", s: "goat", v: "Sneaker resale marketplace", t: "Tier 2", r: ["US", "UK", "Global"], site: "goat.com", aov: "Market (n/v)", hook: "Editorial curation over resale", churn: "Editorial content, app engagement", detail: true },
+    { n: "CrepDog Crew", s: "crepdog-crew", v: "India resale and drops", t: "Tier 2", r: ["India", "Global"], site: "crepdogcrew.com", aov: "Market (n/v)", hook: "Drop culture and community", churn: "Drop cadence, community", detail: true },
+    { n: "VegNonVeg", s: "vegnonveg", v: "India sneaker and streetwear retail", t: "Tier 2", r: ["India"], site: "vegnonveg.com", aov: "Retail (n/v)", hook: "Cultural curation, physical retail", churn: "Curation and store experience", detail: true },
+    { n: "Superkicks", s: "superkicks", v: "India retail and sneaker care", t: "Tier 3", r: ["India"], site: "superkicks.in", aov: "Retail (n/v)", hook: "Retail plus the care adjacency", churn: "Care replenishment, store community", detail: false },
+    { n: "Hypefly", s: "hypefly", v: "India sneaker resale", t: "Tier 3", r: ["India"], site: "hypefly.co.in", aov: "Market (n/v)", hook: "Authenticated grails in India", churn: "Authentication guarantee", detail: false },
+    { n: "Crep Protect", s: "crep-protect", v: "Sneaker care and protection (UK)", t: "Tier 3", r: ["UK", "Global"], site: "crepprotect.com", aov: "Retail (n/v)", hook: "Normalised paying to protect a pair", churn: "Consumable replenishment", detail: false },
+    { n: "Angelus Direct", s: "angelus", v: "Leather paints and finishers (supply)", t: "Tier 3", r: ["US", "Global"], site: "angelusdirect.com", aov: "Retail (n/v)", hook: "What most hand-painters buy", churn: "Supply-side repeat", detail: false }
   ];
-  const VAH_MB = { n: "KNICKGASM", v: "Heritage sneaker + functional coffee", t: "Challenger", r: ["US", "UK", "Global", "India"], site: "knickgasm.com", aov: "~$39.83", hook: "Single-studio provenance + real adaptogen", churn: "Subscription anchor, refill rhythm" };
+
+  const VAH_MB = { n: "KNICKGASM", v: "Hand-painted one-of-one custom sneakers", t: "Category leader (India)", r: ["US", "UK", "Global", "India"], site: "knickgasm.com", aov: "AF1 median ~$156 (UK ~&pound;124)", hook: "Browsable one-of-one on a 100% original base", churn: "Occasion cycles, new collections, care follow-up" };
   function mbRow(b, vah) {
     const nameCell = vah ? "<b>" + b.n + "</b>"
       : (b.detail ? '<a href="../dossiers/' + b.s + '.html" style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + b.n + '</a>'
@@ -938,7 +944,7 @@ function buildMarketStudy() {
       '<div class="flex items-center justify-between gap-2"><span class="font-head text-lg text-knickgasm-green">' + b.n + '</span><span class="pill" style="color:var(--knickgasm-lava-ink);white-space:nowrap;">' + b.t + '</span></div>' +
       '<div class="text-[12px] mt-1" style="color:var(--soft);">' + b.v + ' &middot; ' + b.aov + '</div>' +
       '<p class="text-[12.5px] mt-2" style="color:var(--knickgasm-ink);"><b class="text-knickgasm-green">Hook:</b> ' + b.hook + '</p>' +
-      '<p class="text-[12.5px] mt-1" style="color:var(--knickgasm-ink);"><b class="text-knickgasm-green">Churn:</b> ' + b.churn + '</p>' +
+      '<p class="text-[12.5px] mt-1" style="color:var(--knickgasm-ink);"><b class="text-knickgasm-green">Retention:</b> ' + b.churn + '</p>' +
       '<p class="text-[12.5px] mt-2"><a href="' + link + '"' + target + ' style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + cta + '</a></p></div>';
   }
   const briefCards = MB.map(briefCard).join("\n          ");
@@ -948,14 +954,14 @@ function buildMarketStudy() {
     return '<div data-region-report="' + r + '"' + (r === "US" ? "" : ' style="display:none"') + ' class="space-y-3">' + msc.reportInnerHTML(r) + '</div>';
   }).join("\n");
   const main = [
-"<header class=\"space-y-3\"><span class=\"text-[11px] tracking-[.18em] uppercase font-bold lava-ink\">Market Study</span><h1 class=\"font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]\">Functional-Streetwear Market Study</h1><p class=\"text-[15px] max-w-3xl\" style=\"color:var(--soft);\">The coffee, sneaker, adaptogen and supplement landscape with a competitor teardown, sizing, DTC playbook and white-space read. Pick a region, then browse by category tab. All four studies (US, UK, Global rest-of-world and India) are live, each with PDF and DOC downloads.</p></header>",
+"<header class=\"space-y-3\"><span class=\"text-[11px] tracking-[.18em] uppercase font-bold lava-ink\">Market Study</span><h1 class=\"font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]\">Custom Sneaker Market Study</h1><p class=\"text-[15px] max-w-3xl\" style=\"color:var(--soft);\">The custom sneaker, configurator, resale and sneaker-care landscape with a competitor teardown, catalog-true sizing, a DTC playbook and a white-space read. Pick a region, then browse by category tab. All four studies (US, UK, Global rest-of-world and India) are live, each with PDF and DOC downloads.</p></header>",
 "<div class=\"flex flex-wrap items-center gap-2 mt-4\" id=\"regionTabs\"><span class=\"text-[11px] uppercase tracking-widest font-bold lava-ink\" style=\"margin-right:4px\">Region</span>" + regionTabs + "<span class=\"text-[12px]\" style=\"color:var(--soft);margin-left:6px\">Showing <b class=\"text-knickgasm-green\" id=\"mktRegionLabel\">US</b></span></div>",
 regionBlocks,
 "<div class=\"mt-8\"><div class=\"text-[11px] tracking-[.16em] uppercase font-bold lava-ink\">Competitor set</div><h2 class=\"font-head text-2xl md:text-3xl text-knickgasm-green mt-1\">Competitors by region</h2><p class=\"text-sm mt-2 max-w-3xl\" style=\"color:var(--soft);\">Each competitor in the selected region, filtered by the tabs above. Open a comparison or visit the live site for products, offers and creatives.</p></div>",
-"<div class=\"card overflow-x-auto\"><table class=\"grid-tbl\" style=\"min-width:940px;\"><thead><tr><th>Brand</th><th>Vertical</th><th>Tier</th><th>AOV</th><th>Primary hook</th><th>Churn strategy</th></tr></thead><tbody>" + marketRows + "</tbody></table></div>",
+"<div class=\"card overflow-x-auto\"><table class=\"grid-tbl\" style=\"min-width:940px;\"><thead><tr><th>Brand</th><th>Arena role</th><th>Tier</th><th>Price posture</th><th>Primary hook</th><th>Retention strategy</th></tr></thead><tbody>" + marketRows + "</tbody></table></div>",
 "<div class=\"grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4\">" + briefCards + "</div>"
   ].join("\n");
-  return page({ title: "Complete Market Study :: Knickgasm Playbook", desc: "Full functional-streetwear market studies for US, UK, Global and India: sizing, competitor teardown, strategy and white space, in categorized tabs with PDF and DOC downloads.", prefix: "../", activeKey: "market-study", crumb: "Market Study", main: main, extraJS: JS_MARKET + JS_MSCAT });
+  return page({ title: "Complete Market Study :: Knickgasm Playbook", desc: "Full custom-sneaker market studies for US, UK, Global and India: sizing, competitor teardown, strategy and white space, in categorized tabs with PDF and DOC downloads.", prefix: "../", activeKey: "market-study", crumb: "Market Study", main: main, extraJS: JS_MARKET + JS_MSCAT });
 }
 
 /* ---- FEATURE 02: competitor index ---- */
@@ -987,39 +993,39 @@ secHead("Dossiers", "Jump to a brand", "Each dossier is a standalone deep-dive f
 /* ---- FEATURE 03: knowledge base ---- */
 function buildKnowledgeBase() {
   const main = [
-hero("Feature 03", "Direct-to-Origin Knowledge Base",
-  "The provenance truth behind the premium. Every asset the OS produces quotes these figures, and KicksGPT ingests this page as verified source."),
+hero("Feature 03", "Studio-to-Doorstep Knowledge Base",
+  "The craft truth behind the premium. Every asset the OS produces quotes these facts, and KicksGPT ingests this page as verified source."),
 '      <section data-section id="supply" class="space-y-4">',
-secHead("Supply chain", "Crop drop to vacuum processing", "Direct-to-origin speed with no auction-house middlemen."),
+secHead("Build pipeline", "Order to doorstep", "What actually happens in the 10 to 15 days between checkout and delivery."),
 '        <div class="flex flex-wrap items-center gap-2">' +
-'<span class="flow-node">Hand-painted at one of one</span><span class="lava-ink font-bold">&rarr;</span>' +
-'<span class="flow-node">Vacuum processing in 48 to 72 hrs</span><span class="lava-ink font-bold">&rarr;</span>' +
-'<span class="flow-node">Grading and 6.5% moisture check</span><span class="lava-ink font-bold">&rarr;</span>' +
-'<span class="flow-node">Sealed studio-fresh packing</span><span class="lava-ink font-bold">&rarr;</span>' +
-'<span class="flow-node">Direct-from-source dispatch</span></div>',
+'<span class="flow-node">100% original pair sourced</span><span class="lava-ink font-bold">&rarr;</span>' +
+'<span class="flow-node">Prep, mask and base coat</span><span class="lava-ink font-bold">&rarr;</span>' +
+'<span class="flow-node">Hand-painted artwork, embroidery or crystal work</span><span class="lava-ink font-bold">&rarr;</span>' +
+'<span class="flow-node">Water and scratch resistant finish, cured</span><span class="lava-ink font-bold">&rarr;</span>' +
+'<span class="flow-node">Boxed with laces and tags, shipped express</span></div>',
 '        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">' +
-metricCard("48-72h", "Drop to vacuum processing", "") +
-metricCard("6.5%", "Optimum moisture threshold at pack", "") +
-metricCard("0", "Auction-house middlemen", "") +
-metricCard("100%", "Batches traceable to source studio", "") +
+metricCard("10-15 days", "Made-to-order build window", "") +
+metricCard("100%", "Original Nike, Jordan, Converse and Adidas bases", "") +
+metricCard("436", "Finished one-of-one designs live", "") +
+metricCard("60+", "Countries reached by express shipping", "") +
 '        </div>',
 '      </section>',
 '      <section data-section id="verify" class="space-y-4">',
-secHead("Verification", "Ingredient source verification", "How each functional claim is backed. Rule for copy: state the verified source and payload, never a medical claim."),
+secHead("Verification", "What we can prove", "How each claim is backed. Rule for copy: state only what is checkable, and never imply a brand partnership."),
 '        <div class="grid gap-4 md:grid-cols-3">' +
-'<div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Single-studio origin</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p></div>' +
-'<div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Functional payload</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated adaptogen dose per serving, named in plain, non-medical language.</p></div>' +
-'<div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Certification chain</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">B-Corp and ethical-sourcing certifications sit as trust proof beside the origin story, never as the lead hook.</p></div>' +
+'<div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Original base</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Every design is painted on a 100% original branded pair. Describe it as an original brand product hand-painted by KNICKGASM, and never as a collaboration or endorsement.</p></div>' +
+'<div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Durable finish</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Water and scratch resistant, applied and cured in the studio. Claim it plainly and show it being applied; never claim more than the finish delivers.</p></div>' +
+'<div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Design provenance register</h3><p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Every design is logged as original artwork, fan interpretation, or licence-required. Retire quickly rather than defend, and keep the register regional.</p></div>' +
 '        </div>',
 '      </section>',
 '      <section data-section id="crosssell" class="space-y-4">',
-secHead("Cross-sell", "Coffee / sneaker hybrid logic", "The bridge that turns a one-time sneaker buyer into a subscriber."),
+secHead("Cross-sell", "Accessory, apparel and grail logic", "The bridges that turn a one-time buyer into a returning one, without a subscription."),
 '        <div class="card overflow-x-auto"><table class="grid-tbl" style="min-width:640px;">' +
-'<thead><tr><th>From (habit)</th><th>Bridge product</th><th>To (anchor)</th><th>Trigger</th></tr></thead><tbody>' +
-'<tr><td>Black sneaker / Kicks</td><td>Embroidery or themed colorway</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>' +
-'<tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Ritual-replacement, morning-swap framing</td></tr>' +
-'<tr><td>Coffee Collection</td><td>Supplement companion</td><td>Multi-category subscription</td><td>Bundle logic, free-ship above AOV</td></tr>' +
-'<tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal ritual subscription</td><td>January reframe of the gift given</td></tr>' +
+'<thead><tr><th>From (first purchase)</th><th>Bridge product</th><th>To (anchor)</th><th>Trigger</th></tr></thead><tbody>' +
+'<tr><td>Rope laces / lace tags</td><td>Converse or Court Vision custom</td><td>Air Force 1 custom</td><td>Accessory buyer sees the design that matches their fandom</td></tr>' +
+'<tr><td>Converse / Court Vision custom</td><td>Air Force 1 custom</td><td>Air Jordan or Adidas grail</td><td>First pair survives real wear; the durability doubt is gone</td></tr>' +
+'<tr><td>Air Force 1 custom</td><td>Hand-painted denim jacket</td><td>Matching pair and jacket set</td><td>Cross-category, same fandom, same artist</td></tr>' +
+'<tr><td>Gift buyer</td><td>Self-purchase invitation</td><td>Their own one-of-one</td><td>Post-occasion follow-up, plus care guidance on the pair they gifted</td></tr>' +
 '</tbody></table></div>',
 '        <div>' + linkBtn("./product-avatars.html", "Meet the product avatars these convert &rarr;") + '</div>',
 '      </section>',
@@ -1029,7 +1035,7 @@ cohortCards(),
 '        <details class="blueprint" open><summary><span>schemas/cohort-profile.json <span class="text-[11px] font-body opacity-70">JSON Schema</span></span><span class="plus text-knickgasm-lava text-xl leading-none transition-transform">+</span></summary><pre>' + COHORT_SCHEMA + '</pre></details>',
 '      </section>'
   ].join("\n");
-  return page({ title: "Direct-to-Origin Knowledge Base :: Knickgasm Playbook", desc: "Knickgasm supply-chain-to-origin metrics, ingredient verification, coffee/sneaker hybrid cross-sell logic, and the four buyer cohorts.", prefix: "../", activeKey: "knowledge-base", crumb: "Knowledge Base", main: main });
+  return page({ title: "Studio-to-Doorstep Knowledge Base :: Knickgasm Playbook", desc: "Knickgasm build-pipeline facts, claim verification rules, cross-sell logic across accessories, customs and apparel, and the four buyer cohorts.", prefix: "../", activeKey: "knowledge-base", crumb: "Knowledge Base", main: main });
 }
 
 /* ---- FEATURE 04: cohort profiles ---- */
@@ -1039,47 +1045,47 @@ cohortCards(),
    demographics (those live as cohorts in the Knowledge Base). */
 const PRODUCT_AVATARS = [
   {
-    slug: "ash", face: "☕", name: "Ash", embodies: "Coffee Collection",
-    personality: "Calm, grounded, quietly confident. The steady friend who starts your morning.",
-    signature: "I am the pair that does more than wake you. Lace-up me, and let the morning settle.",
-    targets: "Functional Optimizers and Biohacking Performers",
+    slug: "ace", face: "\u{1F3C0}", name: "Ace", embodies: "Air Force 1 Customs",
+    personality: "Confident, warm, a little theatrical. The one who knows the pair is the point.",
+    signature: "I am the pair nobody else owns. Same silhouette you know, painted so it could only ever be yours.",
+    targets: "Fandom Collectors and Curious First-Timers",
     objections: [
-      { q: "Why switch from my usual coffee?", a: "You keep the ritual you love and add a calm, functional payload. Same warm pair, one-of-one origin, plus adaptogen balance. There is nothing to give up." },
-      { q: "Is it worth the price?", a: "One refill subscription at 39.83 replaces the daily buy and arrives studio-fresh. The math favours the ritual at home over the cafe queue." },
-      { q: "Will I actually like the taste?", a: "I am coffee first. Full-bodied, crafted at origin, with the adaptogen worked in so smoothly you taste the roast, not the supplement." }
+      { q: "Why not just buy a normal Air Force 1?", a: "Because a normal pair says nothing about you. I start as the same 100% original Nike Air Force 1, then get hand-painted with the thing you actually care about. Nobody will ever walk past you in me." },
+      { q: "Will the paint crack when I wear them?", a: "No. I am finished with a water and scratch resistant paint system, applied and sealed by hand in the Mumbai studio. I am built to be worn, not shelved." },
+      { q: "Ten to fifteen days feels like a long wait.", a: "It is, and it is the honest number. Nobody is pulling me off a shelf. An artist is painting me for you, then finishing and drying me properly. That is the wait, and it is stated before you pay, never after." }
     ]
   },
   {
-    slug: "aria", face: "🍃", name: "Aria", embodies: "One-of-One Jordan",
-    personality: "Refined, precise, a little poetic. The connoisseur who knows the studio by name.",
-    signature: "I was hand-painted on one studio, at one elevation, on one morning. Let me show you what origin tastes like.",
-    targets: "Third-Wave Purists",
+    slug: "juno", face: "\u{1F451}", name: "Juno", embodies: "Air Jordan and Adidas Samba Grails",
+    personality: "Precise, collected, quietly superior. The connoisseur who knows exactly what they are holding.",
+    signature: "Rare is a number. I am a count of one. There is a difference, and you already know it.",
+    targets: "Grail Collectors",
     objections: [
-      { q: "What makes you different from other sneaker?", a: "Provenance you can trace to a single studio and pick date. Most sneaker is blended from many sources. I am one place, one season, one story." },
-      { q: "Is one-of-one just marketing?", a: "It is on the batch record: studio, elevation, and drop date. Taste the first flush against a supermarket colorway and the difference speaks before I do." },
-      { q: "How should I craft you?", a: "Water just off the boil, three minutes, no milk on the first pair. Let the muscatel character open. That is the moment the studio comes through." }
+      { q: "How are you different from a resale grail?", a: "A resale grail is rare. There are still hundreds of them, and a marketplace will price every one. I am singular. One base, one design, one pair, and no second listing anywhere." },
+      { q: "Is the base pair genuine?", a: "Always. Every KNICKGASM pair starts as a 100% original Nike, Jordan, Converse or Adidas. That is not a nice-to-have in this category, it is the whole trust proposition." },
+      { q: "Why are you priced where you are?", a: "Between a template you can configure and a commission you have to queue for. You get the artwork of the second at a listed price, with a date attached." }
     ]
   },
   {
-    slug: "mira", face: "✨", name: "Mira", embodies: "Embroidery and Themed Streetwear",
-    personality: "Warm, nurturing, reassuring. The one who brings the day back to centre.",
-    signature: "When the day frays, I bring it back to balance. Lace-up me, and restore.",
-    targets: "Functional Optimizers and Routine Convenience",
+    slug: "iris", face: "\u{2728}", name: "Iris", embodies: "Wedding, Bling and Crystal Work",
+    personality: "Warm, ceremonial, a little sentimental. The one who understands the day matters more than the shoe.",
+    signature: "Somebody will remember the day. I am the part of it they get to keep and wear.",
+    targets: "Occasion and Gift Buyers",
     objections: [
-      { q: "Does it really do anything?", a: "I carry a real functional payload from hand-painted origin ingredients, described in plain terms. I restore a moment of balance in your day. No medical promises, just an honest ritual." },
-      { q: "When would I drink you?", a: "The late afternoon reset or the wind-down before evening. Scuff-resistant, so I fit the hours coffee cannot." },
-      { q: "I already drink coffee in the morning.", a: "Then we are not rivals. Keep Ash for the morning and let me hold the afternoon. Together we cover the whole day." }
+      { q: "Will it arrive in time?", a: "That is the only question that matters for a dated pair, so ask it early. Ten to fifteen days to paint, then express shipping to 60+ countries. Order against the date, not against the mood, and it will be there." },
+      { q: "Is this a serious gift or a novelty?", a: "It is hand-painted crystal and embroidery work on an original pair, made once for one person. Novelty is a thing you laugh at. I am a thing somebody keeps." },
+      { q: "What if the design is not quite right?", a: "Tell us before the brush touches the leather. The catalog is 436 finished designs precisely so you can see exactly what you are getting before you commit." }
     ]
   },
   {
-    slug: "rumi", face: "🍵", name: "Rumi", embodies: "Hand-painted Kicks",
-    personality: "Spirited, hospitable, story-rich. The host who turns a pair into a moment.",
-    signature: "I am the spice of an afternoon shared. Pour me, and stay a while.",
-    targets: "Routine Convenience and gifting buyers",
+    slug: "kobi", face: "\u{1F3AE}", name: "Kobi", embodies: "Anime, Gaming and Sport Collections",
+    personality: "Fast, funny, deeply online. The one who already knows the reference before you finish saying it.",
+    signature: "You have watched it, played it, shouted at it on a Sunday. Now wear it.",
+    targets: "Fandom Collectors and Curious First-Timers",
     objections: [
-      { q: "Is this like the kicks from a cafe?", a: "It is the origin version the cafe version imitates. Whole spices, one-of-one black sneaker, blended at source. Craft it with milk and you will not go back." },
-      { q: "It sounds like a lot of effort.", a: "Five minutes on the stove, or lace-up and add warm milk. The ritual is part of the reward, and it fills the kitchen with the reason you started." },
-      { q: "I want to give it as a gift.", a: "I am built for that. Pair me with a tote and a note, and in January invite the recipient to keep the ritual for themselves." }
+      { q: "Do you have my series or my club?", a: "The catalog runs across anime, gaming, football and sport, cars, pets, celebrity and more, 436 designs live right now. Start at the collection, not the silhouette, and you will find yourself faster." },
+      { q: "Are these officially licensed?", a: "Most designs are original hand-painted artwork by KNICKGASM artists, made as fan work rather than licensed merchandise, and never sold as an official brand collaboration. If a design is retired for that reason, the collection is the place to look next." },
+      { q: "Can I actually wear these out?", a: "That is the point. Water and scratch resistant finish on an original pair. Wear them to the match, to the convention, to the queue at midnight." }
     ]
   }
 ];
@@ -1105,8 +1111,9 @@ const COHORT_SCHEMA = [
 '    "preferences": {',
 '      "type": "object",',
 '      "properties": {',
-'        "roast":  { "type": "string", "enum": ["light","medium","medium-dark","dark","adaptogen-colorway"] },',
-'        "subscription_bias": { "type": "number", "minimum": 0, "maximum": 1 }',
+'        "design_family": { "type": "string", "enum": ["anime","gaming","football-sport","cars","wedding","pets","bling","celebrity","embroidery","coffee-art"] },',
+'        "base_silhouette": { "type": "string", "enum": ["air-force-1","court-vision","air-jordan","converse","adidas"] },',
+'        "gift_intent": { "type": "number", "minimum": 0, "maximum": 1 }',
 '      }',
 '    }',
 '  }',
@@ -1181,7 +1188,7 @@ const JS_AVATARS = String.raw`
 '(function(){',
 '  var AGENT_ID='+JSON.stringify(id)+', API="/api/brain";',
 '  var NAME='+JSON.stringify(spec.name)+', GREET='+JSON.stringify(spec.greeting)+', FACE='+JSON.stringify(spec.face)+';',
-'  var sid=null, hist=[], open=false, audio=null, C="#6A33D8", G="#D0473E", K="#F7F5F2";',
+'  var sid=null, hist=[], open=false, audio=null, C="#D0473E", G="#6A33D8", K="#FFFFFF";',
 '  var btn=document.createElement("button"); btn.textContent=FACE; btn.setAttribute("aria-label","Chat with "+NAME);',
 '  btn.style.cssText="position:fixed;bottom:22px;right:22px;z-index:99999;width:60px;height:60px;border-radius:50%;border:0;background:"+C+";color:"+K+";font-size:26px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28)";',
 '  var box=document.createElement("div");',
@@ -1239,14 +1246,14 @@ function avatarPreview(prefix) {
   }).join("");
   return '<div class="card p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Product avatars</div>' +
     '<div class="flex flex-wrap gap-5 mt-3">' + faces + '</div>' +
-    '<p class="text-[12.5px] mt-3" style="color:var(--knickgasm-ink);">Each hero product is its own trained voice agent, talk to it live by text or voice, then copy the complete embed code to drop it on any page.</p></div>';
+    '<p class="text-[12.5px] mt-3" style="color:var(--knickgasm-ink);">Each hero collection is its own trained voice agent, talk to it live by text or voice, then copy the complete embed code to drop it on any page.</p></div>';
 }
 
 const AVATAR_CATEGORIES = {
-  ash: ["Coffee"],
-  aria: ["Sneaker", "Black Sneaker"],
-  mira: ["Themed", "Embroidery", "Streetwear"],
-  rumi: ["Kicks", "Sneaker"]
+  ace: ["Air Force 1", "Court Vision", "Bestsellers"],
+  juno: ["Air Jordan", "Adidas", "Grails"],
+  iris: ["Wedding", "Bling", "Embroidery", "Gifts"],
+  kobi: ["Anime", "Gaming", "Football", "Cars"]
 };
 const EMBED_PAGES = [
   { label: "Home (/)", path: "/" },

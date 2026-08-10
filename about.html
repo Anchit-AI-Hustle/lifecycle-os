@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About this platform - Lifecycle OS</title>
+<meta name="description" content="What Lifecycle OS is, how brands work on it, and why features stay locked until a brand is active.">
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  :root{
+    --head:var(--brand-font-heading,'Montserrat',-apple-system,BlinkMacSystemFont,Arial,sans-serif);
+    --body:var(--brand-font-body,'Instrument Sans','Helvetica Neue',Arial,sans-serif);
+    --ink:var(--brand-ink,#111111);
+    --bg:var(--brand-surface,#FFFFFF);
+    --accent:var(--brand-primary,#D0473E);
+    --line:var(--brand-line,#EBEBEB);
+    --soft:var(--brand-ink-muted,#666666);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.65}
+  .wrap{max-width:760px;margin:0 auto;padding:44px 22px 90px}
+  .kicker{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft);margin-bottom:10px}
+  h1{font-family:var(--head);font-weight:800;font-size:clamp(26px,5vw,38px);line-height:1.12;margin:0 0 12px;letter-spacing:-.02em}
+  h2{font-family:var(--head);font-weight:700;font-size:19px;margin:32px 0 8px}
+  p{margin:0 0 13px}
+  .lede{font-size:17px;color:var(--soft);margin-bottom:8px}
+  ul{margin:0 0 13px;padding-left:20px}
+  li{margin-bottom:6px}
+  .card{border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:20px 0;background:var(--bg)}
+  .cta{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}
+  .btn{font-family:var(--head);font-weight:700;font-size:14px;border-radius:999px;padding:11px 21px;text-decoration:none;display:inline-block}
+  .btn-primary{background:var(--ink);color:var(--bg)}
+  .btn-ghost{border:1px solid rgba(0,0,0,.24);color:var(--ink)}
+  code{background:rgba(0,0,0,.05);padding:1px 6px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Lifecycle OS</div>
+  <h1>One platform, one brand at a time</h1>
+  <p class="lede">A lifecycle-marketing operating system: analytics and cohorts, a rolling campaign
+    calendar, generation of mailers, ads and landing pages, competitor benchmarking, and a brand
+    assistant that can operate the whole stack.</p>
+
+  <h2>How brands work</h2>
+  <p>You onboard a brand once: identity, colour schema, typography, voice, and where its catalogue
+    comes from. Those values are not decoration. They become the design tokens the entire suite
+    renders through, and the rules every generation prompt obeys, so the app re-skins to your brand
+    and the assets it produces stay on-brand by construction rather than by review.</p>
+  <p>You can keep more than one brand and switch between them. Each is a separate workspace with its
+    own catalogue, cohorts, campaigns and market study.</p>
+
+  <h2>Why features are locked until a brand is active</h2>
+  <div class="card">
+    <p style="margin:0">Almost every screen here is brand-specific: the products, the competitive
+      set, the market sizing, the tone of a generated email. Rendering one brand's data inside
+      another brand's workspace would be misleading, and inventing placeholder data would be worse.
+      So until a brand is selected or created, the features stay closed and only this page and the
+      brand setup remain open.</p>
+  </div>
+
+  <h2>What it will not do</h2>
+  <ul>
+    <li>Invent a product, price, URL, review, rating or statistic. Missing data is reported as
+      <code>[DATA REQUIRED BEFORE LAUNCH]</code> rather than filled in.</li>
+    <li>Carry one brand's facts into another brand's assets.</li>
+    <li>Ship a palette that fails WCAG AA contrast, or a dark-neutral page surface.</li>
+  </ul>
+
+  <h2>Getting started</h2>
+  <p>Pick a starter profile or enter your own brand. A profile pre-fills every step and can be edited
+    afterwards; nothing is locked in.</p>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="/onboarding">Set up or choose a brand</a>
+    <a class="btn btn-ghost" href="/brand">Brand kit</a>
+  </div>
+</div>
+<script defer src="/brand-catalog.js"></script>
+<script defer src="/auth.js"></script>
+</body>
+</html>

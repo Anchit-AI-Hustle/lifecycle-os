@@ -6,7 +6,7 @@
 <title>Knickgasm D2C · Live Dashboard</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/favicon.png">
-<meta name="theme-color" content="#6A33D8">
+<meta name="theme-color" content="#D0473E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
@@ -16,10 +16,10 @@
     --panel: #0f1d18;
     --panel-2: #142822;
     --border: rgba(171,135,67,0.18);
-    --green: #6A33D8;
+    --green: #D0473E;
     --green-bright: #16a34a;
-    --lava: #D0473E;
-    --chalk: #F7F5F2;
+    --lava: #6A33D8;
+    --chalk: #FFFFFF;
     --ink: #e8ede9;
     --ink-2: #9aaaa1;
     --ink-3: #5d6e64;
@@ -303,15 +303,15 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
     // pivot: date × market → revenue
     const dates = [...new Set(rows.map(r => r.order_date))].sort();
     const markets = [...new Set(rows.map(r => r.market))];
-    const colors = { US: '#3b82f6', UK: '#f97316', IN: '#22c55e', EU: '#a855f7', AU: '#14b8a6', Global: '#D0473E', Unknown: '#6b7280' };
+    const colors = { US: '#3b82f6', UK: '#f97316', IN: '#22c55e', EU: '#a855f7', AU: '#14b8a6', Global: '#6A33D8', Unknown: '#6b7280' };
     const datasets = markets.map(m => ({
       label: m,
       data: dates.map(d => {
         const hit = rows.find(r => r.order_date === d && r.market === m);
         return hit ? Number(hit.net_revenue) : 0;
       }),
-      borderColor: colors[m] || '#D0473E',
-      backgroundColor: (colors[m] || '#D0473E') + '22',
+      borderColor: colors[m] || '#6A33D8',
+      backgroundColor: (colors[m] || '#6A33D8') + '22',
       tension: 0.3,
       fill: false,
       pointRadius: 0,
@@ -383,7 +383,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         labels: rows.map(r => fmtDate(r.cohort_month)),
         datasets: [
           { label: '30d', data: rows.map(r => Number(r.ret_30d_pct ?? 0)), borderColor: '#22c55e', tension: 0.3, pointRadius: 0, fill: false },
-          { label: '60d', data: rows.map(r => Number(r.ret_60d_pct ?? 0)), borderColor: '#D0473E', tension: 0.3, pointRadius: 0, fill: false },
+          { label: '60d', data: rows.map(r => Number(r.ret_60d_pct ?? 0)), borderColor: '#6A33D8', tension: 0.3, pointRadius: 0, fill: false },
           { label: '90d', data: rows.map(r => Number(r.ret_90d_pct ?? 0)), borderColor: '#ef4444', tension: 0.3, pointRadius: 0, fill: false },
         ],
       },
@@ -447,7 +447,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         },
         tooltip: { 
           backgroundColor: '#0f1d18', 
-          borderColor: '#D0473E', 
+          borderColor: '#6A33D8', 
           borderWidth: 1,
           bodyFont: { size: isMobile ? 11 : 12 }
         },

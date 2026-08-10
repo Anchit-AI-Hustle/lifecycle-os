@@ -23,7 +23,7 @@ name: Revenue Alerts (anomaly / pulse / EOD)
 #
 # SETUP (one-time) — Settings -> Secrets and variables -> Actions:
 #   CRON_SECRET   = same value as the Vercel CRON_SECRET env var (required)
-#   APP_BASE_URL  = https://knickgasm-lifecycle-os.anchit-tandon.com (optional)
+#   APP_BASE_URL  = https://lifecycle-os.anchit-tandon.com (optional)
 # To send real email set RESEND_API_KEY (+ optional ALERT_EMAIL / ALERT_FROM)
 # in Vercel; with no key the endpoints still run and return a would_send stub.
 
@@ -57,7 +57,7 @@ jobs:
       - name: Anomaly detection (real monthly data)
         if: github.event.schedule == '30 6,18 * * *' || github.event.inputs.kind == 'anomaly' || github.event.inputs.kind == 'all'
         run: |
-          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          BASE="${APP_BASE_URL:-https://lifecycle-os.anchit-tandon.com}"
           if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET repo secret is not set." >&2; exit 1; fi
           curl --fail-with-body -sS -X POST "$BASE/api/brain?action=alerts-anomaly" \
             -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json"
@@ -65,7 +65,7 @@ jobs:
       - name: 2-hour progress pulse
         if: github.event.schedule == '0 */2 * * *' || github.event.inputs.kind == 'pulse' || github.event.inputs.kind == 'all'
         run: |
-          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          BASE="${APP_BASE_URL:-https://lifecycle-os.anchit-tandon.com}"
           if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET repo secret is not set." >&2; exit 1; fi
           curl --fail-with-body -sS -X POST "$BASE/api/brain?action=alerts-pulse" \
             -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json"
@@ -73,7 +73,7 @@ jobs:
       - name: End-of-day forecast
         if: github.event.schedule == '0 18 * * *' || github.event.inputs.kind == 'eod' || github.event.inputs.kind == 'all'
         run: |
-          BASE="${APP_BASE_URL:-https://knickgasm-lifecycle-os.anchit-tandon.com}"
+          BASE="${APP_BASE_URL:-https://lifecycle-os.anchit-tandon.com}"
           if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET repo secret is not set." >&2; exit 1; fi
           curl --fail-with-body -sS -X POST "$BASE/api/brain?action=alerts-eod" \
             -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json"

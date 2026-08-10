@@ -23,7 +23,7 @@ const { buildMasterPrompt } = require('../_shared/master-prompt.js');
 // Product-owner rule (2026-07-04): no em/en dashes in any generated output.
 const SMscen = require('../_shared/scenario-model.js');
 const scrubDashes = SMscen.scrubDashes;
-// sanitizeBrand does both: banned-phrase rewrite (transform, liquid lava, last
+// sanitizeBrand does both: banned-phrase rewrite (transform, liquid gold, last
 // chance, …) AND em/en-dash scrub. Fall back to dash-only if unavailable.
 const brandScrub = (s) => { try { return SMscen.sanitizeBrand ? SMscen.sanitizeBrand(String(s)) : scrubDashes(s); } catch (_) { return scrubDashes(s); } };
 const CF = require('../_shared/copy-frameworks.js');
@@ -31,14 +31,22 @@ const CF = require('../_shared/copy-frameworks.js');
 // Walk a parsed LLM JSON payload and brand-scrub (banned phrases + em/en dashes)
 // every generated STRING value. Object keys are never touched; URL-like values
 // are skipped so links/handles stay byte-identical.
-function deepScrubDashes(v) {
+// `brand` (optional) is the caller's active workspace. When present, its OWN
+// banned-phrase list is enforced on top of tenant zero's, so a custom brand's
+// guardrails actually bind the generated copy rather than only the prompt.
+function deepScrubDashes(v, brand) {
   if (typeof v === 'string') {
-    return /^(https?:\/\/|\/)/i.test(v.trim()) ? v : brandScrub(v);
+    if (/^(https?:\/\/|\/)/i.test(v.trim())) return v;
+    let out = brandScrub(v);
+    if (brand && brand.id) {
+      try { out = require('../_shared/brand-runtime.js').scrubForBrand(out, brand); } catch (_) {}
+    }
+    return out;
   }
-  if (Array.isArray(v)) return v.map(deepScrubDashes);
+  if (Array.isArray(v)) return v.map((x) => deepScrubDashes(x, brand));
   if (v && typeof v === 'object') {
     const out = {};
-    for (const k of Object.keys(v)) out[k] = deepScrubDashes(v[k]);
+    for (const k of Object.keys(v)) out[k] = deepScrubDashes(v[k], brand);
     return out;
   }
   return v;
@@ -70,7 +78,7 @@ const SYSTEM_PROMPT_CONCEPTS = `You are a D2C growth director for KNICKGASM — 
 
 MANDATORY: exactly 3 concepts; risk distribution = exactly one safe + one balanced + one bold; all 3 layout_archetype unique; products ONLY from AVAILABLE_PRODUCTS handles.
 
-BANNED phrases: "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "You won't believe", "Hurry", "Don't miss out", "Last chance", "While supplies last".
+BANNED phrases: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "You won't believe", "Hurry", "Don't miss out", "Last chance", "While supplies last".
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 
 VARIANT DIVERGENCE: the runtime renders TWO variants of every concept on different archetypes from same compatible pool. Your section_flow must work in both.
@@ -90,10 +98,10 @@ GROWTH-LEADER LENS (apply to every section):
 
 BRAND IDENTITY:
 - KNICKGASM. Single-studio sneakers, streetwear colorways, gift sets. B-Corp. Studio-fresh within 72 hours of drop.
-- Palette: deep purple #6A33D8 / amber lava #D0473E / parchment chalk #F7F5F2 / near-black #111111
+- Palette: deep purple #D0473E / amber lava #6A33D8 / parchment chalk #FFFFFF / near-black #111111
 - Typography: Montserrat (headings), Instrument Sans (body/buttons)
 - Voice: calm-confident-premium. PREFERRED: ritual, restore, balance, origin, one-of-one, lace-up, heritage, crafted
-- BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out
+- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out
 - EMOTIONAL TONE: Write copy that makes people FEEL something. Think of the moment: holding a warm pair on a cold morning, the colorway filling a quiet kitchen, the first step that slows the whole world down. Copy should read like a letter from a friend, not a billboard. Sensory details (steam, warmth, scent, texture, sound of pouring) create connection. Every headline should make someone pause mid-scroll.
 
 YOUR BRIEF MUST INCLUDE ALL OF THE FOLLOWING (450-600 words, flowing prose organized in clear sections):
@@ -158,9 +166,9 @@ const SYSTEM_PROMPT_SUGGESTED_PROMPTS = `You are a Creative Director + Director 
 
 KNICKGASM BRAND:
 - Ultra-premium Indian heritage sneaker. Single-studio sourcing. Ethical, B-Corp certified.
-- Palette: deep purple #6A33D8 / amber #D0473E / chalk #F7F5F2
+- Palette: deep purple #D0473E / amber #6A33D8 / chalk #FFFFFF
 - Tone: calm-confident-premium. Ritual not regimen. Story over price.
-- BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, dont miss out
+- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, dont miss out
 - PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted
 
 For each campaign:
@@ -294,7 +302,7 @@ FINAL OUTPUT JSON SCHEMA
 - NEVER ignore Step 8 validation
 
 KNICKGASM BRAND:
-Palette (ONLY these 4 hex): #6A33D8 / #D0473E / #111111 / #F7F5F2. Fonts (STRICT): Montserrat for headings (fallback 'Montserrat','Raleway',Georgia,serif), Instrument Sans for body (fallback 'Instrument Sans','Helvetica Neue',Arial,sans-serif). NO other fonts or colors.
+Palette (ONLY these 4 hex): #D0473E / #6A33D8 / #111111 / #FFFFFF. Fonts (STRICT): Montserrat for headings (fallback 'Montserrat','Raleway',Georgia,serif), Instrument Sans for body (fallback 'Instrument Sans','Helvetica Neue',Arial,sans-serif). NO other fonts or colors.
 
 GROWTH-LEADER OUTPUT CHECKLIST (every brief MUST include all 8):
 1. Subject lines: 3 options. Each must reference a NUMBER (% off, count, days left, price), a SPECIFIC product/category, or a NAMED occasion. No vague "Sneaker you'll love".
@@ -302,12 +310,12 @@ GROWTH-LEADER OUTPUT CHECKLIST (every brief MUST include all 8):
 3. Sub-copy: 2-3 sentences (40-70 words) that name the hero PRODUCT, the BENEFIT to the reader's day, and the SPECIFIC offer/code if present. Sensory but never floral-only.
 4. Benefit bullets: EXACTLY 4 short lines (≤9 words each). Each bullet starts with a verb or concrete claim. Mix functional + emotional. e.g. "Soothes digestion · feels lighter by lunch", "Steady energy · no paint crash", "Single-studio · zero artificial fillers".
 5. Offer banner copy: an EXPLICIT discount line with the % AND the code AND the urgency mechanic ("Use REVIVE15 · 15% off · Ends Sunday"). If the campaign has no discount, state the value-prop concretely ("Free shipping over $49 · 30-day guarantee").
-6. Social proof line: a specific number ("Trusted by 50,000+ sneaker lovers", "4.8/5 across 12,400 reviews"), not generic "loved by many".
+6. Social proof line: a specific number ("Trusted by India's largest sneaker customisers", "4.8/5 across 12,400 reviews"), not generic "loved by many".
 7. Urgency strip: one specific scarcity or time-bound trigger relevant to the campaign type ("⚡ Ends Sunday · Stock running low", "🎁 Order by Tuesday for guaranteed delivery", "✨ First batch — limited supply").
 8. Variant divergence: every brief is rendered as TWO mailers (A=conversion, B=narrative). Hero headline + sub-copy must read well in BOTH a conversion-led grid layout AND a story-led editorial layout. Avoid copy that only works in one frame.
 
 ANTI-PATTERN: a brief that produces beautiful prose but no concrete reason-to-act is a failed brief. Every section must answer "why click NOW" with specifics.
-BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME caps, hurry, don't miss out.
+BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME caps, hurry, don't miss out.
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 
 First char { · last char }. No markdown. No commentary.`;
@@ -427,8 +435,8 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
       'You are KNICKGASM Studio Assistant — a sharp, warm marketing copilot inside the KNICKGASM (premium Indian heritage sneaker) email Mailer Studio.',
       'Help the user brainstorm campaigns, sharpen subject lines and copy, critique the current mailer, and answer marketing questions.',
       'VOICE: warm, sensory, story-driven, premium. PREFER words like ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
-      'Brand palette is deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2. Headings Montserrat, body Instrument Sans.',
+      "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      'Brand palette is deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. Headings Montserrat, body Instrument Sans.',
       'Be concise and practical. Short paragraphs or tight lists. When asked for copy, give ready-to-paste options. Plain text only — no markdown headers.'
     ].join('\n');
     const ctxLines = [
@@ -495,8 +503,8 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     }
 
     const BRAND_GUARDRAILS = `BRAND: KNICKGASM — premium D2C sneaker, one-of-one, studio-fresh in 72h, B-Corp.
-PALETTE: deep purple #6A33D8 / amber lava #D0473E / chalk #F7F5F2 / black #111111.
-BANNED: "streetwear journey", "transform", "liquid lava", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out".
+PALETTE: deep purple #D0473E / amber lava #6A33D8 / chalk #FFFFFF / black #111111.
+BANNED: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out".
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for India, € for EU.`;
 
@@ -636,10 +644,10 @@ Target market for this autofill: ${targetMarket}.`;
       '- Images use max-width:100%; height:auto. No horizontal scroll at any width.',
       '',
       'BRAND RULES (strict):',
-      '- Colour palette ONLY: deep purple #6A33D8, lava #D0473E, near-black #111111, chalk #F7F5F2. No other colours.',
+      '- Colour palette ONLY: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. No other colours.',
       "- Headings in a serif stack: 'Montserrat','Raleway',Georgia,serif. Body in a sans stack: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
       '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "- NEVER use: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
       '- NO founder voice or personal-name sign-offs; the brand speaks as "we". NO medical claims. NO em or en dashes anywhere (use commas, colons or plain hyphens).',
       `- Currency and store links must match the ${lpRegion} market. Primary CTA links point to ${lpBase}/collections/best-sellers (or a more specific collection if the brief implies one). Only use offers/prices given in the brief; invent no discount codes.`,
       '- Do NOT invent specific product names, prices, or product-page (/products/...) URLs. Unless the brief names a product, refer to offerings at category level ("one-of-one Jordan", "coffee collection") and link only to collection pages on the store base above.',
@@ -749,6 +757,32 @@ Target market for this autofill: ${targetMarket}.`;
   const temperature = Math.min(1.1, baseTemp + Math.min(0.25, (regenerate_counter || 0) * 0.08));
   // create_brief: 4000 tokens for 450-600 word detailed production brief with full structure
   const max_tokens = (mode === 'mailer_full' || mode === 'landing_page') ? 7000 : (mode === 'concepts' ? 4500 : (mode === 'suggested_prompts' ? 3000 : (mode === 'chat' ? 1200 : 4000)));
+
+  // ── Active-brand override (Universal Brand Platform) ───────────────────────
+  // The system prompts above are written for tenant zero. When the caller has
+  // an active brand workspace, prepend that brand's constraint block and say
+  // explicitly that it SUPERSEDES any brand named later in the prompt — so a
+  // custom workspace gets its own identity, palette, typography, voice and
+  // regions in the generated asset rather than tenant zero's. One insertion
+  // point covers every mode. No active brand means no change at all.
+  try {
+    const _b = body && body.__brand;
+    if (_b && _b.id) {
+      const _rt = require('../_shared/brand-runtime.js');
+      systemPrompt = [
+        'OPERATIVE BRAND — this block OVERRIDES every brand name, palette, typeface, product,',
+        'claim, URL and voice rule mentioned anywhere later in this prompt. Any other brand named',
+        'below is an EXAMPLE OF FORM ONLY; never name it, never use its colours or products.',
+        '',
+        _rt.brandBlock(_b),
+        '',
+        '--- The rest of this prompt describes the TASK and the OUTPUT FORMAT. Follow its structure,',
+        'but express everything as the operative brand above. ---',
+        '',
+        systemPrompt,
+      ].join('\n');
+    }
+  } catch (_) { /* fall through to the shipped prompt rather than failing */ }
 
   // ── Shared tier-routed cascade (api/_shared/llm.js) ────────────────────────
   // The 6-provider waterfall (OpenAI/Anthropic/Gemini/Grok/Groq/Cerebras),
@@ -869,12 +903,12 @@ Target market for this autofill: ${targetMarket}.`;
           console.warn('[generate] quality loop unavailable: ' + String(qe && qe.message || qe).slice(0, 120));
         }
         return res.status(200).json({
-          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data), portable_prompt,
+          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt,
           ...(quality ? { quality } : {})
         });
       }
 
-      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed), portable_prompt });
+      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt });
     }
 
     // ── Autofill on an ad surface: also return the portable master_prompt and a
@@ -890,7 +924,7 @@ Target market for this autofill: ${targetMarket}.`;
           const a = text.indexOf('{'), b = text.lastIndexOf('}');
           if (a !== -1 && b > a) { try { fields = JSON.parse(text.slice(a, b + 1)); } catch (_) {} }
         }
-        fields = deepScrubDashes(fields);
+        fields = deepScrubDashes(fields, body && body.__brand);
         const overlay = {
           headline: fields.overlay_headline || '',
           sub: fields.overlay_sub || '',
@@ -899,7 +933,7 @@ Target market for this autofill: ${targetMarket}.`;
         const creative_spec = AD_FORMATS[surf].map((f) => ({ size: f.size, format: f.format, ar: f.ar, overlay }));
         const targetMarket = body.market || body.region || market || 'US';
         const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
-        const master_prompt = buildMasterPrompt({ assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
+        const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null,  assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
         return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt });
       }
     }
@@ -910,3 +944,49 @@ Target market for this autofill: ${targetMarket}.`;
     return res.status(500).json({ error: 'server_error', provider: 'cascade', detail: String(e && e.message || e).substring(0, 300) });
   }
 };
+
+// ── Multi-tenant + metering (Universal Brand Platform) ──────────────────────
+// Two cross-cutting concerns are applied here rather than threaded through the
+// long handler above:
+//   1. BRAND. buildMasterPrompt() now accepts the caller's active brand, so a
+//      custom workspace gets prompts built from ITS identity, palette, fonts,
+//      voice and regions instead of tenant zero's. Resolution is cached and
+//      falls back to the shipped brand, so behaviour is unchanged when no
+//      workspace is active.
+//   2. CREDITS. Declaring a price is not the same as charging it, so the
+//      handler is wrapped by the meter. Each mode maps to its catalog key;
+//      read-only/cheap conversational modes map to the assistant key.
+const _credits = require('../_shared/credits-core.js');
+const _brandRuntime = require('../_shared/brand-runtime.js');
+
+const MODE_FEATURE = {
+  create_brief: 'mailer.brief',
+  concepts: 'mailer.concepts',
+  mailer_full: 'mailer.generate',
+  landing_page: 'landing.generate',
+  autofill: 'ads.generate',
+  audience_segment: 'analytics.narrative',
+  suggested_prompts: 'assistant.chat',
+  chat: 'assistant.chat',
+};
+
+const _rawHandler = module.exports;
+
+async function _brandAwareHandler(req, res) {
+  // Resolve once per request and hand it to the prompt builder via the body,
+  // which every prompt site in this file already reads from.
+  try {
+    if (req.body && typeof req.body === 'object') {
+      req.body.__brand = await _brandRuntime.resolve(req);
+    }
+  } catch (_) { /* tenant zero */ }
+  return _rawHandler(req, res);
+}
+
+module.exports = _credits.metered(
+  _brandAwareHandler,
+  (req, body) => {
+    if (req.query && req.query.action === 'landing-page') return 'landing.generate';
+    return MODE_FEATURE[body.mode || 'create_brief'] || 'assistant.chat';
+  }
+);

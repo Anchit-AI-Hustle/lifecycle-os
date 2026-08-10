@@ -7,12 +7,12 @@
 <link rel="icon" href="/favicon.png">
 <style>
   :root{
-    --green:#6A33D8; --lava:#D0473E; --lava-deep:#7a5a1e; --ink:#111111; --chalk:#F7F5F2;
-    --bg:#F3EEE2; --surface:#ffffff; --surface-2:#F7F5F2; --line:#E3D8BF; --line-strong:#CBB98C;
+    --green:#D0473E; --lava:#6A33D8; --lava-deep:var(--vh-ink); --ink:#111111; --chalk:#FFFFFF;
+    --bg:var(--vh-panel-tan); --surface:#ffffff; --surface-2:#FFFFFF; --line:var(--vh-panel-tan); --line-strong:var(--vh-lava);
     /* Contrast tokens matched to /ads-master: every text/background pair is
        dark-on-light and clears WCAG-AA (>=4.5:1). */
-    --text:#1F2A23; --dim:#3D4A42; --head:#6A33D8;
-    --good:#0E5C36; --good-bg:#DCEDE3; --warn:#6E4A0C; --warn-bg:#F7ECD2;
+    --text:var(--vh-ink); --dim:var(--vh-ink); --head:#D0473E;
+    --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan);
     --shadow:0 4px 16px rgba(0,74,43,.08);
     --sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
     --serif:'Montserrat','Raleway',Georgia,serif;
@@ -30,7 +30,7 @@
   .bar label{font-size:12px;color:var(--dim);font-weight:600;display:flex;flex-direction:column;gap:4px}
   select,input[type=date]{font-family:inherit;font-size:13px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--surface-2);color:var(--ink)}
   button.apply{background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer}
-  button.apply:hover{background:#00623a}
+  button.apply:hover{background:var(--vh-ink)}
   .tabs{display:flex;flex-wrap:wrap;gap:2px;margin:16px 0 4px;border-bottom:2px solid var(--line-strong)}
   .tabs button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--dim);font-family:inherit;font-weight:700;font-size:13.5px;padding:10px 14px;cursor:pointer;margin-bottom:-2px}
   .tabs button.on{color:var(--green);border-bottom-color:var(--lava)}
@@ -129,7 +129,7 @@
     <p class="note">The SOP makes measurement depend on names: <b>organic post URL → videoid → ad name → ad code → paid performance</b>.
       An ad without the videoid still runs but cannot be joined to its organic performance, so that spend produces no learning.
       Every figure below is computed from the live warehouse names and the real dollars behind them.
-      Full procedure: <a href="/ads-master#sop">the SOP tab</a> · <a href="/docs/sop/KNICKGASM_Ad_Campaign_SOP.pdf" target="_blank" rel="noopener">SOP PDF</a>.
+      Full procedure: <a href="/ads-master#sop">the SOP tab</a> · <span class="muted">SOP PDF [DATA REQUIRED: upload this brand\'s own SOP]</span>.
       The nomenclature is live from Monday, so older names predate it — this is the measured baseline.</p>
     <div class="rangetiles" id="rt-sop"></div>
     <div class="scorecards" id="sop-cards"><div class="empty">Loading…</div></div>
@@ -415,7 +415,7 @@
       '</div>'+
       '<div class="frame">'+days.map(function(d){
         var w=Math.min(100,Math.round(d.spend/(res.cap_usd||1)*100));
-        return '<div class="barrow"><span class="lab">'+esc2(d.date)+'</span><span class="track"><span class="fill" style="width:'+w+'%;background:'+(d.over?'linear-gradient(90deg,#8f2f1f,#c0562f)':'linear-gradient(90deg,var(--green),var(--lava))')+'"></span></span><span class="val">'+money(d.spend)+(d.over?' ⚠':'')+'</span></div>';
+        return '<div class="barrow"><span class="lab">'+esc2(d.date)+'</span><span class="track"><span class="fill" style="width:'+w+'%;background:'+(d.over?'linear-gradient(90deg,#8f2f1f,var(--vh-lava))':'linear-gradient(90deg,var(--green),var(--lava))')+'"></span></span><span class="val">'+money(d.spend)+(d.over?' ⚠':'')+'</span></div>';
       }).join('')+'</div>'+
       '<p class="note">'+esc2(res.note||'')+'</p>';
   }

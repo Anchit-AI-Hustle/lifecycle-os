@@ -44,9 +44,9 @@ You are operating the **Knickgasm Lifecycle/Growth OS** for a custom sneakers + 
 3. Always enforce the **Brand Constants** below on any generated copy or asset.
 
 ## Brand constants (NON-NEGOTIABLE on every asset)
-- **Palette (only these 4):** `#6A33D8` deep purple · `#D0473E` lava · `#111111` near-black · `#F7F5F2` chalk
+- **Palette (only these 4):** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk
 - **Type:** Headings = Montserrat (`'Montserrat','Raleway',Georgia,serif`); Body = Instrument Sans (`'Instrument Sans','Helvetica Neue',Arial,sans-serif`)
-- **BANNED phrases:** streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last
+- **BANNED phrases:** wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last
 - **PREFERRED:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted
 - **Store URLs:** US `knickgasm.com` · UK `knickgasm.com` · IN `knickgasm.com` · EU `knickgasm.com` · AU `knickgasm.com`
 - **Active mandate:** Aman's P01 — *sell happiness, not features*. Lead with emotional/sensory benefit; bake approved copy into creatives (see `api/_shared/master-prompt.js`).

@@ -44,7 +44,7 @@ content_density:
   0  = Empty/placeholder fields ("", "TBD", lorem) or missing sections
 
 copy_quality:
-  10 = Premium, brand-aligned, emotionally specific, sensory; zero banned phrases (streetwear journey, transform, liquid lava, game-changer, LIMITED TIME in caps, hurry, don't miss out, last chance, while supplies last); concrete reason-to-act with numbers/offers
+  10 = Premium, brand-aligned, emotionally specific, sensory; zero banned phrases (wellness journey, transform, liquid gold, game-changer, LIMITED TIME in caps, hurry, don't miss out, last chance, while supplies last); concrete reason-to-act with numbers/offers
   5  = Adequate; some generic marketing copy
   0  = Generic copy, banned phrases present, or no reason-to-act anywhere
 
@@ -66,8 +66,8 @@ const REVISE_SYSTEM = `You are the Creative Director + Director of Growth at KNI
 HARD RULES:
 - Return the COMPLETE revised spec as STRICT JSON with EXACTLY the same schema and top-level keys as the input (synthesis, strategy, vibe, product_logic, theme, image_style_lock, variant_a, variant_b — keep any extra keys the input has). Do not drop, rename, or add top-level keys.
 - Keep product names, prices, and URLs from the input verbatim — never invent SKUs.
-- Palette ONLY #6A33D8 / #D0473E / #111111 / #F7F5F2. Headings Montserrat, body Instrument Sans.
-- BANNED: streetwear journey, transform, liquid lava, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last.
+- Palette ONLY #D0473E / #6A33D8 / #111111 / #FFFFFF. Headings Montserrat, body Instrument Sans.
+- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last.
 - PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
 - Variant B must stay structurally opposite to Variant A (narrative-led, no product grids, understated CTA).
 First char { · last char }. No markdown, no commentary.`;

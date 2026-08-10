@@ -1,6 +1,6 @@
-# KNICKGASM Lifecycle OS — Consolidated Project Status
+# Lifecycle OS — Consolidated Project Status
 
-**As of:** 2026-07-17 · **Live:** https://knickgasm.vercel.app (→ knickgasm-lifecycle-os.anchit-tandon.com)
+**As of:** 2026-07-17 · **Live:** https://knickgasm.vercel.app (→ lifecycle-os.anchit-tandon.com)
 **Scope of this doc:** a single reconciled snapshot of everything built across all sessions. The
 **repository is the source of truth** — every merged PR from every session is reflected here
 (53 app pages, 71 `api/_shared` modules, 38 Supabase migrations, 60+ friendly routes, 12 serverless
@@ -64,7 +64,7 @@ run_agentic_campaign* · generate_mailer_assets* · klaviyo` (*=writes, explicit
 ## 7. Platform & governance
 - Single Vercel project, `framework:null`; 12 serverless functions (Hobby cap) — multi-capability routers via `?action=`; heavy logic in `api/_shared/` (not counted).
 - Auth: Supabase-mediated Google sign-in via `auth.js` shell + LHS nav IA.
-- Brand constants enforced (palette #6A33D8/#D0473E/#111111/#F7F5F2, Montserrat/Proxima, banned phrases, no em/en dashes).
+- Brand constants enforced (palette #D0473E/#6A33D8/#111111/#FFFFFF, Montserrat/Proxima, banned phrases, no em/en dashes).
 - CI: HTML smoke + `npm run build` + Playwright visual/invariant tests + CodeQL.
 
 ---

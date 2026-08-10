@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data Analysis - KNICKGASM Lifecycle OS</title>
+<title>Data Analysis - Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
   /* Palette locked to the /all-in-one dashboard (near-black-green canvas). */
   :root{
-    --violet:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
-    --bg:#ffffff; --surface:#ffffff; --tile:#f4f2ec; --line:rgba(171,135,67,.18); --soft:#556059; --chip:#f4f2ec;
-    --head:#111111; --accent:#D0473E;
+    --violet:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
+    --bg:#ffffff; --surface:#ffffff; --tile:var(--vh-panel-tan); --line:rgba(171,135,67,.18); --soft:#556059; --chip:var(--vh-panel-tan);
+    --head:#111111; --accent:#6A33D8;
     /* Chart categorical palette — chosen for contrast on the dark canvas */
-    --c1:#D0473E; --c2:#E4CF94; --c3:#5FB487; --c4:#C7A65C; --c5:#8FD3B0; --c6:#F2E6C9;
+    --c1:#6A33D8; --c2:var(--vh-lava); --c3:#5FB487; --c4:var(--vh-lava); --c5:#8FD3B0; --c6:var(--vh-panel-tan);
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.5;}
@@ -63,10 +63,10 @@
   /* charts */
   svg{display:block;max-width:100%;height:auto;overflow:visible;}
   /* time-granularity view toggle (detail drill-down) */
-  .tv-toggle{display:inline-flex;gap:4px;background:var(--chip,#f4f2ec);border:1px solid var(--line);border-radius:11px;padding:4px;margin-top:14px;flex-wrap:wrap;}
+  .tv-toggle{display:inline-flex;gap:4px;background:var(--chip,var(--vh-panel-tan));border:1px solid var(--line);border-radius:11px;padding:4px;margin-top:14px;flex-wrap:wrap;}
   .tv-tile{border:none;background:transparent;color:var(--soft);font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;}
   .tv-tile:hover:not(.dis):not(.on){color:var(--ink);}
-  .tv-tile.on{background:#6A33D8;color:#F7F5F2;}
+  .tv-tile.on{background:#D0473E;color:#FFFFFF;}
   .tv-tile.dis{opacity:.42;cursor:not-allowed;}
   .tv-note{font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5;}
   .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:12px;color:var(--soft);}
@@ -102,13 +102,13 @@
 </head>
 <body>
 <div class="wrap">
-  <span class="eyebrow">KNICKGASM Lifecycle OS - Research &amp; Benchmark</span>
+  <span class="eyebrow">Lifecycle OS - Research &amp; Benchmark</span>
 
   <div id="dash">
     <div class="topbar">
       <div>
         <h1>Data Analysis</h1>
-        <p class="lede">The full D2C growth analytics workbench, built on the live US and UK market exports. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
+        <p class="lede">The full growth analytics workbench for the active brand. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
       </div>
       <div class="mkt" id="mktToggle" role="tablist" aria-label="Market">
         <button data-mkt="US" class="on">🇺🇸 United States</button>
@@ -125,9 +125,9 @@
       <button data-tab="cohort">Cohort &amp; Calendar</button>
     </div>
 
-    <a href="/usa-d2c-report" id="reviewCta" style="display:block;margin:14px 0 6px;padding:14px 18px;border:1px solid var(--line-strong,#CBB98C);border-left:4px solid var(--accent,#D0473E);border-radius:11px;background:var(--surface,#fff);text-decoration:none;box-shadow:0 4px 14px rgba(0,74,43,.08)">
-      <span style="display:block;font-weight:700;color:var(--head,#6A33D8);font-size:15.5px">Full D2C Business Review — 8 deep-dive areas &nbsp;→</span>
-      <span style="display:block;margin-top:4px;color:var(--soft,#31483B);font-size:13px">Website performance · customer cohorts &amp; reactivation · catalog &amp; Amazon price parity · order fulfilment &amp; delivery · support / CX tickets · category performance · coffee deep-dive · apps &amp; access audit.</span>
+    <a href="/usa-d2c-report" id="reviewCta" style="display:block;margin:14px 0 6px;padding:14px 18px;border:1px solid var(--line-strong,var(--vh-lava));border-left:4px solid var(--accent,#6A33D8);border-radius:11px;background:var(--surface,#fff);text-decoration:none;box-shadow:0 4px 14px rgba(0,74,43,.08)">
+      <span style="display:block;font-weight:700;color:var(--head,#D0473E);font-size:15.5px">Full D2C Business Review — 8 deep-dive areas &nbsp;→</span>
+      <span style="display:block;margin-top:4px;color:var(--soft,var(--vh-ink));font-size:13px">Website performance · customer cohorts &amp; reactivation · catalog &amp; Amazon price parity · order fulfilment &amp; delivery · support / CX tickets · category performance · coffee deep-dive · apps &amp; access audit.</span>
     </a>
 
     <div class="kpis" id="kpis"></div>
@@ -140,16 +140,32 @@
   <div id="detail"></div>
 </div>
 
-<!-- REAL market data (not synthetic): Knickgasm's actual Shopify/GA market exports,
-     compiled by scripts/build-market-analytics.js from data/market/*.csv into
-     window.KNICKGASM_ANALYTICS. These are real historical exports. When the live
-     connector pipeline (Shopify -> Supabase) is wired, a live read will set
-     window.KNICKGASM_ANALYTICS and supersede the file; until then this shows the
-     real exports rather than an empty page. No sample/synthetic numbers. -->
+<!-- The compiled market dataset describes TENANT ZERO only. It is a fact about
+     one brand's business, so it must never render inside another workspace: a
+     health-media or publisher brand was previously shown that brand's revenue,
+     AOV and order counts as if they were its own. The guard below clears the
+     global for any other brand and the page then renders its empty state. -->
 <script src="/data/analytics/market-data.js"></script>
+<script src="/brand-catalog.js"></script>
+<script>
+(function () {
+  // Synchronously stash and clear: the analytics IIFE below reads the global on
+  // parse, so the decision has to be made before it runs. We restore it only
+  // once the active brand is confirmed to be the one the dataset describes.
+  var SHIPPED = window.LIFECYCLE_ANALYTICS || null;
+  window.LIFECYCLE_ANALYTICS = { markets: {}, __pending: true };
+  window.__ANALYTICS_OWNER__ = 'knickgasm';
+  window.__restoreAnalytics = function (brand) {
+    var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
+    var isOwner = !brand || brand.is_default || slug === window.__ANALYTICS_OWNER__;
+    if (isOwner && SHIPPED) { window.LIFECYCLE_ANALYTICS = SHIPPED; return true; }
+    return false;
+  };
+})();
+</script>
 <script>
 (function(){
-  var A = (window.KNICKGASM_ANALYTICS) || {markets:{}};
+  var A = (window.LIFECYCLE_ANALYTICS) || {markets:{}};
   // MKT comes from the ?mkt= URL param — remap through a literal allowlist so the
   // stored value is always a constant (never the raw, potentially-hostile input).
   // This clears the taint at the source; every use below is then a fixed string.
@@ -214,7 +230,7 @@
   function _tipEl(){
     if(_daTip) return _daTip;
     _daTip=document.createElement('div');
-    _daTip.style.cssText='position:fixed;z-index:99999;pointer-events:none;background:#ffffff;color:#111111;border:1px solid #D0473E;border-radius:7px;padding:6px 9px;font:600 11.5px/1.35 Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .1s;white-space:pre;max-width:280px;';
+    _daTip.style.cssText='position:fixed;z-index:99999;pointer-events:none;background:#ffffff;color:#111111;border:1px solid #6A33D8;border-radius:7px;padding:6px 9px;font:600 11.5px/1.35 Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .1s;white-space:pre;max-width:280px;';
     document.body.appendChild(_daTip);
     return _daTip;
   }
@@ -584,7 +600,7 @@
   };
   function unlockCard(u){
     return '<div class="w span6"><div class="wh"><span class="wt">'+esc(u.t)+'</span>'+
-      '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#c79a3a;background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">🔒 Connect '+esc(u.need)+'</span></div>'+
+      '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--vh-lava);background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">🔒 Connect '+esc(u.need)+'</span></div>'+
       '<div class="ws">'+esc(u.s)+'</div>'+
       '<div class="wbody"><div class="empty" style="padding:22px 16px;text-align:center;line-height:1.6">'+esc(u.why)+'</div></div></div>';
   }
@@ -710,10 +726,14 @@
 
   function renderFootnote(){
     var m=d()||{}; var live=m.__live;
+    if(A.__demo){
+      document.getElementById('footnote').innerHTML='<b>DEMO DATA</b> - '+esc(A.generated_note||'generated from the active brand’s own offerings; not real performance.');
+      return;
+    }
     var src = live
       ? 'Source: <b>live Shopify Admin</b> snapshot for '+esc(mktLabel())+' ('+esc(live.store_url||live.shop||meta(MKT).store)+', pulled '+esc(live.pulled_at||'recently')+') overlaying the '+esc(mktLabel())+' market exports.'
-      : 'Source: live KNICKGASM '+esc(mktLabel())+' market exports in <span class="datalink">data/market/'+esc(meta(MKT).region)+'/</span>, compiled by <span class="datalink">scripts/build-market-analytics.js</span>.';
-    document.getElementById('footnote').innerHTML=src+' Trailing 12-month window. The upstream ingestion + DuckDB engine lives in <a class="datalink" href="https://github.com/Anchit-AI-Hustle/knickgasm_dtc_data_engine" target="_blank" rel="noopener">knickgasm_dtc_data_engine</a> (live: <a class="datalink" href="/data-engine">DTC Data Engine</a>).';
+      : 'Source: the active brand’s '+esc(mktLabel())+' market exports in <span class="datalink">data/market/'+esc(meta(MKT).region)+'/</span>, compiled by <span class="datalink">scripts/build-market-analytics.js</span>.';
+    document.getElementById('footnote').innerHTML=src+' Trailing 12-month window. The upstream ingestion + DuckDB engine lives in the brand’s own data-engine repo (live: <a class="datalink" href="/data-engine">DTC Data Engine</a>).';
   }
 
   function marketHasData(mk){ var m=A.markets[mk]; return !!(m && Object.keys(m).length && (m.summary || (m.monthly && m.monthly.length))); }
@@ -757,7 +777,19 @@
 
   // init — STRICT real-data-only: render only when real data is present;
   // otherwise an honest "no live data" state (never baked/sample numbers).
+  // Re-read the global on every boot: the brand-resolution script swaps
+  // window.LIFECYCLE_ANALYTICS after this IIFE has parsed (restore for the
+  // owner, labelled demo for other brands), and the parse-time binding would
+  // otherwise keep rendering the pending placeholder forever.
   function boot(){
+    A = window.LIFECYCLE_ANALYTICS || A;
+    Object.keys(A.markets||{}).forEach(function(mk){
+      var m = A.markets[mk];
+      if(!m) return;
+      if((!m.aov_trend || !m.aov_trend.length) && m.monthly && m.monthly.length){
+        m.aov_trend = m.monthly.map(function(x){ return { month:x.month, aov:x.aov, orders:x.orders, sales:x.sales }; });
+      }
+    });
     var hasData = A && A.markets && Object.keys(A.markets).some(function(k){ return A.markets[k] && Object.keys(A.markets[k]).length; });
     if(!hasData){
       var g=document.getElementById('grid');
@@ -772,6 +804,7 @@
   }
 
   var booted=false; function once(){ if(booted) return; booted=true; boot(); }
+  window.__daRefresh = boot;   // brand-resolution script re-renders after swapping the dataset
   fetch('/data/analytics/live-shopify.json',{cache:'no-store'})
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){ applyLive(j); })
@@ -780,6 +813,65 @@
   setTimeout(once, 2500);
 })();
 </script>
+<script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+<script src="/brand-demo.js"></script>
+
+<script>
+/* Resolve the active brand, then either restore the shipped dataset (tenant
+   zero) or replace the workbench with an honest empty state naming the brand.
+   Analytics are the sharpest possible cross-brand leak: revenue and AOV read as
+   authoritative, so showing another brand's is worse than showing nothing. */
+(function () {
+  function emptyState(name) {
+    var host = document.querySelector('main') || document.body;
+    var el = document.createElement('div');
+    el.style.cssText = 'max-width:720px;margin:26px auto;padding:22px 24px;border:1px solid var(--brand-line,#e3e3e3);border-radius:14px;font-family:var(--brand-font-body,system-ui,sans-serif);line-height:1.6';
+    el.innerHTML =
+      '<h2 style="font-family:var(--brand-font-heading,inherit);margin:0 0 10px;font-size:20px">No analytics connected for ' + name + '</h2>' +
+      '<p style="margin:0 0 10px;opacity:.82">[DATA REQUIRED BEFORE LAUNCH: analytics exports, ' + name + '.] ' +
+      'The dataset compiled into this build describes a different brand, and revenue, AOV and order counts read as authoritative, so it is not substituted here.</p>' +
+      '<p style="margin:0;opacity:.82">Connect this brand\'s own commerce or analytics exports, then this workbench fills in.</p>';
+    if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+    // Hide the widgets that would otherwise render zeros as if they were real.
+    document.querySelectorAll('[data-widget],.da-grid,.da-tabs').forEach(function (n) { n.style.display = 'none'; });
+  }
+  function demoBanner(brand) {
+    if (document.getElementById('demo-banner')) return;
+    var host = document.querySelector('main') || document.body;
+    var el = document.createElement('div');
+    el.id = 'demo-banner';
+    el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--brand-primary,#c00);border-radius:10px;font-family:var(--brand-font-body,system-ui,sans-serif);font-size:13px;line-height:1.55;opacity:.92';
+    el.innerHTML = '<b>DEMO DATA</b> - generated deterministically from <b>' + String((brand && brand.name) || 'this brand').replace(/[<>&]/g, '') + "</b>'s own offerings and regions. Not real performance. Connect this brand's exports to replace it.";
+    if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
+  }
+  function decide(brand) {
+    var ok = window.__restoreAnalytics ? window.__restoreAnalytics(brand) : true;
+    if (ok) { if (window.__daRefresh) window.__daRefresh(); return; }
+    // Another brand is active: use a labelled demo dataset built from ITS OWN
+    // offerings. Only a brand with no offerings on record keeps the empty state.
+    if (window.BrandDemo && window.BrandDemo.ready) {
+      window.BrandDemo.ready().then(function (ctx) {
+        if (ctx && ctx.analytics) {
+          window.LIFECYCLE_ANALYTICS = ctx.analytics;
+          if (window.KNICKGASM_ANALYTICS) window.KNICKGASM_ANALYTICS = ctx.analytics;
+          demoBanner(ctx.brand);
+          if (window.__daRefresh) window.__daRefresh();
+        } else {
+          emptyState((brand && brand.name) || 'this brand');
+        }
+      });
+    } else {
+      emptyState((brand && brand.name) || 'this brand');
+    }
+  }
+  function boot() {
+    if (window.BrandContext && window.BrandContext.ready) {
+      window.BrandContext.ready().then(decide).catch(function () { decide(null); });
+    } else { decide(null); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
 </body>
 </html>

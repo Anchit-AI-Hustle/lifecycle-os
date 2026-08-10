@@ -33,8 +33,8 @@
     },
 
     "S1_announcement_bar": {
-      "background": "gradient or solid #6A33D8 / #003d24",
-      "text_style": "8-10px uppercase, letter-spacing 0.18-0.24em, #F7F5F2",
+      "background": "gradient or solid #D0473E / #003d24",
+      "text_style": "8-10px uppercase, letter-spacing 0.18-0.24em, #FFFFFF",
       "content_pattern": "FREE SHIPPING threshold + offer code OR seasonal urgency",
       "border_radius": "8px 8px 0 0 (top corners only)"
     },
@@ -43,9 +43,9 @@
       "logo_text": "KNICKGASM®",
       "logo_font": "Montserrat, Georgia, serif",
       "logo_size": "28-36px bold",
-      "logo_color": "#6A33D8",
+      "logo_color": "#D0473E",
       "est_line": "EST. 2015 · NEW DELHI, INDIA",
-      "est_style": "8.5px uppercase, letter-spacing 0.36em, #D0473E",
+      "est_style": "8.5px uppercase, letter-spacing 0.36em, #6A33D8",
       "tagline": "PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE",
       "background": "#ffffff"
     },
@@ -67,11 +67,11 @@
         "layout": "50/50 side-by-side: image left, copy right",
         "hero_image": "Product/lifestyle photo, 300px wide",
         "copy_side": {
-          "kicker": "12px uppercase, #d4873a or #D0473E, letter-spacing 2px (e.g. NEW ARRIVAL, BESTSELLER)",
-          "headline": "Georgia/serif, 24-32px, #6A33D8 or #0f2a1c, max 8 words",
+          "kicker": "12px uppercase, #d4873a or #6A33D8, letter-spacing 2px (e.g. NEW ARRIVAL, BESTSELLER)",
+          "headline": "Georgia/serif, 24-32px, #D0473E or #0f2a1c, max 8 words",
           "subcopy": "14-15px, #4a4540, 1-2 lines max, line-height 1.6",
           "cta_button": {
-            "background": "#d4873a or #D0473E",
+            "background": "#d4873a or #6A33D8",
             "color": "#ffffff",
             "padding": "14px 32px",
             "font": "13px bold, letter-spacing 0.5px",
@@ -121,13 +121,13 @@
         "name": "11-13px Georgia/serif bold, first part before comma",
         "benefit_chip": "Short benefit statement in colored pill",
         "price_block": {
-          "sale_price": "Bold, #D0473E or #6A33D8",
+          "sale_price": "Bold, #6A33D8 or #D0473E",
           "compare_at": "Strikethrough, #aaa",
           "savings_badge": "Red/amber pill showing % off"
         },
-        "rating": "5 lava stars + '4.8 · 1,000+ reviews'",
+        "rating": "5 lava stars + '4.8 · one-of-one designs'",
         "cta": "SHOP NOW or ADD TO CART button",
-        "hero_badge": "First product gets 'HERO PICK' badge in #D0473E"
+        "hero_badge": "First product gets 'HERO PICK' badge in #6A33D8"
       }
     },
 
@@ -145,11 +145,11 @@
     },
 
     "S9_offer_bar": {
-      "background": "#d4873a or #D0473E",
+      "background": "#d4873a or #6A33D8",
       "headline": "Georgia/serif, 20px bold, #ffffff",
       "subtext": "13px, #fff5eb",
       "cta_button": {
-        "background": "#0f2a1c or #6A33D8",
+        "background": "#0f2a1c or #D0473E",
         "color": "#fdf6e8",
         "text": "Shop the Collection"
       },
@@ -207,12 +207,12 @@
   },
 
   "color_palette": {
-    "primary_dark": "#6A33D8",
+    "primary_dark": "#D0473E",
     "primary_forest": "#0f2a1c",
     "primary_deep": "#0a1f13",
-    "gold_accent": "#D0473E",
+    "gold_accent": "#6A33D8",
     "warm_amber": "#d4873a",
-    "ivory_cream": "#F7F5F2",
+    "ivory_cream": "#FFFFFF",
     "light_cream": "#fdf6e8",
     "outer_bg": "#f0ebe0",
     "card_bg": "#ffffff",
@@ -222,7 +222,7 @@
     "text_light": "#888",
     "text_muted": "#6b6255",
     "success_green": "#9fd6b5",
-    "star_gold": "#D0473E"
+    "star_gold": "#6A33D8"
   },
 
   "typography": {

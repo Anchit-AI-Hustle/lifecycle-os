@@ -19,7 +19,7 @@ module.exports = defineConfig({
     trace: 'retain-on-failure',
     // The SPA is a single static HTML file — open it via file:// URL.
     // Override with TARGET_URL env var to test the deployed Vercel URL instead.
-    baseURL: process.env.TARGET_URL || 'file://' + require('path').resolve(__dirname, '..', 'knickgasm_mailer_architect_v34.html'),
+    baseURL: process.env.TARGET_URL || 'file://' + require('path').resolve(__dirname, '..', 'lifecycle_mailer_architect_v34.html'),
   },
   // Six viewports cover the realistic device matrix.
   projects: [

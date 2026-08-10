@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand Input - Lifecycle OS</title>
+<meta name="description" content="The single brand-truth record every generator in the Lifecycle OS reads: palette, typography, voice, and footer blocks.">
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  :root{
+    --kg-red:#D0473E; --kg-purple:#6A33D8; --kg-ink:#111111; --kg-white:#FFFFFF;
+    --line:#ebebeb; --muted:#666666; --panel:#f7f7f7;
+    --head:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+    --body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--kg-white);color:var(--kg-ink);font-family:var(--body);line-height:1.55}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-family:var(--head);font-weight:800;font-size:clamp(24px,4vw,34px);margin:0 0 6px;letter-spacing:-.02em}
+  h2{font-family:var(--head);font-weight:700;font-size:18px;margin:0 0 4px}
+  .lede{color:var(--muted);margin:0 0 24px;max-width:70ch}
+  .card{border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;background:var(--kg-white)}
+  .card > p.hint{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .grid{display:grid;gap:14px}
+  .grid.c2{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .grid.c4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  input[type=text],input[type=url],input[type=email],textarea,select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+    font-family:var(--body);font-size:14px;color:var(--kg-ink);background:var(--kg-white)}
+  textarea{min-height:96px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--kg-purple);outline-offset:1px;border-color:transparent}
+  .swatch{display:flex;align-items:center;gap:10px}
+  .swatch input[type=color]{width:46px;height:40px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
+  .swatch input[type=text]{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}
+  .btn{font-family:var(--head);font-weight:700;font-size:14px;border-radius:999px;padding:11px 22px;border:1px solid var(--kg-ink);cursor:pointer}
+  .btn-primary{background:var(--kg-ink);color:var(--kg-white)}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--kg-ink)}
+  .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;bottom:0;
+    background:linear-gradient(to top,var(--kg-white) 65%,transparent);padding:16px 0 6px;margin-top:8px}
+  .status{font-size:13px;color:var(--muted)}
+  .status.ok{color:#1a7f37;font-weight:600}
+  .status.err{color:var(--kg-red);font-weight:600}
+  .preview{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:14px}
+  .preview .bar{padding:14px 18px;font-family:var(--head);font-weight:700}
+  .preview .body{padding:16px 18px;font-size:14px}
+  .preview .cta{display:inline-block;margin-top:10px;padding:9px 18px;border-radius:999px;font-family:var(--head);font-weight:700;font-size:13px}
+  .chip{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--panel);color:var(--muted);margin:0 6px 6px 0}
+  .banner{border:1px solid var(--line);border-left:4px solid var(--kg-red);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13.5px;background:var(--panel)}
+  .contrast-warn{font-size:12px;margin-top:6px;color:var(--kg-red);font-weight:600}
+  .contrast-ok{font-size:12px;margin-top:6px;color:#1a7f37;font-weight:600}
+  .loading{padding:60px 0;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Brand Input</h1>
+  <p class="lede">
+    The single brand-truth record for this platform. Every generator - mailers, ads, landing pages,
+    the Smart Brain and KicksGPT - reads these values, so changing them here changes every asset the
+    OS produces next. This is also what you edit first when standing the platform up for a new brand.
+  </p>
+
+  <div class="banner">
+    <strong>How this is wired:</strong> saved to the <code>lifecycle_brand_kit</code> singleton in Supabase via
+    <code>/api/kb?action=brand-kit</code>. The palette and typography here must stay in step with
+    <code>api/_shared/master-prompt.js</code> (the prompt-side brand block) - the Verify panel below flags drift.
+  </div>
+
+  <div id="loading" class="loading">Loading brand kit...</div>
+
+  <form id="form" hidden>
+    <div class="card">
+      <h2>Palette</h2>
+      <p class="hint">Exactly four colours. Sourced from the live knickgasm.com theme: red is the primary accent
+        (<code>--color-primary</code>), ink is text and primary buttons, white is the page background.</p>
+      <div class="grid c4">
+        <div>
+          <label for="c-primary">Primary (accent)</label>
+          <div class="swatch"><input type="color" id="c-primary-pick"><input type="text" id="c-primary" maxlength="7" placeholder="#D0473E"></div>
+        </div>
+        <div>
+          <label for="c-accent">Secondary</label>
+          <div class="swatch"><input type="color" id="c-accent-pick"><input type="text" id="c-accent" maxlength="7" placeholder="#6A33D8"></div>
+        </div>
+        <div>
+          <label for="c-text">Ink / text</label>
+          <div class="swatch"><input type="color" id="c-text-pick"><input type="text" id="c-text" maxlength="7" placeholder="#111111"></div>
+        </div>
+        <div>
+          <label for="c-bg">Background</label>
+          <div class="swatch"><input type="color" id="c-bg-pick"><input type="text" id="c-bg" maxlength="7" placeholder="#FFFFFF"></div>
+        </div>
+      </div>
+      <div id="contrast"></div>
+      <div class="preview" id="preview">
+        <div class="bar" id="pv-bar">KNICKGASM</div>
+        <div class="body" id="pv-body">
+          Custom one-of-one customs on 100% original products.
+          <br><span class="cta" id="pv-cta">Shop the drop</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Typography</h2>
+      <p class="hint">Two families only. Headings carry the brand; body is the workhorse.</p>
+      <div class="grid c2">
+        <div>
+          <label for="t-head">Heading family</label>
+          <input type="text" id="t-head" placeholder="Montserrat">
+        </div>
+        <div>
+          <label for="t-head-stack">Heading stack (CSS)</label>
+          <input type="text" id="t-head-stack" placeholder="'Montserrat', Arial, sans-serif">
+        </div>
+        <div>
+          <label for="t-body">Body family</label>
+          <input type="text" id="t-body" placeholder="Instrument Sans">
+        </div>
+        <div>
+          <label for="t-body-stack">Body stack (CSS)</label>
+          <input type="text" id="t-body-stack" placeholder="'Instrument Sans', Arial, sans-serif">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Voice</h2>
+      <p class="hint">The tone line and tagline go into every generation prompt. Do / Don't lists become
+        hard gates - the Don't list is enforced as banned phrases by the brand scrubber.</p>
+      <div class="grid">
+        <div>
+          <label for="v-tone">Tone</label>
+          <textarea id="v-tone" placeholder="Bold, energetic, youth street-culture..."></textarea>
+        </div>
+        <div>
+          <label for="v-tagline">Tagline</label>
+          <input type="text" id="v-tagline" placeholder="India's Largest Product Customisers.">
+        </div>
+        <div class="grid c2">
+          <div>
+            <label for="v-dos">Do (one per line)</label>
+            <textarea id="v-dos"></textarea>
+          </div>
+          <div>
+            <label for="v-donts">Don't / banned (one per line)</label>
+            <textarea id="v-donts"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Footer &amp; identity</h2>
+      <p class="hint">Used in mailer and landing-page footers. Legal name should match the registered entity.</p>
+      <div class="grid c2">
+        <div><label for="f-legal">Legal entity</label><input type="text" id="f-legal"></div>
+        <div><label for="f-email">Contact email</label><input type="email" id="f-email"></div>
+        <div><label for="f-instagram">Instagram</label><input type="url" id="f-instagram"></div>
+        <div><label for="f-facebook">Facebook</label><input type="url" id="f-facebook"></div>
+        <div><label for="f-x">X / Twitter</label><input type="url" id="f-x"></div>
+        <div><label for="f-guide">Brand guide PDF (optional)</label><input type="url" id="f-guide"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Verify</h2>
+      <p class="hint">Checks the saved record against the prompt-side brand block and the live store theme.</p>
+      <div id="verify"><span class="chip">Run a save to refresh</span></div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" id="save">Save brand kit</button>
+      <button type="button" class="btn btn-ghost" id="reload">Reset to saved</button>
+      <span class="status" id="status"></span>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var API = '/api/kb?action=brand-kit';
+  var $ = function (id) { return document.getElementById(id); };
+  var current = null;
+
+  // ── colour helpers: contrast is a brand rule, not a nicety ───────────────
+  function lum(hex) {
+    var c = hex.replace('#', '');
+    var v = [0, 2, 4].map(function (i) {
+      var x = parseInt(c.substr(i, 2), 16) / 255;
+      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  }
+  function ratio(a, b) {
+    var l1 = lum(a), l2 = lum(b);
+    return ((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05));
+  }
+  function isHex(s) { return /^#[0-9A-Fa-f]{6}$/.test(s || ''); }
+
+  function bindSwatch(name) {
+    var text = $('c-' + name), pick = $('c-' + name + '-pick');
+    pick.addEventListener('input', function () { text.value = pick.value.toUpperCase(); render(); });
+    text.addEventListener('input', function () {
+      var v = text.value.trim();
+      if (isHex(v)) { pick.value = v; }
+      render();
+    });
+  }
+  ['primary', 'accent', 'text', 'bg'].forEach(bindSwatch);
+
+  function render() {
+    var bg = $('c-bg').value.trim(), ink = $('c-text').value.trim();
+    var primary = $('c-primary').value.trim(), accent = $('c-accent').value.trim();
+    if (!isHex(bg) || !isHex(ink) || !isHex(primary) || !isHex(accent)) return;
+    var pv = $('preview');
+    pv.style.background = bg;
+    $('pv-bar').style.color = primary;
+    $('pv-body').style.color = ink;
+    var cta = $('pv-cta');
+    cta.style.background = ink; cta.style.color = bg;
+    // Body text on background is the load-bearing pair (WCAG-AA body = 4.5)
+    var r = ratio(ink, bg);
+    var el = $('contrast');
+    if (r >= 4.5) {
+      el.className = 'contrast-ok';
+      el.textContent = 'Contrast ' + r.toFixed(2) + ':1 - passes WCAG AA for body text.';
+    } else {
+      el.className = 'contrast-warn';
+      el.textContent = 'Contrast ' + r.toFixed(2) + ':1 - fails WCAG AA (needs 4.5:1). Generated assets will be hard to read.';
+    }
+  }
+
+  function lines(s) {
+    return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+
+  function fill(kit) {
+    current = kit;
+    var p = (kit && kit.palette) || {};
+    $('c-primary').value = (p.primary || '#D0473E').toUpperCase();
+    $('c-accent').value = (p.accent || '#6A33D8').toUpperCase();
+    $('c-text').value = (p.text || '#111111').toUpperCase();
+    $('c-bg').value = (p.bg || '#FFFFFF').toUpperCase();
+    ['primary', 'accent', 'text', 'bg'].forEach(function (n) {
+      var v = $('c-' + n).value;
+      if (isHex(v)) $('c-' + n + '-pick').value = v;
+    });
+    var t = (kit && kit.typography) || {};
+    var th = t.primary || {}, tb = t.secondary || {};
+    $('t-head').value = th.family || 'Montserrat';
+    $('t-head-stack').value = th.stack || '';
+    $('t-body').value = tb.family || 'Instrument Sans';
+    $('t-body-stack').value = tb.stack || '';
+    var v = (kit && kit.voice) || {};
+    $('v-tone').value = v.tone || '';
+    $('v-tagline').value = v.tagline || '';
+    $('v-dos').value = (v.dos || []).join('\n');
+    $('v-donts').value = (v.donts || []).join('\n');
+    var f = (kit && kit.footer_blocks) || {};
+    $('f-legal').value = f.legal || '';
+    $('f-email').value = (f.contact && f.contact.email) || '';
+    var social = f.social || [];
+    function soc(name) {
+      var hit = social.filter(function (s) { return s.platform === name; })[0];
+      return hit ? hit.url : '';
+    }
+    $('f-instagram').value = soc('instagram');
+    $('f-facebook').value = soc('facebook');
+    $('f-x').value = soc('x');
+    $('f-guide').value = (kit && kit.guide_pdf_url) || '';
+    render();
+    verify();
+  }
+
+  function collect() {
+    return {
+      palette: {
+        primary: $('c-primary').value.trim().toUpperCase(),
+        accent: $('c-accent').value.trim().toUpperCase(),
+        bg: $('c-bg').value.trim().toUpperCase(),
+        text: $('c-text').value.trim().toUpperCase()
+      },
+      typography: {
+        primary: {
+          family: $('t-head').value.trim(),
+          stack: $('t-head-stack').value.trim(),
+          usage: ((current && current.typography && current.typography.primary) || {}).usage || ['headings', 'titles'],
+          weights: ((current && current.typography && current.typography.primary) || {}).weights || ['regular', 'bold']
+        },
+        secondary: {
+          family: $('t-body').value.trim(),
+          stack: $('t-body-stack').value.trim(),
+          usage: ((current && current.typography && current.typography.secondary) || {}).usage || ['body', 'buttons'],
+          weights: ((current && current.typography && current.typography.secondary) || {}).weights || ['regular', 'bold']
+        }
+      },
+      voice: {
+        tone: $('v-tone').value.trim(),
+        tagline: $('v-tagline').value.trim(),
+        dos: lines($('v-dos').value),
+        donts: lines($('v-donts').value)
+      },
+      footer_blocks: {
+        legal: $('f-legal').value.trim(),
+        contact: { email: $('f-email').value.trim() },
+        social: [
+          { platform: 'instagram', url: $('f-instagram').value.trim() },
+          { platform: 'facebook', url: $('f-facebook').value.trim() },
+          { platform: 'x', url: $('f-x').value.trim() }
+        ].filter(function (s) { return s.url; }),
+        links: ((current && current.footer_blocks) || {}).links || {}
+      },
+      guide_pdf_url: $('f-guide').value.trim() || null
+    };
+  }
+
+  // Drift check against the prompt-side brand block (master-prompt.js is the
+  // other half of brand truth; silent divergence is the classic failure here).
+  function verify() {
+    var el = $('verify');
+    el.innerHTML = '<span class="chip">Checking prompt-side brand block...</span>';
+    fetch('/api/public-config?health=1').then(function (r) { return r.json(); }).catch(function () { return null; })
+      .then(function () {
+        var p = collect().palette;
+        var out = [];
+        var expect = ['#D0473E', '#6A33D8', '#111111', '#FFFFFF'];
+        var got = [p.primary, p.accent, p.text, p.bg];
+        var matches = expect.filter(function (h) { return got.indexOf(h) !== -1; }).length;
+        out.push('<span class="chip">' + matches + '/4 colours match the live knickgasm.com theme</span>');
+        if (matches < 4) {
+          out.push('<span class="chip" style="color:#D0473E">Prompt block in api/_shared/master-prompt.js still pins the store palette - update it to match, or generated assets will drift from this page.</span>');
+        }
+        var t = collect().typography;
+        if (t.primary.family && t.secondary.family) {
+          out.push('<span class="chip">Type: ' + t.primary.family + ' / ' + t.secondary.family + '</span>');
+        }
+        var v = collect().voice;
+        out.push('<span class="chip">' + v.dos.length + ' do rules, ' + v.donts.length + ' banned rules</span>');
+        el.innerHTML = out.join('');
+      });
+  }
+
+  function load() {
+    $('status').textContent = '';
+    fetch(API).then(function (r) { return r.json(); }).then(function (d) {
+      $('loading').hidden = true;
+      $('form').hidden = false;
+      if (!d.ok) throw new Error(d.error || 'read failed');
+      fill(d.brand_kit || {});
+    }).catch(function (e) {
+      $('loading').innerHTML = 'Could not load the brand kit: ' + e.message +
+        '<br><small>The form still opens with defaults - saving will create the record.</small>';
+      $('form').hidden = false;
+      fill({});
+    });
+  }
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var body = collect();
+    var bad = ['primary', 'accent', 'bg', 'text'].filter(function (k) { return !isHex(body.palette[k]); });
+    if (bad.length) {
+      $('status').className = 'status err';
+      $('status').textContent = 'Fix these colours first: ' + bad.join(', ');
+      return;
+    }
+    $('save').disabled = true;
+    $('status').className = 'status';
+    $('status').textContent = 'Saving...';
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) throw new Error(d.error || 'save failed');
+        current = d.brand_kit;
+        $('status').className = 'status ok';
+        $('status').textContent = 'Saved. Every generator now reads these values.';
+        verify();
+      })
+      .catch(function (err) {
+        $('status').className = 'status err';
+        $('status').textContent = 'Save failed: ' + err.message;
+      })
+      .then(function () { $('save').disabled = false; });
+  });
+
+  $('reload').addEventListener('click', load);
+  load();
+})();
+</script>
+<script defer src="/brand-catalog.js"></script>
+<script defer src="/auth.js"></script>
+</body>
+</html>

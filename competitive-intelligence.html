@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Competitive Intelligence · KNICKGASM Lifecycle OS</title>
-  <link rel="icon" href="/favicon.ico" />
-  <meta name="theme-color" content="#6A33D8">
+  <title>Competitive Intelligence · Lifecycle OS</title>
+  <link rel="icon" href="/favicon.png" />
+  <meta name="theme-color" content="#D0473E">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/favicon.png">
@@ -17,9 +17,9 @@
     /* Violet-green canvas, consistent with the locked shell theme (theme.css).
        Was light-first (chalk bg, green accent-text); accents re-assigned to
        lava/chalk so nothing renders green-on-green. */
-    :root{ --green:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
-      --canvas:var(--bg,#6A33D8); --panel:var(--surface,#075C39); --panel2:var(--chip,#f4f2ec);
-      --txt:var(--vh-ink,#F7F5F2); --dim:var(--ink-dim,#E4CF94); --line:rgba(171,135,67,0.28); }
+    :root{ --green:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
+      --canvas:var(--bg,#D0473E); --panel:var(--surface,var(--vh-ink)); --panel2:var(--chip,var(--vh-panel-tan));
+      --txt:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,var(--vh-lava)); --line:rgba(171,135,67,0.28); }
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--txt); background:var(--canvas); }
     .wrap{ max-width:1180px; margin:0 auto; padding:24px 20px 80px; }
@@ -59,7 +59,7 @@
 
     <div class="row" style="margin-bottom:6px;">
       <select id="brand"><option value="">All brands</option></select>
-      <select id="category"><option value="">All categories</option><option>sneaker</option><option>coffee</option><option>supplements</option><option>streetwear</option><option>dtc</option></select>
+      <select id="category"><option value="">All categories</option><option>product</option><option>coffee</option><option>supplements</option><option>lifestyle</option><option>dtc</option></select>
       <select id="region"><option value="">All regions</option><option>US</option><option>UK</option><option>IN</option><option>EU</option><option>AU</option></select>
       <select id="days"><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
       <input id="search" placeholder="Search copy / subject…" style="flex:1;min-width:160px" />

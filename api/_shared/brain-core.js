@@ -165,12 +165,12 @@ function mergeDeep(base, over) {
 
 // ── Brand kit ────────────────────────────────────────────────────────────────
 const FALLBACK_BRAND = {
-  palette: { forest_green: '#6A33D8', lava: '#D0473E', near_black: '#111111', chalk: '#F7F5F2' },
+  palette: { forest_green: '#D0473E', lava: '#6A33D8', near_black: '#111111', chalk: '#FFFFFF' },
   typography: {
     headings: { fallback: "'Montserrat','Raleway',Georgia,serif" },
     body: { fallback: "'Instrument Sans','Helvetica Neue',Arial,sans-serif" },
   },
-  banned_phrases: ['streetwear journey', 'transform', 'liquid lava', 'game-changer', 'LIMITED TIME', 'hurry', "don't miss out", 'last chance', 'while supplies last'],
+  banned_phrases: ['wellness journey', 'transform', 'liquid gold', 'game-changer', 'LIMITED TIME', 'hurry', "don't miss out", 'last chance', 'while supplies last'],
   preferred_lexicon: ['ritual', 'restore', 'balance', 'origin', 'one-of-one', 'hand-painted', 'lace-up', 'heritage', 'crafted'],
   voice: 'warm, sensory, emotionally resonant, story-driven',
   store_urls: { US: 'https://knickgasm.com', UK: 'https://knickgasm.com', IN: 'https://knickgasm.com', Global: 'https://knickgasm.com' },
@@ -187,7 +187,7 @@ async function getBrandKit() {
 function scrubBannedPhrases(text, brand) {
   let out = String(text || '');
   const swaps = {
-    'streetwear journey': 'daily ritual', transform: 'restore', 'liquid lava': 'golden lace-up',
+    'wellness journey': 'daily ritual', transform: 'restore', 'liquid gold': 'golden lace-up',
     'game-changer': 'quiet upgrade', 'LIMITED TIME': 'For a short season', hurry: 'when you are ready',
     "don't miss out": 'worth a look', 'last chance': 'a final pour', 'while supplies last': 'in small batches',
   };

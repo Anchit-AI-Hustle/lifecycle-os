@@ -19,7 +19,7 @@ const REGION = {
   uk:     { code: 'UK', cur: '£', live: 'knickgasm.com',  tryd: 'knickgasm.com',  label: 'United Kingdom' },
   global: { code: 'Global', cur: '$', live: 'knickgasm.com',  tryd: 'try.knickgasm.com', label: 'Global' },
 };
-const PAL = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2', panel: '#FFFFFF' };
+const PAL = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF', panel: '#FFFFFF' };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function load(region) {
@@ -107,21 +107,21 @@ a{text-decoration:none;color:inherit}
 .footer a{color:var(--lava);font-weight:700}
 @media(max-width:820px){.hero{grid-template-columns:1fr;text-align:center;min-height:auto}.hero p{margin-left:auto;margin-right:auto}.nav .links{display:none}}
 </style></head><body>
-<div class="util">Now shipping across ${esc(r.label)} — studio-fresh within 72 hours of drop &nbsp;·&nbsp; This is a 3D design variation on ${esc(r.tryd)}</div>
+<div class="util">Express shipping across ${esc(r.label)} · hand-painted to order in 10 to 15 days &nbsp;·&nbsp; This is a 3D design variation on ${esc(r.tryd)}</div>
 <nav class="nav"><div class="logo">KNICKGASM</div>
-  <div class="links"><span>Sneaker</span><span>Coffee</span><span>Supplements</span><span>Gifts</span><span>Bestsellers</span></div>
+  <div class="links"><span>Air Force 1</span><span>Jordan</span><span>Converse</span><span>Denim</span><span>Bestsellers</span></div>
   <a class="cta" href="https://${r.live}" target="_blank" rel="noopener">Shop the live store</a></nav>
 <section class="hero">
-  <div><div class="eyebrow">Single-studio · B-Corp · ${esc(r.label)}</div>
-    <h1>${esc((heroProduct && heroProduct.n) ? heroProduct.n.replace(/-\d.*$/, '').trim() : 'The ritual, in three dimensions')}</h1>
-    <p>There is a moment when the right pair does more than warm your hands. Explore the collection, rendered in depth.</p>
-    <a class="buy" href="https://${r.live}/products/${esc(heroProduct ? heroProduct.h : '')}" target="_blank" rel="noopener">Shop this ritual</a></div>
+  <div><div class="eyebrow">One of one · 100% original pairs · ${esc(r.label)}</div>
+    <h1>${esc((heroProduct && heroProduct.n) ? heroProduct.n.replace(/-\d.*$/, '').trim() : 'The one-of-one, in three dimensions')}</h1>
+    <p>There is a moment when the right pair stops being a shoe. Explore the hand-painted collection, rendered in depth.</p>
+    <a class="buy" href="https://${r.live}/products/${esc(heroProduct ? heroProduct.h : '')}" target="_blank" rel="noopener">Shop this pair</a></div>
   <div class="stage">${heroImg ? `<img class="box" src="${esc(heroImg)}" alt="${esc(heroProduct.n)}">` : ''}</div>
 </section>
-<section class="section"><h2>Shop by ritual</h2><div class="sub">Real collections from the ${esc(r.label)} store</div><div class="colls">${collectionTiles}</div></section>
+<section class="section"><h2>Shop by collection</h2><div class="sub">Real collections from the ${esc(r.label)} store</div><div class="colls">${collectionTiles}</div></section>
 <section class="section" style="background:var(--chalk)"><h2>Featured, in depth</h2><div class="sub">Hover any product — real catalogue, real prices${featured.length ? '' : ' (prices load from the approved-facts library)'}</div><div class="grid">${featured.map((p) => card(p, r, facts)).join('')}</div></section>
 <section class="section"><h2>The full shelf</h2><div class="sub">${grid.length} live products from ${esc(r.live)}</div><div class="grid">${grid.map((p) => card(p, r, facts)).join('')}</div></section>
-<div class="proof">Rated 4.9/5 · Judge.me verified reviews &nbsp;·&nbsp; 6 million customers &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
+<div class="proof">Made on 100% original brand sneakers &nbsp;·&nbsp; 60+ countries shipped &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>
 <footer class="footer">KNICKGASM® ${esc(r.label)} &nbsp;·&nbsp; A 3D design variation hosted on <b>${esc(r.tryd)}</b><br>Live store: <a href="https://${r.live}" target="_blank" rel="noopener">${esc(r.live)}</a> &nbsp;·&nbsp; Every product links to its real page. Nothing here is fabricated.<br>440 N Barranca Ave #2812, Covina, CA 91723, United States</footer>
 </body></html>`;
 }

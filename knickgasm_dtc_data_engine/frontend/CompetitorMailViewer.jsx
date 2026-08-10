@@ -100,7 +100,7 @@ export default function CompetitorMailViewer({ mailer }) {
   );
 }
 
-// Inline component-level CSS definitions using Brand-aligned styling (#6A33D8 deep purple, lava, chalk)
+// Inline component-level CSS definitions using Brand-aligned styling (#D0473E deep purple, lava, chalk)
 const styles = {
   viewerCard: {
     width: '100%',
@@ -125,7 +125,7 @@ const styles = {
   },
   headerPanel: {
     padding: '16px 20px',
-    backgroundColor: '#F7F5F2', // Premium Brand Chalk
+    backgroundColor: '#FFFFFF', // Premium Brand Chalk
     borderBottom: '1px solid #EAE5D9',
     display: 'flex',
     justifyContent: 'space-between',
@@ -144,7 +144,7 @@ const styles = {
     fontWeight: '700',
     letterSpacing: '0.05em',
     textTransform: 'uppercase',
-    color: '#6A33D8', // Brand Deep Purple
+    color: '#D0473E', // Brand Deep Purple
     backgroundColor: 'rgba(0, 74, 43, 0.08)',
     padding: '4px 8px',
     borderRadius: '4px',
@@ -191,7 +191,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: '600',
     color: '#FFFFFF',
-    backgroundColor: '#6A33D8', // Brand Deep Purple
+    backgroundColor: '#D0473E', // Brand Deep Purple
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',

@@ -37,7 +37,7 @@ copy_in () {           # $1 = filename to find, $2 = source file
 }
 
 echo "▸ Copying changed files into the repo…"
-copy_in "knickgasm_mailer_architect_v34.html" "$SRC/knickgasm_mailer_architect_v34.html"
+copy_in "lifecycle_mailer_architect_v34.html" "$SRC/lifecycle_mailer_architect_v34.html"
 copy_in "generate.js"                       "$SRC/api/ai/generate.js"
 
 echo
@@ -61,5 +61,5 @@ echo "▸ Pushing… (Vercel auto-builds)"
 git push
 
 echo
-echo "✅ Pushed. Build: https://vercel.com/anchittandon-3589s-projects/knickgasm-lifecycle-os"
+echo "✅ Pushed. Build: https://vercel.com/anchittandon-3589s-projects/lifecycle-os"
 echo "   Live at /studio in ~1–2 min."

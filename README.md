@@ -1,4 +1,4 @@
-# KNICKGASM Lifecycle OS
+# Lifecycle OS
 
 **Data Analysis + Marketing Calendar + Mailer Creator** — one workflow, three
 stages, deployable as a single Vercel project.
@@ -40,9 +40,9 @@ Downloadable builds are published by the **Mobile Builds** workflow
 
 | Platform | Download |
 |---|---|
-| Android (APK, direct install) | https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os.apk |
-| iOS (unsigned IPA — sideload via AltStore/Sideloadly, or sign for TestFlight) | https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/download/mobile-latest/knickgasm-lifecycle-os-ios-unsigned.ipa |
-| All builds | https://github.com/Anchit-AI-Hustle/knickgasm-lifecycle-os/releases/tag/mobile-latest |
+| Android (APK, direct install) | https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os.apk |
+| iOS (unsigned IPA — sideload via AltStore/Sideloadly, or sign for TestFlight) | https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/download/mobile-latest/lifecycle-os-ios-unsigned.ipa |
+| All builds | https://github.com/Anchit-AI-Hustle/lifecycle-os/releases/tag/mobile-latest |
 
 ---
 
@@ -79,7 +79,7 @@ Downloadable builds are published by the **Mobile Builds** workflow
 
 ### Stage 03 — Mailer Studio (`/studio`)
 
-- The original `knickgasm_mailer_architect_v34.html`
+- The original `lifecycle_mailer_architect_v34.html`
 - Now produces **4 variants** per send:
   - **A** — Image · Hero (close-up product photography)
   - **B** — Image · Lifestyle (wide editorial scene)
@@ -102,7 +102,7 @@ Downloadable builds are published by the **Mobile Builds** workflow
 
 ```bash
 # 1. Push this directory to a new GitHub repo
-gh repo create Anchit-s-AI-Hustle/knickgasm-lifecycle-os --public --source=. --remote=origin --push
+gh repo create Anchit-s-AI-Hustle/lifecycle-os --public --source=. --remote=origin --push
 
 # 2. Import to Vercel via dashboard, OR:
 vercel link --yes
@@ -112,7 +112,7 @@ vercel --prod
 vercel link --yes --project marketing-mailers-html-architect
 vercel env pull /tmp/mailer.env --environment=production
 # then re-link to this project and bulk-add:
-vercel link --yes --project knickgasm-lifecycle-os
+vercel link --yes --project lifecycle-os
 cat /tmp/mailer.env | while IFS='=' read -r k v; do
   [ -z "$k" ] && continue
   v="${v%\"}"; v="${v#\"}"
@@ -127,10 +127,10 @@ vercel --prod
 
 All inherited from the parent repo (see `CLAUDE.md`):
 
-- Palette: `#6A33D8` deep purple · `#D0473E` lava · `#111111` ink · `#F7F5F2`
+- Palette: `#D0473E` deep purple · `#6A33D8` lava · `#111111` ink · `#FFFFFF`
   chalk
 - Type: Montserrat (headings) + Instrument Sans (body)
-- Banned phrases enforced: "streetwear journey", "transform", "liquid lava",
+- Banned phrases enforced: "wellness journey", "transform", "liquid gold",
   "LIMITED TIME", "hurry", "don't miss out"
 
 ---

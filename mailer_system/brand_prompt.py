@@ -11,11 +11,11 @@ TONE ALWAYS: Calm, confident, premium. Evocative without confusion. Specific ove
 
 TONE NEVER: Urgent, pushy, countdown-driven. Generic streetwear clichés. Spammy subject line tactics. Overlong paragraphs.
 
-BANNED WORDS: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME in caps / You won't believe / Hurry / Don't miss out
+BANNED WORDS: wellness journey / transform / liquid gold / game-changer / LIMITED TIME in caps / You won't believe / Hurry / Don't miss out
 
 PREFERRED WORDS: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Phrases: "Your morning ritual" / "From the studios of…" / "Laced in tradition"
 
-COLORS: Hero/trust bg #6A33D8 | CTA/accent #D0473E | Light sections #F7F5F2 | Body text #111111 | Muted text #D0473E | Dark section text #F7F5F2
+COLORS: Hero/trust bg #D0473E | CTA/accent #6A33D8 | Light sections #FFFFFF | Body text #111111 | Muted text #6A33D8 | Dark section text #FFFFFF
 
 TYPOGRAPHY: Headlines: Montserrat serif 400-500 weight never bold-heavy. Body/UI: Instrument Sans 300-400 weight. Eyebrow: Instrument Sans 10-11px 0.2em letter-spacing uppercase.
 
@@ -28,11 +28,11 @@ OUTPUT FORMAT — deliver all 5 parts as valid JSON with keys subject_lines, pre
 2. PREHEADER string: one line max 90 chars, supports and extends subject line, never repeats it, no period.
 
 3. SECTIONS object with keys hero, value, product, trust, footer. Each has copy object and design_guidance object.
-HERO copy: headline (serif emotional hook), subheadline (1-2 lines sensory or origin-focused), cta (max 3 words). Design: single column centered, background #6A33D8, image suggestion specific.
-VALUE copy: array of 3 benefits each with label and description (1 line). Design: 3-column icon row, background #F7F5F2.
+HERO copy: headline (serif emotional hook), subheadline (1-2 lines sensory or origin-focused), cta (max 3 words). Design: single column centered, background #D0473E, image suggestion specific.
+VALUE copy: array of 3 benefits each with label and description (1 line). Design: 3-column icon row, background #FFFFFF.
 PRODUCT copy: product_name, description (2-3 sentences), emotional_hook (1 sentence), price_callout, cta (max 3 words). Design: split desktop stacked mobile, white bg, image suggestion.
-TRUST copy: quote (authentic specific not generic), attribution (name city Verified Buyer), stats array of 3. Design: single column centered, background #6A33D8.
-FOOTER copy: closing_line (warm not pushy), guarantee_note, cta (max 3 words). Design: single column centered, background #F7F5F2.
+TRUST copy: quote (authentic specific not generic), attribution (name city Verified Buyer), stats array of 3. Design: single column centered, background #D0473E.
+FOOTER copy: closing_line (warm not pushy), guarantee_note, cta (max 3 words). Design: single column centered, background #FFFFFF.
 
 4. CTA_OPTIONS array of 3: max 3 words each. One direct, one evocative, one offer-anchored.
 

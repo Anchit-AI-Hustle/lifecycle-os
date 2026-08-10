@@ -58,7 +58,7 @@ function tokens(s) {
 function fromRow(p, market) {
   return {
     title: p.n, handle: p.h, image: (/^https?:\/\//.test(p.i || '') ? p.i : null),
-    price: p.price != null ? p.price : null, type: p.type || (p.t && p.t[0]) || 'sneaker',
+    price: p.price != null ? p.price : null, type: p.type || (p.t && p.t[0]) || 'product',
     url: p.h ? `${storeBase(market)}/products/${p.h}` : storeBase(market),
   };
 }
@@ -92,7 +92,7 @@ function resolveProduct(ref, market) {
   if (p) return fromRow(p, market);
   // No confident catalog match — honest soft fallback (real store search, no image).
   const t = title || (typeof ref === 'string' ? ref : (ref.title || ''));
-  return { title: t, handle: null, image: null, price: null, type: (ref && (ref.category || (ref.heroProduct && ref.heroProduct.category))) || 'sneaker', url: `${storeBase(market)}/search?q=${encodeURIComponent(t)}` };
+  return { title: t, handle: null, image: null, price: null, type: (ref && (ref.category || (ref.heroProduct && ref.heroProduct.category))) || 'product', url: `${storeBase(market)}/search?q=${encodeURIComponent(t)}` };
 }
 
 // Deterministic hash so the same slot always picks the same supporting set.
@@ -168,7 +168,7 @@ function dayName(dateStr) {
 function themeAndSetting(entry, hero) {
   const festival = entry.festival && (entry.festival.name || entry.festival);
   const objective = entry.objective || entry.play_name || 'Lifecycle send';
-  const cat = (hero && hero.type) || (entry.heroProduct && entry.heroProduct.category) || 'sneaker';
+  const cat = (hero && hero.type) || (entry.heroProduct && entry.heroProduct.category) || 'product';
   const setting = `${cat} ritual moment`;
   return [festival ? `${festival} moment` : null, objective, setting].filter(Boolean).join(' · ');
 }
@@ -193,18 +193,18 @@ function whyBasis(entry) {
 // em/en dashes.
 function suggestCopy(cohortName, hero, offer) {
   const c = String(cohortName || '').toLowerCase();
-  const prod = (hero && hero.title) || 'your KNICKGASM sneaker';
+  const prod = (hero && hero.title) || 'your pick';
   const off = offer && offer.pct > 0 ? ` ${Math.round(offer.pct * 100)}% off` : '';
   let subject, preheader, cta;
   if (/vip|champion|prestige|single.?studio/.test(c)) { subject = `Your VIP pick: ${prod}`; cta = 'Claim my VIP offer'; }
   else if (/cart|abandon|checkout|recovery/.test(c)) { subject = `You left something behind`; cta = 'Complete my order'; }
-  else if (/winback|lapsed|at.?risk|non.?engager/.test(c)) { subject = `It has been a while, come back to your ritual`; cta = 'Claim my welcome-back offer'; }
-  else if (/new sub|first.?purchase|activation|non.?buyer/.test(c)) { subject = `Welcome, your first ${prod} awaits`; cta = 'Shop my first sneaker'; }
-  else if (/gift|gifting|high.?aov/.test(c)) { subject = `The gift of great sneaker`; cta = 'Shop sneaker gifts'; }
+  else if (/winback|lapsed|at.?risk|non.?engager/.test(c)) { subject = `It has been a while, come back and see what is new`; cta = 'Claim my welcome-back offer'; }
+  else if (/new sub|first.?purchase|activation|non.?buyer/.test(c)) { subject = `Welcome, ${prod} awaits`; cta = 'Get started'; }
+  else if (/gift|gifting|high.?aov/.test(c)) { subject = `A gift they will actually keep`; cta = 'Browse gifts'; }
   else if (/replenish|subscribe|repeat|loyal/.test(c)) { subject = `Never run out of ${prod}`; cta = 'Start my subscription'; }
   else if (/browse|discovery|sampler|variety/.test(c)) { subject = `Not sure where to start? Try ${prod}`; cta = 'Try the sampler'; }
-  else { subject = `${prod}, made for your ritual`; cta = 'Shop the edit'; }
-  preheader = off ? `A quiet upgrade to your daily pair, with${off} today.` : `A quiet upgrade to your daily pair.`;
+  else { subject = `${prod}, picked for you`; cta = 'See more'; }
+  preheader = off ? `A quiet upgrade, with${off} today.` : `A quiet upgrade, chosen for you.`;
   return { subject, preheader, cta };
 }
 
@@ -250,7 +250,7 @@ const COLUMNS = [
 function buildRow(entry, ctx = {}) {
   const market = entry.market || 'US';
   const hero = resolveProduct(entry.heroProduct || entry.hero_handle || entry.hero_product, market)
-    || (entry.heroProduct ? { title: entry.heroProduct.title, handle: entry.heroProduct.handle || null, image: null, price: null, type: entry.heroProduct.category || 'sneaker', url: storeBase(market) } : null);
+    || (entry.heroProduct ? { title: entry.heroProduct.title, handle: entry.heroProduct.handle || null, image: null, price: null, type: entry.heroProduct.category || 'product', url: storeBase(market) } : null);
   const supporting = hero ? supportingProducts(hero, entry, market, 2) : [];
   const cohortName = (entry.cohort && entry.cohort.name) || entry.cohort_label || entry.cohort_key || '';
   const audience = (entry.cohort && (entry.cohort.size != null ? entry.cohort.size : entry.cohort.count)) || entry.audience_count || 0;

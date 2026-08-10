@@ -1,5 +1,5 @@
 ---
-description: Build and deploy the Knickgasm Lifecycle OS to Vercel.
+description: Build and deploy the Lifecycle OS to Vercel.
 argument-hint: "[optional: 'prod' to deploy to production]"
 ---
 

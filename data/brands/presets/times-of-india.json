@@ -1,0 +1,114 @@
+{
+  "slug": "times-of-india",
+  "name": "The Times of India",
+  "tagline": "India News, Latest News, Breaking News",
+  "industry": "General news / digital publishing",
+  "website": "https://timesofindia.indiatimes.com",
+  "preset": {
+    "label": "The Times of India",
+    "sector": "News & publishing",
+    "blurb": "Mass-reach general news. High-frequency editorial lifecycle across many verticals.",
+    "verified_at": "2026-08-10",
+    "source": "timesofindia.indiatimes.com homepage (theme-color #af2c2c, masthead red #e21b22, Rethink Sans)"
+  },
+  "palette": {
+    "primary": "#E21B22",
+    "accent": "#AF2C2C",
+    "ink": "#1A1A1A",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F6F6F6",
+    "muted": "#595959",
+    "line": "#ECECEC",
+    "ok": "#147014",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "google": true,
+      "weights": "600;700;800"
+    },
+    "body": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "google": true,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "clear, immediate, mass-reach; plain language that works for a first-time reader",
+    "preferred": [
+      "latest",
+      "explained",
+      "live updates",
+      "what it means",
+      "key points"
+    ],
+    "banned": [
+      "clickbait",
+      "you won't believe",
+      "shocking truth",
+      "doctors hate",
+      "this one trick"
+    ],
+    "no_em_dashes": true,
+    "notes": "OBSERVED from public output, not official guidelines. News copy must attribute and date every claim, and never overstate a developing story."
+  },
+  "claims": [
+    "General news coverage from The Times of India"
+  ],
+  "regions": [
+    {
+      "code": "IN",
+      "currency": "INR",
+      "symbol": "₹",
+      "store_url": "https://timesofindia.indiatimes.com",
+      "pdp_pattern": "{base}/products/{handle}",
+      "collection_pattern": "{base}/collections/{slug}"
+    }
+  ],
+  "asset_hosts": [
+    "timesofindia.indiatimes.com",
+    "static.toiimg.com"
+  ],
+  "catalog_source": {
+    "kind": "manual",
+    "offering_kinds": [
+      "section",
+      "plan",
+      "programme"
+    ],
+    "note": "A publisher sells sections, newsletters and subscriptions, not SKUs."
+  },
+  "offerings": [
+    {
+      "kind": "section",
+      "name": "India",
+      "url": "https://timesofindia.indiatimes.com/india",
+      "source": "TOI site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "City",
+      "url": "https://timesofindia.indiatimes.com/city",
+      "source": "TOI site navigation"
+    },
+    {
+      "kind": "section",
+      "name": "Videos",
+      "url": "https://timesofindia.indiatimes.com/videos",
+      "source": "TOI site navigation"
+    },
+    {
+      "kind": "plan",
+      "name": "TOI+",
+      "period": "subscription",
+      "signup_url": "https://timesofindia.indiatimes.com",
+      "source": "TOI+ appears in TOI site navigation"
+    }
+  ],
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

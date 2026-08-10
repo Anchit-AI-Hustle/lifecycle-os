@@ -44,13 +44,13 @@
  *   SUPABASE_ACCESS_TOKEN                 required (sbp_... — Supabase Management API)
  *   <SLUG>_SUPABASE_PROJECT_REF           per-project Supabase ref (see below);
  *                                         SUPABASE_PROJECT_REF is the fallback
- *                                         for knickgasm-lifecycle-os.
+ *                                         for lifecycle-os.
  *   GCP_PROJECT / --gcp-project=          optional — GCP project for the Console
  *                                         link; else read from gcloud config.
  *
  * Per-project Supabase ref env var name = slug uppercased, non-alphanumerics
  * -> underscore (identical to scripts/preflight-credentials.sh), e.g.
- *   knickgasm-lifecycle-os -> KNICKGASM_LIFECYCLE_OS_SUPABASE_PROJECT_REF
+ *   lifecycle-os -> KNICKGASM_LIFECYCLE_OS_SUPABASE_PROJECT_REF
  *
  * Usage:
  *   node scripts/migrate-oauth.js                        # dry-run, all projects
@@ -66,7 +66,7 @@ const { execFileSync } = require('node:child_process');
 const ROOT_DOMAIN = process.env.ROOT_DOMAIN || 'anchit-tandon.com';
 
 const ALL_PROJECTS = [
-  'knickgasm-lifecycle-os', 'personal-ai-os', 'the-third-eye', 'music-gen-ai',
+  'lifecycle-os', 'personal-ai-os', 'the-third-eye', 'music-gen-ai',
   'hey-yaara', 'ai-tele-suite', 'th-life-engine', 'marketing-mailers-html-architect',
 ];
 
@@ -105,7 +105,7 @@ function slugPrefix(slug) {
 function supabaseRefFor(project) {
   const perProject = process.env[`${slugPrefix(project)}_SUPABASE_PROJECT_REF`];
   if (perProject) return perProject;
-  if (project === 'knickgasm-lifecycle-os' && process.env.SUPABASE_PROJECT_REF) {
+  if (project === 'lifecycle-os' && process.env.SUPABASE_PROJECT_REF) {
     return process.env.SUPABASE_PROJECT_REF;
   }
   return '';

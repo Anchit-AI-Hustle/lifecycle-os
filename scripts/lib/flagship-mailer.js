@@ -11,7 +11,7 @@
  * run copy through scenario-model.sanitizeBrand / assertNoBanned first.
  */
 
-const PAL = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2' };
+const PAL = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF' };
 
 // Market-aware shipping line. The old renderer hardcoded a US-only "$59" string
 // onto every region's mailer/ad; this keeps the country + currency correct.
@@ -106,9 +106,9 @@ function renderFlagship(opts) {
   const logoRow = band(PAL.chalk,
     `<div style="padding:22px 20px 10px;text-align:center;"><a href="https://knickgasm.com" style="text-decoration:none;border:0;"><img src="${esc(logo)}" alt="KNICKGASM" width="152" style="display:inline-block;width:152px;height:auto;border:0;"></a></div>`);
   const badges = band(PAL.chalk,
-    `<div style="padding:14px 22px 6px;text-align:center;font-family:${BF};font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:${PAL.lava};">Climate Neutral &nbsp;·&nbsp; Non-GMO Verified &nbsp;·&nbsp; Plastic Neutral</div>`);
+    `<div style="padding:14px 22px 6px;text-align:center;font-family:${BF};font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:${PAL.lava};">Climate Neutral &nbsp;·&nbsp; Original-pair verified Verified &nbsp;·&nbsp; Plastic Neutral</div>`);
   const stats = band(PAL.chalk,
-    `<div style="padding:10px 22px 20px;text-align:center;font-family:${BF};font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:${PAL.ink};">Rated 4.9/5 · Judge.me verified reviews &nbsp;·&nbsp; 6 million customers &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>`);
+    `<div style="padding:10px 22px 20px;text-align:center;font-family:${BF};font-size:11px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:${PAL.ink};">Made on 100% original brand sneakers &nbsp;·&nbsp; 60+ countries shipped &nbsp;·&nbsp; Worn by Samay Raina & Rohit Sharma</div>`);
   const footer = band(PAL.green,
     `<div style="padding:28px 30px;text-align:center;font-family:${BF};font-size:12px;line-height:1.8;color:${PAL.chalk};">KNICKGASM&reg; USA · Knickgasm Global, Inc.<br>440 N Barranca Ave #2812, Covina, CA 91723, United States<br><br>You are receiving this because you shopped with KNICKGASM&reg;.<br><span style="color:${PAL.lava};font-weight:700;">Unsubscribe &nbsp;·&nbsp; Email preferences &nbsp;·&nbsp; Privacy Policy &nbsp;·&nbsp; Terms of Service</span></div>`);
 

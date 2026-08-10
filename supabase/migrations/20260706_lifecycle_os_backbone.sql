@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20260706_lifecycle_os_backbone.sql
--- KNICKGASM Lifecycle OS — production backbone (Module 1 + connector fabric +
+-- Lifecycle OS — production backbone (Module 1 + connector fabric +
 -- job-log infra + prompt/agent registries).
 --
 -- Additive and non-destructive: creates only tables that did NOT already exist
@@ -316,7 +316,7 @@ end $$;
 -- SEEDS (idempotent) — system configuration only
 -- ============================================================================
 
-insert into public.workspaces (id, name) values ('knickgasm', 'KNICKGASM Lifecycle OS')
+insert into public.workspaces (id, name) values ('knickgasm', 'Lifecycle OS')
 on conflict (id) do nothing;
 
 -- Standard duration options + core settings ----------------------------------
@@ -329,7 +329,7 @@ insert into public.system_settings (key, value, description) values
   ('brand.guideline_coverage', '{"parsed":false,"source":null,"note":"Brand Settings editable; PDF not yet parsed into KB"}'::jsonb,
    'Whether KNICKGASM brand guidelines are parsed into the KB'),
   ('assistant.child_gpt_prompt',
-   '"You are the KNICKGASM Lifecycle OS Strategy Co-Pilot. Your intelligence is fed by KNICKGASM approved brand guidelines, product knowledge, competitive benchmarking, lifecycle marketing logic, asset prompt templates, quality scoring rules, and available performance analytics. When assisting the user, avoid abstract advice. Provide concrete recommendations, asset layouts, campaign ideas, cohort strategies, landing-page structures, and optimization steps. Where performance data exists, cite the metric and source. Where data is unavailable, clearly say what is missing and recommend what to connect or import. Never copy competitor creative assets. Use competitor data only for benchmarking and strategic inspiration."'::jsonb,
+   '"You are the Lifecycle OS Strategy Co-Pilot. Your intelligence is fed by KNICKGASM approved brand guidelines, product knowledge, competitive benchmarking, lifecycle marketing logic, asset prompt templates, quality scoring rules, and available performance analytics. When assisting the user, avoid abstract advice. Provide concrete recommendations, asset layouts, campaign ideas, cohort strategies, landing-page structures, and optimization steps. Where performance data exists, cite the metric and source. Where data is unavailable, clearly say what is missing and recommend what to connect or import. Never copy competitor creative assets. Use competitor data only for benchmarking and strategic inspiration."'::jsonb,
    'Versioned Child GPT / external assistant system prompt (v1)')
 on conflict (key) do nothing;
 

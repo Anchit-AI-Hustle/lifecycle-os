@@ -1,4 +1,4 @@
-# Scrape Knickgasm Shopify storefront collections.json -> upsert into knickgasm_collections
+# Scrape Knickgasm Shopify storefront collections.json -> upsert into lifecycle_collections
 $ErrorActionPreference = "Stop"
 $SupabasePat = $env:SUPABASE_PAT
 if (-not $SupabasePat) {
@@ -42,7 +42,7 @@ foreach ($m in $Markets) {
     if ($page -gt 5) { break }
   }
   if ($rows.Count -gt 0) {
-    $sql = "INSERT INTO public.knickgasm_collections (market, handle, title, description, url) VALUES " + ($rows -join ", ") + " ON CONFLICT (market, handle) DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, url=EXCLUDED.url, refreshed_at=now();"
+    $sql = "INSERT INTO public.lifecycle_collections (market, handle, title, description, url) VALUES " + ($rows -join ", ") + " ON CONFLICT (market, handle) DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, url=EXCLUDED.url, refreshed_at=now();"
     $reqBody = @{ query = $sql } | ConvertTo-Json -Compress
     try {
       Invoke-RestMethod -Method Post -Uri $ApiUrl -Headers @{ Authorization = "Bearer $SupabasePat"; "Content-Type" = "application/json" } -Body $reqBody | Out-Null
@@ -55,5 +55,5 @@ foreach ($m in $Markets) {
 Write-Host ""
 Write-Host "Total collections upserted: $total" -ForegroundColor Green
 
-$verify = @{ query = "SELECT market, COUNT(*) AS n FROM public.knickgasm_collections GROUP BY market ORDER BY market;" } | ConvertTo-Json
+$verify = @{ query = "SELECT market, COUNT(*) AS n FROM public.lifecycle_collections GROUP BY market ORDER BY market;" } | ConvertTo-Json
 Invoke-RestMethod -Method Post -Uri $ApiUrl -Headers @{ Authorization = "Bearer $SupabasePat"; "Content-Type" = "application/json" } -Body $verify | ConvertTo-Json

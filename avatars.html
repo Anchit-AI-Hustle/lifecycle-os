@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Avatars (Personas) - KNICKGASM Lifecycle OS</title>
+<title>Avatars (Personas) - Lifecycle OS</title>
 <link rel="icon" href="/favicon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
   /* Palette locked to the /all-in-one dashboard (near-black-green canvas). */
   :root{
-    --violet:#6A33D8; --lava:#D0473E; --ink:#111111; --chalk:#F7F5F2;
-    --bg:#ffffff; --surface:#ffffff; --tile:#f4f2ec; --line:rgba(171,135,67,.18); --soft:#556059; --chip:#f4f2ec;
-    --head:#F7F5F2; --accent:#D0473E;
+    --violet:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
+    --bg:#ffffff; --surface:#ffffff; --tile:var(--vh-panel-tan); --line:rgba(171,135,67,.18); --soft:#556059; --chip:var(--vh-panel-tan);
+    --head:#FFFFFF; --accent:#6A33D8;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
@@ -33,8 +33,8 @@
   .card .d{color:var(--soft);font-size:13px;margin-top:8px;}
   .card.link{cursor:pointer;transition:border-color .15s;} .card.link:hover{border-color:var(--accent);}
   .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
-  .v2{background:#e7f0e9;color:#6A33D8;}
-  :root[data-theme="dark"] .v2{background:#1d3326;color:#9fd0ae;}
+  .v2{background:var(--vh-panel-tan);color:#D0473E;}
+  :root[data-theme="dark"] .v2{background:var(--vh-ink);color:var(--vh-ink-dim);}
   /* Persona cards */
   .persona{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
   .persona .ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
@@ -66,7 +66,7 @@
 </head>
 <body>
 <div class="wrap">
-  <span class="eyebrow">KNICKGASM Lifecycle OS - Research &amp; Benchmark</span>
+  <span class="eyebrow">Lifecycle OS - Research &amp; Benchmark</span>
   <h1>Avatars (Personas)</h1>
   <p class="lede">The named buyer avatars every brief targets. Built on top of the cohort dictionary and the US coffee and functional-beverage market study, each avatar bundles demographics, geography, price elasticity, core value driver, and churn triggers into one face, so copy, imagery and offers stay grounded in a real person rather than an abstract segment. Use the avatar name verbatim in a brief and every downstream tool inherits its targeting.</p>
 
@@ -89,7 +89,7 @@
 
   <section class="panel" id="panel-personas" role="tabpanel">
     <h2>The Four Avatars <span class="chip v2">V2 - active</span></h2>
-    <p class="lede">Four behavioural buyer profiles that drive KNICKGASM Coffee Collection and streetwear-sneaker growth. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--chalk);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), and carries hard planning numbers so a brief can be written against a person, not a percentage.</p>
+    <p class="lede">Four behavioural buyer profiles that drive KNICKGASM custom-sneaker and controller growth. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--chalk);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), and carries hard planning numbers so a brief can be written against a person, not a percentage.</p>
     <div id="personas"></div>
   </section>
 
@@ -101,24 +101,24 @@
 const PERSONAS = [
   { init:'W', name:'The Streetwear Optimiser', tag:'Functionality-driven',
     quote:'I want my morning pair to actually do something, grail-drop, focus, calm, not just wake me up.',
-    who:'Health-forward professionals who already use adaptogens, supplements and wearables. KNICKGASM Coffee Collection is a functional upgrade to a habit they cannot skip.',
+    who:'Health-forward professionals who already use statement pieces, supplements and wearables. KNICKGASM Coffee Collection is a functional upgrade to a habit they cannot skip.',
     demo:'32 to 45, 58% female / 42% male, HHI $95K to $160K.',
     geo:'Urban Coastal and inner-ring suburbs, high-indexing CA, NY, WA, CO, MA.',
     driver:'Functionality, the payload matters more than the price.',
     elasticity:'Low, will pay a premium for a proven functional benefit.',
     reactivation:'High, responds to new-benefit and refill-rhythm messaging.',
     churn:'Missed reorder before routine breaks; benefit fatigue if payload is not reinforced.',
-    cohorts:['Engagement: Cohort E - Coffee / Supplement Buyers / Non-Engagers','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-03 Subscriber / VIP-02 High-Value VIP','RFM: Champions / Loyal','Product: Coffee (Airbrush) / Supplements / Subscribers','Behavioral: Streetwear Seekers'] },
+    cohorts:['Engagement: Cohort E - Controller / Accessory Buyers / Non-Engagers','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-03 Subscriber / VIP-02 High-Value VIP','RFM: Champions / Loyal','Product: Custom Controllers / Care & Protection / Repeat Collectors','Behavioral: Streetwear Seekers'] },
   { init:'R', name:'The Ritual Loyalist', tag:'Routine-driven',
     quote:'The same pair, the same time, every day, that is the whole point.',
-    who:'Established sneaker and coffee drinkers with a fixed daily ritual and strong design loyalty. The subscription backbone.',
+    who:'Established collectors with a fixed rotation and strong design loyalty. The repeat-purchase backbone.',
     demo:'38 to 58, 55% female / 45% male, HHI $80K to $140K.',
     geo:'Affluent Suburban nationwide, indexes in the Northeast and Midwest.',
     driver:'Routine and consistency, disruption is the enemy.',
     elasticity:'Low to moderate, price-tolerant while the ritual is intact.',
     reactivation:'Moderate, best reached with your-colorway-restocked and easy-restart nudges.',
-    churn:'Out-of-stock on their colorway; a clumsy subscription change; a skipped shipment.',
-    cohorts:['Engagement: Cohort D - T&amp;B Buyers / Engaged','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-01 Repeat / Habitual / VIP-01 Loyal Core','RFM: Loyal / Can-not-Lose-Them','Product: Kicks / Black Sneaker / Subscribers','Behavioral: VIP Ritualists / Kicks Loyalists'] },
+    churn:'Out-of-stock on their base silhouette; a clumsy order change; a delayed build.',
+    cohorts:['Engagement: Cohort D - Pair Buyers / Engaged','Engagement: Cohort F - Multi-Category / Engaged (near-VIP)','Lifecycle: ACT-01 Repeat / Habitual / VIP-01 Loyal Core','RFM: Loyal / Can-not-Lose-Them','Product: Anime &amp; Fandom / Black Sneaker / Repeat Collectors','Behavioral: VIP Collectors / Kicks Loyalists'] },
   { init:'G', name:'The Gifting Connector', tag:'Status + occasion-driven',
     quote:'I want to give something that feels considered, premium, and a little bit of a discovery.',
     who:'Occasion buyers with higher AOV and seasonal spikes. Care about presentation, provenance and the story behind the gift.',
@@ -172,6 +172,9 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show
 document.querySelectorAll('.card.link').forEach(c=>c.addEventListener('click',()=>showTab(c.dataset.goto)));
 (function(){ const q=new URLSearchParams(location.search).get('tab'); const h=(location.hash||'').replace('#',''); showTab(q||h||'overview'); })();
 </script>
+<script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+  <script src="/brand-demo.js"></script>
+  <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('Buyer avatars', "Avatars build from a brand's own cohorts once its exports are connected.");</script>
 </body>
 </html>

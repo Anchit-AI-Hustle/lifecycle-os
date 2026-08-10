@@ -78,6 +78,99 @@
     } catch (_) {}
   })();
 
+  // ─── Universal brand layer + credit meter ───────────────────────────────
+  // brand-context.js re-skins the whole app to the signed-in user's ACTIVE
+  // brand workspace (palette, fonts, name, favicon) and sends a user with no
+  // brand to /onboarding. credits.js renders the live balance pill, labels
+  // every [data-credit-feature] element with its cost, and guards runs.
+  // Both are additive, fail-safe and self-skip the frozen diff snapshot.
+  // brand-context loads FIRST so credits can read the active workspace id.
+  // ─── Same-origin API calls carry the session automatically ──────────────
+  // The credit meter identifies the caller from a Supabase bearer token, and
+  // several long-standing endpoints (/api/ai/generate, /api/ai/image,
+  // /api/calendar) are now metered. Dozens of pages call them with only a
+  // Content-Type header, so without this every signed-in user would get
+  // 401 sign_in_required the moment the meter is configured.
+  //
+  // Rather than editing every call site, fetch is wrapped once here: a
+  // SAME-ORIGIN request to /api/... gets the current access token attached,
+  // and only when the caller has not set an Authorization header itself (so
+  // CRON_SECRET callers and explicit tokens still win).
+  //
+  // Cross-origin requests are never touched — attaching the token to a third
+  // party would leak the user's session.
+  (function attachSessionToApiCalls() {
+    try {
+      if (window.__lcFetchPatched || typeof window.fetch !== 'function') return;
+      window.__lcFetchPatched = true;
+      var nativeFetch = window.fetch.bind(window);
+
+      function currentToken() {
+        try {
+          var a = window.LifecycleAuth;
+          if (a && a.session && a.session.access_token) return a.session.access_token;
+        } catch (_) {}
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf('-auth-token') < 0) continue;
+            var v = JSON.parse(localStorage.getItem(k) || 'null');
+            var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
+            if (t) return t;
+          }
+        } catch (_) {}
+        return '';
+      }
+
+      function isOwnApi(url) {
+        try {
+          var u = new URL(url, location.href);
+          return u.origin === location.origin && /^\/api\//.test(u.pathname);
+        } catch (_) { return false; }
+      }
+
+      window.fetch = function (input, init) {
+        try {
+          var url = (typeof input === 'string') ? input : (input && input.url) || '';
+          if (!isOwnApi(url)) return nativeFetch(input, init);
+
+          var token = currentToken();
+          if (!token) return nativeFetch(input, init);
+
+          // Request object: clone with the header added, leaving the body alone.
+          if (typeof input !== 'string' && input && typeof Request !== 'undefined' && input instanceof Request) {
+            if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
+            var req = new Request(input, init || undefined);
+            if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
+            return nativeFetch(req);
+          }
+
+          var opts = Object.assign({}, init || {});
+          var headers = new Headers((opts && opts.headers) || {});
+          if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
+          opts.headers = headers;
+          return nativeFetch(input, opts);
+        } catch (_) {
+          return nativeFetch(input, init);
+        }
+      };
+    } catch (_) {}
+  })();
+
+  (function ensurePlatformRuntimes() {
+    try {
+      if (IS_FROZEN_DIFF) return;
+      var d = document;
+      [['/brand-context.js?v=20260809', 'data-vh-brand'], ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
+        if (d.querySelector('script[' + pair[1] + ']')) return;
+        var s = d.createElement('script');
+        s.src = pair[0];
+        s.setAttribute(pair[1], '1');
+        (d.head || d.documentElement).appendChild(s);
+      });
+    } catch (_) {}
+  })();
+
   // Theme switcher removed — the theme is locked to green (see theme.css).
   // Clean up the old floating button if a cached page still has one.
   (function removeLegacyThemeSwitch() {
@@ -95,7 +188,9 @@
   // reload the page so the user instantly sees the new auth.js / shell.
   // Without this the user had to do a manual "hard reload" to see sidebar
   // changes — we now self-heal the cache on every navigation.
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // navigator.webdriver: automation (Playwright/CI) gets no service worker -
+  // the first-install controllerchange reload would restart pages mid-test.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !navigator.webdriver) {
     window.addEventListener('load', async () => {
       try {
         const reg = await navigator.serviceWorker.register('/sw.js');
@@ -124,14 +219,14 @@
     });
   }
 
-  // ─── Brand mark (refreshed: sneaker panel with steam + depth gradients) ──
-  // Two layered ideas fuse: a symmetric sneaker-panel silhouette (the brand)
+  // ─── Brand mark (logo mark for the active brand; falls back to a monogram) ──
+  // Two layered ideas fuse: a symmetric panel silhouette (the mark)
   // and a subtle V (the monogram) read through the panel's central vein.
   // Topped with a chalk steam curl — fresh craft, lifecycle. Both tile
   // and panel use linear gradients for depth so the mark reads as crafted
   // rather than flat at any size. Renders cleanly at 22px (mobile bar)
   // and 30px (desktop sidebar).
-  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="KNICKGASM Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
+  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="lnav-tile" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%"   stop-color="#0a6038"/>
@@ -145,7 +240,7 @@
     </defs>
     <rect width="32" height="32" rx="8" fill="url(#lnav-tile)"/>
     <!-- Steam curl above the panel — a slow S-curve in chalk -->
-    <path d="M 16 5.2 C 17.3 4.3 14.7 3.5 16 2.5" stroke="#F7F5F2" stroke-width="0.85" opacity="0.65" fill="none" stroke-linecap="round"/>
+    <path d="M 16 5.2 C 17.3 4.3 14.7 3.5 16 2.5" stroke="#FFFFFF" stroke-width="0.85" opacity="0.65" fill="none" stroke-linecap="round"/>
     <!-- Sneaker-panel silhouette — symmetric, organic, reads as both panel and V -->
     <path d="M 16 26.5
              C 10.5 24.8, 7.5 19.5, 7.5 13.5
@@ -211,6 +306,38 @@
   const NAV = [
     { id: 'appaudit',   label: 'Overall App Audit', href: '/audit',      icon: 'insights', ver: 'v2', match: ['/audit', '/app-audit', '/app-audit.html'] },
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
+    { group: 'Brand & Credits', icon: 'studio', gid: 'platform', ver: 'v2', children: [
+      { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
+      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
+      { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
+      { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
+      { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
+    ]},
+    { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2', match: ['/telesuite', '/telesuite.html'], children: [
+      { id: 'ts-home',       label: 'TeleSuite Home',           href: '/telesuite#home',                       icon: 'home' },
+      { id: 'ts-products',   label: 'Products',                 href: '/telesuite#products',                   icon: 'kb' },
+      { id: 'ts-kb',         label: 'Knowledge Base',           href: '/telesuite#knowledge-base',             icon: 'kb' },
+      { id: 'ts-pitch',      label: 'AI Pitch Generator',       href: '/telesuite#pitch-generator',            icon: 'insights' },
+      { id: 'ts-rebuttal',   label: 'AI Rebuttal Assistant',    href: '/telesuite#rebuttal-generator',         icon: 'insights' },
+      { id: 'ts-transcribe', label: 'Audio Transcription',      href: '/telesuite#transcription',              icon: 'avatars' },
+      { id: 'ts-transdb',    label: 'Transcription DB',         href: '/telesuite#transcription-dashboard',    icon: 'analysis' },
+      { id: 'ts-scoring',    label: 'AI Call Scoring',          href: '/telesuite#call-scoring',               icon: 'insights' },
+      { id: 'ts-scoredb',    label: 'Call Scoring DB',          href: '/telesuite#call-scoring-dashboard',     icon: 'analysis' },
+      { id: 'ts-combined',   label: 'Combined Call Analysis',   href: '/telesuite#combined-call-analysis',     icon: 'insights' },
+      { id: 'ts-combineddb', label: 'Combined Analysis DB',     href: '/telesuite#combined-call-analysis-dashboard', icon: 'analysis' },
+      { id: 'ts-vsales',     label: 'AI Voice Sales Agent',     href: '/telesuite#voice-sales-agent',          icon: 'avatars' },
+      { id: 'ts-vsalesdb',   label: 'Voice Sales DB',           href: '/telesuite#voice-sales-dashboard',      icon: 'analysis' },
+      { id: 'ts-vsupport',   label: 'AI Voice Support Agent',   href: '/telesuite#voice-support-agent',        icon: 'avatars' },
+      { id: 'ts-vsupportdb', label: 'Voice Support DB',         href: '/telesuite#voice-support-dashboard',    icon: 'analysis' },
+      { id: 'ts-deck',       label: 'Training Material Creator',href: '/telesuite#create-training-deck',       icon: 'kb' },
+      { id: 'ts-deckdb',     label: 'Material DB',              href: '/telesuite#training-material-dashboard',icon: 'analysis' },
+      { id: 'ts-data',       label: 'AI Data Analyst',          href: '/telesuite#data-analysis',              icon: 'analysis' },
+      { id: 'ts-datadb',     label: 'Data Analysis DB',         href: '/telesuite#data-analysis-dashboard',    icon: 'analysis' },
+      { id: 'ts-batch',      label: 'Batch Audio Downloader',   href: '/telesuite#batch-audio-downloader',     icon: 'kb' },
+      { id: 'ts-activity',   label: 'Global Activity Log',      href: '/telesuite#activity-dashboard',         icon: 'analysis' },
+      { id: 'ts-clone',      label: 'Clone Full App',           href: '/telesuite#clone-app',                  icon: 'studio' },
+      { id: 'ts-n8n',        label: 'n8n Workflow',             href: '/telesuite#n8n-workflow',               icon: 'studio' },
+    ]},
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
       { id: 'research',        label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
       { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
@@ -277,7 +404,7 @@
     { section: 'Design & Create' },
     { id: 'frameworks', label: 'Frameworks', href: '/frameworks', icon: 'kb', ver: 'v2', match: ['/frameworks', '/frameworks.html'] },
     // Mailer Studio is an OPEN feature — works standalone without sign-in.
-    { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/knickgasm_mailer_architect_v34.html', '/app', '/mailer'] },
+    { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/lifecycle_mailer_architect_v34.html', '/app', '/mailer'] },
     // Independent LHS item (product-owner request 2026-07-25): the master ads
     // knowledge base + performance dashboard compiled from the KT handover
     // (emails, spend workbook, social update deck) + live connector reads.
@@ -354,6 +481,22 @@
   const INFO = {
     // Home is a plain landing link, not a content-producing feature, so it
     // deliberately has NO 5-sub-item IA entry — it renders as a simple link.
+    brandinput: {
+      title: 'Brand Kit',
+      what: "The single brand-truth record for the platform: the four-colour palette, the two type families, the voice (tone, tagline, do and banned lists) and the footer identity blocks. Every generator in the OS reads this one record, so it is the place brand truth is set once instead of being retyped into each feature.",
+      who: "The brand owner. Brand Setup (/onboarding) is where a NEW brand workspace is created and activated - this page is where the active brand's kit is fine-tuned afterwards.",
+      how: "Reads and writes the lifecycle_brand_kit singleton in Supabase through /api/kb?action=brand-kit. Colours are validated as #RRGGBB and the body-text-on-background pair is contrast-checked against WCAG AA before a save is allowed to look healthy. The Verify panel compares the saved palette against the prompt-side brand block in api/_shared/master-prompt.js and flags drift, because generated copy reads that block rather than the database.",
+      input: "Four hex colours, two font families with their CSS stacks, a tone line and tagline, the do and banned phrase lists, and the footer legal, contact and social values.",
+      steps: [
+        ['Ideology', 'One brand record, many consumers: never let a second copy of brand truth exist.'],
+        ['Data analysis + review + hypothesis', 'Loads the saved singleton and compares it against the live store theme and the prompt block.'],
+        ['Business & strategy decisions', 'The do and banned lists become the enforced gates every generated asset is scrubbed against.'],
+        ['Content', 'Tone, tagline and the word lists feed straight into every generation prompt.'],
+        ['Design + layout + structure', 'Palette and typography drive mailer, ad and landing-page rendering; the live preview shows the pairing before saving.'],
+        ['Coding', 'Persisted via /api/kb?action=brand-kit (GET reads, POST upserts) - no thirteenth serverless function, it extends the existing KB router.'],
+        ['Final compilation + presentation', 'Saved values are what the next generated asset uses. Runs via: /api/kb?action=brand-kit'],
+      ],
+    },
     appaudit: {
       title: 'Overall App Audit',
       what: "A live quality scorecard for the whole OS. Every feature is rated on four axes — accuracy (is the output factually true, no fabrication), implementation (code robustness), execution (does it work end-to-end in production), and results (does it drive a usable outcome). The confidence bar is 9.5: nothing is 'done' below it.",
@@ -372,7 +515,7 @@
     adsmaster: {
       title: "Ad Campaigns Master Dashboard",
       what: "The single source of truth for the USA paid ads program (Target + Costco): a performance dashboard over the KT spend workbook (125 Meta ads, 13 campaigns, May to 20 Jul) plus the complete ads knowledge base - every sheet, deck, drive folder and platform link from the KT emails as single-click links, the creative learnings from the Social Update deck, benchmarks, the UGC-dashboard automation runbook, the Costco dark-post launch config, owners and open gaps. Zero fabrication: every figure cites its KT source or a live connector read.",
-      who: "The paid ads team (Samvita, Kritagya, Anchit) and anyone onboarding onto the USA ads program - it IS the knowledge transfer, in product form.",
+      who: "The paid ads team and anyone onboarding onto the ads program - it IS the knowledge transfer, in product form.",
       how: "Live-first, snapshot-honest: Live Now, Calendar and Tracker read /api/brain?action=ads-live, which unions BOTH live US Meta ad accounts (the DTC account and the Target/Costco retail account) from the warehouse and treats today as a partial day; when no live source is configured the page falls back to a committed snapshot and labels it as one. The Accounts tab renders the whole ad-account studio from data/ads/ad-accounts.json, built from the single registry in api/_shared/ads-snowflake-core.js. Knowledge comes from data/ads/master-kb.json and the ad-level export. Links that could not be resolved from this account are listed as pending-access with their owner, never invented.",
       input: "Nothing to enter. Filters: objective, delivery status, free-text search, sort metric on the ads table; group, status and search on the knowledge base. New KT files extend master-kb.json.",
       steps: [
@@ -418,10 +561,10 @@
     },
     agent: {
       title: 'Knickgasm Agent',
-      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to a sneaker and streetwear expert that answers crafting and ritual questions and recommends real KNICKGASM products. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
+      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
       who: "Prospective and existing customers on-site; strongest for Non-Buyers who need guidance to a first purchase. The team uses this page to configure and demo agents.",
       how: "A chat UI over the shared 6-provider LLM waterfall, grounded in brand voice and the product catalog. Voice replies use ElevenLabs TTS with a browser-TTS fallback. Agent personas can be created, updated, and synced from this page.",
-      input: "A visitor question — taste preferences, a streetwear goal, crafting method, or gifting need. For the team: agent persona settings.",
+      input: "A visitor question — preferences, goals, or gifting needs. For the team: agent persona settings.",
       steps: [
         ['Ask', 'The visitor describes what they want — calm evenings, a coffee alternative, a gift.', '/api/brain?action=agent-chat'],
         ['Ground', 'The agent answers in brand voice, grounded in real catalog products and regional store URLs.'],
@@ -475,7 +618,7 @@
     avatars: {
       title: 'Avatars (Personas)',
       what: "The customer-persona layer of the OS: named, hyper-specific buyer avatars built on top of the cohort dictionary and the US coffee and functional-beverage market study. Each avatar bundles demographics, geography, price elasticity, core value driver, and churn triggers into one face a brief can target, so copy, imagery, and offers stay grounded in a real person rather than an abstract segment.",
-      who: "The growth and creative team. The avatars translate the analytics cohorts (RFM segments, engagement cohorts, lifecycle stages) into the four behavioural buyer profiles that drive KNICKGASM Coffee Collection and streetwear-sneaker growth: the Streetwear Optimiser, the Ritual Loyalist, the Gifting Connector, and the Curious Switcher.",
+      who: "The growth and creative team. The avatars translate the analytics cohorts (RFM segments, engagement cohorts, lifecycle stages) into behavioural buyer profiles for the active brand — e.g. the Identity Buyer, the Habitual Loyalist, the Gifting Connector, and the Curious Switcher.",
       how: "Personas are derived from the market-intelligence study (docs/market-intelligence) and the cohort model: each avatar maps to specific cohorts, carries hard planning numbers (age band, HHI, AOV, LTV:CAC, reactivation likelihood), and links to the schema that captures the same fields on a live profile (schemas/cohort-profile.json) and the retention triggers that fire for it (config/retention-triggers.yaml). Use the avatar name verbatim in a brief and every downstream tool inherits its targeting.",
       input: "Nothing to upload — the avatars are curated from the market study and the cohort dictionary. From you: pick the avatar a campaign targets, and read its value driver, elasticity, and churn triggers before writing the brief.",
       steps: [
@@ -515,7 +658,7 @@
     },
     competitor: {
       title: 'Competitor Benchmarking',
-      what: "Competitor intelligence: captures rival sneaker, coffee, and streetwear brands' marketing emails from a dedicated Gmail inbox into a Google Sheet, renders them for side-by-side study, and distils benchmarks — cadence, offer depth, creative angles. It also owns brand discovery.",
+      what: "Competitor intelligence: captures rival brands' marketing emails from a dedicated Gmail inbox into a Google Sheet, renders them for side-by-side study, and distils benchmarks — cadence, offer depth, creative angles. The competitor set is the ACTIVE brand's own universe. It also owns brand discovery.",
       who: "The strategy layer. Benchmarks feed KicksGPT's evidence contract, Smart Brain planning, and the human planner — informing campaigns for every cohort.",
       how: "One router dispatched by ?action=list|html|poll|sync. Poll reads the capture inbox over IMAP; parsed emails become rows (columns A–K) in the Google Sheet database; sync runs on a CRON_SECRET-protected schedule. Google auth is keyless via Workload Identity Federation (Vercel OIDC → Google STS → service-account impersonation), with a legacy JSON-key fallback.",
       input: "Subscribe the capture inbox to competitor newsletters — the system does the rest. Optionally add brands to discover and track.",
@@ -884,7 +1027,7 @@
           font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
-          font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #D0473E;
+          font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #6A33D8;
           text-transform: uppercase; text-decoration: none; }
         #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
@@ -904,7 +1047,7 @@
         }
         #lifecycle-nav .lnav-brand {
           display: flex; align-items: center; gap: 10px; text-decoration: none;
-          padding: 4px 8px 16px; color: #D0473E;
+          padding: 4px 8px 16px; color: #6A33D8;
         }
         /* Brand mark — refreshed panel + steam SVG with gradient depth.
            Hover uses filter brightness so it works with the gradients
@@ -913,8 +1056,8 @@
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { filter: brightness(1.15) saturate(1.05); transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; }
-        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: #6A33D8; font-weight: 600; }
-        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #D0473E; }
+        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: #D0473E; font-weight: 600; }
+        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #6A33D8; }
         #lifecycle-nav .lnav-head { display: flex; align-items: center; gap: 6px; }
         #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
         #lifecycle-nav .lnav-collapse {
@@ -923,7 +1066,7 @@
           color: #556059; cursor: pointer; font-size: 14px; line-height: 1;
           display: flex; align-items: center; justify-content: center; transition: all .12s;
         }
-        #lifecycle-nav .lnav-collapse:hover { border-color: #D0473E; color: #111111; }
+        #lifecycle-nav .lnav-collapse:hover { border-color: #6A33D8; color: #111111; }
 
         /* ── Collapsed (icon-only) rail — desktop only ── */
         @media (min-width: 961px) {
@@ -971,7 +1114,7 @@
         #lifecycle-nav .lnav-ghead:focus-visible,
         #lifecycle-nav .lnav-i:focus-visible,
         #lifecycle-nav .lnav-info-item:focus-visible {
-          outline: 1px solid #D0473E; outline-offset: 1px;
+          outline: 1px solid #6A33D8; outline-offset: 1px;
         }
         /* Labels wrap to at most TWO lines instead of truncating mid-word
            ("Calen…", "UK Non-Eng…"). Shared by links AND group headers.
@@ -996,14 +1139,14 @@
         html.lnav-collapsed #lifecycle-nav .lnav-ver { display: none; }
         #lifecycle-nav .lnav-link:hover { color: #111111; background: rgba(171,135,67,0.08); }
         /* Current item = the STRONGEST, darkest highlight: solid deep-purple fill
-           with chalk text (chalk #F7F5F2 on green #6A33D8 is high-contrast and fully
+           with chalk text (chalk #FFFFFF on green #D0473E is high-contrast and fully
            legible) plus a bold lava left-accent. Applies to the active panel AND the
            active sub-item, so the selected sub-item reads darker than its parent. */
         #lifecycle-nav .lnav-link.active {
-          color: #F7F5F2; background: #6A33D8; border-color: rgba(171,135,67,0.55);
-          box-shadow: inset 3px 0 0 #D0473E; font-weight: 600;
+          color: #FFFFFF; background: #D0473E; border-color: rgba(171,135,67,0.55);
+          box-shadow: inset 3px 0 0 #6A33D8; font-weight: 600;
         }
-        #lifecycle-nav .lnav-link.active .lnav-ic { color: #D0473E; }
+        #lifecycle-nav .lnav-link.active .lnav-ic { color: #6A33D8; }
 
         /* Groups */
         #lifecycle-nav .lnav-group { margin: 6px 0 2px; }
@@ -1016,8 +1159,8 @@
         /* Parent of the active sub-item ALSO reads as selected, but LIGHTER than
            the sub-item: a lava-tint fill + faint lava accent, so both show and the
            sub-item stays the darker/stronger of the two. */
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: #6A33D8; background: rgba(171,135,67,0.13); box-shadow: inset 3px 0 0 rgba(171,135,67,0.55); }
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: #D0473E; }
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: #D0473E; background: rgba(171,135,67,0.13); box-shadow: inset 3px 0 0 rgba(171,135,67,0.55); }
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: #6A33D8; }
         #lifecycle-nav .lnav-caret { width: 15px; height: 15px; color: #48524c; transition: transform .18s; }
         #lifecycle-nav .lnav-group.open .lnav-caret { transform: rotate(180deg); }
         #lifecycle-nav .lnav-gbody { display: none; padding-left: 14px; margin-left: 8px; border-left: 1px solid rgba(171,135,67,0.14); }
@@ -1035,8 +1178,8 @@
           cursor: pointer; display: flex; align-items: center; justify-content: center;
           transition: all .12s; padding: 0;
         }
-        #lifecycle-nav .lnav-i:hover { border-color: #D0473E; color: #111111; }
-        #lifecycle-nav .lnav-i.on { background: rgba(171,135,67,0.2); border-color: #D0473E; color: #111111; }
+        #lifecycle-nav .lnav-i:hover { border-color: #6A33D8; color: #111111; }
+        #lifecycle-nav .lnav-i.on { background: rgba(171,135,67,0.2); border-color: #6A33D8; color: #111111; }
         #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed rgba(171,135,67,0.28); }
         #lifecycle-nav .lnav-info.open { display: block; }
         #lifecycle-nav .lnav-info-item {
@@ -1048,7 +1191,7 @@
         #lifecycle-nav .lnav-info-item:hover { color: #111111; background: rgba(171,135,67,0.08); }
         #lifecycle-nav .lnav-info-n {
           flex-shrink: 0; width: 15px; height: 15px; border-radius: 4px;
-          background: rgba(171,135,67,0.14); color: #D0473E;
+          background: rgba(171,135,67,0.14); color: #6A33D8;
           font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center;
         }
 
@@ -1074,7 +1217,7 @@
         }
         #lifecycle-nav .lnav-ipanel-eyebrow {
           font-size: 10px; font-weight: 700; letter-spacing: 0.16em;
-          text-transform: uppercase; color: #D0473E; margin-bottom: 3px;
+          text-transform: uppercase; color: #6A33D8; margin-bottom: 3px;
         }
         #lifecycle-nav .lnav-ipanel-title {
           font-family: 'Lora', Georgia, serif; font-size: 18px; font-weight: 600;
@@ -1087,7 +1230,7 @@
           color: #556059; font-size: 15px; line-height: 1; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
         }
-        #lifecycle-nav .lnav-ipanel-close:hover { border-color: #D0473E; color: #111111; }
+        #lifecycle-nav .lnav-ipanel-close:hover { border-color: #6A33D8; color: #111111; }
         #lifecycle-nav .lnav-ipanel-body {
           padding: 16px 20px 20px; overflow-y: auto; scrollbar-width: thin;
           font-size: 13px; line-height: 1.65; color: #556059;
@@ -1100,7 +1243,7 @@
         }
         #lifecycle-nav .lnav-ipanel-q:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
         #lifecycle-nav .lnav-ipanel-note {
-          font-size: 11.5px; color: #D0473E; background: rgba(171,135,67,0.08);
+          font-size: 11.5px; color: #6A33D8; background: rgba(171,135,67,0.08);
           border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
           padding: 8px 12px; margin: 0 0 14px;
         }
@@ -1113,7 +1256,7 @@
           content: counter(lstep); position: absolute; left: 0; top: 1px;
           width: 22px; height: 22px; border-radius: 50%;
           background: rgba(171,135,67,0.16); border: 1px solid rgba(171,135,67,0.35);
-          color: #D0473E; font-size: 10.5px; font-weight: 700;
+          color: #6A33D8; font-size: 10.5px; font-weight: 700;
           display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-steps li:not(:last-child)::after {
@@ -1134,13 +1277,13 @@
           padding: 10px 8px 4px; border-top: 1px solid rgba(171,135,67,0.14); font-size: 12px; color: #556059;
         }
         #lifecycle-nav .lnav-avatar { width: 28px; height: 28px; border-radius: 50%;
-          background: linear-gradient(135deg,#D0473E,#6A33D8); display: flex; align-items: center; justify-content: center;
-          color: #F7F5F2; font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+          background: linear-gradient(135deg,#6A33D8,#D0473E); display: flex; align-items: center; justify-content: center;
+          color: #FFFFFF; font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
         #lifecycle-nav .lnav-avatar img { width: 100%; height: 100%; object-fit: cover; }
         #lifecycle-nav .lnav-uname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid rgba(171,135,67,0.25);
           color: #556059; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
-        #lifecycle-nav .lnav-signout:hover { border-color: #D0473E; color: #111111; }
+        #lifecycle-nav .lnav-signout:hover { border-color: #6A33D8; color: #111111; }
         #lifecycle-nav .lnav-signin { color: #7a5f28; text-decoration: none; font-weight: 600; padding: 4px 8px; }
 
         @media (max-width: 960px) {
@@ -1422,11 +1565,11 @@
         }
         #lifecycle-loginwall .llw-dot {
           width: 44px; height: 44px; border-radius: 50%;
-          background: linear-gradient(135deg, #D0473E, #6A33D8);
+          background: linear-gradient(135deg, #6A33D8, #D0473E);
           margin: 0 auto 18px;
         }
         #lifecycle-loginwall .llw-title {
-          font-size: 12px; letter-spacing: 0.22em; color: #D0473E;
+          font-size: 12px; letter-spacing: 0.22em; color: #6A33D8;
           text-transform: uppercase; font-weight: 700;
           margin-bottom: 10px;
         }
@@ -1434,7 +1577,7 @@
           font-family: 'Lora','Inter',serif; font-size: 26px;
           color: #111111; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;
         }
-        #lifecycle-loginwall h1 em { color: #D0473E; font-style: italic; }
+        #lifecycle-loginwall h1 em { color: #6A33D8; font-style: italic; }
         #lifecycle-loginwall p {
           color: #556059; font-size: 13.5px; line-height: 1.6;
           margin: 0 0 24px;
@@ -1442,7 +1585,7 @@
         #lifecycle-loginwall button {
           display: inline-flex; align-items: center; justify-content: center;
           gap: 10px; padding: 13px 22px;
-          background: #6A33D8; color: #ffffff;
+          background: #D0473E; color: #ffffff;
           border: none; border-radius: 9px;
           font-family: inherit; font-size: 14px; font-weight: 600;
           letter-spacing: 0.02em; cursor: pointer;
@@ -1537,11 +1680,11 @@
         #lifecycle-signingin {
           position: fixed; inset: 0; z-index: 9999; background: #ffffff;
           display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 18px; font-family: 'Inter', system-ui, sans-serif; color: #F7F5F2;
+          gap: 18px; font-family: 'Inter', system-ui, sans-serif; color: #FFFFFF;
         }
         #lifecycle-signingin .lsi-ring {
           width: 40px; height: 40px; border-radius: 50%;
-          border: 3px solid rgba(171,135,67,0.25); border-top-color: #D0473E;
+          border: 3px solid rgba(171,135,67,0.25); border-top-color: #6A33D8;
           animation: lsi-spin 0.8s linear infinite;
         }
         @keyframes lsi-spin { to { transform: rotate(360deg); } }
@@ -1576,8 +1719,8 @@
   // preview deployments where Deployment Protection redirects /api/public-config
   // to an auth page (HTML, not JSON), or any transient endpoint failure.
   const PUBLIC_SUPABASE_FALLBACK = {
-    url: 'https://gubbckgjujwqodghcavv.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1YmJja2dqdWp3cW9kZ2hjYXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTk3MzksImV4cCI6MjA5Njc3NTczOX0.mJikSp_K1j7kV3THCYq8Z8PNf2Q7eJMwsY9iphRZWFg',
+    url: 'https://fswdwmkgggzyxrdzabnh.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzd2R3bWtnZ2d6eXhyZHphYm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDQ5MDUsImV4cCI6MjEwMTI4MDkwNX0.KB4za4F7mTjQOY5-gxBoWguGDlgMu_dsyg9Nb-H9614',
   };
 
   async function getConfig() {
@@ -1664,6 +1807,11 @@
         if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
+        // Drop this account's cached brand. A browser is often shared, and the
+        // brand payload carries voice rules, regions and store URLs, so it must
+        // not survive into the next person's session.
+        try { if (window.BrandContext && window.BrandContext.clearCache) window.BrandContext.clearCache(); } catch (_) {}
+        try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
         applyAccessMode(null);
         location.reload();
       },
@@ -1814,9 +1962,9 @@
           background: #ffffff; border: 1px solid rgba(171,135,67,0.25);
           border-radius: 14px; padding: 28px 26px; box-shadow: 0 30px 80px rgba(0,0,0,0.6);
         }
-        #lifecycle-profile-modal .lpm-eyebrow { font-size: 11px; letter-spacing: 0.18em; color: #D0473E; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
-        #lifecycle-profile-modal h2 { font-family: 'Lora','Inter',serif; font-size: 22px; color: #F7F5F2; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
-        #lifecycle-profile-modal h2 em { color: #D0473E; font-style: italic; }
+        #lifecycle-profile-modal .lpm-eyebrow { font-size: 11px; letter-spacing: 0.18em; color: #6A33D8; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+        #lifecycle-profile-modal h2 { font-family: 'Lora','Inter',serif; font-size: 22px; color: #FFFFFF; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+        #lifecycle-profile-modal h2 em { color: #6A33D8; font-style: italic; }
         #lifecycle-profile-modal .lpm-sub { color: #556059; font-size: 13px; line-height: 1.55; margin: 0 0 18px; }
         #lifecycle-profile-modal label { display: block; font-size: 11px; color: #48524c; text-transform: uppercase; letter-spacing: 0.1em; margin: 12px 0 5px; font-weight: 600; }
         #lifecycle-profile-modal input, #lifecycle-profile-modal select {
@@ -1824,13 +1972,13 @@
           background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
           color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit;
         }
-        #lifecycle-profile-modal input:focus, #lifecycle-profile-modal select:focus { outline: none; border-color: #D0473E; }
+        #lifecycle-profile-modal input:focus, #lifecycle-profile-modal select:focus { outline: none; border-color: #6A33D8; }
         #lifecycle-profile-modal .lpm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         #lifecycle-profile-modal .lpm-actions { display: flex; gap: 10px; margin-top: 22px; }
         #lifecycle-profile-modal button { font-family: inherit; font-size: 12.5px; padding: 11px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; letter-spacing: 0.02em; transition: opacity .15s; }
         #lifecycle-profile-modal .lpm-skip   { background: transparent; color: #556059; border: 1px solid rgba(171,135,67,0.25); }
         #lifecycle-profile-modal .lpm-skip:hover { color: #111111; }
-        #lifecycle-profile-modal .lpm-save   { background: #D0473E; color: #ffffff; flex: 1; }
+        #lifecycle-profile-modal .lpm-save   { background: #6A33D8; color: #ffffff; flex: 1; }
         #lifecycle-profile-modal .lpm-save:hover { opacity: 0.92; }
         #lifecycle-profile-modal .lpm-foot { font-size: 11px; color: #48524c; margin-top: 14px; text-align: center; font-family: 'JetBrains Mono', monospace; }
         #lifecycle-profile-modal .lpm-err { color: #f87171; font-size: 12px; margin-top: 10px; padding: 8px; background: rgba(239,68,68,0.08); border-radius: 6px; }
@@ -1967,13 +2115,13 @@
     return out.join('\n');
   }
   var CSS = 'body{font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;color:#111111;max-width:820px;margin:32px auto;padding:0 28px;line-height:1.6;}' +
-    'h1,h2,h3,h4{font-family:"Montserrat","Raleway",Georgia,serif;color:#6A33D8;line-height:1.25;margin:1.4em 0 .4em;}' +
-    'h1{font-size:28px;border-bottom:2px solid #D0473E;padding-bottom:8px;}h2{font-size:21px;}h3{font-size:17px;}' +
+    'h1,h2,h3,h4{font-family:"Montserrat","Raleway",Georgia,serif;color:#D0473E;line-height:1.25;margin:1.4em 0 .4em;}' +
+    'h1{font-size:28px;border-bottom:2px solid #6A33D8;padding-bottom:8px;}h2{font-size:21px;}h3{font-size:17px;}' +
     'table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}th,td{border:1px solid #d9cba8;padding:7px 10px;text-align:left;vertical-align:top;}' +
-    'th{background:#F7F5F2;color:#6A33D8;}code{background:#f3eede;padding:1px 5px;border-radius:4px;font-size:.92em;}' +
-    'a{color:#6A33D8;}hr{border:0;border-top:1px solid #e5ddc7;margin:22px 0;}strong{color:#1b1612;}' +
-    '.pdfbar{position:fixed;top:0;left:0;right:0;background:#6A33D8;color:#fff;padding:10px 16px;font-size:13px;text-align:center;}' +
-    '.pdfbar button{background:#D0473E;color:#111111;border:0;border-radius:6px;padding:7px 16px;font-weight:700;cursor:pointer;margin-left:8px;}' +
+    'th{background:#FFFFFF;color:#D0473E;}code{background:#f3eede;padding:1px 5px;border-radius:4px;font-size:.92em;}' +
+    'a{color:#D0473E;}hr{border:0;border-top:1px solid #e5ddc7;margin:22px 0;}strong{color:#1b1612;}' +
+    '.pdfbar{position:fixed;top:0;left:0;right:0;background:#D0473E;color:#fff;padding:10px 16px;font-size:13px;text-align:center;}' +
+    '.pdfbar button{background:#6A33D8;color:#111111;border:0;border-radius:6px;padding:7px 16px;font-weight:700;cursor:pointer;margin-left:8px;}' +
     '@media print{.pdfbar{display:none;}body{margin:0;}}';
   function openPrintable(title, bodyHtml) {
     var w = window.open('', '_blank');

@@ -18,7 +18,8 @@
  *      until the real size lands (no fabricated numbers).
  *   5. Progressive suppression — each send excludes the cohorts already mailed
  *      in the window so no subscriber is over-mailed.
- *   6. Sneakers & botanicals only — Coffee and Themed Supplement are out of scope.
+ *   6. Custom sneakers & apparel only — drinkware, gift cards and digital/service
+ *      SKUs are out of scope for the lifecycle calendar.
  *   7. Revenue-per-recipient (RPR) — small premium lists can out-earn big cold
  *      ones; RPR surfaces the true highest-value send.
  *
@@ -60,8 +61,11 @@ function isCodeSafe(code) {
   return null; // unknown code — caller decides
 }
 
-// 6) ── Scope: sneakers & botanicals only ───────────────────────────────────────
-const OUT_OF_SCOPE_TYPES = [/coffee/i, /themed\s*supplement/i, /supplement/i, /capsule/i];
+// 6) ── Scope: custom sneakers & apparel only ──────────────────────────────────
+// Anything that is not a customisable physical product (mugs/drinkware, gift
+// cards, digital or service SKUs) is out of scope for the lifecycle calendar.
+// Function name inTeaScope() is kept: it is exported and consumed elsewhere.
+const OUT_OF_SCOPE_TYPES = [/mug/i, /drinkware/i, /gift\s*card/i, /e-?gift/i, /digital/i, /service/i];
 function inTeaScope(productType) {
   const t = String(productType || '');
   return !OUT_OF_SCOPE_TYPES.some((re) => re.test(t));

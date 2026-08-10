@@ -1,8 +1,8 @@
 {
-  "name": "knickgasm-lifecycle-os-mobile",
+  "name": "lifecycle-os-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "Capacitor wrapper that ships KNICKGASM Lifecycle OS to the Google Play Store and Apple App Store. Loads the hosted PWA (server.url), so web updates ship without resubmitting.",
+  "description": "Capacitor wrapper that ships Lifecycle OS to the Google Play Store and Apple App Store. Loads the hosted PWA (server.url), so web updates ship without resubmitting.",
   "scripts": {
     "add:android": "cap add android",
     "add:ios": "cap add ios",

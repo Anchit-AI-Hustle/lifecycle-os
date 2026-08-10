@@ -10,13 +10,13 @@ A concise pointer to the deeper market and competitor intelligence available to 
 | Total sales | $1,120,765 |
 | AOV | $51.10 |
 | Returning-customer rate | 46.3% |
-| Top product | Coffee Collection (~$115,600 net) |
+| Top collection | coffee-ART (~$115,600 net) |
 | Online Store share of revenue | 89% |
 | Loop Subscriptions share | 7.6% at $39.83 AOV |
 
-Top US categories (in order): **Coffee, Black Sneakers (Hand-painted), Kicks Sneakers (Hand-painted), Themed Sneakers (Lace Sets), Christmas Gifts.**
+Top US categories (in order): **Coffee-ART, Anime customs, Football & Sport customs, Car & Gaming customs, Occasion & Gifting.**
 
-Read: coffee/functional leads, the heritage sneaker range is the broad base, and gifting spikes seasonally. The ~46% returning-customer rate and a growing (but still 7.6%) subscription base are the two biggest retention levers — converting one-time repeaters into Loop subscribers is the headline opportunity.
+Read: coffee-ART leads as a single collection, the fandom collections (anime, football, cars, gaming) are the broad base, and gifting spikes seasonally around Q4 and wedding season. The ~46% returning-customer rate and a growing (but still 7.6%) subscription base are the two biggest retention levers. The headline opportunity is converting a one-pair buyer into a second commission in a different collection, and attaching the accessories-and-care replenishment plan that the 7.6% Loop base sits on.
 
 ## UK performance headlines (trailing 12 months)
 
@@ -25,13 +25,13 @@ Read: coffee/functional leads, the heritage sneaker range is the broad base, and
 | Orders | 25,001 |
 | Total sales | £818,515 |
 | AOV | £33.70 |
-| Top products | Coffee Collection franchise — Refill, base, Starter Kit |
+| Top products | The coffee-ART collection: the Court Vision entry pair, the AF1 hero, the Jordan Low grail |
 
-Read: the UK ships more orders than the US at a lower AOV, and its bestsellers are almost entirely the Coffee Collection franchise. UK growth centers on the coffee franchise plus the engagement-cohort program (Cohorts A-F, `03-lifecycle-cohorts.md`), where reactivating non-engagers (Cohort A/B) is the standing challenge.
+Read: the UK ships more orders than the US at a lower AOV, and its bestsellers skew toward the entry and mid silhouettes rather than the grail tier. UK growth centers on trading buyers up the silhouette ladder plus the engagement-cohort program (Cohorts A-F, `03-lifecycle-cohorts.md`), where reactivating non-engagers (Cohort A/B) is the standing challenge. Quote UK prices in GBP from `data/catalog/products_uk.json` only.
 
 ## Deeper market intelligence
 
-- **`docs/market-intelligence/us-coffee-d2c-landscape.md`** — the primary reference for the US coffee / functional-coffee D2C landscape (category dynamics, positioning of rivals, where Coffee Collection fits). Consult this before planning any US coffee campaign.
+- **`docs/market-intelligence/us-coffee-d2c-landscape.md`** — the primary reference for the US custom-sneaker and sneaker-customisation D2C landscape (category dynamics, positioning of adjacent D2C benchmarks, where KNICKGASM fits). The filename is a legacy slug retained because `avatars.html` and `scripts/gen-playbook-hub.js` link to it by path; the contents are the sneaker-market study. Consult it before planning any US campaign.
 
 ## Competitor-intelligence data engine
 
@@ -48,7 +48,7 @@ KNICKGASM runs a dedicated inbound competitor-mailer capture pipeline, separate 
 3. Messages are parsed and stored in a **Postgres `competitor_mailers` table**, with the raw **HTML snapshotted to S3**.
 4. A **React `CompetitorMailViewer`** renders the captured mailers for browsing and analysis.
 
-This gives the growth team a searchable, timestamped archive of what competitors are actually sending — offers, cadence, seasonal beats, and creative — to benchmark KNICKGASM's own lifecycle program against real market activity.
+This gives the growth team a searchable, timestamped archive of what other brands are actually sending — offers, cadence, seasonal beats, and creative — to benchmark KNICKGASM's own lifecycle program against real market activity. The capture list mixes direct rivals (other custom-sneaker and streetwear studios) with adjacent D2C brands studied purely for their retention mechanics.
 
 ### In-repo competitor tooling (complementary)
 

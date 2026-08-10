@@ -1,4 +1,4 @@
-# Smart Brain migrations (applied 2026-06-12 to linked project gubbckgjujwqodghcavv)
+# Smart Brain migrations (applied 2026-06-12 to linked project fswdwmkgggzyxrdzabnh)
 
 Applied directly via the Supabase management API in this order:
 1. smart_brain_core_schema   — own-data tables: smart_products, smart_assets,

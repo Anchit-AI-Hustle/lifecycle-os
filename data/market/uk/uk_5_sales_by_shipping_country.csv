@@ -1,3 +1,4 @@
-"Shipping country","Orders","Total sales"
-"United Kingdom",25001,824320.843
-,9,221.55
+"Shipping country","Orders","Total sales","Net sales"
+"United Kingdom",506,67698.51,63636.6
+"Ireland",40,5385.11,5062
+"Netherlands",29,3846.51,3615.72

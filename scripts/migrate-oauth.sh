@@ -19,7 +19,7 @@
 #   <SLUG>_SUPABASE_PROJECT_REF           per-project ref (slug uppercased,
 #                                         non-alphanumeric -> underscore);
 #                                         SUPABASE_PROJECT_REF is the fallback
-#                                         for knickgasm-lifecycle-os.
+#                                         for lifecycle-os.
 #   GCP_PROJECT                           optional — else read from gcloud config.
 #   ROOT_DOMAIN                           optional (default anchit-tandon.com)
 #
@@ -32,7 +32,7 @@
 set -uo pipefail
 
 ROOT_DOMAIN="${ROOT_DOMAIN:-anchit-tandon.com}"
-ALL_PROJECTS="knickgasm-lifecycle-os personal-ai-os the-third-eye music-gen-ai hey-yaara ai-tele-suite th-life-engine marketing-mailers-html-architect"
+ALL_PROJECTS="lifecycle-os personal-ai-os the-third-eye music-gen-ai hey-yaara ai-tele-suite th-life-engine marketing-mailers-html-architect"
 PROMOTE_SITE_URL="${PROMOTE_SITE_URL:-0}"
 
 APPLY=0; ONLY=""
@@ -57,7 +57,7 @@ ref_for() {
   prefix="$(slug_prefix "$p")"
   var="${prefix}_SUPABASE_PROJECT_REF"
   if [ -n "${!var:-}" ]; then printf '%s' "${!var}"; return; fi
-  if [ "$p" = "knickgasm-lifecycle-os" ] && [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
+  if [ "$p" = "lifecycle-os" ] && [ -n "${SUPABASE_PROJECT_REF:-}" ]; then
     printf '%s' "${SUPABASE_PROJECT_REF}"; return
   fi
   printf ''

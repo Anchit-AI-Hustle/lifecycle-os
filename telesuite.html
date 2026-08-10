@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeleSuite</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260809" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
+    --surface:var(--brand-surface,var(--vh-panel-tan));--card:var(--brand-surface-alt,#fff);
+    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,var(--vh-panel-tan));
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);min-height:100vh}
+  .app{display:grid;grid-template-columns:262px minmax(0,1fr);gap:0;min-height:100vh}
+  @media(max-width:900px){.app{grid-template-columns:1fr}.rail{position:static!important;height:auto!important;border-right:0!important;border-bottom:1px solid var(--line)}}
+
+  .rail{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--card);border-right:1px solid var(--line);padding:58px 12px 26px}
+  .rail .brandline{padding:0 10px 14px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .rail .brandline b{font-family:var(--head);font-size:17px;font-weight:600;display:block}
+  .rail .brandline small{color:var(--muted);font-size:11px}
+  .rgrp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);padding:15px 10px 6px}
+  .rlink{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.8px;font-weight:500;
+    color:var(--ink);cursor:pointer;text-decoration:none;line-height:1.35}
+  .rlink:hover{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+  .rlink.on{background:var(--primary);color:var(--on-primary);font-weight:600}
+  .rlink .c{margin-left:auto;font-size:9.5px;font-weight:700;opacity:.75;white-space:nowrap}
+
+  .main{padding:58px 30px 70px;max-width:1000px}
+  @media(max-width:900px){.main{padding:26px 18px 60px}}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:9px}
+  h1{font-family:var(--head);font-size:30px;font-weight:600;letter-spacing:-.02em;margin-bottom:9px}
+  .lede{color:var(--muted);font-size:14px;line-height:1.68;max-width:720px;margin-bottom:22px}
+  h2{font-family:var(--head);font-size:19px;font-weight:600;margin:26px 0 11px}
+  h3{font-size:14px;font-weight:700;margin:18px 0 7px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:21px}
+
+  .field{margin-bottom:15px}
+  label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+  label .req{color:var(--accent)}
+  label .note{font-weight:400;color:var(--muted);margin-left:6px;font-size:11px}
+  input[type=text],input[type=url],input[type=number],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);
+    border-radius:9px;background:var(--surface);color:var(--ink);font:400 13.5px/1.55 var(--body)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+  textarea{min-height:120px;resize:vertical;font-family:var(--body)}
+  .multi{max-height:190px;overflow-y:auto;border:1px solid var(--line);border-radius:9px;padding:7px;background:var(--surface)}
+  .multi label{display:flex;gap:8px;align-items:flex-start;font-weight:400;font-size:12.5px;padding:5px 6px;border-radius:6px;cursor:pointer;margin:0}
+  .multi label:hover{background:color-mix(in srgb,var(--primary) 7%,transparent)}
+  .multi input{width:auto;margin-top:2px}
+
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font:600 13px/1 var(--body);cursor:pointer;transition:.14s}
+  .btn:hover{border-color:var(--primary)}
+  .btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .btn.danger{color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,transparent)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.sm{padding:6px 12px;font-size:11.5px}
+  .rowbtns{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:8px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px}
+  .mod{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;transition:.14s;text-decoration:none;color:inherit;display:block}
+  .mod:hover{border-color:var(--primary);transform:translateY(-2px)}
+  .mod b{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
+  .mod p{font-size:11.5px;color:var(--muted);line-height:1.55;margin-bottom:9px}
+  .mod .meta{display:flex;gap:10px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
+  .mod .meta b{display:inline;font-size:11px;color:var(--primary)}
+
+  table{width:100%;border-collapse:collapse;font-size:12.8px}
+  th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding:8px 9px;
+    border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap}
+  td{padding:9px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .tbl{overflow-x:auto}
+
+  .res{margin-top:20px}
+  .res .sec{margin-bottom:16px}
+  .res .sec>h4{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--primary);font-weight:700;margin-bottom:6px}
+  .res p{font-size:13.5px;line-height:1.7;margin-bottom:7px}
+  .res ul{margin:0 0 8px 19px}.res li{font-size:13.3px;line-height:1.65;margin-bottom:4px}
+  .res .kv{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:5px 14px;font-size:13px;line-height:1.6}
+  .res .kv dt{font-weight:600;color:var(--muted)}
+  .quote{border-left:3px solid var(--primary);padding:3px 0 3px 12px;margin:6px 0;font-style:italic;color:var(--muted);font-size:12.8px}
+  .transcript{white-space:pre-wrap;font-size:13px;line-height:1.75;background:var(--surface);border:1px solid var(--line);
+    border-radius:10px;padding:15px;max-height:460px;overflow-y:auto}
+
+  .scorehead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+  .bigscore{font-family:var(--head);font-size:46px;font-weight:600;line-height:1;color:var(--primary)}
+  .dims{display:grid;gap:7px}
+  .dim{display:grid;grid-template-columns:minmax(130px,1.1fr) 84px minmax(0,2fr);gap:11px;align-items:center;font-size:12.4px}
+  @media(max-width:700px){.dim{grid-template-columns:1fr}}
+  .bar{height:7px;border-radius:4px;background:color-mix(in srgb,var(--primary) 15%,transparent);overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--primary)}
+  .bar.low i{background:var(--err)}.bar.mid i{background:var(--warn)}
+
+  .flag{padding:9px 12px;border-radius:9px;font-size:12.5px;line-height:1.6;margin-bottom:6px;border:1px solid}
+  .flag.err{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 30%,transparent)}
+  .flag.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 34%,transparent)}
+  .flag.ok{background:color-mix(in srgb,var(--ok) 8%,transparent);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+  .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 15%,transparent);padding:2px 6px;border-radius:4px}
+  .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;
+    background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary)}
+
+  .callstage{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:16px}
+  @media(max-width:800px){.callstage{grid-template-columns:1fr}}
+  .turns{max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px}
+  .turn{padding:10px 13px;border-radius:11px;font-size:13px;line-height:1.6;max-width:88%}
+  .turn.agent{background:color-mix(in srgb,var(--primary) 11%,transparent);align-self:flex-start;border-bottom-left-radius:3px}
+  .turn.customer{background:var(--surface);border:1px solid var(--line);align-self:flex-end;border-bottom-right-radius:3px}
+  .turn small{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;opacity:.6;margin-bottom:3px;font-weight:700}
+  .mic{width:74px;height:74px;border-radius:50%;border:0;cursor:pointer;background:var(--primary);color:var(--on-primary);
+    font-size:12px;font-weight:700;display:grid;place-items:center;margin:0 auto 12px;transition:.15s}
+  .mic.live{background:var(--err);animation:mpulse 1.4s infinite}
+  @keyframes mpulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--err) 45%,transparent)}50%{box-shadow:0 0 0 14px transparent}}
+  @media(prefers-reduced-motion:reduce){.mic.live{animation:none}}
+  .status{text-align:center;font-size:11.5px;color:var(--muted);line-height:1.5;min-height:32px}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:12px 20px;border-radius:10px;
+    background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;display:none;max-width:88vw;text-align:center}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  pre.json{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:13px;overflow-x:auto;font-size:11.5px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" id="rail" data-no-brand-swap="1"></nav>
+  <main class="main" id="main"><p class="muted">Loading TeleSuite…</p></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var REG = null;            // subfeature registry from the server
+  var current = 'home';
+  var cache = { products: null, knowledge: null };
+  var busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function fmt(n) { return (Number(n) || 0).toLocaleString(); }
+  function when(t) { try { return new Date(t).toLocaleString(); } catch (_) { return t || ''; } }
+  function toast(m, ms) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, ms || 3200); }
+  function titleCase(s) { return String(s || '').replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+
+  /* ── API ────────────────────────────────────────────────────────────── */
+  function token() {
+    try { if (window.BrandContext) return window.BrandContext.token(); } catch (_) {}
+    try { return (window.LifecycleAuth.session || {}).access_token || ''; } catch (_) { return ''; }
+  }
+  function wsId() { try { return (window.BrandContext.brand || {}).id || ''; } catch (_) { return ''; } }
+
+  async function ts(op, body, query) {
+    var headers = { 'Content-Type': 'application/json' };
+    var t = token(); if (t) headers.Authorization = 'Bearer ' + t;
+    var res = await fetch('/api/brain?action=telesuite&op=' + encodeURIComponent(op) + (query || ''), {
+      method: body ? 'POST' : 'GET', headers: headers,
+      body: body ? JSON.stringify(Object.assign({ workspace_id: wsId() }, body)) : undefined,
+      cache: 'no-store'
+    });
+    var json = await res.json().catch(function () { return {}; });
+    // Any response carrying a balance moves the live pill immediately.
+    if (window.Credits) window.Credits.applyReceipt(json);
+    if (!res.ok) {
+      var e = new Error(json.message || json.error || ('HTTP ' + res.status));
+      e.status = res.status; e.payload = json; throw e;
+    }
+    return json;
+  }
+
+  /* ── result rendering ───────────────────────────────────────────────── */
+
+  function renderValue(v, depth) {
+    depth = depth || 0;
+    if (v == null || v === '') return '';
+    if (typeof v === 'string') {
+      var marked = esc(v).replace(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/g, function (m) { return '<span class="marker">' + m + '</span>'; });
+      return '<p>' + marked + '</p>';
+    }
+    if (typeof v === 'number' || typeof v === 'boolean') return '<p>' + esc(String(v)) + '</p>';
+    if (Array.isArray(v)) {
+      if (!v.length) return '';
+      if (v.every(function (x) { return typeof x === 'string' || typeof x === 'number'; })) {
+        return '<ul>' + v.map(function (x) {
+          return '<li>' + esc(String(x)).replace(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/g, function (m) { return '<span class="marker">' + m + '</span>'; }) + '</li>';
+        }).join('') + '</ul>';
+      }
+      return v.map(function (x) { return '<div class="card" style="padding:13px;margin-bottom:8px">' + renderValue(x, depth + 1) + '</div>'; }).join('');
+    }
+    if (typeof v === 'object') {
+      var keys = Object.keys(v).filter(function (k) { return v[k] != null && v[k] !== '' && !(Array.isArray(v[k]) && !v[k].length); });
+      if (!keys.length) return '';
+      return '<dl class="kv">' + keys.map(function (k) {
+        var val = v[k];
+        var body = (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')
+          ? esc(String(val)).replace(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/g, function (m) { return '<span class="marker">' + m + '</span>'; })
+          : renderValue(val, depth + 1);
+        return '<dt>' + esc(titleCase(k)) + '</dt><dd>' + body + '</dd>';
+      }).join('') + '</dl>';
+    }
+    return '';
+  }
+
+  function renderResult(result, kind) {
+    if (!result) return '<p class="muted">No result.</p>';
+    if (kind === 'transcript' && result.transcript) {
+      return '<div class="sec"><h4>Transcript</h4><div class="transcript">' + esc(result.transcript) + '</div></div>' +
+        '<p class="muted" style="margin-top:9px">' + esc(result.source === 'pasted' ? 'Pasted by you — no transcription was run, so this cost nothing.' : 'Transcribed from ' + (result.filename || 'your recording') + (result.model ? ' using ' + result.model : '')) + '</p>' +
+        '<button class="btn sm" style="margin-top:10px" data-copy-transcript="1">Copy transcript</button>';
+    }
+    if (kind === 'score' && result.dimensions) return renderScore(result);
+
+    var order = Object.keys(result);
+    return order.map(function (k) {
+      var v = result[k];
+      if (v == null || v === '' || (Array.isArray(v) && !v.length)) return '';
+      var body = renderValue(v);
+      if (!body) return '';
+      return '<div class="sec"><h4>' + esc(titleCase(k)) + '</h4>' + body + '</div>';
+    }).join('');
+  }
+
+  function renderScore(r) {
+    var dims = r.dimensions || [];
+    var html = '<div class="scorehead"><div><div class="bigscore">' + esc(r.overall_score != null ? r.overall_score : '—') + '</div>' +
+      '<span class="muted">out of 100</span></div>' +
+      (r.outcome ? '<span class="pill">' + esc(titleCase(r.outcome)) + '</span>' : '') + '</div>';
+
+    html += '<div class="sec"><h4>Rubric</h4><div class="dims">' + dims.map(function (d) {
+      var s = Number(d.score) || 0, cls = s < 5 ? 'low' : (s < 7 ? 'mid' : '');
+      return '<div class="dim"><b>' + esc(d.name) + '</b>' +
+        '<span><div class="bar ' + cls + '"><i style="width:' + Math.max(0, Math.min(100, s * 10)) + '%"></i></div>' +
+        '<span class="muted" style="font-size:11px">' + s + '/10</span></span>' +
+        '<span class="muted">' + (d.evidence ? '<span class="quote">' + esc(d.evidence) + '</span>' : '') + esc(d.comment || '') + '</span></div>';
+    }).join('') + '</div></div>';
+
+    if ((r.compliance_flags || []).length) html += '<div class="sec"><h4>Compliance flags</h4>' + r.compliance_flags.map(function (f) { return '<div class="flag err">' + esc(f) + '</div>'; }).join('') + '</div>';
+    if ((r.factual_errors || []).length) html += '<div class="sec"><h4>Factual errors</h4>' + r.factual_errors.map(function (f) { return '<div class="flag warn">' + esc(f) + '</div>'; }).join('') + '</div>';
+    if ((r.strengths || []).length) html += '<div class="sec"><h4>Strengths</h4>' + r.strengths.map(function (f) { return '<div class="flag ok">' + esc(f) + '</div>'; }).join('') + '</div>';
+    if ((r.improvements || []).length) {
+      html += '<div class="sec"><h4>Improvements</h4>' + r.improvements.map(function (i) {
+        return '<div class="card" style="padding:12px;margin-bottom:8px"><b style="font-size:13px">' + esc(i.issue || '') + '</b>' +
+          (i.quote ? '<div class="quote">' + esc(i.quote) + '</div>' : '') +
+          (i.instead_say ? '<p style="margin-top:5px"><b>Say instead:</b> ' + esc(i.instead_say) + '</p>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    if (r.coaching_summary) html += '<div class="sec"><h4>Coaching summary</h4><p>' + esc(r.coaching_summary) + '</p></div>';
+    return html;
+  }
+
+  /* ── rail ───────────────────────────────────────────────────────────── */
+  function renderRail() {
+    var brand = (window.BrandContext && window.BrandContext.brand) || null;
+    var groups = [];
+    REG.subfeatures.forEach(function (s) { if (groups.indexOf(s.group) < 0) groups.push(s.group); });
+    var html = '<div class="brandline"><b>TeleSuite</b><small>' + esc(brand ? brand.name : 'no brand selected') + '</small></div>';
+    groups.forEach(function (g) {
+      html += '<div class="rgrp">' + esc(g) + '</div>';
+      REG.subfeatures.filter(function (s) { return s.group === g; }).forEach(function (s) {
+        var price = s.credit_key && window.Credits ? window.Credits.costText(s.credit_key) : '';
+        html += '<a class="rlink' + (s.key === current ? ' on' : '') + '" href="#' + esc(s.key) + '">' +
+          esc(s.label) + (price ? '<span class="c">' + esc(price) + '</span>' : '') + '</a>';
+      });
+    });
+    $('rail').innerHTML = html;
+  }
+
+  /* ── views ──────────────────────────────────────────────────────────── */
+
+  function head(s, extra) {
+    return '<div class="eyebrow">TeleSuite · ' + esc(s.group) + '</div>' +
+      '<h1>' + esc(s.label) + '</h1>' +
+      '<p class="lede">' + esc(s.blurb || '') + '</p>' + (extra || '');
+  }
+
+  async function viewHome(s) {
+    $('main').innerHTML = head(s) + '<div id="homeGrid"><p class="muted">Loading your run history…</p></div>';
+    var summary = {};
+    try {
+      var r = await ts('summary');
+      (r.summary || []).forEach(function (x) { summary[x.feature] = x; });
+      var totals = '<div class="card" style="margin-bottom:18px;display:flex;gap:28px;flex-wrap:wrap">' +
+        '<div><b style="font-family:var(--head);font-size:26px;color:var(--primary)">' + fmt(r.total_runs) + '</b><div class="muted">runs</div></div>' +
+        '<div><b style="font-family:var(--head);font-size:26px;color:var(--primary)">' + fmt(r.total_credits) + '</b><div class="muted">credits spent in TeleSuite</div></div>' +
+        '</div>';
+      $('homeGrid').innerHTML = totals + '<div class="grid">' + REG.subfeatures.filter(function (x) { return x.key !== 'home'; }).map(function (x) {
+        var st = summary[x.op] || summary[x.key] || null;
+        var price = x.credit_key && window.Credits ? window.Credits.costText(x.credit_key) : '';
+        return '<a class="mod" href="#' + esc(x.key) + '"><b>' + esc(x.label) + '</b>' +
+          '<p>' + esc((x.blurb || '').slice(0, 118)) + ((x.blurb || '').length > 118 ? '…' : '') + '</p>' +
+          '<div class="meta"><span>' + (st ? '<b>' + fmt(st.runs) + '</b> runs' : 'no runs yet') + '</span>' +
+          (price ? '<span style="margin-left:auto"><b>' + esc(price) + '</b></span>' : '') + '</div></a>';
+      }).join('') + '</div>';
+    } catch (e) {
+      $('homeGrid').innerHTML = '<div class="flag warn">' + esc(e.message) + '</div>';
+    }
+  }
+
+  async function loadItems(kind) {
+    if (cache[kind === 'product' ? 'products' : 'knowledge']) return cache[kind === 'product' ? 'products' : 'knowledge'];
+    var r = await ts('items', null, '&kind=' + kind);
+    cache[kind === 'product' ? 'products' : 'knowledge'] = r.items || [];
+    return r.items || [];
+  }
+
+  async function viewLibrary(s) {
+    var kind = s.item_kind;
+    $('main').innerHTML = head(s) +
+      '<div class="rowbtns" style="margin-bottom:16px">' +
+        '<button class="btn primary" id="addItem">+ Add ' + (kind === 'product' ? 'product' : 'entry') + '</button>' +
+        (kind === 'product' ? '<button class="btn" id="seed">Seed from brand catalog</button>' : '') +
+      '</div><div id="editor"></div><div class="card tbl" id="list"><p class="muted">Loading…</p></div>';
+
+    async function refresh() {
+      cache[kind === 'product' ? 'products' : 'knowledge'] = null;
+      var items = await loadItems(kind);
+      $('list').innerHTML = items.length
+        ? '<table><thead><tr><th>Name</th><th>Category</th><th>' + (kind === 'product' ? 'Description' : 'Summary') + '</th><th></th></tr></thead><tbody>' +
+          items.map(function (i) {
+            return '<tr><td><b>' + esc(i.name) + '</b>' + (i.source ? '<br><span class="muted" style="font-size:10.5px">' + esc(i.source) + '</span>' : '') + '</td>' +
+              '<td class="muted">' + esc(i.category || '—') + '</td>' +
+              '<td class="muted">' + esc((i.content || '').slice(0, 170)) + ((i.content || '').length > 170 ? '…' : '') + '</td>' +
+              '<td style="white-space:nowrap"><button class="btn sm" data-edit="' + esc(i.id) + '">Edit</button> ' +
+              '<button class="btn sm danger" data-del="' + esc(i.id) + '">Delete</button></td></tr>';
+          }).join('') + '</tbody></table>'
+        : '<p class="muted">Nothing here yet.' + (kind === 'product' ? ' Seed from your brand catalog, or add one by hand.' : ' Add the documents your team quotes from.') + '</p>';
+
+      Array.prototype.forEach.call($('list').querySelectorAll('[data-edit]'), function (b) {
+        b.addEventListener('click', function () { openEditor(items.filter(function (x) { return x.id === b.dataset.edit; })[0]); });
+      });
+      Array.prototype.forEach.call($('list').querySelectorAll('[data-del]'), function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm('Delete this entry?')) return;
+          try { await ts('item-delete', { id: b.dataset.del }); toast('Deleted.'); refresh(); } catch (e) { toast(e.message); }
+        });
+      });
+    }
+
+    function openEditor(item) {
+      item = item || { kind: kind, name: '', category: '', content: '', attributes: {} };
+      $('editor').innerHTML =
+        '<div class="card" style="margin-bottom:16px">' +
+          '<h3 style="margin-top:0">' + (item.id ? 'Edit' : 'New') + ' ' + (kind === 'product' ? 'product' : 'entry') + '</h3>' +
+          '<div class="field"><label>Name <span class="req">*</span></label><input type="text" id="iName" value="' + esc(item.name) + '"></div>' +
+          '<div class="field"><label>Category</label><input type="text" id="iCat" value="' + esc(item.category || '') + '" placeholder="' + (kind === 'product' ? 'Product line' : 'pricing / objection handling / compliance') + '"></div>' +
+          '<div class="field"><label>' + (kind === 'product' ? 'Description' : 'Content') + '</label><textarea id="iContent">' + esc(item.content || '') + '</textarea></div>' +
+          '<div class="rowbtns">' +
+            '<button class="btn primary" id="iSave">Save</button>' +
+            '<button class="btn" id="iGen" data-credit-feature="' + esc(s.credit_key) + '">' + esc(s.generate.label) + '</button>' +
+            '<button class="btn" id="iCancel">Cancel</button>' +
+          '</div><div id="iOut"></div></div>';
+      if (window.Credits) window.Credits.decorate($('editor'));
+
+      $('iCancel').onclick = function () { $('editor').innerHTML = ''; };
+      $('iSave').onclick = async function () {
+        var name = $('iName').value.trim();
+        if (!name) return toast('Name is required.');
+        try {
+          await ts('item-save', { item: { id: item.id, kind: kind, name: name, category: $('iCat').value.trim(), content: $('iContent').value, attributes: item.attributes } });
+          toast('Saved.'); $('editor').innerHTML = ''; refresh();
+        } catch (e) { toast(e.message, 4500); }
+      };
+      $('iGen').onclick = async function () {
+        if (window.Credits && !window.Credits.guard(s.credit_key)) return;
+        var b = $('iGen'); b.disabled = true; b.innerHTML = '<span class="spin"></span> Working…';
+        try {
+          var payload = kind === 'product'
+            ? { name: $('iName').value.trim(), category: $('iCat').value.trim(), content: $('iContent').value, attributes: item.attributes }
+            : { name: $('iName').value.trim(), content: $('iContent').value };
+          var r = await ts(s.generate.op, { input: payload });
+          var res = r.result || {};
+          if (kind === 'product' && res.description) $('iContent').value = res.description;
+          if (kind === 'knowledge') {
+            if (res.summary) $('iContent').value = ($('iContent').value ? $('iContent').value + '\n\n' : '') + 'Summary: ' + res.summary;
+            if (res.category) $('iCat').value = res.category;
+            if (res.title && !$('iName').value.trim()) $('iName').value = res.title;
+          }
+          $('iOut').innerHTML = '<div class="res">' + renderResult(res) + '</div>' +
+            (r.credits ? '<p class="muted" style="margin-top:8px">Charged ' + fmt(r.credits.charged) + ' credits.</p>' : '');
+        } catch (e) { handleRunError(e, $('iOut')); }
+        b.disabled = false; b.innerHTML = esc(s.generate.label);
+        if (window.Credits) window.Credits.decorate($('editor'));
+      };
+    }
+
+    $('addItem').onclick = function () { openEditor(null); };
+    if ($('seed')) $('seed').onclick = async function () {
+      try { var r = await ts('items-seed'); toast(r.seeded ? 'Seeded ' + r.seeded + ' products from your catalog.' : (r.message || 'Nothing to seed.'), 4500); refresh(); }
+      catch (e) { toast(e.message, 4500); }
+    };
+    refresh();
+  }
+
+  /* ── generic tool runner ────────────────────────────────────────────── */
+
+  async function fieldHtml(f) {
+    if (f.type === 'product' || f.type === 'kb') {
+      var kind = f.type === 'product' ? 'product' : 'knowledge';
+      var items = [];
+      try { items = await loadItems(kind); } catch (_) {}
+      if (f.type === 'product') {
+        return '<div class="field"><label>' + esc(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</label>' +
+          '<select data-f="' + esc(f.name) + '"><option value="">' + (items.length ? 'Choose a product' : 'No products yet — add them in Products') + '</option>' +
+          items.map(function (i) { return '<option value="' + esc(i.name) + '">' + esc(i.name) + '</option>'; }).join('') + '</select></div>';
+      }
+      return '<div class="field"><label>' + esc(f.label) + '<span class="note">grounds the output in your own documents</span></label>' +
+        (items.length
+          ? '<div class="multi" data-f="' + esc(f.name) + '" data-multi="1">' + items.map(function (i) {
+              return '<label><input type="checkbox" value="' + esc(i.id) + '"><span><b>' + esc(i.name) + '</b>' +
+                (i.category ? ' <span class="muted">· ' + esc(i.category) + '</span>' : '') + '</span></label>';
+            }).join('') + '</div>'
+          : '<p class="muted">No knowledge base entries yet. Add them under Knowledge Base and they become selectable here.</p>') +
+        '</div>';
+    }
+    if (f.type === 'runpicker') {
+      var runs = [];
+      try { var r = await ts('runs', null, '&feature=' + encodeURIComponent(f.of) + '&limit=60'); runs = r.runs || []; } catch (_) {}
+      return '<div class="field"><label>' + esc(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</label>' +
+        (runs.length
+          ? '<div class="multi" data-f="' + esc(f.name) + '" data-multi="1">' + runs.map(function (x) {
+              return '<label><input type="checkbox" value="' + esc(x.id) + '"><span><b>' + esc(x.title || x.id) + '</b>' +
+                '<span class="muted"> · ' + esc(when(x.created_at)) + (x.score != null ? ' · score ' + x.score : '') + '</span></span></label>';
+            }).join('') + '</div>'
+          : '<p class="muted">No scored calls yet. Run AI Call Scoring first and they will appear here.</p>') +
+        '</div>';
+    }
+    if (f.type === 'select') {
+      return '<div class="field"><label>' + esc(f.label) + '</label><select data-f="' + esc(f.name) + '">' +
+        f.options.map(function (o) { return '<option' + (o === f.default ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select></div>';
+    }
+    if (f.type === 'textarea') {
+      return '<div class="field"><label>' + esc(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</label>' +
+        '<textarea data-f="' + esc(f.name) + '" placeholder="' + esc(f.placeholder || '') + '"></textarea></div>';
+    }
+    if (f.type === 'audio') {
+      return '<div class="field"><label>' + esc(f.label) + '</label>' +
+        '<input type="file" data-f="' + esc(f.name) + '" data-audio="1" accept="' + esc(f.accept || 'audio/*') + '">' +
+        (f.help ? '<p class="muted" style="margin-top:6px">' + esc(f.help) + '</p>' : '') + '</div>';
+    }
+    return '<div class="field"><label>' + esc(f.label) + (f.required ? ' <span class="req">*</span>' : '') + '</label>' +
+      '<input type="text" data-f="' + esc(f.name) + '" value="' + esc(f.default || '') + '" placeholder="' + esc(f.placeholder || '') + '"></div>';
+  }
+
+  function collectInputs(root) {
+    var out = {};
+    Array.prototype.forEach.call(root.querySelectorAll('[data-f]'), function (el) {
+      var name = el.dataset.f;
+      if (el.dataset.multi) {
+        out[name] = Array.prototype.filter.call(el.querySelectorAll('input:checked'), function () { return true; }).map(function (c) { return c.value; });
+      } else if (el.type === 'file') {
+        out['__file_' + name] = el.files[0] || null;
+      } else {
+        out[name] = el.value;
+      }
+    });
+    return out;
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result).split(',')[1] || ''); };
+      fr.onerror = reject;
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function audioDuration(file) {
+    return new Promise(function (resolve) {
+      try {
+        var a = document.createElement('audio');
+        a.preload = 'metadata';
+        a.onloadedmetadata = function () { URL.revokeObjectURL(a.src); resolve(isFinite(a.duration) ? a.duration / 60 : null); };
+        a.onerror = function () { resolve(null); };
+        a.src = URL.createObjectURL(file);
+      } catch (_) { resolve(null); }
+    });
+  }
+
+  function handleRunError(e, box) {
+    if (e.status === 402 && e.payload) {
+      box.innerHTML = '<div class="flag err"><b>Not enough credits.</b><br>' +
+        esc(e.payload.label || '') + ' costs ' + fmt((e.payload.quote && e.payload.quote.total) || e.payload.required) +
+        ' credits and you have ' + fmt(e.payload.balance) + '.</div>' +
+        '<button class="btn primary" id="topup" style="margin-top:9px">Add credits</button>';
+      var t = document.getElementById('topup');
+      if (t) t.onclick = function () { window.Credits ? window.Credits.openRecharge() : (location.href = '/credits'); };
+      return;
+    }
+    if (e.status === 409) {
+      box.innerHTML = '<div class="flag warn">' + esc(e.message) + ' <a href="/onboarding">Set up a brand</a>.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="flag err">' + esc(e.message) + '</div>';
+  }
+
+  async function viewTool(s) {
+    $('main').innerHTML = head(s) + '<div class="card"><div id="form"><p class="muted">Loading…</p></div></div><div id="out"></div>';
+    var parts = [];
+    for (var i = 0; i < s.inputs.length; i++) parts.push(await fieldHtml(s.inputs[i]));
+    var price = s.credit_key && window.Credits ? window.Credits.cost(s.credit_key) : null;
+    $('form').innerHTML = parts.join('') +
+      '<div class="rowbtns"><button class="btn primary" id="run" data-credit-feature="' + esc(s.credit_key) + '">Run ' + esc(s.label) + '</button>' +
+      (price && price.metered ? '<span class="muted">Metered: ' + price.cost + ' credits ' + esc(price.unit) + '. Only what you use is charged.</span>' : '') + '</div>';
+    if (window.Credits) window.Credits.decorate($('form'));
+
+    $('run').onclick = async function () {
+      if (busy) return;
+      var input = collectInputs($('form'));
+
+      for (var j = 0; j < s.inputs.length; j++) {
+        var f = s.inputs[j];
+        if (!f.required) continue;
+        var v = input[f.name];
+        var has = Array.isArray(v) ? v.length : String(v || '').trim();
+        if (!has && !(f.type === 'audio' && input['__file_' + f.name])) return toast('"' + f.label + '" is required.');
+      }
+
+      // Attach an audio file and bill on its real duration.
+      var fileKey = Object.keys(input).filter(function (k) { return k.indexOf('__file_') === 0; })[0];
+      if (fileKey) {
+        var file = input[fileKey];
+        delete input[fileKey];
+        if (file) {
+          var name = fileKey.replace('__file_', '');
+          var mins = await audioDuration(file);
+          input[name] = { name: file.name, mime: file.type || 'audio/mpeg', data: await fileToBase64(file) };
+          if (mins) input.duration_minutes = Math.ceil(mins);
+        }
+      }
+      // A pasted transcript means nothing has to be generated — do not reserve.
+      if (s.op === 'transcription' && String(input.transcript || '').trim()) input.duration_minutes = 0;
+
+      if (window.Credits && !input.transcript && !window.Credits.guard(s.credit_key, input.duration_minutes)) return;
+
+      busy = true;
+      var btn = $('run'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Running…';
+      $('out').innerHTML = '<p class="muted" style="margin-top:16px">Working. Long runs can take up to a minute.</p>';
+      try {
+        var r = await ts(s.op, { input: input });
+        renderRun(s, r);
+      } catch (e) { handleRunError(e, $('out')); }
+      busy = false; btn.disabled = false; btn.innerHTML = 'Run ' + esc(s.label);
+      if (window.Credits) window.Credits.decorate($('main'));
+    };
+  }
+
+  function renderRun(s, r) {
+    var receipt = r.credits
+      ? '<p class="muted" style="margin-top:14px">Charged <b>' + fmt(r.credits.charged) + '</b> credits' +
+        (r.credits.refunded ? ' (' + fmt(r.credits.refunded) + ' returned unused)' : '') +
+        (r.provider ? ' · generated by ' + esc(r.provider) : '') + '.</p>'
+      : '';
+    var degraded = r.degraded ? '<div class="flag warn">Every AI provider was unavailable, so the built-in fallback was used. ' + esc(r.degraded) + '</div>' : '';
+    var follow = '';
+    if (s.followups && r.run_id) {
+      follow = '<div class="rowbtns" style="margin-top:14px">' + s.followups.map(function (f) {
+        return '<button class="btn" data-follow="' + esc(f.op) + '" data-run="' + esc(r.run_id) + '" data-credit-feature="' + esc(f.credit_key) + '">' + esc(f.label) + '</button>';
+      }).join('') + '</div>';
+    }
+    $('out').innerHTML = '<div class="card res" style="margin-top:20px">' + degraded + renderResult(r.result, s.output) + receipt + follow + '</div><div id="follow"></div>';
+
+    Array.prototype.forEach.call($('out').querySelectorAll('[data-follow]'), function (b) {
+      b.addEventListener('click', async function () {
+        if (window.Credits && !window.Credits.guard(b.dataset.creditFeature)) return;
+        b.disabled = true; b.innerHTML = '<span class="spin"></span> Working…';
+        try {
+          var fr = await ts(b.dataset.follow, { input: { analysis_id: b.dataset.run, product: (collectInputs($('form')) || {}).product } });
+          $('follow').innerHTML = '<div class="card res" style="margin-top:16px">' + renderResult(fr.result) +
+            (fr.credits ? '<p class="muted" style="margin-top:12px">Charged ' + fmt(fr.credits.charged) + ' credits.</p>' : '') + '</div>';
+        } catch (e) { handleRunError(e, $('follow')); }
+        b.disabled = false;
+      });
+    });
+    if (window.Credits) window.Credits.decorate($('out'));
+  }
+
+  /* ── dashboards ─────────────────────────────────────────────────────── */
+  async function viewDashboard(s) {
+    var feat = Array.isArray(s.of) ? s.of.join(',') : s.of;
+    $('main').innerHTML = head(s) + '<div class="card tbl" id="runs"><p class="muted">Loading…</p></div><div id="detail"></div>';
+    try {
+      var r = await ts('runs', null, '&feature=' + encodeURIComponent(feat) + '&limit=150');
+      var runs = r.runs || [];
+      if (!runs.length) { $('runs').innerHTML = '<p class="muted">Nothing logged yet. Runs from this module appear here automatically.</p>'; return; }
+      $('runs').innerHTML = '<table><thead><tr><th>When</th><th>Module</th><th>Title</th><th>Product</th>' +
+        '<th class="num">Score</th><th class="num">Credits</th><th></th></tr></thead><tbody>' +
+        runs.map(function (x) {
+          return '<tr><td class="muted" style="white-space:nowrap">' + esc(when(x.created_at)) + '</td>' +
+            '<td><span class="pill">' + esc(titleCase(x.feature)) + '</span></td>' +
+            '<td><b>' + esc(x.title || '—') + '</b>' + (x.status === 'failed' ? '<br><span class="muted" style="color:var(--err)">failed: ' + esc(x.error || '') + '</span>' : '') + '</td>' +
+            '<td class="muted">' + esc(x.product || '—') + '</td>' +
+            '<td class="num">' + (x.score != null ? '<b>' + x.score + '</b>' : '—') + '</td>' +
+            '<td class="num">' + fmt(x.credits) + '</td>' +
+            '<td style="white-space:nowrap"><button class="btn sm" data-view="' + esc(x.id) + '">View</button> ' +
+            '<button class="btn sm danger" data-del="' + esc(x.id) + '">Delete</button></td></tr>';
+        }).join('') + '</tbody></table>';
+
+      Array.prototype.forEach.call($('runs').querySelectorAll('[data-view]'), function (b) {
+        b.addEventListener('click', function () {
+          var run = runs.filter(function (x) { return x.id === b.dataset.view; })[0];
+          if (!run) return;
+          var kind = /score/.test(run.feature) ? 'score' : (run.feature === 'transcription' ? 'transcript' : 'sections');
+          $('detail').innerHTML = '<h2>' + esc(run.title || titleCase(run.feature)) + '</h2>' +
+            '<div class="card res">' + renderResult(run.output, kind) +
+            '<p class="muted" style="margin-top:14px">' + esc(when(run.created_at)) + ' · ' + fmt(run.credits) + ' credits' +
+            (run.provider ? ' · ' + esc(run.provider) : '') + (run.units ? ' · ' + run.units + ' units' : '') + '</p></div>';
+          $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+      Array.prototype.forEach.call($('runs').querySelectorAll('[data-del]'), function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm('Delete this run from the log?')) return;
+          try { await ts('run-delete', { id: b.dataset.del }); toast('Deleted.'); viewDashboard(s); } catch (e) { toast(e.message); }
+        });
+      });
+    } catch (e) { $('runs').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>'; }
+  }
+
+  /* ── voice agents ───────────────────────────────────────────────────── */
+  async function viewVoice(s) {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var parts = [];
+    for (var i = 0; i < s.inputs.length; i++) parts.push(await fieldHtml(s.inputs[i]));
+    var price = window.Credits ? window.Credits.cost(s.credit_key) : null;
+
+    $('main').innerHTML = head(s) +
+      (SR ? '' : '<div class="flag warn">This browser has no speech recognition. You can still run the call by typing your side of it — the agent behaves identically.</div>') +
+      '<div class="card" id="setup">' + parts.join('') +
+        '<div class="rowbtns"><button class="btn primary" id="startCall" data-credit-feature="' + esc(s.credit_key) + '">Start call</button>' +
+        (price ? '<span class="muted">' + price.cost + ' credits ' + esc(price.unit) + ', charged on the real call length.</span>' : '') + '</div></div>' +
+      '<div id="stage"></div>';
+    if (window.Credits) window.Credits.decorate($('main'));
+
+    $('startCall').onclick = function () {
+      var cfg = collectInputs($('setup'));
+      for (var j = 0; j < s.inputs.length; j++) { if (s.inputs[j].required && !String(cfg[s.inputs[j].name] || '').trim()) return toast('"' + s.inputs[j].label + '" is required.'); }
+      // Guard ONE minute, not the reservation estimate: the server bills
+      // incrementally per minute, so 12 credits is genuinely enough to start a
+      // call, and later minutes stop themselves when the balance runs out.
+      if (window.Credits && !window.Credits.guard(s.credit_key, 1)) return;
+      runCall(s, cfg, SR);
+    };
+  }
+
+  function runCall(s, cfg, SR) {
+    var history = [], startedAt = Date.now(), listening = false, ended = false, recog = null, speaking = false;
+    // Stable id for the whole call. The server bills once, at the end, keyed
+    // on this — so a double click or a retry cannot charge the call twice.
+    var callId = 'call-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+
+    $('setup').style.display = 'none';
+    $('stage').innerHTML =
+      '<div class="callstage">' +
+        '<div class="card"><div class="turns" id="turns"></div>' +
+          '<div style="display:flex;gap:8px;margin-top:12px">' +
+            '<input type="text" id="typed" placeholder="Type what the customer says, then press Enter">' +
+            '<button class="btn" id="send">Send</button></div></div>' +
+        '<div class="card"><button class="mic" id="mic">' + (SR ? 'Talk' : 'No mic') + '</button>' +
+          '<div class="status" id="status">Connecting the call…</div>' +
+          '<button class="btn danger" id="endCall" style="width:100%;margin-top:12px;justify-content:center">End call</button>' +
+          '<p class="muted" style="margin-top:10px;font-size:11px">Speech recognition and playback run in your browser. Only the agent turn is generated on the server. The call is metered per minute as it runs, so you only pay for the minutes you actually use, even if you close the tab.</p>' +
+          '<div class="status" id="billed" style="margin-top:8px"></div>' +
+        '</div>' +
+      '</div><div id="callout"></div>';
+
+    function status(t) { $('status').textContent = t; }
+    function paintTurns() {
+      $('turns').innerHTML = history.map(function (t) {
+        return '<div class="turn ' + t.role + '"><small>' + (t.role === 'agent' ? 'Agent' : 'Customer') + '</small>' + esc(t.text) + '</div>';
+      }).join('');
+      $('turns').scrollTop = $('turns').scrollHeight;
+    }
+
+    function speak(text) {
+      try {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.03;
+        speaking = true;
+        u.onend = function () { speaking = false; if (!ended && SR) startListening(); };
+        window.speechSynthesis.speak(u);
+      } catch (_) { speaking = false; }
+    }
+    /* Barge-in: any customer speech stops the agent mid-sentence. */
+    function stopSpeaking() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (_) {} speaking = false; }
+
+    async function agentTurn(utterance) {
+      status('Thinking…');
+      try {
+        var r = await ts('voice_turn', { input: Object.assign({}, cfg, { mode: s.mode, call_id: callId, history: history, utterance: utterance }) });
+        var out = r.result || {};
+        var say = out.say || 'Sorry, I did not catch that.';
+        history.push({ role: 'agent', text: say, intent: out.intent, note: out.internal_note });
+        paintTurns();
+        if (out.needs_fact) status('Agent flagged a missing fact: ' + out.needs_fact);
+        else status(out.intent ? 'Intent: ' + out.intent : 'Your turn.');
+        if (r.billed_minutes != null) {
+          var bm = document.getElementById('billed');
+          if (bm) bm.textContent = r.billed_minutes + ' minute(s) billed so far';
+        }
+        speak(say);
+        if (out.should_end) setTimeout(function () { endCall(); }, 1800);
+      } catch (e) {
+        if (e.status === 402) { status('Out of credits.'); handleRunError(e, $('callout')); endCall(true); return; }
+        status('Could not generate a reply: ' + e.message);
+      }
+    }
+
+    function elapsedMinutes() { return Math.max(1, Math.ceil((Date.now() - startedAt) / 60000)); }
+
+    function startListening() {
+      if (!SR || listening || ended || speaking) return;
+      try {
+        recog = new SR();
+        recog.continuous = false; recog.interimResults = true; recog.lang = 'en-US';
+        var finalText = '';
+        recog.onstart = function () { listening = true; $('mic').classList.add('live'); $('mic').textContent = 'Listening'; status('Listening…'); };
+        recog.onresult = function (ev) {
+          for (var i = ev.resultIndex; i < ev.results.length; i++) {
+            if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript;
+            else stopSpeaking();   // barge-in the moment they start talking
+          }
+        };
+        recog.onerror = function (e) { status('Microphone: ' + (e.error || 'error') + '. Type instead.'); };
+        recog.onend = function () {
+          listening = false; $('mic').classList.remove('live'); $('mic').textContent = 'Talk';
+          var said = finalText.trim();
+          if (said && !ended) { history.push({ role: 'customer', text: said }); paintTurns(); agentTurn(said); }
+          else if (!ended) status('Nothing heard. Tap Talk or type.');
+        };
+        recog.start();
+      } catch (e) { status('Could not start the microphone.'); }
+    }
+
+    function send(text) {
+      if (!text.trim() || ended) return;
+      stopSpeaking();
+      history.push({ role: 'customer', text: text.trim() });
+      paintTurns();
+      agentTurn(text.trim());
+    }
+
+    async function endCall(skipSave) {
+      if (ended) return;
+      ended = true;
+      stopSpeaking();
+      try { recog && recog.stop(); } catch (_) {}
+      $('mic').disabled = true; $('endCall').disabled = true;
+      if (skipSave || !history.length) { status('Call ended.'); return; }
+      status('Saving and scoring the call…');
+      try {
+        var r = await ts('voice_finish', {
+          input: Object.assign({}, cfg, {
+            mode: s.mode, history: history, call_id: callId,
+            minutes: elapsedMinutes(), duration_ms: Date.now() - startedAt
+          })
+        });
+        var res = r.result || {};
+        var scoreHtml = res.score && res.score.output
+          ? '<h2>Call score</h2><div class="card res">' + renderResult(res.score.output, 'score') + '</div>'
+          : (res.score && res.score.error ? '<div class="flag warn">Scoring failed: ' + esc(res.score.error) + '</div>' : '');
+        $('callout').innerHTML =
+          '<h2>Call saved</h2><div class="card"><p class="muted">' + res.turns + ' turns over about ' + res.minutes + ' minute(s). ' +
+          'It is now in the ' + esc(s.mode === 'sales' ? 'Voice Sales DB' : 'Voice Support DB') + '.</p>' +
+          '<div class="transcript" style="margin-top:12px">' + esc(res.transcript) + '</div>' +
+          (res.billed_minutes ? '<p class="muted" style="margin-top:12px">Billed <b>' + res.billed_minutes + '</b> minute(s) of call time.</p>' : '') +
+          '</div>' + scoreHtml;
+        status('Call ended and scored.');
+      } catch (e) { handleRunError(e, $('callout')); status('Call ended.'); }
+    }
+
+    $('mic').onclick = function () { if (listening) { try { recog.stop(); } catch (_) {} } else startListening(); };
+    $('send').onclick = function () { send($('typed').value); $('typed').value = ''; };
+    $('typed').addEventListener('keydown', function (e) { if (e.key === 'Enter') { send($('typed').value); $('typed').value = ''; } });
+    $('endCall').onclick = function () { endCall(); };
+
+    paintTurns();
+    agentTurn('');   // the agent opens the call
+  }
+
+  /* ── batch audio downloader (fully client side) ─────────────────────── */
+  function viewBatch(s) {
+    $('main').innerHTML = head(s) +
+      '<div class="card">' +
+        '<div class="field"><label>Audio URLs <span class="note">one per line</span></label>' +
+          '<textarea id="urls" placeholder="https://example.com/calls/one.mp3&#10;https://example.com/calls/two.mp3"></textarea></div>' +
+        '<div class="field"><label>Or paste a column from a spreadsheet</label>' +
+          '<input type="text" id="prefix" placeholder="Optional filename prefix, e.g. 2026-08-calls"></div>' +
+        '<div class="rowbtns"><button class="btn primary" id="go" data-credit-feature="telesuite.batch_audio">Fetch and bundle</button>' +
+          '<button class="btn" id="clear">Clear</button></div>' +
+        '<div class="flag warn" style="margin-top:14px">A file can only be fetched if its server allows cross-origin requests. Anything blocked by CORS is listed below with its URL so you can download it directly.</div>' +
+        '<div id="progress" style="margin-top:14px"></div>' +
+      '</div>';
+    if (window.Credits) window.Credits.decorate($('main'));
+
+    $('clear').onclick = function () { $('urls').value = ''; $('progress').innerHTML = ''; };
+    $('go').onclick = async function () {
+      var urls = $('urls').value.split(/[\s,]+/).map(function (u) { return u.trim(); }).filter(function (u) { return /^https?:\/\//i.test(u); });
+      if (!urls.length) return toast('Paste at least one http(s) URL.');
+      var prefix = $('prefix').value.trim();
+      var p = $('progress');
+      p.innerHTML = '<p class="muted">Fetching ' + urls.length + ' files…</p>';
+
+      var zip = null;
+      try {
+        if (!window.JSZip) await new Promise(function (res, rej) {
+          var sc = document.createElement('script');
+          sc.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+          sc.onload = res; sc.onerror = rej;
+          document.head.appendChild(sc);
+        });
+        zip = new window.JSZip();
+      } catch (_) { zip = null; }
+
+      var okCount = 0, failed = [];
+      for (var i = 0; i < urls.length; i++) {
+        p.innerHTML = '<p class="muted">' + (i + 1) + ' of ' + urls.length + '…</p>';
+        try {
+          var res = await fetch(urls[i], { mode: 'cors' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          var blob = await res.blob();
+          var name = (prefix ? prefix + '-' : '') + (urls[i].split('/').pop().split('?')[0] || ('audio-' + (i + 1) + '.mp3'));
+          if (zip) zip.file(name, blob);
+          else { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
+          okCount++;
+        } catch (e) { failed.push({ url: urls[i], why: e.message }); }
+      }
+
+      var html = '<div class="flag ' + (okCount ? 'ok' : 'err') + '">Fetched ' + okCount + ' of ' + urls.length + ' files.</div>';
+      if (zip && okCount) {
+        var content = await zip.generateAsync({ type: 'blob' });
+        var url = URL.createObjectURL(content);
+        html += '<a class="btn primary" style="margin-top:10px;text-decoration:none" href="' + url + '" download="' + (prefix || 'telesuite-audio') + '.zip">Download ZIP (' + okCount + ' files)</a>';
+      }
+      if (failed.length) {
+        html += '<h3>Blocked or missing</h3>' + failed.map(function (f) {
+          return '<div class="flag err"><a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.url) + '</a><br><span class="muted">' + esc(f.why) + '</span></div>';
+        }).join('');
+      }
+      p.innerHTML = html;
+    };
+  }
+
+  /* ── system views ───────────────────────────────────────────────────── */
+  async function viewClone(s) {
+    $('main').innerHTML = head(s) + '<div id="clone"><p class="muted">Loading…</p></div>';
+    try {
+      var r = await ts('clone');
+      var m = r.manifest;
+      $('clone').innerHTML =
+        '<div class="card res">' +
+          '<div class="sec"><h4>Architecture</h4>' + renderValue(m.architecture) + '</div>' +
+          '<div class="sec"><h4>What changed from the original</h4>' + renderValue(m.changes_from_original) + '</div>' +
+          '<div class="sec"><h4>Origin</h4><p><a href="' + esc(m.origin) + '" target="_blank" rel="noopener">' + esc(m.origin) + '</a></p></div>' +
+        '</div>' +
+        '<h2>Every subfeature</h2><div class="card tbl"><table><thead><tr><th>Subfeature</th><th>Group</th><th>Runs via</th><th>Credit key</th></tr></thead><tbody>' +
+        m.subfeatures.map(function (x) {
+          return '<tr><td><b>' + esc(x.label) + '</b><br><span class="muted" style="font-size:11px">' + esc(x.blurb || '') + '</span></td>' +
+            '<td class="muted">' + esc(x.group) + '</td>' +
+            '<td class="muted" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">' + esc(x.runs_via) + '</td>' +
+            '<td class="muted" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">' + esc(x.credit_key || '—') + '</td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="rowbtns" style="margin-top:14px"><button class="btn primary" id="dlManifest">Download manifest JSON</button></div>';
+      $('dlManifest').onclick = function () {
+        var blob = new Blob([JSON.stringify(m, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'telesuite-manifest.json'; a.click();
+      };
+    } catch (e) { $('clone').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>'; }
+  }
+
+  async function viewN8n(s) {
+    $('main').innerHTML = head(s) + '<div id="n8n"><p class="muted">Building the workflow…</p></div>';
+    try {
+      var r = await ts('n8n', null, '&base=' + encodeURIComponent(location.origin));
+      $('n8n').innerHTML =
+        '<div class="card"><p class="muted">One HTTP node per TeleSuite tool, pointed at this deployment. Import it into n8n, add your Supabase access token as a credential, and every run is metered exactly as it is in the app.</p>' +
+        '<div class="rowbtns"><button class="btn primary" id="dl">Download workflow JSON</button>' +
+        '<button class="btn" id="copy">Copy to clipboard</button></div></div>' +
+        '<h2>Preview</h2><pre class="json">' + esc(JSON.stringify(r.workflow, null, 2).slice(0, 6000)) + '</pre>';
+      $('dl').onclick = function () {
+        var blob = new Blob([JSON.stringify(r.workflow, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'telesuite-n8n-workflow.json'; a.click();
+      };
+      $('copy').onclick = function () { navigator.clipboard.writeText(JSON.stringify(r.workflow, null, 2)).then(function () { toast('Copied.'); }); };
+    } catch (e) { $('n8n').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>'; }
+  }
+
+  /* ── routing ────────────────────────────────────────────────────────── */
+  function route() {
+    var key = (location.hash || '#home').slice(1) || 'home';
+    var s = REG.subfeatures.filter(function (x) { return x.key === key; })[0];
+    if (!s) { location.hash = '#home'; return; }
+    current = key;
+    renderRail();
+    window.scrollTo({ top: 0 });
+    if (s.kind === 'home') return viewHome(s);
+    if (s.kind === 'library') return viewLibrary(s);
+    if (s.kind === 'tool') return viewTool(s);
+    if (s.kind === 'dashboard') return viewDashboard(s);
+    if (s.kind === 'voice') return viewVoice(s);
+    if (s.kind === 'client') return viewBatch(s);
+    if (s.kind === 'clone') return viewClone(s);
+    if (s.kind === 'n8n') return viewN8n(s);
+    $('main').innerHTML = head(s) + '<p class="muted">This module has no view.</p>';
+  }
+
+  async function boot() {
+    try {
+      var r = await fetch('/api/brain?action=telesuite&op=registry', { cache: 'no-store' });
+      REG = await r.json();
+      if (!REG || !REG.subfeatures) throw new Error('Could not load the TeleSuite registry.');
+    } catch (e) {
+      $('main').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>';
+      return;
+    }
+    // Delegated so it works for a fresh run and for any transcript reopened
+    // from a dashboard, without embedding the text in an attribute.
+    document.addEventListener('click', function (ev) {
+      var b = ev.target.closest && ev.target.closest('[data-copy-transcript]');
+      if (!b) return;
+      var box = b.parentNode.querySelector('.transcript') || document.querySelector('.transcript');
+      if (!box) return;
+      navigator.clipboard.writeText(box.textContent).then(function () { toast('Transcript copied.'); },
+        function () { toast('Could not copy. Select the text instead.'); });
+    });
+
+    window.addEventListener('hashchange', route);
+    if (window.BrandContext) window.BrandContext.onChange(function () { renderRail(); });
+    if (window.Credits) window.Credits.onChange(function () { renderRail(); });
+    route();
+  }
+
+  // Wait briefly for the shared runtimes so prices and the brand name are ready.
+  (function wait(n) {
+    if ((window.BrandContext && window.Credits) || n > 40) return boot();
+    setTimeout(function () { wait(n + 1); }, 150);
+  })(0);
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
   "appId": "com.knickgasm.lifecycleos",
-  "appName": "KNICKGASM Lifecycle OS",
+  "appName": "Lifecycle OS",
   "webDir": "mobile-shell",
   "server": {
     "url": "https://knickgasm.vercel.app",

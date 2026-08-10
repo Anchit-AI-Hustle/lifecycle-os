@@ -23,7 +23,7 @@
   if (/\/agent(\.html)?$|\/agent\b|\/brain\b|\/smart-brain|\/studio|knickgasm_mailer_architect/i.test(location.pathname)) return;
   window.__knickgasmAgentBooted = true;
 
-  var BRAND = { green: '#6A33D8', lava: '#D0473E', ink: '#111111', chalk: '#F7F5F2' };
+  var BRAND = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF' };
 
   // Config — overridable per host (e.g. a public conversational landing page sets
   // window.KNICKGASM_AGENT_CONFIG before loading this script).
@@ -109,6 +109,8 @@
   function loadKB() {
     if (KB.ready) return Promise.resolve(KB);
     var region = regionGuess();
+    // Brand-aware: the static JSON is tenant zero's catalogue only.
+    if (window.BrandCatalog) return window.BrandCatalog.load(region).then(function (r) { return r.products; });
     return fetch('/data/catalog/products_' + region + '.json', { cache: 'force-cache' })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (list) {
@@ -272,7 +274,7 @@
         method: 'POST', cache: 'no-store', headers: headers,
         body: JSON.stringify({
           mode: 'chat', message: msg, history: history.slice(-8),
-          chat_context: Object.assign({ page: pageName(), kb: KB.summary, app: 'KNICKGASM Lifecycle OS' }, CFG.context || {})
+          chat_context: Object.assign({ page: pageName(), kb: KB.summary, app: 'Lifecycle OS' }, CFG.context || {})
         })
       });
       var data = await res.json().catch(function () { return {}; });

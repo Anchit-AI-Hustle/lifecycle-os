@@ -14,10 +14,10 @@
       extend: {
         colors: {
           knickgasm: {
-            green: '#6A33D8',
-            lava:  '#D0473E',
+            green: '#D0473E',
+            lava:  '#6A33D8',
             ink:   '#111111',
-            chalk: '#F7F5F2'
+            chalk: '#FFFFFF'
           }
         },
         fontFamily: {
@@ -30,10 +30,10 @@
 </script>
 <style>
   :root{
-    --knickgasm-green:#6A33D8;
-    --knickgasm-lava:#D0473E;
+    --knickgasm-green:#D0473E;
+    --knickgasm-lava:#6A33D8;
     --knickgasm-ink:#111111;
-    --knickgasm-chalk:#F7F5F2;
+    --knickgasm-chalk:#FFFFFF;
     --knickgasm-card:#FFFFFF;
     --line:rgba(23,23,23,.12);
     --soft:#5b5b57;
@@ -59,7 +59,7 @@
   table.grid-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:900px;}
   table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
   table.grid-tbl th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;}
-  table.grid-tbl tr:nth-child(even) td{background:#faf7f0;}
+  table.grid-tbl tr:nth-child(even) td{background:var(--vh-panel-tan);}
   table.grid-tbl tr:last-child td{border-bottom:0;}
   .tier-1{color:var(--knickgasm-green);font-weight:700;}
   .tier-2{color:var(--knickgasm-lava);font-weight:700;}
@@ -98,9 +98,9 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
   <!-- ============ LHS COMMAND TOWER SIDEBAR ============ -->
   <aside class="hidden lg:flex flex-col w-[300px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">
     <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">
-      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</div>
+      <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</div>
       <div class="font-head text-[22px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>
-      <p class="text-[11.5px] mt-2" style="color:#cdd8d0;">Command tower for the full growth stack: intelligence, avatars, live pace, and the automation loop.</p>
+      <p class="text-[11.5px] mt-2" style="color:var(--vh-panel-tan);">Command tower for the full growth stack: intelligence, avatars, live pace, and the automation loop.</p>
     </div>
 
     <nav class="px-3 py-4 space-y-3 text-[13px]" id="command-nav">
@@ -128,7 +128,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <div class="pl-4 mt-1 space-y-0.5">
           <a href="#supply-chain" class="nav-link block px-3 py-1.5 rounded-lg">Supply-Chain-to-Origin Metrics</a>
           <a href="#ingredient-verification" class="nav-link block px-3 py-1.5 rounded-lg">Ingredient Source Verification</a>
-          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Coffee/Sneaker Hybrid Cross-Sell Logic</a>
+          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Coffee/Product Hybrid Cross-Sell Logic</a>
         </div>
       </details>
 
@@ -183,7 +183,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       </details>
     </nav>
 
-    <div class="mt-auto px-5 py-4 text-[11px] border-t" style="border-color:rgba(251,245,234,.14);color:#cdd8d0;">
+    <div class="mt-auto px-5 py-4 text-[11px] border-t" style="border-color:rgba(251,245,234,.14);color:var(--vh-panel-tan);">
       <a href="/research" class="underline decoration-knickgasm-lava">Growth Book</a> &nbsp;&middot;&nbsp;
       <a href="/all-in-one" class="underline decoration-knickgasm-lava">OS Home</a>
     </div>
@@ -202,7 +202,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 
       <!-- HERO -->
       <header class="space-y-3">
-        <span class="text-[11px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Knickgasm Lifecycle OS</span>
+        <span class="text-[11px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</span>
         <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">The Growth &amp; Automation Playbook</h1>
         <p class="text-[15px] max-w-3xl" style="color:var(--soft);">One command tower for how Knickgasm grows a premium coffee and functional-beverage franchise: the market it plays in, the buyers it serves, the pace it runs at each day, and the automation loop that turns a brief into a shipped mailer, ad, and synced Shopify asset. Every figure below is either a live-engine reading or a stated planning benchmark, labelled as such.</p>
         <div class="flex flex-wrap gap-2 pt-1">
@@ -275,99 +275,99 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
             </thead>
             <tbody>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Blue Bottle</td>
-                <td>Premium coffee</td>
+                <td class="font-semibold text-knickgasm-green">Moreiarty</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-1">Tier 1</span></td>
-                <td>Retail-led, D2C subscription secondary</td>
-                <td>Shopify Plus, Recharge, Klaviyo</td>
-                <td>Roast-freshness cadence, cafe-to-subscription bridge</td>
+                <td>D2C, Delhi studio</td>
+                <td>Shopify, Instagram DM</td>
+                <td>Artist-led commissions, fast turnaround</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Trade Coffee</td>
-                <td>Coffee marketplace</td>
+                <td class="font-semibold text-knickgasm-green">The Leather Works</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-1">Tier 1</span></td>
-                <td>Pure D2C subscription</td>
-                <td>Custom stack, Recharge, Klaviyo</td>
-                <td>Quiz-matched roasts, one-tap swap and skip</td>
+                <td>D2C plus studio walk-ins</td>
+                <td>Shopify</td>
+                <td>Custom, premium finish</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Onyx Coffee Lab</td>
-                <td>Specialty coffee</td>
+                <td class="font-semibold text-knickgasm-green">Sneakboo</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-2">Tier 2</span></td>
-                <td>D2C plus wholesale</td>
-                <td>Shopify, Recharge, Klaviyo</td>
-                <td>Transparency scoring, taste-note storytelling</td>
+                <td>D2C, Noida</td>
+                <td>Shopify</td>
+                <td>Waterproof paint, accessories attach</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Four Sigmatic</td>
-                <td>Functional / mushroom</td>
-                <td><span class="tier-1">Tier 1</span></td>
-                <td>D2C plus Amazon plus retail</td>
-                <td>Shopify Plus, Stay AI, Klaviyo</td>
-                <td>Ritual-replacement copy, subscribe-first onboarding</td>
-              </tr>
-              <tr>
-                <td class="font-semibold text-knickgasm-green">MUD\Wtr</td>
-                <td>Adaptogen coffee alternative</td>
-                <td><span class="tier-1">Tier 1</span></td>
-                <td>D2C-heavy, growing retail</td>
-                <td>Shopify Plus, Stay AI, Klaviyo</td>
-                <td>Starter-kit onboarding, rebrand the morning habit</td>
-              </tr>
-              <tr>
-                <td class="font-semibold text-knickgasm-green">Ryze</td>
-                <td>Mushroom coffee</td>
+                <td class="font-semibold text-knickgasm-green">Shoes Your Daddy</td>
+                <td>Custom product studio</td>
                 <td><span class="tier-2">Tier 2</span></td>
-                <td>D2C plus Amazon</td>
-                <td>Shopify, Skio, Klaviyo</td>
-                <td>Subscribe-and-save default, creator proof</td>
+                <td>D2C, Delhi</td>
+                <td>Instagram-first</td>
+                <td>Eccentric design, artist brand</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Vital Proteins</td>
-                <td>Functional supplement</td>
+                <td class="font-semibold text-knickgasm-green">VegNonVeg</td>
+                <td>Product retail</td>
                 <td><span class="tier-1">Tier 1</span></td>
-                <td>Omnichannel, retail-led</td>
-                <td>Shopify Plus, Recharge, Klaviyo</td>
-                <td>Routine bundling, replenishment reminders</td>
+                <td>Retail plus D2C</td>
+                <td>Shopify Plus</td>
+                <td>Curation and culture, 65% online</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Obvi</td>
-                <td>Collagen / streetwear</td>
+                <td class="font-semibold text-knickgasm-green">Superkicks</td>
+                <td>Product retail</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>Retail plus D2C</td>
+                <td>Shopify</td>
+                <td>Multi-city stores, drop calendar</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">CrepDog Crew</td>
+                <td>Resale marketplace</td>
                 <td><span class="tier-2">Tier 2</span></td>
-                <td>D2C plus Amazon</td>
-                <td>Shopify, Recharge, Klaviyo, Postscript</td>
-                <td>Community-led SMS, gamified loyalty</td>
+                <td>Marketplace</td>
+                <td>Custom stack</td>
+                <td>Resale liquidity, youth reach</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Cometeer</td>
-                <td>Frozen coffee format</td>
-                <td><span class="tier-3">Tier 3</span></td>
-                <td>Pure D2C subscription</td>
-                <td>Custom stack, Recharge, Klaviyo</td>
-                <td>Convenience proof, freezer-shelf habit framing</td>
+                <td class="font-semibold text-knickgasm-green">The Shoe Surgeon</td>
+                <td>Global custom benchmark</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>D2C plus collabs</td>
+                <td>Shopify</td>
+                <td>Luxury customisation, brand collabs</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Jot</td>
-                <td>Ultra-concentrate coffee</td>
-                <td><span class="tier-3">Tier 3</span></td>
-                <td>D2C plus select retail</td>
-                <td>Shopify, Recharge, Klaviyo</td>
-                <td>One-bottle-a-month math, low-friction reorder</td>
+                <td class="font-semibold text-knickgasm-green">Kickstradomis</td>
+                <td>Global custom benchmark</td>
+                <td><span class="tier-2">Tier 2</span></td>
+                <td>Commission-led</td>
+                <td>Instagram-first</td>
+                <td>Athlete commissions, storytelling</td>
               </tr>
               <tr>
-                <td class="font-semibold text-knickgasm-green">Bruvi</td>
-                <td>Coffee hardware / pods</td>
-                <td><span class="tier-3">Tier 3</span></td>
-                <td>D2C, machine plus consumable</td>
-                <td>Shopify, Recharge, Klaviyo</td>
-                <td>Razor-and-blade lock-in, auto-ship pods</td>
+                <td class="font-semibold text-knickgasm-green">Nike By You</td>
+                <td>Official customisation</td>
+                <td><span class="tier-1">Tier 1</span></td>
+                <td>First-party</td>
+                <td>Nike platform</td>
+                <td>In-app customiser, scale distribution</td>
+              </tr>
+              <tr>
+                <td class="font-semibold text-knickgasm-green">Converse By You</td>
+                <td>Official customisation</td>
+                <td><span class="tier-2">Tier 2</span></td>
+                <td>First-party</td>
+                <td>Converse platform</td>
+                <td>Low-cost personalisation at scale</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="card p-5">
           <h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3>
-          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance paired with a genuine functional payload (Coffee Collection) is a position none of the eleven hold at once. The move: pair ritual-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
+          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance paired with a genuine functional payload (Coffee Collection) is a position none of the eleven hold at once. The move: pair routine-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
         </div>
       </section>
 
@@ -419,7 +419,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       "required": ["roast", "format", "hero_products"],
       "properties": {
         "roast":  { "type": "string",
-                    "enum": ["light", "medium", "medium-dark", "dark", "adaptogen-colorway"] },
+                    "enum": ["light", "medium", "medium-dark", "dark", "statement piece-variant"] },
         "format": { "type": "string",
                     "enum": ["whole-bean", "ground", "concentrate", "instant", "capsule"] },
         "hero_products": { "type": "array", "items": { "type": "string" } },
@@ -431,7 +431,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       "properties": {
         "primary_hook": { "type": "string" },
         "banned_terms": { "type": "array", "items": { "type": "string" },
-                          "default": ["streetwear journey", "transform", "liquid lava",
+                          "default": ["wellness journey", "transform", "liquid gold",
                                       "game-changer", "hurry", "last chance"] }
       }
     }
@@ -481,7 +481,7 @@ triggers:
     fires_on: days_since_last_order between 45 and 75
     delay_days: 0
     channel: [email, sms]
-    action: send_flow("winback-ritual-reset")
+    action: send_flow("winback-routine-reset")
     target_metric: reactivation_rate
 
   - id: discount-discipline
@@ -511,7 +511,7 @@ defaults:
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <span class="flow-node">Hand-painted at one of one</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Custom at one of one</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
           <span class="flow-node">Processed at origin factory in 24 to 72 hrs</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
           <span class="flow-node">Quality and grading, batch logged</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
           <span class="flow-node">Sealed, studio-fresh packing</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
@@ -537,11 +537,11 @@ defaults:
         <div class="grid gap-4 md:grid-cols-3">
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Single-studio origin</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Sneaker and coffee tied to a named studio and drop. Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Product and coffee tied to a named studio and drop. Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p>
           </div>
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Functional payload</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated adaptogen dose per serving. Copy names the ingredient and the ritual benefit in plain, non-medical language.</p>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated statement piece dose per serving. Copy names the ingredient and the routine benefit in plain, non-medical language.</p>
           </div>
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Certification chain</h3>
@@ -554,8 +554,8 @@ defaults:
       <section data-section id="cross-sell" class="space-y-5">
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
-          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Coffee / Sneaker Hybrid Cross-Sell Logic</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time sneaker buyer into a subscriber. Move buyers along the frequency ladder toward the coffee and supplement franchise.</p>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Coffee / Product Hybrid Cross-Sell Logic</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time product buyer into a subscriber. Move buyers along the frequency ladder toward the coffee and supplement franchise.</p>
         </div>
 
         <div class="card overflow-x-auto">
@@ -564,10 +564,10 @@ defaults:
               <tr><th>From (habit category)</th><th>Bridge product</th><th>To (anchor)</th><th>Trigger</th></tr>
             </thead>
             <tbody>
-              <tr><td>Black sneaker / Kicks</td><td>Embroidery or themed functional colorway</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>
-              <tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Ritual-replacement, morning-swap framing</td></tr>
+              <tr><td>Black product / Products</td><td>Embroidery or themed functional variant</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>
+              <tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Routine-replacement, morning-swap framing</td></tr>
               <tr><td>Coffee Collection</td><td>Supplement companion</td><td>Multi-category subscription</td><td>Bundle logic, free-ship threshold above AOV</td></tr>
-              <tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal ritual subscription</td><td>January reframe of the gift they gave</td></tr>
+              <tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal routine subscription</td><td>January reframe of the gift they gave</td></tr>
             </tbody>
           </table>
         </div>
@@ -604,9 +604,9 @@ defaults:
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$70k to $140k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Adaptogen colorway, medium</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Statement Piece variant, medium</div></div>
             </div>
-            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily ritual.</p>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily routine.</p>
           </div>
 
           <div data-section id="cohort-003" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
@@ -616,7 +616,7 @@ defaults:
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$110k to $220k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Medium-dark, high-dose adaptogen</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Medium-dark, high-dose statement piece</div></div>
             </div>
             <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Optimises inputs and tracks outcomes. Responds to dose, sourcing, and stacking logic. Hook: precise payload and companion supplements.</p>
           </div>
@@ -928,7 +928,7 @@ defaults:
   var AVATAR = {
     '001': { name:'Third-Wave Purists', hook:'origin story and pair character', hero:'One-of-One Jordan First Flush', sub:'studio reserve' },
     '002': { name:'Functional Optimizers', hook:'the daily refill rhythm', hero:'Coffee Collection', sub:'refill subscription' },
-    '003': { name:'Biohacking Performers', hook:'precise adaptogen payload', hero:'Coffee Collection, high-dose', sub:'performance stack' },
+    '003': { name:'Biohacking Performers', hook:'precise statement piece payload', hero:'Coffee Collection, high-dose', sub:'performance stack' },
     '004': { name:'Routine Convenience', hook:'a simpler morning', hero:'Ground Coffee Collection', sub:'auto-reorder' }
   };
 
@@ -936,20 +936,20 @@ defaults:
     var store = STORE[market], cur = CUR[market];
     return [
 '<!-- Knickgasm mailer :: '+a.name+' :: '+market+' -->',
-'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F5F2;font-family:\'Instrument Sans\',\'Helvetica Neue\',Arial,sans-serif;color:#111111;">',
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;font-family:\'Instrument Sans\',\'Helvetica Neue\',Arial,sans-serif;color:#111111;">',
 '  <tr><td align="center" style="padding:28px 16px;">',
 '    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid rgba(23,23,23,.12);border-radius:12px;overflow:hidden;">',
-'      <tr><td style="background:#6A33D8;padding:22px 28px;">',
-'        <span style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;color:#F7F5F2;font-size:24px;">Knickgasm</span>',
+'      <tr><td style="background:#D0473E;padding:22px 28px;">',
+'        <span style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;color:#FFFFFF;font-size:24px;">Knickgasm</span>',
 '      </td></tr>',
 '      <tr><td style="padding:34px 28px 8px;">',
-'        <h1 style="margin:0;font-family:\'Montserrat\',Georgia,serif;color:#6A33D8;font-size:28px;line-height:1.15;">There is a moment when the right pair does more than warm your hands.</h1>',
+'        <h1 style="margin:0;font-family:\'Montserrat\',Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">There is a moment when the right pair does more than warm your hands.</h1>',
 '      </td></tr>',
 '      <tr><td style="padding:8px 28px 20px;">',
 '        <p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. Lace-up the '+a.hero+', hand-painted and shipped studio-fresh from origin, and let the ritual restore the morning.</p>',
 '      </td></tr>',
 '      <tr><td style="padding:0 28px 26px;">',
-'        <a href="https://'+store+'/products/coffee-collection" style="display:inline-block;background:#D0473E;color:#6A33D8;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Start the ritual, '+cur+'39.83</a>',
+'        <a href="https://'+store+'/products/coffee-collection" style="display:inline-block;background:#6A33D8;color:#D0473E;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Start the ritual, '+cur+'39.83</a>',
 '      </td></tr>',
 '      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;">',
 '        <p style="margin:0;font-size:12px;color:#5b5b57;">Single-studio. Hand-painted. Crafted at origin. Knickgasm.</p>',
@@ -974,7 +974,7 @@ defaults:
 'LANDING:  https://'+store+'/products/coffee-collection',
 'PRICE POINT:  '+cur+'39.83',
 '',
-'PALETTE:  #6A33D8 violet / #D0473E lava / #111111 ink / #F7F5F2 chalk',
+'PALETTE:  #D0473E violet / #6A33D8 lava / #111111 ink / #FFFFFF chalk',
 'FONTS:    Montserrat (headline) / Instrument Sans (body)',
 'NOTE:     No banned phrases. Warm, sensory, story-driven register.'
     ].join('\n');
@@ -989,7 +989,7 @@ defaults:
 '  "market": "'+market+'",',
 '  "formats": ["mp4_9x16", "mp4_1x1", "gif_1x1"],',
 '  "duration_seconds": 8,',
-'  "palette": ["#6A33D8", "#D0473E", "#111111", "#F7F5F2"],',
+'  "palette": ["#D0473E", "#6A33D8", "#111111", "#FFFFFF"],',
 '  "typography": { "headline": "Montserrat", "body": "Instrument Sans" },',
 '  "scenes": [',
 '    { "t": "0-2s", "shot": "steam rising off a fresh pour, chalk background", "text": "A moment to restore" },',

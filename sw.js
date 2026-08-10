@@ -1,4 +1,4 @@
-/* KNICKGASM Lifecycle OS — minimal service worker.
+/* Lifecycle OS — minimal service worker.
  *
  * Purpose: satisfies Chrome's installability criteria (gets the install icon
  * into the address bar) and gives the installed app a working offline shell.

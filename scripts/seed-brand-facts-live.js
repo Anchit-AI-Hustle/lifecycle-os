@@ -28,7 +28,7 @@ const FALLBACK_APP_KEY = process.env.YOTPO_APP_KEY || ''; // resolved live from 
 const MAX_REVIEWS = 3;
 const DELAY_MS = 900;
 const ROOT = path.join(__dirname, '..');
-const UA = { 'User-Agent': 'knickgasm-lifecycle-os/brand-facts-seed' };
+const UA = { 'User-Agent': 'lifecycle-os/brand-facts-seed' };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const lc = (s) => String(s == null ? '' : s).trim().toLowerCase();

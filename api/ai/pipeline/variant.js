@@ -38,7 +38,7 @@ VARIANT A EXECUTION RULES (non-negotiable):
 - Benefits: 3-column icon strip with short benefit captions
 - Products: 2-column or 3-column product cards with name, price, CTA
 - Offer: prominent horizontal banner with discount code / free shipping threshold
-- CTA: single prominent button — amber background #D0473E, centered, max 4 words
+- CTA: single prominent button — amber background #6A33D8, centered, max 4 words
 - Section count: 5-7 (what the campaign needs — never pad with filler)
 
 ━━ MANDATORY SECTION STRUCTURE (follow this for Variant A — max 7 sections) ━━
@@ -63,7 +63,7 @@ sections[] MUST be in this order:
 - MAX 2-3 products. HARD LIMIT.
 - Each card: name + price ($X.XX) + compare-at ($XX.XX strikethrough) + [X%] OFF badge
 - Urgency: "🔥 [N] units sold in the last 24 hours" (N: 25–90, vary per product)
-- ADD TO CART button: full-width, dark green #6A33D8, every card — mandatory
+- ADD TO CART button: full-width, dark green #D0473E, every card — mandatory
 - Section heading: "Gifting Favorites" (with ✦) for gifting, "Bestsellers" for other types
 
 COPY REGISTER FOR A:
@@ -90,7 +90,7 @@ SCHEMA:
     "proof_section": "testimonial layout",
     "offer_section": "banner layout",
     "cta_section": "button spec",
-    "color_scheme": { "background": "#F7F5F2", "primary": "#6A33D8", "accent": "#D0473E", "text": "#111111" },
+    "color_scheme": { "background": "#FFFFFF", "primary": "#D0473E", "accent": "#6A33D8", "text": "#111111" },
     "spacing": "e.g. 48px between sections, 24px internal padding",
     "flow": "structured-conversion"
   },
@@ -141,7 +141,7 @@ SCHEMA:
 }
 
 KNICKGASM BRAND:
-BANNED: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME caps / hurry / don't miss out
+BANNED: wellness journey / transform / liquid gold / game-changer / LIMITED TIME caps / hurry / don't miss out
 PREFERRED: ritual / restore / balance / origin / one-of-one / hand-painted / lace-up / heritage / crafted`;
 
 // ── Variant B: Story-first, editorial, emotional, dark-inverted ──────────────
@@ -158,7 +158,7 @@ A = chalk backgrounds · product in section 1 · split-hero · 3-col product gri
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VARIANT B EXECUTION RULES (ALL MUST BE TRUE — verify before outputting):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ COLOR SCHEME INVERTED: First 2–3 sections MUST have dark background (#6A33D8 or #0a1f13) with chalk text (#F7F5F2 or #e8dcc8). A uses chalk throughout — B must open DARK.
+□ COLOR SCHEME INVERTED: First 2–3 sections MUST have dark background (#D0473E or #0a1f13) with chalk text (#FFFFFF or #e8dcc8). A uses chalk throughout — B must open DARK.
 □ NO product in the first 2 sections — narrative, lifestyle or mood section opens the email
 □ Narrative context or lifestyle moment comes BEFORE product reveal (product appears section 3+ only)
 □ Copy register: sensory, poetic, evocative — reader FEELS the world before they SEE the product
@@ -167,7 +167,7 @@ VARIANT B EXECUTION RULES (ALL MUST BE TRUE — verify before outputting):
 □ Products: single featured product with large editorial image — NOT a product grid (A uses grid)
 □ Proof: origin story / provenance section (studio, drop, altitude, year) — NOT star-rating testimonials (A uses those)
 □ Offer: subtle inline text mention — NOT a prominent horizontal banner (A uses banner)
-□ CTA: ghost-button (border: 2px solid #F7F5F2, transparent bg on dark sections) OR text-link — NOT amber filled button (A uses amber)
+□ CTA: ghost-button (border: 2px solid #FFFFFF, transparent bg on dark sections) OR text-link — NOT amber filled button (A uses amber)
 □ Section padding: minimum 64px top and bottom throughout — generous editorial whitespace
 □ Headline font: 44px+ for editorial scale (A uses ~32px conversion headlines)
 □ Section count: MAX 7 (narrative needs room but must stay tight — no filler)
@@ -192,15 +192,15 @@ REGENERATION RULES (regenerate_counter > 0 — MANDATORY CHANGES FROM PRIOR RUN)
 
 COLOR SCHEME FOR B layout_plan:
 {
-  "background": "#6A33D8",
-  "primary": "#F7F5F2",
-  "accent": "#D0473E",
+  "background": "#D0473E",
+  "primary": "#FFFFFF",
+  "accent": "#6A33D8",
   "text": "#e8dcc8",
   "section_note": "Dark deep purple opening sections; can transition to chalk for product reveal section"
 }
 
 DIVERGENCE CHECK (verify all before outputting):
-□ First 2 sections use dark (#6A33D8) background — NOT chalk like A
+□ First 2 sections use dark (#D0473E) background — NOT chalk like A
 □ Hero is full-bleed or stacked — NOT split like A
 □ Product appears in section 3 or later — NOT section 1 like A
 □ Copy is poetic/sensory — NOT benefit-direct like A
@@ -217,7 +217,7 @@ SCHEMA: identical to Variant A schema but with:
 - All section types, copy, and image prompts must structurally differ from A
 
 KNICKGASM BRAND:
-BANNED: streetwear journey / transform / liquid lava / game-changer / LIMITED TIME caps / hurry / don't miss out
+BANNED: wellness journey / transform / liquid gold / game-changer / LIMITED TIME caps / hurry / don't miss out
 PREFERRED: ritual / restore / balance / origin / one-of-one / hand-painted / lace-up / heritage / crafted`;
 
 module.exports = async function handler(req, res) {
@@ -348,8 +348,8 @@ Implement Variant ${variant} now. Follow the locked structure exactly. Generate 
         offer_section: 'Full-width amber banner with code and terms',
         cta_section: isB ? 'Ghost-button text-link style CTA' : 'Prominent amber filled button, centered',
         color_scheme: isB
-          ? { background: '#6A33D8', primary: '#F7F5F2', accent: '#D0473E', text: '#e8dcc8' }
-          : { background: '#F7F5F2', primary: '#6A33D8', accent: '#D0473E', text: '#111111' },
+          ? { background: '#D0473E', primary: '#FFFFFF', accent: '#6A33D8', text: '#e8dcc8' }
+          : { background: '#FFFFFF', primary: '#D0473E', accent: '#6A33D8', text: '#111111' },
         spacing: '48px between sections, 24px internal padding',
         flow: isB ? 'editorial-narrative' : 'structured-conversion'
       },
@@ -422,7 +422,7 @@ Implement Variant ${variant} now. Follow the locked structure exactly. Generate 
             subcopy: 'Use code HERITAGE at checkout. Limited time.',
             cta: 'Shop the Collection'
           },
-          layout: 'Full-width amber (#D0473E) banner, centered text, CTA button below',
+          layout: 'Full-width amber (#6A33D8) banner, centered text, CTA button below',
           image_slot: 'none',
           ux_intent: 'Urgency + value — final conversion push'
         },
