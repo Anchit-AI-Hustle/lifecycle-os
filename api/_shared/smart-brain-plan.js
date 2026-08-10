@@ -654,30 +654,49 @@ const D2C_KNOWLEDGE = `D2C GROWTH KNOWLEDGE BASE (apply, do not cite):
 // Regional nuance matrix — what a given market responds to.
 function regionalNuance(market) {
   const m = String(market || '').toUpperCase();
-  if (m === 'US') return 'US market: lead with high-performance optimisation, time-saving, stress relief, and an instant routine upgrade.';
-  if (m === 'UK' || m === 'EU') return 'UK/EU market: lead with ingredient transparency, certified clean-label, clinical sustainability, and a subtle daily ritual.';
-  return 'Global/emerging market: lead with premium status, international authority, gifting value, and unmistakable ingredient purity.';
+  if (m === 'US') return 'US market: lead with performance, convenience, and an instant upgrade to the routine.';
+  if (m === 'UK' || m === 'EU') return 'UK/EU market: lead with transparency, provenance, and understated quality.';
+  if (m === 'IN') return 'India market: lead with authenticity, value clarity, and cultural moment relevance.';
+  return 'Global/emerging market: lead with premium status, authenticity, and gifting value.';
 }
 
-// The four selling components every KNICKGASM mailer must carry.
-const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt, transformation, or a high-intent offer); (2) core ingredient + product BENEFITS, sensory and specific; (3) SOCIAL PROOF and trust: a star rating with review count and 1-2 short reviews that each answer a real objection; (4) VALUE ADD-ONS: 2-3 brand badges (e.g. Original-pair verified, Climate Neutral, Sugar-Free), a risk-reversal guarantee line, and a short FAQ.`;
+// The four selling components every mailer must carry, for ANY brand.
+const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt or a high-intent reason to act now); (2) core BENEFITS of the offering, sensory and specific to THIS brand; (3) SOCIAL PROOF and trust drawn ONLY from supplied data (never invent ratings, review counts or reviewers - omit the block if none supplied); (4) VALUE ADD-ONS: 2-3 badges drawn ONLY from the brand's verifiable claims, a risk-reversal line only if the brand states one, and a short FAQ.`;
 
-const BRAND_SYSTEM = `You are the senior lifecycle copywriter for KNICKGASM (premium Indian sneakers & streetwear, knickgasm.com).
-Voice: warm, sensory, emotionally resonant, story-driven. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
-NEVER use: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" in caps, "hurry", "don't miss out", "last chance", "while supplies last".
-${D2C_KNOWLEDGE}
-Return STRICT JSON only, no markdown fences.`;
+// Brand-derived system prompt: the copywriter persona, voice, preferred and
+// banned vocabulary all come from the ACTIVE brand's record - never a fixed
+// tenant's. With no brand on the entry (tenant-zero cron paths) it derives
+// from tenant zero's record via brand-runtime, so it still cannot drift.
+function brandSystem(brand) {
+  let b = brand && brand.id ? brand : null;
+  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  const v = b.voice || {};
+  const site = String(b.website || '').replace(/^https?:\/\//, '');
+  const lines = [
+    `You are the senior lifecycle copywriter for ${b.name || 'the brand'}${site ? ` (${site})` : ''}${b.industry ? ` - ${b.industry}` : ''}.`,
+    `Voice: ${v.tone || 'clear, specific, on-brand'}.${Array.isArray(v.preferred) && v.preferred.length ? ` Prefer: ${v.preferred.join(', ')}.` : ''}`,
+  ];
+  if (Array.isArray(v.banned) && v.banned.length) lines.push(`NEVER use: ${v.banned.map((x) => `"${x}"`).join(', ')}.`);
+  lines.push('Never invent product facts, prices, URLs, ratings, reviews or statistics; a missing fact is written as [DATA REQUIRED BEFORE LAUNCH: field].');
+  lines.push(D2C_KNOWLEDGE);
+  lines.push('Return STRICT JSON only, no markdown fences.');
+  return lines.join('\n');
+}
 
 // ── Agent 1: Strategy Analyst ───────────────────────────────────────────────
 // A top growth-strategy leader reads the slot's data (cohort, reach, competitor
 // hooks, product, offer, festival) and returns a tight strategy brief that the
 // content + asset agents build on. Failure-tolerant: returns null so the copy
 // stage can still run standalone. Pinned provider is returned for speed.
-const STRATEGY_SYSTEM = `You are KNICKGASM's Head of Growth Strategy — a top D2C lifecycle-marketing analyst.
-You turn cohort + product + competitor data into a sharp, differentiated campaign strategy.
-Be specific and quantitative where the data allows.
+function strategySystem(brand) {
+  let b = brand && brand.id ? brand : null;
+  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  return `You are ${b.name || 'the brand'}'s Head of Growth Strategy - a top lifecycle-marketing analyst${b.industry ? ` for ${b.industry}` : ''}.
+You turn cohort + offering + competitor data into a sharp, differentiated campaign strategy for THIS brand only.
+Be specific and quantitative where the data allows; never borrow another brand's facts.
 ${D2C_KNOWLEDGE}
 Return STRICT JSON only, no markdown fences.`;
+}
 
 
 /**
@@ -722,7 +741,7 @@ Return JSON exactly:
 async function strategyBrief(entry) {
   try {
     const res = await callLLMTiered({
-      systemPrompt: STRATEGY_SYSTEM,
+      systemPrompt: strategySystem(entry.brand),
       userMessage: strategyPrompt(entry),
       responseFormat: { type: 'json_object' },
       maxTokens: 900,
@@ -749,7 +768,7 @@ function copyPrompt(entry, fw = null, brief = null) {
     : '';
   return `Write campaign copy for this planned slot. Context:
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} | Objective: ${entry.objective}
-- Hero product: ${entry.heroProduct?.title} (${entry.heroProduct?.category || 'sneaker'})
+- Hero product: ${entry.heroProduct?.title} (${entry.heroProduct?.category || (entry.offering && entry.offering.kind) || 'catalogue item'})
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Rationale: ${entry.rationale || ''}
 - Competitor hooks trending (for awareness only, do NOT copy): ${hooks.join(' | ') || 'n/a'}
@@ -784,10 +803,20 @@ function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').repla
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
 function lpHtml(entry, copy, campaignId, creativeUrl) {
   const L = copy.landing || {};
-  const facts = regionFacts(entry.market);
+  // Everything brand-visible derives from the ACTIVE brand on the entry:
+  // name, palette, claims, store. Tenant zero's record is the source only
+  // when the entry genuinely belongs to tenant zero.
+  let _b = entry.brand && entry.brand.id ? entry.brand : null;
+  if (!_b) { try { _b = require('./brand-runtime.js').defaultBrand(); } catch (_) { _b = {}; } }
+  const bName = _b.name || 'the brand';
+  const _pal = _b.palette || {};
+  const P = _pal.primary || '#D0473E', ACC = _pal.accent || '#6A33D8', INKC = _pal.ink || '#111111', SURF = _pal.surface || '#FFFFFF', SURF2 = _pal.surface_alt || '#f6f6f6';
+  const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
+  let facts = regionFacts(entry.market);
+  try { const bf = require('./brand-runtime.js').regionFacts(_b, entry.market); if (entry.brand && entry.brand.id && bf) facts = bf; } catch (_) {}
   const handle = entry.heroProduct?.handle || '';
   const shopUrl = `https://${facts.store}${handle ? `/products/${handle}` : ''}`;
-  const cta = esc(L.cta || 'Shop the ritual');
+  const cta = esc(L.cta || entry.cta || 'See more');
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
   const priceLabel = price != null ? `${cur}${price}` : '';
@@ -804,21 +833,25 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   const _appClaims = _on ? _bf.approvedClaims(_fk, entry.market) : [];
   const trustStars = _on
     ? (_appRating ? `<span>★★★★★ Rated ${_appRating}/5</span>` : '')
-    : '<span>★★★★★ Loved by sneaker drinkers</span>';
+    : (bClaims[0] ? `<span>${esc(bClaims[0])}</span>` : '');   // never a fabricated star rating
   const proofSection = _on
     ? ((_appReviews && _appReviews.length)
       ? `<section class="sec proof"><div class="wrap"><blockquote>“${esc(_appReviews[0].quote || '')}”</blockquote><p class="who">- ${esc(_appReviews[0].author || 'Verified reviewer')}</p></div></section>`
       : '')
-    : `<section class="sec proof"><div class="wrap"><blockquote>“${esc(L.proof_quote || 'There is a moment when the right pair does more than warm your hands.')}”</blockquote><p class="who">- ${esc(L.proof_author || 'A KNICKGASM regular')}</p></div></section>`;
+    : (L.proof_quote
+      ? `<section class="sec proof"><div class="wrap"><blockquote>“${esc(L.proof_quote)}”</blockquote><p class="who">- ${esc(L.proof_author || 'Customer note')}</p></div></section>`
+      : '');   // no supplied proof = no proof section; testimonials are never invented
   const guaranteeBlock = _on
     ? ((_appClaims && _appClaims.some((c) => /guarantee|make it right|refund|return/i.test(String(c))))
-      ? `<div class="guarantee"><h3>Lace-up with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(_appClaims.find((c) => /guarantee|make it right|refund|return/i.test(String(c))))}</p></div>`
+      ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(_appClaims.find((c) => /guarantee|make it right|refund|return/i.test(String(c))))}</p></div>`
       : '')
-    : `<div class="guarantee"><h3>Lace-up with confidence</h3><p style="margin:0;color:var(--ink-dim)">If your first pair isn't a quiet highlight of the day, our team will make it right.</p></div>`;
+    : (bClaims.some((c) => /guarantee|make it right|refund|return|free shipping/i.test(String(c)))
+      ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(bClaims.find((c) => /guarantee|make it right|refund|return|free shipping/i.test(String(c))))}</p></div>`
+      : '');   // a promise is rendered only when the brand actually states one
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(L.hero_headline || entry.heroProduct?.title || 'KNICKGASM')}</title>
+<title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
-:root{--moss:#D0473E;--moss-deep:#021c12;--moss-near:#00150a;--chalk:#FFFFFF;--chalk-warm:#f3ebd6;--lava:#6A33D8;--ink:#111111;--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
+:root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
@@ -852,25 +885,25 @@ footer{background:var(--ink);color:rgba(251,245,234,.6);text-align:center;paddin
 @media(max-width:640px){.hero h1{font-size:30px}.sec h2{font-size:24px}.sticky .info .sub{display:none}}
 </style></head>
 <body>
-<div class="bar">KNICKGASM · ${esc(entry.market)} · Single-studio, hand-painted, shipped fresh</div>
+<div class="bar">${esc(bName)} · ${esc(entry.market)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
 <section class="hero">
-  <p class="eyebrow">${esc(entry.cohort?.name ? entry.cohort.name + ' edit' : 'A daily ritual')}</p>
-  <h1>${esc(L.hero_headline || entry.heroProduct?.title || 'Your ritual, restored')}</h1>
+  <p class="eyebrow">${esc(entry.cohort?.name ? entry.cohort.name + ' edit' : 'Featured')}</p>
+  <h1>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
   <p>${esc(L.hero_sub || entry.rationale || '')}</p>
   <a class="btn" href="${esc(shopUrl)}">${cta}</a>
 </section>
-${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || 'KNICKGASM')}" style="width:100%;display:block;max-height:520px;object-fit:cover"/>` : ''}
-<div class="trust">${trustStars}<span>Single-studio origin</span><span>Hand-painted &amp; fresh</span><span>Ships in days</span></div>
+${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:520px;object-fit:cover"/>` : ''}
+<div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
 <div class="wrap">
   <section class="sec why">
     <h2>${esc(L.why_title || 'Why this edit')}</h2>
-    <ul>${bullets || '<li><span class="tick">✓</span>Crafted around your daily ritual.</li>'}</ul>
+    <ul>${bullets || `<li><span class="tick">✓</span>Selected from ${esc(bName)}'s own catalogue.</li>`}</ul>
   </section>
   <section class="sec">
     <div class="reveal">
       <div>
         <h3 style="margin:0 0 6px">${esc(entry.heroProduct?.title || 'The edit')}</h3>
-        <p style="margin:0;color:var(--ink-dim)">${esc(entry.heroProduct?.category || 'Single-studio sneaker')}</p>
+        <p style="margin:0;color:var(--ink-dim)">${esc(entry.heroProduct?.category || (entry.offering && entry.offering.kind) || '')}</p>
       </div>
       <div style="text-align:right">
         ${priceLabel ? `<div class="price">${esc(priceLabel)}</div>` : ''}
@@ -885,10 +918,10 @@ ${proofSection}
   ${guaranteeBlock}
 </div>
 <div class="sticky">
-  <div class="info"><b>${esc(entry.heroProduct?.title || 'KNICKGASM edit')}</b><span class="sub">${esc(priceLabel)} · ships fresh from origin</span></div>
+  <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
   <a class="btn" href="${esc(shopUrl)}">${cta}</a>
 </div>
-<footer>© KNICKGASM · ${esc(entry.market)} · ${esc(campaignId)}</footer>
+<footer>© ${esc(bName)} · ${esc(entry.market)} · ${esc(campaignId)}</footer>
 </body></html>`;
 }
 
@@ -918,6 +951,17 @@ function variantMeta(copy) {
 // category collection. Never emits a merge-tag literal, so every CTA in a
 // preview/download redirects to a real page.
 function slotLinks(entry) {
+  // A non-tenant-zero brand's links come from ITS OWN record: its regional
+  // store and the offering's own URL. Tenant zero keeps the catalogue-mapped
+  // collection logic below.
+  if (entry.brand && entry.brand.id && !/^knickgasm$/i.test(String(entry.brand.slug || ''))) {
+    let f = null;
+    try { f = require('./brand-runtime.js').regionFacts(entry.brand, entry.market); } catch (_) {}
+    const bStore = f && f.store ? `https://${f.store}` : (entry.brand.website || '');
+    const off = entry.heroOffering || entry.offering || {};
+    const target = off.url || bStore;
+    return { store: bStore || target, collectionUrl: target, pdpUrl: target };
+  }
   const facts = regionFacts(entry.market);
   const store = `https://${facts.store || 'knickgasm.com'}`;
   const hp = entry.heroProduct || {};
@@ -1062,7 +1106,7 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
     let res;
     try {
       res = await callLLMTiered({
-        systemPrompt: BRAND_SYSTEM + sysLine,
+        systemPrompt: brandSystem(entry.brand) + sysLine,
         userMessage: copyPrompt(entry, fw, brief),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
@@ -1271,7 +1315,7 @@ async function generateCreatives(copy, entry, { only = null, lean = false } = {}
   const pool = realImagePool(entry, 1600);
   const out = {};
   activeSpecs.forEach(([key, rawBrief], i) => {
-    const b = (rawBrief && String(rawBrief).trim()) || `KNICKGASM ${entry.heroProduct?.title || 'sneaker'} — real product photograph.`;
+    const b = (rawBrief && String(rawBrief).trim()) || `${(entry.brand && entry.brand.name) || 'Brand'} ${entry.heroProduct?.title || 'catalogue item'} — real product photograph, on this brand's own palette.`;
     const image = pool.length ? pool[i % pool.length] : null;
     out[key] = { brief: b, image, provider: image ? 'catalog' : null };
   });
