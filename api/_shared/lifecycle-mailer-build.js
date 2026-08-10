@@ -37,8 +37,8 @@ function productFactsBlock(productType) {
     const lines = PT.types.tb.products.map((p) =>
       `- ${p.title} - £${p.price_gbp.toFixed(2)}${p.compare_at_gbp ? ` (compare-at £${p.compare_at_gbp.toFixed(2)}, a live store price - honest to cite)` : ''} - ${PT.store.base_url}/products/${p.handle}`);
     return [
-      'PRODUCT FACTS - Custom Sneakers (ONE-TIME PURCHASE ONLY - never use subscription language):',
-      '- Every pair is hand-painted one-of-one on a 100% original base sneaker, finished water and scratch resistant, made to order in 10 to 15 days.',
+      'PRODUCT FACTS (use ONLY what the brief supplies; never invent a spec):',
+      '- State only facts present in this brief or in the brand\'s verifiable claims.',
       ...lines,
     ].join('\n');
   }
@@ -46,7 +46,7 @@ function productFactsBlock(productType) {
     const c = PT.types.coffee;
     return [
       'PRODUCT FACTS - coffee-ART Collection (ONE-TIME PURCHASE ONLY - never use subscription language).',
-      '- The coffee-ART collection is a PAINT THEME, not a drink: coffee-dip washes and latte-swirl motifs hand-painted onto original sneakers. Never write beverage copy.',
+      '- Never re-interpret a product name as a different category than the catalogue states.',
       ...c.packs.map((pk) => `- ${pk.label}: £${pk.one_time_gbp.toFixed(2)}.`),
       `- Base-model ladder framing: ${(c.packs.find((x) => x.b2g1_framing) || {}).b2g1_framing || 'state the price ladder by base model; never invent a bundle or a discount code.'}`,
       `- What EVERY order includes as standard (this is NOT a free-gift list - do not write gift-with-purchase copy): ${c.gifts.join(', ')}.`,
@@ -69,23 +69,24 @@ function ctaRulesBlock(purchaseMode) {
   }
   // KNICKGASM runs no subscription of any kind, so this branch should never be
   // reached; it stays as a hard backstop that still forbids recurring framing.
-  return 'CTA RULES: KNICKGASM has NO subscription program. The CTA must be a simple one-time purchase invitation to the product page. Never write subscribe, subscription, refill plan, auto-ship, or any recurring-purchase framing.';
+  return 'CTA RULES: use the CTA the brief supplies for this offering kind. Never introduce a subscription, refill or auto-ship framing unless the brand actually offers one.';
 }
 
-function brandGatesBlock() {
-  return [
-    'BRAND GATES (hard fail if violated):',
-    '- Palette: only deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. Never mention other colors.',
-    "- Fonts are fixed by the template (Montserrat headings, Instrument Sans body) - do not reference fonts in copy.",
-    '- BANNED phrases (any casing unless noted): "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" in caps, "hurry", "don\'t miss out", "last chance", "while supplies last".',
-    '- NO FOUNDER VOICE - no founder letters, no "from our founder/CEO", no personal-name sign-offs, no first-person-singular ("I") narration. The brand speaks as "we".',
-    '- NO health, medical or performance claims of ANY kind - KNICKGASM sells hand-painted sneakers, not remedies. The only claims allowed are: 100% original base sneakers, hand-painted by India\'s best artists, water and scratch resistant, made to order in 10 to 15 days, express shipping to 60+ countries, worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.',
-    '- No invented discounts or codes. Only the exact prices/mechanics in the product facts.',
-    '- Voice: warm, sensory, story-driven. Preferred words: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-    '- Exemplar sentence: "There is a moment when the right pair of kicks stops being footwear and starts being a signature."',
-  ].join('\n');
+function brandGatesBlock(brand) {
+  // Derived from the ACTIVE brand: its own banned phrases and its own
+  // verifiable claims. No claim is asserted that the record does not carry.
+  let b = brand && brand.id ? brand : null;
+  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  const v = b.voice || {};
+  const claims = (Array.isArray(b.claims) && b.claims.length) ? b.claims.join('; ') : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims]';
+  const out = ['HARD BRAND GATES (a violation rejects the whole output):'];
+  if (Array.isArray(v.banned) && v.banned.length) out.push('- BANNED phrases, never use in any casing: ' + v.banned.map((x) => `"${x}"`).join(', ') + '.');
+  out.push('- NO founder voice: the brand speaks as "we".');
+  out.push('- NO health, medical or performance claims of ANY kind. The ONLY claims allowed are this brand\'s own: ' + claims + '.');
+  out.push('- Never invent a price, discount code or URL. A missing fact is written as [DATA REQUIRED BEFORE LAUNCH: field].');
+  if (v.tone) out.push('- Voice: ' + v.tone + '.' + (Array.isArray(v.preferred) && v.preferred.length ? ' Preferred words: ' + v.preferred.join(', ') + '.' : ''));
+  return out.join('\n');
 }
-
 function buildBrief(entry, fw) {
   const cohort = COHORTS[entry.cohort_key] || { label: entry.cohort_label || entry.cohort_key, objective: '', voice_guide: '' };
   const play = PLAYS[entry.play_key] || { name: entry.play_key, mechanic: '', cta_framing_by_purchase_mode: {} };
@@ -94,7 +95,7 @@ function buildBrief(entry, fw) {
   const framework = fw || CF.pickCopyFramework({ framework: entry.framework, play_key: entry.play_key, cohort_key: entry.cohort_key, seed: entry.id || entry.date });
 
   return [
-    `Campaign date: ${entry.date} · Market: ${entry.market || 'UK'} (store: knickgasm.com, currency GBP £)`,
+    `Campaign date: ${entry.date} · Market: ${entry.market || ''} (store + currency come from the brand's own region record)`,
     `Cohort: ${cohort.label}`,
     `Cohort objective: ${cohort.objective}`,
     `Cohort voice guide: ${cohort.voice_guide}`,
@@ -114,7 +115,7 @@ function buildBrief(entry, fw) {
     '',
     CF.copyFrameworkBriefBlock(framework),
     '',
-    brandGatesBlock(),
+    brandGatesBlock(entry && entry.brand),
   ].filter(Boolean).join('\n');
 }
 
@@ -123,11 +124,11 @@ function buildBrief(entry, fw) {
 async function writeCopy(brief, frameworkLine) {
   const out = await llm({
     systemPrompt:
-      'You are KNICKGASM\'s lifecycle copywriter. Produce a strict JSON object with keys: ' +
+      'You are the lifecycle copywriter for ' + ((entry && entry.brand && entry.brand.name) || 'the active brand') + '. Produce a strict JSON object with keys: ' +
       'subject_line (string, ≤ 60 chars), preview_text (string, ≤ 90 chars), ' +
       'hero_headline (string, ≤ 8 words), hero_subline (string, ≤ 18 words), ' +
       'body_blocks (array of {heading, body}), cta_text (string, ≤ 4 words). ' +
-      'Use KNICKGASM brand voice (warm, sensory, story-driven). ' +
+      'Use the active brand\'s own voice as stated in the gates below. ' +
       (frameworkLine ? frameworkLine + ' ' : '') +
       'Obey every brand gate, ' +
       'CTA rule and product fact in the brief exactly - no invented prices, no banned phrases, ' +
@@ -243,7 +244,7 @@ function resolveHero(entry, w, h) {
     return { url: real, mode: 'catalog', size: `${w}x${h}`, prompt: null };
   }
   const prompt =
-    `On-brand KNICKGASM email hero for "${entry.hero_product || entry.product_type}". Editorial product ` +
+    `On-brand ${(entry && entry.brand && entry.brand.name) || 'brand'} email hero for "${entry.hero_product || entry.product_type}". Editorial product ` +
     `photography, one-of-one provenance, elegant negative space, warm cinematic light. Brand palette ` +
     `only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). No text on the image. Ideal size ${w} x ${h}.`;
   return { url: placeholderImage(entry.hero_product || 'Product image', w, h), mode: 'placeholder', size: `${w}x${h}`, prompt };
