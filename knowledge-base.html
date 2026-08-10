@@ -102,21 +102,21 @@
   </style>
 
   <div class="subtabs" id="chanTabs">
-    <button class="subtab" data-chan="mailers">✉ Mailers</button>
-    <button class="subtab" data-chan="meta">▼ Meta Ads</button>
-    <button class="subtab" data-chan="google">G Google Ads</button>
-    <button class="subtab" data-chan="tiktok">♪ TikTok Ads</button>
-    <button class="subtab" data-chan="landing">▦ Landing Pages</button>
+    <button type="button" class="subtab" data-chan="mailers">✉ Mailers</button>
+    <button type="button" class="subtab" data-chan="meta">▼ Meta Ads</button>
+    <button type="button" class="subtab" data-chan="google">G Google Ads</button>
+    <button type="button" class="subtab" data-chan="tiktok">♪ TikTok Ads</button>
+    <button type="button" class="subtab" data-chan="landing">▦ Landing Pages</button>
   </div>
 
   <!-- Region filter — applies to all KNICKGASM + Competitor channels. -->
   <div id="kbRegions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
     <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#48524c; font-weight:600; align-self:center; margin-right:8px">Region</span>
-    <button class="region-chip active" data-region="">All</button>
-    <button class="region-chip" data-region="US">US</button>
-    <button class="region-chip" data-region="UK">UK</button>
-    <button class="region-chip" data-region="Global">Global</button>
-    <button class="region-chip" data-region="IN">India</button>
+    <button type="button" class="region-chip active" data-region="">All</button>
+    <button type="button" class="region-chip" data-region="US">US</button>
+    <button type="button" class="region-chip" data-region="UK">UK</button>
+    <button type="button" class="region-chip" data-region="Global">Global</button>
+    <button type="button" class="region-chip" data-region="IN">India</button>
   </div>
 
   <!-- Unified "Add to knowledge base" bar — shown for BOTH KNICKGASM and
@@ -134,7 +134,7 @@
       </label>
       <span style="color:#48524c; font-size:12px">or</span>
       <input id="kbAddUrl" type="url" placeholder="Paste a URL — blog, tweet, article, landing page…" style="flex:1; min-width:240px; background:#ffffff; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#111111; padding:10px 12px; font-family:inherit; font-size:13px">
-      <button id="kbAddUrlBtn" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Ingest URL with AI</button>
+      <button type="button" id="kbAddUrlBtn" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Ingest URL with AI</button>
     </div>
     <div id="kbAddStatus" style="font-size:12.5px; color:#556059; min-height:16px; margin-top:10px"></div>
   </div>
@@ -147,8 +147,8 @@
   <div class="kbm-card">
     <div class="kbm-h">
       <span class="t" id="kbm-title"></span>
-      <button class="kbm-act" id="kbm-dl">Download .html</button>
-      <button class="kbm-act" id="kbm-close">×</button>
+      <button type="button" class="kbm-act" id="kbm-dl">Download .html</button>
+      <button type="button" class="kbm-act" id="kbm-close">×</button>
     </div>
     <div class="kbm-body"><iframe id="kbm-frame" sandbox=""></iframe></div>
   </div>
@@ -207,7 +207,7 @@
   {"subject":"One-of-One Jordan — 25% off this week", "body_text":"Hand-painted, studio-fresh in 72 hours…", "market":"US", "campaign_type":"Sale", "open_rate":0.42, "click_rate":0.08, "revenue":12500, "send_count":50000}
 ]' style="width:100%; background:#ffffff; border:1px solid rgba(171,135,67,.25); border-radius:9px; color:#111111; padding:10px 12px; font-family:monospace; font-size:12px"></textarea>
         <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap">
-          <button id="kbTopImport" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Import</button>
+          <button type="button" id="kbTopImport" class="kb-cta" style="border:0; cursor:pointer; font-family:inherit">Import</button>
           <span id="kbTopStatus" style="font-size:12.5px; color:#556059"></span>
         </div>
       </details>`;

@@ -84,8 +84,8 @@
       <p>A 7-agent pipeline (ideology → data &amp; hypothesis → strategy → content → design → video → compilation) drafts one full day of posts across Instagram, Facebook, TikTok, LinkedIn, X, Pinterest, YouTube Shorts, Threads and the blog. Runs daily at <b>04:30 UTC</b> via cron, or on demand below. Everything lands as a <b>draft</b> for human approval, platform push is Phase&nbsp;2.</p>
     </div>
     <div>
-      <button id="runBtn" class="btn">Run today&rsquo;s pipeline</button>
-      <button id="loadBtn" class="btn secondary">Load saved posts</button>
+      <button type="button" id="runBtn" class="btn">Run today&rsquo;s pipeline</button>
+      <button type="button" id="loadBtn" class="btn secondary">Load saved posts</button>
     </div>
   </section>
 
@@ -93,7 +93,7 @@
     <label class="meta" for="datePick">Date</label>
     <input type="date" id="datePick">
     <label class="chk"><input type="checkbox" id="dryRun"> dry run (no save, no media render)</label>
-    <button id="dayPkgBtn" class="btn secondary sm" disabled>Download day package (.json)</button>
+    <button type="button" id="dayPkgBtn" class="btn secondary sm" disabled>Download day package (.json)</button>
     <span id="runState" class="meta"></span>
   </div>
 
@@ -290,11 +290,11 @@
       '<div class="meta">CTA: <b>' + esc(p.cta || '') + '</b> → <a style="color:var(--vh-ink)" href="' + esc(p.link || '#') + '" target="_blank" rel="noopener">' + esc(p.link || '') + '</a></div>' +
       '<div class="meta">Push: ' + esc(post.push_status || p.push_status || '') + '</div>' +
       '<div class="actions">' +
-        '<button class="btn sm secondary" data-view="1">View full</button>' +
-        '<button class="btn sm secondary" data-dl="json">Download</button>' +
-        (isBlogPost(p) ? '<button class="btn sm secondary" data-dl="md">.md</button>' : '') +
-        '<button class="btn sm ok" data-act="social-approve">Approve</button>' +
-        '<button class="btn sm no" data-act="social-skip">Skip</button>' +
+        '<button type="button" class="btn sm secondary" data-view="1">View full</button>' +
+        '<button type="button" class="btn sm secondary" data-dl="json">Download</button>' +
+        (isBlogPost(p) ? '<button type="button" class="btn sm secondary" data-dl="md">.md</button>' : '') +
+        '<button type="button" class="btn sm ok" data-act="social-approve">Approve</button>' +
+        '<button type="button" class="btn sm no" data-act="social-skip">Skip</button>' +
       '</div>';
     el.querySelectorAll('button[data-act]').forEach(function (btn) {
       btn.addEventListener('click', function () { decide(btn, el, id, btn.getAttribute('data-act')); });

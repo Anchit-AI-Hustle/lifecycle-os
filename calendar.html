@@ -128,20 +128,20 @@
       <div>
         <div class="label">Markets</div>
         <div class="flex gap-1.5 mt-2" id="marketChips">
-          <button class="filter-chip active" data-market="US">US</button>
-          <button class="filter-chip" data-market="UK">UK</button>
-          <button class="filter-chip" data-market="Global">Global</button>
-          <button class="filter-chip" data-market="IN">India</button>
+          <button type="button" class="filter-chip active" data-market="US">US</button>
+          <button type="button" class="filter-chip" data-market="UK">UK</button>
+          <button type="button" class="filter-chip" data-market="Global">Global</button>
+          <button type="button" class="filter-chip" data-market="IN">India</button>
         </div>
       </div>
       <div>
         <div class="label">Plan window</div>
         <div class="flex gap-1.5 mt-2" id="daysChips">
-          <button class="filter-chip" data-days="14">14d</button>
-          <button class="filter-chip" data-days="30">30d</button>
-          <button class="filter-chip" data-days="45">45d</button>
-          <button class="filter-chip" data-days="60">60d</button>
-          <button class="filter-chip active" data-days="90">90d</button>
+          <button type="button" class="filter-chip" data-days="14">14d</button>
+          <button type="button" class="filter-chip" data-days="30">30d</button>
+          <button type="button" class="filter-chip" data-days="45">45d</button>
+          <button type="button" class="filter-chip" data-days="60">60d</button>
+          <button type="button" class="filter-chip active" data-days="90">90d</button>
         </div>
       </div>
       <div>
@@ -149,8 +149,8 @@
         <input id="capInput" type="number" min="2" max="10" value="4" class="mt-2 w-16 px-2 py-1.5 text-sm bg-bg-card border border-lava/20 rounded text-ink">
       </div>
       <div class="flex-1"></div>
-      <button id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90">⚡ Generate plan</button>
-      <button id="btnExport" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">↓ Export CSV</button>
+      <button type="button" id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90">⚡ Generate plan</button>
+      <button type="button" id="btnExport" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">↓ Export CSV</button>
     </div>
     <div id="planMeta" class="mt-3 text-[12px] text-ink-dim"></div>
   </section>
@@ -202,7 +202,7 @@
         <p class="text-xs text-ink-dim" id="mailerSubtitle"></p>
         <p class="text-[11px] text-lava mt-1" id="mailerAssets"></p>
       </div>
-      <button class="text-ink-mute hover:text-ink text-2xl leading-none" onclick="closeMailer()">×</button>
+      <button type="button" class="text-ink-mute hover:text-ink text-2xl leading-none" onclick="closeMailer()">×</button>
     </div>
     <div class="flex flex-wrap gap-1.5 mb-3" id="daySwitch"></div>
     <div class="flex gap-2 mb-3" id="variantTabs"></div>
@@ -214,14 +214,14 @@
       <div class="flex items-center justify-between gap-2 mt-2 flex-wrap">
         <div id="approveState" class="text-[11px] text-ink-mute"></div>
         <div class="flex gap-2">
-          <button id="btnRegen" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">↻ Regenerate with feedback</button>
-          <button id="btnApprove" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded font-semibold" style="background:var(--vh-ink-dim);color:var(--vh-ink)">✓ Approve</button>
+          <button type="button" id="btnRegen" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">↻ Regenerate with feedback</button>
+          <button type="button" id="btnApprove" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded font-semibold" style="background:var(--vh-ink-dim);color:var(--vh-ink)">✓ Approve</button>
         </div>
       </div>
     </div>
     <div class="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-lava/15">
       <a id="openInStudio" href="/studio" target="_blank" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Open in Studio ↗</a>
-      <button onclick="closeMailer()" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded bg-lava text-bg font-semibold">Done</button>
+      <button type="button" onclick="closeMailer()" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded bg-lava text-bg font-semibold">Done</button>
     </div>
   </div>
 </div>
@@ -515,7 +515,7 @@ function renderTable(filter = '') {
       <td class="text-[12px] max-w-[260px]">${p.subject_hint}</td>
       <td class="max-w-[260px]">${analysisDetails(p)}</td>
       <td class="text-[11px]">${p.festival ? '★ ' + p.festival : '—'}</td>
-      <td>${APPROVED.has(p.id) ? '<span title="Approved" style="color:var(--vh-ink-dim);margin-right:6px;font-weight:700">✓</span>' : ''}<button onclick='openMailerById("${p.id}")' class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-lava/20 text-lava hover:bg-lava hover:text-bg">${APPROVED.has(p.id) ? 'Review' : 'View / Build →'}</button></td>
+      <td>${APPROVED.has(p.id) ? '<span title="Approved" style="color:var(--vh-ink-dim);margin-right:6px;font-weight:700">✓</span>' : ''}<button type="button" onclick='openMailerById("${p.id}")' class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-lava/20 text-lava hover:bg-lava hover:text-bg">${APPROVED.has(p.id) ? 'Review' : 'View / Build →'}</button></td>
     </tr>
   `).join('');
 }
@@ -567,7 +567,7 @@ async function openMailer(entry, dayList) {
   if (sw) {
     var sibs = (dayList && dayList.length > 1) ? dayList : [];
     sw.innerHTML = sibs.map(function (p) {
-      return '<button class="filter-chip' + (p.id === entry.id ? ' active' : '') + '" data-eid="' + p.id + '">' + p.market + ' · ' + p.segment + (APPROVED.has(p.id) ? ' ✓' : '') + '</button>';
+      return '<button type="button" class="filter-chip' + (p.id === entry.id ? ' active' : '') + '" data-eid="' + p.id + '">' + p.market + ' · ' + p.segment + (APPROVED.has(p.id) ? ' ✓' : '') + '</button>';
     }).join('');
     $$('#daySwitch .filter-chip').forEach(function (b) { b.addEventListener('click', function () { var e = STATE.plan.find(function (x) { return x.id === b.dataset.eid; }); if (e) openMailer(e, dayList); }); });
   }
@@ -596,7 +596,7 @@ async function openMailer(entry, dayList) {
     //   Type B text:  B1 Text + Visual · B2 Pure Text
     const tabs = ['A1','A2','B1','B2'];
     $('variantTabs').innerHTML = tabs.map((k, i) => `
-      <button class="filter-chip ${i===0 ? 'active' : ''}" data-variant="${k}">${variants[k]?.label || k}</button>
+      <button type="button" class="filter-chip ${i===0 ? 'active' : ''}" data-variant="${k}">${variants[k]?.label || k}</button>
     `).join('');
     $('variantPanels').innerHTML = tabs.map((k, i) => `
       <div data-panel="${k}" style="${i===0 ? '' : 'display:none'}">${renderVariantPanel(variants[k], data.strategy, data.cta_url)}</div>
@@ -652,7 +652,7 @@ function renderVariantPanel(v, strategy, ctaUrl) {
       <div class="text-xs text-ink-dim mb-2">${v.label}${subj ? ` · subject "${subj}"` : ''}</div>
       <iframe class="preview" srcdoc='${(v.html || '').replace(/'/g, "&apos;")}'></iframe>
       <div class="flex items-center gap-2 mt-2">
-        <button data-dl-mailer="1" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Download HTML</button>
+        <button type="button" data-dl-mailer="1" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Download HTML</button>
       </div>
       ${ctaLine(cta)}
     `;
@@ -673,8 +673,8 @@ function renderVariantPanel(v, strategy, ctaUrl) {
         <b class="text-ink">Image generation brief:</b><br>${brief}
       </div>
       <div class="flex items-center gap-2">
-        <button data-copy-brief="${enc}" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Copy brief</button>
-        <button data-dl-brief="${enc}" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Download brief</button>
+        <button type="button" data-copy-brief="${enc}" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Copy brief</button>
+        <button type="button" data-dl-brief="${enc}" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Download brief</button>
       </div>
       ${ctaLine(cta)}
     </div>

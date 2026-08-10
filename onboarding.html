@@ -310,7 +310,7 @@
 
   function renderSteps() {
     $('steps').innerHTML = STEPS.map(function (s) {
-      return '<button class="step-pip ' + (s.n === step ? 'on' : (s.n < step ? 'done' : '')) + '" data-step="' + s.n + '">' + s.n + '. ' + esc(s.label) + '</button>';
+      return '<button type="button" class="step-pip ' + (s.n === step ? 'on' : (s.n < step ? 'done' : '')) + '" data-step="' + s.n + '">' + s.n + '. ' + esc(s.label) + '</button>';
     }).join('');
     Array.prototype.forEach.call($('steps').querySelectorAll('.step-pip'), function (b) {
       b.addEventListener('click', function () { go(+b.dataset.step); });
@@ -418,7 +418,7 @@
 
   function chipEditor(kind, list) {
     return '<div class="chips" data-chips="' + kind + '">' +
-      list.map(function (w, i) { return '<span class="chip' + (kind === 'banned' ? ' ban' : '') + '">' + esc(w) + '<button data-rm="' + kind + '" data-i="' + i + '" aria-label="Remove">&times;</button></span>'; }).join('') +
+      list.map(function (w, i) { return '<span class="chip' + (kind === 'banned' ? ' ban' : '') + '">' + esc(w) + '<button type="button" data-rm="' + kind + '" data-i="' + i + '" aria-label="Remove">&times;</button></span>'; }).join('') +
       '</div>';
   }
 
@@ -508,12 +508,12 @@
         '<h2>Data and catalog</h2>' +
         '<p class="hint">Where you sell, and what you sell. Product facts are only ever read from a source you supply — the platform will never invent a price, a URL or a product.</p>' +
         '<div class="field"><label>Regions and stores</label><div id="regions"></div>' +
-          '<button class="btn" id="addRegion" style="margin-top:6px;padding:7px 13px;font-size:12px">+ Add region</button></div>' +
+          '<button type="button" class="btn" id="addRegion" style="margin-top:6px;padding:7px 13px;font-size:12px">+ Add region</button></div>' +
         '<div class="field" style="margin-top:22px"><label>Product catalog</label>' +
           '<div class="imp-tabs">' +
-            '<button class="imp-tab on" data-imp="storefront">Import from your store</button>' +
-            '<button class="imp-tab" data-imp="csv">Paste CSV</button>' +
-            '<button class="imp-tab" data-imp="file">Upload a file</button>' +
+            '<button type="button" class="imp-tab on" data-imp="storefront">Import from your store</button>' +
+            '<button type="button" class="imp-tab" data-imp="csv">Paste CSV</button>' +
+            '<button type="button" class="imp-tab" data-imp="file">Upload a file</button>' +
           '</div>' +
           '<div data-panel="storefront">' +
             '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc((brand.regions[0] && brand.regions[0].store_url) || '') + '">' +
@@ -528,7 +528,7 @@
             '<p class="muted" style="margin-top:6px">A CSV or a JSON array of products.</p>' +
           '</div>' +
           '<div style="display:flex;gap:9px;align-items:center;margin-top:12px;flex-wrap:wrap">' +
-            '<button class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>' +
+            '<button type="button" class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>' +
             '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + ' products in this workspace.') + '</span>' +
           '</div>' +
         '</div>' +
@@ -549,11 +549,11 @@
             : 'Everything the platform needs is present.') +
         '</div>' +
         '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
-          '<button class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
-          '<button class="btn" id="saveDraft">Save as draft</button>' +
+          '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
+          '<button type="button" class="btn" id="saveDraft">Save as draft</button>' +
         '</div>' +
         '<div style="margin-top:26px"><label>Your brands</label><div class="ws-list" id="wsList"><p class="muted">Loading…</p></div>' +
-          '<button class="btn" id="newBrand" style="margin-top:6px;padding:8px 14px;font-size:12px">+ Onboard another brand</button></div>';
+          '<button type="button" class="btn" id="newBrand" style="margin-top:6px;padding:8px 14px;font-size:12px">+ Onboard another brand</button></div>';
       loadWorkspaces();
     }
 
@@ -632,8 +632,8 @@
 
   function actions(back, next) {
     return '<div class="actions">' +
-      (back ? '<button class="btn" data-go="back">&larr; ' + esc(back) + '</button>' : '<span></span>') +
-      '<button class="btn primary" data-go="next">' + esc(next) + ' &rarr;</button></div>';
+      (back ? '<button type="button" class="btn" data-go="back">&larr; ' + esc(back) + '</button>' : '<span></span>') +
+      '<button type="button" class="btn primary" data-go="next">' + esc(next) + ' &rarr;</button></div>';
   }
 
   function wireActions() {
@@ -656,7 +656,7 @@
         '<input type="text" data-r="code" data-i="' + i + '" value="' + esc(r.code || '') + '" placeholder="US">' +
         '<input type="text" data-r="currency" data-i="' + i + '" value="' + esc(r.currency || '') + '" placeholder="USD">' +
         '<input type="url" data-r="store_url" data-i="' + i + '" value="' + esc(r.store_url || '') + '" placeholder="https://yourbrand.com">' +
-        '<button class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>';
+        '<button type="button" class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>';
     }).join('');
     Array.prototype.forEach.call(box.querySelectorAll('[data-r]'), function (el) {
       el.addEventListener('input', function () {

@@ -124,9 +124,9 @@
 </div>
 <div class="inputrow">
   <div class="inputbox">
-    <button class="btn mic" id="mic" title="Hold a voice conversation">🎙</button>
+    <button type="button" class="btn mic" id="mic" title="Hold a voice conversation">🎙</button>
     <input id="q" placeholder="Ask anything — “does airbrush actually work?”" autocomplete="off">
-    <button class="btn send" id="send">Ask</button>
+    <button type="button" class="btn send" id="send">Ask</button>
   </div>
   <div class="toggles" id="modeRow" role="group" aria-label="Interaction mode">
     <span style="color:var(--lava-ink);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:10px;margin-right:2px">Mode</span>
@@ -222,7 +222,7 @@
   function buildConvoBar(){
     if(!CH || !chatEl || !chatEl.parentNode || document.querySelector('.convobar')) return;
     var bar=document.createElement('div'); bar.className='convobar';
-    bar.innerHTML='<button id="newChat" class="cbtn">＋ New chat</button><button id="histToggle" class="cbtn">🕘 History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
+    bar.innerHTML='<button type="button" id="newChat" class="cbtn">＋ New chat</button><button type="button" id="histToggle" class="cbtn">🕘 History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
     chatEl.parentNode.insertBefore(bar, chatEl);
     document.getElementById('newChat').onclick=function(){ if(CH) CH.create(); sessionId=null; history=[]; chatEl.innerHTML=''; greet(); renderHist(); };
     document.getElementById('histToggle').onclick=function(){ var p=document.getElementById('histPanel'); p.style.display=(p.style.display==='none'?'block':'none'); renderHist(); };
@@ -232,7 +232,7 @@
     var p=document.getElementById('histPanel'); if(!p||!CH) return;
     var items=CH.list();
     if(!items.length){ p.innerHTML='<div class="hempty">No saved conversations yet.</div>'; return; }
-    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escHtml(c.title||'New chat')+'</span><button class="hdel" data-del="'+c.id+'" title="Delete">✕</button></div>'; }).join('');
+    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escHtml(c.title||'New chat')+'</span><button type="button" class="hdel" data-del="'+c.id+'" title="Delete">✕</button></div>'; }).join('');
     p.querySelectorAll('.hitem').forEach(function(el2){ el2.addEventListener('click',function(e){ if(e.target.closest('[data-del]'))return; loadConvo(el2.getAttribute('data-id')); }); });
     p.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click',function(e){ e.stopPropagation(); CH.remove(b.getAttribute('data-del')); if(!CH.current()){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); } renderHist(); }); });
   }

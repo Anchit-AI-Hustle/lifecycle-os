@@ -56,9 +56,9 @@
       <p>The brain keeps a tentative <b>15-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at 03:30 UTC, or manually below). Approving a slot generates the full funnel, mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
     </div>
     <div>
-      <button id="sync" class="btn">🔄 Run Daily Sync</button>
-      <button id="refresh" class="btn secondary">Refresh Plan</button>
-      <button id="schema" class="btn secondary">Schema</button>
+      <button type="button" id="sync" class="btn">🔄 Run Daily Sync</button>
+      <button type="button" id="refresh" class="btn secondary">Refresh Plan</button>
+      <button type="button" id="schema" class="btn secondary">Schema</button>
     </div>
   </section>
 
@@ -109,8 +109,8 @@ function renderPlan(){
     <td class="conf">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}</td>
     <td><span class="st ${esc(e.status||'tentative')}">${esc(e.status||'tentative')}</span>${e.generated_campaign_id ? `<br><a href="/lp/${esc(e.generated_campaign_id)}" target="_blank" style="color:#0a7d33;font-size:11px">landing page ↗</a>` : ''}</td>
     <td style="white-space:nowrap">
-      <button class="btn sm secondary" onclick="viewEntry(${i})">View</button>
-      ${e.status==='tentative' ? `<button class="btn sm ok" onclick="approve(${i})">Approve</button> <button class="btn sm no" onclick="reject(${i})">Reject</button>` : ''}
+      <button type="button" class="btn sm secondary" onclick="viewEntry(${i})">View</button>
+      ${e.status==='tentative' ? `<button type="button" class="btn sm ok" onclick="approve(${i})">Approve</button> <button type="button" class="btn sm no" onclick="reject(${i})">Reject</button>` : ''}
     </td>
   </tr>`).join('');
 }
@@ -156,7 +156,7 @@ function renderPreview(payload, e, i, opts){
   const liveLpId  = e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null;
 
   const tabs = [], panes = [];
-  const tab = (id,label,on)=> tabs.push(`<button class="pvtab${on?' on':''}" onclick="pvTab(this,'${id}')">${label}</button>`);
+  const tab = (id,label,on)=> tabs.push(`<button type="button" class="pvtab${on?' on':''}" onclick="pvTab(this,'${id}')">${label}</button>`);
   const pane= (id,html,on)=> panes.push(`<div class="pvpane${on?' on':''}" id="${id}">${html}</div>`);
 
   let first = true;
@@ -174,7 +174,7 @@ function renderPreview(payload, e, i, opts){
         <h4>${esc(k.replace(/_/g,' '))} <span style="background:#1d6b45;color:#111111;border-radius:999px;padding:2px 8px;font-size:10px;margin-left:6px;text-transform:none">best: ${esc(p.platform_label)}</span></h4>
         <div class="pvnote" style="margin:2px 0 8px">${esc(p.platform_reason||'')}</div>
         <textarea id="${tid}" readonly style="width:100%;height:150px;background:#ffffff;color:#556059;border:1px solid rgba(171,135,67,.25);border-radius:8px;padding:10px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,monospace">${esc(p.prompt)}</textarea>
-        <div style="margin-top:6px"><button class="btn sm secondary" onclick="pvCopy('${tid}',this)">Copy prompt → ${esc(p.platform_label)}</button></div>
+        <div style="margin-top:6px"><button type="button" class="btn sm secondary" onclick="pvCopy('${tid}',this)">Copy prompt → ${esc(p.platform_label)}</button></div>
       </div>`;
     }).join('');
     tab('pv-prompts','📋 Prompts', first); pane('pv-prompts', `<p class="pvnote">Paste each prompt into the labelled model for the best accurate output. Product image URLs, prices, PDP links & brand rules are baked in.</p>${cards}`, first); first=false;
@@ -192,8 +192,8 @@ function renderPreview(payload, e, i, opts){
     <div class="pvbar">
       ${banner}
       <span style="flex:1"></span>
-      <button class="btn sm secondary" onclick="viewEntry(${i}, true)">↻ Regenerate</button>
-      ${isTentative ? `<button class="btn sm ok" onclick="approve(${i})">Approve this slot</button> <button class="btn sm no" onclick="reject(${i})">Reject</button>` : ''}
+      <button type="button" class="btn sm secondary" onclick="viewEntry(${i}, true)">↻ Regenerate</button>
+      ${isTentative ? `<button type="button" class="btn sm ok" onclick="approve(${i})">Approve this slot</button> <button type="button" class="btn sm no" onclick="reject(${i})">Reject</button>` : ''}
     </div>
     <div class="pvnote">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''}${hp&&hp.title?` · hero: <b>${esc(hp.title)}</b>${hp.price?` (${esc(hp.currency||'')}${esc(hp.price)})`:''}${hp.image?' 🖼️':''}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
     <div class="pvtabs">${tabs.join('')}</div>

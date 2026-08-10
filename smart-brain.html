@@ -112,9 +112,9 @@
       <p>This engine keeps a tentative <b>90-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at 03:30 UTC, or manually below). Approving a slot generates the full funnel: mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
     </div>
     <div id="autobar">
-      <button id="sync" class="btn">🔄 Run Daily Sync</button>
-      <button id="refresh" class="btn secondary">Refresh Plan</button>
-      <button id="export" class="btn secondary" title="Download the whole calendar as a Google Sheets / Excel-ready CSV: themes, hero + supporting products, real product + image links, audience counts, per-asset prompts, and expected send/deliver/open/CTR metrics.">⬇ Export to Sheets</button>
+      <button type="button" id="sync" class="btn">🔄 Run Daily Sync</button>
+      <button type="button" id="refresh" class="btn secondary">Refresh Plan</button>
+      <button type="button" id="export" class="btn secondary" title="Download the whole calendar as a Google Sheets / Excel-ready CSV: themes, hero + supporting products, real product + image links, audience counts, per-asset prompts, and expected send/deliver/open/CTR metrics.">⬇ Export to Sheets</button>
     </div>
   </section>
 
@@ -131,7 +131,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <span class="label" style="margin-right:4px">Mode</span>
         <span class="btn sm" style="cursor:default;pointer-events:none" title="One mode: an agentic pipeline powered by the premium model cascade">🤖 Agentic</span>
-        <button id="runAgentic" class="btn" onclick="runAgentic()">🤖 Run Agentic Flow</button>
+        <button type="button" id="runAgentic" class="btn" onclick="runAgentic()">🤖 Run Agentic Flow</button>
       </div>
       <div id="agenticOut" class="feed"><p style="color:#48524c">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
     </div>
@@ -140,9 +140,9 @@
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <h2 style="margin:0">Rolling calendar</h2>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:210px">
-          <button id="generateAll" class="btn sm ok" onclick="generateAll()" style="display:none;text-align:center" title="Generate the final best version of every asset (mailer, ads, landing page) for the sends currently shown (respects the region filter).">⚙ Generate all</button>
-          <button id="approveAll" class="btn sm ok" onclick="approveAll()" style="display:none;text-align:center" title="Approve and lock every send currently shown that is not already approved (includes prebuilt drafts). Each is built if needed, then locked as ship-ready. Rejected sends are skipped.">✓ Approve all</button>
-          <button id="downloadAll" class="btn sm secondary" onclick="sbZipAll()" style="text-align:center" title="Download every ALREADY-generated asset in view as a nested ZIP — {date}_{cohort}/{date}/mailer + landing + ad files. Retrieval only; never regenerates.">⬇ Download all (.zip)</button>
+          <button type="button" id="generateAll" class="btn sm ok" onclick="generateAll()" style="display:none;text-align:center" title="Generate the final best version of every asset (mailer, ads, landing page) for the sends currently shown (respects the region filter).">⚙ Generate all</button>
+          <button type="button" id="approveAll" class="btn sm ok" onclick="approveAll()" style="display:none;text-align:center" title="Approve and lock every send currently shown that is not already approved (includes prebuilt drafts). Each is built if needed, then locked as ship-ready. Rejected sends are skipped.">✓ Approve all</button>
+          <button type="button" id="downloadAll" class="btn sm secondary" onclick="sbZipAll()" style="text-align:center" title="Download every ALREADY-generated asset in view as a nested ZIP — {date}_{cohort}/{date}/mailer + landing + ad files. Retrieval only; never regenerates.">⬇ Download all (.zip)</button>
         </div>
       </div>
       <div id="mktfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 8px">
@@ -152,11 +152,11 @@
       </div>
       <div id="durfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
         <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Duration</span>
-        <button class="mkchip on" data-dur="7" onclick="setDur(7)">Next 7 days</button>
-        <button class="mkchip" data-dur="30" onclick="setDur(30)">30 days</button>
-        <button class="mkchip" data-dur="60" onclick="setDur(60)">60 days</button>
-        <button class="mkchip" data-dur="90" onclick="setDur(90)">90 days</button>
-        <button class="mkchip" data-dur="all" onclick="setDur('all')">All</button>
+        <button type="button" class="mkchip on" data-dur="7" onclick="setDur(7)">Next 7 days</button>
+        <button type="button" class="mkchip" data-dur="30" onclick="setDur(30)">30 days</button>
+        <button type="button" class="mkchip" data-dur="60" onclick="setDur(60)">60 days</button>
+        <button type="button" class="mkchip" data-dur="90" onclick="setDur(90)">90 days</button>
+        <button type="button" class="mkchip" data-dur="all" onclick="setDur('all')">All</button>
         <span id="durcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
       </div>
       <div id="catfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
@@ -399,13 +399,13 @@ function renderPlan(){
       // A rejected slot can be REGENERATED (fresh copy + assets from the latest
       // data) and APPROVED again without waiting for the next daily re-plan.
       ? `<div class="rev" id="rev-${i}" style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">`+
-        `<button class="btn sm secondary" onclick="viewEntry(${i}, true)" title="Regenerate this rejected send from the latest data, then review it again">↻ Regenerate</button>`+
-        `<button class="btn sm ok" onclick="approveRow(${i})" title="Approve this send now — generates and locks the final assets so it is ready to ship">✓ Approve</button>`+
-        `<button class="btn sm secondary" onclick="resetRow(${i})" title="Clear the rejected status — the send goes back to draft (not rejected, not approved)">⟲ Reset</button>`+
+        `<button type="button" class="btn sm secondary" onclick="viewEntry(${i}, true)" title="Regenerate this rejected send from the latest data, then review it again">↻ Regenerate</button>`+
+        `<button type="button" class="btn sm ok" onclick="approveRow(${i})" title="Approve this send now — generates and locks the final assets so it is ready to ship">✓ Approve</button>`+
+        `<button type="button" class="btn sm secondary" onclick="resetRow(${i})" title="Clear the rejected status — the send goes back to draft (not rejected, not approved)">⟲ Reset</button>`+
         `</div>`
       : `<div class="rev" id="rev-${i}" style="display:flex;gap:4px;margin-top:6px">`+
-        `<button class="btn sm ok" onclick="approveRow(${i})" title="Approve this send — generates and locks the final assets so it is ready to ship">✓ Approve</button>`+
-        `<button class="btn sm secondary" onclick="rejectRow(${i})" title="Reject this send — logs the decision and the slot is re-planned on the next daily sync">✗ Reject</button>`+
+        `<button type="button" class="btn sm ok" onclick="approveRow(${i})" title="Approve this send — generates and locks the final assets so it is ready to ship">✓ Approve</button>`+
+        `<button type="button" class="btn sm secondary" onclick="rejectRow(${i})" title="Reject this send — logs the decision and the slot is re-planned on the next daily sync">✗ Reject</button>`+
         `</div>`;
     const status = `${verdict}${e.generated_campaign_id ? `<br><a href="/lp/${esc(e.generated_campaign_id)}" target="_blank" style="color:#0a7d33;font-size:11px">landing page ↗</a>` : ''}${reviewCtl}`;
     return `<tr class="planrow" id="planrow-${i}">
@@ -418,9 +418,9 @@ function renderPlan(){
     <td class="conf" title="${esc(confTip)}">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}${confLabel?`<br><span style="color:#556059;font-size:10px;text-transform:uppercase;letter-spacing:.06em">${esc(confLabel)}</span>`:''}</td>
     <td>${status}</td>
     <td style="white-space:nowrap">
-      <button class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
-      <button class="btn sm ok" id="dlbtn-${i}" onclick="downloadEntry(${i})" title="Generate (if needed) and download every asset for this send as one HTML file">⬇ Download</button>
-      <button class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
+      <button type="button" class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
+      <button type="button" class="btn sm ok" id="dlbtn-${i}" onclick="downloadEntry(${i})" title="Generate (if needed) and download every asset for this send as one HTML file">⬇ Download</button>
+      <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
     </td>
   </tr>
   <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-tan);border-bottom:2px solid rgba(171,135,67,.3)"><div class="expbody" id="expbody-${i}" style="padding:16px 18px"></div></td></tr>`;}).join('');
@@ -532,7 +532,7 @@ function renderPreview(payload, e, i, opts){
   const liveLpId  = e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null;
 
   const tabs = [], panes = [];
-  const tab = (id,label,on)=> tabs.push(`<button class="pvtab${on?' on':''}" onclick="pvTab(this,'${id}')">${label}</button>`);
+  const tab = (id,label,on)=> tabs.push(`<button type="button" class="pvtab${on?' on':''}" onclick="pvTab(this,'${id}')">${label}</button>`);
   const pane= (id,html,on)=> panes.push(`<div class="pvpane${on?' on':''}" id="${id}">${html}</div>`);
 
   let first = true;
@@ -550,15 +550,15 @@ function renderPreview(payload, e, i, opts){
   const expBar = (name, html) => {
     const idx = window.__SB_EXPORTS.push({ name, html }) - 1;
     return `<div class="akbar">
-      <button class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download</button>
-      <button class="btn sm secondary" onclick="sbCopy(${idx}, this)">📋 Copy</button>
+      <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download</button>
+      <button type="button" class="btn sm secondary" onclick="sbCopy(${idx}, this)">📋 Copy</button>
     </div>`;
   };
   // Ads are not HTML files — Download the copy JSON.
   const adBar = (name, text) => {
     const idx = window.__SB_EXPORTS.push({ name, html: text }) - 1;
     return `<div class="akbar">
-      <button class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download copy</button>
+      <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download copy</button>
     </div>`;
   };
   if(Array.isArray(emailVars) && emailVars.length){
@@ -583,7 +583,7 @@ function renderPreview(payload, e, i, opts){
   // mailer opened full-screen in a new tab.
   const detailBtn = liveLpId
     ? `<a class="btn sm secondary" href="/lp/${esc(liveLpId)}" target="_blank" rel="noopener">Open detailed page ↗</a>`
-    : `<button class="btn sm secondary" onclick="openDetailPage(${i})">Open detailed page ↗</button>`;
+    : `<button type="button" class="btn sm secondary" onclick="openDetailPage(${i})">Open detailed page ↗</button>`;
 
   const host = (opts && opts.target) || $('expbody-'+i) || $('preview');
   host.innerHTML = `<div class="pvroot">
@@ -591,9 +591,9 @@ function renderPreview(payload, e, i, opts){
       ${banner}
       <span style="flex:1"></span>
       ${detailBtn}
-      <button class="btn sm ok" onclick="sbDownloadAll()" title="Download every asset (mailer variants, landing page, ads) as one HTML file">⬇ Download all</button>
-      <button class="btn sm secondary" onclick="viewEntry(${i}, true)">↻ Regenerate</button>
-      <button class="btn sm secondary" onclick="closeExp(${i})" title="Collapse">✕</button>
+      <button type="button" class="btn sm ok" onclick="sbDownloadAll()" title="Download every asset (mailer variants, landing page, ads) as one HTML file">⬇ Download all</button>
+      <button type="button" class="btn sm secondary" onclick="viewEntry(${i}, true)">↻ Regenerate</button>
+      <button type="button" class="btn sm secondary" onclick="closeExp(${i})" title="Collapse">✕</button>
     </div>
     <div class="pvnote">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
     ${(() => { const tr = payload.agent_trace || campaign.agent_trace; if(!Array.isArray(tr)||!tr.length) return ''; return `<div class="pvnote" style="margin-top:4px">Agent pipeline: ${tr.map(a=>`<span class="pill" style="background:${a.ok?'var(--vh-panel-tan)':'#3a1414'};color:${a.ok?'#0a7d33':'#ffd9d0'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`; })()}
@@ -672,8 +672,8 @@ function decisionPanelHTML(e){
       ${li('Mix', mix)}
       ${li('Brand lock', brand)}
     </ul>
-    <div style="margin-top:14px"><button class="btn sm secondary" onclick="closeExp(${e.__i})">✕ Close</button>
-      <button class="btn sm secondary" onclick="viewEntry(${e.__i})">Open the mailer &amp; assets →</button></div>
+    <div style="margin-top:14px"><button type="button" class="btn sm secondary" onclick="closeExp(${e.__i})">✕ Close</button>
+      <button type="button" class="btn sm secondary" onclick="viewEntry(${e.__i})">Open the mailer &amp; assets →</button></div>
   </div>`;
 }
 window.viewDecision = function(i){
@@ -993,8 +993,8 @@ function sbConfirm(msg, okLabel){
     ov.innerHTML = `<div role="dialog" aria-modal="true" style="background:#fff;border:1px solid rgba(171,135,67,.3);border-radius:14px;max-width:460px;width:100%;padding:22px 22px 18px;box-shadow:0 30px 80px rgba(0,0,0,.45);font-family:inherit">`+
       `<div style="font-size:14px;line-height:1.55;color:#111111;margin-bottom:18px">${esc(msg)}</div>`+
       `<div style="display:flex;gap:10px;justify-content:flex-end">`+
-      `<button class="btn sm secondary" id="sbcn">Cancel</button>`+
-      `<button class="btn sm ok" id="sbcy">${esc(okLabel || 'Generate')}</button></div></div>`;
+      `<button type="button" class="btn sm secondary" id="sbcn">Cancel</button>`+
+      `<button type="button" class="btn sm ok" id="sbcy">${esc(okLabel || 'Generate')}</button></div></div>`;
     document.body.appendChild(ov);
     const done = (v)=>{ ov.remove(); resolve(v); };
     ov.querySelector('#sbcy').onclick = ()=>done(true);
@@ -1047,7 +1047,7 @@ async function generateAll(){
     const dl = $('dlbtn-'+i);
     if(dl){ dl.disabled = true; dl.innerHTML = '<span class="sbspin"></span> building'; }
     if(det) det.innerHTML = `<span class="sbspin"></span> Generating <b>${n+1}</b> of <b>${targets.length}</b>: ${esc(e.date)} ${esc(e.market)} — ${esc(e.objective)} &nbsp; ✓${ok}${fails.length?` ✕${fails.length}`:''} `+
-      `<button class="btn sm secondary" onclick="window.__SB_GEN_CANCEL=true">Stop</button>`;
+      `<button type="button" class="btn sm secondary" onclick="window.__SB_GEN_CANCEL=true">Stop</button>`;
     try{ await generateEntry(i, { silent: true }); ok++; if(dl){ dl.innerHTML = '✓ ready'; } }
     catch(err){ fails.push(`${e.date} ${e.market}: ${err.message}`); if(dl){ dl.innerHTML = '✕ failed'; } }
     finally{ if(dl){ dl.disabled = false; } }
@@ -1082,7 +1082,7 @@ async function approveAll(){
     const rev = $('rev-'+i);
     if(rev) rev.innerHTML = '<span class="pvnote"><span class="sbspin"></span> approving…</span>';
     if(det) det.innerHTML = `<span class="sbspin"></span> Approving <b>${n+1}</b> of <b>${targets.length}</b>: ${esc(e.date)} ${esc(e.market)} — ${esc(e.objective)} &nbsp; ✓${ok}${fails.length?` ✕${fails.length}`:''} `+
-      `<button class="btn sm secondary" onclick="window.__SB_GEN_CANCEL=true">Stop</button>`;
+      `<button type="button" class="btn sm secondary" onclick="window.__SB_GEN_CANCEL=true">Stop</button>`;
     try{ await generateEntry(i, { silent: true }); ok++; }
     catch(err){ fails.push(`${e.date} ${e.market}: ${err.message}`); if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">approve failed: ${esc(err.message)}</span>`; }
     await new Promise(r=>setTimeout(r, 0));   // yield → the UI repaints each step

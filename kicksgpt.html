@@ -85,7 +85,7 @@
 <div class="inputrow">
   <div class="inputbox">
     <input id="q" placeholder="Ask me to analyze, plan, generate, or check Klaviyo — e.g. “what's our best cohort and plan a winback campaign”" autocomplete="off">
-    <button class="btn send" id="send">Send</button>
+    <button type="button" class="btn send" id="send">Send</button>
   </div>
   <div class="foot">KicksGPT runs real tools on KNICKGASM data. It never invents figures, if data isn't connected, it tells you what to set.</div>
 </div>
@@ -259,7 +259,7 @@
   function buildConvoBar(){
     if(!CH || !chatEl || !chatEl.parentNode) return;
     var bar=document.createElement('div'); bar.className='convobar';
-    bar.innerHTML='<button id="newChat" class="cbtn">＋ New chat</button><button id="histToggle" class="cbtn">🕘 History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
+    bar.innerHTML='<button type="button" id="newChat" class="cbtn">＋ New chat</button><button type="button" id="histToggle" class="cbtn">🕘 History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
     chatEl.parentNode.insertBefore(bar, chatEl);
     document.getElementById('newChat').onclick=function(){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); renderHist(); };
     document.getElementById('histToggle').onclick=function(){ var p=document.getElementById('histPanel'); p.style.display=(p.style.display==='none'?'block':'none'); renderHist(); };
@@ -269,7 +269,7 @@
     var p=document.getElementById('histPanel'); if(!p) return;
     var items=CH.list();
     if(!items.length){ p.innerHTML='<div class="hempty">No saved conversations yet.</div>'; return; }
-    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escapeHtml(c.title||'New chat')+'</span><button class="hdel" data-del="'+c.id+'" title="Delete">✕</button></div>'; }).join('');
+    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escapeHtml(c.title||'New chat')+'</span><button type="button" class="hdel" data-del="'+c.id+'" title="Delete">✕</button></div>'; }).join('');
     p.querySelectorAll('.hitem').forEach(function(el){ el.addEventListener('click',function(e){ if(e.target.closest('[data-del]'))return; loadConvo(el.getAttribute('data-id')); }); });
     p.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click',function(e){ e.stopPropagation(); CH.remove(b.getAttribute('data-del')); if(!CH.current()){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); } renderHist(); }); });
   }

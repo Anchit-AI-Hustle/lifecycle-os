@@ -181,13 +181,13 @@ a{color:var(--knickgasm-green);}
         <div class="eyebrow">Mode selector &middot; strategy</div>
         <p style="font-size:12.5px;color:var(--soft);margin:6px 0 10px;">The mode configures the whole month; the executor below responds to it.</p>
         <div class="mode-row" id="modeRow">
-          <button class="mode" aria-pressed="false" data-mode="conservative" data-cadence="2" data-cohorts="2"><b>Conservative</b><span>2 sends/week &middot; 2 cohorts/day &middot; margin-first</span></button>
-          <button class="mode" aria-pressed="true" data-mode="balanced" data-cadence="3" data-cohorts="3"><b>Balanced</b><span>3 sends/week &middot; 3 cohorts/day &middot; default</span></button>
-          <button class="mode" aria-pressed="false" data-mode="aggressive" data-cadence="3" data-cohorts="4"><b>Aggressive</b><span>3 sends/week (cap 3) &middot; 4 cohorts/day &middot; reach-first</span></button>
+          <button type="button" class="mode" aria-pressed="false" data-mode="conservative" data-cadence="2" data-cohorts="2"><b>Conservative</b><span>2 sends/week &middot; 2 cohorts/day &middot; margin-first</span></button>
+          <button type="button" class="mode" aria-pressed="true" data-mode="balanced" data-cadence="3" data-cohorts="3"><b>Balanced</b><span>3 sends/week &middot; 3 cohorts/day &middot; default</span></button>
+          <button type="button" class="mode" aria-pressed="false" data-mode="aggressive" data-cadence="3" data-cohorts="4"><b>Aggressive</b><span>3 sends/week (cap 3) &middot; 4 cohorts/day &middot; reach-first</span></button>
         </div>
         <div class="gen-bar">
           <div class="desc" id="genDesc"></div>
-          <button class="btn btn-primary" id="genBtn">Generate All &rarr;</button>
+          <button type="button" class="btn btn-primary" id="genBtn">Generate All &rarr;</button>
         </div>
         <p class="stat-note" id="genNote" style="margin-top:12px;"></p>
       </div>
@@ -258,7 +258,7 @@ a{color:var(--knickgasm-green);}
 
       <!-- footer -->
       <footer class="m-foot">
-        <button class="logo" id="brandLogo" aria-label="KNICKGASM USA home">
+        <button type="button" class="logo" id="brandLogo" aria-label="KNICKGASM USA home">
           <img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM">
         </button>
         <div class="legal">KNICKGASM&reg; USA &middot; Knickgasm Global, Inc.</div>
@@ -272,7 +272,7 @@ a{color:var(--knickgasm-green);}
     </div>
 
     <!-- C. rationale trigger -->
-    <button class="btn btn-secondary rationale-cta fade-up" id="whyBtn">Why this campaign? &middot; strategy &amp; data</button>
+    <button type="button" class="btn btn-secondary rationale-cta fade-up" id="whyBtn">Why this campaign? &middot; strategy &amp; data</button>
   </div>
 </section>
 
@@ -281,7 +281,7 @@ a{color:var(--knickgasm-green);}
 <!-- ============ C. RATIONALE DRAWER ============ -->
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Campaign rationale">
-  <div class="d-head"><h3>Why this campaign</h3><button class="x" id="drawerX" aria-label="Close">&times;</button></div>
+  <div class="d-head"><h3>Why this campaign</h3><button type="button" class="x" id="drawerX" aria-label="Close">&times;</button></div>
   <div class="d-body">
     <div class="d-block">
       <h4>Strategic logic</h4>
@@ -326,14 +326,14 @@ a{color:var(--knickgasm-green);}
       <h3 id="unsubTitle">Unsubscribe from KNICKGASM emails?</h3>
       <p>You can resubscribe any time from your account. We will stop sending campaign emails to this address.</p>
       <div class="row">
-        <button class="btn btn-secondary" id="unsubCancel">Keep me subscribed</button>
-        <button class="btn btn-primary" id="unsubConfirm" style="background:#7a1f1f;">Unsubscribe</button>
+        <button type="button" class="btn btn-secondary" id="unsubCancel">Keep me subscribed</button>
+        <button type="button" class="btn btn-primary" id="unsubConfirm" style="background:#7a1f1f;">Unsubscribe</button>
       </div>
     </div>
     <div id="unsubStep2" style="display:none;">
       <h3>You&rsquo;re unsubscribed</h3>
       <p>Done. You will no longer receive KNICKGASM campaign emails at this address.</p>
-      <div class="row"><button class="btn btn-primary" id="unsubClose">Close</button></div>
+      <div class="row"><button type="button" class="btn btn-primary" id="unsubClose">Close</button></div>
     </div>
   </div>
 </div>

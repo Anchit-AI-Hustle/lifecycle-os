@@ -158,17 +158,17 @@
   <p class="lede">The single knowledge base + performance dashboard for the USA paid program (Target + Costco): every KT email, spend sheet, social update, sheet/deck link, platform data source and creative learning in one place. Every figure is sourced from the KT files or a live connector read; nothing is fabricated. <a href="/ads-dashboard">Open the live Snowflake Ads Analysis</a> for warehouse-fresh rows.</p>
 
   <div class="tabs" id="tabs">
-    <button data-p="live" class="on">Live Now</button>
-    <button data-p="calendar">Calendar</button>
-    <button data-p="tracker">Tracker</button>
-    <button data-p="accounts">Accounts</button>
-    <button data-p="sop">SOP</button>
-    <button data-p="overview">Overview</button>
-    <button data-p="campaigns">Campaigns &amp; Ads</button>
-    <button data-p="creative">Creative Intel</button>
-    <button data-p="organic">Organic &amp; UGC</button>
-    <button data-p="kb">Knowledge Base</button>
-    <button data-p="ops">Ops &amp; Data Sources</button>
+    <button type="button" data-p="live" class="on">Live Now</button>
+    <button type="button" data-p="calendar">Calendar</button>
+    <button type="button" data-p="tracker">Tracker</button>
+    <button type="button" data-p="accounts">Accounts</button>
+    <button type="button" data-p="sop">SOP</button>
+    <button type="button" data-p="overview">Overview</button>
+    <button type="button" data-p="campaigns">Campaigns &amp; Ads</button>
+    <button type="button" data-p="creative">Creative Intel</button>
+    <button type="button" data-p="organic">Organic &amp; UGC</button>
+    <button type="button" data-p="kb">Knowledge Base</button>
+    <button type="button" data-p="ops">Ops &amp; Data Sources</button>
   </div>
 
   <div class="panel on" id="p-live">
@@ -177,7 +177,7 @@
       <span>
         <span class="srcchip" id="live-src">source: - </span>
         <span class="srcchip" id="live-upd">updated: - </span>
-        <button class="btn ghost" id="live-refresh" style="cursor:pointer;font-family:inherit">Refresh now</button>
+        <button type="button" class="btn ghost" id="live-refresh" style="cursor:pointer;font-family:inherit">Refresh now</button>
       </span>
     </div>
     <div class="chipbar" id="live-acct-chips"></div>
@@ -202,7 +202,7 @@
   <div class="panel" id="p-calendar">
     <div class="bar">
       <label>Month<select id="cal-month"></select></label>
-      <label>&nbsp;<button class="apply" id="cal-today" style="cursor:pointer;font-family:inherit;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px">Jump to today</button></label>
+      <label>&nbsp;<button type="button" class="apply" id="cal-today" style="cursor:pointer;font-family:inherit;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px">Jump to today</button></label>
       <span class="srcchip" id="cal-src">source: - </span>
     </div>
     <div class="legend">

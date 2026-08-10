@@ -21,12 +21,12 @@
 <div class="field"><label>Framer-inspired motion profile</label><select id="motion"><option value="immersive-balanced">Immersive Balanced · Spatial hero + scroll transforms</option><option value="subtle-premium">Subtle Premium · Restrained hover, reveal and orbit</option><option value="editorial-cinematic">Editorial Cinematic · Sticky story + stronger depth</option></select></div>
 <div class="field"><label>Complete landing-page input</label><textarea id="prompt" placeholder="Describe the product, audience, commercial offer, required proof, page sections, visual direction, image or video assets, CTA destination and every factual constraint. The agent will preserve this input through the final HTML generation."></textarea></div>
 <div class="field"><label>Reference URL (optional)</label><input id="reference" type="url" placeholder="https://example.com/reference-page"></div>
-<button class="btn primary" id="generate">Generate Final Spatial Landing Page</button>
+<button type="button" class="btn primary" id="generate">Generate Final Spatial Landing Page</button>
 <div class="status" id="status"><b>Ready.</b> Stage 1 creates the structured conversion brief. Stage 2 generates the complete 3D, 4D and 5D responsive page.</div>
 <div class="facts"><div class="fact"><b>3D depth</b>Perspective, product planes, hover and press</div><div class="fact"><b>4D motion</b>Scroll timeline, sticky transforms, progress</div><div class="fact"><b>5D interaction</b>Sensory states, controls and reduced motion</div></div>
 </section>
 <section class="card preview">
-<div class="toolbar"><strong id="title">Final spatial page preview</strong><button class="btn secondary" id="open" disabled>Open New Tab</button><button class="btn secondary" id="download" disabled>Download HTML</button><button class="btn secondary" id="regenerate" disabled>Regenerate</button></div>
+<div class="toolbar"><strong id="title">Final spatial page preview</strong><button type="button" class="btn secondary" id="open" disabled>Open New Tab</button><button type="button" class="btn secondary" id="download" disabled>Download HTML</button><button type="button" class="btn secondary" id="regenerate" disabled>Regenerate</button></div>
 <div class="empty" id="empty"><div><div class="demo-orbit" aria-hidden="true"><div class="demo-ring"></div><div class="demo-pack">KNICKGASM<br>SPATIAL</div></div><b>Your complete page appears here</b>The preview is the actual exported HTML with spatial product depth, scroll choreography and interactive states.</div></div>
 <iframe class="frame" id="frame" title="Generated spatial landing page" sandbox="allow-same-origin allow-forms allow-popups allow-scripts" hidden></iframe>
 </section>

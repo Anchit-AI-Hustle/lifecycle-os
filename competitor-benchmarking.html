@@ -210,13 +210,13 @@
     <div class="sub" id="cb-sub">Benchmark any competitor across their whole lifecycle, discover new brands, then track their mailers, Meta / Google / TikTok ads, and landing pages. All from free, public sources.</div>
     <div class="cb-actions">
       <div class="subnav" id="subnav">
-        <button class="snav" data-sec="discover">🔍 Discover Brands</button>
-        <button class="snav" data-sec="mailers">✉ Mailers</button>
-        <button class="snav" data-sec="meta">Meta Ads</button>
-        <button class="snav" data-sec="google">Google Ads</button>
-        <button class="snav" data-sec="tiktok">TikTok Ads</button>
-        <button class="snav" data-sec="landing">▦ Landing Pages</button>
-        <button class="snav" data-sec="insights">📊 Insights</button>
+        <button type="button" class="snav" data-sec="discover">🔍 Discover Brands</button>
+        <button type="button" class="snav" data-sec="mailers">✉ Mailers</button>
+        <button type="button" class="snav" data-sec="meta">Meta Ads</button>
+        <button type="button" class="snav" data-sec="google">Google Ads</button>
+        <button type="button" class="snav" data-sec="tiktok">TikTok Ads</button>
+        <button type="button" class="snav" data-sec="landing">▦ Landing Pages</button>
+        <button type="button" class="snav" data-sec="insights">📊 Insights</button>
       </div>
     </div>
   </div>
@@ -267,8 +267,8 @@
     <div class="d-meta" id="dv-meta" style="margin-top:14px"></div>
     <div class="d-section">
       <div class="sh"><h4>Email (as received)</h4><div class="ops">
-        <button class="a-btn a-prev" id="dv-html-open">Open in new tab</button>
-        <button class="a-btn a-prev" id="dv-html-dl">Download .html</button>
+        <button type="button" class="a-btn a-prev" id="dv-html-open">Open in new tab</button>
+        <button type="button" class="a-btn a-prev" id="dv-html-dl">Download .html</button>
       </div></div>
       <div id="dv-html-wrap"></div>
     </div>
@@ -323,18 +323,18 @@
       <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
         Runs an AI research pass to find <span class="cb-industry">same-industry</span> brands you don't already track (excludes <span class="cb-brandname">the active brand</span> and brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
       </div>
-      <button id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
+      <button type="button" id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
     </div>
     <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
       <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed the priority brand list</div>
       <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px"> One-click bulk-add of the curated priority brands for <span class="cb-industry">this brand's industry</span> and regions. Skips any already in your universe, so it's safe to re-run. Best run once when starting. </div>
-      <button id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Add priority brands</button>
+      <button type="button" id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Add priority brands</button>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#556059">
     <span id="bd-status"></span>
     <span class="sp" style="flex:1"></span>
-    <button id="bd-refresh" class="cb-cta cb-cta-ghost" style="padding:4px 12px; font-size:11px" title="Reload the brand universe from the database">↻ Refresh list</button>
+    <button type="button" id="bd-refresh" class="cb-cta cb-cta-ghost" style="padding:4px 12px; font-size:11px" title="Reload the brand universe from the database">↻ Refresh list</button>
     <span id="bd-count" class="count"></span>
   </div>
 
@@ -367,8 +367,8 @@
   </div>
   <div class="toolbar">
     <div class="filters" id="lp-subtabs">
-      <button class="btn-ghost lp-subtab active" data-lp="website">🏠 Website (homepages)</button>
-      <button class="btn-ghost lp-subtab" data-lp="landing">🎯 Landing Pages (from ads &amp; mailers)</button>
+      <button type="button" class="btn-ghost lp-subtab active" data-lp="website">🏠 Website (homepages)</button>
+      <button type="button" class="btn-ghost lp-subtab" data-lp="landing">🎯 Landing Pages (from ads &amp; mailers)</button>
     </div>
     <div class="filters">
       <a class="btn-ghost" href="#discover" style="text-decoration:none">＋ Manage brands in Discover →</a>
@@ -438,7 +438,7 @@
     <div class="mh">
       <span class="t">Find More Competitors</span>
       <span class="sp"></span>
-      <button class="pm-act pm-close" onclick="this.closest('#fcm').classList.remove('open')" aria-label="Close">×</button>
+      <button type="button" class="pm-act pm-close" onclick="this.closest('#fcm').classList.remove('open')" aria-label="Close">×</button>
     </div>
     <div class="mb">
       <div class="form-grp">
@@ -458,7 +458,7 @@
         <input type="text" id="fcm-products" placeholder="e.g. Loose panel product, dunks, gear...">
       </div>
       <div style="margin-top: 24px; text-align: right;">
-        <button class="pm-act pm-detail" onclick="alert('Finding competitors...'); this.closest('#fcm').classList.remove('open')">Find Competitors →</button>
+        <button type="button" class="pm-act pm-detail" onclick="alert('Finding competitors...'); this.closest('#fcm').classList.remove('open')">Find Competitors →</button>
       </div>
     </div>
   </div>
@@ -471,18 +471,18 @@
     <div class="mh">
       <span class="t">Become a part of their journey</span>
       <span class="sp"></span>
-      <button class="pm-act pm-close" onclick="this.closest('#jm').classList.remove('open')" aria-label="Close">×</button>
+      <button type="button" class="pm-act pm-close" onclick="this.closest('#jm').classList.remove('open')" aria-label="Close">×</button>
     </div>
     <div class="mb" style="display:flex; flex-direction: column; gap: 20px;">
       <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
         <h4 style="color:#111111; margin-bottom: 8px;">1. Subscribe to Asset Brands</h4>
         <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Automatically subscribe to competitor email lists to capture their assets and marketing sequences.</p>
-        <button class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #556059; width: 100%; justify-content: center;" onclick="alert('Subscribing...');">Explore more Competitors</button>
+        <button type="button" class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #556059; width: 100%; justify-content: center;" onclick="alert('Subscribing...');">Explore more Competitors</button>
       </div>
       <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
         <h4 style="color:#111111; margin-bottom: 8px;">2. Simulate Customer Actions</h4>
         <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Visit, add/remove products from cart, and perform actions for real-time segmentation to capture conditional campaigns.</p>
-        <button class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="alert('Starting journey simulation...');">Become a part of their journey</button>
+        <button type="button" class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="alert('Starting journey simulation...');">Become a part of their journey</button>
       </div>
     </div>
   </div>
@@ -497,7 +497,7 @@
       <span class="t" id="pm-title"></span>
       <span class="sp"></span>
       <a class="pm-act pm-detail" id="pm-detail" href="#">View in Detail →</a>
-      <button class="pm-act pm-close" data-close aria-label="Close">×</button>
+      <button type="button" class="pm-act pm-close" data-close aria-label="Close">×</button>
     </div>
     <div class="mb" id="pm-body"></div>
   </div>
@@ -512,7 +512,7 @@
       <span class="t" id="bm-title"></span>
       <span class="sp"></span>
       <a class="pm-act" id="bm-site" href="#" target="_blank" rel="noopener" style="display:none">Website ↗</a>
-      <button class="pm-act pm-close" data-bclose aria-label="Close">×</button>
+      <button type="button" class="pm-act pm-close" data-bclose aria-label="Close">×</button>
     </div>
     <div class="mb" id="bm-body"></div>
   </div>
@@ -612,7 +612,7 @@
         <td>${promoCell}</td>
         <td>${fileCell}</td>
         <td><div class="actions">
-          <button class="a-btn a-prev" data-prev="${e.id}">Preview</button>
+          <button type="button" class="a-btn a-prev" data-prev="${e.id}">Preview</button>
           <a class="a-btn a-detail" href="?id=${encodeURIComponent(e.id)}">View in Detail →</a>
         </div></td>
       </tr>`;
@@ -918,7 +918,7 @@
           if (d.ads && d.ads.length) {
             body.innerHTML = `<div class="ad-thumbs">${d.ads.slice(0, 6).map((a) => `
               <a class="ad-thumb" href="${esc(a.link || s.url)}" target="_blank" rel="noopener">
-                ${a.image ? `<img src="${esc(a.image)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+                ${a.image ? `<img alt="" src="${esc(a.image)}" loading="lazy" onerror="this.style.display='none'">` : ''}
                 ${a.body ? `<div class="ad-cap">${esc(a.body.slice(0, 70))}</div>` : ''}
               </a>`).join('')}</div>
               <a class="ad-src" href="${s.url}" target="_blank" rel="noopener">All ${esc(o.name)} ads ↗</a>`;
@@ -958,7 +958,7 @@
             <a class="ad-src" style="margin:0;flex:1" href="${home}" target="_blank" rel="noopener">Website ↗</a>
             <a class="ad-src" style="margin:0;flex:1" href="${home}/collections" target="_blank" rel="noopener">Collections ↗</a>
           </div>
-          <button class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#D0473E;color:#FFFFFF" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
+          <button type="button" class="ad-src brand-link" style="width:100%;margin-top:8px;border:none;cursor:pointer;background:#D0473E;color:#FFFFFF" data-brand="${esc(o.name)}" data-domain="${esc(o.domain)}">View all assets →</button>
           <div style="font-size:11px;color:#48524c;margin-top:8px">${esc(o.domain)}</div>
         </div>
       </div>`; }).join('') + (withDomain.length > MAX_TILES ? `<div class="count" style="grid-column:1/-1">Showing first ${MAX_TILES} of ${withDomain.length} brands — narrow the universe in Discover.</div>` : '') : '<div class="empty">No brands with a known domain yet — add some under <b>Discover Brands</b> (the brand DB stores each domain).</div>';
@@ -1010,7 +1010,7 @@
     const st = followState[key] || { mailers: false, ads: false };
     const chip = (ch, label) => {
       const on = !!st[ch];
-      return `<button class="follow-chip${on ? ' on' : ''}" data-follow="${ch}" data-name="${esc(name)}" data-domain="${esc(domain || '')}" title="${on ? 'Following — real-time email on each new ' + label : 'Follow to get a real-time email on each new ' + label}">${on ? '✓ ' : '+ '}${label}</button>`;
+      return `<button type="button" class="follow-chip${on ? ' on' : ''}" data-follow="${ch}" data-name="${esc(name)}" data-domain="${esc(domain || '')}" title="${on ? 'Following — real-time email on each new ' + label : 'Follow to get a real-time email on each new ' + label}">${on ? '✓ ' : '+ '}${label}</button>`;
     };
     return `<span class="follow-wrap">${chip('mailers', 'Mailers')}${chip('ads', 'Ads')}</span>`;
   }
@@ -1098,7 +1098,7 @@
     const mailers = d.emails || [], landing = d.landing || [];
     const assetCard = (img, title, sub, href) => `
       <div class="ad-card" style="padding:0;overflow:hidden">
-        ${img ? `<a href="${esc(href || '#')}" target="_blank" rel="noopener"><img src="${esc(img)}" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:var(--vh-panel-tan)"></div>'}
+        ${img ? `<a href="${esc(href || '#')}" target="_blank" rel="noopener"><img alt="" src="${esc(img)}" loading="lazy" style="width:100%;aspect-ratio:1/1;object-fit:cover;background:#fff;display:block" onerror="this.style.display='none'"></a>` : '<div style="aspect-ratio:1/1;background:var(--vh-panel-tan)"></div>'}
         <div style="padding:10px 12px"><div style="font-weight:600;font-size:12px">${esc(String(title || '').slice(0, 80))}</div>${sub ? `<div style="font-size:11px;color:#8a8a80;margin-top:3px">${esc(sub)}</div>` : ''}</div>
       </div>`;
     const section = (label, count, inner) => `<div class="d-section"><div class="sh"><h4>${label} <span style="color:#8a8a80">${count}</span></h4></div>${count ? inner : '<div class="empty" style="margin:0">None captured yet.</div>'}</div>`;

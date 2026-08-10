@@ -114,18 +114,18 @@
         <p class="lede">The full growth analytics workbench for the active brand. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
       </div>
       <div class="mkt" id="mktToggle" role="tablist" aria-label="Market">
-        <button data-mkt="US" class="on">🇺🇸 United States</button>
-        <button data-mkt="UK">🇬🇧 United Kingdom</button>
-        <button data-mkt="GLOBAL">🌍 Global</button>
-        <button data-mkt="IN">🇮🇳 India</button>
+        <button type="button" data-mkt="US" class="on">🇺🇸 United States</button>
+        <button type="button" data-mkt="UK">🇬🇧 United Kingdom</button>
+        <button type="button" data-mkt="GLOBAL">🌍 Global</button>
+        <button type="button" data-mkt="IN">🇮🇳 India</button>
       </div>
     </div>
 
     <div class="mkt" id="anTabs" role="tablist" aria-label="Analysis section" style="margin:14px 0 4px;flex-wrap:wrap">
-      <button data-tab="control" class="on">Control Room</button>
-      <button data-tab="acq">Acquisition · Ads + LP</button>
-      <button data-tab="ret">Retention · Mailer + LP</button>
-      <button data-tab="cohort">Cohort &amp; Calendar</button>
+      <button type="button" data-tab="control" class="on">Control Room</button>
+      <button type="button" data-tab="acq">Acquisition · Ads + LP</button>
+      <button type="button" data-tab="ret">Retention · Mailer + LP</button>
+      <button type="button" data-tab="cohort">Cohort &amp; Calendar</button>
     </div>
 
     <a href="/usa-d2c-report" id="reviewCta" style="display:block;margin:14px 0 6px;padding:14px 18px;border:1px solid var(--line-strong,var(--vh-lava));border-left:4px solid var(--accent,#6A33D8);border-radius:11px;background:var(--surface,#fff);text-decoration:none;box-shadow:0 4px 14px rgba(0,74,43,.08)">
@@ -619,7 +619,7 @@
       var body='';
       try{ body=w.mini(m)||''; }catch(e){ body='<div class="empty">—</div>'; }
       return '<div class="w '+(w.span||'span6')+' link" data-wid="'+w.id+'">'+
-        '<div class="wh"><span class="wt">'+esc(w.title)+'</span><button class="open" data-wid="'+w.id+'">Detail ↗</button></div>'+
+        '<div class="wh"><span class="wt">'+esc(w.title)+'</span><button type="button" class="open" data-wid="'+w.id+'">Detail ↗</button></div>'+
         '<div class="ws">'+esc(w.sub||'')+'</div>'+
         '<div class="wbody">'+body+'</div></div>';
     }).join('');
@@ -685,7 +685,7 @@
   }
   function tvToggle(m, id, metric, active){
     var tiles=TV_VIEWS.map(function(v){ var r=tvData(m, metric, v.k); var on=v.k===active; var dis=!r.available;
-      return '<button class="tv-tile'+(on?' on':'')+(dis?' dis':'')+'" data-view="'+v.k+'"'+(dis?' title="'+escA(r.note)+'" aria-disabled="true"':'')+'>'+esc(v.label)+'</button>';
+      return '<button type="button" class="tv-tile'+(on?' on':'')+(dis?' dis':'')+'" data-view="'+v.k+'"'+(dis?' title="'+escA(r.note)+'" aria-disabled="true"':'')+'>'+esc(v.label)+'</button>';
     }).join('');
     return '<div class="tv-toggle" role="group" aria-label="Time granularity view">'+tiles+'</div>';
   }
@@ -694,7 +694,7 @@
   function openDetail(id){
     var w=WIDGETS.find(function(x){return x.id===id;}); if(!w) return;
     var m=d(); var det; try{ det=w.detail(m); }catch(e){ det={insight:'—',chart:'',table:'',csv:''}; }
-    var dl = det.csv ? '<button class="btn-dl" data-csv="'+det.csv+'">Download CSV</button>' : '';
+    var dl = det.csv ? '<button type="button" class="btn-dl" data-csv="'+det.csv+'">Download CSV</button>' : '';
     var metric=TV_METRIC[id];
     var chartBlock;
     if(metric){
@@ -704,7 +704,7 @@
       chartBlock='<div class="w span12" style="margin-top:14px"><div class="wbody">'+(det.chart||'')+'</div></div>';
     }
     document.getElementById('detail').innerHTML =
-      '<button class="crumb" id="backBtn">← Back to dashboard</button>'+
+      '<button type="button" class="crumb" id="backBtn">← Back to dashboard</button>'+
       '<div class="topbar"><div><h1>'+esc(w.title)+'</h1><p class="lede">'+esc(w.sub||'')+' · '+esc(mktLabel())+' market</p></div>'+dl+'</div>'+
       chartBlock+
       (det.insight?'<div class="insight">'+det.insight+'</div>':'')+

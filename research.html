@@ -519,7 +519,7 @@ triggers:
                 <option value="90">Three months</option>
               </select></label>
           </div>
-          <button class="btn-primary mt-4" id="pRun">Project revenue</button>
+          <button type="button" class="btn-primary mt-4" id="pRun">Project revenue</button>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
             <div><div class="kicker">Projected revenue (<span id="pHzLabel">end of day</span>)</div><div class="metric-lg mt-1" id="pOutRev">-</div><div class="text-[11px] text-[#556059]" id="pOutBand"></div></div>
             <div><div class="kicker">Day-end settlement (today)</div><div class="metric-lg mt-1" id="pOutDay">-</div><div class="text-[11px] text-[#556059]" id="pOutDayNote"></div></div>
@@ -554,7 +554,7 @@ triggers:
               <option>US</option><option>UK</option><option>Global</option>
             </select></label>
         </div>
-        <button class="btn-lava mt-4" id="wsGen">Generate copy-pasteable asset source</button>
+        <button type="button" class="btn-lava mt-4" id="wsGen">Generate copy-pasteable asset source</button>
         <textarea class="code-out mt-4" id="wsOut" spellcheck="false" placeholder="Generated asset source appears here - fully editable."></textarea>
       </div>
     </section>
@@ -568,7 +568,7 @@ triggers:
         <a class="btn-outline" href="https://admin.shopify.com/store/knickgasmuk/content/files" target="_blank" rel="noopener">Open Shopify Content Files ↗</a>
         <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-4 items-center">
           <input type="url" id="cdnUrl" class="w-full" placeholder="Paste cdn.shopify.com media asset URL…">
-          <button class="btn-primary" id="cdnSync">Sync activation asset</button>
+          <button type="button" class="btn-primary" id="cdnSync">Sync activation asset</button>
         </div>
         <div id="cdnStatus" class="text-[12.5px] mt-3 min-h-[18px]"></div>
       </div>

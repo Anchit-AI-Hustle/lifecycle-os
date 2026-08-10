@@ -221,7 +221,7 @@
   <aside class="sidebar bg-bg-deep border-r border-lava/20 flex-none flex flex-col">
     <!-- Top hamburger + brand -->
     <div class="sb-top">
-      <button class="sb-hamburger" id="sbCollapseBtn" aria-label="Collapse sidebar" title="Collapse / expand menu">
+      <button type="button" class="sb-hamburger" id="sbCollapseBtn" aria-label="Collapse sidebar" title="Collapse / expand menu">
         <span></span><span></span><span></span>
       </button>
       <div class="nav-brand-head sb-full-label">
@@ -282,7 +282,7 @@
       </div>
     </nav>
     <div class="p-3 border-t border-lava/15">
-      <button id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">
+      <button type="button" id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">
         ↓ Export…
       </button>
       <div class="text-[10px] text-ink-mute mt-3 font-mono leading-snug">
@@ -300,33 +300,33 @@
     <!-- Top filter bar -->
     <header class="sticky z-30 bg-bg/90 backdrop-blur border-b border-lava/15 px-6 py-3" style="top:var(--ltb-h,0px)">
       <div class="flex flex-wrap items-center gap-3">
-        <button class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
+        <button type="button" class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>
         <div class="flex gap-1.5" id="regionChips">
-          <button class="filter-chip active" data-region="ALL">All</button>
-          <button class="filter-chip" data-region="US">US</button>
-          <button class="filter-chip" data-region="UK">UK</button>
-          <button class="filter-chip" data-region="Global">Global</button>
-          <button class="filter-chip" data-region="IN">India</button>
+          <button type="button" class="filter-chip active" data-region="ALL">All</button>
+          <button type="button" class="filter-chip" data-region="US">US</button>
+          <button type="button" class="filter-chip" data-region="UK">UK</button>
+          <button type="button" class="filter-chip" data-region="Global">Global</button>
+          <button type="button" class="filter-chip" data-region="IN">India</button>
         </div>
         <div class="h-5 w-px bg-lava/20"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Trend</div>
         <div class="flex gap-1.5" id="granChips" title="Time granularity for the whole dashboard — day-on-day, week-on-week, month-on-month or year-on-year">
-          <button class="filter-chip" data-gran="day" title="Day-on-day · last 60 days">Day</button>
-          <button class="filter-chip" data-gran="week" title="Week-on-week · last ~26 weeks">Week</button>
-          <button class="filter-chip active" data-gran="month" title="Month-on-month · last 12 months">Month</button>
-          <button class="filter-chip" data-gran="year" title="Year-on-year · all years">Year</button>
+          <button type="button" class="filter-chip" data-gran="day" title="Day-on-day · last 60 days">Day</button>
+          <button type="button" class="filter-chip" data-gran="week" title="Week-on-week · last ~26 weeks">Week</button>
+          <button type="button" class="filter-chip active" data-gran="month" title="Month-on-month · last 12 months">Month</button>
+          <button type="button" class="filter-chip" data-gran="year" title="Year-on-year · all years">Year</button>
         </div>
         <div class="h-5 w-px bg-lava/20"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Currency</div>
         <div class="flex gap-1.5" id="currencyChips" title="Show all revenue in US dollars or Indian rupees">
-          <button class="filter-chip" data-cur="USD">$ USD</button>
-          <button class="filter-chip" data-cur="INR">₹ INR</button>
+          <button type="button" class="filter-chip" data-cur="USD">$ USD</button>
+          <button type="button" class="filter-chip" data-cur="INR">₹ INR</button>
         </div>
         <div class="flex-1"></div>
-        <button id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⛓ Link database</button>
-        <button id="btnUpload" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
-        <button id="btnResetSeed" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⟳ Reset</button>
+        <button type="button" id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⛓ Link database</button>
+        <button type="button" id="btnUpload" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
+        <button type="button" id="btnResetSeed" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⟳ Reset</button>
       </div>
     </header>
 
@@ -339,8 +339,8 @@
           <h2 class="font-head text-2xl text-ink mb-2" style="color:var(--lava)">Connect your data to begin</h2>
           <p class="text-sm text-ink-dim leading-relaxed mb-6">This dashboard runs on your real customer, order and campaign data only. It does not display sample or synthetic numbers. Link a Supabase database or upload CSV / XLSX exports to compute RFM segments, cohorts and campaign KPIs.</p>
           <div class="flex flex-wrap gap-3 justify-center">
-            <button id="emptyLinkDb" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded border border-lava/40 text-ink hover:border-lava transition">⛓ Link database</button>
-            <button id="emptyUpload" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
+            <button type="button" id="emptyLinkDb" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded border border-lava/40 text-ink hover:border-lava transition">⛓ Link database</button>
+            <button type="button" id="emptyUpload" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
           </div>
           <p class="text-[11px] text-ink-mute mt-5">Expected columns: customers (last_order_at, orders_count, total_spent, region), orders (ordered_at, region, total, product), campaigns (sent_at, sends, opens, clicks, conversions, revenue, region, channel, content_type).</p>
         </div>
@@ -593,7 +593,7 @@
         <h2 class="text-lg font-semibold">Upload campaign + customer data</h2>
         <p class="text-xs text-ink-dim mt-1">CSV or XLSX. Drop one or more files, the dashboard auto-recomputes.</p>
       </div>
-      <button id="uploadClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+      <button type="button" id="uploadClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
     </div>
 
     <div id="uploadSlots" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -636,8 +636,8 @@
     </label>
 
     <div class="flex gap-2 justify-end">
-      <button id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
-      <button id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">Apply & recompute</button>
+      <button type="button" id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button type="button" id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">Apply & recompute</button>
     </div>
   </div>
 </div>
@@ -650,12 +650,12 @@
         <h2 class="text-lg font-semibold">Link a database</h2>
         <p class="text-xs text-ink-dim mt-1">Connect a source and the dashboard recomputes <b>scoped to that database only</b>, the synthetic seed is set aside until you reset.</p>
       </div>
-      <button id="linkDbClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+      <button type="button" id="linkDbClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
     </div>
 
     <div class="flex gap-2 mb-4" id="linkDbTypeChips">
-      <button class="filter-chip active" data-dbtype="json">JSON / REST endpoint</button>
-      <button class="filter-chip" data-dbtype="supabase">Supabase</button>
+      <button type="button" class="filter-chip active" data-dbtype="json">JSON / REST endpoint</button>
+      <button type="button" class="filter-chip" data-dbtype="supabase">Supabase</button>
     </div>
 
     <!-- JSON endpoint -->
@@ -695,8 +695,8 @@
     <div class="text-[11px] mb-3 mt-3 leading-snug" id="linkDbStatus"></div>
 
     <div class="flex gap-2 justify-end">
-      <button id="linkDbCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
-      <button id="linkDbConnect" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">⛓ Connect & recompute</button>
+      <button type="button" id="linkDbCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button type="button" id="linkDbConnect" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">⛓ Connect & recompute</button>
     </div>
   </div>
 </div>
@@ -709,7 +709,7 @@
         <h2 class="text-lg font-semibold">Export analysis</h2>
         <p class="text-xs text-ink-dim mt-1">Choose what to export, in which format. Excel keeps the retention table colour-coding; CSV is plain text.</p>
       </div>
-      <button id="exportClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
+      <button type="button" id="exportClose" class="text-ink-mute hover:text-ink text-2xl leading-none">×</button>
     </div>
 
     <!-- Scope -->
@@ -751,16 +751,16 @@
     <div class="mb-4">
       <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Format</div>
       <div class="flex gap-2" id="exportFormatChips">
-        <button class="filter-chip active" data-fmt="xlsx">Excel (.xlsx), keeps colours</button>
-        <button class="filter-chip" data-fmt="csv">CSV (.csv)</button>
+        <button type="button" class="filter-chip active" data-fmt="xlsx">Excel (.xlsx), keeps colours</button>
+        <button type="button" class="filter-chip" data-fmt="csv">CSV (.csv)</button>
       </div>
     </div>
 
     <div class="text-[11px] text-ink-mute mb-4 leading-snug" id="exportHint"></div>
 
     <div class="flex gap-2 justify-end">
-      <button id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
-      <button id="exportRun" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">↓ Download</button>
+      <button type="button" id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button type="button" id="exportRun" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">↓ Download</button>
     </div>
   </div>
 </div>

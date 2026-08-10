@@ -81,7 +81,7 @@
 </div>
 
 <dialog id="dlg">
-  <div class="dlg-bar"><span id="dlgTitle">Preview</span><button onclick="document.getElementById('dlg').close()">Close</button></div>
+  <div class="dlg-bar"><span id="dlgTitle">Preview</span><button type="button" onclick="document.getElementById('dlg').close()">Close</button></div>
   <iframe id="dlgFrame" title="Email preview"></iframe>
 </dialog>
 <div class="toast" id="toast">Copied</div>
@@ -161,8 +161,8 @@ function render() {
         '<div class="subline"><span class="loading">Loading…</span></div>' +
         '<div class="pre"></div>' +
         '<div class="btns">' +
-          '<button data-act="preview">Preview</button>' +
-          '<button class="ghost" data-act="copy">Copy HTML</button>' +
+          '<button type="button" data-act="preview">Preview</button>' +
+          '<button type="button" class="ghost" data-act="copy">Copy HTML</button>' +
           '<a class="btn ghost" href="' + BASE + v.file + '" download>Download</a>' +
         '</div>';
       card.querySelector('[data-act=preview]').onclick = () => {
