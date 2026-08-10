@@ -281,8 +281,12 @@ function offeringPlanEntries(brand, offerings, startDate, days) {
       } else {
         const pool = offerings.filter((o) => {
           if (!KINDS.isDateBound(o.kind)) return true;      // evergreen always eligible
-          const p = oc.planSend(o, date);                   // a past event is never eligible
-          return p.viable && p.days_until !== null && p.days_until <= RAMP_DAYS;
+          const p = oc.planSend(o, date);
+          if (!p.viable) return false;                      // a past event is never eligible
+          // A RECURRING offering (a daily series, a rolling training plan) is
+          // date-bound by kind but carries no single date - it runs any time.
+          if (p.days_until === null) return true;
+          return p.days_until <= RAMP_DAYS;                 // a dated event: only in its ramp
         });
         const list = pool.length ? pool : offerings;
         const pick = list[(i + markets.indexOf(market)) % list.length];
