@@ -182,6 +182,19 @@
         var icon = document.querySelector('link[rel="icon"]');
         if (icon) icon.href = brand.favicon_url || brand.logo_url;
       }
+      // The rail mark is the PRODUCT mark by default; when the active brand
+      // supplies its own logo, that replaces it so the shell reads as the
+      // brand the user is working in.
+      if (brand.logo_url) {
+        document.querySelectorAll('svg.lnav-mark').forEach(function (svg) {
+          var img = document.createElement('img');
+          img.src = brand.logo_url;
+          img.alt = brand.name || 'Brand';
+          img.className = 'lnav-mark';
+          img.style.cssText = 'width:28px;height:28px;object-fit:contain;border-radius:7px;display:block';
+          if (svg.parentNode) svg.parentNode.replaceChild(img, svg);
+        });
+      }
     } catch (e) { log(e); }
   }
 

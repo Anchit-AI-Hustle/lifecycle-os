@@ -227,34 +227,18 @@
   // rather than flat at any size. Renders cleanly at 22px (mobile bar)
   // and 30px (desktop sidebar).
   const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="lnav-tile" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"   stop-color="#0a6038"/>
-        <stop offset="100%" stop-color="#003920"/>
-      </linearGradient>
-      <linearGradient id="lnav-panel" x1="0.2" y1="0.1" x2="0.8" y2="0.95">
-        <stop offset="0%"   stop-color="#e0b56b"/>
-        <stop offset="60%"  stop-color="#b48946"/>
-        <stop offset="100%" stop-color="#7d5a25"/>
-      </linearGradient>
-    </defs>
-    <rect width="32" height="32" rx="8" fill="url(#lnav-tile)"/>
-    <!-- Steam curl above the panel — a slow S-curve in chalk -->
-    <path d="M 16 5.2 C 17.3 4.3 14.7 3.5 16 2.5" stroke="#FFFFFF" stroke-width="0.85" opacity="0.65" fill="none" stroke-linecap="round"/>
-    <!-- Sneaker-panel silhouette — symmetric, organic, reads as both panel and V -->
-    <path d="M 16 26.5
-             C 10.5 24.8, 7.5 19.5, 7.5 13.5
-             C 7.5 11.2, 8.6 9.2, 10.8 8.2
-             C 13 9.4, 14.9 12, 16 15.6
-             C 17.1 12, 19 9.4, 21.2 8.2
-             C 23.4 9.2, 24.5 11.2, 24.5 13.5
-             C 24.5 19.5, 21.5 24.8, 16 26.5 Z"
-          fill="url(#lnav-panel)"/>
-    <!-- Central vein (the implicit V monogram) -->
-    <path d="M 16 9.5 L 16 25.5" stroke="#1a3a28" stroke-width="0.75" opacity="0.55" stroke-linecap="round"/>
-    <!-- Two side veins — panel detail -->
-    <path d="M 16 14 Q 13 16 11 19" stroke="#1a3a28" stroke-width="0.55" opacity="0.4" stroke-linecap="round" fill="none"/>
-    <path d="M 16 14 Q 19 16 21 19" stroke="#1a3a28" stroke-width="0.55" opacity="0.4" stroke-linecap="round" fill="none"/>
+    <!-- Lifecycle OS product mark: a closed loop with an advancing arrowhead -
+         the lifecycle that keeps running. Brand-NEUTRAL by construction: every
+         colour resolves through the active brand's design tokens, so the mark
+         re-skins with the workspace instead of carrying one tenant's palette.
+         When the active brand supplies a logo_url, brand-context.js swaps this
+         out for that image entirely. -->
+    <rect width="32" height="32" rx="8" fill="var(--brand-primary, #D0473E)"/>
+    <circle cx="16" cy="16" r="7.6" fill="none"
+            stroke="var(--brand-on-primary, #FFFFFF)" stroke-width="2.1"
+            stroke-linecap="round" stroke-dasharray="35 12" transform="rotate(-38 16 16)"/>
+    <path d="M 22.6 9.6 L 23.9 13.3 L 20.1 12.4 Z" fill="var(--brand-on-primary, #FFFFFF)"/>
+    <circle cx="16" cy="16" r="2.4" fill="var(--brand-accent, #6A33D8)"/>
   </svg>`;
 
   // ─── Information architecture (left-hand sidebar) ───────────────────
