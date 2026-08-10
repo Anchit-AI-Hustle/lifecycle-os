@@ -109,6 +109,25 @@ async function smartBrain(req, res, smartAction) {
     };
     const wsId = await wsScope.resolve(scopeEnv, req);
     body.config = Object.assign({}, body.config, { workspace_id: wsId || null });
+
+    // A BROWSER request that carries neither a workspace param nor a user token
+    // cannot be attributed to anyone. Serving it the default workspace is how
+    // another brand's plan reached a signed-in user's screen, so refuse instead
+    // of guessing. Server-to-server calls (cron, the prebuild self-chain) have
+    // no Origin/Referer header and keep the default-workspace behaviour.
+    const q0 = (req && req.query) || {};
+    const b0 = (req && req.body && typeof req.body === 'object') ? req.body : {};
+    const hadExplicit = !!(q0.workspace_id || b0.workspace_id);
+    const hadAuth = !!((req.headers && (req.headers.authorization || req.headers.Authorization)));
+    const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
+    if (!hadExplicit && !hadAuth && fromBrowser) {
+      return res.status(200).json({
+        ok: true, mode: 'unscoped', stored: false, entries: [], changes: [],
+        error: 'workspace_unresolved',
+        note: 'This request arrived without an active workspace, so no data is returned. '
+          + 'Another brand\'s workspace is never substituted. Reload the page (hard refresh) so the brand context loads, then try again.',
+      });
+    }
   } catch (_) { body.config = body.config || {}; }
 
   try {
