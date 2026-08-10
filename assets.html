@@ -93,18 +93,18 @@
 
   <div class="controls">
     <div class="tabs" id="tabs">
-      <button class="chip active" data-type="all">All <span class="n" data-tabn="all"></span></button>
-      <button class="chip" data-type="mailer">Mailers <span class="n" data-tabn="mailer"></span></button>
-      <button class="chip" data-type="ad">Ads <span class="n" data-tabn="ad"></span></button>
-      <button class="chip" data-type="landing">Landing Pages <span class="n" data-tabn="landing"></span></button>
+      <button type="button" class="chip active" data-type="all">All <span class="n" data-tabn="all"></span></button>
+      <button type="button" class="chip" data-type="mailer">Mailers <span class="n" data-tabn="mailer"></span></button>
+      <button type="button" class="chip" data-type="ad">Ads <span class="n" data-tabn="ad"></span></button>
+      <button type="button" class="chip" data-type="landing">Landing Pages <span class="n" data-tabn="landing"></span></button>
     </div>
     <div class="spacer"></div>
     <label class="search">🔍<input id="q" type="search" placeholder="Search name, market, tag…" autocomplete="off"></label>
     <div class="scope">
-      <button class="chip active" data-scope="mine">Mine</button>
-      <button class="chip" data-scope="all">Everyone</button>
+      <button type="button" class="chip active" data-scope="mine">Mine</button>
+      <button type="button" class="chip" data-scope="all">Everyone</button>
     </div>
-    <button class="btn" id="refresh">↻</button>
+    <button type="button" class="btn" id="refresh">↻</button>
   </div>
 
   <div id="syncStrip" hidden style="margin:0 0 14px;padding:9px 14px;border:1px solid rgba(171,135,67,0.25);border-radius:10px;font-size:12.5px;align-items:center;gap:10px;background:#ffffff;color:#556059"></div>
@@ -331,7 +331,7 @@
       let thumb, hasView = false;
       if (it.html && (it.kind === 'mailer' || it.kind === 'landing')) {
         thumb = '<div class="thumb-wrap"><iframe sandbox srcdoc="' + esc(it.html) + '" loading="lazy" title="preview"></iframe>'
-          + '<button class="thumb-open" data-act="view" data-id="' + it._id + '" aria-label="Open preview"></button></div>';
+          + '<button type="button" class="thumb-open" data-act="view" data-id="' + it._id + '" aria-label="Open preview"></button></div>';
         hasView = true;
       } else if (it.kind === 'ad' && it.image) {
         thumb = '<img class="thumb" src="' + esc(it.image) + '" alt="" loading="lazy">';
@@ -340,7 +340,7 @@
       }
       const meta = [it.market, fmtDate(it.created_at)].filter(Boolean).join(' · ');
       const previewBtn = hasView
-        ? '<button class="abtn" data-act="view" data-id="' + it._id + '">Preview</button>'
+        ? '<button type="button" class="abtn" data-act="view" data-id="' + it._id + '">Preview</button>'
         : '<a class="abtn" href="' + esc(it.kind === 'mailer' ? '/studio' : it.kind === 'ad' ? '/ads' : '/landing') + '" target="_blank" rel="noopener">Open in tool</a>';
       return '<div class="asset">' + thumb +
         '<div class="pad">' +
@@ -348,8 +348,8 @@
           '<div class="meta"><span class="tag ' + it.kind + '">' + (it.kind === 'landing' ? 'Landing' : it.kind === 'ad' ? esc(it.tag || 'Ad') : 'Mailer') + '</span>' + esc(meta) + '</div>' +
           '<div class="acts">' +
             previewBtn +
-            '<button class="abtn" data-act="clone" data-id="' + it._id + '">⧉ Clone</button>' +
-            '<button class="abtn primary" data-act="prompt" data-id="' + it._id + '">📋 AI prompt</button>' +
+            '<button type="button" class="abtn" data-act="clone" data-id="' + it._id + '">⧉ Clone</button>' +
+            '<button type="button" class="abtn primary" data-act="prompt" data-id="' + it._id + '">📋 AI prompt</button>' +
           '</div>' +
         '</div></div>';
     }).join('');

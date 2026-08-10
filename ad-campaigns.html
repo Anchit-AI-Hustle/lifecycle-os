@@ -168,10 +168,10 @@
   </section>
 
   <div class="tabs" id="tabs">
-    <button class="tab" data-tab="calendar">Calendar</button>
-    <button class="tab" data-tab="google">Google Ads</button>
-    <button class="tab" data-tab="meta">Meta Ads</button>
-    <button class="tab" data-tab="tiktok">TikTok Ads</button>
+    <button type="button" class="tab" data-tab="calendar">Calendar</button>
+    <button type="button" class="tab" data-tab="google">Google Ads</button>
+    <button type="button" class="tab" data-tab="meta">Meta Ads</button>
+    <button type="button" class="tab" data-tab="tiktok">TikTok Ads</button>
   </div>
 
   <!-- CALENDAR -->
@@ -181,14 +181,14 @@
         <h3 style="font-family:'Lora',serif;font-size:18px;font-weight:600;margin:0">Ad calendar, the Knickgasm Brain plan</h3>
         <div style="display:flex;gap:8px;align-items:center">
           <div id="ad-mkt" style="display:flex;gap:4px"></div>
-          <button class="btn btn-ghost" id="ad-refresh" title="Reload the plan">↻</button>
+          <button type="button" class="btn btn-ghost" id="ad-refresh" title="Reload the plan">↻</button>
         </div>
       </div>
       <p class="note" style="margin:8px 0 14px">This is the <b>same rolling plan as the Knickgasm Brain</b> mailer calendar, identical slots, cohorts, dates and reasoning. Each slot's paid-social ad set (Meta, Google, TikTok) is generated from the same strategy, copy and real catalog assets as its mailer. Review and approval happen in the Brain; approving a slot there locks its ads here too.</p>
       <div id="ad-plan"></div>
       <div id="ad-plan-empty" class="cal-empty" style="display:none"></div>
       <div style="margin-top:14px;border-top:1px solid rgba(171,135,67,0.15);padding-top:12px">
-        <button class="btn btn-ghost" id="ad-manual">＋ Add a manual one-off campaign</button>
+        <button type="button" class="btn btn-ghost" id="ad-manual">＋ Add a manual one-off campaign</button>
         <span class="note" style="margin-left:8px">Manual campaigns are separate from the Brain plan and also show in their channel tab.</span>
       </div>
     </div>
@@ -202,7 +202,7 @@
         <div class="ai-bar" data-surface="google">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. Promote one-of-one Jordan First Flush at 25% off in the US, target product-curious buyers searching for premium custom"></textarea>
-          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="g-name" placeholder="e.g. Jordan First Flush — Search">
@@ -234,8 +234,8 @@
           <div class="cre-prev" id="g-cre-prev"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-ghost" id="g-ai">✨ Generate copy with AI</button>
-          <button class="btn btn-solid" id="g-save">Save campaign</button>
+          <button type="button" class="btn btn-ghost" id="g-ai">✨ Generate copy with AI</button>
+          <button type="button" class="btn btn-solid" id="g-save">Save campaign</button>
         </div>
         <p class="note" id="g-ai-note"></p>
       </div>
@@ -254,7 +254,7 @@
         <div class="ai-bar" data-surface="meta">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. Re-engage lapsed US buyers with our Products Bestsellers bundle, $40/day, Advantage+ placements, primary text in our 'morning routine' voice"></textarea>
-          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="m-name" placeholder="e.g. Gifting Season — Advantage+">
@@ -287,8 +287,8 @@
           <div class="cre-prev" id="m-cre-prev"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-ghost" id="m-ai">✨ Generate copy with AI</button>
-          <button class="btn btn-solid" id="m-save">Save campaign</button>
+          <button type="button" class="btn btn-ghost" id="m-ai">✨ Generate copy with AI</button>
+          <button type="button" class="btn btn-solid" id="m-save">Save campaign</button>
         </div>
         <p class="note" id="m-ai-note"></p>
       </div>
@@ -307,7 +307,7 @@
         <div class="ai-bar" data-surface="tiktok">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. UGC creator drop for our Custom Products alternative, $30/day, In-Feed + Spark Ads, hook in the 'POV: morning coffee crash' lane"></textarea>
-          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="t-name" placeholder="e.g. Morning Routine — UGC Creator Drop">
@@ -344,8 +344,8 @@
           <div class="cre-prev" id="t-cre-prev"></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-ghost" id="t-ai">✨ Generate hook + caption with AI</button>
-          <button class="btn btn-solid" id="t-save">Save campaign</button>
+          <button type="button" class="btn btn-ghost" id="t-ai">✨ Generate hook + caption with AI</button>
+          <button type="button" class="btn btn-solid" id="t-save">Save campaign</button>
         </div>
         <p class="note" id="t-ai-note"></p>
       </div>
@@ -372,8 +372,8 @@
       <div><label class="label">Market</label><select id="dm-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-ghost" data-close>Cancel</button>
-      <button class="btn btn-solid" id="dm-save">Schedule</button>
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="button" class="btn btn-solid" id="dm-save">Schedule</button>
     </div>
     <div id="dm-existing" style="margin-top:14px"></div>
   </div>
@@ -966,7 +966,7 @@
   const adVisible = (e) => AD_MKT === 'ALL' || String(e.market || '').toUpperCase() === AD_MKT;
   function renderAdMkt() {
     const host = $('#ad-mkt'); if (!host) return;
-    host.innerHTML = ['US', 'UK', 'ALL'].map((m) => `<button class="tab${AD_MKT === m ? ' active' : ''}" data-admkt="${m}" style="padding:5px 12px;font-size:12px">${m}</button>`).join('');
+    host.innerHTML = ['US', 'UK', 'ALL'].map((m) => `<button type="button" class="tab${AD_MKT === m ? ' active' : ''}" data-admkt="${m}" style="padding:5px 12px;font-size:12px">${m}</button>`).join('');
     host.querySelectorAll('[data-admkt]').forEach((b) => { b.onclick = () => { AD_MKT = b.dataset.admkt; renderAdMkt(); renderAdPlan(); }; });
   }
   async function loadAdPlan() {
@@ -1001,7 +1001,7 @@
         + `<td style="padding:10px">${chans}</td>`
         + `<td style="padding:10px">${e.confidence != null ? Math.round(e.confidence * 100) + '%' : '—'}</td>`
         + `<td style="padding:10px">${adStatus(e)}</td>`
-        + `<td style="padding:10px;white-space:nowrap"><button class="btn btn-ghost" onclick="viewAdSlot(${i})">View ads</button> <button class="btn btn-ghost" onclick="whyAdSlot(${i})">❓ Why</button></td>`
+        + `<td style="padding:10px;white-space:nowrap"><button type="button" class="btn btn-ghost" onclick="viewAdSlot(${i})">View ads</button> <button type="button" class="btn btn-ghost" onclick="whyAdSlot(${i})">❓ Why</button></td>`
         + `</tr>`
         + `<tr id="adexp-${i}" style="display:none"><td colspan="7" style="padding:0;background:var(--vh-panel-tan)"><div id="adbody-${i}" style="padding:14px 16px"></div></td></tr>`;
     }).join('');
@@ -1065,7 +1065,7 @@
     $('#dm-name').value = ''; $('#dm-budget').value = '';
     const existing = store.calendar[k] || [];
     $('#dm-existing').innerHTML = existing.length
-      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
+      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
       : '';
     $('#dm-existing').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => {
       store.calendar[k].splice(+b.dataset.rm, 1); if (!store.calendar[k].length) delete store.calendar[k]; save(); openDay(k); renderAdPlan();
@@ -1142,7 +1142,7 @@
     $('#g-count').textContent = store.google.length;
     $('#g-list').innerHTML = store.google.length ? store.google.map((c) => `
       <div class="item">
-        <div class="item-top"><span class="chan chan-google">Google</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-top"><span class="chan chan-google">Google</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
         <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
         ${(c.headlines || []).length ? `<div class="item-copy"><span class="h">Headlines:</span> ${c.headlines.map(esc).join(' · ')}</div>` : ''}
         ${(c.descriptions || []).length ? `<div class="item-copy">${c.descriptions.map(esc).join('<br>')}</div>` : ''}
@@ -1165,7 +1165,7 @@
     $('#m-count').textContent = store.meta.length;
     $('#m-list').innerHTML = store.meta.length ? store.meta.map((c) => `
       <div class="item">
-        <div class="item-top"><span class="chan chan-meta">Meta</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-top"><span class="chan chan-meta">Meta</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
         <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
         ${c.aud ? `<div class="item-copy"><span class="h">Audience:</span> ${esc(c.aud)}</div>` : ''}
         ${c.primary ? `<div class="item-copy">${esc(c.primary)}</div>` : ''}
@@ -1188,7 +1188,7 @@
     $('#t-count').textContent = store.tiktok.length;
     $('#t-list').innerHTML = store.tiktok.length ? store.tiktok.map((c) => `
       <div class="item">
-        <div class="item-top"><span class="chan chan-other">TikTok</span><b>${esc(c.name)}</b><button class="x" data-rm="${c.id}">×</button></div>
+        <div class="item-top"><span class="chan chan-other">TikTok</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
         <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>$${esc(c.budget)}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
         <div class="item-copy" style="margin-top:6px"><span class="h">${esc(c.hook || '')}</span><br>${esc(c.caption || '')}</div>
         ${c.hashtags ? `<div class="item-meta" style="margin-top:6px"><span>${esc(c.hashtags)}</span></div>` : ''}

@@ -102,7 +102,7 @@
       <div>
         <div class="label">Market</div>
         <div class="flex gap-1.5 mt-2">
-          <button class="filter-chip active" disabled title="This program is UK-only (knickgasm.com)">UK</button>
+          <button type="button" class="filter-chip active" disabled title="This program is UK-only (knickgasm.com)">UK</button>
         </div>
       </div>
       <div>
@@ -123,13 +123,13 @@
       <div>
         <div class="label">Plan window</div>
         <div class="flex gap-1.5 mt-2" id="daysChips">
-          <button class="filter-chip" data-days="14">14d</button>
-          <button class="filter-chip active" data-days="30">30d</button>
-          <button class="filter-chip" data-days="45">45d</button>
+          <button type="button" class="filter-chip" data-days="14">14d</button>
+          <button type="button" class="filter-chip active" data-days="30">30d</button>
+          <button type="button" class="filter-chip" data-days="45">45d</button>
         </div>
       </div>
       <div class="flex-1"></div>
-      <button id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90">⚡ Generate Calendar</button>
+      <button type="button" id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90">⚡ Generate Calendar</button>
     </div>
     <div id="planMeta" class="mt-3 text-[11px] text-ink-mute font-mono">No plan yet - pick a start date and click Generate Calendar. Nothing runs automatically.</div>
   </section>
@@ -179,16 +179,16 @@
         <h2 class="text-lg font-semibold" id="mailerTitle">Mailer preview</h2>
         <p class="text-xs text-ink-dim" id="mailerSubtitle"></p>
       </div>
-      <button class="text-ink-mute hover:text-ink text-2xl leading-none" id="mailerClose">×</button>
+      <button type="button" class="text-ink-mute hover:text-ink text-2xl leading-none" id="mailerClose">×</button>
     </div>
     <div id="mailerBody"><div class="text-ink-mute text-center py-8">…</div></div>
     <div class="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-lava/15">
       <div id="copyStatus" class="text-[11px] text-ink-mute"></div>
       <div class="flex gap-2">
-        <button id="btnCopyHtml" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none">Copy HTML</button>
-        <button id="btnDownload" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none">↓ Download</button>
-        <button id="btnRegen" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none" title="Force a fresh rebuild (otherwise the saved mailer loads instantly)">↻ Regenerate</button>
-        <button id="btnDone" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded bg-lava text-bg font-semibold">Done</button>
+        <button type="button" id="btnCopyHtml" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none">Copy HTML</button>
+        <button type="button" id="btnDownload" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none">↓ Download</button>
+        <button type="button" id="btnRegen" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink" style="display:none" title="Force a fresh rebuild (otherwise the saved mailer loads instantly)">↻ Regenerate</button>
+        <button type="button" id="btnDone" class="text-[11px] uppercase tracking-wider px-3 py-2 rounded bg-lava text-bg font-semibold">Done</button>
       </div>
     </div>
   </div>
@@ -344,7 +344,7 @@ function renderTable(filter) {
       '<td class="text-[12px] max-w-[240px]">' + escAttr(p.subject_hint || '') + '</td>' +
       '<td class="max-w-[260px]">' + analysisDetails(p) + '</td>' +
       '<td class="text-[11px]">' + (p.festival ? '★ ' + escAttr(p.festival) : ' - ') + '</td>' +
-      '<td><button data-build="' + escAttr(p.id) + '" class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-lava/20 text-lava hover:bg-lava hover:text-bg whitespace-nowrap">Build Mailer →</button></td>' +
+      '<td><button type="button" data-build="' + escAttr(p.id) + '" class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-lava/20 text-lava hover:bg-lava hover:text-bg whitespace-nowrap">Build Mailer →</button></td>' +
     '</tr>'
   ).join('');
   $$('#planTable [data-build]').forEach((b) => b.addEventListener('click', () => {
@@ -413,7 +413,7 @@ async function buildMailer(entry, opts) {
 function renderVariantTabs() {
   const vs = STATE.variants || [];
   const tabs = vs.map((v, i) =>
-    '<button data-vtab="' + i + '" class="text-[11px] font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink whitespace-nowrap">' + escAttr(v.label || ('Variant ' + (i + 1))) + '</button>'
+    '<button type="button" data-vtab="' + i + '" class="text-[11px] font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink whitespace-nowrap">' + escAttr(v.label || ('Variant ' + (i + 1))) + '</button>'
   ).join('');
   $('mailerBody').innerHTML =
     '<div class="flex flex-wrap gap-2 mb-3" id="vtabs">' + tabs + '</div>' +

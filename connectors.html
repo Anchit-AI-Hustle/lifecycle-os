@@ -57,7 +57,7 @@
       <h1>Connectors</h1>
       <p>Connection status is checked server-side against real environment variables, never faked. Missing credentials show an honest Not Connected state with the exact setup steps. Secrets are set in Vercel and never exposed to the browser.</p>
     </div>
-    <button class="btn secondary" id="reload-btn">Reload</button>
+    <button type="button" class="btn secondary" id="reload-btn">Reload</button>
   </div>
   <div id="banner"></div>
   <div class="summary" id="summary"></div>
@@ -95,7 +95,7 @@
     }
 
     h += '<div class="foot"><span class="lastsync">Last sync: '+esc(timeago(c.last_sync_at))+(c.last_status?(' · '+esc(c.last_status)):'')+'</span>';
-    h += '<button class="btn sm sync" data-id="'+esc(c.id)+'">Sync now</button></div>';
+    h += '<button type="button" class="btn sm sync" data-id="'+esc(c.id)+'">Sync now</button></div>';
     if(c.last_message){ h += '<div class="lastsync" style="opacity:.8">'+esc(c.last_message)+'</div>'; }
     h += '</div>';
     return h;

@@ -311,7 +311,7 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
     <p style="color:var(--text-dim);font-size:.9rem;margin-bottom:18px">Four advertisers want the same slot. The platform does <b style="color:var(--text)">not</b> just pick the highest bid, it ranks them by <span class="mono" style="color:var(--amber)">Bid × Quality Score</span>. Hit run and see who wins, and what they actually pay.</p>
     <div id="bidders"></div>
     <div class="sim-result" id="simResult"></div>
-    <div style="margin-top:18px"><button class="btn" id="runAuction">↻ Run a new auction</button></div>
+    <div style="margin-top:18px"><button type="button" class="btn" id="runAuction">↻ Run a new auction</button></div>
   </div>
 </section>
 
@@ -889,13 +889,13 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
     segs.forEach(function(s,i){s.classList.toggle('on',i<step);});
     if(node.result){
       dtreeBody.innerHTML='<div class="dtree-result"><h4>→ '+node.h+'</h4><p>'+node.p+'</p></div>'+
-        '<button class="btn ghost" id="dtreeReset" style="margin-top:16px">↺ Start over</button>';
+        '<button type="button" class="btn ghost" id="dtreeReset" style="margin-top:16px">↺ Start over</button>';
       document.getElementById('dtreeReset').addEventListener('click',function(){renderTree('start',1);});
       return;
     }
     var html='<div class="q">'+node.q+'</div><div class="opts">';
     node.opts.forEach(function(o,i){
-      html+='<button class="opt" data-go="'+o.go+'"><span class="n">'+(i+1)+'</span>'+o.t+'</button>';
+      html+='<button type="button" class="opt" data-go="'+o.go+'"><span class="n">'+(i+1)+'</span>'+o.t+'</button>';
     });
     html+='</div>';
     dtreeBody.innerHTML=html;

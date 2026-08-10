@@ -76,7 +76,7 @@
         <div id="engbar" style="height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;display:none"><i style="display:block;height:100%;width:38%;background:linear-gradient(90deg,#1d6b45,#0a7d33)"></i></div>
         <div id="engmsg" class="note" style="margin-top:6px">Plan a fresh calendar and write its content for the region selected below, without leaving this screen. Heavy generation runs in the background, so the filters stay responsive.</div>
       </div>
-      <button id="syncbtn" class="chip" style="background:var(--knickgasm-green);color:#fff;border-color:var(--lava);padding:9px 18px;font-size:13px" onclick="runAgenticSync()">Run Agentic Sync</button>
+      <button type="button" id="syncbtn" class="chip" style="background:var(--knickgasm-green);color:#fff;border-color:var(--lava);padding:9px 18px;font-size:13px" onclick="runAgenticSync()">Run Agentic Sync</button>
     </div>
   </section>
 
@@ -87,23 +87,23 @@
     </div>
     <div class="filters">
       <div class="frow"><span class="lbl">Region</span>
-        <button class="chip" data-mkt="all" onclick="toggleMkt('all')">All</button>
-        <button class="chip on" data-mkt="US" onclick="toggleMkt('US')">US</button>
-        <button class="chip" data-mkt="UK" onclick="toggleMkt('UK')">UK</button>
-        <button class="chip" data-mkt="Global" onclick="toggleMkt('Global')">Global</button>
-        <button class="chip" data-mkt="India" onclick="toggleMkt('India')">India</button>
+        <button type="button" class="chip" data-mkt="all" onclick="toggleMkt('all')">All</button>
+        <button type="button" class="chip on" data-mkt="US" onclick="toggleMkt('US')">US</button>
+        <button type="button" class="chip" data-mkt="UK" onclick="toggleMkt('UK')">UK</button>
+        <button type="button" class="chip" data-mkt="Global" onclick="toggleMkt('Global')">Global</button>
+        <button type="button" class="chip" data-mkt="India" onclick="toggleMkt('India')">India</button>
       </div>
       <div class="frow"><span class="lbl">Duration</span>
-        <button class="chip" data-dur="7" onclick="setDur(7)">Next 7 days</button>
-        <button class="chip" data-dur="30" onclick="setDur(30)">30 days</button>
-        <button class="chip" data-dur="60" onclick="setDur(60)">60 days</button>
-        <button class="chip on" data-dur="90" onclick="setDur(90)">90 days</button>
-        <button class="chip" data-dur="all" onclick="setDur('all')">All</button>
+        <button type="button" class="chip" data-dur="7" onclick="setDur(7)">Next 7 days</button>
+        <button type="button" class="chip" data-dur="30" onclick="setDur(30)">30 days</button>
+        <button type="button" class="chip" data-dur="60" onclick="setDur(60)">60 days</button>
+        <button type="button" class="chip on" data-dur="90" onclick="setDur(90)">90 days</button>
+        <button type="button" class="chip" data-dur="all" onclick="setDur('all')">All</button>
       </div>
       <div class="frow"><span class="lbl">Catalog</span>
-        <button class="chip on" data-cat="product" onclick="toggleCat('product')">Products &amp; Botanicals</button>
-        <button class="chip on" data-cat="coffee" onclick="toggleCat('coffee')">Coffee Collection</button>
-        <button class="chip on" data-cat="supplement" onclick="toggleCat('supplement')">Supplements</button>
+        <button type="button" class="chip on" data-cat="product" onclick="toggleCat('product')">Products &amp; Botanicals</button>
+        <button type="button" class="chip on" data-cat="coffee" onclick="toggleCat('coffee')">Coffee Collection</button>
+        <button type="button" class="chip on" data-cat="supplement" onclick="toggleCat('supplement')">Supplements</button>
         <span class="cnt" id="cnt"></span>
       </div>
     </div>

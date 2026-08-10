@@ -241,17 +241,17 @@
     <div class="nm" id="coName">Select a product</div>
     <div class="pr" id="coPrice"></div>
     <div class="qty">Qty
-      <button id="qMinus" aria-label="decrease">&minus;</button>
+      <button type="button" id="qMinus" aria-label="decrease">&minus;</button>
       <span id="qVal">1</span>
-      <button id="qPlus" aria-label="increase">+</button>
+      <button type="button" id="qPlus" aria-label="increase">+</button>
     </div>
     <a class="buy" id="coBuy" href="#" target="_blank" rel="noopener">Buy now &#9889;</a>
     <div class="pw">Powered by Shopify</div>
   </div>
 
   <div class="overlay vartoggle panel">
-    <button data-v="dark" class="active">Dark</button>
-    <button data-v="light">Light</button>
+    <button type="button" data-v="dark" class="active">Dark</button>
+    <button type="button" data-v="light">Light</button>
   </div>
 
   <div id="loading">Lacing the storefront&hellip;</div>
@@ -427,7 +427,7 @@ function filterCollection(tag){
 }
 function buildCollections(){
   const wrap=$('collist');
-  wrap.innerHTML=COLLECTIONS.map((c,i)=>`<button class="${i===0?'active':''}" data-c="${c}">${c}</button>`).join('');
+  wrap.innerHTML=COLLECTIONS.map((c,i)=>`<button type="button" class="${i===0?'active':''}" data-c="${c}">${c}</button>`).join('');
   wrap.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
     wrap.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
     filterCollection(COLLECTION_TAGS[b.dataset.c]);

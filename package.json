@@ -36,7 +36,8 @@
     "brand:presets": "node scripts/build-brand-presets.js",
     "audit:pages": "node scripts/audit-pages.js",
     "audit:pages:ci": "node scripts/audit-pages.js --fail",
-    "retheme": "node scripts/retheme-legacy-palette.js"
+    "retheme": "node scripts/retheme-legacy-palette.js",
+    "test:isolation": "node scripts/test-brand-isolation.js --ci"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",

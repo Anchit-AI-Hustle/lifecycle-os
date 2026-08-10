@@ -38,45 +38,68 @@ function pickHero(list, hint) {
   return (score > 0 ? best : list.find((p) => p.i)) || list[0];
 }
 
-function buildFallbackLanding({ id = '', region = 'us', hint = '' } = {}) {
-  const rk = REGION[region] ? region : 'us';
-  const r = REGION[rk];
-  const p = pickHero(catalog(rk), hint);
-  const name = (p && p.n) || 'KNICKGASM one-of-one sneaker';
+/**
+ * The /lp/:id fallback page. Rendered when a generated landing page cannot be
+ * found, so it must belong to the ACTIVE brand: name, palette, store, claims
+ * and hero all come from the brand record.
+ *
+ * It previously hardcoded tenant zero AND asserted facts no brand record
+ * supports - "Rated 4.9 / 5", "Over 250,000 five-star reviews", named celebrity
+ * endorsements. Those are fabrications under the zero-fabrication contract, so
+ * they are gone for every brand: proof renders only from the brand's own
+ * verifiable claims, and nothing renders when it has none.
+ */
+function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null, entry = null } = {}) {
+  const b = (brand && brand.id) ? brand
+    : (entry && entry.brand && entry.brand.id) ? entry.brand
+      : (() => { try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; } })();
+  const isZero = /^knickgasm$/i.test(String(b.slug || b.name || ''));
+  const bName = b.name || 'the brand';
+  const pal = b.palette || {};
+  const P = pal.primary || '#111111';
+  const ACC = pal.accent || P;
+  const INK = pal.ink || '#111111';
+  const SURF = pal.surface || '#FFFFFF';
+  const t = b.typography || {};
+  const HEAD = (t.heading && t.heading.stack) || 'Georgia, serif';
+  const BODY = (t.body && t.body.stack) || "system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif";
+
+  // Region + store from the BRAND's own record; the shipped catalogue is tenant
+  // zero's, so only tenant zero may pick a hero product from it.
+  const codes = (Array.isArray(b.regions) ? b.regions : []);
+  const rgn = codes.find((x) => String(x.code || '').toLowerCase() === String(region).toLowerCase()) || codes[0] || null;
+  const base = String((rgn && rgn.store_url) || b.website || '').replace(/\/$/, '');
+  const ccy = (rgn && rgn.symbol) || '';
+
+  const p = isZero ? pickHero(catalog(REGION[region] ? region : 'us'), hint) : null;
+  const name = (p && p.n) || (entry && entry.heroProduct && entry.heroProduct.title) || bName;
   const img = (p && p.i) || '';
-  const price = p && p.price ? (/[£$₹]/.test(String(p.price)) ? String(p.price) : r.ccy + p.price) : '';
-  const url = p && p.h ? `${r.base}/products/${p.h}` : `${r.base}/collections/sneakers`;
-  const visual = img ? `<img src="${e(img)}" alt="${e(name)}" loading="eager">` : `<div class="pack">KNICKGASM</div>`;
-  const bene = [
-    ['Single-studio, studio-fresh', 'Leaves picked at peak season and shipped fresh from India within 72 hours — never blended into anonymity.'],
-    ['Rated 4.9 / 5', 'Over 250,000 five-star reviews from sneaker drinkers around the world.'],
-    ["Worn by Samay Raina & Rohit Sharma", "A celebrated pick on Worn by Samay Raina & Rohit Sharma list."],
-    ['Ethically sourced', 'Bought direct from the studios that grow it — fair from panel to pair.'],
-  ];
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(name)} · KNICKGASM</title><style>
-:root{--g:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--line:rgba(171,135,67,.4)}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--chalk);color:var(--ink);font:16px/1.6 'Instrument Sans','Helvetica Neue',Arial,sans-serif;overflow-x:hidden}h1,h2,h3,.eyebrow{font-family:'Montserrat',Georgia,serif;color:var(--g)}.eyebrow{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--lava);font-weight:700}
-.nav{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:14px max(20px,6vw);background:var(--chalk);border-bottom:1px solid var(--line)}.brandmark{font:800 20px/1 'Montserrat',Georgia,serif;letter-spacing:.24em;color:var(--g)}
-.cta{display:inline-flex;min-height:50px;align-items:center;padding:13px 26px;border-radius:999px;background:var(--lava);color:var(--g);font-weight:800;text-decoration:none;box-shadow:0 10px 24px rgba(0,0,0,.15)}
-.hero{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center;padding:60px max(20px,6vw);background:var(--g);color:var(--chalk)}.hero h1{color:var(--chalk);font-size:clamp(36px,6vw,68px);line-height:1;margin:6px 0 12px}.stars{color:var(--lava);letter-spacing:2px}.scene{display:grid;place-items:center}.frame{width:min(330px,80%);border-radius:20px;overflow:hidden;border:2px solid var(--lava);box-shadow:24px 18px 0 rgba(23,23,23,.5)}.frame img{display:block;width:100%}.pack{width:220px;height:280px;display:grid;place-items:center;background:var(--chalk);color:var(--g);font:800 24px 'Montserrat',Georgia,serif;border:2px solid var(--lava);border-radius:16px}
-.trust{display:flex;flex-wrap:wrap;gap:10px 26px;justify-content:center;padding:18px;background:var(--ink);color:var(--chalk);font-size:13px;font-weight:700}
-.section{padding:64px max(20px,6vw)}.section h2{font-size:clamp(24px,3.4vw,38px);margin:0 0 6px}.lead{max-width:60ch;opacity:.85}
-.cards,.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:24px}.card,.step{padding:22px;border:1px solid var(--lava);border-radius:16px;background:#fff}.step b{display:block;color:var(--lava);font:800 15px 'Montserrat',Georgia,serif;margin-bottom:8px}
-.cmp{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px}.cmp th,.cmp td{padding:12px;border-bottom:1px solid var(--lava);text-align:left}.cmp thead th{background:var(--g);color:var(--chalk)}.cmp .y{color:var(--g);font-weight:800}.cmp .n{color:#9a4a3a}
-.spotlight{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;padding:64px max(20px,6vw);background:#f3ead7}.price{font:800 30px 'Montserrat',Georgia,serif;color:var(--g);margin:8px 0 16px}
-.guarantee{text-align:center;padding:52px max(20px,6vw)}.faq{max-width:820px;margin:auto}.faq details{padding:16px;border-bottom:1px solid var(--lava)}.faq summary{cursor:pointer;font-weight:700;color:var(--g)}
-footer{padding:34px;background:var(--ink);color:var(--chalk);text-align:center}@media(max-width:820px){.hero,.spotlight{grid-template-columns:1fr}.cards,.steps{grid-template-columns:1fr}}
+  const price = p && p.price ? (/[£$₹]/.test(String(p.price)) ? String(p.price) : ccy + p.price) : '';
+  const url = (p && p.h && base) ? `${base}/products/${p.h}` : (base || '#');
+  const visual = img ? `<img src="${e(img)}" alt="${e(name)}" loading="eager">` : `<div class="pack">${e(bName)}</div>`;
+
+  // Proof comes ONLY from the brand's stated claims. No claims, no proof block.
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter(Boolean).slice(0, 3);
+  const bene = claims.map((c) => [c, '']);
+
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(name)} · ${e(bName)}</title><style>
+:root{--g:${P};--lava:${ACC};--ink:${INK};--chalk:${SURF};--line:rgba(0,0,0,.14)}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--chalk);color:var(--ink);font:16px/1.6 ${BODY};overflow-x:hidden}h1,h2,h3,.eyebrow{font-family:${HEAD};color:var(--g)}.eyebrow{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--lava);font-weight:700}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line)}.brandmark{font-family:${HEAD};font-weight:700;letter-spacing:.2em;color:var(--g)}
+.cta{display:inline-block;background:var(--g);color:var(--chalk);text-decoration:none;font-weight:700;padding:13px 24px;border-radius:8px}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;max-width:1040px;margin:0 auto;padding:52px 22px}
+.frame{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--chalk)}.frame img{width:100%;display:block;border-radius:10px}
+.pack{font-family:${HEAD};font-size:28px;color:var(--g);text-align:center;padding:60px 0}
+.bene{max-width:1040px;margin:0 auto;padding:0 22px 56px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{border:1px solid var(--line);border-radius:12px;padding:16px}
+footer{border-top:1px solid var(--line);padding:22px;text-align:center;font-size:12px;opacity:.7}
+@media(max-width:820px){.hero{grid-template-columns:1fr}}
 </style></head><body>
-<nav class="nav"><span class="brandmark">KNICKGASM</span><a class="cta" href="${e(url)}" target="_blank" rel="noopener">Shop now</a></nav>
-<section class="hero"><div><div class="eyebrow">Single-studio · Studio-fresh</div><h1>${e(name)}</h1><p>Hand-painted one-of-one sneaker, crafted for a more considered daily ritual.</p><div class="stars"><span style="font-size:13px;opacity:.9">Made on 100% original brand sneakers</span></div><p style="margin-top:18px"><a class="cta" href="${e(url)}" target="_blank" rel="noopener">Shop ${e(name)} →</a></p></div><div class="scene"><div class="frame">${visual}</div></div></section>
-<section class="trust"><span>★ Rated 4.9 / 5</span><span>Judge.me verified reviews</span><span>Worn by Samay Raina & Rohit Sharma</span><span>Certified B Corp</span><span>Studio-fresh within 72 hours</span></section>
-<section class="section"><div class="eyebrow">The difference</div><h2>Most sneaker is old before it's opened</h2><p class="lead">Supermarket sneaker can sit for a year or more, blended from many studios and stripped of character. KNICKGASM does the opposite — one studio, one season, picked and packed fresh so the pair tastes the way the studio intended.</p></section>
-<section class="section" style="background:#f3ead7"><div class="eyebrow">How it works</div><h2>Three steps to a better pair</h2><div class="steps"><div class="step"><b>01 · Lace-up</b>Lace-up one-of-one leaves for a few minutes — no dust, no filler, just whole-panel sneaker.</div><div class="step"><b>02 · Step</b>Taste the origin: a cleaner, more expressive pair than any blended supermarket bag.</div><div class="step"><b>03 · Restore</b>Make it your daily ritual — a considered pause that resets the day.</div></div></section>
-<section class="section"><div class="eyebrow">Why KNICKGASM</div><h2>Crafted, not commodified</h2><div class="cards">${bene.map((b) => `<article class="card"><h3>${e(b[0])}</h3><p>${e(b[1])}</p></article>`).join('')}</div></section>
-<section class="section"><div class="eyebrow">Compare</div><h2>KNICKGASM vs ordinary sneaker</h2><table class="cmp"><thead><tr><th>&nbsp;</th><th>KNICKGASM</th><th>Ordinary sneaker</th></tr></thead><tbody><tr><td>Sourcing</td><td class="y">Single-studio, one studio</td><td class="n">Blended from many, unnamed</td></tr><tr><td>Freshness</td><td class="y">Packed within 72 hours</td><td class="n">Often 12+ months old</td></tr><tr><td>Panel</td><td class="y">Whole panel, no dust</td><td class="n">Broken dust &amp; fannings</td></tr><tr><td>Ethics</td><td class="y">Certified B Corp, direct trade</td><td class="n">Opaque supply chain</td></tr></tbody></table></section>
-<section class="spotlight" id="offer"><div class="scene"><div class="frame">${visual}</div></div><div><div class="eyebrow">Start your ritual</div><h2>${e(name)}</h2>${price ? `<div class="price">${e(price)}</div>` : ''}<p>Single-studio, studio-fresh, and rated 4.9/5 by over 250,000 sneaker drinkers.</p><p style="margin-top:16px"><a class="cta" href="${e(url)}" target="_blank" rel="noopener">Buy now →</a></p></div></section>
-<section class="guarantee"><h2>Laced with care</h2><p class="lead" style="margin:0 auto">Not your pair? Our support team will make it right. Every order ships studio-fresh and is backed by 250,000+ five-star reviews.</p></section>
-<section class="section faq"><div class="eyebrow">FAQ</div><h2>Questions</h2><details><summary>What makes this sneaker distinct?</summary><p>Single-studio sourcing, whole-panel freshness and careful craft remain visible from the studio to the pair.</p></details><details><summary>How fresh is it?</summary><p>Leaves are packed within about 72 hours of drop, so the pair tastes the way the studio intended.</p></details><details><summary>How is delivery handled?</summary><p>Your destination-specific estimate and any offer appear at checkout on the official store.</p></details></section>
-<footer>KNICKGASM · ${e(r.label)} · Shop at <a href="${e(r.base)}" style="color:var(--lava)">${e(r.base.replace(/^https?:\/\//, ''))}</a>${id ? ` · ref ${e(id)}` : ''}</footer>
+<nav class="nav"><span class="brandmark">${e(String(bName).toUpperCase())}</span>${base ? `<a class="cta" href="${e(url)}" target="_blank" rel="noopener">Visit site</a>` : ''}</nav>
+<section class="hero"><div>${b.tagline ? `<div class="eyebrow">${e(b.tagline)}</div>` : ''}<h1>${e(name)}</h1>${price ? `<p>${e(price)}</p>` : ''}
+${base ? `<p style="margin-top:18px"><a class="cta" href="${e(url)}" target="_blank" rel="noopener">See ${e(name)} →</a></p>` : '<p>[DATA REQUIRED BEFORE LAUNCH: destination URL for this brand]</p>'}
+</div><div class="scene"><div class="frame">${visual}</div></div></section>
+${bene.length ? `<section class="bene">${bene.map(([h, d]) => `<div class="card"><h3 style="margin:0 0 6px;font-size:15px">${e(h)}</h3>${d ? `<p style="margin:0;font-size:14px;opacity:.85">${e(d)}</p>` : ''}</div>`).join('')}</section>` : ''}
+<footer>${e(bName)}${id ? ` · ${e(id)}` : ''}</footer>
 </body></html>`;
 }
 

@@ -390,7 +390,14 @@ module.exports = async function handler(req, res) {
         // resolves to a real page. ?debug=1 above still exposes the diag.
         const region = String(req.query?.region || req.query?.r || 'us').toLowerCase();
         const { buildFallbackLanding } = require('./_shared/landing-fallback.js');
-        const fb = buildFallbackLanding({ id, region, hint: String(req.query?.hint || '') });
+        const fbBrand = await (async () => {
+          try {
+            const ws = require('./_shared/workspace-scope.js');
+            const env = { url: (process.env.SUPABASE_URL || '').replace(/\/$/, ''), key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '' };
+            return await ws.brandForWorkspace(env, body.config && body.config.workspace_id);
+          } catch (_) { return null; }
+        })();
+        const fb = buildFallbackLanding({ id, region, hint: String(req.query?.hint || ''), brand: fbBrand });
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('X-KNICKGASM-LP', diag.campaignFound ? 'campaign-no-lp-fallback' : 'campaign-not-persisted-fallback');
         if (req.query?.download) {

@@ -716,8 +716,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     </div>
     <!-- Sign In / Sign Up tab toggle -->
     <div style="display:flex;background:var(--vh-panel-tan);border-radius:10px;padding:4px;margin-bottom:18px;gap:4px">
-      <button id="authModeSignIn" onclick="setAuthMode('signin')" style="flex:1;padding:9px 8px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign In</button>
-      <button id="authModeSignUp" onclick="setAuthMode('signup')" style="flex:1;padding:9px 8px;background:transparent;color:#888;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign Up</button>
+      <button type="button" id="authModeSignIn" onclick="setAuthMode('signin')" style="flex:1;padding:9px 8px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign In</button>
+      <button type="button" id="authModeSignUp" onclick="setAuthMode('signup')" style="flex:1;padding:9px 8px;background:transparent;color:#888;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign Up</button>
     </div>
     <div id="authErrMsg" style="display:none;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;padding:9px 13px;font-size:12px;color:#b91c1c;margin-bottom:12px"></div>
     <div style="margin-bottom:12px">
@@ -732,7 +732,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <input type="checkbox" id="authRemember" checked style="width:14px;height:14px;accent-color:#D0473E">
       <span style="font-size:12px;color:#666">Remember me on this device</span>
     </label>
-    <button onclick="authSubmit()" style="width:100%;padding:12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;cursor:pointer;transition:opacity .2s;letter-spacing:0.04em" id="authBtn" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In &rarr;</button>
+    <button type="button" onclick="authSubmit()" style="width:100%;padding:12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;cursor:pointer;transition:opacity .2s;letter-spacing:0.04em" id="authBtn" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In &rarr;</button>
     <div style="text-align:center;margin-top:14px">
       <span style="font-size:11px;color:#888" id="authSwitch">No password needed, passwordless secure sign in</span><br>
       <span id="authToggleHint" style="font-size:11px;color:#aaa;margin-top:4px;display:inline-block">Don't have an account? <a href="#" onclick="setAuthMode('signup');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a></span>
@@ -750,18 +750,18 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   </div>
   <div class="app-hdr-divider"></div>
   <nav class="app-hdr-nav">
-    <button class="app-hdr-tab on" id="tabCreateBtn" onclick="switchMainTab('create')">&#9998;&nbsp; Create Mailer</button>
-    <button class="app-hdr-tab" id="tabDashBtn" onclick="switchMainTab('dashboard')">&#128202;&nbsp; Dashboard</button>
+    <button type="button" class="app-hdr-tab on" id="tabCreateBtn" onclick="switchMainTab('create')">&#9998;&nbsp; Create Mailer</button>
+    <button type="button" class="app-hdr-tab" id="tabDashBtn" onclick="switchMainTab('dashboard')">&#128202;&nbsp; Dashboard</button>
   </nav>
   <div class="app-hdr-user">
     <span id="userGreet" class="app-hdr-greet"></span>
-    <button id="logoutBtn" class="app-hdr-logout" onclick="logout()">Sign Out</button>
+    <button type="button" id="logoutBtn" class="app-hdr-logout" onclick="logout()">Sign Out</button>
   </div>
 </header>
 <!-- Mobile nav row (visible on small screens, sticky) -->
 <div style="background:linear-gradient(90deg,var(--g3),var(--g));display:none;padding:0 14px 10px;gap:4px;flex-wrap:wrap;border-bottom:1px solid rgba(171,135,67,0.25);position:sticky;top:var(--hdr);z-index:299" id="mobileNav" class="mobile-nav-row">
-  <button class="app-hdr-tab on" onclick="switchMainTab('create')" id="mobileCreateBtn" style="font-size:13px;padding:7px 18px">&#9998; Create Mailer</button>
-  <button class="app-hdr-tab" onclick="switchMainTab('dashboard')" id="mobileDashBtn" style="font-size:13px;padding:7px 18px">&#128202; Dashboard</button>
+  <button type="button" class="app-hdr-tab on" onclick="switchMainTab('create')" id="mobileCreateBtn" style="font-size:13px;padding:7px 18px">&#9998; Create Mailer</button>
+  <button type="button" class="app-hdr-tab" onclick="switchMainTab('dashboard')" id="mobileDashBtn" style="font-size:13px;padding:7px 18px">&#128202; Dashboard</button>
 </div>
 <div class="app">
 <div class="site-hdr"></div>
@@ -772,7 +772,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <div class="plbl" style="margin-bottom:2px">&#128202; Team Dashboard, All Campaigns</div>
         <p style="font-size:11px;color:#888;margin:0">Every mailer generated on this device by every user &mdash; shared across the whole team. Sorted newest first.</p>
       </div>
-      <button onclick="renderDashboard()" style="font-size:11px;padding:5px 14px;background:var(--lightg);border:1.5px solid var(--g);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;color:var(--g);font-weight:700;flex-shrink:0">&#8635; Refresh</button>
+      <button type="button" onclick="renderDashboard()" style="font-size:11px;padding:5px 14px;background:var(--lightg);border:1.5px solid var(--g);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;color:var(--g);font-weight:700;flex-shrink:0">&#8635; Refresh</button>
     </div>
     <div id="dashboardList">
       <div style="text-align:center;padding:40px 16px;color:#bbb">
@@ -826,9 +826,9 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         placeholder="e.g. 20% off all embroidery &amp; neon products with code DRIP20. Focus on the design story, everyday wear, and the craft behind the pair. Free shipping on orders over $49. Warm, inspiring tone."></textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap" id="smartAIRow">
         <!-- Primary CTA — adapts: Create (empty) or Enhance (has content) -->
-        <button id="smartAIBtn" onclick="smartAIBrief(event)" style="background:linear-gradient(135deg,#D0473E,var(--vh-ink));color:#FFFFFF;font-weight:700;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:12px;letter-spacing:0.02em;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,74,43,0.25);transition:all 0.2s">&#127775; Create Brief with AI</button>
+        <button type="button" id="smartAIBtn" onclick="smartAIBrief(event)" style="background:linear-gradient(135deg,#D0473E,var(--vh-ink));color:#FFFFFF;font-weight:700;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:12px;letter-spacing:0.02em;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,74,43,0.25);transition:all 0.2s">&#127775; Create Brief with AI</button>
         <!-- Secondary: "Start New" — only visible after brief exists -->
-        <button id="newBriefBtn" onclick="clearAndCreate()" style="display:none;background:#fff;color:#D0473E;border:1.5px solid #D0473E;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.02em;transition:all 0.2s">&#128260; New Brief</button>
+        <button type="button" id="newBriefBtn" onclick="clearAndCreate()" style="display:none;background:#fff;color:#D0473E;border:1.5px solid #D0473E;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.02em;transition:all 0.2s">&#128260; New Brief</button>
         <span id="smartAIHint" style="font-size:10.5px;color:#556059;flex:1;line-height:1.5">AI creates a director-grade brief from scratch using your market, campaign type, and product picks. Or type any seed idea first.</span>
       </div>
       <!-- Brief creation progress panel -->
@@ -870,13 +870,13 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <span style="font-size:10px;color:#556059;font-weight:400">Multi-select, each market gets its own tailored mailer</span>
       </div>
       <div class="mkt-chips" id="mktChips">
-        <button class="mkt-chip on" data-mkt="US" onclick="toggleMarket('US',this)">&#127482;&#127480; United States</button>
-        <button class="mkt-chip" data-mkt="UK" onclick="toggleMarket('UK',this)">&#127468;&#127463; United Kingdom</button>
-        <button class="mkt-chip" data-mkt="IN" onclick="toggleMarket('IN',this)">&#127470;&#127475; India</button>
-        <button class="mkt-chip" data-mkt="Global" onclick="toggleMarket('Global',this)">&#127758; Global</button>
-        <button class="mkt-chip" data-mkt="ME" onclick="toggleMarket('ME',this)">&#127462;&#127466; Middle East</button>
-        <button class="mkt-chip" data-mkt="AU" onclick="toggleMarket('AU',this)">&#127462;&#127482; Australia</button>
-        <button class="mkt-chip" data-mkt="EU" onclick="toggleMarket('EU',this)">&#127466;&#127482; Europe</button>
+        <button type="button" class="mkt-chip on" data-mkt="US" onclick="toggleMarket('US',this)">&#127482;&#127480; United States</button>
+        <button type="button" class="mkt-chip" data-mkt="UK" onclick="toggleMarket('UK',this)">&#127468;&#127463; United Kingdom</button>
+        <button type="button" class="mkt-chip" data-mkt="IN" onclick="toggleMarket('IN',this)">&#127470;&#127475; India</button>
+        <button type="button" class="mkt-chip" data-mkt="Global" onclick="toggleMarket('Global',this)">&#127758; Global</button>
+        <button type="button" class="mkt-chip" data-mkt="ME" onclick="toggleMarket('ME',this)">&#127462;&#127466; Middle East</button>
+        <button type="button" class="mkt-chip" data-mkt="AU" onclick="toggleMarket('AU',this)">&#127462;&#127482; Australia</button>
+        <button type="button" class="mkt-chip" data-mkt="EU" onclick="toggleMarket('EU',this)">&#127466;&#127482; Europe</button>
       </div>
     </div>
 
@@ -904,15 +904,15 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <span style="font-size:10px;color:#556059;font-weight:400">Multi-select, pick 1-3 to variant the vibe (e.g. Gift + Sale, Routine + Story)</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="typeChips">
-        <button class="type-chip on" data-type="" onclick="selectType('',this)">&#x1F916; Auto</button>
-        <button class="type-chip" data-type="Sale" onclick="selectType('Sale',this)">&#127991; Sale</button>
-        <button class="type-chip" data-type="Launch" onclick="selectType('Launch',this)">&#x1F680; Launch</button>
-        <button class="type-chip" data-type="Seasonal" onclick="selectType('Seasonal',this)">&#127807; Seasonal</button>
-        <button class="type-chip" data-type="Bestseller" onclick="selectType('Bestseller',this)">&#11088; Bestsellers</button>
-        <button class="type-chip" data-type="Gift" onclick="selectType('Gift',this)">&#127873; Gifting</button>
-        <button class="type-chip" data-type="Discovery" onclick="selectType('Discovery',this)">&#129514; Discovery</button>
-        <button class="type-chip" data-type="Routine" onclick="selectType('Routine',this)">&#127774; Routine</button>
-        <button class="type-chip" data-type="Story" onclick="selectType('Story',this)">&#128216; Brand Story</button>
+        <button type="button" class="type-chip on" data-type="" onclick="selectType('',this)">&#x1F916; Auto</button>
+        <button type="button" class="type-chip" data-type="Sale" onclick="selectType('Sale',this)">&#127991; Sale</button>
+        <button type="button" class="type-chip" data-type="Launch" onclick="selectType('Launch',this)">&#x1F680; Launch</button>
+        <button type="button" class="type-chip" data-type="Seasonal" onclick="selectType('Seasonal',this)">&#127807; Seasonal</button>
+        <button type="button" class="type-chip" data-type="Bestseller" onclick="selectType('Bestseller',this)">&#11088; Bestsellers</button>
+        <button type="button" class="type-chip" data-type="Gift" onclick="selectType('Gift',this)">&#127873; Gifting</button>
+        <button type="button" class="type-chip" data-type="Discovery" onclick="selectType('Discovery',this)">&#129514; Discovery</button>
+        <button type="button" class="type-chip" data-type="Routine" onclick="selectType('Routine',this)">&#127774; Routine</button>
+        <button type="button" class="type-chip" data-type="Story" onclick="selectType('Story',this)">&#128216; Brand Story</button>
       </div>
       <!-- Hidden select kept for JS compat -->
       <select id="typeIn" style="display:none">
@@ -929,7 +929,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     </div>
 
     <!-- CTA -->
-    <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center;gap:10px;font-size:14px" onclick="go2()">
+    <button type="button" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;gap:10px;font-size:14px" onclick="go2()">
       <span>Select Products</span>
       <span style="font-size:18px;line-height:1">&rarr;</span>
     </button>
@@ -944,18 +944,18 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   <p style="font-size:12px;color:#888;margin-top:-4px;margin-bottom:14px;line-height:1.6">Browse and tap products to include in your mailer. Skip to auto-select the best matches for your campaign type and brief.</p>
   <div class="sel-info" id="selInfo">0 products selected (auto-pick will choose best matches)</div>
   <div class="cat-filter" id="catFilter">
-    <button class="cfbtn on" onclick="filterCat('all',this)">All</button>
-    <button class="cfbtn" onclick="filterCat('bestseller',this)">Bestsellers</button>
-    <button class="cfbtn" onclick="filterCat('black',this)">Black Product</button>
-    <button class="cfbtn" onclick="filterCat('green',this)">Green Product</button>
-    <button class="cfbtn" onclick="filterCat('products',this)">Products</button>
-    <button class="cfbtn" onclick="filterCat('detox',this)">Detox</button>
-    <button class="cfbtn" onclick="filterCat('immunity',this)">Immunity</button>
-    <button class="cfbtn" onclick="filterCat('gift',this)">Gift Sets</button>
-    <button class="cfbtn" onclick="filterCat('discovery',this)">Discovery</button>
-    <button class="cfbtn" onclick="filterCat('premium',this)">Premium</button>
-    <button class="cfbtn" onclick="filterCat('sleep',this)">Sleep</button>
-    <button class="cfbtn" onclick="filterCat('summer',this)">Summer</button>
+    <button type="button" class="cfbtn on" onclick="filterCat('all',this)">All</button>
+    <button type="button" class="cfbtn" onclick="filterCat('bestseller',this)">Bestsellers</button>
+    <button type="button" class="cfbtn" onclick="filterCat('black',this)">Black Product</button>
+    <button type="button" class="cfbtn" onclick="filterCat('green',this)">Green Product</button>
+    <button type="button" class="cfbtn" onclick="filterCat('products',this)">Products</button>
+    <button type="button" class="cfbtn" onclick="filterCat('detox',this)">Detox</button>
+    <button type="button" class="cfbtn" onclick="filterCat('immunity',this)">Immunity</button>
+    <button type="button" class="cfbtn" onclick="filterCat('gift',this)">Gift Sets</button>
+    <button type="button" class="cfbtn" onclick="filterCat('discovery',this)">Discovery</button>
+    <button type="button" class="cfbtn" onclick="filterCat('premium',this)">Premium</button>
+    <button type="button" class="cfbtn" onclick="filterCat('sleep',this)">Sleep</button>
+    <button type="button" class="cfbtn" onclick="filterCat('summer',this)">Summer</button>
   </div>
   <div class="cat-grid" id="catGrid"></div>
   <!-- Selected Products Strip — prominent horizontal row -->
@@ -965,16 +965,16 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:14px;font-weight:700;letter-spacing:0.04em;color:#D0473E;white-space:nowrap">Selected Products</span>
       <span id="selProdCount" style="font-size:11px;color:#6A33D8;font-weight:700;background:rgba(171,135,67,0.1);padding:2px 9px;border-radius:12px;flex-shrink:0"></span>
       <span style="flex:1;min-width:0"></span>
-      <button onclick="clearSel()" style="font-size:10.5px;font-weight:700;padding:5px 12px;background:transparent;border:1.5px solid #c0392b;border-radius:6px;cursor:pointer;color:#c0392b;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;letter-spacing:0.04em;white-space:nowrap;flex-shrink:0">Clear All</button>
+      <button type="button" onclick="clearSel()" style="font-size:10.5px;font-weight:700;padding:5px 12px;background:transparent;border:1.5px solid #c0392b;border-radius:6px;cursor:pointer;color:#c0392b;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;letter-spacing:0.04em;white-space:nowrap;flex-shrink:0">Clear All</button>
     </div>
     <div id="selProdsGrid" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin"></div>
   </div>
   <div class="btn-row">
-    <button class="btn btn-outline btn-sm" onclick="goBack(1)">&larr; Back</button>
-    <button class="btn btn-outline btn-sm" onclick="clearSel()">Clear</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="goBack(1)">&larr; Back</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="clearSel()">Clear</button>
     <div style="flex:1"></div>
-    <button class="btn btn-outline btn-sm" onclick="activateAutoPick()">&#10024; Auto-Pick</button>
-    <button class="btn btn-primary" style="flex:1" onclick="go3()">Generate Design &rarr;</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="activateAutoPick()">&#10024; Auto-Pick</button>
+    <button type="button" class="btn btn-primary" style="flex:1" onclick="go3()">Generate Design &rarr;</button>
   </div>
 </div>
 <div id="p3" class="panel" style="display:none">
@@ -986,12 +986,12 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 <div id="p4" class="panel" style="display:none">
   <!-- Step 4 sticky navigation bar -->
   <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
-    <button class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Back to Products</button>
-    <button class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Back to Products</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
     <span style="flex:1"></span>
     <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Step 4, Review &amp; Refine</span>
     <span style="flex:1"></span>
-    <button class="btn btn-primary btn-sm" onclick="gateFinalOutput()" style="white-space:nowrap">Final Output &rarr;</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="gateFinalOutput()" style="white-space:nowrap">Final Output &rarr;</button>
   </div>
   <div class="plbl">Step 4, Review &amp; Refine</div>
   <!-- Campaign context injected by runGeneration() -->
@@ -1002,10 +1002,10 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   <div id="canvasFilterPanel" style="margin-bottom:14px"></div>
 
   <div class="p4tabs" style="margin-bottom:20px">
-    <button class="p4tab on" id="tab-claude" onclick="switchP4Tab('claude',this)">&#128065; Canvas Preview</button>
-    <button class="p4tab" id="tab-content" onclick="switchP4Tab('content',this)">&#128196; Content Preview</button>
-    <button class="p4tab" id="tab-chatgpt" onclick="switchP4Tab('chatgpt',this)">&#127775; Prompts</button>
-    <button class="p4tab" id="tab-upload" onclick="switchP4Tab('upload',this)">&#128228; Upload Design File</button>
+    <button type="button" class="p4tab on" id="tab-claude" onclick="switchP4Tab('claude',this)">&#128065; Canvas Preview</button>
+    <button type="button" class="p4tab" id="tab-content" onclick="switchP4Tab('content',this)">&#128196; Content Preview</button>
+    <button type="button" class="p4tab" id="tab-chatgpt" onclick="switchP4Tab('chatgpt',this)">&#127775; Prompts</button>
+    <button type="button" class="p4tab" id="tab-upload" onclick="switchP4Tab('upload',this)">&#128228; Upload Design File</button>
   </div>
 
   <!-- TAB 1: Canvas Layout Preview -->
@@ -1023,7 +1023,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <div style="background:var(--vh-panel-tan);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;margin-bottom:14px">
           <div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:4px">&#x1F5BC; Add a hero image</div>
           <p style="font-size:11px;color:#48524c;line-height:1.5;margin-bottom:8px">Generate one with ChatGPT, Claude or Gemini, then upload it below.</p>
-          <button onclick="switchP4Tab('chatgpt',document.getElementById('tab-chatgpt'))" style="width:100%;padding:9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open AI Image Tools &#8599;</button>
+          <button type="button" onclick="switchP4Tab('chatgpt',document.getElementById('tab-chatgpt'))" style="width:100%;padding:9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open AI Image Tools &#8599;</button>
         </div>
         <div class="fb-area">
           <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#48524c;margin-bottom:6px">Regenerate with feedback</div>
@@ -1031,18 +1031,18 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
           <div class="regen-count" id="regenCt"></div>
         </div>
         <div class="btn-row" style="flex-direction:column;gap:8px;margin-top:12px">
-          <button class="btn btn-outline btn-sm" style="width:100%" onclick="regenFeedback()">&#8635; Regenerate</button>
-          <button class="btn btn-lava btn-sm" style="width:100%" onclick="approveAndBuild()">&#10003; Build HTML Mailer</button>
-          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="goBack(2)">&larr; Back to Products</button>
+          <button type="button" class="btn btn-outline btn-sm" style="width:100%" onclick="regenFeedback()">&#8635; Regenerate</button>
+          <button type="button" class="btn btn-lava btn-sm" style="width:100%" onclick="approveAndBuild()">&#10003; Build HTML Mailer</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="width:100%" onclick="goBack(2)">&larr; Back to Products</button>
         </div>
       </div>
     </div>
     <!-- Action row at bottom for quick access -->
     <div class="btn-row" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
       <span style="font-size:11px;color:#556059;flex:1">Happy with the layout?</span>
-      <button class="btn btn-ghost btn-sm" onclick="goBack(2)">&larr; Back</button>
-      <button class="btn btn-outline btn-sm" onclick="regenFeedback()">&#8635; Regenerate</button>
-      <button class="btn btn-lava" onclick="approveAndBuild()">&#10003; Build HTML Mailer &rarr;</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="goBack(2)">&larr; Back</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="regenFeedback()">&#8635; Regenerate</button>
+      <button type="button" class="btn btn-lava" onclick="approveAndBuild()">&#10003; Build HTML Mailer &rarr;</button>
     </div>
 
   </div>
@@ -1063,9 +1063,9 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     </div>
     <div class="btn-row" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
       <span style="font-size:11px;color:#556059;flex:1">Happy with the content?</span>
-      <button class="btn btn-ghost btn-sm" onclick="goBack(2)">&larr; Back</button>
-      <button class="btn btn-outline btn-sm" onclick="switchP4Tab('claude',document.getElementById('tab-claude'))">&#128065; Canvas View</button>
-      <button class="btn btn-lava" onclick="approveAndBuild()">&#10003; Build HTML Mailer &rarr;</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="goBack(2)">&larr; Back</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="switchP4Tab('claude',document.getElementById('tab-claude'))">&#128065; Canvas View</button>
+      <button type="button" class="btn btn-lava" onclick="approveAndBuild()">&#10003; Build HTML Mailer &rarr;</button>
     </div>
   </div>
 
@@ -1087,8 +1087,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <div style="padding:12px 16px">
           <p style="font-size:11px;color:#374151;line-height:1.6;margin-bottom:12px">Best for: detailed layout prompts, text rendering, multi-section email designs. Use the <strong>Full Layout Prompt</strong> below.</p>
           <div style="display:flex;gap:8px">
-            <button onclick="copyPromptText();showCopyToast('Layout prompt copied — paste into ChatGPT')" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
-            <button onclick="openChatGPT()" style="flex:1;padding:7px 0;background:var(--vh-ink);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open ChatGPT &#8599;</button>
+            <button type="button" onclick="copyPromptText();showCopyToast('Layout prompt copied — paste into ChatGPT')" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
+            <button type="button" onclick="openChatGPT()" style="flex:1;padding:7px 0;background:var(--vh-ink);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open ChatGPT &#8599;</button>
           </div>
         </div>
       </div>
@@ -1105,8 +1105,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <div style="padding:12px 16px">
           <p style="font-size:11px;color:#374151;line-height:1.6;margin-bottom:12px">Best for: generating SVG or HTML design mockups in Artifacts. Paste the prompt and ask Claude to render a mailer design.</p>
           <div style="display:flex;gap:8px">
-            <button onclick="copyPromptText();showCopyToast('Layout prompt copied — paste into Claude')" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
-            <button onclick="openClaudeAI()" style="flex:1;padding:7px 0;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open Claude &#8599;</button>
+            <button type="button" onclick="copyPromptText();showCopyToast('Layout prompt copied — paste into Claude')" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
+            <button type="button" onclick="openClaudeAI()" style="flex:1;padding:7px 0;background:#7c5cfc;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open Claude &#8599;</button>
           </div>
         </div>
       </div>
@@ -1123,8 +1123,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <div style="padding:12px 16px">
           <p style="font-size:11px;color:#374151;line-height:1.6;margin-bottom:12px">Best for: photorealistic product lifestyle imagery with Imagen 3. Use the <strong>Visual Prompt</strong> for better results here.</p>
           <div style="display:flex;gap:8px">
-            <button onclick="(function(){var t=S.lastImagePrompt||'';if(t)navigator.clipboard.writeText(t).catch(function(){});showCopyToast('Prompt copied — paste into Gemini');})()" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
-            <button onclick="openGemini()" style="flex:1;padding:7px 0;background:#4285F4;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open Gemini &#8599;</button>
+            <button type="button" onclick="(function(){var t=S.lastImagePrompt||'';if(t)navigator.clipboard.writeText(t).catch(function(){});showCopyToast('Prompt copied — paste into Gemini');})()" style="flex:1;padding:7px 0;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#128203; Copy Prompt</button>
+            <button type="button" onclick="openGemini()" style="flex:1;padding:7px 0;background:#4285F4;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Open Gemini &#8599;</button>
           </div>
         </div>
       </div>
@@ -1136,18 +1136,18 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <div style="background:var(--vh-panel-tan);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <span style="font-size:11px;font-weight:700;color:#374151">&#128203; Campaign Image Prompt &mdash; <span id="activeImagePromptVariantLabel">Variant A</span></span>
         <div style="display:flex;gap:6px">
-          <button onclick="copyImagePrompt('A')" style="font-size:10px;padding:4px 10px;background:transparent;color:#D0473E;border:1.5px solid #D0473E;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy A</button>
-          <button onclick="copyImagePrompt('B')" style="font-size:10px;padding:4px 10px;background:transparent;color:#6A33D8;border:1.5px solid #6A33D8;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy B</button>
-          <button onclick="copyPromptText();showCopyToast('Active prompt copied')" style="font-size:10px;padding:4px 12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy Active</button>
+          <button type="button" onclick="copyImagePrompt('A')" style="font-size:10px;padding:4px 10px;background:transparent;color:#D0473E;border:1.5px solid #D0473E;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy A</button>
+          <button type="button" onclick="copyImagePrompt('B')" style="font-size:10px;padding:4px 10px;background:transparent;color:#6A33D8;border:1.5px solid #6A33D8;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy B</button>
+          <button type="button" onclick="copyPromptText();showCopyToast('Active prompt copied')" style="font-size:10px;padding:4px 12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-weight:600">Copy Active</button>
         </div>
       </div>
       <div id="promptMono" class="prompt-mono" style="max-height:220px;font-size:10px;border-radius:0"></div>
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-outline btn-sm" onclick="goBack(2)">&larr; Back</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="goBack(2)">&larr; Back</button>
       <div style="flex:1"></div>
-      <button class="btn btn-lava" onclick="switchP4Tab('upload',document.getElementById('tab-upload'))">Done, Upload Generated Image &rarr;</button>
+      <button type="button" class="btn btn-lava" onclick="switchP4Tab('upload',document.getElementById('tab-upload'))">Done, Upload Generated Image &rarr;</button>
     </div>
   </div>
   <div id="p4-upload" style="display:none">
@@ -1160,8 +1160,8 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       </div>
       <p style="font-size:11px;color:#FFFFFF;line-height:1.5;margin:0 0 12px">Creates a complete mailer creative from your campaign brief + real product data. One click &mdash; the AI builds the full design with your products, prices, and brand palette.</p>
       <div style="display:flex;gap:8px">
-        <button id="serverGenBtn" onclick="generateServerImage('A')" style="flex:1;padding:10px;background:#6A33D8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9889; Generate Variant A</button>
-        <button onclick="generateServerImage('B')" style="flex:1;padding:10px;background:#6A33D8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9889; Generate Variant B</button>
+        <button type="button" id="serverGenBtn" onclick="generateServerImage('A')" style="flex:1;padding:10px;background:#6A33D8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9889; Generate Variant A</button>
+        <button type="button" onclick="generateServerImage('B')" style="flex:1;padding:10px;background:#6A33D8;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9889; Generate Variant B</button>
       </div>
     </div>
     <div style="text-align:center;font-size:11px;color:#999;margin-bottom:12px;letter-spacing:0.1em"> - OR upload your own design - </div>
@@ -1185,13 +1185,13 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
           <p style="font-size:12px;font-weight:700;color:#D0473E;margin:0">Image ready</p>
           <p style="font-size:11px;color:var(--vh-ink);margin:0">Approve to generate a production-ready HTML email using Claude AI vision</p>
         </div>
-        <button onclick="document.getElementById('imgUploadInput').click()" style="font-size:11px;padding:5px 10px;background:transparent;border:1px solid var(--vh-ink);border-radius:5px;cursor:pointer;color:var(--vh-ink)">Replace</button>
+        <button type="button" onclick="document.getElementById('imgUploadInput').click()" style="font-size:11px;padding:5px 10px;background:transparent;border:1px solid var(--vh-ink);border-radius:5px;cursor:pointer;color:var(--vh-ink)">Replace</button>
       </div>
     </div>
     <div class="btn-row" style="margin-top:14px">
-      <button class="btn btn-outline btn-sm" onclick="goBack(2)">&larr; Back</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="goBack(2)">&larr; Back</button>
       <div style="flex:1"></div>
-      <button class="btn btn-lava" id="approveUploadBtn" onclick="approveWithUpload()">&#10003; Approve &amp; Generate HTML Mailer &rarr;</button>
+      <button type="button" class="btn btn-lava" id="approveUploadBtn" onclick="approveWithUpload()">&#10003; Approve &amp; Generate HTML Mailer &rarr;</button>
     </div>
   </div>
 </div><!-- /p4 -->
@@ -1199,13 +1199,13 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 <div id="p5" style="display:none">
   <!-- Step 5 sticky navigation bar — clear back / forward / restart options -->
   <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
-    <button class="btn btn-outline btn-sm" onclick="goBack(4)" style="white-space:nowrap">&larr; Back to Refine</button>
-    <button class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Products</button>
-    <button class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="goBack(4)" style="white-space:nowrap">&larr; Back to Refine</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Products</button>
+    <button type="button" class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
     <span style="flex:1"></span>
     <span style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:13px;font-weight:700;color:#D0473E;letter-spacing:0.04em">Step 5, Final Output</span>
     <span style="flex:1"></span>
-    <button class="btn btn-ghost btn-sm" onclick="if(confirm('Start a new campaign? Current work will be cleared.'))clearAndCreate()" style="white-space:nowrap;color:#c0392b">&#8635; Start New</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="if(confirm('Start a new campaign? Current work will be cleared.'))clearAndCreate()" style="white-space:nowrap;color:#c0392b">&#8635; Start New</button>
   </div>
   <div class="panel">
     <div class="plbl" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1225,7 +1225,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   <div class="panel">
     <div class="plbl">
       <span id="genPromptPanelLbl">Image Generation Prompt</span>
-      <button onclick="copyGenPrompt()" style="font-size:10px;padding:3px 10px;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--g);font-weight:600;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;margin-left:auto">Copy</button>
+      <button type="button" onclick="copyGenPrompt()" style="font-size:10px;padding:3px 10px;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--g);font-weight:600;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;margin-left:auto">Copy</button>
     </div>
     <div class="prompt-mono" id="genPromptDisplay" style="max-height:180px;font-size:10px"></div>
   </div>
@@ -1249,12 +1249,12 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <!-- Legacy full grid (kept hidden by default — toggle via "Show all variants" in unified panel) -->
     <div id="allMailersMatrix" style="margin-top:18px;display:none"></div>
     <div class="btn-row" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px">
-      <button class="btn btn-outline btn-sm" onclick="downloadVariant('A')" style="gap:6px" title="Download V1 (Complete Text — no imagery)">&#11015; V1 · Text</button>
-      <button class="btn btn-outline btn-sm" onclick="downloadVariant('B')" style="gap:6px" title="Download V2 (Text + Visual)">&#11015; V2 · Text + Visual</button>
-      <button class="btn btn-lava btn-sm" onclick="downloadBothVariants()" style="gap:6px" title="Download BOTH variants for the current market">&#11015; Download Both</button>
-      <button class="btn btn-outline btn-sm" onclick="previewBothSideBySide()" style="gap:6px" title="Open A and B side-by-side in a new tab">&#9871; Side-by-Side</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="downloadVariant('A')" style="gap:6px" title="Download V1 (Complete Text — no imagery)">&#11015; V1 · Text</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="downloadVariant('B')" style="gap:6px" title="Download V2 (Text + Visual)">&#11015; V2 · Text + Visual</button>
+      <button type="button" class="btn btn-lava btn-sm" onclick="downloadBothVariants()" style="gap:6px" title="Download BOTH variants for the current market">&#11015; Download Both</button>
+      <button type="button" class="btn btn-outline btn-sm" onclick="previewBothSideBySide()" style="gap:6px" title="Open A and B side-by-side in a new tab">&#9871; Side-by-Side</button>
       <div style="flex:1"></div>
-      <button class="btn btn-primary" onclick="resetAll()">&#10010; New Campaign</button>
+      <button type="button" class="btn btn-primary" onclick="resetAll()">&#10010; New Campaign</button>
     </div>
   </div>
 </div>
@@ -1263,18 +1263,18 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
      message history expands above the same bar. ── -->
 <div class="copilot-dock" id="copilotDock">
   <div class="copilot-history" id="copilotHistory" aria-hidden="true">
-    <div class="copilot-hd"><span class="dotlive"></span> KNICKGASM Studio Assistant <button class="x" onclick="Copilot.collapse()" aria-label="Collapse chat">&#9662;</button></div>
+    <div class="copilot-hd"><span class="dotlive"></span> KNICKGASM Studio Assistant <button type="button" class="x" onclick="Copilot.collapse()" aria-label="Collapse chat">&#9662;</button></div>
     <div class="copilot-msgs" id="copilotMsgs"></div>
     <div class="copilot-quick" id="copilotQuick"></div>
   </div>
   <div class="copilot-bar">
-    <button class="copilot-btn cb-listen" id="listenBtn" onclick="CopilotListen.toggle()" title="Read the current mailer aloud" aria-label="Listen — read mailer aloud">
+    <button type="button" class="copilot-btn cb-listen" id="listenBtn" onclick="CopilotListen.toggle()" title="Read the current mailer aloud" aria-label="Listen — read mailer aloud">
       <span class="ci">&#128266;</span><span class="lbl">Listen</span>
       <span class="listen-eq"><span></span><span></span><span></span><span></span></span>
     </button>
     <input id="copilotInput" class="copilot-input" type="text" autocomplete="off" placeholder="Ask the Studio assistant — copy, subject lines, ideas…" onkeydown="if(event.key==='Enter')Copilot.send()">
-    <button class="copilot-send" onclick="Copilot.send()" aria-label="Send message">&#10148;</button>
-    <button class="copilot-exp" onclick="Copilot.toggle()" title="Show / hide chat history" aria-label="Toggle chat history">&#9650;</button>
+    <button type="button" class="copilot-send" onclick="Copilot.send()" aria-label="Send message">&#10148;</button>
+    <button type="button" class="copilot-exp" onclick="Copilot.toggle()" title="Show / hide chat history" aria-label="Toggle chat history">&#9650;</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -2292,9 +2292,9 @@ function gateFinalOutput(){
     '<div style="font-size:12px;color:#666;margin:0 0 16px;line-height:1.5">UI/UX sanity check on both variants (brand palette, fonts, images, CTAs).</div>'+
     '<div style="max-height:300px;overflow-y:auto;margin-bottom:16px">'+rows+'</div>'+
     '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'+
-      '<button onclick="document.getElementById(\'sanityModal\').remove()" style="padding:9px 16px;background:#fff;color:#666;border:1.5px solid #ddd;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Cancel</button>'+
-      '<button onclick="document.getElementById(\'sanityModal\').remove();_focusFeedbackForRegen()" style="padding:9px 16px;background:#6A33D8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">↻ Regenerate</button>'+
-      (hasErr?'':'<button onclick="document.getElementById(\'sanityModal\').remove();showOnly(5)" style="padding:9px 16px;background:#D0473E;color:#FFFFFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Continue Anyway →</button>')+
+      '<button type="button" onclick="document.getElementById(\'sanityModal\').remove()" style="padding:9px 16px;background:#fff;color:#666;border:1.5px solid #ddd;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Cancel</button>'+
+      '<button type="button" onclick="document.getElementById(\'sanityModal\').remove();_focusFeedbackForRegen()" style="padding:9px 16px;background:#6A33D8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">↻ Regenerate</button>'+
+      (hasErr?'':'<button type="button" onclick="document.getElementById(\'sanityModal\').remove();showOnly(5)" style="padding:9px 16px;background:#D0473E;color:#FFFFFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">Continue Anyway →</button>')+
     '</div>'+
   '</div>';
   document.body.appendChild(modal);
@@ -2804,7 +2804,7 @@ function renderMarketTabs(){
   var tabRow='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px">'
     +'<span style="font-size:11px;font-weight:700;color:#888;align-self:center;margin-right:4px;white-space:nowrap">Preview Market:</span>'
     +mkts.map(function(mkt){
-      return '<button class="mkt-tab-btn'+(mkt===S.activeMarket?' on':'')+'" onclick="showMarketMailer(\''+mkt+'\')">'+(mktLabels[mkt]||mkt)+'</button>';
+      return '<button type="button" class="mkt-tab-btn'+(mkt===S.activeMarket?' on':'')+'" onclick="showMarketMailer(\''+mkt+'\')">'+(mktLabels[mkt]||mkt)+'</button>';
     }).join('')+'</div>';
   // Second row: per-market grid — Preview (HTML render) + View HTML (source) + Download
   var dlRow='<div style="background:var(--vh-panel-tan);border:1px solid var(--vh-panel-tan);border-radius:10px;padding:12px 14px;margin-bottom:8px">'
@@ -2814,9 +2814,9 @@ function renderMarketTabs(){
       var isActive=mkt===S.activeMarket;
       return '<div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;min-width:128px">'
         +'<div style="font-size:9px;font-weight:700;color:#555;text-align:center;letter-spacing:0.06em;margin-bottom:2px">'+(mktLabels[mkt]||mkt)+'</div>'
-        +'<button aria-label="Preview '+mkt+' rendered mailer" onclick="showMarketMailer(\''+mkt+'\');previewMailerInModal(\''+mkt+'\')" style="font-size:10px;font-weight:700;padding:6px 12px;background:'+(isActive?'#D0473E':'#fff')+';color:'+(isActive?'#FFFFFF':'#D0473E')+';border:1.5px solid #D0473E;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#128065; Preview</button>'
-        +'<button aria-label="View '+mkt+' HTML source code" onclick="viewMarketHtml(\''+mkt+'\')" style="font-size:10px;font-weight:700;padding:6px 12px;background:#fff;color:#D0473E;border:1.5px solid #D0473E;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&lt;/&gt; View HTML</button>'
-        +'<button aria-label="Download '+mkt+' mailer .html file" onclick="downloadMarketMailer(\''+mkt+'\')" style="font-size:10px;font-weight:700;padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#11015; Download</button>'
+        +'<button type="button" aria-label="Preview '+mkt+' rendered mailer" onclick="showMarketMailer(\''+mkt+'\');previewMailerInModal(\''+mkt+'\')" style="font-size:10px;font-weight:700;padding:6px 12px;background:'+(isActive?'#D0473E':'#fff')+';color:'+(isActive?'#FFFFFF':'#D0473E')+';border:1.5px solid #D0473E;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#128065; Preview</button>'
+        +'<button type="button" aria-label="View '+mkt+' HTML source code" onclick="viewMarketHtml(\''+mkt+'\')" style="font-size:10px;font-weight:700;padding:6px 12px;background:#fff;color:#D0473E;border:1.5px solid #D0473E;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&lt;/&gt; View HTML</button>'
+        +'<button type="button" aria-label="Download '+mkt+' mailer .html file" onclick="downloadMarketMailer(\''+mkt+'\')" style="font-size:10px;font-weight:700;padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#11015; Download</button>'
         +'</div>';
     }).join('')
     +'</div></div>';
@@ -2868,9 +2868,9 @@ window.viewMarketHtml=function(mkt){
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF">HTML Source</span>'+
         '<span style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;font-weight:600">'+(({US:'🇺🇸 US',UK:'🇬🇧 UK',IN:'🇮🇳 IN',Global:'🌍 Global',ME:'🇦🇪 ME',AU:'🇦🇺 AU',EU:'🇪🇺 EU'})[mkt]||mkt)+' · Variant '+v+'</span>'+
         '<span style="flex:1"></span>'+
-        '<button onclick="(function(){navigator.clipboard&&navigator.clipboard.writeText(window.__vhdViewerHtml||\'\').then(function(){statusPill&&statusPill(\'ok\',\'HTML copied to clipboard\');});})()" style="padding:7px 14px;background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">📋 Copy</button>'+
-        '<button onclick="downloadMarketMailer(\''+mkt+'\')" style="padding:7px 14px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">⬇ Download</button>'+
-        '<button onclick="document.getElementById(\'vhdHtmlViewerModal\').remove()" aria-label="Close" style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.25);color:#FFFFFF;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>'+
+        '<button type="button" onclick="(function(){navigator.clipboard&&navigator.clipboard.writeText(window.__vhdViewerHtml||\'\').then(function(){statusPill&&statusPill(\'ok\',\'HTML copied to clipboard\');});})()" style="padding:7px 14px;background:rgba(255,255,255,0.14);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">📋 Copy</button>'+
+        '<button type="button" onclick="downloadMarketMailer(\''+mkt+'\')" style="padding:7px 14px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">⬇ Download</button>'+
+        '<button type="button" onclick="document.getElementById(\'vhdHtmlViewerModal\').remove()" aria-label="Close" style="background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.25);color:#FFFFFF;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>'+
       '</div>'+
       '<div style="flex:1;overflow:auto;background:#0d1117"><pre style="margin:0;padding:18px 20px;color:#c9d1d9;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word">'+safeHtml+'</pre></div>'+
     '</div>';
@@ -5617,7 +5617,7 @@ function renderVariantSwitcher(){
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           mkts.map(function(m){
             var act=m===aMkt;
-            return '<button onclick="showMarketMailer(\''+m+'\')" style="padding:7px 13px;background:'+(act?'#FFFFFF':'rgba(255,255,255,0.08)')+';color:'+(act?'#D0473E':'#FFFFFF')+';border:1.5px solid '+(act?'#FFFFFF':'rgba(255,255,255,0.2)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
+            return '<button type="button" onclick="showMarketMailer(\''+m+'\')" style="padding:7px 13px;background:'+(act?'#FFFFFF':'rgba(255,255,255,0.08)')+';color:'+(act?'#D0473E':'#FFFFFF')+';border:1.5px solid '+(act?'#FFFFFF':'rgba(255,255,255,0.2)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
           }).join('')+
         '</div></div>':'')+
       // Layer 2: variant tabs
@@ -5646,8 +5646,8 @@ function renderVariantSwitcher(){
           '<div style="font-size:13px;font-weight:700;margin-bottom:3px;color:#fff">Complete Text</div>'+
           '<div style="font-size:10px;font-weight:400;color:#FFFFFF;line-height:1.5;margin-bottom:10px">'+rationale.A+'</div>'+
           '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
-            '<button onclick="switchVariant(\'A\')" style="flex:1;min-width:90px;padding:7px 10px;background:'+(actA?'#6A33D8':'transparent')+';color:#fff;border:1.5px solid '+(actA?'#6A33D8':'rgba(255,255,255,0.3)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">'+(actA?'● Previewing':'👁 Preview A')+'</button>'+
-            '<button onclick="downloadVariant(\'A\')" style="flex:1;min-width:90px;padding:7px 10px;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">⬇ Download A</button>'+
+            '<button type="button" onclick="switchVariant(\'A\')" style="flex:1;min-width:90px;padding:7px 10px;background:'+(actA?'#6A33D8':'transparent')+';color:#fff;border:1.5px solid '+(actA?'#6A33D8':'rgba(255,255,255,0.3)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">'+(actA?'● Previewing':'👁 Preview A')+'</button>'+
+            '<button type="button" onclick="downloadVariant(\'A\')" style="flex:1;min-width:90px;padding:7px 10px;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">⬇ Download A</button>'+
           '</div>'+
         '</div>'+
         // ── Variant B card ──
@@ -5659,15 +5659,15 @@ function renderVariantSwitcher(){
           '<div style="font-size:13px;font-weight:700;margin-bottom:3px;color:#fff">Text + Visual</div>'+
           '<div style="font-size:10px;font-weight:400;color:#FFFFFF;line-height:1.5;margin-bottom:10px">'+rationale.B+'</div>'+
           '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
-            '<button onclick="switchVariant(\'B\')" style="flex:1;min-width:90px;padding:7px 10px;background:'+(actB?'#6A33D8':'transparent')+';color:#fff;border:1.5px solid '+(actB?'#6A33D8':'rgba(255,255,255,0.3)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">'+(actB?'● Previewing':'👁 Preview B')+'</button>'+
-            '<button onclick="downloadVariant(\'B\')" style="flex:1;min-width:90px;padding:7px 10px;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">⬇ Download B</button>'+
+            '<button type="button" onclick="switchVariant(\'B\')" style="flex:1;min-width:90px;padding:7px 10px;background:'+(actB?'#6A33D8':'transparent')+';color:#fff;border:1.5px solid '+(actB?'#6A33D8':'rgba(255,255,255,0.3)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">'+(actB?'● Previewing':'👁 Preview B')+'</button>'+
+            '<button type="button" onclick="downloadVariant(\'B\')" style="flex:1;min-width:90px;padding:7px 10px;background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">⬇ Download B</button>'+
           '</div>'+
         '</div>'+
       '</div>'+
       // Bottom row: download both
       '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">'+
-        '<button onclick="downloadBothVariants()" style="padding:8px 14px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.06em">⬇ Download Both Variants (.zip-friendly)</button>'+
-        '<button onclick="previewBothSideBySide()" style="padding:8px 14px;background:transparent;color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.06em">⊞ Side-by-Side Preview</button>'+
+        '<button type="button" onclick="downloadBothVariants()" style="padding:8px 14px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.06em">⬇ Download Both Variants (.zip-friendly)</button>'+
+        '<button type="button" onclick="previewBothSideBySide()" style="padding:8px 14px;background:transparent;color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.06em">⊞ Side-by-Side Preview</button>'+
         '<span style="flex:1"></span>'+
         '<span style="font-size:9px;color:#FFFFFF;font-style:italic">Active variant downloads as the main email file</span>'+
       '</div>'+
@@ -5728,7 +5728,7 @@ function renderCanvasFilterPanel(){
           mkts.map(function(m){
             var act=m===aMkt;
             var short={US:'🇺🇸 US',UK:'🇬🇧 UK',IN:'🇮🇳 IN',Global:'🌍 Global',ME:'🇦🇪 ME',AU:'🇦🇺 AU',EU:'🇪🇺 EU'}[m]||m;
-            return '<button onclick="selectCanvasCell(\''+m+'\',\''+aVar+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+short+'</button>';
+            return '<button type="button" onclick="selectCanvasCell(\''+m+'\',\''+aVar+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+short+'</button>';
           }).join('')+
         '</div></div>':'')+
       // Variant tabs
@@ -5738,7 +5738,7 @@ function renderCanvasFilterPanel(){
           ['A','B'].map(function(v){
             var meta=variantMeta[v];
             var act=v===aVar;
-            return '<button onclick="selectCanvasCell(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:9px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;flex:1;min-width:200px">'+
+            return '<button type="button" onclick="selectCanvasCell(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:9px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;flex:1;min-width:200px">'+
               '<div style="font-size:11px;font-weight:700;letter-spacing:0.04em;margin-bottom:2px">Variant '+v+' · '+meta.name+'</div>'+
               '<div style="font-size:9.5px;font-weight:400;line-height:1.4;'+(act?'opacity:0.9':'color:#888')+'">'+meta.sub+'</div>'+
             '</button>';
@@ -5909,7 +5909,7 @@ function renderRegionVariantPanel(config){
   var variantMeta={A:{name:'V1 · Complete Text',accent:'#D0473E',bg:'#0a3d24'},B:{name:'V2 · Text + Visual',accent:'#6A33D8',bg:'#FFFFFF'}};
   var content=config.getContentHTML?config.getContentHTML(aMkt,aVar):'';
   var extraTopHTML=(config.extraTopActions||[]).map(function(a){
-    return '<button onclick="'+a.onclick+'" style="'+(a.style||'padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em')+'">'+a.label+'</button>';
+    return '<button type="button" onclick="'+a.onclick+'" style="'+(a.style||'padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em')+'">'+a.label+'</button>';
   }).join('');
   box.innerHTML=
     '<div style="border:1.5px solid var(--vh-panel-tan);border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
@@ -5926,7 +5926,7 @@ function renderRegionVariantPanel(config){
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           config.regions.map(function(m){
             var act=m===aMkt;
-            return '<button onclick="'+config.onSelectRegion+'(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
+            return '<button type="button" onclick="'+config.onSelectRegion+'(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
           }).join('')+
         '</div>'+
       '</div>':'')+
@@ -5937,7 +5937,7 @@ function renderRegionVariantPanel(config){
           ['A','B'].map(function(v){
             var meta=variantMeta[v];
             var act=v===aVar;
-            return '<button onclick="'+config.onSelectVariant+'(\''+v+'\')" style="padding:7px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">Variant '+v+' · '+meta.name+'</button>';
+            return '<button type="button" onclick="'+config.onSelectVariant+'(\''+v+'\')" style="padding:7px 14px;background:'+(act?meta.accent:'#fff')+';color:'+(act?'#fff':'#374151')+';border:1.5px solid '+(act?meta.accent:'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">Variant '+v+' · '+meta.name+'</button>';
           }).join('')+
         '</div>'+
       '</div>'+
@@ -5949,8 +5949,8 @@ function renderRegionVariantPanel(config){
       '<div style="background:#fff;padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--vh-panel-tan);align-items:center">'+
         '<span style="font-size:10px;color:#888;font-weight:600;letter-spacing:0.06em;text-transform:uppercase">Showing: '+aMkt+' · Variant '+aVar+'</span>'+
         '<span style="flex:1"></span>'+
-        '<button onclick="'+config.onPreview+'(\''+aMkt+'\',\''+aVar+'\')" style="padding:9px 18px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em">&#128065; Preview</button>'+
-        '<button onclick="'+config.onDownload+'(\''+aMkt+'\',\''+aVar+'\')" style="padding:9px 18px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em">&#11015; Download</button>'+
+        '<button type="button" onclick="'+config.onPreview+'(\''+aMkt+'\',\''+aVar+'\')" style="padding:9px 18px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em">&#128065; Preview</button>'+
+        '<button type="button" onclick="'+config.onDownload+'(\''+aMkt+'\',\''+aVar+'\')" style="padding:9px 18px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em">&#11015; Download</button>'+
       '</div>'+
     '</div>';
 }
@@ -5981,8 +5981,8 @@ function renderGeneratedImagesMatrix(){
         '<span style="font-size:10.5px;color:#fff;font-weight:600">FLUX · '+mkts.length+' region'+(mkts.length===1?'':'s')+'</span>'+
         feedbackBadge+
         '<span style="flex:1"></span>'+
-        '<button onclick="regenerateHeroImage()" style="padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate</button>'+
-        '<button onclick="downloadGeneratedImage(\''+aMkt+'\',\'A\')" style="padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download</button>'+
+        '<button type="button" onclick="regenerateHeroImage()" style="padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate</button>'+
+        '<button type="button" onclick="downloadGeneratedImage(\''+aMkt+'\',\'A\')" style="padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download</button>'+
       '</div>'+
       // Region tabs only (no variant tabs)
       (mkts.length>1?'<div style="background:var(--vh-panel-tan);padding:12px 16px;border-bottom:1px solid var(--vh-panel-tan)">'+
@@ -5990,7 +5990,7 @@ function renderGeneratedImagesMatrix(){
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           mkts.map(function(m){
             var act=m===aMkt;
-            return '<button onclick="__selectHeroRegion(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
+            return '<button type="button" onclick="__selectHeroRegion(\''+m+'\')" style="padding:7px 14px;background:'+(act?'#D0473E':'#fff')+';color:'+(act?'#FFFFFF':'#374151')+';border:1.5px solid '+(act?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
           }).join('')+
         '</div>'+
       '</div>':'')+
@@ -6050,7 +6050,7 @@ function _deviceToggleHTML(){
   var d=window._mailerDevice||'desktop';
   function btn(key,label,icon){
     var on=d===key;
-    return '<button aria-label="Preview at '+label+' size" data-device="'+key+'" onclick="setMailerDevice(\''+key+'\')" class="vhd-device-btn" style="font-size:10.5px;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+'<span>'+label+'</span></button>';
+    return '<button type="button" aria-label="Preview at '+label+' size" data-device="'+key+'" onclick="setMailerDevice(\''+key+'\')" class="vhd-device-btn" style="font-size:10.5px;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+'<span>'+label+'</span></button>';
   }
   return '<div role="group" aria-label="Device preview size" style="display:flex;gap:6px;align-items:center;justify-content:center;padding:10px 14px;background:var(--vh-panel-tan);border-bottom:1px solid var(--vh-panel-tan)">'+
     '<span style="font-size:9px;font-weight:700;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-right:6px">View as</span>'+
@@ -6140,7 +6140,7 @@ function renderStep5UnifiedPanel(){
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+
       mkts.map(function(m){
         var on=m===activeMkt;
-        return '<button onclick="__step5SelectRegion(\''+m+'\')" style="padding:7px 14px;background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktFlags[m]||'')+' '+(mktNames[m]||m)+'</button>';
+        return '<button type="button" onclick="__step5SelectRegion(\''+m+'\')" style="padding:7px 14px;background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktFlags[m]||'')+' '+(mktNames[m]||m)+'</button>';
       }).join('')+
     '</div>';
   // ── Device toggles (shared across both variants) ──
@@ -6148,7 +6148,7 @@ function renderStep5UnifiedPanel(){
     var on=d===device;
     var icon={mobile:'📱',tablet:'🟦',desktop:'🖥️'}[d];
     var lbl={mobile:'Mobile · 360',tablet:'Tablet · 600',desktop:'Desktop · 680'}[d];
-    return '<button onclick="setMailerDevice(\''+d+'\')" style="padding:6px 14px;border-radius:6px;border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+' <span>'+lbl+'</span></button>';
+    return '<button type="button" onclick="setMailerDevice(\''+d+'\')" style="padding:6px 14px;border-radius:6px;border:1.5px solid '+(on?'#D0473E':'var(--vh-panel-tan)')+';background:'+(on?'#D0473E':'#fff')+';color:'+(on?'#FFFFFF':'#374151')+';cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.04em;display:inline-flex;align-items:center;gap:5px">'+icon+' <span>'+lbl+'</span></button>';
   }).join('');
   // ── Build the side-by-side layout ──
   var html =
@@ -6161,7 +6161,7 @@ function renderStep5UnifiedPanel(){
         '</div>'+
         '<span style="flex:1"></span>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+deviceBtns+'</div>'+
-        '<button onclick="downloadAllMatrix()" style="padding:8px 14px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">&#11015; Download All</button>'+
+        '<button type="button" onclick="downloadAllMatrix()" style="padding:8px 14px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">&#11015; Download All</button>'+
       '</div>'+
       regionTabs +
       // Side-by-side variants
@@ -6172,8 +6172,8 @@ function renderStep5UnifiedPanel(){
             '<span style="font-family:Montserrat,Georgia,serif;font-size:13px;font-weight:700;letter-spacing:0.06em">V1</span>'+
             '<span style="font-size:9.5px;color:#6A33D8;font-weight:700;letter-spacing:0.16em;text-transform:uppercase">Complete Text · No imagery</span>'+
             '<span style="flex:1"></span>'+
-            '<button onclick="__step5Preview(\''+activeMkt+'\',\'A\')" style="padding:5px 10px;background:#6A33D8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">Open</button>'+
-            '<button onclick="__step5Download(\''+activeMkt+'\',\'A\')" style="padding:5px 10px;background:transparent;color:#FFFFFF;border:1px solid rgba(251,245,234,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">&#11015;</button>'+
+            '<button type="button" onclick="__step5Preview(\''+activeMkt+'\',\'A\')" style="padding:5px 10px;background:#6A33D8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">Open</button>'+
+            '<button type="button" onclick="__step5Download(\''+activeMkt+'\',\'A\')" style="padding:5px 10px;background:transparent;color:#FFFFFF;border:1px solid rgba(251,245,234,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">&#11015;</button>'+
           '</div>'+
           '<div style="display:flex;justify-content:center;padding:12px;background:#FFFFFF">'+
             (htmlA?'<iframe srcdoc="'+safeA+'" style="width:100%;max-width:'+deviceWidth+'px;height:'+deviceHeight+'px;border:0;background:#fff;border-radius:6px;box-shadow:0 4px 18px rgba(0,0,0,0.12)"></iframe>':'<div style="padding:40px;color:#888;font-size:12px">Variant A not available</div>')+
@@ -6185,8 +6185,8 @@ function renderStep5UnifiedPanel(){
             '<span style="font-family:Montserrat,Georgia,serif;font-size:13px;font-weight:700;letter-spacing:0.06em">V2</span>'+
             '<span style="font-size:9.5px;color:#6A33D8;font-weight:700;letter-spacing:0.16em;text-transform:uppercase">Text + Visual</span>'+
             '<span style="flex:1"></span>'+
-            '<button onclick="__step5Preview(\''+activeMkt+'\',\'B\')" style="padding:5px 10px;background:#6A33D8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">Open</button>'+
-            '<button onclick="__step5Download(\''+activeMkt+'\',\'B\')" style="padding:5px 10px;background:transparent;color:#FFFFFF;border:1px solid rgba(251,245,234,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">&#11015;</button>'+
+            '<button type="button" onclick="__step5Preview(\''+activeMkt+'\',\'B\')" style="padding:5px 10px;background:#6A33D8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">Open</button>'+
+            '<button type="button" onclick="__step5Download(\''+activeMkt+'\',\'B\')" style="padding:5px 10px;background:transparent;color:#FFFFFF;border:1px solid rgba(251,245,234,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700">&#11015;</button>'+
           '</div>'+
           '<div style="display:flex;justify-content:center;padding:12px;background:#FFFFFF">'+
             (htmlB?'<iframe srcdoc="'+safeB+'" style="width:100%;max-width:'+deviceWidth+'px;height:'+deviceHeight+'px;border:0;background:#fff;border-radius:6px;box-shadow:0 4px 18px rgba(0,0,0,0.12)"></iframe>':'<div style="padding:40px;color:#888;font-size:12px">Variant B not available</div>')+
@@ -6238,9 +6238,9 @@ function _wrapPreviewWithNav(mailerHtml, mkt, variant){
     '@media(max-width:600px){.navbar{padding:8px 10px}.navbar .ctx{margin-left:0;margin-top:4px}}'+
     '</style></head><body>'+
     '<div class="navbar">'+
-      '<button onclick="if(window.opener&&!window.opener.closed){window.close();}else if(history.length>1){history.back();}else{window.close();}">&larr; Back</button>'+
-      '<button onclick="window.close()">&times; Close</button>'+
-      '<button onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}else{window.location.href=\''+location.origin+'\';}">&#8617; Return to Studio</button>'+
+      '<button type="button" onclick="if(window.opener&&!window.opener.closed){window.close();}else if(history.length>1){history.back();}else{window.close();}">&larr; Back</button>'+
+      '<button type="button" onclick="window.close()">&times; Close</button>'+
+      '<button type="button" onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}else{window.location.href=\''+location.origin+'\';}">&#8617; Return to Studio</button>'+
       '<div class="ctx">'+
         '<span class="flag">'+(mktFlags[mkt]||'🌍')+'</span>'+
         '<div><div class="name">'+(mktNames[mkt]||mkt)+'</div><div class="sub">'+(mktCurr[mkt]||'USD')+'</div></div>'+
@@ -6271,8 +6271,8 @@ function _legacyImagesGrid_unused(){
         '<span style="font-size:10.5px;color:#fff;font-weight:600">FLUX · '+totalCells+' renders ('+mkts.length+' region'+(mkts.length===1?'':'s')+' × 2 variants)</span>'+
         feedbackBadge+
         '<span style="flex:1"></span>'+
-        '<button onclick="regenerateAllImages()" style="padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate All</button>'+
-        '<button onclick="downloadAllImages()" style="padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download All</button>'+
+        '<button type="button" onclick="regenerateAllImages()" style="padding:6px 12px;background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate All</button>'+
+        '<button type="button" onclick="downloadAllImages()" style="padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download All</button>'+
       '</div>'+
       // Each region as its own card with both variants side-by-side
       '<div style="padding:14px;background:var(--vh-panel-tan);display:grid;gap:14px">'+
@@ -6312,10 +6312,10 @@ function _legacyImagesGrid_unused(){
                   '</div>'+
                   // Per-cell action row
                   '<div style="padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:#fff;border-top:1px solid var(--vh-panel-tan)">'+
-                    '<button onclick="window.open(\''+imgUrl+'\',\'_blank\')" title="Open full-size" style="padding:6px 4px;background:'+meta.accent+';color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#128065;</button>'+
-                    '<button onclick="downloadGeneratedImage(\''+mkt+'\',\''+v+'\')" title="Download PNG" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#11015;</button>'+
-                    '<button onclick="regenerateImageVariant(\''+mkt+'\',\''+v+'\')" title="New seed" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#8635;</button>'+
-                    '<button onclick="useImageAsUploadedDesign(\''+mkt+'\',\''+v+'\')" title="Use this design" style="padding:6px 4px;background:transparent;color:#6A33D8;border:1.5px solid #6A33D8;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&rarr;</button>'+
+                    '<button type="button" onclick="window.open(\''+imgUrl+'\',\'_blank\')" title="Open full-size" style="padding:6px 4px;background:'+meta.accent+';color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#128065;</button>'+
+                    '<button type="button" onclick="downloadGeneratedImage(\''+mkt+'\',\''+v+'\')" title="Download PNG" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#11015;</button>'+
+                    '<button type="button" onclick="regenerateImageVariant(\''+mkt+'\',\''+v+'\')" title="New seed" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&#8635;</button>'+
+                    '<button type="button" onclick="useImageAsUploadedDesign(\''+mkt+'\',\''+v+'\')" title="Use this design" style="padding:6px 4px;background:transparent;color:#6A33D8;border:1.5px solid #6A33D8;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9.5px;font-weight:700">&rarr;</button>'+
                   '</div>'+
                 '</div>';
               }).join('')+
@@ -6430,7 +6430,7 @@ function renderImageVariantSwitcher(){
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           mkts.map(function(m){
             var act=m===aMkt;
-            return '<button onclick="switchImagePrompt(\''+m+'\',\''+aVar+'\')" style="padding:7px 12px;background:'+(act?'#FFFFFF':'rgba(255,255,255,0.08)')+';color:'+(act?'#D0473E':'#FFFFFF')+';border:1.5px solid '+(act?'#FFFFFF':'rgba(255,255,255,0.2)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
+            return '<button type="button" onclick="switchImagePrompt(\''+m+'\',\''+aVar+'\')" style="padding:7px 12px;background:'+(act?'#FFFFFF':'rgba(255,255,255,0.08)')+';color:'+(act?'#D0473E':'#FFFFFF')+';border:1.5px solid '+(act?'#FFFFFF':'rgba(255,255,255,0.2)')+';border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em">'+(mktLabels[m]||m)+'</button>';
           }).join('')+
         '</div>'+
       '</div>'+
@@ -6440,7 +6440,7 @@ function renderImageVariantSwitcher(){
           ['A','B'].map(function(v){
             var meta=rationale[v];
             var act=v===aVar;
-            return '<button onclick="switchImagePrompt(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:10px 12px;background:'+(act?meta.bg:'rgba(255,255,255,0.06)')+';color:'+(act?meta.accent:'#fff')+';border:1.5px solid '+(act?meta.accent:'rgba(255,255,255,0.18)')+';border-radius:8px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">'+
+            return '<button type="button" onclick="switchImagePrompt(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:10px 12px;background:'+(act?meta.bg:'rgba(255,255,255,0.06)')+';color:'+(act?meta.accent:'#fff')+';border:1.5px solid '+(act?meta.accent:'rgba(255,255,255,0.18)')+';border-radius:8px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">'+
               '<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">'+
                 '<span style="font-size:9px;font-weight:800;color:#fff;background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">VARIANT '+v+'</span>'+
                 (act?'<span style="font-size:9px;color:'+meta.accent+';font-weight:700">● ACTIVE</span>':'<span style="font-size:9px;'+(act?'color:'+meta.accent:'color:#FFFFFF')+';opacity:0.85">Tap to load</span>')+
@@ -6501,7 +6501,7 @@ function renderAllMailersMatrix(){
         '<span style="font-size:9px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#FFFFFF">Generated Mailers Matrix</span>'+
         '<span style="font-size:10.5px;color:#fff;font-weight:600">'+totalFiles+' files · '+mkts.length+' market'+(mkts.length===1?'':'s')+' × up to 2 variants each</span>'+
         '<span style="flex:1"></span>'+
-        '<button onclick="downloadAllMatrix()" style="font-size:10px;font-weight:700;padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.05em">⬇ Download Everything ('+totalFiles+')</button>'+
+        '<button type="button" onclick="downloadAllMatrix()" style="font-size:10px;font-weight:700;padding:6px 12px;background:#6A33D8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.05em">⬇ Download Everything ('+totalFiles+')</button>'+
       '</div>'+
       '<div style="padding:12px;display:grid;gap:12px">'+
         mkts.map(function(mkt){
@@ -6515,8 +6515,8 @@ function renderAllMailersMatrix(){
             '<div style="background:var(--vh-panel-tan);padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--vh-panel-tan)">'+
               '<span style="font-size:13px;font-weight:700;color:#D0473E">'+(mktLabels[mkt]||mkt)+'</span>'+
               '<span style="flex:1"></span>'+
-              '<button onclick="showMarketMailer(\''+mkt+'\')" style="font-size:9.5px;font-weight:700;padding:4px 10px;background:'+(S.activeMarket===mkt?'#D0473E':'transparent')+';color:'+(S.activeMarket===mkt?'#FFFFFF':'#D0473E')+';border:1.5px solid #D0473E;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">'+(S.activeMarket===mkt?'● Active in main preview':'⤴ Make active')+'</button>'+
-              (hasBoth?'<button onclick="downloadMarketBoth(\''+mkt+'\')" style="font-size:9.5px;font-weight:700;padding:4px 10px;background:#6A33D8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">⬇ Both '+mkt+'</button>':'')+
+              '<button type="button" onclick="showMarketMailer(\''+mkt+'\')" style="font-size:9.5px;font-weight:700;padding:4px 10px;background:'+(S.activeMarket===mkt?'#D0473E':'transparent')+';color:'+(S.activeMarket===mkt?'#FFFFFF':'#D0473E')+';border:1.5px solid #D0473E;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">'+(S.activeMarket===mkt?'● Active in main preview':'⤴ Make active')+'</button>'+
+              (hasBoth?'<button type="button" onclick="downloadMarketBoth(\''+mkt+'\')" style="font-size:9.5px;font-weight:700;padding:4px 10px;background:#6A33D8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">⬇ Both '+mkt+'</button>':'')+
             '</div>'+
             // Variant grid
             '<div style="display:grid;grid-template-columns:repeat('+variants.length+',1fr);gap:0">'+
@@ -6526,8 +6526,8 @@ function renderAllMailersMatrix(){
                   '<div style="background:var(--vh-panel-tan);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--vh-panel-tan)">'+
                     '<div><span style="font-size:9px;font-weight:800;color:#fff;background:'+v.colorBg+';padding:2px 8px;border-radius:3px;letter-spacing:0.18em">VARIANT '+v.key+'</span><span style="font-size:10px;color:#888;margin-left:6px;font-style:italic">'+v.name+'</span></div>'+
                     '<div style="display:flex;gap:5px">'+
-                      '<button onclick="previewMatrixCell(\''+mkt+'\',\''+v.key+'\')" style="font-size:9.5px;font-weight:700;padding:4px 9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">👁 Preview</button>'+
-                      '<button onclick="downloadMatrixCell(\''+mkt+'\',\''+v.key+'\')" style="font-size:9.5px;font-weight:700;padding:4px 9px;background:transparent;color:#6A33D8;border:1.5px solid #6A33D8;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">⬇ Download</button>'+
+                      '<button type="button" onclick="previewMatrixCell(\''+mkt+'\',\''+v.key+'\')" style="font-size:9.5px;font-weight:700;padding:4px 9px;background:#D0473E;color:#FFFFFF;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">👁 Preview</button>'+
+                      '<button type="button" onclick="downloadMatrixCell(\''+mkt+'\',\''+v.key+'\')" style="font-size:9.5px;font-weight:700;padding:4px 9px;background:transparent;color:#6A33D8;border:1.5px solid #6A33D8;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">⬇ Download</button>'+
                     '</div>'+
                   '</div>'+
                   '<iframe srcdoc="'+safeHtml+'" style="width:100%;height:280px;border:0;display:block;pointer-events:none;background:#fff"></iframe>'+
@@ -6624,9 +6624,9 @@ function previewBothSideBySide(){
     '</style></head><body>'+
     // Navigation bar — Back / Close + return to studio
     '<div class="navbar">'+
-      '<button onclick="if(window.opener&&!window.opener.closed){window.close();}else if(history.length>1){history.back();}else{window.close();}">&larr; Back</button>'+
-      '<button onclick="window.close()">&times; Close Tab</button>'+
-      '<button onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}else{window.location.href=\''+location.origin+'\';}">&#8617; Return to Studio</button>'+
+      '<button type="button" onclick="if(window.opener&&!window.opener.closed){window.close();}else if(history.length>1){history.back();}else{window.close();}">&larr; Back</button>'+
+      '<button type="button" onclick="window.close()">&times; Close Tab</button>'+
+      '<button type="button" onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}else{window.location.href=\''+location.origin+'\';}">&#8617; Return to Studio</button>'+
       '<span class="nav-title">KNICKGASM® Side-by-Side Preview</span>'+
     '</div>'+
     '<div class="bar">'+
@@ -7364,7 +7364,7 @@ function _arch_renderEmail(strategy,archetype,variant,uploadedDesignImg,mt){
 // tables, links and brand styling intact.
 function _arch_stripImagery(html){
   if(!html) return html;
-  // 1. Strip <img ...> tags — EXCEPT the brand logo (class="vah-logo"), which
+  // 1. Strip <img alt="" ...> tags — EXCEPT the brand logo (class="vah-logo"), which
   //    V1 (complete-text) must still show per the brand contract.
   html=html.replace(/<img\b[^>]*>/gi,function(tag){ return /vah-logo/.test(tag)?tag:''; });
   // 2. Strip CSS background-image declarations (keep any solid background color).
@@ -9019,9 +9019,9 @@ async function renderDashboard(page){
     +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
     +'<div style="flex:1"></div>'
     +(totalPages>1?'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
-      +'<button onclick="renderDashboard('+(_dashPage-1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"'+(_dashPage===0?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>&#8592; Prev</button>'
+      +'<button type="button" onclick="renderDashboard('+(_dashPage-1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"'+(_dashPage===0?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>&#8592; Prev</button>'
       +'<span style="opacity:0.75">Page '+(_dashPage+1)+' / '+totalPages+'</span>'
-      +'<button onclick="renderDashboard('+(_dashPage+1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"'+(_dashPage>=totalPages-1?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>Next &#8594;</button>'
+      +'<button type="button" onclick="renderDashboard('+(_dashPage+1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"'+(_dashPage>=totalPages-1?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>Next &#8594;</button>'
       +'</div>':'<div style="font-size:9px;opacity:0.6">All records &middot; shared across all users on this device</div>')
     +'</div>';
   // ── Filter bar — chips for type / market / user + free-text search ──
@@ -9030,7 +9030,7 @@ async function renderDashboard(page){
   var allUsersForChips=[...new Set(allLogs.map(function(l){return l.userName||'Unknown';}))].filter(function(u){return u && u!=='Unknown';}).sort();
   var typeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'var(--vh-ink)',Story:'var(--vh-ink)',Seasonal:'var(--vh-ink)',Campaign:'#D0473E'};
   function chip(label,active,color,onclick){
-    return '<button onclick="'+onclick+'" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(active?color:'var(--vh-lava)')+';background:'+(active?color:'#fff')+';color:'+(active?'#fff':'#374151')+';letter-spacing:0.04em;transition:all .15s">'+label+'</button>';
+    return '<button type="button" onclick="'+onclick+'" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(active?color:'var(--vh-lava)')+';background:'+(active?color:'#fff')+';color:'+(active?'#fff':'#374151')+';letter-spacing:0.04em;transition:all .15s">'+label+'</button>';
   }
   var anyActive=!!(f.type||f.market||f.user||f.q||(f.mineOnly===false));
   var hasMe=window._currentUser && window._currentUser.email;
@@ -9038,10 +9038,10 @@ async function renderDashboard(page){
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
       '<span style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:#888">Filters</span>'+
       (hasMe?
-        '<button aria-label="Toggle between only my campaigns and all team campaigns" onclick="window._dashFilters.mineOnly=!window._dashFilters.mineOnly;_dashPage=0;renderDashboard(0)" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(f.mineOnly?'#D0473E':'var(--vh-lava)')+';background:'+(f.mineOnly?'#D0473E':'#fff')+';color:'+(f.mineOnly?'#fff':'#374151')+';letter-spacing:0.04em">'+(f.mineOnly?'👤 Mine only':'🌐 Show all team')+'</button>'
+        '<button type="button" aria-label="Toggle between only my campaigns and all team campaigns" onclick="window._dashFilters.mineOnly=!window._dashFilters.mineOnly;_dashPage=0;renderDashboard(0)" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid '+(f.mineOnly?'#D0473E':'var(--vh-lava)')+';background:'+(f.mineOnly?'#D0473E':'#fff')+';color:'+(f.mineOnly?'#fff':'#374151')+';letter-spacing:0.04em">'+(f.mineOnly?'👤 Mine only':'🌐 Show all team')+'</button>'
       :'')+
       '<input id="dashSearch" type="text" placeholder="Search prompts, products, users…" oninput="dashSearch(this.value)" value="'+(f.q||'').replace(/"/g,'&quot;')+'" aria-label="Search dashboard records" style="flex:1;min-width:200px;padding:5px 11px;font-size:11.5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid var(--vh-panel-tan);border-radius:14px;outline:none;color:#111111">'+
-      (anyActive?'<button onclick="dashClearFilters()" aria-label="Clear all filters" style="font-size:10px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid #b91c1c;background:#fff;color:#b91c1c;letter-spacing:0.04em">✕ Clear</button>':'')+
+      (anyActive?'<button type="button" onclick="dashClearFilters()" aria-label="Clear all filters" style="font-size:10px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;border:1.5px solid #b91c1c;background:#fff;color:#b91c1c;letter-spacing:0.04em">✕ Clear</button>':'')+
     '</div>'+
     (allTypes.length>1?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:#bbb;letter-spacing:0.1em;text-transform:uppercase;min-width:50px">Type</span>'+
       allTypes.map(function(t){return chip(t,f.type===t,typeColor[t]||'#D0473E','dashSetFilter(\'type\',\''+t+'\')');}).join('')+'</div>':'')+
@@ -9091,8 +9091,8 @@ async function renderDashboard(page){
               +'<span style="font-size:9px;color:#bbb;font-weight:600">·</span>'
               +'<span style="font-size:9px;color:#888;font-weight:600;letter-spacing:0.06em;text-transform:uppercase">'+variants.length+' variant'+(variants.length===1?'':'s')+'</span>'
               +(hasBoth?'<span style="flex:1"></span>'
-                +'<button onclick="event.stopPropagation();previewDashboardSideBySide('+i+',\''+mkt+'\')" title="A vs B side-by-side" style="font-size:9px;font-weight:700;padding:3px 9px;background:transparent;color:#D0473E;border:1px solid #D0473E;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9871; A vs B</button>'
-                +'<button onclick="event.stopPropagation();downloadDashboardBoth('+i+',\''+mkt+'\')" title="Download both '+mkt+' variants" style="font-size:9px;font-weight:700;padding:3px 9px;background:#6A33D8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#11015; Both</button>':'')
+                +'<button type="button" onclick="event.stopPropagation();previewDashboardSideBySide('+i+',\''+mkt+'\')" title="A vs B side-by-side" style="font-size:9px;font-weight:700;padding:3px 9px;background:transparent;color:#D0473E;border:1px solid #D0473E;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#9871; A vs B</button>'
+                +'<button type="button" onclick="event.stopPropagation();downloadDashboardBoth('+i+',\''+mkt+'\')" title="Download both '+mkt+' variants" style="font-size:9px;font-weight:700;padding:3px 9px;background:#6A33D8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif">&#11015; Both</button>':'')
             +'</div>'
             // Variant tiles row (grid)
             +'<div style="display:grid;grid-template-columns:repeat('+variants.length+',1fr);gap:8px">'
@@ -9106,8 +9106,8 @@ async function renderDashboard(page){
                   +'</div>'
                   // Tile body (action buttons)
                   +'<div style="padding:7px 8px;display:flex;gap:5px">'
-                    +'<button onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&var(--vh-ink); Preview</button>'
-                    +'<button onclick="event.stopPropagation();downloadDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&#11015; Download</button>'
+                    +'<button type="button" onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&var(--vh-ink); Preview</button>'
+                    +'<button type="button" onclick="event.stopPropagation();downloadDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:5px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em">&#11015; Download</button>'
                   +'</div>'
                 +'</div>';
               }).join('')
@@ -9141,9 +9141,9 @@ async function renderDashboard(page){
         +(e.userEmail?'<div style="font-size:10px;color:#aaa">&#9993; '+e.userEmail+'</div>':'')
         +'</div>'
         +'<div style="display:flex;flex-direction:column;gap:6px;min-width:120px">'
-        +'<button onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&var(--vh-ink); View Details</button>'
-        +'<button onclick="regenerateFromRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:#fff;color:#D0473E;border:1.5px solid #D0473E;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&#8635; Regenerate</button>'
-        +(mktKeys.length?'<button onclick="downloadDashboardAll('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#11015; All Files</button>':'')
+        +'<button type="button" onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&var(--vh-ink); View Details</button>'
+        +'<button type="button" onclick="regenerateFromRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:#fff;color:#D0473E;border:1.5px solid #D0473E;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap;letter-spacing:0.02em">&#8635; Regenerate</button>'
+        +(mktKeys.length?'<button type="button" onclick="downloadDashboardAll('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:#6A33D8;color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;white-space:nowrap">&#11015; All Files</button>':'')
         +'</div>'
       +'</div>'
       +mailerMatrix
@@ -9194,8 +9194,8 @@ function viewDashRecord(logIdx){
     html+='<div style="font-size:10px;color:rgba(251,245,234,0.6)">'+dateStr+(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?' &nbsp;·&nbsp; '+e.userName:'')+'</div>';
     html+='</div>';
     html+='<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
-    html+='<button onclick="regenerateFromRecord('+logIdx+')" style="background:#6A33D8;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em;white-space:nowrap">&#8635; Regenerate</button>';
-    html+='<button onclick="closeDashRecord()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#FFFFFF;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px;font-family:sans-serif;display:flex;align-items:center;justify-content:center">&#10005;</button>';
+    html+='<button type="button" onclick="regenerateFromRecord('+logIdx+')" style="background:#6A33D8;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;letter-spacing:0.04em;white-space:nowrap">&#8635; Regenerate</button>';
+    html+='<button type="button" onclick="closeDashRecord()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#FFFFFF;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px;font-family:sans-serif;display:flex;align-items:center;justify-content:center">&#10005;</button>';
     html+='</div>';
     html+='</div>';
     // ── Campaign Brief ───────────────────────────────────────────────────

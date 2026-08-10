@@ -86,17 +86,17 @@
     <label>Level<select id="f-level"><option value="campaign">Per campaign</option><option value="ad">Per ad</option></select></label>
     <label>Since<input type="date" id="f-since"></label>
     <label>Until<input type="date" id="f-until"></label>
-    <button class="apply" id="f-apply">Refresh</button>
+    <button type="button" class="apply" id="f-apply">Refresh</button>
   </div>
 
   <div class="tabs" id="tabs">
-    <button data-p="overview" class="on">Overview</button>
-    <button data-p="rows">Campaign / ad rows</button>
-    <button data-p="cohorts">Cohorts</button>
-    <button data-p="sop">SOP compliance</button>
-    <button data-p="metrics">Metrics &amp; accuracy</button>
-    <button data-p="sis">Snowflake app</button>
-    <button data-p="source">Source &amp; connection</button>
+    <button type="button" data-p="overview" class="on">Overview</button>
+    <button type="button" data-p="rows">Campaign / ad rows</button>
+    <button type="button" data-p="cohorts">Cohorts</button>
+    <button type="button" data-p="sop">SOP compliance</button>
+    <button type="button" data-p="metrics">Metrics &amp; accuracy</button>
+    <button type="button" data-p="sis">Snowflake app</button>
+    <button type="button" data-p="source">Source &amp; connection</button>
   </div>
 
   <div class="panel on" id="p-overview">
@@ -121,7 +121,7 @@
     <div class="bar">
       <label>Dimension<select id="c-dim"><option value="age">Age</option><option value="gender">Gender</option><option value="country">Country</option><option value="region">Region</option><option value="device">Device</option><option value="placement">Placement</option></select></label>
       <label>Measure<select id="c-measure"><option value="spend">Spend</option><option value="impressions">Impressions</option><option value="reach">Reach</option><option value="clicks">Clicks</option></select></label>
-      <button class="apply" id="c-apply">Build cohort</button>
+      <button type="button" class="apply" id="c-apply">Build cohort</button>
     </div>
     <div class="rangetiles" id="rt-cohort"></div>
     <div id="cohort-body"><div class="empty">Pick a dimension and build.</div></div>

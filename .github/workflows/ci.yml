@@ -41,6 +41,9 @@ jobs:
       - name: Build catalog
         run: npm run build
 
+      - name: Brand isolation (no cross-brand content in generated assets)
+        run: npm run test:isolation
+
   e2e:
     name: Visual + invariant tests (Playwright)
     runs-on: ubuntu-latest

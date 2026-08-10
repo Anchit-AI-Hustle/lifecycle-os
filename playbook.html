@@ -667,7 +667,7 @@ defaults:
         <div class="card p-5">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <h3 class="font-head text-lg text-knickgasm-green">Hour-over-hour, last 12 hours</h3>
-            <button id="pace-refresh" class="btn-lava px-4 py-2 text-sm">Refresh pace</button>
+            <button type="button" id="pace-refresh" class="btn-lava px-4 py-2 text-sm">Refresh pace</button>
           </div>
           <div class="overflow-x-auto mt-3">
             <table class="grid-tbl" style="min-width:560px;">
@@ -701,7 +701,7 @@ defaults:
               <input id="in-spend" type="text" value="3100" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
             </label>
           </div>
-          <button id="predict-btn" class="btn-primary px-5 py-2.5 text-sm mt-4">Project midnight settlement</button>
+          <button type="button" id="predict-btn" class="btn-primary px-5 py-2.5 text-sm mt-4">Project midnight settlement</button>
 
           <div class="grid gap-4 sm:grid-cols-3 mt-5">
             <div class="metric p-5">
@@ -765,8 +765,8 @@ defaults:
           </div>
 
           <div class="flex flex-wrap gap-3 mt-4">
-            <button id="gen-btn" class="btn-primary px-5 py-2.5 text-sm">Generate asset source</button>
-            <button id="copy-btn" class="btn-lava px-5 py-2.5 text-sm">Copy to clipboard</button>
+            <button type="button" id="gen-btn" class="btn-primary px-5 py-2.5 text-sm">Generate asset source</button>
+            <button type="button" id="copy-btn" class="btn-lava px-5 py-2.5 text-sm">Copy to clipboard</button>
             <span id="copy-status" class="self-center text-sm text-knickgasm-green"></span>
           </div>
 
@@ -801,7 +801,7 @@ defaults:
                      class="mt-1 w-full rounded-lg border px-3 py-2 code-out" style="border-color:var(--line);">
             </label>
             <div class="flex flex-wrap gap-3 mt-3">
-              <button id="cdn-sync-btn" class="btn-primary px-5 py-2.5 text-sm">Trigger sync</button>
+              <button type="button" id="cdn-sync-btn" class="btn-primary px-5 py-2.5 text-sm">Trigger sync</button>
               <span id="cdn-status" class="self-center text-sm"></span>
             </div>
             <ul id="cdn-list" class="mt-4 space-y-2 text-sm"></ul>

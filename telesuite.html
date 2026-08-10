@@ -219,7 +219,7 @@
     if (kind === 'transcript' && result.transcript) {
       return '<div class="sec"><h4>Transcript</h4><div class="transcript">' + esc(result.transcript) + '</div></div>' +
         '<p class="muted" style="margin-top:9px">' + esc(result.source === 'pasted' ? 'Pasted by you — no transcription was run, so this cost nothing.' : 'Transcribed from ' + (result.filename || 'your recording') + (result.model ? ' using ' + result.model : '')) + '</p>' +
-        '<button class="btn sm" style="margin-top:10px" data-copy-transcript="1">Copy transcript</button>';
+        '<button type="button" class="btn sm" style="margin-top:10px" data-copy-transcript="1">Copy transcript</button>';
     }
     if (kind === 'score' && result.dimensions) return renderScore(result);
 
@@ -320,8 +320,8 @@
     var kind = s.item_kind;
     $('main').innerHTML = head(s) +
       '<div class="rowbtns" style="margin-bottom:16px">' +
-        '<button class="btn primary" id="addItem">+ Add ' + (kind === 'product' ? 'product' : 'entry') + '</button>' +
-        (kind === 'product' ? '<button class="btn" id="seed">Seed from brand catalog</button>' : '') +
+        '<button type="button" class="btn primary" id="addItem">+ Add ' + (kind === 'product' ? 'product' : 'entry') + '</button>' +
+        (kind === 'product' ? '<button type="button" class="btn" id="seed">Seed from brand catalog</button>' : '') +
       '</div><div id="editor"></div><div class="card tbl" id="list"><p class="muted">Loading…</p></div>';
 
     async function refresh() {
@@ -333,8 +333,8 @@
             return '<tr><td><b>' + esc(i.name) + '</b>' + (i.source ? '<br><span class="muted" style="font-size:10.5px">' + esc(i.source) + '</span>' : '') + '</td>' +
               '<td class="muted">' + esc(i.category || '—') + '</td>' +
               '<td class="muted">' + esc((i.content || '').slice(0, 170)) + ((i.content || '').length > 170 ? '…' : '') + '</td>' +
-              '<td style="white-space:nowrap"><button class="btn sm" data-edit="' + esc(i.id) + '">Edit</button> ' +
-              '<button class="btn sm danger" data-del="' + esc(i.id) + '">Delete</button></td></tr>';
+              '<td style="white-space:nowrap"><button type="button" class="btn sm" data-edit="' + esc(i.id) + '">Edit</button> ' +
+              '<button type="button" class="btn sm danger" data-del="' + esc(i.id) + '">Delete</button></td></tr>';
           }).join('') + '</tbody></table>'
         : '<p class="muted">Nothing here yet.' + (kind === 'product' ? ' Seed from your brand catalog, or add one by hand.' : ' Add the documents your team quotes from.') + '</p>';
 
@@ -358,9 +358,9 @@
           '<div class="field"><label>Category</label><input type="text" id="iCat" value="' + esc(item.category || '') + '" placeholder="' + (kind === 'product' ? 'Product line' : 'pricing / objection handling / compliance') + '"></div>' +
           '<div class="field"><label>' + (kind === 'product' ? 'Description' : 'Content') + '</label><textarea id="iContent">' + esc(item.content || '') + '</textarea></div>' +
           '<div class="rowbtns">' +
-            '<button class="btn primary" id="iSave">Save</button>' +
-            '<button class="btn" id="iGen" data-credit-feature="' + esc(s.credit_key) + '">' + esc(s.generate.label) + '</button>' +
-            '<button class="btn" id="iCancel">Cancel</button>' +
+            '<button type="button" class="btn primary" id="iSave">Save</button>' +
+            '<button type="button" class="btn" id="iGen" data-credit-feature="' + esc(s.credit_key) + '">' + esc(s.generate.label) + '</button>' +
+            '<button type="button" class="btn" id="iCancel">Cancel</button>' +
           '</div><div id="iOut"></div></div>';
       if (window.Credits) window.Credits.decorate($('editor'));
 
@@ -495,7 +495,7 @@
       box.innerHTML = '<div class="flag err"><b>Not enough credits.</b><br>' +
         esc(e.payload.label || '') + ' costs ' + fmt((e.payload.quote && e.payload.quote.total) || e.payload.required) +
         ' credits and you have ' + fmt(e.payload.balance) + '.</div>' +
-        '<button class="btn primary" id="topup" style="margin-top:9px">Add credits</button>';
+        '<button type="button" class="btn primary" id="topup" style="margin-top:9px">Add credits</button>';
       var t = document.getElementById('topup');
       if (t) t.onclick = function () { window.Credits ? window.Credits.openRecharge() : (location.href = '/credits'); };
       return;
@@ -513,7 +513,7 @@
     for (var i = 0; i < s.inputs.length; i++) parts.push(await fieldHtml(s.inputs[i]));
     var price = s.credit_key && window.Credits ? window.Credits.cost(s.credit_key) : null;
     $('form').innerHTML = parts.join('') +
-      '<div class="rowbtns"><button class="btn primary" id="run" data-credit-feature="' + esc(s.credit_key) + '">Run ' + esc(s.label) + '</button>' +
+      '<div class="rowbtns"><button type="button" class="btn primary" id="run" data-credit-feature="' + esc(s.credit_key) + '">Run ' + esc(s.label) + '</button>' +
       (price && price.metered ? '<span class="muted">Metered: ' + price.cost + ' credits ' + esc(price.unit) + '. Only what you use is charged.</span>' : '') + '</div>';
     if (window.Credits) window.Credits.decorate($('form'));
 
@@ -568,7 +568,7 @@
     var follow = '';
     if (s.followups && r.run_id) {
       follow = '<div class="rowbtns" style="margin-top:14px">' + s.followups.map(function (f) {
-        return '<button class="btn" data-follow="' + esc(f.op) + '" data-run="' + esc(r.run_id) + '" data-credit-feature="' + esc(f.credit_key) + '">' + esc(f.label) + '</button>';
+        return '<button type="button" class="btn" data-follow="' + esc(f.op) + '" data-run="' + esc(r.run_id) + '" data-credit-feature="' + esc(f.credit_key) + '">' + esc(f.label) + '</button>';
       }).join('') + '</div>';
     }
     $('out').innerHTML = '<div class="card res" style="margin-top:20px">' + degraded + renderResult(r.result, s.output) + receipt + follow + '</div><div id="follow"></div>';
@@ -605,8 +605,8 @@
             '<td class="muted">' + esc(x.product || '—') + '</td>' +
             '<td class="num">' + (x.score != null ? '<b>' + x.score + '</b>' : '—') + '</td>' +
             '<td class="num">' + fmt(x.credits) + '</td>' +
-            '<td style="white-space:nowrap"><button class="btn sm" data-view="' + esc(x.id) + '">View</button> ' +
-            '<button class="btn sm danger" data-del="' + esc(x.id) + '">Delete</button></td></tr>';
+            '<td style="white-space:nowrap"><button type="button" class="btn sm" data-view="' + esc(x.id) + '">View</button> ' +
+            '<button type="button" class="btn sm danger" data-del="' + esc(x.id) + '">Delete</button></td></tr>';
         }).join('') + '</tbody></table>';
 
       Array.prototype.forEach.call($('runs').querySelectorAll('[data-view]'), function (b) {
@@ -640,7 +640,7 @@
     $('main').innerHTML = head(s) +
       (SR ? '' : '<div class="flag warn">This browser has no speech recognition. You can still run the call by typing your side of it — the agent behaves identically.</div>') +
       '<div class="card" id="setup">' + parts.join('') +
-        '<div class="rowbtns"><button class="btn primary" id="startCall" data-credit-feature="' + esc(s.credit_key) + '">Start call</button>' +
+        '<div class="rowbtns"><button type="button" class="btn primary" id="startCall" data-credit-feature="' + esc(s.credit_key) + '">Start call</button>' +
         (price ? '<span class="muted">' + price.cost + ' credits ' + esc(price.unit) + ', charged on the real call length.</span>' : '') + '</div></div>' +
       '<div id="stage"></div>';
     if (window.Credits) window.Credits.decorate($('main'));
@@ -668,10 +668,10 @@
         '<div class="card"><div class="turns" id="turns"></div>' +
           '<div style="display:flex;gap:8px;margin-top:12px">' +
             '<input type="text" id="typed" placeholder="Type what the customer says, then press Enter">' +
-            '<button class="btn" id="send">Send</button></div></div>' +
-        '<div class="card"><button class="mic" id="mic">' + (SR ? 'Talk' : 'No mic') + '</button>' +
+            '<button type="button" class="btn" id="send">Send</button></div></div>' +
+        '<div class="card"><button type="button" class="mic" id="mic">' + (SR ? 'Talk' : 'No mic') + '</button>' +
           '<div class="status" id="status">Connecting the call…</div>' +
-          '<button class="btn danger" id="endCall" style="width:100%;margin-top:12px;justify-content:center">End call</button>' +
+          '<button type="button" class="btn danger" id="endCall" style="width:100%;margin-top:12px;justify-content:center">End call</button>' +
           '<p class="muted" style="margin-top:10px;font-size:11px">Speech recognition and playback run in your browser. Only the agent turn is generated on the server. The call is metered per minute as it runs, so you only pay for the minutes you actually use, even if you close the tab.</p>' +
           '<div class="status" id="billed" style="margin-top:8px"></div>' +
         '</div>' +
@@ -801,8 +801,8 @@
           '<textarea id="urls" placeholder="https://example.com/calls/one.mp3&#10;https://example.com/calls/two.mp3"></textarea></div>' +
         '<div class="field"><label>Or paste a column from a spreadsheet</label>' +
           '<input type="text" id="prefix" placeholder="Optional filename prefix, e.g. 2026-08-calls"></div>' +
-        '<div class="rowbtns"><button class="btn primary" id="go" data-credit-feature="telesuite.batch_audio">Fetch and bundle</button>' +
-          '<button class="btn" id="clear">Clear</button></div>' +
+        '<div class="rowbtns"><button type="button" class="btn primary" id="go" data-credit-feature="telesuite.batch_audio">Fetch and bundle</button>' +
+          '<button type="button" class="btn" id="clear">Clear</button></div>' +
         '<div class="flag warn" style="margin-top:14px">A file can only be fetched if its server allows cross-origin requests. Anything blocked by CORS is listed below with its URL so you can download it directly.</div>' +
         '<div id="progress" style="margin-top:14px"></div>' +
       '</div>';
@@ -875,7 +875,7 @@
             '<td class="muted" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">' + esc(x.runs_via) + '</td>' +
             '<td class="muted" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">' + esc(x.credit_key || '—') + '</td></tr>';
         }).join('') + '</tbody></table></div>' +
-        '<div class="rowbtns" style="margin-top:14px"><button class="btn primary" id="dlManifest">Download manifest JSON</button></div>';
+        '<div class="rowbtns" style="margin-top:14px"><button type="button" class="btn primary" id="dlManifest">Download manifest JSON</button></div>';
       $('dlManifest').onclick = function () {
         var blob = new Blob([JSON.stringify(m, null, 2)], { type: 'application/json' });
         var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'telesuite-manifest.json'; a.click();
@@ -889,8 +889,8 @@
       var r = await ts('n8n', null, '&base=' + encodeURIComponent(location.origin));
       $('n8n').innerHTML =
         '<div class="card"><p class="muted">One HTTP node per TeleSuite tool, pointed at this deployment. Import it into n8n, add your Supabase access token as a credential, and every run is metered exactly as it is in the app.</p>' +
-        '<div class="rowbtns"><button class="btn primary" id="dl">Download workflow JSON</button>' +
-        '<button class="btn" id="copy">Copy to clipboard</button></div></div>' +
+        '<div class="rowbtns"><button type="button" class="btn primary" id="dl">Download workflow JSON</button>' +
+        '<button type="button" class="btn" id="copy">Copy to clipboard</button></div></div>' +
         '<h2>Preview</h2><pre class="json">' + esc(JSON.stringify(r.workflow, null, 2).slice(0, 6000)) + '</pre>';
       $('dl').onclick = function () {
         var blob = new Blob([JSON.stringify(r.workflow, null, 2)], { type: 'application/json' });
