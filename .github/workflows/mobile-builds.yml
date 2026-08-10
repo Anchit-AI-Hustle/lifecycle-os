@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # @capacitor/cli 8.x hard-requires Node >=22 (not just a warning —
           # `cap sync` refuses to run under 20). The rest of the repo targets
@@ -91,7 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # @capacitor/cli 8.x hard-requires Node >=22 (not just a warning —
           # `cap sync` refuses to run under 20). The rest of the repo targets
