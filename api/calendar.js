@@ -93,6 +93,24 @@ async function smartBrain(req, res, smartAction) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const body = readBody(req);
+
+  // Workspace scoping for EVERY smart-brain action. The adapter used to fall
+  // back to the oldest workspace whenever no workspace_id arrived, so a signed
+  // in user whose client had not (or could not - stale cache) stamped the
+  // request was served TENANT ZERO's plan and campaigns. Resolve once here -
+  // explicit param, else the caller's JWT -> their active workspace, else the
+  // default only for userless (cron) calls - and thread it through config so
+  // every adapter, read and generation below is scoped to it.
+  try {
+    const wsScope = require('./_shared/workspace-scope.js');
+    const scopeEnv = {
+      url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    };
+    const wsId = await wsScope.resolve(scopeEnv, req);
+    body.config = Object.assign({}, body.config, { workspace_id: wsId || null });
+  } catch (_) { body.config = body.config || {}; }
+
   try {
     if (smartAction === 'health') {
       const config = smartConfig(body.config || {});
