@@ -314,20 +314,20 @@
 <!-- ════ BRANDS VIEW (Phase 2 — competitor brand database + discovery) ════ -->
 <div id="brands-view" style="display:none">
   <div class="ads-note">
-    The competitor <b>brand universe</b>, the database that powers monitoring &amp; benchmarking. Every brand listed below has its newsletter, ads, and landing pages tracked. Goal: 200 - 300 active DTC lifestyle brands across product, coffee, supplements &amp; functional beverages, de-duplicated by domain. </div>
+    The competitor <b>brand universe</b>, the database that powers monitoring &amp; benchmarking. Every brand listed below has its newsletter, ads, and landing pages tracked. This universe belongs to <b class="cb-brandname">the active brand</b> and holds only <span class="cb-industry">its own industry's</span> competitors, de-duplicated by domain. </div>
 
   <!-- Two clearly-labelled action cards explaining exactly what each button does -->
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px">
     <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
       <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">✨ Find &amp; add new brands with AI</div>
       <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
-        Runs an AI research pass to find DTC lifestyle brands you don't already track (excludes KNICKGASM + brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
+        Runs an AI research pass to find <span class="cb-industry">same-industry</span> brands you don't already track (excludes <span class="cb-brandname">the active brand</span> and brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
       </div>
       <button id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
     </div>
     <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
-      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed the priority DTC brand list</div>
-      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px"> One-click bulk-add of the curated priority brands across Product, Coffee &amp; Supplements (US + UK). Skips any already in your universe, so it's safe to re-run. Best run once when starting. </div>
+      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed the priority brand list</div>
+      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px"> One-click bulk-add of the curated priority brands for <span class="cb-industry">this brand's industry</span> and regions. Skips any already in your universe, so it's safe to re-run. Best run once when starting. </div>
       <button id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Add priority brands</button>
     </div>
   </div>
@@ -1257,6 +1257,25 @@
   // Run initial animation on headers
   animate(".eyebrow, h1, .sub", { opacity: [0, 1], y: [10, 0] }, { delay: stagger(0.1), duration: 0.6, type: "spring" });
   animate(".subnav", { opacity: [0, 1], scale: [0.95, 1] }, { delay: 0.2, duration: 0.5 });
+</script>
+
+<script>
+/* The competitor universe belongs to the ACTIVE brand: its name and industry
+   fill the copy, so this page never describes another brand's market. */
+(function () {
+  function paint(brand) {
+    var name = (brand && brand.name) || 'the active brand';
+    var ind  = (brand && brand.industry) ? brand.industry.toLowerCase() : "this brand's industry";
+    document.querySelectorAll('.cb-brandname').forEach(function (el) { el.textContent = name; });
+    document.querySelectorAll('.cb-industry').forEach(function (el) { el.textContent = ind; });
+  }
+  function boot() {
+    if (window.BrandContext && window.BrandContext.ready) {
+      window.BrandContext.ready().then(paint).catch(function () {});
+    } else { setTimeout(boot, 200); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
 </script>
 </body>
 </html>
