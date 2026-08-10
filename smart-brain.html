@@ -138,7 +138,7 @@
 
     <div class="card wide">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <h2 style="margin:0">Rolling calendar (next 90 days)</h2>
+        <h2 style="margin:0">Rolling calendar</h2>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:210px">
           <button id="generateAll" class="btn sm ok" onclick="generateAll()" style="display:none;text-align:center" title="Generate the final best version of every asset (mailer, ads, landing page) for the sends currently shown (respects the region filter).">⚙ Generate all</button>
           <button id="approveAll" class="btn sm ok" onclick="approveAll()" style="display:none;text-align:center" title="Approve and lock every send currently shown that is not already approved (includes prebuilt drafts). Each is built if needed, then locked as ship-ready. Rejected sends are skipped.">✓ Approve all</button>
@@ -147,19 +147,15 @@
       </div>
       <div id="mktfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 8px">
         <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Region</span>
-        <button class="mkchip" data-mkt="all" onclick="toggleMkt('all')">All</button>
-        <button class="mkchip on" data-mkt="US" onclick="toggleMkt('US')">US</button>
-        <button class="mkchip" data-mkt="UK" onclick="toggleMkt('UK')">UK</button>
-        <button class="mkchip" data-mkt="Global" onclick="toggleMkt('Global')">Global</button>
-        <button class="mkchip" data-mkt="India" onclick="toggleMkt('India')">India</button>
+        <!-- region chips are injected per plan from the ACTIVE brand's own markets -->
         <span id="mktcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
       </div>
       <div id="durfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
         <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Duration</span>
-        <button class="mkchip" data-dur="7" onclick="setDur(7)">Next 7 days</button>
+        <button class="mkchip on" data-dur="7" onclick="setDur(7)">Next 7 days</button>
         <button class="mkchip" data-dur="30" onclick="setDur(30)">30 days</button>
         <button class="mkchip" data-dur="60" onclick="setDur(60)">60 days</button>
-        <button class="mkchip on" data-dur="90" onclick="setDur(90)">90 days</button>
+        <button class="mkchip" data-dur="90" onclick="setDur(90)">90 days</button>
         <button class="mkchip" data-dur="all" onclick="setDur('all')">All</button>
         <span id="durcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
       </div>
@@ -219,7 +215,7 @@ function setTier(){ /* single mode: premium only */ }
 // (single source of truth) — the agentic section no longer has its own selector.
 function agenticMarket(){
   var chip = document.querySelector('.mkchip.on:not([data-mkt="all"])');
-  var m = chip ? chip.getAttribute('data-mkt') : 'US';
+  var m = chip ? chip.getAttribute('data-mkt') : (ALL_MKTS[0] || '');
   return ({ US:'US', UK:'UK', Global:'GLOBAL', India:'IN' })[m] || 'US';
 }
 async function runAgentic(){
@@ -243,7 +239,8 @@ async function runAgentic(){
 }
 
 // Region filter — multi-select. Empty set OR 'all' = every market.
-const SELECTED_MKT = new Set(['US']);  // default to US only; "All" clears it
+let SELECTED_MKT = new Set();   // filled from the plan's own markets; empty = all of them
+let ALL_MKTS = [];
 function mktKey(m){ const s=String(m||'').toLowerCase(); if(s.startsWith('uk')) return 'UK'; if(s.startsWith('us')) return 'US'; if(/^in|india/.test(s)) return 'India'; if(/global|eu|au|me|row|rest/.test(s)) return 'Global'; return (m||'').toUpperCase(); }
 function mktVisible(e){ return SELECTED_MKT.size===0 || SELECTED_MKT.has(mktKey(e.market)); }
 window.toggleMkt = function(mkt){
@@ -255,10 +252,33 @@ window.toggleMkt = function(mkt){
   });
   renderPlan();
 };
+// Region chips are DERIVED from the plan's own markets, so a brand that sells
+// only in India never sees a US/UK/Global toggle. Default: every market this
+// brand actually plans for (empty set = all), rebuilt on each plan load.
+function buildMktChips(){
+  ALL_MKTS = Array.from(new Set(PLAN.map(e => mktKey(e.market)))).filter(Boolean).sort();
+  SELECTED_MKT = new Set();          // empty = all of this brand's markets
+  const host = document.getElementById('mktfilter');
+  if(!host) return;
+  host.querySelectorAll('.mkchip').forEach(b => b.remove());
+  const anchor = document.getElementById('mktcount');
+  const add = (key, label) => {
+    const btn = document.createElement('button');
+    btn.className = 'mkchip' + (key === 'all' ? ' on' : '');
+    btn.dataset.mkt = key;
+    btn.textContent = label;
+    btn.addEventListener('click', () => toggleMkt(key));
+    host.insertBefore(btn, anchor);
+  };
+  if(ALL_MKTS.length > 1) add('all', 'All');
+  ALL_MKTS.forEach(m => add(m, m));
+  // A single-region brand needs no region filter at all.
+  host.style.display = ALL_MKTS.length > 1 ? '' : 'none';
+}
 
 // Duration horizon: limit the calendar to sends within the next N days (from
 // today, inclusive). 'all' shows the whole rolling window. Default 90.
-let SELECTED_DAYS = 90;
+let SELECTED_DAYS = 7;   // default view: the actionable week
 function durCutoff(){ return SELECTED_DAYS==='all' ? null : new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10); }
 function durVisible(e){ if(SELECTED_DAYS==='all') return true; const today=new Date().toISOString().slice(0,10); const end=durCutoff(); return (!e.date) || (e.date>=today && e.date<=end); }
 // Catalog buckets are DERIVED from the plan itself (the active brand's own
@@ -850,6 +870,7 @@ async function loadPlan(){
     if(!data.ok) throw new Error(data.error || 'Failed to load plan');
     $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
     PLAN = data.entries || [];
+    buildMktChips();
     buildCatChips();
     renderPlan();
     if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
@@ -890,6 +911,7 @@ async function runSync(){
     $('insights').innerHTML = (data.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join('') || '<p>No insights.</p>';
     $('changes').innerHTML = (data.changes||[]).filter(c=>c.kind!=='kept_locked').map(c=>`<p><b>${esc(c.kind)}</b> — ${esc(c.detail)}</p>`).join('') || '<p>No material changes — plan already in sync with the data.</p>';
     PLAN = data.plan || [];
+    buildMktChips();
     buildCatChips();
     Object.keys(PREVIEW_CACHE).forEach(k => delete PREVIEW_CACHE[k]);  // slots may have been re-planned
     clearPreview();
