@@ -265,21 +265,32 @@ function offeringPlanEntries(brand, offerings, startDate, days) {
   for (let i = 0; i < days; i++) {
     const date = addDaysIso(startDate, i);
     for (const market of markets) {
-      const send = oc.pickForDate(offerings, date);
-      if (!send || !send.viable) continue;
-      const off = send.offering;
-      // Rotate evergreen offerings so a brand with several sections/plans sees
-      // them all covered, while a closing event window always wins in pickForDate.
-      const rotated = (send.phase === 'evergreen')
-        ? (function () {
-            const ever = offerings.filter((o) => !require('./offering-kinds.js').isDateBound(o.kind));
-            if (ever.length < 2) return send;
-            const alt = ever[(i + markets.indexOf(market)) % ever.length];
-            const p = oc.planSend(alt, date);
-            return p.viable ? p : send;
-          })()
-        : send;
-      const useOff = rotated.offering || off;
+      // Pick the offering for this slot.
+      //  - A date-bound offering takes the slot only while its window is
+      //    genuinely CLOSING (inside RAMP_DAYS). A save-the-date repeated for
+      //    ten months is not a campaign, it is spam.
+      //  - Otherwise rotate across every offering so a brand's whole catalogue
+      //    gets covered instead of one item every day.
+      const RAMP_DAYS = 45;
+      const KINDS = require('./offering-kinds.js');
+      const urgent = oc.pickForDate(offerings, date);
+      let rotated = null;
+      if (urgent && urgent.viable && KINDS.isDateBound(urgent.kind)
+          && urgent.days_until !== null && urgent.days_until <= RAMP_DAYS) {
+        rotated = urgent;                                   // the window is closing: it wins
+      } else {
+        const pool = offerings.filter((o) => {
+          if (!KINDS.isDateBound(o.kind)) return true;      // evergreen always eligible
+          const p = oc.planSend(o, date);                   // a past event is never eligible
+          return p.viable && p.days_until !== null && p.days_until <= RAMP_DAYS;
+        });
+        const list = pool.length ? pool : offerings;
+        const pick = list[(i + markets.indexOf(market)) % list.length];
+        const p = oc.planSend(pick, date);
+        rotated = (p && p.viable) ? p : (urgent && urgent.viable ? urgent : null);
+      }
+      if (!rotated || !rotated.viable) continue;
+      const useOff = rotated.offering;
       const cohort = cohorts[(i + markets.indexOf(market)) % cohorts.length];
       const confidence = Math.round((0.45 + rnd() * 0.3) * 100) / 100;   // demo, deterministic
       entries.push({
