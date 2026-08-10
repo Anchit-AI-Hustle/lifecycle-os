@@ -484,13 +484,17 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
     // Markets are BRAND-TRUE for tenant zero too: derive them from its own
     // regions rather than the shipped ['US','UK'] default, so a brand selling
     // in India plans India slots.
+    // NOTE: `config` is a const here, so build a NEW object rather than
+    // reassigning it (a const reassignment would throw and be swallowed,
+    // silently keeping the shipped ['US','UK'] default).
+    let zeroCfg = config;
     try {
       const zero = require('./brand-runtime.js').defaultBrand();
       const codes = (zero.regions || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
-      if (codes.length) config = Object.assign({}, config, { markets: codes });
+      if (codes.length) zeroCfg = Object.assign({}, config, { markets: codes });
     } catch (_) { /* keep the shipped default if the record is unreadable */ }
-    ctx = await buildContext(config, db);
-    fresh = freshEntries(config, ctx, start, horizon);
+    ctx = await buildContext(zeroCfg, db);
+    fresh = freshEntries(zeroCfg, ctx, start, horizon);
   }
 
   const changes = [];
