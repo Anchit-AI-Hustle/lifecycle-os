@@ -859,6 +859,13 @@
   //      sub-tabs whose container page is open with no hash yet).
   //   4. PREFIX match against `match[]` — but never against `/`.
   function currentStepId() {
+    // A page whose tabs switch IN PLACE (no URL change) can name its own active
+    // rail item via window.__LC_ACTIVE_ID. The URL is then not the source of
+    // truth - the page is - so this override wins when it names a real leaf.
+    try {
+      const forced = window.__LC_ACTIVE_ID;
+      if (forced && leafItems().some((it) => it.id === forced)) return forced;
+    } catch (_) {}
     const p = location.pathname.toLowerCase();
     const s = (location.search || '').toLowerCase();  // e.g. ?region=us, ?tab=rfm
     const h = (location.hash || '').toLowerCase();     // e.g. #meta, #mailers
@@ -1434,6 +1441,8 @@
       });
     };
     window.addEventListener('hashchange', refreshActive);
+    // Pages with in-place tabs call this after setting window.__LC_ACTIVE_ID.
+    window.__LC_NAV_REFRESH = refreshActive;
     // Also refresh on history navigation (back/forward across hash routes).
     window.addEventListener('popstate', refreshActive);
     // AND on programmatic URL changes: region switches, detail panels, and the

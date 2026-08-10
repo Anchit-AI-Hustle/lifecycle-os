@@ -22,22 +22,36 @@ const CF = require('../_shared/copy-frameworks.js');
 const fs = require('fs');
 const path = require('path');
 
-// ─── KNICKGASM store URLs (verified per CLAUDE.md) ─────────────────────────────
-function regionBase(market) {
-  const m = String(market || '').toUpperCase();
-  const map = {
-    US: 'https://knickgasm.com',
-    UK: 'https://knickgasm.com',
-    IN: 'https://knickgasm.com',
-    EU: 'https://knickgasm.com',
-    AU: 'https://knickgasm.com',
-    CA: 'https://knickgasm.com',
-    JP: 'https://knickgasm.com',
-    SG: 'https://knickgasm.com',
-    ME: 'https://knickgasm.com',
-    GLOBAL: 'https://knickgasm.com',
-  };
-  return map[m] || 'https://knickgasm.com';
+// ─── Brand-derived identity for every rendered mailer ─────────────────────────
+// This renderer is shared by the Smart Brain variants, so nothing in it may be
+// hardcoded to one tenant. Name, palette, store URL and the legal sender block
+// all come from the ACTIVE brand record travelling on the entry/opts.
+function _brand(o) {
+  const b = (o && (o.brand || (o.entry && o.entry.brand))) || null;
+  if (b && b.id) return b;
+  try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; }
+}
+function brandNameOf(o) { return _brand(o).name || 'the brand'; }
+function brandStore(o, market) {
+  const b = _brand(o);
+  const code = String(market || '').toUpperCase();
+  const list = Array.isArray(b.regions) ? b.regions : [];
+  const hit = list.find((r) => String(r.code || '').toUpperCase() === code) || list[0];
+  if (hit && hit.store_url) return String(hit.store_url).replace(/\/$/, '');
+  return String(b.website || '').replace(/\/$/, '');
+}
+function brandOrg(o) {
+  const b = _brand(o);
+  const legal = b.legal_entity || b.legal_name || '';
+  if (typeof legal === 'string' && legal.trim()) {
+    const parts = legal.split(',');
+    return { name: parts[0].trim(), address: parts.slice(1).join(',').trim() || '[DATA REQUIRED BEFORE LAUNCH: sender postal address]' };
+  }
+  return { name: b.name || '[DATA REQUIRED BEFORE LAUNCH: legal sender name]', address: '[DATA REQUIRED BEFORE LAUNCH: sender postal address]' };
+}
+function regionBase(market, o) {
+  const s = brandStore(o, market);
+  return s || '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
 }
 
 function slugify(s) {
@@ -106,7 +120,7 @@ function buildBriefFromEntry(entry, fw) {
     (entry.feedback && String(entry.feedback).trim()) ? `\nREVIEWER FEEDBACK to incorporate on this regeneration (highest priority, override earlier guidance where it conflicts): ${String(entry.feedback).trim()}` : null,
     '',
     'Strategist guidance:',
-    `- Stay strictly on KNICKGASM brand voice: warm, sensory, story-driven. No "transform", no "wellness journey", no all-caps urgency.`,
+    `- Stay strictly on the ACTIVE brand's own voice and banned-phrase list as supplied in the brand block above.`,
     `- Match the archetype layout convention (see project brand spec).`,
     `- One CTA, one hero product, optional 2-3 supporting products.`,
     `- For ${entry.segment}: ${segmentVoiceGuide(entry.segment, entry.content_type)}`,
@@ -265,11 +279,11 @@ module.exports = async function handler(req, res) {
   const strategy = await safeCall(async () => {
     const out = await llm({
       systemPrompt:
-        'You are KNICKGASM\'s lifecycle copywriter. Produce a strict JSON object with keys: ' +
+        'You are the lifecycle copywriter for ' + brandNameOf(entry) + '. Produce a strict JSON object with keys: ' +
         'subject_line (string, ≤ 60 chars), preview_text (string, ≤ 90 chars), ' +
         'hero_headline (string, ≤ 8 words), hero_subline (string, ≤ 18 words), ' +
         'body_blocks (array of {heading, body}), cta_text (string, ≤ 4 words). ' +
-        'Use KNICKGASM brand voice (warm, sensory, story-driven). ' +
+        'Use the active brand\'s own voice as stated in its brand block. ' +
         CF.copyFrameworkSystemLine(framework) + ' No banned phrases.',
       userMessage: brief,
       responseFormat: { type: 'json_object' },
@@ -483,8 +497,10 @@ function renderTextVariant(opts) {
 // address is required in every commercial email). SAME constants the flagship
 // engine (brain-generate.js) uses, so every mailer path carries an identical
 // compliant footer.
-const ORG_NAME = 'Knickgasm Global, Inc';
-const ORG_ADDRESS = '440 N Barranca Ave #2812, Covina, CA 91723, United States';
+// Legacy tenant-zero constants kept ONLY as the last-resort fallback for a
+// brand whose record carries no legal entity; brandOrg(opts) is the source.
+const ORG_NAME_FALLBACK = '[DATA REQUIRED BEFORE LAUNCH: legal sender name]';
+const ORG_ADDRESS_FALLBACK = '[DATA REQUIRED BEFORE LAUNCH: sender postal address]';
 // Real hosted product photos (Shopify CDN) resolved by handle/title, the SAME
 // source the flagship mailer uses, so a product tile never renders imageless.
 let _catImg = null;
@@ -512,20 +528,24 @@ function _productNote(p, market) {
   return s ? String(s) : '';
 }
 
-function _brandClaims() {
-  // Only claims the brand itself states. No fallback copy: an unstated claim is
-  // not written, because a trust bar is exactly where an invented one would do
-  // the most damage.
-  try { return (require('./brand-runtime.js').defaultBrand().claims || []).slice(0, 3); }
-  catch (_) { return []; }
+function _brandClaims(o) {
+  // Only claims the ACTIVE brand itself states. No fallback copy: an unstated
+  // claim is not written, because a trust bar is exactly where an invented one
+  // would do the most damage.
+  const b = _brand(o);
+  return (Array.isArray(b.claims) ? b.claims : []).slice(0, 3);
 }
 
-function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market, hero_product, hero_sku, hero_image_url, hero_prompt, products, offer_bar, collection_url }) {
-  const brandClaims = _brandClaims();
+function _renderVariantBody(o) {
+  // Keep the whole options object in scope: the brand-derived helpers below
+  // (name, store, legal sender) read `o.brand`, which a destructured-only
+  // signature would have hidden.
+  const { style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market, hero_product, hero_sku, hero_image_url, hero_prompt, products, offer_bar, collection_url } = o || {};
+  const brandClaims = _brandClaims(o);
   // CTA points at the resolved product/collection page; the brand domain still
   // falls back per-market if no specific destination was provided.
-  const baseUrl = cta_url || regionBase(market);
-  const store = regionBase(market);
+  const baseUrl = cta_url || regionBase(market, o);
+  const store = regionBase(market, o);
   const cur = String(market || '').toUpperCase() === 'UK' ? '£' : '$';
   const HEAD = "'Montserrat','Raleway',Georgia,serif";
   const BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
@@ -540,7 +560,7 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
   const brandHeader = `
       <tr><td align="center" style="padding:18px 0 6px;">
         <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block;">
-          <div style="font-family:${HEAD};font-size:22px;letter-spacing:0.28em;color:${palette.green};font-weight:700;">KNICKGASM</div>
+          <div style="font-family:${HEAD};font-size:22px;letter-spacing:0.28em;color:${palette.green};font-weight:700;">${esc(brandNameOf(o).toUpperCase())}</div>
           <div style="font-family:${BODY};font-size:10px;letter-spacing:0.22em;color:${palette.lava};text-transform:uppercase;margin-top:4px;">${esc(market)} · One-of-One Sneaker</div>
         </a>
       </td></tr>`;
@@ -581,9 +601,9 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
   // sits on deep purple (#D0473E); chalk + lava text stay high-contrast on it.
   const brandFooter = `
       <tr><td align="center" style="background:${palette.green};padding:22px 20px 28px;">
-        <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.chalk};">KNICKGASM</div>
+        <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.chalk};">${esc(brandNameOf(o).toUpperCase())}</div>
         ${brandClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.lava};margin:8px 0;">${brandClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.chalk}99;line-height:1.7;">${ORG_NAME} &middot; ${ORG_ADDRESS}<br>You are receiving this as a valued KNICKGASM ${esc(market)} customer. Carbon &amp; plastic neutral.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${BODY};font-size:11px;color:${palette.chalk}99;line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   const blocks = (body_blocks || []).map((b) => `
@@ -656,15 +676,15 @@ function _renderVariantBody({ style, subject, hero_headline, hero_subline, body_
   <tr><td align="center" style="padding:40px 16px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0">
       <tr><td style="padding:0 8px;">
-        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">KNICKGASM · ${esc(market)}</p>
+        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())} · ${esc(market)}</p>
         <h1 style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;">${esc(hero_headline)}</h1>
         <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;">${esc(hero_subline)}</p>
         ${textBlocks}
         <p style="font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
           <a href="${baseUrl}" style="color:${palette.green};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a>
         </p>
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">The KNICKGASM team</p>
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;line-height:1.7;color:#9a8f7c;margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${ORG_NAME}, ${ORG_ADDRESS}<br>You are receiving this as a valued KNICKGASM ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
+        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;line-height:1.7;color:#9a8f7c;margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>
