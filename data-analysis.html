@@ -576,7 +576,11 @@
 
   // ── Tabs: route each widget to a tab; show honest "connect X" cards for the
   // widgets that need data we do not have yet (ad spend, live orders, real-time).
-  var ACTIVE_TAB='control';
+  var ACTIVE_TAB=(function(){
+    // ?tab= selects the opening tab; the rail is told about it below.
+    var t=(new URLSearchParams(location.search).get('tab')||'control').toLowerCase();
+    return /^[a-z-]+$/.test(t) ? t : 'control';
+  })();
   var TAB_MAP={
     revenue:'control','kpi-orders':'control',aov:'control',weekly:'control',dow:'control',
     ptype:'control',topprod:'control',topqty:'control',country:'control',
@@ -747,13 +751,40 @@
     if(g) g.innerHTML='<div class="empty" style="padding:32px;text-align:center;line-height:1.7">No analytics loaded for <b>'+esc(mktLabel())+'</b> yet.<br>This view shows <b>only real data</b>. To populate '+esc(mktLabel())+', authorize its Shopify store (<span class="datalink">'+esc(meta(MKT).store)+'</span>) via the connected Shopify MCP, or drop its CSV export into <span class="datalink">data/market/'+esc(meta(MKT).region)+'/</span>. No sample or fabricated figures are ever shown.</div>';
     var fn=document.getElementById('footnote'); if(fn) fn.textContent='Awaiting live data for '+mktLabel()+'. Authorize its Shopify store via the Shopify MCP (or add its CSV export); nothing is fabricated.';
   }
+
+  // The LHS rail follows the tab that is actually SHOWING. This page switches
+  // tabs in place (no URL change), so the URL alone cannot tell the rail which
+  // sub-item is open - the page names it explicitly.
+  var NAV_ID_BY_TAB = {
+    control: 'da-control', acq: 'da-acq', ret: 'da-ret', cohort: 'da-cohort',
+    'live-ads': 'da-liveads', 'mailer-intelligence': 'da-mailer',
+    'landing-intelligence': 'da-landing', 'action-outcomes': 'da-actions',
+    'alert-settings': 'da-alerts', 'review-overview': 'da-review'
+  };
+  function syncNavToTab(tab){
+    try {
+      var id = NAV_ID_BY_TAB[tab];
+      if (!id) return;
+      window.__LC_ACTIVE_ID = id;
+      if (typeof window.__LC_NAV_REFRESH === 'function') window.__LC_NAV_REFRESH();
+    } catch (_) {}
+  }
   function renderMarket(){ if(marketHasData(MKT)){ renderKPIs(); renderSignals(); renderGrid(); renderFootnote(); } else { renderEmptyMarket(); } }
   function setMarket(mk){ MKT=mk; document.querySelectorAll('#mktToggle button').forEach(function(b){ b.classList.toggle('on', b.dataset.mkt===mk); }); renderMarket(); closeDetail(); }
 
   document.querySelectorAll('#mktToggle button').forEach(function(b){ b.addEventListener('click',function(){ setMarket(b.dataset.mkt); }); });
+  // Apply the opening tab (?tab=) to the strip and the rail before any clicks.
+  (function applyOpeningTab(){
+    var btns = document.querySelectorAll('#anTabs button');
+    var found = false;
+    btns.forEach(function(x){ var hit = x.dataset.tab === ACTIVE_TAB; x.classList.toggle('on', hit); if (hit) found = true; });
+    if (!found) { ACTIVE_TAB = 'control'; btns.forEach(function(x){ x.classList.toggle('on', x.dataset.tab === 'control'); }); }
+    syncNavToTab(ACTIVE_TAB);
+  })();
   document.querySelectorAll('#anTabs button').forEach(function(b){ b.addEventListener('click',function(){
     ACTIVE_TAB=b.dataset.tab;
     document.querySelectorAll('#anTabs button').forEach(function(x){ x.classList.toggle('on', x===b); });
+    syncNavToTab(ACTIVE_TAB);
     closeDetail(); renderGrid(); window.scrollTo(0,0);
   }); });
 

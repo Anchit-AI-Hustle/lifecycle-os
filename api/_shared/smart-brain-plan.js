@@ -1048,6 +1048,9 @@ function renderVariant(entry, copy, style, img) {
       ]
     : undefined;
   return renderTextVariant({
+    // The ACTIVE brand travels with the render options: the shared renderer
+    // derives wordmark, store URL, claims and the legal sender block from it.
+    brand: entry.brand || null,
     style, subject: E.subject, preheader: E.preheader,
     hero_headline: E.hero_headline || E.subject || heroProduct,
     hero_subline: E.subheadline || E.preheader || '',
