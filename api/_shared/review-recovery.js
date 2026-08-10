@@ -24,14 +24,17 @@ let catalogImage = null;
 try { catalogImage = require('./catalog-image.js'); } catch (_) { catalogImage = null; }
 
 // Per-market official store host (verified in CLAUDE.md). Never cross-region.
-function storeHost(market) {
+function storeHost(market, brand) {
+  // The store host is the ACTIVE brand's own, per region. Never a fixed
+  // tenant's domain: a wrong host in a CTA sends readers to another company.
+  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = {}; } }
   const m = String(market || 'US').toUpperCase();
-  if (m === 'UK') return 'knickgasm.com';
-  if (m === 'IN' || m === 'INDIA') return 'knickgasm.com';
-  if (m === 'EU') return 'knickgasm.com';
-  if (m === 'AU') return 'knickgasm.com';
-  return 'knickgasm.com';
+  const list = Array.isArray(brand.regions) ? brand.regions : [];
+  const hit = list.find((r) => String(r.code || '').toUpperCase() === m) || list[0];
+  const url = (hit && hit.store_url) || brand.website || '';
+  return String(url).replace(/^https?:\/\//, '').replace(/\/$/, '');
 }
+
 
 // Read a REAL numeric rating from common shapes; null when absent (never guessed).
 function ratingOf(p) {
@@ -63,8 +66,8 @@ function lowRatedProducts(products, threshold = THRESHOLD) {
   return out;
 }
 
-function reviewCtaUrl(product, market) {
-  const store = 'https://' + storeHost(market);
+function reviewCtaUrl(product, market, brand) {
+  const store = 'https://' + storeHost(market, brand);
   let handle = null;
   try { handle = catalogImage && catalogImage.handleFor(product, market); } catch (_) { handle = null; }
   handle = handle || product.handle || product.h || null;
@@ -80,9 +83,12 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({
 // Brand-compliant review-invitation mailer for one low-rated product. Palette +
 // fonts locked; no banned phrases, no em/en dashes, NO incentive; real product
 // photo (catalog) when available, image-free otherwise (never a fake URL).
-function reviewMailerHtml(product, market) {
-  const title = product.title || product.n || 'your last KNICKGASM sneaker';
-  const cta = reviewCtaUrl(product, market);
+function reviewMailerHtml(product, market, brand) {
+  // Brand identity is derived, never hardcoded: a review-recovery mailer is a
+  // shared renderer and must carry the ACTIVE brand's wordmark and wording.
+  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = {}; } }
+  const title = product.title || product.n || ('your last ' + ((brand && brand.name) || 'order'));
+  const cta = reviewCtaUrl(product, market, brand);
   let img = null;
   try { img = catalogImage && (catalogImage.imageFor(product, market, { width: 1200 }) || catalogImage.imagesFor(product, market, { width: 1200 })[0]); } catch (_) { img = null; }
   const heroImg = img ? `<tr><td style="padding:0 24px"><img src="${esc(img)}" alt="${esc(title)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:8px"/></td></tr><tr><td style="height:20px"></td></tr>` : '';
@@ -90,7 +96,7 @@ function reviewMailerHtml(product, market) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff">
   <tr><td style="height:32px"></td></tr>
-  <tr><td align="center" style="padding:18px 0 4px"><div style="font-family:${BODY};font-size:22px;letter-spacing:.28em;color:#D0473E;font-weight:700">KNICKGASM</div><div style="font-family:${BODY};font-size:10px;letter-spacing:.22em;color:#6A33D8;text-transform:uppercase;margin-top:4px">${esc(String(market).toUpperCase())} · One-of-One Sneaker</div></td></tr>
+  <tr><td align="center" style="padding:18px 0 4px"><div style="font-family:${BODY};font-size:22px;letter-spacing:.28em;color:var(--brand-primary,#D0473E);font-weight:700">${esc(String((brand && brand.name) || '').toUpperCase())}</div><div style="font-family:${BODY};font-size:10px;letter-spacing:.22em;color:var(--brand-accent,#6A33D8);text-transform:uppercase;margin-top:4px">${esc(String(market).toUpperCase())}</div></td></tr>
   <tr><td style="height:18px"></td></tr>
   <tr><td style="padding:0 24px"><h1 style="margin:0;font-family:${HEAD};font-size:26px;line-height:1.3;color:#1b1612;text-align:center">How did the ${esc(title)} land for you?</h1></td></tr>
   <tr><td style="height:16px"></td></tr>
@@ -104,9 +110,9 @@ function reviewMailerHtml(product, market) {
   <tr><td style="height:12px"></td></tr>
   <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:13px;color:#9ca3af">Rating plus a line · done before the next pair</p></td></tr>
   <tr><td style="height:28px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:14px;color:#1b1612;font-weight:600">Warmly,</p><p style="margin:4px 0 0;font-family:${BODY};font-size:14px;color:#1b1612">The KNICKGASM Team</p></td></tr>
+  <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:14px;color:#1b1612;font-weight:600">Warmly,</p><p style="margin:4px 0 0;font-family:${BODY};font-size:14px;color:#1b1612">The ${esc((brand && brand.name) || '')} Team</p></td></tr>
   <tr><td style="height:30px"></td></tr>
-  <tr><td style="padding:20px 24px;border-top:1px solid #e5e7eb;text-align:center"><p style="margin:0;font-family:${BODY};font-size:11px;color:#9ca3af;line-height:1.6">You are receiving this as a valued KNICKGASM ${esc(String(market).toUpperCase())} customer. Manage preferences or unsubscribe from your account settings.</p></td></tr>
+  <tr><td style="padding:20px 24px;border-top:1px solid #e5e7eb;text-align:center"><p style="margin:0;font-family:${BODY};font-size:11px;color:#9ca3af;line-height:1.6">You are receiving this as a ${esc((brand && brand.name) || '')} ${esc(String(market).toUpperCase())} customer. Manage preferences or unsubscribe from your account settings.</p></td></tr>
 </table></td></tr></table></body></html>`;
 }
 
