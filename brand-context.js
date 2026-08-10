@@ -45,10 +45,14 @@
      is active these are re-labelled in text nodes. URLs are never touched. */
   var SHIPPED_NAME_RX = /\bKNICKGASM\b|\bKnickgasm\b/g;
   var SHIPPED_ASSISTANT = /\bKicksGPT\b/g;
+  // Neutral placeholders the shell ships with; the active brand names them.
+  var NEUTRAL_ASSISTANT = /\bBrand Assistant\b/g;
+  var NEUTRAL_AGENT = /\bBrand Agent\b/g;
   // Non-global twins for `.test()`. A /g regex is stateful across calls, so the
   // matching pass and the replacing pass must not share one.
   var SHIPPED_NAME_TEST = /\bKNICKGASM\b|\bKnickgasm\b/;
   var SHIPPED_ASSISTANT_TEST = /\bKicksGPT\b/;
+  var NEUTRAL_TEST = /\bBrand (Assistant|Agent)\b/;
 
   var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false };
   var listeners = [];
@@ -187,9 +191,19 @@
 
   function relabel(brand) {
     if (!brand || !brand.name) return;
-    // Only re-label when this is genuinely a different brand.
-    if (/^knickgasm$/i.test(brand.name.trim())) return;
-    var assistant = brand.name + ' Assistant';
+    // The shipped shell is BRAND-NEUTRAL ("Brand Assistant", "Brand Agent", no
+    // brand name in the header) so a signed-out visitor never sees any tenant's
+    // branding. Relabelling therefore runs for EVERY active brand - tenant zero
+    // included, which maps the neutral labels to its own product names.
+    var isZero = /^knickgasm$/i.test(String(brand.slug || brand.name).trim());
+    var assistant = isZero ? 'KicksGPT' : brand.name + ' Assistant';
+    var agent = isZero ? 'Knickgasm Agent' : brand.name + ' Agent';
+
+    // Brand name slots in the neutral header (empty until a brand is active).
+    try {
+      document.querySelectorAll('.lnav-brandname').forEach(function (el) { el.textContent = brand.name; });
+      document.querySelectorAll('.lnav-mbrand-label').forEach(function (el) { el.textContent = brand.name + ' · Lifecycle OS'; });
+    } catch (_) {}
 
     function walk(root) {
       var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -206,16 +220,22 @@
           // advances lastIndex, so testing consecutive matching nodes with the
           // shared global regexes would start the next test past the match and
           // silently skip every other label.
-          return (SHIPPED_NAME_TEST.test(v) || SHIPPED_ASSISTANT_TEST.test(v)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          return (SHIPPED_NAME_TEST.test(v) || SHIPPED_ASSISTANT_TEST.test(v) || NEUTRAL_TEST.test(v)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
       });
       var hits = [], n;
       while ((n = w.nextNode())) hits.push(n);
       hits.forEach(function (node) {
         SHIPPED_NAME_RX.lastIndex = 0; SHIPPED_ASSISTANT.lastIndex = 0;
-        node.nodeValue = node.nodeValue
+        NEUTRAL_ASSISTANT.lastIndex = 0; NEUTRAL_AGENT.lastIndex = 0;
+        var next = node.nodeValue
+          .replace(NEUTRAL_ASSISTANT, assistant)
+          .replace(NEUTRAL_AGENT, agent)
           .replace(SHIPPED_ASSISTANT, assistant)
           .replace(SHIPPED_NAME_RX, brand.name);
+        // Only write on change: tenant zero's replacements are identity, and an
+        // unconditional write would re-trigger the mutation observer forever.
+        if (next !== node.nodeValue) node.nodeValue = next;
       });
     }
 

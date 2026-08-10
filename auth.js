@@ -396,7 +396,7 @@
     // bundle (mailer + ads + landing page). The older calendar surfaces stay
     // reachable by URL but are no longer separate nav features; this one
     // feature's match[] also lights up for them.
-    { id: 'brain', label: 'KNICKGASM Brain', href: '/brain', icon: 'calendar', ver: 'v2', match: ['/brain', '/smart-brain', '/smart-brain.html', '/mailer-calendar', '/lifecycle-calendar.html', '/calendar.html', '/plan'] },
+    { id: 'brain', label: 'Smart Brain', href: '/brain', icon: 'calendar', ver: 'v2', match: ['/brain', '/smart-brain', '/smart-brain.html', '/mailer-calendar', '/lifecycle-calendar.html', '/calendar.html', '/plan'] },
     { id: 'retentionplaybook', label: 'Retention Playbook', href: '/retention-playbook', icon: 'calendar', ver: 'v2', match: ['/retention-playbook', '/retention-playbook.html'] },
     // UK Non-Engagers Hub removed from the user-facing nav (route /uk-non-engagers
     // stays reachable directly); it is no longer a raw nav item.
@@ -444,8 +444,8 @@
     // concierge) are conversational assistants and stay here. The former Smart
     // Brain moved to Plan and was renamed Automated Calendar Creation — it is a
     // calendar-creation feature, not a chat assistant, so it no longer lives here.
-    { id: 'kicksgpt', label: 'KicksGPT',   href: '/kicksgpt', icon: 'knickgasm', ver: 'v1', match: ['/kicksgpt', '/kicks', '/ask', '/kicksgpt.html'] },
-    { id: 'agent',   label: 'Knickgasm Agent', href: '/agent',   icon: 'knickgasm', ver: 'v1', match: ['/agent', '/agent.html'] },
+    { id: 'kicksgpt', label: 'Brand Assistant',   href: '/kicksgpt', icon: 'knickgasm', ver: 'v1', match: ['/kicksgpt', '/kicks', '/ask', '/kicksgpt.html'] },
+    { id: 'agent',   label: 'Brand Agent', href: '/agent',   icon: 'knickgasm', ver: 'v1', match: ['/agent', '/agent.html'] },
 
     { section: 'Settings' },
     { id: 'connectors', label: 'Connectors', href: '/connectors', icon: 'insights', ver: 'v2', match: ['/connectors', '/connectors.html'] },
@@ -529,8 +529,8 @@
       ]
     },
     kicksgpt: {
-      title: 'KicksGPT',
-      what: "INTERNAL TOOL, for the KNICKGASM team only (not customer-facing). KicksGPT is KNICKGASM's own brand LLM: a conversational operator that actually RUNS the growth stack instead of just chatting: it queries analytics, reads competitor benchmarks, searches the knowledge base, and can generate calendars and campaign assets on explicit request.",
+      title: 'Brand Assistant',
+      what: "INTERNAL TOOL, for the active brand's team only (not customer-facing). The brand assistant is the ACTIVE brand's own LLM: a conversational operator that actually RUNS the growth stack instead of just chatting: it queries analytics, reads competitor benchmarks, searches the knowledge base, and can generate calendars and campaign assets on explicit request.",
       who: "The operator (growth and retention team). Its recommendations span every cohort — the nine RFM segments (Champions through Lost) and the UK engagement cohorts (Non-Buyers/Non-Engagers and T&B Buyers/Non-Engagers).",
       how: "A provider-agnostic tool-calling loop: the model emits strict JSON actions, the server executes them against the same _shared cores the public API routes use, feeds results back, and loops (default 5 steps, up to 3 tools in parallel). Because tool calls are plain JSON, it works across the whole 6-provider text waterfall, including free tiers. An evidence contract forces every recommendation to quote exact tool-sourced figures.",
       input: "A plain-English question or instruction in the chat. Write and generate tools (generate_calendar, generate_assets_for_slot, run_agentic_campaign, klaviyo) fire only when you explicitly ask.",
@@ -543,7 +543,7 @@
       ],
     },
     brain: {
-      title: 'KNICKGASM Brain',
+      title: 'Smart Brain',
       what: "The one calendar feature of the OS — it combines the automated engine (formerly Smart Brain), the Cohort Mailer Calendar (Draft 2) and the 30-Day Plan Calendar (Draft 1). It maintains a rolling 90-day campaign plan in Supabase (smart_calendar_entries), refreshes it every morning by diff — never a wholesale rewrite — and turns every human-approved slot into a complete campaign: mailer + Meta/Google/TikTok ads + a landing page.",
       who: "Every customer cohort gets slots — RFM segments and engagement cohorts alike. The lifecycle team supervises: nothing ships without a human approve.",
       how: "Six services run in sequence — KB, Analysis, Competitor, Calendar, Generation, Review. A daily Vercel Cron (03:30 UTC, CRON_SECRET-protected) syncs the plan; the console at /brain lists tentative slots for approve/reject; approving generates all assets and mirrors them into ads_generated and landing_pages_generated. Platform push is Phase 2 (push_status: not_integrated_phase_2).",
@@ -560,7 +560,7 @@
       ],
     },
     agent: {
-      title: 'Knickgasm Agent',
+      title: 'Brand Agent',
       what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
       who: "Prospective and existing customers on-site; strongest for Non-Buyers who need guidance to a first purchase. The team uses this page to configure and demo agents.",
       how: "A chat UI over the shared 6-provider LLM waterfall, grounded in brand voice and the product catalog. Voice replies use ElevenLabs TTS with a browser-TTS fallback. Agent personas can be created, updated, and synced from this page.",
@@ -589,7 +589,7 @@
     },
     music: {
       title: 'Music (Official Songs)',
-      what: "The library of KNICKGASM's official brand music: the branding track (with lyrics) that plays in-app and drops into ad creatives, social videos and landing pages as a native, brand-owned audio and video bed.",
+      what: "The library of the active brand's official music: the branding track (with lyrics) that plays in-app and drops into ad creatives, social videos and landing pages as a native, brand-owned audio and video bed.",
       who: "Anyone producing outward-facing content: ad creatives, Social Media OS videos, landing pages and event assets that need on-brand, cleared audio.",
       how: "A self-contained page that streams each official track, and exposes a Use-in-ad action that copies the hosted asset URL and hands off to the Ad Campaigns builder. Tracks are served from /assets/media and are usable anywhere in the OS.",
       input: "Nothing to upload, the official tracks are bundled with the app. From you: pick a track, preview it, then copy its URL, copy an embed snippet, or download it for the creative you are building.",
@@ -603,7 +603,7 @@
     },
     research: {
       title: 'Market Study',
-      what: "The single narrative reference for how KNICKGASM grows: brand truth, the US and UK market intelligence, live performance pulled from the market exports, the four buyer avatars and the cohort model, the retention operating principles, the growth plays currently running, and the data engine underneath it all. It is the connective story that the operational features read from.",
+      what: "The single narrative reference for how the active brand grows: brand truth, the US and UK market intelligence, live performance pulled from the market exports, the four buyer avatars and the cohort model, the retention operating principles, the growth plays currently running, and the data engine underneath it all. It is the connective story that the operational features read from.",
       who: "The whole growth and retention team. It frames every cohort and avatar the OS targets, and turns the raw analytics into prioritised, named growth plays.",
       how: "A self-contained page organised into tabs: Overview, Brand Foundation, Market Intelligence, Live Performance (real numbers from the compiled market data), Growth Plays, Retention Playbooks (the knowledge/retention library), and Data Engine. It links out to Avatars, Cohorts, and the Data Analysis workbench, and cites the market study, schemas and retention config.",
       input: "Nothing to upload — the book compiles the market exports and the brand knowledge base. From you: read it before planning, and use its growth plays and avatar/cohort mapping to brief every campaign.",
@@ -643,8 +643,8 @@
       ],
     },
     kb: {
-      title: 'Knowledge Base — KNICKGASM',
-      what: "KNICKGASM's own reference library: our mailers, Meta/Google/TikTok ads, and landing pages, ingested and classified so every generator in this OS can ground itself in what the brand has actually shipped.",
+      title: 'Knowledge Base',
+      what: "The active brand's own reference library: our mailers, Meta/Google/TikTok ads, and landing pages, ingested and classified so every generator in this OS can ground itself in what the brand has actually shipped.",
       who: "The generation pipelines and the operator. It is not cohort-specific — it is the shared memory every cohort's campaigns draw on.",
       how: "A Supabase-backed router at /api/kb. Assets are ingested by URL with tags, classified by LLM, attributed to brands, and ranked; the page browses them by channel tab (Mailers / Meta / Google / TikTok / Landing Pages).",
       input: "URLs or captured emails to ingest, with tags. Bulk lists of top emails can be pushed in one call.",
@@ -653,13 +653,13 @@
         ['Classify', 'LLM classification tags each email with its angle, offer, and structure.', '/api/kb?action=classify-emails'],
         ['Brand-tag', 'Assets are attributed to brands, cross-referencing Competitor Benchmarking.', '/api/kb?action=brands'],
         ['Rank', 'Top-performing emails are ranked and kept fresh.', '/api/kb?action=top-emails'],
-        ['Serve', 'Generators and KicksGPT search this library while writing new work.', '/api/kb?action=list'],
+        ['Serve', 'Generators and the brand assistant search this library while writing new work.', '/api/kb?action=list'],
       ],
     },
     competitor: {
       title: 'Competitor Benchmarking',
       what: "Competitor intelligence: captures rival brands' marketing emails from a dedicated Gmail inbox into a Google Sheet, renders them for side-by-side study, and distils benchmarks — cadence, offer depth, creative angles. The competitor set is the ACTIVE brand's own universe. It also owns brand discovery.",
-      who: "The strategy layer. Benchmarks feed KicksGPT's evidence contract, Smart Brain planning, and the human planner — informing campaigns for every cohort.",
+      who: "The strategy layer. Benchmarks feed the brand assistant's evidence contract, Smart Brain planning, and the human planner — informing campaigns for every cohort.",
       how: "One router dispatched by ?action=list|html|poll|sync. Poll reads the capture inbox over IMAP; parsed emails become rows (columns A–K) in the Google Sheet database; sync runs on a CRON_SECRET-protected schedule. Google auth is keyless via Workload Identity Federation (Vercel OIDC → Google STS → service-account impersonation), with a legacy JSON-key fallback.",
       input: "Subscribe the capture inbox to competitor newsletters — the system does the rest. Optionally add brands to discover and track.",
       steps: [
@@ -667,7 +667,7 @@
         ['Poll', 'IMAP polling pulls new messages and parses brand, subject, offer, and full HTML.', '/api/competitor?action=poll'],
         ['Store', 'Each email becomes a row (columns A–K) in the Google Sheet via keyless WIF auth.', '/api/competitor?action=sync (cron)'],
         ['Browse', 'The page lists captured emails and renders their full HTML for study.', '/api/competitor?action=list · ?action=html'],
-        ['Benchmark', 'Cadence, offer, and angle insights feed KicksGPT, Smart Brain, and human planning.'],
+        ['Benchmark', 'Cadence, offer, and angle insights feed the brand assistant, Smart Brain, and human planning.'],
       ],
     },
     calendar: {
@@ -1302,7 +1302,7 @@
       </style>
       <div class="lnav-mbar">
         <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation">☰</button>
-        <a class="lnav-mbrand" href="/">${LOGO_SVG} <span style="margin-left:8px">KNICKGASM · Lifecycle OS</span></a>
+        <a class="lnav-mbrand" href="/">${LOGO_SVG} <span style="margin-left:8px" class="lnav-mbrand-label">Lifecycle OS</span></a>
       </div>
       <div class="lnav-mbar-spacer"></div>
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
@@ -1310,7 +1310,7 @@
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
             ${LOGO_SVG}
-            <span class="lnav-bt"><b>Lifecycle OS</b><small>KNICKGASM</small></span>
+            <span class="lnav-bt"><b>Lifecycle OS</b><small class="lnav-brandname"></small></span>
           </a>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
         </div>
@@ -1611,7 +1611,7 @@
       </style>
       <div class="llw-card">
         <div class="llw-dot"></div>
-        <div class="llw-title">KNICKGASM · Lifecycle OS</div>
+        <div class="llw-title">Lifecycle OS</div>
         <h1>Sign in to <em>continue</em></h1>
         <p>Used by the retention growth team. Sign in once with your Google account — the session keeps you signed in across Dashboard, Calendar, and Mailer Studio.</p>
         ${error ? `<div class="llw-err">${error}</div>` : ''}
@@ -2134,14 +2134,14 @@
       '</body></html>');
     w.document.close();
   }
-  window.__mdToPdf = function (mdText, title) { openPrintable(title || 'KNICKGASM document', mdToHtml(mdText)); };
+  window.__mdToPdf = function (mdText, title) { openPrintable(title || 'Lifecycle OS document', mdToHtml(mdText)); };
   document.addEventListener('click', function (e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href$=".md"]') : null;
     if (!a) return;
     var url = a.getAttribute('href') || '';
     if (/^https?:\/\//i.test(url) && url.indexOf(location.origin) !== 0) return; // leave truly external links alone
     e.preventDefault();
-    var title = (a.textContent || 'KNICKGASM document').replace(/[⬇📄📖🧾👥🎁🖼📊]/g, '').trim().slice(0, 90) || 'KNICKGASM document';
+    var title = (a.textContent || 'Lifecycle OS document').replace(/[⬇📄📖🧾👥🎁🖼📊]/g, '').trim().slice(0, 90) || 'Lifecycle OS document';
     fetch(url).then(function (r) { return r.text(); }).then(function (t) { window.__mdToPdf(t, title); }).catch(function () { window.open(url, '_blank'); });
   }, true);
 })();
