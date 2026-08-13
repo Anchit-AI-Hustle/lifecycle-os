@@ -33,6 +33,11 @@ const FEATURES = [
   { key: 'brand.onboard',         label: 'Brand onboarding',            group: 'Included', cost: 0, unit: 'always free', why: 'Setting up a brand, its colour schema and typography is free.' },
   { key: 'brand.catalog_import',  label: 'Catalog import',              group: 'Included', cost: 0, unit: 'always free', why: 'Importing your own product data is free; only generation costs credits.' },
   { key: 'dashboard.view',        label: 'Dashboards and reports',      group: 'Included', cost: 0, unit: 'always free', why: 'Viewing analytics already computed is free.' },
+  // Connecting a payment gateway costs nothing: it is a sign-in and a token
+  // exchange, with no model call anywhere in the path. The key exists so the
+  // buttons on /payments can be labelled from the catalog like every other
+  // action, rather than being the one unlabelled control in the product.
+  { key: 'payments.connect',      label: 'Connect a payment gateway',   group: 'Included', cost: 0, unit: 'always free', why: 'Signing in to a gateway and storing the connection makes no model calls.' },
 
   /* ── Analytics & planning ────────────────────────────────────────────── */
   { key: 'analytics.run',         label: 'Run data analysis',           group: 'Analytics', cost: 8,  unit: 'per run',       why: 'Cohort/RFM computation plus an LLM narrative over the result.' },
