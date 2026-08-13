@@ -15,14 +15,17 @@
  *   1. Meta Marketing API (direct, minute-fresh) when META_ACCESS_TOKEN +
  *      META_AD_ACCOUNT_ID are set. This is the true real-time link to the ad
  *      account: today's insights are read with date_preset=today.
- *   2. Snowflake KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS (Maplemonk pipeline,
- *      per-day rows incl. the current partial day; verified live 2026-07-25:
- *      22,620 rows since May 1 for "Knickgasm India USA New EST Main Account",
- *      today's partial day present). Columns used: DATE_START, AD_ID, AD_NAME,
- *      ADSET_NAME, CAMPAIGN_NAME, ACCOUNT_NAME, SPEND, IMPRESSIONS, CLICKS,
- *      INLINE_LINK_CLICKS, INLINE_LINK_CLICK_CTR, UPDATED_TIME.
+ *   2. The Snowflake ad tables this DEPLOYMENT configured (see
+ *      ads-snowflake-core: one env var per feed, no default table names).
  *   3. Neither configured -> { connected:false, would_query/would_request } with
- *      the exact SQL or HTTP request that would run. No numbers are invented.
+ *      the exact SQL or HTTP request that would run, or a no_sources envelope
+ *      naming the env var to set. No numbers are invented, and there is no
+ *      bundled snapshot to fall back to.
+ *
+ * SCOPE. Both sources are DEPLOYMENT-level credentials, so every payload
+ * carries ads-snowflake-core's `data_scope` and a surface must render it. A
+ * workspace's own paid media comes from the ad accounts it connected
+ * (ad-insights-core.js), not from here.
  *
  * Future-dated days are NEVER given performance figures: a future day can only
  * carry PLANNED items (scheduled campaigns), which is why calendar() marks each
@@ -31,19 +34,21 @@
 
 const snow = require('./ads-snowflake-core.js');
 
-const META_TABLE = (process.env.SF_META_ADS_TABLE || 'KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS').toUpperCase();
-
 /**
- * The US Meta accounts this page reports as "live". KNICKGASM runs two of them and
- * they sit in different tables with different column naming, so the warehouse
- * path unions them through the registry in ads-snowflake-core rather than
- * querying one hardcoded table (which is why only the DTC account used to show).
- *   dtc    1303870183798748  Knickgasm India USA New EST Main Account  -> own site
- *   retail 804570870670763   KNICKGASM USA - Sneaker Ad Account            -> Target / Costco
- * Override with ADS_LIVE_ACCOUNTS (comma-separated registry ids).
+ * The warehouse feeds this page reports as "live" — whichever ad tables the
+ * deployment configured, unioned through ads-snowflake-core so feeds with
+ * different column naming still land in one result set. Narrow with
+ * ADS_LIVE_ACCOUNTS (comma-separated source ids or platforms).
+ *
+ * There is no hardcoded account list here any more. There used to be two named
+ * ad accounts with their platform ids written into this comment; they belonged
+ * to the advertiser this repo was copied from, not to any tenant of it.
  */
-function liveSources() { return snow.pickSources(process.env.ADS_LIVE_ACCOUNTS || 'dtc,retail'); }
+function liveSources() { return snow.pickSources(process.env.ADS_LIVE_ACCOUNTS || 'all'); }
 function liveUnion(from, to) { return snow.unionSelect(liveSources(), { since: from, until: to }); }
+
+const NO_SOURCE_HINT = 'No ad source is configured for this deployment. Connect a live ad account: set META_ACCESS_TOKEN + META_AD_ACCOUNT_ID for the Meta Marketing API, or point SF_META_ADS_TABLE / SF_GOOGLE_ADS_TABLE / SF_TIKTOK_AD_TABLE at your own warehouse tables (with SNOWFLAKE_* and LIVE_CONNECTORS=on). Nothing is shown until one of those exists — there is no bundled snapshot.';
+const NOT_CONNECTED_HINT = 'A warehouse table is named but the connection is not live. Set META_ACCESS_TOKEN + META_AD_ACCOUNT_ID for the minute-fresh Meta link, or SNOWFLAKE_* (+ LIVE_CONNECTORS=on) for the per-day warehouse read. Until then the exact query is shown and no figure is invented.';
 const META_API_VERSION = process.env.META_API_VERSION || 'v21.0';
 
 function metaCfg() {
@@ -117,10 +122,12 @@ function normalizeSnowRow(r) {
   };
 }
 function todayISO(tz) {
-  // The ad account reports on US Eastern ("New EST Main Account"), so "today"
-  // must be Eastern-relative or the current partial day looks empty after UTC
-  // midnight. Overridable via ADS_REPORT_TZ.
-  const zone = tz || process.env.ADS_REPORT_TZ || 'America/New_York';
+  // "Today" is relative to the timezone the AD ACCOUNT reports in, not the
+  // server's: get it wrong and the current partial day looks empty. Set
+  // ADS_REPORT_TZ to the account's reporting timezone. Defaults to UTC, because
+  // a default of one particular account's timezone is a guess about whose
+  // account this is.
+  const zone = tz || process.env.ADS_REPORT_TZ || 'UTC';
   try { return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
   catch (_) { return new Date().toISOString().slice(0, 10); }
 }
@@ -129,9 +136,9 @@ function addDays(iso, n) { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(
 function acctFilter(account) {
   if (!account || account === 'all') return '';
   const a = String(account).toLowerCase().replace(/'/g, '');
-  // A registry id (dtc / retail) selects a whole ad account. Anything else —
-  // notably target and costco, which share the one retail account — is matched
-  // case-insensitively against the campaign name.
+  // A configured source id (meta / google / tiktok …) selects a whole feed.
+  // Anything else is treated as a free-text campaign-name filter typed by the
+  // reader, matched case-insensitively.
   if (liveSources().some((s) => s.id === a)) return ` and source_id = '${a}'`;
   return ` and lower(campaign_name) like '%${a}%'`;
 }
@@ -140,13 +147,14 @@ function acctFilter(account) {
 async function daily({ since, until, account } = {}) {
   const to = until || todayISO();
   const from = since || addDays(to, -29);
-  const sql = `with u as (\n  ${liveUnion(from, to)}\n)
+  const srcs = liveSources();
+  const sql = srcs.length ? `with u as (\n  ${liveUnion(from, to)}\n)
 select day, count(distinct ad_id) as ads_live, count(distinct campaign_name) as campaigns,
        count(distinct source_id) as accounts, round(sum(spend),2) as spend, sum(impressions) as impressions,
        sum(clicks) as clicks, sum(link_clicks) as link_clicks
   from u
  where 1=1${acctFilter(account)}
- group by day order by day`;
+ group by day order by day` : null;
 
   if (metaConfigured()) {
     try {
@@ -160,13 +168,16 @@ select day, count(distinct ad_id) as ads_live, count(distinct campaign_name) as 
       return { ok: true, connected: true, source: 'meta-marketing-api', since: from, until: to, today: todayISO(), rows: Object.values(byDay).sort((a, c) => a.day.localeCompare(c.day)) };
     } catch (e) { /* fall through to the warehouse */ }
   }
+  if (!srcs.length) return snow.noSources({ since: from, until: to, today: todayISO(), rows: [], hint: NO_SOURCE_HINT });
   if (!snow.isConfigured()) {
-    return Object.assign({ ok: false, connected: false, not_connected: true, since: from, until: to, today: todayISO(), rows: [],
+    return Object.assign({ ok: false, connected: false, not_connected: true, data_scope: snow.DATA_SCOPE,
+      since: from, until: to, today: todayISO(), rows: [],
       would_query: sql, would_request: metaConfigured() ? metaWouldRequest({ level: 'account', since: from, until: to }) : null,
-      hint: 'Set META_ACCESS_TOKEN + META_AD_ACCOUNT_ID for the minute-fresh Meta link, or SNOWFLAKE_* (+ LIVE_CONNECTORS=on) for the per-day warehouse mirror. Until then the page renders the committed snapshot and labels it as such.' });
+      hint: NOT_CONNECTED_HINT });
   }
   const r = await snow.runStatement(sql);
-  return { ok: true, connected: true, source: 'snowflake', accounts: liveSources().map(snow.describeAccount),
+  return { ok: true, connected: true, source: 'snowflake', data_scope: snow.DATA_SCOPE,
+    accounts: srcs.map(snow.describeAccount),
     since: from, until: to, today: todayISO(),
     rows: (r.rows || []).map((x) => ({ day: String(x.day).slice(0, 10), ads_live: num(x.ads_live), campaigns: num(x.campaigns),
       accounts: num(x.accounts), spend: round(x.spend), impressions: num(x.impressions),
@@ -176,12 +187,13 @@ select day, count(distinct ad_id) as ads_live, count(distinct campaign_name) as 
 // ── Today: is it live yet, and how is it pacing ──────────────────────────────
 async function today({ account } = {}) {
   const d = todayISO();
-  const sql = `with u as (\n  ${liveUnion(d, d)}\n)
+  const srcs = liveSources();
+  const sql = srcs.length ? `with u as (\n  ${liveUnion(d, d)}\n)
 select source_id, account_name, ad_id, ad_name, adset_name, campaign_name, round(sum(spend),2) as spend,
        sum(impressions) as impressions, sum(clicks) as clicks, sum(link_clicks) as link_clicks
   from u
  where 1=1${acctFilter(account)}
- group by source_id, account_name, ad_id, ad_name, adset_name, campaign_name order by spend desc`;
+ group by source_id, account_name, ad_id, ad_name, adset_name, campaign_name order by spend desc` : null;
 
   let rows = null, source = null;
   if (metaConfigured()) {
@@ -189,10 +201,12 @@ select source_id, account_name, ad_id, ad_name, adset_name, campaign_name, round
     catch (_) { rows = null; }
   }
   if (!rows) {
+    if (!srcs.length) return snow.noSources({ day: d, ads: [], hint: NO_SOURCE_HINT });
     if (!snow.isConfigured()) {
-      return { ok: false, connected: false, not_connected: true, day: d, ads: [], would_query: sql,
+      return { ok: false, connected: false, not_connected: true, data_scope: snow.DATA_SCOPE,
+        day: d, ads: [], would_query: sql,
         would_request: metaConfigured() ? metaWouldRequest({ level: 'ad', datePreset: 'today' }) : null,
-        hint: 'No live source configured — see the Ops tab. The dashboard falls back to the committed snapshot and never invents a live figure.' };
+        hint: NOT_CONNECTED_HINT };
     }
     const r = await snow.runStatement(sql);
     rows = (r.rows || []).map(normalizeSnowRow); source = 'snowflake';
@@ -204,10 +218,12 @@ select source_id, account_name, ad_id, ad_name, adset_name, campaign_name, round
     spend: round(t.spend + x.spend), impressions: t.impressions + x.impressions,
     clicks: t.clicks + x.clicks, link_clicks: t.link_clicks + x.link_clicks,
   }), { spend: 0, impressions: 0, clicks: 0, link_clicks: 0 });
-  const b = budgets();
-  const cap = account === 'costco' ? b.costco : account === 'target' ? b.target : b.target + b.costco;
-  // Per-account rollup: the two US accounts are not comparable on one KPI (the
-  // retail account has no pixel), so the UI needs them split, not blended.
+  // Pacing needs a cap somebody actually set. There is no bundled default, so
+  // an unset cap means pacing_pct is null rather than a percentage of a number
+  // this product invented.
+  const cap = budgets().daily_cap;
+  // Per-feed rollup: feeds are not comparable on one KPI (one may carry
+  // conversions and another may not), so the UI needs them split, not blended.
   const perAccount = {};
   live.forEach((x) => {
     const k = x.source_id || 'meta';
@@ -216,23 +232,27 @@ select source_id, account_name, ad_id, ad_name, adset_name, campaign_name, round
     a.clicks += x.clicks; a.link_clicks += x.link_clicks; a.campaigns.add(x.campaign);
   });
   const accountsRollup = Object.values(perAccount).map((a) => {
-    const meta = liveSources().find((s) => s.id === a.source_id);
-    return { source_id: a.source_id, account: a.account || (meta && meta.label) || null,
-      label: (meta && meta.label) || a.account, kpi: (meta && meta.kpi) || null,
-      used_for: (meta && meta.used_for) || null, ads_live: a.ads_live, campaigns: a.campaigns.size,
+    const feed = srcs.find((s) => s.id === a.source_id);
+    // The account NAME comes from the warehouse row, never from a bundled
+    // label — this module has no registry of who owns which account.
+    return { source_id: a.source_id, account: a.account || null,
+      label: a.account || (feed && feed.platform) || a.source_id,
+      kpi: (feed && feed.kpi) || null, table: (feed && feed.table) || null,
+      ads_live: a.ads_live, campaigns: a.campaigns.size,
       spend: a.spend, impressions: a.impressions, clicks: a.clicks, link_clicks: a.link_clicks,
       ctr: a.impressions ? round(a.link_clicks / a.impressions * 100, 2) : null,
       cpc: a.link_clicks ? round(a.spend / a.link_clicks, 3) : null,
       cpm: a.impressions ? round(a.spend / a.impressions * 1000, 2) : null };
   }).sort((x, y) => y.spend - x.spend);
   return {
-    ok: true, connected: true, source, day: d,
-    sources: source === 'snowflake' ? liveSources().map(snow.describeAccount) : null,
+    ok: true, connected: true, source, day: d, data_scope: snow.DATA_SCOPE,
+    sources: source === 'snowflake' ? srcs.map(snow.describeAccount) : null,
     accounts: accountsRollup,
     live_count: live.length, not_live_count: rows.length - live.length, campaigns: [...new Set(live.map((x) => x.campaign))].length,
     totals, ctr: totals.impressions ? round(totals.link_clicks / totals.impressions * 100, 2) : null,
     cpc: totals.link_clicks ? round(totals.spend / totals.link_clicks, 3) : null,
     budget_cap: cap, pacing_pct: cap ? round(totals.spend / cap * 100, 1) : null,
+    budget_note: cap == null ? budgets().note : null,
     ads: rows.map((x) => Object.assign({}, x, { status: x.impressions > 0 ? 'live' : (x.spend > 0 ? 'starting' : 'not_live_yet') })),
     note: 'Today is a PARTIAL day — spend and delivery accrue through the day. Status: live = delivering (impressions today), starting = spend but no impressions yet, not_live_yet = no delivery recorded today.',
   };
@@ -258,7 +278,9 @@ async function calendar({ month, account } = {}) {
   }
   return {
     ok: true, month: m, today: t, source: series.source || null, connected: !!series.connected,
-    not_connected: series.not_connected || false, would_query: series.would_query || null,
+    not_connected: series.not_connected || false, no_sources: series.no_sources || false,
+    would_query: series.would_query || null, hint: series.hint || null,
+    data_scope: snow.DATA_SCOPE,
     days,
     totals: days.reduce((s, d) => ({ spend: round(s.spend + num(d.spend)), impressions: s.impressions + num(d.impressions), link_clicks: s.link_clicks + num(d.link_clicks) }), { spend: 0, impressions: 0, link_clicks: 0 }),
     note: 'Past and current days carry live actuals from the ad account. Future days carry only planned/scheduled items — no forecast figures are shown as if they were performance.',
@@ -267,14 +289,16 @@ async function calendar({ month, account } = {}) {
 
 function status() {
   const c = metaCfg();
+  const srcs = liveSources();
   return {
-    ok: true, source: 'ads-live',
+    ok: true, source: 'ads-live', data_scope: snow.DATA_SCOPE,
     meta_api: { configured: metaConfigured(), account_set: !!c.account, token_set: !!c.token, api_version: META_API_VERSION,
       note: metaConfigured() ? 'Meta Marketing API configured — today is read minute-fresh with date_preset=today.' : 'Meta Marketing API not configured (META_ACCESS_TOKEN + META_AD_ACCOUNT_ID). Falling back to the Snowflake per-day mirror.' },
-    snowflake: { configured: snow.isConfigured(), table: META_TABLE,
-      accounts: liveSources().map(snow.describeAccount) },
-    report_timezone: process.env.ADS_REPORT_TZ || 'America/New_York',
+    snowflake: { configured: snow.isConfigured(), has_sources: srcs.length > 0,
+      table_env: snow.tableEnvNames(), accounts: srcs.map(snow.describeAccount) },
+    report_timezone: process.env.ADS_REPORT_TZ || 'UTC',
     today: todayISO(), budgets: budgets(),
+    hint: srcs.length ? null : NO_SOURCE_HINT,
   };
 }
 

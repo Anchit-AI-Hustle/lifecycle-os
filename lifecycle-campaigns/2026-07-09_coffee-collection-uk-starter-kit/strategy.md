@@ -28,7 +28,7 @@ Supporting line for the culture angle: *"Everyone has white AF1s. Yours came out
 ## Angles (mapped to facts only)
 
 1. **One-of-one craft:** hand-painted by India's best artists, on 100% original brand sneakers.
-2. **The colourway story:** deep brown, mocha and cartoon-coffee art across AF1, Jordan 1, Court Vision, Sambas.
+2. **The colourway story:** deep brown, mocha and cartoon-coffee artwork across AF1, Jordan 1, Court Vision, Sambas.
 3. **Built to wear:** water & scratch resistant designs, these leave the house.
 4. **Reachable entry:** Court Vision pairs from £89.09, Jordan 1 Lows and Sambas at the top of the range.
 5. **Worn by names they know:** Samay Raina, Rohit Sharma, Shraddha Kapoor (organic).

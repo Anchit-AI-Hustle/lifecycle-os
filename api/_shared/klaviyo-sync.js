@@ -29,13 +29,25 @@ async function pull(table, fetchFn, mapRow) {
   return rows.length;
 }
 
-async function run() {
-  if (!kl.isConnected()) {
-    return { ok: false, connected: false, records: 0, breakdown: {}, message: 'KLAVIYO_API_KEY not set — nothing pulled.' };
+/**
+ * `creds` are the workspace's OWN Klaviyo credentials.
+ *
+ * With no creds this used to fall through to KLAVIYO_API_KEY, the deployment's
+ * key, and mirror THAT account's segments, metrics and campaigns into the
+ * klaviyo_* tables - which the mailer dashboard then read as the brand's own
+ * lifecycle performance. The mirror is only ever populated from an account the
+ * workspace itself connected.
+ */
+async function run({ creds = null } = {}) {
+  if (!creds) {
+    return { ok: false, connected: false, records: 0, breakdown: {}, message: 'This brand has not connected a Klaviyo account. The deployment key belongs to another account and is never mirrored into this workspace.' };
+  }
+  if (!kl.isConnected(creds)) {
+    return { ok: false, connected: false, records: 0, breakdown: {}, message: 'Klaviyo is connected for this brand but live connectors are disabled (LIVE_CONNECTORS is off) — nothing pulled.' };
   }
   const breakdown = {};
   try {
-    breakdown.segments = await pull('klaviyo_segments', () => kl.getSegments({ limit: 100 }), (s, at) => ({
+    breakdown.segments = await pull('klaviyo_segments', () => kl.getSegments({ limit: 100, creds }), (s, at) => ({
       id: s.id,
       name: (s.attributes && s.attributes.name) || null,
       profile_count: (s.attributes && s.attributes.profile_count != null) ? s.attributes.profile_count : null,
@@ -44,14 +56,14 @@ async function run() {
       raw: s, synced_at: at,
     }));
 
-    breakdown.metrics = await pull('klaviyo_metrics', () => kl.getMetrics({ limit: 100 }), (m, at) => ({
+    breakdown.metrics = await pull('klaviyo_metrics', () => kl.getMetrics({ limit: 100, creds }), (m, at) => ({
       id: m.id,
       name: (m.attributes && m.attributes.name) || null,
       integration: (m.attributes && m.attributes.integration && m.attributes.integration.name) || null,
       raw: m, synced_at: at,
     }));
 
-    breakdown.campaigns = await pull('klaviyo_campaigns', () => kl.getCampaigns({ channel: 'email', limit: 50 }), (c, at) => ({
+    breakdown.campaigns = await pull('klaviyo_campaigns', () => kl.getCampaigns({ channel: 'email', limit: 50, creds }), (c, at) => ({
       id: c.id,
       name: (c.attributes && c.attributes.name) || null,
       status: (c.attributes && c.attributes.status) || null,

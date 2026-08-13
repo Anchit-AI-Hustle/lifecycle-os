@@ -504,3 +504,9 @@ module.exports = async function handler(req, res) {
     res.status(500).json({ ok: false, error: err.message });
   }
 };
+
+// Wrapped so everything this router calls - including the generic Supabase
+// helper in _shared/supa.js, which has no `req` of its own - can resolve THIS
+// caller's workspace and scope its reads and writes to it. See
+// api/_shared/request-scope.js for why an ambient variable would not do.
+module.exports = require('./_shared/request-scope.js').wrap(module.exports);

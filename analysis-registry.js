@@ -130,12 +130,16 @@
       what: 'The warehouse view of the same ad accounts: every column the platform returns, audience cohorts by age, gender, country, device and placement, naming-standard compliance and the metric-definition catalog.',
       why: 'It reads Snowflake directly rather than the platform reporting APIs, and its compliance and catalog panels have no equivalent in the Paid Media tab. The tab stays the cross-platform summary; this is the drill-down.',
     },
-    {
-      id: 'ads-kb', label: 'Paid Media knowledge base', href: '/ads-master', parent: 'live-ads',
-      analysis: 'paid-media-knowledge-base',
-      what: 'The programme record behind the numbers: account register, budget caps, campaign calendar, creative learnings, organic and user-generated coverage, and the handover source files.',
-      why: 'A knowledge base is not a measurement. It carries the context that makes the Paid Media figures readable, so it is referenced rather than merged.',
-    },
+    // There was a third ads drill-down here, "Paid Media knowledge base" at
+    // /ads-master. It described "the programme record behind the numbers:
+    // account register, budget caps, campaign calendar, creative learnings,
+    // organic and user-generated coverage, and the handover source files" — and
+    // every one of those was one advertiser's, carried over when this repo was
+    // copied from a sibling project and rendered under whichever brand was
+    // signed in. There is no per-workspace equivalent to point at: a workspace
+    // that just onboarded has no handover record, and writing one would be
+    // fabrication. The page and its data are deleted; /ads-master redirects to
+    // the Paid Media tab, which reads the accounts the workspace connected.
     {
       id: 'market-study', label: 'Market Study', href: '/research', parent: 'control',
       analysis: 'external-market-study',
