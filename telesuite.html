@@ -22,8 +22,10 @@
     --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
   }
   body{font-family:var(--body);background:var(--surface);color:var(--ink);min-height:100vh}
-  .app{display:grid;grid-template-columns:262px minmax(0,1fr);gap:0;min-height:100vh}
-  @media(max-width:900px){.app{grid-template-columns:1fr}.rail{position:static!important;height:auto!important;border-right:0!important;border-bottom:1px solid var(--line)}}
+  /* ONE navigation layer. The app rail (auth.js) is the only nav; this page
+     no longer renders a second column of its own. */
+  .app{display:block;min-height:100vh}
+  
 
   .rail{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--card);border-right:1px solid var(--line);padding:58px 12px 26px}
   .rail .brandline{padding:0 10px 14px;border-bottom:1px solid var(--line);margin-bottom:12px}
@@ -141,7 +143,6 @@
 </head>
 <body>
 <div class="app">
-  <nav class="rail" id="rail" data-no-brand-swap="1"></nav>
   <main class="main" id="main"><p class="muted">Loading TeleSuite…</p></main>
 </div>
 <div class="toast" id="toast"></div>
@@ -269,6 +270,7 @@
 
   /* ── rail ───────────────────────────────────────────────────────────── */
   function renderRail() {
+    if (!document.getElementById('rail')) return;   // single-layer nav: the app rail owns navigation
     var brand = (window.BrandContext && window.BrandContext.brand) || null;
     var groups = [];
     REG.subfeatures.forEach(function (s) { if (groups.indexOf(s.group) < 0) groups.push(s.group); });
