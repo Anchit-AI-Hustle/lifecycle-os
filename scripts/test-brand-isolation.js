@@ -39,12 +39,58 @@ const FOREIGN = [
   /#6A33D8/i,          // tenant zero's accent
 ];
 
+/**
+ * A preset file and a persisted workspace are NOT the same shape, and only one
+ * of them is what a real user ends up with.
+ *
+ * `brand_workspaces` has a fixed set of columns plus one JSON column,
+ * `brand_data`, for everything extensible: offerings, claims, market study. The
+ * preset files carry those at the top level. Testing only the preset shape
+ * therefore passes while every onboarded brand silently loses its claims, which
+ * is exactly what happened - every generated asset printed
+ * "[DATA REQUIRED BEFORE LAUNCH: verifiable claims]" for real users while the
+ * suite stayed green.
+ *
+ * So each preset is also run through in the shape the database actually returns.
+ */
+function asPersistedWorkspace(preset) {
+  const brandRuntime = require(path.join(ROOT, 'api/_shared/brand-runtime.js'));
+  const row = { ...preset, id: `ws_iso_${preset.slug}`, brand_data: {} };
+  for (const key of brandRuntime.HOISTED) {
+    if (row[key] === undefined) continue;
+    row.brand_data[key] = row[key];
+    delete row[key];                       // it is not a column; only brand_data has it
+  }
+  // resolve() normalises on the way out of the database, so the test exercises
+  // what a generator is actually handed.
+  return { ...brandRuntime.normalizeBrand(row), name: preset.name, slug: preset.slug };
+}
+
 function presets() {
   const dir = path.join(ROOT, 'data', 'brands', 'presets');
-  return fs.readdirSync(dir)
+  const files = fs.readdirSync(dir)
     .filter((f) => f.endsWith('.json') && f !== 'index.json')
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
     .filter((b) => String(b.slug).toLowerCase() !== 'knickgasm');   // tenant zero is allowed its own words
+
+  // One representative brand is additionally run in the persisted shape. One is
+  // enough to catch a shape regression, and keeps the suite fast.
+  // The persisted variant keeps the brand's REAL name so its own-reference
+  // count is directly comparable with the top-level run; renaming it would make
+  // the two counts differ for a reason that has nothing to do with the shape,
+  // and hide a genuine loss of brand content behind a test artefact. The label
+  // is carried separately for the report.
+  const sample = files[0];
+  if (!sample) return files;
+  const persisted = asPersistedWorkspace(sample);
+  persisted.__label = `${sample.name} (persisted shape)`;
+  // The expectation is anchored to what the SOURCE record declared, not to what
+  // survived normalisation. Reading the claims off the normalised object makes
+  // the check vacuous exactly when it matters: break the hoist and the object
+  // has no claims, so "none declared, none missing" passes while every asset
+  // silently loses its proof line.
+  persisted.__declaredClaims = Array.isArray(sample.claims) ? sample.claims.filter(Boolean) : [];
+  return files.concat([persisted]);
 }
 
 function entryFor(brand) {
@@ -103,7 +149,7 @@ function sampleAround(blob, needle) {
     } catch (e) { error = e.message; }
 
     if (error) {
-      rows.push({ brand: brand.name, status: 'ERROR', detail: error });
+      rows.push({ brand: brand.__label || brand.name, status: 'ERROR', detail: error });
       failures++;
       continue;
     }
@@ -111,13 +157,32 @@ function sampleAround(blob, needle) {
     const own = (blob.match(new RegExp(String(brand.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
     if (hits.length) {
       failures++;
-      rows.push({ brand: brand.name, status: 'LEAK', detail: hits.map((h) => `${h.token} x${h.count}`).join(', '), sample: hits[0].sample });
+      rows.push({ brand: brand.__label || brand.name, status: 'LEAK', detail: hits.map((h) => `${h.token} x${h.count}`).join(', '), sample: hits[0].sample });
     } else if (own === 0) {
       // A funnel that never names its own brand is not proof of isolation.
       failures++;
-      rows.push({ brand: brand.name, status: 'UNBRANDED', detail: 'no occurrence of the brand\'s own name in its own assets' });
+      rows.push({ brand: brand.__label || brand.name, status: 'UNBRANDED', detail: 'no occurrence of the brand\'s own name in its own assets' });
     } else {
-      rows.push({ brand: brand.name, status: 'CLEAN', detail: `${own} own-brand references, 0 foreign` });
+      // Absence of a FOREIGN brand is only half the promise. The other half is
+      // that this brand's OWN approved facts actually arrive: the claims are
+      // the only statements an asset may present as fact, and when they went
+      // missing every generated asset printed a DATA REQUIRED marker in their
+      // place while this test stayed green. Checked explicitly now.
+      const declared = brand.__declaredClaims
+        || (Array.isArray(brand.claims) ? brand.claims.filter(Boolean) : []);
+      const landed = declared.filter((c) => blob.includes(c));
+      if (declared.length && !landed.length) {
+        failures++;
+        rows.push({
+          brand: brand.__label || brand.name, status: 'NO CLAIMS',
+          detail: `${declared.length} verifiable claim(s) on the record, none reached the assets`,
+        });
+      } else {
+        rows.push({
+          brand: brand.__label || brand.name, status: 'CLEAN',
+          detail: `${own} own-brand references, ${landed.length}/${declared.length} claims, 0 foreign`,
+        });
+      }
     }
   }
 

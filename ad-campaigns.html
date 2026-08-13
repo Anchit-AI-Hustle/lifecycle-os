@@ -396,8 +396,8 @@
 
   // ── Storage ─────────────────────────────────────────────────────────
   const KEY = 'knickgasm-ads-v1';
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-  const save = () => localStorage.setItem(KEY, JSON.stringify(store));
+  const load = () => { try { return JSON.parse(LCStore.get(KEY)) || {}; } catch { return {}; } };
+  const save = () => LCStore.set(KEY, JSON.stringify(store));
   const store = Object.assign({ google: [], meta: [], tiktok: [], landing: [], calendar: {} }, load());
 
   // ── Clone + portable AI prompt (same pattern as /assets and /landing) ─

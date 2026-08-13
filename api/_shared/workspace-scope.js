@@ -163,7 +163,15 @@ async function brandForWorkspace(env, workspaceId) {
     });
     if (!r.ok) return null;
     const rows = await r.json().catch(() => []);
-    const brand = rows[0] || null;
+    // Normalise here too, not only in brandRuntime.resolve(). This is the
+    // SERVICE-ROLE boundary - cron, the prebuild queue, approve, the social run
+    // and the brand LLM all reach a workspace through this function and never
+    // touch resolve(). Hoisting in only one of the two places left every
+    // scheduled and background generation handing generators an unhoisted row,
+    // so an onboarded brand's claims and offerings vanished on exactly the
+    // paths that build most of its assets.
+    const raw = rows[0] || null;
+    const brand = raw ? require('./brand-runtime.js').normalizeBrand(raw) : null;
     if (brand) BRAND_CACHE.set(id, { brand, at: Date.now() });
     return brand;
   } catch (_) { return null; }
