@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connections &amp; AI models</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260813" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111111);--muted:var(--brand-ink-muted,#5a6169);
+    --surface:var(--brand-surface,#FFFFFF);--card:var(--brand-surface-alt,#FFFFFF);
+    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#FFFFFF);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#DDDDDD);
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
+    --mono:var(--brand-font-mono,ui-monospace,Menlo,monospace);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 80px;min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--head);font-size:33px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
+  h2{font-family:var(--head);font-size:20px;font-weight:600;margin:32px 0 12px}
+  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:760px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
+  code{font-family:var(--mono);font-size:12px}
+
+  .tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+  .tab{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--card);
+    font-family:var(--body);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .panel{display:none}
+  .panel.on{display:block}
+
+  .banner{border-radius:11px;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:18px;border:1px solid}
+  .banner.info{background:color-mix(in srgb,var(--primary) 7%,transparent);border-color:color-mix(in srgb,var(--primary) 28%,transparent)}
+  .banner.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 34%,transparent)}
+  .banner.err{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 32%,transparent)}
+
+  .cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--primary);margin:26px 0 10px}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}h1{font-size:27px}}
+  .conn{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;display:flex;flex-direction:column;gap:9px}
+  .conn .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .conn .nm{font-size:15.5px;font-weight:700}
+  .chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+  .chip.on{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+  .chip.off{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+  .chip.plat{background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary)}
+  .chip.bad{background:color-mix(in srgb,var(--err) 12%,transparent);color:var(--err)}
+
+  label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px}
+  input[type=text],input[type=password],select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    background:var(--surface);color:var(--ink);font-family:var(--body);font-size:13px}
+  input:focus,select:focus{outline:2px solid color-mix(in srgb,var(--primary) 45%,transparent);outline-offset:1px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:8px}
+  .btn{border:1px solid var(--primary);border-radius:9px;background:var(--primary);color:var(--on-primary);
+    padding:8px 13px;font-family:var(--body);font-size:12.5px;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.danger{background:transparent;color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,transparent)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.55}
+  .marker{font-family:var(--mono);font-size:11px;color:var(--warn);line-height:1.5;word-break:break-word}
+
+  .order{display:flex;flex-direction:column;gap:10px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start}
+  .step .rank{font-family:var(--head);font-size:22px;font-weight:600;color:var(--primary);min-width:28px;text-align:center}
+  .step .bd{flex:1;min-width:0}
+  .step .ttl{font-size:14.5px;font-weight:700;margin-bottom:3px}
+  .models{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .mchip{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11.5px;font-family:var(--mono);
+    background:var(--surface);color:var(--ink);cursor:pointer}
+  .mchip[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .stepbtns{display:flex;flex-direction:column;gap:4px}
+  .icb{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;width:28px;height:26px;
+    font-size:13px;line-height:1;cursor:pointer}
+  .icb:disabled{opacity:.35;cursor:default}
+
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--on-primary);border-top-color:transparent;
+    border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:12px 20px;border-radius:10px;
+    background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;display:none;max-width:90vw}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow" id="brandLabel">Connections</div>
+  <h1>Connections &amp; AI models</h1>
+  <p class="lede">
+    Connect the platforms this brand actually runs on, and choose which AI models write its work and in
+    what order. Everything on this page belongs to this brand workspace alone: another workspace on this
+    deployment can neither see nor use what you store here.
+  </p>
+
+  <div id="banner"></div>
+
+  <div class="tabs" id="tabs" role="tablist">
+    <button type="button" class="tab" role="tab" data-tab="platforms" aria-selected="true" id="tab-platforms">Platforms</button>
+    <button type="button" class="tab" role="tab" data-tab="models" aria-selected="false" id="tab-models">AI models</button>
+  </div>
+
+  <section class="panel on" id="panel-platforms" role="tabpanel" aria-labelledby="tab-platforms">
+    <div class="banner info" id="storageNote">Checking how secrets are stored on this deployment.</div>
+    <div id="platforms"><p class="muted">Loading the platforms you can connect.</p></div>
+  </section>
+
+  <section class="panel" id="panel-models" role="tabpanel" aria-labelledby="tab-models">
+    <p class="lede" id="modelsLede">
+      Providers are tried from the top down. Within one provider its models are tried in the order you list
+      them, and the next model is used only when the one above it fails or is out of quota. This is exactly
+      how the engine cascades, so what you see here is what runs.
+    </p>
+    <div id="routing"><p class="muted">Loading your model priority.</p></div>
+    <div class="card" style="margin-top:14px">
+      <label for="addProvider">Add a provider to the order</label>
+      <div class="row" style="margin-top:0;padding-top:0">
+        <select id="addProvider" style="max-width:280px"></select>
+        <button type="button" class="btn ghost" id="addProviderBtn">Add</button>
+      </div>
+      <label style="margin-top:16px" for="fallbackToggle">When your providers are exhausted</label>
+      <div class="row" style="margin-top:0;padding-top:0">
+        <select id="fallbackToggle" style="max-width:420px">
+          <option value="1">Let the platform default providers finish the job</option>
+          <option value="0">Stop. This brand's prompts go only to the providers above</option>
+        </select>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="saveRouting">Save model priority</button>
+        <button type="button" class="btn ghost" id="resetRouting">Reset to the platform default</button>
+      </div>
+      <p class="note" id="routingNote" style="margin-top:10px"></p>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  var API = '/api/public-config?action=connections';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function toast(m) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, 4200); }
+
+  var CAT_LABEL = { ai: 'AI model providers', commerce: 'Commerce', ads: 'Ad platforms', lifecycle: 'Lifecycle and mailer platforms' };
+  var CAT_ORDER = ['ai', 'commerce', 'ads', 'lifecycle'];
+
+  var state = { providers: [], connections: {}, routing: { entries: [], use_platform_fallback: true }, storage: {} };
+
+  function token() {
+    try { if (window.BrandContext && window.BrandContext.token) return window.BrandContext.token(); } catch (e) {}
+    try {
+      var a = window.LifecycleAuth;
+      if (a && a.session && a.session.access_token) return a.session.access_token;
+    } catch (e2) {}
+    return '';
+  }
+  function workspaceId() {
+    try { return (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.id) || ''; } catch (e) { return ''; }
+  }
+
+  async function api(op, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    var t = token();
+    if (t) headers.Authorization = 'Bearer ' + t;
+    var ws = workspaceId();
+    var url = API + '&op=' + encodeURIComponent(op) + (ws ? '&workspace_id=' + encodeURIComponent(ws) : '');
+    var res = await fetch(url, {
+      method: body ? 'POST' : 'GET', headers: headers, cache: 'no-store',
+      body: body ? JSON.stringify(Object.assign({ workspace_id: ws || undefined }, body)) : undefined
+    });
+    var json = await res.json().catch(function () { return {}; });
+    if (!res.ok) { var e = new Error(json.message || json.error || ('HTTP ' + res.status)); e.payload = json; throw e; }
+    return json;
+  }
+
+  /* ── platforms ─────────────────────────────────────────────────────────── */
+
+  function statusChip(p) {
+    var c = state.connections[p.id];
+    if (c && c.configured) return '<span class="chip on">Connected</span>';
+    if (c && !c.configured && Object.keys(c.config || {}).length) return '<span class="chip on">Settings saved</span>';
+    if (p.platform_default) return '<span class="chip plat">Platform default in use</span>';
+    return '<span class="chip off">Not connected</span>';
+  }
+
+  function fieldInput(p, f) {
+    var c = state.connections[p.id] || {};
+    var id = 'f-' + p.id + '-' + f.key;
+    if (f.secret) {
+      var isSet = (c.secret_fields || []).indexOf(f.key) >= 0;
+      var ph = isSet ? 'Stored, ending ' + (c.secret_hint || '----') + '. Type to replace it.' : (f.placeholder || '');
+      return '<label for="' + id + '">' + esc(f.label) + (f.required ? '' : ' (optional)') + '</label>' +
+        '<input type="password" id="' + id + '" data-field="' + esc(f.key) + '" autocomplete="off" spellcheck="false" placeholder="' + esc(ph) + '">';
+    }
+    return '<label for="' + id + '">' + esc(f.label) + (f.required ? '' : ' (optional)') + '</label>' +
+      '<input type="text" id="' + id + '" data-field="' + esc(f.key) + '" spellcheck="false" value="' + esc((c.config || {})[f.key] || '') + '" placeholder="' + esc(f.placeholder || '') + '">';
+  }
+
+  function providerCard(p) {
+    var c = state.connections[p.id];
+    var h = '<div class="conn" data-provider="' + esc(p.id) + '">';
+    h += '<div class="hd"><div><div class="nm">' + esc(p.label) + '</div>' +
+      '<div class="note">' + esc(p.blurb) + '</div></div>' + statusChip(p) + '</div>';
+
+    h += p.fields.map(function (f) { return fieldInput(p, f); }).join('');
+
+    if (p.key_url) {
+      h += '<div class="note" style="margin-top:8px">Get a key: <a href="' + esc(p.key_url) + '" target="_blank" rel="noopener">' + esc(p.key_url) + '</a></div>';
+    }
+    if (p.oauth_note) {
+      h += '<div class="marker" style="margin-top:8px">' + esc(p.oauth_note) + '</div>' +
+        '<div class="note">No sign-in button is shown for this platform because the flow has not been established here. Create the token in that platform\'s own console and paste it above.</div>';
+    }
+    if (p.wired_note) h += '<div class="note" style="margin-top:6px">' + esc(p.wired_note) + '</div>';
+    if (c && c.last_check_note) {
+      h += '<div class="note" style="margin-top:6px"><b>Last check' + (c.last_check_ok ? '' : ' failed') + ':</b> ' + esc(c.last_check_note) + '</div>';
+    }
+
+    h += '<div class="row">' +
+      '<button type="button" class="btn" data-act="save" data-provider="' + esc(p.id) + '">Save</button>' +
+      (c ? '<button type="button" class="btn ghost" data-act="check" data-provider="' + esc(p.id) + '">Test</button>' : '') +
+      (c ? '<button type="button" class="btn danger" data-act="remove" data-provider="' + esc(p.id) + '">Remove</button>' : '') +
+      '</div></div>';
+    return h;
+  }
+
+  function renderPlatforms() {
+    var html = '';
+    CAT_ORDER.forEach(function (cat) {
+      var list = state.providers.filter(function (p) { return p.category === cat; });
+      if (!list.length) return;
+      html += '<div class="cat">' + esc(CAT_LABEL[cat] || cat) + '</div><div class="grid">' + list.map(providerCard).join('') + '</div>';
+    });
+    $('platforms').innerHTML = html || '<p class="muted">No platforms are available to connect.</p>';
+  }
+
+  function collect(providerId) {
+    var p = state.providers.filter(function (x) { return x.id === providerId; })[0];
+    var out = {};
+    if (!p) return out;
+    p.fields.forEach(function (f) {
+      var el = $('f-' + p.id + '-' + f.key);
+      if (el) out[f.key] = el.value;
+    });
+    return out;
+  }
+
+  async function onPlatformAction(act, providerId, btn) {
+    var label = btn.textContent;
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    try {
+      if (act === 'save') {
+        await api('save', { provider: providerId, fields: collect(providerId) });
+        toast('Saved. The key itself is never sent back to this page.');
+      } else if (act === 'check') {
+        var r = await api('check', { provider: providerId });
+        toast(r.note || (r.ok ? 'Connection answered.' : 'Connection did not answer.'));
+      } else if (act === 'remove') {
+        await api('delete', { provider: providerId });
+        toast('Removed. The stored secret was deleted with it.');
+      }
+      await load();
+    } catch (e) {
+      toast(e.message);
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
+  /* ── AI model priority ─────────────────────────────────────────────────── */
+
+  function aiProviders() { return state.providers.filter(function (p) { return p.llm_provider; }); }
+
+  function providerByLlm(id) {
+    return aiProviders().filter(function (p) { return p.llm_provider === id; })[0] || null;
+  }
+
+  function keySource(p) {
+    if (!p) return '';
+    var c = state.connections[p.id];
+    if (c && c.configured) return 'Runs on your own key.';
+    if (p.platform_default) return 'Runs on the platform key. Add your own on the Platforms tab to use it instead.';
+    return 'No key on this brand and no platform key, so this step is skipped at run time.';
+  }
+
+  function stepCard(entry, i, total) {
+    var p = providerByLlm(entry.provider);
+    var known = (p && p.known_models) || [];
+    var chosen = entry.models || [];
+    var h = '<div class="step" data-index="' + i + '">';
+    h += '<div class="rank">' + (i + 1) + '</div><div class="bd">';
+    h += '<div class="ttl">' + esc(p ? p.label : entry.provider) + '</div>';
+    h += '<div class="note">' + esc(keySource(p)) + '</div>';
+    h += '<div class="models">' + known.map(function (m) {
+      var on = chosen.indexOf(m) >= 0;
+      return '<button type="button" class="mchip" data-act="model" data-index="' + i + '" data-model="' + esc(m) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(m) + '</button>';
+    }).join('') + '</div>';
+    var custom = chosen.filter(function (m) { return known.indexOf(m) < 0; });
+    if (custom.length) {
+      h += '<div class="models">' + custom.map(function (m) {
+        return '<button type="button" class="mchip" data-act="model" data-index="' + i + '" data-model="' + esc(m) + '" aria-pressed="true">' + esc(m) + '</button>';
+      }).join('') + '</div><div class="note">Model ids above that this platform does not ship are yours, stored as typed and not verified here.</div>';
+    }
+    h += '<label for="custom-' + i + '">Add a model id your account can reach</label>' +
+      '<input type="text" id="custom-' + i + '" data-act="custom" data-index="' + i + '" spellcheck="false" placeholder="Type a model id and press Enter">';
+    if (!chosen.length) h += '<div class="note">No model chosen, so this provider uses the platform default chain for whichever quality tier the feature asked for.</div>';
+    h += '</div><div class="stepbtns">' +
+      '<button type="button" class="icb" data-act="up" data-index="' + i + '" title="Move up"' + (i === 0 ? ' disabled' : '') + '>&#8593;</button>' +
+      '<button type="button" class="icb" data-act="down" data-index="' + i + '" title="Move down"' + (i === total - 1 ? ' disabled' : '') + '>&#8595;</button>' +
+      '<button type="button" class="icb" data-act="drop" data-index="' + i + '" title="Remove">&#215;</button>' +
+      '</div></div>';
+    return h;
+  }
+
+  function renderRouting() {
+    var entries = state.routing.entries || [];
+    $('routing').innerHTML = entries.length
+      ? '<div class="order">' + entries.map(function (e, i) { return stepCard(e, i, entries.length); }).join('') + '</div>'
+      : '<div class="card"><p class="muted">This brand has set no order of its own, so every generation runs on the platform default cascade. Add a provider below to take control of it.</p></div>';
+
+    var used = entries.map(function (e) { return e.provider; });
+    $('addProvider').innerHTML = aiProviders()
+      .filter(function (p) { return used.indexOf(p.llm_provider) < 0; })
+      .map(function (p) { return '<option value="' + esc(p.llm_provider) + '">' + esc(p.label) + '</option>'; })
+      .join('') || '<option value="">Every provider is already in the order</option>';
+
+    $('fallbackToggle').value = state.routing.use_platform_fallback === false ? '0' : '1';
+    $('routingNote').textContent = entries.length
+      ? 'Order in effect after you save: ' + entries.map(function (e, i) { return (i + 1) + '. ' + (providerByLlm(e.provider) || {}).label; }).join(' · ') +
+        (state.routing.use_platform_fallback === false ? '. Nothing else is tried.' : '. Then the platform default providers.')
+      : '';
+  }
+
+  function onRoutingAction(act, idx, el) {
+    var entries = state.routing.entries;
+    if (act === 'up' && idx > 0) { var a = entries[idx - 1]; entries[idx - 1] = entries[idx]; entries[idx] = a; }
+    else if (act === 'down' && idx < entries.length - 1) { var b = entries[idx + 1]; entries[idx + 1] = entries[idx]; entries[idx] = b; }
+    else if (act === 'drop') entries.splice(idx, 1);
+    else if (act === 'model') {
+      var m = el.getAttribute('data-model');
+      var list = entries[idx].models || (entries[idx].models = []);
+      var at = list.indexOf(m);
+      if (at >= 0) list.splice(at, 1); else list.push(m);
+    }
+    renderRouting();
+  }
+
+  function addCustomModel(idx, value) {
+    var m = String(value || '').trim();
+    if (!m) return;
+    var list = state.routing.entries[idx].models || (state.routing.entries[idx].models = []);
+    if (list.indexOf(m) < 0) list.push(m);
+    renderRouting();
+  }
+
+  async function saveRouting() {
+    var btn = $('saveRouting');
+    var label = btn.textContent;
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    try {
+      state.routing.use_platform_fallback = $('fallbackToggle').value === '1';
+      await api('routing-save', { routing: state.routing });
+      toast('Saved. The next generation on this brand uses this order.');
+      await load();
+    } catch (e) {
+      toast(e.message);
+    }
+    btn.disabled = false; btn.textContent = label;
+  }
+
+  /* ── load and wire ─────────────────────────────────────────────────────── */
+
+  function renderStorage() {
+    var s = state.storage || {};
+    var el = $('storageNote');
+    if (s.encrypted && s.store) {
+      el.className = 'banner info';
+      el.textContent = 'Keys are encrypted inside the server before they are stored, are never written to a log, and are never sent back to this page. Saving one shows you only its last four characters.';
+    } else {
+      el.className = 'banner warn';
+      el.textContent = 'This deployment cannot store a key yet: CONNECTION_SECRET_KEY and the Supabase service role are both required, and nothing is ever written unencrypted. Settings that are not secret can still be saved.';
+    }
+  }
+
+  async function load() {
+    try {
+      var d = await api('list');
+      state.providers = d.providers || [];
+      state.routing = d.routing || { entries: [], use_platform_fallback: true };
+      state.storage = d.secrets_storage || {};
+      state.connections = {};
+      (d.connections || []).forEach(function (c) { state.connections[c.provider] = c; });
+      $('banner').innerHTML = '';
+      renderStorage(); renderPlatforms(); renderRouting();
+    } catch (e) {
+      var msg = (e.payload && e.payload.error) === 'no_active_brand'
+        ? 'Onboard and activate a brand first. Connections and model routing belong to a brand workspace, never to the platform as a whole.'
+        : 'Could not load your connections: ' + e.message;
+      $('banner').innerHTML = '<div class="banner err">' + esc(msg) + '</div>';
+      $('platforms').innerHTML = '';
+      $('routing').innerHTML = '';
+    }
+  }
+
+  function selectTab(name) {
+    Array.prototype.forEach.call($('tabs').querySelectorAll('.tab'), function (t) {
+      t.setAttribute('aria-selected', t.getAttribute('data-tab') === name ? 'true' : 'false');
+    });
+    $('panel-platforms').classList.toggle('on', name === 'platforms');
+    $('panel-models').classList.toggle('on', name === 'models');
+    try { history.replaceState(null, '', location.pathname + (name === 'models' ? '?tab=models' : '')); } catch (e) {}
+  }
+
+  function wire() {
+    $('tabs').addEventListener('click', function (ev) {
+      var t = ev.target.closest('.tab');
+      if (t) selectTab(t.getAttribute('data-tab'));
+    });
+
+    $('platforms').addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-act]');
+      if (b) onPlatformAction(b.getAttribute('data-act'), b.getAttribute('data-provider'), b);
+    });
+
+    $('routing').addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-act]');
+      if (b && b.tagName === 'BUTTON') onRoutingAction(b.getAttribute('data-act'), +b.getAttribute('data-index'), b);
+    });
+    $('routing').addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      var i = ev.target.closest('[data-act="custom"]');
+      if (!i) return;
+      ev.preventDefault();
+      addCustomModel(+i.getAttribute('data-index'), i.value);
+    });
+
+    $('addProviderBtn').addEventListener('click', function () {
+      var v = $('addProvider').value;
+      if (!v) return;
+      state.routing.entries.push({ provider: v, models: [], enabled: true });
+      renderRouting();
+    });
+    $('fallbackToggle').addEventListener('change', function () {
+      state.routing.use_platform_fallback = $('fallbackToggle').value === '1';
+      renderRouting();
+    });
+    $('saveRouting').addEventListener('click', saveRouting);
+    $('resetRouting').addEventListener('click', function () {
+      state.routing = { entries: [], use_platform_fallback: true };
+      renderRouting();
+      toast('Cleared here. Save to hand routing back to the platform default.');
+    });
+
+    if (new URLSearchParams(location.search).get('tab') === 'models') selectTab('models');
+  }
+
+  function boot(tries) {
+    tries = tries || 0;
+    if (!window.BrandContext && tries < 60) { setTimeout(function () { boot(tries + 1); }, 200); return; }
+    wire();
+    if (window.BrandContext) {
+      window.BrandContext.onChange(function (d) {
+        if (d && d.brand) $('brandLabel').textContent = d.brand.name + ' · Connections';
+      });
+    }
+    load();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () { boot(0); });
+})();
+</script>
+</body>
+</html>

@@ -63,6 +63,33 @@ module.exports = async function handler(req, res) {
     catch (e) { return res.status(500).json({ ok: false, error: e.message || 'brand_router_failed' }); }
   }
 
+  // ── Connections + AI models (bring your own integrations and keys) ───────
+  // Per brand workspace: which platforms it has connected, and which AI models
+  // run its generations in which order. Mounted here for the same reason the
+  // brand router is: the Hobby plan caps this project at 12 serverless
+  // functions and it is at the cap.
+  if (req.query && req.query.action === 'connections') {
+    res.setHeader('Cache-Control', 'no-store');
+    try { return await require('./_shared/workspace-connections-core.js').handle(req, res); }
+    // Deliberately no message: a throw from the secrets path can carry row
+    // detail, and this is the one router where an error body is worth nothing
+    // to the user and potentially worth something to an attacker.
+    catch (_) { return res.status(500).json({ ok: false, error: 'connections_router_failed' }); }
+  }
+
+  // ── Payment gateways (per-brand merchant connections) ────────────────────
+  // The brand's own Stripe / Razorpay / PayPal / Shopify account, attached to
+  // one workspace. Mounted here for the same reason as the brand router: the
+  // Hobby plan caps serverless functions at 12 and we are at the cap, so the
+  // logic lives in _shared and hangs off an ?action= on an existing function.
+  if (req.query && req.query.action === 'payments') {
+    res.setHeader('Cache-Control', 'no-store');
+    // The router sanitises its own errors. Anything that escapes it came from
+    // a credential-handling path, so the message is dropped rather than echoed.
+    try { return await require('./_shared/payments-core.js').handle(req, res); }
+    catch (_) { return res.status(500).json({ ok: false, error: 'payments_router_failed' }); }
+  }
+
   // ── Credits (wallet, prices, usage, recharge) ────────────────────────────
   if (req.query && req.query.action === 'credits') {
     res.setHeader('Cache-Control', 'no-store');
@@ -231,3 +258,9 @@ module.exports = async function handler(req, res) {
     flags: { real_facts_only: String(process.env.REAL_FACTS_ONLY || '') === '1' },
   });
 };
+
+// Everything this handler calls runs inside the request scope, so llm.js can
+// resolve THIS caller's workspace model routing and keys without every one of
+// the hundred-odd call sites having to pass `req` down to it. See
+// api/_shared/request-scope.js for why an ambient variable would not do.
+module.exports = require('./_shared/request-scope.js').wrap(module.exports);

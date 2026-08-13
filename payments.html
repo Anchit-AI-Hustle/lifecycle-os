@@ -96,7 +96,12 @@
        white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;display:none}
   .out.on{display:block}
 
-  table{width:100%;min-width:720px;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  /* table-layout:auto, deliberately: theme.css defaults every table to
+     table-layout:fixed, which splits the width equally and leaves a
+     white-space:nowrap cell nowhere to put a value wider than its share -
+     it overflows and paints over the next column. Sizing columns to their
+     content is what makes nowrap safe here. */
+  table{table-layout:auto;width:100%;min-width:720px;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   thead tr{background:color-mix(in srgb,var(--accent) 6%,transparent)}
   th{padding:10px 13px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
   td{padding:12px 13px;font-size:12.8px;border-top:1px solid var(--line);vertical-align:top;line-height:1.55}

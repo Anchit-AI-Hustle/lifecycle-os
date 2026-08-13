@@ -80,7 +80,12 @@
   .legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block;}
   /* tables */
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
-  table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px;}
+  /* table-layout:auto, deliberately: theme.css defaults every table to
+     table-layout:fixed, which splits the width equally and leaves a
+     white-space:nowrap cell nowhere to put a value wider than its share -
+     it overflows and paints over the next column. Sizing columns to their
+     content is what makes nowrap safe here. */
+  table{table-layout:auto;width:100%;border-collapse:collapse;font-size:13px;min-width:520px;}
   th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap;}
   th{color:var(--head);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;background:var(--chip);position:sticky;top:0;}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
@@ -104,6 +109,9 @@
   .datalink{color:var(--head);text-decoration-color:var(--accent);}
   .bignum{font-family:'Montserrat',Georgia,serif;font-size:30px;color:var(--head);}
   .empty{color:var(--soft);text-align:center;padding:26px;font-size:13px;}
+  /* A field this market does not export reads as "not measured", never as a
+     zero the reader would take for a finding. */
+  .kunset{font-family:Inter,'Instrument Sans',Arial,sans-serif;font-size:14px;font-weight:600;color:var(--soft);}
 </style>
 </head>
 <body>
@@ -368,7 +376,7 @@
       mini:function(m){ return lineChart(m.aov_trend.map(function(x){return {x:x.month,y:x.aov,label:mLabel(x.month)};}),{money:true,h:170}); },
       detail:function(m){ var t=m.aov_trend; var ft=fullMonths(t); var first=ft[0],last=ft[ft.length-1];
         var rows=t.map(function(x){return [mLabel(x.month),moneyFull(x.aov),intf(x.orders),moneyFull(x.sales)];});
-        return {insight:'<b>AOV has compressed from '+moneyFull(first.aov)+' to '+moneyFull(last.aov)+'</b> across the window of complete months, '+delta(last.aov,first.aov)+'. Read it against the order trend below: AOV falling while orders rise is the signature of discount-led acquisition and smaller entry baskets. The levers are bundle logic, a free-shipping threshold set just above current AOV, and a repeat-plan anchor on whichever offering the category table shows leading.'+',
+        return {insight:'<b>AOV has compressed from '+moneyFull(first.aov)+' to '+moneyFull(last.aov)+'</b> across the window of complete months, '+delta(last.aov,first.aov)+'. Read it against the order trend below: AOV falling while orders rise is the signature of discount-led acquisition and smaller entry baskets. The levers are bundle logic, a free-shipping threshold set just above current AOV, and a repeat-plan anchor on whichever offering the category table shows leading.',
         chart:lineChart(t.map(function(x){return {x:x.month,y:x.aov,label:mLabel(x.month)};}),{money:true,w:820,h:280,yLabel:'Average order value'}), table:table(['Month','AOV','Orders','Total sales'],rows,{num:[1,2,3]}), csv:'us_aov_trend_by_month'}; } },
     { id:'channels', title:'Total sales by channel', sub:'Where revenue comes from', span:'span6',
       mini:function(m){ var top=m.channels.slice(0,5).map(function(x){return {label:x.channel,v:x.sales,disp:money(x.sales)};}); return donut(top,{s:150})+legend(top); },
@@ -382,7 +390,7 @@
       mini:function(m){ return barChart(m.product_types.slice(0,7).map(function(x){return {label:trunc(x.type,20),v:x.net,disp:money(x.net)};}),{h:190,labelW:130}); },
       detail:function(m){ var p=m.product_types; var total=p.reduce(function(a,b){return a+b.net;},0);
         var rows=p.map(function(x){return [x.type,moneyFull(x.net),intf(x.orders),intf(x.quantity),pct(x.net/total)];});
-        return {insight:'<b>'+p[0].type+' leads with '+moneyFull(p[0].net)+'</b> ('+pct(p[0].net/total)+' of category revenue). '+(p[1]?'The second category, '+esc(p[1].type)+', carries '+pct(p[1].net/total)+'. ':'')+'Quantity against net sales in the table separates the high-frequency entry categories from the high-value ones, which is the cross-sell direction worth testing.'+',
+        return {insight:'<b>'+p[0].type+' leads with '+moneyFull(p[0].net)+'</b> ('+pct(p[0].net/total)+' of category revenue). '+(p[1]?'The second category, '+esc(p[1].type)+', carries '+pct(p[1].net/total)+'. ':'')+'Quantity against net sales in the table separates the high-frequency entry categories from the high-value ones, which is the cross-sell direction worth testing.',
         chart:barChart(p.slice(0,14).map(function(x){return {label:trunc(x.type,26),v:x.net,disp:money(x.net)};}),{w:820,h:14*30,labelW:200}),
         table:table(['Product type','Net sales','Orders','Qty','Share'],rows,{num:[1,2,3,4]}), csv:'us_sales_by_product_type'}; } },
     { id:'discount', title:'Discounted vs full-price', sub:'Margin exposure', span:'span6',
@@ -390,7 +398,7 @@
       detail:function(m){ var t=m.discount; var disc=t.find(function(x){return x.discounted;})||{}, full=t.find(function(x){return !x.discounted;})||{};
         var totS=(disc.sales||0)+(full.sales||0), totO=(disc.orders||0)+(full.orders||0);
         var rows=t.map(function(x){return [x.discounted?'Discounted':'Full price',intf(x.orders),moneyFull(x.sales),moneyFull(x.aov)];});
-        return {insight:'<b>'+pct((disc.orders||0)/totO)+' of orders use a discount</b>, and discounted AOV ('+moneyFull(disc.aov)+') is '+((full.aov&&disc.aov)?Math.round((1-disc.aov/full.aov)*100):0)+'% below full-price AOV ('+moneyFull(full.aov)+'). Discount is training a cheaper basket. Reserve offers for the segments the Cohorts tab shows as price-led and protect full-margin buyers.'+',
+        return {insight:'<b>'+pct((disc.orders||0)/totO)+' of orders use a discount</b>, and discounted AOV ('+moneyFull(disc.aov)+') is '+((full.aov&&disc.aov)?Math.round((1-disc.aov/full.aov)*100):0)+'% below full-price AOV ('+moneyFull(full.aov)+'). Discount is training a cheaper basket. Reserve offers for the segments the Cohorts tab shows as price-led and protect full-margin buyers.',
         chart:donut(t.map(function(x){return {label:x.discounted?'Discounted':'Full price',v:x.sales};}),{s:210})+legend(t.map(function(x){return {label:(x.discounted?'Discounted':'Full price'),disp:money(x.sales)};})),
         table:table(['Order type','Orders','Total sales','AOV'],rows,{num:[1,2,3]}), csv:'us_sales_by_discount_usage'}; } },
     { id:'dow', title:'Sales by day of week', sub:'Send-timing signal', span:'span6',
@@ -426,7 +434,7 @@
     { id:'topprod', title:'Top products by net sales', sub:'Revenue leaders', span:'span6',
       mini:function(m){ return barChart(m.top_products.slice(0,8).map(function(x){return {label:trunc(x.title,22),v:x.net,disp:money(x.net)};}),{h:220,labelW:150}); },
       detail:function(m){ var p=m.top_products; var rows=p.slice(0,50).map(function(x,i){return [String(i+1),x.title,moneyFull(x.net),intf(x.quantity),intf(x.orders)];});
-        return {insight:'<b>'+p[0].title+' is the #1 revenue product at '+moneyFull(p[0].net)+'.</b> '+(p.length>2?'The top three together are '+moneyFull(p[0].net+p[1].net+p[2].net)+' of net sales. ':'')+'The reorder rhythm of these lines is what a retention program should be built around.'+',
+        return {insight:'<b>'+p[0].title+' is the #1 revenue product at '+moneyFull(p[0].net)+'.</b> '+(p.length>2?'The top three together are '+moneyFull(p[0].net+p[1].net+p[2].net)+' of net sales. ':'')+'The reorder rhythm of these lines is what a retention program should be built around.',
         chart:barChart(p.slice(0,15).map(function(x){return {label:trunc(x.title,30),v:x.net,disp:money(x.net)};}),{w:820,h:15*30,labelW:230}),
         table:table(['#','Product','Net sales','Qty','Orders'],rows,{num:[2,3,4]}), csv:(MKT==='UK'?'uk_3_top_products':'us_top_50_products_by_net_sales')}; } },
     { id:'topqty', title:'Top products by quantity', sub:'Units sold', span:'span6', usOnly:true,
@@ -506,6 +514,25 @@
     if(mm.length>=1 && isCurrentMonth(mm[mm.length-1].month)) return mm.slice(0,-1);
     return mm;
   }
+  /**
+   * Does THIS market's export actually measure the named summary field?
+   *
+   * A market export only carries the columns its source CSVs had, and a missing
+   * column arrives here as 0, which is indistinguishable from a measured zero.
+   * The UK export has no returning-customer split at all, so the Signals board
+   * was reading its absence as a 0.0% returning rate and raising it as a
+   * critical retention failure. A zero is treated as measured only when a
+   * supporting series proves the split was exported.
+   */
+  function measures(m, field){
+    var s=(m&&m.summary)||{};
+    var v=Number(s[field]);
+    if(field==='returning_customers' || field==='returning_rate'){
+      var hasSeries = !!((m.returning_rate && m.returning_rate.length) || (m.new_vs_returning && m.new_vs_returning.length));
+      return hasSeries || v>0;
+    }
+    return isFinite(v) && v>0;
+  }
   function computeSignals(m){
     var sig=[], mm=m.monthly||[], fm=fullMonths(mm);
     if(fm.length>=2){ var l=fm[fm.length-1], p=fm[fm.length-2], c=pctChange(l.sales,p.sales);
@@ -516,7 +543,7 @@
       sig.push({sev:c2<-0.10?'critical':(c2<-0.03?'watch':'good'), label:'AOV trend', value:(c2>=0?'+':'')+Math.round(c2*100)+'% over window',
         detail:'AOV moved from '+moneyFull(f.aov)+' to '+moneyFull(la.aov)+'. Falling AOV with rising orders is a discount-led, smaller-basket signal.'}); }
     var rr=m.summary&&m.summary.returning_rate;
-    if(rr!=null){ sig.push({sev:rr<0.25?'critical':(rr<0.35?'watch':'good'), label:'Returning-customer rate', value:pct(rr),
+    if(rr!=null && measures(m,'returning_rate')){ sig.push({sev:rr<0.25?'critical':(rr<0.35?'watch':'good'), label:'Returning-customer rate', value:pct(rr),
       detail:'Share of customers ordering more than once. Below 35% needs lifecycle flows to defend; above 45% is healthy.'}); }
     if(m.discount&&m.discount.length){ var dc=m.discount.find(function(x){return x.discounted;})||{}, fu=m.discount.find(function(x){return !x.discounted;})||{};
       var tO=(dc.orders||0)+(fu.orders||0), sh=tO?(dc.orders||0)/tO:0, gap=(fu.aov&&dc.aov)?(1-dc.aov/fu.aov):0;
@@ -565,18 +592,26 @@
   }
 
   function renderKPIs(){
-    var s=d().summary;
+    var m=d(), s=m.summary;
+    // Each tile names the field it reads, so a market that does not export that
+    // field prints "not measured" instead of a zero the reader would take as a
+    // finding about the business.
     var tiles=[
-      {l:'Total sales', v:moneyFull(s.total_sales)},
-      {l:'Orders', v:intf(s.orders)},
-      {l:'Net sales', v:moneyFull(s.net_sales)},
-      {l:'Avg order value', v:moneyFull(s.aov)},
-      {l:'Quantity sold', v:intf(s.quantity)},
-      {l:'New customers', v:intf(s.new_customers)},
-      {l:'Returning customers', v:intf(s.returning_customers)},
-      {l:'Returning rate', v:pct(s.returning_rate)},
+      {l:'Total sales', f:'total_sales', fmt:moneyFull},
+      {l:'Orders', f:'orders', fmt:intf},
+      {l:'Net sales', f:'net_sales', fmt:moneyFull},
+      {l:'Avg order value', f:'aov', fmt:moneyFull},
+      {l:'Quantity sold', f:'quantity', fmt:intf},
+      {l:'New customers', f:'new_customers', fmt:intf},
+      {l:'Returning customers', f:'returning_customers', fmt:intf},
+      {l:'Returning rate', f:'returning_rate', fmt:pct},
     ];
-    document.getElementById('kpis').innerHTML = tiles.map(function(t){return '<div class="kpi"><div class="kl">'+t.l+'</div><div class="kv">'+t.v+'</div></div>';}).join('');
+    document.getElementById('kpis').innerHTML = tiles.map(function(t){
+      var v = measures(m,t.f)
+        ? esc(t.fmt(s[t.f]))
+        : '<span class="kunset" title="The '+escA(mktLabel())+' export carries no '+escA(t.l.toLowerCase())+' column.">not measured</span>';
+      return '<div class="kpi"><div class="kl">'+esc(t.l)+'</div><div class="kv">'+v+'</div></div>';
+    }).join('');
   }
 
   // ── Tabs: route each widget to a tab; show honest "connect X" cards for the
@@ -595,26 +630,39 @@
     newret:'ret',retrate:'ret',discount:'ret',
     cohort:'cohort'
   };
+  // Cards for analyses this tab CANNOT compute from the market export.
+  //
+  // Each one is either a pointer to the tab that does own that analysis, or an
+  // honest statement of the connection that is missing. The distinction matters:
+  // several of these were written before the connector tabs existed and still
+  // offered to "unlock" paid-media and lifecycle reporting that is now a tab
+  // away, which is a second promise of one analysis rather than a route to it.
   var UNLOCK={
     control:[
-      {t:'Marketing Efficiency Ratio (MER)', s:'Net sales ÷ total ad spend', need:'ad-platform spend', why:'MER/ROAS need ad spend from Meta/Google/TikTok Ads — not part of the read-only Shopify/Klaviyo/WebEngage set. Connect ad-platform read access to unlock.'},
-      {t:'Intraday sales pacer + EOD forecast', s:'Today vs yesterday, projected close', need:'read-only Shopify Admin', why:'Needs a live hourly order stream. The twice-daily batch cannot power intraday pacing; connect the read-only Shopify Admin token (+ webhooks) to unlock.'}
+      {t:'Marketing efficiency ratio', s:'Net sales against total ad spend', need:'ad-platform spend', why:'Spend lives with the ad platforms, not in the order export. Paid Media reads it from the connected accounts; the ratio needs both sides in one place, which is the next step once spend and orders share a market key.'},
+      {t:'Intraday pacing and day-end settlement', s:'Today against yesterday, projected close', need:'read-only Shopify Admin', why:'Needs a live hourly order stream. A twice-daily batch cannot pace an hour, and a projection built on a placeholder run-rate reads as a measurement. Connect the read-only Shopify Admin token with webhooks.'}
     ],
     acq:[
-      {t:'Ad → Landing Page ledger', s:'Creative → LP: spend, CR, CPA, ROAS', need:'ad-platform + Shopify Admin', why:'Needs ad spend plus order-level attribution (gclid/fbclid, last-interactive-touch). Connect ad-platform read + Shopify Admin to unlock.'},
-      {t:'Channel spend split & blended ROAS', s:'Meta / Google / TikTok', need:'ad-platform spend', why:'No spend source exists in the read-only three. Connect ad-platform read access to unlock.'}
+      {t:'Paid media performance', s:'Spend, delivery, conversions and return on ad spend', tab:'live-ads', why:'This is measured on the Paid Media tab, from the connected ad accounts. It is not recomputed here.'},
+      {t:'Ad to landing-page ledger', s:'Creative to page: spend, conversion rate, cost per action', need:'ad-platform + Shopify Admin', why:'Needs ad spend joined to order-level attribution. Paid Media has the spend and Landing and Experiments has the page, but nothing yet joins a click to the order it produced.'}
     ],
     ret:[
-      {t:'Retention ledger (Mailer + LP)', s:'Flow/campaign: open, CTR, POR, unsub, revenue', need:'Klaviyo / WebEngage sync', why:'Fills automatically once the read-only Klaviyo + WebEngage syncs populate Supabase (Klaviyo adapter is built; WebEngage adapter pending its key).'}
+      {t:'Owned-channel performance', s:'Delivery, opens, clicks, conversions and attributed revenue', tab:'mailer-intelligence', why:'This is measured on the Owned Channels tab, from Klaviyo and WebEngage. It is not recomputed here.'}
     ],
     cohort:[
-      {t:'LTV by acquisition channel (30 / 60 / 90d)', s:'Cohort LTV growth by first-touch source', need:'read-only Shopify Admin', why:'Needs order-level lifetime value plus channel attribution. Connect the read-only Shopify Admin token to unlock.'},
-      {t:'Automated optimization calendar', s:'Creative-rotation triggers on CTR decay', need:'ad + email performance', why:'Needs ad + email CTR history to detect content decay. Connect ad-platform read + Klaviyo to unlock.'}
+      {t:'Lifetime value by acquisition channel', s:'Cohort value at thirty, sixty and ninety days by first touch', need:'read-only Shopify Admin', why:'Needs order-level lifetime value plus channel attribution per customer. The export holds cohort retention percentages, not the underlying rows.'},
+      {t:'Segment scoring', s:'Recency, frequency and monetary segments from customer rows', drill:'rfm', why:'Scoring needs customer-level rows, which the market export does not carry. It runs on its own surface.'}
     ]
   };
   function unlockCard(u){
+    var reg = window.LifecycleAnalysisRegistry;
+    var target = u.tab && reg && reg.tab(u.tab);
+    var drill = u.drill && reg && reg.drilldown(u.drill);
+    var badge = target ? 'Open ' + target.label : (drill ? 'Open ' + drill.label : 'Connect ' + u.need);
+    var href = target ? '/data-analysis?tab=' + target.id : (drill ? drill.href : '');
+    var chip = '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--vh-lava);background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">'+(href?'→ ':'🔒 ')+esc(badge)+'</span>';
     return '<div class="w span6"><div class="wh"><span class="wt">'+esc(u.t)+'</span>'+
-      '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--vh-lava);background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">🔒 Connect '+esc(u.need)+'</span></div>'+
+      (href ? '<a class="open" href="'+escA(href)+'">'+chip+'</a>' : chip)+'</div>'+
       '<div class="ws">'+esc(u.s)+'</div>'+
       '<div class="wbody"><div class="empty" style="padding:22px 16px;text-align:center;line-height:1.6">'+esc(u.why)+'</div></div></div>';
   }

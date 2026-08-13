@@ -228,6 +228,15 @@ function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<
 // WHY there is nothing rather than repeating the generic "click Run Daily Sync"
 // prompt that the user has, by then, already clicked.
 let PLAN_STATE = { kind: 'loading', message: '' };
+
+// A late-resolving read must never overwrite a newer result. The plan read and
+// the daily sync both write this table, and the page fires a read on open, so
+// without a ticket a slow read can land after a sync the user has already run
+// and put the older picture back, which looks exactly like the sync being
+// ignored. Only the most recent request is allowed to commit.
+let PLAN_SEQ = 0;
+function claimPlan(){ return ++PLAN_SEQ; }
+function stillCurrent(ticket){ return ticket === PLAN_SEQ; }
 function sbState(kind, message){
   const el = $('syncstate');
   if(!el) return;
@@ -471,7 +480,15 @@ function renderPlan(){
         `<button type="button" class="btn sm ok" onclick="approveRow(${i})" title="Approve this send — generates and locks the final assets so it is ready to ship">✓ Approve</button>`+
         `<button type="button" class="btn sm secondary" onclick="rejectRow(${i})" title="Reject this send — logs the decision and the slot is re-planned on the next daily sync">✗ Reject</button>`+
         `</div>`;
-    const status = `${verdict}${e.generated_campaign_id ? `<br><a href="/lp/${esc(e.generated_campaign_id)}" target="_blank" style="color:#0a7d33;font-size:11px">landing page ↗</a>` : ''}${reviewCtl}`;
+    // The /lp/:id route is served with a 60s CDN cache so public traffic is
+    // fast. A slot rebuilt in THIS session keeps the same deterministic id, so
+    // without a version key the reviewer can open the previous build for up to
+    // a minute after approving. `__built_at` is set only when we just built it,
+    // so ordinary links keep the cache.
+    const lpHref = e.generated_campaign_id
+      ? `/lp/${encodeURIComponent(e.generated_campaign_id)}${e.__built_at ? `?v=${e.__built_at}` : ''}`
+      : '';
+    const status = `${verdict}${lpHref ? `<br><a href="${esc(lpHref)}" target="_blank" style="color:#0a7d33;font-size:11px">landing page ↗</a>` : ''}${reviewCtl}`;
     return `<tr class="planrow" id="planrow-${i}">
     <td>${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-ink);color:var(--vh-ink);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
     <td><b>${esc(e.market)}</b>${e.festival ? `<br><span class="pill">🎉 ${esc(e.festival.name)}</span>` : ''}</td>
@@ -928,6 +945,7 @@ async function viewEntry(i, forceRegen){
 window.viewEntry = viewEntry;
 
 async function loadPlan(){
+  const ticket = claimPlan();
   const btn = $('refresh'); const label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
   sbState('busy', 'Reading the stored plan…');
@@ -935,6 +953,7 @@ async function loadPlan(){
     const r = await fetch(`${API}?action=smart-brain-plan`);
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Failed to load plan');
+    if(!stillCurrent(ticket)) return data;   // a newer action already owns the screen
     $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
     PLAN = data.entries || data.plan || [];
     const refusal = refusalOf(data);
@@ -953,6 +972,7 @@ async function loadPlan(){
     if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
     return data;
   }catch(e){
+    if(!stillCurrent(ticket)) return null;
     PLAN = [];
     PLAN_STATE = { kind: 'error', message: e.message };
     renderPlan();
@@ -989,12 +1009,14 @@ async function autoGenerateOnLoad(){
 // table needs. There is nothing to poll for, and the rows below are rendered
 // straight from that response rather than from a second request.
 async function runSync(){
+  const ticket = claimPlan();
   $('sync').disabled = true; $('sync').textContent = 'Reviewing latest data…';
   sbState('busy', 'Reviewing the latest data and rebuilding the rolling calendar…');
   try{
     const r = await fetch(`${API}?action=smart-brain-sync-daily`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Sync failed');
+    if(!stillCurrent(ticket)) return;   // superseded by a later action
     // A 200 with ok:true is not automatically a success. The router refuses an
     // unattributable request with an `error` code and the planner explains an
     // empty brand with a `note`; both used to render as a silent no-op.
@@ -1025,6 +1047,7 @@ async function runSync(){
     }
     renderPlan();
   }catch(e){
+    if(!stillCurrent(ticket)) return;
     // A failed sync must not leave the previous table standing as though it were
     // fresh. Clear it and name what failed.
     PLAN = [];
@@ -1052,6 +1075,7 @@ async function generateEntry(i, { silent = false } = {}){
   const data = await safeJson(r);
   if(!data.ok) throw new Error(data.error || 'Generation failed');
   e.status = 'final'; e.generated_campaign_id = data.campaign.campaign_id;
+  e.__built_at = Date.now();    // versions the hosted /lp/ link past its CDN cache
   PREVIEW_CACHE[e.id] = data;   // cache the FINAL so re-opening always shows it
   if(!silent){
     renderPlan();

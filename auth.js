@@ -334,16 +334,21 @@
     ]},
     { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
     { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'], children: [
+      // Labels and tab ids track analysis-registry.js, which is what the
+      // workbench builds its own tab bar from. A rail that names a tab
+      // differently from the tab is how a reader concludes there are two of
+      // them. Retired tab ids still resolve, so an old bookmark keeps working
+      // even though the rail now carries the current one.
       { id: 'da-control',  label: 'Control Room',                  href: '/data-analysis?tab=control',              icon: 'analysis' },
-      { id: 'da-acq',      label: 'Acquisition · Ads + LP',        href: '/data-analysis?tab=acq',                  icon: 'insights' },
-      { id: 'da-ret',      label: 'Retention · Mailer + LP',       href: '/data-analysis?tab=ret',                  icon: 'insights' },
-      { id: 'da-cohort',   label: 'Cohorts & Calendar',            href: '/data-analysis?tab=cohort',               icon: 'cohort' },
-      { id: 'da-liveads',  label: 'Live Ads (Meta/Google/TikTok)', href: '/data-analysis?tab=live-ads',             icon: 'ads' },
-      { id: 'da-mailer',   label: 'Mailer Intelligence',           href: '/data-analysis?tab=mailer-intelligence',  icon: 'insights' },
-      { id: 'da-landing',  label: 'Landing Pages & Experiments',   href: '/data-analysis?tab=landing-intelligence', icon: 'landing' },
+      { id: 'da-acq',      label: 'Acquisition',                   href: '/data-analysis?tab=acq',                  icon: 'insights' },
+      { id: 'da-ret',      label: 'Retention',                     href: '/data-analysis?tab=ret',                  icon: 'insights' },
+      { id: 'da-cohort',   label: 'Cohorts',                       href: '/data-analysis?tab=cohort',               icon: 'cohort' },
+      { id: 'da-liveads',  label: 'Paid Media',                    href: '/data-analysis?tab=live-ads',             icon: 'ads' },
+      { id: 'da-mailer',   label: 'Owned Channels',                href: '/data-analysis?tab=mailer-intelligence',  icon: 'insights' },
+      { id: 'da-landing',  label: 'Landing & Experiments',         href: '/data-analysis?tab=landing-intelligence', icon: 'landing' },
       { id: 'da-actions',  label: 'Actions & Outcomes',            href: '/data-analysis?tab=action-outcomes',      icon: 'insights' },
       { id: 'da-alerts',   label: 'Alert Settings',                href: '/data-analysis?tab=alert-settings',       icon: 'insights' },
-      { id: 'da-review',   label: 'Sales & Business Review',       href: '/data-analysis?tab=review-overview',      icon: 'analysis', match: ['/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'] },
+      { id: 'da-review',   label: 'Sales & Business Review',       href: '/data-analysis?tab=review',               icon: 'analysis', match: ['/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'] },
     ]},
     { group: 'Cohorts', icon: 'cohort', gid: 'cohorts', ver: 'v1', children: [
       { id: 'coh-overview',   label: 'Overview',            href: '/cohorts?tab=overview',   icon: 'cohort' },
@@ -470,6 +475,22 @@
         ['Design + layout + structure', 'Rendered entirely from brand tokens, so the page re-skins with the workspace like every other surface.'],
         ['Coding', 'Encrypted with AES-256-GCM under CONNECTION_SECRET_KEY before storage; metadata is written with the token of the caller so RLS decides, and secrets are written with the service role only after the role check passes. Mounted on the existing public-config router, so no thirteenth serverless function.'],
         ['Final compilation + presentation', 'The resolved routing is handed to the model cascade for every generation this workspace runs. Runs via: /api/public-config?action=connections'],
+      ],
+    },
+    payments: {
+      title: 'Payment Gateways',
+      what: "Attaches the brand's OWN payment gateway account to this workspace, so the rest of the platform can reference real money: revenue against a campaign, a payout a lifecycle send should be credited with, a checkout the campaign points at. The operator picks a gateway, signs in at that gateway, and it belongs to this brand. Where a provider genuinely offers no sign-in, the page says so instead of pretending.",
+      who: "The owner or an editor of the active brand workspace. A connection belongs to exactly one workspace and no other brand on the deployment can read it, not even its existence.",
+      how: "Three providers use a real sign-in. Stripe uses Connect OAuth for Standard accounts. Razorpay uses partner OAuth when this deployment holds partner credentials, and falls back to a key id and secret when it does not, which is a real limitation of not being an approved partner rather than a shortcut. PayPal mints a one-time partner referral link that the merchant signs in through. Shopify signs the operator into their own store, which grants READ access to Shopify Payments payouts and disputes and cannot make this platform a processor on that store.",
+      input: "A choice of gateway, and then a sign-in at that provider. For Shopify, the store domain first, because sign-in happens on the store's own domain. For the Razorpay key path only, a key id and key secret from the merchant's own dashboard.",
+      steps: [
+        ['Ideology', 'A merchant should connect by signing in, not by hunting for a secret. Where that is not possible, say so on the page.'],
+        ['Data analysis + review + hypothesis', 'Reads what this deployment is registered for with each provider and reports the missing environment variables by name, so a disabled button always explains itself.'],
+        ['Business & strategy decisions', 'Read-only scope is requested by default. Write scope is offered but not assumed, because a platform that can charge a merchant account should have been asked first.'],
+        ['Content', 'Nothing is generated here. The stored connection is what other features then reconcile revenue against.'],
+        ['Design + layout + structure', 'Rendered from brand tokens, so it re-skins with the workspace like every other surface.'],
+        ['Coding', 'The OAuth state binds the returning code to the workspace and user that started the flow, so a code cannot be redeemed into a different brand. Credentials are sealed with AES-256-GCM under PAYMENTS_ENCRYPTION_KEY before storage, the ciphertext columns are revoked from every browser-facing database role, and the browser only ever receives a four character hint. Mounted on the existing public-config router, so no thirteenth serverless function.'],
+        ['Final compilation + presentation', 'A connected gateway is available to every feature that needs real payment data. Runs via: /api/public-config?action=payments'],
       ],
     },
     brandinput: {

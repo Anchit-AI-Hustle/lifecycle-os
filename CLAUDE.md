@@ -23,6 +23,24 @@ all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `bra
 - **TeleSuite** — `/telesuite`, all 23 subfeatures of the AI-TeleSuite repo, rendered entirely from
   the `SUBFEATURES` registry in `_shared/telesuite-core.js`. Every dashboard is a filtered view of
   the one `telesuite_runs` table (shared source of truth), not its own store.
+- **Connections + AI models** — `/connections` (and `/ai-models`), `brand-connections.html`, served by
+  `_shared/workspace-connections-core.js` on `public-config.js?action=connections` (still 12/12
+  functions). A workspace brings its OWN platform credentials and its OWN AI keys, and picks the
+  provider/model PRIORITY ORDER that replaces the default cascade in `llm.js`. A workspace with
+  nothing connected behaves exactly as before. Registry of connectable platforms is `PROVIDERS` in
+  that module; a platform whose sign-in flow is not established carries a
+  `[DATA REQUIRED BEFORE LAUNCH: ...]` marker instead of a fake OAuth button. **Never add a base URL,
+  model id or auth flow there that this repo does not already call.**
+  - **Secrets** live in `workspace_connection_secrets`, AES-256-GCM ciphertext under
+    `CONNECTION_SECRET_KEY`. That table has RLS on and **no policy**, and is REVOKEd from
+    `anon`/`authenticated`: only the service role reads it, and only after the module has verified
+    the caller's JWT and workspace role. Nothing ever returns a secret to the browser, only
+    `configured: true` plus the last four characters. With no `CONNECTION_SECRET_KEY` a save is
+    REFUSED (503) rather than stored in the clear.
+  - **How the key reaches `llm.js`**: `_shared/request-scope.js` (AsyncLocalStorage) carries the
+    request, so the ~100 `callLLM` sites need no change. `api/brain.js`, `api/calendar.js`,
+    `api/public-config.js`, `api/ai/generate.js` and `api/ai/image.js` are wrapped in it. A module
+    level variable would leak keys across concurrent requests, which is why it is ALS.
 
 ## Brand layer: one record, many derived sites, any brand
 `data/brands/_default.json` is tenant zero and the SINGLE source of brand truth. Nothing else is
@@ -141,15 +159,21 @@ Each page is a **standalone, self-contained `.html` file** (inline CSS + JS, oft
 | `api/ai/image.js` | Image generation cascade (see below) |
 | `api/ai/pipeline/*.js` | Multi-stage mailer pipeline: strategy → variant → images → html → score (+ health) |
 | `api/calendar.js` | `?action=generate` (30-day plan) + `?action=trigger-mailer` + `?action=smart-brain-*` (plan/sync-daily/cron/approve/reject/run-daily/feedback…) + `?action=lp&id=` (serves generated landing pages at `/lp/:id`). Logic in `_shared/calendar-generate.js`, `_shared/calendar-trigger.js`, `_shared/smart-brain-plan.js`, `lib/smart-brain/services.js` |
-| `api/competitor.js` | Competitor Benchmarking router (Gmail IMAP → Google Sheet) |
+| `api/competitor.js` | Competitor Benchmarking router. Competitor universe in Supabase (`_shared/competitor-universe.js`); mail capture via Gmail IMAP → Google Sheet, both optional |
 | `api/kb.js` | Knowledge Base router (Supabase-backed) |
 | `api/public-config.js` | Public config (Supabase URL + anon key) + `?health=1` health check; `/api/health` rewrites here. **Operator-only modes:** `?pipeline=1`, `?probe=1`, and the DETAILED `?health=1` payload require `Authorization: Bearer <operator Supabase token or CRON_SECRET>` (allowed domains via `ANALYTICS_ADMIN_DOMAINS`, default `knickgasm.com`) and drop wildcard CORS. Anonymous `?health=1` returns liveness only (`ok/build/ts`) — never provider, key, model, region or env state. `?probe=1` also spends provider quota, so it must never be anonymous. |
 
 ### Shared LLM caller — `api/_shared/llm.js`
 6-provider text waterfall, de-duplicated: **OpenAI** (`OPENAI_API_KEY`/`_2`/`_3`) → **Anthropic** (claude-3-5-haiku) → **Gemini** (free tier) → **Grok/xAI** → **Groq** (free) → **Cerebras** (free). All callers should go through this rather than calling providers directly. Per-call provider override is supported (`'gemini'|'openai'|'anthropic'|'grok'`).
 
+### Competitor universe — per brand, in Supabase, no Google needed (2026-08-13)
+`api/_shared/competitor-universe.js` + `public.brand_competitors` (migration `20260813120000`) are the competitor set for the ACTIVE brand. It moved out of the Google Sheet because the sheet needed credentials this deployment does not hold (every brand saw "0 brands" and a raw `Google auth not configured` error) and because one spreadsheet cannot hold more than one tenant's universe. RLS is the same `is_brand_member` gate as the rest of the brand content; server paths use `restAs`-style calls as the caller, and the cron uses the service key with an explicit workspace filter. Unique per workspace on a generated `dedupe_key` = domain, else folded name, so **de-duplication is by domain**.
+- **Seed on activation** — `brandCore.setActive()` calls `seedForWorkspace()`, which derives ONLY from that brand's own record (its `competitors` list and its `market_study` tiers, including the structured `tiers[].brands` entries in `data/brands/_default.json`). No LLM and no network, so activation cannot hang. A tier whose note says it does not compete is skipped. A brand whose record names nobody gets `[DATA REQUIRED BEFORE LAUNCH: competitor set, …]`, never another brand's list — the rule `competitor-core.seedBrands()` states is enforced structurally here: the brand record is fetched by id and there is NO fall back to the default brand.
+- **Auto-update** — `refreshDueWorkspaces()` runs off the EXISTING daily cron (`/api/brain?action=cron`); no third Hobby cron. Three least-recently-refreshed active workspaces per run, tracked in `brand_competitor_refresh`. Discovery is prompted from that brand's own industry/offerings/regions; a candidate without a real-looking domain, or on a reserved name, is dropped and reported. Discovery may contribute a name and homepage marked `verification:'unverified'`, never a positioning line, category or rating.
+- **Google Sheet is now an export only** — `exportToSheet()` and `?action=universe-export` run when credentials exist, and say `configured:false` when they do not. `core.sheetsConfigured()` gates every remaining sheet-backed action so an unconfigured deployment reports an honest empty state instead of a credentials error.
+
 ### Auth to Google Sheets — Workload Identity Federation (keyless)
-Competitor data lives in a Google Sheet. Auth has **two modes** (see `docs/workload-identity-federation.md` and `_shared/competitor-core.js`):
+The competitor MAIL ARCHIVE (not the universe, see above) lives in a Google Sheet. Auth has **two modes** (see `docs/workload-identity-federation.md` and `_shared/competitor-core.js`):
 - **Mode A (preferred, keyless):** WIF — Vercel mints a per-request OIDC token (`VERCEL_OIDC_TOKEN`, enable "OIDC Tokens" in Vercel project settings), Google STS swaps it, code impersonates the SA. Set `GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT_EMAIL`.
 - **Mode B (legacy):** JSON key in `GOOGLE_SERVICE_ACCOUNT_*` env vars. Code prefers Mode A when `GCP_*` present; falls back to JWT when `VERCEL_OIDC_TOKEN` absent.
 
@@ -219,7 +243,7 @@ US → knickgasm.com | UK → knickgasm.com | IN → knickgasm.com | EU → knic
 - **Image cascade** (`api/ai/image.js`): Gemini native (`generateContent` + `responseModalities:['IMAGE','TEXT']`) → Gemini Imagen (paid only) → OpenAI (gpt-image-2 → gpt-image-1) → Pollinations (flux-pro → flux-realism → flux, free, "NO text" instruction). `buildDesignPromptFromCatalog()` injects real catalog data; region-aware currency symbols.
 
 ## Environment Variables (Vercel only — never hardcode)
-Text: `OPENAI_API_KEY`(+`_2`/`_3`), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `GROQ_API_KEY`, `CEREBRAS_API_KEY`. Storage: `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Lifecycle (Klaviyo): `KLAVIYO_API_KEY` (+ optional `KLAVIYO_PUBLIC_KEY`, `KLAVIYO_REVISION`) — integration is scaffolded and returns request stubs until set. Voice: `ELEVENLABS_API_KEY`. Google Sheets: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_TAB` (or legacy `GOOGLE_SERVICE_ACCOUNT_*`). Cron: `CRON_SECRET` (protects `?action=sync`). Auto-set by Vercel: `VERCEL`, `VERCEL_ENV`, `VERCEL_URL`, `VERCEL_OIDC_TOKEN`. Full docs in `.env.example`. Each sibling app has its own restricted per-project Gemini key minted from its own GCP project (see "API Keys 2026-05-30" note below).
+Text: `OPENAI_API_KEY`(+`_2`/`_3`), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `XAI_API_KEY`, `GROQ_API_KEY`, `CEREBRAS_API_KEY`. Storage: `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Lifecycle (Klaviyo): `KLAVIYO_API_KEY` (+ optional `KLAVIYO_PUBLIC_KEY`, `KLAVIYO_REVISION`) — integration is scaffolded and returns request stubs until set. Voice: `ELEVENLABS_API_KEY`. Google Sheets: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SHEET_ID`, `GOOGLE_SHEET_TAB` (or legacy `GOOGLE_SERVICE_ACCOUNT_*`). Cron: `CRON_SECRET` (protects `?action=sync`). Per-workspace connections: `CONNECTION_SECRET_KEY` (32 random bytes as hex, `openssl rand -hex 32`) encrypts every user-supplied API key before storage — without it no key can be saved at all, and rotating it makes existing stored keys unreadable so they must be re-entered. Auto-set by Vercel: `VERCEL`, `VERCEL_ENV`, `VERCEL_URL`, `VERCEL_OIDC_TOKEN`. Full docs in `.env.example`. Each sibling app has its own restricted per-project Gemini key minted from its own GCP project (see "API Keys 2026-05-30" note below).
 
 ## Common Bugs to Watch
 1. **Unescaped quotes / apostrophes** inside single-quoted JS strings — these pages are giant inline-JS files; a stray backtick in a CSS comment once broke a template literal and killed the sidebar.

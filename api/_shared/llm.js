@@ -252,8 +252,8 @@ module.exports = async function callLLM(opts) {
   // GitHub Models — dedicated token or a plain GitHub PAT.
   const githubKey    = _clean(ovKeys.github) || _clean(process.env.GITHUB_MODELS_TOKEN) || _clean(process.env.GITHUB_TOKEN);
 
-  // Base URLs. Three providers are reached at an address that belongs to the
-  // account rather than to the vendor, so for those the base is part of the
+  // Base URLs. Cloudflare and Ollama are reached at an address that belongs to
+  // the account rather than to the vendor, so for those the base is part of the
   // credential and a workspace can supply its own.
   const bases = {
     openai: OPENAI_BASE, anthropic: ANTHROPIC_BASE, gemini: GEMINI_BASE,
