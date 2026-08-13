@@ -47,6 +47,17 @@ all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `bra
       origin is `user` — in the database, not in call order. `saveWorkspace()` calls
       `brand_fields_claim_user()` with the fields the operator actually sent. `voice.banned` can never
       be machine-filled.
+    - **Only the exact correct option** (2026-08-13): `secondary` is emitted ONLY when
+      `sources.accent.from_role === 'action'` — proposePalette's support-colour fallback is fine for a
+      wizard where a human confirms and wrong for a token consumed without one. `sources.<role>` now
+      carries `confidence` / `from_role` / `ranked_not_declared` (the wizard was hardcoding
+      `'declared'` on every role). Typography emits only `declared`/`strong` candidates: **a family
+      the page LOADS is not one it USES**, and a link-only candidate can otherwise fill an empty slot
+      and become `[0]`. `site-crawl` now re-checks scope on the URL that ANSWERED — an in-scope path
+      that 301s off-origin had its body ingested. Derived tokens (`on-primary`, `*-text`, adjusted
+      `neutral`) are labelled `DERIVED from <input>`. `design.selection` records per field the value,
+      signal, source URL, `rank_taken` of `candidates_considered` and `chosen_by`, and `applyPack()`
+      marks an `operator-override` naming what the pack ranked first.
     - **GitHub degrades honestly**: `searched:false` (could not reach GitHub) is NEVER reported as
       "no repositories". A repo is the brand's only on evidence independent of its name (the site
       links to that owner, or the repo `homepage` is on the brand's domain); a name match is
@@ -220,6 +231,47 @@ The competitor MAIL ARCHIVE (not the universe, see above) lives in a Google Shee
 
 **90-day horizon + asset prebuild (2026-07-09).** The rolling window is 90 days (`calendarDays: 90` in `services.js`, `calendar.days: 90` in `brain-core.js`, V1 `calendar-generate.js` cap raised to 90). Every slot in the window is not just planned but has its **full asset bundle prebuilt** — LLM copy + generated images for mailer + ads + landing page. Because ~180 slots (90d × US/UK) cannot build in one serverless invocation, `prebuildAssets()` is a **convergent background queue**: `?action=smart-brain-prebuild` (CRON_SECRET-protected) builds one small batch (via `buildCampaign(..., {withCreatives:true})`), persists it to `smart_generated_campaigns` as a `prebuilt` draft (NOT mirrored to the ads/LP dashboards until approval), marks the slot with a `payload.__prebuilt` marker, then re-fires itself until `remaining` hits 0, then idles. It self-chains via a fire-and-forget `fetch` to `VERCEL_URL` (3s handoff; the child keeps running after the client aborts). Kicked automatically after `smart-brain-sync-daily`, off the existing `/api/brain?action=cron` daily run (no 3rd Hobby-limited cron added), and re-runnable by hand. `previewEntry`/`approveEntry` REUSE the prebuilt campaign (instant view, no regeneration; what the reviewer saw is what ships). A material re-plan of a slot on daily sync drops the marker → the queue rebuilds the now-stale assets. Idempotent + resumable; a total-failure batch stops the chain instead of hot-looping.
 
+**Whose audience, whose proof, and whether you can SEE it (2026-08-14).** Four things the fork
+inherited from the sibling project reached customers through this path, and all four are now closed
+in `smart-brain-plan.js` + `smart-brain.html` (tests: `tests/smart-brain-assets.spec.js`):
+- **Audience** — the ad art-direction line hardcoded the sibling company's persona and art-directed
+  EVERY tenant's imagery with it. `audienceBrief(entry)` now derives it from the slot's COHORT (a
+  behavioural segment from the brand's own data, name + rules) plus any audience stated on the brand
+  record; with neither, the brief carries `[DATA REQUIRED BEFORE LAUNCH: audience / persona
+  definition, <brand>]` and FORBIDS assuming an age, gender or life stage. Never substitute one.
+- **Proof** — the JSON shape handed the model `"rating": {"value": 4.9, "count": "250,000+"}` and an
+  author templated as `"first name, initial"`. Seeding a shape with values IS an instruction to
+  invent them (`mailer_system/brand_prompt.py` had the same defect). Proof is now EXTRACTED, not
+  written: **`api/_shared/brand-reviews.js`** reads the brand's OWN testimonials off its OWN site,
+  verbatim, riding the EXISTING `site-crawl.js` (`onPage` + `rank`) — no second crawler, no LLM in
+  the path. Author only if the page names one; rating only if the page states one, kept as TEXT with
+  its scale so 4.9 is never rounded and a /10 is never read as a /5. Stored in
+  `brand_review_library`, filtered on workspace AND region so a review cannot transfer between
+  brands, regions or products. Review IMAGES are fetched and re-hosted into the `brand-review-media`
+  Storage bucket (key `<workspace_id>/<sha256 of source url>` — workspace-scoped by the path segment
+  the storage policy checks, idempotent by the hash) and the mailer carries THAT url, never a
+  hotlink; the original url is kept beside it. `brand_review_scan` records zero-result scans so the
+  ~180-slot prebuild queue cannot re-crawl a brand's origin once per slot. Migration:
+  `20260814120000_brand_review_library.sql`. **Nothing is fabricated to fill a gap**: `gateProof()`
+  strips any rating/review/reviewer/badge/guarantee with no approved source behind it, and an absent
+  proof block RENDERS the marker rather than vanishing (silence reads as a design choice).
+- **Video ads had no artefact** — the console drew a play triangle on a gradient over a storyboard;
+  nothing was generated, so the reviewer approved something they had never seen. Every video ad now
+  carries `creative.motion_html` (a self-contained animated 9:16 creative built by
+  `scripts/lib/motion-ad.js` over the brand's own REAL catalogue photos, now brand-parameterised via
+  `spec.brand`) plus `creative.motion_brief`, and `creative.video` states plainly whether an MP4
+  exists. The console previews the artefact's EXACT bytes via a Blob URL (the `/july-studio`
+  precedent) and downloads those same bytes. Tenant zero's audio beds are never lent to another
+  brand — `video-core.audioBedFor()` returns a marker instead.
+- **One creative key per AD, not per platform** — the map had 5 keys for 8 ads, so a platform's
+  static and video shared one photo and the youtube/pinterest ads matched no key and shipped with no
+  image at all. Keys are now `<platform>:<creative_type>`.
+Also fixed here: `applyCopy()` referenced `__run` from `_buildCampaign`'s scope, throwing on the last
+line of every SUCCESSFUL copy application. The mutations had already landed so assets were fine, but
+the throw was swallowed and every campaign reported `copywriter.provider: 'template-fallback'`,
+creatives `none`, and the console's "no LLM provider answered" banner — on copy an LLM had just
+written.
+
 ### KicksGPT — the brand LLM (conversational tool-calling over the whole stack)
 `api/_shared/brand-llm.js` is the brand's own "Claude-for-Knickgasm": a provider-agnostic **tool-calling loop** that lets the LLM actually OPERATE the growth stack instead of just chatting. The model emits a strict JSON action each turn (`{action:'tool',...}` — single tool or a `tools:[…]` batch of up to 3 run in parallel — / `{action:'final',...}`); the server executes against the existing `_shared` cores and feeds results back, looping (default 5 steps). Speed: the loop pins the first provider that answers (per-call `preferProvider` in `llm.js`) so later steps skip dead keys, dedupes repeated tool+args calls, 20s per-provider timeout. Quality: the system prompt enforces an **evidence contract** — every recommendation quotes exact tool-sourced figures, names the target metric + expected impact, states a complete hypothesis, and quotes competitor benchmarks. Because tool-calls are plain JSON (not a provider-specific function-calling API), it works across the **entire 6-provider waterfall in `llm.js`**, including the free tiers — no extra keys. Tools registered: `ask_analytics`, `run_analysis`, `list_cohorts`, `get_calendar`, `get_competitor_benchmarks`, `search_knowledge_base`, `list_campaigns`, `generate_calendar`*, `generate_assets_for_slot`*, `run_agentic_campaign`*, `klaviyo` (*=writes/generates, only on explicit ask). Each reuses the SAME logic the `/api/brain ?action=` routes use. Endpoints: `?action=brand-chat` (the loop), `?action=brand-tools` (manifest + klaviyo status). UI: `kicksgpt.html` at `/kicksgpt` (also `/kicks`, `/ask`) — Claude-style chat that shows the tool trace. Rename the product via the single `BRAND_LLM_NAME` constant in `brand-llm.js`.
 
@@ -236,6 +288,34 @@ The competitor MAIL ARCHIVE (not the universe, see above) lives in a Google Shee
 - `mailer_system/` — Python Claude-API campaign trigger engine (thresholds in `targets.json`, outputs to `outputs/`).
 - `marketing_automation/` — React 19 + Vite + Express (`server.ts`) interactive campaign compiler (its own `package.json`).
 - `scripts/` — mix of JS build tools (`build-catalog.js`, `seed-festivals*.js`) and Python `_*.py` HTML/codegen patchers used during development.
+
+## ⭐ Asset provenance: a brand's assets come from its OWN catalogue, or there is no asset (2026-08-14)
+`api/_shared/brand-catalog-server.js` is the ONLY place the server decides whose products these are.
+It is the server twin of the browser's `brand-catalog.js` and the rule is the same in both:
+**an asset for brand X uses brand X's own catalogue, or NO asset at all** — there is no third option
+where another brand's photo renders under a caveat.
+- Sources, in order: **`brand`** = the workspace's own `brand_catalog_products` rows (filtered by
+  `workspace_id`, service-role); **`shipped`** = `data/catalog/products_{us,uk,global}.json` **only for
+  tenant zero** — those files are one tenant's 436 products, gated by the SAME
+  `market-analytics.ownsBundledExport()` helper that gates the bundled sales export (now takes an
+  optional explicit workspace, so a cron/prebuild job generating FOR a workspace gets that
+  workspace's answer); **`none`** = empty list + a `reason`, which callers turn into
+  `[DATA REQUIRED BEFORE LAUNCH: product image, <product>, <region>]` and render image-free.
+- **Never read `data/catalog/` from a new module** — `tests/brand-catalog-scope.spec.js` fails any
+  `api/_shared/*.js` that does. Go through `catalog-image.js` (which delegates here).
+- The resolvers stay SYNC because ~21 render sites are sync. Two halves: `withCatalog({brand,
+  workspaceId}, fn)` resolves the workspace's rows ONCE at a generation entry point and pins them via
+  **AsyncLocalStorage** (never a module variable — a warm runtime serves concurrent brands from one
+  process); `productsFor(market, {brand})` answers synchronously from that scope, and applies the
+  BRAND GATE even with no scope, so a named non-tenant-zero brand can never reach the shipped files.
+  Every cache is keyed by workspace id. Pass `{ brand }` (or an `entry` carrying `.brand`) at every
+  `catalogImage.*` call site.
+- `buildCampaign()` pins the catalogue for the whole build and reports unfilled image slots on
+  `campaign.data_gaps` + `campaign.catalog_source`, so an image-free asset is never silently so.
+- Gate: `npm run test:isolation` (it derives tenant zero's CDN signature from the built catalogue, so
+  an ASSET leak fails it the way a COPY leak already did) plus
+  `npx playwright test tests/brand-catalog-scope.spec.js`. `data/catalog/` is gitignored, so the
+  asset half of the isolation gate reports **DEGRADED** until `npm run build` has run (CI runs it first).
 
 ## Approved-assets service + USA July calendar (2026-07-11)
 - **`brand_assets` table** (`supabase/migrations/20260711120000_brand_assets.sql`) is the origin-validated asset store: `sku_key, asset_type, url, alt, w/h, source_pdp, origin_validated, status(verified|placeholder), region`. Logic in `api/_shared/brand-assets-core.js` (not a function file): PREFIX-match allowlist (`knickgasm.com`, `knickgasm.com`, `knickgasm.com`, `try.knickgasm.*`), rewrites a Shopify store-CDN URL to the brand host (`www.knickgasm.com/cdn/shop/files/…`, byte-identical asset) so it validates, and NEVER fabricates a URL — an unverifiable slot is stored `status='placeholder'`. Seed with `npm run seed:assets` (`scripts/seed-brand-assets.js`): resolves the US SKU→handle map from the built catalog, writes `data/brand-assets/us.json` + `supabase/seed/brand_assets_us.sql`, and upserts live when Supabase env is present.

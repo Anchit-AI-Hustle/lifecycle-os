@@ -40,6 +40,47 @@ const FOREIGN = [
 ];
 
 /**
+ * Tenant zero's IMAGE signature, derived from the shipped catalogue itself.
+ *
+ * The list above is all WORDS, and words are what a copy leak looks like. An
+ * ASSET leak looks like nothing at all: a `https://cdn.shopify.com/s/files/1/
+ * 0754/…` URL sitting in an `<img src>` of an otherwise perfectly-written news
+ * mailer. That is exactly what shipped - The Times of India's city-desk mailer
+ * with a custom Nike Air Force 1 in the hero slot - and this suite was green
+ * throughout, because the leaked thing was a URL, not a sentence.
+ *
+ * Derived rather than hardcoded so it cannot drift from the catalogue it
+ * describes: if tenant zero's store id changes, so does the pattern.
+ */
+function tenantZeroImageTokens() {
+  const out = new Set();
+  for (const region of ['us', 'uk', 'global']) {
+    let rows = [];
+    try { rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'catalog', `products_${region}.json`), 'utf8')); }
+    catch (_) { continue; }
+    for (const p of rows) {
+      const url = p && p.i;
+      if (typeof url !== 'string' || !/^https?:\/\//.test(url)) continue;
+      try {
+        const u = new URL(url);
+        // host + the store-identifying prefix of the path, e.g.
+        // cdn.shopify.com/s/files/1/0754 — specific enough that no other
+        // brand's CDN could match it by accident.
+        out.add((u.host + u.pathname.split('/').slice(0, 5).join('/')).toLowerCase());
+      } catch (_) { /* not a URL we can attribute */ }
+    }
+  }
+  return [...out];
+}
+const ZERO_IMAGE_TOKENS = tenantZeroImageTokens();
+for (const tok of ZERO_IMAGE_TOKENS) {
+  FOREIGN.push(new RegExp(tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+}
+// The shipped catalogue files themselves are tenant zero's, so a path to one
+// appearing in another brand's asset means a resolver read it.
+FOREIGN.push(/data\/catalog\/products_/i);
+
+/**
  * A preset file and a persisted workspace are NOT the same shape, and only one
  * of them is what a real user ends up with.
  *
@@ -214,6 +255,89 @@ function sampleAround(blob, needle) {
       },
     },
   ];
+  // ── Asset provenance probes ─────────────────────────────────────────────
+  // The funnel above runs with noLLM:true, which never reaches the Text+Visual
+  // variants and so never asks for a hero image. The image resolvers are
+  // therefore exercised DIRECTLY here, with the hardest possible input: product
+  // names lifted straight out of TENANT ZERO'S OWN catalogue. Under the old
+  // module-level `CACHE[region]` these returned tenant zero's Shopify CDN URLs
+  // for every brand on the platform.
+  const catalogImage = require(path.join(ROOT, 'api/_shared/catalog-image.js'));
+  const catalogServer = require(path.join(ROOT, 'api/_shared/brand-catalog-server.js'));
+
+  function zeroProductNames(n) {
+    try {
+      const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/catalog/products_us.json'), 'utf8'));
+      return rows.slice(0, n).map((r) => ({ title: r.n, handle: r.h }));
+    } catch (_) { return []; }
+  }
+  const ZERO_PRODUCTS = zeroProductNames(6);
+  // data/catalog/ is gitignored and built by `npm run build`, which CI runs
+  // BEFORE this script. Without it there is nothing to leak, so the asset half
+  // of this gate cannot do its job - say so rather than reporting a green run
+  // that proved nothing. (This is exactly why the original bug was invisible on
+  // a fresh checkout for as long as it was.)
+  if (!ZERO_PRODUCTS.length) {
+    rows.push({
+      brand: 'assets', status: 'DEGRADED',
+      detail: 'no built catalogue on disk - run `npm run build` first; the cross-brand ASSET checks below cannot fail without one',
+    });
+  }
+  // Words a real non-tenant-zero brand actually uses. "City" is the one that
+  // shipped the bug: it keyword-matched "Chelsea City F.C. x Nike Air Force 1".
+  const REAL_QUERIES = ['City', 'Cricket', 'Business', 'Times of India City', 'Featured item', 'Education'];
+
+  for (const brand of presets()) {
+    const label = brand.__label || brand.name;
+    const market = ((brand.regions || [])[0] || {}).code || 'IN';
+    const hits = [];
+    const probeAll = [...ZERO_PRODUCTS, ...REAL_QUERIES.map((q) => ({ title: q }))];
+    for (const prod of probeAll) {
+      const opts = { brand: Object.assign({}, brand, { id: `ws_${brand.slug}` }) };
+      const img = catalogImage.imageFor(prod, market, opts);
+      const gallery = catalogImage.imagesFor(prod, market, opts);
+      const handle = catalogImage.handleFor(prod, market, opts);
+      const row = catalogImage.match(prod, market, opts);
+      if (img) hits.push(`imageFor("${prod.title}") -> ${img}`);
+      if (gallery.length) hits.push(`imagesFor("${prod.title}") -> ${gallery[0]}`);
+      if (handle) hits.push(`handleFor("${prod.title}") -> ${handle}`);
+      if (row) hits.push(`match("${prod.title}") -> ${row.n}`);
+    }
+    if (hits.length) {
+      failures++;
+      rows.push({ brand: `assets · ${label}`, status: 'LEAK', detail: `${hits.length} resolver(s) returned a foreign product`, sample: hits[0].slice(0, 140) });
+      continue;
+    }
+    // Not resolving an image is only half correct. The other half is SAYING SO:
+    // a silently image-free mailer is indistinguishable from a design choice,
+    // so the spec's marker has to be emitted in its place.
+    const probe = catalogImage.resolveImage({ heroProduct: { title: 'Featured item' } }, market, {
+      brand: Object.assign({}, brand, { id: `ws_${brand.slug}` }),
+    });
+    if (!/^\[DATA REQUIRED BEFORE LAUNCH: product image, /.test(probe.marker || '')) {
+      failures++;
+      rows.push({ brand: `assets · ${label}`, status: 'NO MARKER', detail: 'no image resolved and no DATA REQUIRED marker emitted' });
+    } else {
+      rows.push({ brand: `assets · ${label}`, status: 'CLEAN', detail: `${probeAll.length} lookups, 0 foreign, marker emitted` });
+    }
+  }
+
+  // Tenant zero must be UNAFFECTED: it owns the shipped catalogue, so its own
+  // resolvers have to keep returning real photos. A fix that simply switched
+  // every brand off would also pass every check above.
+  {
+    const zero = { slug: catalogServer.tenantZeroSlug(), name: 'KNICKGASM', is_default: true };
+    const p0 = ZERO_PRODUCTS[0];
+    const img = p0 ? catalogImage.imageFor(p0, 'US', { brand: zero }) : null;
+    if (!p0) rows.push({ brand: 'assets · tenant zero', status: 'SKIP', detail: 'no built catalogue on disk (run npm run build)' });
+    else if (!img) {
+      failures++;
+      rows.push({ brand: 'assets · tenant zero', status: 'REGRESSION', detail: `tenant zero lost its own catalogue photo for "${p0.title}"` });
+    } else {
+      rows.push({ brand: 'assets · tenant zero', status: 'CLEAN', detail: 'own catalogue still resolves' });
+    }
+  }
+
   for (const brand of presets().slice(0, 1)) {
     for (const p of probes) {
       let blob = '', err = null;

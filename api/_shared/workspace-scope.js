@@ -79,6 +79,14 @@ const SCOPED_TABLES = new Set([
   // service-role read of it that forgot the filter would hand one brand's
   // complete context to another.
   'brand_context_packs', 'brand_field_provenance',
+  // 20260814120000 — the brand's own extracted testimonials and the record of
+  // when its site was last read for them. brand-reviews.js filters both
+  // explicitly on every call (the entry's workspace is the authority in the
+  // prebuild queue, where there is no request to resolve a workspace from), so
+  // this is defence in depth: a review is a named customer's words about one
+  // brand, and serving one brand's testimonial under another's name is the
+  // fabrication this whole path exists to prevent.
+  'brand_review_library', 'brand_review_scan',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

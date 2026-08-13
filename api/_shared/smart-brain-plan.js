@@ -32,6 +32,12 @@ const { parseJSON } = require('./llm.js');
 // hiccup break generation/approval; every call is best-effort.
 let sync = null; try { sync = require('./sync-core.js'); } catch (_) { sync = null; }
 let facts = null; try { facts = require('./brand-facts.js'); } catch (_) { facts = null; }
+// The brand's OWN testimonials, read verbatim off its OWN site (never written by
+// a model) with their images re-hosted in Supabase Storage. This is what fills
+// the proof slot the fabricated rating / review-count / reviewer-name seed
+// used to fill. Optional require: with the module absent, proof is simply empty
+// and every renderer prints the [DATA REQUIRED BEFORE LAUNCH] marker instead.
+let brandReviews = null; try { brandReviews = require('./brand-reviews.js'); } catch (_) { brandReviews = null; }
 
 // The canonical source-version map a generated campaign was built from. Facts
 // (rating/review/claim) come from the approved-facts library (brand-facts) for
@@ -402,13 +408,19 @@ async function buildContext(config, db) {
   return { ownData, kb, analysis, competitorBenchmarks };
 }
 
-function freshEntries(config, ctx, startDate, days) {
+// `brand` is threaded through because the calendar's offer decision selects a
+// discount code from the BRAND'S OWN registry. Without it the planner has no
+// code to offer and says so, which is correct - it must never fall back to a
+// literal, because a code the brand never created fails at the customer's
+// checkout.
+function freshEntries(config, ctx, startDate, days, brand) {
   const calendar = new CalendarIntelligenceService(config).generate({
     analysis: ctx.analysis,
     competitorBenchmarks: ctx.competitorBenchmarks,
     startDate,
     days,
     feedback: ctx.ownData.feedback,
+    brand: brand || null,
   });
   // Re-key on date+market so the same slot keeps the same id across daily syncs.
   const cohortLtv = cohortLtvMap(ctx);
@@ -586,7 +598,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
       if (codes.length) zeroCfg = Object.assign({}, config, { markets: codes });
     } catch (_) { /* keep the shipped default if the record is unreadable */ }
     ctx = await buildContext(zeroCfg, db);
-    fresh = freshEntries(zeroCfg, ctx, start, horizon);
+    fresh = freshEntries(zeroCfg, ctx, start, horizon, pb.brand || require('./brand-runtime.js').defaultBrand());
   }
 
   const changes = [];
@@ -766,7 +778,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
     if (codes.length) cfg2 = Object.assign({}, config, { markets: codes });
   } catch (_) {}
   const ctx = _ctxFallback?.ctx || await buildContext(cfg2, db);
-  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays);
+  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays, pb.brand || require('./brand-runtime.js').defaultBrand());
   return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, status: 'tentative' })) };
 }
 
@@ -896,10 +908,12 @@ async function strategyBrief(entry) {
  * WHO this send is for, in the ACTIVE brand's own terms.
  *
  * This block used to be a hardcoded persona inherited from the sibling project
- * this repo was forked from — "P01 (women 45+/busy mums: calmer mornings,
- * steady energy, feeling like myself again)" — and it art-directed the ad
- * imagery for EVERY tenant. A news publisher, a fashion label and a consumer
- * tech brand all had their creatives composed for another company's customer.
+ * this repo was forked from: a named play id, a demographic, a life stage and
+ * three feelings, all describing THAT company's customer. It art-directed the ad
+ * imagery for EVERY tenant, so a news publisher, a fashion label and a consumer
+ * tech brand all had their creatives composed for a stranger's buyer. (The
+ * literal string is not repeated here - tests/smart-brain-assets.spec.js holds
+ * it in fragments, so this file cannot become the place it survives.)
  *
  * The audience now comes from the two places that actually know it:
  *   1. the SLOT'S COHORT, which is a behavioural segment computed from THIS
@@ -929,10 +943,10 @@ function audienceBrief(entry) {
 /**
  * The proof this send is ALLOWED to make.
  *
- * The JSON shape below used to hand the model `"rating": {"value": 4.9,
- * "count": "250,000+"}`, a review object templated down to `"author": "first
- * name, initial"`, and `"badges": ["Original-pair verified","Climate
- * Neutral"]`. Seeding a shape with values IS an instruction to produce values:
+ * The JSON shape below used to arrive pre-filled: a specific star rating, a
+ * specific review count, a review object templated down to the FORM of a
+ * reviewer's name, and two example certification badges. Seeding a shape with
+ * values IS an instruction to produce values:
  * the model has no approved library to draw from, so it invents a rating, a
  * reviewer and a certification the brand does not hold. `mailer_system/
  * brand_prompt.py` had the identical defect and was fixed the same way.
@@ -953,7 +967,63 @@ function approvedProof(entry) {
     try { skuClaims = facts.approvedClaims(key, region) || []; } catch (_) { skuClaims = []; }
   }
   const brandClaims = (b && Array.isArray(b.claims)) ? b.claims.filter(Boolean) : [];
-  return { rating, reviews, claims: [...new Set([...skuClaims, ...brandClaims])], region: region || 'all', brandName: (b && b.name) || 'this brand' };
+  // Testimonials read off the brand's OWN site, stamped onto the entry by
+  // loadBrandReviews() before any copy is written. They are approved by the same
+  // standard as the curated library: the brand published them itself, verbatim,
+  // with the page they came from recorded on each.
+  const site = Array.isArray(entry && entry.__reviews) ? entry.__reviews : [];
+  const merged = [...reviews, ...site.map((r) => ({
+    quote: r.quote,
+    author: r.author || '',
+    rating: r.rating || null,
+    media: Array.isArray(r.media) ? r.media : [],
+    source_url: r.source_url || '',
+  }))];
+  // The rating the brand's own page stated, taken EXACTLY as stated (and only
+  // when it is on the usual 5-point scale, so a 4.9/10 is never shown as 4.9/5).
+  const sited = site.find((r) => r.rating && r.rating.value && String(r.rating.scale || '5') === '5');
+  const effRating = rating != null ? rating : (sited ? sited.rating.value : null);
+  return { rating: effRating, reviews: merged, claims: [...new Set([...skuClaims, ...brandClaims])], region: region || 'all', brandName: (b && b.name) || 'this brand' };
+}
+
+/**
+ * Load this brand's own testimonials and stamp them on the entry.
+ *
+ * Runs ONCE per campaign build, before any copy is written, so the sync render
+ * path (renderVariant / lpHtml / emailHtml) and the sync prompt builders can all
+ * read them off `entry.__reviews` without becoming async.
+ *
+ * Every failure is honest and non-fatal: no site on the record, no egress from
+ * this deployment, no Supabase to persist into, or a site that simply publishes
+ * no testimonials all end the same way — an empty list and the spec's marker.
+ * A campaign never blocks on this, and never invents a review to fill the gap.
+ */
+async function loadBrandReviews(entry, config) {
+  if (!entry || Array.isArray(entry.__reviews)) return entry;
+  entry.__reviews = [];
+  entry.__review_marker = '';
+  if (!brandReviews) return entry;
+  const brand = entry.brand || null;
+  if (!brand || !brand.website) {
+    entry.__review_marker = brandReviews.MARKER(brand, entry.market);
+    return entry;
+  }
+  try {
+    const workspaceId = entry.workspace_id || (config && config.workspace_id) || (brand && brand.workspace_id) || null;
+    const productKey = String((entry.heroProduct && entry.heroProduct.title) || '').toLowerCase() || null;
+    const got = await brandReviews.reviewsForBrand({
+      brand, workspaceId, market: entry.market, limit: 2, productKey,
+    });
+    entry.__reviews = Array.isArray(got.reviews) ? got.reviews : [];
+    entry.__review_marker = got.marker || '';
+    entry.__review_limits = got.limits || [];
+    entry.__review_source = got.source || '';
+  } catch (e) {
+    entry.__reviews = [];
+    entry.__review_marker = brandReviews.MARKER(brand, entry.market);
+    entry.__review_limits = [`Review extraction failed: ${String((e && e.message) || e).slice(0, 160)}`];
+  }
+  return entry;
 }
 
 /** The marker the spec requires wherever approved proof is missing. */
@@ -968,14 +1038,17 @@ function approvedProofBrief(entry) {
   if (p.rating != null) have.push(`- Approved rating: ${p.rating}. Print it EXACTLY as written, never rounded and never with an invented review count.`);
   if (p.reviews.length) have.push(`- Approved reviews (verbatim, with the author exactly as given, or omit entirely): ${p.reviews.map((r) => `"${String(r.quote || '').trim()}" - ${String(r.author || '').trim()}`).join(' | ')}`);
   if (p.claims.length) have.push(`- Approved claims, the ONLY permitted badge text: ${p.claims.join('; ')}`);
+  // The REVIEW library is declared empty on its own terms. Folding it in with
+  // claims hid it: a brand with one verifiable claim and zero approved reviews
+  // produced a brief that listed the claim and never mentioned that there was no
+  // testimonial to quote, which is precisely the gap the model then filled.
+  if (!p.reviews.length) have.push(`- There are NO approved reviews or testimonials for this product in ${p.region}. ${proofMarker(entry)}`);
+  if (p.rating == null) have.push('- There is NO approved rating. Do not state one, in any form, including "highly rated" or a review count.');
   const head = 'APPROVED PROOF LIBRARY — the only social proof you may use. Anything not listed here does not exist.';
   const rule = [
     'NEVER invent or infer a star rating, a review count, a reviewer name, a testimonial, a certification, an award or a guarantee.',
     'A proof field with nothing approved behind it comes back EMPTY ("rating": null, "reviews": [], "badges": [], "guarantee": "", "proof_quote": "", "proof_author": ""). Empty is the CORRECT answer, and the renderer prints a [DATA REQUIRED BEFORE LAUNCH] marker in its place so the gap is visible to the reviewer.',
   ].join(' ');
-  if (!have.length) {
-    return `${head}\n- The library is EMPTY for this product in ${p.region}. ${proofMarker(entry)}\n${rule}`;
-  }
   return `${head}\n${have.join('\n')}\n${rule}`;
 }
 
@@ -1026,6 +1099,98 @@ const FONT_BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 // HTML-escape so LLM copy can't break the markup / inject tags.
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
+/** The ACTIVE brand's palette, with tenant-zero's record only when it IS tenant zero. */
+function brandPal(entry) {
+  let b = (entry && entry.brand && entry.brand.id) ? entry.brand : null;
+  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  const p = (b && b.palette) || {};
+  return {
+    name: (b && b.name) || '',
+    P: p.primary || '#D0473E', ACC: p.accent || '#6A33D8',
+    INK: p.ink || '#111111', SURF: p.surface || '#FFFFFF',
+    SURF2: p.surface_alt || '#F6F6F6', LINE: p.line || '#E5E5E5',
+  };
+}
+
+/**
+ * The REAL proof block: a couple of the brand's own published testimonials, with
+ * their images served from our Supabase Storage copy rather than hotlinked off
+ * the brand's CDN (an email is opened days later, from a client that is not a
+ * browser, against a host that may block hotlinks or have rotated the URL).
+ *
+ * Table-based and fully inline-styled because this renders inside an EMAIL, and
+ * on a LIGHT surface because the spec forbids dark-neutral section backgrounds.
+ *
+ * With nothing approved to show, this is the marker - not an empty string.
+ * Silence reads as a design choice; the marker reads as the gap it is, and
+ * travels into the review console and the launch gate.
+ */
+function proofBlockHtml(entry, style = 'visual') {
+  const pal = brandPal(entry);
+  const reviews = Array.isArray(entry && entry.__reviews) ? entry.__reviews : [];
+  const marker = (entry && entry.__review_marker)
+    || (brandReviews ? brandReviews.MARKER(entry && entry.brand, entry && entry.market) : `[DATA REQUIRED BEFORE LAUNCH: approved review library, ${(entry && entry.brand && entry.brand.name) || 'this brand'}, ${(entry && entry.market) || 'all'}]`);
+  // The mailer taxonomy has exactly two types, and "Text" means PURE
+  // typographic. So the pure/editorial variants get the same real testimonials
+  // set in type alone - no fill, no badge, no photograph - rather than being
+  // quietly promoted into Text + Graphics by their proof block.
+  const textOnly = style === 'pure' || style === 'editorial';
+  const band = (inner) => (textOnly
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:22px 24px;font-family:${FONT_BODY};color:${pal.INK};border-top:1px solid ${pal.LINE}">${inner}</td></tr></table>`
+    : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${pal.SURF2};border-top:1px solid ${pal.LINE}"><tr><td style="padding:26px 24px;font-family:${FONT_BODY};color:${pal.INK}">${inner}</td></tr></table>`);
+  if (!reviews.length) {
+    return band(`<p style="margin:0;text-align:center;font-size:12.5px;line-height:1.5;color:${pal.INK}${textOnly ? '' : `;border:1px dashed ${pal.INK};border-radius:8px;padding:12px 14px`}">${esc(marker)}</p>`);
+  }
+  if (textOnly) {
+    const lines = reviews.slice(0, 2).map((r) => {
+      const rating = (r.rating && r.rating.value && String(r.rating.scale || '5') === '5') ? ` (${esc(String(r.rating.value))}/5)` : '';
+      const who = r.author ? `<span style="font-weight:700;color:${pal.P}"> - ${esc(r.author)}${rating}</span>` : (rating ? `<span style="font-weight:700;color:${pal.P}">${rating}</span>` : '');
+      return `<p style="margin:0 0 14px;font-size:14.5px;line-height:1.65;color:${pal.INK}">&ldquo;${esc(r.quote)}&rdquo;${who}</p>`;
+    }).join('');
+    return band(`<p style="margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:${pal.P};font-weight:700">In their words</p>${lines}`);
+  }
+  const cards = reviews.slice(0, 2).map((r) => {
+    // A star line renders only from a rating the page actually stated, on the
+    // usual 5-point scale, printed at the value it stated (never rounded).
+    const rating = (r.rating && r.rating.value && String(r.rating.scale || '5') === '5') ? String(r.rating.value) : '';
+    const stars = rating ? `<div style="font-size:13px;color:${pal.ACC};margin:0 0 8px">★★★★★ <span style="color:${pal.INK}">${esc(rating)}/5</span></div>` : '';
+    // Only a storage-hosted image is emitted. A source URL we failed to re-host
+    // is NOT hotlinked as a fallback, and no other image is substituted.
+    const shot = (Array.isArray(r.media) ? r.media : []).find((m) => m && m.hosted_url);
+    const img = shot
+      ? `<img src="${esc(shot.hosted_url)}" alt="${esc(`Customer photo published by ${pal.name || 'the brand'}`)}" width="120" style="display:block;width:120px;max-width:120px;border-radius:8px;border:1px solid ${pal.LINE}">`
+      : '';
+    // The reviewer exactly as the site named them, or no attribution at all.
+    const who = r.author ? `<div style="margin:10px 0 0;font-size:12.5px;font-weight:700;color:${pal.P}">${esc(r.author)}</div>` : '';
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px"><tr>
+${img ? `<td valign="top" width="132" style="padding-right:12px">${img}</td>` : ''}
+<td valign="top">${stars}<div style="font-size:14.5px;line-height:1.6;color:${pal.INK}">&ldquo;${esc(r.quote)}&rdquo;</div>${who}</td>
+</tr></table>`;
+  }).join('');
+  return band(`<div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:${pal.P};font-weight:700;margin:0 0 14px">In their words</div>${cards}`);
+}
+
+/**
+ * Add the proof block to a rendered mailer.
+ *
+ * The shared variant renderer lives in calendar-trigger.js and has no proof
+ * slot, so this composes onto its output rather than reaching into it.
+ */
+function injectProofBlock(html, entry, style = 'visual') {
+  const s = String(html || '');
+  if (!s) return s;
+  const block = proofBlockHtml(entry, style);
+  if (!block) return s;
+  // Above the legal footer, not below it. The renderer emits the CAN-SPAM
+  // sender block as an ordinary paragraph inside the body table rather than a
+  // <footer>, so anchor on the paragraph that carries it; appending at </body>
+  // would put a customer testimonial underneath the unsubscribe line.
+  const legal = /<p[^>]*>(?=(?:(?!<\/p>)[\s\S])*?(?:receiving this as|unsubscribe|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s);
+  if (legal && legal.index > 0) return s.slice(0, legal.index) + block + s.slice(legal.index);
+  const i = s.toLowerCase().lastIndexOf('</body>');
+  return i === -1 ? s + block : s.slice(0, i) + block + s.slice(i);
+}
+
 // try.knickgasm.*-style presell landing page. Self-contained (inline CSS, no external
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
@@ -1072,8 +1237,16 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   const trustStars = _appRating
     ? `<span>★★★★★ Rated ${esc(String(_appRating))}/5</span>`
     : (bClaims[0] ? `<span>${esc(bClaims[0])}</span>` : '');
-  const proofSection = _appReviews.length
-    ? `<section class="sec proof"><div class="wrap"><blockquote>“${esc(_appReviews[0].quote || '')}”</blockquote><p class="who">- ${esc(_appReviews[0].author || '')}</p></div></section>`
+  // The curated approved library first, then the brand's OWN published
+  // testimonials read off its site (verbatim, with the source page recorded).
+  const _siteReviews = Array.isArray(entry.__reviews) ? entry.__reviews : [];
+  const _proofPool = [..._appReviews, ..._siteReviews];
+  const _pr = _proofPool[0] || null;
+  // Only a storage-hosted copy of the image is used; a source URL we could not
+  // re-host is never hotlinked, and no other brand's picture is substituted.
+  const _prShot = _pr && (Array.isArray(_pr.media) ? _pr.media : []).find((m) => m && m.hosted_url);
+  const proofSection = _pr
+    ? `<section class="sec proof"><div class="wrap">${_prShot ? `<img class="proofshot" src="${esc(_prShot.hosted_url)}" alt="${esc(`Customer photo published by ${bName}`)}">` : ''}<blockquote>“${esc(_pr.quote || '')}”</blockquote>${_pr.author ? `<p class="who">- ${esc(_pr.author)}</p>` : ''}</div></section>`
     : `<section class="sec datareq-band"><div class="wrap"><p class="datareq">${esc(proofMarker(entry))}</p></div></section>`;
   // A promise is rendered only where the brand actually states one - approved
   // per-SKU claims first, then the brand record's own verifiable claims.
@@ -1109,6 +1282,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
 .proof{background:var(--moss-near);color:var(--chalk);text-align:center}
 .proof blockquote{font-family:var(--head);font-size:26px;max-width:680px;margin:0 auto;line-height:1.35}
 .proof .who{color:var(--lava);font-weight:700;margin-top:16px}
+.proof .proofshot{width:140px;border-radius:12px;margin:0 auto 18px}
 /* Missing approved proof is PRINTED, not silently dropped. Deliberately styled
    as a build note on a light surface (dark ink on chalk-warm, AA) so nobody can
    mistake it for customer-facing content, and so the reviewer sees the gap. */
@@ -1263,7 +1437,9 @@ function renderVariant(entry, copy, style, img) {
         ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || undefined, note: row.subtitle || row.tasting_notes || '' }; }),
       ]
     : undefined;
-  return renderTextVariant({
+  // The shared renderer carries no proof slot, so the brand's REAL testimonials
+  // (and, when there are none, the marker) are composed onto its output.
+  return injectProofBlock(renderTextVariant({
     // The ACTIVE brand travels with the render options: the shared renderer
     // derives wordmark, store URL, claims and the legal sender block from it.
     brand: entry.brand || null,
@@ -1280,7 +1456,7 @@ function renderVariant(entry, copy, style, img) {
     market: entry.market, hero_product: heroProduct, hero_image_url: img || undefined,
     products, collection_url: links.collectionUrl,
     offer_bar: (withGrid && (E.offer || (copy.landing && copy.landing.offer_bar))) || undefined,
-  });
+  }), entry, style);
 }
 // Four variants in the SAME taxonomy as the Mailer Calendar: 2 Text + 2 Text +
 // Visual, each labelled by its copy framework, with copyA driving the A-slots and
@@ -1331,6 +1507,7 @@ function emailHtml(entry, copy, creativeUrl) {
     <p style="line-height:1.7">${E.body_paragraph}</p>
     <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:${ACC};color:${onP};padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || entry.cta || 'See more'}</a></p>
   </section>
+  ${proofBlockHtml(entry)}
   <footer style="background:${P};color:${onP}99;text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName} ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
 </main>
 </body></html>`;
@@ -1453,6 +1630,97 @@ function gateProof(copy, entry) {
   return c;
 }
 
+/**
+ * Give a VIDEO ad an artefact that actually exists.
+ *
+ * Before this, a video ad was a storyboard and a script and nothing else, and
+ * the console drew a play triangle on a gradient over it. That triangle is a
+ * picture of a video, not a video: the reviewer approves something they have
+ * never seen, and nothing they saw is what ships.
+ *
+ * What this deployment can genuinely produce is built here:
+ *   creative.motion_html   a SELF-CONTAINED animated 9:16 creative built from
+ *                          the storyboard beats over this brand's own REAL
+ *                          catalogue photographs, in this brand's palette and
+ *                          type. This is a real artefact - it renders, it is
+ *                          downloadable, and it is the exact bytes the console
+ *                          previews.
+ *   creative.motion_brief  the same motion design as a shot-by-shot brief, so
+ *                          the MP4 an editor or generator produces matches the
+ *                          thing that was approved.
+ *   creative.video         the state of the actual MP4. `video-core` cascades
+ *                          Veo/Sora/Higgsfield/Runway; with no key set it
+ *                          reports not-connected, and we record THAT rather
+ *                          than implying a file exists.
+ *
+ * Nothing here fabricates: with no real photo for this brand the scenes carry
+ * headline-only cards, and the audio bed comes from video-core's licensing rule
+ * (another tenant's bed is never lent out).
+ */
+function attachMotionCreative(ad, entry, pool) {
+  try {
+    const motion = require('../../scripts/lib/motion-ad.js');
+    const brand = (entry && entry.brand && entry.brand.id) ? entry.brand : null;
+    const images = (Array.isArray(pool) ? pool : []).filter(Boolean);
+    const beats = (Array.isArray(ad.storyboard) && ad.storyboard.length ? ad.storyboard : [])
+      .slice(0, 4)
+      .map((s, i) => ({
+        image: images.length ? images[i % images.length] : '',
+        headline: String((s && (s.scene || s.shot)) || '').slice(0, 90),
+        sub: String(s && s.t ? s.t : ''),
+        seconds: 2.6,
+      }));
+    const scenes = beats.length ? beats : [{
+      image: images[0] || '',
+      headline: String(ad.hook || ad.headline || (entry.heroProduct && entry.heroProduct.title) || '').slice(0, 90),
+      seconds: 2.6,
+    }];
+    // Audio follows the licensing rule in video-core: a brand with no bed of its
+    // own gets silence and a marker, never another tenant's recording.
+    let audio = null;
+    try {
+      const vc = require('./video-core.js');
+      audio = vc.audioBedFor(Number(ad.duration_s) || 15, { brand });
+    } catch (_) { audio = null; }
+    const spec = {
+      brand,
+      product: (entry.heroProduct && entry.heroProduct.title) || '',
+      scenes,
+      cta: ad.cta || entry.cta || 'Shop now',
+      ctaHeadline: ad.headline || ad.hook || '',
+      audio: (audio && audio.bed) ? audio.bed : false,
+      loop: true,
+    };
+    ad.creative = Object.assign({}, ad.creative, {
+      motion_html: motion.renderMotionAd(spec),
+      motion_brief: motion.motionBrief(spec),
+      // The real MP4 is a separate, and currently absent, thing. Say so.
+      video: videoStatus(),
+      audio: audio || null,
+      images_used: scenes.map((s) => s.image).filter(Boolean),
+      provider: ad.creative && ad.creative.provider ? ad.creative.provider : (images.length ? 'catalog' : null),
+    });
+    if (!images.length) {
+      ad.creative.data_gap = (() => { try { return catalogImage.marker(entry.heroProduct || {}, entry.market); } catch (_) { return '[DATA REQUIRED BEFORE LAUNCH: product image, hero product, ' + (entry.market || 'all') + ']'; } })();
+    }
+  } catch (e) {
+    // A motion build must never take a campaign down; the console then shows the
+    // storyboard with an explicit "no artefact" note rather than a fake player.
+    ad.creative = Object.assign({}, ad.creative, { motion_error: String((e && e.message) || e).slice(0, 160), video: videoStatus() });
+  }
+}
+
+/** Whether a real MP4 can be produced by THIS deployment, without pretending. */
+function videoStatus() {
+  try {
+    const vc = require('./video-core.js');
+    if (vc.isConnected()) return { rendered: false, provider_connected: true, note: 'A video provider is configured. The MP4 is generated on demand, not during the campaign build; the animated creative below is the approved motion design.' };
+    return { rendered: false, provider_connected: false, note: 'No video provider is configured for this deployment (GEMINI/OPENAI/HIGGSFIELD/OPENMONTAGE/RUNWAY key), so no MP4 exists. The animated creative below is the real, shippable artefact and the brief reproduces it as video.' };
+  } catch (_) {
+    return { rendered: false, provider_connected: false, note: 'No video provider is reachable, so no MP4 exists.' };
+  }
+}
+
 function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runId = null) {
   const briefFor = (copy, k) => ({ brief: (k && copy.ads?.[k]?.image_brief) || '', image: null, provider: null });
   // Distinct real gallery pool for this slot (hero product + supporting), HD.
@@ -1497,15 +1765,21 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     if (ad.platform === 'meta' && copy.ads.meta) Object.assign(ad, { primary_text: copy.ads.meta.primary_text || ad.primary_text, headline: copy.ads.meta.headline || ad.headline, description: copy.ads.meta.description || ad.description });
     if (ad.platform === 'google' && copy.ads.google) Object.assign(ad, { headlines: copy.ads.google.headlines?.filter(Boolean) || ad.headlines, descriptions: copy.ads.google.descriptions?.filter(Boolean) || ad.descriptions });
     if (ad.platform === 'tiktok' && copy.ads.tiktok) Object.assign(ad, { script: copy.ads.tiktok.script || ad.script, caption: copy.ads.tiktok.caption || ad.caption });
-    // A = the generated creative; B = the real catalog product photo (hosted) so
-    // the pair is visually distinct without doubling image-generation cost.
+    // Per-AD creative (see generateCreatives): the static and the video of one
+    // platform are two different ads and no longer share one photo, and youtube
+    // and pinterest are no longer unkeyed and imageless. `<platform>` is still
+    // accepted as a fallback so a persisted bundle built before this change
+    // still resolves.
+    const adKey = `${ad.platform}:${ad.creative_type}`;
     if (isB) {
       const catImg = altReal;
-      ad.creative = catImg ? { brief: ad.creative_brief || '', image: catImg, provider: 'catalog' } : (creatives[ad.platform] || briefFor(copy, ad.platform));
+      ad.creative = catImg ? { brief: ad.creative_brief || '', image: catImg, provider: 'catalog' } : (creatives[adKey] || creatives[ad.platform] || briefFor(copy, ad.platform));
     } else {
-      ad.creative = creatives[ad.platform] || briefFor(copy, ad.platform);
+      ad.creative = creatives[adKey] || creatives[ad.platform] || briefFor(copy, ad.platform);
     }
     ad.creative_brief = ad.creative.brief || ad.creative_brief || '';
+    // A VIDEO ad now carries a real, renderable artefact.
+    if (ad.creative_type === 'video') attachMotionCreative(ad, entry, pool);
   }
   // NOTE: this used to read `__run`, which is declared inside _buildCampaign(),
   // not here. Referencing it threw a ReferenceError on the LAST line of every
@@ -1607,7 +1881,7 @@ function realImagePool(entry, width = 1600) {
   return urls;
 }
 
-async function generateCreatives(copy, entry, { only = null, lean = false } = {}) { // eslint-disable-line no-unused-vars
+async function generateCreatives(copy, entry, { only = null, lean = false, adPlatforms = null } = {}) { // eslint-disable-line no-unused-vars
   // HARD RULE (product owner): every product / brand image MUST be REAL — the
   // actual packet, box or pack shot from the Shopify catalog (the PDP gallery),
   // in HD. Diffusion is NEVER used for product creatives: image models cannot
@@ -1617,12 +1891,18 @@ async function generateCreatives(copy, entry, { only = null, lean = false } = {}
   // DISTINCT real photo (rotated across the hero product's gallery + supporting
   // products) so the same shot never repeats across the funnel. A channel with
   // no real photo left ships image-free (image:null) — we never invent one.
+  // Keyed per AD, not per platform. buildAdAssets() ships a Static AND a Video
+  // for meta, google, youtube and tiktok (eight ads), but this map only ever had
+  // five keys: three platforms plus email and landing. So `creatives[ad.platform]`
+  // handed the static and the video of one platform the SAME photo, and the
+  // youtube and pinterest ads matched no key at all and shipped with no image.
+  // The key is now `<platform>:<creative_type>`, and every ad the campaign
+  // actually contains gets its own entry and therefore its own distinct photo.
+  const adKeys = (adPlatforms || []).map((a) => [`${a.platform}:${a.creative_type}`, copy.ads?.[a.platform]?.image_brief]);
   const specs = [
     ['email',   copy.email?.image_brief],
     ['landing', copy.landing?.image_brief],
-    ['meta',    copy.ads?.meta?.image_brief],
-    ['google',  copy.ads?.google?.image_brief],
-    ['tiktok',  copy.ads?.tiktok?.image_brief],
+    ...adKeys,
   ];
   // `only` limits which creatives are built (preview passes ['email']).
   const activeSpecs = Array.isArray(only) ? specs.filter(([key]) => only.includes(key)) : specs;
@@ -1697,6 +1977,9 @@ function traceRun(run, stage, fields) {
  */
 async function buildCampaign(entry, config, opts = {}) {
   await stampBrand(entry, config);
+  // Proof BEFORE copy: the copywriter is handed the brand's real testimonials to
+  // quote verbatim, instead of being handed an example rating to complete.
+  await loadBrandReviews(entry, config);
   const catalogCtx = {
     brand: (entry && entry.brand) || null,
     workspaceId: (entry && entry.workspace_id) || (config && config.workspace_id) || null,
@@ -1794,6 +2077,9 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const creativeOpts = withCreatives === 'hero' ? { only: ['email'] }
       : withCreatives === 'lean' ? { lean: true }
       : {};
+    // Name every ad the campaign actually contains, so each gets its own photo
+    // (see generateCreatives — youtube and pinterest used to get none at all).
+    creativeOpts.adPlatforms = (campaign.assets.ads || []).map((a) => ({ platform: a.platform, creative_type: a.creative_type }));
     const creatives = withCreatives ? await generateCreatives(copyA, entry, creativeOpts) : {};
     const imgProviders = [...new Set(Object.values(creatives).map((c) => c && c.provider).filter(Boolean))];
     if (withCreatives) trace.push({ agent: 'Asset Director', role: 'Creative / Art Direction', ok: imgProviders.length > 0, provider: imgProviders.join(',') || null, output: { assets: Object.keys(creatives).length } });
@@ -1819,6 +2105,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   campaign.calendar_entry_id = entry.id || id || null;
   attachMasterPrompts(campaign, entry);
   reportCatalogGaps(campaign, entry, trace);
+  reportProofGap(campaign, entry, trace);
   return campaign;
 }
 
@@ -1832,6 +2119,41 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
  * gap travels with the asset into the review console, exactly as the July
  * builder surfaces an unverifiable slot instead of inventing a URL.
  */
+/**
+ * Record on the campaign that this send ships with NO approved testimonial, and
+ * where the brand's own site was read.
+ *
+ * The proof gate only fires when the model produced something to strip. A model
+ * that obeys the prompt leaves the fields empty, and the campaign would then
+ * carry no signal at all that its proof block is a marker - which is the same
+ * invisible-gap problem the marker exists to solve, one level up. So the gap is
+ * reported whenever the library came back empty, obedient model or not.
+ */
+function reportProofGap(campaign, entry, trace) {
+  try {
+    const has = Array.isArray(entry && entry.__reviews) && entry.__reviews.length;
+    if (has) {
+      if (Array.isArray(trace)) {
+        trace.push({
+          agent: 'Proof Librarian', role: 'Approved Facts', ok: true, provider: entry.__review_source || 'library',
+          output: { reviews: entry.__reviews.length, hosted_images: entry.__reviews.reduce((n, r) => n + ((r.media || []).filter((m) => m && m.hosted_url).length), 0), sources: [...new Set(entry.__reviews.map((r) => r.source_url).filter(Boolean))] },
+        });
+      }
+      return;
+    }
+    const marker = (entry && entry.__review_marker)
+      || (brandReviews ? brandReviews.MARKER(entry && entry.brand, entry && entry.market) : '');
+    if (!marker) return;
+    campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), marker])];
+    if (Array.isArray(trace)) {
+      trace.push({
+        agent: 'Proof Librarian', role: 'Approved Facts', ok: false, provider: 'brand-site',
+        output: { marker, limits: (entry && entry.__review_limits) || [] },
+      });
+    }
+  } catch (_) { /* provenance reporting must never break a generation */ }
+}
+
 function reportCatalogGaps(campaign, entry, trace) {
   try {
     const scope = catalogServer.currentScope();
@@ -2435,6 +2757,22 @@ module.exports = {
   // directly rather than inferred from a full sync.
   __test_offeringPlanEntries: offeringPlanEntries,
   __test_workspaceNs: workspaceNs,
+  // exported for tests/smart-brain-assets.spec.js. The prompt, the proof gate,
+  // the proof block and the ad artefacts are the four things this module can get
+  // wrong in a way that ships to a customer, so each is assertable directly
+  // rather than inferred from a whole generation (which needs an LLM, a network
+  // and a database none of which exist in the test environment).
+  __test_copyPrompt: copyPrompt,
+  __test_audienceBrief: audienceBrief,
+  __test_approvedProofBrief: approvedProofBrief,
+  __test_approvedProof: approvedProof,
+  __test_gateProof: gateProof,
+  __test_proofBlockHtml: proofBlockHtml,
+  __test_injectProofBlock: injectProofBlock,
+  __test_lpHtml: lpHtml,
+  __test_generateCreatives: generateCreatives,
+  __test_applyCopy: applyCopy,
+  __test_attachMotionCreative: attachMotionCreative,
   syncDaily, getPlan, previewEntry, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
   prebuildAssets, healOrphans, dbCheck, syncStatus,
   // exported for unit testing (pure scenario helpers)
