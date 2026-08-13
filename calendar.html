@@ -404,13 +404,26 @@ async function generatePlan() {
     });
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    STATE.plan = data.plan;
+    // A 200 can still be a refusal: the router answers a request it cannot
+    // attribute to a workspace with ok:true and an error code rather than
+    // serving another brand's rows. Reading only `plan` turned that into an
+    // undefined assignment and a stale screen.
+    if (data && data.ok === false) throw new Error(data.error || 'generation failed');
+    if (data && data.error) throw new Error(data.note || data.error);
+    STATE.plan = Array.isArray(data.plan) ? data.plan : [];
     STATE.meta = data.meta || {};
-    $('planMeta').textContent = formatPlanSummary(data);
+    // An empty result is stated as empty, in place, so the previous plan is
+    // never left on screen looking like the one that was just requested.
+    $('planMeta').textContent = STATE.plan.length
+      ? formatPlanSummary(data)
+      : 'The generator ran and returned no entries for these markets and this capacity. Widen the market selection or the weekly capacity, then generate again.';
     renderCalendar();
     renderTable();
   } catch (e) {
-    $('planMeta').innerHTML = `<span class="text-red-400">Failed: ${e.message}</span>`;
+    STATE.plan = [];
+    renderCalendar();
+    renderTable();
+    $('planMeta').innerHTML = `<span class="text-red-400">Failed: ${calEsc(e.message)}</span>`;
   } finally {
     $('btnGenerate').disabled = false;
     $('btnGenerate').textContent = '⚡ Generate plan';
@@ -501,7 +514,13 @@ function renderTable(filter = '') {
       .join(' ').toLowerCase().includes(f)
   );
   if (!rows.length) {
-    $('planTable').innerHTML = `<tr><td colspan="10" class="text-center text-ink-mute py-8">No entries match.</td></tr>`;
+    // An empty plan and a filter that matched nothing look identical in the
+    // table, so they are named differently. Otherwise a generation that
+    // produced nothing reads as a too-narrow search box.
+    const msg = STATE.plan.length
+      ? 'No entries match this filter.'
+      : 'No plan entries. Generate a plan, or read the message above if one has already run.';
+    $('planTable').innerHTML = `<tr><td colspan="10" class="text-center text-ink-mute py-8">${msg}</td></tr>`;
     return;
   }
   $('planTable').innerHTML = rows.map((p) => `

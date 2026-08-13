@@ -525,7 +525,15 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
     fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon) : [];
     if (!fresh.length) {
-      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', synced_at: new Date().toISOString(), horizon_days: horizon, changes: [], entries: [], note: EMPTY_PLAN_NOTE };
+      // Carry the SAME keys as the success return below. A caller that reads
+      // `plan` got undefined here and rendered its untouched previous screen,
+      // so a brand with nothing to plan looked identical to a sync that had
+      // never been clicked. `insights` is present for the same reason.
+      return {
+        ok: true, mode: db.connected ? 'db-linked' : 'local-fallback',
+        synced_at: new Date().toISOString(), horizon_days: horizon,
+        changes: [], insights: [], entries: [], plan: [], note: EMPTY_PLAN_NOTE,
+      };
     }
     const markets = Array.from(new Set(fresh.map((e) => e.market)));
     ctx = {

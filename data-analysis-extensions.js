@@ -1,10 +1,32 @@
 /* eslint-env browser */
+/**
+ * data-analysis-extensions.js — the connector-backed and deep-dive half of the
+ * Data Analysis workbench.
+ *
+ * It is a separate file from data-analysis.html only because that page is
+ * already 78KB of inline markup and script; splitting the two keeps each
+ * editable. It is NOT optional and NOT an overlay: the page loads it directly,
+ * and without it a third of the analyses would have no tab.
+ *
+ * It used to be injected into an iframe by data-analysis-contrast.html, which
+ * meant those analyses existed only when the page was opened through that one
+ * wrapper, and that the wrapper's hardcoded palette replaced the active brand's
+ * tokens. Loading it in the page removes both problems.
+ *
+ * The tab list is not declared here. It comes from analysis-registry.js so the
+ * page, the drill-down pages and the tests cannot disagree about which surface
+ * owns which analysis.
+ */
 (function () {
   'use strict';
-  if (window.__KnickgasmDataAnalysisExtensions) return;
-  window.__KnickgasmDataAnalysisExtensions = true;
+  if (window.__LifecycleDataAnalysisSections) return;
+  window.__LifecycleDataAnalysisSections = true;
+
+  var REG = window.LifecycleAnalysisRegistry;
+  if (!REG) return;                          // registry is a hard dependency, not a nicety
 
   var API = '/api/public-config?action=data-analysis';
+  var GROWTH_API = '/api/brain?action=growth-os';
   var REFRESH_MS = 60000;
   var state = {
     tab: null,
@@ -13,27 +35,14 @@
     reviewFrame: null,
     reviewReady: false,
     lastPayload: {},
+    growthModel: undefined,                  // undefined = not fetched, null = unavailable
   };
 
-  var REVIEW_TABS = [
-    { id: 'review-insights', label: 'Review Insights', index: 0 },
-    { id: 'review-overview', label: 'Executive Overview', index: 1 },
-    { id: 'review-website', label: 'Website Performance', index: 2 },
-    { id: 'review-customers', label: 'Customers & Reactivation', index: 3 },
-    { id: 'review-catalog', label: 'Catalog & Pricing', index: 4 },
-    { id: 'review-fulfilment', label: 'Fulfilment & Delivery', index: 5 },
-    { id: 'review-support', label: 'Support & CX', index: 6 },
-    { id: 'review-category', label: 'Category Performance', index: 7 },
-    { id: 'review-coffee', label: 'Category Deep-dive', index: 8 },
-    { id: 'review-access', label: 'Access Audit', index: 9 },
-  ];
-  var LIVE_TABS = [
-    { id: 'live-ads', label: 'Live Ads' },
-    { id: 'mailer-intelligence', label: 'Mailer Intelligence' },
-    { id: 'landing-intelligence', label: 'Landing Pages & Experiments' },
-    { id: 'action-outcomes', label: 'Actions & Outcomes' },
-    { id: 'alert-settings', label: 'Alert Settings' },
-  ];
+  var NATIVE_TABS = REG.TABS.filter(function (t) { return t.kind === 'native'; });
+  var EXT_TABS = REG.TABS.filter(function (t) { return t.kind !== 'native'; });
+  function isExtTab(id) {
+    return EXT_TABS.some(function (t) { return t.id === id; });
+  }
 
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -128,7 +137,29 @@
     var style = document.createElement('style');
     style.id = 'data-analysis-extension-css';
     style.textContent = [
-      '.vh-tab-group{align-self:center;padding:4px 8px 4px 12px;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap}',
+      // The tab bar is a single row that slides. Group labels and drill-down
+      // links live in it too, so they must refuse to shrink or the bar
+      // compresses them instead of overflowing.
+      '.vh-tab-group{flex:0 0 auto;align-self:center;padding:4px 8px 4px 12px;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap}',
+      '.vh-tab-link{flex:0 0 auto;display:inline-flex;align-items:center;white-space:nowrap;color:var(--accent);font-weight:700;font-size:13px;padding:7px 14px;border-radius:999px;text-decoration:none;border:1px dashed var(--line)}',
+      '.vh-tab-link:hover{border-style:solid;color:var(--head)}',
+      '.xband{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;margin:16px 0 4px}',
+      '.xband-h{display:flex;gap:12px;align-items:baseline;justify-content:space-between;flex-wrap:wrap;font-size:12px;color:var(--soft)}',
+      '.xband-h b{font-family:"Montserrat",Georgia,serif;font-size:15px;color:var(--head)}',
+      '.xkpi-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px;margin:12px 0 0}',
+      '.xkpi-cell{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}',
+      '.xkpi-cell.north{border-left:4px solid var(--lava)}',
+      '.xkpi-cell .xkv{font-size:18px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}',
+      '.xkpi-unset{font-family:Inter,Arial,sans-serif;font-size:13px;color:var(--soft);font-weight:600}',
+      '.xbasis{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 7px;border:1px solid var(--line);color:var(--soft);white-space:nowrap}',
+      '.xbasis.measured{color:#18794E;border-color:#18794E}',
+      '.xbasis.modelled{color:#9A7420;border-color:#9A7420}',
+      '.xfunnel{display:flex;gap:8px;margin:12px 0 0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}',
+      '.xstage{flex:0 0 auto;min-width:190px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:11.5px;color:var(--soft)}',
+      '.xstage b{display:block;color:var(--head);font-size:12.5px;margin-bottom:3px}',
+      '.xstage span{display:inline-flex;gap:6px;align-items:center}',
+      '.xstage.leak{border-left:4px solid var(--lava)}',
+      '.xleak{display:block;margin-top:4px;font-weight:700;color:var(--head)}',
       '#extendedAnalysisPanel{display:none;margin-top:14px}',
       '#extendedAnalysisPanel.on{display:block}',
       '.xpanel{min-height:220px}',
@@ -181,8 +212,13 @@
     k.parentNode.insertBefore(p, k);
   }
 
+  /**
+   * The review used to be its own nav feature AND a Data Analysis tab. Only one
+   * of the two can be the canonical entry point, so the shared rail's link to
+   * the retired routes is folded away here rather than left as a second door
+   * into the same report.
+   */
   function removeSeparateReviewEntry() {
-    var cta = document.getElementById('reviewCta'); if (cta) cta.remove();
     function remove() {
       document.querySelectorAll('a[href]').forEach(function (a) {
         var href = String(a.getAttribute('href') || '');
@@ -199,41 +235,60 @@
   function addTabs() {
     var tabs = document.getElementById('anTabs');
     if (!tabs || tabs.querySelector('[data-ext-tab]')) return;
-    function group(label) { var s = document.createElement('span'); s.className = 'vh-tab-group'; s.textContent = label; tabs.appendChild(s); }
-    group('Live Intelligence');
-    LIVE_TABS.forEach(function (t) {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = t.label;
-      b.setAttribute('data-ext-tab', t.id); b.addEventListener('click', function () { openTab(t.id); }); tabs.appendChild(b);
+    var lastGroup = (NATIVE_TABS[0] || {}).group;
+    function group(label) {
+      var s = document.createElement('span');
+      s.className = 'vh-tab-group'; s.textContent = label; tabs.appendChild(s);
+    }
+    EXT_TABS.forEach(function (t) {
+      if (t.group !== lastGroup) { group(t.group); lastGroup = t.group; }
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = t.label; b.title = t.what;
+      b.setAttribute('data-ext-tab', t.id);
+      b.addEventListener('click', function () { openTab(t.id); });
+      tabs.appendChild(b);
     });
-    group('Business Review');
-    REVIEW_TABS.forEach(function (t) {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = t.label;
-      b.setAttribute('data-ext-tab', t.id); b.addEventListener('click', function () { openTab(t.id); }); tabs.appendChild(b);
+    // Drill-downs are LINKS, not tabs: they open their own surface. They sit in
+    // the same bar because "reachable from Data Analysis" is the promise, and a
+    // link a reader has to already know about does not keep it.
+    group('Drill-downs');
+    REG.DRILLDOWNS.forEach(function (d) {
+      var a = document.createElement('a');
+      a.className = 'vh-tab-link'; a.href = d.href + '?from=data-analysis';
+      a.textContent = d.label + ' ↗'; a.title = d.what + ' ' + d.why;
+      a.setAttribute('data-drilldown', d.id);
+      tabs.appendChild(a);
     });
     tabs.querySelectorAll('button[data-tab]').forEach(function (b) {
-      b.addEventListener('click', function () { showNative(); setParentTab(b.getAttribute('data-tab') || 'control'); });
+      b.addEventListener('click', function () { showNative(); setTab(b.getAttribute('data-tab') || REG.DEFAULT_TAB); });
     });
   }
 
-  function setParentTab(tab) {
+  /**
+   * The page owns its own URL now. While these sections lived in an iframe this
+   * had to reach through `parent`, which silently did nothing whenever the page
+   * was opened directly.
+   */
+  function setTab(tab) {
     try {
-      var u = new URL(parent.location.href); u.searchParams.set('tab', tab);
-      parent.history.replaceState(null, '', u.pathname + u.search + u.hash);
+      var u = new URL(location.href); u.searchParams.set('tab', tab);
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
     } catch (_) {}
   }
   function clearAdsTimer() { if (state.adsTimer) clearInterval(state.adsTimer); state.adsTimer = null; }
+  var NATIVE_BLOCKS = ['growthBand', 'kpis', 'signals', 'grid', 'footnote'];
   function showNative() {
     clearAdsTimer(); state.tab = null;
     var panel = document.getElementById('extendedAnalysisPanel'); if (panel) { panel.classList.remove('on'); panel.innerHTML = ''; }
-    ['kpis', 'signals', 'grid', 'footnote'].forEach(function (id) { var el = document.getElementById(id); if (el) el.style.display = ''; });
+    NATIVE_BLOCKS.forEach(function (id) { var el = document.getElementById(id); if (el) el.style.display = ''; });
     document.querySelectorAll('#anTabs button[data-ext-tab]').forEach(function (b) { b.classList.remove('on'); });
   }
   function showExtension(id) {
     clearAdsTimer(); state.tab = id;
-    ['kpis', 'signals', 'grid', 'footnote'].forEach(function (x) { var el = document.getElementById(x); if (el) el.style.display = 'none'; });
+    NATIVE_BLOCKS.forEach(function (x) { var el = document.getElementById(x); if (el) el.style.display = 'none'; });
     var panel = document.getElementById('extendedAnalysisPanel'); panel.classList.add('on'); panel.innerHTML = '';
     document.querySelectorAll('#anTabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ext-tab') === id); });
-    setParentTab(id);
+    setTab(id);
     return panel;
   }
   function openTab(id) {
@@ -243,8 +298,7 @@
     if (id === 'landing-intelligence') return renderLanding(panel);
     if (id === 'action-outcomes') return renderActions(panel);
     if (id === 'alert-settings') return renderAlerts(panel);
-    var r = REVIEW_TABS.find(function (x) { return x.id === id; });
-    if (r) return renderReview(panel, r);
+    if (id === 'review') return renderReview(panel, REG.tab('review'));
   }
 
   function adsControls() {
@@ -445,33 +499,116 @@
       if (w.ResizeObserver) { var ro = new w.ResizeObserver(resize); ro.observe(d.body); }
     } catch (_) {}
   }
+  /**
+   * ONE tab, not ten. Each of the ten former review-* tabs opened the same
+   * report in the same frame and differed only by which section it scrolled to,
+   * so nine of them were duplicate entry points to one analysis. The report's
+   * own nav does the sectioning; a retired link still lands on its section.
+   */
   function renderReview(panel, tab) {
-    state.reviewIndex = tab.index;
     var market = currentMarket();
-    panel.innerHTML = panelTitle(tab.label, 'Business Review data is now embedded as a Data Analysis tab instead of a separate feature.') +
-      (market !== 'US' ? note('This retained deep-dive source is the verified US D2C Business Review. The native Data Analysis tabs and live connector tabs above remain market-aware for ' + market + '.', '') : '') +
-      '<div class="xreview-note">' + note('All original Business Review charts, calculations, source notes and drill-downs remain available below. The old standalone route is retained only as a compatibility alias.', 'good') + '</div>' +
-      '<iframe class="xreview-frame" id="xReviewFrame" title="Embedded KNICKGASM D2C Business Review" src="/lifecycle-usa-d2c-dashboard.html"></iframe>';
+    panel.innerHTML = panelTitle(tab.label, tab.what) +
+      (market !== 'US' ? note('This retained deep-dive is the verified US review. The tabs above stay market-aware for ' + market + '.', '') : '') +
+      '<div class="xreview-note">' + note('Every chart, calculation, source note and drill-down of the review is below, with its own section nav. The retired standalone routes redirect here.', 'good') + '</div>' +
+      '<iframe class="xreview-frame" id="xReviewFrame" title="Embedded D2C sales and business review" src="/lifecycle-usa-d2c-dashboard.html"></iframe>';
     var frame = document.getElementById('xReviewFrame'); state.reviewFrame = frame; state.reviewReady = false;
     frame.addEventListener('load', function () { styleReviewFrame(frame, state.reviewIndex); });
   }
 
+  // ── Region-wise KPI band ──────────────────────────────────────────────────
+  /**
+   * The Control Room used to open on six trading totals with no reference point
+   * and no statement of where each came from. The band above them is the growth
+   * model's own north star and input metrics, per market, so this page and
+   * /growth-os speak one metric vocabulary instead of two.
+   *
+   * The vocabulary and the sector ranges are fetched from growth-os-core rather
+   * than restated here. When that fetch fails the band says so and shows
+   * nothing, because a KPI header assembled from a local guess would be the
+   * conflicting second vocabulary this is meant to remove.
+   */
+  function basisChip(basis) {
+    return '<span class="xbasis ' + esc(basis) + '">' + esc(basis) + '</span>';
+  }
+  function kpiValue(row, symbol) {
+    if (row.actual == null) return '<span class="xkpi-unset">not measured</span>';
+    if (row.unit === '%') return esc(row.actual.toFixed(2)) + '%';
+    if (row.unit === 'currency') return esc(symbol) + esc(row.actual.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+    return esc(row.actual.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+  }
+  function renderGrowthBand() {
+    var host = document.getElementById('growthBand');
+    if (!host) return;
+    var market = currentMarket();
+    var data = (window.LIFECYCLE_ANALYTICS && window.LIFECYCLE_ANALYTICS.markets) || {};
+    var row = data[market] || null;
+    var symbol = ({ US: '$', UK: '£', GLOBAL: '$', IN: '₹' })[market] || '';
+
+    if (state.growthModel === undefined) {
+      host.innerHTML = '<div class="xband"><div class="xband-h"><b>Growth model</b><span>loading</span></div></div>';
+      return;
+    }
+    if (!state.growthModel) {
+      host.innerHTML = '<div class="xband">' + note('The growth model could not be loaded, so the north star and its input metrics are not shown. They are defined once in the growth engine and read from it; this page never restates them locally.', 'bad') + '</div>';
+      return;
+    }
+    var model = state.growthModel;
+    var rows = REG.marketKpis(model.kpis, row);
+    var measured = rows.filter(function (r) { return r.basis === 'measured'; }).length;
+    var funnel = (model.funnel && model.funnel.stages) || [];
+
+    var cells = rows.map(function (r) {
+      return '<div class="xkpi-cell' + (r.role === 'north-star' ? ' north' : '') + '">' +
+        '<div class="xkl">' + (r.role === 'north-star' ? 'North star · ' : '') + esc(r.name) + '</div>' +
+        '<div class="xkv">' + kpiValue(r, symbol) + ' ' + basisChip(r.basis) + '</div>' +
+        (r.benchmark_label ? '<div class="xks">Sector ' + esc(r.benchmark_label) + ' ' + basisChip('modelled') + '</div>' : '') +
+        (r.connect ? '<div class="xks">Connect ' + esc(r.connect) + '</div>' : '') +
+        '</div>';
+    }).join('');
+
+    var stages = funnel.map(function (s) {
+      return '<div class="xstage' + (s.is_primary_leak ? ' leak' : '') + '" title="' + esc(s.note || '') + '">' +
+        '<b>' + esc(s.stage) + '</b><span>Sector ' + esc(s.benchmark_label) + ' ' + basisChip('modelled') + '</span>' +
+        (s.is_primary_leak ? '<span class="xleak">largest usual loss</span>' : '') + '</div>';
+    }).join('');
+
+    host.innerHTML = '<div class="xband">' +
+      '<div class="xband-h"><b>' + esc(model.model && model.model.label || 'Growth') + ' model · ' + esc(market) + '</b>' +
+      '<span>' + esc(measured) + ' of ' + esc(rows.length) + ' metrics measured for this market</span></div>' +
+      '<div class="xkpi-band">' + cells + '</div>' +
+      (stages ? '<div class="xfunnel">' + stages + '</div>' : '') +
+      note('measured is this market\'s own figure from its export. modelled is a sector range and is never presented as this brand\'s result. unset names the connection that would fill it. Each market is measured on its own data; nothing is blended across markets.') +
+      '</div>';
+  }
+  async function loadGrowthModel() {
+    try {
+      var r = await fetch(GROWTH_API, { cache: 'no-store', credentials: 'same-origin' });
+      var body = await r.json();
+      state.growthModel = (r.ok && body && body.kpis) ? body : null;
+    } catch (_) { state.growthModel = null; }
+    renderGrowthBand();
+  }
+
   function applyInitialTab() {
     var requested = '';
-    try { requested = new URL(parent.location.href).searchParams.get('tab') || ''; } catch (_) {}
-    var ext = LIVE_TABS.concat(REVIEW_TABS).some(function (t) { return t.id === requested; });
-    if (ext) return openTab(requested);
-    if (requested && ['control', 'acq', 'ret', 'cohort'].indexOf(requested) >= 0) {
-      var b = document.querySelector('#anTabs button[data-tab="' + requested + '"]'); if (b) b.click();
-    }
+    try { requested = new URLSearchParams(location.search).get('tab') || ''; } catch (_) {}
+    var canonical = REG.resolveTab(requested);
+    state.reviewIndex = REG.reviewSection(requested);
+    if (isExtTab(canonical)) return openTab(canonical);
+    var b = document.querySelector('#anTabs button[data-tab="' + canonical + '"]');
+    if (b) b.click();
   }
 
   function boot() {
     if (!document.getElementById('anTabs') || !document.getElementById('dash')) return setTimeout(boot, 80);
     injectCss(); installPanel(); removeSeparateReviewEntry(); addTabs();
     document.querySelectorAll('#mktToggle button').forEach(function (b) {
-      b.addEventListener('click', function () { setTimeout(function () { if (state.tab) openTab(state.tab); }, 10); });
+      b.addEventListener('click', function () {
+        setTimeout(function () { renderGrowthBand(); if (state.tab) openTab(state.tab); }, 10);
+      });
     });
+    renderGrowthBand();
+    loadGrowthModel();
     applyInitialTab();
   }
   boot();

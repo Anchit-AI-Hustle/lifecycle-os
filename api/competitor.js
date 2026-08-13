@@ -9,12 +9,22 @@
  *   ?action=html&id=<row>   → raw HTML for one mail                    [GET, public]
  *   ?action=poll            → throttled sync trigger for the dashboard [GET, public]
  *   ?action=sync            → force a full sync                        [GET/POST, CRON_SECRET]
+ *   ?action=brands          → the ACTIVE brand's competitor universe   [GET]
+ *   ?action=seed            → seed it from that brand's own record     [POST]
+ *   ?action=discover        → seed + a discovery pass for that brand   [POST]
+ *   ?action=universe-refresh→ the scheduled sweep across brands        [CRON_SECRET]
+ *   ?action=universe-export → optional mirror into the Google Sheet    [POST]
  *
- * All data + ingestion live in this repo (api/_shared/competitor-core.js) — no
- * dependency on any other deployment.
+ * Ingestion lives in api/_shared/competitor-core.js (Gmail + Google Sheet, both
+ * optional); the competitor universe lives in api/_shared/competitor-universe.js
+ * (Supabase, per workspace, no Google credentials required).
  */
 
 const core = require('./_shared/competitor-core');
+// The per-brand competitor universe. Supabase-backed, so it works with no
+// Google credentials at all; competitor-core's sheet path is now an optional
+// export rather than the store.
+const universe = require('./_shared/competitor-universe');
 // Competitive-Intelligence collection layer (Supabase-backed; real-time stream).
 const ciCollect = require('./_shared/ci-collect');
 const ciOffers  = require('./_shared/ci-offers');
@@ -40,6 +50,35 @@ async function readBody(req) {
 const POLL_THROTTLE_MS = 30000;
 let lastPoll = 0;
 let lastResult = null;
+
+function bearerOf(req) {
+  const h = String((req.headers && (req.headers.authorization || req.headers.Authorization)) || '');
+  const m = /^Bearer\s+(.+)$/i.exec(h.trim());
+  return m ? m[1].trim() : '';
+}
+
+/**
+ * The competitor-universe store for THIS request, and the one workspace it is
+ * allowed to touch.
+ *
+ * A signed-in browser request reads and writes AS THE CALLER, so the RLS
+ * policies decide what it may see. A cron or worker call carries CRON_SECRET
+ * instead of a session and therefore has to NAME its workspace: on a
+ * multi-tenant platform there is no "the" workspace, and quietly defaulting to
+ * the oldest one is precisely how tenant zero's rows ended up on other brands'
+ * screens.
+ */
+function universeContext(req, url) {
+  const wsId = req.__workspaceId || url.searchParams.get('workspace_id') || '';
+  if (!wsId) return { error: 'workspace_unresolved', note: 'No active brand on this request, so no competitor data is read or written. Another brand\'s universe is never substituted.' };
+  const token = bearerOf(req);
+  const secret = (process.env.CRON_SECRET || '').trim();
+  // A CRON_SECRET arriving in the Authorization header is not a user session;
+  // handing it to PostgREST as a JWT would just 401.
+  if (token && token !== secret) return { store: universe.userStore(token), workspaceId: wsId };
+  if (authorized(req)) return { store: universe.serviceStore(), workspaceId: wsId };
+  return { error: 'sign_in_required', note: 'Sign in, or call with CRON_SECRET and an explicit workspace_id.' };
+}
 
 function authorized(req) {
   const secret = process.env.CRON_SECRET;
@@ -85,7 +124,15 @@ module.exports = async function handler(req, res) {
   } catch (_) { /* never hard-fail the router on scoping */ }
 
   try {
+    // The captured-mail archive still lives in the Google Sheet. Say so plainly
+    // when Google is not configured, rather than throwing a credentials error
+    // into a marketing dashboard.
     if (action === 'list') {
+      if (!core.sheetsConfigured()) {
+        res.status(200).json({ ok: true, emails: [], capture_configured: false,
+          note: 'No mail-capture inbox is configured for this deployment, so no competitor mailers have been archived. The competitor universe itself does not depend on it.' });
+        return;
+      }
       const emails = await core.getAllEmails();
       res.status(200).json({ ok: true, emails });
       return;
@@ -138,16 +185,28 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // ── Phase 2: competitor brand database + discovery ──
+    // ── The competitor universe (per brand, Supabase-backed) ────────────────
+    // Reads and writes go to public.brand_competitors, which needs no Google
+    // credentials and is scoped to the active workspace. ?action=brands keeps
+    // the field names the dashboard already renders.
     if (action === 'brands') {
-      const brands = await core.getBrands();
-      res.status(200).json({ ok: true, brands, total: brands.length });
+      const ctx = universeContext(req, url);
+      if (ctx.error) { res.status(200).json({ ok: true, brands: [], total: 0, error: ctx.error, note: ctx.note }); return; }
+      const out = await universe.listUniverse(ctx.store, ctx.workspaceId);
+      res.status(200).json({ ok: true, ...out });
       return;
     }
 
+    // Seed from the brand's OWN record. No LLM, no network: activation must not
+    // hang on a provider, and a brand's own market study is the only source
+    // that can be trusted to describe its market.
     if (action === 'seed') {
-      const r = await core.seedBrands(new Date().toISOString());
-      res.status(200).json({ ok: true, ...r });
+      const ctx = universeContext(req, url);
+      if (ctx.error) { res.status(401).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
+      const out = await universe.seedForWorkspace(ctx.store, ctx.workspaceId, {
+        force: url.searchParams.get('force') === '1',
+      });
+      res.status(200).json(Object.assign({ ok: out.ok !== false }, out));
       return;
     }
 
@@ -184,7 +243,13 @@ module.exports = async function handler(req, res) {
       }
       let body = req.body;
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
-      const result = await core.markBrandSubscribed(body || {});
+      const ctx = universeContext(req, url);
+      if (ctx.error) { res.status(400).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
+      const result = await universe.markSubscribed(ctx.store, ctx.workspaceId, body || {});
+      // Keep the sheet in step when it exists; its absence is not a failure.
+      if (result.ok && core.sheetsConfigured()) {
+        try { await core.markBrandSubscribed(body || {}); } catch (_) { /* the universe is the record */ }
+      }
       res.status(result.ok ? 200 : 400).json(result);
       return;
     }
@@ -200,16 +265,39 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // Discovery for the ACTIVE brand: seeded from its own record first, then a
+    // provider-agnostic LLM pass scoped to that brand's declared industry,
+    // offerings and regions. Whatever cannot be verified as a real company is
+    // dropped and reported as a gap rather than stored.
     if (action === 'discover') {
-      // Accept optional categories[]/geographies[]/limit via query (?categories=Sneaker,Coffee&limit=30).
-      const csv = (k) => { const v = url.searchParams.get(k); return v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []; };
-      const found = await core.discoverBrands({
-        categories: csv('categories'),
-        geographies: csv('geographies'),
+      const ctx = universeContext(req, url);
+      if (ctx.error) { res.status(401).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
+      const out = await universe.refreshWorkspace(ctx.store, ctx.workspaceId, {
         limit: url.searchParams.get('limit'),
       });
-      const stored = await core.appendBrands(found.brands, new Date().toISOString());
-      res.status(200).json({ ok: true, proposed: found.brands.length, provider: found.provider, ...stored });
+      res.status(200).json(Object.assign({ ok: out.ok !== false }, out));
+      return;
+    }
+
+    // The scheduled sweep, also runnable by hand. Guarded like every other
+    // write path that can spend provider quota.
+    if (action === 'universe-refresh') {
+      if (!authorized(req)) { res.status(401).json({ ok: false, error: 'Unauthorized' }); return; }
+      const out = await universe.refreshDueWorkspaces({
+        maxWorkspaces: url.searchParams.get('max'),
+        minIntervalHours: url.searchParams.get('min_interval_hours'),
+      });
+      res.status(200).json(out);
+      return;
+    }
+
+    // Optional one-way mirror of this brand's universe into the legacy Google
+    // Sheet, for operators who have credentials and want the spreadsheet view.
+    if (action === 'universe-export') {
+      const ctx = universeContext(req, url);
+      if (ctx.error) { res.status(401).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
+      const rows = await ctx.store.list(ctx.workspaceId);
+      res.status(200).json(await universe.exportToSheet(rows));
       return;
     }
 

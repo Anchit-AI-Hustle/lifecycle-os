@@ -131,11 +131,10 @@
       <button type="button" data-tab="cohort">Cohort &amp; Calendar</button>
     </div>
 
-    <a href="/usa-d2c-report" id="reviewCta" style="display:block;margin:14px 0 6px;padding:14px 18px;border:1px solid var(--line-strong,var(--vh-lava));border-left:4px solid var(--accent,#6A33D8);border-radius:11px;background:var(--surface,#fff);text-decoration:none;box-shadow:0 4px 14px rgba(0,74,43,.08)">
-      <span style="display:block;font-weight:700;color:var(--head,#D0473E);font-size:15.5px">Full D2C Business Review, 8 deep-dive areas &nbsp;→</span>
-      <span style="display:block;margin-top:4px;color:var(--soft,var(--vh-ink));font-size:13px">Website performance · customer cohorts &amp; reactivation · catalog &amp; Amazon price parity · order fulfilment &amp; delivery · support / CX tickets · category performance · coffee deep-dive · apps &amp; access audit.</span>
-    </a>
-
+    <!-- The banner that used to sit here was a second entry point to the
+         business review, which is a tab in the bar above. One door per
+         analysis. -->
+    <div id="growthBand"></div>
     <div class="kpis" id="kpis"></div>
     <div class="signals" id="signals"></div>
     <div class="grid" id="grid"></div>
@@ -151,6 +150,9 @@
      health-media or publisher brand was previously shown that brand's revenue,
      AOV and order counts as if they were its own. The guard below clears the
      global for any other brand and the page then renders its empty state. -->
+<!-- The registry decides which analysis each tab owns. It loads before every
+     page script because the opening-tab resolution needs it. -->
+<script src="/analysis-registry.js"></script>
 <script src="/data/analytics/market-data.js"></script>
 <script src="/brand-catalog.js"></script>
 <script>
@@ -366,7 +368,7 @@
       mini:function(m){ return lineChart(m.aov_trend.map(function(x){return {x:x.month,y:x.aov,label:mLabel(x.month)};}),{money:true,h:170}); },
       detail:function(m){ var t=m.aov_trend; var ft=fullMonths(t); var first=ft[0],last=ft[ft.length-1];
         var rows=t.map(function(x){return [mLabel(x.month),moneyFull(x.aov),intf(x.orders),moneyFull(x.sales)];});
-        return {insight:'<b>AOV has compressed from '+moneyFull(first.aov)+' to '+moneyFull(last.aov)+'</b> across the window of complete months, '+delta(last.aov,first.aov)+'. Falling AOV alongside rising orders signals discount-led acquisition and smaller entry baskets. The fix: bundle logic, free-shipping thresholds set just above current AOV, and subscription anchors on Coffee Collection.',
+        return {insight:'<b>AOV has compressed from '+moneyFull(first.aov)+' to '+moneyFull(last.aov)+'</b> across the window of complete months, '+delta(last.aov,first.aov)+'. Read it against the order trend below: AOV falling while orders rise is the signature of discount-led acquisition and smaller entry baskets. The levers are bundle logic, a free-shipping threshold set just above current AOV, and a repeat-plan anchor on whichever offering the category table shows leading.'+',
         chart:lineChart(t.map(function(x){return {x:x.month,y:x.aov,label:mLabel(x.month)};}),{money:true,w:820,h:280,yLabel:'Average order value'}), table:table(['Month','AOV','Orders','Total sales'],rows,{num:[1,2,3]}), csv:'us_aov_trend_by_month'}; } },
     { id:'channels', title:'Total sales by channel', sub:'Where revenue comes from', span:'span6',
       mini:function(m){ var top=m.channels.slice(0,5).map(function(x){return {label:x.channel,v:x.sales,disp:money(x.sales)};}); return donut(top,{s:150})+legend(top); },
@@ -380,7 +382,7 @@
       mini:function(m){ return barChart(m.product_types.slice(0,7).map(function(x){return {label:trunc(x.type,20),v:x.net,disp:money(x.net)};}),{h:190,labelW:130}); },
       detail:function(m){ var p=m.product_types; var total=p.reduce(function(a,b){return a+b.net;},0);
         var rows=p.map(function(x){return [x.type,moneyFull(x.net),intf(x.orders),intf(x.quantity),pct(x.net/total)];});
-        return {insight:'<b>'+p[0].type+' leads with '+moneyFull(p[0].net)+'</b> ('+pct(p[0].net/total)+' of category revenue). Coffee and functional supplements are the subscription engines; hand-painted black and kicks are the high-frequency habit categories worth cross-grading into coffee.',
+        return {insight:'<b>'+p[0].type+' leads with '+moneyFull(p[0].net)+'</b> ('+pct(p[0].net/total)+' of category revenue). '+(p[1]?'The second category, '+esc(p[1].type)+', carries '+pct(p[1].net/total)+'. ':'')+'Quantity against net sales in the table separates the high-frequency entry categories from the high-value ones, which is the cross-sell direction worth testing.'+',
         chart:barChart(p.slice(0,14).map(function(x){return {label:trunc(x.type,26),v:x.net,disp:money(x.net)};}),{w:820,h:14*30,labelW:200}),
         table:table(['Product type','Net sales','Orders','Qty','Share'],rows,{num:[1,2,3,4]}), csv:'us_sales_by_product_type'}; } },
     { id:'discount', title:'Discounted vs full-price', sub:'Margin exposure', span:'span6',
@@ -388,7 +390,7 @@
       detail:function(m){ var t=m.discount; var disc=t.find(function(x){return x.discounted;})||{}, full=t.find(function(x){return !x.discounted;})||{};
         var totS=(disc.sales||0)+(full.sales||0), totO=(disc.orders||0)+(full.orders||0);
         var rows=t.map(function(x){return [x.discounted?'Discounted':'Full price',intf(x.orders),moneyFull(x.sales),moneyFull(x.aov)];});
-        return {insight:'<b>'+pct((disc.orders||0)/totO)+' of orders use a discount</b>, and discounted AOV ('+moneyFull(disc.aov)+') is '+((full.aov&&disc.aov)?Math.round((1-disc.aov/full.aov)*100):0)+'% below full-price AOV ('+moneyFull(full.aov)+'). Discount is training a cheaper basket — reserve offers for the Curious Switcher cohort and protect full-margin buyers.',
+        return {insight:'<b>'+pct((disc.orders||0)/totO)+' of orders use a discount</b>, and discounted AOV ('+moneyFull(disc.aov)+') is '+((full.aov&&disc.aov)?Math.round((1-disc.aov/full.aov)*100):0)+'% below full-price AOV ('+moneyFull(full.aov)+'). Discount is training a cheaper basket. Reserve offers for the segments the Cohorts tab shows as price-led and protect full-margin buyers.'+',
         chart:donut(t.map(function(x){return {label:x.discounted?'Discounted':'Full price',v:x.sales};}),{s:210})+legend(t.map(function(x){return {label:(x.discounted?'Discounted':'Full price'),disp:money(x.sales)};})),
         table:table(['Order type','Orders','Total sales','AOV'],rows,{num:[1,2,3]}), csv:'us_sales_by_discount_usage'}; } },
     { id:'dow', title:'Sales by day of week', sub:'Send-timing signal', span:'span6',
@@ -424,13 +426,13 @@
     { id:'topprod', title:'Top products by net sales', sub:'Revenue leaders', span:'span6',
       mini:function(m){ return barChart(m.top_products.slice(0,8).map(function(x){return {label:trunc(x.title,22),v:x.net,disp:money(x.net)};}),{h:220,labelW:150}); },
       detail:function(m){ var p=m.top_products; var rows=p.slice(0,50).map(function(x,i){return [String(i+1),x.title,moneyFull(x.net),intf(x.quantity),intf(x.orders)];});
-        return {insight:'<b>'+p[0].title+' is the #1 revenue product at '+moneyFull(p[0].net)+'.</b> The Coffee Collection franchise (base, refill, packs, starter kit) is the growth spine — every retention program should orbit its reorder rhythm.',
+        return {insight:'<b>'+p[0].title+' is the #1 revenue product at '+moneyFull(p[0].net)+'.</b> '+(p.length>2?'The top three together are '+moneyFull(p[0].net+p[1].net+p[2].net)+' of net sales. ':'')+'The reorder rhythm of these lines is what a retention program should be built around.'+',
         chart:barChart(p.slice(0,15).map(function(x){return {label:trunc(x.title,30),v:x.net,disp:money(x.net)};}),{w:820,h:15*30,labelW:230}),
         table:table(['#','Product','Net sales','Qty','Orders'],rows,{num:[2,3,4]}), csv:(MKT==='UK'?'uk_3_top_products':'us_top_50_products_by_net_sales')}; } },
     { id:'topqty', title:'Top products by quantity', sub:'Units sold', span:'span6', usOnly:true,
       mini:function(m){ return barChart((m.top_by_qty||[]).slice(0,8).map(function(x){return {label:trunc(x.title,22),v:x.quantity,disp:intf(x.quantity)};}),{h:220,labelW:150}); },
       detail:function(m){ var p=m.top_by_qty||[]; var rows=p.map(function(x,i){return [String(i+1),x.title,intf(x.quantity),moneyFull(x.net),intf(x.orders)];});
-        return {insight:'<b>Unit leaders vs revenue leaders diverge</b> — high-quantity, lower-price SKUs (kicks, everyday black) drive frequency and are the ideal entry point for first-time buyers before cross-grading them into higher-AOV coffee and gifting.',
+        return {insight:'<b>Unit leaders vs revenue leaders diverge</b> — the lines highest by units are rarely the lines highest by revenue. Compare this table against the revenue table beside it: the unit leaders are the entry points, and the revenue leaders are what a first buyer should be cross-graded into.',
         chart:barChart(p.slice(0,15).map(function(x){return {label:trunc(x.title,30),v:x.quantity,disp:intf(x.quantity)};}),{w:820,h:15*30,labelW:230}),
         table:table(['#','Product','Qty','Net sales','Orders'],rows,{num:[2,3,4]}), csv:'us_top_20_products_by_quantity'}; } },
     { id:'weekly', title:'Weekly sales trend', sub:'Granular momentum', span:'span12', usOnly:true,
@@ -579,11 +581,13 @@
 
   // ── Tabs: route each widget to a tab; show honest "connect X" cards for the
   // widgets that need data we do not have yet (ad spend, live orders, real-time).
-  var ACTIVE_TAB=(function(){
-    // ?tab= selects the opening tab; the rail is told about it below.
-    var t=(new URLSearchParams(location.search).get('tab')||'control').toLowerCase();
-    return /^[a-z-]+$/.test(t) ? t : 'control';
-  })();
+  // ?tab= selects the opening tab. It goes through the registry so a link
+  // written against a retired tab id still opens the tab that now owns that
+  // analysis, instead of silently falling back to the Control Room.
+  var REG = window.LifecycleAnalysisRegistry;
+  var ACTIVE_TAB = REG
+    ? REG.resolveTab(new URLSearchParams(location.search).get('tab'))
+    : 'control';
   var TAB_MAP={
     revenue:'control','kpi-orders':'control',aov:'control',weekly:'control',dow:'control',
     ptype:'control',topprod:'control',topqty:'control',country:'control',
@@ -762,7 +766,7 @@
     control: 'da-control', acq: 'da-acq', ret: 'da-ret', cohort: 'da-cohort',
     'live-ads': 'da-liveads', 'mailer-intelligence': 'da-mailer',
     'landing-intelligence': 'da-landing', 'action-outcomes': 'da-actions',
-    'alert-settings': 'da-alerts', 'review-overview': 'da-review'
+    'alert-settings': 'da-alerts', review: 'da-review'
   };
   function syncNavToTab(tab){
     try {
@@ -781,8 +785,14 @@
     var btns = document.querySelectorAll('#anTabs button');
     var found = false;
     btns.forEach(function(x){ var hit = x.dataset.tab === ACTIVE_TAB; x.classList.toggle('on', hit); if (hit) found = true; });
-    if (!found) { ACTIVE_TAB = 'control'; btns.forEach(function(x){ x.classList.toggle('on', x.dataset.tab === 'control'); }); }
+    // A tab this strip does not carry is one of the connector or deep-dive
+    // tabs, which mount from data-analysis-extensions.js after this runs. The
+    // widget grid falls back to the Control Room set underneath, but the rail
+    // is told the REQUESTED tab, or opening a deep link would light up the
+    // wrong rail item for the rest of the session.
+    if (!found) { btns.forEach(function(x){ x.classList.toggle('on', x.dataset.tab === 'control'); }); }
     syncNavToTab(ACTIVE_TAB);
+    if (!found) ACTIVE_TAB = 'control';
   })();
   document.querySelectorAll('#anTabs button').forEach(function(b){ b.addEventListener('click',function(){
     ACTIVE_TAB=b.dataset.tab;
@@ -858,6 +868,9 @@
 </script>
 <script defer src="/brand-catalog.js"></script>
 <script defer src="/auth.js"></script>
+<!-- The connector-backed and deep-dive tabs. Loaded here rather than injected
+     into an iframe, so they exist however the page is opened. -->
+<script defer src="/data-analysis-extensions.js"></script>
 <script src="/brand-demo.js"></script>
 
 <script>
