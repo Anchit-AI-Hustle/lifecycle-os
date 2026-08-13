@@ -519,14 +519,23 @@
    *
    * A market export only carries the columns its source CSVs had, and a missing
    * column arrives here as 0, which is indistinguishable from a measured zero.
-   * The UK export has no returning-customer split at all, so the Signals board
+   * The UK export has no returning-customer COUNT column, so the Signals board
    * was reading its absence as a 0.0% returning rate and raising it as a
-   * critical retention failure. A zero is treated as measured only when a
-   * supporting series proves the split was exported.
+   * critical retention failure.
+   *
+   * The build now states the distinction outright: `summary_basis[field]` is
+   * "measured" when the export carried that column and "unset" when it did not,
+   * so a genuinely-measured zero (a market that really sold nothing that month)
+   * still reads as a finding instead of being hidden by a >0 heuristic. The
+   * value-shape fallbacks below only run for a payload built before that map
+   * existed.
    */
   function measures(m, field){
     var s=(m&&m.summary)||{};
+    var basis=(m&&m.summary_basis)||null;
+    if(basis && basis[field]) return basis[field]==='measured';
     var v=Number(s[field]);
+    if(s[field]==null) return false;
     if(field==='returning_customers' || field==='returning_rate'){
       var hasSeries = !!((m.returning_rate && m.returning_rate.length) || (m.new_vs_returning && m.new_vs_returning.length));
       return hasSeries || v>0;

@@ -1060,17 +1060,29 @@ const ONLY=null;
 const VTABS=(ONLY===null?TABS:[TABS[ONLY]]);
 const nav=document.getElementById('nav'),main=document.getElementById('main');
 if(ONLY!==null){nav.style.display='none';}
+/* Per-tab provenance.
+ *
+ * Every line here used to name a live connector - "Shopify Analytics (live)",
+ * "Verified against Snowflake to within 0.1%", "review metafields (live)",
+ * "Loop subscriptions export" - under figures that are DEMO data derived from
+ * the shipped catalogue. None of those reads happens for the active brand.
+ * A provenance line is the one thing on a dashboard a reader cannot check for
+ * themselves, so a false one is worse than none: it converts an illustration
+ * into evidence. Each line now says what the panel actually reads, and names
+ * the connection that would make it real. */
+const DEMO_SRC = 'DEMO data, generated from the shipped catalogue. Not a measurement of the active brand.';
+const NEEDS = function (what) { return DEMO_SRC + ' [DATA REQUIRED BEFORE LAUNCH: ' + what + ', active brand, per region.]'; };
 const SRC={
- 0:'Shopify Analytics (live) plus support-ticket and Loop subscription exports - a synthesis across all areas. Revenue verified against Snowflake.',
- 1:'Shopify Analytics - sales, orders and AOV (live). Verified against Snowflake to within 0.1%.',
- 2:'Shopify Analytics - sales, sessions and conversion (live). Net, gross, orders and AOV are Shopify own figures.',
- 3:'Shopify customer data - acquisition by year and recency (days since last order).',
- 4:'Shopify products and live inventory; Price Parity sheet; Amazon catalog; Amazon selling-scale live from Snowflake.',
- 5:'Shopify fulfilment feed (live) for volumes; order line-item exports for dispatch-timing; Shopify delivery profiles, zones &amp; rates (live) for the shipping setup.',
- 6:'Support-ticket conversation exports (helpdesk).',
- 7:'Shopify Analytics - sales by product type, last 3 years (live).',
- 8:'Shopify sales, product-level and review metafields (live); Loop subscriptions export.',
- 9:'Method ready. Live connector denies users/apps (commerce scope only) - needs admin read scope or the admin exports listed on this tab.'
+ 0:NEEDS('commerce, support and subscription exports'),
+ 1:NEEDS('sales, orders and average order value'),
+ 2:NEEDS('sales, sessions and conversion'),
+ 3:NEEDS('customer-level acquisition and recency'),
+ 4:NEEDS('product catalogue, inventory and marketplace price comparison'),
+ 5:NEEDS('fulfilment feed, dispatch timing and delivery profiles'),
+ 6:NEEDS('support-ticket export'),
+ 7:NEEDS('sales by product type'),
+ 8:NEEDS('sales by product type'),
+ 9:'Method ready. No connector is authorised for users and apps here - needs admin read scope or the admin exports listed on this tab.'
 };
 VTABS.forEach((t,i)=>{
  const a=document.createElement('a');a.textContent=t.nav;a.dataset.i=i;a.onclick=()=>show(i);

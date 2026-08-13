@@ -22,12 +22,33 @@ async function pull({ days = 60, market, channel } = {}) {
   return db().select('smart_competitor_campaigns', { limit: 2000, order: 'captured_at.desc', filters });
 }
 
+// A CADENCE NEEDS THE SPAN IT WAS OBSERVED OVER, NOT A CONSTANT.
+//
+// `cadence_per_brand_per_week` used to divide by a literal 8.5 — the number of
+// weeks in the 60-day window `pull()` happens to request. summarize() cannot see
+// that window, so the divisor was right only by coincidence: capture that had
+// been running for ten days was divided by eight and a half weeks and reported a
+// competitor cadence six times lower than what was actually observed, which is
+// the number a planner sets their own send frequency against.
+//
+// The span is now measured from the captures themselves, and a span too short to
+// support a weekly rate returns null instead of a small number.
+const MIN_SPAN_DAYS_FOR_WEEKLY_RATE = 7;
+function observedSpanDays(items) {
+  const times = items.map((r) => Date.parse(r.captured_at)).filter((t) => Number.isFinite(t));
+  if (times.length < 2) return null;
+  const span = (Math.max(...times) - Math.min(...times)) / 86400000;
+  return span > 0 ? span : null;
+}
 function summarize(rows) {
   const byChannel = groupBy(rows, (r) => r.channel);
   const channels = {};
   for (const [ch, items] of Object.entries(byChannel)) {
     const angles = groupBy(items.filter((r) => r.angle), (r) => r.angle);
     const brands = groupBy(items, (r) => r.brand);
+    const span = observedSpanDays(items);
+    const weeks = span ? span / 7 : null;
+    const brandCount = Math.max(Object.keys(brands).length, 1);
     channels[ch] = {
       captured: items.length,
       active_brands: Object.keys(brands).length,
@@ -35,7 +56,12 @@ function summarize(rows) {
       top_angles: Object.entries(angles)
         .map(([angle, xs]) => ({ angle, count: xs.length }))
         .sort((a, b) => b.count - a.count).slice(0, 4),
-      cadence_per_brand_per_week: round(items.length / Math.max(Object.keys(brands).length, 1) / 8.5, 2),
+      cadence_per_brand_per_week: (span && span >= MIN_SPAN_DAYS_FOR_WEEKLY_RATE)
+        ? round(items.length / brandCount / weeks, 2) : null,
+      cadence_basis: (span && span >= MIN_SPAN_DAYS_FOR_WEEKLY_RATE)
+        ? `${items.length} captures / ${Object.keys(brands).length} brand(s) over ${round(span, 1)} observed days`
+        : `[DATA REQUIRED BEFORE LAUNCH: at least ${MIN_SPAN_DAYS_FOR_WEEKLY_RATE} days of competitor capture on this channel. ${span == null ? 'Fewer than two captures carry a timestamp' : `Only ${round(span, 1)} day(s) observed`}, which is too short to state a weekly cadence.]`,
+      observed_span_days: span == null ? null : round(span, 1),
       recent: items.slice(0, 5).map((r) => ({ brand: r.brand, title: r.title, angle: r.angle, promo: r.promo, captured_at: r.captured_at })),
     };
   }
@@ -55,12 +81,25 @@ async function benchmarks({ persist = false } = {}) {
       signalRows.push({ signal_date: new Date().toISOString().slice(0, 10), market, channel, signal });
     }
   }
-  // cross-market advisory notes
+  // Cross-market advisory notes.
+  //
+  // NO CAPTURES IS NOT "MODERATE PRESSURE". The else branch here used to assert
+  // "Competitor promo pressure is moderate - brand-story slots are safe" even
+  // when `rows` was empty, which is a positive claim about the competitive field
+  // made from zero observations, and it feeds straight into the calendar's
+  // slot-level reasoning. An unobserved field is reported as unobserved.
+  const captured = rows.length;
   const promoHeavy = Object.values(out).some((m) => Object.values(m).some((c) => c.promo_share > 0.5));
   out._advisory = {
     isolation: 'competitor signals are advisory inputs only; own-library performance filtering never uses them',
+    basis: captured ? 'measured' : 'unset',
+    captures_in_window: captured,
     notes: [
-      promoHeavy ? 'Competitor field is promo-heavy right now — differentiate with story/origin angles instead of matching discounts.' : 'Competitor promo pressure is moderate — brand-story slots are safe.',
+      !captured
+        ? 'No competitor campaigns were captured in the last 60 days, so nothing is known about competitor promo pressure right now. [DATA REQUIRED BEFORE LAUNCH: competitor capture feed.] No inference about whether brand-story slots are safe is drawn from an empty field.'
+        : (promoHeavy
+          ? `Competitor field is promo-heavy right now (over half of ${captured} captures carry a promotion) - differentiate with story/origin angles instead of matching discounts.`
+          : `Competitor promo pressure is moderate: under half of ${captured} captures in the last 60 days carry a promotion, so brand-story slots are safe.`),
     ],
   };
   if (persist && signalRows.length) {

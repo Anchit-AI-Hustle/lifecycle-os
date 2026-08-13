@@ -130,6 +130,46 @@
   .preset .pswatch i{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.14);display:block}
   .preset .pmeta{font-size:10.5px;opacity:.55;line-height:1.4}
   .preset-note{font-size:11.5px;opacity:.6;margin:2px 0 0;line-height:1.5}
+
+  /* Read-my-site extraction. Every value the crawler proposes is shown with
+     the URL and the signal it came from, and nothing is applied until the
+     operator presses Use, so a candidate can never become a fact by accident. */
+  .xtract{border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:18px;background:var(--surface)}
+  .xtract h3{font-family:var(--head);font-size:15px;font-weight:600;margin-bottom:4px}
+  .xtract .xhead{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+  .xtract .xmeta{font-size:11px;color:var(--muted);line-height:1.5}
+  .xrow{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+  .xrow:first-of-type{border-top:0}
+  .xrow .xlabel{flex:0 0 108px;font-size:11.5px;font-weight:600;padding-top:3px}
+  .xrow .xbody{flex:1;min-width:0}
+  .xval{font-size:13px;font-weight:600;word-break:break-word}
+  .xsrc{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5;word-break:break-all}
+  .xtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:2px 6px;border-radius:999px;border:1px solid var(--line);margin-right:5px;vertical-align:1px}
+  .xtag.declared{border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
+  .xtag.strong{border-color:color-mix(in srgb,var(--primary) 45%,transparent);color:var(--brand-primary-text)}
+  /* The warn hue is a fill/rule colour, not a text colour: at 9.5px it does not
+     reach AA on the page. The border carries the warning, the AA-tuned muted
+     token carries the word. */
+  .xtag.weak{border-color:color-mix(in srgb,var(--warn) 60%,transparent);color:var(--muted)}
+  .xtag.flag{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+  .xbtn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:4px 10px;
+    font:600 11px/1.5 var(--body);color:var(--ink);cursor:pointer;flex:none}
+  .xbtn:hover{border-color:var(--primary)}
+  .xalts{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px}
+  .xalt{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;
+    padding:3px 9px;font-size:11px;background:var(--card);cursor:pointer;color:var(--ink)}
+  .xalt:hover{border-color:var(--primary)}
+  .xsw{width:15px;height:15px;border-radius:4px;border:1px solid var(--line);display:inline-block;flex:none}
+  .xconflict{border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);
+    background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;line-height:1.6}
+  .xconflict b{display:block;margin-bottom:4px}
+  .xcolrow{display:grid;grid-template-columns:22px 1fr auto;gap:9px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+  .xcolrow select{padding:4px 7px;font-size:11px;width:auto}
+  .xclaim{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.55}
+  .xclaim input{margin-top:3px;width:auto;flex:none}
+  .xlimits{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6}
+  .xlimits li{margin-left:16px}
 </style>
 </head>
 <body>
@@ -187,6 +227,10 @@
     'Manrope','Work Sans','Source Serif 4','Fraunces','Poppins','Nunito','Karla','Libre Baskerville','IBM Plex Sans','Outfit','Bricolage Grotesque'];
 
   var step = 1, paletteCheck = null, workspaces = [], catalogCount = null, busy = false;
+  /* The last "read my site" report. Held in memory only: it is a set of
+     CANDIDATES, and a candidate becomes part of the brand exactly when the
+     operator presses Use, never before. */
+  var extraction = null, extractBusy = false, extractError = '';
 
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -472,7 +516,8 @@
     if (step === 1) {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
-        '<p class="hint">Start from a profile below, or fill the form for a brand of your own. A profile pre-fills every step - colours, typography, voice - and you can change anything afterwards.</p>' +
+        '<p class="hint">Start from your own website, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
+        extractBlock() + xPanel('brand') +
         '<div id="presetGallery" class="presets">Loading brand profiles...</div>' +
         '<p class="hint" style="margin-top:18px">Or enter your own. Leave anything you are not sure of blank - the platform reports missing data rather than inventing it.</p>' +
         '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
@@ -492,6 +537,7 @@
     else if (step === 2) {
       c.innerHTML =
         '<h2>Colour schema</h2>' +
+        xPanel('colour') +
         '<p class="hint">These four colours become the design tokens for the entire app and every asset it generates. They are checked live against the platform\'s design rules: WCAG AA contrast on every pairing, and no black or dark neutral page surfaces.</p>' +
         '<div class="row">' + colourField('primary', 'Primary', 'buttons, headings, brand ground') + colourField('accent', 'Accent', 'highlights, links') + '</div>' +
         '<div class="row">' + colourField('ink', 'Text', 'body copy') + colourField('surface', 'Page surface', 'the page background') + '</div>' +
@@ -503,6 +549,7 @@
     else if (step === 3) {
       c.innerHTML =
         '<h2>Typography</h2>' +
+        xPanel('type') +
         '<p class="hint">Two families: one for headings, one for body. Google families are loaded automatically on every page; a custom family uses your own hosted @font-face.</p>' +
         fontField('heading', 'Heading font') +
         fontField('body', 'Body font') +
@@ -513,6 +560,7 @@
     else if (step === 4) {
       c.innerHTML =
         '<h2>Voice and guardrails</h2>' +
+        xPanel('voice') +
         '<p class="hint">These rules are injected into every generation prompt in the platform, including TeleSuite. Banned phrases are enforced, not suggested.</p>' +
         '<div class="field"><label>Tone <span class="note">how the brand sounds</span></label>' +
           '<input type="text" data-path="voice.tone" value="' + esc(brand.voice.tone) + '" placeholder="warm, plain spoken, never hyped"></div>' +
@@ -529,6 +577,7 @@
     else if (step === 5) {
       c.innerHTML =
         '<h2>Data and catalog</h2>' +
+        xPanel('data') +
         '<p class="hint">Where you sell, and what you sell. Product facts are only ever read from a source you supply — the platform will never invent a price, a URL or a product.</p>' +
         '<div class="field"><label>Regions and stores</label><div id="regions"></div>' +
           '<button type="button" class="btn" id="addRegion" style="margin-top:6px;padding:7px 13px;font-size:12px">+ Add region</button></div>' +
@@ -540,7 +589,7 @@
           '</div>' +
           '<div data-panel="storefront">' +
             '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc((brand.regions[0] && brand.regions[0].store_url) || '') + '">' +
-            '<p class="muted" style="margin-top:6px">Reads the store\'s public product feed at <code>/products.json</code> (Shopify and compatible). Read only, no credentials, and the source is recorded on every row.</p>' +
+            '<p class="muted" style="margin-top:6px">Reads the store\'s public product feed at <code>/products.json</code> (Shopify and compatible). If there is no feed there, it crawls your own pages instead and takes only what they DECLARE in structured data. Read only, no credentials, and the source is recorded on every row.</p>' +
           '</div>' +
           '<div data-panel="csv" style="display:none">' +
             '<textarea id="impCsv" placeholder="title,handle,sku,price,currency,image,url&#10;Ethiopia Guji,ethiopia-guji,EG-250,18.00,USD,https://...,https://..."></textarea>' +
@@ -651,6 +700,325 @@
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest && e.target.closest('[data-preset]');
     if (b) { applyPreset(b.getAttribute('data-preset')); }
+  });
+
+  /* ── Read my brand from my website ────────────────────────────────────────
+     The wizard used to make the operator type every one of these in by hand.
+     /api/brand?op=extract reads them off the brand's own site and hands back
+     ranked CANDIDATES, each carrying the page and the signal that produced it.
+
+     Two rules this UI exists to keep visible:
+       1. Nothing is applied automatically. Every value needs a Use press, so a
+          weak signal can never quietly become the brand's identity.
+       2. A field the site did not publish is shown as a
+          [DATA REQUIRED BEFORE LAUNCH: ...] marker, never as a plausible value.
+     Applied values record their source into brand_data.brand_extraction, so a
+     fact stays traceable after onboarding closes. */
+
+  var XLABEL = { declared: 'declared', strong: 'strong', weak: 'weak' };
+
+  function xTag(conf) {
+    var c = XLABEL[conf] || 'weak';
+    return '<span class="xtag ' + c + '">' + esc(c) + '</span>';
+  }
+  function xSrcLine(c) {
+    return '<div class="xsrc">' + xTag(c.confidence) + esc(c.signal || '') +
+      (c.source_url ? ' &middot; <span>' + esc(c.source_url) + '</span>' : '') +
+      (c.evidence && c.evidence !== c.value ? '<br>' + esc(c.evidence) : '') + '</div>';
+  }
+  function xRow(label, field, act, extra) {
+    if (!field) return '';
+    if (!field.value) {
+      return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
+        '<div class="marker">' + esc(field.marker || '') + '</div>' +
+        '<div class="xsrc">Your site did not publish this. Type it in below.</div></div></div>';
+    }
+    var alts = (field.candidates || []).slice(1, 5).map(function (c, i) {
+      return '<button type="button" class="xalt" data-xa="' + esc(act) + '" data-xi="' + (i + 1) + '">' +
+        esc(String(c.value).slice(0, 60)) + (c.off_origin ? ' <span class="xtag flag">off site</span>' : '') + '</button>';
+    }).join('');
+    return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
+      '<div class="xval">' + esc(String(field.value).slice(0, 200)) + '</div>' + xSrcLine(field) +
+      (extra || '') + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
+      '</div><button type="button" class="xbtn" data-xa="' + esc(act) + '" data-xi="0">Use</button></div>';
+  }
+
+  function xColourRow(c, role) {
+    return '<div class="xcolrow">' +
+      '<span class="xsw" style="background:' + esc(c.value) + '"></span>' +
+      '<span><b style="font:600 12px ui-monospace,Menlo,monospace">' + esc(c.value) + '</b>' + xSrcLine(c) + '</span>' +
+      '<select data-xrole="' + esc(c.value) + '" aria-label="Assign this colour">' +
+        ['', 'primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].map(function (r) {
+          return '<option value="' + esc(r) + '">' + (r ? 'Use as ' + esc(r) : 'Assign to...') + '</option>';
+        }).join('') +
+      '</select></div>';
+  }
+
+  var XROLE_TITLE = {
+    identity: 'Declared brand colour', action: 'Action / CTA colour', surface: 'Page ground',
+    ink: 'Body text', muted: 'Secondary text', support: 'Everything else, ranked'
+  };
+
+  function xPalettePanel() {
+    var p = extraction.fields.palette;
+    var out = '';
+    (p.conflicts || []).forEach(function (c) {
+      out += '<div class="xconflict"><b>Your brand colour and your button colour are not the same</b>' +
+        esc(c.message) + '</div>';
+    });
+    (p.notes || []).forEach(function (n) { out += '<div class="xconflict"><b>No brand colour was declared</b>' + esc(n) + '</div>'; });
+
+    var roleRows = ['primary', 'accent', 'ink', 'surface', 'muted'].map(function (k) {
+      var v = p.proposed[k], s = p.sources[k];
+      if (!v) return '<div class="xrow"><div class="xlabel">' + esc(k) + '</div><div class="xbody">' +
+        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: palette.' + esc(k) + ', all, all]</div></div></div>';
+      return '<div class="xrow"><div class="xlabel">' + esc(k) + '</div><div class="xbody">' +
+        '<div class="xval"><span class="xsw" style="background:' + esc(v) + '"></span> ' + esc(v) + '</div>' +
+        (s ? xSrcLine({ confidence: 'declared', signal: s.signal, source_url: s.source_url, evidence: s.evidence }) : '') +
+        '</div></div>';
+    }).join('');
+
+    var buckets = Object.keys(p.roles || {}).map(function (role) {
+      var list = p.roles[role] || [];
+      if (!list.length) return '';
+      return '<div style="margin-top:12px"><div class="xlabel">' + esc(XROLE_TITLE[role] || role) + '</div>' +
+        list.slice(0, 8).map(function (c) { return xColourRow(c, role); }).join('') + '</div>';
+    }).join('');
+
+    var v = p.validation;
+    if (v && !v.ok && (v.errors || []).length) {
+      out += '<div class="xconflict"><b>This proposal would not pass the design rules</b>' +
+        v.errors.map(function (e) { return esc(e.message); }).join(' ') +
+        ' Adjust it below before activating.</div>';
+    }
+    return out + roleRows +
+      '<div style="margin-top:12px"><button type="button" class="xbtn" data-xa="palette-all" data-xi="0">Use this colour schema</button></div>' +
+      buckets;
+  }
+
+  function xTypePanel() {
+    var t = extraction.fields.typography;
+    function slot(label, list, act) {
+      if (!list.length) return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
+        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: typography.' + (act === 'font-heading' ? 'heading' : 'body') + ', all, all]</div></div></div>';
+      var alts = list.slice(1, 5).map(function (c, i) {
+        return '<button type="button" class="xalt" data-xa="' + esc(act) + '" data-xi="' + (i + 1) + '">' + esc(c.value) + '</button>';
+      }).join('');
+      return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
+        '<div class="xval">' + esc(list[0].value) + (list[0].google ? '' : ' <span class="xtag weak">not on Google Fonts</span>') + '</div>' +
+        xSrcLine(list[0]) + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
+        '</div><button type="button" class="xbtn" data-xa="' + esc(act) + '" data-xi="0">Use</button></div>';
+    }
+    return slot('Heading', t.heading, 'font-heading') + slot('Body', t.body, 'font-body');
+  }
+
+  function xVoicePanel() {
+    var v = extraction.fields.voice, c = extraction.fields.claims;
+    var out = '';
+    if (v && v.value) {
+      out += '<div class="xrow"><div class="xlabel">Observed tone</div><div class="xbody">' +
+        '<div class="xval">' + esc(v.value.tone) + '</div>' +
+        '<div class="xsrc">' + esc(v.provenance || '') + '</div>' +
+        ((v.evidence || []).length ? '<div class="xsrc">' + v.evidence.map(function (e) { return '&ldquo;' + esc(e.quote) + '&rdquo;'; }).join('<br>') + '</div>' : '') +
+        '</div><button type="button" class="xbtn" data-xa="voice" data-xi="0">Use</button></div>';
+      if (v.banned_note) out += '<div class="xsrc" style="margin-top:8px">' + esc(v.banned_note) + '</div>';
+    } else {
+      out += '<div class="xrow"><div class="xlabel">Observed tone</div><div class="xbody">' +
+        '<div class="marker">' + esc((v && v.marker) || '') + '</div>' +
+        '<div class="xsrc">' + esc((v && v.note) || '') + '</div></div></div>';
+    }
+    if (c && c.candidates.length) {
+      out += '<div style="margin-top:12px"><div class="xlabel">Sentences your site publishes as checkable facts</div>' +
+        '<div class="xsrc">' + esc(c.note) + '</div>' +
+        c.candidates.map(function (x, i) {
+          return '<label class="xclaim"><input type="checkbox" data-xclaim="' + i + '">' +
+            '<span>' + esc(x.value) + xSrcLine(x) + '</span></label>';
+        }).join('') +
+        '<button type="button" class="xbtn" style="margin-top:9px" data-xa="claims" data-xi="0">Add the ticked sentences as verifiable claims</button></div>';
+    }
+    return out;
+  }
+
+  function xDataPanel() {
+    var r = extraction.fields.regions, s = extraction.fields.social, l = extraction.fields.legal;
+    var out = '';
+    if (r.candidates.length) {
+      out += '<div class="xrow"><div class="xlabel">Regions</div><div class="xbody">' +
+        '<div class="xval">' + r.candidates.map(function (x) { return esc(x.code); }).join(', ') + '</div>' +
+        '<div class="xsrc">' + (r.candidates[0].signals[0] ? esc(r.candidates[0].signals[0].signal) + ' &middot; ' + esc(r.candidates[0].signals[0].source_url) : '') + '</div>' +
+        '<div class="xsrc">' + esc(r.candidates[0].currency_note) + '</div>' +
+        '</div><button type="button" class="xbtn" data-xa="regions" data-xi="0">Use</button></div>';
+    } else {
+      out += '<div class="xrow"><div class="xlabel">Regions</div><div class="xbody"><div class="marker">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</div></div></div>';
+    }
+    if (s.candidates.length) {
+      out += '<div class="xrow"><div class="xlabel">Social</div><div class="xbody">' +
+        '<div class="xval">' + s.candidates.map(function (x) { return esc(x.platform); }).join(', ') + '</div>' +
+        '<div class="xsrc">' + s.candidates.map(function (x) { return esc(x.value); }).join('<br>') + '</div>' +
+        '</div><button type="button" class="xbtn" data-xa="social" data-xi="0">Use</button></div>';
+    }
+    if (l.candidates.length) {
+      out += xRow('Legal entity', {
+        value: l.candidates[0].value, signal: l.candidates[0].signal,
+        source_url: l.candidates[0].source_url, confidence: l.candidates[0].confidence,
+        evidence: l.candidates[0].evidence, candidates: l.candidates
+      }, 'legal');
+    }
+    if (l.documents.length) {
+      out += '<div class="xsrc" style="margin-top:8px">Policy pages found: ' +
+        l.documents.map(function (d) { return esc(d.url); }).join(' &middot; ') + '</div>';
+    }
+    return out;
+  }
+
+  function xPanel(key) {
+    if (extractError && key === 'brand') {
+      return '<div class="xtract"><h3>Could not read that site</h3><div class="xmeta">' + esc(extractError) + '</div></div>';
+    }
+    if (!extraction || !extraction.ok) return '';
+    var body = key === 'brand'
+      ? xRow('Brand name', extraction.fields.name, 'name') +
+        xRow('Tagline', extraction.fields.tagline, 'tagline') +
+        xRow('Logo', extraction.fields.logo, 'logo',
+          extraction.fields.logo.value && extraction.fields.logo.candidates[0] && extraction.fields.logo.candidates[0].off_origin
+            ? '<div class="xsrc"><span class="xtag flag">off site</span>Hosted on ' + esc(extraction.fields.logo.candidates[0].host || '') + ', which your brand has not declared as its own. Confirm it is yours before using it.</div>' : '') +
+        (extraction.fields.logo.inline_svg
+          ? '<div class="xsrc" style="margin-top:8px">' + esc(extraction.fields.logo.inline_svg.note) + '</div>' : '')
+      : key === 'colour' ? xPalettePanel()
+      : key === 'type' ? xTypePanel()
+      : key === 'voice' ? xVoicePanel()
+      : key === 'data' ? xDataPanel() : '';
+    if (!body) return '';
+    return '<div class="xtract"><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
+      '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
+        ' stylesheet(s) read. ' + esc(extraction.coverage_note) + ' Nothing below is applied until you press Use.</div>' +
+      '<div style="margin-top:10px">' + body + '</div>' +
+      (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
+        extraction.limits.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +
+      '</div>';
+  }
+
+  function extractBlock() {
+    return '<div class="xtract"><h3>Read my brand from my website</h3>' +
+      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
+      '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
+        '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(brand.website || '') + '">' +
+        '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +
+          (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>' +
+      '</div>' +
+      '<p class="xmeta" style="margin-top:8px">Same rules as the catalog importer: your own domain only, robots.txt respected, read only, and no page is fetched from a private or internal address.</p>' +
+      '</div>';
+  }
+
+  async function runExtract() {
+    if (extractBusy) return;
+    var input = $('xUrl');
+    var url = input ? input.value.trim() : '';
+    if (!url) { toast('Enter your website address first.'); return; }
+    extractBusy = true; extractError = ''; render();
+    try {
+      if (!brand.website) { brand.website = url; }
+      var r = await api('extract', { url: url, workspace_id: brand.id || undefined });
+      if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
+      extraction = r;
+      toast('Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.');
+    } catch (e) {
+      extraction = null;
+      extractError = e.message;
+      toast(e.message, 4600);
+    } finally {
+      extractBusy = false;
+      render();
+    }
+  }
+
+  /* Provenance survives onboarding: an applied value records where it came
+     from, so a fact can still be traced back to its page months later. */
+  function noteSource(field, c) {
+    if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {};
+    var x = brand.brand_data.brand_extraction;
+    if (!x) x = brand.brand_data.brand_extraction = { source: extraction ? extraction.start : '', extracted_at: new Date().toISOString(), applied: {} };
+    x.applied[field] = { value: typeof c.value === 'string' ? c.value : '', signal: c.signal || '', source_url: c.source_url || '', confidence: c.confidence || '' };
+  }
+
+  function pick(field, i) {
+    var list = (field && field.candidates) || [];
+    return list[i] || (i === 0 && field && field.value ? field : null);
+  }
+
+  function applyExtract(act, i) {
+    if (!extraction || !extraction.ok) return;
+    var f = extraction.fields, c;
+    if (act === 'name') { c = pick(f.name, i); if (!c) return; brand.name = c.value; if (!brand.id) brand.slug = slugify(c.value); noteSource('name', c); }
+    else if (act === 'tagline') { c = pick(f.tagline, i); if (!c) return; brand.tagline = c.value; noteSource('tagline', c); }
+    else if (act === 'logo') { c = pick(f.logo, i); if (!c) return; brand.logo_url = c.value; noteSource('logo_url', c); }
+    else if (act === 'legal') { c = f.legal.candidates[i]; if (!c) return; brand.brand_data = brand.brand_data || {}; brand.brand_data.legal_entity = c.value; noteSource('legal_entity', c); }
+    else if (act === 'palette-all') {
+      var p = f.palette.proposed;
+      ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].forEach(function (k) { if (p[k]) brand.palette[k] = p[k]; });
+      Object.keys(f.palette.sources || {}).forEach(function (k) { if (f.palette.sources[k]) noteSource('palette.' + k, Object.assign({ value: p[k] }, f.palette.sources[k])); });
+    }
+    else if (act === 'font-heading' || act === 'font-body') {
+      var slot = act === 'font-heading' ? 'heading' : 'body';
+      var list = f.typography[slot] || [];
+      c = list[i]; if (!c) return;
+      var generic = slot === 'heading' ? 'Georgia,serif' : 'system-ui,-apple-system,Segoe UI,sans-serif';
+      brand.typography[slot] = {
+        family: c.value, stack: c.stack || ("'" + c.value + "'," + generic),
+        google: c.google !== false, weights: c.weights || (slot === 'heading' ? '500;600;700' : '400;500;600;700')
+      };
+      if (c.google !== false) loadPreviewFont(c.value);
+      noteSource('typography.' + slot, c);
+    }
+    else if (act === 'voice') {
+      var v = f.voice && f.voice.value; if (!v) return;
+      brand.voice.tone = v.tone;
+      v.preferred.forEach(function (w) { if (brand.voice.preferred.indexOf(w) < 0) brand.voice.preferred.push(w); });
+      brand.voice.notes = v.notes || brand.voice.notes;
+      noteSource('voice.tone', { value: v.tone, signal: 'observed from public copy', source_url: (f.voice.sources || []).join(' '), confidence: 'weak' });
+    }
+    else if (act === 'claims') {
+      var boxes = document.querySelectorAll('[data-xclaim]');
+      var picked = [];
+      Array.prototype.forEach.call(boxes, function (b) { if (b.checked) picked.push(f.claims.candidates[+b.dataset.xclaim]); });
+      if (!picked.length) { toast('Tick the sentences you have approved first.'); return; }
+      brand.brand_data = brand.brand_data || {};
+      var have = Array.isArray(brand.brand_data.claims) ? brand.brand_data.claims : [];
+      picked.forEach(function (x) { if (x && have.indexOf(x.value) < 0) have.push(x.value); });
+      brand.brand_data.claims = have;
+      picked.forEach(function (x, n) { noteSource('claims[' + n + ']', x); });
+      toast('Added ' + picked.length + ' claim(s). They are yours to approve, and only approved ones may be used as facts.');
+    }
+    else if (act === 'social') {
+      brand.brand_data = brand.brand_data || {};
+      brand.brand_data.social = f.social.candidates.map(function (x) { return { platform: x.platform, url: x.value, source_url: x.source_url, signal: x.signal }; });
+      toast('Saved ' + f.social.candidates.length + ' social profile(s).');
+    }
+    else if (act === 'regions') {
+      brand.regions = f.regions.candidates.map(function (x) {
+        var existing = brand.regions.filter(function (r) { return r.code === x.code; })[0] || {};
+        return { code: x.code, currency: existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '' };
+      });
+      toast('Set ' + brand.regions.length + ' region(s). Currency is still yours to fill in.');
+    }
+    render();
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-xa]') : null;
+    if (t) { applyExtract(t.getAttribute('data-xa'), +t.getAttribute('data-xi') || 0); return; }
+    var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
+    if (run) runExtract();
+  });
+
+  document.addEventListener('change', function (e) {
+    var sel = e.target;
+    if (!sel || !sel.getAttribute || !sel.getAttribute('data-xrole')) return;
+    var role = sel.value;
+    if (!role) return;
+    brand.palette[role] = sel.getAttribute('data-xrole');
+    noteSource('palette.' + role, { value: sel.getAttribute('data-xrole'), signal: 'operator assigned from an extracted candidate', source_url: extraction ? extraction.start : '', confidence: 'declared' });
+    render();
   });
 
   function actions(back, next) {
@@ -838,6 +1206,15 @@
           if (r.brand.typography && r.brand.typography.heading) brand.typography = r.brand.typography;
           if (r.brand.voice) brand.voice = Object.assign(brand.voice, r.brand.voice);
           if (r.brand.regions && r.brand.regions.length) brand.regions = r.brand.regions;
+          // brand_data is the overflow column: verifiable claims, social
+          // profiles, legal entity, market study, extraction provenance. The
+          // wizard sends its whole model on every save and buildRow() takes any
+          // object it is given, so NOT loading it here meant simply opening an
+          // existing brand and pressing Next silently replaced all of that with
+          // {} - and claims are what every generator is allowed to state as
+          // fact, so the loss is invisible until an asset comes out with a
+          // DATA REQUIRED marker where its proof line was.
+          if (r.brand.brand_data && typeof r.brand.brand_data === 'object') brand.brand_data = r.brand.brand_data;
           catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
           [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });
           var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);
