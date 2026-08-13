@@ -348,6 +348,11 @@
     { id: 'avatars', label: 'Avatars (Personas)', href: '/avatars', icon: 'avatars', ver: 'v2', match: ['/avatars', '/personas', '/avatars.html'] },
 
     { section: 'Plan' },
+    // Growth OS sits first in Plan because it frames everything under it: the
+    // funnel, the north star and the ranked experiment list are what a calendar
+    // is supposed to serve. It is built from the brand record alone, so it is
+    // the one feature here that renders in full on day one with nothing connected.
+    { id: 'growthos', label: 'Growth OS', href: '/growth-os', icon: 'insights', ver: 'v2', match: ['/growth-os', '/growth', '/growth-os.html'] },
     // Automated Calendar Creation — the ONE calendar + asset-generation feature.
     // A single flat feature, NO sub-items: it combines the best logic of the
     // former Smart Brain engine, the Mailer Calendar and the Plan Calendar into
@@ -456,6 +461,22 @@
         ['Design + layout + structure', 'Palette and typography drive mailer, ad and landing-page rendering; the live preview shows the pairing before saving.'],
         ['Coding', 'Persisted via /api/kb?action=brand-kit (GET reads, POST upserts) - no thirteenth serverless function, it extends the existing KB router.'],
         ['Final compilation + presentation', 'Saved values are what the next generated asset uses. Runs via: /api/kb?action=brand-kit'],
+      ],
+    },
+    growthos: {
+      title: 'Growth OS',
+      what: "The growth operating picture for the active brand: a ranked experiment roadmap, a funnel audit with the largest expected leak marked, a checklist audit of the surfaces that carry conversion, a north-star metric with its input and channel metrics, a cohort framework, a 30-60-90 plan, a day-by-day first week, and the competitive read. It is what a growth lead would hand you in week one, built for whatever this brand happens to sell.",
+      who: "Whoever owns growth for the active brand, on day one. It is the first page to open on a new workspace, because it renders in full before anything is connected.",
+      how: "The model is chosen from what the brand actually offers, by weight rather than by presence, so a store is run as a store and a publisher as a publisher: the funnel, the north star and the whole experiment library change with it. Experiment confidence is computed rather than asserted - it rises when an experiment rests on a fact the brand has supplied, and falls when it depends on a number nobody has measured, which is what stops a day-one roadmap from looking equally certain about everything. Every figure carries its basis: measured, modelled or unset. A modelled sector benchmark is shown as a range and is never written into a value field, so it cannot be mistaken for this brand's own result.",
+      input: "Nothing to enter. It reads the active brand record: offerings, regions, claims and the recorded market study. Connecting analytics replaces modelled ranges with measured values.",
+      steps: [
+        ['Ideology', 'Same depth of growth thinking for every brand, and never a number this brand has not earned.'],
+        ['Data analysis + review + hypothesis', 'Picks the growth model from the offering mix, then instantiates the funnel, the KPI tree and the experiment library against it.'],
+        ['Business & strategy decisions', 'Scores every experiment on impact, computed confidence and ease, ranks by ICE, and marks as blocked any whose precondition the brand record does not yet satisfy.'],
+        ['Content', "Hypotheses are written with this brand's own offerings, regions and verifiable claims; nothing is carried over from another tenant."],
+        ['Design + layout + structure', 'Renders through the brand tokens, so the page re-skins with the brand like every other surface.'],
+        ['Coding', 'Deterministic and offline: no LLM, no network, no key, so the page always renders identically and instantly. Runs via: /api/brain?action=growth-os'],
+        ['Final compilation + presentation', 'Nine tabs over one model, plus an open-gaps list naming exactly what is missing before any of it can run on real numbers. Runs via: /api/brain?action=growth-os'],
       ],
     },
     appaudit: {
