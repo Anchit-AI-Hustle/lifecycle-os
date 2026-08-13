@@ -72,6 +72,13 @@ const SCOPED_TABLES = new Set([
   // 20260814090000 §3b — the backbone tables whose workspace_id was a legacy
   // TEXT column defaulting to the literal 'knickgasm'.
   'activity_logs', 'exports', 'agent_runs',
+  // 20260814100000 — the brand context pack and the field-provenance record.
+  // brand-context-pack.js already filters both explicitly on every call, so this
+  // is defence in depth rather than the primary guard: a pack is a whole brand's
+  // design system, knowledge base and repository list in one row, and a
+  // service-role read of it that forgot the filter would hand one brand's
+  // complete context to another.
+  'brand_context_packs', 'brand_field_provenance',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

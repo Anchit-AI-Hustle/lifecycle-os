@@ -259,6 +259,9 @@ function pickPlay({ cohortKey, productType, dateStr, lastUsedByPlay, isFirstSend
 // ─── Main generator ──────────────────────────────────────────────────────────
 
 async function generateLifecycleCalendar(input = {}) {
+  // The brand this calendar is being planned FOR. Hero photos resolve against
+  // its own catalogue only; the shipped products_*.json is tenant zero's.
+  const __brand = input.brand || null;
   const startDate = input.start_date ? new Date(input.start_date) : new Date();
   if (isNaN(startDate.getTime())) throw new Error(`invalid start_date: ${input.start_date}`);
   const days = Math.min(60, Math.max(7, +input.days || 30));
@@ -342,7 +345,9 @@ async function generateLifecycleCalendar(input = {}) {
         hero_handle: hero.hero_handle,
         hero_product: hero.hero_product,
         hero_price: hero.hero_price,
-        hero_image: hero.hero_image || catalogImage.imageFor(hero.hero_handle, market) || null,
+        // Scoped to the brand this calendar belongs to: the shipped catalogue is
+        // tenant zero's, so no other brand resolves a hero photo out of it.
+        hero_image: hero.hero_image || catalogImage.imageFor(hero.hero_handle, market, { brand: __brand }) || null,
         handle_verified: hero.handle_verified === true,
         subject_hint: buildSubjectHint({ playKey: play.key, hero, festival, cohortKey }),
         festival: festival ? festival.name : null,

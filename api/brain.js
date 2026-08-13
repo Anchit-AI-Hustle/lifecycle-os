@@ -382,10 +382,19 @@ module.exports = async function handler(req, res) {
         // "Knickgasm Jarvis" — turn an assistant reply + user text into in-app /
         // storefront navigation actions (product PDPs + tool routes). _shared/jarvis.js.
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        // The ACTIVE brand decides which catalogue may be searched for product
+        // links and which storefront may be linked. Without it every workspace's
+        // assistant offered to open tenant zero's PDPs on tenant zero's domain.
+        const navBrand = req.__workspaceId
+          ? await require('./_shared/workspace-scope.js').brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, req.__workspaceId).catch(() => null)
+          : null;
         const actions = jarvis.detectNavActions(
           b.userText || b.user_text || b.message || '',
           b.assistantText || b.assistant_text || b.reply || '',
-          { market: b.market || 'US' }
+          { market: b.market || 'US', brand: navBrand }
         );
         return res.json({ ok: true, actions });
       }

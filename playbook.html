@@ -57,17 +57,17 @@
   .nav-group[open] > summary .chev{transform:rotate(90deg);}
   .nav-link{transition:background .12s,color .12s,border-color .12s;}
   .nav-link:hover{background:rgba(171,135,67,.16);color:var(--knickgasm-chalk);}
-  .nav-link.active{background:var(--knickgasm-lava);color:var(--knickgasm-green);font-weight:700;}
+  .nav-link.active{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));font-weight:700;}
   .card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:14px;}
   .metric{background:#fff;border:1px solid var(--line);border-radius:12px;}
-  .metric .mv{font-family:'Montserrat',Georgia,serif;color:var(--knickgasm-green);}
+  .metric .mv{font-family:'Montserrat',Georgia,serif;color:var(--brand-primary-text,var(--knickgasm-green));}
   table.grid-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:900px;}
   table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
   table.grid-tbl th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;}
   table.grid-tbl tr:nth-child(even) td{background:var(--vh-panel-tan);}
   table.grid-tbl tr:last-child td{border-bottom:0;}
-  .tier-1{color:var(--knickgasm-green);font-weight:700;}
-  .tier-2{color:var(--knickgasm-lava);font-weight:700;}
+  .tier-1{color:var(--brand-primary-text,var(--knickgasm-green));font-weight:700;}
+  .tier-2{color:var(--brand-accent-text,var(--knickgasm-lava));font-weight:700;}
   .tier-3{color:var(--soft);font-weight:700;}
   details.blueprint{background:var(--knickgasm-ink);border-radius:12px;overflow:hidden;border:1px solid var(--line);}
   details.blueprint > summary{list-style:none;cursor:pointer;padding:14px 18px;color:var(--knickgasm-chalk);font-family:'Montserrat',Georgia,serif;font-size:16px;background:var(--knickgasm-green);display:flex;align-items:center;justify-content:space-between;gap:10px;}
@@ -78,7 +78,7 @@
   .flow-node{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;}
   .btn-primary{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:10px;font-weight:700;transition:filter .12s;}
   .btn-primary:hover{filter:brightness(1.15);}
-  .btn-lava{background:var(--knickgasm-lava);color:var(--knickgasm-green);border-radius:10px;font-weight:800;transition:filter .12s;}
+  .btn-lava{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));border-radius:10px;font-weight:800;transition:filter .12s;}
   .btn-lava:hover{filter:brightness(1.05);}
   select,input[type=text],textarea{font-family:inherit;}
   ::selection{background:var(--knickgasm-lava);color:#fff;}
@@ -212,7 +212,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <p class="text-[15px] max-w-3xl" style="color:var(--soft);">One command tower for how the active brand grows: the market it plays in, the buyers it serves, the pace it runs at each day, and the automation loop that turns a brief into a shipped mailer, ad, and synced Shopify asset. Every figure below is either a live-engine reading or a stated planning benchmark, labelled as such.</p>
         <div class="flex flex-wrap gap-2 pt-1">
           <span class="pill" style="background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-color:var(--knickgasm-green);">System One: Strategy</span>
-          <span class="pill" style="background:var(--knickgasm-lava);color:var(--knickgasm-green);border-color:var(--knickgasm-lava);">System Two: Automation</span>
+          <span class="pill" style="background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));border-color:var(--knickgasm-lava);">System Two: Automation</span>
           <span class="pill" style="color:var(--knickgasm-ink);">Brand-locked: 4-color palette, Montserrat + Instrument Sans</span>
         </div>
       </header>
@@ -237,7 +237,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
           </div>
           <div class="metric p-5" style="border-color:var(--knickgasm-lava);">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SAM</div>
-            <div class="mv text-lg mt-1" style="color:var(--knickgasm-lava);line-height:1.35;">Not sized</div>
+            <div class="mv text-lg mt-1" style="color:var(--brand-accent-text,var(--knickgasm-lava));line-height:1.35;">Not sized</div>
             <div class="text-[12.5px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: serviceable D2C segment sizing, active brand, per region]</div>
           </div>
           <div class="metric p-5" style="border-color:var(--knickgasm-green);border-width:2px;">
@@ -591,7 +591,7 @@ defaults:
           <div data-section id="cohort-001" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 001: The Craft Optimiser</h3>
-              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-green);">Loyalist</span>
+              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-primary-text,var(--knickgasm-green));">Loyalist</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Craft and provenance</div></div>
@@ -603,7 +603,7 @@ defaults:
           <div data-section id="cohort-002" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 002: The Rotation Loyalist</h3>
-              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava);">Subscriber</span>
+              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-accent-text,var(--knickgasm-lava));">Subscriber</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Continuity of the rotation</div></div>
@@ -615,7 +615,7 @@ defaults:
           <div data-section id="cohort-003" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 003: The Gifting Connector</h3>
-              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-green);">High-intent</span>
+              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-primary-text,var(--knickgasm-green));">High-intent</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Status and thoughtfulness</div></div>
@@ -627,7 +627,7 @@ defaults:
           <div data-section id="cohort-004" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 004: The Curious Switcher</h3>
-              <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava);">Switcher</span>
+              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-accent-text,var(--knickgasm-lava));">Switcher</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Discovery and low-risk trial</div></div>
@@ -653,17 +653,17 @@ defaults:
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net revenue (this hour)</div>
             <div class="mv text-3xl mt-1" id="pace-rev">$0</div>
-            <div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--knickgasm-green);">&nbsp;</div>
+            <div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">&nbsp;</div>
           </div>
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Unit order velocity</div>
             <div class="mv text-3xl mt-1" id="pace-vel">0</div>
-            <div class="text-[12px] mt-1" id="pace-vel-delta" style="color:var(--knickgasm-green);">orders / hr</div>
+            <div class="text-[12px] mt-1" id="pace-vel-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">orders / hr</div>
           </div>
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net new subscriptions</div>
             <div class="mv text-3xl mt-1" id="pace-sub">0</div>
-            <div class="text-[12px] mt-1" id="pace-sub-delta" style="color:var(--knickgasm-green);">this hour</div>
+            <div class="text-[12px] mt-1" id="pace-sub-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">this hour</div>
           </div>
         </div>
 
@@ -1081,8 +1081,8 @@ defaults:
     var li = document.createElement('li');
     li.className = 'flex items-start gap-2';
     li.style.wordBreak = 'break-all';
-    li.innerHTML = '<span style="color:var(--knickgasm-green);font-weight:700;">&#10003;</span>'+
-                   '<a class="code-out underline" style="color:var(--knickgasm-lava);" href="'+encodeURI(url)+'" target="_blank" rel="noopener">'+
+    li.innerHTML = '<span style="color:var(--brand-primary-text,var(--knickgasm-green));font-weight:700;">&#10003;</span>'+
+                   '<a class="code-out underline" style="color:var(--brand-accent-text,var(--knickgasm-lava));" href="'+encodeURI(url)+'" target="_blank" rel="noopener">'+
                    url.replace(/</g,'&lt;')+'</a>';
     list.appendChild(li);
   });
