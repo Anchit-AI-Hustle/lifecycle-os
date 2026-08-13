@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Growth OS</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<script src="/brand-context.js?early=1"></script>
+<script src="/auth.js?v=20260813" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
+    --surface:var(--brand-surface,#f7f7f7);--card:var(--brand-surface-alt,#fff);
+    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#e6e6e6);
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,system-ui,sans-serif);--body:var(--brand-font-body,system-ui,sans-serif);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 80px;min-height:100vh;font-size:14px}
+  .wrap{max-width:1240px;margin:0 auto}
+
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--head);font-size:32px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:780px}
+  h2{font-family:var(--head);font-size:19px;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:12.5px;line-height:1.6;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+
+  /* Data-basis chips. The whole page hangs off these: a number is never shown
+     without one, so a sector benchmark can never be mistaken for a measurement. */
+  .basis{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+         padding:2px 7px;border-radius:5px;vertical-align:middle;white-space:nowrap}
+  .basis-measured{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+  .basis-modelled{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+  .basis-unset{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+
+  .policy{border:1px solid var(--line);border-left:3px solid var(--warn);background:var(--card);
+          border-radius:10px;padding:14px 16px;margin:20px 0 24px;font-size:12.8px;line-height:1.65;color:var(--muted)}
+  .policy b{color:var(--ink)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .legend span{font-size:11.5px;color:var(--muted)}
+
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:26px}
+  .metric{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .metric .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;margin-bottom:7px}
+  .metric .val{font-family:var(--head);font-size:21px;font-weight:600;line-height:1.2;letter-spacing:-.01em;word-break:break-word}
+  .metric .note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:7px}
+
+  nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:22px}
+  .tab{padding:10px 15px;font-size:13px;font-family:var(--body);color:var(--muted);background:none;border:none;
+       border-bottom:2px solid transparent;cursor:pointer;transition:color .15s,border-color .15s}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--primary);font-weight:600}
+  .panel{display:none}
+  .panel.on{display:block;animation:gofade .18s ease-out}
+  @keyframes gofade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.panel.on{animation:none}}
+
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:var(--card);
+        color:var(--muted);cursor:pointer;font-family:var(--body);transition:background .12s,color .12s,border-color .12s}
+  .chip:hover{border-color:var(--primary);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:600}
+
+  /* min-width keeps the hypothesis column readable: without it the table
+     squeezes nine columns into the viewport and the reasoning becomes a
+     one-word-per-line ribbon. The .scroll wrapper takes the overflow. */
+  table{width:100%;min-width:940px;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  thead tr{background:color-mix(in srgb,var(--primary) 6%,transparent)}
+  th{padding:10px 13px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:left;
+     text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+  td{padding:12px 13px;font-size:13px;border-top:1px solid var(--line);vertical-align:top;line-height:1.55}
+  .scroll{overflow-x:auto;border-radius:12px}
+
+  .score{font-family:var(--head);font-weight:600;font-size:15px}
+  .pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .pill-ready{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+  .pill-blocked{background:color-mix(in srgb,var(--err) 13%,transparent);color:var(--err)}
+  .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin:2px 3px 0 0;
+       background:color-mix(in srgb,var(--primary) 9%,transparent);color:var(--primary);font-weight:600}
+  .why{color:var(--muted);font-size:12px;line-height:1.55;max-width:400px}
+  .ground{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:6px;font-style:italic}
+
+  .stage{margin-bottom:15px}
+  .stage-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+  .stage-name{font-size:13px;font-weight:600}
+  .stage-num{font-size:12px;color:var(--muted);white-space:nowrap}
+  .bar{background:color-mix(in srgb,var(--muted) 12%,transparent);border-radius:4px;height:9px;overflow:hidden;position:relative}
+  .bar i{display:block;height:100%;border-radius:4px;background:color-mix(in srgb,var(--primary) 45%,transparent)}
+  .bar.leak i{background:var(--accent)}
+  .stage-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:5px}
+  .leakflag{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:900px){.two,.three{grid-template-columns:1fr}}
+
+  .kpirow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+  .kpirow:first-of-type{border-top:none}
+  .kpiname{font-size:12.8px;line-height:1.5}
+  .kpimeta{text-align:right;white-space:nowrap;font-size:12px}
+  .kpival{font-weight:600}
+  .kpibench{color:var(--muted);font-size:11.5px;display:block;margin-top:3px}
+
+  .item{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font-size:12.8px;line-height:1.55}
+  .item:first-of-type{border-top:none}
+  .box{width:16px;height:16px;border:1.5px solid var(--line);border-radius:4px;flex-shrink:0;margin-top:2px;
+       cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--card);padding:0}
+  .box[aria-checked="true"]{background:var(--primary);border-color:var(--primary)}
+  .box[aria-checked="true"]::after{content:"";width:4px;height:8px;border:solid var(--on-primary);
+       border-width:0 2px 2px 0;transform:rotate(45deg);margin-top:-2px}
+  .item.done .txt{text-decoration:line-through;color:var(--muted)}
+  .grade-test{color:var(--muted);font-size:11.5px;display:block;margin-top:3px}
+
+  .phase{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin-bottom:6px}
+  .gtitle{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:14px 0 7px}
+
+  .tier{padding:11px 0;border-top:1px solid var(--line)}
+  .tier:first-of-type{border-top:none}
+  .tier b{font-size:12.8px}
+  .tier p{font-size:12px;color:var(--muted);line-height:1.55;margin-top:3px}
+  .src{font-size:11px;color:var(--muted);margin-top:4px}
+
+  .gap{background:color-mix(in srgb,var(--warn) 9%,transparent);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+       border-radius:9px;padding:11px 13px;font-size:12px;color:var(--ink);margin-bottom:8px;line-height:1.55}
+  .empty{color:var(--muted);font-size:13px;line-height:1.7;padding:22px;text-align:center}
+  .err{border-left:3px solid var(--err)}
+  .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+  .btn{font-family:var(--body);font-size:12.5px;font-weight:600;padding:9px 16px;border-radius:8px;cursor:pointer;
+       border:1px solid var(--line);background:var(--card);color:var(--ink);transition:border-color .12s}
+  .btn:hover{border-color:var(--primary)}
+  .btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Growth OS</div>
+  <h1 id="go-title">Growth OS</h1>
+  <p class="lede" id="go-lede">The growth operating picture for the active brand: what to test, in what order, against which metric, and what is still unknown.</p>
+
+  <div class="policy" id="go-policy" hidden>
+    <b>Where these numbers come from.</b>
+    <div id="go-policy-text" style="margin-top:5px"></div>
+    <div class="legend" id="go-legend"></div>
+  </div>
+
+  <div class="strip" id="go-strip"></div>
+
+  <nav class="tabs" id="go-tabs" role="tablist">
+    <button type="button" class="tab" role="tab" aria-selected="true"  data-tab="experiments">Experiments</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="funnel">Funnel audit</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="surfaces">Surface audit</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="kpis">Metrics and KPIs</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="cohorts">Cohorts</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="plan">30-60-90</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="week1">Week one</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="competitive">Competitive</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="gaps">Open gaps</button>
+  </nav>
+
+  <section class="panel on" id="panel-experiments">
+    <h2>Experiment roadmap</h2>
+    <p class="sub" id="go-exp-sub">Ordered by ICE, the average of impact, confidence and ease. Confidence is computed, not asserted: it drops where an experiment depends on a number this brand has not measured.</p>
+    <div class="filters" id="go-exp-filters"></div>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th>#</th><th>Experiment</th><th>Hypothesis</th><th>Metric</th>
+        <th>Impact</th><th>Confidence</th><th>Ease</th><th>ICE</th><th>Status</th>
+      </tr></thead>
+      <tbody id="go-exp-body"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="panel-funnel">
+    <h2>Funnel audit</h2>
+    <p class="sub" id="go-funnel-sub"></p>
+    <div class="two">
+      <div class="card" id="go-funnel-stages"></div>
+      <div class="card" id="go-funnel-actions"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-surfaces">
+    <h2>Surface audit</h2>
+    <p class="sub">The surfaces that carry conversion for this model. Grades are deliberately blank: this is a checklist of tests to apply against the real pages, not an assessment of pages nobody here has seen.</p>
+    <div class="two" id="go-surfaces"></div>
+  </section>
+
+  <section class="panel" id="panel-kpis">
+    <h2>Metrics and KPIs</h2>
+    <p class="sub">One north star, the inputs that move it, and the channel metrics underneath. Every value is blank until a real source is connected; the ranges beside them are sector benchmarks.</p>
+    <div class="two">
+      <div class="card" id="go-kpi-inputs"></div>
+      <div class="card" id="go-kpi-channels"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-cohorts">
+    <h2>Cohort framework</h2>
+    <p class="sub">How to cut the audience so the answers are causal rather than seasonal.</p>
+    <div class="three" id="go-cohorts"></div>
+  </section>
+
+  <section class="panel" id="panel-plan">
+    <h2>30-60-90 plan</h2>
+    <p class="sub">Measure, then experiment, then scale. The order matters more than the speed.</p>
+    <div class="three" id="go-plan"></div>
+  </section>
+
+  <section class="panel" id="panel-week1">
+    <h2>Week one</h2>
+    <p class="sub">A day-by-day first week. Tick items off as you go; progress is kept in this browser.</p>
+    <div class="two" id="go-week1"></div>
+  </section>
+
+  <section class="panel" id="panel-competitive">
+    <h2>Competitive picture</h2>
+    <p class="sub">Built only from this brand's own recorded market study. Naming a company as a competitor is a factual claim, so nothing is shown here that was not supplied and sourced.</p>
+    <div id="go-competitive"></div>
+  </section>
+
+  <section class="panel" id="panel-gaps">
+    <h2>Open gaps</h2>
+    <p class="sub">What is missing before any of this can be launched on real numbers.</p>
+    <div id="go-gaps"></div>
+    <div class="actions">
+      <a class="btn btn-primary" href="/onboarding">Complete the brand record</a>
+      <a class="btn" href="/connectors">Connect a data source</a>
+      <a class="btn" href="/analytics">Open analytics</a>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var DATA = null;
+  var expFilter = "all";
+
+  // Checklist ticks are namespaced by brand AND by growth model. The keys are
+  // positional (surface-0-0, week-1-2), so a single global key would carry a
+  // tick from one brand's first audit item onto an unrelated first item after a
+  // brand switch, and quietly falsify the operational record.
+  function doneKey(){
+    var b = (DATA && DATA.brand && DATA.brand.name) || "unknown";
+    var k = (DATA && DATA.model && DATA.model.kind) || "unknown";
+    return "growth-os-done:" + b + ":" + k;
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function el(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+  function basisChip(b){
+    var k = (b === "measured" || b === "modelled") ? b : "unset";
+    return '<span class="basis basis-' + k + '">' + k + '</span>';
+  }
+  function done(){
+    try { return JSON.parse(localStorage.getItem(doneKey()) || "{}"); } catch(e){ return {}; }
+  }
+  function setDone(map){
+    try { localStorage.setItem(doneKey(), JSON.stringify(map)); } catch(e){ /* private mode */ }
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────
+  function renderHeader(d){
+    var b = d.brand || {};
+    var m = d.model || {};
+    el("go-title").textContent = (b.name ? b.name + " " : "") + "Growth OS";
+    var bits = [];
+    if (m.label) bits.push("Model: " + m.label);
+    if (b.industry) bits.push(b.industry);
+    if (b.regions && b.regions.length) bits.push(b.regions.map(function(r){ return r.code; }).join(", "));
+    el("go-lede").textContent =
+      "What to test, in what order, against which metric, and what is still unknown."
+      + (bits.length ? " " + bits.join(" · ") + "." : "")
+      + (m.why ? " " + m.why : "");
+
+    var p = d.data_policy || {};
+    el("go-policy").hidden = false;
+    el("go-policy-text").textContent = p.statement || "";
+    var lg = p.legend || {};
+    el("go-legend").innerHTML = ["measured","modelled","unset"].map(function(k){
+      return '<span>' + basisChip(k) + " " + esc(lg[k] || "") + "</span>";
+    }).join("");
+  }
+
+  function renderStrip(d){
+    el("go-strip").innerHTML = (d.headline_metrics || []).map(function(m){
+      return '<div class="metric">'
+        + '<div class="lbl">' + esc(m.label) + "</div>"
+        + '<div class="val">' + esc(m.value || "—") + "</div>"
+        + '<div class="note">' + basisChip(m.basis) + " " + esc(m.note || "") + "</div>"
+        + "</div>";
+    }).join("");
+  }
+
+  function renderExpFilters(d){
+    var f = [{ key:"all", label:"All (" + (d.experiments||[]).length + ")" }]
+      .concat((d.lever_filters || []).map(function(l){ return { key:l.key, label:l.label }; }))
+      .concat([{ key:"ready", label:"Ready" }, { key:"blocked", label:"Blocked" }]);
+    el("go-exp-filters").innerHTML = f.map(function(x){
+      return '<button type="button" class="chip" data-filter="' + esc(x.key) + '" aria-pressed="'
+        + (x.key === expFilter ? "true" : "false") + '">' + esc(x.label) + "</button>";
+    }).join("");
+  }
+
+  function matches(e, f){
+    if (f === "all") return true;
+    if (f === "ready" || f === "blocked") return e.status === f;
+    return (e.levers || []).indexOf(f) !== -1;
+  }
+
+  function renderExperiments(){
+    var rows = (DATA.experiments || []).filter(function(e){ return matches(e, expFilter); });
+    if (!rows.length){
+      el("go-exp-body").innerHTML = '<tr><td colspan="9" class="empty">No experiment matches this filter.</td></tr>';
+      return;
+    }
+    el("go-exp-body").innerHTML = rows.map(function(e){
+      return "<tr>"
+        + '<td class="score">' + esc(e.rank) + "</td>"
+        + "<td><b>" + esc(e.name) + "</b><br>"
+          + (e.lever_labels || []).map(function(l){ return '<span class="tag">' + esc(l) + "</span>"; }).join("")
+        + "</td>"
+        + '<td><div class="why">' + esc(e.hypothesis) + "</div>"
+          + (e.grounding ? '<div class="ground">' + esc(e.grounding) + "</div>" : "")
+        + "</td>"
+        + "<td>" + (e.metrics || []).map(function(x){ return '<span class="tag">' + esc(x) + "</span>"; }).join("") + "</td>"
+        + "<td>" + esc(e.impact) + "</td>"
+        + "<td>" + esc(e.confidence) + "</td>"
+        + "<td>" + esc(e.ease) + "</td>"
+        + '<td class="score">' + esc(e.ice) + "</td>"
+        + '<td><span class="pill pill-' + esc(e.status) + '">' + esc(e.status) + "</span>"
+          + (e.status === "blocked" && e.blocked_reason ? '<div class="ground">' + esc(e.blocked_reason) + "</div>" : "")
+        + "</td>"
+        + "</tr>";
+    }).join("");
+  }
+
+  function renderFunnel(d){
+    var f = d.funnel || {};
+    var m = d.model || {};
+    var noun = m.conversion_noun || "conversion";
+    var article = /^[aeiou]/i.test(noun) ? "an" : "a";
+    el("go-funnel-sub").textContent =
+      "Stages for a " + (m.label || "").toLowerCase() + " model, ending in " + article + " " + noun
+      + ". No stage has a measured value yet, so each shows the sector benchmark range instead.";
+
+    var stages = (f.stages || []).concat(f.overall ? [Object.assign({}, f.overall, { note:"", is_primary_leak:false, overall:true })] : []);
+    el("go-funnel-stages").innerHTML = stages.map(function(s){
+      var mid = s.benchmark ? (s.benchmark[0] + s.benchmark[1]) / 2 : 0;
+      var width = Math.max(2, Math.min(100, s.overall ? mid * 12 : mid));
+      return '<div class="stage">'
+        + '<div class="stage-top">'
+          + '<span class="stage-name">' + esc(s.stage)
+            + (s.is_primary_leak ? ' <span class="leakflag">largest expected leak</span>' : "") + "</span>"
+          + '<span class="stage-num">' + (s.actual == null ? "—" : esc(s.actual) + "%")
+            + " <span style=\"opacity:.7\">vs " + esc(s.benchmark_label || "") + "</span> " + basisChip(s.basis) + "</span>"
+        + "</div>"
+        + '<div class="bar' + (s.is_primary_leak ? " leak" : "") + '"><i style="width:' + width + '%"></i></div>'
+        + (s.note ? '<div class="stage-note">' + esc(s.note) + "</div>" : "")
+        + "</div>";
+    }).join("");
+
+    // The action list is the funnel re-ordered by where the loss is, so the
+    // page never shows a leak without saying what to do about it.
+    var byLeak = (d.experiments || []).filter(function(e){ return e.status === "ready"; }).slice(0, 6);
+    el("go-funnel-actions").innerHTML =
+      "<h2 style=\"font-size:15px;margin-bottom:10px\">What to do about it</h2>"
+      + (byLeak.length
+        ? byLeak.map(function(e){
+            return '<div class="tier"><b>' + esc(e.name) + "</b>"
+              + '<p>' + esc(e.hypothesis) + "</p>"
+              + '<div class="src">ICE ' + esc(e.ice) + " · " + (e.lever_labels || []).join(", ") + "</div></div>";
+          }).join("")
+        : '<div class="empty">No experiment is ready to run. Clear the open gaps first.</div>');
+  }
+
+  function renderSurfaces(d){
+    var map = done();
+    el("go-surfaces").innerHTML = (d.surface_audits || []).map(function(s, si){
+      return '<div class="card"><h2 style="font-size:15px">' + esc(s.surface) + "</h2>"
+        + '<p class="sub" style="margin-bottom:10px">Grade each against the live page.</p>'
+        + (s.items || []).map(function(it, ii){
+            var key = "surface-" + si + "-" + ii;
+            var on = !!map[key];
+            return '<div class="item' + (on ? " done" : "") + '" data-key="' + esc(key) + '">'
+              + '<button type="button" class="box" role="checkbox" aria-checked="' + (on ? "true" : "false")
+                + '" aria-label="Mark checked" data-check="' + esc(key) + '"></button>'
+              + '<span class="txt"><b>' + esc(it.item) + "</b>"
+                + '<span class="grade-test">' + esc(it.test) + "</span></span>"
+              + "</div>";
+          }).join("")
+        + "</div>";
+    }).join("");
+  }
+
+  function renderKpis(d){
+    var k = d.kpis || {};
+    var ns = k.north_star || {};
+    el("go-kpi-inputs").innerHTML =
+      '<h2 style="font-size:15px">North star and inputs</h2>'
+      + '<div class="sub" style="margin-bottom:12px">' + esc(ns.why || "") + "</div>"
+      + '<div class="kpirow"><span class="kpiname"><b>' + esc(ns.name || "") + "</b></span>"
+        + '<span class="kpimeta"><span class="kpival">—</span> ' + basisChip(ns.basis)
+        + '<span class="kpibench">connect ' + esc(ns.connect || "a source") + "</span></span></div>"
+      + (k.inputs || []).map(function(m){
+          return '<div class="kpirow"><span class="kpiname">' + esc(m.name)
+            + (m.note ? '<span class="kpibench">' + esc(m.note) + "</span>" : "") + "</span>"
+            + '<span class="kpimeta"><span class="kpival">' + (m.actual == null ? "—" : esc(m.actual)) + "</span> "
+            + basisChip(m.basis)
+            + (m.benchmark_label ? '<span class="kpibench">benchmark ' + esc(m.benchmark_label) + "</span>" : "")
+            + "</span></div>";
+        }).join("");
+
+    el("go-kpi-channels").innerHTML =
+      '<h2 style="font-size:15px">Channel metrics</h2>'
+      + '<div class="sub" style="margin-bottom:12px">Blank until each platform is connected. No channel figure is modelled: a made-up return on ad spend is worse than none.</div>'
+      + (k.channels || []).map(function(c){
+          return '<div class="kpirow"><span class="kpiname">' + esc(c.name) + "</span>"
+            + '<span class="kpimeta"><span class="kpival">—</span> ' + basisChip(c.basis)
+            + '<span class="kpibench">connect ' + esc(c.connect) + "</span></span></div>";
+        }).join("");
+  }
+
+  function renderCohorts(d){
+    el("go-cohorts").innerHTML = (d.cohorts || []).map(function(c){
+      return '<div class="card"><div class="phase">' + esc(c.name) + "</div>"
+        + "<b style=\"font-size:12.8px\">Group by</b>"
+        + '<p class="sub" style="margin:4px 0 10px">' + esc(c.group_by) + "</p>"
+        + "<b style=\"font-size:12.8px\">Track</b>"
+        + '<p class="sub" style="margin-top:4px">' + esc(c.track) + "</p></div>";
+    }).join("");
+  }
+
+  function renderPlan(d){
+    el("go-plan").innerHTML = (d.plan || []).map(function(p){
+      return '<div class="card"><div class="phase">' + esc(p.phase) + "</div>"
+        + '<h2 style="font-size:15px;margin-bottom:2px">' + esc(p.title) + "</h2>"
+        + (p.groups || []).map(function(g){
+            return '<div class="gtitle">' + esc(g.title) + "</div>"
+              + (g.items || []).map(function(i){
+                  return '<div class="item"><span class="txt">' + esc(i) + "</span></div>";
+                }).join("");
+          }).join("")
+        + "</div>";
+    }).join("");
+  }
+
+  function renderWeek1(d){
+    var map = done();
+    el("go-week1").innerHTML = (d.week_one || []).map(function(w, wi){
+      return '<div class="card"><div class="phase">' + esc(w.day) + "</div>"
+        + '<h2 style="font-size:15px;margin-bottom:10px">' + esc(w.title) + "</h2>"
+        + (w.tasks || []).map(function(t, ti){
+            var key = "week-" + wi + "-" + ti;
+            var on = !!map[key];
+            return '<div class="item' + (on ? " done" : "") + '" data-key="' + esc(key) + '">'
+              + '<button type="button" class="box" role="checkbox" aria-checked="' + (on ? "true" : "false")
+                + '" aria-label="Mark done" data-check="' + esc(key) + '"></button>'
+              + '<span class="txt">' + esc(t) + "</span></div>";
+          }).join("")
+        + "</div>";
+    }).join("");
+  }
+
+  function renderCompetitive(d){
+    var c = d.competitive || {};
+    if (!c.available){
+      el("go-competitive").innerHTML = '<div class="card"><div class="gap">' + esc(c.gap || "") + "</div>"
+        + '<p class="sub" style="margin:0">' + esc(c.note || "") + "</p></div>";
+      return;
+    }
+    el("go-competitive").innerHTML = (c.markets || []).map(function(m){
+      return '<div class="card" style="margin-bottom:16px">'
+        + '<h2 style="font-size:16px">' + esc(m.headline || m.market) + "</h2>"
+        + '<p class="sub">Market: ' + esc(m.market) + "</p>"
+        + (m.sizing && m.sizing.length
+            ? '<div class="gtitle">Sizing</div>' + m.sizing.map(function(s){
+                return '<div class="tier"><b>' + esc(s.segment) + "</b>"
+                  + "<p>" + esc(s.size) + (s.cagr && s.cagr !== "-" ? " · growth " + esc(s.cagr) : "") + "</p>"
+                  + '<div class="src">Source: ' + esc(s.source) + "</div></div>";
+              }).join("")
+            : "")
+        + (m.tiers && m.tiers.length
+            ? '<div class="gtitle">Competitive tiers</div>' + m.tiers.map(function(t){
+                return '<div class="tier"><b>' + esc(t.name) + "</b><p>" + esc(t.note) + "</p></div>";
+              }).join("")
+            : "")
+        + (m.reads && m.reads.length
+            ? '<div class="gtitle">The read</div>' + m.reads.map(function(r){
+                return '<div class="item"><span class="txt">' + esc(r) + "</span></div>";
+              }).join("")
+            : "")
+        + (m.gaps && m.gaps.length
+            ? '<div class="gtitle">Known gaps in this picture</div>' + m.gaps.map(function(g){
+                return '<div class="gap">' + esc(g) + "</div>";
+              }).join("")
+            : "")
+        + "</div>";
+    }).join("");
+  }
+
+  function renderGaps(d){
+    var g = d.gaps || [];
+    el("go-gaps").innerHTML = g.length
+      ? g.map(function(x){ return '<div class="gap">' + esc(x) + "</div>"; }).join("")
+      : '<div class="card"><div class="empty">Nothing outstanding. Every input this page needs is present.</div></div>';
+  }
+
+  function renderAll(d){
+    DATA = d;
+    renderHeader(d);
+    renderStrip(d);
+    renderExpFilters(d);
+    renderExperiments();
+    renderFunnel(d);
+    renderSurfaces(d);
+    renderKpis(d);
+    renderCohorts(d);
+    renderPlan(d);
+    renderWeek1(d);
+    renderCompetitive(d);
+    renderGaps(d);
+  }
+
+  // ── interaction ───────────────────────────────────────────────────────────
+  // One delegated listener. Every control on this page carries a data attribute
+  // naming what it does, so nothing depends on a handler that could be renamed
+  // out from under it.
+  document.addEventListener("click", function(ev){
+    var t = ev.target;
+    if (!t || !t.closest) return;
+
+    var tab = t.closest("[data-tab]");
+    if (tab){
+      var name = tab.getAttribute("data-tab");
+      var tabs = document.querySelectorAll("#go-tabs .tab");
+      for (var i = 0; i < tabs.length; i++){
+        tabs[i].setAttribute("aria-selected", tabs[i] === tab ? "true" : "false");
+      }
+      var panels = document.querySelectorAll(".panel");
+      for (var j = 0; j < panels.length; j++){
+        panels[j].classList.toggle("on", panels[j].id === "panel-" + name);
+      }
+      return;
+    }
+
+    var filt = t.closest("[data-filter]");
+    if (filt){
+      expFilter = filt.getAttribute("data-filter");
+      var chips = document.querySelectorAll("#go-exp-filters .chip");
+      for (var k = 0; k < chips.length; k++){
+        chips[k].setAttribute("aria-pressed", chips[k] === filt ? "true" : "false");
+      }
+      renderExperiments();
+      return;
+    }
+
+    var check = t.closest("[data-check]");
+    if (check){
+      var key = check.getAttribute("data-check");
+      var map = done();
+      var next = !map[key];
+      if (next) map[key] = 1; else delete map[key];
+      setDone(map);
+      check.setAttribute("aria-checked", next ? "true" : "false");
+      var row = check.closest(".item");
+      if (row) row.classList.toggle("done", next);
+    }
+  });
+
+  // ── load ──────────────────────────────────────────────────────────────────
+  function failed(msg){
+    el("go-policy").hidden = false;
+    el("go-policy").classList.add("err");
+    el("go-policy-text").textContent = msg;
+    el("go-strip").innerHTML = "";
+    el("go-exp-body").innerHTML = '<tr><td colspan="9" class="empty">'
+      + esc(msg) + "</td></tr>";
+  }
+
+  // auth.js is deferred and the Supabase session resolves after it, so the very
+  // first paint can easily precede a usable token. Waiting briefly for one
+  // avoids sending an anonymous request that the router correctly refuses.
+  function whenAuthReady(cb, waited){
+    var w = waited || 0;
+    var s = null;
+    try { s = window.LifecycleAuth && window.LifecycleAuth.session; } catch(e){ s = null; }
+    if ((s && s.access_token) || w >= 4000) return cb();
+    setTimeout(function(){ whenAuthReady(cb, w + 200); }, 200);
+  }
+
+  function load(attempt){
+    var tries = attempt || 0;
+    var headers = { "Content-Type": "application/json" };
+    try {
+      var s = window.LifecycleAuth && window.LifecycleAuth.session;
+      if (s && s.access_token) headers.Authorization = "Bearer " + s.access_token;
+    } catch(e){ /* signed out: the endpoint answers with tenant zero */ }
+
+    fetch("/api/brain?action=growth-os", { headers: headers })
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+      .then(function(d){
+        if (!d) throw new Error("empty response");
+        // The router answers an unauthenticated request with ok:true plus an
+        // error code and empty collections, rather than substituting another
+        // brand's workspace. Checking only `ok` would let that through and
+        // render a blank dashboard, which reads as a brand with no growth
+        // opportunities instead of a session that is not ready yet.
+        if (d.error === "workspace_unresolved" && tries < 2){
+          // The session was still settling. Retry rather than stranding the
+          // page on an error the user can only clear by reloading by hand.
+          return setTimeout(function(){ load(tries + 1); }, 700 * (tries + 1));
+        }
+        if (d.error) throw new Error(d.note || d.error);
+        if (!d.ok) throw new Error("The growth model could not be built for this workspace.");
+        renderAll(d);
+      })
+      .catch(function(e){
+        failed("The growth picture could not be loaded (" + e.message
+          + "). It is built from the active brand record, so sign in and pick a brand, then reload.");
+      });
+  }
+
+  function boot(){ whenAuthReady(function(){ load(0); }); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+</script>
+</body>
+</html>

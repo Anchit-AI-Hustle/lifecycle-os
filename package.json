@@ -36,6 +36,10 @@
     "brand:presets": "node scripts/build-brand-presets.js",
     "audit:pages": "node scripts/audit-pages.js",
     "audit:pages:ci": "node scripts/audit-pages.js --fail",
+    "check:foreign": "node scripts/check-foreign-brands.js",
+    "check:foreign:ci": "node scripts/check-foreign-brands.js --fail",
+    "audit:interactions": "node scripts/audit-interactions.js",
+    "audit:interactions:ci": "node scripts/audit-interactions.js --fail",
     "retheme": "node scripts/retheme-legacy-palette.js",
     "test:isolation": "node scripts/test-brand-isolation.js --ci"
   },
