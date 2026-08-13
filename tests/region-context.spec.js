@@ -151,6 +151,34 @@ test('a brand with no region configured says so rather than inventing one', asyn
   expect(await page.evaluate(() => window.RegionContext.region)).toBe('');
 });
 
+test('a page that never asked for a picker still gets one, in the shared rail', async ({ page }) => {
+  // The complaint this answers: region selection was on 17 of 66 pages, so the
+  // other 49 rendered SOME market without ever saying which or letting you
+  // change it. The slot lives in auth.js's rail, so presence is a property of
+  // the shell rather than of whether a page author remembered.
+  await open(page, UK_US, 'Acme');
+  const slot = page.locator('#lifecycle-nav .lnav-region');
+  await expect(slot).toHaveCount(1);
+  await expect(slot.locator('.rgn-chip')).toHaveCount(2);
+
+  await slot.locator('[data-region-set="US"]').click();
+  expect(await page.evaluate(() => window.RegionContext.region)).toBe('US');
+});
+
+test('mounting the same slot twice does not stack repaint listeners', async ({ page }) => {
+  // The rail re-renders when auth resolves, so mount() genuinely runs more than
+  // once on the same node. Each call used to add another onChange listener.
+  await open(page, UK_US, 'Acme');
+  const chips = await page.evaluate(() => {
+    const host = document.querySelector('#lifecycle-nav .lnav-region');
+    window.RegionContext.mount(host);
+    window.RegionContext.mount(host);
+    window.RegionContext.setActive('US');
+    return host.querySelectorAll('.rgn-chip').length;
+  });
+  expect(chips).toBe(2);
+});
+
 test('the active chip stays legible whatever the brand palette is', async ({ page }) => {
   // A light primary with hardcoded white text is invisible. The chip takes its
   // colour from --brand-on-primary, which is contrast-computed per brand.
