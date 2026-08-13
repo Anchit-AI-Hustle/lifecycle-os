@@ -607,6 +607,16 @@
         setTimeout(function () { renderGrowthBand(); if (state.tab) openTab(state.tab); }, 10);
       });
     });
+    // The dataset arrives AFTER this script boots: the page starts with the
+    // analytics global cleared and only restores it once the active brand is
+    // resolved, then calls __daRefresh. Without following that hook the band
+    // would render once against an empty dataset and report every metric unset
+    // for a market that does in fact measure it.
+    var pageRefresh = window.__daRefresh;
+    window.__daRefresh = function () {
+      if (typeof pageRefresh === 'function') pageRefresh.apply(null, arguments);
+      renderGrowthBand();
+    };
     renderGrowthBand();
     loadGrowthModel();
     applyInitialTab();
