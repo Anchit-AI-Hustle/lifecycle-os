@@ -453,15 +453,28 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
 }
 
 // ── Agent 5: Design — one hero image reused with per-platform crops ──────────
-function heroPrompt(ideology, focus) {
+function heroPrompt(ctx, ideology, focus) {
+  // The palette was hardcoded to tenant zero's violet/lava/near-black/chalk, so
+  // every brand's generated hero was DIRECTED to be painted in one company's
+  // colours. It comes from the active brand's record now, and when a brand has
+  // no palette on file the prompt says so rather than borrowing one.
+  //
+  // (`brandName(ctx)` was also called here with no `ctx` in scope, which threw a
+  // ReferenceError that `step()`'s catch-all swallowed into the deterministic
+  // fallback - so this prompt never actually reached a model. Hence the param.)
+  const pal = (ctx && ctx.brand && ctx.brand.palette) || {};
+  const hexes = [pal.primary, pal.accent, pal.ink, pal.surface].filter(Boolean);
+  const paletteLine = hexes.length
+    ? ' Color palette strictly limited to ' + hexes.join(', ') + '.'
+    : ' [DATA REQUIRED BEFORE LAUNCH: brand palette, all, all] - do not choose colours until it is supplied.';
   return 'Premium editorial product photography for ' + brandName(ctx) + '. ' + ideology.visual_direction +
     ' Hero product: ' + focus.product.title + '.' +
     ' Composition with generous negative space so the frame crops cleanly to 4:5 portrait, 9:16 vertical and 2:3 pin.' +
-    ' Color palette strictly limited to deep deep purple #D0473E, antique lava #6A33D8, near-black #111111 and warm chalk #FFFFFF.' +
+    paletteLine +
     ' NO text, NO logos, NO watermarks, NO faces.';
 }
 async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line no-unused-vars
-  const prompt = heroPrompt(ctx.ideologyRef || ideology, ctx.focus);
+  const prompt = heroPrompt(ctx, ctx.ideologyRef || ideology, ctx.focus);
   const base = { image_prompt: prompt, crops: { '4:5': 'center crop to 1080x1350', '9:16': 'vertical center crop to 1080x1920', '16:9': 'horizontal crop to 1200x675', '1.91:1': 'horizontal crop to 1200x627', '2:3': 'tall crop to 1000x1500' } };
   // HARD RULE (system-wide): product/brand imagery MUST be a REAL Shopify catalog
   // pack-shot, never a diffusion-invented box — image models fabricate garbled
