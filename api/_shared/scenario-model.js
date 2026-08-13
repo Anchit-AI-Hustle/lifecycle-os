@@ -231,27 +231,54 @@ function eligibleSegments(allNames, levers) {
 
 // Engine 1 has no live performance data — derive an AOV from the analytics
 // product/segment revenue so the conversion value is grounded, not invented.
-function deriveAOV(analytics, market) {
+//
+// ── WHERE THE VALUE-PER-CONVERSION CAME FROM MUST TRAVEL WITH IT ────────────
+// The last branch reaches into AOV_FALLBACK_BY_MARKET, a table of numbers typed
+// once. That table says US 42 while tenant zero's own Shopify export measures an
+// AOV of 157.37, so a plan built without analytics understated projected revenue
+// by roughly 3.7x - and reported it in the same `projected_total_revenue` field,
+// with the same precision, as a plan built from real data. The only thing
+// separating them was the word "DEFAULTS" inside a prose `basis` string.
+//
+// deriveAOVDetail returns the basis alongside the number so projectMetrics can
+// state the assumption next to the figure it produced, and can raise a DATA
+// REQUIRED marker when the figure rests on the table rather than on measurement.
+// The table is deliberately NOT replaced with tenant zero's measured AOV: this
+// is a multi-brand platform and one brand's basket size is not another's.
+function deriveAOVDetail(analytics, market) {
   const a = analytics || {};
   const products = Array.isArray(a.products) ? a.products : [];
   const segments = Array.isArray(a.segments) ? a.segments : [];
   const [lo, hi] = DEFAULTS.VALUE_PER_CONV_CLAMP;
   const pRev = products.reduce((s, p) => s + num(p.revenue), 0);
   const pUnits = products.reduce((s, p) => s + num(p.units), 0);
-  if (pUnits > 0 && pRev > 0) return clamp(pRev / pUnits, lo, hi);
+  if (pUnits > 0 && pRev > 0) {
+    return { value: clamp(pRev / pUnits, lo, hi), basis: 'measured', source: 'analytics.products revenue / units' };
+  }
   const sRev = segments.reduce((s, x) => s + num(x.revenue), 0);
   const sCount = segments.reduce((s, x) => s + num(x.count), 0);
-  if (sCount > 0 && sRev > 0) return clamp(sRev / sCount, lo, hi);
-  return clamp(DEFAULTS.AOV_FALLBACK_BY_MARKET[market] || 40, lo, hi);
+  if (sCount > 0 && sRev > 0) {
+    return { value: clamp(sRev / sCount, lo, hi), basis: 'measured', source: 'analytics.segments revenue / customers' };
+  }
+  return {
+    value: clamp(DEFAULTS.AOV_FALLBACK_BY_MARKET[market] || 40, lo, hi),
+    basis: 'assumed',
+    source: `scenario-model DEFAULTS.AOV_FALLBACK_BY_MARKET[${market || 'default'}] — a planning constant, not this brand's measured basket size`,
+  };
 }
+function deriveAOV(analytics, market) { return deriveAOVDetail(analytics, market).value; }
 
 function buildEngine1Benchmark(analytics, market) {
+  const aov = deriveAOVDetail(analytics, market);
   return {
     conversionRate: DEFAULTS.EMAIL_CONVERSION_RATE,
     revPerRecipient: DEFAULTS.EMAIL_REV_PER_RECIPIENT,
     clickRate: DEFAULTS.EMAIL_CLICK_RATE,
     paidRoas: DEFAULTS.PAID_ROAS,
-    valuePerConv: deriveAOV(analytics, market),
+    valuePerConv: aov.value,
+    valuePerConvBasis: aov.basis,
+    valuePerConvSource: aov.source,
+    ratesBasis: 'assumed',
     source: 'DEFAULTS',
   };
 }
@@ -265,7 +292,8 @@ function buildEngine2Benchmark(analysis, market, cohortAvgLtv) {
   const meta = cb.meta || {};
   const live = num(email.avgConversionRate) > 0;
   const [lo, hi] = DEFAULTS.VALUE_PER_CONV_CLAMP;
-  const valuePerConv = num(cohortAvgLtv) > 0
+  const hasLtv = num(cohortAvgLtv) > 0;
+  const valuePerConv = hasLtv
     ? clamp(num(cohortAvgLtv) * DEFAULTS.LTV_FIRST_ORDER_SHARE, lo, hi)
     : clamp(DEFAULTS.AOV_FALLBACK_BY_MARKET[market] || 40, lo, hi);
   return {
@@ -274,6 +302,13 @@ function buildEngine2Benchmark(analysis, market, cohortAvgLtv) {
     clickRate: num(email.avgClickRate) > 0 ? num(email.avgClickRate) : DEFAULTS.EMAIL_CLICK_RATE,
     paidRoas: num(meta.avgRoas) > 0 ? num(meta.avgRoas) : DEFAULTS.PAID_ROAS,
     valuePerConv,
+    // LTV x LTV_FIRST_ORDER_SHARE is itself a modelled split of a measured LTV,
+    // so it is "derived", not "measured": the LTV is real, the 0.35 share is not.
+    valuePerConvBasis: hasLtv ? 'derived' : 'assumed',
+    valuePerConvSource: hasLtv
+      ? `cohort avg LTV x DEFAULTS.LTV_FIRST_ORDER_SHARE (${DEFAULTS.LTV_FIRST_ORDER_SHARE}) — the LTV is measured, the first-order share is a planning constant`
+      : `scenario-model DEFAULTS.AOV_FALLBACK_BY_MARKET[${market || 'default'}] — a planning constant, not this brand's measured basket size`,
+    ratesBasis: live ? 'measured' : 'assumed',
     source: live ? 'live-channelBenchmarks' : 'DEFAULTS',
   };
 }
@@ -345,6 +380,26 @@ function projectMetrics(plan, levers, benchmark) {
   const blendedRoas = paidSpend > 0 ? round(projectedRevenue / paidSpend, 2) : null;
 
   const band = { best: 'P75', medium: 'P50', conservative: 'P25', emergency: 'floor', instant: 'P50+warm' }[L.label] || 'P50';
+  // EVERY NUMBER ABOVE RESTS ON A CONSTANT. Say which, and say what it was.
+  //
+  // The old `basis` string named the SOURCE ("DEFAULTS") but never the VALUES,
+  // so a projection built on an assumed $42 basket and one built on a measured
+  // one were reported identically. An assumption a reader cannot see is an
+  // assumption they cannot challenge, and these figures are the ones a spend
+  // decision gets made against.
+  const ratesAssumed = (B.ratesBasis || 'assumed') !== 'measured';
+  const valueAssumed = (B.valuePerConvBasis || 'assumed') === 'assumed';
+  const assumptions = [
+    `Value per conversion ${round(B.valuePerConv, 2)} (${B.valuePerConvBasis || 'assumed'}: ${B.valuePerConvSource || B.source}).`,
+    `Email conversion rate ${B.conversionRate} and click rate ${B.clickRate} (${ratesAssumed ? 'planning constants, not this brand\'s measured rates' : 'measured from this brand\'s channel benchmarks'}), shifted to the ${band} band by a x${mult} response multiplier.`,
+    `Repeat sends to one segment in a week decay at ${DEFAULTS.FATIGUE_DECAY}^(k-1), capped at ${DEFAULTS.SEGMENT_SEND_CEILING} effective sends per segment per week.`,
+    paidSpend > 0
+      ? `Paid is an indicative planning overlay only: ${DEFAULTS.DEFAULT_PAID_SPEND_PER_PAID_ROW} notional spend per paid row x spendIndex ${num(L.spendIndex, 1)} x ROAS ${B.paidRoas} (${B.source === 'live-channelBenchmarks' ? 'measured' : 'planning constant'}). It is not a budget and not a booked media plan.`
+      : 'No paid channel is in this scenario mix, so paid spend and paid revenue are zero by construction, not by measurement.',
+  ];
+  if (valueAssumed || ratesAssumed) {
+    assumptions.push(`[DATA REQUIRED BEFORE LAUNCH: ${[valueAssumed ? 'measured average order value' : null, ratesAssumed ? 'measured email conversion and click rates' : null].filter(Boolean).join(', ')}, for this brand and market. Until they land these projections are MODELLED, and the absolute revenue figures should be read as scenario-relative comparisons rather than as forecasts.]`);
+  }
   const out = {
     scenario: L.label,
     horizon_days: L.horizonDays,
@@ -359,7 +414,13 @@ function projectMetrics(plan, levers, benchmark) {
     blended_roas: blendedRoas,
     response_band: band,
     bound: L.label === 'best' ? 'upper' : L.label === 'emergency' ? 'lower' : 'point',
-    basis: `owned: conversions x value-per-conv (${B.source}); paid: indicative planning estimate (spendIndex x notional/row x ROAS)`,
+    // 'measured' only when BOTH the response rates and the conversion value came
+    // from this brand's own data. Anything else is modelled and says so.
+    projection_basis: (!ratesAssumed && !valueAssumed) ? 'measured' : 'modelled',
+    value_per_conversion: round(B.valuePerConv, 2),
+    value_per_conversion_basis: B.valuePerConvBasis || 'assumed',
+    assumptions,
+    basis: `owned: conversions x value-per-conv ${round(B.valuePerConv, 2)} (${B.valuePerConvBasis || 'assumed'}, ${B.source}); paid: indicative planning estimate (spendIndex x notional/row x ROAS)`,
     constants_version: CONSTANTS_VERSION,
     _internal: true,
   };
@@ -465,6 +526,7 @@ module.exports = {
   scaleCadence,
   eligibleSegments,
   deriveAOV,
+  deriveAOVDetail,
   buildEngine1Benchmark,
   buildEngine2Benchmark,
   projectMetrics,

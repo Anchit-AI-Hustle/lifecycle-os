@@ -79,11 +79,29 @@ function live() {
 // referrers / sessions replace the CSV equivalents for that market; every other
 // CSV field (weekly, product_types, cohort, ...) is preserved. Markets that exist
 // ONLY in the live overlay (e.g. GLOBAL, IN once authorized) are added wholesale.
+//
+// ── THE OVERLAY DOES NOT GET TO RENAME THE SOURCE ──────────────────────────
+// This used to stamp `live: { source: 'shopify_admin_mcp' }` on every market the
+// overlay merely MENTIONED, and both readers below turn that stamp into the
+// sentence "Live Shopify Admin snapshot (pulled <date>)". The shipped overlay
+// carries no summary, monthly or product rows at all - only headline figures and
+// a note declaring itself "DEMO SAMPLE DATA - synthetic, not real sales history"
+// - so the honest CSV export was being relabelled as a live Admin pull on the
+// strength of a file that says it is neither live nor real. A provenance line is
+// a factual claim like any other.
+//
+// So: the stamp is applied only when the overlay actually CONTRIBUTES a measured
+// series for that market, and it carries the overlay's own declared nature
+// (`synthetic`) so the readers describe what it really is.
+const SYNTHETIC_RX = /\b(demo|synthetic|sample|seeded|simulat)/i;
+const LIVE_SERIES_KEYS = ['monthly', 'summary', 'top_products', 'referrers', 'sessions', 'customers_monthly'];
 function mergeLive(base) {
   const lv = live();
+  const synthetic = SYNTHETIC_RX.test(String(lv.generated_note || '') + ' ' + String(lv.source || ''));
   const out = { ...base, currency: { ...(base.currency || {}) }, markets: { ...(base.markets || {}) } };
   for (const [mk, l] of Object.entries(lv.markets || {})) {
     const prev = out.markets[mk] || {};
+    const contributes = LIVE_SERIES_KEYS.some((k) => l[k]);
     out.markets[mk] = {
       ...prev,
       ...(l.monthly ? { monthly: l.monthly } : {}),
@@ -92,11 +110,27 @@ function mergeLive(base) {
       ...(l.referrers ? { referrers: l.referrers } : {}),
       ...(l.sessions ? { sessions: l.sessions } : {}),
       ...(l.customers_monthly ? { customers_monthly: l.customers_monthly } : {}),
-      live: { source: lv.source || 'shopify_admin_mcp', pulled_at: l.pulled_at || lv.pulled_at || null, shop: l.shop || null, store_url: l.store_url || null },
+      ...(contributes
+        ? { live: { source: lv.source || 'shopify_admin_mcp', synthetic, pulled_at: l.pulled_at || lv.pulled_at || null, shop: l.shop || null, store_url: l.store_url || null } }
+        : {}),
     };
-    if (l.currency) out.currency[mk] = l.currency;
+    // A market the overlay only NAMES (no series merged, no CSV base) has
+    // nothing measured in it. Leaving it in `markets` made performance() answer
+    // ok:true with every field null, which reads as "we measured this market and
+    // it is empty" rather than "we have no data for this market".
+    if (!contributes && !Object.keys(prev).length) delete out.markets[mk];
+    if (l.currency && out.markets[mk]) out.currency[mk] = l.currency;
   }
   return out;
+}
+/** How to describe a market's provenance in one line, without overclaiming. */
+function sourceLine(m) {
+  if (!m || !m.live) return 'Real Shopify CSV export';
+  const where = m.live.store_url || m.live.shop || 'connected store';
+  if (m.live.synthetic) {
+    return `DEMO SAMPLE DATA (${m.live.source || 'generated'}) - synthetic, not a measurement of this store. [DATA REQUIRED BEFORE LAUNCH: real order export or Shopify Admin connection]`;
+  }
+  return `Live Shopify Admin snapshot (${where}, pulled ${m.live.pulled_at || 'recently'})`;
 }
 
 // Supported markets = whatever the CSV base or the live overlay actually carry.
@@ -152,22 +186,36 @@ function audienceUnscoped(market) {
     return { ok: false, market: mk, error: `No customer data loaded for ${mk} yet. Available now: ${have}. To add ${mk}, authorize the ${mk} Shopify store via the connected Shopify MCP (or drop its CSV export) — audience numbers are never fabricated for a market we have no data for.` };
   }
   const monthly = m.monthly || [];
-  const newC = Number(s.new_customers || 0);
-  const retC = Number(s.returning_customers || 0);
-  const total = newC + retC;
-  const src = m.live ? `Live Shopify Admin snapshot (${m.live.store_url || m.live.shop || 'connected store'}, pulled ${m.live.pulled_at || 'recently'})` : 'Real Shopify CSV export';
+  // ABSENT IS NOT ZERO. A market export only carries the columns its own source
+  // CSV had. Coercing a missing "Returning customers" column with `|| 0` made
+  // the UK base report 380 purchasing customers and a 0.0% returning rate, when
+  // the same export states the rate outright (21%) and simply never counted the
+  // returning customers. A missing field is null and says so; it is never
+  // folded into a total that then reads as measured.
+  const basis = m.summary_basis || {};
+  const measured = (k) => (basis[k] ? basis[k] === 'measured' : s[k] != null);
+  const val = (k) => (measured(k) ? Number(s[k]) : null);
+  const newC = val('new_customers');
+  const retC = val('returning_customers');
+  const total = (newC != null && retC != null) ? newC + retC : null;
+  const rate = val('returning_rate');
+  const src = sourceLine(m);
   const win = monthly.length ? `${monthLabel(monthly[0].month)} → ${monthLabel(monthly[monthly.length - 1].month)}` : 'the export window';
+  const gaps = ['new_customers', 'returning_customers', 'returning_rate', 'orders'].filter((k) => !measured(k));
   return {
     ok: true, market: mk, currency: cur(mk),
-    data_source: m.live ? 'shopify_admin_live' : 'shopify_csv_export',
+    data_source: m.live ? (m.live.synthetic ? 'demo_sample_data' : 'shopify_admin_live') : 'shopify_csv_export',
     source: src,
     window: win,
     purchasing_customers: total,
     new_customers: newC,
     returning_customers: retC,
-    returning_rate_pct: round2((s.returning_rate || 0) * 100),
-    orders: Number(s.orders || 0),
-    note: `Purchasing customers = unique buyers on the ${mk} store over ${win} (Shopify). Total email/SMS list size (all subscribers, including non-buyers) is a Klaviyo figure and is not counted here.`,
+    returning_rate_pct: rate == null ? null : round2(rate * 100),
+    orders: val('orders'),
+    basis: { new_customers: measured('new_customers') ? 'measured' : 'unset', returning_customers: measured('returning_customers') ? 'measured' : 'unset', returning_rate: measured('returning_rate') ? 'measured' : 'unset', purchasing_customers: total == null ? 'unset' : 'measured' },
+    unmeasured: gaps,
+    note: `Purchasing customers = unique buyers on the ${mk} store over ${win} (Shopify). Total email/SMS list size (all subscribers, including non-buyers) is a Klaviyo figure and is not counted here.`
+      + (gaps.length ? ` [DATA REQUIRED BEFORE LAUNCH: ${gaps.join(', ')}, ${mk}. The ${mk} export does not carry ${gaps.length > 1 ? 'those columns' : 'that column'}; ${gaps.length > 1 ? 'they are' : 'it is'} reported as unmeasured, never as zero.]` : ''),
   };
 }
 
@@ -186,10 +234,10 @@ function performanceUnscoped(market) {
     const a = monthly[monthly.length - 1], b = monthly[monthly.length - 2];
     return { latest: monthLabel(a.month), latest_sales: round2(a.sales), prev: monthLabel(b.month), prev_sales: round2(b.sales), change_pct: pctChange(a.sales, b.sales), note: 'latest month is partial — compare with the run-rate projection, not the raw month total' };
   })() : null;
-  const src = m.live ? `Live Shopify Admin snapshot (${m.live.store_url || m.live.shop || 'connected store'}, pulled ${m.live.pulled_at || 'recently'})` : 'Real Shopify CSV export';
+  const src = sourceLine(m);
   return {
     ok: true, market: mk, currency: cur(mk),
-    data_source: m.live ? 'shopify_admin_live' : 'shopify_csv_export',
+    data_source: m.live ? (m.live.synthetic ? 'demo_sample_data' : 'shopify_admin_live') : 'shopify_csv_export',
     live: m.live || null,
     window_note: `${src}${monthly.length ? ` covering ${monthLabel(monthly[0].month)} → ${monthLabel(monthly[monthly.length - 1].month)}` : ''}. The latest month is partial (in progress).`,
     summary: m.summary || null,
@@ -203,7 +251,12 @@ function performanceUnscoped(market) {
     referrers: m.referrers || [],
     sessions: m.sessions || [],
     discount_split: m.discount || [],
-    returning_customer_rate: m.summary ? round2((m.summary.returning_rate || 0) * 100) : null,
+    // null, not 0, when the export never measured it — a 0.0% returning rate is
+    // a retention emergency and must never be manufactured out of a missing
+    // column. `summary_basis` names which side of that line each field is on.
+    returning_customer_rate: (m.summary && m.summary.returning_rate != null)
+      ? round2(m.summary.returning_rate * 100) : null,
+    summary_basis: m.summary_basis || null,
   };
 }
 

@@ -116,7 +116,42 @@ async function authorize(req, { cron = false } = {}) {
 // zero purchases by construction, so a 0 reads as "sold nothing" and drags a
 // blended ROAS toward zero. ad-rows-core returns null there instead.
 const adRows = require('./ad-rows-core.js');
+/**
+ * Whose ad accounts are these? The same question `mailer()` and `landing()`
+ * already answer, applied to paid media.
+ *
+ * `ad-insights-core` authenticates from DEPLOYMENT env vars (META_ACCESS_TOKEN,
+ * GOOGLE_ADS_*, TIKTOK_*), so every signed-in brand was reading the deployment
+ * owner's advertiser account: its spend, its campaign names, its ROAS. The
+ * payload carried a `data_scope: deployment` caveat, and the block below spells
+ * out at length why a caveat is not a defence - the table paints either way.
+ * That reasoning was already applied to Klaviyo, WebEngage and the bundled sales
+ * export; paid media was the one surface still exempt from it.
+ *
+ * The rule now matches those: the deployment's connectors belong to TENANT ZERO,
+ * the workspace that owns this deployment. Any other workspace reads its own ad
+ * connection or nothing. Per-workspace ad credentials already exist in the
+ * connections registry (`meta_ads` / `google_ads` / `tiktok_ads`) but
+ * `ad-insights-core` cannot yet authenticate with them, so a brand that HAS
+ * connected an account is told exactly that, with a DATA REQUIRED marker,
+ * instead of being handed somebody else's numbers in the meantime.
+ */
+const AD_PROVIDERS = ['meta_ads', 'google_ads', 'tiktok_ads'];
+async function ownsDeploymentConnectors() {
+  try { return await require('./market-analytics.js').ownsBundledExport(); } catch (_) { return false; }
+}
 async function ads({ market = 'US', level = 'ad', since, until } = {}) {
+  const ws = await activeWorkspace();
+  if (!ws) return unconnected('paid media', 'No active brand workspace on this request; reload so the brand context loads.', { market, kpis: adRows.rollup([]), platforms: [], connected_platforms: [], pending_platforms: [] });
+  if (!(await ownsDeploymentConnectors())) {
+    const own = (await Promise.all(AD_PROVIDERS.map((p) => ownCreds(p)))).map(Boolean);
+    const connected = AD_PROVIDERS.filter((_, i) => own[i]);
+    return unconnected('paid media',
+      connected.length
+        ? `This brand has connected ${connected.join(', ')}, but paid-media reporting cannot yet authenticate with a per-workspace ad credential. [DATA REQUIRED BEFORE LAUNCH: per-workspace ad-platform reporting auth, ${connected.join(', ')}.] The ad accounts configured on this deployment belong to another advertiser and are never reported as this brand's spend.`
+        : 'Connect Meta Ads, Google Ads or TikTok Ads to this brand on /connections. The ad accounts configured on this deployment belong to another advertiser and are never reported as this brand\'s spend.',
+      { market, workspace_id: ws, kpis: adRows.rollup([]), platforms: [], connected_platforms: [], pending_platforms: AD_PROVIDERS });
+  }
   const raw = await adsCore.summary({ market, level, metricGroup: 'all', since, until });
   const platforms = (raw.platforms || []).map((p) => { const rows = adRows.rowsFor(p); return { platform: p.platform, connected: Boolean(p.connected), ok: Boolean(p.ok), source: p.source || null, fetched_at: p.fetched_at || null, status: p.status || null, error: p.error || null, need_env: p.need_env || [], rows, kpis: adRows.rollup(rows), raw_note: p.hint || null }; });
   const rows = platforms.flatMap((p) => p.rows).sort((a,b) => b.spend - a.spend);
@@ -138,7 +173,7 @@ async function ads({ market = 'US', level = 'ad', since, until } = {}) {
   // connection. The page's empty state says which platform to connect. Any
   // future cached history must be stamped with the workspace that owns it and
   // filtered by the caller's workspace before it is returned.
-  return { ok: true, generated_at: iso(), data_scope: { level: 'deployment', note: 'These figures come from the ad accounts and warehouse connected to this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance until per-tenant connections exist.' }, market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
+  return { ok: true, generated_at: iso(), workspace_id: ws, data_scope: { level: 'workspace', basis: rows.length ? 'measured' : 'unset', of: 'paid media', note: 'Read from the ad accounts configured on this deployment, which this workspace owns. Another brand\'s workspace is served an empty result and the name of the connection that would fill it.' }, market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
 }
 
 // ── Whose numbers are these? ────────────────────────────────────────────────
@@ -272,11 +307,11 @@ async function actions(){
   const [activity,agents,outcomes,runs,reviews]=await Promise.all([getTable('activity_logs','created_at.desc',300),getTable('agent_runs','started_at.desc',200),ws?getTable('analytics_action_outcomes','created_at.desc',500):Promise.resolve([]),getTable('connector_sync_runs','started_at.desc',200),ws?getTable('smart_review_queue','created_at.desc',200):Promise.resolve([])]);
   const out=Array.isArray(outcomes)?outcomes:[], completed=out.filter((x)=>/complete|launched|measured|success/i.test(x.status||'')), failures=out.filter((x)=>/fail|error|rollback/i.test(x.status||'')||x.rolled_back), measured=out.filter((x)=>x.baseline_value!=null&&x.observed_value!=null), exp=out.filter((x)=>x.experiment_id), winners=exp.filter((x)=>n(x.observed_value)>n(x.baseline_value)&&!x.guardrail_breach);
   const rows=out;
-  const agentErrors=(Array.isArray(agents)?agents:[]).filter((x)=>/fail|error/i.test(x.status||'')).length, connectorErrors=(Array.isArray(runs)?runs:[]).filter((x)=>/fail|error/i.test(x.status||'')).length, denom=Math.max(1,(agents||[]).length+(runs||[]).length), revenue=out.reduce((a,x)=>a+n(x.incremental_revenue),0), cost=out.reduce((a,x)=>a+n(x.cost),0);
+  const agentErrors=(Array.isArray(agents)?agents:[]).filter((x)=>/fail|error/i.test(x.status||'')).length, connectorErrors=(Array.isArray(runs)?runs:[]).filter((x)=>/fail|error/i.test(x.status||'')).length, denom_observed=(Array.isArray(agents)?agents.length:0)+(Array.isArray(runs)?runs.length:0), denom=Math.max(1,denom_observed), revenue=out.reduce((a,x)=>a+n(x.incremental_revenue),0), cost=out.reduce((a,x)=>a+n(x.cost),0);
   return {ok:true,generated_at:iso(),workspace_id:ws||null,
     data_scope:{level:ws?'workspace':'unconnected',basis:out.length?'measured':'unset',of:'action outcomes',
       note:'Action outcomes are this brand\'s own measured results. The platform health figures below (error_rate, recent_activity, connector_runs) are deployment telemetry and are labelled as such.'},
-    kpis:{actions_tracked:rows.length,completed_actions:completed.length,completion_rate:rate(completed.length,out.length),failed_or_rolled_back:failures.length,error_rate:rate(agentErrors+connectorErrors,denom),median_time_to_launch_hours:median(out.map((x)=>x.recommended_at&&x.launched_at?(new Date(x.launched_at)-new Date(x.recommended_at))/36e5:null).filter((x)=>x!=null&&x>=0)),measured_actions:measured.length,realized_incremental_revenue:revenue,realized_roi:rate(revenue,cost),guardrail_breaches:out.filter((x)=>x.guardrail_breach).length,rollback_rate:rate(out.filter((x)=>x.rolled_back).length,completed.length),experiment_win_rate:rate(winners.length,exp.length),pending_reviews:(Array.isArray(reviews)?reviews:[]).filter((x)=>/pending|tentative/i.test(x.state||x.status||'')).length},
+    kpis:{actions_tracked:rows.length,error_observations:denom_observed,completed_actions:completed.length,completion_rate:rate(completed.length,out.length),failed_or_rolled_back:failures.length,error_rate:rate(agentErrors+connectorErrors,denom),median_time_to_launch_hours:median(out.map((x)=>x.recommended_at&&x.launched_at?(new Date(x.launched_at)-new Date(x.recommended_at))/36e5:null).filter((x)=>x!=null&&x>=0)),measured_actions:measured.length,realized_incremental_revenue:revenue,realized_roi:rate(revenue,cost),guardrail_breaches:out.filter((x)=>x.guardrail_breach).length,rollback_rate:rate(out.filter((x)=>x.rolled_back).length,completed.length),experiment_win_rate:rate(winners.length,exp.length),pending_reviews:(Array.isArray(reviews)?reviews:[]).filter((x)=>/pending|tentative/i.test(x.state||x.status||'')).length},
     actions:rows.slice(0,200),
     platform_health:{scope:'deployment',recent_activity:(activity||[]).slice(0,50),connector_runs:(runs||[]).slice(0,50)},
     recent_activity:(activity||[]).slice(0,50),connector_runs:(runs||[]).slice(0,50),
@@ -289,21 +324,47 @@ async function actions(){
 // another brand's and overwrote its state row. The workspace is part of the
 // identity of an anomaly, not metadata about it.
 function addAnomaly(a, x, workspaceId){a.push({id:fingerprint([workspaceId||'unattributed',x.market||'ALL',x.source||'',x.metric||'',x.kind||'threshold'].join('|')),detected_at:iso(),severity:x.severity||'watch',kind:x.kind||'threshold',market:x.market||'ALL',source:x.source||'Data Analysis',metric:x.metric,current:x.current,baseline:x.baseline==null?null:x.baseline,threshold:x.threshold,message:x.message});}
+// A THRESHOLD MAY ONLY BE APPLIED TO A MEASURED NUMBER.
+//
+// ad-rows-core.rollup() deliberately returns NULL for roas, cpa and
+// conversion_rate when the rows carry no conversions or revenue: an account
+// whose checkout happens on a third party reports zero purchases by
+// construction, so a 0 there would read as "sold nothing". Every comparison
+// below used to run straight against those nulls, and JavaScript coerces
+// `null < 1.5` to true - so an account with NO attribution raised a critical
+// "blended ROAS is low" alert, and then threw a TypeError formatting
+// `null.toFixed(2)`, which took down the whole hourly run.
+//
+// `known()` is the gate: an unmeasured metric produces no anomaly at all. The
+// operator is told the metric is unmeasurable by the zero-conversion notice
+// below, which is a statement about attribution, not about performance.
+const known = (v) => Number.isFinite(Number(v)) && v !== null;
+// Fewest observations a percentage may be computed from before it is allowed to
+// trip a threshold. Below this the numerator is reported as a count, not a rate.
+const MIN_RATE_OBSERVATIONS = 10;
 function detectHourly({markets,actionData,previous,settings,workspaceId}){
   const addA = (arr, x) => addAnomaly(arr, x, workspaceId);
   const out=[],t=settings.thresholds,prevMarkets=previous&&previous.payload&&previous.payload.markets||{};
-  for(const [market,d] of Object.entries(markets)){const a=d.ads.kpis,m=d.mailer.kpis,l=d.landing.kpis,p=prevMarkets[market];
-    if(a.spend>=t.ad_spend_no_conversion&&a.conversions<=0)addA(out,{severity:'critical',market,source:'Paid Media',metric:'Spend with zero conversions',current:a.spend,threshold:t.ad_spend_no_conversion,message:`${market} spent ${a.spend.toFixed(2)} with no attributed conversions.`});
-    if(a.spend>0&&a.roas<t.ad_roas_min)addA(out,{severity:a.roas<t.ad_roas_min*.6?'critical':'watch',market,source:'Paid Media',metric:'ROAS',current:a.roas,threshold:t.ad_roas_min,message:`${market} blended ROAS is ${a.roas.toFixed(2)}.`});
-    if(p&&p.ads&&p.ads.kpis){const pa=p.ads.kpis;if(pa.ctr>0&&a.ctr<pa.ctr*(1-t.ad_ctr_drop_pct))addA(out,{market,source:'Paid Media',metric:'CTR drop',current:a.ctr,baseline:pa.ctr,threshold:t.ad_ctr_drop_pct,message:`${market} paid-media CTR fell versus the prior run.`});if(pa.spend>0&&a.spend>pa.spend*(1+t.ad_spend_spike_pct))addA(out,{market,source:'Paid Media',metric:'Spend spike',current:a.spend,baseline:pa.spend,threshold:t.ad_spend_spike_pct,message:`${market} spend spiked versus the prior run.`});}
-    if(m.delivered>=100&&m.open_rate<t.mailer_open_rate_min)addA(out,{market,source:'Mailer',metric:'Open rate',current:m.open_rate,threshold:t.mailer_open_rate_min,message:`${market} open rate is ${(m.open_rate*100).toFixed(1)}%.`});
-    if(m.delivered>=100&&m.click_rate<t.mailer_click_rate_min)addA(out,{market,source:'Mailer',metric:'Click rate',current:m.click_rate,threshold:t.mailer_click_rate_min,message:`${market} click rate is ${(m.click_rate*100).toFixed(2)}%.`});
-    if(m.delivered>=100&&m.unsubscribe_rate>t.mailer_unsubscribe_rate_max)addA(out,{severity:'critical',market,source:'Mailer',metric:'Unsubscribe rate',current:m.unsubscribe_rate,threshold:t.mailer_unsubscribe_rate_max,message:`${market} unsubscribe rate is ${(m.unsubscribe_rate*100).toFixed(2)}%.`});
-    if(l.visitors>=100&&l.conversion_rate<t.landing_conversion_rate_min)addA(out,{market,source:'Landing Pages',metric:'Conversion rate',current:l.conversion_rate,threshold:t.landing_conversion_rate_min,message:`${market} landing-page CVR is ${(l.conversion_rate*100).toFixed(2)}%.`});
+  for(const [market,d] of Object.entries(markets)){const a=d.ads.kpis||{},m=d.mailer.kpis||{},l=d.landing.kpis||{},p=prevMarkets[market];
+    if(n(a.spend)>=t.ad_spend_no_conversion&&!(n(a.conversions)>0))addA(out,{severity:'critical',market,source:'Paid Media',metric:'Spend with no attributed conversions',current:n(a.spend),threshold:t.ad_spend_no_conversion,message:`${market} spent ${n(a.spend).toFixed(2)} and no conversions were ATTRIBUTED to it. That is not the same as selling nothing: retail-media and marketplace accounts check out on a third party where this brand's pixel never fires, and awareness campaigns are not optimised to a purchase at all. Confirm the account's conversion setup before reading this as wasted spend; ROAS, CPA and conversion rate are reported as unmeasured, not as 0.`});
+    if(n(a.spend)>0&&known(a.roas)&&a.roas<t.ad_roas_min)addA(out,{severity:a.roas<t.ad_roas_min*.6?'critical':'watch',market,source:'Paid Media',metric:'ROAS',current:a.roas,threshold:t.ad_roas_min,message:`${market} blended ROAS is ${Number(a.roas).toFixed(2)}.`});
+    if(p&&p.ads&&p.ads.kpis){const pa=p.ads.kpis;if(known(pa.ctr)&&known(a.ctr)&&pa.ctr>0&&a.ctr<pa.ctr*(1-t.ad_ctr_drop_pct))addA(out,{market,source:'Paid Media',metric:'CTR drop',current:a.ctr,baseline:pa.ctr,threshold:t.ad_ctr_drop_pct,message:`${market} paid-media CTR fell versus the prior run.`});if(n(pa.spend)>0&&n(a.spend)>n(pa.spend)*(1+t.ad_spend_spike_pct))addA(out,{market,source:'Paid Media',metric:'Spend spike',current:n(a.spend),baseline:n(pa.spend),threshold:t.ad_spend_spike_pct,message:`${market} spend spiked versus the prior run.`});}
+    if(n(m.delivered)>=100&&known(m.open_rate)&&m.open_rate<t.mailer_open_rate_min)addA(out,{market,source:'Mailer',metric:'Open rate',current:m.open_rate,threshold:t.mailer_open_rate_min,message:`${market} open rate is ${(m.open_rate*100).toFixed(1)}%.`});
+    if(n(m.delivered)>=100&&known(m.click_rate)&&m.click_rate<t.mailer_click_rate_min)addA(out,{market,source:'Mailer',metric:'Click rate',current:m.click_rate,threshold:t.mailer_click_rate_min,message:`${market} click rate is ${(m.click_rate*100).toFixed(2)}%.`});
+    if(n(m.delivered)>=100&&known(m.unsubscribe_rate)&&m.unsubscribe_rate>t.mailer_unsubscribe_rate_max)addA(out,{severity:'critical',market,source:'Mailer',metric:'Unsubscribe rate',current:m.unsubscribe_rate,threshold:t.mailer_unsubscribe_rate_max,message:`${market} unsubscribe rate is ${(m.unsubscribe_rate*100).toFixed(2)}%.`});
+    if(n(l.visitors)>=100&&known(l.conversion_rate)&&l.conversion_rate<t.landing_conversion_rate_min)addA(out,{market,source:'Landing Pages',metric:'Conversion rate',current:l.conversion_rate,threshold:t.landing_conversion_rate_min,message:`${market} landing-page CVR is ${(l.conversion_rate*100).toFixed(2)}%.`});
     if(l.srm_flags>0)addA(out,{severity:'critical',market,source:'Experiments',metric:'Sample-ratio mismatch',current:l.srm_flags,threshold:0,message:`${l.srm_flags} PageDeck experiment(s) show sample-ratio mismatch.`});
-    for(const pform of d.ads.platforms){if(!pform.connected)addA(out,{severity:'info',market,source:'Connector',metric:`${pform.platform} Ads disconnected`,current:0,threshold:1,message:`${pform.platform} Ads is not connected for ${market}; no figures are invented.`});else if(!pform.ok)addA(out,{severity:'critical',market,source:'Connector',metric:`${pform.platform} Ads reporting error`,current:pform.status||0,threshold:200,message:`${pform.platform} Ads is connected for ${market} but the reporting request failed: ${pform.error||'unknown error'}.`});else if(pform.fetched_at&&Date.now()-new Date(pform.fetched_at).getTime()>t.connector_stale_hours*3600000)addA(out,{market,source:'Connector',metric:`${pform.platform} Ads stale`,current:(Date.now()-new Date(pform.fetched_at).getTime())/3600000,threshold:t.connector_stale_hours,message:`${pform.platform} Ads data for ${market} is older than ${t.connector_stale_hours} hours.`});}
+    for(const pform of (d.ads.platforms||[])){if(!pform.connected)addA(out,{severity:'info',market,source:'Connector',metric:`${pform.platform} Ads disconnected`,current:0,threshold:1,message:`${pform.platform} Ads is not connected for ${market}; no figures are invented.`});else if(!pform.ok)addA(out,{severity:'critical',market,source:'Connector',metric:`${pform.platform} Ads reporting error`,current:pform.status||0,threshold:200,message:`${pform.platform} Ads is connected for ${market} but the reporting request failed: ${pform.error||'unknown error'}.`});else if(pform.fetched_at&&Date.now()-new Date(pform.fetched_at).getTime()>t.connector_stale_hours*3600000)addA(out,{market,source:'Connector',metric:`${pform.platform} Ads stale`,current:(Date.now()-new Date(pform.fetched_at).getTime())/3600000,threshold:t.connector_stale_hours,message:`${pform.platform} Ads data for ${market} is older than ${t.connector_stale_hours} hours.`});}
   }
-  if(actionData.kpis.error_rate>t.action_error_rate_max)addA(out,{severity:'critical',source:'Actions',metric:'Execution error rate',current:actionData.kpis.error_rate,threshold:t.action_error_rate_max,message:`Action/connector error rate is ${(actionData.kpis.error_rate*100).toFixed(1)}%.`});
+  // A RATE NEEDS A DENOMINATOR BIG ENOUGH TO BE A RATE. error_rate divides by
+  // max(1, agent runs + connector runs), so a deployment with a single recorded
+  // run that failed reported a 100% execution error rate and paged somebody
+  // about it. One observation is an incident, not a rate; below the minimum the
+  // failures are still visible in the run list, they just do not cross a
+  // percentage threshold. The floor matches the >=100-delivered guard the mailer
+  // rates already use, scaled to how few runs a day this surface records.
+  const runObservations=n(actionData.kpis.error_observations);
+  if(runObservations>=MIN_RATE_OBSERVATIONS&&actionData.kpis.error_rate>t.action_error_rate_max)addA(out,{severity:'critical',source:'Actions',metric:'Execution error rate',current:actionData.kpis.error_rate,threshold:t.action_error_rate_max,message:`Action/connector error rate is ${(actionData.kpis.error_rate*100).toFixed(1)}% across ${runObservations} recorded runs.`});
   if(actionData.kpis.guardrail_breaches>0)addA(out,{severity:'critical',source:'Actions',metric:'Guardrail breach',current:actionData.kpis.guardrail_breaches,threshold:0,message:`${actionData.kpis.guardrail_breaches} measured action(s) breached a guardrail.`});
   const latestConnector=new Map();for(const r of actionData.connector_runs||[]){const id=text(r.connector_id||r.connector||r.source);if(id&&!latestConnector.has(id))latestConnector.set(id,r);}for(const [id,r] of latestConnector){if(r.started_at){const age=(Date.now()-new Date(r.started_at).getTime())/3600000;if(age>t.connector_stale_hours)addA(out,{source:'Connector',metric:`${id} sync stale`,current:age,threshold:t.connector_stale_hours,message:`${id} has not completed a recorded sync within ${t.connector_stale_hours} hours.`});}}
   return out;
