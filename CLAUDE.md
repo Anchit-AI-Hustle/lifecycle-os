@@ -413,7 +413,17 @@ This repo ships project slash commands in `.claude/commands/` that operate the b
 | Database | `/db` | `supabase` + `supabase-postgres-best-practices` + `supabase/migrations/` |
 | Ship | `/ship` | `vercel-plugin:deploy` / `:env` |
 
-**Every command enforces the Brand Constants above** (4-color palette, Montserrat/Instrument Sans, banned phrases, P01 "sell happiness").
+**Every command resolves the ACTIVE brand first (2026-08-13).** `.claude/commands/brand-context.md`
+is the FOUNDATION skill and every other skill references it before acting; `npm run check:skills`
+(CI gate) fails any skill that names tenant zero, carries its product vocabulary in an example, or
+skips the foundation. Structure follows the open **Agent Skills spec** (`agentskills.io`): `name`
+matching the filename plus a trigger-phrase `description`, so these work beyond Claude Code slash
+commands. The pattern came from `github.com/arnabbagxd/brand-building-skills` (MIT), whose
+`brand-context` foundation this repo lacked; ours differs where it matters - theirs is a
+questionnaire hand-filled into a markdown file, ours resolves the real workspace and can DERIVE from
+the brand's own site with per-field provenance, so a brand fact is never something typed from memory.
+Byte-exact carve-outs (real store URLs, `KNICKGASM_DB`, `anthropic-skills:knickgasm-d2c-mailer`) are
+preserved by the guard, the same way `brand-context.js` refuses to rewrite a text node holding a URL.
 
 ### Connecting the connectors (hosted OAuth MCP — connect once per account)
 These are not in `.mcp.json` (hosted OAuth servers, account-scoped). Connect via each server's `authenticate` → `complete_authentication` tool, or in the Claude **Connectors** UI:

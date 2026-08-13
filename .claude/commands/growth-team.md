@@ -1,11 +1,21 @@
 ---
-description: Knickgasm Growth OS — the full growth team. Routes any growth request to the right vertical (planning, creative, lifecycle, commerce, analytics, data). Run with no args for the map.
-argument-hint: "[what you want, e.g. 'plan a Q3 airbrush winback campaign']"
+name: growth-team
+description: Growth OS for the active brand — the full growth team. Routes any growth request to the right vertical (planning, creative, lifecycle, commerce, analytics, data). Run with no args for the map.
+argument-hint: "[what you want, e.g. 'plan a Q3 customisation winback campaign']"
 ---
 
-# Knickgasm Growth OS — full-stack growth team
+# the active brand Growth OS — full-stack growth team
 
-You are operating the **Knickgasm Lifecycle/Growth OS** for a custom sneakers + lifestyle D2C brand. This command is the router. Read the request in `$ARGUMENTS`, decide which vertical(s) it belongs to, and either dispatch to the matching command/skill or do the work directly using the wiring below.
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
+
+You are operating the **the active brand Lifecycle/Growth OS** for a D2C, media or services brand. This command is the router. Read the request in `$ARGUMENTS`, decide which vertical(s) it belongs to, and either dispatch to the matching command/skill or do the work directly using the wiring below.
 
 ## The team (verticals → command → tools)
 
@@ -47,7 +57,7 @@ You are operating the **Knickgasm Lifecycle/Growth OS** for a custom sneakers + 
 - **Palette (only these 4):** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk
 - **Type:** Headings = Montserrat (`'Montserrat','Raleway',Georgia,serif`); Body = Instrument Sans (`'Instrument Sans','Helvetica Neue',Arial,sans-serif`)
 - **BANNED phrases:** wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last
-- **PREFERRED:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted
+- **PREFERRED:** ritual, restore, balance, origin, one-of-one, made-to-order, lace-up, heritage, crafted
 - **Store URLs:** US `knickgasm.com` · UK `knickgasm.com` · IN `knickgasm.com` · EU `knickgasm.com` · AU `knickgasm.com`
 - **Active mandate:** Aman's P01 — *sell happiness, not features*. Lead with emotional/sensory benefit; bake approved copy into creatives (see `api/_shared/master-prompt.js`).
 

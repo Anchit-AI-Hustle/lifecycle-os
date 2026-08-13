@@ -1,9 +1,19 @@
 ---
-description: Create static/social design assets for Knickgasm via Canva, Figma, or Adobe Express.
+name: design
+description: Create static/social design assets for the active brand via Canva, Figma, or Adobe Express.
 argument-hint: "[asset, e.g. 'Instagram carousel for new hightop launch']"
 ---
 
 # Design generation
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Create the design asset described in `$ARGUMENTS`.
 

@@ -1,9 +1,19 @@
 ---
-description: Design and (optionally) build a Knickgasm lifecycle email/SMS flow in Klaviyo.
+name: email-flow
+description: Design and (optionally) build a lifecycle email/SMS flow for the active brand in Klaviyo.
 argument-hint: "[flow, e.g. 'post-purchase ritual education series, 4 emails']"
 ---
 
 # Lifecycle email/SMS flow
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Design the flow described in `$ARGUMENTS`.
 
