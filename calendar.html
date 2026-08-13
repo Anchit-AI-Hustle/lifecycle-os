@@ -244,7 +244,7 @@ const STATE = {
 // Load analytics summary from localStorage (set by retention-intelligence dashboard if present).
 function loadAnalyticsSummary() {
   try {
-    const stored = JSON.parse(localStorage.getItem('knickgasm-retention-data') || 'null');
+    const stored = JSON.parse(LCStore.get('knickgasm-retention-data') || 'null');
     if (!stored) return null;
 
     // Aggregate quickly: segments + products
@@ -537,18 +537,18 @@ function setStudioHandoff(entry, strategy, ctaUrl, variants) {
     variants: variants || null,
     ts: Date.now(),
   };
-  try { localStorage.setItem('knickgasm-studio-handoff', JSON.stringify(payload)); } catch {}
+  try { LCStore.set('knickgasm-studio-handoff', JSON.stringify(payload)); } catch {}
   const btn = $('openInStudio');
   if (btn) {
     // Re-stash at click time too (so the latest mailer wins if the user opened
     // several rows in a row before clicking through).
-    btn.onclick = () => { try { localStorage.setItem('knickgasm-studio-handoff', JSON.stringify(payload)); } catch {} };
+    btn.onclick = () => { try { LCStore.set('knickgasm-studio-handoff', JSON.stringify(payload)); } catch {} };
   }
 }
 
 let CURRENT_ENTRY = null;
-let APPROVED = (() => { try { return new Set(JSON.parse(localStorage.getItem('knickgasm-cal-approved') || '[]')); } catch { return new Set(); } })();
-function saveApproved() { try { localStorage.setItem('knickgasm-cal-approved', JSON.stringify([...APPROVED])); } catch {} }
+let APPROVED = (() => { try { return new Set(JSON.parse(LCStore.get('knickgasm-cal-approved') || '[]')); } catch { return new Set(); } })();
+function saveApproved() { try { LCStore.set('knickgasm-cal-approved', JSON.stringify([...APPROVED])); } catch {} }
 function refreshApproveState() {
   const el = $('approveState'); if (!el || !CURRENT_ENTRY) return;
   el.innerHTML = APPROVED.has(CURRENT_ENTRY.id)

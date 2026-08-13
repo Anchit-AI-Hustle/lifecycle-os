@@ -593,6 +593,60 @@
     window.fetch = stamped;
   })();
 
+  /**
+   * Brand-scoped localStorage.
+   *
+   * Every page in this suite stores working state under a flat key:
+   * the analytics handed from the dashboard to the calendar to the studio, the
+   * approved calendar slots, the ad set, the currency. None of them carried the
+   * brand, so switching brands showed the PREVIOUS brand's numbers and offers
+   * under the new brand's name, which is both wrong and the most convincing
+   * kind of wrong, since everything is labelled correctly.
+   *
+   * `scoped(key)` appends the active workspace id. `store` wraps the three
+   * localStorage calls so a page changes one call site, not three.
+   *
+   * Reads fall back to the UNSCOPED key once, so state saved before this
+   * existed is not thrown away on upgrade. The fallback is deliberately
+   * read-only: writes always go to the scoped key, so the legacy value is
+   * inherited once by whichever brand is active and never written back.
+   */
+  function activeId() {
+    try { return (state.brand && (state.brand.id || state.brand.slug)) || ''; } catch (_) { return ''; }
+  }
+  function scoped(key) {
+    var id = activeId();
+    return id ? String(key) + '::' + id : String(key);
+  }
+  var store = {
+    key: scoped,
+    get: function (key) {
+      try {
+        var v = localStorage.getItem(scoped(key));
+        if (v !== null) return v;
+        // One-time inheritance of pre-scoping state.
+        return activeId() ? localStorage.getItem(String(key)) : null;
+      } catch (_) { return null; }
+    },
+    set: function (key, value) {
+      try { localStorage.setItem(scoped(key), String(value)); return true; } catch (_) { return false; }
+    },
+    remove: function (key) {
+      try { localStorage.removeItem(scoped(key)); } catch (_) {}
+    },
+    /** Drop every scoped value for the active brand. Used when a brand is reset. */
+    clearBrand: function () {
+      var id = activeId();
+      if (!id) return;
+      try {
+        var suffix = '::' + id;
+        Object.keys(localStorage)
+          .filter(function (k) { return k.slice(-suffix.length) === suffix; })
+          .forEach(function (k) { localStorage.removeItem(k); });
+      } catch (_) {}
+    },
+  };
+
   window.BrandContext = {
     get brand() { return state.brand; },
     get needsOnboarding() { return state.needsOnboarding; },
@@ -606,6 +660,15 @@
     paint: paint,
     token: token,
     clearCache: clearCache,
+    scopedKey: scoped,
+    store: store,
     onChange: function (fn) { if (typeof fn === 'function') { listeners.push(fn); if (state.loaded) fn({ brand: state.brand, needsOnboarding: state.needsOnboarding, workspaces: state.workspaces }); } },
   };
+
+  /* Also exposed bare, because the pages that hold brand-scoped state are large
+     inline-script files where `LCStore.get(k)` at the existing call site is a
+     one-token change, and `window.BrandContext.store.get(k)` is not. This file
+     is loaded first in <head> (brand-context.js?early=1), so its IIFE has run
+     before any page script executes. */
+  window.LCStore = store;
 })();

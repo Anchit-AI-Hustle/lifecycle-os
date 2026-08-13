@@ -284,6 +284,23 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
     }
   }
 
+  // 7d. Brand-scoped working state must be stored per brand.
+  //     Every page here holds state between steps in localStorage: the analytics
+  //     handed from the dashboard to the calendar to the studio, the approved
+  //     slots, the ad set, the currency. Under a flat key, switching brands
+  //     shows the PREVIOUS brand's numbers and offers under the new brand's
+  //     name - the most convincing kind of wrong, because everything is
+  //     labelled correctly. window.LCStore (brand-context.js) appends the active
+  //     workspace id; these keys must go through it.
+  const BRAND_SCOPED_STATE = /^(?:knickgasm-(?:retention-data|cal-approved|studio-handoff|ads-v1|currency|last-agent-lp)|d2c_brand_profile)$/;
+  for (const m of html.matchAll(/localStorage\.(?:get|set|remove)Item\(\s*['"]([\w.-]+)['"]/g)) {
+    if (!BRAND_SCOPED_STATE.test(m[1])) continue;
+    if (isAsset) continue;                    // a tenant's own artefact page keeps its own state
+    add(file, 'BLOCKER', 'unscoped-brand-state',
+      `localStorage key "${m[1]}" holds brand-specific state but is not scoped to a brand - use LCStore.get/set/remove so a brand switch cannot inherit it`,
+      lineOf(html, m.index));
+  }
+
   // 8. Hardcoded brand identity on an APP page.
   if (!isAsset) {
     const brandHits = (text.match(/\bKNICKGASM\b|\bKnickgasm\b/g) || []).length;

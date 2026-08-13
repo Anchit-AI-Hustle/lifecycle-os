@@ -231,7 +231,7 @@
     })); } catch { return []; }
   }
   function localAds() {
-    try { const s = JSON.parse(localStorage.getItem('knickgasm-ads-v1') || '{}'); const out = [];
+    try { const s = JSON.parse(LCStore.get('knickgasm-ads-v1') || '{}'); const out = [];
       ['google','meta','tiktok'].forEach((ch) => (s[ch] || []).forEach((c) => out.push({
         kind: 'ad', name: c.name || '(ad)', market: c.market || '', tag: ch, channel: ch, image: c.image || '',
         created_at: new Date(parseInt((c.id || '').toString().slice(0, 8), 36) || Date.now()).toISOString(), email: '',
@@ -364,10 +364,10 @@
       list.unshift({ ...r, channel: ch, hero: (r.hero || it.name || 'Untitled') + ' (Copy)', created_at: now() });
       localStorage.setItem(k, JSON.stringify(list.slice(0, 50)));
     } else if (it.kind === 'ad') {
-      const s = JSON.parse(localStorage.getItem('knickgasm-ads-v1') || '{}'); const ch = r.channel || 'meta';
+      const s = JSON.parse(LCStore.get('knickgasm-ads-v1') || '{}'); const ch = r.channel || 'meta';
       s[ch] = s[ch] || [];
       s[ch].unshift({ ...r, name: (it.name || 'Ad') + ' (Copy)', image: it.image || '', id: Date.now().toString(36), market: r.market || it.market || '' });
-      localStorage.setItem('knickgasm-ads-v1', JSON.stringify(s));
+      LCStore.set('knickgasm-ads-v1', JSON.stringify(s));
     } else {
       const logs = JSON.parse(localStorage.getItem('vhd_logs') || '[]');
       logs.unshift({ id: Date.now(), date: now(), prompt: r.brief || it.name || '', type: r.type || '', markets: [r.market || it.market || ''],
