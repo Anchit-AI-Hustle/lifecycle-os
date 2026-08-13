@@ -301,6 +301,33 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
       lineOf(html, m.index));
   }
 
+  // 7e. Text must stay legible whatever the brand's palette is.
+  //     A rule that paints its own background from a brand token but hardcodes
+  //     a light text colour is only readable while that token happens to be
+  //     dark. Onboard a brand with a light primary and the text disappears
+  //     into it - white on white, correctly laid out and completely unreadable.
+  //     brand-workspace-core computes --brand-on-primary and --brand-on-accent
+  //     by picking the highest-contrast candidate for that brand, so a pairing
+  //     built from a brand token must take its text colour from the matching
+  //     on- token rather than assuming.
+  const PRIMARY_BG = /^--(?:green|violet|brand-primary|primary|head)\b/;
+  const ACCENT_BG = /^--(?:lava|brand-accent|accent)\b/;
+  const LIGHT_TEXT = /(?:^|[;\s])color\s*:\s*#(?:fff|ffffff)\b/i;
+  const declBlocks = [];
+  for (const m of cssOnly.matchAll(/\{([^{}]*)\}/g)) declBlocks.push(m[1]);
+  for (const m of html.matchAll(/style="([^"]*)"/g)) declBlocks.push(m[1]);
+  for (const body of declBlocks) {
+    const bg = body.match(/background(?:-color)?\s*:\s*var\(\s*(--[a-zA-Z0-9-]+)/);
+    if (!bg) continue;
+    const onToken = PRIMARY_BG.test(bg[1]) ? '--brand-on-primary'
+      : ACCENT_BG.test(bg[1]) ? '--brand-on-accent' : null;
+    if (!onToken) continue;
+    if (!LIGHT_TEXT.test(body)) continue;
+    add(file, 'BLOCKER', 'unreadable-pairing',
+      `text is hardcoded light on a brand-token background (var(${bg[1]})) - use color:var(${onToken},#fff), which is contrast-computed per brand, or the text vanishes for any brand with a light ${onToken === '--brand-on-primary' ? 'primary' : 'accent'}`);
+    break;                                   // one finding per file is enough to act on
+  }
+
   // 8. Hardcoded brand identity on an APP page.
   if (!isAsset) {
     const brandHits = (text.match(/\bKNICKGASM\b|\bKnickgasm\b/g) || []).length;
