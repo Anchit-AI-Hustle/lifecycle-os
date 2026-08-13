@@ -1,9 +1,19 @@
 ---
-description: Pull Knickgasm store data by scraping the public storefronts (US / UK / Global) — products, prices, collections, content. No Admin API / connector.
-argument-hint: "[ask, e.g. 'all coffee collection products + prices, US vs UK']"
+name: shopify
+description: Pull the active brand's store data by scraping its public storefronts (US / UK / Global) — products, prices, collections, content. No Admin API / connector.
+argument-hint: "[ask, e.g. 'all <collection> products + prices, US vs UK']"
 ---
 
 # Store data — public storefront scrape
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Answer: `$ARGUMENTS`. **Do NOT use the Shopify Admin MCP connector** (no auth granted). Scrape the public storefronts only, for these three markets:
 

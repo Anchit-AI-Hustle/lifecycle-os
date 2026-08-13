@@ -1,9 +1,19 @@
 ---
-description: Query, design, or migrate the Knickgasm Supabase (Postgres) database.
+name: db
+description: Query, design, or migrate the Lifecycle OS Supabase (Postgres) database.
 argument-hint: "[ask, e.g. 'show schema for smart_calendar_entries' or 'add column X to ads_generated']"
 ---
 
 # Database — Supabase (Postgres)
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Handle: `$ARGUMENTS` using the **`supabase`** skill (and `supabase-postgres-best-practices` for tuning).
 

@@ -1,9 +1,19 @@
 ---
+name: icp-builder
 description: ICP builder — paste product info and customer quotes, get a sharp ICP.
 argument-hint: "[product + any real customer quotes/reviews/survey lines]"
 ---
 
 # ICP builder
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Build the ICP from: `$ARGUMENTS`.
 

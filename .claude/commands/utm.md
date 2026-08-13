@@ -1,9 +1,19 @@
 ---
+name: utm
 description: UTM generator — describe the campaign, get a clean, consistent tracking spec.
 argument-hint: "[campaign description, e.g. 'Meta reels, US, July kicks push, 3 creatives']"
 ---
 
 # UTM generator
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Build the tracking spec for: `$ARGUMENTS`.
 

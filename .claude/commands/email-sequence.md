@@ -1,16 +1,26 @@
 ---
+name: email-sequence
 description: Email sequence — give ICP and offer, get the full nurture flow (routes to /email-flow for Klaviyo build-out).
 argument-hint: "[ICP + offer, e.g. 'US non-engagers 60d, 15% winback offer']"
 ---
 
 # Email sequence
 
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
+
 Design the nurture flow for: `$ARGUMENTS`.
 
 ## Method
 1. Lock ICP + goal (welcome, winback, abandon, post-purchase). Pull the cohort's real size/definition from the repo's cohort definitions when named — never assume list size.
 2. Sequence architecture: number of sends, spacing, and the JOB of each email (feel -> proof -> offer -> nudge -> last word). Respect the frequency cap: promotional cap 2 (absolute 3) per rolling 7 days.
-3. Per email: subject (2 options: feeling-led + curiosity-led), preview text, one-sentence premise, body outline in KNICKGASM voice (tiny personal stories, not review dumps), single CTA, and Text vs Text+Graphics type.
+3. Per email: subject (2 options: feeling-led + curiosity-led), preview text, one-sentence premise, body outline in the active brand voice (tiny personal stories, not review dumps), single CTA, and Text vs Text+Graphics type.
 4. Exit/skip logic: who leaves the flow on purchase/click, suppression rules.
 
 ## Output

@@ -1,9 +1,19 @@
 ---
+name: ab-test
 description: A/B test analyzer — paste results, get statistical significance and the next test.
 argument-hint: "[variant names + visitors + conversions (or opens/clicks), e.g. 'A 4200/310, B 4180/365']"
 ---
 
 # A/B test analyzer
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Analyze: `$ARGUMENTS`.
 

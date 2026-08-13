@@ -1,9 +1,19 @@
 ---
+name: lp-audit
 description: Landing page audit — paste a URL, get headline and CTA fixes ranked by conversion impact.
 argument-hint: "[URL, plus optional goal e.g. 'presell page, goal: add to cart']"
 ---
 
 # Landing page audit
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Audit: `$ARGUMENTS`.
 

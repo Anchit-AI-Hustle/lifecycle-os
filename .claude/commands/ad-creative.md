@@ -1,9 +1,19 @@
 ---
-description: Generate Knickgasm paid-social ad creatives — static image, video, and GIF — with baked-in "sell happiness" copy.
-argument-hint: "[product + format, e.g. 'coffee collection, Meta static + Reels']"
+name: ad-creative
+description: Generate paid-social ad creatives for the active brand — static image, video, and GIF — with copy grounded in that brand's own positioning.
+argument-hint: "[product + format, e.g. '<product or section>, Meta static + Reels']"
 ---
 
 # Ad creative generation
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Create paid-social creatives for: `$ARGUMENTS`.
 
@@ -24,7 +34,7 @@ Use the Higgsfield skills via the `higgsfield-*` toolchain:
 - **Bake the approved happiness-first copy directly into the creative** (P01 mandate; enforced in `api/_shared/master-prompt.js` + `api/ai/image.js`). Do not rely on platform text overlays.
 - Only the 4 brand colors; Montserrat / Instrument Sans type feel.
 - **No banned phrases.** Lead with the feeling (calm, warmth, ritual), not the ingredient spec.
-- Save outputs to the repo root with descriptive names: `knickgasm_{product}_{platform}_{format}_{WxH}.{ext}`.
+- Save outputs to the repo root with descriptive names: `{brand}_{product}_{platform}_{format}_{WxH}.{ext}`.
 
 ## Reels-grade quality bar (the "as good as real Reels" standard)
 The bar is what top reels actually do — not a slideshow of stills:

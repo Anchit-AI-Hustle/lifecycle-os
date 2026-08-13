@@ -41,6 +41,12 @@ jobs:
         # another company's revenue on their own dashboard.
         run: npm run check:foreign:ci
 
+      - name: Skills resolve the ACTIVE brand
+        # The app went multi-tenant; .claude/commands/ did not follow. A skill
+        # is a prompt - a hardcoded brand there writes another company's product
+        # into this company's campaign just as surely as a hardcoded page string.
+        run: npm run check:skills:ci
+
       - name: DESIGN.md conforms to the open spec
         # DESIGN.md is google-labs-code/design.md, an existing Apache-2.0 format
         # with its own linter. Our tests can only check the shape we THINK the
