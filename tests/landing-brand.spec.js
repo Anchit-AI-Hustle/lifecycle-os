@@ -47,6 +47,36 @@ test('tenant zero still resolves its own markets', () => {
   }
 });
 
+test('one market written two ways resolves to the same store', () => {
+  // The UI offers a readable "India" while brand records store the ISO "IN".
+  // An exact string comparison misses the India storefront and falls through
+  // to the global website, sending India traffic to the wrong checkout.
+  const brand = {
+    name: 'Two Markets', slug: 'two-markets', website: 'https://global.example',
+    regions: [
+      { code: 'IN', currency: 'INR', symbol: '₹', store_url: 'https://in.example' },
+      { code: 'US', currency: 'USD', symbol: '$', store_url: 'https://us.example' },
+    ],
+  };
+  expect(lp.resolveStore(brand, 'IN')).toBe('https://in.example');
+  expect(lp.resolveStore(brand, 'India')).toBe('https://in.example');
+  expect(lp.resolveStore(brand, 'india')).toBe('https://in.example');
+  // And an alias must not drag an unrelated market to the wrong store.
+  expect(lp.resolveStore(brand, 'USA')).toBe('https://us.example');
+});
+
+test('a persisted workspace sharing tenant zero\'s slug is not tenant zero', () => {
+  // Slugs are unique per owner, so a persisted workspace may legitimately carry
+  // tenant zero's slug. Matching on slug alone would inject another company's
+  // storefront into that brand's page.
+  const impostor = {
+    id: 'ws_1234', slug: String(TENANT_ZERO.slug), name: 'Someone Else',
+  };
+  const out = lp.resolveStore(impostor, 'US');
+  expect(out).toContain('DATA REQUIRED BEFORE LAUNCH');
+  expect(out).not.toContain(String(TENANT_ZERO.website).replace(/^https?:\/\//, ''));
+});
+
 // ── The interaction axis ────────────────────────────────────────────────────
 
 test('the interactive axis follows what the brand sells', () => {
