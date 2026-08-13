@@ -57,6 +57,40 @@ const offeringKinds = require('./offering-kinds.js');
 const KIND_PRIORITY = ['event', 'programme', 'plan', 'service', 'section', 'product'];
 
 /**
+ * A brand reaches this module in one of two shapes and they do not agree.
+ *
+ *   tenant zero and the presets are JSON files with `offerings`, `claims` and
+ *   `market_study` at the top level;
+ *
+ *   a persisted workspace is a `brand_workspaces` row, and those columns do not
+ *   exist on it - the extensible facts live inside `brand_data` (the convention
+ *   smart-brain-plan.js already follows for offerings).
+ *
+ * Reading only the top level therefore works perfectly for tenant zero and
+ * returns nothing for every brand an actual user onboarded, which is the worst
+ * possible split: it would hand a real publisher the product funnel and an
+ * empty competitive tab while looking correct in every local test.
+ */
+function brandField(brand, key) {
+  if (!brand) return undefined;
+  if (brand[key] !== undefined && brand[key] !== null) return brand[key];
+  const data = brand.brand_data;
+  if (data && typeof data === 'object' && data[key] !== undefined && data[key] !== null) return data[key];
+  return undefined;
+}
+
+const brandOfferings = (b) => (Array.isArray(brandField(b, 'offerings')) ? brandField(b, 'offerings') : []);
+const brandClaims = (b) => (Array.isArray(brandField(b, 'claims')) ? brandField(b, 'claims').filter(Boolean) : []);
+const brandStudy = (b) => {
+  const s = brandField(b, 'market_study');
+  return (s && typeof s === 'object') ? s : null;
+};
+const brandCatalogSource = (b) => {
+  const c = brandField(b, 'catalog_source');
+  return (c && typeof c === 'object') ? c : {};
+};
+
+/**
  * Which growth model fits this brand.
  *
  * Chosen by WEIGHT of what the brand actually offers, not by mere presence.
@@ -71,13 +105,13 @@ const KIND_PRIORITY = ['event', 'programme', 'plan', 'service', 'section', 'prod
  * outvote an entire store.
  */
 function primaryKind(brand) {
-  const offs = Array.isArray(brand && brand.offerings) ? brand.offerings : [];
+  const offs = brandOfferings(brand);
   const counts = {};
   for (const o of offs) {
     if (o && offeringKinds.isKind(o.kind)) counts[o.kind] = (counts[o.kind] || 0) + 1;
   }
 
-  const cs = (brand && brand.catalog_source) || {};
+  const cs = brandCatalogSource(brand);
   const hasLiveFeed = cs.kind && cs.kind !== 'none' && cs.kind !== 'manual';
   if (hasLiveFeed) counts.product = (counts.product || 0) + 1000;
 
@@ -98,9 +132,9 @@ function primaryKind(brand) {
  * runs events deserves to look at either lens.
  */
 function availableKinds(brand) {
-  const offs = Array.isArray(brand && brand.offerings) ? brand.offerings : [];
+  const offs = brandOfferings(brand);
   const set = new Set(offs.map((o) => o && o.kind).filter((k) => offeringKinds.isKind(k)));
-  const cs = (brand && brand.catalog_source) || {};
+  const cs = brandCatalogSource(brand);
   if (cs.kind && cs.kind !== 'none' && cs.kind !== 'manual') set.add('product');
   for (const k of (Array.isArray(cs.offering_kinds) ? cs.offering_kinds : [])) {
     if (offeringKinds.isKind(k)) set.add(k);
@@ -491,9 +525,9 @@ function audienceNoun(kind) {
 
 /** Facts drawn from the brand record. Nothing here is invented. */
 function contextFor(brand, kind) {
-  const offs = Array.isArray(brand.offerings) ? brand.offerings : [];
+  const offs = brandOfferings(brand);
   const regions = Array.isArray(brand.regions) ? brand.regions.filter((r) => r && r.code) : [];
-  const claims = Array.isArray(brand.claims) ? brand.claims.filter(Boolean) : [];
+  const claims = brandClaims(brand);
   const split = offeringKinds.forCalendar(offs);
   const model = FUNNEL_MODELS[kind] || FUNNEL_MODELS.product;
   const leak = model.stages.find((s) => s.leak) || model.stages[1] || model.stages[0];
@@ -542,7 +576,18 @@ function buildExperiments(brand, kind, hasMeasuredData) {
 
   for (const lever of LEVERS) {
     if (!lever.kinds.includes(kind)) continue;
-    const blocked = typeof lever.requires === 'function' && !lever.requires(ctx);
+
+    // An experiment is blocked by a missing PRECONDITION or by a missing
+    // MEASUREMENT, and both must count. Checking only `requires` let
+    // lapse-recovery render as ready while its own grounding said it was
+    // blocked until the real interval is measured: it entered the ready count
+    // and the funnel's recommended actions for every day-one brand, telling the
+    // operator to ship the one message the lever itself warns is worse than
+    // nothing when the timing is guessed.
+    const missingPrecondition = typeof lever.requires === 'function' && !lever.requires(ctx);
+    const missingMeasurement = !!lever.needsMeasurement && !hasMeasuredData;
+    const blocked = missingPrecondition || missingMeasurement;
+
     const confidence = confidenceFor(lever, ctx, hasMeasuredData);
     const ice = Math.round(((lever.impact + confidence + lever.ease) / 3) * 10) / 10;
 
@@ -563,9 +608,10 @@ function buildExperiments(brand, kind, hasMeasuredData) {
       // "blocked" is a real state, not a soft warning: an experiment whose
       // precondition is absent must not sit in the queue looking runnable.
       status: blocked ? 'blocked' : 'ready',
-      blocked_reason: blocked
-        ? (typeof lever.grounding === 'function' ? lever.grounding(ctx) : 'A precondition is missing.')
-        : '',
+      blocked_reason: !blocked ? ''
+        : missingMeasurement
+          ? 'Needs a measured baseline first. Connect analytics, because running this on a guessed interval performs worse than not running it.'
+          : (typeof lever.grounding === 'function' ? lever.grounding(ctx) : 'A precondition is missing.'),
     });
   }
 
@@ -760,7 +806,7 @@ function buildWeekOne(brand, kind, ctx) {
  * invented one is both wrong and repeatable.
  */
 function buildCompetitive(brand) {
-  const study = (brand && brand.market_study) || {};
+  const study = brandStudy(brand) || {};
   const markets = Object.keys(study);
   if (!markets.length) {
     return {
@@ -795,9 +841,9 @@ function buildCompetitive(brand) {
  * numbers teaches the reader that its numbers are decorative.
  */
 function headlineMetrics(brand, kind, experiments, funnel) {
-  const offs = Array.isArray(brand.offerings) ? brand.offerings : [];
+  const offs = brandOfferings(brand);
   const regions = Array.isArray(brand.regions) ? brand.regions.filter((r) => r && r.code) : [];
-  const claims = Array.isArray(brand.claims) ? brand.claims.filter(Boolean) : [];
+  const claims = brandClaims(brand);
   const ready = experiments.filter((e) => e.status === 'ready');
   const leak = funnel.stages.find((s) => s.is_primary_leak);
 
@@ -811,7 +857,7 @@ function headlineMetrics(brand, kind, experiments, funnel) {
     // feed. Reporting the array length alone would tell a store with hundreds
     // of live items that it has none on record.
     (() => {
-      const cs = brand.catalog_source || {};
+      const cs = brandCatalogSource(brand);
       const live = cs.kind && cs.kind !== 'none' && cs.kind !== 'manual';
       if (live) {
         return {
@@ -868,8 +914,8 @@ function build(brand, opts) {
   const competitive = buildCompetitive(b);
 
   const gaps = [];
-  if (!Array.isArray(b.claims) || !b.claims.length) gaps.push('[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
-  if (!Array.isArray(b.offerings) || !b.offerings.length) gaps.push('[DATA REQUIRED BEFORE LAUNCH: offerings, all, all]');
+  if (!brandClaims(b).length) gaps.push('[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
+  if (!brandOfferings(b).length && !brandCatalogSource(b).kind) gaps.push('[DATA REQUIRED BEFORE LAUNCH: offerings, all, all]');
   if (!competitive.available) gaps.push(competitive.gap);
   if (!hasMeasuredData) gaps.push('[DATA REQUIRED BEFORE LAUNCH: connected analytics, all, all]');
 
@@ -921,12 +967,18 @@ async function handle(req, res) {
   const q = (req && req.query) || {};
   const brand = await brandRuntime.resolve(req);
 
-  // `hasMeasuredData` is opt-in and must be proven by the caller. Defaulting it
-  // to true anywhere would quietly relabel every modelled range as measured.
-  const payload = build(brand, {
-    kind: q.kind,
-    hasMeasuredData: String(q.measured || '') === '1',
-  });
+  // NOTE: there is deliberately no `?measured=1`. An earlier version took that
+  // flag from the query string, and it was a lie switch: it relabelled the
+  // honesty chips and rewrote the data-policy statement to say figures came
+  // from connected data, while loading no figures at all. Anyone could hand
+  // themselves a dashboard that claimed to be measured and was still empty.
+  //
+  // `hasMeasuredData` is therefore not something a caller can assert. It turns
+  // true only when a real analytics reader is wired in and actually returns
+  // values, at which point `build` receives them and stamps `basis: 'measured'`
+  // on the ones it filled. Until then every performance figure stays unset and
+  // every range stays labelled modelled, which is the truth.
+  const payload = build(brand, { kind: q.kind });
 
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json(payload);

@@ -205,6 +205,79 @@ test('degrades honestly when the engine is unreachable', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('an unresolved workspace is reported, not rendered as an empty brand', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String((e && e.message) || e)));
+
+  // The router answers an unauthenticated request with HTTP 200 and ok:true
+  // plus an error code, rather than substituting another brand's workspace.
+  // Checking only `ok` would render a blank dashboard that reads as a brand
+  // with no growth opportunities.
+  await page.route('**/api/brain**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, error: 'workspace_unresolved', note: 'No active workspace.' }),
+  }));
+  await page.goto(base + '/growth-os.html', { waitUntil: 'load' });
+
+  await expect(page.locator('#go-policy-text')).toContainText('could not be loaded');
+  await expect(page.locator('#go-strip .metric')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('checklist state is namespaced per brand and model', async ({ page }) => {
+  await open(page);
+  await page.locator('#go-tabs [data-tab="week1"]').click();
+  await page.locator('#panel-week1 [data-check]').first().click();
+
+  const keys = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.indexOf('growth-os-done') === 0));
+  expect(keys.length).toBe(1);
+  // A bare global key would carry ticks across a brand switch.
+  expect(keys[0]).not.toBe('growth-os-done');
+  expect(keys[0]).toContain(DEFAULT_BRAND.name);
+});
+
+test('an experiment needing a baseline is blocked, not ready', async ({ page }) => {
+  await open(page);
+
+  // Nothing is connected, so any lever whose own grounding says it needs a
+  // measured interval must not appear runnable, must not count as ready, and
+  // must not be recommended in the funnel actions.
+  const payload = core.build(DEFAULT_BRAND, {});
+  const needsBaseline = payload.experiments.filter((e) => e.status === 'blocked' && /measured baseline/i.test(e.blocked_reason));
+  expect(needsBaseline.length).toBeGreaterThan(0);
+
+  await page.locator('#go-exp-filters [data-filter="ready"]').click();
+  const readyNames = await page.locator('#go-exp-body tr td:nth-child(2) b').allInnerTexts();
+  for (const blockedExp of needsBaseline) expect(readyNames).not.toContain(blockedExp.name);
+
+  await page.locator('#go-tabs [data-tab="funnel"]').click();
+  const actionText = await page.locator('#go-funnel-actions').innerText();
+  for (const blockedExp of needsBaseline) expect(actionText).not.toContain(blockedExp.name);
+});
+
+test('the engine reads a persisted workspace, not only a preset file', async () => {
+  // A brand_workspaces row keeps its offerings, claims and market study inside
+  // brand_data; those columns do not exist at the top level. Reading only the
+  // top level works for tenant zero and silently hands every onboarded brand
+  // the product funnel and an empty competitive tab.
+  const persisted = {
+    name: 'Persisted Publisher',
+    industry: 'News',
+    regions: [{ code: 'IN', currency: 'INR', symbol: '₹', store_url: 'https://example.com' }],
+    catalog_source: { kind: 'manual', offering_kinds: ['section', 'plan'] },
+    brand_data: {
+      offerings: [{ kind: 'section', name: 'Markets' }, { kind: 'section', name: 'Tech' }, { kind: 'plan', name: 'Prime' }],
+      claims: ['Journalism from this publisher'],
+      market_study: { India: { headline: 'Study', sizing: [], tiers: [], reads: [], gaps: [] } },
+    },
+  };
+  const out = core.build(persisted, {});
+  expect(out.model.kind).toBe('section');
+  expect(out.competitive.available).toBe(true);
+  expect(out.kpis.north_star.name).toMatch(/return visits/i);
+});
+
 test('no measured figure is claimed before anything is connected', async ({ page }) => {
   await open(page);
 
