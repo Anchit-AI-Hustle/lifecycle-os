@@ -122,6 +122,11 @@
   function mount(el) {
     var host = (typeof el === 'string') ? document.querySelector(el) : el;
     if (!host) return null;
+    // Mounting twice would register a second repaint listener on the same node
+    // and leak one per call. The shared rail is re-rendered on sign-in, so this
+    // is reached more than once in normal use, not only by a careless caller.
+    if (host.getAttribute('data-rgn-mounted') === '1') return host;
+    host.setAttribute('data-rgn-mounted', '1');
 
     function paint() {
       if (!state.regions.length) {
@@ -156,6 +161,44 @@
     listeners.push(fn);
     if (state.loaded) fn({ region: state.region, regions: state.regions });
   }
+
+  /**
+   * Mount into every `[data-region-picker]` slot, now and whenever one appears.
+   *
+   * This is what makes the control PRESENT EVERYWHERE rather than on the pages
+   * whose author remembered it. auth.js puts one slot in the shared rail, so
+   * every page inherits a picker without editing 66 files; a page that wants
+   * the control somewhere specific (in its own toolbar, next to a filter row)
+   * adds its own `data-region-picker` element and gets the same shared state.
+   *
+   * The observer is necessary rather than tidy: the rail is injected
+   * asynchronously by auth.js and re-rendered once auth resolves, so the slot
+   * usually does not exist when this file executes, and it can be replaced
+   * afterwards.
+   */
+  function mountAll(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var found = scope.querySelectorAll ? scope.querySelectorAll('[data-region-picker]') : [];
+    for (var i = 0; i < found.length; i++) mount(found[i]);
+    if (scope !== document && scope.matches && scope.matches('[data-region-picker]')) mount(scope);
+  }
+
+  (function watchForSlots() {
+    function scan() { try { mountAll(document); } catch (e) {} }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+    else scan();
+    try {
+      var mo = new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            if (added[j] && added[j].nodeType === 1) mountAll(added[j]);
+          }
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+  })();
 
   /* One delegated listener for every picker on the page, however many are
      mounted, so a page never has to bind its own. */
@@ -209,6 +252,7 @@
     setActive: setActive,
     onChange: onChange,
     mount: mount,
+    mountAll: mountAll,
     label: label,
   };
 })();

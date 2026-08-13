@@ -303,6 +303,8 @@
       { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
       { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
+      { id: 'connections',   label: 'Connections & AI Models', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/ai-models', '/models', '/brand-connections.html'] },
+      { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
     ]},
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
       { id: 'research',        label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
@@ -454,6 +456,22 @@
   const INFO = {
     // Home is a plain landing link, not a content-producing feature, so it
     // deliberately has NO 5-sub-item IA entry — it renders as a simple link.
+    connections: {
+      title: 'Connections & AI Models',
+      what: "The place a brand brings its own accounts. Two things live here: the platforms this brand runs on (commerce, ad platforms, lifecycle and mailer tools) and the AI providers whose models write its work. A key entered here is encrypted inside the server, is never returned to the browser and is never written to a log, so the page can only ever show you its last four characters.",
+      who: "The owner or an editor of the active brand workspace. A viewer can see what is connected and cannot change it. Everything stored is private to this one workspace: no other brand on the deployment can read or spend it.",
+      how: "Two records per brand. A connection row holds the non-secret settings and a four character hint; the secret itself sits encrypted in a separate table that the browser role cannot select from at all, and only the server reads it, after checking the caller's own session and their role. The AI tab writes an ORDERED list of providers, each with its own ordered model list, and api/_shared/llm.js runs exactly that order instead of its default cascade. Your key for a provider replaces the platform key for that provider, so a brand that brought its own account is never quietly spending the platform's quota.",
+      input: "For a platform: whatever that platform issues, which is usually an API key or an account token plus an account id. For AI: a provider key, then the providers in the order you want them tried and the models inside each. Where a sign-in flow has not been established for a platform, the page says so with a DATA REQUIRED marker rather than showing a button that goes nowhere.",
+      steps: [
+        ['Ideology', 'A brand should be able to run the whole platform on its own accounts, and a secret should be readable by nothing except the code that spends it.'],
+        ['Data analysis + review + hypothesis', 'Reads what this workspace has already connected and which providers the platform itself can still cover, so the page can say whether a key is needed at all.'],
+        ['Business & strategy decisions', 'The order you set decides which providers see the prompts of this brand, so it outranks the internal speed optimisation that pins whichever provider answered first.'],
+        ['Content', 'Nothing is generated here. The stored routing is what every other feature then generates through.'],
+        ['Design + layout + structure', 'Rendered entirely from brand tokens, so the page re-skins with the workspace like every other surface.'],
+        ['Coding', 'Encrypted with AES-256-GCM under CONNECTION_SECRET_KEY before storage; metadata is written with the token of the caller so RLS decides, and secrets are written with the service role only after the role check passes. Mounted on the existing public-config router, so no thirteenth serverless function.'],
+        ['Final compilation + presentation', 'The resolved routing is handed to the model cascade for every generation this workspace runs. Runs via: /api/public-config?action=connections'],
+      ],
+    },
     brandinput: {
       title: 'Brand Kit',
       what: "The single brand-truth record for the platform: the four-colour palette, the two type families, the voice (tone, tagline, do and banned lists) and the footer identity blocks. Every generator in the OS reads this one record, so it is the place brand truth is set once instead of being retyped into each feature.",
@@ -1082,6 +1100,19 @@
           html.lnav-collapsed #lifecycle-nav .lnav-info { display: none; }
         }
 
+        /* The market picker, one row that slides. It sits above the links
+           because every link below it is scoped to the chosen market: a
+           calendar, a mailer and an ad set are all built for one region, and
+           the control that decides which has to be visible before you pick a
+           feature, not buried inside one of them. Styling lives in theme.css
+           (.rgn-*); this only places it in the rail. */
+        #lifecycle-nav .lnav-region:empty { display: none; }
+        #lifecycle-nav .lnav-region { margin: 0 -4px 2px; padding: 0 4px; }
+        #lifecycle-nav .lnav-region.rgn-bar { margin: 6px 0 10px; }
+        /* Collapsed to the icon rail there is no width for chips or a label,
+           and a clipped half-chip is worse than none: the rail expands on
+           click, which is where the choice is made. */
+        html.lnav-collapsed #lifecycle-nav .lnav-region { display: none; }
         #lifecycle-nav .lnav-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
         #lifecycle-nav .lnav-scroll::-webkit-scrollbar { width: 6px; }
         #lifecycle-nav .lnav-scroll::-webkit-scrollbar-thumb { background: rgba(171,135,67,0.25); border-radius: 6px; }
@@ -1310,6 +1341,7 @@
           </a>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
         </div>
+        <div class="lnav-region" data-region-picker></div>
         <div class="lnav-scroll">${navHtml}</div>
         ${userHtml}
       </aside>
