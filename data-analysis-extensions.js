@@ -147,8 +147,8 @@
       // The tab bar is a single row that slides. Group labels and drill-down
       // links live in it too, so they must refuse to shrink or the bar
       // compresses them instead of overflowing.
-      '.vh-tab-group{flex:0 0 auto;align-self:center;padding:4px 8px 4px 12px;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap}',
-      '.vh-tab-link{flex:0 0 auto;display:inline-flex;align-items:center;white-space:nowrap;color:var(--accent);font-weight:700;font-size:13px;padding:7px 14px;border-radius:999px;text-decoration:none;border:1px dashed var(--line)}',
+      '.vh-tab-group{flex:0 0 auto;align-self:center;padding:4px 8px 4px 12px;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand-accent-text);white-space:nowrap}',
+      '.vh-tab-link{flex:0 0 auto;display:inline-flex;align-items:center;white-space:nowrap;color:var(--brand-accent-text);font-weight:700;font-size:13px;padding:7px 14px;border-radius:999px;text-decoration:none;border:1px dashed var(--line)}',
       '.vh-tab-link:hover{border-style:solid;color:var(--head)}',
       '.xband{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;margin:16px 0 4px}',
       '.xband-h{display:flex;gap:12px;align-items:baseline;justify-content:space-between;flex-wrap:wrap;font-size:12px;color:var(--soft)}',
