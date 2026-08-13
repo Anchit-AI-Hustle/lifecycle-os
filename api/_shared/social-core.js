@@ -469,7 +469,7 @@ async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line 
   // product; use it (HD), preferring the catalog gallery, and fall back ONLY to
   // the on-brand SVG placeholder. Diffusion is never used for a product shot.
   let real = null;
-  try { real = (catalogImage && catalogImage.imagesFor(ctx.focus.product, ctx.market || 'UK', { width: 1200 })[0]) || null; } catch (_) { real = null; }
+  try { real = (catalogImage && catalogImage.imagesFor(ctx.focus.product, ctx.market || 'UK', { width: 1200, brand: ctx.brand })[0]) || null; } catch (_) { real = null; }
   if (!real && ctx.focus.product && ctx.focus.product.image) {
     try { real = (catalogImage && catalogImage.hd(ctx.focus.product.image, 1200)) || ctx.focus.product.image; } catch (_) { real = ctx.focus.product.image; }
   }

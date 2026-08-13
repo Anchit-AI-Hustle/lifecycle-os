@@ -14,8 +14,7 @@
 // side would risk 404 links. Products + tabs are the high-confidence subset.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const fs = require('fs');
-const path = require('path');
+const catalogServer = require('./brand-catalog-server.js');
 
 // Market → storefront base (VERIFIED, per CLAUDE.md). Unknown markets fall back to .com
 const STORE_BASE = {
@@ -27,8 +26,6 @@ const STORE_BASE = {
   ME: 'https://knickgasm.com',
   GLOBAL: 'https://knickgasm.com',
 };
-// Only us/uk/global catalogs are built; other markets reuse the global catalog.
-const REGION_FILE = { US: 'products_us.json', UK: 'products_uk.json', GLOBAL: 'products_global.json' };
 
 // Words too generic to identify a product on their own.
 const STOP = new Set([
@@ -41,20 +38,12 @@ function tokenize(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
 }
 
-const _catalogCache = {};
-function loadCatalog(market) {
-  const region = REGION_FILE[market] ? market : 'GLOBAL';
-  const file = REGION_FILE[region];
-  if (_catalogCache[region]) return _catalogCache[region];
-  try {
-    const p = path.join(__dirname, '..', '..', 'data', 'catalog', file);
-    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
-    const arr = Array.isArray(raw) ? raw : (raw.products || raw.items || []);
-    _catalogCache[region] = Array.isArray(arr) ? arr : [];
-  } catch (_) {
-    _catalogCache[region] = [];
-  }
-  return _catalogCache[region];
+// The catalogue Jarvis may navigate: the ACTIVE brand's own products. Reading
+// data/catalog/products_*.json directly meant every workspace's assistant
+// offered to open tenant zero's PDPs, so a publisher's navigation suggestions
+// were sneaker product pages on a store it does not own.
+function loadCatalog(market, brand) {
+  return catalogServer.productsFor(market, { brand: brand || null }).products;
 }
 
 function matchProducts(text, products) {
@@ -95,14 +84,35 @@ const TABS = [
 ];
 
 /**
+ * The storefront to navigate to. A brand's OWN regional store URL wins; the
+ * STORE_BASE map below it describes tenant zero's storefronts only, so it is
+ * used only when no brand record says otherwise (which is tenant zero's case).
+ */
+function storeBaseFor(market, brand) {
+  if (brand && (brand.id || brand.slug)) {
+    let f = null;
+    try { f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) { f = null; }
+    if (f && f.store) return 'https://' + f.store;
+    if (brand.website) return String(brand.website).replace(/\/$/, '');
+    // A brand with no store URL on file gets no storefront link at all, rather
+    // than another company's domain.
+    return '';
+  }
+  return STORE_BASE[market] || STORE_BASE.US;
+}
+
+/**
  * detectNavActions(userText, assistantText, opts) → NavAction[]
  *   opts.market: 'US' | 'UK' | 'IN' | 'EU' | 'AU' | 'ME' | 'GLOBAL' (default 'US')
+ *   opts.brand:  the ACTIVE brand record; decides both the catalogue that may be
+ *                searched and the storefront that may be linked.
  * NavAction = { key, kind: 'product'|'tab', label, href }
  */
 function detectNavActions(userText, assistantText, opts) {
   const market = String((opts && opts.market) || 'US').toUpperCase();
-  const base = STORE_BASE[market] || STORE_BASE.US;
-  const products = loadCatalog(market);
+  const brand = (opts && opts.brand) || null;
+  const base = storeBaseFor(market, brand);
+  const products = loadCatalog(market, brand);
   const corpus = `${assistantText || ''}\n${userText || ''}`;
   const actions = [];
   const seen = new Set();
@@ -115,8 +125,8 @@ function detectNavActions(userText, assistantText, opts) {
   // Storefront + internal tabs: only when the USER explicitly asked to navigate.
   const uLc = String(userText || '').toLowerCase();
   if (NAV_VERB.test(uLc)) {
-    if (/\b(cart|bag|basket|checkout)\b/.test(uLc)) push({ key: 'tab:cart', kind: 'tab', label: 'Open Cart', href: `${base}/cart` });
-    if (/\b(shop|store|catalog|browse|buy|homepage|home screen)\b/.test(uLc)) push({ key: 'tab:shop', kind: 'tab', label: 'Open Shop', href: base });
+    if (base && /\b(cart|bag|basket|checkout)\b/.test(uLc)) push({ key: 'tab:cart', kind: 'tab', label: 'Open Cart', href: `${base}/cart` });
+    if (base && /\b(shop|store|catalog|browse|buy|homepage|home screen)\b/.test(uLc)) push({ key: 'tab:shop', kind: 'tab', label: 'Open Shop', href: base });
     for (const t of TABS) {
       if (t.re.test(uLc)) push({ key: `tab:${t.href}`, kind: 'tab', label: t.label, href: t.href });
     }

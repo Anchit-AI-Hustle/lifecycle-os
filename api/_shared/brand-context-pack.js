@@ -288,6 +288,15 @@ function designMdTokens(report, brand) {
   const markers = [];
   const adjustments = [];
   const sources = { colors: {}, typography: {}, rounded: {}, spacing: {} };
+  // Values the evidence did not support emitting as tokens, kept with the
+  // reason so the reader can see WHAT was considered and WHY it was refused.
+  // An empty section with no explanation is indistinguishable from a bug.
+  const notObserved = [];
+  // Values this module COMPUTED rather than read off the site, each naming the
+  // input it was computed from. A derived value presented at the same
+  // confidence as a read one is the failure mode this whole feature exists to
+  // avoid, so they are tracked separately and printed separately.
+  const derived = [];
 
   /* ── colours ───────────────────────────────────────────────────────────
      `primary` comes from an IDENTITY signal or it does not come at all. */
@@ -341,30 +350,67 @@ function designMdTokens(report, brand) {
     // `secondary` ONLY when the action colour genuinely differs from the brand
     // colour. A site that paints its buttons in its own brand colour has one
     // colour, and emitting it twice would invent a second.
-    if (action && action.toLowerCase() !== identityColour.toLowerCase()) {
+    //
+    // AND only when it is genuinely an ACTION colour. proposePalette falls back
+    // to the highest-weighted `support` colour when the site declares no action
+    // colour at all - correct for a wizard where a human confirms, wrong here,
+    // because a DESIGN.md token is consumed without a human in the loop. A
+    // divider colour that happened to rank first is not this brand's secondary,
+    // and emitting it as one is the same class of error as promoting a
+    // frequency-ranked colour into `primary`.
+    const accentSrc = palSources.accent || {};
+    const accentIsAction = accentSrc.from_role === 'action';
+    if (action && action.toLowerCase() !== identityColour.toLowerCase() && accentIsAction) {
       colors.secondary = action;
-      sources.colors.secondary = `action signal — ${(palSources.accent || {}).signal || 'primary action surfaces'} · ${(palSources.accent || {}).source_url || ''}`;
+      sources.colors.secondary = `action signal — ${accentSrc.signal || 'primary action surfaces'} · ${accentSrc.source_url || ''}`;
+    } else if (action && !accentIsAction) {
+      // Reported, never emitted. The operator can promote it knowingly.
+      notObserved.push({
+        token: 'secondary',
+        candidate: action,
+        why: `The site declares no action colour. ${action} is simply the highest-weighted remaining colour `
+          + `(${accentSrc.signal || 'frequency-ranked'}), which is not the same fact as a brand's secondary, `
+          + 'so it is reported here rather than emitted as a token.',
+        source_url: accentSrc.source_url || '',
+      });
+      markers.push(MARKER('colors.secondary'));
     }
     if (surface) { colors.surface = surface; sources.colors.surface = `${(palSources.surface || {}).signal || 'page ground'} · ${(palSources.surface || {}).source_url || ''}`; }
     if (surfaceAlt) colors['surface-alt'] = surfaceAlt;
     if (ink) { colors['on-surface'] = ink; sources.colors['on-surface'] = `${(palSources.ink || {}).signal || 'body copy colour'} · ${(palSources.ink || {}).source_url || ''}`; }
 
-    // Text-on-fill and brand-colour-as-text. Never the raw brand colour.
-    const onPrimary = core.readableOn(identityColour, ink || '#111111', surface || '#ffffff', surfaceAlt);
-    colors['on-primary'] = onPrimary;
-    sources.colors['on-primary'] = 'computed: the highest-contrast choice among this brand\'s own ink and surfaces, for text ON a primary fill';
+    // Text-on-fill and brand-colour-as-text. Never the raw brand colour, and
+    // never presented as something the site said: each one is DERIVED, and is
+    // recorded with the input it was derived from.
+    const note = (token, from, how) => {
+      derived.push({ token, from, how });
+      sources.colors[token] = `DERIVED from ${from} — ${how} (not read from the site)`;
+    };
+    colors['on-primary'] = core.readableOn(identityColour, ink || '#111111', surface || '#ffffff', surfaceAlt);
+    note('on-primary', 'primary + this brand\'s own ink and surfaces',
+      'the highest-contrast choice among them, for text ON a primary fill');
     const primaryText = adjust('primary-text', identityColour, 'the brand colour used AS text on the page, which must clear WCAG AA on the worst-case surface');
-    if (primaryText) { colors['primary-text'] = primaryText; sources.colors['primary-text'] = `computed from primary for use as TEXT (WCAG AA ${TEXT_AA}:1 against ${worst})`; }
+    if (primaryText) {
+      colors['primary-text'] = primaryText;
+      note('primary-text', 'primary', `hue kept, lightness moved until it clears WCAG AA ${TEXT_AA}:1 against ${worst}`);
+    }
     if (colors.secondary) {
       colors['on-secondary'] = core.readableOn(colors.secondary, ink || '#111111', surface || '#ffffff', surfaceAlt);
-      sources.colors['on-secondary'] = 'computed: the highest-contrast choice among this brand\'s own ink and surfaces, for text ON a secondary fill';
+      note('on-secondary', 'secondary + this brand\'s own ink and surfaces',
+        'the highest-contrast choice among them, for text ON a secondary fill');
       const st = adjust('secondary-text', colors.secondary, 'the action colour used AS text');
-      if (st) { colors['secondary-text'] = st; sources.colors['secondary-text'] = `computed from secondary for use as TEXT (WCAG AA ${TEXT_AA}:1 against ${worst})`; }
+      if (st) { colors['secondary-text'] = st; note('secondary-text', 'secondary', `hue kept, lightness moved until it clears WCAG AA ${TEXT_AA}:1 against ${worst}`); }
     }
     if (proposed.muted) {
       const neutral = adjust('neutral', proposed.muted, 'secondary copy is copy: it carries the same AA bar as body text');
       colors.neutral = neutral || proposed.muted;
-      sources.colors.neutral = `${(palSources.muted || {}).signal || 'secondary text colour'} · ${(palSources.muted || {}).source_url || ''}`;
+      const mutedSrc = palSources.muted || {};
+      if (neutral && neutral.toLowerCase() !== String(proposed.muted).toLowerCase()) {
+        note('neutral', `the site's ${proposed.muted} (${mutedSrc.signal || 'secondary text colour'})`,
+          `hue kept, lightness moved until it clears WCAG AA ${TEXT_AA}:1 against ${worst}`);
+      } else {
+        sources.colors.neutral = `${mutedSrc.signal || 'secondary text colour'} · ${mutedSrc.source_url || ''}`;
+      }
     }
     for (const mk of (pal.markers || [])) markers.push(mk);
   }
@@ -376,7 +422,38 @@ function designMdTokens(report, brand) {
   const typ = f.typography || {};
   let typography = null;
   const typoNotes = [];
-  const pickFont = (slot) => (typ[slot] || [])[0] || null;
+  /**
+   * A family the page LOADS is not a family the page USES.
+   *
+   * A `fonts.googleapis.com` href, a preload, or an `@font-face` block proves
+   * the site downloaded a typeface. Only a `font-family` declaration on a
+   * selector that actually matches heading or body text proves anything RENDERS
+   * in it - and sites routinely load families they no longer use, or load five
+   * and use two. brand-extract already ranks those link-only candidates `weak`
+   * and says so in the evidence, but it also lets one FILL AN EMPTY SLOT, where
+   * it becomes candidate [0] and would be taken here as the brand's heading
+   * face at full confidence.
+   *
+   * So a weak candidate is never emitted as a token. It is reported instead,
+   * with what it actually proves.
+   */
+  const USABLE_CONF = new Set(['declared', 'strong']);
+  const pickFont = (slot) => {
+    const list = typ[slot] || [];
+    const used = list.find((c) => USABLE_CONF.has(c.confidence));
+    if (used) return used;
+    if (list.length) {
+      notObserved.push({
+        token: `typography.${slot}`,
+        candidate: list[0].value,
+        why: `${list[0].value} is loaded by this site, but no CSS rule was found that renders ${slot} text in `
+          + 'it. Loading a family and using it are different facts, so it is not emitted as a token.',
+        source_url: list[0].source_url || '',
+        evidence: list[0].evidence || '',
+      });
+    }
+    return null;
+  };
   const headC = pickFont('heading'), bodyC = pickFont('body'), monoC = pickFont('mono');
   if (headC || bodyC || monoC) {
     typography = {};
@@ -391,9 +468,20 @@ function designMdTokens(report, brand) {
     typoNotes.push('Only `fontFamily` is emitted. Font size, weight, line-height and letter-spacing cannot be '
       + 'read reliably from a stylesheet parse - resolving which declaration wins needs a browser - so none are '
       + 'stated rather than guessed.');
+    typoNotes.push('Every family here was found in a `font-family` declaration on a selector that matches this '
+      + 'kind of text. A family the page merely LOADS is listed under "considered and not emitted" instead.');
     markers.push(MARKER('typography scale (size, weight, line-height, letter-spacing)'));
+    if (!headC) markers.push(MARKER('typography.heading'));
+    if (!bodyC) markers.push(MARKER('typography.body'));
   } else {
-    omitted.push({ section: 'typography', reason: 'No font family could be read from this site\'s published CSS.' });
+    omitted.push({
+      section: 'typography',
+      reason: (typ.heading || []).length || (typ.body || []).length
+        ? 'This site loads web fonts but publishes no CSS rule that renders heading or body text in any of '
+          + 'them, so which family is actually used could not be observed. The loaded families are listed in '
+          + 'the Typography section rather than emitted as tokens.'
+        : 'No font family could be read from this site\'s published CSS.',
+    });
     markers.push(MARKER('typography.heading'), MARKER('typography.body'));
   }
 
@@ -428,10 +516,71 @@ function designMdTokens(report, brand) {
       + 'in a browser. Nothing was inferred from class names.',
   });
 
+  /* ── the selection record ──────────────────────────────────────────────
+     Per field: which option was taken, out of how many, on what signal, from
+     which page, and whether it was the top-ranked candidate.
+
+     This is what makes a wrong extraction DIAGNOSABLE six weeks later instead
+     of a mystery. Without it the only artefact is the value itself, and the
+     question "why did it pick that?" has no answer left to read. `chosen_by`
+     starts as `top-candidate` / `only-candidate`; `applyPack` rewrites it to
+     `operator-override` when a human takes a different one. */
+  const selection = [];
+  const record = (field, value, cand, list, extra) => {
+    const all = Array.isArray(list) ? list : [];
+    const idx = cand ? all.findIndex((c) => c && String(c.value).toLowerCase() === String(cand.value).toLowerCase()) : -1;
+    selection.push(Object.assign({
+      field,
+      value: value || null,
+      signal: (cand && cand.signal) || '',
+      source_url: (cand && cand.source_url) || '',
+      confidence: (cand && cand.confidence) || '',
+      rank_taken: idx < 0 ? null : idx,
+      candidates_considered: all.length,
+      chosen_by: value ? (all.length > 1 ? 'top-candidate' : 'only-candidate') : 'none-qualified',
+      derived: false,
+    }, extra || {}));
+  };
+
+  if (colors) {
+    const idc = (roles.identity || []).find((c) => c.value === identityColour) || null;
+    record('colors.primary', identityColour, idc, roles.identity, { rule: 'identity signal only; a frequency-ranked colour can never fill this' });
+    if (colors.secondary) {
+      const ac = (roles.action || []).find((c) => c.value === colors.secondary) || null;
+      record('colors.secondary', colors.secondary, ac, roles.action, { rule: 'action signal only, and only when it differs from primary' });
+    }
+    if (colors.surface) record('colors.surface', colors.surface, (roles.surface || [])[0] || null, roles.surface, { rule: 'page ground' });
+    if (colors['on-surface']) record('colors.on-surface', colors['on-surface'], (roles.ink || [])[0] || null, roles.ink, { rule: 'body copy colour' });
+  } else {
+    record('colors.primary', null, null, roles.identity || [], { rule: 'identity signal only', why_none: 'no identity-level signal was published' });
+  }
+  for (const [slot, cand2] of [['heading', headC], ['body', bodyC], ['mono', monoC]]) {
+    if (cand2 || (typ[slot] || []).length) {
+      record(`typography.${slot}`, cand2 ? (cand2.stack || cand2.value) : null, cand2, typ[slot] || [], {
+        rule: 'a font-family declaration on a matching selector; a merely-loaded family does not qualify',
+      });
+    }
+  }
+  for (const d of derived) {
+    selection.push({
+      field: `colors.${d.token}`, value: (colors || {})[d.token] || null,
+      signal: `derived from ${d.from}`, source_url: '', confidence: 'derived',
+      rank_taken: null, candidates_considered: 0, chosen_by: 'computed',
+      derived: true, derived_from: d.from, derivation: d.how,
+    });
+  }
+  for (const n of notObserved) {
+    selection.push({
+      field: n.token, value: null, signal: '', source_url: n.source_url || '',
+      confidence: '', rank_taken: null, candidates_considered: 1,
+      chosen_by: 'refused', derived: false, refused_candidate: n.candidate, why: n.why,
+    });
+  }
+
   return {
     colors, typography, rounded, spacing,
     omitted, markers, adjustments,
-    sources,
+    sources, derived, not_observed: notObserved, selection,
     conflicts: pal.conflicts || [],
     roles,
     elevation: groups.shadow || [],
@@ -653,6 +802,28 @@ function renderDesignMd(report, brand, meta) {
     push('');
   }
 
+  if ((t.derived || []).length) {
+    push('### Derived, not observed');
+    push('');
+    push('These were **computed** by this pack, not read off the site. They are marked so nothing here can be '
+      + 'mistaken for something the brand published.');
+    push('');
+    push(mdTable(['Token', 'Derived from', 'How'],
+      t.derived.map((d) => [`\`${d.token}\``, d.from, d.how])));
+    push('');
+  }
+
+  if ((t.not_observed || []).length) {
+    push('### Considered, and not emitted');
+    push('');
+    push('_A value that nearly qualified is more useful reported than silently dropped: an empty section with '
+      + 'no explanation is indistinguishable from a bug._');
+    push('');
+    push(mdTable(['Token', 'Candidate', 'Why it was refused', 'Source'],
+      t.not_observed.map((n) => [`\`${n.token}\``, n.candidate, n.why, md.link(n.source_url)])));
+    push('');
+  }
+
   push('### Contrast');
   push('');
   const c = t.colors || {};
@@ -807,6 +978,23 @@ function renderDesignMd(report, brand, meta) {
   }
   push('');
 
+  push('### Which option was chosen, and why');
+  push('');
+  push('_Every field, with the option taken, how many were considered, and where it came from. A wrong value '
+    + 'is only diagnosable later if the choice that produced it was written down at the time._');
+  push('');
+  push(mdTable(['Field', 'Value', 'Chosen by', 'Rank', 'Of', 'Signal / derivation', 'Source'],
+    (t.selection || []).map((s) => [
+      `\`${s.field}\``,
+      s.value || (s.refused_candidate ? `(refused ${s.refused_candidate})` : '—'),
+      s.chosen_by,
+      s.rank_taken == null ? '—' : String(s.rank_taken + 1),
+      s.candidates_considered || '—',
+      s.derived ? `derived from ${s.derived_from}: ${s.derivation}` : (s.why || s.signal || s.rule || ''),
+      md.link(s.source_url),
+    ])));
+  push('');
+
   push('### Data required before launch');
   push('');
   const all = [...new Set(markers.concat((report && report.markers) || []))];
@@ -820,6 +1008,9 @@ function renderDesignMd(report, brand, meta) {
     tokens: { colors: t.colors, typography: t.typography, rounded: t.rounded, spacing: t.spacing },
     omitted: t.omitted,
     adjustments: t.adjustments,
+    derived: t.derived,
+    not_observed: t.not_observed,
+    selection: t.selection,
     format: { spec: 'google-labs-code/design.md', version: DESIGN_MD_VERSION, sections: DESIGN_MD_SECTIONS },
   };
 }
@@ -1442,6 +1633,12 @@ async function stageExtract(store, pack, ctx) {
       stopped: report.stopped,
       coverage_note: report.coverage_note,
       fields: report.fields,
+      // The audit trail: which option each field took, out of how many, on what
+      // signal, and whether it was computed rather than read.
+      selection: doc.selection,
+      derived: doc.derived,
+      not_observed: doc.not_observed,
+      format: doc.format,
     },
     design_md: doc.markdown,
     markers: doc.markers,
@@ -1827,12 +2024,34 @@ function contextBlock(context) {
  * reading, and it is recorded as one. Typing over it in the wizard is what makes
  * it theirs, and that claim wins from then on.
  */
-async function applyPack(store, workspaceId, fields, sources) {
-  const out = await store.call('rpc/brand_context_apply', {
+async function applyPack(store, workspaceId, fields, sources, { brandKey } = {}) {
+  const src = Object.assign({}, sources || {});
+  // Record whether the operator took the option the pack ranked first, or
+  // reached past it. "The extraction was wrong" and "a human picked the wrong
+  // one of several" are different failures with different fixes, and after the
+  // fact they are indistinguishable unless this is written down now.
+  try {
+    const pack = await getPackRow(store, workspaceId, brandKey || '');
+    const selection = (pack && pack.design && pack.design.selection) || [];
+    for (const [field, value] of Object.entries(fields || {})) {
+      const row = selection.find((s) => s.field === field);
+      const chosen = typeof value === 'string' ? value : JSON.stringify(value);
+      const ranked = row && row.value != null ? String(row.value) : null;
+      const s = src[field] || (src[field] = {});
+      if (!ranked) s.signal = s.signal || 'operator supplied a value this pack did not rank';
+      else if (String(ranked) === chosen) s.signal = s.signal || `${row.chosen_by} (rank ${(row.rank_taken || 0) + 1} of ${row.candidates_considered})`;
+      else s.signal = `operator-override — the pack ranked ${ranked} first (${row.signal || 'no signal'})`;
+      if (row) {
+        s.source_url = s.source_url || row.source_url || '';
+        s.confidence = s.confidence || row.confidence || '';
+      }
+    }
+  } catch (_) { /* the audit note is worth having, never worth failing the apply for */ }
+
+  return store.call('rpc/brand_context_apply', {
     method: 'POST',
-    body: { p_workspace: workspaceId, p_fields: fields || {}, p_source: sources || {} },
+    body: { p_workspace: workspaceId, p_fields: fields || {}, p_source: src },
   });
-  return out;
 }
 
 /** Record that a person supplied these fields. Called on every operator save. */

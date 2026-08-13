@@ -156,6 +156,10 @@
   .xbtn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:4px 10px;
     font:600 11px/1.5 var(--body);color:var(--ink);cursor:pointer;flex:none}
   .xbtn:hover{border-color:var(--primary)}
+  /* A weak candidate must LOOK weak. If accepting one is as easy as accepting a
+     declared one, the ranking is advice the operator will skip - and a wrong
+     value they trust costs far more than an empty field they fill in. */
+  .xbtn.weak{border-style:dashed;color:var(--muted)}
   .xalts{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px}
   .xalt{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;
     padding:3px 9px;font-size:11px;background:var(--card);cursor:pointer;color:var(--ink)}
@@ -763,19 +767,44 @@
   function xPalettePanel() {
     var p = extraction.fields.palette;
     var out = '';
+    // A conflict is a DECISION, not a notice. Both sides get their value, their
+    // signal and their source, and a button each, so the operator resolves it
+    // knowingly instead of inheriting whichever one ranked first.
     (p.conflicts || []).forEach(function (c) {
       out += '<div class="xconflict"><b>Your brand colour and your button colour are not the same</b>' +
-        esc(c.message) + '</div>';
+        esc(c.message) +
+        (c.identity && c.action
+          ? '<div class="xalts" style="margin-top:9px">' +
+              '<button type="button" class="xalt" data-xconflict="identity" data-xhex="' + esc(c.identity.value) + '">' +
+                'Primary = ' + esc(c.identity.value) + ' (' + esc(c.identity.signal) + ')</button>' +
+              '<button type="button" class="xalt" data-xconflict="action" data-xhex="' + esc(c.action.value) + '">' +
+                'Primary = ' + esc(c.action.value) + ' (' + esc(c.action.signal) + ')</button>' +
+            '</div>' +
+            '<div class="xsrc">' + esc(c.identity.source_url || '') + ' &middot; ' + esc(c.action.source_url || '') + '</div>'
+          : '') +
+        '</div>';
     });
     (p.notes || []).forEach(function (n) { out += '<div class="xconflict"><b>No brand colour was declared</b>' + esc(n) + '</div>'; });
 
     var roleRows = ['primary', 'accent', 'ink', 'surface', 'muted'].map(function (k) {
       var v = p.proposed[k], s = p.sources[k];
       if (!v) return '<div class="xrow"><div class="xlabel">' + esc(k) + '</div><div class="xbody">' +
-        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: palette.' + esc(k) + ', all, all]</div></div></div>';
+        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: palette.' + esc(k) + ', all, all]</div>' +
+        '<div class="xsrc">Leaving this empty is a real answer. The site published nothing that names this ' +
+          'role, and an empty field you fill in yourself costs a minute; a wrong one you trust costs a campaign.</div>' +
+        '</div></div>';
+      // The confidence shown must be the confidence the extractor COMPUTED.
+      // This row used to hardcode "declared" for every role, so a colour that
+      // merely ranked highest among the leftovers was presented with exactly
+      // the same authority as the site's own theme-color - and the operator
+      // has no way to tell them apart once they look identical.
       return '<div class="xrow"><div class="xlabel">' + esc(k) + '</div><div class="xbody">' +
-        '<div class="xval"><span class="xsw" style="background:' + esc(v) + '"></span> ' + esc(v) + '</div>' +
-        (s ? xSrcLine({ confidence: 'declared', signal: s.signal, source_url: s.source_url, evidence: s.evidence }) : '') +
+        '<div class="xval"><span class="xsw" style="background:' + esc(v) + '"></span> ' + esc(v) +
+          (s && s.ranked_not_declared ? ' <span class="xtag weak">ranked, not declared</span>' : '') + '</div>' +
+        (s ? xSrcLine(s) : '') +
+        (s && s.ranked_not_declared
+          ? '<div class="xsrc">Nothing on the site says this is your ' + esc(k) + '. It is the highest-weighted ' +
+            'colour left over, so check it before using it.</div>' : '') +
         '</div></div>';
     }).join('');
 
@@ -805,10 +834,24 @@
       var alts = list.slice(1, 5).map(function (c, i) {
         return '<button type="button" class="xalt" data-xa="' + esc(act) + '" data-xi="' + (i + 1) + '">' + esc(c.value) + '</button>';
       }).join('');
+      // A family the page LOADS is not a family the page USES. A Google Fonts
+      // href proves a download; only a font-family rule on a matching selector
+      // proves anything renders in it. brand-extract ranks the former `weak`,
+      // but it also lets one fill an empty slot - where it silently becomes the
+      // headline candidate with a Use button as prominent as a declared one.
+      var loadedOnly = list[0].confidence === 'weak';
       return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
-        '<div class="xval">' + esc(list[0].value) + (list[0].google ? '' : ' <span class="xtag weak">not on Google Fonts</span>') + '</div>' +
-        xSrcLine(list[0]) + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
-        '</div><button type="button" class="xbtn" data-xa="' + esc(act) + '" data-xi="0">Use</button></div>';
+        '<div class="xval">' + esc(list[0].value) +
+          (list[0].google ? '' : ' <span class="xtag weak">not on Google Fonts</span>') +
+          (loadedOnly ? ' <span class="xtag weak">loaded, not shown to be used</span>' : '') + '</div>' +
+        xSrcLine(list[0]) +
+        (loadedOnly
+          ? '<div class="xsrc">Your site downloads this family, but no CSS rule was found that renders ' +
+            esc(label.toLowerCase()) + ' text in it. Confirm it before using it, or leave this empty and set it yourself.</div>'
+          : '') +
+        (alts ? '<div class="xalts">' + alts + '</div>' : '') +
+        '</div><button type="button" class="xbtn' + (loadedOnly ? ' weak' : '') + '" data-xa="' + esc(act) + '" data-xi="0">' +
+          (loadedOnly ? 'Use anyway' : 'Use') + '</button></div>';
     }
     return slot('Heading', t.heading, 'font-heading') + slot('Body', t.body, 'font-body');
   }
@@ -1008,6 +1051,25 @@
   document.addEventListener('click', function (e) {
     var t = e.target && e.target.closest ? e.target.closest('[data-xa]') : null;
     if (t) { applyExtract(t.getAttribute('data-xa'), +t.getAttribute('data-xi') || 0); return; }
+    // Resolving the brand-vs-CTA conflict is an explicit choice, and it is
+    // recorded as one: which side the operator picked, and from which page.
+    var cf = e.target && e.target.closest ? e.target.closest('[data-xconflict]') : null;
+    if (cf) {
+      var hex = cf.getAttribute('data-xhex');
+      var side = cf.getAttribute('data-xconflict');
+      var conf = ((extraction && extraction.fields.palette.conflicts) || [])[0] || {};
+      var pickSrc = conf[side] || {};
+      brand.palette.primary = hex;
+      noteSource('palette.primary', {
+        value: hex,
+        signal: 'operator resolved the brand-vs-action conflict in favour of the ' + side + ' colour (' + (pickSrc.signal || '') + ')',
+        source_url: pickSrc.source_url || '',
+        confidence: 'declared',
+      });
+      toast('Primary set to ' + hex + '. The other colour is still available as your accent.');
+      render();
+      return;
+    }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
     if (run) runExtract();
   });

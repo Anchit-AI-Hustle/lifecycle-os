@@ -35,18 +35,26 @@ const BUNDLED_OWNER_NOTE = 'The sales export compiled into this build belongs to
  * True for tenant zero (the oldest workspace, which every historical row was
  * backfilled to) and for a call with no workspace context at all - a script or
  * a build step, which is where this data legitimately gets read wholesale.
+ *
+ * `explicitWorkspaceId` answers the same question for a workspace that is NOT
+ * the ambient one. Server-side generation (cron, the prebuild queue, approve)
+ * runs with no request at all and builds FOR a workspace it was handed, so it
+ * needs the answer for that workspace rather than for "whoever is signed in".
+ * brand-catalog-server.js asks it about the shipped PRODUCT catalogue, which is
+ * the same tenant-zero-owned-file question as the sales export - deliberately
+ * one helper, so the two datasets can never be gated differently.
  */
-async function ownsBundledExport() {
+async function ownsBundledExport(explicitWorkspaceId) {
   try {
     const supa = require('./supa.js');
     const wsScope = require('./workspace-scope.js');
     let env; try { env = supa.env(); } catch (_) { return true; }   // no Supabase: single-tenant dev
-    const [active, zero] = await Promise.all([
-      wsScope.currentWorkspaceId(env),
+    const [ambient, zero] = await Promise.all([
+      explicitWorkspaceId ? Promise.resolve(String(explicitWorkspaceId)) : wsScope.currentWorkspaceId(env),
       wsScope.defaultWorkspaceId(env),
     ]);
-    if (!active || !zero) return false;      // cannot prove ownership: do not serve it
-    return String(active) === String(zero);
+    if (!ambient || !zero) return false;      // cannot prove ownership: do not serve it
+    return String(ambient) === String(zero);
   } catch (_) { return false; }
 }
 
