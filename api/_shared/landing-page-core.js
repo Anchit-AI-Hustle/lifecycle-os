@@ -26,6 +26,25 @@ const STORE = {
 };
 
 /**
+ * One market can be written more than one way across this app: the UI offers a
+ * readable "India" while a brand record stores the ISO "IN", and the STORE map
+ * below carries both because both reach it. An exact string comparison would
+ * therefore miss a brand's India storefront and quietly fall through to its
+ * global website, sending India traffic to the wrong checkout.
+ */
+const MARKET_ALIASES = {
+  INDIA: 'IN', BHARAT: 'IN',
+  USA: 'US', 'UNITED STATES': 'US', AMERICA: 'US',
+  UK: 'UK', GB: 'UK', 'UNITED KINGDOM': 'UK', BRITAIN: 'UK',
+  UAE: 'ME', 'MIDDLE EAST': 'ME',
+  AUSTRALIA: 'AU', EUROPE: 'EU', WORLDWIDE: 'GLOBAL', INTERNATIONAL: 'GLOBAL',
+};
+function canonicalMarket(code) {
+  const raw = String(code || '').trim().toUpperCase();
+  return MARKET_ALIASES[raw] || raw;
+}
+
+/**
  * The store base for THIS brand and THIS market. Never another brand's domain,
  * and never another market's.
  *
@@ -37,9 +56,9 @@ const STORE = {
  * traffic to a UK checkout while the page claimed to be the US page.
  */
 function resolveStore(brand, market) {
-  const want = String(market || '').toUpperCase();
+  const want = canonicalMarket(market);
   const regions = (brand && Array.isArray(brand.regions)) ? brand.regions : [];
-  const hit = regions.find((r) => r && String(r.code || '').toUpperCase() === want);
+  const hit = regions.find((r) => r && canonicalMarket(r.code) === want);
   if (hit && hit.store_url) return 'https://' + String(hit.store_url).replace(/^https?:\/\//, '');
 
   // No region row for this market. The brand's OWN website comes next, and it
@@ -48,12 +67,18 @@ function resolveStore(brand, market) {
   // in directly - would otherwise be handed tenant zero's storefront.
   if (brand && brand.website) return brand.website;
 
-  // Tenant zero keeps a per-market map here rather than on its record. Identity
-  // is checked by SLUG, not with isDefault(): that returns true for any brand
-  // object without a workspace id, which would hand tenant zero's storefront to
-  // a half-filled record from onboarding.
+  // Tenant zero keeps a per-market map here rather than on its record. Two
+  // conditions, because neither alone is sufficient: isDefault() is true for
+  // ANY brand object without a workspace id, so it alone would hand tenant
+  // zero's storefront to a half-filled onboarding record; and slugs are only
+  // unique per owner, so a persisted workspace may legitimately carry tenant
+  // zero's slug. The shipped default is the record that matches the slug AND
+  // has no workspace id at all.
   const zero = brandRuntime.defaultBrand() || {};
-  const isZero = brand && zero.slug && String(brand.slug || '') === String(zero.slug);
+  const isZero = brand && zero.slug
+    && String(brand.slug || '') === String(zero.slug)
+    && brandRuntime.isDefault(brand);
+  if (isZero && STORE[canonicalMarket(market)]) return STORE[canonicalMarket(market)];
   if (isZero && STORE[market]) return STORE[market];
 
   return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + market + ']';
