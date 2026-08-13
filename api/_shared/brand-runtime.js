@@ -39,6 +39,50 @@ const TTL = 30_000;
 
 function isDefault(brand) { return !brand || !brand.id; }
 
+/**
+ * Facts a brand carries that are NOT columns on `brand_workspaces`.
+ *
+ * The schema has a fixed set of columns (name, palette, typography, voice,
+ * regions, catalog_source …) and one JSON column, `brand_data`, for everything
+ * extensible. So a brand arrives here in one of two shapes that do not agree:
+ *
+ *   tenant zero and the presets are JSON files with these at the TOP LEVEL;
+ *   a persisted workspace has them inside `brand_data`.
+ *
+ * Every generator in the OS reads the top level - `b.claims` in master-prompt,
+ * lifecycle-mailer-build, social-core, calendar-trigger, landing-fallback. That
+ * works perfectly for tenant zero and returns NOTHING for every brand a user
+ * actually onboarded, so their verifiable claims never reached a single
+ * generated asset and every one of them printed
+ * "[DATA REQUIRED BEFORE LAUNCH: verifiable claims]" instead.
+ *
+ * The fix belongs at the boundary rather than at each of those call sites: this
+ * is the one place a persisted row enters the system, so hoisting here fixes
+ * every consumer at once, including the ones nobody has written yet.
+ */
+const HOISTED = ['offerings', 'claims', 'market_study', 'legal_entity', 'contact', 'social', 'asset_hosts'];
+
+/**
+ * Lift brand_data fields onto the brand, without ever shadowing a real column.
+ * A genuine column always wins: brand_data is the overflow, not an override.
+ */
+function normalizeBrand(brand) {
+  if (!brand || typeof brand !== 'object') return brand;
+  const data = brand.brand_data;
+  if (!data || typeof data !== 'object') return brand;
+
+  let out = brand;
+  for (const key of HOISTED) {
+    const already = brand[key];
+    const present = Array.isArray(already) ? already.length > 0 : (already !== undefined && already !== null);
+    if (present) continue;
+    if (data[key] === undefined || data[key] === null) continue;
+    if (out === brand) out = { ...brand };      // copy only once, and only if needed
+    out[key] = data[key];
+  }
+  return out;
+}
+
 /** The shipped brand. Never null — generators must always have something. */
 function defaultBrand() {
   return brandCore.DEFAULT_BRAND || {
@@ -76,7 +120,9 @@ async function resolve(req, opts) {
 
     // Read with the CALLER'S token, so RLS decides whether they may use it.
     const ws = await brandCore.getWorkspace(auth, id);
-    const brand = ws || defaultBrand();
+    // Normalise BEFORE caching, so every consumer of the cached row sees the
+    // same shape and the hoist cost is paid once per TTL rather than per read.
+    const brand = ws ? normalizeBrand(ws) : defaultBrand();
     CACHE.set(key, { brand, at: Date.now() });
     return brand;
   } catch (_) {
@@ -151,6 +197,14 @@ function brandBlock(brand) {
   if (imp) lines.push(`For any HTML asset, inject this EXACT import into the <head> <style> before app rules:\n  ${imp}`);
   lines.push(`LOGO (header, exact — never substitute): ${b.logo_url ? `<img src="${b.logo_url}" alt="${b.name || 'brand'}" /> at a restrained header height (~30px).` : missing('logo URL')}`);
   lines.push('FOOTER: "Privacy Policy" and "Terms of Service" must be plain labels with href="#" and no target/onclick routing.');
+  // The block forbids fabricating a claim but never said what this brand may
+  // actually assert, so a generator had nothing approved to reach for and every
+  // proof line came out as a DATA REQUIRED marker even when the brand had
+  // supplied claims. These are the only ones any asset may state as fact.
+  const claims = Array.isArray(b.claims) ? b.claims.filter(Boolean) : [];
+  lines.push(claims.length
+    ? `VERIFIABLE CLAIMS (the ONLY statements that may be presented as fact; never assert anything else): ${claims.map((c) => `"${c}"`).join(' · ')}.`
+    : `VERIFIABLE CLAIMS: ${missing('verifiable claims')}. Until they are supplied, write no proof, guarantee or credential line at all.`);
   if (Array.isArray(v.preferred) && v.preferred.length) lines.push(`PREFERRED words: ${v.preferred.join(', ')}.`);
   if (Array.isArray(v.banned) && v.banned.length) lines.push(`BANNED phrases (never use): ${v.banned.map((s) => `"${s}"`).join(', ')}.`);
   if (v.no_em_dashes !== false) lines.push('Never use em dashes or en dashes anywhere in output copy. Use commas, colons or plain hyphens.');
@@ -240,4 +294,7 @@ function scrubHtmlForBrand(html, brand) {
   return s.replace(/[^\S\r\n]{2,}/g, ' ');
 }
 
-module.exports = { resolve, brandBlock, regionFacts, scrubForBrand, scrubHtmlForBrand, defaultBrand, isDefault };
+module.exports = {
+  resolve, brandBlock, regionFacts, scrubForBrand, scrubHtmlForBrand,
+  defaultBrand, isDefault, normalizeBrand, HOISTED,
+};
