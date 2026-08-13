@@ -430,7 +430,12 @@ module.exports = async function handler(req, res) {
       case 'klaviyo': {
         const op = b.op || req.query.op || 'status';
         const params = req.method === 'POST' ? b : Object.assign({}, req.query);
-        const out = await klaviyo.dispatch(op, params);
+        // A brand that connected its own Klaviyo account reads THAT account.
+        // Resolved from the caller's session, so two brands on one deployment
+        // never see each other's audiences. Null falls back to the deployment
+        // key exactly as before.
+        const creds = await require('./_shared/workspace-connections-core.js').credentialsFor(req, 'klaviyo');
+        const out = await klaviyo.dispatch(op, params, creds);
         return res.json(out);
       }
 
@@ -771,6 +776,18 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           }
           steps.smart_brain_plan = { synced: true, mode: sync.mode, changes: (sync.changes || []).length, prebuild_kicked: prebuildKicked };
         } catch (e) { steps.smart_brain_plan = { error: e.message }; }
+        // Competitor universe: keep every active brand's competitor set current.
+        // Seeds a brand that has none from its OWN record, then runs a discovery
+        // pass and adds whatever is genuinely new, de-duplicated by domain.
+        // Rides this existing daily cron because the Hobby plan allows two and
+        // both are taken. The budget is small per run and workspaces are taken
+        // least-recently-refreshed first, so brands are covered in rotation
+        // rather than one brand consuming the whole slot.
+        try {
+          const universe = require('./_shared/competitor-universe.js');
+          const sweep = await universe.refreshDueWorkspaces({ maxWorkspaces: 3 });
+          steps.competitor_universe = { due: sweep.due, refreshed: sweep.refreshed, added: sweep.added, note: sweep.note };
+        } catch (e) { steps.competitor_universe = { error: e.message }; }
         // Snowflake → Supabase daily mirror (historical/deep metrics for the
         // Knickgasm3DConnectorEngine). No-op stub when SNOWFLAKE_* env is unset.
         try { steps.snowflake_sync = snowflake ? await snowflake.runSync({ source: 'cron' }) : { skipped: true }; }
@@ -805,3 +822,9 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
     return res.status(500).json({ ok: false, action, error: err.message });
   }
 };
+
+// Everything this handler calls runs inside the request scope, so llm.js can
+// resolve THIS caller's workspace model routing and keys without every one of
+// the hundred-odd call sites having to pass `req` down to it. See
+// api/_shared/request-scope.js for why an ambient variable would not do.
+module.exports = require('./_shared/request-scope.js').wrap(module.exports);

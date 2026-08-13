@@ -137,7 +137,9 @@ const PROVIDERS = [
     key_url: '',
     blurb: 'Your own Ollama server. The base URL is required; a token is optional.',
     fields: [
-      { key: 'base_url', label: 'Base URL', secret: false, required: true, placeholder: 'https://ollama.your-domain.example' },
+      // `fetched` marks a field the SERVER will make a request to. Those get the
+      // SSRF guard at save time; see saveConnection.
+      { key: 'base_url', label: 'Base URL', secret: false, required: true, fetched: true, placeholder: 'https://ollama.your-domain.example' },
       { key: 'api_key', label: 'Token (optional)', secret: true, required: false },
     ],
   },
@@ -433,6 +435,13 @@ async function saveConnection(auth, input) {
       if (!value) continue;
       if (value.length > MAX_SECRET_CHARS) { const e = new Error(`${f.label} is longer than ${MAX_SECRET_CHARS} characters.`); e.status = 400; throw e; }
       secrets[f.key] = value;
+    } else if (f.fetched) {
+      // A base URL supplied here is a destination the SERVERLESS RUNTIME will
+      // POST prompts to, which makes it a server-side request forgery primitive
+      // in the hands of any workspace editor: without this it could be pointed
+      // at a cloud metadata endpoint or an internal service and the response
+      // would come back as a model answer. Same guard the catalog importer uses.
+      config[f.key] = value ? await brandCore.assertPublicUrl(value) : '';
     } else {
       config[f.key] = value.slice(0, MAX_CONFIG_CHARS);
     }
@@ -753,7 +762,13 @@ function platformDefault(reg) {
   }
 }
 
-function registryView() {
+/**
+ * `signedIn` gates one field. Whether the PLATFORM holds a key is answered for
+ * a member of a workspace, because without it the page cannot say whether a key
+ * is needed at all; it is withheld from an anonymous caller, which is the same
+ * line public-config draws around its pipeline and probe payloads.
+ */
+function registryView(signedIn) {
   return PROVIDERS.map((p) => ({
     id: p.id,
     label: p.label,
@@ -762,9 +777,9 @@ function registryView() {
     llm_provider: p.llm_provider || null,
     blurb: p.blurb,
     key_url: p.key_url || '',
-    fields: p.fields.map((f) => ({ key: f.key, label: f.label, secret: !!f.secret, required: !!f.required, placeholder: f.placeholder || '' })),
+    fields: p.fields.map((f) => ({ key: f.key, label: f.label, secret: !!f.secret, required: !!f.required, fetched: !!f.fetched, placeholder: f.placeholder || '' })),
     known_models: p.llm_provider ? knownModels(p.llm_provider) : [],
-    platform_default: platformDefault(p),
+    platform_default: signedIn ? platformDefault(p) : null,
     // Stated plainly so nobody reads a stored credential as a wired one.
     wired: p.category === 'ai' ? true : !!p.wired,
     wired_note: p.category === 'ai'
@@ -874,7 +889,7 @@ async function handle(req, res) {
   if (op === 'registry') {
     return res.status(200).json({
       ok: true,
-      providers: registryView(),
+      providers: registryView(false),
       categories: ['ai', 'commerce', 'ads', 'lifecycle'],
       secrets_storage: {
         encrypted: cryptoConfigured(),
@@ -906,7 +921,7 @@ async function handle(req, res) {
           workspace_id: workspaceId,
           connections: rows.map(sanitize),
           routing,
-          providers: registryView(),
+          providers: registryView(true),
           secrets_storage: { encrypted: cryptoConfigured(), store: serviceConfigured() },
         });
       }
@@ -917,7 +932,7 @@ async function handle(req, res) {
       case 'check':
         return res.status(200).json(await checkConnection(auth, workspaceId, str(body.provider || q.provider)));
       case 'routing':
-        return res.status(200).json({ ok: true, routing: await getRouting(auth, workspaceId), providers: registryView().filter((p) => p.llm_provider) });
+        return res.status(200).json({ ok: true, routing: await getRouting(auth, workspaceId), providers: registryView(true).filter((p) => p.llm_provider) });
       case 'routing-save':
         return res.status(200).json({ ok: true, routing: await saveRouting(auth, workspaceId, body.routing || body) });
       default:
