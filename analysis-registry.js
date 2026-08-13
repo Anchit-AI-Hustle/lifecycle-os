@@ -122,7 +122,7 @@
       id: 'rfm', label: 'RFM & Segments', href: '/rfm', parent: 'cohort',
       analysis: 'rfm-segmentation',
       what: 'Recency, frequency and monetary scoring of a customer-level file into nine segments, with lifetime value, discount sensitivity, send-time behaviour and per-campaign engagement.',
-      why: 'Data Analysis reads a compiled market export that holds aggregates, never customer rows. Scoring needs the rows, so this keeps its own upload and database path.',
+      why: 'Data Analysis reads a compiled market export of aggregates, never customer rows, and scoring needs the rows. Where a view here also charts revenue or cohorts it is charting the file you loaded on this page, not the market export: the market export is reported once, in Data Analysis, so the two are never two answers to one question.',
     },
     {
       id: 'ads-warehouse', label: 'Paid Media, warehouse depth', href: '/ads-dashboard', parent: 'live-ads',
@@ -371,9 +371,86 @@
     return out;
   }
 
+  // ── Drill-down breadcrumb ─────────────────────────────────────────────────
+  /**
+   * Puts the "you are inside Data Analysis" bar at the top of a drill-down page.
+   *
+   * WHY A SHARED RENDERER. Each of these pages used to open as a peer dashboard
+   * with no statement of how it related to the workbench, which is precisely how
+   * a reader concludes there are two competing answers to the same question.
+   * The bar names the owning tab, the way back, and the reason the analysis is
+   * not simply a tab, and it comes from the same record the tab bar is built
+   * from so the two can never describe the relationship differently.
+   */
+  function mountBreadcrumb(id, doc) {
+    var d = doc || (typeof document !== 'undefined' ? document : null);
+    var entry = drilldown(id);
+    if (!d || !entry || d.getElementById('lc-analysis-crumb')) return null;
+    var parent = tab(entry.parent) || tab(DEFAULT_TAB);
+
+    if (!d.getElementById('lc-analysis-crumb-css')) {
+      var style = d.createElement('style');
+      style.id = 'lc-analysis-crumb-css';
+      // A single row that slides. The explanation sits below it so the row
+      // itself never has to wrap.
+      style.textContent = [
+        '#lc-analysis-crumb{border-bottom:1px solid var(--line,rgba(171,135,67,.28));',
+        'background:var(--surface,#FFFFFF);padding:9px 18px;font-family:Inter,"Instrument Sans",Arial,sans-serif}',
+        '#lc-analysis-crumb .lc-crumb-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;',
+        'overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;font-size:12.5px}',
+        '#lc-analysis-crumb .lc-crumb-row > *{flex:0 0 auto;white-space:nowrap}',
+        '#lc-analysis-crumb a{color:var(--lava,#6A33D8);font-weight:700;text-decoration:none}',
+        '#lc-analysis-crumb a:hover{text-decoration:underline}',
+        '#lc-analysis-crumb .lc-crumb-sep,#lc-analysis-crumb .lc-crumb-here{color:var(--soft,#556059)}',
+        '#lc-analysis-crumb .lc-crumb-here{font-weight:700}',
+        '#lc-analysis-crumb .lc-crumb-why{margin:5px 0 0;font-size:11.5px;line-height:1.5;',
+        'color:var(--soft,#556059);max-width:96ch}',
+      ].join('');
+      (d.head || d.documentElement).appendChild(style);
+    }
+
+    var bar = d.createElement('nav');
+    bar.id = 'lc-analysis-crumb';
+    bar.setAttribute('aria-label', 'Analysis location');
+    var row = d.createElement('div');
+    row.className = 'lc-crumb-row';
+
+    var home = d.createElement('a');
+    home.href = '/data-analysis';
+    home.textContent = 'Data Analysis';
+    row.appendChild(home);
+
+    var sep1 = d.createElement('span');
+    sep1.className = 'lc-crumb-sep'; sep1.textContent = '›';
+    row.appendChild(sep1);
+
+    var up = d.createElement('a');
+    up.href = '/data-analysis?tab=' + parent.id;
+    up.textContent = parent.label;
+    row.appendChild(up);
+
+    var sep2 = d.createElement('span');
+    sep2.className = 'lc-crumb-sep'; sep2.textContent = '›';
+    row.appendChild(sep2);
+
+    var here = d.createElement('span');
+    here.className = 'lc-crumb-here'; here.textContent = entry.label;
+    row.appendChild(here);
+
+    var why = d.createElement('p');
+    why.className = 'lc-crumb-why';
+    why.textContent = entry.what + ' ' + entry.why;
+
+    bar.appendChild(row);
+    bar.appendChild(why);
+    if (d.body) d.body.insertBefore(bar, d.body.firstChild);
+    return bar;
+  }
+
   return {
     TABS: TABS,
     DRILLDOWNS: DRILLDOWNS,
+    mountBreadcrumb: mountBreadcrumb,
     TAB_ALIASES: TAB_ALIASES,
     REVIEW_SECTIONS: REVIEW_SECTIONS,
     KPI_SOURCES: KPI_SOURCES,
