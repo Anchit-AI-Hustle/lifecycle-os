@@ -42,7 +42,18 @@ const PALETTE = Object.values(BRAND.palette || {}).filter((v) => typeof v === 's
 const BANNED = (BRAND.voice && BRAND.voice.banned) || [];
 
 // Tenant zero's OWN marketing pages. These describe that brand on purpose.
-const BRAND_ASSET = /(landing|presell|grail-drop|coffee-collection|storefront-3d|_sbtest|agent\.html|template-gallery|website-designs|official-designs|premium-experience|daily-email-calendar|usa-d2c-dashboard|usa-july|uk-non-engagers|lifecycle-campaign|avatars|diff-version|all-in-one|access-issues)/i;
+/* Generated artefacts and frozen demos: tenant zero's OWN output, which may
+   legitimately name tenant zero and its products. An APP surface may not.
+
+   `agent.html` used to be on this list and should never have been. It is a live
+   app page - shell, nav, credit meter, the customer-facing concierge - not an
+   artefact, and listing it here meant NO brand rule ran against it. That is how
+   it shipped telling every tenant's customers to ask about "colorways" and
+   whether "airbrush actually works" while the audit reported zero blockers. An
+   exclusion list is a place bugs go to hide, so entries have to earn their
+   place: an artefact is something the app GENERATED, not merely a page that
+   looks brand-heavy. */
+const BRAND_ASSET = /(landing|presell|grail-drop|coffee-collection|storefront-3d|_sbtest|template-gallery|website-designs|official-designs|premium-experience|daily-email-calendar|usa-d2c-dashboard|usa-july|uk-non-engagers|lifecycle-campaign|avatars|diff-version|all-in-one|access-issues)/i;
 
 // Vocabulary from the previous brand's industry. Anything here in an APP page
 // is a relic of the rebrand, not deliberate copy.
@@ -387,6 +398,27 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
   if (!isAsset) {
     const brandHits = (text.match(/\bKNICKGASM\b|\bKnickgasm\b/g) || []).length;
     if (brandHits) add(file, 'WARN', 'hardcoded-brand', `brand name appears ${brandHits}x in visible copy - app surface should resolve the ACTIVE brand`);
+  }
+
+  // 8b. Tenant zero's PRODUCT VOCABULARY on an app page.
+  //
+  // Rule 8 catches the brand NAME, and that is exactly why this shipped: the
+  // /agent page told The Times of India's readers to ask "whether a colorway is
+  // worth it" and "does airbrush actually work?", and the audit passed it with
+  // zero blockers. A product noun is not the brand name, so the name swap in
+  // brand-context.js cannot fix it and this audit could not see it.
+  //
+  // Nouns from tenant zero's own record (sneakers, colorways, hand-painted) and
+  // its market (a "Namaste" greeting shown to a US brand) belong to ONE tenant.
+  // An app surface either writes them neutrally or derives them from the active
+  // brand's offerings[].kind - see BrandContext.nouns().
+  if (!isAsset) {
+    const VOCAB = /\b(sneakers?|colorways?|airbrush(?:ed|ing)?|streetwear|hand-painted|grail|Namaste)\b/gi;
+    const hits = [...new Set((text.match(VOCAB) || []).map((h) => h.toLowerCase()))];
+    if (hits.length) {
+      add(file, 'WARN', 'tenant-zero-vocabulary',
+        `visible copy uses tenant zero's product vocabulary (${hits.join(', ')}) - an app surface must be neutral or derive the noun from the active brand`);
+    }
   }
 
   // 9. Product-only assumptions in shared UI copy.
