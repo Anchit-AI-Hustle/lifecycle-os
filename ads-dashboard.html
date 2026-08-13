@@ -500,5 +500,18 @@
   load();
 })();
 </script>
+<!-- This page is a drill-down of the Data Analysis workbench, not a rival
+     dashboard. The bar it mounts names the tab that owns the entry point and
+     why the analysis lives on its own surface; both come from
+     analysis-registry.js so the two descriptions cannot drift apart. -->
+<script src="/analysis-registry.js"></script>
+<script>
+(function () {
+  function mount() {
+    if (window.LifecycleAnalysisRegistry) window.LifecycleAnalysisRegistry.mountBreadcrumb('ads-warehouse');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+}());
+</script>
 </body>
 </html>

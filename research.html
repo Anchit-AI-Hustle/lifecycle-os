@@ -11,7 +11,11 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#D0473E">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="/data/analytics/market-data.js"></script>
+<!-- The compiled market export is deliberately NOT loaded here. This page
+     studies the market outside the brand; the brand's own trading is measured
+     on one surface, /data-analysis, and a second page holding the same dataset
+     is how the two start disagreeing. -->
+<script src="/analysis-registry.js"></script>
 <script>
   // Guard against a CDN failure so config never throws and blocks the page JS.
   if (window.tailwind) {
@@ -83,20 +87,26 @@
   .ms-tier p{font-size:12.5px;line-height:1.5;color:#556059;margin:0;}
   .ms-note{font-size:12px;color:#556059;margin-top:8px;font-style:italic;}
   .ms-report .grid td b{color:#111111;}
+  /* A nav bar is a single row that slides horizontally when it does not fit.
+     Its children must refuse to shrink, or they compress into slivers instead
+     of overflowing. */
+  .lc-tabrow{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;
+             overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  .lc-tabrow > *{flex:0 0 auto;white-space:nowrap;}
 </style>
 </head>
 <body>
   <!-- ══ MAIN VIEWPORT ══ -->
   <main class="lc-main">
-    <div id="regionTabs" class="flex flex-wrap items-center gap-2 mb-6"><span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Benchmark table</span><button type="button" class="rtab on" data-region="US">US</button><button type="button" class="rtab" data-region="UK">UK</button><button type="button" class="rtab" data-region="EU">EU</button><button type="button" class="rtab" data-region="Global">Global</button><span class="text-[12px]" style="color:#556059;margin-left:6px">Filtering the competitor benchmark table to <b class="text-vink" id="rgLabel">US</b>. (The full regional reports have their own Study selector below.)</span></div>
+    <div id="regionTabs" class="lc-tabrow mb-6"><span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Benchmark table</span><button type="button" class="rtab on" data-region="US">US</button><button type="button" class="rtab" data-region="UK">UK</button><button type="button" class="rtab" data-region="EU">EU</button><button type="button" class="rtab" data-region="Global">Global</button><span class="text-[12px]" style="color:#556059;margin-left:6px">Filtering the competitor benchmark table to <b class="text-vink" id="rgLabel">US</b>. (The full regional reports have their own Study selector below.)</span></div>
     <div class="kicker">Lifecycle OS · Market Study</div>
     <h1 class="text-vink text-[36px] font-bold leading-tight mt-1">Market Study</h1>
-    <p class="text-[#111111] max-w-3xl mt-2 text-[15px] leading-relaxed">A single, scannable reference that fuses the US coffee &amp; functional-beverage market map, the retention configuration blueprints, the buyer cohorts, live and predictive analytics from the DuckDB engine, and the content-automation + Shopify sync pipeline. Every figure below is production-grade and copy-ready.</p>
+    <p class="text-[#111111] max-w-3xl mt-2 text-[15px] leading-relaxed">The market OUTSIDE the brand, per region: sizing, competitive tiers, buyer cohorts and the strategic read, with every figure carrying its published source and every unpublished number listed as a gap rather than estimated. The brand's own trading is measured in <a class="text-vink underline decoration-vgold" href="/data-analysis">Data Analysis</a>, which is the single surface that reports revenue, orders, cohorts and channel performance.</p>
 
     <!-- ═══════════ REGIONAL MARKET STUDIES (four region-specific reports) ═══════════ -->
     <section id="regional-studies" class="mt-8 scroll-mt-6">
       <div class="kicker mb-2">Regional Market Studies · full reports</div>
-      <div id="msRegionTabs" class="flex flex-wrap items-center gap-2 mb-4">
+      <div id="msRegionTabs" class="lc-tabrow mb-4">
         <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Study</span>
         <button type="button" class="rtab on" data-region="US">US</button>
         <button type="button" class="rtab" data-region="UK">UK</button>
@@ -482,51 +492,22 @@ triggers:
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="avatarGrid"></div>
     </section>
 
-    <!-- REAL-TIME ANALYTICS -->
+    <!-- Own-brand performance is measured in Data Analysis, not here. This
+         section used to carry an intraday revenue pacer and a revenue
+         projector. Both duplicated the Data Analysis Control Room, and both
+         ran on invented numbers: the hourly trace was a hardcoded array
+         described in its own caption as simulated, and the projector fell back
+         to a made-up daily run-rate whenever a market had no export. A market
+         study analyses the market outside the brand; the brand's own trading
+         belongs to one surface. -->
     <section id="realtime" class="mt-12">
-      <h2 class="text-vink text-[26px] font-bold">📈 Real-Time &amp; Midday Analytics</h2>
+      <h2 class="text-vink text-[26px] font-bold">Own-brand performance</h2>
       <hr class="divider mt-2 mb-5">
-      <p class="text-[12.5px] text-[#556059] mb-4">Mirrors output from the <a class="text-vink underline decoration-vgold" href="/data-engine">knickgasm_dtc_data_engine</a> DuckDB instance. Values simulate a live intraday pace; wire to the engine endpoint to go live.</p>
-
-      <div id="intraday" class="scroll-mt-6">
-        <div class="kicker mb-2">Intraday Pace Tracking · Hour-over-Hour</div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="card p-5"><div class="kicker">Net revenue (this hour)</div><div class="live-num mt-1" id="rtRev">-</div><div class="text-[12px] mt-1" id="rtRevD"></div></div>
-          <div class="card p-5"><div class="kicker">Unit order velocity</div><div class="live-num mt-1" id="rtVel">-</div><div class="text-[12px] mt-1" id="rtVelD"></div></div>
-          <div class="card p-5"><div class="kicker">Net new subscriptions</div><div class="live-num mt-1" id="rtSub">-</div><div class="text-[12px] mt-1" id="rtSubD"></div></div>
-        </div>
-        <div class="card p-4 mt-4"><div class="kicker mb-2">Hourly revenue trace</div><div id="rtChart"></div></div>
-      </div>
-
-            <div id="predictive" class="scroll-mt-6 mt-8">
-        <div class="kicker mb-2">Revenue Projection · Single Source</div>
-        <p class="text-[12.5px] text-[#556059] mb-3">The one place revenue is projected. Enter what is booked so far today and the current hour; the tool estimates the day-end settlement from today's ongoing pace, then extends it across the horizon you choose, grounded in the trailing daily run-rate from the live market exports.</p>
-        <div class="card p-5">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <label class="text-[12px] text-[#111111]">Revenue booked so far today (<span id="pCur">$</span>)
-              <input type="text" id="pRev" value="18400" class="w-full mt-1"></label>
-            <label class="text-[12px] text-[#111111]">Hour of day (1 to 23)
-              <input type="text" id="pHour" value="12" class="w-full mt-1"></label>
-            <label class="text-[12px] text-[#111111]">Market
-              <select id="pMarket" class="w-full mt-1"><option>US</option><option>UK</option></select></label>
-            <label class="text-[12px] text-[#111111]">Projection horizon
-              <select id="pHorizon" class="w-full mt-1">
-                <option value="1">End of day</option>
-                <option value="7">This week (7 days)</option>
-                <option value="14">Two weeks</option>
-                <option value="30">One month</option>
-                <option value="60">Two months</option>
-                <option value="90">Three months</option>
-              </select></label>
-          </div>
-          <button type="button" class="btn-primary mt-4" id="pRun">Project revenue</button>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5">
-            <div><div class="kicker">Projected revenue (<span id="pHzLabel">end of day</span>)</div><div class="metric-lg mt-1" id="pOutRev">-</div><div class="text-[11px] text-[#556059]" id="pOutBand"></div></div>
-            <div><div class="kicker">Day-end settlement (today)</div><div class="metric-lg mt-1" id="pOutDay">-</div><div class="text-[11px] text-[#556059]" id="pOutDayNote"></div></div>
-            <div><div class="kicker">Trailing daily run-rate</div><div class="metric-lg mt-1" id="pOutRate">-</div><div class="text-[11px] text-[#556059]">from market exports</div></div>
-          </div>
-          <p class="text-[11px] text-[#556059] mt-3">Method: day-end equals today booked divided by the hour-of-day cumulative share. Longer horizons add the trailing average daily revenue for each remaining day, with a band that widens over the horizon. Planning estimate, validate against live data before committing spend.</p>
-        </div>
+      <div class="card p-5">
+        <div class="font-head text-[18px] text-vink">Measured in Data Analysis</div>
+        <p class="text-[13px] mt-2" style="color:var(--soft);">This page studies the market around the brand: sizing, competitive tiers and the strategic read, each figure carrying its published source. Revenue, orders, average order value, cohorts, paid media and owned channels are measured from the brand's own connected data on one surface, per market, so no two pages can report a different number for the same thing.</p>
+        <p class="text-[13px] mt-2" style="color:var(--soft);">Intraday pacing and revenue projection are not shown anywhere until an hourly order stream is connected. Until then there is nothing to pace against, and a projection built on a placeholder run-rate reads as a measurement.</p>
+        <p class="mt-4"><a class="btn-lava text-[13px]" href="/data-analysis?tab=control">Open Data Analysis, Control Room</a></p>
       </div>
     </section>
 
@@ -596,65 +577,6 @@ triggers:
     links.forEach(function(l){ l.classList.toggle('active', l.getAttribute('href')==='#'+cur); });
   }
   window.addEventListener('scroll', spy); spy();
-
-  // ── Real-time intraday (simulated pace; deterministic, no Math.random churn) ──
-  function money(v){ return '$'+Math.round(v).toLocaleString(); }
-  var base=[4200,3100,2200,1800,1600,2100,3800,6400,9200,11800,13400,14100,15200];
-  var hour=new Date().getHours();
-  var idx=Math.min(base.length-1, Math.max(0, Math.round(hour/2)));
-  var rev=base[idx], vel=Math.round(rev/52), sub=Math.round(rev/540);
-  document.getElementById('rtRev').textContent=money(rev);
-  document.getElementById('rtVel').textContent=vel+' orders/hr';
-  document.getElementById('rtSub').textContent='+'+sub;
-  var prev=base[Math.max(0,idx-1)]||rev; var d=Math.round(((rev-prev)/prev)*100);
-  document.getElementById('rtRevD').innerHTML=(d>=0?'<span class="up">▲ '+d+'% vs last hr</span>':'<span class="down">▼ '+Math.abs(d)+'% vs last hr</span>');
-  document.getElementById('rtVelD').innerHTML='<span class="up">▲ pace on track</span>';
-  document.getElementById('rtSubD').innerHTML='net new subscribers';
-  // sparkline
-  (function(){ var W=760,H=120,pad=8,max=Math.max.apply(null,base)*1.1;
-    var pts=base.map(function(v,i){var x=pad+(i/(base.length-1))*(W-2*pad); var y=H-pad-(v/max)*(H-2*pad); return [x,y];});
-    var dd=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
-    document.getElementById('rtChart').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto"><path d="'+dd+'" fill="none" stroke="#D0473E" stroke-width="2.4"/><path d="'+dd+' L'+pts[pts.length-1][0].toFixed(1)+' '+(H-pad)+' L'+pad+' '+(H-pad)+' Z" fill="#6A33D8" opacity="0.14"/></svg>';
-  })();
-
-  // -- Revenue projection (single source: day-end from today's pace, extended across horizons) --
-  var A=(window.LIFECYCLE_ANALYTICS)||{markets:{}};
-  function curSym(mk){ var c=(A.currency&&A.currency[mk])||'USD'; return c==='GBP'?'£':(c==='EUR'?'€':'$'); }
-  function moneyC(v,mk){ return curSym(mk)+Math.round(v).toLocaleString(); }
-  function avgDailyRevenue(mk){
-    var m=A.markets&&A.markets[mk]; if(!m||!m.monthly||m.monthly.length<2) return mk==='UK'?22000:31000;
-    // drop the latest row (current month-to-date, partial) so it does not deflate the run-rate,
-    // then average the trailing complete months.
-    var complete=m.monthly.slice(0,-1);
-    var last=complete.slice(-3); if(!last.length) last=complete;
-    var sales=0; last.forEach(function(x){sales+=(+x.sales||0);});
-    return sales/(last.length*30.4);
-  }
-  var HZ={1:'end of day',7:'this week',14:'two weeks',30:'one month',60:'two months',90:'three months'};
-  function project(){
-    var rev=parseFloat((document.getElementById('pRev').value||'').replace(/[^0-9.]/g,''))||0;
-    var hr=Math.min(23,Math.max(1,parseFloat(document.getElementById('pHour').value)||12));
-    var mk=document.getElementById('pMarket').value||'US';
-    var days=parseInt(document.getElementById('pHorizon').value,10)||1;
-    var share=[0,.01,.02,.03,.04,.05,.07,.11,.17,.25,.34,.44,.53,.61,.68,.74,.80,.85,.90,.94,.97,.99,.995,1];
-    var s=share[Math.round(hr)]||0.53; if(s<=0) s=0.5;
-    var dayEnd=rev/s;
-    var rate=avgDailyRevenue(mk);
-    var total=days<=1 ? dayEnd : dayEnd + rate*(days-1);
-    var bandPct=0.06+0.015*Math.sqrt(days);
-    var lo=total*(1-bandPct), hi=total*(1+bandPct);
-    var cur=document.getElementById('pCur'); if(cur) cur.textContent=curSym(mk);
-    document.getElementById('pHzLabel').textContent=HZ[days]||(days+' days');
-    document.getElementById('pOutRev').textContent=moneyC(total,mk);
-    document.getElementById('pOutBand').textContent='band '+moneyC(lo,mk)+' to '+moneyC(hi,mk);
-    document.getElementById('pOutDay').textContent=moneyC(dayEnd,mk);
-    document.getElementById('pOutDayNote').textContent=(s*100).toFixed(0)+'% of day booked by hour '+Math.round(hr);
-    document.getElementById('pOutRate').textContent=moneyC(rate,mk)+' / day';
-  }
-  document.getElementById('pRun').addEventListener('click', project);
-  document.getElementById('pHorizon').addEventListener('change', project);
-  document.getElementById('pMarket').addEventListener('change', project);
-  project();
 
   // ── Content automation generator ──
   function assetSource(avatar, format, market){
@@ -779,6 +701,18 @@ triggers:
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
+</script>
+<!-- This page is a drill-down of the Data Analysis workbench, not a rival
+     dashboard. The bar it mounts names the tab that owns the entry point and
+     why the analysis lives on its own surface; both come from
+     analysis-registry.js so the two descriptions cannot drift apart. -->
+<script>
+(function () {
+  function mount() {
+    if (window.LifecycleAnalysisRegistry) window.LifecycleAnalysisRegistry.mountBreadcrumb('market-study');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+}());
 </script>
 </body>
 </html>

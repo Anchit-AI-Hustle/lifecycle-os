@@ -139,23 +139,28 @@
       "permanent": false
     },
     {
+      "source": "/data-analysis-contrast.html",
+      "destination": "/data-analysis",
+      "permanent": false
+    },
+    {
       "source": "/usa-d2c-report",
-      "destination": "/data-analysis?tab=review-overview",
+      "destination": "/data-analysis?tab=review",
       "permanent": false
     },
     {
       "source": "/usa-d2c-dashboard",
-      "destination": "/data-analysis?tab=review-overview",
+      "destination": "/data-analysis?tab=review",
       "permanent": false
     },
     {
       "source": "/d2c-review",
-      "destination": "/data-analysis?tab=review-overview",
+      "destination": "/data-analysis?tab=review",
       "permanent": false
     },
     {
       "source": "/business-review",
-      "destination": "/data-analysis?tab=review-overview",
+      "destination": "/data-analysis?tab=review",
       "permanent": false
     }
   ],
@@ -207,6 +212,22 @@
       "destination": "/credits.html"
     },
     {
+      "source": "/connections",
+      "destination": "/brand-connections.html"
+    },
+    {
+      "source": "/integrations",
+      "destination": "/brand-connections.html"
+    },
+    {
+      "source": "/ai-models",
+      "destination": "/brand-connections.html?tab=models"
+    },
+    {
+      "source": "/models",
+      "destination": "/brand-connections.html?tab=models"
+    },
+    {
       "source": "/telesuite",
       "destination": "/telesuite.html"
     },
@@ -229,6 +250,10 @@
     {
       "source": "/api/credits",
       "destination": "/api/public-config?action=credits"
+    },
+    {
+      "source": "/api/connections",
+      "destination": "/api/public-config?action=connections"
     },
     {
       "source": "/api/telesuite",
@@ -301,6 +326,18 @@
     {
       "source": "/connectors",
       "destination": "/connectors.html"
+    },
+    {
+      "source": "/payments",
+      "destination": "/payments.html"
+    },
+    {
+      "source": "/payment-gateways",
+      "destination": "/payments.html"
+    },
+    {
+      "source": "/payments/callback",
+      "destination": "/payments.html"
     },
     {
       "source": "/access-issues",
@@ -475,6 +512,10 @@
       "destination": "/api/brain?action=connectors-health"
     },
     {
+      "source": "/api/payments",
+      "destination": "/api/public-config?action=payments"
+    },
+    {
       "source": "/api/cron/social",
       "destination": "/api/brain?action=social-run-daily"
     },
@@ -532,11 +573,11 @@
     },
     {
       "source": "/analytics",
-      "destination": "/data-analysis-contrast.html"
+      "destination": "/data-analysis.html"
     },
     {
       "source": "/data-analysis",
-      "destination": "/data-analysis-contrast.html"
+      "destination": "/data-analysis.html"
     },
     {
       "source": "/d2c-lifecycle-os",

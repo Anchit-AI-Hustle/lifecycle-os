@@ -990,3 +990,9 @@ module.exports = _credits.metered(
     return MODE_FEATURE[body.mode || 'create_brief'] || 'assistant.chat';
   }
 );
+
+// Everything this handler calls runs inside the request scope, so llm.js can
+// resolve THIS caller's workspace model routing and keys without every one of
+// the hundred-odd call sites having to pass `req` down to it. See
+// api/_shared/request-scope.js for why an ambient variable would not do.
+module.exports = require('../_shared/request-scope.js').wrap(module.exports);

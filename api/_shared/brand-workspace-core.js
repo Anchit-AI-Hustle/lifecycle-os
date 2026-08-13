@@ -844,6 +844,24 @@ async function rowsFromStorefront(storeUrl, region) {
 
 /* ── workspace operations ─────────────────────────────────────────────────── */
 
+/**
+ * Every brand write goes through here so the in-memory caches downstream cannot
+ * outlive the row they describe.
+ *
+ * brand-runtime caches the workspace for 30s and workspace-scope caches both the
+ * workspace row and the user's active workspace for 60s. Nothing used to clear
+ * either, so for that window after a save or a brand switch the generators kept
+ * building from the previous brand: correct-looking assets carrying the wrong
+ * identity, which nothing else in the system would ever notice.
+ *
+ * Required lazily because brand-runtime requires THIS module at load time; a
+ * top-level require here would close the cycle.
+ */
+function invalidateBrandCaches({ userId, workspaceId } = {}) {
+  try { require('./brand-runtime.js').invalidate(workspaceId); } catch (_) { /* cache clearing must never fail a write */ }
+  try { require('./workspace-scope.js').invalidate({ userId, workspaceId }); } catch (_) { /* same */ }
+}
+
 const SELECT_COLS = 'id,slug,name,legal_name,tagline,industry,website,logo_url,favicon_url,palette,typography,voice,regions,asset_hosts,catalog_source,brand_data,status,onboarding_step,owner_id,created_at,updated_at';
 
 async function listWorkspaces(auth) {
@@ -890,6 +908,8 @@ async function seedCompetitorsOnActivation(auth, ws) {
     const brandRuntime = require('./brand-runtime.js');
     return await universe.seedForWorkspace(universe.userStore(auth.token), ws.id, {
       brand: brandRuntime.normalizeBrand(ws),
+      // Switching back to a brand that is already set up must be a no-op.
+      onlyIfEmpty: true,
     });
   } catch (err) {
     console.warn('[brand] competitor seed skipped:', (err && err.message) || err);
@@ -905,6 +925,9 @@ async function setActive(auth, id) {
     body: [{ user_id: auth.user_id, active_workspace_id: id, updated_at: new Date().toISOString() }],
     prefer: 'resolution=merge-duplicates,return=minimal',
   });
+  // Clear BEFORE the seeding call: everything downstream of this point resolves
+  // the user's active workspace, and the cached answer is now the previous one.
+  invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
   await seedCompetitorsOnActivation(auth, ws);
   return ws;
 }
@@ -961,6 +984,7 @@ async function saveWorkspace(auth, input) {
     const saved = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}&select=${SELECT_COLS}`, {
       method: 'PATCH', body: row, prefer: 'return=representation',
     });
+    invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
     return Array.isArray(saved) ? saved[0] : saved;
   }
   const row = buildRow(input, null);
@@ -971,11 +995,15 @@ async function saveWorkspace(auth, input) {
   const ws = Array.isArray(created) ? created[0] : created;
   // First workspace a user creates becomes their active one automatically.
   if (ws && ws.id && !(await activeWorkspaceId(auth))) await setActive(auth, ws.id);
+  invalidateBrandCaches({ userId: auth.user_id, workspaceId: ws && ws.id });
   return ws;
 }
 
 async function deleteWorkspace(auth, id) {
   await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' });
+  // Nothing survives a delete: the default-workspace cache is keyed on "oldest
+  // row", which the delete may itself have removed.
+  invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
   return { ok: true, deleted: id };
 }
 
@@ -1071,6 +1099,9 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
   await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(workspace_id)}`, {
     method: 'PATCH', body: { catalog_source: source }, prefer: 'return=minimal',
   });
+  // catalog_source lives on the workspace row that the generators read, so an
+  // import that is not followed by this keeps planning from the old catalogue.
+  invalidateBrandCaches({ userId: auth.user_id, workspaceId: workspace_id });
 
   return { ok: true, imported: inserted, skipped: parsed.skipped || 0, region: reg, source };
 }

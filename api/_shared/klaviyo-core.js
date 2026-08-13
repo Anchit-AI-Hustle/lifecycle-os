@@ -135,6 +135,7 @@ const getFlows    = (p = {}) => request({ creds: p.creds, path: '/flows/', query
 const getTemplates = (p = {}) => request({ creds: p.creds, path: '/templates/', query: { 'page[size]': clampPage(p.limit, 100) } });
 // Campaigns require a channel filter and reject page[size] in this revision.
 const getCampaigns = (p = {}) => request({
+  creds: p.creds,
   path: '/campaigns/',
   query: { filter: p.filter || `equals(messages.channel,'${p.channel || 'email'}')`, sort: p.sort || '-created_at' },
 });

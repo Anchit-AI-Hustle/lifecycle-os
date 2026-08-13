@@ -125,8 +125,29 @@ function routeExists(href) {
   if (fs.existsSync(path.join(ROOT, clean.replace(/^\//, '')))) return true;
   if (fs.existsSync(path.join(ROOT, clean.replace(/^\//, '') + '.html'))) return true;
   // Dynamic routes are matched by pattern in vercel.json.
-  for (const r of ROUTES) if (r.includes(':') && new RegExp('^' + r.replace(/:[a-zA-Z]+/g, '[^/]+') + '$').test(clean)) return true;
+  for (const r of ROUTES) if (r.includes(':') && routePattern(r).test(clean)) return true;
   return false;
+}
+
+/**
+ * A vercel.json dynamic source as a RegExp.
+ *
+ * The literal parts have to be ESCAPED. Building the pattern by substituting
+ * into the raw string crashed the whole audit the moment a catch-all redirect
+ * (`/:path*`) appeared in the config: `:path` became `[^/]+` and the trailing
+ * `*` was left behind as a quantifier with nothing to repeat, so the tool died
+ * with a SyntaxError instead of auditing anything.
+ *
+ * `:name*` matches one or more segments including the slashes between them;
+ * `:name` matches exactly one. That is what Vercel means by each.
+ */
+function routePattern(source) {
+  const parts = String(source).split(/(:[a-zA-Z][a-zA-Z0-9]*\*?)/);
+  const body = parts.map((p) => {
+    if (!p.startsWith(':')) return p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return p.endsWith('*') ? '.+' : '[^/]+';
+  }).join('');
+  return new RegExp('^' + body + '$');
 }
 
 const findings = [];
@@ -326,6 +347,35 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
     add(file, 'BLOCKER', 'unreadable-pairing',
       `text is hardcoded light on a brand-token background (var(${bg[1]})) - use color:var(${onToken},#fff), which is contrast-computed per brand, or the text vanishes for any brand with a light ${onToken === '--brand-on-primary' ? 'primary' : 'accent'}`);
     break;                                   // one finding per file is enough to act on
+  }
+
+  // 7f. A table cell that cannot wrap must not be able to spill either.
+  //     theme.css sets `table{table-layout:fixed;width:100%}` as a global
+  //     default and relies on its own `overflow-wrap:break-word` to keep a long
+  //     value inside its cell. A page that sets `white-space:nowrap` on td/th
+  //     at higher specificity defeats that wrapping WITHOUT opting out of the
+  //     fixed layout, and fixed layout divides the width equally regardless of
+  //     content. The text then has nowhere to go: it overflows its cell and
+  //     paints on top of the next column.
+  //
+  //     This is not hypothetical. The Live Ads table has fourteen columns, so
+  //     each got about 64px, and Campaign and Ad group rendered as one
+  //     superimposed unreadable string - on the table whose whole job is to say
+  //     which ad a number belongs to.
+  //
+  //     Either opt out of the layout (`table-layout:auto` plus a scrolling
+  //     wrapper) or clip (`overflow:hidden`, ideally with text-overflow and the
+  //     full value on a title). Doing neither is the bug.
+  {
+    const nowrapCell = /(?:^|[,{}\s])(?:table\s+)?(?:t[dh]|[.#][\w-]+\s+t[dh])[^{}]*\{[^{}]*white-space\s*:\s*nowrap/i;
+    const optsOut = /table-layout\s*:\s*auto/i.test(cssOnly);
+    const clips = /t[dh][^{}]*\{[^{}]*overflow\s*:\s*hidden/i.test(cssOnly);
+    if (nowrapCell.test(cssOnly) && !optsOut && !clips) {
+      const m = cssOnly.match(nowrapCell);
+      add(file, 'BLOCKER', 'table-cell-overlap',
+        'table cells are white-space:nowrap under the global table-layout:fixed default, so a value wider than its equal-share column paints over the next one - set table-layout:auto on the table (with a scrolling wrapper) or overflow:hidden on the cells',
+        lineOf(html, m.index));
+    }
   }
 
   // 8. Hardcoded brand identity on an APP page.
