@@ -327,9 +327,9 @@
       <button type="button" id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
     </div>
     <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
-      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed the priority brand list</div>
-      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px"> One-click bulk-add of the curated priority brands for <span class="cb-industry">this brand's industry</span> and regions. Skips any already in your universe, so it's safe to re-run. Best run once when starting. </div>
-      <button type="button" id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Add priority brands</button>
+      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed from this brand's own record</div>
+      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px"> Adds the competitors <span class="cb-brandname">the active brand</span> already names in its own brand record and market study. No AI, no guessing: if the record names none, you get the data gap rather than a list of plausible companies. Skips any already tracked, so it is safe to re-run. </div>
+      <button type="button" id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Seed from brand record</button>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#556059">
@@ -358,7 +358,7 @@
       <tbody id="bd-rows"></tbody>
     </table>
   </div>
-  <div id="bd-empty" class="empty" style="display:none">No brands tracked yet. Click <b>⬇ Add priority brands</b> for the curated list, or <b>✨ Find &amp; add new brands</b> to let AI discover fresh ones.</div>
+  <div id="bd-empty" class="empty" style="display:none">No competitors tracked for this brand yet. Click <b>⬇ Seed from brand record</b> to add the ones this brand already names, or <b>✨ Find &amp; add new brands</b> to research more. Another brand's competitor list is never shown here.</div>
 </div>
 
 <!-- ════ LANDING PAGES VIEW ════ -->
@@ -1131,7 +1131,6 @@
   $('adRegion').addEventListener('change', renderAds);
 
   // ── Brands database + discovery (Phase 2) ───────────────────────────
-  const BRAND_TARGET = 250;
   let brandsLoaded = false;
   async function renderBrands(force) {
     if (brandsLoaded && !force) return;
@@ -1143,7 +1142,13 @@
     // Refresh the shared universe so Mailers/Meta/Google/TikTok/Landing tabs
     // all track the SAME brands as this Discover tab.
     await fetchBrandUniverse(true);
-    $('bd-count').textContent = `${brands.length} brands · target ~${BRAND_TARGET}`;
+    // Count what is actually known, not progress toward a target. The old
+    // "target ~250" was tenant zero's aspiration presented as every brand's
+    // goal, so a correct universe of twenty real competitors read as a failure.
+    const verified = brands.filter((b) => b.verification === 'verified').length;
+    $('bd-count').textContent = brands.length
+      ? `${brands.length} competitor${brands.length === 1 ? '' : 's'} tracked · ${verified} with a verified site`
+      : 'No competitors tracked yet';
     $('bd-empty').style.display = brands.length ? 'none' : 'block';
     const pill = (s) => { const ok = /subscribed/i.test(s) && !/not/i.test(s); return `<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${ok ? 'rgba(34,197,94,.15)' : 'rgba(171,135,67,.12)'};color:${ok ? '#0a7d33' : 'var(--vh-ink)'}">${esc(s || 'Not subscribed')}</span>`; };
     $('bd-rows').innerHTML = brands.map((b) => `
@@ -1163,18 +1168,30 @@
       const r = await fetch(API + '?action=' + action, { method: 'POST' });
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || 'failed');
-      $('bd-status').textContent = action === 'discover'
-        ? `+${d.added} new (${d.skipped} dupes) · ${d.total} total${d.provider ? ' · via ' + d.provider : ''}`
-        : d.added
-          ? `+${d.added} added · ${d.total} total`
-          : `All ${d.skipped} priority brands already in your universe · ${d.total} total`;
+      // A run that adds nothing is a real answer, not a silent no-op. When the
+      // brand's own record names no competitor and research found none, the
+      // server returns the data gap, and the gap is what the operator needs to
+      // see - the alternative would be a list of plausible companies.
+      const added = Number(d.added || 0);
+      const gaps = Array.isArray(d.gaps) ? d.gaps : [];
+      const notes = [].concat(d.note || [], d.notes || []).filter(Boolean);
+      if (added) {
+        $('bd-status').textContent = `+${added} added${d.upgraded ? ` · ${d.upgraded} updated` : ''}`
+          + `${d.skipped ? ` · ${d.skipped} already tracked` : ''} · ${d.total} total`
+          + `${d.provider ? ` · via ${d.provider}` : ''}`;
+      } else if (gaps.length) {
+        $('bd-status').textContent = `Nothing added. ${gaps[0]}${notes.length ? ' — ' + notes[0] : ''}`;
+      } else {
+        $('bd-status').textContent = `Nothing new to add${d.skipped ? ` · ${d.skipped} already tracked` : ''}`
+          + `${notes.length ? ' — ' + notes[0] : ''}`;
+      }
       await renderBrands(true);
     } catch (e) {
       $('bd-status').textContent = 'Error: ' + (e.message || e);
     } finally { btn.disabled = false; btn.textContent = orig; }
   }
   $('bd-discover').addEventListener('click', function () { runBrandAction(this, 'discover', '✨ Searching…(~20s)'); });
-  $('bd-seed').addEventListener('click', function () { runBrandAction(this, 'seed', '⬇ Adding 60 brands…'); });
+  $('bd-seed').addEventListener('click', function () { runBrandAction(this, 'seed', '⬇ Reading brand record…'); });
   $('bd-refresh').addEventListener('click', async function () {
     const orig = this.textContent; this.disabled = true; this.textContent = '↻ Refreshing…';
     $('bd-status').textContent = '';

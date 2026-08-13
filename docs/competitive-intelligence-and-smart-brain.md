@@ -627,7 +627,8 @@ already applied per router. Mutating actions require `CRON_SECRET` (cron) or
 | GET | `offers-query` | `offer_type?`, `product_category?`, `country?`, `brand_id?`, `from?`, `to?` | `{ ok, offers:[ci_offers] }` — e.g. `?action=offers-query&offer_type=free_gift&product_category=sneakers&country=US&from=2026-05-18` answers *"free-gift offers on sneakers in US in last 30 days"* |
 | POST | `funnel-reconstruct` | `{ brand_id }` | builds `ci_funnels` from ads+emails+landing by time/offer correlation → `{ ok, funnels:[…] }` |
 | GET | `funnel-list` | `brand_id`, `entry_point?` | `{ ok, funnels:[ci_funnels] }` |
-| GET/POST | `brands` / `discover` / `seed` / `mark-subscribed` *(exist)* | — | brand registry + discovery (unchanged) |
+| GET/POST | `brands` / `discover` / `seed` / `mark-subscribed` | workspace from the caller's session or `workspace_id` | the ACTIVE brand's competitor universe in `brand_competitors` (`_shared/competitor-universe.js`). No Google credential involved; `universe-export` mirrors into the sheet when one exists |
+| GET/POST | `universe-refresh` | `max?`, `min_interval_hours?` (CRON_SECRET) | the scheduled sweep, also run from the daily `/api/brain?action=cron` |
 | POST | `lease` | `stage`, `n` (worker) | `{ ok, jobs:[…] }` (leases queue work) |
 
 ### `api/kb.js` — Knowledge Base + Data Analysis (Smart Brain own-data)
