@@ -2722,5 +2722,18 @@ rerender();
 </script>
   <script src="/brand-demo.js"></script>
   <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('The V1 analytics workbench', "This Draft 1 workbench renders one brand's demo exports. Use Data Analysis (V2) for this brand: it builds a labelled demo from the brand's own offerings, or its real exports once connected.");</script>
+<!-- This page is a drill-down of the Data Analysis workbench, not a rival
+     dashboard. The bar it mounts names the tab that owns the entry point and
+     why the analysis lives on its own surface; both come from
+     analysis-registry.js so the two descriptions cannot drift apart. -->
+<script src="/analysis-registry.js"></script>
+<script>
+(function () {
+  function mount() {
+    if (window.LifecycleAnalysisRegistry) window.LifecycleAnalysisRegistry.mountBreadcrumb('rfm');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+}());
+</script>
 </body>
 </html>
