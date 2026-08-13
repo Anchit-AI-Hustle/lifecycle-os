@@ -37,8 +37,10 @@
   .card .d{color:var(--soft);font-size:13px;margin-top:8px;}
   .card.link{cursor:pointer;transition:border-color .15s;} .card.link:hover{border-color:var(--accent);}
   .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
-  .v2{background:var(--vh-panel-tan);color:#D0473E;}
-  :root[data-theme="dark"] .v2{background:var(--vh-ink);color:var(--vh-ink-dim);}
+  /* Same pair as Cohort Definitions: a tenant-zero red literal that never
+     re-skinned, and a dark twin writing the light-surface muted token on ink. */
+  .v2{background:var(--vh-panel-tan);color:var(--brand-primary-text,var(--head));}
+  :root[data-theme="dark"] .v2{background:var(--brand-ink,#111111);color:var(--brand-surface,#ffffff);}
   /* Persona cards */
   .persona{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
   .persona .ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}

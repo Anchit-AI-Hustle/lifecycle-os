@@ -15,15 +15,22 @@
     --txt:var(--vh-ink,#FFFFFF);--dim:var(--ink-dim,var(--vh-lava));--line:rgba(171,135,67,0.28)}
   *{box-sizing:border-box}
   body{margin:0;background:var(--canvas);color:var(--txt);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;line-height:1.55}
-  .head{background:#D0473E;color:var(--chalk);padding:18px 22px}
+  /* The header band and the user bubble both painted tenant zero's red as a
+     literal and wrote chalk on it, so they never re-skinned and turned into
+     white-on-pale for any brand with a light primary. --brand-on-primary is the
+     colour computed to sit on that fill, and validatePalette blocks a brand
+     whose best on-primary cannot reach AA. The sub-line's .75 alpha measured
+     2.98:1 even at tenant zero's red; the spec bans low-opacity copy outright,
+     so the hierarchy comes from size and weight instead. */
+  .head{background:var(--brand-primary,#D0473E);color:var(--brand-on-primary,var(--chalk));padding:18px 22px}
   .head h1{font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;margin:0}
-  .head .sub{color:rgba(251,245,234,.75);font-size:13px;margin-top:4px}
+  .head .sub{color:var(--brand-on-primary,var(--chalk));font-size:13px;margin-top:4px;font-weight:600}
   .badge{display:inline-block;background:var(--lava);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
   .wrap{max-width:860px;margin:0 auto;padding:18px 16px 120px}
   .msg{margin:14px 0;display:flex;gap:10px}
   .msg .who{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-accent-text);font-weight:700;min-width:64px;padding-top:3px}
   .msg .body{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;white-space:pre-wrap;flex:1}
-  .msg.user .body{background:#D0473E;color:var(--chalk);border-color:#D0473E}
+  .msg.user .body{background:var(--brand-primary,#D0473E);color:var(--brand-on-primary,var(--chalk));border-color:var(--brand-primary,#D0473E)}
   .data{margin-top:10px;font-size:12px;color:var(--dim);background:rgba(0,0,0,.22);border-radius:8px;padding:8px 10px;overflow:auto}
   .empty{color:var(--dim);text-align:center;padding:40px 0}
   .bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px}
