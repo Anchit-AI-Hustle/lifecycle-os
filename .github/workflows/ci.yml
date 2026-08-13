@@ -41,6 +41,14 @@ jobs:
         # another company's revenue on their own dashboard.
         run: npm run check:foreign:ci
 
+      - name: DESIGN.md conforms to the open spec
+        # DESIGN.md is google-labs-code/design.md, an existing Apache-2.0 format
+        # with its own linter. Our tests can only check the shape we THINK the
+        # spec has; this checks the shape it actually has, using the spec's own
+        # tool - including its WCAG contrast rule. Skips (exit 0) when the CDN
+        # is unreachable: a network failure is not a format failure.
+        run: npm run check:designmd:ci
+
       - name: Every element and word of every page
         # 65 pages, ~240k words. Blocks wrong-industry vocabulary, fabricated
         # proof, banned phrases used as copy, dead links and off-brand colour.

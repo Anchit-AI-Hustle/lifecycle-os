@@ -78,7 +78,7 @@ test.afterAll(async () => { if (server) await new Promise((r) => server.close(r)
      - walks ancestors for the first opaque background, compositing translucent
        ones on the way, rather than assuming white
      - applies the WCAG large-text allowance (3:1 at >=24px, or >=18.66px bold) */
-const PROBE = `(() => {
+const PROBE = `(async () => {
   const AA = 4.5, AA_LARGE = 3.0;
   function parse(c) {
     const m = String(c).match(/rgba?\\(([^)]+)\\)/);
@@ -159,13 +159,32 @@ const PROBE = `(() => {
     const got = ratio(painted, bg);
     if (got + 0.005 < need) {
       out.push({
+        el,
         tag: el.tagName.toLowerCase(), cls: (el.className && el.className.toString().slice(0, 40)) || '',
         text: own.slice(0, 45), got: Math.round(got * 100) / 100, need, size, opacity: Math.round(op * 100) / 100,
         color: s.color, bg: 'rgb(' + Math.round(bg.r) + ',' + Math.round(bg.g) + ',' + Math.round(bg.b) + ')',
       });
     }
   }
-  return out;
+  // ── Confirm each failure is STABLE before reporting it ────────────────────
+  //
+  // Three times now this probe has reported a mid-reveal element as unreadable,
+  // and three times the fix was to detect one more animation mechanism: CSS
+  // transitions, then CSS animations, then the Web Animations API. This one was
+  // Motion One's animate() with type:"spring", which runs a JS rAF loop writing
+  // inline styles - it sets no transitionProperty, no animationName, and returns
+  // nothing from getAnimations(). The tell was the number itself: the same node
+  // reported 0.49 on one run and 0.55 on the next.
+  //
+  // So stop asking HOW the page animates and ask whether the value is still
+  // moving. Re-measure every failure after a beat; a genuinely dim element reads
+  // identically, an in-flight one does not. This is mechanism-independent, which
+  // the previous three fixes were not.
+  if (!out.length) return [];
+  const before = out.map((o) => effectiveOpacity(o.el));
+  await new Promise((r) => setTimeout(r, 400));
+  const stable = out.filter((o, i) => Math.abs(effectiveOpacity(o.el) - before[i]) < 0.005);
+  return stable.map((o) => { const { el, ...rest } = o; return rest; });
 })()`;
 
 /* The signed-in app surfaces. Generated marketing artefacts and the frozen diff

@@ -40,7 +40,9 @@
     "audit:interactions": "node scripts/audit-interactions.js",
     "audit:interactions:ci": "node scripts/audit-interactions.js --fail",
     "retheme": "node scripts/retheme-legacy-palette.js",
-    "test:isolation": "node scripts/test-brand-isolation.js --ci"
+    "test:isolation": "node scripts/test-brand-isolation.js --ci",
+    "check:designmd": "node scripts/check-design-md.js",
+    "check:designmd:ci": "node scripts/check-design-md.js --fail"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",
