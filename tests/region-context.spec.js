@@ -179,6 +179,139 @@ test('mounting the same slot twice does not stack repaint listeners', async ({ p
   expect(chips).toBe(2);
 });
 
+/* ── The bridge to the controls the pages already have ────────────────────
+   27 pages consume a market; 17 carry their own control, written six ways.
+   The shared picker is decoration unless those controls follow it, and the
+   page's own handler has to run or the page does not re-render. */
+
+/** A page whose market control is written the way the real pages write theirs. */
+async function withLegacy(page, html) {
+  await page.route('**/legacy.html', (route) => route.fulfill({
+    status: 200, contentType: 'text/html',
+    body: '<!doctype html><meta charset="utf-8"><body>' + html
+      + '<script>window.__fired=[];</script>'
+      + '<script src="/brand-context.js"></script><script src="/region-context.js"></script>',
+  }));
+  await page.route('**/api/public-config**', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify(brandPayload(UK_US, 'Acme')),
+  }));
+  await page.goto(base + '/legacy.html', { waitUntil: 'load' });
+  await page.waitForFunction(() => window.RegionContext && window.RegionContext.loaded === true, null, { timeout: 5000 });
+}
+
+test('using a page\'s own market chips sets the shared choice', async ({ page }) => {
+  await withLegacy(page, `
+    <div id="marketChips">
+      <button class="chip on" data-market="UK">UK</button>
+      <button class="chip" data-market="US">US</button>
+    </div>`);
+  await page.locator('[data-market="US"]').click();
+  expect(await page.evaluate(() => window.RegionContext.region)).toBe('US');
+});
+
+test('the shared choice drives the page\'s own chips, running the page\'s handler', async ({ page }) => {
+  await withLegacy(page, `
+    <div id="marketChips">
+      <button class="chip on" data-market="UK">UK</button>
+      <button class="chip" data-market="US">US</button>
+    </div>
+    <script>
+      document.getElementById('marketChips').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-market]'); if (!b) return;
+        [].forEach.call(this.children, function (c) { c.className = 'chip'; });
+        b.className = 'chip on';
+        window.__fired.push(b.getAttribute('data-market'));
+      });
+    </script>`);
+  await page.evaluate(() => window.RegionContext.setActive('US'));
+  await expect(page.locator('[data-market="US"]')).toHaveClass('chip on');
+  // The page's OWN handler ran — that is what makes it re-render its data.
+  expect(await page.evaluate(() => window.__fired)).toEqual(['US']);
+});
+
+test('a select of markets syncs both ways', async ({ page }) => {
+  await withLegacy(page, `
+    <select id="market">
+      <option value="ALL">All markets</option>
+      <option value="UK">UK</option>
+      <option value="US">US</option>
+    </select>
+    <script>
+      document.getElementById('market').addEventListener('change', function () { window.__fired.push(this.value); });
+    </script>`);
+  await page.selectOption('#market', 'US');
+  expect(await page.evaluate(() => window.RegionContext.region)).toBe('US');
+
+  await page.evaluate(() => window.RegionContext.setActive('UK'));
+  await expect(page.locator('#market')).toHaveValue('UK');
+  expect(await page.evaluate(() => window.__fired)).toContain('UK');
+});
+
+test('a lone market badge is not mistaken for a picker', async ({ page }) => {
+  // One "UK" pill in a card header is a label. Clicking it must not change
+  // the market, and the shared choice must never click it.
+  await withLegacy(page, '<div><button class="badge" data-market="UK">UK</button></div>');
+  await page.locator('.badge').click();
+  // UK is the brand's first region, so assert the CHOICE was never recorded
+  // rather than the value, which would pass either way.
+  expect(await page.evaluate(() => window.RegionContext.explicit)).toBe(false);
+});
+
+test('a market link that navigates is never clicked on the app\'s behalf', async ({ page }) => {
+  // A table of markets whose rows link elsewhere looks exactly like a chip
+  // row. Driving one would leave the page instead of filtering it.
+  await withLegacy(page, `
+    <div>
+      <a href="/about.html" data-market="UK">UK</a>
+      <a href="/about.html" data-market="US">US</a>
+    </div>`);
+  await page.evaluate(() => window.RegionContext.setActive('US'));
+  await page.waitForTimeout(300);
+  expect(page.url()).toContain('/legacy.html');
+});
+
+test('a multi-select market FILTER is not quietly edited', async ({ page }) => {
+  // calendar.html plans across several markets at once: its chips toggle
+  // independently. Driving one there widens the user's filter instead of
+  // changing the market, so the click is taken back and the group left alone.
+  await withLegacy(page, `
+    <div id="marketChips">
+      <button class="chip on" data-market="UK">UK</button>
+      <button class="chip" data-market="US">US</button>
+    </div>
+    <script>
+      document.getElementById('marketChips').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-market]'); if (!b) return;
+        b.classList.toggle('on');            // multi-select: no deselect of siblings
+        window.__fired.push([].filter.call(this.children, function (c) {
+          return c.classList.contains('on');
+        }).map(function (c) { return c.getAttribute('data-market'); }).join('+'));
+      });
+    </script>`);
+  await page.evaluate(() => window.RegionContext.setActive('US'));
+  await page.waitForTimeout(300);
+  // Back to what the user had: UK on, US off.
+  await expect(page.locator('[data-market="UK"]')).toHaveClass('chip on');
+  await expect(page.locator('[data-market="US"]')).toHaveClass('chip');
+  // And it does not keep trying on every repaint.
+  const tries = await page.evaluate(() => window.__fired.length);
+  await page.evaluate(() => { document.body.appendChild(document.createElement('div')); });
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__fired.length)).toBe(tries);
+});
+
+test('a market the brand does not serve is left alone', async ({ page }) => {
+  // The bridge only touches controls whose values are markets THIS brand
+  // sells in, so an unrelated chip row is not hijacked.
+  await withLegacy(page, `
+    <div>
+      <button data-market="JP">JP</button>
+      <button data-market="BR">BR</button>
+    </div>`);
+  await page.locator('[data-market="JP"]').click();
+  expect(await page.evaluate(() => window.RegionContext.explicit)).toBe(false);
+});
+
 test('the active chip stays legible whatever the brand palette is', async ({ page }) => {
   // A light primary with hardcoded white text is invisible. The chip takes its
   // colour from --brand-on-primary, which is contrast-computed per brand.
