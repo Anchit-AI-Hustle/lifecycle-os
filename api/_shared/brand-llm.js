@@ -143,9 +143,19 @@ const TOOLS = {
   ad_insights: {
     mutates: false,
     desc: 'REAL paid-ads performance pulled from each platform\'s OWN reporting API — Meta Ads (Graph Insights), Google Ads (GAQL) and TikTok Ads (Business report) — PER CAMPAIGN or PER AD. Every result leads with the client priority metrics IN ORDER: Amount spent, Frequency, Hook Rate, Through Rate, Reach, Cost Per Reach, Impressions, Link clicks, CTR, CPC, CPM, 3-sec video plays, video plays 25/50/75%, Cost per 3-sec play (in result.priority_metrics + result.rows). Report those first, before any other metric. Region-aware: pass {market} (US|UK). params: {platform?("meta"|"google"|"tiktok"; omit for ALL three), level?("campaign"|"ad"|"account", default campaign), market?, since?(YYYY-MM-DD), until?}. If a platform\'s keys are not set it returns the exact request it would send (never a fabricated number) — relay that the platform needs connecting.',
-    run: async (a) => (a.platform
-      ? adInsights.insights({ platform: a.platform, market: a.market, level: a.level, since: a.since, until: a.until })
-      : adInsights.summary({ market: a.market, level: a.level, since: a.since, until: a.until })),
+    // The ad platforms authenticate from DEPLOYMENT env vars, so an ungated
+    // call answered "how did our ads do" with the deployment owner's advertiser
+    // account - the same defect already closed for the sales export, Klaviyo and
+    // WebEngage. The deployment's connectors belong to tenant zero; every other
+    // workspace is told which account to connect rather than handed one.
+    run: async (a) => {
+      if (!(await marketAnalytics.ownsBundledExport())) {
+        return { ok: false, connected: false, scope: 'other_workspace', error: 'This brand has not connected an ad account. Connect Meta Ads, Google Ads or TikTok Ads on /connections; the ad accounts configured on this deployment belong to another advertiser and are never reported as this brand\'s spend. [DATA REQUIRED BEFORE LAUNCH: per-workspace ad-platform reporting auth]' };
+      }
+      return a.platform
+        ? adInsights.insights({ platform: a.platform, market: a.market, level: a.level, since: a.since, until: a.until })
+        : adInsights.summary({ market: a.market, level: a.level, since: a.since, until: a.until });
+    },
   },
   run_analysis: {
     mutates: false,

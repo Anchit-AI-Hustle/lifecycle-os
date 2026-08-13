@@ -288,6 +288,21 @@ async function defaultFetch(url, timeoutMs, ua) {
  * `fetchImpl` is injectable so the extraction can be tested against fixtures
  * without a network: this module's value is in what it refuses to take, and
  * that has to be testable offline.
+ *
+ * Two optional hooks let a second reader ride along on ONE crawl rather than
+ * running a second one with its own copy of the scope, robots and SSRF rules -
+ * which is how those rules drift apart and how a brand ends up double-fetched:
+ *
+ *   onPage(html, url, depth)  observe each fetched page body. A throw from an
+ *                             observer is swallowed; a reader must never be
+ *                             able to abort the crawl it is watching.
+ *   rank(url, depth) -> num   higher is visited sooner. Scope is unaffected -
+ *                             this only reorders the queue, so a caller can
+ *                             steer a small budget toward the pages it needs
+ *                             (brand-extract wants /about and the policy pages;
+ *                             a plain BFS off a store homepage spends the whole
+ *                             budget on products). Omitted = strict FIFO, the
+ *                             existing behaviour, byte for byte.
  */
 async function crawlSite(startUrl, opts) {
   const o = Object.assign({}, DEFAULTS, opts || {});
@@ -329,6 +344,10 @@ async function crawlSite(startUrl, opts) {
     if (!r || !r.ok || !r.body) { notes.push(`unreachable (${(r && r.status) || 0}): ${url}`); continue; }
 
     pages.push(url);
+    if (typeof o.onPage === 'function') {
+      try { o.onPage(r.body, r.url || url, depth); }
+      catch (e) { notes.push(`observer failed on ${url}: ${(e && e.message) || e}`); }
+    }
     const got = extract(r.body, r.url || url, hosts);
     offerings.push(...got.offerings);
     images.push(...got.images);
@@ -338,6 +357,12 @@ async function crawlSite(startUrl, opts) {
         if (seen.has(link)) continue;
         seen.add(link);
         queue.push({ url: link, depth: depth + 1 });
+      }
+      // Reordering only. Array.prototype.sort is stable, so equal ranks keep
+      // their FIFO order and a caller with no `rank` gets the same traversal
+      // it always got.
+      if (typeof o.rank === 'function') {
+        queue.sort((a, b) => (Number(o.rank(b.url, b.depth)) || 0) - (Number(o.rank(a.url, a.depth)) || 0));
       }
     }
   }

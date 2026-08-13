@@ -483,6 +483,10 @@ Rules:
   // NULL - accepted by the database, invisible to every brand including the one
   // that ingested it. Stamp the object that is actually written.
   let row;
+  // Carried into every follow-up PATCH below: the row id came from our own
+  // upsert, but a write that names only an id is one refactor away from landing
+  // on another brand's row, and the filter costs nothing.
+  const queuedWs = req.__workspaceId ? `&workspace_id=eq.${encodeURIComponent(req.__workspaceId)}` : '';
   try {
     const queued = await wsScope.stamp('kb_knowledge',
       { url: canonical, url_hash: hash, source_type, tags: userTags, status: 'queued', added_by }, env, req);
@@ -507,7 +511,7 @@ Rules:
     pageHtml = fetched.html;
     if (fetched.status < 200 || fetched.status >= 400) throw new Error(`HTTP ${fetched.status}`);
   } catch (err) {
-    await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}`, {
+    await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}${queuedWs}`, {
       method: 'PATCH', headers,
       body: JSON.stringify({ status: 'failed', processed_at: new Date().toISOString(), summary: `Fetch failed: ${err.message}` }),
     });
@@ -528,14 +532,14 @@ Rules:
   const guard = require('./_shared/ingest-guardrail.js');
   const verdict = await guard.gatekeep({ title, text: rawText, url: canonical }, { llm: true }).catch(() => ({ keep: true, phase: 0, reason: 'guardrail error — kept' }));
   if (!verdict.keep) {
-    await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}`, {
+    await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}${queuedWs}`, {
       method: 'PATCH', headers,
       body: JSON.stringify({ title, author, status: 'filtered', summary: `Off-context, not ingested (guardrail phase ${verdict.phase}): ${verdict.reason}`, processed_at: new Date().toISOString() }),
     }).catch(() => {});
     return res.status(200).json({ ok: true, filtered: true, phase: verdict.phase, reason: verdict.reason, id: rowId, url: canonical });
   }
 
-  await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}`, {
+  await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}${queuedWs}`, {
     method: 'PATCH', headers,
     body: JSON.stringify({ title, author, raw_text: rawText, status: 'fetched' }),
   }).catch(() => {});
@@ -544,7 +548,7 @@ Rules:
   const mergedTags = [...new Set([...(userTags || []), ...(out.tags || [])])].slice(0, 8);
   const meta = (verdict && verdict.meta) || {};   // zero-drift {market, vertical}
   try {
-    await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}`, {
+    await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}${queuedWs}`, {
       method: 'PATCH', headers,
       body: JSON.stringify({ summary: out.summary, key_points: out.key_points, tags: mergedTags, market: meta.market || null, vertical: meta.vertical || null, status: 'summarized', processed_at: new Date().toISOString() }),
     });

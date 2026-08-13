@@ -32,6 +32,10 @@ const FEATURES = [
   { key: 'app.browse',            label: 'Browse the app',              group: 'Included', cost: 0, unit: 'always free', why: 'Navigation, dashboards and reading saved work are free.' },
   { key: 'brand.onboard',         label: 'Brand onboarding',            group: 'Included', cost: 0, unit: 'always free', why: 'Setting up a brand, its colour schema and typography is free.' },
   { key: 'brand.catalog_import',  label: 'Catalog import',              group: 'Included', cost: 0, unit: 'always free', why: 'Importing your own product data is free; only generation costs credits.' },
+  // Reading your own site to fill in your own brand record is part of setting
+  // the brand up, and brand setup is free here. It reads pages and stylesheets
+  // and makes at most one small model call to describe the tone it observed.
+  { key: 'brand.extract',         label: 'Read brand from website',     group: 'Included', cost: 0, unit: 'always free', why: 'Reading your own site to fill in your own brand record is part of setup, which is free.' },
   { key: 'dashboard.view',        label: 'Dashboards and reports',      group: 'Included', cost: 0, unit: 'always free', why: 'Viewing analytics already computed is free.' },
   // Connecting a payment gateway costs nothing: it is a sign-in and a token
   // exchange, with no model call anywhere in the path. The key exists so the

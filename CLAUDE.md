@@ -15,6 +15,17 @@ all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `bra
   colour or font in a new page, always go through the `--vh-*` / `--brand-*` tokens.
   `validatePalette()` BLOCKS activation on dark-neutral surfaces or sub-AA contrast.
   KNICKGASM is now just tenant zero (`data/brands/_default.json`).
+  - **Read the brand off its own site** — `_shared/brand-extract.js` on `?op=extract` (still 12/12)
+    extracts name, tagline, logo, palette, typography, observed voice, verbatim claims, social,
+    legal entity and regions from the URL pasted on step 1. It rides the SAME crawl as the catalogue
+    importer (`site-crawl.js` gained optional `onPage` + `rank` hooks) so there is one set of scope,
+    robots and SSRF rules. **Every value is a CANDIDATE carrying its source URL and signal; nothing
+    is applied until the operator presses Use**, and a field the site did not publish comes back as
+    a `[DATA REQUIRED BEFORE LAUNCH: ...]` marker. Colours are never pooled by frequency: sightings
+    are split into `identity` / `action` / `surface` / `ink` / `support` roles, `proposed.primary`
+    comes ONLY from an identity signal (theme-color, manifest `theme_color`, a `--brand-*` token),
+    and an identity-vs-action disagreement is reported as a conflict rather than resolved. No
+    browser is available, so this is CSS/HTML parsing and its blind spots are returned in `limits[]`.
 - **Credits** — every feature costs credits. `api/_shared/credit-catalog.js` is the single source of
   truth for prices; **a feature key missing from it throws rather than running free**. Spend via
   `credits.meter()` hold → settle/release so a failed run is always refunded. The balance-moving SQL

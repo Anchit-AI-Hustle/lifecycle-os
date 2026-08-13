@@ -8,12 +8,35 @@
 // Pure + testable. Not a function file (under api/_shared/).
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── EVERY NUMBER HERE IS A PLANNING ASSUMPTION, NOT A MEASUREMENT ───────────
+// These are the spec's stated planning band (§9: "label as assumptions, replace
+// with validated medians when available"). They are NOT any particular brand's
+// figures, and at least one is contradicted by the repo's own measured data:
+// tenant zero's Shopify export puts US AOV at 157.37 and UK at 133.79 against
+// the 42.5 below, so a forecast built on the default understates revenue by
+// roughly 3.7x. The defaults stay (this is a multi-brand platform and one
+// brand's basket is not another's) but every output now carries the basis, so a
+// caller cannot mistake a modelled forecast for a measured one.
 const DEFAULTS = {
   dailyTarget: 1500,   // USD attributed email revenue
   aov: 42.5,           // stated AOV band $42-$43
   clickRate: 0.015,    // unique click rate on delivered (1-2% band → mid 1.5%)
   closeRate: 0.03,     // click → purchase
 };
+const DEFAULT_KEYS = ['aov', 'clickRate', 'closeRate'];
+/** Which inputs the caller supplied, and which fell back to the planning band. */
+function basisFor(send, d) {
+  const overrides = DEFAULT_KEYS.filter((k) => send && send[k] != null);
+  const fromDefaults = DEFAULT_KEYS.filter((k) => !(send && send[k] != null) && d[k] === DEFAULTS[k]);
+  return {
+    basis: fromDefaults.length ? 'modelled' : 'measured',
+    measured_inputs: overrides,
+    assumed_inputs: fromDefaults,
+    note: fromDefaults.length
+      ? `[DATA REQUIRED BEFORE LAUNCH: measured ${fromDefaults.join(', ')} for this brand and market. Until then this forecast uses the spec's planning band (aov ${DEFAULTS.aov}, click ${DEFAULTS.clickRate}, close ${DEFAULTS.closeRate}), which is not a measurement of any brand.]`
+      : 'All rate and value inputs were supplied by the caller from measured data.',
+  };
+}
 
 function round(n, d = 2) { const p = 10 ** d; return Math.round((Number(n) || 0) * p) / p; }
 
@@ -33,6 +56,7 @@ function forecastSend(send, d = DEFAULTS) {
     forecast_clicks: round(clicks, 1),
     forecast_orders: round(orders, 2),
     forecast_revenue: round(revenue, 2),
+    ...basisFor(send, d),
   };
 }
 
@@ -74,7 +98,12 @@ function forecastDay(day, opts = {}) {
     required_orders: requiredOrders(target, d.aov),
     required_reach_for_target: requiredReach(target, d),
     feasibility: state,
+    // The feasibility verdict is only as real as the inputs behind it. A day
+    // marked NOT FEASIBLE off the planning band is a statement about the band,
+    // not about the audience, and must say so.
+    ...(sends.length ? { basis: sends.every((x) => x.basis === 'measured') ? 'measured' : 'modelled', assumed_inputs: [...new Set(sends.flatMap((x) => x.assumed_inputs || []))] } : { basis: 'unset', assumed_inputs: [] }),
+    target_basis: opts.dailyTarget != null ? 'caller-supplied' : `planning default ${DEFAULTS.dailyTarget} USD/day, not a target this brand set`,
   };
 }
 
-module.exports = { DEFAULTS, forecastSend, forecastDay, requiredReach, requiredOrders };
+module.exports = { DEFAULTS, forecastSend, forecastDay, requiredReach, requiredOrders, basisFor };
