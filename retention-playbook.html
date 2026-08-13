@@ -37,7 +37,11 @@
   .chip.on{background:var(--knickgasm-green);color:#fff;border-color:var(--lava)}
   .cnt{color:#48524c;font-size:12px;margin-left:6px}
   .tblscroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px}
+  /* table-layout:auto (not the global fixed default) because the header cells
+     are white-space:nowrap: under fixed layout every column takes an equal
+     share regardless of content, so a header wider than its share paints over
+     the next column. The .tblscroll wrapper carries the overflow. */
+  table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px;table-layout:auto}
   th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair);white-space:nowrap}
   td{padding:12px 12px;border-bottom:1px solid rgba(171,135,67,.12);vertical-align:top}
   td.obj{font-weight:600;color:#111111;max-width:220px}
@@ -53,16 +57,22 @@
   <section>
     <div class="eyebrow">Lifecycle OS · Plan</div>
     <h1>The Retention Revenue Playbook</h1>
-    <p class="lede">A rolling, segmented send plan built backward from the daily revenue target: up to three mutually exclusive cohort mailers per day, frequency-safe, matched to the moment a subscriber reaches for the kit. Filter by region, duration, and catalog, exactly like the Automated Calendar.</p>
+    <p class="lede">A rolling, segmented send plan: up to three mutually exclusive cohort mailers per day, frequency-safe, matched to the moment a subscriber is ready for the next one. Filter by region, duration, and catalog, exactly like the Automated Calendar.</p>
 
+    <!-- These tiles read the LOADED PLAN, not a stored constant.
+         They previously carried a daily revenue target, an average order value
+         and open/click/conversion medians that belonged to a different company's
+         business (a $42 bundle-led basket and a 50-75% open rate), presented as
+         this brand's planning assumptions. A rate nobody here measured is worse
+         than a blank, because it is what the plan gets built backwards from. -->
     <div class="stats">
-      <div class="card tile"><div class="k">Daily revenue target</div><div class="v num">$1,000 to $1,500</div><div class="d">~24 to 36 orders/day</div></div>
-      <div class="card tile"><div class="k">Avg order value</div><div class="v num">$42 to $43</div><div class="d">bundle-led basket</div></div>
-      <div class="card tile"><div class="k">Daily active reach</div><div class="v num">~111,000</div><div class="d">3 sends of ~37k</div></div>
-      <div class="card tile"><div class="k">Open / CTR / CVR</div><div class="v num">50-75% · 1-2% · 3%</div><div class="d">planning assumptions</div></div>
-      <div class="card tile"><div class="k">Frequency cap</div><div class="v num">2 to 3 / wk</div><div class="d">per subscriber</div></div>
+      <div class="card tile"><div class="k">Sends in plan</div><div class="v num" id="tSends">-</div><div class="d" id="tSendsD">loading the plan</div></div>
+      <div class="card tile"><div class="k">Cohorts covered</div><div class="v num" id="tCohorts">-</div><div class="d">distinct cohorts in the window</div></div>
+      <div class="card tile"><div class="k">Planned reach, busiest day</div><div class="v num" id="tReach">-</div><div class="d" id="tReachD">from the plan&rsquo;s own recipient counts</div></div>
+      <div class="card tile"><div class="k">Avg order value</div><div class="v num" id="tAov" style="font-size:15px;line-height:1.35">-</div><div class="d" id="tAovD"></div></div>
+      <div class="card tile"><div class="k">Frequency cap</div><div class="v num">2 to 3 / wk</div><div class="d">per subscriber, product rule</div></div>
     </div>
-    <p class="note">Capacity note: ~111k profiles at 2 sends/week is ~31,700 deliveries/day, so days reduce or delay when eligibility is short (a cohort is never forced to size). The percentages above are planning assumptions, replaced with validated medians once live ESP data is wired.</p>
+    <p class="note">Capacity note: a day reduces or delays when eligible profiles run short, so a cohort is never forced to size. Response rates are not printed here: this deployment holds no validated open, click or conversion medians for the active brand, and quoting a plausible one would make the whole plan read as forecast rather than intent. Connect the sending platform and they are measured instead.</p>
   </section>
 
   <section class="card" style="margin-bottom:14px">
@@ -100,10 +110,12 @@
         <button type="button" class="chip on" data-dur="90" onclick="setDur(90)">90 days</button>
         <button type="button" class="chip" data-dur="all" onclick="setDur('all')">All</button>
       </div>
+      <!-- Catalog chips are BUILT FROM THE PLAN (see buildCatChips), never
+           declared here. The three that used to be hardcoded named another
+           company's product lines, so every brand filtered its own calendar by
+           a catalogue it does not sell. -->
       <div class="frow"><span class="lbl">Catalog</span>
-        <button type="button" class="chip on" data-cat="product" onclick="toggleCat('product')">Products &amp; Botanicals</button>
-        <button type="button" class="chip on" data-cat="coffee" onclick="toggleCat('coffee')">Coffee Collection</button>
-        <button type="button" class="chip on" data-cat="supplement" onclick="toggleCat('supplement')">Supplements</button>
+        <span id="catchips" style="display:contents"></span>
         <span class="cnt" id="cnt"></span>
       </div>
     </div>
@@ -123,18 +135,77 @@
   // NOT /api/brain — the latter returns "Unknown action", which left this table
   // empty). The agentic sync below fires /api/brain?action=agentic-run separately.
   var API='/api/calendar'; var PLAN=[];
-  var SELECTED_MKT=new Set(['US']); var SELECTED_DAYS=90; var SELECTED_CAT=new Set(['sneaker','coffee','supplement']);
+  var SELECTED_MKT=new Set(['US']); var SELECTED_DAYS=90;
+  // Catalog buckets are discovered from the plan, so this starts empty and an
+  // empty set means "no catalog filter", not "hide everything".
+  var SELECTED_CAT=new Set(); var CAT_KEYS=[];
   function $(id){return document.getElementById(id);}
   function mktKey(m){var s=String(m||'').toLowerCase();if(s.indexOf('uk')===0)return 'UK';if(s.indexOf('us')===0)return 'US';if(/^in|india/.test(s))return 'India';if(/global|eu|au|me|row|rest/.test(s))return 'Global';return (m||'').toUpperCase();}
   function mktVisible(e){return SELECTED_MKT.size===0||SELECTED_MKT.has(mktKey(e.market));}
   function durVisible(e){if(SELECTED_DAYS==='all')return true;var t=new Date().toISOString().slice(0,10);var end=new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10);return !e.date||(e.date>=t&&e.date<=end);}
-  function catBucket(e){var hp=e.heroProduct||{};var s=((hp.title||hp.name||'')+' '+(hp.category||hp.type||'')+' '+(e.theme||'')).toLowerCase();if(/coffee|cold craft|espresso|latte/.test(s))return 'coffee';if(/supplement|capsule|tablet|gummies|gummy|curcumin|\d+\s*mg|ksm-?66|magnesium|probiotic|collagen|shilajit/.test(s))return 'supplement';return 'sneaker';}
+  // The bucket a slot belongs to is whatever the ACTIVE BRAND'S OWN plan says it
+  // is: the hero product's category or type, as the calendar recorded it. There
+  // is no keyword table here on purpose - the previous one matched an Ayurvedic
+  // and beverage vocabulary, so a brand selling anything else had every slot
+  // land in a single catch-all bucket labelled with a category it does not sell.
+  function catBucket(e){
+    var hp=e.heroProduct||{};
+    var raw=hp.category||hp.type||hp.product_type||e.category||'';
+    var s=String(raw).trim();
+    return s?s:'Uncategorised';
+  }
   function catVisible(e){return SELECTED_CAT.size===0||SELECTED_CAT.has(catBucket(e));}
+  // Chips are rebuilt whenever the plan changes. All buckets start selected, so
+  // the default view is the whole plan.
+  function buildCatChips(){
+    var host=$('catchips'); if(!host) return;
+    var seen={}; PLAN.forEach(function(e){var k=catBucket(e); seen[k]=(seen[k]||0)+1;});
+    CAT_KEYS=Object.keys(seen).sort();
+    SELECTED_CAT=new Set(CAT_KEYS);
+    if(!CAT_KEYS.length){
+      host.innerHTML='<span class="note">No catalog categories in this plan yet. They appear once the plan carries hero products from this brand&rsquo;s own catalogue.</span>';
+      return;
+    }
+    host.innerHTML=CAT_KEYS.map(function(k){
+      return '<button type="button" class="chip on" data-cat="'+esc(k)+'">'+esc(k)+' <span style="opacity:.7">'+seen[k]+'</span></button>';
+    }).join('');
+    Array.prototype.forEach.call(host.querySelectorAll('[data-cat]'),function(b){
+      b.addEventListener('click',function(){ window.toggleCat(b.dataset.cat); });
+    });
+  }
   function slotVisible(e){return mktVisible(e)&&durVisible(e)&&catVisible(e);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   window.toggleMkt=function(m){if(m==='all')SELECTED_MKT.clear();else{if(SELECTED_MKT.has(m))SELECTED_MKT.delete(m);else SELECTED_MKT.add(m);}document.querySelectorAll('[data-mkt]').forEach(function(b){var k=b.dataset.mkt;b.classList.toggle('on',k==='all'?SELECTED_MKT.size===0:SELECTED_MKT.has(k));});render();};
   window.setDur=function(d){SELECTED_DAYS=(d==='all')?'all':Number(d);document.querySelectorAll('[data-dur]').forEach(function(b){b.classList.toggle('on',String(b.dataset.dur)===String(d));});render();};
   window.toggleCat=function(c){if(SELECTED_CAT.has(c)){if(SELECTED_CAT.size===1)return;SELECTED_CAT.delete(c);}else SELECTED_CAT.add(c);document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.toggle('on',SELECTED_CAT.has(b.dataset.cat));});render();};
+  // Every tile is measured off the plan that just loaded, or says what is
+  // missing. Nothing here is a stored assumption.
+  function renderStats(){
+    var set=function(id,txt){var el=$(id); if(el) el.textContent=txt;};
+    if(!PLAN.length){
+      set('tSends','-'); set('tSendsD','no plan loaded yet');
+      set('tCohorts','-'); set('tReach','-');
+      set('tReachD','from the plan’s own recipient counts');
+    }else{
+      var cohorts={}, byDay={};
+      PLAN.forEach(function(e){
+        var cn=(e.cohort&&e.cohort.name)||''; if(cn) cohorts[cn]=1;
+        var r=Number(e.reach&&e.reach.planned_recipients)||0;
+        if(e.date) byDay[e.date]=(byDay[e.date]||0)+r;
+      });
+      var peak=0; Object.keys(byDay).forEach(function(d){ if(byDay[d]>peak) peak=byDay[d]; });
+      set('tSends',String(PLAN.length));
+      set('tSendsD','across '+Object.keys(byDay).length+' planned days');
+      set('tCohorts',String(Object.keys(cohorts).length));
+      set('tReach',peak?peak.toLocaleString():'-');
+      set('tReachD',peak?'busiest planned day in the window':'the plan carries no recipient counts yet');
+    }
+    // Average order value is a commercial fact about the active brand. It is
+    // never printed from a constant: an AOV that belongs to some other business
+    // silently re-anchors every revenue projection built on this page.
+    set('tAov','[DATA REQUIRED BEFORE LAUNCH: average order value, active brand, per region]');
+    set('tAovD','connect the store or order export and this reads from it');
+  }
   function render(){
     var shown=PLAN.filter(slotVisible);
     var cc=$('cnt'); if(cc) cc.textContent='Showing '+shown.length+' of '+PLAN.length+' sends'+(SELECTED_DAYS==='all'?'':' · next '+SELECTED_DAYS+' days');
@@ -154,8 +225,8 @@
   }
   function load(){
     fetch(API+'?action=smart-brain-plan').then(function(r){return r.json();}).then(function(j){
-      PLAN=(j&&j.entries)||[]; render();
-    }).catch(function(e){ $('rows').innerHTML='<tr><td colspan="6" class="note">Could not load the plan: '+esc(e.message)+'</td></tr>'; });
+      PLAN=(j&&j.entries)||[]; buildCatChips(); renderStats(); render();
+    }).catch(function(e){ renderStats(); $('rows').innerHTML='<tr><td colspan="6" class="note">Could not load the plan: '+esc(e.message)+'</td></tr>'; });
   }
   // Region for the agentic run comes from the region chips (single source of truth).
   function agenticMarket(){ var m=Array.from(SELECTED_MKT)[0]||'US'; return ({US:'US',UK:'UK',Global:'GLOBAL',India:'IN'})[m]||'US'; }

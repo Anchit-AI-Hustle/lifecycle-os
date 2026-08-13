@@ -56,8 +56,15 @@ async function mirror(table, order = 'updated_at.desc', limit = 1000) {
   }
 }
 
-async function sourceWithFallback(envName, table) {
-  const live = await fetchConfigured(clean(process.env[envName]), envName);
+async function sourceWithFallback(envName, table, { mirrorOnly = false } = {}) {
+  // `mirrorOnly` skips the live export URL. Those URLs and PAGEDECK_API_KEY are
+  // DEPLOYMENT credentials: whatever they return describes the PageDeck account
+  // this deployment holds, not the brand workspace that is looking at the page.
+  // The Supabase mirror tables carry workspace_id and are scoped by supa.select,
+  // so they are the only source that can answer per brand.
+  const live = mirrorOnly
+    ? { ok: false, connected: false, rows: [], source: envName, note: `${envName} is a deployment-level export and is not read per brand.` }
+    : await fetchConfigured(clean(process.env[envName]), envName);
   if (live.ok && live.rows.length) return live;
   const db = await mirror(table);
   if (db.ok && db.rows.length) return db;
@@ -189,11 +196,12 @@ function marketFilter(rows, market) {
   return rows.filter((r) => !r.market || r.market === 'ALL' || r.market === m || (m === 'IN' && r.market === 'INDIA'));
 }
 
-async function analytics({ market } = {}) {
+async function analytics({ market, mirrorOnly = false } = {}) {
+  const opts = { mirrorOnly };
   const [pagesRaw, experimentsRaw, competitorsRaw] = await Promise.all([
-    sourceWithFallback('PAGEDECK_ANALYTICS_EXPORT_URL', 'pagedeck_pages'),
-    sourceWithFallback('PAGEDECK_EXPERIMENTS_EXPORT_URL', 'pagedeck_experiments'),
-    sourceWithFallback('PAGEDECK_COMPETITOR_EXPORT_URL', 'pagedeck_competitor_pages'),
+    sourceWithFallback('PAGEDECK_ANALYTICS_EXPORT_URL', 'pagedeck_pages', opts),
+    sourceWithFallback('PAGEDECK_EXPERIMENTS_EXPORT_URL', 'pagedeck_experiments', opts),
+    sourceWithFallback('PAGEDECK_COMPETITOR_EXPORT_URL', 'pagedeck_competitor_pages', opts),
   ]);
   const pages = marketFilter(pagesRaw.rows.map(normalizePage), market);
   const experiments = experimentsRaw.rows.map(normalizeExperiment);

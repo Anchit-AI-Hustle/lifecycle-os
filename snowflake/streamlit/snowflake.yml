@@ -1,4 +1,4 @@
-# Snowflake project definition for the KNICKGASM Analytics Streamlit-in-Snowflake app.
+# Snowflake project definition for the Lifecycle OS Analytics Streamlit-in-Snowflake app.
 # Deploy with the Snowflake CLI:  snow streamlit deploy --replace
 #
 # IMPORTANT — single main file, no stray copies:
@@ -19,7 +19,9 @@ entities:
       name: "KNICKGASM_ADS_ANALYSIS"      # object name kept stable so the app URL doesn't change
     stage: "streamlit_stage"
     query_warehouse: "COMPUTE_WH"        # change to your warehouse if different
-    title: "KNICKGASM Analytics"
+    # Source tables are resolved at runtime (SF_*_TABLE overrides, else discovery
+    # in the session database) — nothing to configure here.
+    title: "Lifecycle OS Analytics"
     main_file: "streamlit_app.py"
     artifacts:
       - "streamlit_app.py"

@@ -46,10 +46,11 @@ function match(entryOrHandle, market) {
     const t = String(title).toLowerCase();
     p = arr.find((x) => (x.n || '').toLowerCase() === t)
       || arr.find((x) => (x.n || '').toLowerCase().includes(t.slice(0, 18)));
-    // Keyword fallback: a handle like "embroidery-curcumin" or "green-burner" has
-    // no exact catalog row, but a distinctive token ("embroidery", "burner") does.
-    // Try the longest tokens first so the rare, specific word wins over a common
-    // one ("burner" before "green"), keeping a real match instead of a miss.
+    // Keyword fallback: a requested name may not exist verbatim in the catalogue
+    // ("cherry-blossom-af1" against a row titled "Cherry Blossom x Nike Air Force
+    // 1"), but a distinctive token in it does. Try the longest tokens first so the
+    // rare, specific word wins over a common one ("blossom" before "force"),
+    // keeping a real match instead of a miss.
     if (!p) {
       const toks = t.split(/\s+/).filter((w) => w.length >= 5).sort((a, b) => b.length - a.length);
       for (const w of toks) { p = arr.find((x) => (x.n || '').toLowerCase().includes(w)); if (p) break; }

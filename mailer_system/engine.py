@@ -214,7 +214,20 @@ def evaluate_triggers(metrics: dict, targets: dict) -> list[dict]:
             })
 
     # P3 — subscription_conversion
-    if subscription:
+    #
+    # Only meaningful for a store that actually sells a subscription. This
+    # trigger fires when the subscription mix is BELOW target, so on a store with
+    # no subscription product every month reads 0% and the trigger fires forever,
+    # briefing the model to push customers onto a product line that does not
+    # exist. The engine was copied from a sibling repo built for a consumable
+    # brand where replenishment was the core motion; here, pairs are hand-painted
+    # to order and never repeated.
+    #
+    # A flat 0% across the window therefore means "this brand does not sell
+    # subscriptions", not "conversion opportunity". Require at least one month of
+    # real subscription revenue before treating the gap as actionable.
+    has_subscription_revenue = any((s.get("subscription_pct") or 0) > 0 for s in subscription)
+    if subscription and has_subscription_revenue:
         below_sub = sum(
             1 for s in subscription
             if (s.get("subscription_pct") or 0) < targets["subscription_mix_min"] * 100
@@ -299,12 +312,14 @@ def print_metric_report(metrics: dict, targets: dict) -> None:
     else:
         print(f"  Retention 90d  : no data")
 
-    if subscription:
+    if subscription and any((s.get('subscription_pct') or 0) > 0 for s in subscription):
         s = subscription[0]
         total = (s.get('sub_count', 0) or 0) + (s.get('one_time_count', 0) or 0)
         pct = (s.get('sub_count', 0) or 0) / max(total, 1) * 100
         print(f"  Subscription   : {pct:.1f}% subs (target: "
               f"{targets.get('subscription_mix_min',0)*100:.0f}%)")
+    elif subscription:
+        print(f"  Subscription   : none sold (P3 not applicable)")
     else:
         print(f"  Subscription   : no data")
 

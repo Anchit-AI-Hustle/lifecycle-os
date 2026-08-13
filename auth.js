@@ -542,18 +542,18 @@
     },
     adsmaster: {
       title: "Ad Campaigns Master Dashboard",
-      what: "The single source of truth for the USA paid ads program (Target + Costco): a performance dashboard over the KT spend workbook (125 Meta ads, 13 campaigns, May to 20 Jul) plus the complete ads knowledge base - every sheet, deck, drive folder and platform link from the KT emails as single-click links, the creative learnings from the Social Update deck, benchmarks, the UGC-dashboard automation runbook, the Costco dark-post launch config, owners and open gaps. Zero fabrication: every figure cites its KT source or a live connector read.",
-      who: "The paid ads team and anyone onboarding onto the ads program - it IS the knowledge transfer, in product form.",
-      how: "Live-first, snapshot-honest: Live Now, Calendar and Tracker read /api/brain?action=ads-live, which unions BOTH live US Meta ad accounts (the DTC account and the Target/Costco retail account) from the warehouse and treats today as a partial day; when no live source is configured the page falls back to a committed snapshot and labels it as one. The Accounts tab renders the whole ad-account studio from data/ads/ad-accounts.json, built from the single registry in api/_shared/ads-snowflake-core.js. Knowledge comes from data/ads/master-kb.json and the ad-level export. Links that could not be resolved from this account are listed as pending-access with their owner, never invented.",
-      input: "Nothing to enter. Filters: objective, delivery status, free-text search, sort metric on the ads table; group, status and search on the knowledge base. New KT files extend master-kb.json.",
+      what: "One surface for the ACTIVE workspace paid ads program: a performance dashboard over the ad accounts that workspace has connected, plus the ads knowledge base it has uploaded - sheets, decks, drive folders and platform links as single-click entries, creative learnings, benchmarks computed from its own delivery, runbooks, owners and open gaps. Zero fabrication: every figure cites a live connector read or the uploaded source it came from, and a workspace with nothing connected sees an empty state rather than another advertiser numbers.",
+      who: "The paid media team of the active brand, and anyone being onboarded onto that brand ads program - it IS the knowledge transfer, in product form.",
+      how: "Live-first, snapshot-honest: Live Now, Calendar and Tracker read /api/brain?action=ads-live for the connected accounts of the active workspace and treat today as a partial day; when no live source is configured the page says so instead of substituting a bundled dataset. The Accounts tab renders the ad-account studio for that workspace. Knowledge comes from what the workspace has uploaded. Links that could not be resolved from its own accounts are listed as pending-access with their owner, never invented.",
+      input: "Nothing to enter. Filters: objective, delivery status, free-text search, sort metric on the ads table; group, status and search on the knowledge base. New handover files extend that workspace knowledge base.",
       steps: [
-        ["Ideology", "One master surface for the ads program: knowledge (links, owners, runbooks) and performance (spend, benchmarks, verdicts) belong together."],
-        ["Data analysis + review + hypothesis", "KT files parsed (3 email threads, spend workbook, 28-slide social deck); rollups computed per campaign and objective; benchmarks derived from the data."],
-        ["Business & strategy decisions", "Portfolio verdicts: Sales engine clears the $0.80 bench, JoinBrands UGC traffic is the cheapest click, Awareness is the drag, July TikTok reads zero. Accounts are scored on what each can actually measure - ROAS only where a pixel or Google conversion fires, CTR/CPC/CPM where checkout happens on target.com, Instacart or amazon.com and no sale can ever be attributed back to the ad."],
-        ["Content", "Knowledge base compiled: 54 catalogued links (verified via the Google Drive connector where possible), people map, gaps register."],
+        ["Ideology", "One master surface for the ads program: knowledge (links, owners, runbooks) and performance (spend, benchmarks, verdicts) belong together, and both belong to one workspace."],
+        ["Data analysis + review + hypothesis", "Uploaded handover material is parsed; rollups are computed per campaign and objective from the workspace own delivery; benchmarks are derived from that same data rather than assumed."],
+        ["Business & strategy decisions", "Portfolio verdicts per objective, scored on what each account can actually measure - return on ad spend only where a pixel or platform conversion fires, and click and impression economics where the checkout happens somewhere the ad cannot be credited for the sale."],
+        ["Content", "Knowledge base compiled from the workspace own sources: catalogued links, people map, gaps register."],
         ["Design + layout + structure", "Eleven tabs - Live Now, Calendar, Tracker, Accounts, SOP, Overview, Campaigns & Ads, Creative Intel, Organic & UGC, Knowledge Base, Ops & Data Sources - in the brand palette, white and green only, every table sortable and filterable and every chart carrying duration tiles."],
-        ["Coding", "Static page + committed JSON (no new serverless function; the Hobby 12-function limit is untouched).", "/ads-master"],
-        ["Final compilation + presentation", "Live Snowflake rows via the Ads Analysis page; Google Slides KT presentation generated from the same knowledge base.", "/ads-dashboard"]
+        ["Coding", "Static page reading the workspace scoped endpoints (no new serverless function; the Hobby 12-function limit is untouched).", "/ads-master"],
+        ["Final compilation + presentation", "Warehouse-depth rows via the Ads Analysis page; a slide deck generated from the same knowledge base.", "/ads-dashboard"]
       ]
     },
     kicksgpt: {
@@ -1077,7 +1077,14 @@
           position: fixed; left: 0; top: 0; z-index: 110;
           width: var(--lsb-w); height: 100vh;
           display: flex; flex-direction: column;
-          background: #f4f2ec; border-right: 1px solid rgba(171,135,67,0.18);
+          /* The rail's own surface must be a BRAND surface, not a fixed tan.
+             The text tokens are contrast-adjusted against --brand-surface,
+             so a rail painted a slightly different colour lands just under
+             AA no matter how the tokens are tuned - the group labels and
+             every ? chip measured 4.44:1 against this hardcoded tint. It
+             also means the rail re-skins with the workspace like the rest
+             of the app instead of staying one tenant's colour. */
+          background: var(--brand-surface, #f4f2ec); border-right: 1px solid var(--brand-line, rgba(171,135,67,0.18));
           padding: 16px 12px 12px;
         }
         #lifecycle-nav .lnav-brand {
@@ -1091,7 +1098,7 @@
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { filter: brightness(1.15) saturate(1.05); transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; }
-        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: #D0473E; font-weight: 600; }
+        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: var(--brand-primary-text, #c6433b); font-weight: 600; }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #6A33D8; }
         #lifecycle-nav .lnav-head { display: flex; align-items: center; gap: 6px; }
         #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
@@ -1144,7 +1151,7 @@
         #lifecycle-nav .lnav-section {
           padding: 14px 11px 5px; margin-top: 4px;
           font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-          color: #6f8278;
+          color: var(--brand-ink-muted, #5a6169);
         }
         html.lnav-collapsed #lifecycle-nav .lnav-section {
           text-align: center; padding: 10px 0 4px; font-size: 0;
@@ -1207,7 +1214,7 @@
         /* Parent of the active sub-item ALSO reads as selected, but LIGHTER than
            the sub-item: a lava-tint fill + faint lava accent, so both show and the
            sub-item stays the darker/stronger of the two. */
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: #D0473E; background: rgba(171,135,67,0.13); box-shadow: inset 3px 0 0 rgba(171,135,67,0.55); }
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: var(--brand-primary-text, #c6433b); background: rgba(171,135,67,0.13); box-shadow: inset 3px 0 0 rgba(171,135,67,0.55); }
         #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: #6A33D8; }
         #lifecycle-nav .lnav-caret { width: 15px; height: 15px; color: #48524c; transition: transform .18s; }
         #lifecycle-nav .lnav-group.open .lnav-caret { transform: rotate(180deg); }
@@ -1222,7 +1229,7 @@
         #lifecycle-nav .lnav-i {
           flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
           background: transparent; border: 1px solid rgba(171,135,67,0.28);
-          color: #6f8278; font-family: inherit; font-size: 10.5px; font-weight: 700; line-height: 1;
+          color: var(--brand-ink-muted, #5a6169); font-family: inherit; font-size: 10.5px; font-weight: 700; line-height: 1;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
           transition: all .12s; padding: 0;
         }
@@ -1315,7 +1322,7 @@
         #lifecycle-nav .lnav-steps .lnav-step-d { display: block; font-size: 12px; color: #556059; }
         #lifecycle-nav .lnav-steps .lnav-step-via {
           display: inline-block; margin-top: 4px; font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; color: #6f8278; background: rgba(171,135,67,0.08);
+          font-size: 10px; color: var(--brand-ink-muted, #5a6169); background: rgba(171,135,67,0.08);
           border-radius: 5px; padding: 2px 7px;
         }
 
@@ -1325,8 +1332,13 @@
           padding: 10px 8px 4px; border-top: 1px solid rgba(171,135,67,0.14); font-size: 12px; color: #556059;
         }
         #lifecycle-nav .lnav-avatar { width: 28px; height: 28px; border-radius: 50%;
-          background: linear-gradient(135deg,#6A33D8,#D0473E); display: flex; align-items: center; justify-content: center;
-          color: #FFFFFF; font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+          /* The workspace's own colours, not one tenant's. The initials sit
+             on the primary end of the gradient, so they take --brand-on-
+             primary, which is contrast-computed per brand - hardcoded white
+             disappears for any brand with a light primary. */
+          background: linear-gradient(135deg,var(--brand-accent,#6A33D8),var(--brand-primary,#D0473E));
+          display: flex; align-items: center; justify-content: center;
+          color: var(--brand-on-primary, #FFFFFF); font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
         #lifecycle-nav .lnav-avatar img { width: 100%; height: 100%; object-fit: cover; }
         #lifecycle-nav .lnav-uname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid rgba(171,135,67,0.25);
@@ -2166,10 +2178,10 @@
     return out.join('\n');
   }
   var CSS = 'body{font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;color:#111111;max-width:820px;margin:32px auto;padding:0 28px;line-height:1.6;}' +
-    'h1,h2,h3,h4{font-family:"Montserrat","Raleway",Georgia,serif;color:#D0473E;line-height:1.25;margin:1.4em 0 .4em;}' +
+    'h1,h2,h3,h4{font-family:"Montserrat","Raleway",Georgia,serif;color:var(--brand-primary-text,#c6433b);line-height:1.25;margin:1.4em 0 .4em;}' +
     'h1{font-size:28px;border-bottom:2px solid #6A33D8;padding-bottom:8px;}h2{font-size:21px;}h3{font-size:17px;}' +
     'table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}th,td{border:1px solid #d9cba8;padding:7px 10px;text-align:left;vertical-align:top;}' +
-    'th{background:#FFFFFF;color:#D0473E;}code{background:#f3eede;padding:1px 5px;border-radius:4px;font-size:.92em;}' +
+    'th{background:#FFFFFF;color:var(--brand-primary-text,#c6433b);}code{background:#f3eede;padding:1px 5px;border-radius:4px;font-size:.92em;}' +
     'a{color:#D0473E;}hr{border:0;border-top:1px solid #e5ddc7;margin:22px 0;}strong{color:#1b1612;}' +
     '.pdfbar{position:fixed;top:0;left:0;right:0;background:#D0473E;color:#fff;padding:10px 16px;font-size:13px;text-align:center;}' +
     '.pdfbar button{background:#6A33D8;color:#111111;border:0;border-radius:6px;padding:7px 16px;font-weight:700;cursor:pointer;margin-left:8px;}' +

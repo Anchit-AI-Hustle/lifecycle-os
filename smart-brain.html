@@ -19,7 +19,7 @@
   :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--muted:#48524c}
   *{box-sizing:border-box} body{margin:0;background:#ffffff;color:#111111;font-family:Inter,system-ui,Arial,sans-serif;padding:28px}
   .wrap{max-width:1280px;margin:0 auto}.top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
-  .eyebrow{color:var(--lava);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}h1{font-family:Georgia,serif;font-size:40px;line-height:1.05;margin:8px 0 10px}p{color:#556059;line-height:1.55}
+  .eyebrow{color:var(--brand-accent-text);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}h1{font-family:Georgia,serif;font-size:40px;line-height:1.05;margin:8px 0 10px}p{color:#556059;line-height:1.55}
   .btn{border:0;border-radius:10px;background:var(--lava);color:var(--brand-on-accent,#fff);padding:12px 16px;font-weight:800;cursor:pointer}
   .btn.secondary{background:transparent;color:#111111;border:1px solid rgba(171,135,67,.35)}
   .btn:disabled{opacity:.5;cursor:wait}
@@ -43,7 +43,11 @@
      (the .tblscroll wrapper is overflow-x:auto) instead of crushing columns to
      one character per line. */
   .tblscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  #plantable{min-width:1020px}
+  /* table-layout:auto, deliberately: theme.css defaults every table to
+     table-layout:fixed, which splits the width equally and leaves a
+     white-space:nowrap cell nowhere to put a value wider than its share -
+     it overflows and paints over the next column. */
+  #plantable{table-layout:auto;min-width:1020px}
   #plantable th,#plantable td{white-space:nowrap;padding:12px 10px;vertical-align:top}
   #plantable tbody tr.planrow:hover td{background:rgba(171,135,67,.06)}
   #plantable td.cohort{white-space:normal;max-width:150px}
@@ -93,7 +97,7 @@
   .pvexport{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
   .pvnote{color:#556059;font-size:12px;margin:0 0 10px}
   .adcard{background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.16);border-radius:12px;padding:14px;margin-bottom:10px}
-  .adcard h4{margin:0 0 6px;font-size:12px;color:var(--lava);letter-spacing:.08em;text-transform:uppercase}
+  .adcard h4{margin:0 0 6px;font-size:12px;color:var(--brand-accent-text);letter-spacing:.08em;text-transform:uppercase}
   .adcard .k{color:#48524c;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
   .adcard .v{color:#111111;line-height:1.55;font-size:13px;white-space:pre-wrap}
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
@@ -856,7 +860,7 @@ function _zipDashboardHTML(rows){
     h1{font-family:'Montserrat',Georgia,serif;color:var(--g);margin:0 0 4px;font-size:30px}
     .sub{color:var(--vh-ink);margin:0 0 22px}
     h2{font-family:'Montserrat',Georgia,serif;color:var(--g);margin:26px 0 8px;font-size:20px}
-    .cnt{font:600 12px/1 'Instrument Sans',Arial;color:var(--lava);letter-spacing:.05em}
+    .cnt{font:600 12px/1 'Instrument Sans',Arial;color:var(--brand-accent-text);letter-spacing:.05em}
     table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--lava);border-radius:12px;overflow:hidden;margin-bottom:8px}
     th{background:var(--g);color:var(--chalk);text-align:left;padding:10px 12px;font-size:12px;letter-spacing:.04em}
     td{padding:10px 12px;border-bottom:1px solid var(--vh-panel-tan);font-size:13px;vertical-align:top}

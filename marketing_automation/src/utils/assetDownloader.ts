@@ -2,16 +2,37 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 
-const ASSETS_TO_DOWNLOAD = {
-  'hero_face.png': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800',
-  'ksm.png': 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=800',
-  'peri.png': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=800',
-  'belly.jpg': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&q=80&w=800',
-  'taste.png': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800',
-  'Coffee_Pack_Front.png': 'https://cdn.shopify.com/s/files/1/2422/3321/files/Coffee_Pack_Front.png',
-  'Ingredients_Airbrush.jpg': 'https://cdn.shopify.com/s/files/1/2422/3321/files/Ingredients_Airbrush.jpg',
-  'Trust_Badges_Horizontal.png': 'https://cdn.shopify.com/s/files/1/2422/3321/files/Trust_Badges_Horizontal.png'
-};
+import { THEMES } from './compiler';
+
+/*
+ * Mirrors the images the compiled pages reference into ./public so the Express
+ * server can host them offline.
+ *
+ * The list is DERIVED from the theme records rather than hand-maintained. The
+ * previous hardcoded list was inherited from the repo this app was copied from
+ * and pointed at another company's Shopify CDN and at stock photos of faces and
+ * torsos for a supplement funnel - none of which any KNICKGASM page has ever
+ * referenced. Deriving the list means a mirrored asset is, by construction, an
+ * asset some page actually uses.
+ */
+
+/** Every distinct image URL referenced by a theme record. */
+function assetUrls(): string[] {
+  const urls = new Set<string>();
+  for (const theme of THEMES) {
+    for (const url of Object.values(theme.assets)) {
+      if (url) urls.add(url);
+    }
+  }
+  return [...urls];
+}
+
+/** Local filename for a remote asset: its own basename, query string stripped. */
+function localName(url: string): string {
+  const base = url.split('?')[0].split('/').pop() || '';
+  const safe = base.replace(/[^A-Za-z0-9._-]/g, '_');
+  return safe || 'asset.bin';
+}
 
 function downloadFile(url: string, dest: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -35,24 +56,25 @@ function downloadFile(url: string, dest: string): Promise<void> {
 
 export async function downloadAssets() {
   const publicDir = path.join(process.cwd(), 'public');
-  
+
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
     console.log('Created public directory structure');
   }
 
-  for (const [filename, url] of Object.entries(ASSETS_TO_DOWNLOAD)) {
+  for (const url of assetUrls()) {
+    const filename = localName(url);
     const destPath = path.join(publicDir, filename);
-    if (!fs.existsSync(destPath)) {
-      console.log(`Downloading online asset ${filename} to local host...`);
-      try {
-        await downloadFile(url, destPath);
-        console.log(`Successfully downloaded ${filename}`);
-      } catch (error) {
-        console.error(`Error downloading ${filename}:`, error);
-      }
-    } else {
+    if (fs.existsSync(destPath)) {
       console.log(`Asset ${filename} already exists locally.`);
+      continue;
+    }
+    console.log(`Downloading ${filename} to local host...`);
+    try {
+      await downloadFile(url, destPath);
+      console.log(`Successfully downloaded ${filename}`);
+    } catch (error) {
+      console.error(`Error downloading ${filename}:`, error);
     }
   }
 }

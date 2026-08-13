@@ -6,14 +6,14 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ads Analysis, from Snowflake</title>
+<title>Ads Analysis, from the warehouse</title>
 <link rel="icon" href="/favicon.png">
 <style>
   :root{
     --green:#D0473E; --lava:#6A33D8; --lava-deep:var(--vh-ink); --ink:#111111; --chalk:#FFFFFF;
     --bg:var(--vh-panel-tan); --surface:#ffffff; --surface-2:#FFFFFF; --line:var(--vh-panel-tan); --line-strong:var(--vh-lava);
-    /* Contrast tokens matched to /ads-master: every text/background pair is
-       dark-on-light and clears WCAG-AA (>=4.5:1). */
+    /* Contrast tokens: every text/background pair is dark-on-light and clears
+       WCAG-AA (>=4.5:1). */
     --text:var(--vh-ink); --dim:var(--vh-ink); --head:#D0473E;
     --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan);
     --shadow:0 4px 16px rgba(0,74,43,.08);
@@ -31,7 +31,7 @@
   .bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:18px 0 6px;
     background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow)}
   .bar label{font-size:12px;color:var(--dim);font-weight:600;display:flex;flex-direction:column;gap:4px}
-  select,input[type=date]{font-family:inherit;font-size:13px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--surface-2);color:var(--ink)}
+  select,input[type=date],input[type=search]{font-family:inherit;font-size:13px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--surface-2);color:var(--ink)}
   button.apply{background:var(--green);color:var(--brand-on-primary,#fff);border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer}
   button.apply:hover{background:var(--vh-ink)}
   .tabs{display:flex;flex-wrap:nowrap;gap:2px;margin:16px 0 4px;border-bottom:2px solid var(--line-strong);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
@@ -49,7 +49,12 @@
   .sc .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
   .sc .v{font-family:var(--serif);font-size:24px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums}
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:11px;box-shadow:var(--shadow);margin:8px 0}
-  table{border-collapse:collapse;width:100%;font-size:13px;background:var(--surface);white-space:nowrap}
+  /* theme.css sets table-layout:fixed globally and relies on wrapping to keep a
+     long value inside its cell. These tables set white-space:nowrap on th/td, so
+     they must opt OUT of the fixed layout as well: under fixed layout every
+     column gets an equal share regardless of content, and an unwrappable value
+     wider than its share paints over the next column. .tbl-wrap scrolls. */
+  table{border-collapse:collapse;width:100%;table-layout:auto;font-size:13px;background:var(--surface);white-space:nowrap}
   th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--text)}
   th{background:var(--green);color:var(--brand-on-primary,#fff);font-family:var(--sans);font-weight:700;font-size:11.5px;position:sticky;top:0;white-space:nowrap}
   th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
@@ -65,9 +70,11 @@
   .chip.good{background:var(--good-bg);color:var(--good);border-color:var(--good)}
   .chip.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
   .note{font-size:12.5px;color:var(--dim);margin:8px 0}
+  .notice{background:var(--warn-bg);border:1px solid var(--warn);border-left:4px solid var(--lava);border-radius:9px;
+    padding:11px 14px;margin:14px 0 0;font-size:13px;color:var(--vh-ink);font-weight:500;line-height:1.55}
   .empty{padding:22px;text-align:center;color:var(--dim);background:var(--surface);border:1px dashed var(--line-strong);border-radius:11px}
   code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--lava-deep);white-space:pre-wrap;word-break:break-word;display:inline-block}
-  /* Duration tiles — always visible above the chart, same contract as /ads-master. */
+  /* Duration tiles — always visible above the chart. */
   .rangetiles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 4px}
   .rangetiles .rt{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;
     border:1px solid var(--line-strong);background:var(--surface-2);color:var(--dim)}
@@ -79,11 +86,13 @@
 <body>
 <div class="wrap">
   <h1>Ads Analysis</h1>
-  <p class="lede">The same analysis as the native Snowflake (Streamlit) app, rendered here, read live from Snowflake (Meta / Google / TikTok), per campaign and per ad, for the Costco + Target US accounts. Read-only; nothing is fabricated. When Snowflake isn't configured, each panel shows the exact query it will run. Benchmarks and the full ads knowledge base live in the <a href="/ads-master">Ad Campaigns Master Dashboard</a>.</p>
+  <p class="lede">The warehouse view of paid media: every column the platform returns, per campaign and per ad, plus audience cohorts and naming-standard compliance. Read-only; nothing is fabricated, and there is no bundled sample data. It reads the Snowflake tables <b>this deployment</b> configured, so when none are set every panel shows the exact query it would run and the environment variable to set. Your workspace's own ad accounts are reported on <a href="/data-analysis?tab=live-ads">Data Analysis &rsaquo; Paid Media</a>.</p>
+
+  <div class="notice" id="scope-note" hidden></div>
 
   <div class="bar">
     <label>Platform<select id="f-platform"><option value="meta">Meta</option><option value="google">Google</option><option value="tiktok">TikTok</option></select></label>
-    <label>Account<select id="f-account"><option value="">All</option><option value="target">Target</option><option value="costco">Costco</option></select></label>
+    <label>Account<input type="search" id="f-account" placeholder="filter by account name"></label>
     <label>Level<select id="f-level"><option value="campaign">Per campaign</option><option value="ad">Per ad</option></select></label>
     <label>Since<input type="date" id="f-since"></label>
     <label>Until<input type="date" id="f-until"></label>
@@ -94,23 +103,27 @@
     <button type="button" data-p="overview" class="on">Overview</button>
     <button type="button" data-p="rows">Campaign / ad rows</button>
     <button type="button" data-p="cohorts">Cohorts</button>
-    <button type="button" data-p="sop">SOP compliance</button>
+    <button type="button" data-p="sop">Naming compliance</button>
     <button type="button" data-p="metrics">Metrics &amp; accuracy</button>
-    <button type="button" data-p="sis">Snowflake app</button>
     <button type="button" data-p="source">Source &amp; connection</button>
   </div>
 
   <div class="panel on" id="p-overview">
-    <p class="eyebrow">Daily budget caps (reference · read-only)</p>
+    <p class="eyebrow">Daily budget cap (reference · read-only)</p>
     <div class="budgets" id="budgets"><div class="empty">Loading…</div></div>
     <p class="eyebrow">Portfolio priority metrics</p>
     <div class="rangetiles" id="rt-top"></div>
     <div class="scorecards" id="scorecards"><div class="empty">Loading…</div></div>
     <p class="note" id="ov-note"></p>
-    <p class="eyebrow">KT benchmarks (from the Ad Campaigns Master KB, judge live rows against these)</p>
-    <div id="kb-benchmarks"><div class="empty">Loading…</div></div>
-    <p class="eyebrow">Top learnings from the knowledge base</p>
-    <div id="kb-learnings"></div>
+    <!--
+      A "KT benchmarks" block used to sit here, rendering CTR / CPC / cost-per-
+      result targets and creative learnings out of a committed data/ads/master-kb.json.
+      Those were one advertiser's measured results and one advertiser's internal
+      handover, shown to every brand as the bar its own ads should clear. A
+      benchmark is only a benchmark if it came from comparable accounts, and this
+      product cannot know that. It is removed rather than replaced: a made-up
+      target would read exactly like a real one.
+    -->
   </div>
 
   <div class="panel" id="p-rows">
@@ -129,16 +142,17 @@
   </div>
 
   <div class="panel" id="p-sop">
-    <h2>SOP compliance, live names scored against the Ad Campaign SOP</h2>
-    <p class="note">The SOP makes measurement depend on names: <b>organic post URL → videoid → ad name → ad code → paid performance</b>.
+    <h2>Naming compliance, live names scored against the standard</h2>
+    <p class="note">A naming standard is what makes measurement joinable: <b>organic post URL → videoid → ad name → ad code → paid performance</b>.
       An ad without the videoid still runs but cannot be joined to its organic performance, so that spend produces no learning.
-      Every figure below is computed from the live warehouse names and the real dollars behind them.
-      Full procedure: <a href="/ads-master#sop">the SOP tab</a> · <span class="muted">SOP PDF [DATA REQUIRED: upload this brand\'s own SOP]</span>. The nomenclature is live from Monday, so older names predate it, this is the measured baseline.</p>
+      Every figure below is computed from the live warehouse names and the real spend behind them.
+      The structural rules (banned characters, lowercase, videoid, syntax) apply to anyone. The permitted <b>token values</b> are your own vocabulary
+      and are read from <code>ADS_SOP_TOKENS</code>; none are bundled, so with none configured that check simply does not run.</p>
     <div class="rangetiles" id="rt-sop"></div>
     <div class="scorecards" id="sop-cards"><div class="empty">Loading…</div></div>
-    <p class="eyebrow">Spend at risk by SOP rule</p>
+    <p class="eyebrow">Spend at risk by rule</p>
     <div id="sop-rules"><div class="empty">Loading…</div></div>
-    <p class="eyebrow">Daily spend vs the SOP cap</p>
+    <p class="eyebrow">Daily spend vs the configured cap</p>
     <div id="sop-pacing"><div class="empty">Loading…</div></div>
     <p class="eyebrow">Worst offenders by spend</p>
     <div class="bar">
@@ -152,26 +166,22 @@
 
   <div class="panel" id="p-metrics">
     <h2>Metric catalog &amp; accuracy</h2>
-    <p class="note">The same definitions the Streamlit-in-Snowflake app uses, one catalog, so every number is computed identically on both surfaces. <b>base</b> = read straight from the platform; <b>derived</b> = computed by the formula shown.</p>
+    <p class="note">One catalog of metric definitions, so every number is computed identically wherever it is shown. <b>base</b> = read straight from the platform; <b>derived</b> = computed by the formula shown.</p>
     <p class="eyebrow">Catalog</p>
     <div id="catalog-body"><div class="empty">Loading…</div></div>
     <p class="eyebrow">Accuracy over the current selection</p>
     <div id="accuracy-body"><div class="empty">Refresh to score the current rows.</div></div>
   </div>
 
-  <div class="panel" id="p-sis">
-    <h2>Native Snowflake dashboard (Streamlit-in-Snowflake)</h2>
-    <p class="note">The same ads analysis running <b>natively inside Snowflake</b>, authenticated by your Snowflake login via <code>get_active_session()</code>, read-only, no keys. Source of truth: the <code>snowflake-streamlit-app</code> branch.</p>
-    <p style="margin:10px 0">
-      <a href="https://app.snowflake.com/streamlit/uxdeihw/mo06981/#/apps/KNICKGASM_DB.MAPLEMONK.ADSDASHBOARDUSA" target="_blank" rel="noopener"
-         style="display:inline-block;background:var(--green);color:var(--brand-on-primary,#fff);border:1px solid var(--lava);border-radius:8px;padding:10px 18px;font-weight:700;font-size:13.5px;text-decoration:none">Open the Snowflake app ↗</a>
-    </p>
-    <div class="tbl-wrap" style="height:72vh;padding:0;background:var(--surface)">
-      <iframe id="sis-frame" title="KNICKGASM Ads Dashboard (Snowflake)" data-src="https://app.snowflake.com/streamlit/uxdeihw/mo06981/#/apps/KNICKGASM_DB.MAPLEMONK.ADSDASHBOARDUSA"
-              style="width:100%;height:100%;border:0" loading="lazy" referrerpolicy="no-referrer"></iframe>
-    </div>
-    <p class="note">If the frame above stays blank: Snowflake (Snowsight) usually refuses to render inside other websites (frame-ancestors policy) and always requires your Snowflake sign-in, that is a Snowflake security setting, not an error here. Use the button above; it opens the same live dashboard in a new tab.</p>
-  </div>
+  <!--
+    A "Snowflake app" tab used to sit here, framing and deep-linking a
+    Streamlit-in-Snowflake dashboard at a hardcoded Snowsight URL. That URL
+    named a specific Snowflake organisation, account and database belonging to
+    the advertiser this repo was copied from. No tenant of this platform can
+    sign into it, and shipping it told every reader that another company's
+    warehouse was theirs. Removed rather than parameterised: the app has no
+    honest way to know which Snowflake app, if any, a given deployment runs.
+  -->
 
   <div class="panel" id="p-source">
     <h2>Data source</h2>
@@ -196,15 +206,32 @@
   }
   function get(op,extra){return fetch('/api/brain?action=ads-snowflake&op='+op+'&'+base()+(extra||''),{cache:'no-store'}).then(function(r){return r.json();});}
 
+  // The cap is env-driven and has no default: an unset cap shows the reason,
+  // never a stand-in figure that would read as somebody's agreed budget.
   function renderBudgets(b){
-    if(!b||b.target==null){$('#budgets').innerHTML='<div class="empty">Budgets unavailable.</div>';return;}
+    if(!b){$('#budgets').innerHTML='<div class="empty">Budget unavailable.</div>';return;}
+    if(b.daily_cap==null){
+      $('#budgets').innerHTML='<div class="budget"><div class="k">Daily cap</div><div class="v" style="font-size:17px">not set</div>'+
+        '<div style="font-size:11.5px;color:var(--dim);margin-top:5px">'+esc2(b.note||"")+'</div></div>'+
+        '<div class="budget" style="border-left-color:var(--green)"><div class="k">Mode</div><div class="v" style="font-size:17px">Read-only</div></div>';
+      return;
+    }
     $('#budgets').innerHTML=
-      '<div class="budget"><div class="k">Target · daily cap</div><div class="v">'+money(b.target)+'</div></div>'+
-      '<div class="budget"><div class="k">Costco · daily cap</div><div class="v">'+money(b.costco)+'</div></div>'+
+      '<div class="budget"><div class="k">Daily cap ('+esc2(b.currency||'')+')</div><div class="v">'+money(b.daily_cap)+'</div></div>'+
       '<div class="budget" style="border-left-color:var(--green)"><div class="k">Mode</div><div class="v" style="font-size:17px">Read-only</div></div>';
   }
-  // Aggregate the returned rows into portfolio scorecards (same measures the SiS app shows).
+  // Whose data is on the page. A warehouse is a deployment-level connection, so
+  // the scope is stated in the page rather than left for the reader to assume.
+  function renderScope(res){
+    var el=$('#scope-note'); if(!el)return;
+    var s=res&&res.data_scope;
+    if(!s||!(res.connected||res.ok===true&&res.rows&&res.rows.length)){el.hidden=true;el.textContent='';return;}
+    el.hidden=false;
+    el.innerHTML='<b>Deployment-level data.</b> '+esc2(s.note||'');
+  }
+  // Aggregate the returned rows into portfolio scorecards.
   function renderScorecards(res){
+    if(res.no_sources){$('#scorecards').innerHTML='<div class="empty">'+esc2(res.hint||'No ad table is configured for this deployment.')+'</div>';return;}
     if(res.not_connected){$('#scorecards').innerHTML='<div class="empty">Snowflake not connected — see the Source tab for the exact query.</div>';return;}
     var rows=res.rows||[];
     if(!rows.length){$('#scorecards').innerHTML='<div class="empty">No rows for this selection.</div>';return;}
@@ -220,6 +247,7 @@
   }
   function orderCols(cols){var lead=LEAD.filter(function(c){return cols.indexOf(c)>=0;});return lead.concat(cols.filter(function(c){return lead.indexOf(c)<0;}));}
   function renderRows(res){
+    if(res.no_sources){$('#rows-body').innerHTML='<div class="empty">'+esc2(res.hint||'')+'</div>';return;}
     if(res.not_connected){$('#rows-body').innerHTML='<div class="empty">Snowflake not connected. Query it will run:<br><br><code>'+(res.would_query||'').replace(/</g,'&lt;')+'</code></div>';return;}
     var rows=res.rows||[];if(!rows.length){$('#rows-body').innerHTML='<div class="empty">No rows.</div>';return;}
     var cols=orderCols(res.columns||Object.keys(rows[0]));
@@ -228,6 +256,7 @@
     $('#rows-body').innerHTML='<div class="tbl-wrap"><table data-sortable data-filterable><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
   }
   function renderCohort(res){
+    if(res.no_sources){$('#cohort-body').innerHTML='<div class="empty">'+esc2(res.hint||'')+'</div>';return;}
     if(res.not_connected){$('#cohort-body').innerHTML='<div class="empty">Snowflake not connected. Query:<br><br><code>'+(res.would_query||'').replace(/</g,'&lt;')+'</code></div>';return;}
     if(!res.ok){$('#cohort-body').innerHTML='<div class="empty">'+(res.error||'No cohort data.')+'</div>';return;}
     var rows=res.rows||[];if(!rows.length){$('#cohort-body').innerHTML='<div class="empty">No rows for that dimension.</div>';return;}
@@ -237,13 +266,30 @@
       return '<div class="barrow"><span class="lab">'+(r.cohort==null?'(none)':String(r.cohort))+'</span><span class="track"><span class="fill" style="width:'+w+'%"></span></span><span class="val">'+(num(r.value)||0).toLocaleString('en-US',{maximumFractionDigits:0})+'</span></div>';
     }).join('')+'</div>';
   }
+  // Source panel. Every table row states the env var that names it, because
+  // there is no default table name anywhere in this app: an unset feed reads
+  // "not set", never a placeholder that would point at someone else's warehouse.
   function renderSource(st){
-    var tbl=st.tables||{};
-    $('#source-body').innerHTML='<div class="frame"><h2 style="margin-top:0">Snowflake <span class="chip '+(st.configured?'good':'warn')+'">'+(st.configured?'configured':'not configured')+'</span></h2>'+
+    var tbl=st.tables||{}, envs=st.table_env||{};
+    var feedRows='';
+    ['meta','google','tiktok'].forEach(function(p){
+      var feeds=envs[p]||{};
+      Object.keys(feeds).forEach(function(f){
+        var v=(tbl[p]||{})[f];
+        feedRows+='<tr><td style="text-align:left">'+esc2(p)+' · '+esc2(f)+'</td>'+
+          '<td style="text-align:left"><code>'+esc2(feeds[f])+'</code></td>'+
+          '<td style="text-align:left">'+(v?('<code>'+esc2(v)+'</code>'):'<span class="chip warn">not set</span>')+'</td></tr>';
+      });
+    });
+    $('#source-body').innerHTML='<div class="frame"><h2 style="margin-top:0">Snowflake <span class="chip '+(st.configured?'good':'warn')+'">'+(st.configured?'configured':'not configured')+'</span>'+
+      ' <span class="chip '+(st.has_sources?'good':'warn')+'">'+(st.has_sources?'tables configured':'no tables configured')+'</span></h2>'+
       '<div id="ping-line"><p class="note">Testing connection…</p></div>'+
-      (st.configured?'<p class="note">Read-only. Same source as the Streamlit-in-Snowflake app.</p>':'<p class="note">Set <code>SNOWFLAKE_ACCOUNT / USER / PAT / WAREHOUSE / DATABASE</code> in Vercel (read-only PAT). Until then panels show the exact SQL they will run.</p>')+
-      '<p class="note">Meta: <code>'+((tbl.meta&&tbl.meta.ads)||'')+'</code><br>TikTok: <code>'+((tbl.tiktok&&tbl.tiktok.campaign)||'')+'</code><br>Google: <code>'+((tbl.google&&tbl.google.ads)||'')+'</code></p>'+
-      '<p class="note">'+(st.note||'')+'</p></div>';
+      (st.configured?'<p class="note">Read-only: only SELECT / SHOW / INFORMATION_SCHEMA statements are ever issued.</p>'
+        :'<p class="note">Set <code>SNOWFLAKE_ACCOUNT / USER / PAT / WAREHOUSE / DATABASE</code> in Vercel (read-only PAT). Until then panels show the exact SQL they will run.</p>')+
+      '<p class="eyebrow">Ad tables, and the variable that names each one</p>'+
+      '<div class="tbl-wrap"><table data-sortable><thead><tr><th style="text-align:left">Feed</th><th style="text-align:left">Env var</th><th style="text-align:left">Configured table</th></tr></thead><tbody>'+feedRows+'</tbody></table></div>'+
+      '<p class="note">'+esc2(st.note||'')+'</p>'+
+      (st.data_scope?'<p class="note"><b>Scope:</b> '+esc2(st.data_scope.note||'')+'</p>':'')+'</div>';
     loadPing();
   }
   // Live connection test — SELECT 1 against the warehouse. Distinguishes
@@ -286,31 +332,11 @@
     });
   }
 
-  // ── KT benchmarks + learnings (shared KB: /data/ads/master-kb.json) ─────────
-  // The Master Dashboard KB is the judgement layer for this page: derived from
-  // the KT spend workbook (125 Meta ads to 20 Jul 2026) + Social Update deck.
-  var kbLoaded=false;
-  function loadKB(){
-    if(kbLoaded)return; kbLoaded=true;
-    fetch('/data/ads/master-kb.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(kb){
-      var cards=(kb.benchmarks||[]).map(function(b){
-        var key=b.cost_per_initiate_checkout_usd!=null?('$'+b.cost_per_initiate_checkout_usd+' / initiate checkout')
-          :(b.cost_per_link_click_usd!=null?('$'+b.cost_per_link_click_usd+' / link click')
-          :(b.cpm_usd!=null?('$'+b.cpm_usd+' CPM')
-          :(b.thumb_stop_min!=null?(b.thumb_stop_min+'–'+b.thumb_stop_max+' thumb-stop')
-          :(b.cpr_usd_june!=null?('$'+b.cpr_usd_june+' / organic reach (Jun)'):'—'))));
-        return '<div class="sc'+(b.warning?'" style="border-left-color:var(--warn)':'')+'"><div class="k">'+b.segment.replace(/</g,'&lt;')+'</div><div class="v" style="font-size:17px">'+key+'</div>'+
-          (b.ctr_pct!=null?'<div style="font-size:11.5px;color:var(--dim);margin-top:3px">CTR '+b.ctr_pct+'% · CPC $'+b.cpc_usd+'</div>':'')+
-          (b.warning?'<div style="font-size:11.5px;color:var(--warn);margin-top:3px">'+b.warning.replace(/</g,'&lt;')+'</div>':'')+'</div>';
-      }).join('');
-      $('#kb-benchmarks').innerHTML='<div class="scorecards">'+cards+'</div>';
-      $('#kb-learnings').innerHTML=(kb.creative_learnings||[]).slice(0,4).map(function(l){
-        return '<div class="frame" style="border-left:4px solid var(--lava)"><b style="color:var(--head)">'+l.title.replace(/</g,'&lt;')+'</b>'+
-          '<div style="font-size:13px;margin-top:4px">'+l.detail.replace(/</g,'&lt;')+'</div>'+
-          '<div style="font-family:var(--mono);font-size:10.5px;color:var(--lava-deep);margin-top:5px;text-transform:uppercase;letter-spacing:.06em">source: '+String(l.source).replace(/</g,'&lt;')+'</div></div>';
-      }).join('')+'<p class="note">Full knowledge base, campaign rollups, organic/UGC data and ops runbooks: <a href="/ads-master">Ad Campaigns Master Dashboard</a>.</p>';
-    }).catch(function(e){kbLoaded=false;$('#kb-benchmarks').innerHTML='<div class="empty">KB unavailable — '+e.message+'</div>';});
-  }
+  // A loadKB() used to sit here, fetching /data/ads/master-kb.json to render
+  // "KT benchmarks" and "creative learnings" on the Overview tab. Both were one
+  // advertiser's own results and internal handover notes, and that file is
+  // deleted. Nothing replaces it: a benchmark this product invented would be
+  // indistinguishable, to a reader, from one measured on comparable accounts.
 
   // ── Metric catalog + accuracy (shared source of truth: ?action=ad-metrics) ──
   var catalogLoaded=false;
@@ -360,7 +386,9 @@
   function esc2(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function renderSopCards(res){
     if(res.not_connected){
-      $('#sop-cards').innerHTML='<div class="empty">Snowflake not connected — no compliance figure is invented. Query it will run:<br><br><code>'+esc2(res.would_query||'')+'</code></div>';
+      $('#sop-cards').innerHTML='<div class="empty">'+(res.no_sources
+        ? esc2(res.hint||'')
+        : 'Snowflake not connected — no compliance figure is invented. Query it will run:<br><br><code>'+esc2(res.would_query||'')+'</code>')+'</div>';
       $('#sop-rules').innerHTML=''; $('#sop-rows').innerHTML='';
       if(res.sop) renderSopRef(res.sop);
       return;
@@ -411,32 +439,38 @@
     var over=res.days_over_cap||0;
     $('#sop-pacing').innerHTML=
       '<div class="scorecards" style="margin-bottom:10px">'+
-        '<div class="sc"><div class="k">Cap applied</div><div class="v">'+money(res.cap_usd)+'<span style="font-size:12px;font-weight:400">/day</span></div></div>'+
+        '<div class="sc"><div class="k">Cap applied</div><div class="v"'+(res.cap_usd==null?' style="font-size:17px"':'')+'>'+(res.cap_usd==null?'not set':money(res.cap_usd)+'<span style="font-size:12px;font-weight:400">/day</span>')+'</div></div>'+
         '<div class="sc" style="border-left-color:'+(over?'var(--warn)':'var(--good)')+'"><div class="k">Days over cap</div><div class="v">'+intf(over)+'</div></div>'+
         '<div class="sc"><div class="k">Total overspend</div><div class="v">'+money(res.total_overspend)+'</div></div>'+
         '<div class="sc"><div class="k">Worst day</div><div class="v" style="font-size:16px">'+(res.worst_day?esc2(res.worst_day.date)+' +'+money(res.worst_day.over_by):'none')+'</div></div>'+
       '</div>'+
       '<div class="frame">'+days.map(function(d){
-        var w=Math.min(100,Math.round(d.spend/(res.cap_usd||1)*100));
-        return '<div class="barrow"><span class="lab">'+esc2(d.date)+'</span><span class="track"><span class="fill" style="width:'+w+'%;background:'+(d.over?'linear-gradient(90deg,#8f2f1f,var(--vh-lava))':'linear-gradient(90deg,var(--green),var(--lava))')+'"></span></span><span class="val">'+money(d.spend)+(d.over?' ⚠':'')+'</span></div>';
+        // With no cap, bars are scaled to the busiest day in the window rather
+        // than to an invented cap, so nothing reads as "x% of budget".
+        var scale=res.cap_usd!=null?res.cap_usd:Math.max.apply(null,days.map(function(x){return x.spend||0;}).concat([1]));
+        var w=Math.min(100,Math.round(d.spend/(scale||1)*100));
+        return '<div class="barrow"><span class="lab">'+esc2(d.date)+'</span><span class="track"><span class="fill" style="width:'+w+'%;background:'+(d.over?'linear-gradient(90deg,var(--vh-ink),var(--vh-lava))':'linear-gradient(90deg,var(--green),var(--lava))')+'"></span></span><span class="val">'+money(d.spend)+(d.over?' ⚠':'')+'</span></div>';
       }).join('')+'</div>'+
       '<p class="note">'+esc2(res.note||'')+'</p>';
   }
   function renderSopRef(sop){
     if(!sop){$('#sop-ref').innerHTML='';return;}
-    var p=sop.patterns||{}, sc=sop.scoring||{};
+    var p=sop.patterns||{};
+    // The scoring-threshold table that used to sit here published one
+    // advertiser's creative-scoring formulas as though they were the standard.
+    // The structural rules below hold for anyone; a scoring model does not.
     $('#sop-ref').innerHTML='<div class="frame">'+
       '<p class="eyebrow" style="margin-top:0">Naming patterns</p>'+
       '<div class="tbl-wrap"><table data-sortable><thead><tr><th style="text-align:left">Level</th><th style="text-align:left">Pattern</th></tr></thead><tbody>'+
         [['Campaign',p.campaign],['Ad set',p.adset],['Ad',p.ad]].map(function(x){return '<tr><td style="text-align:left">'+esc2(x[0])+'</td><td style="text-align:left"><code>'+esc2(x[1])+'</code></td></tr>';}).join('')+
       '</tbody></table></div>'+
-      '<p class="eyebrow">Scoring thresholds (how a creative earns spend)</p>'+
-      '<div class="tbl-wrap"><table data-sortable><thead><tr><th style="text-align:left">Platform</th><th style="text-align:left">Formula</th><th style="text-align:left">Ad Recommended</th><th style="text-align:left">Consider</th></tr></thead><tbody>'+
-        ['tiktok','instagram'].map(function(k){var v=sc[k]||{};return '<tr><td style="text-align:left">'+k+'</td><td style="text-align:left;white-space:normal;font-family:var(--sans)">'+esc2(v.formula)+'</td><td style="text-align:left">'+esc2(v.ad_recommended)+'</td><td style="text-align:left">'+esc2(v.consider)+'</td></tr>';}).join('')+
-      '</tbody></table></div>'+
+      '<p class="eyebrow">Rules applied</p>'+
+      '<ul style="font-size:12.5px;color:var(--dim);margin:6px 0 0;padding-left:20px">'+
+        (sop.rules||[]).map(function(r){return '<li style="margin:3px 0">'+esc2(r)+'</li>';}).join('')+
+      '</ul>'+
       '<p class="note"><b>The chain:</b> <code>'+esc2(sop.chain)+'</code></p>'+
-      '<p class="note"><b>Run gate:</b> '+esc2((sc||{}).run_gate||'')+'</p>'+
-      '<p class="note"><b>Authority:</b> '+esc2(sop.authority||'')+' · <a href="'+esc2(sop.master_sheet)+'" target="_blank" rel="noopener">master tracking sheet ↗</a></p></div>';
+      '<p class="note"><b>Permitted token values:</b> '+esc2(sop.tokens_note||'')+'</p>'+
+      '<p class="note"><b>Daily cap:</b> '+esc2((sop.caps&&sop.caps.note)||'')+'</p></div>';
   }
   // Reads JSON but never lets a non-JSON response (a static-preview 404 page,
   // an auth redirect) surface as a raw parse error in the UI.
@@ -476,21 +510,21 @@
     get('budgets').then(renderBudgets).catch(function(){});
     get('status').then(renderSource).catch(function(){});
     get('metrics').then(function(res){
+      renderScope(res);
       renderScorecards(res); renderRows(res); loadAccuracy(res.rows||[]);
-      $('#ov-note').textContent = res.not_connected
-        ? 'Snowflake not connected yet — add the read-only SNOWFLAKE_* vars in Vercel to fill these with live figures. The same app runs natively in Snowflake (Streamlit) with no keys.'
-        : 'Live from Snowflake · '+(res.table||'')+' · read-only.';
-    }).catch(function(e){$('#scorecards').innerHTML='<div class="empty">'+e.message+'</div>';});
+      $('#ov-note').textContent = res.no_sources
+        ? (res.hint||'')
+        : (res.not_connected
+          ? 'Snowflake not connected yet — add the read-only SNOWFLAKE_* vars in Vercel to fill these with live figures. Nothing is shown until they are set.'
+          : 'Live from the warehouse · '+(res.table||'')+' · read-only.');
+    }).catch(function(e){$('#scorecards').innerHTML='<div class="empty">'+esc2(e.message)+'</div>';});
     loadCatalog();
     loadCohort();
-    loadKB();
-    loadSop(); // re-scores against the SOP whenever the window changes
+    loadSop(); // re-scores against the naming standard whenever the window changes
   }
   document.getElementById('tabs').addEventListener('click',function(e){var b=e.target.closest('button[data-p]');if(!b)return;
     document.querySelectorAll('#tabs button').forEach(function(x){x.classList.toggle('on',x===b);});
-    document.querySelectorAll('.panel').forEach(function(x){x.classList.toggle('on',x.id==='p-'+b.dataset.p);});
-    // Lazy-load the Snowflake app iframe only when its tab is first opened.
-    if(b.dataset.p==='sis'){var fr=document.getElementById('sis-frame');if(fr&&!fr.src)fr.src=fr.dataset.src;}});
+    document.querySelectorAll('.panel').forEach(function(x){x.classList.toggle('on',x.id==='p-'+b.dataset.p);});});
   $('#f-apply').addEventListener('click',load);
   $('#c-apply').addEventListener('click',loadCohort);
   $('#sop-filter').addEventListener('change',renderSopRows);

@@ -627,13 +627,48 @@ Target market for this autofill: ${targetMarket}.`;
     // document (no JSON). The client previews it in the inline modal and falls
     // back to its deterministic template if this fails. response_format stays
     // null so the model returns raw HTML; scrubDashes runs on the way out.
-    const LP_STORE = { US:'https://knickgasm.com', UK:'https://knickgasm.com', IN:'https://knickgasm.in', Global:'https://knickgasm.com', EU:'https://knickgasm.com', AU:'https://knickgasm.com', ME:'https://knickgasm.com' };
+    // ── Whose landing page is this ────────────────────────────────────────
+    // Everything below used to be tenant zero's, hardcoded: its name, its
+    // store URLs, its four hex colours, its two font stacks, its preferred and
+    // banned vocabulary - and, in REQUIRED SECTIONS, a literal instruction to
+    // print the wordmark of the ORIGINAL brand this repo was forked from,
+    // which had survived the rebrand. The OPERATIVE BRAND block prepended
+    // further down tells the model to override all of that, but a direct
+    // instruction to print a specific wordmark is not something to leave in a
+    // prompt and hope is disobeyed. It is derived from the active brand now,
+    // with a DATA REQUIRED marker wherever that brand has not supplied a fact.
+    const _lpBrand = (body && body.__brand && body.__brand.id) ? body.__brand : null;
+    const _lpRt = require('../_shared/brand-runtime.js');
     const lpRegion = (body.region || body.market || market || 'US');
-    const lpBase = LP_STORE[lpRegion] || LP_STORE.US;
+    const _lpFacts = _lpBrand ? _lpRt.regionFacts(_lpBrand, lpRegion) : null;
+    const LP_STORE = { US:'https://knickgasm.com', UK:'https://knickgasm.com', IN:'https://knickgasm.in', Global:'https://knickgasm.com', EU:'https://knickgasm.com', AU:'https://knickgasm.com', ME:'https://knickgasm.com' };
+    const lpBase = _lpBrand
+      ? (_lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${lpRegion}]`)
+      : (LP_STORE[lpRegion] || LP_STORE.US);
+    const _lpName = _lpBrand ? (_lpBrand.name || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]') : 'KNICKGASM';
+    const _lpPal = (_lpBrand && _lpBrand.palette) || null;
+    const _lpType = (_lpBrand && _lpBrand.typography) || null;
+    const _lpVoice = (_lpBrand && _lpBrand.voice) || null;
+    const _lpList = (a, fallback) => (Array.isArray(a) && a.length ? a.join(', ') : fallback);
+    const _lpPaletteRule = _lpPal
+      ? `Colour palette ONLY: ${['primary','accent','ink','surface','surface_alt'].map((k) => _lpPal[k]).filter(Boolean).join(', ') || '[DATA REQUIRED BEFORE LAUNCH: brand palette, all, all]'}. No other colours.`
+      : 'Colour palette ONLY: #D0473E, #6A33D8, #111111, #FFFFFF. No other colours.';
+    const _lpTypeRule = _lpType
+      ? `Headings in ${(_lpType.heading && (_lpType.heading.stack || _lpType.heading.family)) || '[DATA REQUIRED BEFORE LAUNCH: typography.heading]'}. Body in ${(_lpType.body && (_lpType.body.stack || _lpType.body.family)) || '[DATA REQUIRED BEFORE LAUNCH: typography.body]'}.`
+      : "Headings in a serif stack: 'Montserrat','Raleway',Georgia,serif. Body in a sans stack: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.";
+    const _lpVoiceRule = _lpVoice
+      ? `Voice: ${_lpVoice.tone || '[DATA REQUIRED BEFORE LAUNCH: voice.tone]'}. Prefer: ${_lpList(_lpVoice.preferred, 'the brand\'s own vocabulary')}.`
+      : 'Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.';
+    const _lpBannedRule = (_lpVoice && Array.isArray(_lpVoice.banned) && _lpVoice.banned.length)
+      ? `NEVER use: ${_lpVoice.banned.join(', ')}.`
+      : "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.";
+    const _lpClaims = (_lpBrand && Array.isArray(_lpBrand.claims) && _lpBrand.claims.length)
+      ? _lpBrand.claims.join(' | ')
+      : (_lpBrand ? '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]' : 'one-of-one, studio-fresh 72h, B-Corp');
     const lpChannel = String(body.channel || 'landing');
     response_format = undefined;
     systemPrompt = [
-      'You are a senior D2C conversion copywriter AND front-end developer for KNICKGASM, premium Indian heritage sneaker (B-Corp, one-of-one, studio-fresh within 72 hours of drop).',
+      `You are a senior D2C conversion copywriter AND front-end developer for ${_lpName}${_lpBrand && _lpBrand.industry ? `, ${_lpBrand.industry}` : ''}${_lpBrand && _lpBrand.tagline ? ` (${_lpBrand.tagline})` : (_lpBrand ? '' : ', premium Indian heritage sneaker (B-Corp, one-of-one, studio-fresh within 72 hours of drop)')}.`,
       'Output ONE complete, production-ready, single-file HTML document, from <!doctype html> to </html>, with ALL CSS inline in a <style> block and NO external dependencies (no CDNs, no web fonts, no <script>). Return ONLY the HTML, no commentary before or after, no markdown fences.',
       '',
       'MOBILE-FIRST (hard requirement): design for a 360px phone first, then enhance up.',
@@ -644,17 +679,17 @@ Target market for this autofill: ${targetMarket}.`;
       '- Images use max-width:100%; height:auto. No horizontal scroll at any width.',
       '',
       'BRAND RULES (strict):',
-      '- Colour palette ONLY: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. No other colours.',
-      "- Headings in a serif stack: 'Montserrat','Raleway',Georgia,serif. Body in a sans stack: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
-      '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      `- ${_lpPaletteRule}`,
+      `- ${_lpTypeRule}`,
+      `- ${_lpVoiceRule}`,
+      `- ${_lpBannedRule}`,
       '- NO founder voice or personal-name sign-offs; the brand speaks as "we". NO medical claims. NO em or en dashes anywhere (use commas, colons or plain hyphens).',
       `- Currency and store links must match the ${lpRegion} market. Primary CTA links point to ${lpBase}/collections/best-sellers (or a more specific collection if the brief implies one). Only use offers/prices given in the brief; invent no discount codes.`,
-      '- Do NOT invent specific product names, prices, or product-page (/products/...) URLs. Unless the brief names a product, refer to offerings at category level ("one-of-one Jordan", "coffee collection") and link only to collection pages on the store base above.',
+      '- Do NOT invent specific product names, prices, or product-page (/products/...) URLs. Unless the brief names a product, refer to this brand\'s offerings at CATEGORY level only, using its own words, and link only to collection pages on the store base above.',
       '',
       CF.frameworkMenuDirective(),
       '',
-      'REQUIRED SECTIONS in order: announcement bar (only if an offer exists); header wordmark "V A H D A M"; hero (headline + sub + primary CTA + a product-image placeholder box labelled so the user can drop an image URL); trust strip (one-of-one, studio-fresh 72h, B-Corp); 3 benefit blocks; product/offer block with the exact price/mechanic from the brief; social proof as 2 to 3 tiny personal-story testimonials (not star reviews); a short FAQ (3 Qs); final CTA; footer; and the sticky mobile CTA bar.',
+      `REQUIRED SECTIONS in order: announcement bar (only if an offer exists); header wordmark "${_lpName}" (this brand's name, exactly, and no other); hero (headline + sub + primary CTA + a product-image placeholder box labelled so the user can drop an image URL); trust strip built ONLY from this brand's verifiable claims (${_lpClaims}); 3 benefit blocks; product/offer block with the exact price/mechanic from the brief; social proof as 2 to 3 tiny personal-story testimonials (only ones supplied in the brief; if none are supplied, omit the section rather than inventing them); a short FAQ (3 Qs); final CTA; footer; and the sticky mobile CTA bar.`,
     ].join('\n');
     userMessage = [
       `Channel intent: ${lpChannel} (write for how this channel's visitors arrive). Market: ${lpRegion}. Store base: ${lpBase}.`,

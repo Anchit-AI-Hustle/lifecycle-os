@@ -8,6 +8,11 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="description" content="The Knickgasm Growth and Automation Playbook: market intelligence, knowledge base, buyer avatars, real-time analytics, and the content automation and Shopify sync engine, in one command tower.">
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- The asset generator below writes a hero product, price and URL into every
+     block it emits. Those must come from the ACTIVE brand's catalogue, not from
+     a constant, so the resolvers load with the page. -->
+<script src="/brand-context.js?early=1"></script>
+<script src="/brand-catalog.js"></script>
 <script>
   tailwind.config = {
     theme: {
@@ -128,7 +133,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <div class="pl-4 mt-1 space-y-0.5">
           <a href="#supply-chain" class="nav-link block px-3 py-1.5 rounded-lg">Supply-Chain-to-Origin Metrics</a>
           <a href="#ingredient-verification" class="nav-link block px-3 py-1.5 rounded-lg">Ingredient Source Verification</a>
-          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Coffee/Product Hybrid Cross-Sell Logic</a>
+          <a href="#cross-sell" class="nav-link block px-3 py-1.5 rounded-lg">Category Cross-Sell Logic</a>
         </div>
       </details>
 
@@ -138,10 +143,10 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
           <span>&#128101; Avatars &amp; Personas</span>
         </summary>
         <div class="pl-4 mt-1 space-y-0.5">
-          <a href="#cohort-001" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 001: Third-Wave Purists</a>
-          <a href="#cohort-002" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 002: Functional Optimizers</a>
-          <a href="#cohort-003" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 003: Biohacking Performers</a>
-          <a href="#cohort-004" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 004: Routine Convenience</a>
+          <a href="#cohort-001" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 001: The Craft Optimiser</a>
+          <a href="#cohort-002" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 002: The Rotation Loyalist</a>
+          <a href="#cohort-003" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 003: The Gifting Connector</a>
+          <a href="#cohort-004" class="nav-link block px-3 py-1.5 rounded-lg">Cohort 004: The Curious Switcher</a>
         </div>
       </details>
 
@@ -204,7 +209,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       <header class="space-y-3">
         <span class="text-[11px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</span>
         <h1 class="font-head text-4xl md:text-5xl text-knickgasm-green leading-[1.05]">The Growth &amp; Automation Playbook</h1>
-        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">One command tower for how Knickgasm grows a premium coffee and functional-beverage franchise: the market it plays in, the buyers it serves, the pace it runs at each day, and the automation loop that turns a brief into a shipped mailer, ad, and synced Shopify asset. Every figure below is either a live-engine reading or a stated planning benchmark, labelled as such.</p>
+        <p class="text-[15px] max-w-3xl" style="color:var(--soft);">One command tower for how the active brand grows: the market it plays in, the buyers it serves, the pace it runs at each day, and the automation loop that turns a brief into a shipped mailer, ad, and synced Shopify asset. Every figure below is either a live-engine reading or a stated planning benchmark, labelled as such.</p>
         <div class="flex flex-wrap gap-2 pt-1">
           <span class="pill" style="background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-color:var(--knickgasm-green);">System One: Strategy</span>
           <span class="pill" style="background:var(--knickgasm-lava);color:var(--knickgasm-green);border-color:var(--knickgasm-lava);">System Two: Automation</span>
@@ -221,35 +226,35 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Market Intelligence</div>
           <h2 class="font-head text-3xl text-knickgasm-green mt-1">Macro Economics: TAM / SAM / SOM</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The US coffee and functional-beverage opportunity, framed top-down. Total market at the top, the served D2C slice in the middle, and the realistically obtainable share for a premium heritage brand at the base.</p>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The opportunity, framed top-down: total market at the top, the served D2C slice in the middle, and the realistically obtainable share at the base. These three cells previously carried a sizing for a different industry entirely, inherited from a sibling build; the market study this page summarises (docs/market-intelligence) carries no sourced sizing for this brand, so neither does this.</p>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-3">
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">TAM</div>
-            <div class="mv text-4xl mt-1">$117.94B</div>
-            <div class="text-[12.5px] mt-1" style="color:var(--soft);">Total US coffee market value, all channels and formats.</div>
+            <div class="mv text-lg mt-1" style="line-height:1.35;">Not sized</div>
+            <div class="text-[12.5px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: total addressable market sizing, active brand category, named source and year]</div>
           </div>
           <div class="metric p-5" style="border-color:var(--knickgasm-lava);">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SAM</div>
-            <div class="mv text-4xl mt-1" style="color:var(--knickgasm-lava);">$26.40B</div>
-            <div class="text-[12.5px] mt-1" style="color:var(--soft);">Serviceable D2C and premium/functional segment Knickgasm can address.</div>
+            <div class="mv text-lg mt-1" style="color:var(--knickgasm-lava);line-height:1.35;">Not sized</div>
+            <div class="text-[12.5px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: serviceable D2C segment sizing, active brand, per region]</div>
           </div>
           <div class="metric p-5" style="border-color:var(--knickgasm-green);border-width:2px;">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SOM</div>
-            <div class="mv text-4xl mt-1">$5.85B</div>
-            <div class="text-[12.5px] mt-1" style="color:var(--soft);">Obtainable US coffee D2C value within reach at current positioning.</div>
+            <div class="mv text-lg mt-1" style="line-height:1.35;">Not sized</div>
+            <div class="text-[12.5px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: defensible obtainable share plus its basis, active brand]</div>
           </div>
         </div>
 
         <div class="card p-5">
           <h3 class="font-head text-lg text-knickgasm-green">Reading the funnel</h3>
           <ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);">
-            <li><b class="text-knickgasm-green">SAM is 22.4% of TAM.</b> The D2C and premium/functional slice is where provenance and a real functional payload win, and where price competition matters least.</li>
-            <li><b class="text-knickgasm-green">SOM is 22.2% of SAM.</b> Obtainable share is gated by acquisition efficiency and retention, not by demand. The playbook prioritises the second order and the subscription anchor because that is where the SOM actually compounds.</li>
-            <li><b class="text-knickgasm-green">Where the leverage sits.</b> Moving day-180 retention up a few points expands realised SOM faster than raising ad spend, because functional buyers carry a materially higher lifetime value.</li>
+            <li><b class="text-knickgasm-green">The ratios are not stated either.</b> A percentage of an unsized market is still an unsourced number, and quoting one is how a planning benchmark becomes a budget assumption.</li>
+            <li><b class="text-knickgasm-green">What the structure does say.</b> Obtainable share is gated by acquisition efficiency and retention rather than by demand, which is why this playbook prioritises the second order and the subscription anchor. That is analysis, not measurement, and it holds without a figure.</li>
+            <li><b class="text-knickgasm-green">Where the leverage sits.</b> Moving late-window retention expands realised share faster than raising spend. Size the effect against this brand&rsquo;s own cohort curves in Data Analysis before acting on it.</li>
           </ul>
-          <p class="text-[12px] mt-3" style="color:var(--soft);">Figures are stated planning benchmarks for the US coffee and functional-beverage segment. Live owned-store readings appear under Real-Time Analytics.</p>
+          <p class="text-[12px] mt-3" style="color:var(--soft);">Fill the three cells above from a named, dated source before any budget decision. Live owned-store readings appear under Real-Time Analytics.</p>
         </div>
       </section>
 
@@ -258,7 +263,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Market Intelligence</div>
           <h2 class="font-head text-3xl text-knickgasm-green mt-1">Cross-Vertical Competitor Grid</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Who Knickgasm benchmarks against across premium coffee, functional beverage, and supplement verticals, and the retention move worth borrowing from each. Tier reflects relative D2C scale in the segment.</p>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Who this brand benchmarks against, and the retention move worth borrowing from each. Tier reflects relative D2C scale in the segment. The live, per-workspace competitor set lives in the Competitor feature; this grid is the strategic read over it.</p>
         </div>
 
         <div class="card overflow-x-auto">
@@ -367,7 +372,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         </div>
         <div class="card p-5">
           <h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3>
-          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Single-studio provenance paired with a genuine functional payload (Coffee Collection) is a position none of the eleven hold at once. The move: pair routine-replacement storytelling with a subscription anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
+          <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">One-of-one work on a genuine original pair, made by a named artist, is a position none of the others hold at once. The move: pair the craft story with a repeat-commission anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
         </div>
       </section>
 
@@ -395,8 +400,8 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
     "name":     { "type": "string" },
     "vertical": {
       "type": "string",
-      "enum": ["third-wave-purist", "functional-optimizer",
-               "biohacking-performer", "routine-convenience"]
+      "enum": ["craft-optimiser", "rotation-loyalist",
+               "gifting-connector", "curious-switcher"]
     },
     "economics": {
       "type": "object",
@@ -416,12 +421,10 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
     },
     "preferences": {
       "type": "object",
-      "required": ["roast", "format", "hero_products"],
+      "required": ["categories", "hero_products"],
       "properties": {
-        "roast":  { "type": "string",
-                    "enum": ["light", "medium", "medium-dark", "dark", "statement piece-variant"] },
-        "format": { "type": "string",
-                    "enum": ["whole-bean", "ground", "concentrate", "instant", "capsule"] },
+        "categories":  { "type": "array", "items": { "type": "string" },
+                         "description": "Category keys from the ACTIVE brand's own catalogue. No fixed enum: a taxonomy hardcoded here belongs to exactly one brand." },
         "hero_products": { "type": "array", "items": { "type": "string" } },
         "subscription_bias": { "type": "number", "minimum": 0, "maximum": 1 }
       }
@@ -462,7 +465,7 @@ triggers:
 
   - id: subscription-anchor
     protects: cohort-002
-    fires_on: product_category == "coffee" && subscription == false
+    fires_on: product_category in brand.signature_categories && subscription == false
     delay_days: 3
     channel: [email]
     action: offer("subscribe-first-refill-rhythm")
@@ -507,22 +510,22 @@ defaults:
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
           <h2 class="font-head text-3xl text-knickgasm-green mt-1">Supply-Chain-to-Origin Metrics</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Knickgasm ships studio-fresh from origin. The provenance timeline is the proof behind the premium, and the copy engine quotes these speeds directly.</p>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The provenance timeline is the proof behind the premium, and the copy engine quotes it directly. Every figure in it has to be a fact the active brand publishes about its own production, which is why the unsourced ones below say so instead of showing a number.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <span class="flow-node">Custom at one of one</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
-          <span class="flow-node">Processed at origin factory in 24 to 72 hrs</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
-          <span class="flow-node">Quality and grading, batch logged</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
-          <span class="flow-node">Sealed, studio-fresh packing</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
-          <span class="flow-node">Direct-from-source dispatch</span>
+          <span class="flow-node">Order placed, pair reserved</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Made to order by a named artist</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Quality check, build logged</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Packed</span><span class="text-knickgasm-lava font-bold">&rarr;</span>
+          <span class="flow-node">Direct-from-studio dispatch</span>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div class="metric p-5"><div class="mv text-3xl">24-72h</div><div class="text-[12px] mt-1" style="color:var(--soft);">Drop to factory processing window</div></div>
-          <div class="metric p-5"><div class="mv text-3xl">0</div><div class="text-[12px] mt-1" style="color:var(--soft);">Auction-house middlemen between studio and pack</div></div>
-          <div class="metric p-5"><div class="mv text-3xl">100%</div><div class="text-[12px] mt-1" style="color:var(--soft);">Batches traceable to source studio</div></div>
-          <div class="metric p-5"><div class="mv text-3xl">B-Corp</div><div class="text-[12px] mt-1" style="color:var(--soft);">Ethical-sourcing proof point, not the headline</div></div>
+          <div class="metric p-5"><div class="mv text-base" style="line-height:1.4;">Not published</div><div class="text-[12px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: order-to-dispatch window, active brand, per region]</div></div>
+          <div class="metric p-5"><div class="mv text-3xl">0</div><div class="text-[12px] mt-1" style="color:var(--soft);">Middlemen between the studio and the box: the brand makes and ships its own work</div></div>
+          <div class="metric p-5"><div class="mv text-3xl">100%</div><div class="text-[12px] mt-1" style="color:var(--soft);">Builds traceable to the artist who made them</div></div>
+          <div class="metric p-5"><div class="mv text-base" style="line-height:1.4;">Not certified here</div><div class="text-[12px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: certifications the active brand actually holds]</div></div>
         </div>
       </section>
 
@@ -530,22 +533,22 @@ defaults:
       <section data-section id="ingredient-verification" class="space-y-5">
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
-          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Ingredient Source Verification</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">How each functional claim is backed. The rule for copy: state the verified source and payload, never a medical claim.</p>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Claim Source Verification</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">How each claim is backed. The rule for copy: state only what the brand record lists as verifiable, and never a health or medical claim.</p>
         </div>
 
         <div class="grid gap-4 md:grid-cols-3">
           <div class="card p-5">
-            <h3 class="font-head text-lg text-knickgasm-green">Single-studio origin</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Product and coffee tied to a named studio and drop. Batch records carry studio, elevation, and pick date. This is the provenance the premium rests on.</p>
+            <h3 class="font-head text-lg text-knickgasm-green">Named maker</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Each piece tied to the artist who made it and the drop it belongs to. Build records carry the artist, the base pair and the date. This is the provenance the premium rests on.</p>
           </div>
           <div class="card p-5">
-            <h3 class="font-head text-lg text-knickgasm-green">Functional payload</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Coffee Collection carries a stated statement piece dose per serving. Copy names the ingredient and the routine benefit in plain, non-medical language.</p>
+            <h3 class="font-head text-lg text-knickgasm-green">Materials and durability</h3>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Copy names the base pair and the finish in plain language, and only repeats a durability claim the brand record lists as verifiable. Nothing is asserted about wear life that the brand does not publish itself.</p>
           </div>
           <div class="card p-5">
             <h3 class="font-head text-lg text-knickgasm-green">Certification chain</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">B-Corp and ethical-sourcing certifications sit as trust proof beside the origin story, referenced but never used as the lead hook.</p>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Whatever certifications the active brand actually holds sit as trust proof beside the origin story, referenced but never used as the lead hook. A certification that is not in the brand record is not printed.</p>
           </div>
         </div>
       </section>
@@ -554,8 +557,8 @@ defaults:
       <section data-section id="cross-sell" class="space-y-5">
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Core Knowledge Base</div>
-          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Coffee / Product Hybrid Cross-Sell Logic</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time product buyer into a subscriber. Move buyers along the frequency ladder toward the coffee and supplement franchise.</p>
+          <h2 class="font-head text-3xl text-knickgasm-green mt-1">Category Cross-Sell Logic</h2>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The bridge that turns a one-time buyer into a repeat one. The ladder below is stated in terms of BEHAVIOUR, not product names: the categories it moves between are read from the active brand&rsquo;s own catalogue, because a fixed ladder of one company&rsquo;s product lines is worthless to every other brand on the platform.</p>
         </div>
 
         <div class="card overflow-x-auto">
@@ -564,10 +567,10 @@ defaults:
               <tr><th>From (habit category)</th><th>Bridge product</th><th>To (anchor)</th><th>Trigger</th></tr>
             </thead>
             <tbody>
-              <tr><td>Black product / Products</td><td>Embroidery or themed functional variant</td><td>Coffee Collection</td><td>Second-order nudge, lace-up-to-craft story</td></tr>
-              <tr><td>Themed / Embroidery</td><td>Coffee Collection starter</td><td>Coffee subscription</td><td>Routine-replacement, morning-swap framing</td></tr>
-              <tr><td>Coffee Collection</td><td>Supplement companion</td><td>Multi-category subscription</td><td>Bundle logic, free-ship threshold above AOV</td></tr>
-              <tr><td>Gift / Advent buyer</td><td>Self-purchase invitation</td><td>Personal routine subscription</td><td>January reframe of the gift they gave</td></tr>
+              <tr><td>Entry-price category, first order</td><td>Adjacent category in the same taste world</td><td>Signature / highest-margin category</td><td>Second-order nudge inside the replenishment window</td></tr>
+              <tr><td>Single-category repeat buyer</td><td>Companion or care category</td><td>Multi-category buyer</td><td>Attach logic, free-ship threshold set above current AOV</td></tr>
+              <tr><td>Multi-category buyer</td><td>Recurring plan, where the brand offers one</td><td>Subscriber or standing commission</td><td>Predictable cadence proven by their own order gaps</td></tr>
+              <tr><td>Gift or occasion buyer</td><td>Self-purchase invitation</td><td>Personal repeat buyer</td><td>Post-occasion reframe of the gift they gave</td></tr>
             </tbody>
           </table>
         </div>
@@ -581,56 +584,56 @@ defaults:
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Avatars &amp; Personas</div>
           <h2 class="font-head text-3xl text-knickgasm-green mt-1">The Four Buyer Cohorts</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The named buyers every brief targets, with income band and roast preference. These map one-to-one to the cohort-profile schema above.</p>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">The named buyers every brief targets. These are the same four avatars the <a href="/avatars" class="text-knickgasm-lava font-semibold">Avatars feature</a> owns, restated here for planning; that page is the single definition and this one never adds a field it does not hold. The income bands and taste preferences that used to sit on these cards described a buyer researched for a different company in a different industry, so they are gone rather than re-estimated.</p>
         </div>
 
         <div class="grid gap-5 md:grid-cols-2">
           <div data-section id="cohort-001" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
             <div class="flex items-center justify-between">
-              <h3 class="font-head text-xl text-knickgasm-green">Cohort 001: Third-Wave Purists</h3>
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 001: The Craft Optimiser</h3>
               <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-green);">Loyalist</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$95k to $180k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Light to medium, single-origin</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Craft and provenance</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Price elasticity</div><div class="mt-0.5">Low, full-margin</div></div>
             </div>
-            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Buys on provenance and craft. Reads taste notes and studio names. Full-margin, protect from a discount habit. Hook: origin story and pair character.</p>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Buys on provenance and craft. Researches the make before buying. Full-margin, protect from a discount habit. Hook: the artist, the base pair and how it was made.</p>
           </div>
 
           <div data-section id="cohort-002" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
             <div class="flex items-center justify-between">
-              <h3 class="font-head text-xl text-knickgasm-green">Cohort 002: Functional Optimizers</h3>
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 002: The Rotation Loyalist</h3>
               <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava);">Subscriber</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$70k to $140k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Statement Piece variant, medium</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Continuity of the rotation</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Price elasticity</div><div class="mt-0.5">Low to moderate</div></div>
             </div>
-            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comes for the functional payload and the routine. Highest subscription bias. Hook: refill rhythm, Coffee Collection as a daily routine.</p>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Has a fixed rotation and strong design loyalty. The repeat-purchase backbone. Hook: the next piece that fits the rotation, and an easy reorder.</p>
           </div>
 
           <div data-section id="cohort-003" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
             <div class="flex items-center justify-between">
-              <h3 class="font-head text-xl text-knickgasm-green">Cohort 003: Biohacking Performers</h3>
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 003: The Gifting Connector</h3>
               <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-green);">High-intent</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$110k to $220k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Medium-dark, high-dose statement piece</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Status and thoughtfulness</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Price elasticity</div><div class="mt-0.5">Low on gift sets</div></div>
             </div>
-            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Optimises inputs and tracks outcomes. Responds to dose, sourcing, and stacking logic. Hook: precise payload and companion supplements.</p>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Occasion buyer with higher basket and seasonal spikes. Cares about presentation and the story behind the gift. Hook: a considered, personal gift with provenance.</p>
           </div>
 
           <div data-section id="cohort-004" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
             <div class="flex items-center justify-between">
-              <h3 class="font-head text-xl text-knickgasm-green">Cohort 004: Routine Convenience</h3>
+              <h3 class="font-head text-xl text-knickgasm-green">Cohort 004: The Curious Switcher</h3>
               <span class="pill" style="background:var(--knickgasm-chalk);color:var(--knickgasm-lava);">Switcher</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Income band</div><div class="mt-0.5">$55k to $110k</div></div>
-              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Roast preference</div><div class="mt-0.5">Medium, ground or instant</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Discovery and low-risk trial</div></div>
+              <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Price elasticity</div><div class="mt-0.5">High, first-order incentive earns its keep</div></div>
             </div>
-            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Buys for ease and price sensitivity. The discount-responsive switcher. Hook: convenience proof, low-friction reorder, second-order nudge.</p>
+            <p class="text-sm mt-3" style="color:var(--knickgasm-ink);">Comparing options, not yet committed. The discount-responsive switcher. Hook: low-risk trial, proof, and a second-order reason.</p>
           </div>
         </div>
       </section>
@@ -712,7 +715,7 @@ defaults:
             <div class="metric p-5">
               <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Blended CAC</div>
               <div class="mv text-3xl mt-1" id="out-cac">-</div>
-              <div class="text-[12px] mt-1" id="out-cac-flag" style="color:var(--soft);">vs $38 to $65 target</div>
+              <div class="text-[12px] mt-1" id="out-cac-flag" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: target acquisition cost band, active brand]</div>
             </div>
             <div class="metric p-5">
               <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Active churn variance</div>
@@ -720,7 +723,7 @@ defaults:
               <div class="text-[12px] mt-1" style="color:var(--soft);">vs trailing baseline</div>
             </div>
           </div>
-          <p class="text-[12px] mt-3" style="color:var(--soft);">Projection assumes a noon-to-midnight decay curve typical of D2C coffee. Tune the curve against the live engine before acting on the CAC flag.</p>
+          <p class="text-[12px] mt-3" style="color:var(--soft);">The projection applies a generic afternoon decay curve, not one fitted to this brand. It is arithmetic on the numbers you typed, not a forecast: fit the curve to this brand&rsquo;s own hourly data in Data Analysis before acting on the acquisition-cost flag.</p>
         </div>
       </section>
 
@@ -740,10 +743,10 @@ defaults:
             <label class="block text-sm">
               <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Avatar</span>
               <select id="gen-avatar" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
-                <option value="001">Cohort 001: Third-Wave Purists</option>
-                <option value="002" selected>Cohort 002: Functional Optimizers</option>
-                <option value="003">Cohort 003: Biohacking Performers</option>
-                <option value="004">Cohort 004: Routine Convenience</option>
+                <option value="001">Cohort 001: The Craft Optimiser</option>
+                <option value="002" selected>Cohort 002: The Rotation Loyalist</option>
+                <option value="003">Cohort 003: The Gifting Connector</option>
+                <option value="004">Cohort 004: The Curious Switcher</option>
               </select>
             </label>
             <label class="block text-sm">
@@ -812,7 +815,7 @@ defaults:
       </section>
 
       <footer class="pt-8 border-t text-[12.5px]" style="border-color:var(--line);color:var(--soft);">
-        Knickgasm Growth &amp; Automation Playbook. Market figures are stated planning benchmarks; live pace mirrors the
+        Growth &amp; Automation Playbook. Market sizing is not stated here until a named, dated source is wired in; live pace mirrors the
         <a class="underline decoration-knickgasm-lava" href="/data-engine">knickgasm_dtc_data_engine</a>.
         Every generated asset is locked to the brand palette, typography, and copy rules.
       </footer>
@@ -895,7 +898,9 @@ defaults:
   function money(v){ return '$'+Math.round(v).toLocaleString(); }
   document.getElementById('predict-btn').addEventListener('click', function(){
     var revNoon = num('in-rev'), ordersNoon = num('in-orders'), spend = num('in-spend');
-    // Noon-to-midnight typically adds ~70% more on top of morning pace for D2C coffee.
+    // Generic afternoon uplift over morning pace. NOT fitted to any brand's data:
+    // the sibling repo's coffee-specific curve was measured on a business this
+    // platform does not run, so it is stated as a default, not as a benchmark.
     var projLow  = revNoon * 1.55;
     var projMid  = revNoon * 1.72;
     var projHigh = revNoon * 1.92;
@@ -925,12 +930,32 @@ defaults:
   // ---------- Asset generator ----------
   var STORE = { US:'knickgasm.com', UK:'knickgasm.com', Global:'knickgasm.com' };
   var CUR   = { US:'$', UK:'£', Global:'$' };
+  // Hooks describe BEHAVIOUR, which is brand-independent. The hero product and
+  // its price and URL are not: they are resolved from the ACTIVE brand's own
+  // catalogue below, and when there is none the generator emits a data marker
+  // rather than a product nobody sells.
   var AVATAR = {
-    '001': { name:'Third-Wave Purists', hook:'origin story and pair character', hero:'One-of-One Jordan First Flush', sub:'studio reserve' },
-    '002': { name:'Functional Optimizers', hook:'the daily refill rhythm', hero:'Coffee Collection', sub:'refill subscription' },
-    '003': { name:'Biohacking Performers', hook:'precise statement piece payload', hero:'Coffee Collection, high-dose', sub:'performance stack' },
-    '004': { name:'Routine Convenience', hook:'a simpler morning', hero:'Ground Coffee Collection', sub:'auto-reorder' }
+    '001': { name:'The Craft Optimiser', hook:'the craft and who made it', sub:'a standing commission' },
+    '002': { name:'The Rotation Loyalist', hook:'the next piece that fits the rotation', sub:'an easy reorder' },
+    '003': { name:'The Gifting Connector', hook:'a considered gift with a story', sub:'a gift set' },
+    '004': { name:'The Curious Switcher', hook:'a low-risk first try with proof', sub:'a first-order offer' }
   };
+
+  // The active brand's hero product. Never a hardcoded one.
+  var NEED_PRODUCT = '[DATA REQUIRED BEFORE LAUNCH: hero product, active brand, selected market]';
+  var HERO_PRODUCT = { title: NEED_PRODUCT, price: null, handle: '' };
+  function heroUrl(store){ return HERO_PRODUCT.handle ? ('https://'+store+'/products/'+HERO_PRODUCT.handle) : NEED_PRODUCT; }
+  function heroPrice(cur){ return HERO_PRODUCT.price != null && HERO_PRODUCT.price !== '' ? (cur+HERO_PRODUCT.price) : '[DATA REQUIRED BEFORE LAUNCH: price, hero product, selected market]'; }
+  function loadHero(market){
+    if(!window.BrandCatalog) return;
+    var region = market === 'UK' ? 'uk' : (market === 'Global' ? 'global' : 'us');
+    window.BrandCatalog.load(region).then(function(res){
+      var rows = (res && res.products) || [];
+      HERO_PRODUCT = rows.length
+        ? { title: rows[0].n || NEED_PRODUCT, price: rows[0].price, handle: rows[0].h || '' }
+        : { title: NEED_PRODUCT, price: null, handle: '' };
+    }).catch(function(){});
+  }
 
   function mailerBlock(a, market){
     var store = STORE[market], cur = CUR[market];
@@ -943,16 +968,16 @@ defaults:
 '        <span style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;color:#FFFFFF;font-size:24px;">Knickgasm</span>',
 '      </td></tr>',
 '      <tr><td style="padding:34px 28px 8px;">',
-'        <h1 style="margin:0;font-family:\'Montserrat\',Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">There is a moment when the right pair does more than warm your hands.</h1>',
+'        <h1 style="margin:0;font-family:\'Montserrat\',Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">One pair. One artist. Nobody else has it.</h1>',
 '      </td></tr>',
 '      <tr><td style="padding:8px 28px 20px;">',
-'        <p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. Lace-up the '+a.hero+', hand-painted and shipped studio-fresh from origin, and let the ritual restore the morning.</p>',
+'        <p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Written for '+a.hook+'. Hero: '+HERO_PRODUCT.title+'.</p>',
 '      </td></tr>',
 '      <tr><td style="padding:0 28px 26px;">',
-'        <a href="https://'+store+'/products/coffee-collection" style="display:inline-block;background:#6A33D8;color:#D0473E;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Start the ritual, '+cur+'39.83</a>',
+'        <a href="'+heroUrl(store)+'" style="display:inline-block;background:#6A33D8;color:#FFFFFF;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">Shop the drop, '+heroPrice(cur)+'</a>',
 '      </td></tr>',
 '      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;">',
-'        <p style="margin:0;font-size:12px;color:#5b5b57;">Single-studio. Hand-painted. Crafted at origin. Knickgasm.</p>',
+'        <p style="margin:0;font-size:12px;color:#5b5b57;">Replace this line with the active brand verifiable claims before sending.</p>',
 '      </td></tr>',
 '    </table>',
 '  </td></tr>',
@@ -965,14 +990,14 @@ defaults:
     return [
 '/* Paid social ad :: '+a.name+' :: '+market+' */',
 'PRIMARY TEXT:',
-'  Restore the morning with '+a.hero+'. Hand-painted at a one of one, crafted at origin,',
-'  and built for '+a.hook+'. This is the ritual worth keeping.',
+'  Hero: '+HERO_PRODUCT.title+'.',
+'  Written for '+a.hook+'.',
 '',
-'HEADLINE:  Origin in every pair',
-'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+', shipped studio-fresh.',
+'HEADLINE:  One of one, made by hand',
+'DESCRIPTION:  '+a.sub.charAt(0).toUpperCase()+a.sub.slice(1)+'.',
 'CTA:  Shop now',
-'LANDING:  https://'+store+'/products/coffee-collection',
-'PRICE POINT:  '+cur+'39.83',
+'LANDING:  '+heroUrl(store),
+'PRICE POINT:  '+heroPrice(cur),
 '',
 'PALETTE:  #D0473E violet / #6A33D8 lava / #111111 ink / #FFFFFF chalk',
 'FONTS:    Montserrat (headline) / Instrument Sans (body)',
@@ -992,16 +1017,19 @@ defaults:
 '  "palette": ["#D0473E", "#6A33D8", "#111111", "#FFFFFF"],',
 '  "typography": { "headline": "Montserrat", "body": "Instrument Sans" },',
 '  "scenes": [',
-'    { "t": "0-2s", "shot": "steam rising off a fresh pour, chalk background", "text": "A moment to restore" },',
-'    { "t": "2-5s", "shot": "'+a.hero+' pack, one-of-one label in focus", "text": "Hand-painted at origin" },',
-'    { "t": "5-8s", "shot": "hands cradling the pair, warm light", "text": "Start the ritual" }',
+'    { "t": "0-2s", "shot": "close on the work, chalk background", "text": "One of one" },',
+'    { "t": "2-5s", "shot": "'+HERO_PRODUCT.title+', maker detail in focus", "text": "Made by hand" },',
+'    { "t": "5-8s", "shot": "the piece worn, natural light", "text": "Nobody else has it" }',
 '  ],',
-'  "cta": { "label": "Shop now", "url": "https://'+store+'/products/coffee-collection" },',
+'  "cta": { "label": "Shop now", "url": "'+heroUrl(store)+'" },',
 '  "hook": "'+a.hook+'",',
 '  "copy_rules": "no banned phrases, no em or en dashes, brand voice only"',
 '}'
     ].join('\n');
   }
+
+  document.getElementById('gen-market').addEventListener('change', function(){ loadHero(this.value); });
+  loadHero(document.getElementById('gen-market').value);
 
   document.getElementById('gen-btn').addEventListener('click', function(){
     var a = AVATAR[document.getElementById('gen-avatar').value];

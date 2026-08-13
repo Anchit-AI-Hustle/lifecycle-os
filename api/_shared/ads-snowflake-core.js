@@ -1,35 +1,47 @@
 'use strict';
 
 /**
- * api/_shared/ads-snowflake-core.js — LIVE ads analysis from Snowflake (READ ONLY).
+ * api/_shared/ads-snowflake-core.js — LIVE ads analysis from a Snowflake
+ * warehouse (READ ONLY).
  *
- * Pulls Meta / Google / TikTok ad data straight from the warehouse via the
- * Snowflake SQL REST API v2, for the Costco and Target US ad accounts. Built for
- * the cohort/segmentation framework: it discovers the columns actually present in
- * each source table (INFORMATION_SCHEMA) so the dashboard can slice by any
- * available demographic/geo/behavioural dimension (age, gender, language,
- * country, region, device, placement, …) to build cohorts.
+ * Reads Meta / Google / TikTok ad tables through the Snowflake SQL REST API v2.
+ * It discovers the columns actually present in each source table
+ * (INFORMATION_SCHEMA) so the dashboard can slice by whatever
+ * demographic/geo/behavioural dimension that table carries (age, gender,
+ * language, country, region, device, placement, …).
  *
- * Source tables (override each via env; DB.SCHEMA.TABLE or SCHEMA.TABLE — a
- * 2-part value is prefixed with SNOWFLAKE_DATABASE):
- *   TikTok : DATON.RAW.TIKTOK_ADS_USA        (SF_TIKTOK_ADS_TABLE)
- *   Meta   : MAPLEMONK.META_USA_ADS          (SF_META_ADS_TABLE)
- *            MAPLEMONK1.META_USA_ADS         (SF_META_ADS1_TABLE)
- *            MAPLEMONK1.META_USA_AD_CREATIVES (SF_META_CREATIVES_TABLE)
- *   Google : MAPLEMONK.GOOGLE_ADS_US_AD_GROUP_AD_REPORT (SF_GOOGLE_ADS_TABLE)
+ * ── NOTHING IS BUNDLED. THE TABLES COME FROM ENV, AND THERE ARE NO DEFAULTS ──
  *
- * Live-verified 2026-07-25 (Snowflake connector, INFORMATION_SCHEMA):
- *   META_USA_ADS_INSIGHTS 129,741 rows spanning 2024-05-15 → 2026-07-25;
- *   TIKTOK_ADS_USA_{CAMPAIGN 1,012 / ADGROUP 3,842 / AD 13,838}_REPORT_DAILY
- *   (+ AGE_GENDER 7,453, COUNTRY 1,114); GOOGLE_ADS_US_AD_GROUP_AD_REPORT
- *   91,135 rows. MAPLEMONK1 breakdown tables were NOT found in the live
- *   warehouse — the age/gender/device/creatives defaults below stay
- *   env-overridable and unverified.
+ * This module used to ship a hardcoded registry: nineteen named ad-account
+ * feeds with real platform account ids, lifetime spend and fully-qualified
+ * warehouse table names, plus a retail-media funnel joining that advertiser's
+ * spend to a named mass retailer's in-store sell-through. None of it
+ * belonged to this product. It was one advertiser's warehouse layout, carried
+ * across when this repo was copied from a sibling project and rebranded by
+ * search-and-replace: the brand token in `<BRAND>_DB` was rewritten, while the
+ * loader schemas and the table names underneath it were not. The result named a
+ * database that exists in no warehouse — not this deployment's, and not the
+ * original owner's either — while still shipping that owner's schema, account
+ * ids and spend to every tenant of this platform.
+ *
+ * So there is no default table name here. Each feed is named by its own env
+ * var (below) and a feed whose var is unset simply does not exist: `sources()`
+ * reports it as null and every op returns the honest not-configured envelope
+ * naming the variable to set. A wrong default is worse than no default,
+ * because a wrong default renders.
+ *
+ * SCOPE. A Snowflake warehouse is a DEPLOYMENT-level connection, not a
+ * workspace-level one — there is no per-workspace Snowflake credential in
+ * `workspace-connections-core.js`. Every payload therefore carries
+ * `data_scope: { level: 'deployment' }` so a surface can say whose figures
+ * these are instead of rendering them under whichever brand happens to be
+ * signed in. Per-brand paid media is the platform reporting path
+ * (`ad-insights-core.js`), which reads the ad accounts the WORKSPACE connected.
  *
  * READ ONLY: only SELECT / SHOW / INFORMATION_SCHEMA reads are ever issued — no
- * INSERT/UPDATE/MERGE/DELETE. Until SNOWFLAKE_* env vars are set, every op returns
- * a { connected:false, would_query } envelope with the exact SQL it would run —
- * never a fabricated number.
+ * INSERT/UPDATE/MERGE/DELETE. Until SNOWFLAKE_* env vars are set, every op
+ * returns a { connected:false, would_query } envelope with the exact SQL it
+ * would run — never a fabricated number.
  *
  * Auth: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PAT (Programmatic Access
  * Token), SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE, SNOWFLAKE_ROLE.
@@ -52,400 +64,208 @@ const { liveConnectorsEnabled } = require('./live-connectors.js');
 function isConfigured() { const c = cfg(); return liveConnectorsEnabled() && !!(c.account && c.user && c.pat && c.warehouse); }
 
 const PLATFORMS = ['meta', 'google', 'tiktok'];
-const ACCOUNTS = ['target', 'costco']; // budgets: Target $1000/day, Costco $300/day (editable)
 
-// Editable daily budget caps (USD). Overridable via env; a settings UI can also
-// persist overrides later. Read-only here — no push to the ad platforms.
+/**
+ * Every figure this module can return comes from a warehouse the DEPLOYMENT
+ * configured, never from the signed-in workspace. Stamped onto each payload so
+ * a page renders that fact beside the numbers rather than implying they are the
+ * active brand's own.
+ */
+const DATA_SCOPE = {
+  level: 'deployment',
+  note: 'These figures come from the Snowflake warehouse configured on this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance. A workspace reads its own paid media from the ad accounts it connected under Connections.',
+};
+
+/**
+ * Daily budget cap used for pacing alerts, in the warehouse's own currency.
+ * There is deliberately NO default: a cap is a commercial decision that belongs
+ * to whoever runs the accounts, and a bundled figure would be presented as
+ * theirs. Unset means pacing reports spend without a cap rather than inventing
+ * one. Read-only — the app never edits budgets on the ad platforms.
+ */
 function budgets() {
+  const raw = String(process.env.ADS_DAILY_BUDGET_CAP || '').trim();
+  const cap = raw && !isNaN(Number(raw)) ? Number(raw) : null;
   return {
-    target: Number(process.env.ADS_BUDGET_TARGET_DAILY || 1000),
-    costco: Number(process.env.ADS_BUDGET_COSTCO_DAILY || 300),
-    currency: 'USD', basis: 'per day', editable: true,
-    note: 'Daily budget caps for reference/alerting only. Read-only — the app never edits budgets on the ad platforms.',
+    daily_cap: cap,
+    currency: (process.env.ADS_BUDGET_CURRENCY || 'USD').trim().toUpperCase(),
+    basis: 'per day', configured: cap != null, editable: true,
+    note: cap != null
+      ? 'Daily budget cap for reference/alerting only. Read-only — the app never edits budgets on the ad platforms.'
+      : '[DATA REQUIRED BEFORE LAUNCH: daily budget cap] Set ADS_DAILY_BUDGET_CAP to pace spend against a cap. No cap is assumed.',
   };
 }
 
-function tableRef(envKey, dflt) {
-  const raw = (process.env[envKey] || dflt).trim();
+/**
+ * Table config. One env var per feed, NO defaults — see the header.
+ * A value may be DB.SCHEMA.TABLE, or SCHEMA.TABLE (prefixed with
+ * SNOWFLAKE_DATABASE).
+ */
+const TABLE_ENV = {
+  meta: {
+    ads: 'SF_META_ADS_TABLE',
+    age_gender: 'SF_META_AGE_GENDER_TABLE',
+    device: 'SF_META_DEVICE_TABLE',
+    creatives: 'SF_META_CREATIVES_TABLE',
+  },
+  google: {
+    ads: 'SF_GOOGLE_ADS_TABLE',
+    adgroup_ad: 'SF_GOOGLE_ADGROUP_AD_TABLE',
+  },
+  tiktok: {
+    account: 'SF_TIKTOK_ADS_TABLE',
+    campaign: 'SF_TIKTOK_CAMPAIGN_TABLE',
+    adgroup: 'SF_TIKTOK_ADGROUP_TABLE',
+    ad: 'SF_TIKTOK_AD_TABLE',
+    age_gender: 'SF_TIKTOK_AGE_GENDER_TABLE',
+    country: 'SF_TIKTOK_COUNTRY_TABLE',
+  },
+};
+
+/** Resolves one env var to a fully-qualified table, or null when it is unset. */
+function tableRef(envKey) {
+  const raw = String(process.env[envKey] || '').trim();
+  if (!raw) return null;
   const parts = raw.split('.');
   if (parts.length >= 3) return raw.toUpperCase();           // db.schema.table given
   const db = (process.env.SNOWFLAKE_DATABASE || '').trim();  // schema.table -> prefix db
   return (db ? db + '.' + raw : raw).toUpperCase();
 }
-// Verified against the live warehouse (Saras/Daton + Maplemonk pipelines). Each
-// is env-overridable. TikTok reports are per level; Meta/TikTok expose dedicated
-// demographic/geo breakdown tables used for cohorts.
+
+/** The configured tables, shaped by platform. Unset feeds read null. */
 function sources() {
-  return {
-    tiktok: {
-      account: tableRef('SF_TIKTOK_ADS_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY'),
-      campaign: tableRef('SF_TIKTOK_CAMPAIGN_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY'),
-      adgroup: tableRef('SF_TIKTOK_ADGROUP_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_ADGROUP_REPORT_DAILY'),
-      ad: tableRef('SF_TIKTOK_AD_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_AD_REPORT_DAILY'),
-      age_gender: tableRef('SF_TIKTOK_AGE_GENDER_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY_AGE_GENDER'),
-      country: tableRef('SF_TIKTOK_COUNTRY_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY_COUNTRY'),
-    },
-    meta: {
-      ads: tableRef('SF_META_ADS_TABLE', 'KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS'),
-      age_gender: tableRef('SF_META_AGE_GENDER_TABLE', 'KNICKGASM_DB.MAPLEMONK1.META_USA_ADS_INSIGHTS_AGE_AND_GENDER'),
-      device: tableRef('SF_META_DEVICE_TABLE', 'KNICKGASM_DB.MAPLEMONK1.META_USA_ADS_INSIGHTS_PLATFORM_AND_DEVICE'),
-      creatives: tableRef('SF_META_CREATIVES_TABLE', 'KNICKGASM_DB.MAPLEMONK1.META_USA_AD_CREATIVES'),
-    },
-    // GOOGLE_ADS_USA does not exist in the warehouse. Neither does the live US
-    // Google feed sit in GOOGLE_ADS_US_AD_GROUP_AD_REPORT — that table holds the
-    // RETIRED customer 2769294429 ("KNICKGASM - USA - Old") and stops 2023-11-24,
-    // which is why US Google looked dead. The live feed is the consolidated view
-    // (verified 2026-07-26: 124,545 rows, fresh to 2026-07-25, 23 campaigns and
-    // $72,343.46 spend in 2026 YTD). See adAccounts() for the full registry.
-    google: {
-      ads: tableRef('SF_GOOGLE_ADS_TABLE', 'KNICKGASM_DB.MAPLEMONK.US_GOOGLE_ADS_CONSOLIDATED'),
-      adgroup_ad: tableRef('SF_GOOGLE_ADGROUP_AD_TABLE', 'KNICKGASM_DB.MAPLEMONK.US_GADS_AD_GROUP_AD_REPORT'),
-      amazon: tableRef('SF_GOOGLE_AMZ_TABLE', 'KNICKGASM_DB.MAPLEMONK.US_AMZ_GADS_AD_GROUP_AD_REPORT'),
-      retired: tableRef('SF_GOOGLE_RETIRED_TABLE', 'KNICKGASM_DB.MAPLEMONK.GOOGLE_ADS_US_AD_GROUP_AD_REPORT'),
-    },
-  };
+  const out = {};
+  for (const [platform, feeds] of Object.entries(TABLE_ENV)) {
+    out[platform] = {};
+    for (const [feed, envKey] of Object.entries(feeds)) out[platform][feed] = tableRef(envKey);
+  }
+  return out;
 }
+
+/** Which env var names a given feed — so an empty state can say what to set. */
+function tableEnvNames() {
+  return Object.fromEntries(Object.entries(TABLE_ENV).map(([p, feeds]) => [p, Object.assign({}, feeds)]));
+}
+
 /**
- * Ad-account registry — the full set of KNICKGASM ad accounts held in the warehouse,
- * enumerated live on 2026-07-26 by unioning every base insights / ad-performance
- * table in KNICKGASM_DB and grouping by account. Two things make this necessary:
+ * Column maps per PLATFORM, not per account.
  *
- *  1. KNICKGASM runs SEVERAL US accounts per platform, and they do NOT share a
- *     schema or a naming convention. The Target/Costco Meta account sits in
- *     MAPLEMONK under the non-obvious name USA_TEA_ADS_ADS_INSIGHTS (not
- *     META_USA%), and the live US Google feed is US_GOOGLE_ADS_CONSOLIDATED —
- *     NOT GOOGLE_ADS_US_AD_GROUP_AD_REPORT, which holds a retired customer id
- *     and stops in 2023. Searching by the obvious name finds one account and
- *     makes the rest look absent.
- *  2. The accounts are not comparable on one KPI. The DTC and Google accounts
- *     carry pixel purchases and revenue, so ROAS/CPA is meaningful. The retail
- *     (Target/Costco) and Amazon accounts send traffic to a THIRD-PARTY
- *     checkout — target.com, Instacart, amazon.com — so they record zero
- *     purchases by construction and must be judged on CTR / CPC / CPM / reach.
- *     Ranking them on ROAS would report every retail campaign as a total
- *     failure. Each entry therefore declares its own `kpi` and `attribution`.
- *
- * Column naming differs by pipeline: Maplemonk insights tables use bare
- * UPPER-CASE identifiers, Maplemonk's Google reports use dotted lower-case GAQL
- * field names with cost in micros, and DC_RAW (Datachannel) uses quoted
- * lower-case ones exposing unique_inline_link_clicks rather than
- * inline_link_clicks. Every entry carries its own column map and each query is
- * built from that map, so no query hardcodes a column that may not exist.
- *
- * `verified` records the figures read straight from the warehouse when the entry
- * was written, so a later drift is visible rather than silent.
+ * The three platforms genuinely do not share column naming, and that is a
+ * property of each platform's own export, not of any one advertiser:
+ *   Meta insights   bare upper-case identifiers, spend in currency units
+ *   Google Ads      dotted lower-case GAQL field names, cost in micros
+ *   TikTok reports  bare upper-case identifiers, metrics loaded as text
+ * Every query is built from the map for its platform, so no query hardcodes a
+ * column that platform does not have.
  */
-function adAccounts() {
+function platformCols(platform) {
+  // quoteIdent is a hoisted function declaration further down the file.
   const q = (n) => ({ raw: n, sql: quoteIdent(n) });
   const micros = (n) => ({ raw: n, sql: `(${quoteIdent(n)} / 1000000.0)` });
-  // Retail-media feeds land as Airbyte CSV loads, so every figure arrives as TEXT
-  // carrying a currency symbol and thousands separators ('$125.95', '2,907,903')
-  // and every date as DD-MM-YYYY text. Casting those straight to a number fails
-  // outright, so they are cleaned in the column expression itself.
-  const cash = (n) => ({ raw: n, sql: `try_to_double(replace(replace(${quoteIdent(n)},'$',''),',',''))` });
-  const qty = (n) => ({ raw: n, sql: `try_to_double(replace(${quoteIdent(n)},',',''))` });
-  // Some of these feeds carry TWO date shapes in one column: 'DD-MM-YYYY' for the
-  // older rows and 'DD-MM-YYYY H:MI' for the newer ones. Parsing only the bare
-  // form silently drops the newest rows — it made Target sell-through look like it
-  // ended 2026-07-13 when it actually runs to 2026-07-23. Split on the space first.
-  const dmy = (n) => ({ raw: n, sql: `try_to_date(split_part(${quoteIdent(n)},' ',1),'DD-MM-YYYY')` });
-  const lit = (v) => ({ raw: v, sql: `'${String(v).replace(/'/g, "''")}'` });
   const nul = { raw: null, sql: 'null' };
-  // Meta insights tables (Maplemonk/Airbyte): purchases and revenue live in
-  // sibling _ACTIONS / _ACTION_VALUES tables joined on the Airbyte hash id.
-  const metaRev = (stem) => ({ hash: `_AIRBYTE_${stem}_HASHID`, actions: `${stem}_ACTIONS`, values: `${stem}_ACTION_VALUES`, action_type: 'purchase' });
-  return [
-    // ---------------------------------------------------------------- Meta, US
-    { id: 'dtc', platform: 'meta', region: 'US', status: 'live',
-      label: 'Knickgasm India USA New EST Main Account', account_id: '1303870183798748',
-      table: tableRef('SF_META_ADS_TABLE', 'KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'US direct-to-consumer storefront. The revenue account: anime, football and coffee-ART design scale campaigns plus evergreen custom sneaker, all landing on knickgasm.com with the Meta pixel firing.',
-      used_for: 'Prospecting and retargeting to own-site checkout',
-      kpi: 'roas', attribution: 'meta_pixel',
-      verified: { rows: 129741, first_day: '2024-05-15', last_day: '2026-07-25', campaigns: 106, ads: 2299, spend: 425107.22 },
-      revenue: metaRev('META_USA_ADS_INSIGHTS'),
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    { id: 'retail', platform: 'meta', region: 'US', status: 'live',
-      label: 'KNICKGASM USA - Sneaker Ad Account (Target / Costco)', account_id: '804570870670763',
-      table: tableRef('SF_META_RETAIL_TABLE', 'KNICKGASM_DB.MAPLEMONK.USA_TEA_ADS_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'US retail-partner demand generation. Drives shoppers to Target stores and target.com, and to Costco via Instacart — the Page Deck sales sets, the scored UGC video sets, influencer link-click sets, Costco Bay Area reach buys and Target giveaways.',
-      used_for: 'Sell-through at Target and Costco (third-party checkout)',
-      kpi: 'traffic', attribution: 'none',
-      attribution_note: 'Zero purchases by construction: checkout happens on target.com, Instacart or in store, so no KNICKGASM pixel fires. Judge on CTR, CPC, CPM and reach — never ROAS.',
-      verified: { rows: 6556, first_day: '2025-09-24', last_day: '2026-07-25', campaigns: 26, ads: 214, spend: 50248.24 },
-      revenue: metaRev('USA_TEA_ADS_ADS_INSIGHTS'),
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    { id: 'retail_dc', platform: 'meta', region: 'US', status: 'superseded',
-      label: 'KNICKGASM USA - Sneaker Ad Account (Datachannel mirror)', account_id: '804570870670763',
-      table: tableRef('SF_META_RETAIL_DC_TABLE', 'KNICKGASM_DB.DC_RAW.FB2_KNICKGASM_KNICKGASMUSATEA_US_FBADS_ADPERFORMANCE'), schema: 'DC_RAW',
-      fresh_to: '2026-05-31', partial_day: false,
-      purpose: 'Older Datachannel mirror of the same retail account. Superseded by the Maplemonk feed above, which is both fresher and far more complete (26 campaigns / $50,248.24 against 7 / $4,056.11).',
-      used_for: 'History only — do not use for current retail reporting',
-      kpi: 'traffic', attribution: 'none',
-      stale_note: 'Feed ends 2026-05-31 and holds only 7 of the 26 retail campaigns. Kept so the pre-Maplemonk history stays queryable.',
-      verified: { rows: 8953, first_day: '2024-11-11', last_day: '2026-05-31', campaigns: 7, ads: 56, spend: 4056.11 },
-      cols: { date: q('date_start'), spend: q('spend'), impressions: q('impressions'), clicks: q('clicks'),
-        link_clicks: q('unique_inline_link_clicks'), campaign: q('campaign_name'), adset: q('adset_name'),
-        ad: q('ad_name'), ad_id: q('ad_id'), account: q('account_name'), account_id: q('account_id'),
-        objective: nul } },
-    { id: 'dtc_dc', platform: 'meta', region: 'US', status: 'superseded',
-      label: 'Knickgasm India USA New EST Main Account (Datachannel mirror)', account_id: '1303870183798748',
-      table: tableRef('SF_META_DTC_DC_TABLE', 'KNICKGASM_DB.DC_RAW.FB2_KNICKGASM_KNICKGASMINDIAUSA_US_FBADS_ADPERFORMANCE'), schema: 'DC_RAW',
-      fresh_to: '2026-06-01', partial_day: false,
-      purpose: 'Datachannel mirror of the DTC account. Its value is DEPTH, not freshness: it reaches back to 2023-01-16 and carries 147 campaigns against the Maplemonk feed 106 from 2024-05-15, so pre-May-2024 DTC history is only available here.',
-      used_for: 'Pre-May-2024 DTC history',
-      kpi: 'traffic', attribution: 'none',
-      stale_note: 'Feed ends 2026-06-01. Use the Maplemonk DTC feed for anything current.',
-      verified: { rows: 133948, first_day: '2023-01-16', last_day: '2026-06-01', campaigns: 147, ads: 2601, spend: 471130.03 },
-      cols: { date: q('date_start'), spend: q('spend'), impressions: q('impressions'), clicks: q('clicks'),
-        link_clicks: q('unique_inline_link_clicks'), campaign: q('campaign_name'), adset: q('adset_name'),
-        ad: q('ad_name'), ad_id: q('ad_id'), account: q('account_name'), account_id: q('account_id'),
-        objective: nul } },
-    { id: 'legacy', platform: 'meta', region: 'US', status: 'stale',
-      label: 'Knickgasm USA - New Account', account_id: '277324470754263',
-      table: tableRef('SF_META_LEGACY_TABLE', 'KNICKGASM_DB.DC_RAW.FB2_KNICKGASM_KNICKGASMUSA_US_FBADS_ADPERFORMANCE'), schema: 'DC_RAW',
-      fresh_to: '2026-01-29', partial_day: false,
-      purpose: 'Small secondary US account, wound down in January 2026. No Target or Costco campaigns.',
-      used_for: 'History only',
-      kpi: 'traffic', attribution: 'none',
-      stale_note: 'Feed ends 2026-01-29 — history only.',
-      verified: { rows: 165157, first_day: '2023-01-01', last_day: '2026-01-29', campaigns: 61, ads: 214, spend: 14689.84 },
-      cols: { date: q('date_start'), spend: q('spend'), impressions: q('impressions'), clicks: q('clicks'),
-        link_clicks: q('unique_inline_link_clicks'), campaign: q('campaign_name'), adset: q('adset_name'),
-        ad: q('ad_name'), ad_id: q('ad_id'), account: q('account_name'), account_id: q('account_id'),
-        objective: nul } },
-    { id: 'meta_us_2022', platform: 'meta', region: 'US', status: 'archive',
-      label: 'Knickgasm - USA (pre-2023 main account)', account_id: '591998667827917',
-      table: tableRef('SF_META_US2022_TABLE', 'KNICKGASM_DB.MAPLEMONK.FB_USA_MAIN_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2022-08-08', partial_day: false,
-      purpose: 'The original US main account and still the largest single US Meta spender on record at $1.11M. Useful as a long-run benchmark for what US scale looked like in 2021-22.',
-      used_for: 'Historic benchmark',
-      kpi: 'traffic', attribution: 'none',
-      stale_note: 'Closed feed, ends 2022-08-08.',
-      verified: { rows: 308008, first_day: '2021-01-01', last_day: '2022-08-08', campaigns: 228, ads: 4525, spend: 1108896.95 },
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    { id: 'meta_us_agency', platform: 'meta', region: 'US', status: 'archive',
-      label: 'PH - KNICKGASM (agency-run US account)', account_id: '324830121807495',
-      table: tableRef('SF_META_USAGENCY_TABLE', 'KNICKGASM_DB.MAPLEMONK.BMG_US_FB_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2022-08-08', partial_day: false,
-      purpose: 'US account run by an outside agency in 2021-22, $420,666.79 across 20 campaigns.',
-      used_for: 'Historic benchmark',
-      kpi: 'traffic', attribution: 'none',
-      stale_note: 'Closed feed, ends 2022-08-08.',
-      verified: { rows: 38259, first_day: '2021-10-01', last_day: '2022-08-08', campaigns: 20, ads: 798, spend: 420666.79 },
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    { id: 'meta_us_influencer', platform: 'meta', region: 'US', status: 'archive',
-      label: 'Influencer Account (US)', account_id: '277324470754263',
-      table: tableRef('SF_META_USINFL_TABLE', 'KNICKGASM_DB.MAPLEMONK.INFLUENCER_USA_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2022-08-08', partial_day: false,
-      purpose: 'Creator/influencer whitelisting account, $305,688.18 across 55 campaigns. Shares its account id with the "Knickgasm USA - New Account" feed but reports under a different name.',
-      used_for: 'Historic influencer-amplification benchmark',
-      kpi: 'traffic', attribution: 'none',
-      stale_note: 'Closed feed, ends 2022-08-08.',
-      verified: { rows: 60569, first_day: '2021-06-05', last_day: '2022-08-08', campaigns: 55, ads: 1111, spend: 305688.18 },
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    // -------------------------------------------------------------- Meta, other
-    { id: 'meta_uk', platform: 'meta', region: 'UK', status: 'live',
-      label: 'KNICKGASM UK', account_id: '573128874469619',
-      table: tableRef('SF_META_UK_TABLE', 'KNICKGASM_DB.MAPLEMONK.META_UK_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-26', partial_day: true,
-      purpose: 'UK direct-to-consumer account on knickgasm.com. The freshest feed in the warehouse.',
-      used_for: 'UK D2C acquisition and retention',
-      kpi: 'roas', attribution: 'meta_pixel',
-      verified: { rows: 154585, last_day: '2026-07-26', campaigns: 37, spend: 661518.68 },
-      revenue: metaRev('META_UK_ADS_INSIGHTS'),
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    { id: 'meta_in', platform: 'meta', region: 'IN', status: 'live',
-      label: 'KNICKGASM', account_id: '70950428',
-      table: tableRef('SF_META_IN_TABLE', 'KNICKGASM_DB.MAPLEMONK.META_INDIA_ADS_INSIGHTS'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'India D2C account on knickgasm.com and by far the largest Meta spender in the group at INR 36.87M lifetime. Reports in INR, so never sum it with the USD accounts.',
-      used_for: 'India D2C acquisition and retention',
-      kpi: 'roas', attribution: 'meta_pixel', currency: 'INR',
-      verified: { rows: 117863, last_day: '2026-07-25', campaigns: 89, spend: 36866447.39 },
-      revenue: metaRev('META_INDIA_ADS_INSIGHTS'),
-      cols: { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
-        objective: q('OBJECTIVE') } },
-    // -------------------------------------------------------------- Google Ads
-    { id: 'google_us', platform: 'google', region: 'US', status: 'live',
-      label: 'KNICKGASM (US Google Ads)', account_id: '9797311905',
-      table: tableRef('SF_GOOGLE_ADS_TABLE', 'KNICKGASM_DB.MAPLEMONK.US_GOOGLE_ADS_CONSOLIDATED'), schema: 'MAPLEMONK',
-      filter: "ACCOUNT = 'Google US CONSOLIDATED'",
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'US Google Ads: brand and non-brand search, the VM_ PMax family across all products and top cities, Shopping, Demand Gen and remarketing. Carries Google-attributed conversions and conversion value, so ROAS is meaningful.',
-      used_for: 'US search, Shopping and PMax demand capture',
-      kpi: 'roas', attribution: 'google_conversions',
-      verified: { rows: 32236, first_day: '2023-01-17', last_day: '2026-07-25', campaigns: 131, spend: 457180.35,
-        note: 'Row count is the ACCOUNT-filtered live slice; the table holds 124,545 rows in total, the rest under the archived "Google US" label that stops 2023-11-24.' },
-      cols: { date: q('SEGMENTS_DATE'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('AD_GROUP_NAME'),
-        ad: q('AD_GROUP_NAME'), ad_id: q('AD_GROUP_AD_ID'), account: q('ACCOUNT'), account_id: lit('9797311905'),
-        objective: q('CHANNEL'), conversions: q('CONVERSIONS'), revenue: q('CONVERSION_VALUE') } },
-    { id: 'google_us_adgroup', platform: 'google', region: 'US', status: 'live',
-      label: 'KNICKGASM (US Google Ads, ad-level detail)', account_id: '9797311905',
-      table: tableRef('SF_GOOGLE_ADGROUP_AD_TABLE', 'KNICKGASM_DB.MAPLEMONK.US_GADS_AD_GROUP_AD_REPORT'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'Same US Google account at ad level, with ad strength, approval status, headlines and creative assets. Use it for creative diagnosis; use the consolidated feed for spend reporting (it also covers Shopping and PMax rows the ad-group-ad report does not).',
-      used_for: 'US Google creative and ad-strength diagnosis',
-      kpi: 'roas', attribution: 'google_conversions',
-      verified: { rows: 25416, first_day: '2023-03-19', last_day: '2026-07-25', campaigns: 79, spend: 165033.03,
-        note: 'Customer 9797311905 reports under four historic descriptive names (KNICKGASM, KNICKGASM - US, KNICKGASM - USA - New, KNICKGASM (US) - New); these figures span all four. The current name alone is 51 campaigns / $142,876.86.' },
-      cols: { date: q('segments.date'), spend: micros('metrics.cost_micros'), impressions: q('metrics.impressions'),
-        clicks: q('metrics.clicks'), link_clicks: q('metrics.clicks'), campaign: q('campaign.name'),
-        adset: q('ad_group.name'), ad: q('ad_group.name'), ad_id: q('ad_group_ad.ad.id'),
-        account: q('customer.descriptive_name'), account_id: q('customer.id'),
-        objective: q('campaign.status'), conversions: q('metrics.conversions'), revenue: q('metrics.conversions_value') } },
-    { id: 'google_amazon', platform: 'google', region: 'US', status: 'live',
-      label: 'Raghuvansh (Amazon marketplace, Ampd)', account_id: '3036820580',
-      table: tableRef('SF_GOOGLE_AMZ_TABLE', 'KNICKGASM_DB.MAPLEMONK.US_AMZ_GADS_AD_GROUP_AD_REPORT'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'Google Ads bought through Ampd to drive traffic to KNICKGASM ASINs on amazon.com and amazon.ca. One campaign per ASIN — Chunky Rope Laces, Custom Lace Tags, Ultimate Sneaker Care Kit, hand-painted denim jackets and so on.',
-      used_for: 'Amazon marketplace demand capture',
-      kpi: 'traffic', attribution: 'marketplace',
-      attribution_note: 'Records zero Google conversions because checkout happens inside Amazon; sales appear in Amazon Seller Central, not here. Judge on CTR and CPC.',
-      verified: { rows: 5417, first_day: '2024-05-11', last_day: '2026-07-25', campaigns: 64, spend: 66839.97 },
-      cols: { date: q('segments.date'), spend: micros('metrics.cost_micros'), impressions: q('metrics.impressions'),
-        clicks: q('metrics.clicks'), link_clicks: q('metrics.clicks'), campaign: q('campaign.name'),
-        adset: q('ad_group.name'), ad: q('ad_group.name'), ad_id: q('ad_group_ad.ad.id'),
-        account: q('customer.descriptive_name'), account_id: q('customer.id'),
-        objective: q('campaign.status'), conversions: q('metrics.conversions'), revenue: q('metrics.conversions_value') } },
-    { id: 'google_us_retired', platform: 'google', region: 'US', status: 'archive',
-      label: 'KNICKGASM - USA - Old (retired Google customer)', account_id: '2769294429',
-      table: tableRef('SF_GOOGLE_RETIRED_TABLE', 'KNICKGASM_DB.MAPLEMONK.GOOGLE_ADS_US_AD_GROUP_AD_REPORT'), schema: 'MAPLEMONK',
-      fresh_to: '2023-11-24', partial_day: false,
-      purpose: 'The retired US Google customer 2769294429, migrated to 9797311905 in 2023. This is the table that made US Google look dead: it is still refreshed by the pipeline but has held no new rows since 2023-11-24.',
-      used_for: 'Pre-migration Google history (2018-2023)',
-      kpi: 'roas', attribution: 'google_conversions',
-      stale_note: 'Ends 2023-11-24 by design — the account was closed, not the feed. Point current US Google reporting at US_GOOGLE_ADS_CONSOLIDATED.',
-      verified: { rows: 91135, first_day: '2018-12-19', last_day: '2023-11-24', campaigns: 294, spend: 514353.99 },
-      cols: { date: q('segments.date'), spend: micros('metrics.cost_micros'), impressions: q('metrics.impressions'),
-        clicks: q('metrics.clicks'), link_clicks: q('metrics.clicks'), campaign: q('campaign.name'),
-        adset: q('ad_group.name'), ad: q('ad_group.name'), ad_id: q('ad_group_ad.ad.id'),
-        account: q('customer.descriptive_name'), account_id: q('customer.id'),
-        objective: q('campaign.status'), conversions: q('metrics.conversions'), revenue: q('metrics.conversions_value') } },
-    { id: 'google_uk', platform: 'google', region: 'UK', status: 'live',
-      label: 'KNICKGASM UK (Google Ads)', account_id: '3861674115',
-      table: tableRef('SF_GOOGLE_UK_TABLE', 'KNICKGASM_DB.MAPLEMONK.GOOGLE_ADS_UK_AD_GROUP_AD_REPORT'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'UK Google Ads, a tight 5-campaign account spending GBP 51,968.24 since September 2025.',
-      used_for: 'UK search and Shopping demand capture',
-      kpi: 'roas', attribution: 'google_conversions', currency: 'GBP',
-      verified: { rows: 1352, first_day: '2025-09-17', last_day: '2026-07-25', campaigns: 5, spend: 51968.24 },
-      cols: { date: q('segments.date'), spend: micros('metrics.cost_micros'), impressions: q('metrics.impressions'),
-        clicks: q('metrics.clicks'), link_clicks: q('metrics.clicks'), campaign: q('campaign.name'),
-        adset: q('ad_group.name'), ad: q('ad_group.name'), ad_id: q('ad_group_ad.ad.id'),
-        account: q('customer.descriptive_name'), account_id: q('customer.id'),
-        objective: q('campaign.status'), conversions: q('metrics.conversions'), revenue: q('metrics.conversions_value') } },
-    { id: 'google_in', platform: 'google', region: 'IN', status: 'live',
-      label: 'KNICKGASM - India (Google Ads)', account_id: '7719984554',
-      table: tableRef('SF_GOOGLE_IN_TABLE', 'KNICKGASM_DB.MAPLEMONK.GADS_IN_AD_GROUP_AD_REPORT'), schema: 'MAPLEMONK',
-      fresh_to: '2026-07-25', partial_day: true,
-      purpose: 'India Google Ads, the longest-running account in the warehouse (from 2019-08-03) and the largest by spend at INR 11.72M across 260 campaigns. Reports in INR.',
-      used_for: 'India search, Shopping and PMax demand capture',
-      kpi: 'roas', attribution: 'google_conversions', currency: 'INR',
-      verified: { rows: 204660, first_day: '2019-08-03', last_day: '2026-07-25', campaigns: 260, spend: 11715204.83 },
-      cols: { date: q('segments.date'), spend: micros('metrics.cost_micros'), impressions: q('metrics.impressions'),
-        clicks: q('metrics.clicks'), link_clicks: q('metrics.clicks'), campaign: q('campaign.name'),
-        adset: q('ad_group.name'), ad: q('ad_group.name'), ad_id: q('ad_group_ad.ad.id'),
-        account: q('customer.descriptive_name'), account_id: q('customer.id'),
-        objective: q('campaign.status'), conversions: q('metrics.conversions'), revenue: q('metrics.conversions_value') } },
-    // ------------------------------------------- Retail media (MAPLEMONK1)
-    // MAPLEMONK1 is NOT just breakdown tables for the DTC account. It carries the
-    // whole retail-partner stack — Target's own Roundel ad platform, Target
-    // sell-through, Ibotta, Target Aisle, Walmart and the Amazon Ads console —
-    // which is where the retail programme is actually measured. Missing this is
-    // what made the Target/Costco Meta account look unmeasurable: its shoppers
-    // buy in Target, and Target reports that back here, not to the Meta pixel.
-    { id: 'target_roundel', platform: 'target_roundel', region: 'US', status: 'live',
-      label: 'KNICKGASM Global Inc. - RMS (Target Roundel)', account_id: 'RMS',
-      table: tableRef('SF_TARGET_ADS_TABLE', 'KNICKGASM_DB.MAPLEMONK1.TARGET_ADS_DAY_TARGET_ADS_REPORT'), schema: 'MAPLEMONK1',
-      fresh_to: '2026-07-22', partial_day: false,
-      purpose: 'Target Roundel Media Studio — retail media bought inside Target, on Target search and Target-owned placements. Unlike the Meta retail account this one DOES report attributed sales and units, because Target matches the ad to the basket, so it is the one Target channel with a real ROAS.',
-      used_for: 'Paid placement inside Target search and Target.com',
-      kpi: 'roas', attribution: 'target_attributed_sales',
-      attribution_note: 'ROAS here is Target-attributed sales over actualized vendor spend, matched by Target, not pixel-based. It is comparable across Roundel campaigns but not directly against Meta pixel ROAS.',
-      verified: { rows: 804, first_day: '2026-05-04', last_day: '2026-07-22', campaigns: 10, spend: 40314.74,
-        attributed_sales: 23264.68, roas: 0.58,
-        note: 'Blended Roundel ROAS is 0.58. The spread is wide: "CoffeeArt - Designs" returns 1.95 on $2,327.44 at a 3.94% CTR, while the three Manual accessory lines (RopeLaces_M1, LaceTags_M1, CareKit_M1) burn $15,636.48 combined at 0.09 to 0.42.' },
-      cols: { date: dmy('Event Date'), spend: cash('Actualized Vendor Spend'), impressions: qty('IMPRESSIONS'),
-        clicks: qty('CLICKS'), link_clicks: qty('CLICKS'), campaign: q('Campaign Name'), adset: q('Media Name'),
-        ad: q('Media Name'), ad_id: q('Campaign Name'), account: q('Account Name'), account_id: lit('RMS'),
-        objective: q('Media Name'), conversions: qty('Attributed Total Units'), revenue: cash('Attributed Total Sales') } },
-    { id: 'target_roundel_kw', platform: 'target_roundel', region: 'US', status: 'live',
-      label: 'Target Roundel — keyword level', account_id: 'RMS',
-      table: tableRef('SF_TARGET_KW_TABLE', 'KNICKGASM_DB.MAPLEMONK1.TARGET_ADS_KEYWORD_TARGET_ADS_REPORT'), schema: 'MAPLEMONK1',
-      fresh_to: '2026-07-22', partial_day: false,
-      purpose: 'The same Roundel spend broken out by keyword (98,647 rows). Use it to find which Target search terms carry the winning campaigns and which are draining the manual accessory lines.',
-      used_for: 'Target search-term diagnosis',
-      kpi: 'roas', attribution: 'target_attributed_sales',
-      verified: { rows: 98647, last_day: '2026-07-22' },
-      cols: { date: dmy('Event Date'), spend: cash('Actualized Vendor Spend'), impressions: qty('IMPRESSIONS'),
-        clicks: qty('CLICKS'), link_clicks: qty('CLICKS'), campaign: q('Campaign Name'), adset: q('KEYWORD'),
-        ad: q('KEYWORD'), ad_id: q('KEYWORD'), account: q('Account Name'), account_id: lit('RMS'),
-        objective: q('Media Name'), conversions: qty('Attributed Total Units'), revenue: cash('Attributed Total Sales') } },
-    // ------------------------------------------------------------------ TikTok
-    { id: 'tiktok_us', platform: 'tiktok', region: 'US', status: 'paused',
-      label: 'KNICKGASM USA (TikTok Ads)', account_id: '7393105007056388112',
-      table: tableRef('SF_TIKTOK_AD_TABLE', 'DATON.RAW.TIKTOK_ADS_USA_AD_REPORT_DAILY'), schema: 'DATON.RAW',
-      fresh_to: '2026-07-14', partial_day: false,
-      purpose: 'US TikTok Ads, 25 campaigns and $68,178.71 since April 2025, run as link-click traffic buys.',
-      used_for: 'US TikTok traffic',
-      kpi: 'traffic', attribution: 'tiktok_pixel',
-      stale_note: 'Last spend 2026-07-14 — the account is paused, not disconnected. The campaign-level report (TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY) carries empty rows through 2026-07-23.',
-      verified: { rows: 13838, first_day: '2025-04-01', last_day: '2026-07-14', campaigns: 25, spend: 68178.71 },
-      cols: { date: q('STAT_TIME_DAY'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
-        link_clicks: q('CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADGROUP_NAME'),
-        ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNTNAME'), account_id: q('ACCOUNTID'),
-        objective: nul } },
-  ];
+  if (platform === 'google') {
+    return { date: q('segments.date'), spend: micros('metrics.cost_micros'), impressions: q('metrics.impressions'),
+      clicks: q('metrics.clicks'), link_clicks: q('metrics.clicks'), campaign: q('campaign.name'),
+      adset: q('ad_group.name'), ad: q('ad_group.name'), ad_id: q('ad_group_ad.ad.id'),
+      account: q('customer.descriptive_name'), account_id: q('customer.id'),
+      objective: q('campaign.status'), conversions: q('metrics.conversions'), revenue: q('metrics.conversions_value') };
+  }
+  if (platform === 'tiktok') {
+    return { date: q('STAT_TIME_DAY'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
+      link_clicks: q('CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADGROUP_NAME'),
+      ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNTNAME'), account_id: q('ACCOUNTID'),
+      objective: nul, conversions: nul, revenue: nul };
+  }
+  return { date: q('DATE_START'), spend: q('SPEND'), impressions: q('IMPRESSIONS'), clicks: q('CLICKS'),
+    link_clicks: q('INLINE_LINK_CLICKS'), campaign: q('CAMPAIGN_NAME'), adset: q('ADSET_NAME'),
+    ad: q('AD_NAME'), ad_id: q('AD_ID'), account: q('ACCOUNT_NAME'), account_id: q('ACCOUNT_ID'),
+    objective: q('OBJECTIVE'), conversions: nul, revenue: nul };
 }
 
-/** Accounts that should drive current reporting for a region (default US). */
-function liveAccounts(region) {
-  const r = String(region || 'US').toUpperCase();
-  return adAccounts().filter((a) => a.status === 'live' && (r === 'ALL' || a.region === r));
+/**
+ * Meta purchases and revenue arrive as nested `actions` / `action_values`
+ * arrays, and an Airbyte-normalised load unnests them into two sibling tables
+ * keyed by the stream's hash id. That is the LOADER's convention, so it is
+ * derived from the configured table's own name rather than named anywhere:
+ * `<STREAM>_ACTIONS`, `<STREAM>_ACTION_VALUES`, joined on `_AIRBYTE_<STREAM>_HASHID`.
+ * Opt in with SF_META_ACTION_TABLES=on; without it the base table is read on its
+ * own and conversions/revenue come back null (not tracked) rather than zero.
+ */
+function metaRevenueJoin(table) {
+  const on = String(process.env.SF_META_ACTION_TABLES || '').trim().toLowerCase();
+  if (!(on === 'on' || on === '1' || on === 'true' || on === 'yes')) return null;
+  const stem = String(table || '').split('.').pop();
+  if (!stem) return null;
+  return { hash: `_AIRBYTE_${stem}_HASHID`, actions: `${stem}_ACTIONS`, values: `${stem}_ACTION_VALUES`,
+    action_type: (process.env.SF_META_ACTION_TYPE || 'purchase').trim() };
 }
 
+/**
+ * The ad sources this deployment has actually configured, derived from the env
+ * above. One entry per configured feed. There are no labels, account ids,
+ * regions, purposes or historic figures here: those describe somebody's
+ * business, and this module has no way to know whose. Anything a UI wants to
+ * say about an account has to come from the warehouse read itself.
+ */
+function adSources() {
+  const s = sources();
+  const out = [];
+  if (s.meta.ads) {
+    out.push({ id: 'meta', platform: 'meta', table: s.meta.ads, env: TABLE_ENV.meta.ads,
+      cols: platformCols('meta'), revenue: metaRevenueJoin(s.meta.ads),
+      kpi: metaRevenueJoin(s.meta.ads) ? 'roas' : 'traffic' });
+  }
+  if (s.google.ads) {
+    out.push({ id: 'google', platform: 'google', table: s.google.ads, env: TABLE_ENV.google.ads,
+      cols: platformCols('google'), kpi: 'roas' });
+  }
+  if (s.google.adgroup_ad) {
+    out.push({ id: 'google_ad', platform: 'google', table: s.google.adgroup_ad, env: TABLE_ENV.google.adgroup_ad,
+      cols: platformCols('google'), kpi: 'roas' });
+  }
+  const tiktok = s.tiktok.ad || s.tiktok.campaign || s.tiktok.account;
+  if (tiktok) {
+    out.push({ id: 'tiktok', platform: 'tiktok', table: tiktok,
+      env: s.tiktok.ad ? TABLE_ENV.tiktok.ad : s.tiktok.campaign ? TABLE_ENV.tiktok.campaign : TABLE_ENV.tiktok.account,
+      cols: platformCols('tiktok'), kpi: 'traffic' });
+  }
+  return out;
+}
+
+/** True when at least one ad table is configured. */
+function hasSources() { return adSources().length > 0; }
+
+/** The envelope for "the credentials may be fine, but no table is named yet". */
+function noSources(extra) {
+  return Object.assign({
+    ok: false, connected: false, not_connected: true, no_sources: true,
+    data_scope: DATA_SCOPE, sources: [], would_query: null,
+    need_env: TABLE_ENV,
+    hint: 'No ad table is configured for this deployment. Set at least one of SF_META_ADS_TABLE, SF_GOOGLE_ADS_TABLE or SF_TIKTOK_AD_TABLE to the fully-qualified warehouse table (DB.SCHEMA.TABLE) that holds your ad rows. There is no default: a bundled table name would be somebody else\'s warehouse.',
+  }, extra || {});
+}
+
+/** Every configured source, optionally narrowed to one platform or feed id. */
 function pickSources(accounts, dflt) {
-  const all = adAccounts();
-  if (!accounts || accounts === 'all') return dflt || all.filter((a) => a.status === 'live' && a.region === 'US');
-  if (accounts === 'every') return all;
+  const all = adSources();
+  if (!accounts || accounts === 'all' || accounts === 'every') return dflt || all;
   const want = String(accounts).toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
-  const chosen = all.filter((s) => want.includes(s.id) || want.includes(s.account_id)
-    || want.includes(s.platform) || want.includes(String(s.region).toLowerCase())
-    || want.some((w) => s.label.toLowerCase().includes(w)));
-  return chosen.length ? chosen : (dflt || all.filter((a) => a.status === 'live' && a.region === 'US'));
+  const chosen = all.filter((s) => want.includes(s.id) || want.includes(s.platform));
+  return chosen.length ? chosen : (dflt || all);
 }
 
-/** Everything a UI needs to describe an account without querying it. */
+/**
+ * Everything a UI may say about a source without querying it — which is only
+ * what the deployment configured. No label, account id, region, purpose or
+ * historic figure: this module cannot know whose account a table holds, and a
+ * guess would render as a claim.
+ */
 function describeAccount(s) {
-  return { id: s.id, label: s.label, platform: s.platform, region: s.region, status: s.status,
-    account_id: s.account_id, table: s.table, schema: s.schema, fresh_to: s.fresh_to,
-    partial_day: !!s.partial_day, purpose: s.purpose, used_for: s.used_for, kpi: s.kpi,
-    attribution: s.attribution, attribution_note: s.attribution_note || null,
-    currency: s.currency || 'USD', stale_note: s.stale_note || null, verified: s.verified || null };
+  return { id: s.id, platform: s.platform, table: s.table, env: s.env,
+    kpi: s.kpi, tracks_revenue: !!s.revenue,
+    kpi_note: s.kpi === 'roas'
+      ? 'Conversions and revenue are read from this feed, so ROAS and CPA are computed from it.'
+      : 'This feed carries no conversion or revenue column, so revenue, ROAS and CPA return null rather than 0. Judge it on CTR, CPC, CPM and reach.' };
 }
 
 function srcWhere(s, since, until) {
@@ -456,11 +276,11 @@ function srcWhere(s, since, until) {
 }
 
 // One SELECT per source, normalized to identical output columns, UNION ALL-ed so
-// every account appears in one result set regardless of its pipeline's naming.
-// Every column is cast explicitly: the same logical field is NUMBER in Maplemonk,
-// TEXT in DC_RAW and TEXT-holding-a-decimal in Daton, and an uncast UNION ALL
-// across those fails outright. Sources without a revenue/conversions column emit
-// null rather than 0 so the UI can tell "not tracked here" from "tracked, zero".
+// every configured feed appears in one result set regardless of its platform's
+// naming. Every column is cast explicitly: the same logical field is NUMBER in
+// one platform's export and TEXT in another's, and an uncast UNION ALL across
+// those fails outright. Sources without a revenue/conversions column emit null
+// rather than 0 so the UI can tell "not tracked here" from "tracked, zero".
 function unionSelect(sources, { since, until } = {}) {
   const s_ = (e) => (e && e.sql !== 'null' ? `(${e.sql})::string` : 'null::string');
   const n_ = (e) => (e && e.sql !== 'null' ? `(${e.sql})::float` : 'null::float');
@@ -478,13 +298,14 @@ function unionSelect(sources, { since, until } = {}) {
 function nulSql() { return { sql: 'null' }; }
 
 /**
- * Live catalogue: every account in the registry, what it is for, and how fresh
- * the warehouse actually is for it. `registry` is returned even when Snowflake is
- * unreachable so the dashboard can always describe the studio.
+ * Live catalogue: every CONFIGURED feed and how fresh the warehouse is for it.
+ * The account name and id come from the warehouse rows themselves — they are
+ * never asserted from a bundled registry, because this module has no registry.
  */
 async function accounts({ since = '2025-01-01', until, accounts: acct = 'every' } = {}) {
   const to = until || new Date().toISOString().slice(0, 10);
-  const srcs = pickSources(acct, adAccounts());
+  const srcs = pickSources(acct);
+  if (!srcs.length) return noSources({ since, until: to });
   const registry = srcs.map(describeAccount);
   const sql = `with u as (\n  ${unionSelect(srcs, { since, until: to })}\n)
 select source_id, platform, account_name, account_id, count(distinct ad_id) as ads,
@@ -496,14 +317,14 @@ select source_id, platform, account_name, account_id, count(distinct ad_id) as a
   const r = await runStatement(sql);
   const byId = {};
   (r.rows || []).forEach((x) => { byId[x.source_id] = x; });
-  return { ok: true, connected: true, source: 'snowflake', since, until: to,
+  return { ok: true, connected: true, source: 'snowflake', data_scope: DATA_SCOPE, since, until: to,
     registry,
     rows: registry.map((d) => {
       const x = byId[d.id] || {};
       const spend = Number(x.spend) || 0;
       const revenue = x.revenue == null ? null : Number(x.revenue);
       return Object.assign({}, d, {
-        account: x.account_name || d.label,
+        account: x.account_name || null, account_id: x.account_id || null,
         ads: Number(x.ads) || 0, campaigns: Number(x.campaigns) || 0,
         first_day: x.first_day ? String(x.first_day).slice(0, 10) : null,
         last_day: x.last_day ? String(x.last_day).slice(0, 10) : null,
@@ -513,14 +334,15 @@ select source_id, platform, account_name, account_id, count(distinct ad_id) as a
         in_window: !!byId[d.id],
       });
     }),
-    note: 'Every KNICKGASM ad account held in the warehouse. Accounts differ in what they can be judged on: roas where a pixel or Google conversion is tracked, traffic (CTR/CPC/CPM) where checkout happens on a third-party site such as target.com, Instacart or amazon.com.' };
+    note: 'Every ad feed configured for this deployment. Feeds are not comparable on one KPI: revenue, ROAS and CPA are real only where the feed carries a conversion or revenue column, and are null (never 0) where it does not.' };
 }
 
-/** Per-day series across one or more accounts (defaults to the live US set). */
+/** Per-day series across one or more configured feeds. */
 async function multiDaily({ since, until, accounts: acct, by = 'day' } = {}) {
   const to = until || new Date().toISOString().slice(0, 10);
   const from = since || new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);
   const srcs = pickSources(acct);
+  if (!srcs.length) return noSources({ since: from, until: to, by });
   const group = by === 'account' ? 'source_id, platform, account_name' : 'day, source_id, platform, account_name';
   const sql = `with u as (\n  ${unionSelect(srcs, { since: from, until: to })}\n)
 select ${group}, count(distinct ad_id) as ads_live, count(distinct campaign_name) as campaigns,
@@ -529,7 +351,7 @@ select ${group}, count(distinct ad_id) as ads_live, count(distinct campaign_name
   from u group by ${group} order by ${by === 'account' ? 'spend desc nulls last' : 'day'}`;
   if (!isConfigured()) return notConnected(sql, { since: from, until: to, accounts: srcs.map(describeAccount) });
   const r = await runStatement(sql);
-  return { ok: true, connected: true, source: 'snowflake', since: from, until: to,
+  return { ok: true, connected: true, source: 'snowflake', data_scope: DATA_SCOPE, since: from, until: to,
     accounts: srcs.map(describeAccount),
     rows: (r.rows || []).map((x) => ({ day: x.day ? String(x.day).slice(0, 10) : null, source_id: x.source_id,
       platform: x.platform, account: x.account_name, ads_live: Number(x.ads_live) || 0,
@@ -541,15 +363,16 @@ select ${group}, count(distinct ad_id) as ads_live, count(distinct campaign_name
 }
 
 /**
- * Per-campaign performance for one account, scored on the KPI that account can
- * actually be judged on. Meta sources pick purchases and revenue up from their
- * sibling _ACTIONS / _ACTION_VALUES tables; Google sources read their own
- * conversion columns; traffic-only accounts return null revenue rather than 0.
+ * Per-campaign performance for one feed, scored on the KPI that feed can
+ * actually be judged on. A Meta feed with the Airbyte action tables enabled
+ * picks purchases and revenue up from its own sibling tables; a Google feed
+ * reads its own conversion columns; a feed with neither returns null revenue
+ * rather than 0.
  */
 function campaignSql(s, since, until, level) {
   const c = s.cols;
   const dim = level === 'ad' ? c.ad.sql : (level === 'adset' ? c.adset.sql : c.campaign.sql);
-  // Daton stores TikTok metrics as TEXT holding a decimal, so cast every numeric.
+  // Some loaders store metrics as TEXT holding a decimal, so cast every numeric.
   const n = (e) => (e && e.sql !== 'null' ? `(${e.sql})::float` : 'null::float');
   const rv = s.revenue;
   if (rv) {
@@ -589,6 +412,7 @@ async function campaigns({ since, until, account, level = 'campaign' } = {}) {
   const from = since || new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);
   const lv = ['campaign', 'adset', 'ad'].includes(String(level)) ? String(level) : 'campaign';
   const srcs = pickSources(account);
+  if (!srcs.length) return noSources({ since: from, until: to, level: lv });
   const s = srcs[0];
   const sql = campaignSql(s, from, to, lv);
   if (!isConfigured()) return notConnected(sql, { since: from, until: to, account: describeAccount(s), level: lv });
@@ -612,128 +436,18 @@ async function campaigns({ since, until, account, level = 'campaign' } = {}) {
       roas: (tracked && rev != null && spend > 0) ? Number((rev / spend).toFixed(2)) : null,
       cpa: (tracked && conv) ? Number((spend / conv).toFixed(2)) : null };
   });
-  return { ok: true, connected: true, source: 'snowflake', since: from, until: to, level: lv,
+  return { ok: true, connected: true, source: 'snowflake', data_scope: DATA_SCOPE, since: from, until: to, level: lv,
     account: describeAccount(s), kpi: s.kpi, rows };
-}
-
-/**
- * Retail funnel — the view that makes the Target programme measurable at all.
- *
- * The Meta retail account (804570870670763) records ZERO purchases because its
- * shoppers check out inside Target, not on knickgasm.com. Judged on its own it
- * looks like pure cost. The measurement lives one schema over: MAPLEMONK1 carries
- * Target's own Roundel ad platform (which DOES report attributed sales, matched by
- * Target to the basket) and TARGET_SALES_TARGET_SALES, the actual store-level
- * sell-through. Joining spend from MAPLEMONK to outcomes in MAPLEMONK1 is the only
- * way to answer "is retail working", which is why both schemas are required.
- *
- * Returns three tiers, each labelled with what it can and cannot claim:
- *   spend      — Meta retail (demand generation, unattributable) + Roundel (attributed)
- *   attributed — Roundel attributed sales and units, Target-matched
- *   actual     — Target sell-through: dollars and units rung up in Target stores
- * The ratio of sell-through to total retail spend is reported as a BLENDED figure,
- * never as a causal ROAS: nothing in the warehouse attributes a Target basket to a
- * Meta impression, and pretending otherwise would be fabrication.
- */
-const RETAIL_TABLES = () => ({
-  meta: tableRef('SF_META_RETAIL_TABLE', 'KNICKGASM_DB.MAPLEMONK.USA_TEA_ADS_ADS_INSIGHTS'),
-  roundel: tableRef('SF_TARGET_ADS_TABLE', 'KNICKGASM_DB.MAPLEMONK1.TARGET_ADS_DAY_TARGET_ADS_REPORT'),
-  sales: tableRef('SF_TARGET_SALES_TABLE', 'KNICKGASM_DB.MAPLEMONK1.TARGET_SALES_TARGET_SALES'),
-  ibotta: tableRef('SF_TARGET_IBOTTA_TABLE', 'KNICKGASM_DB.MAPLEMONK1.TARGET_IBOTTA_REPORT_TARGET_IBOTTA_REPORT'),
-  aisle: tableRef('SF_TARGET_AISLE_TABLE', 'KNICKGASM_DB.MAPLEMONK1.TARGET_AISLE_TARGET_AISLE_REPORT'),
-});
-async function retailFunnel({ since, until, by = 'month' } = {}) {
-  const to = until || new Date().toISOString().slice(0, 10);
-  const from = since || '2026-05-01';
-  const t = RETAIL_TABLES();
-  const grain = by === 'day' ? 'd' : "date_trunc('month', d)";
-  const cash = (n) => `try_to_double(replace(replace(${quoteIdent(n)},'$',''),',',''))`;
-  const qty = (n) => `try_to_double(replace(${quoteIdent(n)},',',''))`;
-  // Same two-shape date problem as the registry's dmy(): split on the space so
-  // rows carrying a time component are not silently dropped.
-  const day = (n) => `try_to_date(split_part(${quoteIdent(n)},' ',1),'DD-MM-YYYY')`;
-  const sql = `with meta as (
-  select DATE_START::date as d, SPEND::float as spend, IMPRESSIONS::float as impressions,
-         INLINE_LINK_CLICKS::float as clicks
-    from ${t.meta} where DATE_START between '${from}' and '${to}'
-), roundel as (
-  select ${day('Event Date')} as d,
-         ${cash('Actualized Vendor Spend')} as spend, ${qty('IMPRESSIONS')} as impressions,
-         ${qty('CLICKS')} as clicks, ${cash('Attributed Total Sales')} as attr_sales,
-         ${qty('Attributed Total Units')} as attr_units
-    from ${t.roundel}
-   where ${day('Event Date')} between '${from}' and '${to}'
-), sales as (
-  select ${day('DATE')} as d,
-         ${cash('SALES $')} as sell_through, ${qty('SALES U')} as units,
-         ${quoteIdent('LOCATION ID')} as store
-    from ${t.sales}
-   where ${day('DATE')} between '${from}' and '${to}'
-), g as (
-  select ${grain} as period, sum(spend) as meta_spend, sum(impressions) as meta_impressions,
-         sum(clicks) as meta_clicks, 0 as roundel_spend, 0 as roundel_attr_sales, 0 as roundel_attr_units,
-         0 as sell_through, 0 as units_sold, null as store
-    from meta group by 1
-  union all
-  select ${grain}, 0, 0, 0, sum(spend), sum(attr_sales), sum(attr_units), 0, 0, null from roundel group by 1
-  union all
-  select ${grain}, 0, 0, 0, 0, 0, 0, sum(sell_through), sum(units), count(distinct store) from sales group by 1
-)
-select period, round(sum(meta_spend),2) as meta_spend, sum(meta_impressions)::int as meta_impressions,
-       sum(meta_clicks)::int as meta_clicks, round(sum(roundel_spend),2) as roundel_spend,
-       round(sum(roundel_attr_sales),2) as roundel_attr_sales, sum(roundel_attr_units)::int as roundel_attr_units,
-       round(sum(sell_through),2) as target_sell_through, sum(units_sold)::int as target_units,
-       max(store) as target_stores
-  from g group by period order by period`;
-  if (!isConfigured()) {
-    return notConnected(sql, { since: from, until: to, by,
-      tables: t,
-      note: 'Retail measurement spans BOTH schemas: spend in MAPLEMONK, outcomes in MAPLEMONK1.' });
-  }
-  const r = await runStatement(sql);
-  const rows = (r.rows || []).map((x) => {
-    const meta_spend = Number(x.meta_spend) || 0;
-    const roundel_spend = Number(x.roundel_spend) || 0;
-    const total_spend = Number((meta_spend + roundel_spend).toFixed(2));
-    const attr = Number(x.roundel_attr_sales) || 0;
-    const sell = Number(x.target_sell_through) || 0;
-    return { period: String(x.period || '').slice(0, 10),
-      meta_spend, meta_impressions: Number(x.meta_impressions) || 0, meta_clicks: Number(x.meta_clicks) || 0,
-      roundel_spend, roundel_attr_sales: attr, roundel_attr_units: Number(x.roundel_attr_units) || 0,
-      roundel_roas: roundel_spend > 0 ? Number((attr / roundel_spend).toFixed(2)) : null,
-      target_sell_through: sell, target_units: Number(x.target_units) || 0,
-      target_stores: Number(x.target_stores) || 0,
-      total_retail_spend: total_spend,
-      // Blended, NOT causal — see the note below.
-      sell_through_per_dollar: total_spend > 0 ? Number((sell / total_spend).toFixed(2)) : null };
-  });
-  const tot = rows.reduce((a, x) => ({
-    meta_spend: Number((a.meta_spend + x.meta_spend).toFixed(2)),
-    roundel_spend: Number((a.roundel_spend + x.roundel_spend).toFixed(2)),
-    roundel_attr_sales: Number((a.roundel_attr_sales + x.roundel_attr_sales).toFixed(2)),
-    target_sell_through: Number((a.target_sell_through + x.target_sell_through).toFixed(2)),
-    target_units: a.target_units + x.target_units,
-  }), { meta_spend: 0, roundel_spend: 0, roundel_attr_sales: 0, target_sell_through: 0, target_units: 0 });
-  const totalSpend = Number((tot.meta_spend + tot.roundel_spend).toFixed(2));
-  return { ok: true, connected: true, source: 'snowflake', since: from, until: to, by, tables: t, rows,
-    totals: Object.assign({}, tot, { total_retail_spend: totalSpend,
-      roundel_roas: tot.roundel_spend > 0 ? Number((tot.roundel_attr_sales / tot.roundel_spend).toFixed(2)) : null,
-      sell_through_per_dollar: totalSpend > 0 ? Number((tot.target_sell_through / totalSpend).toFixed(2)) : null }),
-    tiers: {
-      spend: 'Meta retail (demand generation, no attribution possible) + Target Roundel (attributed by Target).',
-      attributed: 'Roundel attributed sales and units only. Target matches these to the basket; they are NOT pixel conversions and are not comparable with Meta pixel ROAS.',
-      actual: 'Target sell-through: dollars and units actually rung up across Target stores, from TARGET_SALES_TARGET_SALES.',
-    },
-    caveat: 'sell_through_per_dollar is a BLENDED ratio of Target sell-through to total retail ad spend. It is not a causal ROAS: nothing in the warehouse attributes a Target basket to a Meta impression, and sell-through includes baseline demand that would have happened without any advertising.' };
 }
 
 function primaryTable(platform, level) {
   const s = sources();
   if (platform === 'meta') return s.meta.ads;
-  if (platform === 'google') return s.google.ads;
-  if (platform === 'tiktok') return s.tiktok[String(level || 'campaign').toLowerCase()] || s.tiktok.campaign;
+  if (platform === 'google') return s.google.ads || s.google.adgroup_ad;
+  if (platform === 'tiktok') return s.tiktok[String(level || 'campaign').toLowerCase()] || s.tiktok.campaign || s.tiktok.ad || s.tiktok.account;
   return null;
 }
+
 // Dedicated demographic/geo breakdown table for a (platform, dimension) — the
 // real source of cohort splits (base insight tables carry targeting settings,
 // not delivery breakdowns).
@@ -763,12 +477,12 @@ const DIMENSION_CANDIDATES = {
   device: ['device', 'device_platform', 'platform_device', 'impression_device'],
   placement: ['placement', 'publisher_platform', 'network', 'ad_network_type'],
 };
-// Verified against the live warehouse 2026-07-25/26 — the three platforms do
-// NOT share column naming, which is why every query resolves its columns from
-// INFORMATION_SCHEMA instead of assuming one convention:
-//   Meta   META_USA_ADS_INSIGHTS            date_start / account_name / spend
-//   TikTok TIKTOK_ADS_USA_*_REPORT_DAILY    stat_time_day / accountname / spend
-//   Google GOOGLE_ADS_US_AD_GROUP_AD_REPORT "segments.date" / "customer.descriptive_name" / "metrics.cost_micros"
+// The three platforms do NOT share column naming, which is why every query
+// resolves its columns from INFORMATION_SCHEMA instead of assuming one
+// convention:
+//   Meta    date_start      / account_name               / spend
+//   TikTok  stat_time_day   / accountname                / spend
+//   Google  "segments.date" / "customer.descriptive_name" / "metrics.cost_micros"
 // Google's are literal dotted, lower-case identifiers and must be quoted; its
 // cost is in micros and is converted to currency units on read.
 const DATE_CANDIDATES = ['date_start', 'stat_time_day', 'segments.date', 'date', 'day', 'stat_date', 'report_date', 'date_stop', 'segments_date', 'event_date'];
@@ -836,9 +550,13 @@ async function runStatement(sql, timeoutMs = 45000) {
 
 function notConnected(sql, extra) {
   const gated = !liveConnectorsEnabled();
-  return Object.assign({ ok: false, connected: false, not_connected: true, live_connectors_disabled: gated, would_query: sql,
+  // data_scope rides on the not-connected envelope too: this is the payload a
+  // page actually renders most of the time, so it is exactly where the "whose
+  // figures are these" statement has to be present.
+  return Object.assign({ ok: false, connected: false, not_connected: true, data_scope: DATA_SCOPE,
+    live_connectors_disabled: gated, would_query: sql,
     hint: gated
-      ? 'Live connectors are disabled (LIVE_CONNECTORS is off). The app is running on cached/snapshot data and will not query Snowflake. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to run this read-only query for real. The SQL above is exactly what would be sent.'
+      ? 'Live connectors are disabled (LIVE_CONNECTORS is off), so no query is sent to Snowflake and no figure is shown — there is no bundled snapshot to fall back to. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to run this read-only query for real. The SQL above is exactly what would be sent.'
       : 'Set SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PAT, SNOWFLAKE_WAREHOUSE (+ SNOWFLAKE_DATABASE/ROLE) in Vercel env to run this read-only query for real. The SQL above is exactly what will be sent.' }, extra || {});
 }
 
@@ -851,7 +569,7 @@ function splitTable(fqn) {
 // for the given level). Auto-detects date / account / cohort-dimension columns.
 async function describe({ platform = 'meta', level, table: tblOverride } = {}) {
   const t = tblOverride || primaryTable(platform, level);
-  if (!t) return { ok: false, error: `Unknown platform '${platform}'.` };
+  if (!t) return noSources({ platform, level: level || null });
   const { db, schema, table } = splitTable(t);
   const sql = `select column_name, data_type from ${db}.information_schema.columns where table_schema = '${schema}' and table_name = '${table}' order by ordinal_position`;
   if (!isConfigured()) return notConnected(sql, { platform, table: t });
@@ -876,12 +594,12 @@ function dateFilter(col, since, until) {
   return ` and ${quoteIdent(col)} between '${since}' and '${until}'`;
 }
 
-// Recent rows (all available metrics) for a platform, optionally scoped to an
-// account (target|costco) and date range. "SELECT *" so every metric the table
-// carries is returned — nothing is dropped or invented.
+// Recent rows (all available metrics) for a platform, optionally filtered by a
+// substring of the account-name column, and a date range. "SELECT *" so every
+// metric the table carries is returned — nothing is dropped or invented.
 async function metrics({ platform = 'meta', account, since, until, level, limit = 500 } = {}) {
   const t = primaryTable(platform, level);
-  if (!t) return { ok: false, error: `Unknown platform '${platform}'.` };
+  if (!t) return noSources({ platform, level: level || null, account: account || null });
   const cap = Math.min(+limit || 500, 5000);
   if (!isConfigured()) {
     // Unconnected preview uses the most likely names per platform; the live
@@ -920,7 +638,7 @@ async function cohort({ platform = 'meta', dimension = 'country', measure = 'spe
   // Prefer the dedicated demographic/geo breakdown table for this dimension;
   // fall back to the primary table (e.g. device/placement columns present there).
   const t = cohortTable(platform, dimension) || primaryTable(platform, level);
-  if (!t) return { ok: false, error: `Unknown platform '${platform}'.` };
+  if (!t) return noSources({ platform, dimension, measure });
   const buildSql = (dimCol, dateCol, acctCol, measureExpr) => {
     const where = `where 1=1${accountFilter(acctCol, account)}${dateFilter(dateCol, since, until)}`;
     const dq = quoteIdent(dimCol);
@@ -952,16 +670,21 @@ async function cohort({ platform = 'meta', dimension = 'country', measure = 'spe
 }
 
 function status() {
+  const srcs = adSources();
   return {
     ok: true, configured: isConfigured(), source: 'snowflake',
-    platforms: PLATFORMS, accounts: ACCOUNTS, budgets: budgets(),
-    tables: sources(),
+    data_scope: DATA_SCOPE,
+    platforms: PLATFORMS, budgets: budgets(),
+    tables: sources(), table_env: tableEnvNames(),
+    sources: srcs.map(describeAccount), has_sources: srcs.length > 0,
     live_connectors_disabled: !liveConnectorsEnabled(),
-    note: isConfigured()
-      ? 'Snowflake connected — live ad data from the configured tables (read-only).'
-      : (!liveConnectorsEnabled()
-        ? 'Live connectors are disabled (LIVE_CONNECTORS is off) — running on cached/snapshot ad data. No connection to Snowflake is made. Set LIVE_CONNECTORS=on plus SNOWFLAKE_* env vars to pull live data. No figures are fabricated.'
-        : 'Snowflake not configured. Set SNOWFLAKE_* env vars to pull live ad data; every op returns the exact read-only SQL it will run until then. No figures are fabricated.'),
+    note: !srcs.length
+      ? 'No ad table is configured for this deployment, so there is nothing to read. Set SF_META_ADS_TABLE / SF_GOOGLE_ADS_TABLE / SF_TIKTOK_AD_TABLE to your own fully-qualified warehouse tables. There is deliberately no default table name: a bundled one would point at somebody else\'s warehouse.'
+      : (isConfigured()
+        ? 'Snowflake connected — live ad data from the configured tables (read-only).'
+        : (!liveConnectorsEnabled()
+          ? 'Live connectors are disabled (LIVE_CONNECTORS is off). No connection to Snowflake is made and no figure is shown. Set LIVE_CONNECTORS=on plus the SNOWFLAKE_* env vars to pull live data.'
+          : 'Snowflake not configured. Set SNOWFLAKE_* env vars to pull live ad data; every op returns the exact read-only SQL it will run until then. No figures are fabricated.')),
   };
 }
 
@@ -976,11 +699,11 @@ async function ping() {
   const missing = ['account', 'user', 'pat', 'warehouse'].filter((k) => !present[k]).map((k) => `SNOWFLAKE_${k.toUpperCase()}`);
   if (!liveConnectorsEnabled()) {
     return { ok: false, connected: false, configured: false, reachable: false, live_connectors_disabled: true, present,
-      hint: 'Live connectors are disabled (LIVE_CONNECTORS is off). The app runs on cached/snapshot data and will not reach Snowflake. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to test a live connection.' };
+      hint: 'Live connectors are disabled (LIVE_CONNECTORS is off), so nothing reaches Snowflake and the ads panels stay empty — there is no bundled snapshot to fall back to. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to test a live connection.' };
   }
   if (!isConfigured()) {
     return { ok: false, connected: false, configured: false, reachable: false, present, missing,
-      hint: `Set ${missing.join(', ')} in Vercel (a read-only PAT for SNOWFLAKE_PAT). The account is the org-account identifier, e.g. UXDEIHW-MO06981.` };
+      hint: `Set ${missing.join(', ')} in Vercel (a read-only PAT for SNOWFLAKE_PAT). SNOWFLAKE_ACCOUNT is the ORG-ACCOUNT identifier for your own Snowflake account, in the form ORGNAME-ACCOUNTNAME; the bare account locator does not work with the SQL API v2.` };
   }
   const started = Date.now();
   try {
@@ -995,13 +718,13 @@ async function ping() {
       latency_ms: Date.now() - started, status: e.status || null, error: e.message || String(e),
       hint: e.status === 401 || e.status === 403
         ? 'Credentials rejected: check SNOWFLAKE_PAT (a valid, non-expired Programmatic Access Token) and SNOWFLAKE_USER, and that the PAT/role can use the warehouse.'
-        : 'Configured but the request failed. Verify SNOWFLAKE_ACCOUNT (org-account id, e.g. UXDEIHW-MO06981), SNOWFLAKE_WAREHOUSE and network access.' };
+        : 'Configured but the request failed. Verify SNOWFLAKE_ACCOUNT (the ORG-ACCOUNT identifier, not the account locator), SNOWFLAKE_WAREHOUSE and network access.' };
   }
 }
 
 module.exports = {
   status, ping, describe, metrics, cohort, budgets, runStatement,
-  isConfigured, PLATFORMS, ACCOUNTS, DIMENSION_CANDIDATES, sources,
-  adAccounts, liveAccounts, describeAccount, accounts, multiDaily, campaigns,
-  pickSources, unionSelect, retailFunnel,
+  isConfigured, PLATFORMS, DIMENSION_CANDIDATES, sources, tableEnvNames,
+  adSources, hasSources, noSources, describeAccount, accounts, multiDaily, campaigns,
+  pickSources, unionSelect, DATA_SCOPE,
 };

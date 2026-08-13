@@ -20,7 +20,7 @@
   }
   body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 70px;min-height:100vh}
   .wrap{max-width:1080px;margin:0 auto}
-  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--brand-accent-text);font-weight:600;margin-bottom:10px}
   h1{font-family:var(--head);font-size:33px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
   .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:700px;margin-bottom:28px}
   h2{font-family:var(--head);font-size:20px;font-weight:600;margin:34px 0 12px}
@@ -28,7 +28,7 @@
 
   .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:stretch}
   @media(max-width:840px){.hero{grid-template-columns:1fr}}
-  .bal{font-family:var(--head);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--primary)}
+  .bal{font-family:var(--head);font-size:52px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--brand-primary-text)}
   .bal small{font-family:var(--body);font-size:14px;font-weight:600;color:var(--muted);margin-left:9px;letter-spacing:0}
   .kpis{display:flex;gap:22px;flex-wrap:wrap;margin-top:18px}
   .kpi b{display:block;font-size:18px;font-weight:600}
@@ -44,7 +44,7 @@
     border-radius:11px;cursor:pointer;background:var(--surface);transition:.14s}
   .pack:hover{border-color:var(--primary);transform:translateY(-1px)}
   .pack b{font-size:14.5px}.pack small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;font-weight:400}
-  .pack .amt{text-align:right;font-size:17px;font-weight:700;color:var(--primary)}
+  .pack .amt{text-align:right;font-size:17px;font-weight:700;color:var(--brand-primary-text)}
   .pack .amt small{color:var(--muted);font-weight:500;font-size:10.5px}
 
   /* table-layout:auto, deliberately: theme.css defaults every table to
@@ -60,7 +60,7 @@
   .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .tbl-scroll{overflow-x:auto}
 
-  .grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--primary);
+  .grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--brand-primary-text);
     padding:16px 10px 7px}
   .free{color:var(--ok);font-weight:600}
   .bar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--primary) 18%,transparent);overflow:hidden;min-width:60px}

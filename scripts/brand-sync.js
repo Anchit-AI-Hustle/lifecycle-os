@@ -69,6 +69,15 @@ function apply(file, begin, end, body) {
 }
 
 // ── 1. theme.css: the --brand-* fallback set ────────────────────────────────
+/* The brand colour used AS TEXT, computed by the SAME function the server uses
+   to emit --brand-primary-text, so the fallback here and the live token can
+   never disagree. A page writes `color: var(--brand-primary-text)`; the brand
+   layer sets that inline on <html> and wins, but before it paints - signed
+   out, or a page that never loads brand-context - this :root default is what
+   keeps the text visible instead of unset. */
+const { readableAsText } = require('../api/_shared/brand-workspace-core.js');
+const SURFACE_ALT = P.surface_alt || '#ffffff';
+
 const cssBody = `  --vh-green:  var(--brand-primary, ${P.primary});
   --vh-lava:   var(--brand-accent,  ${P.accent});
   --vh-black:  var(--brand-ink,     ${P.ink});
@@ -76,7 +85,9 @@ const cssBody = `  --vh-green:  var(--brand-primary, ${P.primary});
   --vh-muted-ink: var(--brand-ink-muted, ${P.muted});
   --vh-hairline:  var(--brand-line,      ${P.line});
   --vh-font-head: var(--brand-font-heading, ${T.heading && T.heading.stack});
-  --vh-font-body: var(--brand-font-body,    ${T.body && T.body.stack});`;
+  --vh-font-body: var(--brand-font-body,    ${T.body && T.body.stack});
+  --brand-primary-text: ${readableAsText(P.primary, SURFACE_ALT)};
+  --brand-accent-text:  ${readableAsText(P.accent, SURFACE_ALT)};`;
 apply('theme.css', BEGIN('palette'), END('palette'), cssBody);
 
 // ── 2. CLAUDE.md: the Brand Constants block ─────────────────────────────────

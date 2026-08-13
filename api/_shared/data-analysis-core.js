@@ -41,8 +41,16 @@ function mergeSettings(row) {
     thresholds: { ...DEFAULT_SETTINGS.thresholds, ...(x.thresholds || {}) },
     quiet_hours: { ...DEFAULT_SETTINGS.quiet_hours, ...(x.quiet_hours || {}) } };
 }
+// Alert settings are per brand. The row used to be a single `id='default'`
+// singleton, so whoever saved last set the thresholds, recipients and quiet
+// hours for every other brand on the deployment. The row id is the workspace id
+// now; the historical 'default' row belongs to tenant zero via the backfill.
+async function settingsId() {
+  const ws = await activeWorkspace();
+  return ws ? String(ws) : null;
+}
 async function loadSettings() {
-  const rows = await safe(supa.select('analytics_alert_settings', { filters: { id: 'eq.default' }, limit: 1 }), []);
+  const rows = await safe(supa.select('analytics_alert_settings', { order: 'updated_at.desc', limit: 1 }), []);
   return mergeSettings(Array.isArray(rows) ? rows[0] : null);
 }
 const clamp = (v, lo, hi, old) => Number.isFinite(Number(v)) ? Math.max(lo, Math.min(hi, Number(v))) : old;
@@ -61,7 +69,9 @@ async function saveSettings(input, updatedBy) {
       start_hour: clamp(x.quiet_hours && x.quiet_hours.start_hour, 0, 23, old.quiet_hours.start_hour), end_hour: clamp(x.quiet_hours && x.quiet_hours.end_hour, 0, 23, old.quiet_hours.end_hour),
       critical_bypass: boolOr(x.quiet_hours, 'critical_bypass', old.quiet_hours.critical_bypass) },
   });
-  const payload = { id: 'default', enabled: row.enabled, cadence_hours: row.cadence_hours, sender_email: SENDER(), channels: row.channels,
+  const id = await settingsId();
+  if (!id) return { ok: false, persisted: false, settings: row, note: 'No active brand workspace on this request, so the alert settings were not saved to any brand.' };
+  const payload = { id, enabled: row.enabled, cadence_hours: row.cadence_hours, sender_email: SENDER() || null, channels: row.channels,
     recipients: row.recipients, thresholds: row.thresholds, cooldown_minutes: row.cooldown_minutes, quiet_hours: row.quiet_hours, updated_by: updatedBy || null, updated_at: iso() };
   const saved = await safe(supa.insert('analytics_alert_settings', [payload], { upsertOn: 'id' }), null);
   return { ok: Boolean(saved), persisted: Boolean(saved), settings: row, note: saved ? 'Alert settings saved.' : 'The settings table is not available; apply the Data Analysis migration.' };
@@ -85,17 +95,16 @@ async function authorize(req, { cron = false } = {}) {
     // ANALYTICS_ADMIN_DOMAINS still restricts when it is SET, so a deployment
     // can re-close this; it just no longer defaults to closed.
     //
-    // Deliberate trade-off, made by the product owner: the figures on this
-    // surface come from the DEPLOYMENT's connected ad accounts and warehouse
-    // (configured by environment variables), not from the viewer's own brand,
-    // so every signed-in user can now see them. `scope` below carries that fact
-    // so a caller can label it rather than implying the numbers are the
-    // viewer's own. Per-tenant connections are the real fix.
+    // Authorisation is now only about WHO may open the surface. WHAT they see
+    // is decided per view by the active workspace: every figure below is either
+    // measured for the caller's own brand or absent. The earlier note here said
+    // the figures came from the deployment's connectors and were labelled as
+    // such - that labelling was the bug, not the mitigation.
     const configured = text(process.env.ANALYTICS_ADMIN_DOMAINS).split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
     if (configured.length && !(email && configured.some((d) => email.endsWith(`@${d}`)))) {
       return { ok: false, status: 403, error: 'operator_not_allowed' };
     }
-    return { ok: true, kind: 'user', email, user_id: user.id, scope: 'deployment' };
+    return { ok: true, kind: 'user', email, user_id: user.id, scope: 'workspace' };
   } catch (_) { return { ok: false, status: 401, error: 'operator_verification_unavailable' }; }
 }
 
@@ -132,14 +141,74 @@ async function ads({ market = 'US', level = 'ad', since, until } = {}) {
   return { ok: true, generated_at: iso(), data_scope: { level: 'deployment', note: 'These figures come from the ad accounts and warehouse connected to this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance until per-tenant connections exist.' }, market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
 }
 
+// ── Whose numbers are these? ────────────────────────────────────────────────
+//
+// The rule this file now follows, everywhere: a figure is shown to a brand only
+// when it was measured for THAT brand. There is no third option where the
+// deployment's own connector data is rendered under a caveat - the table paints
+// either way, and a note under a number nobody reads is how the wrong number
+// gets acted on.
+//
+// So each view asks two questions before it reports anything:
+//   1. which workspace is asking (workspace-scope, through the ambient request);
+//   2. has THAT workspace connected this source (workspace-connections)?
+// A no to either is answered with an empty result and the name of the
+// connection that would fill it.
+const wsScope = require('./workspace-scope.js');
+
+async function activeWorkspace() {
+  try {
+    const { url, key } = supa.env();
+    return await wsScope.currentWorkspaceId({ url, key });
+  } catch (_) { return null; }
+}
+
+/** This workspace's OWN credentials for a provider, or null. Never the deployment's. */
+async function ownCreds(provider) {
+  try {
+    return await require('./workspace-connections-core.js').credentialsForCurrentRequest(provider);
+  } catch (_) { return null; }
+}
+
+/**
+ * The honest "nothing to show" answer. `connect` names the exact thing the
+ * operator has to do, which is the only useful content an empty state can carry.
+ */
+function unconnected(kind, connect, extra) {
+  return Object.assign({
+    ok: true, generated_at: iso(), rows: [], campaigns: [], segments: [], actions: [],
+    data_scope: { level: 'unconnected', basis: 'unset', of: kind, connect },
+    note: `No ${kind} source is connected to this brand workspace, so there is nothing measured to show. ${connect}`,
+  }, extra || {});
+}
+
 function metricNames(resp) { const rows = resp && resp.ok && resp.data && Array.isArray(resp.data.data) ? resp.data.data : []; return Object.fromEntries(rows.map((m) => [m.id, text(m.attributes && m.attributes.name)])); }
 function klEvents(resp, names) { const rows = resp && resp.ok && resp.data && Array.isArray(resp.data.data) ? resp.data.data : []; return rows.map((e) => { const a = e.attributes || {}, p = a.event_properties || {}, id = e.relationships && e.relationships.metric && e.relationships.metric.data && e.relationships.metric.data.id; return { name: names[id] || p.metric_name || p.event_name || 'Unknown event', campaign: p['Campaign Name'] || p.campaign_name || p.Campaign || '(unattributed)', value: n(p.$value || p.value || p.revenue), at: a.datetime || a.timestamp || null }; }); }
 const sumEvents = (map, re) => Object.entries(map).filter(([k]) => re.test(k)).reduce((a,[,v]) => a+v,0);
 async function mailer({ market = 'US', hours = 720 } = {}) {
+  // Klaviyo and WebEngage both have DEPLOYMENT-level credentials in env. Using
+  // them here served one company's lifecycle performance - opens, clicks,
+  // revenue per recipient, segment sizes - to every signed-in brand, exactly
+  // the way the bundled ad snapshot did. A workspace reads its OWN connected
+  // account or nothing at all.
+  const ws = await activeWorkspace();
+  if (!ws) return unconnected('lifecycle mailer', 'No active brand workspace on this request; reload so the brand context loads.', { kpis: {}, event_mix: [], sources: {} });
+  const klCreds = await ownCreds('klaviyo');
+  const weCreds = await ownCreds('webengage');
+  if (!klCreds && !weCreds) {
+    return unconnected('lifecycle mailer',
+      'Connect Klaviyo or WebEngage to this brand on /connections. The keys held by this deployment belong to another account and are never reported as this brand\'s performance.',
+      { market, window_hours: hours, kpis: {}, event_mix: [],
+        sources: { klaviyo: { connected: false, scope: 'workspace' }, webengage: { connected: false, scope: 'workspace' } } });
+  }
   const [mr, er, cm, sm, we, wc] = await Promise.all([
-    klaviyo.getMetrics().catch((e)=>({ok:false,error:e.message})), klaviyo.getEvents({limit:100,sort:'-datetime'}).catch((e)=>({ok:false,error:e.message})),
+    klCreds ? klaviyo.getMetrics({ creds: klCreds }).catch((e)=>({ok:false,error:e.message})) : { ok: false, not_connected: true },
+    klCreds ? klaviyo.getEvents({limit:100,sort:'-datetime',creds:klCreds}).catch((e)=>({ok:false,error:e.message})) : { ok: false, not_connected: true },
+    // The mirror tables carry workspace_id; supa.select scopes them to this
+    // workspace, so a mirror populated for another brand is never read here.
     safe(supa.select('klaviyo_campaigns',{order:'send_time.desc',limit:100}),[]), safe(supa.select('klaviyo_segments',{order:'profile_count.desc',limit:100}),[]),
-    webengage.eventSummary({hours,market}).catch((e)=>({ok:false,error:e.message})), webengage.campaignPerformance({event:'Notification Clicked',hours,market,top:30}).catch((e)=>({ok:false,error:e.message})),
+    weCreds ? webengage.eventSummary({hours,market,workspaceId:ws}).catch((e)=>({ok:false,error:e.message})) : { ok: false, connected: false },
+    weCreds ? webengage.campaignPerformance({event:'Notification Clicked',hours,market,top:30,workspaceId:ws}).catch((e)=>({ok:false,error:e.message})) : { ok: false, connected: false },
   ]);
   const events = klEvents(er, metricNames(mr)), by = {};
   for (const e of events) by[e.name] = (by[e.name] || 0) + 1;
@@ -150,57 +219,130 @@ async function mailer({ market = 'US', hours = 720 } = {}) {
   for (const c of wc && wc.campaigns || []) cmap.set(`WebEngage · ${c.campaign}`, {campaign:c.campaign,events:c.events,opens:null,clicks:c.events,conversions:null,revenue:null,source:'WebEngage',unique_users:c.unique_users});
   const mirrors = (Array.isArray(cm)?cm:[]).map((c)=>({campaign:c.name||c.id,status:c.status,sent_at:c.send_time,source:'Klaviyo mirror',opens:null,clicks:null,conversions:null,revenue:null}));
   const campaigns = [...cmap.values(), ...mirrors.filter((c)=>!cmap.has(c.campaign))].slice(0,100), segments = Array.isArray(sm)?sm:[];
-  return { ok:true, generated_at:iso(), market, window_hours:hours, sources:{ klaviyo:{connected:klaviyo.isConnected(),live_events:events.length,mirrored_campaigns:Array.isArray(cm)?cm.length:0,segments:segments.length,note:er&&er.hint}, webengage:{connected:webengage.connected(),events:we&&we.total_events||0,note:we&&we.error} },
+  return { ok:true, generated_at:iso(), market, window_hours:hours, workspace_id: ws,
+    data_scope: { level: 'workspace', basis: 'measured', of: 'lifecycle mailer', note: 'Read from the Klaviyo/WebEngage account this brand connected on /connections.' },
+    sources:{ klaviyo:{connected:klaviyo.isConnected(klCreds),scope:'workspace',live_events:events.length,mirrored_campaigns:Array.isArray(cm)?cm.length:0,segments:segments.length,note:er&&er.hint}, webengage:{connected:Boolean(weCreds)&&webengage.connected(),scope:'workspace',events:we&&we.total_events||0,note:we&&we.error} },
     kpis:{delivered,opens,open_rate:rate(opens,delivered),clicks,click_rate:rate(clicks,delivered),ctor:rate(clicks,opens),conversions,conversion_rate:rate(conversions,delivered),revenue,revenue_per_recipient:rate(revenue,delivered),unsubscribes,unsubscribe_rate:rate(unsubscribes,delivered),bounces,bounce_rate:rate(bounces,delivered),known_campaigns:campaigns.length,known_segments:segments.length,segment_profiles:segments.reduce((a,x)=>a+n(x.profile_count),0)},
     event_mix:Object.entries(by).map(([event,count])=>({event,count})).sort((a,b)=>b.count-a.count), campaigns, segments, note: delivered?'Rates use available source events in the selected window.':'No delivery denominator is available; rates remain zero rather than being estimated.' };
 }
-async function landing({ market = 'US' } = {}) { return pagedeck.analytics({ market }); }
+/**
+ * Landing-page analytics.
+ *
+ * PageDeck is configured with DEPLOYMENT env vars (export URLs + an API key) and
+ * there is no per-workspace PageDeck connection in the connections registry, so
+ * a live export describes whichever PageDeck account this deployment holds - not
+ * the brand that is looking. The Supabase mirror tables DO carry workspace_id
+ * and are scoped by supa.select, so the mirror is safe to read; the live export
+ * is not, and is not reported as this brand's.
+ */
+async function landing({ market = 'US' } = {}) {
+  const ws = await activeWorkspace();
+  if (!ws) return unconnected('landing page analytics', 'No active brand workspace on this request; reload so the brand context loads.', { kpis: {}, pages: [], experiments: [] });
+  const out = await pagedeck.analytics({ market, mirrorOnly: true });
+  return Object.assign({ workspace_id: ws }, out, {
+    data_scope: {
+      level: 'workspace', basis: 'measured', of: 'landing page analytics',
+      connect: 'PageDeck is configured at deployment level and has no per-brand connection yet, so only the workspace-scoped mirror tables are read. Rows exported for another account are never shown here.',
+    },
+  });
+}
 
 const getTable = (name,order,limit) => safe(supa.select(name,{order,limit}),[]);
 function median(xs){const a=xs.map(Number).filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return 0;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+/**
+ * Action execution + realised impact.
+ *
+ * `analytics_action_outcomes` carries incremental revenue, ROI and guardrail
+ * breaches - measured business performance - and had no owner column at all
+ * until 20260814090000, so every signed-in brand read every other brand's
+ * results. It is workspace-scoped now (supa.select applies the filter).
+ *
+ * `activity_logs` and `agent_runs` carry a workspace too - a legacy TEXT column
+ * that held the literal 'knickgasm' until 20260814090000 converted it - so they
+ * are scoped as well. `connector_sync_runs` genuinely is deployment telemetry
+ * (which serverless sync ran, which one failed) and is reported under an
+ * explicit `deployment` scope rather than as this brand's activity.
+ *
+ * The fallback that reshaped raw activity rows INTO the actions table is gone.
+ * It made platform log lines look like this brand's marketing actions, complete
+ * with an actions_tracked count that counted somebody else's cron.
+ */
 async function actions(){
-  const [activity,agents,outcomes,runs,reviews]=await Promise.all([getTable('activity_logs','created_at.desc',300),getTable('agent_runs','started_at.desc',200),getTable('analytics_action_outcomes','created_at.desc',500),getTable('connector_sync_runs','started_at.desc',200),getTable('smart_review_queue','created_at.desc',200)]);
+  const ws = await activeWorkspace();
+  const [activity,agents,outcomes,runs,reviews]=await Promise.all([getTable('activity_logs','created_at.desc',300),getTable('agent_runs','started_at.desc',200),ws?getTable('analytics_action_outcomes','created_at.desc',500):Promise.resolve([]),getTable('connector_sync_runs','started_at.desc',200),ws?getTable('smart_review_queue','created_at.desc',200):Promise.resolve([])]);
   const out=Array.isArray(outcomes)?outcomes:[], completed=out.filter((x)=>/complete|launched|measured|success/i.test(x.status||'')), failures=out.filter((x)=>/fail|error|rollback/i.test(x.status||'')||x.rolled_back), measured=out.filter((x)=>x.baseline_value!=null&&x.observed_value!=null), exp=out.filter((x)=>x.experiment_id), winners=exp.filter((x)=>n(x.observed_value)>n(x.baseline_value)&&!x.guardrail_breach);
-  const rows=out.length?out:(Array.isArray(activity)?activity:[]).map((x)=>({id:x.id,action_type:x.action,action_id:x.entity_id,channel:x.entity_type,status:x.status,recommended_at:x.created_at,launched_at:null,observed_value:null,baseline_value:null,incremental_revenue:null,roi:null,guardrail_breach:false,rolled_back:false,metadata:x.metadata}));
+  const rows=out;
   const agentErrors=(Array.isArray(agents)?agents:[]).filter((x)=>/fail|error/i.test(x.status||'')).length, connectorErrors=(Array.isArray(runs)?runs:[]).filter((x)=>/fail|error/i.test(x.status||'')).length, denom=Math.max(1,(agents||[]).length+(runs||[]).length), revenue=out.reduce((a,x)=>a+n(x.incremental_revenue),0), cost=out.reduce((a,x)=>a+n(x.cost),0);
-  return {ok:true,generated_at:iso(),kpis:{actions_tracked:rows.length,completed_actions:completed.length,completion_rate:rate(completed.length,out.length),failed_or_rolled_back:failures.length,error_rate:rate(agentErrors+connectorErrors,denom),median_time_to_launch_hours:median(out.map((x)=>x.recommended_at&&x.launched_at?(new Date(x.launched_at)-new Date(x.recommended_at))/36e5:null).filter((x)=>x!=null&&x>=0)),measured_actions:measured.length,realized_incremental_revenue:revenue,realized_roi:rate(revenue,cost),guardrail_breaches:out.filter((x)=>x.guardrail_breach).length,rollback_rate:rate(out.filter((x)=>x.rolled_back).length,completed.length),experiment_win_rate:rate(winners.length,exp.length),pending_reviews:(Array.isArray(reviews)?reviews:[]).filter((x)=>/pending|tentative/i.test(x.state||x.status||'')).length},actions:rows.slice(0,200),recent_activity:(activity||[]).slice(0,50),connector_runs:(runs||[]).slice(0,50),note:out.length?'Outcome KPIs use analytics_action_outcomes.':'No measured outcome rows exist yet; activity is shown without invented impact.'};
+  return {ok:true,generated_at:iso(),workspace_id:ws||null,
+    data_scope:{level:ws?'workspace':'unconnected',basis:out.length?'measured':'unset',of:'action outcomes',
+      note:'Action outcomes are this brand\'s own measured results. The platform health figures below (error_rate, recent_activity, connector_runs) are deployment telemetry and are labelled as such.'},
+    kpis:{actions_tracked:rows.length,completed_actions:completed.length,completion_rate:rate(completed.length,out.length),failed_or_rolled_back:failures.length,error_rate:rate(agentErrors+connectorErrors,denom),median_time_to_launch_hours:median(out.map((x)=>x.recommended_at&&x.launched_at?(new Date(x.launched_at)-new Date(x.recommended_at))/36e5:null).filter((x)=>x!=null&&x>=0)),measured_actions:measured.length,realized_incremental_revenue:revenue,realized_roi:rate(revenue,cost),guardrail_breaches:out.filter((x)=>x.guardrail_breach).length,rollback_rate:rate(out.filter((x)=>x.rolled_back).length,completed.length),experiment_win_rate:rate(winners.length,exp.length),pending_reviews:(Array.isArray(reviews)?reviews:[]).filter((x)=>/pending|tentative/i.test(x.state||x.status||'')).length},
+    actions:rows.slice(0,200),
+    platform_health:{scope:'deployment',recent_activity:(activity||[]).slice(0,50),connector_runs:(runs||[]).slice(0,50)},
+    recent_activity:(activity||[]).slice(0,50),connector_runs:(runs||[]).slice(0,50),
+    note:!ws?'No active brand workspace on this request, so no action outcomes are returned.':(out.length?'Outcome KPIs use this workspace\'s analytics_action_outcomes rows.':'This brand has no measured outcome rows yet. Nothing is inferred from platform activity in their place.')};
 }
 
-function addAnomaly(a, x){a.push({id:fingerprint([x.market||'ALL',x.source||'',x.metric||'',x.kind||'threshold'].join('|')),detected_at:iso(),severity:x.severity||'watch',kind:x.kind||'threshold',market:x.market||'ALL',source:x.source||'Data Analysis',metric:x.metric,current:x.current,baseline:x.baseline==null?null:x.baseline,threshold:x.threshold,message:x.message});}
-function detectHourly({markets,actionData,previous,settings}){
+// The fingerprint is the PRIMARY KEY of analytics_anomaly_state and is what the
+// cooldown dedupes on. Built from market+source+metric alone it is identical
+// across brands, so one brand's "spend with zero conversions" alert suppressed
+// another brand's and overwrote its state row. The workspace is part of the
+// identity of an anomaly, not metadata about it.
+function addAnomaly(a, x, workspaceId){a.push({id:fingerprint([workspaceId||'unattributed',x.market||'ALL',x.source||'',x.metric||'',x.kind||'threshold'].join('|')),detected_at:iso(),severity:x.severity||'watch',kind:x.kind||'threshold',market:x.market||'ALL',source:x.source||'Data Analysis',metric:x.metric,current:x.current,baseline:x.baseline==null?null:x.baseline,threshold:x.threshold,message:x.message});}
+function detectHourly({markets,actionData,previous,settings,workspaceId}){
+  const addA = (arr, x) => addAnomaly(arr, x, workspaceId);
   const out=[],t=settings.thresholds,prevMarkets=previous&&previous.payload&&previous.payload.markets||{};
   for(const [market,d] of Object.entries(markets)){const a=d.ads.kpis,m=d.mailer.kpis,l=d.landing.kpis,p=prevMarkets[market];
-    if(a.spend>=t.ad_spend_no_conversion&&a.conversions<=0)addAnomaly(out,{severity:'critical',market,source:'Paid Media',metric:'Spend with zero conversions',current:a.spend,threshold:t.ad_spend_no_conversion,message:`${market} spent ${a.spend.toFixed(2)} with no attributed conversions.`});
-    if(a.spend>0&&a.roas<t.ad_roas_min)addAnomaly(out,{severity:a.roas<t.ad_roas_min*.6?'critical':'watch',market,source:'Paid Media',metric:'ROAS',current:a.roas,threshold:t.ad_roas_min,message:`${market} blended ROAS is ${a.roas.toFixed(2)}.`});
-    if(p&&p.ads&&p.ads.kpis){const pa=p.ads.kpis;if(pa.ctr>0&&a.ctr<pa.ctr*(1-t.ad_ctr_drop_pct))addAnomaly(out,{market,source:'Paid Media',metric:'CTR drop',current:a.ctr,baseline:pa.ctr,threshold:t.ad_ctr_drop_pct,message:`${market} paid-media CTR fell versus the prior run.`});if(pa.spend>0&&a.spend>pa.spend*(1+t.ad_spend_spike_pct))addAnomaly(out,{market,source:'Paid Media',metric:'Spend spike',current:a.spend,baseline:pa.spend,threshold:t.ad_spend_spike_pct,message:`${market} spend spiked versus the prior run.`});}
-    if(m.delivered>=100&&m.open_rate<t.mailer_open_rate_min)addAnomaly(out,{market,source:'Mailer',metric:'Open rate',current:m.open_rate,threshold:t.mailer_open_rate_min,message:`${market} open rate is ${(m.open_rate*100).toFixed(1)}%.`});
-    if(m.delivered>=100&&m.click_rate<t.mailer_click_rate_min)addAnomaly(out,{market,source:'Mailer',metric:'Click rate',current:m.click_rate,threshold:t.mailer_click_rate_min,message:`${market} click rate is ${(m.click_rate*100).toFixed(2)}%.`});
-    if(m.delivered>=100&&m.unsubscribe_rate>t.mailer_unsubscribe_rate_max)addAnomaly(out,{severity:'critical',market,source:'Mailer',metric:'Unsubscribe rate',current:m.unsubscribe_rate,threshold:t.mailer_unsubscribe_rate_max,message:`${market} unsubscribe rate is ${(m.unsubscribe_rate*100).toFixed(2)}%.`});
-    if(l.visitors>=100&&l.conversion_rate<t.landing_conversion_rate_min)addAnomaly(out,{market,source:'Landing Pages',metric:'Conversion rate',current:l.conversion_rate,threshold:t.landing_conversion_rate_min,message:`${market} landing-page CVR is ${(l.conversion_rate*100).toFixed(2)}%.`});
-    if(l.srm_flags>0)addAnomaly(out,{severity:'critical',market,source:'Experiments',metric:'Sample-ratio mismatch',current:l.srm_flags,threshold:0,message:`${l.srm_flags} PageDeck experiment(s) show sample-ratio mismatch.`});
-    for(const pform of d.ads.platforms){if(!pform.connected)addAnomaly(out,{severity:'info',market,source:'Connector',metric:`${pform.platform} Ads disconnected`,current:0,threshold:1,message:`${pform.platform} Ads is not connected for ${market}; no figures are invented.`});else if(!pform.ok)addAnomaly(out,{severity:'critical',market,source:'Connector',metric:`${pform.platform} Ads reporting error`,current:pform.status||0,threshold:200,message:`${pform.platform} Ads is connected for ${market} but the reporting request failed: ${pform.error||'unknown error'}.`});else if(pform.fetched_at&&Date.now()-new Date(pform.fetched_at).getTime()>t.connector_stale_hours*3600000)addAnomaly(out,{market,source:'Connector',metric:`${pform.platform} Ads stale`,current:(Date.now()-new Date(pform.fetched_at).getTime())/3600000,threshold:t.connector_stale_hours,message:`${pform.platform} Ads data for ${market} is older than ${t.connector_stale_hours} hours.`});}
+    if(a.spend>=t.ad_spend_no_conversion&&a.conversions<=0)addA(out,{severity:'critical',market,source:'Paid Media',metric:'Spend with zero conversions',current:a.spend,threshold:t.ad_spend_no_conversion,message:`${market} spent ${a.spend.toFixed(2)} with no attributed conversions.`});
+    if(a.spend>0&&a.roas<t.ad_roas_min)addA(out,{severity:a.roas<t.ad_roas_min*.6?'critical':'watch',market,source:'Paid Media',metric:'ROAS',current:a.roas,threshold:t.ad_roas_min,message:`${market} blended ROAS is ${a.roas.toFixed(2)}.`});
+    if(p&&p.ads&&p.ads.kpis){const pa=p.ads.kpis;if(pa.ctr>0&&a.ctr<pa.ctr*(1-t.ad_ctr_drop_pct))addA(out,{market,source:'Paid Media',metric:'CTR drop',current:a.ctr,baseline:pa.ctr,threshold:t.ad_ctr_drop_pct,message:`${market} paid-media CTR fell versus the prior run.`});if(pa.spend>0&&a.spend>pa.spend*(1+t.ad_spend_spike_pct))addA(out,{market,source:'Paid Media',metric:'Spend spike',current:a.spend,baseline:pa.spend,threshold:t.ad_spend_spike_pct,message:`${market} spend spiked versus the prior run.`});}
+    if(m.delivered>=100&&m.open_rate<t.mailer_open_rate_min)addA(out,{market,source:'Mailer',metric:'Open rate',current:m.open_rate,threshold:t.mailer_open_rate_min,message:`${market} open rate is ${(m.open_rate*100).toFixed(1)}%.`});
+    if(m.delivered>=100&&m.click_rate<t.mailer_click_rate_min)addA(out,{market,source:'Mailer',metric:'Click rate',current:m.click_rate,threshold:t.mailer_click_rate_min,message:`${market} click rate is ${(m.click_rate*100).toFixed(2)}%.`});
+    if(m.delivered>=100&&m.unsubscribe_rate>t.mailer_unsubscribe_rate_max)addA(out,{severity:'critical',market,source:'Mailer',metric:'Unsubscribe rate',current:m.unsubscribe_rate,threshold:t.mailer_unsubscribe_rate_max,message:`${market} unsubscribe rate is ${(m.unsubscribe_rate*100).toFixed(2)}%.`});
+    if(l.visitors>=100&&l.conversion_rate<t.landing_conversion_rate_min)addA(out,{market,source:'Landing Pages',metric:'Conversion rate',current:l.conversion_rate,threshold:t.landing_conversion_rate_min,message:`${market} landing-page CVR is ${(l.conversion_rate*100).toFixed(2)}%.`});
+    if(l.srm_flags>0)addA(out,{severity:'critical',market,source:'Experiments',metric:'Sample-ratio mismatch',current:l.srm_flags,threshold:0,message:`${l.srm_flags} PageDeck experiment(s) show sample-ratio mismatch.`});
+    for(const pform of d.ads.platforms){if(!pform.connected)addA(out,{severity:'info',market,source:'Connector',metric:`${pform.platform} Ads disconnected`,current:0,threshold:1,message:`${pform.platform} Ads is not connected for ${market}; no figures are invented.`});else if(!pform.ok)addA(out,{severity:'critical',market,source:'Connector',metric:`${pform.platform} Ads reporting error`,current:pform.status||0,threshold:200,message:`${pform.platform} Ads is connected for ${market} but the reporting request failed: ${pform.error||'unknown error'}.`});else if(pform.fetched_at&&Date.now()-new Date(pform.fetched_at).getTime()>t.connector_stale_hours*3600000)addA(out,{market,source:'Connector',metric:`${pform.platform} Ads stale`,current:(Date.now()-new Date(pform.fetched_at).getTime())/3600000,threshold:t.connector_stale_hours,message:`${pform.platform} Ads data for ${market} is older than ${t.connector_stale_hours} hours.`});}
   }
-  if(actionData.kpis.error_rate>t.action_error_rate_max)addAnomaly(out,{severity:'critical',source:'Actions',metric:'Execution error rate',current:actionData.kpis.error_rate,threshold:t.action_error_rate_max,message:`Action/connector error rate is ${(actionData.kpis.error_rate*100).toFixed(1)}%.`});
-  if(actionData.kpis.guardrail_breaches>0)addAnomaly(out,{severity:'critical',source:'Actions',metric:'Guardrail breach',current:actionData.kpis.guardrail_breaches,threshold:0,message:`${actionData.kpis.guardrail_breaches} measured action(s) breached a guardrail.`});
-  const latestConnector=new Map();for(const r of actionData.connector_runs||[]){const id=text(r.connector_id||r.connector||r.source);if(id&&!latestConnector.has(id))latestConnector.set(id,r);}for(const [id,r] of latestConnector){if(r.started_at){const age=(Date.now()-new Date(r.started_at).getTime())/3600000;if(age>t.connector_stale_hours)addAnomaly(out,{source:'Connector',metric:`${id} sync stale`,current:age,threshold:t.connector_stale_hours,message:`${id} has not completed a recorded sync within ${t.connector_stale_hours} hours.`});}}
+  if(actionData.kpis.error_rate>t.action_error_rate_max)addA(out,{severity:'critical',source:'Actions',metric:'Execution error rate',current:actionData.kpis.error_rate,threshold:t.action_error_rate_max,message:`Action/connector error rate is ${(actionData.kpis.error_rate*100).toFixed(1)}%.`});
+  if(actionData.kpis.guardrail_breaches>0)addA(out,{severity:'critical',source:'Actions',metric:'Guardrail breach',current:actionData.kpis.guardrail_breaches,threshold:0,message:`${actionData.kpis.guardrail_breaches} measured action(s) breached a guardrail.`});
+  const latestConnector=new Map();for(const r of actionData.connector_runs||[]){const id=text(r.connector_id||r.connector||r.source);if(id&&!latestConnector.has(id))latestConnector.set(id,r);}for(const [id,r] of latestConnector){if(r.started_at){const age=(Date.now()-new Date(r.started_at).getTime())/3600000;if(age>t.connector_stale_hours)addA(out,{source:'Connector',metric:`${id} sync stale`,current:age,threshold:t.connector_stale_hours,message:`${id} has not completed a recorded sync within ${t.connector_stale_hours} hours.`});}}
   return out;
 }
 function quietNow(q){if(!q||!q.enabled)return false;try{const h=Number(new Intl.DateTimeFormat('en-GB',{timeZone:q.timezone||'Asia/Kolkata',hour:'2-digit',hour12:false}).format(new Date())),s=n(q.start_hour),e=n(q.end_hour);return s===e?false:s>e?h>=s||h<e:h>=s&&h<e;}catch(_){return false;}}
 async function dedupe(items,settings){const rows=await safe(supa.select('analytics_anomaly_state',{order:'last_seen.desc',limit:1000}),[]),by=new Map((rows||[]).map((r)=>[r.fingerprint,r])),cut=Date.now()-settings.cooldown_minutes*60000,send=[];for(const a of items){const p=by.get(a.id),last=p&&p.last_sent_at?new Date(p.last_sent_at).getTime():0;if(!p||last<cut)send.push(a);await safe(supa.insert('analytics_anomaly_state',[{fingerprint:a.id,status:'open',first_seen_at:p&&p.first_seen_at||a.detected_at,last_seen_at:a.detected_at,last_sent_at:p&&p.last_sent_at||null,occurrence_count:n(p&&p.occurrence_count)+1,severity:a.severity,detail:a,updated_at:a.detected_at}],{upsertOn:'fingerprint'}),null);}return send;}
 async function markSent(items){const at=iso();for(const a of items||[])await safe(supa.update('analytics_anomaly_state',{last_sent_at:at,updated_at:at},{fingerprint:`eq.${a.id}`}),null);}
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
-function alertMessage(items){const lines=items.map((a)=>`${a.severity.toUpperCase()} · ${a.market} · ${a.source} · ${a.metric}: ${a.message}`),rows=items.map((a)=>`<tr><td>${esc(a.severity)}</td><td>${esc(a.market)}</td><td>${esc(a.source)}</td><td><b>${esc(a.metric)}</b><br>${esc(a.message)}</td></tr>`).join('');return{subject:`[KNICKGASM] ${items.some((a)=>a.severity==='critical')?'Critical ':''}Data Analysis anomalies: ${items.length}`,text:`Lifecycle OS${SENDER()?`\nSender: ${SENDER()}`:''}\n\n${lines.join('\n')}`,html:`<!doctype html><html><body style="font-family:Arial,sans-serif"><h2>Lifecycle OS anomaly review</h2><table>${rows}</table><p>${SENDER()?`From ${esc(SENDER())} · `:''}automated hourly analysis</p></body></html>`};}
+// The alert subject is the brand's own name, not a shipped literal. Every
+// operator on the platform was receiving mail headed with tenant zero's brand.
+function alertMessage(items, brandName){const brand=text(brandName)||'Lifecycle OS';const lines=items.map((a)=>`${a.severity.toUpperCase()} · ${a.market} · ${a.source} · ${a.metric}: ${a.message}`),rows=items.map((a)=>`<tr><td>${esc(a.severity)}</td><td>${esc(a.market)}</td><td>${esc(a.source)}</td><td><b>${esc(a.metric)}</b><br>${esc(a.message)}</td></tr>`).join('');return{subject:`[${brand}] ${items.some((a)=>a.severity==='critical')?'Critical ':''}Data Analysis anomalies: ${items.length}`,text:`${brand}${SENDER()?`\nSender: ${SENDER()}`:''}\n\n${lines.join('\n')}`,html:`<!doctype html><html><body style="font-family:Arial,sans-serif"><h2>${esc(brand)} anomaly review</h2><table>${rows}</table><p>${SENDER()?`From ${esc(SENDER())} · `:''}automated hourly analysis</p></body></html>`};}
+/** The ACTIVE brand's own name, for anything a human reads. */
+async function activeBrandName(){
+  try{
+    const ws=await activeWorkspace();
+    if(!ws)return '';
+    const {url,key}=supa.env();
+    const brand=await wsScope.brandForWorkspace({url,key},ws);
+    return text(brand&&brand.name);
+  }catch(_){return '';}
+}
 async function latestRun(){const r=await safe(supa.select('analytics_hourly_runs',{order:'started_at.desc',limit:1}),[]);return r&&r[0]||null;}
 async function runHourly({force=false,trigger='schedule'}={}){
+  // The hourly run belongs to a brand: its anomaly fingerprints, its stored
+  // payload and the mail it sends all carry that brand's figures. Without a
+  // workspace it would write an unattributed run that no brand can read back
+  // and alert somebody about numbers that are not theirs.
+  const runWs=await activeWorkspace();
+  if(!runWs)return{ok:true,skipped:true,reason:'workspace_unresolved',note:'No brand workspace resolved for this run, so nothing was analysed, stored or alerted. Another brand\'s figures are never substituted.'};
+  const runBrandName=await activeBrandName();
   const settings=await loadSettings(),last=await latestRun();if(!settings.enabled)return{ok:true,skipped:true,reason:'disabled_in_alert_settings',settings};if(!force&&last&&last.started_at&&Date.now()-new Date(last.started_at).getTime()<settings.cadence_hours*3600000-300000)return{ok:true,skipped:true,reason:`cadence_${settings.cadence_hours}h_not_due`,last_run_at:last.started_at,settings};
-  const started_at=iso(),marketList=text(process.env.ANALYTICS_MARKETS||'US,UK').split(',').map((x)=>x.trim().toUpperCase()).filter(Boolean),sync=await Promise.all([safe(require('./klaviyo-sync.js').run(),{ok:false,message:'Klaviyo sync failed'}),safe(webengage.syncFromStorage(),{ok:false,message:'WebEngage sync failed'})]),actionData=await actions(),marketPayload={};
+  const started_at=iso(),marketList=text(process.env.ANALYTICS_MARKETS||'US,UK').split(',').map((x)=>x.trim().toUpperCase()).filter(Boolean),sync=await Promise.all([safe(require('./klaviyo-sync.js').run({creds:await ownCreds('klaviyo')}),{ok:false,message:'Klaviyo sync failed'}),safe(webengage.syncFromStorage({workspaceId:runWs}),{ok:false,message:'WebEngage sync failed'})]),actionData=await actions(),marketPayload={};
   await Promise.all(marketList.map(async(market)=>{const [adData,mailData,landingData]=await Promise.all([ads({market,level:'account'}),mailer({market,hours:72}),landing({market})]);marketPayload[market]={ads:adData,mailer:mailData,landing:landingData};}));
-  const anomalies=detectHourly({markets:marketPayload,actionData,previous:last,settings}),notify=await dedupe(anomalies,settings),quiet=quietNow(settings.quiet_hours),critical=notify.some((a)=>a.severity==='critical');let alert_result={attempted:0,sent_any:false,results:[],reason:'no_new_anomalies'};
-  if(notify.length&&(!quiet||(critical&&settings.quiet_hours.critical_bypass))){alert_result=await alerts.dispatch({...alertMessage(notify),settings});if(alert_result.sent_any)await markSent(notify);}else if(notify.length&&quiet)alert_result={attempted:0,sent_any:false,results:[],reason:'quiet_hours',queued_anomalies:notify.length};
+  const anomalies=detectHourly({markets:marketPayload,actionData,previous:last,settings,workspaceId:runWs}),notify=await dedupe(anomalies,settings),quiet=quietNow(settings.quiet_hours),critical=notify.some((a)=>a.severity==='critical');let alert_result={attempted:0,sent_any:false,results:[],reason:'no_new_anomalies'};
+  if(notify.length&&(!quiet||(critical&&settings.quiet_hours.critical_bypass))){alert_result=await alerts.dispatch({...alertMessage(notify,runBrandName),settings});if(alert_result.sent_any)await markSent(notify);}else if(notify.length&&quiet)alert_result={attempted:0,sent_any:false,results:[],reason:'quiet_hours',queued_anomalies:notify.length};
   const payload={generated_at:iso(),markets:marketPayload,actions:actionData,sync},finished_at=iso(),row={started_at,finished_at,trigger,status:'success',cadence_hours:settings.cadence_hours,markets:marketList,payload,anomalies,alert_result},persisted=await safe(supa.insert('analytics_hourly_runs',[row]),null);
   return{ok:true,skipped:false,started_at,finished_at,markets:marketList,sync,anomalies,notified:notify,alert_result,persisted:Boolean(persisted),payload};
 }
-async function testAlert(override){const settings=mergeSettings({...await loadSettings(),...(override||{})}),msg=alertMessage([{severity:'info',market:'TEST',source:'Alert Settings',metric:'Delivery test',message:'This is a test from Lifecycle OS. No business anomaly was detected.'}]);msg.subject='[KNICKGASM] Data Analysis alert delivery test';return alerts.dispatch({...msg,settings});}
+async function testAlert(override){const settings=mergeSettings({...await loadSettings(),...(override||{})}),brandName=await activeBrandName(),msg=alertMessage([{severity:'info',market:'TEST',source:'Alert Settings',metric:'Delivery test',message:'This is a delivery test. No business anomaly was detected.'}],brandName);msg.subject=`[${brandName||'Lifecycle OS'}] Data Analysis alert delivery test`;return alerts.dispatch({...msg,settings});}
 async function status(){const settings=await loadSettings(),last=await latestRun();return{ok:true,generated_at:iso(),settings,last_run:last?{started_at:last.started_at,finished_at:last.finished_at,status:last.status,anomalies:Array.isArray(last.anomalies)?last.anomalies.length:null}:null,connectors:{ads:['US','UK','IN'].map((market)=>adsCore.status(market)),klaviyo:{connected:klaviyo.isConnected()},webengage:{connected:webengage.connected()},pagedeck:{connected:Boolean(text(process.env.PAGEDECK_ANALYTICS_EXPORT_URL)||text(process.env.PAGEDECK_EXPERIMENTS_EXPORT_URL)||text(process.env.PAGEDECK_COMPETITOR_EXPORT_URL)||text(process.env.PAGEDECK_API_KEY))},gmail:{connected:Boolean(text(process.env.GMAIL_CLIENT_ID)&&text(process.env.GMAIL_CLIENT_SECRET)&&text(process.env.GMAIL_REFRESH_TOKEN)),sender:alerts.senderEmail()},google_chat:{connected:Boolean(text(process.env.GOOGLE_CHAT_WEBHOOK_URL))},sms:{connected:Boolean(text(process.env.TWILIO_ACCOUNT_SID)&&text(process.env.TWILIO_AUTH_TOKEN)&&text(process.env.TWILIO_FROM_NUMBER))}}};}
 async function view(name,params){switch(String(name||'status').toLowerCase()){case'ads':return ads(params);case'mailer':return mailer(params);case'landing':case'pagedeck':return landing(params);case'actions':return actions(params);case'alerts':return{ok:true,settings:await loadSettings(),status:await status()};default:return status();}}
 

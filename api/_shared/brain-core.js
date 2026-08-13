@@ -65,19 +65,47 @@ class LinkedDb {
       ...extra,
     };
   }
+  /**
+   * The workspace this call belongs to, for tables that carry workspace_id.
+   *
+   * This adapter holds the SERVICE-ROLE key, so RLS does not apply to it, and
+   * it was the third unscoped Supabase client in the codebase: every brain
+   * route and every KicksGPT tool that reads smart_cohorts, smart_calendar or
+   * smart_generated_campaigns went through here and read across brands.
+   *
+   * Returns undefined when the table is unscoped, null when it is scoped but no
+   * workspace could be resolved - and null means return nothing.
+   */
+  async _scope(table) {
+    const wsScope = require('./workspace-scope.js');
+    if (!wsScope.isScoped(table)) return undefined;
+    const ws = await wsScope.currentWorkspaceId({ url: this.url, key: this.key });
+    return ws ? String(ws) : null;
+  }
   async select(table, { select = '*', filters = {}, order, limit, offset } = {}) {
+    const ws = await this._scope(table);
+    if (ws === null) return [];
     const qs = new URLSearchParams({ select });
     if (order) qs.set('order', order);
     if (limit) qs.set('limit', String(limit));
     if (offset) qs.set('offset', String(offset));
     for (const [k, v] of Object.entries(filters)) qs.append(k, v);
+    if (ws && !filters.workspace_id) qs.append('workspace_id', `eq.${ws}`);
     const r = await fetch(`${this.url}/rest/v1/${table}?${qs}`, { headers: this.headers() });
     if (!r.ok) throw new Error(`linked-db select ${table}: ${r.status} ${(await r.text()).slice(0, 200)}`);
     return r.json();
   }
+  /** Stamp scoped rows, or refuse: an unstamped row is invisible to every brand. */
+  async _stamp(table, rows) {
+    const ws = await this._scope(table);
+    if (ws === undefined) return rows;
+    if (ws === null) throw new Error(`linked-db write ${table} refused: no workspace resolved, and an unstamped row would be invisible to every brand`);
+    return rows.map((r) => (r && typeof r === 'object' && r.workspace_id ? r : Object.assign({}, r, { workspace_id: ws })));
+  }
   async upsert(table, rows, onConflict) {
     if (!Array.isArray(rows)) rows = [rows];
     if (!rows.length) return [];
+    rows = await this._stamp(table, rows);
     const qs = onConflict ? `?on_conflict=${onConflict}` : '';
     const r = await fetch(`${this.url}/rest/v1/${table}${qs}`, {
       method: 'POST',
@@ -90,6 +118,7 @@ class LinkedDb {
   async insert(table, rows) {
     if (!Array.isArray(rows)) rows = [rows];
     if (!rows.length) return [];
+    rows = await this._stamp(table, rows);
     const r = await fetch(`${this.url}/rest/v1/${table}`, {
       method: 'POST',
       headers: this.headers({ Prefer: 'return=representation' }),
@@ -99,8 +128,12 @@ class LinkedDb {
     return r.json();
   }
   async update(table, filters, patch) {
+    // A PATCH filtered by primary key crosses brands as freely as a SELECT.
+    const ws = await this._scope(table);
+    if (ws === null) throw new Error(`linked-db update ${table} refused: no workspace resolved, so the patch could land on another brand's row`);
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) qs.append(k, v);
+    if (ws) qs.append('workspace_id', `eq.${ws}`);
     const r = await fetch(`${this.url}/rest/v1/${table}?${qs}`, {
       method: 'PATCH',
       headers: this.headers({ Prefer: 'return=representation' }),
@@ -110,8 +143,11 @@ class LinkedDb {
     return r.json();
   }
   async remove(table, filters) {
+    const ws = await this._scope(table);
+    if (ws === null) throw new Error(`linked-db delete ${table} refused: no workspace resolved, so the delete could remove another brand's row`);
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) qs.append(k, v);
+    if (ws) qs.append('workspace_id', `eq.${ws}`);
     const r = await fetch(`${this.url}/rest/v1/${table}?${qs}`, { method: 'DELETE', headers: this.headers() });
     if (!r.ok) throw new Error(`linked-db delete ${table}: ${r.status}`);
     return true;

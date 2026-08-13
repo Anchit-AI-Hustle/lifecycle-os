@@ -4,23 +4,41 @@ Lifecycle OS — Data Analysis + Ads Analytics (Streamlit in Snowflake).
 Runs NATIVELY inside Snowflake. Authentication and warehouse come from the
 logged-in Snowflake session via get_active_session() — no external keys, no PAT,
 no Supabase. Every figure is read directly (read-only) from the warehouse tables
-the Daton / Maplemonk pipelines already load. Charts use Altair (not Plotly).
+the deployment's own ad pipelines load. Charts use Altair (not Plotly).
 
 Two sections, matching the web app's two dashboards so the SAME analysis renders
-on both surfaces (parity comes from ONE source of truth — these Snowflake tables +
-the ONE metric catalog below, mirrored field-for-field from the web app's
+on both surfaces (parity comes from ONE source of truth — the resolved Snowflake
+tables + the ONE metric catalog below, mirrored field-for-field from the web app's
 api/_shared/ad-metrics-catalog.js so a metric is defined once and computed
 identically everywhere):
 
-  • Data Analysis  — source/connector status, portfolio KPIs, budget pacing vs
-    the Target $1,000/day & Costco $300/day caps, the full metric catalog
-    (definition + formula per metric) and a live accuracy calculator.
+  • Data Analysis  — source/connector status, portfolio KPIs, budget pacing, the
+    full metric catalog (definition + formula per metric) and a live accuracy
+    calculator.
   • Ads Analytics  — Meta / Google / TikTok, per campaign and per ad, plus
-    demographic / geo / device cohorts for the Costco + Target US accounts.
+    demographic / geo / device cohorts for whichever ad accounts the connected
+    warehouse actually contains.
+
+NOTHING ABOUT THE BUSINESS IS HARDCODED HERE. Earlier revisions of this file
+named a specific database, a specific set of pipeline tables and a specific pair
+of retail ad accounts with their daily budgets. Those were inherited from the
+repo this one was copied from, so every deployment of this app shipped one
+company's warehouse schema and another company's ad accounts. Now:
+
+  • table names resolve from the environment first, then by DISCOVERY against
+    INFORMATION_SCHEMA in the session's current database (see resolve_sources);
+  • the account list is READ FROM THE DATA (select distinct account_name), never
+    declared, so the filter can only ever offer accounts that exist;
+  • budget caps come from ADS_DAILY_BUDGET_CAPS and default to none, so an
+    unconfigured deployment shows "[DATA REQUIRED BEFORE LAUNCH: daily budget
+    cap]" instead of pacing this brand's spend against someone else's ceiling.
 
 Deploy: snowflake/streamlit/deploy.sql (CREATE STREAMLIT ...). Snowflake mints
 the app URL when the Streamlit object is created in the account.
 """
+
+import json
+import os
 
 import altair as alt
 import pandas as pd
@@ -30,26 +48,103 @@ from snowflake.snowpark.context import get_active_session
 # ── Session (always) ─────────────────────────────────────────────────────────
 session = get_active_session()
 
-st.set_page_config(page_title="KNICKGASM Analytics", layout="wide")
+st.set_page_config(page_title="Lifecycle OS Analytics", layout="wide")
 
-# Brand palette (docs/CLAUDE.md — the only four colours)
+# Brand palette (CLAUDE.md Brand Constants — the only four colours)
 GREEN, LAVA, INK, CHALK = "#D0473E", "#6A33D8", "#111111", "#FFFFFF"
 
-# ── Source tables (verified live against the warehouse) ──────────────────────
-META_ADS = "KNICKGASM_DB.MAPLEMONK.META_USA_ADS_INSIGHTS"
-META_AGE_GENDER = "KNICKGASM_DB.MAPLEMONK1.META_USA_ADS_INSIGHTS_AGE_AND_GENDER"
-META_DEVICE = "KNICKGASM_DB.MAPLEMONK1.META_USA_ADS_INSIGHTS_PLATFORM_AND_DEVICE"
-TIKTOK = {
-    "campaign": "DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY",
-    "adgroup": "DATON.RAW.TIKTOK_ADS_USA_ADGROUP_REPORT_DAILY",
-    "ad": "DATON.RAW.TIKTOK_ADS_USA_AD_REPORT_DAILY",
-    "age_gender": "DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY_AGE_GENDER",
-    "country": "DATON.RAW.TIKTOK_ADS_USA_CAMPAIGN_REPORT_DAILY_COUNTRY",
-}
-GOOGLE_ADS = "KNICKGASM_DB.MAPLEMONK.GOOGLE_ADS_USA"
+MISSING = "[DATA REQUIRED BEFORE LAUNCH: {what}]"
 
-# Daily budget caps (USD). Reference/alerting only — nothing is ever written back.
-BUDGETS = {"target": 1000, "costco": 300}
+
+# ── Source resolution ────────────────────────────────────────────────────────
+# Each source is (env var, discovery pattern). The pattern is matched against
+# INFORMATION_SCHEMA.TABLES in the session's CURRENT database, so discovery
+# describes the warehouse the app is actually running in. A source that resolves
+# to None is reported as missing and never queried.
+SOURCE_SPEC = {
+    "meta_ads": ("SF_META_ADS_TABLE", "%META%ADS%INSIGHTS%"),
+    "meta_age_gender": ("SF_META_AGE_GENDER_TABLE", "%META%AGE%GENDER%"),
+    "meta_device": ("SF_META_DEVICE_TABLE", "%META%PLATFORM%DEVICE%"),
+    "google_ads": ("SF_GOOGLE_ADS_TABLE", "%GOOGLE_ADS%"),
+    "tiktok_campaign": ("SF_TIKTOK_CAMPAIGN_TABLE", "%TIKTOK%CAMPAIGN%REPORT%"),
+    "tiktok_adgroup": ("SF_TIKTOK_ADGROUP_TABLE", "%TIKTOK%ADGROUP%REPORT%"),
+    "tiktok_ad": ("SF_TIKTOK_AD_TABLE", "%TIKTOK%AD_REPORT%"),
+    "tiktok_age_gender": ("SF_TIKTOK_AGE_GENDER_TABLE", "%TIKTOK%AGE_GENDER%"),
+    "tiktok_country": ("SF_TIKTOK_COUNTRY_TABLE", "%TIKTOK%COUNTRY%"),
+}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def resolve_sources() -> dict:
+    """Resolve every source to a fully-qualified table name, or to None.
+
+    Order: explicit env override, then the first INFORMATION_SCHEMA match in the
+    current database. Discovery is deliberately conservative — the first match by
+    name, reported back to the operator in the Sources tab so a wrong guess is
+    visible rather than silent.
+    """
+    resolved = {key: (os.environ.get(env) or "").strip() or None for key, (env, _) in SOURCE_SPEC.items()}
+    if all(resolved.values()):
+        return resolved
+
+    try:
+        cat = session.sql(
+            "select table_catalog, table_schema, table_name "
+            "from information_schema.tables "
+            "where table_type in ('BASE TABLE','VIEW')"
+        ).to_pandas()
+        cat.columns = [c.lower() for c in cat.columns]
+    except Exception:  # noqa: BLE001 — no catalog access is a legitimate state
+        return resolved
+
+    def match(pattern: str):
+        like = pattern.replace("%", ".*")
+        hit = cat[cat["table_name"].str.upper().str.match(like, na=False)]
+        if hit.empty:
+            return None
+        r = hit.iloc[0]
+        return f'{r["table_catalog"]}.{r["table_schema"]}.{r["table_name"]}'
+
+    for key, (_, pattern) in SOURCE_SPEC.items():
+        if resolved[key] is None:
+            resolved[key] = match(pattern)
+    return resolved
+
+
+SOURCES = resolve_sources()
+META_ADS = SOURCES["meta_ads"]
+META_AGE_GENDER = SOURCES["meta_age_gender"]
+META_DEVICE = SOURCES["meta_device"]
+GOOGLE_ADS = SOURCES["google_ads"]
+TIKTOK = {
+    "campaign": SOURCES["tiktok_campaign"],
+    "adgroup": SOURCES["tiktok_adgroup"],
+    "ad": SOURCES["tiktok_ad"],
+    "age_gender": SOURCES["tiktok_age_gender"],
+    "country": SOURCES["tiktok_country"],
+}
+
+
+def budgets() -> dict:
+    """Daily budget caps (USD) keyed by ad-account name, from
+    ADS_DAILY_BUDGET_CAPS as JSON, e.g. {"brand-dtc-us": 250}.
+
+    Empty by default. A cap is a commercial decision belonging to whoever owns
+    the account; shipping one as a literal would pace every deployment against a
+    number nobody in it agreed to. Reference/alerting only — never written back
+    to any ad platform.
+    """
+    raw = (os.environ.get("ADS_DAILY_BUDGET_CAPS") or "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        return {str(k).lower(): float(v) for k, v in parsed.items()}
+    except (ValueError, TypeError, AttributeError):
+        return {}
+
+
+BUDGETS = budgets()
 
 
 # ── ONE metric catalog — mirrors api/_shared/ad-metrics-catalog.js ────────────
@@ -234,6 +329,8 @@ def pctf(v):
 # campaign_name, ad_name, adset_name, date_start. Video quartiles live in separate
 # child tables (not flattened yet) so hook/hold/through show 'unavailable' until wired.
 def meta_rows(account, level, since, until):
+    if not META_ADS:
+        return pd.DataFrame()
     name_col = "ad_name" if level == "ad" else "campaign_name"
     where = "where 1=1" + acct_clause("account_name", account) + date_clause("date_start", since, until)
     sql = f"""
@@ -256,8 +353,11 @@ def meta_rows(account, level, since, until):
 
 
 def generic_rows(table):
-    """Google / TikTok: recent rows with whatever columns exist. Daton/Maplemonk
-    schemas vary, so pull recent rows rather than assume a date/account column."""
+    """Google / TikTok: recent rows with whatever columns exist. Pipeline schemas
+    vary by vendor, so pull recent rows rather than assume a date/account column."""
+    if not table:
+        st.info(MISSING.format(what="source table for this platform"))
+        return pd.DataFrame()
     try:
         return q(f"select * from {table} limit 500")
     except Exception as e:  # noqa: BLE001
@@ -265,23 +365,50 @@ def generic_rows(table):
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def known_accounts() -> list:
+    """Ad accounts present in the Meta source, read from the data itself.
+
+    The filter must never offer an account that is not in this warehouse: a
+    hardcoded list is how one deployment ends up naming another deployment's
+    advertisers. No source, or no account_name column, means no filter.
+    """
+    if not META_ADS:
+        return []
+    try:
+        df = q(
+            f"select distinct account_name as account from {META_ADS} "
+            "where account_name is not null order by 1"
+        )
+    except Exception:  # noqa: BLE001
+        return []
+    return [str(a) for a in df["account"].dropna().tolist()]
+
+
 # ── Sidebar: section + shared filters ────────────────────────────────────────
-st.sidebar.title("KNICKGASM · Analytics")
+st.sidebar.title("Lifecycle OS · Analytics")
 section = st.sidebar.radio("Section", ["Data Analysis", "Ads Analytics"])
 st.sidebar.markdown("---")
 platform = st.sidebar.selectbox("Platform", ["Meta", "Google", "TikTok"])
-account = st.sidebar.selectbox("Account", ["All", "target", "costco"])
+accounts = known_accounts()
+account = st.sidebar.selectbox("Account", ["All"] + accounts)
 account = "" if account == "All" else account
+if not accounts:
+    st.sidebar.caption("No ad accounts found in the connected warehouse — showing every row.")
 level = st.sidebar.selectbox("Level", ["campaign", "ad"])
 today = pd.Timestamp.utcnow().normalize()
 since = st.sidebar.date_input("Since", (today - pd.Timedelta(days=30)).date())
 until = st.sidebar.date_input("Until", today.date())
 window_days = max(1, (pd.Timestamp(until) - pd.Timestamp(since)).days + 1)
 st.sidebar.markdown("---")
-st.sidebar.caption(
-    f"Daily budget caps (reference): Target ${BUDGETS['target']:,} · "
-    f"Costco ${BUDGETS['costco']:,}. Read-only — never written back to any platform."
-)
+if BUDGETS:
+    caps = " · ".join(f"{k} ${v:,.0f}" for k, v in BUDGETS.items())
+    st.sidebar.caption(f"Daily budget caps (reference): {caps}. Read-only — never written back to any platform.")
+else:
+    st.sidebar.caption(
+        MISSING.format(what="daily budget caps, per ad account")
+        + " Set ADS_DAILY_BUDGET_CAPS to enable pacing."
+    )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -290,8 +417,8 @@ st.sidebar.caption(
 def render_data_analysis():
     st.title("Data Analysis")
     st.caption(
-        "Portfolio view across the Costco + Target US ad accounts, sourced live "
-        "from Snowflake via the active session. The metric catalog and accuracy "
+        "Portfolio view across every ad account in the connected warehouse, sourced "
+        "live from Snowflake via the active session. The metric catalog and accuracy "
         "calculator are the SAME definitions the web app uses. Read-only; nothing "
         "is fabricated — a metric with no inputs reads 'unavailable', not zero."
     )
@@ -303,28 +430,49 @@ def render_data_analysis():
     # Sources / connector status + budget pacing
     with tab_status:
         st.subheader("Sources (read-only)")
+
+        def _resolved(table, env_key):
+            if table:
+                return table
+            return MISSING.format(what=f"source table; set {env_key} or grant catalog access")
+
         src = pd.DataFrame([
-            {"Platform": "Meta", "Table": META_ADS, "Cohorts": "age/gender, platform/device"},
-            {"Platform": "Meta (age x gender)", "Table": META_AGE_GENDER, "Cohorts": "age, gender"},
-            {"Platform": "Meta (device)", "Table": META_DEVICE, "Cohorts": "device, placement"},
-            {"Platform": "TikTok (campaign)", "Table": TIKTOK["campaign"], "Cohorts": "age/gender, country"},
-            {"Platform": "TikTok (ad)", "Table": TIKTOK["ad"], "Cohorts": "—"},
-            {"Platform": "Google", "Table": GOOGLE_ADS, "Cohorts": "segment tables"},
+            {"Platform": "Meta", "Table": _resolved(META_ADS, "SF_META_ADS_TABLE"), "Cohorts": "age/gender, platform/device"},
+            {"Platform": "Meta (age x gender)", "Table": _resolved(META_AGE_GENDER, "SF_META_AGE_GENDER_TABLE"), "Cohorts": "age, gender"},
+            {"Platform": "Meta (device)", "Table": _resolved(META_DEVICE, "SF_META_DEVICE_TABLE"), "Cohorts": "device, placement"},
+            {"Platform": "TikTok (campaign)", "Table": _resolved(TIKTOK["campaign"], "SF_TIKTOK_CAMPAIGN_TABLE"), "Cohorts": "age/gender, country"},
+            {"Platform": "TikTok (ad)", "Table": _resolved(TIKTOK["ad"], "SF_TIKTOK_AD_TABLE"), "Cohorts": "—"},
+            {"Platform": "Google", "Table": _resolved(GOOGLE_ADS, "SF_GOOGLE_ADS_TABLE"), "Cohorts": "segment tables"},
         ])
         st.dataframe(src, use_container_width=True, hide_index=True)
-        st.caption("Authentication via get_active_session() — no PAT, no keys stored. The session role governs table access.")
+        st.caption(
+            "Resolved from the SF_*_TABLE environment overrides, else discovered in this "
+            "session's current database. Authentication via get_active_session() — no PAT, "
+            "no keys stored. The session role governs table access."
+        )
+        if accounts:
+            st.caption("Ad accounts found in the Meta source: " + ", ".join(accounts))
 
         st.subheader("Budget pacing vs daily caps")
-        try:
-            pace = q(f"""
-                select lower(account_name) as account, sum(spend) as spend, count(distinct date_start) as days
-                from {META_ADS}
-                where 1=1{date_clause('date_start', since, until)}
-                group by lower(account_name) order by spend desc nulls last
-            """)
-        except Exception as e:  # noqa: BLE001
-            pace = pd.DataFrame()
-            st.info(f"Budget pacing unavailable: {e}")
+        if not BUDGETS:
+            st.info(
+                MISSING.format(what="daily budget cap, per ad account")
+                + "  Pacing needs a cap per account. Set ADS_DAILY_BUDGET_CAPS to a JSON "
+                'object, e.g. {"my-us-account": 250}. Spend below is real either way.'
+            )
+        pace = pd.DataFrame()
+        if not META_ADS:
+            st.info(MISSING.format(what="Meta ads source table"))
+        else:
+            try:
+                pace = q(f"""
+                    select lower(account_name) as account, sum(spend) as spend, count(distinct date_start) as days
+                    from {META_ADS}
+                    where 1=1{date_clause('date_start', since, until)}
+                    group by lower(account_name) order by spend desc nulls last
+                """)
+            except Exception as e:  # noqa: BLE001
+                st.info(f"Budget pacing unavailable: {e}")
         if not pace.empty:
             rows = []
             for _, r in pace.iterrows():
@@ -421,8 +569,8 @@ def render_ads_analytics():
     st.title("Ads Analytics")
     st.caption(
         "Live from Snowflake via the active session — Meta / Google / TikTok, per "
-        "campaign and per ad, for the Costco + Target US accounts. Priority metrics "
-        "lead. Read-only; nothing is fabricated."
+        "campaign and per ad, for whichever ad accounts the connected warehouse "
+        "holds. Priority metrics lead. Read-only; nothing is fabricated."
     )
     tab_overview, tab_rows, tab_cohorts = st.tabs(
         ["Overview & priority metrics", "Campaign / ad rows", "Cohorts & segmentation"]
@@ -507,18 +655,24 @@ def render_ads_analytics():
             col1, col2 = st.columns(2)
             with col1:
                 st.markdown("**Age x gender**")
-                ag = q(f"select age, gender, sum(spend) as spend from {META_AGE_GENDER} {where} group by age, gender")
-                if not ag.empty:
-                    ag["cohort"] = ag["age"].astype(str) + " · " + ag["gender"].astype(str)
-                    cohort_chart(ag, "cohort", "Age x gender")
+                if not META_AGE_GENDER:
+                    st.info(MISSING.format(what="Meta age/gender breakdown table"))
+                else:
+                    ag = q(f"select age, gender, sum(spend) as spend from {META_AGE_GENDER} {where} group by age, gender")
+                    if not ag.empty:
+                        ag["cohort"] = ag["age"].astype(str) + " · " + ag["gender"].astype(str)
+                        cohort_chart(ag, "cohort", "Age x gender")
             with col2:
                 st.markdown("**Platform / device**")
-                dv = q(f"select * from {META_DEVICE} {where} limit 5000")
-                dim = next((c for c in ["impression_device", "device_platform", "platform_position", "publisher_platform"] if c in dv.columns), None)
-                if dim:
-                    cohort_chart(dv, dim, "Device / placement")
+                if not META_DEVICE:
+                    st.info(MISSING.format(what="Meta platform/device breakdown table"))
                 else:
-                    st.info("Device/placement dimension column not detected.")
+                    dv = q(f"select * from {META_DEVICE} {where} limit 5000")
+                    dim = next((c for c in ["impression_device", "device_platform", "platform_position", "publisher_platform"] if c in dv.columns), None)
+                    if dim:
+                        cohort_chart(dv, dim, "Device / placement")
+                    else:
+                        st.info("Device/placement dimension column not detected.")
         elif platform == "TikTok":
             col1, col2 = st.columns(2)
             with col1:
@@ -548,4 +702,7 @@ else:
     render_ads_analytics()
 
 st.markdown("---")
-st.caption("Source: Snowflake (Daton / Maplemonk) via get_active_session · read-only · Altair charts · one metric catalog shared with the web app.")
+st.caption(
+    "Source: this account's Snowflake warehouse via get_active_session · read-only · "
+    "Altair charts · one metric catalog shared with the web app."
+)

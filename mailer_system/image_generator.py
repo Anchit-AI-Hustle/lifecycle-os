@@ -48,48 +48,57 @@ SECTION_SPECS = {
 }
 
 # ── Base brand photography prompt ───────────────────────────────────────────
+#
+# The style and the campaign modifiers below were inherited from the sibling repo
+# this engine was copied from and described that company's product: a heritage
+# consumable, shot as a morning ritual, with steam, kitchen tables, terroir and
+# hand-picking at golden hour. The brand word was swapped; the imagery was not.
+# What KNICKGASM actually makes is a hand-painted one-of-one on a 100% original
+# sneaker, so the subject is the pair, the artwork and the bench.
 BASE_STYLE = (
-    "Ultra-premium Indian heritage sneaker brand editorial photography. "
-    "Luxury lifestyle aesthetic for discerning Western consumers. "
-    "Cinematic studio lighting — warm amber key, cool deep-purple fill. "
-    "Shot on Phase One medium format. "
-    "Visual language of Condé Nast Traveler, Monocle, and Kinfolk magazine. "
-    "Color palette: deep deep purple #D0473E, warm amber #6A33D8, chalk #FFFFFF. "
+    "Editorial product photography for a hand-painted custom sneaker brand. "
+    "Street-culture energy, bold and confident, never clinical or corporate. "
+    "Cinematic studio lighting — warm key, cool fill, crisp specular on the leather. "
+    "Shot on medium format. "
+    "Colour palette: brand red #D0473E, violet #6A33D8, white #FFFFFF, ink #111111. "
     "Photorealistic. 8K resolution. Studio grade. "
-    "No text overlays. No logos. No watermarks. No people unless specified. "
+    "The sneaker is a real, unmodified branded silhouette with the artwork painted on it. "
+    "No text overlays. No logos beyond the sneaker's own. No watermarks. "
+    "No people unless specified. "
     "Rule of thirds composition. Shallow depth of field. "
 )
 
 CAMPAIGN_MODIFIERS = {
     "win_back_vip": (
-        "Evoke nostalgia and returning warmth. "
-        "A beloved ritual rediscovered. "
-        "Intimate, personal, handcrafted feeling."
+        "A grail pulled back into the rotation. "
+        "Intimate, personal, unmistakably handmade. "
+        "The pair on a plain surface, artwork catching the light."
     ),
     "post_purchase_series": (
-        "Morning ritual aesthetic. "
-        "Calm, mindful, the first quiet moment of the day. "
-        "Soft morning light, steam rising from a pair."
+        "The pair being worn, not displayed. "
+        "Street-level, natural light, real wear on real ground. "
+        "Confident and lived-in."
     ),
     "subscription_conversion": (
-        "Sense of daily belonging and routine. "
-        "A curated collection, always ready. "
-        "Abundance without excess."
+        "A rack of one-of-ones, no two alike. "
+        "A collection built up over time. "
+        "Range without repetition."
     ),
     "cart_recovery": (
-        "The product waiting to be claimed. "
-        "Close-up of the sealed, beautifully packaged sneaker. "
+        "The pair waiting to be claimed. "
+        "Close-up of the boxed sneaker, laces and lace tags alongside. "
         "Anticipatory tension, premium unboxing energy."
     ),
     "re_engagement": (
         "A gentle invitation back. "
-        "Warm familiar kitchen table, a single perfect pair. "
+        "One perfect pair, clean backdrop, plenty of air around it. "
         "Welcoming, not urgent."
     ),
     "geo_upsell": (
-        "Heritage and origin story. "
-        "Rolling Jordan or Airforce sneaker studios at golden hour. "
-        "Hand-picking, terroir, authentic sourcing."
+        "Craft and origin. "
+        "The Mumbai studio bench at work: brush on the panel, airbrush mid-gradient, "
+        "paint pots and masking tape in frame. "
+        "Made by hand, one pair at a time."
     ),
 }
 
@@ -236,7 +245,9 @@ def generate_campaign_images(
     Returns dict keyed by section name.
     """
     sections = api_response.get("response", {}).get("sections", {})
-    product = brief.get("product", "Jordan First Flush")
+    # No fallback product name: naming one here would put an unsourced product
+    # into the image prompt. The brief is the only place a product may come from.
+    product = brief.get("product") or "[DATA REQUIRED BEFORE LAUNCH: product, from the live catalog]"
     images = {}
 
     for section in ["hero", "product"]:
@@ -258,10 +269,10 @@ def generate_campaign_images(
 if __name__ == "__main__":
     # Smoke test
     test_result = generate_section_image(
-        image_suggestion="Mist-covered Jordan hills at dawn, hand-picking first flush leaves",
+        image_suggestion="Artist hand-painting the panel of an original Air Force 1 at the studio bench",
         campaign_type="win_back_vip",
         section="hero",
-        product="Jordan First Flush",
+        product="Spiderman x Nike Air Force 1",   # a real title from the live US catalog
         campaign_timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
     )
     print(json.dumps({k: v for k, v in test_result.items() if k != "base64"}, indent=2))
