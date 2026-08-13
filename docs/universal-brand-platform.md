@@ -140,6 +140,87 @@ unresolved rather than dropped.
 Budgets fit one 120s invocation: crawl 35s + assets 20s + one model call 25s, each reported in
 `notes` when it runs out.
 
+### The brand context pack — one durable record per brand
+
+`op=extract` is a one-shot report the operator looks at once and loses. The **context pack**
+(`api/_shared/brand-context-pack.js`, table `brand_context_packs`) is the durable version, built once
+per brand from that brand's own URL and kept as its standing context:
+
+| Part | What it is |
+|---|---|
+| `design_md` | a **DESIGN.md**, in the open [google-labs-code/design.md](https://github.com/google-labs-code/design.md) format (Apache-2.0, version `alpha`) |
+| `knowledge` | every page of the brand's OWN site, filed into `kb_knowledge`, workspace-scoped, with its source URL |
+| `catalog` | through the existing `importCatalog` path — a pack never grows a second product store |
+| `repos` | a GitHub repository search, with the **reachability** of that search recorded |
+
+**Keyed to the URL AND the name.** `brand_key` is `<host>|<folded name>`, unique per workspace. So
+re-running for the same brand UPDATES its pack; two workspaces whose brands share a name cannot
+collide; and moving domain or renaming starts a NEW pack rather than overwriting a report about a
+different site. A pack is a dated statement about one site, and overwriting it would destroy the
+provenance that makes every value in it checkable. A pack found under an old key is served with
+`current: false` and a note, never silently as the current one.
+
+**DESIGN.md is not a shape we invented.** Conforming means the official CLI (`npx @google/design.md`)
+lints our output and exports it to Tailwind or W3C DTCG, and every agent that already reads a
+DESIGN.md reads ours. Front matter: `version`, `name` (required), `description`, `omitted`, `colors`,
+`typography`, `rounded`, `spacing`. Body sections in the spec's order — Overview, Colors, Typography,
+Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts — each emitted exactly once, because a
+duplicate heading rejects the whole file. Each token carries the page it was read from as a trailing
+YAML comment, which keeps provenance inside a format that has no field for it.
+
+**The spec's `omitted` key is our zero-fabrication rule.** A section the site did not publish is
+declared `omitted` *with a reason* rather than filled with a plausible value, so the file is valid
+against a third-party linter **and** honest by our own standard. The `[DATA REQUIRED BEFORE LAUNCH: …]`
+markers stay in the prose and in `markers[]` for the rest of this pipeline.
+
+**Getting the colour schema right is the load-bearing part.** The mapping is by SIGNAL, never by
+frequency: our `identity` signal becomes the spec's `primary` and nothing else ever does; our `action`
+signal becomes `secondary` **only when it genuinely differs**, and when it does, that disagreement is
+the brand-vs-CTA conflict and is surfaced rather than collapsed. With no identity signal there is no
+`primary`, the spec requires one, so the whole `colors` section is `omitted` with the reason — a
+frequency-ranked support colour is never promoted. Text tokens (`primary-text`, `secondary-text`,
+`neutral`) are the **contrast-adjusted** values from `readableAsText()` measured against the worst-case
+surface, using the same `TEXT_AA` constant the live shell's tokens are built from; `primary` and
+`secondary` stay raw because they are fills. Every adjustment is printed with its before/after ratio.
+
+**A stated limit:** a browser extension that reads a live page's COMPUTED CSS (`design-md-chrome`) is
+strictly more accurate — it resolves the cascade and sees runtime themes. Vercel serverless cannot run
+a browser, so this is a stylesheet parse, and that is said in `limits[]` and in the Overview prose so a
+thin section reads as "not observable by this method" rather than "the brand has none".
+
+**Knowledge is stored VERBATIM.** Each page keeps its own declared description and its own headings,
+unparaphrased; a page with no description gets a marker instead of a written summary. No LLM runs over
+the brand's own copy, because a paraphrase of a brand fact is a new brand fact nobody approved — and
+because an LLM call per page could not finish a whole-site ingest in any number of invocations. It
+also skips `ingest-guardrail.js`, whose lexicon is tenant zero's industry and which would drop a
+publisher's own homepage as off-context.
+
+**GitHub degrades honestly.** Three outcomes are kept apart: `searched:false` (could not reach GitHub
+— *not* a finding), searched with nothing verified, and searched with verified repositories. A
+repository is only ever the brand's on evidence INDEPENDENT of its name — the brand's own site links
+to that GitHub owner, or the repo's `homepage` is on the brand's domain. A name match is recorded as
+`unverified` and never counted, because a name match is routinely a tutorial or a clone. The pack also
+looks for an already-published DESIGN.md, separating the brand's OWN (authoritative — prefer it over
+anything derived) from a community library's (a third party's reading, recorded but never brand truth).
+
+**User data wins, structurally.** `brand_field_provenance` records the origin of every brand field.
+The ONLY door an automatic value may come through is the `brand_context_apply()` SQL function, which
+refuses any field whose provenance says `user` — inside the database, not in call order. The other
+half is `brand_fields_claim_user()`, called by `saveWorkspace()` with exactly the fields the operator's
+save carried. A direct PostgREST update is still allowed and is correct: a direct write is a USER
+write, and a user write is allowed to win. `voice.banned` can never be machine-filled at all. The
+catalogue gets the same treatment under the pseudo-field `catalog`.
+
+**Long work is a queue.** The pack ROW is the queue: `stage` advances one step per call, `queue_state`
+carries the resumable cursor, and the worker re-fires itself until it idles at `stage='done'` — the
+same convergent pattern as `smart-brain-plan.js prebuildAssets()`. `catalog` runs first because it is
+the only stage needing the operator's own token. Without `SUPABASE_SERVICE_ROLE_KEY` there is no
+background chain and the response says `next_step_required`, so the client drives the queue instead.
+
+Ops: `context-build` · `context-step` (CRON_SECRET) · `context-pack` · `context-design` (`&format=md`
+downloads the file) · `context-list` · `context-apply`. Also drivable from the KB router as
+`/api/kb?action=ingest-site`.
+
 ### Catalog import
 Three routes, all operator-supplied:
 - **Storefront** — GETs `{store}/products.json` (Shopify and compatible), read-only, no credentials.
@@ -160,7 +241,8 @@ Three routes, all operator-supplied:
 `/api/brand` → `/api/public-config?action=brand&op=…`
 
 `defaults` · `presets` · `list` · `active` · `get` · `save` · `activate` · `delete` ·
-`catalog-import` · `catalog` · `readiness` · `validate-palette` · `extract`
+`catalog-import` · `catalog` · `readiness` · `validate-palette` · `extract` ·
+`context-build` · `context-step` · `context-pack` · `context-design` · `context-list` · `context-apply`
 
 Reads and writes go through PostgREST **with the caller's JWT**, so the RLS policies in
 `supabase/migrations/20260809120000_brand_workspaces.sql` are the authority. Unlike the older
@@ -427,7 +509,10 @@ All logic lives under `api/_shared/`, which Vercel excludes from the count. Frie
 | `supabase/migrations/20260809140000_telesuite.sql` | TeleSuite items + runs |
 | `api/_shared/brand-workspace-core.js` | brand CRUD, palette validation, catalog import, readiness, tokens |
 | `api/_shared/brand-extract.js` | **read the whole brand off its own site** — candidates with sources, never a guess |
-| `api/_shared/site-crawl.js` | the one crawler both the catalogue import and the brand extraction ride on |
+| `api/_shared/brand-context-pack.js` | **the per-brand context pack** — DESIGN.md, own-site knowledge, catalogue, GitHub |
+| `api/_shared/kb-url.js` | the ONE definition of a knowledge row's identity, so the two writers cannot drift |
+| `supabase/migrations/20260814100000_brand_context_packs.sql` | the pack, the field provenance, and the SQL that refuses to overwrite a user's field |
+| `api/_shared/site-crawl.js` | the one crawler the catalogue import, the brand extraction and the pack all ride on |
 | `api/_shared/credit-catalog.js` | **what every feature costs** |
 | `api/_shared/credits-core.js` | the meter: hold / settle / release / grant / usage |
 | `api/_shared/telesuite-core.js` | TeleSuite registry + every operation |
