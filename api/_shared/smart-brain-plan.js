@@ -34,7 +34,7 @@ let sync = null; try { sync = require('./sync-core.js'); } catch (_) { sync = nu
 let facts = null; try { facts = require('./brand-facts.js'); } catch (_) { facts = null; }
 // The brand's OWN testimonials, read verbatim off its OWN site (never written by
 // a model) with their images re-hosted in Supabase Storage. This is what fills
-// the proof slot the fabricated `4.9 / 250,000+ / "first name, initial"` seed
+// the proof slot the fabricated rating / review-count / reviewer-name seed
 // used to fill. Optional require: with the module absent, proof is simply empty
 // and every renderer prints the [DATA REQUIRED BEFORE LAUNCH] marker instead.
 let brandReviews = null; try { brandReviews = require('./brand-reviews.js'); } catch (_) { brandReviews = null; }
@@ -902,10 +902,12 @@ async function strategyBrief(entry) {
  * WHO this send is for, in the ACTIVE brand's own terms.
  *
  * This block used to be a hardcoded persona inherited from the sibling project
- * this repo was forked from — "P01 (women 45+/busy mums: calmer mornings,
- * steady energy, feeling like myself again)" — and it art-directed the ad
- * imagery for EVERY tenant. A news publisher, a fashion label and a consumer
- * tech brand all had their creatives composed for another company's customer.
+ * this repo was forked from: a named play id, a demographic, a life stage and
+ * three feelings, all describing THAT company's customer. It art-directed the ad
+ * imagery for EVERY tenant, so a news publisher, a fashion label and a consumer
+ * tech brand all had their creatives composed for a stranger's buyer. (The
+ * literal string is not repeated here - tests/smart-brain-assets.spec.js holds
+ * it in fragments, so this file cannot become the place it survives.)
  *
  * The audience now comes from the two places that actually know it:
  *   1. the SLOT'S COHORT, which is a behavioural segment computed from THIS
@@ -935,10 +937,10 @@ function audienceBrief(entry) {
 /**
  * The proof this send is ALLOWED to make.
  *
- * The JSON shape below used to hand the model `"rating": {"value": 4.9,
- * "count": "250,000+"}`, a review object templated down to `"author": "first
- * name, initial"`, and `"badges": ["Original-pair verified","Climate
- * Neutral"]`. Seeding a shape with values IS an instruction to produce values:
+ * The JSON shape below used to arrive pre-filled: a specific star rating, a
+ * specific review count, a review object templated down to the FORM of a
+ * reviewer's name, and two example certification badges. Seeding a shape with
+ * values IS an instruction to produce values:
  * the model has no approved library to draw from, so it invents a rating, a
  * reviewer and a certification the brand does not hold. `mailer_system/
  * brand_prompt.py` had the identical defect and was fixed the same way.

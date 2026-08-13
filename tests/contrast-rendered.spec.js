@@ -183,7 +183,12 @@ for (const p of PAGES) {
     // page where the brand never paints is itself worth failing on.
     await page.waitForFunction(
       () => document.documentElement.style.getPropertyValue('--brand-primary').trim() !== '',
-      null, { timeout: 20000 },
+      // 30s, not 20s: this competes with three other workers, and the heaviest
+      // page here is ~78KB of inline script plus its extensions. It timed out
+      // once in three full-suite runs and passed alone every time - a flake
+      // that reddens CI at random is worth the extra ten seconds, and the test
+      // budget is 60s so there is room.
+      null, { timeout: 30000 },
     );
     await page.waitForTimeout(400);
 
