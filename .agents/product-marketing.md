@@ -3,7 +3,7 @@
 > Read by every marketing skill before it writes anything. This file describes
 > the ACTIVE brand of the Lifecycle OS workspace this repo runs. The platform
 > is multi-tenant: if the task names a different brand (The Times of India,
-> Times Health+, The Economic Times, Apple, VAHDAM…), IGNORE the brand facts
+> Times Health+, The Economic Times, Apple…), IGNORE the brand facts
 > below and pull that brand's record instead — `data/brands/presets/<slug>.json`
 > or the `brand_workspaces` row. Never mix one brand's facts, vocabulary,
 > catalogue or claims into another brand's output. A missing fact is written as
