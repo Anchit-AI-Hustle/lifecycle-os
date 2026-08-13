@@ -19,8 +19,7 @@ const OfferingCampaign = require('./offering-campaign.js');
 const llm = require('../_shared/llm.js');
 const { buildMasterPrompt } = require('../_shared/master-prompt.js');
 const CF = require('../_shared/copy-frameworks.js');
-const fs = require('fs');
-const path = require('path');
+const catalogServer = require('./brand-catalog-server.js');
 
 // ─── Brand-derived identity for every rendered mailer ─────────────────────────
 // This renderer is shared by the Smart Brain variants, so nothing in it may be
@@ -60,21 +59,18 @@ function slugify(s) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-// Best-effort SKU→handle lookup from the built catalog (data/catalog/products_<region>.json).
-const _catalogCache = {};
-function lookupHandle(market, sku) {
+// Best-effort SKU -> handle lookup in THIS BRAND'S catalogue.
+//
+// It used to read data/catalog/products_<region>.json off disk, which is tenant
+// zero's catalogue - so a SKU from any other brand could resolve to one of this
+// tenant's handles and the CTA would point at a stranger's product page. The
+// region names were wrong too ('usa'/'uk'/'global' against files actually built
+// as products_us/uk/global.json), so the US branch silently never matched.
+function lookupHandle(market, sku, brand) {
   if (!sku) return null;
-  const region = ({ US: 'usa', UK: 'uk' })[String(market || '').toUpperCase()] || 'global';
-  if (!(region in _catalogCache)) {
-    _catalogCache[region] = null;
-    try {
-      const p = path.join(__dirname, '..', '..', 'data', 'catalog', `products_${region}.json`);
-      if (fs.existsSync(p)) _catalogCache[region] = JSON.parse(fs.readFileSync(p, 'utf8'));
-    } catch { /* ignore */ }
-  }
-  const cat = _catalogCache[region];
-  if (!Array.isArray(cat)) return null;
-  const hit = cat.find((p) => (p.sku || p.variant_sku) === sku || p.s === sku);
+  const rows = catalogServer.productsFor(market, { brand: brand || null }).products;
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const hit = rows.find((p) => (p.sku || p.variant_sku) === sku || p.s === sku);
   return hit ? (hit.h || hit.handle || null) : null;
 }
 
@@ -96,7 +92,7 @@ function collectionForEntry(entry) {
 function ctaUrlForEntry(entry, market) {
   const base = regionBase(market);
   // 1. Precise product page if we know the handle (or can resolve it from the SKU).
-  const handle = entry.hero_handle || lookupHandle(market, entry.hero_sku);
+  const handle = entry.hero_handle || lookupHandle(market, entry.hero_sku, entry.brand);
   if (handle) return `${base}/products/${handle}`;
   // 2. Otherwise the relevant collection page.
   const slug = collectionForEntry(entry);
@@ -505,24 +501,26 @@ const ORG_ADDRESS_FALLBACK = '[DATA REQUIRED BEFORE LAUNCH: sender postal addres
 // source the flagship mailer uses, so a product tile never renders imageless.
 let _catImg = null;
 try { _catImg = require('./catalog-image.js'); } catch (_) {}
-function _productImg(p, market) {
+function _productImg(p, market, brand) {
   if (!p) return null;
   const hd = (u) => (_catImg && _catImg.hd ? (_catImg.hd(u, 600) || u) : u);
   const d = p.image || p.image_url || p.i;
   if (typeof d === 'string' && /^https?:\/\//.test(d)) return hd(d);
   if (_catImg && _catImg.imageFor) {
-    return _catImg.imageFor({ handle: p.handle || p.h, title: p.title || p.n }, market, { width: 600 }) || null;
+    // Brand-scoped: the shipped catalogue is tenant zero's, so another brand's
+    // tile renders image-free rather than showing a foreign product photo.
+    return _catImg.imageFor({ handle: p.handle || p.h, title: p.title || p.n }, market, { width: 600, brand }) || null;
   }
   return null;
 }
 // Real per-product copy pulled from the catalog (the same content the PDP
 // carries): a short subtitle or design-note line. Used to enrich grid cards so
 // each section shows genuine product content, never invented blurbs.
-function _productNote(p, market) {
+function _productNote(p, market, brand) {
   if (!p) return '';
   let s = p.note || p.subtitle || p.tasting_notes || '';
   if (!s && _catImg && _catImg.match) {
-    const row = _catImg.match({ handle: p.handle || p.h, title: p.title || p.n }, market);
+    const row = _catImg.match({ handle: p.handle || p.h, title: p.title || p.n }, market, { brand });
     if (row) s = row.subtitle || row.tasting_notes || '';
   }
   return s ? String(s) : '';
@@ -574,8 +572,8 @@ function _renderVariantBody(o) {
       <tr><td style="padding:16px 20px 4px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
         ${gridProducts.map((p) => {
-    const img = _productImg(p, market);
-    const note = _productNote(p, market);
+    const img = _productImg(p, market, o && o.brand);
+    const note = _productNote(p, market, o && o.brand);
     const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl);
     const price = (p.price != null && p.price !== '') ? `${cur}${p.price}` : '';
     return `<td align="center" valign="top" style="width:33%;padding:8px;">

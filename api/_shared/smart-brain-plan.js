@@ -162,7 +162,11 @@ const OfferingCampaign = require('./offering-campaign.js');
 const { buildEntryAnalysis } = require('./output-reasoning.js');
 // Guaranteed-online fallback: a real catalog product photo (Shopify CDN) so a
 // creative never ships an unrenderable data: URI when generation/upload fails.
+// Scoped to the slot's OWN workspace by brand-catalog-server: the shipped
+// catalogue belongs to tenant zero, so no other brand's mailer may resolve a
+// hero image out of it.
 const catalogImage = require('./catalog-image.js');
+const catalogServer = require('./brand-catalog-server.js');
 let reviewRecovery = null;
 try { reviewRecovery = require('./review-recovery.js'); } catch (_) { reviewRecovery = null; }
 // Shared mailer renderer, the SAME one the Mailer Studio / Mailer Calendar use,
@@ -888,6 +892,93 @@ async function strategyBrief(entry) {
   } catch (_) { return null; }
 }
 
+/**
+ * WHO this send is for, in the ACTIVE brand's own terms.
+ *
+ * This block used to be a hardcoded persona inherited from the sibling project
+ * this repo was forked from — "P01 (women 45+/busy mums: calmer mornings,
+ * steady energy, feeling like myself again)" — and it art-directed the ad
+ * imagery for EVERY tenant. A news publisher, a fashion label and a consumer
+ * tech brand all had their creatives composed for another company's customer.
+ *
+ * The audience now comes from the two places that actually know it:
+ *   1. the SLOT'S COHORT, which is a behavioural segment computed from THIS
+ *      brand's own order/engagement data (name + the rules that define it), and
+ *   2. an audience the operator stated on the BRAND RECORD, if there is one.
+ * When neither states a persona the brief SAYS SO with the spec's marker and
+ * forbids inventing one, rather than substituting a demographic. A guessed
+ * persona is a fabricated fact about the brand's customers.
+ */
+function audienceBrief(entry) {
+  const b = (entry && entry.brand) || null;
+  const bName = (b && b.name) || 'this brand';
+  const c = (entry && entry.cohort) || {};
+  const lines = [];
+  if (c.name) {
+    const rules = Array.isArray(c.rules) ? c.rules.filter(Boolean) : [];
+    lines.push(`- Audience, as a COHORT from ${bName}'s own data: ${c.name}${rules.length ? ` (defined as: ${rules.join('; ')})` : ''}. This is a behavioural definition, not a demographic one.`);
+  }
+  const stated = (b && (b.audience || (b.voice && b.voice.audience))) || null;
+  const statedText = Array.isArray(stated) ? stated.filter(Boolean).join('; ') : (stated ? String(stated).trim() : '');
+  if (statedText) lines.push(`- Audience stated on ${bName}'s own brand record: ${statedText}.`);
+  else lines.push(`- ${bName}'s brand record states no persona. [DATA REQUIRED BEFORE LAUNCH: audience / persona definition, ${bName}]`);
+  lines.push(`- Do NOT assume an age, gender, life stage, occupation, family role or daily routine for this audience, and do not write one into the copy or the image_brief. Work from ${bName}'s own offering, its category (${(b && b.industry) || 'category not stated on the brand record'}) and the cohort behaviour above, and nothing else.`);
+  return lines.join('\n');
+}
+
+/**
+ * The proof this send is ALLOWED to make.
+ *
+ * The JSON shape below used to hand the model `"rating": {"value": 4.9,
+ * "count": "250,000+"}`, a review object templated down to `"author": "first
+ * name, initial"`, and `"badges": ["Original-pair verified","Climate
+ * Neutral"]`. Seeding a shape with values IS an instruction to produce values:
+ * the model has no approved library to draw from, so it invents a rating, a
+ * reviewer and a certification the brand does not hold. `mailer_system/
+ * brand_prompt.py` had the identical defect and was fixed the same way.
+ *
+ * Proof now travels INTO the prompt from the approved library only, and when
+ * the library is empty for this product/region the prompt says so and requires
+ * the fields to come back empty. `brand-facts.js` is the library; the brand
+ * record's own verifiable `claims` are the only badge source.
+ */
+function approvedProof(entry) {
+  const b = (entry && entry.brand) || null;
+  const key = (entry && entry.heroProduct && (entry.heroProduct.sku || entry.heroProduct.handle || entry.heroProduct.title)) || '';
+  const region = (entry && entry.market) || '';
+  let rating = null, reviews = [], skuClaims = [];
+  if (facts) {
+    try { rating = facts.approvedRating(key, region); } catch (_) { rating = null; }
+    try { reviews = facts.approvedReviews(key, region) || []; } catch (_) { reviews = []; }
+    try { skuClaims = facts.approvedClaims(key, region) || []; } catch (_) { skuClaims = []; }
+  }
+  const brandClaims = (b && Array.isArray(b.claims)) ? b.claims.filter(Boolean) : [];
+  return { rating, reviews, claims: [...new Set([...skuClaims, ...brandClaims])], region: region || 'all', brandName: (b && b.name) || 'this brand' };
+}
+
+/** The marker the spec requires wherever approved proof is missing. */
+function proofMarker(entry) {
+  const p = approvedProof(entry);
+  return `[DATA REQUIRED BEFORE LAUNCH: approved review library, ${p.brandName}, ${p.region}]`;
+}
+
+function approvedProofBrief(entry) {
+  const p = approvedProof(entry);
+  const have = [];
+  if (p.rating != null) have.push(`- Approved rating: ${p.rating}. Print it EXACTLY as written, never rounded and never with an invented review count.`);
+  if (p.reviews.length) have.push(`- Approved reviews (verbatim, with the author exactly as given, or omit entirely): ${p.reviews.map((r) => `"${String(r.quote || '').trim()}" - ${String(r.author || '').trim()}`).join(' | ')}`);
+  if (p.claims.length) have.push(`- Approved claims, the ONLY permitted badge text: ${p.claims.join('; ')}`);
+  const head = 'APPROVED PROOF LIBRARY — the only social proof you may use. Anything not listed here does not exist.';
+  const rule = [
+    'NEVER invent or infer a star rating, a review count, a reviewer name, a testimonial, a certification, an award or a guarantee.',
+    'A proof field with nothing approved behind it comes back EMPTY ("rating": null, "reviews": [], "badges": [], "guarantee": "", "proof_quote": "", "proof_author": ""). Empty is the CORRECT answer, and the renderer prints a [DATA REQUIRED BEFORE LAUNCH] marker in its place so the gap is visible to the reviewer.',
+  ].join(' ');
+  if (!have.length) {
+    return `${head}\n- The library is EMPTY for this product in ${p.region}. ${proofMarker(entry)}\n${rule}`;
+  }
+  return `${head}\n${have.join('\n')}\n${rule}`;
+}
+
 function copyPrompt(entry, fw = null, brief = null) {
   const hooks = (entry.competitorContext || []).flatMap((c) => (c.trendingHooks || []).map((h) => h.hook)).slice(0, 5);
   const fwLine = fw
@@ -904,22 +995,29 @@ function copyPrompt(entry, fw = null, brief = null) {
 - Competitor hooks trending (for awareness only, do NOT copy): ${hooks.join(' | ') || 'n/a'}
 - ${regionalNuance(entry.market)}${fwLine}${briefLine}
 
+WHO THIS IS FOR:
+${audienceBrief(entry)}
+
+${approvedProofBrief(entry)}
+
 ${MAILER_COMPONENTS}
 
 Every asset must ship with a CREATIVE as well as copy. For each asset write an "image_brief": a vivid 1-2 sentence art-direction prompt for a photoreal product/lifestyle scene of the hero product. Channel rules (ALL creatives are TEXT-FREE photographs — never describe overlaid words, headlines, prices, logos or UI in the image_brief; diffusion models cannot spell and render garbled fake letterforms, and the real ad copy is rendered natively by the platform, not painted into the pixels):
 - email / LP heroes: just scene, props, light, mood; aspirational hero.
-- AD creatives (meta / google / tiktok): a scroll-stopping TEXT-FREE photograph that sells the HAPPINESS end-state for P01 (women 45+/busy mums: calmer mornings, steady energy, "feeling like myself again"), NOT ingredients; open on a 1-second scroll-stop. Compose for the placement: meta = square, google = clean landscape, tiktok = vertical native hand-held. State only the scene, subject, light and mood - no words in the frame.
+- AD creatives (meta / google / tiktok): a scroll-stopping TEXT-FREE photograph that sells the END STATE this cohort is buying - what is different for them once they have it - rather than a component, ingredient or spec shot; open on a 1-second scroll-stop. Art-direct it from the audience block above; if that block carries a [DATA REQUIRED BEFORE LAUNCH] marker, direct the frame at the OFFERING and the brand's own world and put no person of an assumed age, gender or life stage in it. Compose for the placement: meta = square, google = clean landscape, tiktok = vertical native hand-held. State only the scene, subject, light and mood - no words in the frame.
 
 Return JSON with exactly this shape:
 {
- "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": {"value": 4.9, "count": "250,000+"}, "reviews": [{"quote":"short review that answers an objection","author":"first name, initial","stars":5}], "badges": ["Original-pair verified","Climate Neutral",""], "guarantee": "a risk-reversal line", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
+ "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": null, "reviews": [], "badges": [], "guarantee": "", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
  "landing": { "hero_headline": "", "hero_sub": "", "why_title": "", "why_bullets": ["","",""], "proof_quote": "", "proof_author": "", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
  "ads": {
    "meta": { "primary_text": "", "headline": "", "description": "", "image_brief": "" },
    "google": { "headlines": ["","",""], "descriptions": ["",""], "image_brief": "" },
    "tiktok": { "script": "", "caption": "", "image_brief": "" }
  }
-}`;
+}
+
+"rating", "reviews", "badges", "guarantee", "proof_quote" and "proof_author" are shown above at their EMPTY values on purpose. Fill them ONLY by copying an entry out of the APPROVED PROOF LIBRARY block above, verbatim. If that block says the library is empty, leave them exactly as shown. Do not treat the empty values as placeholders to be filled in.`;
 }
 
 const FONT_HEAD = "'Montserrat','Raleway',Georgia,serif";
@@ -952,32 +1050,38 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   const priceLabel = price != null ? `${cur}${price}` : '';
   const faq = (L.faq || []).map((f) => `<details class="faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('');
   const bullets = (L.why_bullets || []).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
-  // B1 approved-facts gate (env REAL_FACTS_ONLY). OFF (default) => the exact
-  // current markup. ON => show ONLY approved rating / review / guarantee for this
-  // SKU, else omit the block (no fabricated stars, testimonial or promise).
-  const _bf = require('./brand-facts.js');
+  // ── Proof is APPROVED-ONLY, unconditionally ───────────────────────────────
+  // This used to be gated on env REAL_FACTS_ONLY, which ships OFF, so the
+  // DEFAULT path rendered `L.proof_quote` / `L.proof_author` - a testimonial and
+  // a customer name the LLM had just written - onto a page served to real
+  // traffic at /lp/:id. An invented reviewer does not become acceptable because
+  // a feature flag is unset, so the flag no longer decides this: the approved
+  // library is the only source, for every deployment.
+  //
+  // And an absent review does not render as NOTHING. Silence is indistinguishable
+  // from a design choice, so the reviewer cannot tell the page is missing its
+  // proof. The spec's marker is printed in the proof slot instead, in a plainly
+  // non-content band, so the gap travels with the page into the review console
+  // and the launch gate.
   const _fk = entry.heroProduct?.sku || entry.heroProduct?.handle || entry.heroProduct?.title;
-  const _on = _bf.enabled();
-  const _appRating = _on ? _bf.approvedRating(_fk, entry.market) : null;
-  const _appReviews = _on ? _bf.approvedReviews(_fk, entry.market) : [];
-  const _appClaims = _on ? _bf.approvedClaims(_fk, entry.market) : [];
-  const trustStars = _on
-    ? (_appRating ? `<span>★★★★★ Rated ${_appRating}/5</span>` : '')
-    : (bClaims[0] ? `<span>${esc(bClaims[0])}</span>` : '');   // never a fabricated star rating
-  const proofSection = _on
-    ? ((_appReviews && _appReviews.length)
-      ? `<section class="sec proof"><div class="wrap"><blockquote>“${esc(_appReviews[0].quote || '')}”</blockquote><p class="who">- ${esc(_appReviews[0].author || 'Verified reviewer')}</p></div></section>`
-      : '')
-    : (L.proof_quote
-      ? `<section class="sec proof"><div class="wrap"><blockquote>“${esc(L.proof_quote)}”</blockquote><p class="who">- ${esc(L.proof_author || 'Customer note')}</p></div></section>`
-      : '');   // no supplied proof = no proof section; testimonials are never invented
-  const guaranteeBlock = _on
-    ? ((_appClaims && _appClaims.some((c) => /guarantee|make it right|refund|return/i.test(String(c))))
-      ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(_appClaims.find((c) => /guarantee|make it right|refund|return/i.test(String(c))))}</p></div>`
-      : '')
-    : (bClaims.some((c) => /guarantee|make it right|refund|return|free shipping/i.test(String(c)))
-      ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(bClaims.find((c) => /guarantee|make it right|refund|return|free shipping/i.test(String(c))))}</p></div>`
-      : '');   // a promise is rendered only when the brand actually states one
+  const _appRating = (facts && (() => { try { return facts.approvedRating(_fk, entry.market); } catch (_) { return null; } })()) || null;
+  const _appReviews = (facts && (() => { try { return facts.approvedReviews(_fk, entry.market) || []; } catch (_) { return []; } })()) || [];
+  const _appClaims = (facts && (() => { try { return facts.approvedClaims(_fk, entry.market) || []; } catch (_) { return []; } })()) || [];
+  // A star rating renders only from the approved library. The brand's own
+  // verifiable claim is not a rating, so it stays in the trust strip as text.
+  const trustStars = _appRating
+    ? `<span>★★★★★ Rated ${esc(String(_appRating))}/5</span>`
+    : (bClaims[0] ? `<span>${esc(bClaims[0])}</span>` : '');
+  const proofSection = _appReviews.length
+    ? `<section class="sec proof"><div class="wrap"><blockquote>“${esc(_appReviews[0].quote || '')}”</blockquote><p class="who">- ${esc(_appReviews[0].author || '')}</p></div></section>`
+    : `<section class="sec datareq-band"><div class="wrap"><p class="datareq">${esc(proofMarker(entry))}</p></div></section>`;
+  // A promise is rendered only where the brand actually states one - approved
+  // per-SKU claims first, then the brand record's own verifiable claims.
+  const _guaranteeRe = /guarantee|make it right|refund|return|free shipping/i;
+  const _guaranteeText = _appClaims.find((c) => _guaranteeRe.test(String(c))) || bClaims.find((c) => _guaranteeRe.test(String(c))) || '';
+  const guaranteeBlock = _guaranteeText
+    ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(_guaranteeText)}</p></div>`
+    : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
@@ -1005,6 +1109,11 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
 .proof{background:var(--moss-near);color:var(--chalk);text-align:center}
 .proof blockquote{font-family:var(--head);font-size:26px;max-width:680px;margin:0 auto;line-height:1.35}
 .proof .who{color:var(--lava);font-weight:700;margin-top:16px}
+/* Missing approved proof is PRINTED, not silently dropped. Deliberately styled
+   as a build note on a light surface (dark ink on chalk-warm, AA) so nobody can
+   mistake it for customer-facing content, and so the reviewer sees the gap. */
+.datareq-band{padding:26px 0}
+.datareq{margin:0;text-align:center;font-family:var(--body);font-size:13px;line-height:1.5;color:var(--ink);background:var(--chalk-warm);border:1px dashed var(--ink-dim);border-radius:10px;padding:14px 18px}
 .faq{border-top:1px solid rgba(171,135,67,.3);padding:14px 0}
 .faq summary{font-weight:700;cursor:pointer;font-size:17px}
 .faq p{color:var(--ink-dim);margin:10px 0 0}
@@ -1060,11 +1169,14 @@ ${proofSection}
 // no media) and 2 Text + Visual (with a hero image). Uses the shared
 // renderTextVariant so look + quality match across features. Returns null if the
 // shared renderer is unavailable (caller keeps the single local mailer).
-function emailPlaceholder(label, w, h) {
-  const t = String(label || 'Product image').replace(/[<&>]/g, ' ').slice(0, 42);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#FFFFFF"/><rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#6A33D8" stroke-width="2" stroke-dasharray="9 7"/><text x="50%" y="45%" text-anchor="middle" fill="#D0473E" font-family="Georgia,serif" font-size="21">${t}</text><text x="50%" y="59%" text-anchor="middle" fill="#6A33D8" font-family="Arial,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text></svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-}
+// (An `emailPlaceholder()` used to sit here: an inline SVG stand-in drawn when
+// no catalogue photo resolved. It was painted in tenant zero's palette -
+// #6A33D8 border, #D0473E type - and it fired for exactly the brands that are
+// NOT tenant zero, since they are the ones with no matching catalogue row. So
+// the fallback for "we could not find this brand's photo" was another brand's
+// colours, baked into a data: URI that email clients strip anyway. A slot with
+// no approved image now renders image-free and reports the gap through
+// campaign.data_gaps, which is the July mailer builder's rule.)
 function variantMeta(copy) {
   const E = copy.email || {};
   return {
@@ -1107,18 +1219,18 @@ function slotLinks(entry) {
   // built catalog, then title/keyword) so a stale/wrong handle can never produce
   // a dead PDP; only fall back to the raw entry handle if the catalog is absent.
   let handle = null;
-  try { handle = catalogImage.handleFor(hp, entry.market); } catch (_) { handle = null; }
+  try { handle = catalogImage.handleFor(hp, entry.market, { brand: entry.brand }); } catch (_) { handle = null; }
   handle = handle || hp.handle || null;
   const pdp = handle ? `${store}/products/${handle}` : collectionUrl;
   return { store, collectionUrl, pdp, handle };
 }
 // Resolve a real PDP URL for ANY product (hero or supporting), always on the
 // official per-market store, never fabricating a handle.
-function productUrl(product, market) {
+function productUrl(product, market, brand) {
   const facts = regionFacts(market);
   const store = `https://${facts.store || 'knickgasm.com'}`;
   let handle = null;
-  try { handle = catalogImage.handleFor(product, market); } catch (_) { handle = null; }
+  try { handle = catalogImage.handleFor(product, market, { brand }); } catch (_) { handle = null; }
   handle = handle || (product && (product.handle || product.h)) || null;
   return handle ? `${store}/products/${handle}` : store;
 }
@@ -1130,8 +1242,8 @@ function renderVariant(entry, copy, style, img) {
   // (pure/editorial "Text" variants stay graphics-free per the taxonomy).
   const withGrid = style === 'visual';
   // Real HD gallery for the hero product (multiple genuine PDP shots).
-  const heroGallery = (() => { try { return catalogImage.imagesFor(entry.heroProduct || entry, entry.market, { width: 900 }); } catch (_) { return []; } })();
-  const heroImgUrl = img || heroGallery[0] || catalogImage.imageFor(entry, entry.market, { width: 900 }) || undefined;
+  const heroGallery = (() => { try { return catalogImage.imagesFor(entry.heroProduct || entry, entry.market, { width: 900, brand: entry.brand }); } catch (_) { return []; } })();
+  const heroImgUrl = img || heroGallery[0] || catalogImage.imageFor(entry, entry.market, { width: 900, brand: entry.brand }) || undefined;
   // The hero BAND already shows heroImgUrl; the hero product's GRID card must show
   // a DIFFERENT real photo of the same product so the same shot never appears twice
   // in one mailer. NOTE: heroImgUrl is resolved at width 1600 while heroGallery is
@@ -1144,11 +1256,11 @@ function renderVariant(entry, copy, style, img) {
   // and real catalog content (subtitle / design notes), linking to its own real
   // product page (never a fabricated handle).
   const supporting = Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [];
-  const catRow = (p) => { try { return catalogImage.match({ handle: p.handle || p.h, title: p.title || p.n }, entry.market); } catch (_) { return null; } };
+  const catRow = (p) => { try { return catalogImage.match({ handle: p.handle || p.h, title: p.title || p.n }, entry.market, { brand: entry.brand }); } catch (_) { return null; } };
   const products = withGrid && entry.heroProduct
     ? [
         { title: entry.heroProduct.title, handle: entry.heroProduct.handle, image: heroCardImg, price: entry.heroProduct.price, url: links.pdp, note: (catRow(entry.heroProduct) || {}).subtitle || (catRow(entry.heroProduct) || {}).tasting_notes || '' },
-        ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market), image: catalogImage.imagesFor(p, entry.market, { width: 900 })[0] || undefined, note: row.subtitle || row.tasting_notes || '' }; }),
+        ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || undefined, note: row.subtitle || row.tasting_notes || '' }; }),
       ]
     : undefined;
   return renderTextVariant({
@@ -1176,7 +1288,7 @@ function renderVariant(entry, copy, style, img) {
 function emailVariants(entry, copyA, copyB, fwA, fwB, creativeUrl) {
   if (!renderTextVariant) return null;
   const heroProduct = (entry.heroProduct && entry.heroProduct.title) || entry.theme || '';
-  const heroImg = creativeUrl || catalogImage.imageFor(entry, entry.market) || emailPlaceholder(heroProduct, 536, 340);
+  const heroImg = creativeUrl || catalogImage.imageFor(entry, entry.market, { brand: entry.brand }) || null;
   const nA = (fwA && fwA.name) || 'Concise';
   const nB = (fwB && fwB.name) || 'Editorial';
   return [
@@ -1202,7 +1314,7 @@ function emailHtml(entry, copy, creativeUrl) {
   const INK = pal.ink || '#111111';
   const SURF = pal.surface || '#FFFFFF';
   const onP = pal.surface || '#FFFFFF';
-  const img = creativeUrl || catalogImage.imageFor(entry, entry.market);
+  const img = creativeUrl || catalogImage.imageFor(entry, entry.market, { brand: entry.brand });
   const heroImg = img
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
@@ -1296,13 +1408,58 @@ function scrubCopyDeep(o) {
   return walk(o || {});
 }
 
+/**
+ * Drop every proof value the model produced that no approved source stands
+ * behind, and record the gap.
+ *
+ * The prompt now asks for empty proof fields, but a prompt is a request, not a
+ * guarantee: models fill shapes. This is the structural half - whatever comes
+ * back, only a value that MATCHES the approved library survives into the copy
+ * object that gets rendered, persisted, previewed and downloaded. A rating is
+ * kept only if it equals the approved rating; a review only if its quote is in
+ * the approved list; a badge only if it is one of the brand's own verifiable
+ * claims. Everything else is replaced by the spec's marker on `__proof_gap`,
+ * which the renderers print.
+ */
+function gateProof(copy, entry) {
+  const c = copy && typeof copy === 'object' ? copy : {};
+  const p = approvedProof(entry);
+  const norm = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+  const approvedQuotes = new Set(p.reviews.map((r) => norm(r && r.quote)));
+  const approvedClaims = new Set(p.claims.map(norm));
+  const E = c.email && typeof c.email === 'object' ? c.email : null;
+  const L = c.landing && typeof c.landing === 'object' ? c.landing : null;
+  const dropped = [];
+  if (E) {
+    const ratingVal = E.rating && typeof E.rating === 'object' ? E.rating.value : E.rating;
+    if (ratingVal != null && String(ratingVal) !== '' && !(p.rating != null && Number(ratingVal) === Number(p.rating))) { E.rating = null; dropped.push('rating'); }
+    if (Array.isArray(E.reviews)) {
+      const kept = E.reviews.filter((r) => r && approvedQuotes.has(norm(r.quote)));
+      if (kept.length !== E.reviews.length) dropped.push('reviews');
+      E.reviews = kept;
+    } else if (E.reviews) { E.reviews = []; dropped.push('reviews'); }
+    if (Array.isArray(E.badges)) {
+      const kept = E.badges.filter((b) => approvedClaims.has(norm(b)));
+      if (kept.length !== E.badges.filter(Boolean).length) dropped.push('badges');
+      E.badges = kept;
+    }
+    if (E.guarantee && !approvedClaims.has(norm(E.guarantee))) { E.guarantee = ''; dropped.push('guarantee'); }
+  }
+  if (L) {
+    if (L.proof_quote && !approvedQuotes.has(norm(L.proof_quote))) { L.proof_quote = ''; L.proof_author = ''; dropped.push('proof_quote'); }
+    if (L.proof_author && !L.proof_quote) { L.proof_author = ''; }
+  }
+  if (dropped.length) c.__proof_gap = { marker: proofMarker(entry), dropped: [...new Set(dropped)] };
+  return c;
+}
+
 function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}) {
   const briefFor = (copy, k) => ({ brief: (k && copy.ads?.[k]?.image_brief) || '', image: null, provider: null });
   // Distinct real gallery pool for this slot (hero product + supporting), HD.
   // B-variants draw an ALTERNATE real photo (not the email hero) so the A/B
   // pair is visually distinct while every image stays a real catalog shot.
   const pool = realImagePool(entry, 1400);
-  const heroReal = pool[0] || catalogImage.imageFor(entry, entry.market, { width: 1400 }) || null;
+  const heroReal = pool[0] || catalogImage.imageFor(entry, entry.market, { width: 1400, brand: entry.brand }) || null;
   const altReal = pool.find((u) => u !== heroReal) || heroReal;
   if (campaign.assets.email) {
     campaign.assets.email.subject = copyA.email.subject || campaign.assets.email.subject;
@@ -1350,7 +1507,15 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}) {
     }
     ad.creative_brief = ad.creative.brief || ad.creative_brief || '';
   }
-  traceRun(__run, 'build:done', { slot: entry && entry.id, assets: (function(){ try { return Object.keys(campaign && campaign.assets || {}).join(','); } catch(_) { return ''; } })() });
+  // NOTE: this used to read `__run`, which is declared inside _buildCampaign(),
+  // not here. Referencing it threw a ReferenceError on the LAST line of every
+  // successful copy application - after the mutations had landed, so the assets
+  // were fine, but the throw was swallowed by _buildCampaign's catch. Every run
+  // therefore reported `copywriter.provider: 'template-fallback'`, creatives
+  // 'none', a red "fallback" pill instead of the Design Integrator step, and the
+  // console's "no LLM provider answered" banner - on campaigns whose copy an LLM
+  // had in fact just written. The run id is passed in now.
+  traceRun(runId || _runId(entry), 'build:done', { slot: entry && entry.id, assets: (function(){ try { return Object.keys(campaign && campaign.assets || {}).join(','); } catch(_) { return ''; } })() });
 
   return campaign;
 }
@@ -1436,9 +1601,9 @@ function realImagePool(entry, width = 1600) {
   const market = entry.market;
   const urls = [];
   const push = (arr) => { for (const u of arr || []) if (u && !urls.includes(u)) urls.push(u); };
-  try { push(catalogImage.imagesFor(entry.heroProduct || entry, market, { width })); } catch (_) {}
+  try { push(catalogImage.imagesFor(entry.heroProduct || entry, market, { width, brand: entry.brand })); } catch (_) {}
   const supporting = Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [];
-  for (const p of supporting) { try { push(catalogImage.imagesFor(p, market, { width })); } catch (_) {} }
+  for (const p of supporting) { try { push(catalogImage.imagesFor(p, market, { width, brand: entry.brand })); } catch (_) {} }
   return urls;
 }
 
@@ -1519,17 +1684,37 @@ function traceRun(run, stage, fields) {
   } catch (_) { /* logging must never break a generation */ }
 }
 
-async function buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
+/**
+ * The catalogue this slot may draw imagery and product facts from, pinned to
+ * the whole build.
+ *
+ * `stampBrand` puts the resolved brand on the entry, but the renderers below are
+ * synchronous and a workspace's own catalogue lives in Postgres, so the read
+ * happens ONCE here and travels with the build via AsyncLocalStorage. Every
+ * catalogImage lookup inside then answers from this brand's rows - or from
+ * nothing, which is the correct answer for a brand that has not imported a
+ * catalogue. Nothing falls back to the shipped tenant-zero files.
+ */
+async function buildCampaign(entry, config, opts = {}) {
+  await stampBrand(entry, config);
+  const catalogCtx = {
+    brand: (entry && entry.brand) || null,
+    workspaceId: (entry && entry.workspace_id) || (config && config.workspace_id) || null,
+  };
+  return catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
+}
+
+async function _buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
   const __run = _runId(entry);
   traceRun(__run, 'build:start', {
     slot: entry && entry.id, date: entry && entry.date, market: entry && entry.market,
     brand: (entry && entry.brand && entry.brand.name) || null,
     workspace: (config && config.workspace_id) || null,
     offering: (entry && entry.offering && entry.offering.kind) || null,
+    catalog: catalogServer.currentScope() ? catalogServer.currentScope().source : 'unscoped',
     withCreatives, noLLM,
   });
 
-  await stampBrand(entry, config);
   // Review-recovery slots are a review INVITATION, not a promo: email-only, no
   // offer, no ads/landing page, CTA to the product's own review section. Render
   // the dedicated brand-compliant template directly (no LLM promo pipeline).
@@ -1591,8 +1776,16 @@ async function buildCampaign(entry, config, { id = null, withCreatives = true, n
     // Brand scrub EVERY generated string (no banned phrases, no em/en dashes)
     // before it is baked into the mailer, landing page and ad rows. Persisted +
     // customer-served output must not rely on the prompt alone.
-    const copyA = scrubCopyDeep(rawA.copy);
-    const copyB = scrubCopyDeep(rawB.copy);
+    // …then the PROOF gate: any rating, review, reviewer, badge or guarantee the
+    // model produced without an approved source behind it is removed here, not
+    // merely discouraged in the prompt.
+    const copyA = gateProof(scrubCopyDeep(rawA.copy), entry);
+    const copyB = gateProof(scrubCopyDeep(rawB.copy), entry);
+    const proofGap = copyA.__proof_gap || copyB.__proof_gap || null;
+    if (proofGap) {
+      campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), proofGap.marker])];
+      trace.push({ agent: 'Proof Gate', role: 'Approved Facts', ok: false, provider: 'approved-library', output: { dropped: proofGap.dropped, marker: proofGap.marker } });
+    }
     // ── Agent 3 · Asset Director — one text-free creative per asset, turn by turn.
     // withCreatives: true = full 5-asset build; 'lean' = every channel but only
     // the email hero is diffused (others take the catalog photo — fast + reliable
@@ -1625,7 +1818,39 @@ async function buildCampaign(entry, config, { id = null, withCreatives = true, n
   campaign.agent_trace = trace;
   campaign.calendar_entry_id = entry.id || id || null;
   attachMasterPrompts(campaign, entry);
+  reportCatalogGaps(campaign, entry, trace);
   return campaign;
+}
+
+/**
+ * Record, on the campaign itself, that a hero image slot went unfilled because
+ * this brand has no approved catalogue photo for it.
+ *
+ * An image-free mailer is a correct outcome; a SILENTLY image-free one is not,
+ * because the reviewer cannot tell it apart from a design choice. The spec's
+ * marker form is written into `campaign.data_gaps` and the agent trace so the
+ * gap travels with the asset into the review console, exactly as the July
+ * builder surfaces an unverifiable slot instead of inventing a URL.
+ */
+function reportCatalogGaps(campaign, entry, trace) {
+  try {
+    const scope = catalogServer.currentScope();
+    const email = campaign.assets && campaign.assets.email;
+    const hasImage = !!(email && ((email.creative && email.creative.image) || /<img\s/i.test(String(email.html || ''))));
+    if (hasImage) return;
+    const probe = catalogImage.resolveImage(entry, entry.market, { brand: entry.brand });
+    if (!probe.marker) return;
+    const gaps = Array.isArray(campaign.data_gaps) ? campaign.data_gaps : [];
+    gaps.push(probe.marker);
+    campaign.data_gaps = [...new Set(gaps)];
+    campaign.catalog_source = (scope && scope.source) || probe.source || 'none';
+    if (Array.isArray(trace)) {
+      trace.push({
+        agent: 'Asset Provenance', role: 'Approved Assets', ok: false, provider: 'catalog-scope',
+        output: { catalog_source: campaign.catalog_source, reason: probe.reason, marker: probe.marker },
+      });
+    }
+  } catch (_) { /* provenance reporting must never break a generation */ }
 }
 
 // Resolve a slot's entry payload — from the inline entry the UI already holds,

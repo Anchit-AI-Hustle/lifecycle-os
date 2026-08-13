@@ -10,23 +10,17 @@
  * problem · how-it-works · benefits · comparison · story · spotlight · guarantee ·
  * FAQ · footer. Self-contained (inline CSS), region-aware.
  */
-const fs = require('fs');
-const path = require('path');
+const catalogServer = require('./brand-catalog-server.js');
 
-const REGION = {
-  us:     { label: 'US',     base: 'https://www.knickgasm.com',        ccy: '$', file: 'products_us.json' },
-  uk:     { label: 'UK',     base: 'https://knickgasm.com',     ccy: '£', file: 'products_uk.json' },
-  global: { label: 'Global', base: 'https://knickgasm.com',    ccy: '$', file: 'products_global.json' },
-  in:     { label: 'India',  base: 'https://knickgasm.com',   ccy: '₹', file: null },
-};
-const _cache = {};
-function catalog(region) {
-  const r = REGION[region] || REGION.us;
-  if (!r.file) return [];
-  if (_cache[region]) return _cache[region];
-  try { _cache[region] = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'catalog', r.file), 'utf8')); }
-  catch (_) { _cache[region] = []; }
-  return _cache[region];
+// Regions this page understands. The store URL and currency come from the
+// BRAND's own record (see below) - the hardcoded tenant-zero domains and symbols
+// that used to live here were read by nothing but still described one company's
+// storefronts as if they were the platform's, so they are gone.
+const REGION = { us: 'US', uk: 'UK', global: 'Global', in: 'India' };
+
+// The hero product may only come from the brand's OWN catalogue.
+function catalog(region, brand) {
+  return catalogServer.productsFor(region, { brand: brand || null }).products;
 }
 const e = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -53,7 +47,6 @@ function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null,
   const b = (brand && brand.id) ? brand
     : (entry && entry.brand && entry.brand.id) ? entry.brand
       : (() => { try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; } })();
-  const isZero = /^knickgasm$/i.test(String(b.slug || b.name || ''));
   const bName = b.name || 'the brand';
   const pal = b.palette || {};
   const P = pal.primary || '#111111';
@@ -71,7 +64,10 @@ function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null,
   const base = String((rgn && rgn.store_url) || b.website || '').replace(/\/$/, '');
   const ccy = (rgn && rgn.symbol) || '';
 
-  const p = isZero ? pickHero(catalog(REGION[region] ? region : 'us'), hint) : null;
+  // The shipped catalogue is tenant zero's, so only tenant zero picks a hero out
+  // of it; every other brand resolves against its own imported rows, and gets
+  // none (an image-free page) rather than a foreign product when it has none.
+  const p = pickHero(catalog(REGION[region] ? region : 'us', b), hint);
   const name = (p && p.n) || (entry && entry.heroProduct && entry.heroProduct.title) || bName;
   const img = (p && p.i) || '';
   const price = p && p.price ? (/[£$₹]/.test(String(p.price)) ? String(p.price) : ccy + p.price) : '';

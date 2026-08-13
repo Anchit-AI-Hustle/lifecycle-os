@@ -65,11 +65,24 @@ const ORG_ADDRESS = '440 N Barranca Ave #2812, Covina, CA 91723, United States';
 
 // Resolve the best real image URL for a product: its own row image, else the
 // catalog photo by handle/title. Returns an https URL or null.
-function productImage(p, market) {
+/**
+ * The brand a generated slot belongs to. `getBrandKit()` returns a PALETTE kit,
+ * not a workspace record, so it cannot answer "is this tenant zero"; the slot's
+ * own stamped brand can, and that is what decides which catalogue is readable.
+ */
+function slotBrand(slot, kit) {
+  const b = (slot && slot.brand) || null;
+  if (b && (b.id || b.slug)) return b;
+  return (kit && (kit.id || kit.slug)) ? kit : null;
+}
+
+function productImage(p, market, brand) {
   if (!p) return null;
   const direct = p.image || p.image_url || p.i;
   if (typeof direct === 'string' && /^https?:\/\//.test(direct)) return direct;
-  return catalogImage.imageFor({ handle: p.handle || p.h, title: p.title || p.n }, market) || null;
+  // Brand-scoped: the shipped products_*.json is tenant zero's catalogue, so a
+  // slot belonging to any other brand resolves against ITS rows or gets null.
+  return catalogImage.imageFor({ handle: p.handle || p.h, title: p.title || p.n }, market, { brand }) || null;
 }
 
 // Match a calendar slot to a Campaign-Hub theme by keyword overlap. Returns
@@ -315,7 +328,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
       <div style="font-family:${body};font-size:12px;color:${P.lava};margin-top:8px">- ${esc(t.name)}${t.location ? `, ${esc(t.location)}` : ''} &nbsp;★★★★★</div>
     </div>`).join('');
   const prods = products.slice(0, 3).map((p) => {
-    const img = productImage(p, slot.market);
+    const img = productImage(p, slot.market, slotBrand(slot, brand));
     // Always resolve a real PDP: explicit url, else build from the handle.
     const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : store);
     return `
@@ -329,7 +342,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
       </a>
     </td>`;
   }).join('');
-  const heroPhoto = productImage(products[0] || {}, slot.market);
+  const heroPhoto = productImage(products[0] || {}, slot.market, slotBrand(slot, brand));
   const p0title = esc((products[0] || {}).title || 'KNICKGASM');
   const ctaBtn = (bg, fg) => `<a href="${store}" style="display:inline-block;margin-top:24px;background:${bg};color:${fg};font-family:${body};font-size:14px;font-weight:700;padding:14px 34px;border-radius:8px;text-decoration:none">${esc(copy.cta_primary)}</a>`;
 
@@ -431,7 +444,7 @@ function mailerVariants(slot, copy, products, brand, agentUrl, richHtml) {
   if (!renderTextVariant) return null;
   const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
   const p0 = products[0] || {};
-  const heroImg = productImage(p0, slot.market) || '';
+  const heroImg = productImage(p0, slot.market, slotBrand(slot, brand)) || '';
   const S = {
     hero_headline: copy.headline,
     hero_subline: copy.subheadline,
@@ -750,7 +763,7 @@ async function generateForSlot(slotId, { persist = true } = {}) {
     .slice(0, 3).map((x) => x.p)
     // Guarantee a real hosted photo on each product so the Text + Visual mailer
     // variants always render an image (the smart_products rows often lack one).
-    .map((p) => ({ ...p, image: productImage(p, slot.market) }));
+    .map((p) => ({ ...p, image: productImage(p, slot.market, slotBrand(slot, brand)) }));
 
   const copy = await generateCopy(slot, picked, brand, lib.items);
   const agentUrl = `/agent?ctx=${encodeURIComponent(slot.market)}&from=${encodeURIComponent(slot.id)}`;

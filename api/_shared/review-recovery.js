@@ -69,7 +69,7 @@ function lowRatedProducts(products, threshold = THRESHOLD) {
 function reviewCtaUrl(product, market, brand) {
   const store = 'https://' + storeHost(market, brand);
   let handle = null;
-  try { handle = catalogImage && catalogImage.handleFor(product, market); } catch (_) { handle = null; }
+  try { handle = catalogImage && catalogImage.handleFor(product, market, { brand }); } catch (_) { handle = null; }
   handle = handle || product.handle || product.h || null;
   // Reviews live on the product's own PDP — a real, verifiable destination. No
   // third-party or invented review URL.
@@ -90,7 +90,9 @@ function reviewMailerHtml(product, market, brand) {
   const title = product.title || product.n || ('your last ' + ((brand && brand.name) || 'order'));
   const cta = reviewCtaUrl(product, market, brand);
   let img = null;
-  try { img = catalogImage && (catalogImage.imageFor(product, market, { width: 1200 }) || catalogImage.imagesFor(product, market, { width: 1200 })[0]); } catch (_) { img = null; }
+  // This brand's own approved photo, or none. The shipped catalogue belongs to
+  // tenant zero, so another brand renders image-free rather than borrowing one.
+  try { img = catalogImage && (catalogImage.imageFor(product, market, { width: 1200, brand }) || catalogImage.imagesFor(product, market, { width: 1200, brand })[0]); } catch (_) { img = null; }
   const heroImg = img ? `<tr><td style="padding:0 24px"><img src="${esc(img)}" alt="${esc(title)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:8px"/></td></tr><tr><td style="height:20px"></td></tr>` : '';
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f5f5f5;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td>

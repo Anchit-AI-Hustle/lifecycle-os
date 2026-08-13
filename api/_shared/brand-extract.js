@@ -822,7 +822,23 @@ function proposePalette(roles) {
   // offered instead of repeating the primary.
   const accentPick = (action && (!identity || action.value !== identity.value)) ? action : support;
   const muted = (roles.muted || [])[0] || null;
-  const src = (c) => (c ? { signal: c.signal, source_url: c.source_url, evidence: c.evidence } : null);
+  /**
+   * Every proposal carries the CONFIDENCE and the ROLE it came from.
+   *
+   * Without these a consumer cannot tell a colour the site DECLARED from one
+   * that merely ranked highest among the leftovers - and both the wizard and
+   * the DESIGN.md renderer were presenting the two identically, which is how a
+   * frequency-ranked divider colour comes to be shown as a brand's accent with
+   * the same authority as its own theme-color.
+   */
+  const src = (c, fromRole) => (c ? {
+    signal: c.signal, source_url: c.source_url, evidence: c.evidence,
+    confidence: c.confidence || CONF.weak,
+    from_role: fromRole,
+    // Said plainly, because "support" means "nothing in the site said this is a
+    // brand colour; it is simply the most-weighted thing left".
+    ranked_not_declared: fromRole === 'support' || fromRole === 'muted',
+  } : null);
 
   const proposed = {
     primary: identity ? identity.value : '',
@@ -833,8 +849,11 @@ function proposePalette(roles) {
     muted: muted ? muted.value : '',
   };
   const sources = {
-    primary: src(identity), accent: src(accentPick), ink: src(ink),
-    surface: src(surface), muted: src(muted),
+    primary: src(identity, 'identity'),
+    accent: src(accentPick, accentPick && action && accentPick.value === action.value ? 'action' : 'support'),
+    ink: src(ink, 'ink'),
+    surface: src(surface, 'surface'),
+    muted: src(muted, 'muted'),
   };
   // Every empty role is a reported gap, never a filled-in default. surface_alt
   // and muted are optional in the brand record, so their absence is not a gap.

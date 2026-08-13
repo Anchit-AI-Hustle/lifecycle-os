@@ -375,6 +375,22 @@ async function crawlSite(startUrl, opts) {
     const r = await fetchImpl(url, o.perRequestMs);
     if (!r || !r.ok || !r.body) { notes.push(`unreachable (${(r && r.status) || 0}): ${url}`); continue; }
 
+    // A page reached by a redirect OFF-ORIGIN is off-origin.
+    //
+    // Requests follow redirects, so an in-scope URL can answer with another
+    // company's page: a retired /partners path 301'd to a partner's site, a
+    // regional gate bouncing to a marketplace, a link-shortener on the brand's
+    // own domain. Scope was checked on the URL we ASKED for and never on the
+    // one that answered, so that body was parsed, its products taken as this
+    // brand's and its pages filed into this brand's knowledge base - the single
+    // worst thing this crawler can do, arrived at without following a single
+    // off-site link.
+    const landed = r.url || url;
+    if (landed !== url && !inScope(landed, hosts)) {
+      notes.push(`skipped (redirected off-origin): ${url} -> ${landed}`);
+      continue;
+    }
+
     pages.push(url);
     if (typeof o.onPage === 'function') {
       try { o.onPage(r.body, r.url || url, depth); }

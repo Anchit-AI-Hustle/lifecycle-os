@@ -546,7 +546,7 @@ function compileHTML(theme, variant, baseOrigin) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   ${baseOrigin ? `<base href="${baseOrigin}/" />` : ''}
-  <title>KNICKGASM Coffee Collection - ${theme.name}</title>
+  <title>KNICKGASM - ${theme.name}</title>
   <style>
     /* KNICKGASM brand fonts (exact assets) */
     @font-face {
