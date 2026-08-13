@@ -1242,6 +1242,12 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <iframe id="emailFr" src="about:blank" sandbox="allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"></iframe>
       <div id="htmlRaw"></div>
     </div>
+    <!-- Auto-generated hero image, one per region. renderGeneratedImagesMatrix()
+         is called from seven places in the generation chain and bails out on
+         `if(!box)return;`, so when this container went missing in the v32 panel
+         cleanup the generated imagery silently stopped appearing anywhere in
+         Step 5 while every call site carried on reporting success. -->
+    <div id="generatedImagesMatrixTop" style="margin-top:18px"></div>
     <!-- ★ Strategic Brief — segment, intent, expected impact, justification -->
     <div id="step5StrategicBrief" style="margin-top:18px"></div>
     <!-- Unified Region → Variant → Preview/Download panel (same pattern across the app) -->
@@ -5064,23 +5070,9 @@ async function regenFeedback(){
     if(p4)p4.scrollIntoView({behavior:'smooth',block:'start'});
   },300);
 }
-function switchPromptTab(which){
-  var layoutBtn=document.getElementById('promptTabLayout');
-  var visualBtn=document.getElementById('promptTabVisual');
-  var layoutPane=document.getElementById('promptMono');
-  var visualPane=document.getElementById('fluxPromptMono');
-  if(which==='visual'){
-    if(layoutBtn){layoutBtn.style.background='transparent';layoutBtn.style.color='#48524c';layoutBtn.style.fontWeight='600';}
-    if(visualBtn){visualBtn.style.background='#D0473E';visualBtn.style.color='#FFFFFF';visualBtn.style.fontWeight='700';}
-    if(layoutPane)layoutPane.style.display='none';
-    if(visualPane)visualPane.style.display='block';
-  } else {
-    if(layoutBtn){layoutBtn.style.background='#D0473E';layoutBtn.style.color='#FFFFFF';layoutBtn.style.fontWeight='700';}
-    if(visualBtn){visualBtn.style.background='transparent';visualBtn.style.color='#48524c';visualBtn.style.fontWeight='600';}
-    if(layoutPane)layoutPane.style.display='block';
-    if(visualPane)visualPane.style.display='none';
-  }
-}
+// switchPromptTab() removed: the Layout/Visual prompt tabs it drove were
+// deleted in the v32 panel cleanup, leaving it orphaned and pointing at three
+// ids (promptTabLayout, promptTabVisual, fluxPromptMono) that no longer exist.
 function switchP4Tab(tab,btn){
   ['claude','content','chatgpt','upload'].forEach(function(id){const el=document.getElementById('p4-'+id);if(el)el.style.display='none';});
   document.querySelectorAll('.p4tab').forEach(function(b){b.classList.remove('on');});
@@ -5348,51 +5340,11 @@ function openChatGPT(){openExternalTool('ChatGPT','https://chatgpt.com/','Paste 
 function openClaudeAI(){openExternalTool('Claude.ai','https://claude.ai/','Paste your prompt and ask Claude to describe an ideal image layout.');}
 function openGemini(){openExternalTool('Google Gemini','https://gemini.google.com/','Paste your prompt into Gemini for image generation.');}
 function openGoogleSearch(query){openExternalTool('Google Search','https://www.google.com/search?q='+encodeURIComponent(query||'KNICKGASM sneaker email design inspiration'),'Opening search results in a new tab.');}
-async function generateWithOpenAI(){
-  var key=(document.getElementById('openaiKeyIn').value||'').trim();
-  if(!key){
-    switchP4Tab('chatgpt',document.getElementById('tab-chatgpt'));
-    showCopyToast('No OpenAI key — use the AI tools tab to generate an image');
-    return;
-  }
-  var prompt=S.lastImagePrompt||document.getElementById('promptMono').textContent;
-  showCopyToast('Generating image via OpenAI gpt-image-1...');
-  try{
-    var res=await fetch('https://api.openai.com/v1/images/generations',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:'gpt-image-1',prompt:prompt.substring(0,4000),n:1,size:'1024x1536',quality:'high'})
-    });
-    if(!res.ok){var err=await res.json().catch(function(){return {};});throw new Error((err.error&&err.error.message)||'OpenAI error '+res.status);}
-    var data=await res.json();
-    var imgData=data.data&&data.data[0];
-    if(!imgData)throw new Error('No image returned');
-    var dataUrl;
-    if(imgData.b64_json){
-      dataUrl='data:image/png;base64,'+imgData.b64_json;
-    } else if(imgData.url){
-      // Fetch and convert to data URL
-      var imgRes=await fetch(imgData.url);
-      var blob=await imgRes.blob();
-      dataUrl=await new Promise(function(r){var reader=new FileReader();reader.onload=function(e){r(e.target.result);};reader.readAsDataURL(blob);});
-    } else {
-      throw new Error('Unrecognised image response format');
-    }
-    // Load into upload tab and auto-switch
-    S.uploadedDesignUrl=dataUrl;
-    var img=document.getElementById('uploadedImg');
-    var preview=document.getElementById('uploadPreview');
-    var zone=document.getElementById('uploadZone');
-    if(img)img.src=dataUrl;
-    if(preview)preview.style.display='block';
-    if(zone)zone.style.display='none';
-    switchP4Tab('upload',document.getElementById('tab-upload'));
-    showCopyToast('Image generated! Review then click Approve.');
-  }catch(e){
-    showCopyToast('OpenAI error: '+e.message);
-    console.warn('generateWithOpenAI (non-critical):',e.message);
-  }
-}
+// generateWithOpenAI() was removed here. It read an OpenAI key from an
+// #openaiKeyIn field that no longer exists, so its very first line threw
+// before the no-key fallback beneath it could run. Nothing called it: image
+// generation goes through /api/ai/image, which keeps the key server-side
+// and runs the full provider cascade. See CLAUDE.md, Image cascade.
 // ── Build a rich design prompt from real catalog data for gpt-image-2 ────────
 function buildDesignPromptFromCatalog(market,variant){
   var st=S.strategy||buildCampaignStrategy();
@@ -8490,25 +8442,9 @@ function resetAll(){
   document.querySelectorAll('.cfbtn').forEach(function(b){b.classList.toggle('on',b.getAttribute('onclick')==="filterCat('all',this)");});
   window.scrollTo({top:0,behavior:'smooth'});
 }
-// switchTab helper for step 5 HTML/Preview tabs
-function switchTab(id,btn){
-  var tp=document.getElementById('tabPreview'),th=document.getElementById('tabHtml');
-  if(tp)tp.style.display=(id==='preview'?'block':'none');
-  if(th)th.style.display=(id==='html'?'block':'none');
-  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
-  if(btn)btn.classList.add('on');
-  // If switching to HTML view but no HTML generated yet, show friendly empty state
-  if(id==='html'){
-    var raw=document.getElementById('htmlRaw');
-    var wrap=raw?raw.parentNode:null;
-    if(raw&&wrap&&!raw.textContent.trim()){
-      // Hide the dark code block until HTML is generated
-      wrap.style.display='none';
-    }else if(wrap){
-      wrap.style.display='';
-    }
-  }
-}
+// switchTab() removed: the Step 5 Preview/HTML tabs were deleted in v32 (see
+// the note above #emailFr). It was orphaned, targeted two ids that no longer
+// exist, and its else-branch would have un-hidden the hidden state holders.
 
 // ── Main tab switching ───────────────────────────────────────────────────────
 function switchMainTab(tab){

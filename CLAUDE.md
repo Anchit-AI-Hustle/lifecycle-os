@@ -42,7 +42,7 @@ npm run brand:check                   # always validates tenant zero; fails on d
 ```
 `data/brands/presets/` ships starter profiles across deliberately different sectors — KNICKGASM
 (D2C commerce), The Economic Times and The Times of India (news), TOI Health & Fitness (health
-media, with medical-claim guardrails in its banned list), VAHDAM India (D2C tea) and Apple
+media, with medical-claim guardrails in its banned list) and Apple
 (consumer tech). `/onboarding` renders them as a gallery above the "enter your own" form, served by
 `/api/public-config?action=brand&op=presets` (unauthenticated, like `op=defaults`, because the
 gallery must paint before a workspace exists).

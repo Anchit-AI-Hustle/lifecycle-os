@@ -146,35 +146,6 @@ const PRESETS = [
     ],
   },
   {
-    slug: 'vahdam', name: 'VAHDAM India', tagline: 'Wellness Teas, Direct from the Source',
-    industry: 'Tea and wellness / D2C', website: 'https://www.vahdamteas.com',
-    preset: { label: 'VAHDAM India', sector: 'D2C commerce', blurb: 'Single-estate teas and wellness blends. A second D2C profile to contrast against a streetwear catalogue.', verified_at: '2026-08-10', source: 'vahdamteas.com homepage CSS (#004a2b, #ab8744, Lao MN + Proxima Nova)' },
-    palette: { primary: '#004A2B', accent: '#AB8744', ink: '#282A2C', surface: '#FFFFFF', surface_alt: '#EFDEC3', muted: '#5A5F5C', line: '#E3D9C6', ok: '#1a7f37', warn: '#c9a227', err: '#c0392b' },
-    typography: {
-      heading: { family: 'Lao MN', stack: "'Lao MN','Cormorant Garamond',Georgia,serif", google: false, weights: '400;700' },
-      body: { family: 'Proxima Nova', stack: "'Proxima Nova','Helvetica Neue',Arial,sans-serif", google: false, weights: '400;500;600' },
-    },
-    voice: {
-      tone: 'warm, sensory, story-driven; origin and craft before offer',
-      preferred: ['single-estate', 'garden-fresh', 'origin', 'steep', 'ritual', 'hand-picked', 'harvest'],
-      banned: ['miracle', 'cures', 'detox guarantee', 'clinically proven', 'medicine', 'treats illness'],
-      no_em_dashes: true,
-      notes: 'OBSERVED from public output, not official guidelines. Wellness copy must avoid medical claims; describe taste and ritual, never health outcomes.',
-    },
-    claims: ['Teas sourced direct from Indian estates'],
-    regions: [region('IN', 'INR', '₹', 'https://www.vahdamindia.com'), region('US', 'USD', '$', 'https://www.vahdamteas.com'), region('UK', 'GBP', '£', 'https://uk.vahdamteas.com')],
-    asset_hosts: ['vahdamteas.com', 'www.vahdamteas.com', 'cdn.shopify.com'],
-    catalog_source: { kind: 'shopify_public', url: 'https://www.vahdamteas.com/products.json', offering_kinds: ['product', 'plan'] },
-    // Top-level collections as read from vahdamteas.com site navigation on
-    // verified_at - category-level only, no invented SKUs or prices.
-    offerings: [
-      { kind: 'product', name: 'Teas (single-estate)', url: 'https://www.vahdamteas.com/collections/teas', source: 'vahdamteas.com navigation' },
-      { kind: 'product', name: 'Turmeric blends', url: 'https://www.vahdamteas.com/collections/turmeric', source: 'vahdamteas.com navigation' },
-      { kind: 'product', name: 'Gift sets', url: 'https://www.vahdamteas.com/collections/gifts', source: 'vahdamteas.com navigation' },
-      { kind: 'product', name: 'Drinkware and accessories', url: 'https://www.vahdamteas.com/collections/drinkware', source: 'vahdamteas.com navigation' },
-    ],
-  },
-  {
     slug: 'apple', name: 'Apple', tagline: 'Think Different',
     industry: 'Consumer technology', website: 'https://www.apple.com',
     preset: { label: 'Apple', sector: 'Consumer technology', blurb: 'Minimal, product-led design system. Useful as a restraint benchmark: huge whitespace, one accent, no decoration.', verified_at: '2026-08-10', source: 'apple.com globalheader.css (#0071e3 accent, #1d1d1f ink, #f5f5f7 surface, SF Pro Text stack)' },
