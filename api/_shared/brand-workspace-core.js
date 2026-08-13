@@ -868,6 +868,35 @@ async function activeWorkspaceId(auth) {
   return (Array.isArray(rows) && rows[0] && rows[0].active_workspace_id) || null;
 }
 
+/**
+ * Give a newly-live brand its own competitor universe.
+ *
+ * Competitor Benchmarking is one of the first screens a new brand opens, and it
+ * used to open empty for everyone because the universe lived in a Google Sheet
+ * nobody had credentials for. Activation is the natural moment to fill it: it
+ * is the point at which the brand record is complete enough to describe its own
+ * market.
+ *
+ * Deliberately narrow. It derives ONLY from this brand's own record (its
+ * competitor list and its market study), it makes no LLM or third-party call so
+ * activation cannot hang on a provider, and it does nothing at all if the brand
+ * already has a universe. Every failure is swallowed: a competitor set is
+ * useful, but it is never a reason to block a user from activating their brand.
+ */
+async function seedCompetitorsOnActivation(auth, ws) {
+  try {
+    if (!ws || !ws.id || ws.status !== 'active') return null;
+    const universe = require('./competitor-universe.js');
+    const brandRuntime = require('./brand-runtime.js');
+    return await universe.seedForWorkspace(universe.userStore(auth.token), ws.id, {
+      brand: brandRuntime.normalizeBrand(ws),
+    });
+  } catch (err) {
+    console.warn('[brand] competitor seed skipped:', (err && err.message) || err);
+    return null;
+  }
+}
+
 async function setActive(auth, id) {
   const ws = await getWorkspace(auth, id);
   if (!ws) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
@@ -876,6 +905,7 @@ async function setActive(auth, id) {
     body: [{ user_id: auth.user_id, active_workspace_id: id, updated_at: new Date().toISOString() }],
     prefer: 'resolution=merge-duplicates,return=minimal',
   });
+  await seedCompetitorsOnActivation(auth, ws);
   return ws;
 }
 
@@ -1207,5 +1237,5 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, listCatalog, assertCanWrite,
+  importCatalog, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
 };

@@ -57,6 +57,24 @@ const SHEET_COLUMNS = [
 // into the auth client's getAccessToken/getRequestHeaders, which googleapis
 // invokes lazily before each request and we cache + refresh internally.
 
+/**
+ * Is the Google path usable at all?
+ *
+ * Callers need to know this BEFORE they try, because the alternative to asking
+ * is what production actually did: every sheet-backed action threw
+ * "Google auth not configured" and the dashboard rendered a raw credentials
+ * error where a brand's competitors should be. The competitor universe no
+ * longer depends on Google (see competitor-universe.js); the mail archive still
+ * does, so it reports itself as unconfigured instead of failing.
+ */
+function sheetsConfigured() {
+  const wif = !!(process.env.GCP_WORKLOAD_IDENTITY_PROVIDER
+    && process.env.GCP_SERVICE_ACCOUNT_EMAIL
+    && process.env.VERCEL_OIDC_TOKEN);
+  const jwt = !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
+  return !!(process.env.GOOGLE_SHEET_ID && (wif || jwt));
+}
+
 let _sheets = null;
 function sheetsClient() {
   if (_sheets) return _sheets;
@@ -937,6 +955,6 @@ module.exports = {
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
   sortEmailsByReceivedDesc, ingestEmail, fetchMetaAds,
   getBrands, appendBrands, seedBrands, discoverBrands, markBrandSubscribed,
-  DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
+  DISCOVERY_CATEGORIES, DISCOVERY_GEOS, sheetsConfigured,
   NONE, NO_SCREENSHOT,
 };

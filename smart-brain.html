@@ -97,6 +97,16 @@
   .adcard .k{color:#48524c;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
   .adcard .v{color:#111111;line-height:1.55;font-size:13px;white-space:pre-wrap}
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+  /* Action outcome bar. Three states only, matching the three ways an action can
+     end: it changed rows, it changed nothing, or it failed. */
+  .actstate{margin-top:10px;padding:9px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;max-width:520px}
+  .actstate.busy{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.3);color:#556059}
+  .actstate.ok{background:rgba(29,107,69,.14);border:1px solid rgba(29,107,69,.35);color:#0A7D33}
+  .actstate.empty{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.35);color:#556059}
+  .actstate.err{background:rgba(185,28,28,.1);border:1px solid rgba(185,28,28,.35);color:#B91C1C}
+  .planempty{color:#556059;line-height:1.55}
+  .planempty b{color:#111111}
+  .planerr{color:#B91C1C;line-height:1.55}
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two{grid-column:span 1}h1{font-size:30px}.pvframe{height:460px}}
 </style>
@@ -115,6 +125,11 @@
       <button type="button" id="sync" class="btn">🔄 Run Daily Sync</button>
       <button type="button" id="refresh" class="btn secondary">Refresh Plan</button>
       <button type="button" id="export" class="btn secondary" title="Download the whole calendar as a Google Sheets / Excel-ready CSV: themes, hero + supporting products, real product + image links, audience counts, per-asset prompts, and expected send/deliver/open/CTR metrics.">⬇ Export to Sheets</button>
+      <!-- Every action reports its outcome HERE, beside the button that started
+           it. The failure this replaces put errors in the #detail block at the
+           very bottom of the page, so a sync that failed looked like a sync
+           that had never been clicked. -->
+      <div id="syncstate" class="actstate" role="status" aria-live="polite" hidden></div>
     </div>
   </section>
 
@@ -202,6 +217,36 @@ async function safeJson(r){
   }
 }
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── The three visible end states ────────────────────────────────────────────
+// Every generate, sync or approve action has to finish in exactly one of these,
+// because the alternative is what this page used to do: leave the previous
+// screen in place and say nothing, so a refused, empty or failed run was
+// indistinguishable from one that had never been started.
+//
+// PLAN_STATE carries the reason the table is empty, so the empty row can say
+// WHY there is nothing rather than repeating the generic "click Run Daily Sync"
+// prompt that the user has, by then, already clicked.
+let PLAN_STATE = { kind: 'loading', message: '' };
+function sbState(kind, message){
+  const el = $('syncstate');
+  if(!el) return;
+  if(!kind){ el.hidden = true; el.className = 'actstate'; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.className = 'actstate ' + kind;
+  el.innerHTML = (kind === 'busy' ? '<span class="spinner"></span> ' : '') + esc(message);
+}
+// A response can be HTTP 200 and ok:true and still be a refusal: the router
+// answers an unattributable request with an `error` code rather than serving
+// another brand's rows, and the planner answers a brand with no catalogue with
+// a `note`. Both used to pass straight through the ok check and render as
+// success. Returns the human explanation, or an empty string when there is none.
+function refusalOf(data){
+  if(!data) return '';
+  if(data.error) return String(data.note || data.error);
+  if(data.note) return String(data.note);
+  return '';
+}
 
 // ── Agentic Generation (single execution surface) ──────────────────────────
 // Single mode: premium is the only tier. setTier is kept as a no-op for any
@@ -344,8 +389,27 @@ window.setDur = function(d){
 };
 
 function renderPlan(){
-  if(!PLAN.length){ $('plan').innerHTML = '<tr><td colspan="9" style="color:#48524c">No plan yet — click “Run Daily Sync”.</td></tr>'; return; }
+  // The counters are written BEFORE the empty check. They used to sit after it,
+  // so an empty result left the tiles showing the dash placeholder from page
+  // load and the screen reported nothing at all about what had just run.
   $('entries').textContent = PLAN.length;
+  if(!PLAN.length){
+    const s = PLAN_STATE || {};
+    $('pending').textContent = '0';
+    const s30 = $('sends30'); if(s30) s30.textContent = '0';
+    const aa0 = $('generateAll'); if(aa0) aa0.style.display = 'none';
+    const ab0 = $('approveAll'); if(ab0) ab0.style.display = 'none';
+    const dc0 = $('durcount'); if(dc0) dc0.textContent = 'Showing 0 of 0 sends';
+    const body = s.kind === 'error'
+      ? `<div class="planerr"><b>The calendar could not be built.</b><br>${esc(s.message)}</div>`
+      : s.kind === 'empty'
+        ? `<div class="planempty"><b>Nothing was generated.</b><br>${esc(s.message)}</div>`
+        : s.kind === 'loading'
+          ? '<div class="planempty">Loading plan…</div>'
+          : '<div class="planempty">No plan yet. Click Run Daily Sync to build the rolling calendar.</div>';
+    $('plan').innerHTML = `<tr><td colspan="9">${body}</td></tr>`;
+    return;
+  }
   const isGenerated = e => !!(e.generated_campaign_id || e.status === 'approved' || e.status === 'final' || (e.__prebuilt && e.__prebuilt.campaign_id));
   $('pending').textContent = PLAN.filter(e => !isGenerated(e)).length;
   const shown = PLAN.filter(slotVisible).length;
@@ -864,18 +928,38 @@ async function viewEntry(i, forceRegen){
 window.viewEntry = viewEntry;
 
 async function loadPlan(){
+  const btn = $('refresh'); const label = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
+  sbState('busy', 'Reading the stored plan…');
   try{
     const r = await fetch(`${API}?action=smart-brain-plan`);
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Failed to load plan');
     $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
-    PLAN = data.entries || [];
+    PLAN = data.entries || data.plan || [];
+    const refusal = refusalOf(data);
     buildMktChips();
     buildCatChips();
+    if(PLAN.length){
+      PLAN_STATE = { kind: 'rows', message: '' };
+      sbState('ok', `Loaded ${PLAN.length} planned send(s).`);
+    }else{
+      // An empty read is stated as empty, with the server's own reason when it
+      // gave one. It is never left looking like the pre-sync starting screen.
+      PLAN_STATE = { kind: 'empty', message: refusal || 'The stored calendar has no sends in the rolling window. Run Daily Sync to build it.' };
+      sbState('empty', PLAN_STATE.message);
+    }
     renderPlan();
     if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
     return data;
-  }catch(e){ $('plan').innerHTML = `<tr><td colspan="9" style="color:#b91c1c">${esc(e.message)}</td></tr>`; return null; }
+  }catch(e){
+    PLAN = [];
+    PLAN_STATE = { kind: 'error', message: e.message };
+    renderPlan();
+    sbState('err', 'Could not load the plan: ' + e.message);
+    return null;
+  }
+  finally{ if(btn){ btn.disabled = false; btn.textContent = label; } }
 }
 
 // Autogenerate on load: the calendar should be "already generated to just load".
@@ -900,23 +984,55 @@ async function autoGenerateOnLoad(){
 
 }
 
+// The sync is SYNCHRONOUS on the server: syncDaily writes the rolling window and
+// then re-reads it through getPlan, so its response already carries the rows the
+// table needs. There is nothing to poll for, and the rows below are rendered
+// straight from that response rather than from a second request.
 async function runSync(){
   $('sync').disabled = true; $('sync').textContent = 'Reviewing latest data…';
+  sbState('busy', 'Reviewing the latest data and rebuilding the rolling calendar…');
   try{
     const r = await fetch(`${API}?action=smart-brain-sync-daily`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Sync failed');
+    // A 200 with ok:true is not automatically a success. The router refuses an
+    // unattributable request with an `error` code and the planner explains an
+    // empty brand with a `note`; both used to render as a silent no-op.
+    const refusal = refusalOf(data);
     $('mode').textContent = data.mode === 'db-linked' ? 'DB-linked' : 'Preview';
-    $('lastsync').textContent = new Date(data.synced_at).toLocaleString();
-    $('insights').innerHTML = (data.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join('') || '<p>No insights.</p>';
-    $('changes').innerHTML = (data.changes||[]).filter(c=>c.kind!=='kept_locked').map(c=>`<p><b>${esc(c.kind)}</b> — ${esc(c.detail)}</p>`).join('') || '<p>No material changes — plan already in sync with the data.</p>';
-    PLAN = data.plan || [];
+    if(data.synced_at) $('lastsync').textContent = new Date(data.synced_at).toLocaleString();
+    $('insights').innerHTML = (data.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join('') || '<p>No insights returned by this sync.</p>';
+    // Accept either key. `plan` is the success shape; the refusal and
+    // empty-brand shapes carry `entries`, and reading only `plan` is what left
+    // the table untouched after a click.
+    PLAN = data.plan || data.entries || [];
+    const changed = (data.changes||[]).filter(c=>c.kind!=='kept_locked');
+    $('changes').innerHTML = changed.length
+      ? changed.map(c=>`<p><b>${esc(c.kind)}</b> — ${esc(c.detail)}</p>`).join('')
+      : (PLAN.length
+        ? '<p>No material changes — plan already in sync with the data.</p>'
+        : `<p>${esc(refusal || 'Nothing was planned, so there is nothing to compare against the previous sync.')}</p>`);
     buildMktChips();
     buildCatChips();
     Object.keys(PREVIEW_CACHE).forEach(k => delete PREVIEW_CACHE[k]);  // slots may have been re-planned
     clearPreview();
+    if(PLAN.length){
+      PLAN_STATE = { kind: 'rows', message: '' };
+      sbState('ok', `Sync complete: ${PLAN.length} planned send(s)${changed.length ? `, ${changed.length} change(s)` : ''}.`);
+    }else{
+      PLAN_STATE = { kind: 'empty', message: refusal || 'The sync ran and returned no sends for the rolling window. Connect this brand\'s catalogue and analytics in brand setup, then run it again.' };
+      sbState('empty', PLAN_STATE.message);
+    }
     renderPlan();
-  }catch(e){ $('detail').textContent = e.stack || e.message; }
+  }catch(e){
+    // A failed sync must not leave the previous table standing as though it were
+    // fresh. Clear it and name what failed.
+    PLAN = [];
+    PLAN_STATE = { kind: 'error', message: e.message };
+    renderPlan();
+    sbState('err', 'Daily Sync failed: ' + e.message);
+    $('detail').textContent = e.stack || e.message;
+  }
   finally{ $('sync').disabled = false; $('sync').textContent = '🔄 Run Daily Sync'; }
 }
 
@@ -1032,7 +1148,8 @@ async function sbPreflight(){
 // are cached in PREVIEW_CACHE, so View/Download NEVER regenerate — they retrieve.
 async function generateAll(){
   const targets = PLAN.map((e,i)=>({e,i})).filter(({e})=> !(e.generated_campaign_id || e.status==='approved' || e.status==='final' || (e.__prebuilt && e.__prebuilt.campaign_id)) && slotVisible(e));
-  if(!targets.length){ return; }
+  // A no-op used to return in silence, which reads exactly like a dead button.
+  if(!targets.length){ sbState('empty', 'Nothing to generate: every send currently in view already has its assets built.'); return; }
   const go = await sbConfirm(`Generate the final assets for ${targets.length} send(s) shown? Each builds a mailer + ads + landing page, one at a time.`);
   if(!go) return;
   // Connector pre-flight — abort cleanly if nothing can serve text generation.
@@ -1056,6 +1173,8 @@ async function generateAll(){
   if(aa){ aa.disabled = false; }
   renderPlan();
   if(det) det.textContent = `Generate all done — ✓ ${ok} generated${fails.length?`, ✕ ${fails.length} failed`:''}. Assets are cached; View and Download retrieve them (no regeneration).`;
+  sbState(fails.length ? (ok ? 'empty' : 'err') : 'ok',
+    `Generate all finished: ${ok} generated${fails.length ? `, ${fails.length} failed (${fails[0]})` : ''}.`);
 }
 window.generateEntry = generateEntry; window.downloadEntry = downloadEntry; window.generateAll = generateAll;
 
@@ -1069,7 +1188,7 @@ window.generateEntry = generateEntry; window.downloadEntry = downloadEntry; wind
 async function approveAll(){
   const targets = PLAN.map((e,i)=>({e,i}))
     .filter(({e})=> slotVisible(e) && e.status!=='approved' && e.status!=='final' && e.status!=='rejected');
-  if(!targets.length){ return; }
+  if(!targets.length){ sbState('empty', 'Nothing to approve: every send currently in view is already approved, or was rejected and must be approved individually.'); return; }
   const go = await sbConfirm(`Approve and lock ${targets.length} send(s) shown? Each is built (if needed) and locked as ship-ready. Rejected sends are skipped.`, 'Approve all');
   if(!go) return;
   const ab = $('approveAll'); if(ab){ ab.disabled = true; }
@@ -1090,6 +1209,8 @@ async function approveAll(){
   if(ab){ ab.disabled = false; }
   renderPlan();
   if(det) det.textContent = `Approve all done — ✓ ${ok} approved${fails.length?`, ✕ ${fails.length} failed`:''}. Locked sends are ship-ready; View and Download retrieve them (no regeneration).`;
+  sbState(fails.length ? (ok ? 'empty' : 'err') : 'ok',
+    `Approve all finished: ${ok} approved${fails.length ? `, ${fails.length} failed (${fails[0]})` : ''}.`);
 }
 window.approveAll = approveAll;
 
@@ -1098,12 +1219,18 @@ window.approveAll = approveAll;
 // posts smart-brain-approve). Reject logs the decision (smart-brain-reject) so the
 // next daily sync re-plans the slot. Both refresh the row's status pill in place.
 async function approveRow(i){
+  const e = PLAN[i] || {};
   const rev = $('rev-'+i);
   if(rev) rev.innerHTML = '<span class="pvnote"><span class="spinner"></span> approving — building final assets…</span>';
+  sbState('busy', `Approving ${e.date || ''} ${e.market || ''} and building its final assets…`);
   try{
     await generateEntry(i, { silent: true });
     renderPlan();
-  }catch(err){ if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">approve failed: ${esc(err.message)}</span>`; }
+    sbState('ok', `Approved ${e.date || ''} ${e.market || ''}. The row now shows its locked status and its landing page link.`);
+  }catch(err){
+    if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">approve failed: ${esc(err.message)}</span>`;
+    sbState('err', `Approve failed for ${e.date || ''} ${e.market || ''}: ${err.message}`);
+  }
 }
 async function rejectRow(i){
   const e = PLAN[i];
@@ -1117,7 +1244,11 @@ async function rejectRow(i){
     if(!data.ok) throw new Error(data.error || 'reject failed');
     e.status = 'rejected'; e.generated_campaign_id = null;
     renderPlan();
-  }catch(err){ if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">reject failed: ${esc(err.message)}</span>`; }
+    sbState('ok', `Rejected ${e.date || ''} ${e.market || ''}. The row now shows the rejected status and its recovery controls.`);
+  }catch(err){
+    if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">reject failed: ${esc(err.message)}</span>`;
+    sbState('err', `Reject failed for ${e.date || ''} ${e.market || ''}: ${err.message}`);
+  }
 }
 // Clear a rejection: the slot returns to draft (not rejected, not approved) so it
 // no longer shows the rejected pill, and stays reviewable.
@@ -1131,7 +1262,11 @@ async function resetRow(i){
     if(!data.ok) throw new Error(data.error || 'reset failed');
     e.status = 'tentative'; e.generated_campaign_id = null;
     renderPlan();
-  }catch(err){ if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">reset failed: ${esc(err.message)}</span>`; }
+    sbState('ok', `Cleared the rejected status on ${e.date || ''} ${e.market || ''}. The row is back to draft.`);
+  }catch(err){
+    if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">reset failed: ${esc(err.message)}</span>`;
+    sbState('err', `Reset failed for ${e.date || ''} ${e.market || ''}: ${err.message}`);
+  }
 }
 window.approveRow = approveRow; window.rejectRow = rejectRow; window.resetRow = resetRow;
 

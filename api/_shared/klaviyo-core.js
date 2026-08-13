@@ -26,17 +26,25 @@ const { assertReadOnly } = require('./read-only-egress.js');
 // Global live-connector kill-switch (default OFF).
 const { liveConnectorsEnabled } = require('./live-connectors.js');
 
-function cfg() {
+/**
+ * The credential this call runs on. A brand workspace that connected its own
+ * Klaviyo account (workspace-connections-core.js) passes `creds` here and its
+ * key REPLACES the deployment's, so two brands on one deployment read two
+ * different Klaviyo accounts. With no creds the behaviour is what it always
+ * was: the deployment env, or the not-connected stub when that is empty.
+ */
+function cfg(creds) {
+  const c = creds && typeof creds === 'object' ? creds : {};
   return {
-    key: (process.env.KLAVIYO_API_KEY || '').trim(),
-    publicKey: (process.env.KLAVIYO_PUBLIC_KEY || '').trim(),
-    revision: (process.env.KLAVIYO_REVISION || DEFAULT_REVISION).trim(),
+    key: String(c.api_key || c.key || process.env.KLAVIYO_API_KEY || '').trim(),
+    publicKey: String(c.public_key || process.env.KLAVIYO_PUBLIC_KEY || '').trim(),
+    revision: String(c.revision || process.env.KLAVIYO_REVISION || DEFAULT_REVISION).trim(),
   };
 }
 
 // While the kill-switch is off (default), Klaviyo reports not-connected so no
 // live Klaviyo API call is made — every op returns its would_request stub.
-function isConnected() { return liveConnectorsEnabled() && !!cfg().key; }
+function isConnected(creds) { return liveConnectorsEnabled() && !!cfg(creds).key; }
 
 function qs(query) {
   const entries = Object.entries(query || {}).filter(([, v]) => v != null && v !== '');
@@ -53,8 +61,8 @@ function qs(query) {
 // STRUCTURALLY GET-only — it takes no `method` and no `body`, always issues GET,
 // and there is no code path to send POST/PUT/PATCH/DELETE to Klaviyo. The
 // central read-only-egress guard (assertReadOnly) is an additional backstop.
-async function request({ path, query = {}, timeoutMs = 20000 }) {
-  const c = cfg();
+async function request({ path, query = {}, timeoutMs = 20000, creds = null }) {
+  const c = cfg(creds);
   const url = `${API_BASE}${path}${qs(query)}`;
   if (!c.key) {
     return {
@@ -107,24 +115,24 @@ function clampPage(limit, max) {
 // back as `cursor` (or `page[cursor]`), so we can enumerate ALL segments/lists,
 // not just the first page. undefined when absent (qs() drops empty values).
 function cursorOf(p) { return (p && (p.cursor || p['page[cursor]'])) || undefined; }
-const getProfiles = (p = {}) => request({ path: '/profiles/', query: { 'page[size]': clampPage(p.limit, 100) || 20, 'page[cursor]': cursorOf(p), filter: p.filter, sort: p.sort } });
-const getProfile  = (p = {}) => request({ path: `/profiles/${encodeURIComponent(p.id)}/` });
+const getProfiles = (p = {}) => request({ creds: p.creds, path: '/profiles/', query: { 'page[size]': clampPage(p.limit, 100) || 20, 'page[cursor]': cursorOf(p), filter: p.filter, sort: p.sort } });
+const getProfile  = (p = {}) => request({ creds: p.creds, path: `/profiles/${encodeURIComponent(p.id)}/` });
 // Lists cap page[size] at 10 in this revision — a larger value 400s.
-const getLists    = (p = {}) => request({ path: '/lists/', query: { 'page[size]': clampPage(p.limit, 10), 'page[cursor]': cursorOf(p) } });
+const getLists    = (p = {}) => request({ creds: p.creds, path: '/lists/', query: { 'page[size]': clampPage(p.limit, 10), 'page[cursor]': cursorOf(p) } });
 // Single-list read asks for profile_count so a list's live size comes back in
 // one call (valid on the item endpoint; not on the collection).
-const getList     = (p = {}) => request({ path: `/lists/${encodeURIComponent(p.id)}/`, query: { 'additional-fields[list]': 'profile_count' } });
+const getList     = (p = {}) => request({ creds: p.creds, path: `/lists/${encodeURIComponent(p.id)}/`, query: { 'additional-fields[list]': 'profile_count' } });
 // Segments COLLECTION: no additional-fields (the API rejects profile_count here);
 // use get_segment (singular) for the live size. page[size] caps at 10 — a larger
 // value silently returns an EMPTY page, so clamp to 10 and paginate via cursor.
-const getSegments = (p = {}) => request({ path: '/segments/', query: { 'page[size]': clampPage(p.limit, 10), 'page[cursor]': cursorOf(p), filter: p.filter } });
+const getSegments = (p = {}) => request({ creds: p.creds, path: '/segments/', query: { 'page[size]': clampPage(p.limit, 10), 'page[cursor]': cursorOf(p), filter: p.filter } });
 // Single segment WITH profile_count — this is the real, live cohort size.
-const getSegment  = (p = {}) => request({ path: `/segments/${encodeURIComponent(p.id)}/`, query: { 'additional-fields[segment]': 'profile_count' } });
+const getSegment  = (p = {}) => request({ creds: p.creds, path: `/segments/${encodeURIComponent(p.id)}/`, query: { 'additional-fields[segment]': 'profile_count' } });
 // Metrics reject page[size] ("not a valid field for the resource 'metric'").
-const getMetrics  = (p = {}) => request({ path: '/metrics/' });
-const getEvents   = (p = {}) => request({ path: '/events/', query: { 'page[size]': clampPage(p.limit, 100) || 20, 'page[cursor]': cursorOf(p), filter: p.filter, sort: p.sort || '-datetime' } });
-const getFlows    = (p = {}) => request({ path: '/flows/', query: { 'page[size]': clampPage(p.limit, 50) } });
-const getTemplates = (p = {}) => request({ path: '/templates/', query: { 'page[size]': clampPage(p.limit, 100) } });
+const getMetrics  = (p = {}) => request({ creds: p.creds, path: '/metrics/' });
+const getEvents   = (p = {}) => request({ creds: p.creds, path: '/events/', query: { 'page[size]': clampPage(p.limit, 100) || 20, 'page[cursor]': cursorOf(p), filter: p.filter, sort: p.sort || '-datetime' } });
+const getFlows    = (p = {}) => request({ creds: p.creds, path: '/flows/', query: { 'page[size]': clampPage(p.limit, 50) } });
+const getTemplates = (p = {}) => request({ creds: p.creds, path: '/templates/', query: { 'page[size]': clampPage(p.limit, 100) } });
 // Campaigns require a channel filter and reject page[size] in this revision.
 const getCampaigns = (p = {}) => request({
   path: '/campaigns/',
@@ -146,7 +154,7 @@ const getCampaigns = (p = {}) => request({
 
 /** Op catalog — used by the tool manifest + the chat status report. */
 const OPS = {
-  status:             { fn: async () => ({ ok: true, connected: isConnected(), revision: cfg().revision, ready: isConnected() ? 'live' : 'scaffolded — set KLAVIYO_API_KEY to go live' }), desc: 'Connection status of the Klaviyo integration.' },
+  status:             { fn: async (p = {}) => ({ ok: true, connected: isConnected(p.creds), revision: cfg(p.creds).revision, ready: isConnected(p.creds) ? 'live' : 'scaffolded — connect a Klaviyo key on this brand, or set KLAVIYO_API_KEY, to go live' }), desc: 'Connection status of the Klaviyo integration.' },
   get_profiles:       { fn: getProfiles, desc: 'List profiles (audience members). params: {limit, filter, sort}.' },
   get_profile:        { fn: getProfile, desc: 'Get one profile by id. params: {id}.' },
   get_lists:          { fn: getLists, desc: 'List all lists. params: {limit}.' },
@@ -161,10 +169,12 @@ const OPS = {
 };
 
 /** Dispatch an op by name with params. */
-async function dispatch(op, params = {}) {
+async function dispatch(op, params = {}, creds = null) {
   const entry = OPS[String(op || '').toLowerCase()];
   if (!entry) return { ok: false, error: `Unknown Klaviyo op '${op}'`, available: Object.keys(OPS) };
-  return entry.fn(params || {});
+  // creds is passed as a THIRD argument rather than inside params so a caller
+  // relaying a request body can never inject a credential from the wire.
+  return entry.fn(Object.assign({}, params || {}, { creds: creds || null }));
 }
 
 module.exports = {

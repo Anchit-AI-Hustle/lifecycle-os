@@ -970,10 +970,20 @@
     host.innerHTML = ['US', 'UK', 'ALL'].map((m) => `<button type="button" class="tab${AD_MKT === m ? ' active' : ''}" data-admkt="${m}" style="padding:5px 12px;font-size:12px">${m}</button>`).join('');
     host.querySelectorAll('[data-admkt]').forEach((b) => { b.onclick = () => { AD_MKT = b.dataset.admkt; renderAdMkt(); renderAdPlan(); }; });
   }
+  // AD_PLAN_ERROR separates "the plan is empty" from "the plan could not be
+  // read". Both used to collapse into the same "No plan yet" line, so an
+  // unreachable API looked like a brand with nothing scheduled.
+  let AD_PLAN_ERROR = '';
   async function loadAdPlan() {
     const host = $('#ad-plan'); if (host) host.innerHTML = '<p class="note">Loading the Knickgasm Brain plan…</p>';
-    try { const r = await fetch(BRAIN + '?action=smart-brain-plan'); const d = await r.json(); AD_PLAN = (d && d.entries) || []; }
-    catch (e) { AD_PLAN = []; }
+    AD_PLAN_ERROR = '';
+    try {
+      const r = await fetch(BRAIN + '?action=smart-brain-plan');
+      const d = await r.json();
+      if (!d || d.ok === false) throw new Error((d && d.error) || ('HTTP ' + r.status));
+      if (d.error) throw new Error(d.note || d.error);
+      AD_PLAN = d.entries || d.plan || [];
+    } catch (e) { AD_PLAN = []; AD_PLAN_ERROR = (e && e.message) || String(e); }
     renderAdPlan();
   }
   function adStatus(e) {
@@ -987,7 +997,14 @@
     const rows = AD_PLAN.filter(adVisible);
     if (!rows.length) {
       host.innerHTML = '';
-      if (empty) { empty.style.display = 'block'; empty.textContent = AD_PLAN.length ? ('No slots for ' + AD_MKT + ' — switch market.') : 'No plan yet. Open the Knickgasm Brain, run the plan, and the same slots appear here with their ad sets.'; }
+      if (empty) {
+        empty.style.display = 'block';
+        empty.textContent = AD_PLAN_ERROR
+          ? ('The plan could not be read: ' + AD_PLAN_ERROR + '. Nothing is shown rather than a stale or borrowed list.')
+          : AD_PLAN.length
+            ? ('No slots for ' + AD_MKT + ' — switch market.')
+            : 'No plan yet. Open the Knickgasm Brain, run the plan, and the same slots appear here with their ad sets.';
+      }
       return;
     }
     if (empty) empty.style.display = 'none';
