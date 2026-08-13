@@ -88,6 +88,9 @@ form detection, then drop `DRY_RUN`.
 - **There is also** a server endpoint `POST /api/competitor?action=mark-subscribed`
   (token-auth via `INGEST_TOKEN`) for the same write-back — unused by this worker
   while the API is SSO-gated, but available if a public path or bypass is added later.
+  It now writes to `brand_competitors` in Supabase, so it needs the workspace:
+  either a signed-in `Authorization: Bearer <token>` or `?workspace_id=<uuid>`
+  with `CRON_SECRET`. It mirrors into the sheet as well when Google is configured.
 - **Be a good citizen:** keep `DELAY_MS` sane; don't hammer a brand repeatedly.
 
 ---

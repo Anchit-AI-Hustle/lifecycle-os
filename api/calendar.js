@@ -121,8 +121,13 @@ async function smartBrain(req, res, smartAction) {
     const hadAuth = !!((req.headers && (req.headers.authorization || req.headers.Authorization)));
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
     if (!hadExplicit && !hadAuth && fromBrowser) {
+      // `plan` and `insights` are present so this answer has the SAME shape as a
+      // real sync response. Without them a client that reads `plan` saw
+      // undefined, kept whatever was already on screen and reported nothing,
+      // which is how a refused request came to look like a successful one.
       return res.status(200).json({
-        ok: true, mode: 'unscoped', stored: false, entries: [], changes: [],
+        ok: true, mode: 'unscoped', stored: false, entries: [], plan: [],
+        changes: [], insights: [],
         error: 'workspace_unresolved',
         note: 'This request arrived without an active workspace, so no data is returned. '
           + 'Another brand\'s workspace is never substituted. Reload the page (hard refresh) so the brand context loads, then try again.',

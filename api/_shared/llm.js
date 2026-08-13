@@ -32,6 +32,21 @@
 //
 // Anti-repetition: GEN_SEED appended to every user message so identical
 // prompts cannot be served from any response cache layer.
+//
+// PER-WORKSPACE OVERRIDE (workspace-connections-core.js): a brand workspace can
+// bring its own provider keys and its own priority order. Those arrive either
+// as an explicit `overrides` option, or from the request currently being served
+// (request-scope.js), and they REPLACE rather than supplement:
+//   keys[p]   this workspace's key for provider p is used INSTEAD of the
+//             platform's, so a workspace never silently spends platform quota
+//             on a provider it configured itself.
+//   order     the workspace's provider priority replaces the tier's default
+//             order. `fallback` decides whether the platform's remaining
+//             providers finish the cascade after the workspace's are exhausted.
+//   models[p] the workspace's model chain for p replaces modelsFor(p, tier).
+//   bases[p]  for the two providers reached at an account-specific address.
+// A workspace with none of these resolves to null and behaves exactly as this
+// module did before the feature existed.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const OPENAI_BASE    = 'https://api.openai.com/v1';
@@ -63,6 +78,21 @@ const SAKANA_BASE    = (process.env.SAKANA_BASE_URL || '').replace(/\/+$/, '') +
 
 function genSeed() {
   return Date.now().toString(36) + '-' + Math.floor(Math.random() * 0xffff).toString(16);
+}
+
+/**
+ * The workspace routing for the request being served, if there is one.
+ *
+ * Resolved lazily and defensively: this module is called from cron jobs, build
+ * scripts and tests that have no request at all, and a routing lookup must
+ * never be the reason a generation fails. Anything unexpected returns null and
+ * the platform default cascade runs.
+ */
+async function scopedOverrides() {
+  try {
+    const connections = require('./workspace-connections-core.js');
+    return await connections.llmOverridesForCurrentRequest();
+  } catch (_) { return null; }
 }
 
 // ── Tier normalization (back-compat: 'maxpower'→premium, 'budget'/unset→standard)
@@ -157,10 +187,13 @@ function classifyFailure(status, errBody) {
 }
 
 /**
- * callLLM({ systemPrompt, userMessage, responseFormat, maxTokens, temperature, timeoutMs, stage, tier, preferProvider, userGeminiKey })
+ * callLLM({ systemPrompt, userMessage, responseFormat, maxTokens, temperature, timeoutMs, stage, tier, preferProvider, userGeminiKey, overrides })
  *   tier: 'premium' | 'standard' (default) | 'fast'
  *         (legacy: 'maxpower'→premium, 'budget'→standard — existing callers unchanged)
- * Returns { text, provider, model, seed, quota_warning?, exhausted_keys? }
+ *   overrides: { order, models, keys, bases, fallback } — a workspace's own
+ *         routing. Omitted by every existing caller; when omitted, the routing
+ *         of the request being served is used, and failing that the default.
+ * Returns { text, provider, model, seed, quota_warning?, exhausted_keys?, routing }
  * Throws on all providers failing (err._providerErrors carries per-provider detail).
  */
 module.exports = async function callLLM(opts) {
@@ -179,11 +212,27 @@ module.exports = async function callLLM(opts) {
 
   const tierNorm = normalizeTier(tier);
 
+  // An explicit override beats the ambient one (the connection check pins a
+  // single provider that way); `overrides: null` explicitly asks for the
+  // platform default and is honoured as written.
+  const ov = (opts.overrides !== undefined) ? opts.overrides : await scopedOverrides();
+  const ovKeys  = (ov && ov.keys) || {};
+  const ovModels = (ov && ov.models) || {};
+  const ovOrder = (ov && Array.isArray(ov.order)) ? ov.order.filter(Boolean) : [];
+
   // Provider preference: per-call preferProvider wins over the APP_AI_PROVIDER env.
   // Values: 'gemini', 'openai', 'anthropic', 'grok', 'groq', 'cerebras', 'gemini+', or empty (default cascade)
-  const preferredProvider = (preferProvider || process.env.APP_AI_PROVIDER || '').toLowerCase().trim();
+  //
+  // A workspace order is an explicit human decision about which providers see
+  // this brand's data; preferProvider is an internal latency optimisation that
+  // pins whichever provider answered first this turn. The decision outranks the
+  // optimisation, so the pin is dropped when a workspace order exists rather
+  // than being allowed to run a provider the workspace left out.
+  const preferredProvider = ovOrder.length ? '' : (preferProvider || process.env.APP_AI_PROVIDER || '').toLowerCase().trim();
 
-  const openaiKeys = [
+  // A workspace key REPLACES the platform's for that provider — including the
+  // rotation set, so a workspace never falls back onto platform OpenAI quota.
+  const openaiKeys = ovKeys.openai ? [ovKeys.openai] : [
     process.env.OPENAI_API_KEY,
     process.env.OPENAI_API_KEY_2,
     process.env.OPENAI_API_KEY_3
@@ -191,33 +240,46 @@ module.exports = async function callLLM(opts) {
 
   // Strip BOM (U+FEFF), zero-width spaces, and whitespace — Vercel env can inject invisible chars
   const _clean = s => (s || '').replace(/[﻿​ ]/g, '').trim();
-  const anthropicKey = _clean(process.env.ANTHROPIC_API_KEY);
-  const geminiKey    = _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
-  const grokKey      = _clean(process.env.XAI_API_KEY);
-  const groqKey      = _clean(process.env.GROQ_API_KEY);
-  const cerebrasKey  = _clean(process.env.CEREBRAS_API_KEY);
+  const anthropicKey = _clean(ovKeys.anthropic) || _clean(process.env.ANTHROPIC_API_KEY);
+  const geminiKey    = _clean(ovKeys.gemini) || _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
+  const grokKey      = _clean(ovKeys.grok) || _clean(process.env.XAI_API_KEY);
+  const groqKey      = _clean(ovKeys.groq) || _clean(process.env.GROQ_API_KEY);
+  const cerebrasKey  = _clean(ovKeys.cerebras) || _clean(process.env.CEREBRAS_API_KEY);
   // OpenRouter — accept the canonical name OR the existing mixed-case env var name
   // (`OpenRouter_API_KEY`) already provisioned in this project. Node env names are
   // case-sensitive, so both spellings are read explicitly.
-  const openrouterKey = _clean(process.env.OPENROUTER_API_KEY) || _clean(process.env.OpenRouter_API_KEY);
+  const openrouterKey = _clean(ovKeys.openrouter) || _clean(process.env.OPENROUTER_API_KEY) || _clean(process.env.OpenRouter_API_KEY);
   // GitHub Models — dedicated token or a plain GitHub PAT.
-  const githubKey    = _clean(process.env.GITHUB_MODELS_TOKEN) || _clean(process.env.GITHUB_TOKEN);
-  // Cloudflare Workers AI — needs BOTH account id (folded into CLOUDFLARE_BASE) and token.
-  const cloudflareKey = _clean(process.env.CLOUDFLARE_API_TOKEN);
-  const cloudflareOn  = !!CLOUDFLARE_BASE && !!cloudflareKey;
+  const githubKey    = _clean(ovKeys.github) || _clean(process.env.GITHUB_MODELS_TOKEN) || _clean(process.env.GITHUB_TOKEN);
+
+  // Base URLs. Three providers are reached at an address that belongs to the
+  // account rather than to the vendor, so for those the base is part of the
+  // credential and a workspace can supply its own.
+  const bases = {
+    openai: OPENAI_BASE, anthropic: ANTHROPIC_BASE, gemini: GEMINI_BASE,
+    grok: GROK_BASE, groq: GROQ_BASE, cerebras: CEREBRAS_BASE,
+    openrouter: OPENROUTER_BASE, github: GITHUB_MODELS_BASE,
+    cloudflare: CLOUDFLARE_BASE, ollama: OLLAMA_BASE, sakana: SAKANA_BASE,
+  };
+  if (ov && ov.bases) for (const k of Object.keys(ov.bases)) if (ov.bases[k]) bases[k] = ov.bases[k];
+
+  // Cloudflare Workers AI — needs BOTH account id (folded into the base) and token.
+  const cloudflareKey = _clean(ovKeys.cloudflare) || _clean(process.env.CLOUDFLARE_API_TOKEN);
+  const cloudflareOn  = !!bases.cloudflare && !!cloudflareKey;
   // Optional tail rungs (skipped cleanly unless configured):
   //   Ollama gate = OLLAMA_BASE_URL present (auth optional).
   //   Sakana gate = both SAKANA_BASE_URL and SAKANA_API_KEY present. Forward-looking:
   //   Sakana AI has no broadly-documented public chat API today, so this rung stays
   //   inert until a base URL + key are supplied.
-  const ollamaKey    = _clean(process.env.OLLAMA_API_KEY) || 'ollama';
-  const ollamaOn     = !!process.env.OLLAMA_BASE_URL;
+  const ollamaKey    = _clean(ovKeys.ollama) || _clean(process.env.OLLAMA_API_KEY) || 'ollama';
+  const ollamaOn     = !!bases.ollama;
   const sakanaKey    = _clean(process.env.SAKANA_API_KEY);
-  const sakanaOn     = !!process.env.SAKANA_BASE_URL && !!sakanaKey;
-  // Debug: log key presence (not values) for cascade diagnostics
-  console.log('[llm] Keys present: groq=' + !!groqKey + ' cerebras=' + !!cerebrasKey + ' gemini=' + !!geminiKey + ' tier=' + tierNorm);
+  const sakanaOn     = !!bases.sakana && !!sakanaKey;
+  // Debug: key PRESENCE only, never a key. The workspace flag says whose keys
+  // are in play without naming the workspace or the value.
+  console.log('[llm] Keys present: groq=' + !!groqKey + ' cerebras=' + !!cerebrasKey + ' gemini=' + !!geminiKey + ' tier=' + tierNorm + ' workspace_routing=' + !!ov);
 
-  if (!openaiKeys.length && !anthropicKey && !geminiKey && !grokKey && !groqKey && !cerebrasKey && !openrouterKey && !githubKey && !cloudflareOn) {
+  if (!openaiKeys.length && !anthropicKey && !geminiKey && !grokKey && !groqKey && !cerebrasKey && !openrouterKey && !githubKey && !cloudflareOn && !ollamaOn) {
     throw new Error('No AI provider configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, GITHUB_MODELS_TOKEN, CLOUDFLARE_API_TOKEN(+CLOUDFLARE_ACCOUNT_ID)');
   }
 
@@ -262,7 +324,7 @@ module.exports = async function callLLM(opts) {
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
     console.log('[llm][' + stage + '] openai model=' + model + ' key=...' + key.slice(-4) + ' seed=' + seed);
     try {
-      const r = await fetch(OPENAI_BASE + '/chat/completions', {
+      const r = await fetch(bases.openai + '/chat/completions', {
         method: 'POST', cache: 'no-store',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
         body: JSON.stringify({
@@ -299,7 +361,7 @@ module.exports = async function callLLM(opts) {
       ? systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. First character must be { and last must be }. No markdown fences, no commentary, no text before or after.'
       : systemPrompt;
     try {
-      const r = await fetch(ANTHROPIC_BASE + '/messages', {
+      const r = await fetch(bases.anthropic + '/messages', {
         method: 'POST', cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
@@ -342,7 +404,7 @@ module.exports = async function callLLM(opts) {
     console.log('[llm][' + stage + '] gemini model=' + model + ' seed=' + seed);
     try {
       const r = await fetch(
-        GEMINI_BASE + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(geminiKey),
+        bases.gemini + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(geminiKey),
         {
           method: 'POST', cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
@@ -418,40 +480,40 @@ module.exports = async function callLLM(opts) {
     };
   }
 
-  const _grok = _openaiCompatible('grok', GROK_BASE, grokKey, () => ({
+  const _grok = _openaiCompatible('grok', bases.grok, grokKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
-  const _groq = _openaiCompatible('groq', GROQ_BASE, groqKey, () => ({
+  const _groq = _openaiCompatible('groq', bases.groq, groqKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
   // Cerebras: free tier caps output at 8K; no response_format support yet.
-  const _cerebras = _openaiCompatible('cerebras', CEREBRAS_BASE, cerebrasKey, () => ({
+  const _cerebras = _openaiCompatible('cerebras', bases.cerebras, cerebrasKey, () => ({
     max_tokens: Math.min(maxTokens, 8192)
   }));
   // OpenRouter (OpenAI-compatible). Optional ranking headers omitted (not required).
-  const _openrouter = _openaiCompatible('openrouter', OPENROUTER_BASE, openrouterKey, () => ({
+  const _openrouter = _openaiCompatible('openrouter', bases.openrouter, openrouterKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
   // GitHub Models (OpenAI-compatible). Free GPT-4o family via a GitHub PAT.
-  const _github = _openaiCompatible('github', GITHUB_MODELS_BASE, githubKey, () => ({
+  const _github = _openaiCompatible('github', bases.github, githubKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
   // Cloudflare Workers AI (OpenAI-compatible at /ai/v1). Free daily allowance.
-  const _cloudflare = _openaiCompatible('cloudflare', CLOUDFLARE_BASE, cloudflareKey, () => ({
+  const _cloudflare = _openaiCompatible('cloudflare', bases.cloudflare, cloudflareKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
   // Optional tail rungs (OpenAI-compatible). Only ever reached if configured
   // (hasKey.ollama / hasKey.sakana gate them in the cascade loop).
-  const _ollama = _openaiCompatible('ollama', OLLAMA_BASE, ollamaKey, () => ({
+  const _ollama = _openaiCompatible('ollama', bases.ollama, ollamaKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
-  const _sakana = _openaiCompatible('sakana', SAKANA_BASE, sakanaKey, () => ({
+  const _sakana = _openaiCompatible('sakana', bases.sakana, sakanaKey, () => ({
     max_tokens: maxTokens,
     ...(responseFormat ? { response_format: responseFormat } : {})
   }));
@@ -462,7 +524,11 @@ module.exports = async function callLLM(opts) {
 
   function _success(result) {
     return { text: result.text, provider: result.provider, model: result.model, seed,
-             quota_warning: openaiKeysExhausted > 0, exhausted_keys: openaiKeysExhausted };
+             quota_warning: openaiKeysExhausted > 0, exhausted_keys: openaiKeysExhausted,
+             // Which routing decided this call, and whether the key that paid
+             // for it was the workspace's. Never the key, only the fact.
+             routing: ov ? 'workspace' : 'platform',
+             workspace_key: !!ovKeys[result.provider] };
   }
 
   function _abortBadRequest(providerName, result) {
@@ -536,16 +602,34 @@ module.exports = async function callLLM(opts) {
     return result;
   }
 
-  const order = providerOrder(tierNorm);
-  // Honor an explicit preferProvider even if the tier's default order omits it (e.g. grok on 'fast').
-  if (preferredProvider && !isGeminiPlus && hasKey[preferredProvider] !== undefined && order.indexOf(preferredProvider) < 0) {
-    order.push(preferredProvider);
+  // The cascade order. A workspace order comes FIRST and in full; the tier's
+  // default providers are appended after it only when the workspace allowed the
+  // platform to finish the job (`fallback`). A workspace that turned fallback
+  // off has said its brand's prompts go to the providers it named and nowhere
+  // else, so the cascade ends there even if that means failing.
+  let order;
+  if (ovOrder.length) {
+    order = ovOrder.filter((p) => hasKey[p] !== undefined);
+    if (ov.fallback !== false) {
+      for (const p of providerOrder(tierNorm)) if (order.indexOf(p) < 0) order.push(p);
+    }
+  } else {
+    order = providerOrder(tierNorm);
+    // Honor an explicit preferProvider even if the tier's default order omits it (e.g. grok on 'fast').
+    if (preferredProvider && !isGeminiPlus && hasKey[preferredProvider] !== undefined && order.indexOf(preferredProvider) < 0) {
+      order.push(preferredProvider);
+    }
   }
 
   for (const providerName of order) {
     if (skip[providerName] || !hasKey[providerName]) continue;
     console.warn('[llm][' + stage + '] Trying ' + providerName + ' (tier=' + tierNorm + ')');
-    const models = modelsFor(providerName, tierNorm);
+    // A workspace's model chain replaces the tier chain for that provider. It
+    // may name a model this platform does not ship, which is deliberate: the
+    // account paying for the call knows what it can reach, and llm.js already
+    // demotes within a provider on a model-not-found.
+    const chosen = ovModels[providerName];
+    const models = (Array.isArray(chosen) && chosen.length) ? chosen : modelsFor(providerName, tierNorm);
     let result;
     if (providerName === 'openai') {
       result = await runOpenai(models);

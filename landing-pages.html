@@ -415,8 +415,12 @@
   // ─── Supabase persistence (reuse the client auth.js booted) ─────────
   const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
   const sbUser   = () => (window.LifecycleAuth && window.LifecycleAuth.user) || null;
+  // Returns how the shared write went, so the confirmation message can tell the
+  // truth. It used to swallow the failure and still say "saved to your library",
+  // which is the same class of bug as a stale list: the screen reports a state
+  // the system is not in.
   async function persistLanding(channel, form) {
-    const sb = sbClient(); if (!sb) return;
+    const sb = sbClient(); if (!sb) return { ok: false, reason: 'not signed in to the shared database' };
     try {
       const u = sbUser() || {};
       const row = {
@@ -428,8 +432,9 @@
         payload: form, origin: location.origin || ''
       };
       const { error } = await sb.from('landing_pages_generated').insert([row]);
-      if (error) console.warn('[landing] supabase insert failed:', error.message);
-    } catch (e) { console.warn('[landing] persist error:', e && e.message); }
+      if (error) { console.warn('[landing] supabase insert failed:', error.message); return { ok: false, reason: error.message }; }
+      return { ok: true };
+    } catch (e) { console.warn('[landing] persist error:', e && e.message); return { ok: false, reason: (e && e.message) || 'unknown error' }; }
   }
 
   // ─── Inject "Generate from prompt" bar into each channel form ────
@@ -697,12 +702,18 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">There is a mome
         const list = JSON.parse(localStorage.getItem(key) || '[]');
         list.unshift({ ...form, created_at: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
-        persistLanding(channel, form);
+        // Await the shared write BEFORE re-reading the library, so the new row is
+        // present in the very list this generation is about to render. The local
+        // row is already saved above, so the list is correct either way.
+        const saved = await persistLanding(channel, form);
         openLandingPreview(form);
-        loadLibrary(channel);
+        await loadLibrary(channel);
         var encForm = encodeURIComponent(JSON.stringify(form));
         var howMade = form._ai ? 'AI-written, mobile-first' : 'brand template (AI unavailable, used the built-in template)';
-        status.innerHTML = 'Landing page generated (' + howMade + ') — preview opened below (download or open in a new tab from there), saved to your library. ' +
+        var where = (saved && saved.ok)
+          ? 'saved to your library and to the shared database'
+          : 'saved to your library in this browser only (shared database write skipped: ' + ((saved && saved.reason) || 'unknown') + ')';
+        status.innerHTML = 'Landing page generated (' + howMade + ') — preview opened below (download or open in a new tab from there), ' + where + '. ' +
           '<button type="button" class="lp-btn" data-lp-prompt="' + encForm + '">📋 Copy AI prompt</button> to recreate it in ChatGPT / Gemini / Claude.';
       } catch (err) {
         status.textContent = 'Error: ' + (err && err.message || err);

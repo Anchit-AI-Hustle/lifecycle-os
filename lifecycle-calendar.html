@@ -263,7 +263,21 @@ async function generatePlan() {
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'generation failed');
+    // ok:true with an `error` code is the router refusing a request it cannot
+    // attribute to a workspace. It must not be rendered as a successful run.
+    if (data.error) throw new Error(data.note || data.error);
     STATE.plan = data.plan || [];
+    if (!STATE.plan.length) {
+      // An honest empty state. The grid and the table are cleared rather than
+      // left showing the previous generation.
+      $('gridSection').style.display = '';
+      $('tableSection').style.display = '';
+      renderCalendar(data.start_date, data.days);
+      renderTable();
+      $('planMeta').textContent = 'The generator ran and planned 0 sends for the chosen cohorts, dates and cadence. '
+        + 'Pick more cohorts, widen the window, or raise the weekly cadence, then generate again.';
+      return;
+    }
     const persistNote = data.persisted
       ? 'saved to Supabase (built mailers untouched)'
       : 'NOT persisted (' + ((data.persistence && data.persistence.reason) || 'no Supabase') + ') - plan is in-memory only';
@@ -330,7 +344,11 @@ function renderTable(filter) {
       .join(' ').toLowerCase().includes(f)
   );
   if (!rows.length) {
-    $('planTable').innerHTML = '<tr><td colspan="10" class="text-center text-ink-mute py-8">No entries match.</td></tr>';
+    // Distinguish a filter that matched nothing from a generation that produced
+    // nothing, because the two mean opposite things to the person reading it.
+    $('planTable').innerHTML = '<tr><td colspan="10" class="text-center text-ink-mute py-8">'
+      + (STATE.plan.length ? 'No entries match this filter.' : 'No sends were planned. See the message above the calendar.')
+      + '</td></tr>';
     return;
   }
   $('planTable').innerHTML = rows.map((p) =>

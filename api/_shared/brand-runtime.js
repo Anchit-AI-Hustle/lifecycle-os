@@ -130,6 +130,26 @@ async function resolve(req, opts) {
   }
 }
 
+/**
+ * Drop cached brand records after a write.
+ *
+ * The cache is keyed `<user>|<workspace>`, so a save or an activate has to
+ * invalidate by workspace across every user who shares it. Without this, a
+ * brand that was just saved kept generating from the PREVIOUS palette, voice
+ * and claims for the rest of the TTL, and a brand switch kept using the old
+ * brand for the same window. Both are stale reads that look like correct
+ * output, which is the hardest kind to notice.
+ *
+ * Called with no id it clears everything, which is what a delete needs.
+ */
+function invalidate(workspaceId) {
+  const id = workspaceId ? String(workspaceId) : '';
+  if (!id) { CACHE.clear(); return; }
+  for (const key of Array.from(CACHE.keys())) {
+    if (key.slice(key.indexOf('|') + 1) === id) CACHE.delete(key);
+  }
+}
+
 function missing(field, region) {
   return `[DATA REQUIRED BEFORE LAUNCH: ${field}, all, ${region || 'all'}]`;
 }
@@ -296,5 +316,5 @@ function scrubHtmlForBrand(html, brand) {
 
 module.exports = {
   resolve, brandBlock, regionFacts, scrubForBrand, scrubHtmlForBrand,
-  defaultBrand, isDefault, normalizeBrand, HOISTED,
+  defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,
 };
