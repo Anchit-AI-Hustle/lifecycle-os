@@ -1002,4 +1002,7 @@ async function handle(req, res) {
   return res.status(200).json(payload);
 }
 
-module.exports = { handle, build, primaryKind, availableKinds, FUNNEL_MODELS, KPI_MODELS, LEVERS };
+module.exports = {
+  // Exported so tests/brand-nouns.spec.js can assert the browser copy in
+  // brand-context.js agrees with this one. Two hand-kept tables drift.
+  offeringNoun, audienceNoun, handle, build, primaryKind, availableKinds, FUNNEL_MODELS, KPI_MODELS, LEVERS };

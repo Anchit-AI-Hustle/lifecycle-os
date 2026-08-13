@@ -54,6 +54,45 @@
   var SHIPPED_ASSISTANT_TEST = /\bKicksGPT\b/;
   var NEUTRAL_TEST = /\bBrand (Assistant|Agent)\b/;
 
+  /* The words a brand uses for the thing it sells and the person who takes it.
+     The shipped copy was written for tenant zero, so pages said "sneakers",
+     "colorway" and "airbrush" to every tenant - The Times of India was offering
+     its readers a colorway. The brand-name swap above cannot catch that, because
+     a product noun is not the brand name.
+
+     Derived from the brand's OWN offerings[].kind, which every brand record
+     already carries. Mirrors offeringNoun()/audienceNoun() in
+     api/_shared/growth-os-core.js; tests/brand-nouns.spec.js asserts the two
+     agree, so this copy cannot drift from the server's. */
+  var OFFERING_NOUN = {
+    product: 'offer', section: 'section', programme: 'programme',
+    plan: 'plan', event: 'event', service: 'service',
+  };
+  var AUDIENCE_NOUN = {
+    product: 'buyer', section: 'reader', programme: 'participant',
+    plan: 'subscriber', event: 'attendee', service: 'client',
+  };
+  function firstKind(brand) {
+    var offs = (brand && brand.offerings) || [];
+    for (var i = 0; i < offs.length; i++) {
+      var k = offs[i] && String(offs[i].kind || '').toLowerCase();
+      if (k && OFFERING_NOUN[k]) return k;
+    }
+    return '';
+  }
+  /* A brand that declares no offering kind gets the generic word, never tenant
+     zero's. "what we offer" is true of every brand; "sneakers" is true of one. */
+  function nounsFor(brand) {
+    var k = firstKind(brand);
+    return {
+      kind: k,
+      offering: OFFERING_NOUN[k] || 'offer',
+      offeringPlural: (OFFERING_NOUN[k] || 'offer') + 's',
+      audience: AUDIENCE_NOUN[k] || 'customer',
+      audiencePlural: (AUDIENCE_NOUN[k] || 'customer') + 's',
+    };
+  }
+
   var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false };
   var listeners = [];
   var readyResolve;
@@ -659,6 +698,7 @@
     api: api,
     paint: paint,
     token: token,
+    nouns: function (b) { return nounsFor(b || state.brand); },
     clearCache: clearCache,
     scopedKey: scoped,
     store: store,
