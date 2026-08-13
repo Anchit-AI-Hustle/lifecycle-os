@@ -110,7 +110,7 @@ async function runDesignLoop(opts) {
       const once = scrub ? scrub(v) : String(v || '');
       // Whatever the caller scrubs for, the ACTIVE brand's own banned list is
       // applied on top, because the caller's scrubber is tenant zero's.
-      return brand ? brandRuntime.scrubForBrand(once, brand) : once;
+      return brand ? brandRuntime.scrubHtmlForBrand(once, brand) : once;
     } catch (_) { return String(v || ''); }
   };
 
