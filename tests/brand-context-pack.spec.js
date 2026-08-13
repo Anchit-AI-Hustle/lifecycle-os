@@ -309,6 +309,191 @@ test('YAML values are quoted, so a font stack cannot corrupt the front matter', 
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   2b. ONLY THE EXACT CORRECT OPTION
+   The product has already shown this user two confidently-wrong things. A
+   confidently-wrong colour or typeface is the same class of error, so every
+   remaining edge where something plausible could be picked is pinned here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** A site that declares a brand colour but NO action colour, and loads a font
+ *  it never uses. Everything here is a near-miss on purpose. */
+const NEARMISS_CSS = `
+:root{ --brand-primary:#1F5FD0; --ink:#14181F; --page-bg:#FFFFFF; }
+html,body{background:var(--page-bg);color:var(--ink)}
+/* A saturated colour used all over the page and on NO action selector. It is
+   the highest-weighted thing left once identity, surface and ink are taken —
+   exactly the colour a frequency ranking hands back as "the accent". */
+.badge{background:#E2571F}
+.tag{background:#E2571F}
+.pill{background:#E2571F}
+.callout{background:#E2571F}
+.divider{border-color:#E6E8EB}
+`;
+const NEARMISS_SITE = {
+  'https://nearmiss.example/': html(`<!doctype html><html><head>
+<title>Nearmiss</title><meta name="theme-color" content="#1F5FD0">
+<link rel="stylesheet" href="/s.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400">
+</head><body><h1>Nearmiss</h1><p>Hello.</p></body></html>`),
+  'https://nearmiss.example/s.css': css(NEARMISS_CSS),
+};
+const BRAND_NEARMISS = { name: 'Nearmiss', website: 'https://nearmiss.example' };
+
+test('a frequency-ranked colour never becomes `secondary` either', async () => {
+  const report = await reportFor(NEARMISS_SITE, BRAND_NEARMISS);
+  const t = pack.designMdTokens(report, BRAND_NEARMISS);
+
+  // The site declares a brand colour, so `primary` is filled...
+  expect(t.colors.primary.toLowerCase()).toBe('#1f5fd0');
+  // ...but it declares no ACTION colour. The extractor's proposal falls back to
+  // the highest-weighted leftover, which is correct for a wizard where a human
+  // confirms and wrong for a token consumed without one.
+  expect(t.colors.secondary).toBeUndefined();
+  // It is reported rather than silently dropped.
+  const refused = t.not_observed.find((n) => n.token === 'secondary');
+  expect(refused).toBeTruthy();
+  expect(refused.why).toMatch(/highest-weighted remaining colour/i);
+  expect(t.markers.join(' ')).toContain('[DATA REQUIRED BEFORE LAUNCH: colors.secondary');
+
+  // And it never reaches the emitted YAML.
+  const front = pack.renderDesignMd(report, BRAND_NEARMISS, {}).markdown.split('\n---\n')[0];
+  expect(front).not.toMatch(/^ {2}secondary:/m);
+  expect(front).not.toContain('#e2571f');
+});
+
+test('a font the page LOADS but is never shown to use is not emitted as a token', async () => {
+  const report = await reportFor(NEARMISS_SITE, BRAND_NEARMISS);
+  // The extractor does surface the loaded families...
+  expect((report.fields.typography.heading || []).length).toBeGreaterThan(0);
+  expect(report.fields.typography.heading[0].confidence).toBe('weak');
+
+  // ...and the pack refuses to turn a download into a design decision.
+  const t = pack.designMdTokens(report, BRAND_NEARMISS);
+  expect(t.typography).toBe(null);
+  const refused = t.not_observed.find((n) => n.token === 'typography.heading');
+  expect(refused).toBeTruthy();
+  expect(refused.why).toMatch(/no CSS rule was found that renders/i);
+  const omission = t.omitted.find((o) => o.section === 'typography');
+  expect(omission.reason).toMatch(/loads web fonts but publishes no CSS rule/i);
+
+  const front = pack.renderDesignMd(report, BRAND_NEARMISS, {}).markdown.split('\n---\n')[0];
+  expect(front).not.toMatch(/^typography:/m);
+  expect(front).not.toContain('Playfair');
+});
+
+test('a family proven USED is still emitted, so the rule is not just "refuse everything"', async () => {
+  const t = pack.designMdTokens(await reportFor(RICH_SITE, BRAND_RICH), BRAND_RICH);
+  expect(t.typography.heading.fontFamily).toContain('Fraunces');
+  expect(t.typography.body.fontFamily).toContain('Inter');
+});
+
+test('every derived value says what it was derived from', async () => {
+  const report = await reportFor(RICH_SITE, BRAND_RICH);
+  const t = pack.designMdTokens(report, BRAND_RICH);
+
+  // The computed tokens are exactly the ones a reader must not mistake for
+  // something the site published.
+  const names = t.derived.map((d) => d.token).sort();
+  expect(names).toEqual(expect.arrayContaining(['on-primary', 'primary-text']));
+  for (const d of t.derived) {
+    expect(d.from, `${d.token} does not name its input`).toBeTruthy();
+    expect(d.how, `${d.token} does not say how it was computed`).toBeTruthy();
+    // The YAML comment beside the value says DERIVED, not a page URL.
+    expect(t.sources.colors[d.token]).toMatch(/^DERIVED from /);
+  }
+  const doc = pack.renderDesignMd(report, BRAND_RICH, {});
+  expect(doc.markdown).toContain('### Derived, not observed');
+  expect(doc.markdown).toMatch(/not read from the site/);
+});
+
+test('the proposal carries the confidence and the role it came from', async () => {
+  const rich = await reportFor(RICH_SITE, BRAND_RICH);
+  expect(rich.fields.palette.sources.primary.from_role).toBe('identity');
+  expect(rich.fields.palette.sources.primary.confidence).toBe('declared');
+  expect(rich.fields.palette.sources.primary.ranked_not_declared).toBe(false);
+  expect(rich.fields.palette.sources.accent.from_role).toBe('action');
+
+  // The near-miss site's accent is a leftover, and says so — this is the flag
+  // the wizard needs to stop showing it as if the site had declared it.
+  const near = await reportFor(NEARMISS_SITE, BRAND_NEARMISS);
+  expect(near.fields.palette.sources.accent.from_role).toBe('support');
+  expect(near.fields.palette.sources.accent.ranked_not_declared).toBe(true);
+});
+
+test('the pack records which option each field took, and out of how many', async () => {
+  const report = await reportFor(RICH_SITE, BRAND_RICH);
+  const t = pack.designMdTokens(report, BRAND_RICH);
+  const byField = Object.fromEntries(t.selection.map((s) => [s.field, s]));
+
+  const p = byField['colors.primary'];
+  expect(p.value.toLowerCase()).toBe('#1f5fd0');
+  expect(p.signal).toBeTruthy();
+  expect(p.source_url).toContain('northwind.example');
+  expect(p.candidates_considered).toBeGreaterThan(0);
+  expect(p.rank_taken).not.toBeNull();
+  expect(['top-candidate', 'only-candidate']).toContain(p.chosen_by);
+  expect(p.rule).toMatch(/identity signal only/);
+
+  // Derived and refused entries are in the same record, distinguishable.
+  expect(t.selection.some((s) => s.derived === true && s.chosen_by === 'computed')).toBe(true);
+  expect(byField['typography.heading'].confidence).toBeTruthy();
+
+  const doc = pack.renderDesignMd(report, BRAND_RICH, {});
+  expect(doc.markdown).toContain('### Which option was chosen, and why');
+});
+
+test('a refused option is recorded as refused, not merely absent', async () => {
+  const t = pack.designMdTokens(await reportFor(NEARMISS_SITE, BRAND_NEARMISS), BRAND_NEARMISS);
+  const refusals = t.selection.filter((s) => s.chosen_by === 'refused');
+  expect(refusals.length).toBeGreaterThanOrEqual(2);
+  for (const r of refusals) {
+    expect(r.refused_candidate).toBeTruthy();
+    expect(r.why).toBeTruthy();
+  }
+});
+
+test('a page that redirects OFF-ORIGIN is never ingested', async () => {
+  // An in-scope URL that answers with another company's page: a retired path
+  // 301'd to a partner, a region gate bouncing to a marketplace. Scope was
+  // checked on the URL we asked for; this checks the one that answered.
+  const impl = async (url) => {
+    if (url === 'https://northwind.example/') {
+      return { ok: true, status: 200, url,
+        body: '<html><body><a href="/partners">Partners</a></body></html>' };
+    }
+    if (url === 'https://northwind.example/partners') {
+      // followed a redirect and landed somewhere else entirely
+      return { ok: true, status: 200, url: 'https://competitor.example/their-page',
+        body: '<html><head><title>Competitor</title></head><body><h1>Competitor products</h1></body></html>' };
+    }
+    return { ok: false, status: 404, body: '' };
+  };
+  const out = await crawl.crawlSite('https://northwind.example/', {
+    brand: BRAND_RICH, fetchImpl: impl, maxPages: 5, maxDepth: 2,
+  });
+  expect(out.pages).toEqual(['https://northwind.example/']);
+  expect(out.pages).not.toContain('https://northwind.example/partners');
+  expect(out.notes.join(' ')).toMatch(/redirected off-origin/);
+  // and nothing from that body was taken
+  expect(JSON.stringify(out.offerings)).not.toContain('Competitor');
+});
+
+test('an in-origin redirect is still followed', async () => {
+  const impl = async (url) => {
+    if (url === 'https://northwind.example/') {
+      return { ok: true, status: 200, url: 'https://www.northwind.example/en-gb/',
+        body: '<html><head><title>Northwind</title></head><body><h1>Northwind</h1></body></html>' };
+    }
+    return { ok: false, status: 404, body: '' };
+  };
+  const out = await crawl.crawlSite('https://northwind.example/', {
+    brand: BRAND_RICH, fetchImpl: impl, maxPages: 3, maxDepth: 1,
+  });
+  expect(out.pages.length).toBe(1);
+  expect(out.notes.join(' ')).not.toMatch(/redirected off-origin/);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
    3. KNOWLEDGE — verbatim, or a marker
    ═══════════════════════════════════════════════════════════════════════════ */
 

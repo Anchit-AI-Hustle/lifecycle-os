@@ -7,7 +7,13 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <meta name="theme-color" content="#D0473E">
 <link href="https://fonts.googleapis.com/css2?family=Raleway+Garamond:ital,wght@0,500;0,600;1,500&family=Proxima+Nova&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- Intentionally NO auth.js: this is a public, sign-in-free 3D storefront demo. -->
+<!-- Intentionally NO auth.js: this is a public, sign-in-free 3D storefront demo.
+     brand-context + brand-catalog ARE loaded, and both degrade to a no-op when
+     signed out: the page used to fetch /data/catalog/products_us.json directly,
+     so a signed-in workspace whose brand is not tenant zero browsed tenant
+     zero's 436 sneakers as though they were its own products. -->
+<script src="/brand-context.js" defer></script>
+<script src="/brand-catalog.js" defer></script>
 <style>
   :root{
     --green:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
@@ -345,7 +351,25 @@ const FALLBACK=[
 ];
 
 const $=id=>document.getElementById(id);
-const state={all:[],products:[],selected:0,qty:1,usedFallback:false};
+const state={all:[],products:[],selected:0,qty:1,usedFallback:false,catalogNote:''};
+
+// Resolve through the shared BrandCatalog resolver when it is present AND a
+// brand is actually active. Returns null to mean "no brand context, carry on
+// with the public tenant-zero demo path"; returns a (possibly empty) product
+// list otherwise, which the caller must not fall back from.
+async function brandScopedCatalog(){
+  try{
+    if(!window.BrandCatalog||!window.BrandContext) return null;
+    const brand=await window.BrandContext.ready();
+    if(!brand) return null;                       // signed out: public demo
+    const res=await window.BrandCatalog.load(REGION==='in'?'global':REGION);
+    if(res.source==='none'){
+      state.catalogNote=res.reason||'No catalogue is connected for this brand.';
+      return [];
+    }
+    return normProducts(res.products||[]);
+  }catch(_){ return null; }
+}
 
 function normProducts(list){
   return list.map(p=>({
@@ -357,7 +381,16 @@ function normProducts(list){
 }
 
 async function loadCatalog(){
-  // 1) same-origin built catalog (US/UK/Global), CORS-enabled + fast.
+  // 0) The ACTIVE brand's own catalogue, when someone is signed in. A brand that
+  //    is not tenant zero must never be shown the shipped products below: they
+  //    are one company's. `source:'none'` means it has no catalogue of its own,
+  //    and the honest answer is an empty storefront with a reason, not another
+  //    brand's shelves.
+  const scoped = await brandScopedCatalog();
+  if(scoped) return scoped;
+  // 1) same-origin built catalog (US/UK/Global), CORS-enabled + fast. Reached
+  //    only by a signed-out visitor, for whom this IS tenant zero's public
+  //    storefront demo (its title, palette and store URLs).
   if(RC.cat){
     try{
       const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),9000);
@@ -590,7 +623,8 @@ async function init(){
   renderContent();   // populate the full-depth scroll sections (works with 3D or 2D)
   loadReviews();     // real verified reviews for this region (hidden if none approved)
   setupReveal();     // luxury scroll-reveal on the content sections
-  if(state.usedFallback) note(`Live ${RC.label} catalog unavailable right now — showing a limited sample. Product links still open the ${RC.label} store.`);
+  if(state.catalogNote) note(state.catalogNote);
+  else if(state.usedFallback) note(`Live ${RC.label} catalog unavailable right now — showing a limited sample. Product links still open the ${RC.label} store.`);
 
   // qty + variation wiring (works in both 3D and 2D)
   $('qMinus').onclick=()=>{state.qty=Math.max(1,state.qty-1);renderCheckout();};

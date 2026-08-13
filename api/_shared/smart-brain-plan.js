@@ -1453,7 +1453,7 @@ function gateProof(copy, entry) {
   return c;
 }
 
-function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}) {
+function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runId = null) {
   const briefFor = (copy, k) => ({ brief: (k && copy.ads?.[k]?.image_brief) || '', image: null, provider: null });
   // Distinct real gallery pool for this slot (hero product + supporting), HD.
   // B-variants draw an ALTERNATE real photo (not the email hero) so the A/B
@@ -1799,7 +1799,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     if (withCreatives) trace.push({ agent: 'Asset Director', role: 'Creative / Art Direction', ok: imgProviders.length > 0, provider: imgProviders.join(',') || null, output: { assets: Object.keys(creatives).length } });
     // ── Agent 4 · Design Integrator — assembles each variant in the layout the
     // decision engine chose for this send's intent/theme (so every mailer differs).
-    applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives);
+    applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives, __run);
     trace.push({ agent: 'Design Integrator', role: 'Mailer Designer', ok: true, output: { archetype: (entry.decision && entry.decision.design && entry.decision.design.archetype) || 'hero-spotlight', variants: '2 Text + 2 Text + Visual' } });
     copyMeta = { provider, model, frameworks: [fwA.key, fwB.key], creatives: imgProviders.length ? imgProviders.join(',') : 'briefs-only' };
   } catch (e) {
