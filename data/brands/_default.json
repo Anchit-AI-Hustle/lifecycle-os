@@ -150,19 +150,48 @@
         },
         {
           "name": "Tier 2, India custom-sneaker studios",
-          "note": "Direct competitors: Moreiarty, Sneak Peek Shoes, The Leather Works (TLW Art House), Shoes Your Daddy, Sneakboo, Courtside, MD Customs."
+          "note": "Direct competitors: Moreiarty, Sneak Peek Shoes, The Leather Works (TLW Art House), Shoes Your Daddy, Sneakboo, Courtside, MD Customs.",
+          "brands": [
+            { "name": "Moreiarty", "website": "https://www.moreiarty.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Sneak Peek Shoes", "website": "https://www.handpaintedsneaker.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "The Leather Works (TLW Art House)", "website": "https://theleatherworks.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Shoes Your Daddy", "website": "https://www.shoesyourdaddy.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Sneakboo", "country": "India" },
+            { "name": "Courtside", "website": "https://www.courtside.store", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "MD Customs", "website": "https://www.mdcustoms.in/en-us", "country": "India", "source": "Homepage opened and verified 2026-08-03" }
+          ]
         },
         {
           "name": "Tier 3, Sneaker retail and marketplaces",
-          "note": "Compete for the same sneakerhead wallet: VegNonVeg, Superkicks, CrepDog Crew, Hype Fly, FindYourKicks, Mainstreet Marketplace."
+          "note": "Compete for the same sneakerhead wallet: VegNonVeg, Superkicks, CrepDog Crew, Hype Fly, FindYourKicks, Mainstreet Marketplace.",
+          "brands": [
+            { "name": "VegNonVeg", "website": "https://www.vegnonveg.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Superkicks", "website": "https://www.superkicks.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "CrepDog Crew", "website": "https://crepdogcrew.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Hype Fly", "website": "https://hypefly.co.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "FindYourKicks", "website": "https://www.findyourkicks.com", "country": "India", "source": "Homepage opened 2026-08-03; it served a maintenance holding page" },
+            { "name": "Mainstreet Marketplace", "website": "https://marketplace.mainstreet.co.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" }
+          ]
         },
         {
           "name": "Tier 4, Indie design-led Indian brands",
-          "note": "Comet, Gully Labs, Thaely, Banjaaran Studio. Design-forward originals rather than customisation."
+          "note": "Comet, Gully Labs, Thaely, Banjaaran Studio. Design-forward originals rather than customisation.",
+          "brands": [
+            { "name": "Comet", "website": "https://www.wearcomet.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Gully Labs", "website": "https://gullylabs.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Thaely", "website": "https://thaely.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Banjaaran Studio", "website": "https://banjaaran.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" }
+          ]
         },
         {
           "name": "Tier 5, Global customisation benchmarks",
-          "note": "The Shoe Surgeon, Kickstradomis, and the official programmes Nike By You and Converse By You."
+          "note": "The Shoe Surgeon, Kickstradomis, and the official programmes Nike By You and Converse By You.",
+          "brands": [
+            { "name": "The Shoe Surgeon (SRGN)", "website": "https://www.thesurgeon.com", "country": "USA", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Kickstradomis", "website": "https://kickstradomis.com", "country": "USA", "source": "Homepage opened and verified 2026-08-03" },
+            { "name": "Nike By You", "website": "https://www.nike.com/w/nike-by-you-6ealh", "country": "USA", "source": "Official programme page, verified 2026-08-03" },
+            { "name": "Converse By You", "website": "https://www.converse.com/c/custom", "country": "USA", "source": "Official programme page, verified 2026-08-03" }
+          ]
         }
       ],
       "reads": [

@@ -306,14 +306,16 @@
     return el;
   }
 
-  function renderPosts(posts, fromDb) {
+  // `emptyReason` names WHY there is nothing, because "nothing here yet" after a
+  // pipeline run that just finished reads as a page that ignored the click.
+  function renderPosts(posts, fromDb, emptyReason) {
     var box = $('cards');
     box.innerHTML = '';
     currentPosts = posts || [];
     currentDate = $('datePick').value || todayIso();
     $('dayPkgBtn').disabled = !currentPosts.length;
     if (!posts || !posts.length) {
-      box.innerHTML = '<div class="empty">Nothing here for this date yet.</div>';
+      box.innerHTML = '<div class="empty">' + esc(emptyReason || 'Nothing here for this date yet.') + '</div>';
       return;
     }
     posts.forEach(function (row) {
@@ -366,8 +368,12 @@
       var r = await fetch(API + '?action=social-run-daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       var j = await r.json();
       if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      // ok:true with an error code is a refusal (no resolvable workspace), not a
+      // successful run that happened to produce nothing.
+      if (j.error) throw new Error(j.note || j.error);
       lastRun = j;
-      renderPosts(j.posts, false);
+      renderPosts(j.posts, false, 'The pipeline ran and produced no drafts for this date. '
+        + ((j.persistence && j.persistence.reason) || j.note || 'Check the agent trace below for the step that returned nothing.'));
       renderTrace(j.trace);
       var persisted = j.persistence && j.persistence.persisted;
       $('runState').textContent = 'Done in ' + Math.round((j.ms || 0) / 1000) + 's — ' + (j.posts || []).length + ' drafts' + (persisted ? ' (saved)' : ' (NOT saved: ' + ((j.persistence && j.persistence.reason) || '') + ')');
@@ -394,7 +400,9 @@
       finally { clearTimeout(to); }
       var j = await r.json();
       if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
-      renderPosts(j.posts, true);
+      if (j.error) throw new Error(j.note || j.error);
+      renderPosts(j.posts, true, 'No saved posts for ' + d + '. '
+        + (j.persistence ? 'Run the pipeline to generate drafts for this date.' : (j.note || 'Supabase is not configured, so nothing can be saved or read back.')));
       renderTrace(null);
       $('runState').textContent = (j.posts || []).length + ' saved post(s) for ' + d + (j.persistence ? '' : ' — Supabase not configured');
       if (!j.persistence && j.note) banner(j.note, true);

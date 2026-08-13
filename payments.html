@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment Gateways</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<script src="/brand-context.js?early=1"></script>
+<script src="/auth.js?v=20260813" defer></script>
+<script src="/credits.js?v=20260813" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111111);--muted:var(--brand-ink-muted,#666666);
+    --surface:var(--brand-surface,#FFFFFF);--card:var(--brand-surface-alt,#FFFFFF);
+    --primary:var(--brand-primary,#D0473E);--on-primary:var(--brand-on-primary,#FFFFFF);
+    --accent:var(--brand-accent,#6A33D8);--on-accent:var(--brand-on-accent,#FFFFFF);
+    --line:var(--brand-line,#EBEBEB);
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,system-ui,sans-serif);--body:var(--brand-font-body,system-ui,sans-serif);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 80px;min-height:100vh;font-size:14px}
+  .wrap{max-width:1180px;margin:0 auto}
+
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--head);font-size:32px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:820px}
+  h2{font-family:var(--head);font-size:19px;font-weight:600;margin-bottom:4px}
+  h3{font-family:var(--head);font-size:15px;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:12.5px;line-height:1.6;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+
+  .policy{border:1px solid var(--line);border-left:3px solid var(--warn);background:var(--card);
+          border-radius:10px;padding:14px 16px;margin:20px 0 22px;font-size:12.8px;line-height:1.65;color:var(--muted)}
+  .policy b{color:var(--ink)}
+  .policy.err{border-left-color:var(--err)}
+  .policy.ok{border-left-color:var(--ok)}
+
+  /* The standing single-row rule: every bar of controls on this page scrolls
+     sideways rather than wrapping onto a second line. */
+  nav.tabs{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+           scrollbar-width:thin;border-bottom:1px solid var(--line);margin-bottom:22px}
+  nav.tabs > *{flex:0 0 auto}
+  .tab{padding:10px 15px;font-size:13px;font-family:var(--body);color:var(--muted);background:none;border:none;
+       border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--primary);font-weight:600}
+  .panel{display:none}
+  .panel.on{display:block;animation:payfade .18s ease-out}
+  @keyframes payfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.panel.on{animation:none}}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(370px,1fr));gap:16px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}h1{font-size:26px}body{padding:56px 16px 64px}}
+
+  .gw{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:11px}
+  .gw-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .gw-name{font-family:var(--head);font-size:17px;font-weight:600}
+  .gw-cov{font-size:11px;color:var(--muted);margin-top:2px}
+  .gw-sum{font-size:12.8px;color:var(--muted);line-height:1.6}
+
+  .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+        padding:3px 8px;border-radius:5px;white-space:nowrap}
+  .pill-ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+  .pill-off{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+  .pill-warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+  .pill-err{background:color-mix(in srgb,var(--err) 13%,transparent);color:var(--err)}
+
+  .k{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-top:4px}
+  .tag{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:5px;margin:3px 4px 0 0;
+       background:color-mix(in srgb,var(--accent) 9%,transparent);color:var(--accent);font-weight:600}
+  .tag.miss{background:color-mix(in srgb,var(--err) 10%,transparent);color:var(--err)}
+  .note{font-size:12px;color:var(--muted);line-height:1.55}
+  .limit{background:color-mix(in srgb,var(--warn) 9%,transparent);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+         border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.55;color:var(--ink)}
+
+  .row{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+       scrollbar-width:thin;margin-top:auto;padding-top:8px}
+  .row > *{flex:0 0 auto}
+  .btn{font-family:var(--body);font-size:12.5px;font-weight:600;padding:9px 15px;border-radius:8px;cursor:pointer;
+       border:1px solid var(--line);background:var(--card);color:var(--ink);white-space:nowrap;transition:border-color .12s}
+  .btn:hover{border-color:var(--primary)}
+  .btn-primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+
+  .form{border-top:1px solid var(--line);padding-top:11px;display:none;gap:9px;flex-direction:column}
+  .form.on{display:flex}
+  .form label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .form input{font-family:var(--body);font-size:13px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+              background:var(--surface);color:var(--ink);width:100%}
+  .form .hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+
+  .out{background:color-mix(in srgb,var(--muted) 6%,transparent);border:1px solid var(--line);border-radius:9px;
+       padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.55;
+       white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;display:none}
+  .out.on{display:block}
+
+  table{width:100%;min-width:720px;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  thead tr{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+  th{padding:10px 13px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:left;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+  td{padding:12px 13px;font-size:12.8px;border-top:1px solid var(--line);vertical-align:top;line-height:1.55}
+  .scroll{overflow-x:auto;border-radius:12px}
+
+  .stack{display:flex;flex-direction:column;gap:14px}
+  .li{padding:9px 0;border-top:1px solid var(--line);font-size:12.8px;line-height:1.6}
+  .li:first-of-type{border-top:none}
+  .li b{display:block;margin-bottom:2px}
+  .gapline{background:color-mix(in srgb,var(--warn) 9%,transparent);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);
+           border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.55;margin-bottom:7px}
+  .empty{color:var(--muted);font-size:13px;line-height:1.7;padding:22px;text-align:center}
+  .actions{display:flex;gap:9px;flex-wrap:nowrap;overflow-x:auto;margin-top:18px;padding-bottom:4px}
+  .actions > *{flex:0 0 auto}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Settings</div>
+  <h1>Payment Gateways</h1>
+  <p class="lede">Attach the brand's own payment gateway account to this workspace. Pick a gateway, sign in at that gateway, and it belongs to this brand. Nothing here asks anyone to hunt down a secret and paste it, except where the gateway genuinely offers no other way, which is stated on the card rather than hidden.</p>
+
+  <div class="policy" id="pay-policy">
+    <b>How this treats credentials.</b>
+    <div id="pay-policy-text" style="margin-top:5px">Checking what this deployment can offer.</div>
+  </div>
+
+  <nav class="tabs" id="pay-tabs" role="tablist">
+    <button type="button" class="tab" role="tab" aria-selected="true"  data-tab="gateways">Gateways</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="flows">Connect flows</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="custody">Who holds what</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="pci">PCI scope</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="hooks">Webhooks</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="setup">One-time setup</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="gaps">Known gaps</button>
+  </nav>
+
+  <section class="panel on" id="panel-gateways">
+    <h2>Available gateways</h2>
+    <p class="sub">A gateway connection belongs to exactly one brand workspace. Switching brands switches which connection is in view, and one brand can never read another's.</p>
+    <div class="grid" id="pay-cards"><div class="empty">Loading gateways.</div></div>
+  </section>
+
+  <section class="panel" id="panel-flows">
+    <h2>How each gateway is actually connected</h2>
+    <p class="sub">Every endpoint below was read from the provider's own documentation. Anything that could not be confirmed is written out as a data-required line instead of a plausible guess.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Gateway</th><th>Mechanism</th><th>Endpoints</th><th>Scopes or permissions</th></tr></thead>
+      <tbody id="pay-flows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="panel-custody">
+    <h2>Who holds what</h2>
+    <p class="sub">The important question for any connection of this kind is what the platform ends up holding, and what stays with the merchant.</p>
+    <div class="grid" id="pay-custody"></div>
+  </section>
+
+  <section class="panel" id="panel-pci">
+    <h2>PCI scope</h2>
+    <p class="sub">This platform renders no card field anywhere, so card data never reaches it. That keeps the platform out of card-data scope, and it does not remove the merchant's own obligations on their own checkout.</p>
+    <div class="grid" id="pay-pci"></div>
+  </section>
+
+  <section class="panel" id="panel-hooks">
+    <h2>Webhooks</h2>
+    <p class="sub">Without these, a stored connection quietly rots: a merchant who disconnects at the provider would still read as connected here.</p>
+    <div class="policy" id="pay-hook-note"></div>
+    <div class="grid" id="pay-hooks"></div>
+  </section>
+
+  <section class="panel" id="panel-setup">
+    <h2>What a human has to do once</h2>
+    <p class="sub">An operator cannot self-serve any of this. Each gateway needs the platform owner to register with the provider first, and the resulting identifiers go into environment variables, never into the code.</p>
+    <div class="stack" id="pay-setup"></div>
+  </section>
+
+  <section class="panel" id="panel-gaps">
+    <h2>Known gaps</h2>
+    <p class="sub">Everything that is not yet verified against real documentation, or not yet built. Listed so it cannot be mistaken for finished.</p>
+    <div id="pay-gaps"></div>
+    <div class="actions">
+      <a class="btn" href="/onboarding">Brand setup</a>
+      <a class="btn" href="/connectors">Other connectors</a>
+      <a class="btn" href="/credits">Credits and usage</a>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var API = "/api/public-config?action=payments";
+  var DATA = null;      // catalog + connections
+  var BUSY = false;
+
+  function el(id){ return document.getElementById(id); }
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+  function authHeaders(){
+    var h = { "Content-Type": "application/json" };
+    try {
+      var s = window.LifecycleAuth && window.LifecycleAuth.session;
+      if (s && s.access_token) h.Authorization = "Bearer " + s.access_token;
+    } catch(e){ /* signed out: only the open ops will answer */ }
+    return h;
+  }
+
+  // auth.js is deferred and the Supabase session resolves after it, so the very
+  // first paint can precede a usable token. Waiting briefly avoids sending an
+  // anonymous request that the router correctly refuses.
+  function whenAuthReady(cb, waited){
+    var w = waited || 0, s = null;
+    try { s = window.LifecycleAuth && window.LifecycleAuth.session; } catch(e){ s = null; }
+    if ((s && s.access_token) || w >= 4000) return cb();
+    setTimeout(function(){ whenAuthReady(cb, w + 200); }, 200);
+  }
+
+  function call(op, body){
+    return fetch(API + "&op=" + encodeURIComponent(op), {
+      method: "POST", headers: authHeaders(), body: JSON.stringify(body || {})
+    }).then(function(r){ return r.json(); });
+  }
+
+  /* ── policy line ────────────────────────────────────────────────────────── */
+  function renderPolicy(){
+    var st = (DATA && DATA.storage) || {};
+    var box = el("pay-policy");
+    box.classList.remove("err"); box.classList.remove("ok");
+    var lines = [];
+    lines.push("A credential is sealed with AES-256-GCM before it reaches the database, and the sealing key lives only in the server environment. The ciphertext columns are revoked from every browser-facing database role, so a workspace member cannot read them either. This page only ever receives a masked hint and a connected flag.");
+    if (st.ready){
+      box.classList.add("ok");
+      lines.push("Credential storage is configured on this deployment.");
+    } else {
+      box.classList.add("err");
+      lines.push("Credential storage is NOT configured, so no gateway can be connected yet. Missing: " + esc((st.missing || []).join(", ") || "unknown") + ". Until they are set, every action on this page returns the exact request it would have made instead of running it.");
+    }
+    el("pay-policy-text").innerHTML = lines.map(function(l){ return "<div style=\"margin-bottom:6px\">" + l + "</div>"; }).join("");
+  }
+
+  /* ── gateway cards ──────────────────────────────────────────────────────── */
+  function statusPill(g, conn){
+    if (conn && conn.connected) return '<span class="pill pill-ok">Connected</span>';
+    if (conn && conn.status === "revoked") return '<span class="pill pill-err">Revoked</span>';
+    if (g.readiness && g.readiness.ready) return '<span class="pill pill-off">Not connected</span>';
+    return '<span class="pill pill-warn">Needs platform setup</span>';
+  }
+
+  function connectLabel(g){
+    if (g.id === "razorpay" && g.readiness && g.readiness.mode === "api_key") return "Add key";
+    if (g.connect_kind === "partner_referral") return "Start PayPal onboarding";
+    return "Sign in with " + g.label;
+  }
+
+  function card(g){
+    var conn = (DATA.connections || {})[g.id] || null;
+    var h = '<div class="gw" data-gw="' + esc(g.id) + '">';
+    h += '<div class="gw-top"><div><div class="gw-name">' + esc(g.label) + '</div>'
+       + '<div class="gw-cov">' + esc(g.coverage) + ' &middot; ' + esc(g.readiness && g.readiness.mode ? g.readiness.mode.replace(/_/g," ") : g.connect_kind.replace(/_/g," ")) + '</div></div>'
+       + statusPill(g, conn) + '</div>';
+    h += '<div class="gw-sum">' + esc(g.summary) + '</div>';
+
+    if (g.limitation) h += '<div class="limit"><b>Read this first.</b> ' + esc(g.limitation) + '</div>';
+
+    if (conn && conn.connected){
+      h += '<div><div class="k">Connected account</div><div class="note">' + esc(conn.account_label || conn.account_id || "unnamed")
+         + (conn.livemode === false ? " (test mode)" : "")
+         + (conn.masked_hint ? ' &middot; credential ' + esc(conn.masked_hint) : "")
+         + (conn.scope ? ' &middot; scope ' + esc(conn.scope) : "") + '</div></div>';
+    }
+
+    if (g.readiness && !g.readiness.ready && (g.readiness.missing || []).length){
+      h += '<div><div class="k">Blocked by</div>' + g.readiness.missing.map(function(m){
+        return '<span class="tag miss">' + esc(m) + '</span>';
+      }).join("") + '</div>';
+      if (g.readiness.note) h += '<div class="note">' + esc(g.readiness.note) + '</div>';
+    }
+
+    h += '<div><div class="k">Requests</div>' + (g.scopes || []).map(function(s){
+      return '<span class="tag">' + esc(s.value) + '</span>';
+    }).join("") + '</div>';
+
+    // Key entry, only for a gateway that genuinely has no sign-in path here.
+    if ((g.api_key_fields || []).length && g.readiness && g.readiness.mode === "api_key"){
+      h += '<div class="form" id="form-' + esc(g.id) + '">';
+      g.api_key_fields.forEach(function(f){
+        h += '<div><label for="fld-' + esc(g.id) + '-' + esc(f.key) + '">' + esc(f.label) + '</label>'
+           + '<input id="fld-' + esc(g.id) + '-' + esc(f.key) + '" type="' + (f.secret ? "password" : "text")
+           + '" autocomplete="off" spellcheck="false" data-field="' + esc(f.key) + '">'
+           + '<div class="hint">' + esc(f.hint || "") + '</div></div>';
+      });
+      h += '<div class="row"><button type="button" class="btn btn-primary" data-act="save-credentials" data-gw="' + esc(g.id) + '" data-credit-feature="payments.connect">Save and verify</button></div>';
+      h += '</div>';
+    }
+
+    // Shopify needs the store domain before there is anywhere to sign in to.
+    if (g.id === "shopify_payments"){
+      h += '<div class="form on" id="form-shop"><div><label for="fld-shop">Store domain</label>'
+         + '<input id="fld-shop" type="text" autocomplete="off" spellcheck="false" placeholder="store-name.myshopify.com">'
+         + '<div class="hint">Shopify sign-in happens on the store\'s own domain, so the store has to be named first.</div></div></div>';
+    }
+
+    h += '<div class="row">';
+    h += '<button type="button" class="btn btn-primary" data-act="connect" data-gw="' + esc(g.id) + '" data-credit-feature="payments.connect">' + esc(connectLabel(g)) + '</button>';
+    h += '<button type="button" class="btn" data-act="probe" data-gw="' + esc(g.id) + '">Test read</button>';
+    if (conn) h += '<button type="button" class="btn" data-act="disconnect" data-gw="' + esc(g.id) + '">Disconnect</button>';
+    h += '</div>';
+    h += '<div class="out" id="out-' + esc(g.id) + '"></div>';
+    h += '</div>';
+    return h;
+  }
+
+  function renderCards(){
+    var gws = (DATA && DATA.gateways) || [];
+    el("pay-cards").innerHTML = gws.length ? gws.map(card).join("") : '<div class="empty">No gateways are registered.</div>';
+    // credits.js already re-labels on DOM mutation; this is the immediate pass
+    // so a freshly rendered card is never briefly unpriced.
+    if (window.Credits && window.Credits.decorate) {
+      try { window.Credits.decorate(el("pay-cards")); } catch(e){ /* labelling is cosmetic */ }
+    }
+  }
+
+  /* ── reference panels ───────────────────────────────────────────────────── */
+  function renderFlows(){
+    var gws = (DATA && DATA.gateways) || [];
+    el("pay-flows").innerHTML = gws.map(function(g){
+      var eps = Object.keys(g.endpoints || {}).map(function(k){
+        return '<div class="note"><b>' + esc(k) + '</b>: ' + esc(g.endpoints[k]) + '</div>';
+      }).join("");
+      var sc = (g.scopes || []).map(function(s){
+        return '<div class="note"><b>' + esc(s.value) + '</b>: ' + esc(s.why) + '</div>';
+      }).join("");
+      return '<tr><td><b>' + esc(g.label) + '</b><div class="note">' + esc(g.coverage) + '</div></td>'
+           + '<td>' + esc(g.connect_kind.replace(/_/g," ")) + (g.fallback_kind ? '<div class="note">falls back to ' + esc(g.fallback_kind.replace(/_/g," ")) + '</div>' : "") + '</td>'
+           + '<td>' + eps + '</td><td>' + sc + '</td></tr>';
+    }).join("");
+  }
+
+  function renderCustody(){
+    var gws = (DATA && DATA.gateways) || [];
+    el("pay-custody").innerHTML = gws.map(function(g){
+      var h = (g.holds || {});
+      return '<div class="card"><h3>' + esc(g.label) + '</h3>'
+        + '<div class="li"><b>This platform holds</b>' + esc(h.platform || "") + '</div>'
+        + '<div class="li"><b>The merchant holds</b>' + esc(h.merchant || "") + '</div>'
+        + (h.note ? '<div class="li"><b>Worth knowing</b>' + esc(h.note) + '</div>' : "")
+        + '</div>';
+    }).join("");
+  }
+
+  function renderPci(){
+    var gws = (DATA && DATA.gateways) || [];
+    el("pay-pci").innerHTML = gws.map(function(g){
+      var p = (g.pci || {});
+      return '<div class="card"><h3>' + esc(g.label) + '</h3>'
+        + '<div class="li"><b>Platform scope</b>' + esc(p.platform_scope || "") + '</div>'
+        + '<div class="li"><b>Merchant scope</b>' + esc(p.merchant_scope || "") + '</div>'
+        + (p.caveat ? '<div class="li"><b>Caveat</b>' + esc(p.caveat) + '</div>' : "")
+        + '</div>';
+    }).join("");
+  }
+
+  function renderHooks(){
+    var gws = (DATA && DATA.gateways) || [];
+    el("pay-hook-note").innerHTML = "<b>Not yet receiving.</b> The receiver endpoint is not built. Registering these events before a signature-verifying receiver exists would mean accepting unauthenticated state changes, which is worse than polling. The list is here so the work is specified rather than discovered later.";
+    el("pay-hooks").innerHTML = gws.map(function(g){
+      var w = g.webhooks || {};
+      var evs = (w.events || []).map(function(e){
+        return '<div class="li"><b>' + esc(e.name) + '</b>' + esc(e.do) + '</div>';
+      }).join("");
+      return '<div class="card"><h3>' + esc(g.label) + '</h3>'
+        + '<div class="note" style="margin-bottom:8px">' + esc(w.why || "") + '</div>'
+        + evs
+        + '<div class="li"><b>Verification</b>' + esc(w.verification || "") + '</div>'
+        + '</div>';
+    }).join("");
+  }
+
+  function renderSetup(){
+    var gws = (DATA && DATA.gateways) || [];
+    var cb = (DATA && DATA.callback_url) || "/payments/callback";
+    var head = '<div class="card"><h3>Callback URL to register everywhere</h3>'
+      + '<div class="note">Every provider matches this string exactly against a value registered in its dashboard. Set PAYMENTS_PUBLIC_BASE_URL so it does not vary by host.</div>'
+      + '<div class="out on" style="margin-top:8px">' + esc(cb) + '</div></div>';
+    el("pay-setup").innerHTML = head + gws.map(function(g){
+      var p = g.platform_prereq || {};
+      var envs = Object.keys(p.env || {}).map(function(k){
+        return '<div class="li"><b>' + esc(k) + '</b>' + esc(p.env[k]) + '</div>';
+      }).join("");
+      return '<div class="card"><h3>' + esc(g.label) + '</h3>'
+        + '<div class="li"><b>Do this</b>' + esc(p.what || "") + '</div>'
+        + '<div class="li"><b>Where</b>' + esc(p.where || "") + '</div>'
+        + '<div class="li"><b>Yields</b>' + esc(p.yields || "") + '</div>'
+        + envs + '</div>';
+    }).join("");
+  }
+
+  function renderGaps(){
+    var gws = (DATA && DATA.gateways) || [];
+    var out = [];
+    var st = (DATA && DATA.storage) || {};
+    if (!st.ready) out.push("Credential storage is not configured on this deployment: " + ((st.missing || []).join(", ") || "unknown") + ".");
+    out.push("The webhook receiver is specified but not built, so a disconnection made at the provider is not yet reflected here automatically.");
+    gws.forEach(function(g){
+      (g.gaps || []).forEach(function(x){ out.push(g.label + ": " + x); });
+      var w = g.webhooks || {};
+      if (w.verification && w.verification.indexOf("DATA REQUIRED") >= 0) out.push(g.label + ": " + w.verification);
+    });
+    el("pay-gaps").innerHTML = out.map(function(x){ return '<div class="gapline">' + esc(x) + '</div>'; }).join("");
+  }
+
+  function renderAll(){
+    renderPolicy(); renderCards(); renderFlows(); renderCustody();
+    renderPci(); renderHooks(); renderSetup(); renderGaps();
+  }
+
+  /* ── actions ────────────────────────────────────────────────────────────── */
+  function show(gw, payload){
+    var box = el("out-" + gw);
+    if (!box) return;
+    box.classList.add("on");
+    box.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+  }
+
+  function onConnect(gw){
+    var body = { gateway: gw };
+    if (gw === "shopify_payments"){
+      var f = el("fld-shop");
+      if (f && f.value.trim()) body.shop = f.value.trim();
+    }
+    show(gw, "Working.");
+    call("connect", body).then(function(j){
+      if (j && j.mode === "redirect" && j.authorize_url){
+        // The whole point of the feature: hand the operator to the gateway's own
+        // sign-in rather than asking them to find a secret.
+        show(gw, "Sending you to " + gw + " to sign in.");
+        window.location.href = j.authorize_url;
+        return;
+      }
+      if (j && j.mode === "credentials"){
+        var form = el("form-" + gw);
+        if (form) form.classList.add("on");
+        show(gw, j);
+        return;
+      }
+      show(gw, j);
+    }).catch(function(e){ show(gw, "Failed: " + e.message); });
+  }
+
+  function onSaveCredentials(gw){
+    var form = el("form-" + gw);
+    if (!form) return;
+    var creds = {};
+    Array.prototype.forEach.call(form.querySelectorAll("input[data-field]"), function(input){
+      creds[input.getAttribute("data-field")] = input.value.trim();
+    });
+    show(gw, "Verifying with the provider before storing anything.");
+    call("save-credentials", { gateway: gw, credentials: creds }).then(function(j){
+      // The inputs are cleared whatever the outcome. A secret has no reason to
+      // sit in a DOM node after the request that used it has returned.
+      Array.prototype.forEach.call(form.querySelectorAll("input[data-field]"), function(input){ input.value = ""; });
+      show(gw, j);
+      if (j && j.ok) load();
+    }).catch(function(e){ show(gw, "Failed: " + e.message); });
+  }
+
+  function onProbe(gw){
+    show(gw, "Reading.");
+    call("probe", { gateway: gw }).then(function(j){ show(gw, j); })
+      .catch(function(e){ show(gw, "Failed: " + e.message); });
+  }
+
+  function onDisconnect(gw){
+    show(gw, "Disconnecting.");
+    call("disconnect", { gateway: gw }).then(function(j){ show(gw, j); load(); })
+      .catch(function(e){ show(gw, "Failed: " + e.message); });
+  }
+
+  document.addEventListener("click", function(ev){
+    var t = ev.target;
+    if (!t || !t.closest) return;
+
+    var tab = t.closest(".tab");
+    if (tab && tab.getAttribute("data-tab")){
+      var name = tab.getAttribute("data-tab");
+      Array.prototype.forEach.call(document.querySelectorAll("#pay-tabs .tab"), function(b){
+        b.setAttribute("aria-selected", b === tab ? "true" : "false");
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".panel"), function(p){
+        p.classList.toggle("on", p.id === "panel-" + name);
+      });
+      return;
+    }
+
+    var btn = t.closest("[data-act]");
+    if (!btn || BUSY) return;
+    var gw = btn.getAttribute("data-gw");
+    var act = btn.getAttribute("data-act");
+    BUSY = true;
+    setTimeout(function(){ BUSY = false; }, 400);
+    if (act === "connect") onConnect(gw);
+    else if (act === "save-credentials") onSaveCredentials(gw);
+    else if (act === "probe") onProbe(gw);
+    else if (act === "disconnect") onDisconnect(gw);
+  });
+
+  /* ── the return leg of a sign-in ────────────────────────────────────────── */
+  // The provider redirects the browser back here with a code and the state we
+  // issued. The exchange is NOT done from a public endpoint: this page posts the
+  // pair with the operator's own session, so the server can prove the returning
+  // caller is the one who started the flow before binding anything to a brand.
+  function handleReturn(){
+    var p = new URLSearchParams(window.location.search);
+    var code = p.get("code");
+    var state = p.get("state");
+    if (!code || !state) return false;
+
+    var gw = p.get("gateway") || guessGateway(p);
+    var payload = { gateway: gw, code: code, state: state, query: {} };
+    p.forEach(function(v, k){ payload.query[k] = v; });
+
+    el("pay-policy").classList.remove("ok");
+    el("pay-policy-text").textContent = "Completing the connection with " + gw + ".";
+    call("callback", payload).then(function(j){
+      // The code and state are stripped from the address bar either way: a
+      // consumed code in browser history is nothing but a liability.
+      window.history.replaceState({}, "", "/payments");
+      if (j && j.ok){
+        el("pay-policy-text").textContent = "Connected " + (j.connection && (j.connection.account_label || j.connection.account_id) || gw) + ".";
+      } else {
+        el("pay-policy").classList.add("err");
+        el("pay-policy-text").textContent = "The connection did not complete: " + ((j && (j.error || j.hint)) || "unknown reason") + ".";
+      }
+      load();
+    }).catch(function(e){
+      el("pay-policy").classList.add("err");
+      el("pay-policy-text").textContent = "The connection did not complete: " + e.message;
+    });
+    return true;
+  }
+
+  // Shopify is the only provider here that puts its own identifier in the
+  // callback query, so the gateway can be recovered when the return URL did not
+  // carry one.
+  function guessGateway(p){
+    if (p.get("shop")) return "shopify_payments";
+    if (p.get("merchantIdInPayPal")) return "paypal";
+    return "stripe";
+  }
+
+  /* ── load ───────────────────────────────────────────────────────────────── */
+  function fail(msg){
+    el("pay-policy").classList.add("err");
+    el("pay-policy-text").textContent = msg;
+    el("pay-cards").innerHTML = '<div class="empty">' + esc(msg) + '</div>';
+  }
+
+  function load(){
+    call("status", {}).then(function(j){
+      if (j && j.ok){ DATA = j; renderAll(); return; }
+      // A signed-out or brand-less visitor still gets the whole reference view;
+      // only the connect actions need a workspace.
+      return fetch(API + "&op=catalog").then(function(r){ return r.json(); }).then(function(c){
+        if (!c || !c.ok) throw new Error((j && j.error) || "catalog_unavailable");
+        DATA = { gateways: c.gateways, connections: {}, storage: c.storage, callback_url: c.callback_url };
+        renderAll();
+        el("pay-policy").classList.add("err");
+        el("pay-policy-text").textContent = "No brand workspace is active for this account, so nothing can be connected yet ("
+          + ((j && j.error) || "not signed in") + "). The reference below is still accurate.";
+      });
+    }).catch(function(e){ fail("Payment gateways could not be loaded (" + e.message + ")."); });
+  }
+
+  function boot(){
+    whenAuthReady(function(){
+      if (!handleReturn()) load();
+      else load();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+</script>
+</body>
+</html>

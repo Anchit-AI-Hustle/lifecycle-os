@@ -323,7 +323,18 @@
     const rows = ITEMS.filter((it) => (TYPE === 'all' || it.kind === TYPE))
       .filter((it) => !q || [it.name, it.market, it.tag].join(' ').toLowerCase().includes(q));
     const grid = $('#grid');
-    if (!rows.length) { grid.innerHTML = '<div class="empty">No assets here yet. Generate some in the Studio, Ad Campaigns or Landing Pages — they show up here to preview, clone and re-prompt.</div>'; return; }
+    if (!rows.length) {
+      // Three different reasons produce an empty grid, and conflating them
+      // makes an unreachable database look like a brand that has generated
+      // nothing. Each is named.
+      const why = q || TYPE !== 'all'
+        ? 'No assets match this search or type filter. Clear the filters to see everything.'
+        : usingLocal
+          ? 'No assets found. The shared database could not be read, so only this browser\'s assets are listed and there are none here.'
+          : 'No assets here yet. Generate some in the Studio, Ad Campaigns or Landing Pages — they show up here to preview, clone and re-prompt.';
+      grid.innerHTML = '<div class="empty">' + esc(why) + '</div>';
+      return;
+    }
     grid.innerHTML = rows.map((it) => {
       // A mailer/landing card should preview the ACTUAL rendered document. When we
       // hold its HTML, render it live in a scaled iframe (the real mailer), not the
@@ -409,7 +420,13 @@
     SCOPE = c.dataset.scope; await buildAll(); render();
   }));
   $('#q').addEventListener('input', (e) => { Q = e.target.value || ''; render(); });
-  $('#refresh').addEventListener('click', async () => { await buildAll(); render(); toast('Refreshed'); });
+  // The count makes the refresh verifiable. "Refreshed" alone is indistinguishable
+  // from a refresh that silently read nothing.
+  $('#refresh').addEventListener('click', async () => {
+    await buildAll(); render();
+    toast('Refreshed: ' + ITEMS.length + ' asset' + (ITEMS.length === 1 ? '' : 's')
+      + (usingLocal ? ' (this browser only, the shared database could not be read)' : ''));
+  });
 
   // Shared-source-of-truth freshness (spec §24b): surface the sync engine's
   // per-campaign freshness so the reviewer can see when a shipped asset is stale

@@ -177,5 +177,28 @@ async function brandForWorkspace(env, workspaceId) {
   } catch (_) { return null; }
 }
 
+/**
+ * Drop every cached answer that a brand write can invalidate.
+ *
+ * Three caches here can each serve a stale read straight after a write:
+ *   PREF_CACHE  - the user's ACTIVE workspace. `brand.activate` changes it, so
+ *                 without this a brand switch kept resolving to the previous
+ *                 workspace for a whole minute: the user switches brand, clicks
+ *                 Run Daily Sync, and reads and writes the old brand's plan.
+ *   BRAND_CACHE - the workspace ROW that cron, prebuild, approve and the social
+ *                 run build assets from. `brand.save` PATCHes that row, so
+ *                 generation right after onboarding used the old palette,
+ *                 voice and claims.
+ *   CACHE       - the oldest workspace, which only a delete can change.
+ *
+ * `userId` and `workspaceId` are both optional; anything not supplied is
+ * cleared wholesale, because a stale entry is worse than a re-read.
+ */
+function invalidate({ userId, workspaceId } = {}) {
+  if (userId) PREF_CACHE.delete(String(userId)); else PREF_CACHE.clear();
+  if (workspaceId) BRAND_CACHE.delete(String(workspaceId)); else BRAND_CACHE.clear();
+  CACHE.id = null; CACHE.at = 0;
+}
+
 module.exports = {
-  brandForWorkspace, SCOPED_TABLES, isScoped, resolve, defaultWorkspaceId, filterFor, stamp };
+  brandForWorkspace, SCOPED_TABLES, isScoped, resolve, defaultWorkspaceId, filterFor, stamp, invalidate };

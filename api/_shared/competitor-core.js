@@ -57,6 +57,24 @@ const SHEET_COLUMNS = [
 // into the auth client's getAccessToken/getRequestHeaders, which googleapis
 // invokes lazily before each request and we cache + refresh internally.
 
+/**
+ * Is the Google path usable at all?
+ *
+ * Callers need to know this BEFORE they try, because the alternative to asking
+ * is what production actually did: every sheet-backed action threw
+ * "Google auth not configured" and the dashboard rendered a raw credentials
+ * error where a brand's competitors should be. The competitor universe no
+ * longer depends on Google (see competitor-universe.js); the mail archive still
+ * does, so it reports itself as unconfigured instead of failing.
+ */
+function sheetsConfigured() {
+  const wif = !!(process.env.GCP_WORKLOAD_IDENTITY_PROVIDER
+    && process.env.GCP_SERVICE_ACCOUNT_EMAIL
+    && process.env.VERCEL_OIDC_TOKEN);
+  const jwt = !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
+  return !!(process.env.GOOGLE_SHEET_ID && (wif || jwt));
+}
+
 let _sheets = null;
 function sheetsClient() {
   if (_sheets) return _sheets;
@@ -705,6 +723,13 @@ function isOwnBrand(domainOrUrl) {
   return OWN_DOMAINS.some((o) => d === o || d.endsWith('.' + o));
 }
 
+// NOTE ON WHERE THE RECORD LIVES NOW. This list feeds the legacy Google-Sheet
+// universe only. The competitor universe the app reads is per workspace and
+// lives in Supabase (competitor-universe.js), seeded from each brand's OWN
+// record — for tenant zero that is the market-study tiers in
+// data/brands/_default.json, which now carry the same names and verified URLs
+// as structured entries. Keep the two in step if a URL here is re-verified.
+//
 // Priority seed brands — the curated KNICKGASM competitive set, researched and
 // URL-verified 2026-08-03. Direct competitors are India's custom-sneaker studios;
 // retail/marketplaces and indie brands compete for the same sneakerhead wallet;
@@ -937,6 +962,6 @@ module.exports = {
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
   sortEmailsByReceivedDesc, ingestEmail, fetchMetaAds,
   getBrands, appendBrands, seedBrands, discoverBrands, markBrandSubscribed,
-  DISCOVERY_CATEGORIES, DISCOVERY_GEOS,
+  DISCOVERY_CATEGORIES, DISCOVERY_GEOS, sheetsConfigured,
   NONE, NO_SCREENSHOT,
 };
