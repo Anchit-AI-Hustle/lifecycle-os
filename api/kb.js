@@ -28,7 +28,6 @@
  * the actual ingest path. This keeps the bundle small.
  */
 
-const crypto = require('crypto');
 const wsScope = require('./_shared/workspace-scope.js');
 
 /**
@@ -67,17 +66,11 @@ function sbHeaders(env) {
 function safeParse(s) { try { return JSON.parse(s); } catch { return {}; } }
 
 // ── Shared: URL helpers (used by ingest + classify) ────────────────────────
-function canonicalUrl(raw) {
-  try {
-    const u = new URL(raw);
-    u.hash = '';
-    const TRACK = /^(utm_|fbclid$|gclid$|mc_|_hsenc$|_hsmi$|hsCtaTracking$|ref$|source$)/i;
-    [...u.searchParams.keys()].forEach((k) => { if (TRACK.test(k)) u.searchParams.delete(k); });
-    if (u.pathname.endsWith('/') && u.pathname !== '/') u.pathname = u.pathname.slice(0, -1);
-    return u.toString();
-  } catch { return raw; }
-}
-function urlHash(url) { return crypto.createHash('sha1').update(canonicalUrl(url)).digest('hex'); }
+// Defined ONCE in _shared/kb-url.js, because the brand context pack writes into
+// this same table from its own-site crawl. Two copies of the canonicaliser mean
+// the operator pasting a URL and the crawler reading it produce two different
+// url_hashes for one page, and the row is silently duplicated.
+const { canonicalUrl, urlHash } = require('./_shared/kb-url.js');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HANDLER
