@@ -75,7 +75,12 @@
   .mod .meta{display:flex;gap:10px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
   .mod .meta b{display:inline;font-size:11px;color:var(--primary)}
 
-  table{width:100%;border-collapse:collapse;font-size:12.8px}
+  /* table-layout:auto, deliberately: theme.css defaults every table to
+     table-layout:fixed, which splits the width equally and leaves a
+     white-space:nowrap cell nowhere to put a value wider than its share -
+     it overflows and paints over the next column. Sizing columns to their
+     content is what makes nowrap safe here. */
+  table{table-layout:auto;width:100%;border-collapse:collapse;font-size:12.8px}
   th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);padding:8px 9px;
     border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap}
   td{padding:9px;border-bottom:1px solid var(--line);vertical-align:top}

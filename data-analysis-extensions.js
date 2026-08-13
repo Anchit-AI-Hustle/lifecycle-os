@@ -73,7 +73,14 @@
     if (!rows || !rows.length) return '<div class="xempty">No source-backed rows are available for this view yet.</div>';
     var limit = opts.limit || rows.length;
     return '<div class="xtable"><table><thead><tr>' + headers.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.slice(0, limit).map(function (r) {
-      return '<tr>' + r.map(function (c) { return '<td>' + (c && c.__html != null ? c.__html : esc(c == null ? '—' : c)) + '</td>'; }).join('') + '</tr>';
+      // A cell wide enough to be truncated carries its full value on `title`,
+      // so an ellipsis never loses the identifier. Only for plain text: an
+      // __html cell has its own markup and a title would be built from tags.
+      return '<tr>' + r.map(function (c) {
+        if (c && c.__html != null) return '<td>' + c.__html + '</td>';
+        var v = c == null ? '—' : String(c);
+        return '<td title="' + esc(v) + '">' + esc(v) + '</td>';
+      }).join('') + '</tr>';
     }).join('') + '</tbody></table></div>';
   }
   function panelTitle(title, subtitle, controls) {
@@ -187,7 +194,18 @@
       '.xnotice{border:1px solid var(--line);border-left:4px solid var(--lava);background:var(--surface);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--soft);line-height:1.5;margin:10px 0}',
       '.xnotice.bad{border-left-color:#a52a2a}.xnotice.good{border-left-color:#16814b}',
       '.xtable{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:560px;background:var(--surface)}',
-      '.xtable table{min-width:820px;font-size:12px}.xtable th{position:sticky;top:0;z-index:1}.xtable td,.xtable th{padding:8px 10px;white-space:nowrap}',
+      // The ads table has fourteen columns and campaign names long enough to
+      // fill several. min-width:820px let the browser compress columns below
+      // their content, and with white-space:nowrap the text had nowhere to go:
+      // it overflowed its cell and painted ON TOP of the next column, so
+      // Campaign and Ad group rendered as one unreadable superimposed string.
+      // width:max-content sizes columns to their content and lets the wrapper
+      // (already overflow:auto) scroll; min-width:100% keeps a narrow table
+      // filling the card. max-width caps any single runaway column and
+      // ellipsis marks what was cut - the full value is on the cell's title.
+      '.xtable table{table-layout:auto;width:max-content;min-width:100%;font-size:12px}',
+      '.xtable th{position:sticky;top:0;z-index:2;background:var(--surface)}',
+      '.xtable td,.xtable th{padding:8px 10px;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis}',
       '.xempty{padding:28px 16px;text-align:center;color:var(--soft);border:1px dashed var(--line);border-radius:10px;background:var(--surface);font-size:12.5px}',
       '.xloading{display:flex;justify-content:center;gap:7px;padding:65px}.xloading span{width:9px;height:9px;border-radius:50%;background:var(--lava);animation:xblink 1.1s infinite}.xloading span:nth-child(2){animation-delay:.15s}.xloading span:nth-child(3){animation-delay:.3s}',
       '@keyframes xblink{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}',
