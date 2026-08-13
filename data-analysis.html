@@ -41,7 +41,10 @@
   .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;}
   .kpi .kv{font-family:'Montserrat',Georgia,serif;font-size:clamp(20px,2vw,25px);color:var(--head);margin-top:4px;font-variant-numeric:tabular-nums;line-height:1.15;overflow-wrap:anywhere;}
   .kpi .kd{font-size:11.5px;margin-top:6px;color:var(--soft);}
-  .kpi .up{color:#3fa46a;font-weight:700;} .kpi .down{color:#c47b6b;font-weight:700;}
+  /* Up/down deltas are TEXT, and these two were 3.1:1 and 3.3:1 on the canvas -
+     the numbers that carry the whole KPI row. They take the brand's state
+     tokens, which are held to AA. */
+  .kpi .up{color:var(--brand-ok,#1a7f37);font-weight:700;} .kpi .down{color:var(--brand-err,#c0392b);font-weight:700;}
   /* Signals board — auto-computed "what needs attention", ranked by severity. */
   .signals{margin:16px 0 4px;}
   .sig-head{font-family:'Montserrat',Georgia,serif;font-size:17px;color:var(--head);font-weight:700;margin-bottom:10px;}
@@ -53,7 +56,7 @@
   .sig-v{font-family:'Montserrat',Georgia,serif;font-size:20px;color:var(--head);margin:5px 0 4px;font-variant-numeric:tabular-nums;line-height:1.1;}
   .sig-d{font-size:12.5px;color:var(--soft);line-height:1.45;}
   .sig-decomp{margin-top:12px;background:var(--chip);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--soft);border-left:3px solid var(--lava);line-height:1.5;}
-  .sig-decomp b{color:var(--head);} .sig-decomp .up{color:#3fa46a;} .sig-decomp .down{color:#c47b6b;}
+  .sig-decomp b{color:var(--head);} .sig-decomp .up{color:var(--brand-ok,#1a7f37);} .sig-decomp .down{color:var(--brand-err,#c0392b);}
   /* Widget grid */
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:16px;}
   .w{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;grid-column:span 6;display:flex;flex-direction:column;min-width:0;}
@@ -105,7 +108,7 @@
   body.detailing #dash{display:none;}
   body.detailing #detail{display:block;}
   .crumb{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:var(--brand-accent-text);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;padding:6px 0;margin-bottom:6px;}
-  .btn-dl{font-size:12px;font-weight:700;color:var(--violet);background:var(--lava);border:0;border-radius:8px;padding:8px 14px;cursor:pointer;}
+  .btn-dl{font-size:12px;font-weight:700;color:var(--brand-on-accent,var(--violet));background:var(--lava);border:0;border-radius:8px;padding:8px 14px;cursor:pointer;}
   .btn-dl:hover{filter:brightness(1.05);}
   .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:26px;padding-top:14px;}
   .datalink{color:var(--brand-primary-text,var(--head));text-decoration-color:var(--accent);}
@@ -592,7 +595,7 @@
   }
   function renderSignals(){
     var m=d(); var sig=computeSignals(m), dec=revenueDecomp(m);
-    var col={critical:'#c47b6b',watch:'var(--lava)',good:'#3fa46a'};
+    var col={critical:'var(--brand-err,#c0392b)',watch:'var(--lava)',good:'var(--brand-ok,#1a7f37)'};
     var cards=sig.map(function(s){ return '<div class="sig" style="border-left-color:'+col[s.sev]+'">'+
       '<div class="sig-h"><span class="sig-dot" style="background:'+col[s.sev]+'"></span>'+esc(s.label)+'</div>'+
       '<div class="sig-v">'+esc(s.value)+'</div><div class="sig-d">'+esc(s.detail)+'</div></div>'; }).join('');

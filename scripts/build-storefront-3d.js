@@ -70,22 +70,22 @@ h1,h2,.serif{font-family:"Montserrat",Georgia,serif;font-weight:400}
 a{text-decoration:none;color:inherit}
 .util{background:var(--green);color:var(--chalk);text-align:center;font-size:12px;letter-spacing:.08em;padding:9px 12px;font-weight:700}
 .nav{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;padding:14px 26px}
-.nav .logo{font-family:"Montserrat",Georgia,serif;font-size:22px;letter-spacing:.16em;color:var(--green)}
+.nav .logo{font-family:"Montserrat",Georgia,serif;font-size:22px;letter-spacing:.16em;color:var(--brand-primary-text,var(--green))}
 .nav .links{display:flex;gap:22px;font-size:13px;font-weight:600;color:#444}
 .nav .cta{background:var(--green);color:var(--chalk);padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:.04em}
 /* 3D hero */
 .hero{position:relative;min-height:78vh;display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:center;padding:56px 6vw;background:radial-gradient(120% 120% at 80% 10%,#0a3d24 0%,var(--green) 55%,#00301c 100%);color:var(--chalk);overflow:hidden;perspective:1400px}
 .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 15% 90%,rgba(171,135,67,.28),transparent 60%);pointer-events:none}
-.hero .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--lava);margin-bottom:16px}
+.hero .eyebrow{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--brand-accent-text,var(--lava));margin-bottom:16px}
 .hero h1{font-size:clamp(34px,5.2vw,64px);line-height:1.04;margin-bottom:18px}
 .hero p{font-size:17px;line-height:1.7;max-width:32ch;color:#e9e2d2;margin-bottom:26px}
-.hero .buy{display:inline-block;background:var(--chalk);color:var(--green);font-weight:700;padding:15px 34px;border-radius:9px;letter-spacing:.03em;transition:transform .2s}
+.hero .buy{display:inline-block;background:var(--brand-surface,var(--chalk));color:var(--brand-primary-text,var(--green));font-weight:700;padding:15px 34px;border-radius:9px;letter-spacing:.03em;transition:transform .2s}
 .hero .buy:hover{transform:translateY(-2px)}
 .stage{transform-style:preserve-3d;display:flex;justify-content:center;align-items:center}
 .box{width:min(360px,80%);border-radius:18px;box-shadow:0 40px 80px rgba(0,0,0,.45);transform:rotateY(-18deg) rotateX(6deg);transition:transform .3s ease;background:#fff}
 .stage:hover .box{transform:rotateY(-8deg) rotateX(2deg) scale(1.03)}
 .section{padding:64px 6vw}
-.section h2{font-size:clamp(26px,3.2vw,40px);color:var(--green);text-align:center;margin-bottom:8px}
+.section h2{font-size:clamp(26px,3.2vw,40px);color:var(--brand-primary-text,var(--green));text-align:center;margin-bottom:8px}
 .section .sub{text-align:center;color:#6b7770;margin-bottom:36px;font-size:15px}
 .colls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
 .coll{aspect-ratio:1;border-radius:14px;display:flex;align-items:flex-end;padding:16px;font-family:"Montserrat",Georgia,serif;font-size:19px;color:var(--chalk);background:linear-gradient(160deg,var(--green),#0a3d24);transition:transform .25s,box-shadow .25s}
@@ -100,11 +100,11 @@ a{text-decoration:none;color:inherit}
 .p3d-body{padding:14px}
 .p3d-name{font-size:14px;font-weight:600;line-height:1.35;min-height:38px;color:var(--ink)}
 .p3d-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-.p3d-price{color:var(--green);font-weight:800}.p3d-price.muted{color:#889;font-weight:600}
-.p3d-rate{color:var(--lava);font-size:12px;font-weight:700}
+.p3d-price{color:var(--brand-primary-text,var(--green));font-weight:800}.p3d-price.muted{color:#889;font-weight:600}
+.p3d-rate{color:var(--brand-accent-text,var(--lava));font-size:12px;font-weight:700}
 .proof{background:var(--chalk);text-align:center;padding:26px 6vw;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
 .footer{background:var(--green);color:var(--chalk);text-align:center;padding:40px 6vw;font-size:12px;line-height:1.9}
-.footer a{color:var(--lava);font-weight:700}
+.footer a{color:var(--brand-accent-text,var(--lava));font-weight:700}
 @media(max-width:820px){.hero{grid-template-columns:1fr;text-align:center;min-height:auto}.hero p{margin-left:auto;margin-right:auto}.nav .links{display:none}}
 </style></head><body>
 <div class="util">Express shipping across ${esc(r.label)} · hand-painted to order in 10 to 15 days &nbsp;·&nbsp; This is a 3D design variation on ${esc(r.tryd)}</div>

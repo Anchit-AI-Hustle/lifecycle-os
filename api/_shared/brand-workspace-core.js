@@ -389,6 +389,23 @@ function validatePalette(paletteInput) {
 }
 
 /**
+ * The floor the brand-colour TEXT tokens are held to.
+ *
+ * Tuned with headroom rather than to exactly 4.5. These tokens do not only land
+ * on the bare surface: the shell paints tinted STATES over it — an active nav
+ * group, a hovered row, a selected chip — each a few percent darker. A colour
+ * that clears 4.5 on the surface itself lands just under it on the tint, which
+ * is how the active group header measured 3.98:1 while every other label
+ * passed. The margin buys those states without pushing a brand's colour further
+ * from what it chose than it has to be.
+ *
+ * Exported so the contrast tests assert against the SAME number the tokens are
+ * built from. Restating it in a test is how the suite ended up asserting that a
+ * 4.51:1 colour is left alone while this module was moving anything under 4.9.
+ */
+const TEXT_AA = 4.9;
+
+/**
  * Derive the full CSS-variable set the shell paints with. Everything is derived
  * from the operator's own colours — no colour is introduced from outside the
  * supplied schema except pure white/black mixes of those colours.
@@ -408,14 +425,6 @@ function tokens(brand) {
   // nav group labels were landing at 3.6:1. Whichever of the two the brand
   // colour reads worse on is the one that has to pass.
   const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
-  // Tuned with headroom rather than to exactly 4.5. These tokens do not only
-  // land on the bare surface: the shell paints tinted STATES over it - an
-  // active nav group, a hovered row, a selected chip - each a few percent
-  // darker. A colour that clears 4.5 on the surface itself lands just under it
-  // on the tint, which is how the active group header measured 3.98:1 while
-  // every other label passed. The margin buys those states without pushing a
-  // brand's colour further from what it chose than it has to be.
-  const TEXT_AA = 4.9;
   const t = brand && brand.typography ? brand.typography : {};
 
   return {
@@ -1044,6 +1053,68 @@ function buildRow(input, existing) {
   return row;
 }
 
+/**
+ * The dotted field paths an operator's save actually carried.
+ *
+ * This is the half of the precedence rule that makes the other half bite: an
+ * automatic run is blocked from a field only because a human is recorded as
+ * owning it, and a human is recorded as owning it only because a save said so.
+ * Derived from the INPUT, not the stored row - what the operator sent is what
+ * they touched, and re-saving an untouched form must not quietly claim the
+ * whole record away from the automatic path.
+ */
+function claimedFields(input) {
+  const b = (input && typeof input === 'object') ? input : {};
+  const out = [];
+  for (const k of ['name', 'tagline', 'legal_name', 'industry', 'website', 'logo_url', 'favicon_url']) {
+    if (b[k] !== undefined && str(b[k])) out.push(k);
+  }
+  if (b.palette && typeof b.palette === 'object') {
+    for (const k of ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted']) {
+      if (b.palette[k]) out.push(`palette.${k}`);
+    }
+  }
+  if (b.typography && typeof b.typography === 'object') {
+    for (const k of ['heading', 'body', 'mono']) if (b.typography[k]) out.push(`typography.${k}`);
+  }
+  if (b.voice && typeof b.voice === 'object') {
+    for (const k of ['tone', 'preferred', 'notes', 'banned']) {
+      const v = b.voice[k];
+      if (v !== undefined && (Array.isArray(v) ? v.length : str(v))) out.push(`voice.${k}`);
+    }
+  }
+  if (b.brand_data && typeof b.brand_data === 'object') {
+    for (const k of ['claims', 'social', 'legal_entity']) {
+      const v = b.brand_data[k];
+      if (v !== undefined && (Array.isArray(v) ? v.length : str(v))) out.push(`brand_data.${k}`);
+    }
+  }
+  if (Array.isArray(b.regions) && b.regions.length) out.push('regions');
+  return out;
+}
+
+/**
+ * Record the operator's ownership of the fields they just saved.
+ *
+ * Best-effort on purpose: a workspace save must never fail because the
+ * provenance migration has not been applied yet. The consequence of it failing
+ * is that an automatic run may later overwrite that field - which is the
+ * behaviour that existed before any of this - not a corrupted record.
+ */
+async function claimUserOwnedFields(auth, workspaceId, input) {
+  try {
+    const fields = claimedFields(input);
+    if (!fields.length || !workspaceId) return 0;
+    await restAs(auth.token, 'rpc/brand_fields_claim_user', {
+      method: 'POST', body: { p_workspace: workspaceId, p_fields: fields },
+    });
+    return fields.length;
+  } catch (err) {
+    console.warn('[brand] field provenance not recorded:', (err && err.message) || err);
+    return 0;
+  }
+}
+
 async function saveWorkspace(auth, input) {
   const id = str(input && input.id);
   if (id) {
@@ -1053,6 +1124,9 @@ async function saveWorkspace(auth, input) {
     const saved = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}&select=${SELECT_COLS}`, {
       method: 'PATCH', body: row, prefer: 'return=representation',
     });
+    // What a person typed is theirs from now on: no automatic run may overwrite
+    // it, and the refusal lives in the database rather than in call order.
+    await claimUserOwnedFields(auth, id, input);
     invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
     return Array.isArray(saved) ? saved[0] : saved;
   }
@@ -1062,6 +1136,7 @@ async function saveWorkspace(auth, input) {
     method: 'POST', body: [row], prefer: 'return=representation',
   });
   const ws = Array.isArray(created) ? created[0] : created;
+  if (ws && ws.id) await claimUserOwnedFields(auth, ws.id, input);
   // First workspace a user creates becomes their active one automatically.
   if (ws && ws.id && !(await activeWorkspaceId(auth))) await setActive(auth, ws.id);
   invalidateBrandCaches({ userId: auth.user_id, workspaceId: ws && ws.id });
@@ -1235,6 +1310,62 @@ function shellPayload(brand, extra) {
   }, extra || {});
 }
 
+/* ── the context-pack background chain ────────────────────────────────────
+   Same mechanism as api/calendar.js firePrebuild(): fire the next step as an
+   INDEPENDENT invocation and return as soon as it has started. The child keeps
+   running on Vercel after this client connection drops, so the user's response
+   is never held for 30-60s waiting on a crawl. A no-op when there is no base
+   URL to call (local dev), which is exactly when the client-driven fallback in
+   `context-build` takes over. */
+function selfBaseUrl() {
+  if (process.env.SELF_BASE_URL) return String(process.env.SELF_BASE_URL).replace(/\/$/, '');
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return '';
+}
+
+async function fireContextChain(workspaceId, depth) {
+  const base = selfBaseUrl();
+  if (!base || typeof fetch !== 'function') return { fired: false, reason: 'no self base url' };
+  // Without a service-role key the child cannot read the pack row at all, so
+  // firing would only burn an invocation to return 503.
+  if (!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY)) {
+    return { fired: false, reason: 'no service-role key; the client drives the queue instead' };
+  }
+  const secret = process.env.CRON_SECRET || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (secret) headers.Authorization = `Bearer ${secret}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3000);
+  try {
+    await fetch(`${base}/api/public-config?action=brand&op=context-step`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ workspace_id: workspaceId, _depth: (depth || 0) + 1 }),
+      signal: ctrl.signal,
+    });
+  } catch (_) { /* expected: the child outlives our 3s handoff window */ }
+  finally { clearTimeout(timer); }
+  return { fired: true };
+}
+
+/** The pack row, minus its bulky payloads, for a status response. */
+function packSummary(p) {
+  if (!p) return null;
+  return {
+    id: p.id, brand_key: p.brand_key, site_url: p.site_url, brand_name: p.brand_name,
+    status: p.status, stage: p.stage, batches: p.batches, attempts: p.attempts,
+    last_error: p.last_error || null,
+    has_design_md: !!p.design_md,
+    knowledge_ingested: (p.knowledge && p.knowledge.ingested) || 0,
+    knowledge_queued: (p.knowledge && p.knowledge.queued) || 0,
+    catalog_imported: (p.catalog && p.catalog.imported) || 0,
+    catalog_skipped: (p.catalog && p.catalog.skipped) || null,
+    repos_searched: !!(p.repos && p.repos.searched),
+    repos_verified: ((p.repos && p.repos.verified) || []).length,
+    markers: (p.markers || []).length,
+    started_at: p.started_at, completed_at: p.completed_at, updated_at: p.updated_at,
+  };
+}
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1351,6 +1482,115 @@ async function handle(req, res) {
       // Requires a signed-in caller because it makes outbound fetches from the
       // serverless runtime (see runExtract's SSRF guard). Lazily required so
       // this module keeps loading when only its colour maths is wanted.
+      /* ── the brand CONTEXT PACK ─────────────────────────────────────────
+         One durable record per brand, keyed to its URL AND its name: a
+         spec-conformant DESIGN.md (google-labs-code/design.md), a knowledge
+         base built from that domain and nothing else, a catalogue through the
+         existing importCatalog path, and a GitHub repository search whose
+         REACHABILITY is recorded so "found none" and "could not look" are never
+         the same answer.
+
+         `context-build` advances the queue by one step and, when a service-role
+         key is configured, hands the rest to a self-firing background chain -
+         the same convergent pattern as the smart-brain prebuild queue. Without
+         one it degrades to client-driven: the browser calls again per step.
+
+         `context-apply` is the ONLY way a machine-observed value reaches the
+         brand record, and it goes through the brand_context_apply() SQL
+         function, which refuses any field a person already owns. */
+      case 'context-build': {
+        const pack = require('./brand-context-pack.js');
+        const wsId = str(body.workspace_id || q.workspace_id);
+        if (!wsId) return res.status(400).json({ ok: false, error: 'workspace_id is required.' });
+        await assertCanWrite(auth, wsId, 'build its context pack');
+        const store = pack.userStore(auth.token);
+        const step = await pack.startPack(store, wsId, {
+          auth,
+          refresh: body.refresh === true || q.refresh === '1',
+        });
+        let chained = false;
+        if (step.remaining > 0) chained = (await fireContextChain(wsId, 0)).fired;
+        return res.status(200).json({
+          ok: true, stage: step.stage, done: !!step.done, remaining: step.remaining,
+          chained,
+          // When nothing could be chained the client is the queue. Say so
+          // plainly rather than leaving a pack stuck at stage 1 forever.
+          next_step_required: step.remaining > 0 && !chained,
+          failed_stage: step.failed_stage, error: step.error,
+          pack: packSummary(step.pack),
+        });
+      }
+      // The background worker. Authenticated by CRON_SECRET, never by a user
+      // token: it runs with the service role and an EXPLICIT workspace filter.
+      case 'context-step': {
+        const pack = require('./brand-context-pack.js');
+        const secret = process.env.CRON_SECRET || '';
+        const authorized = secret
+          ? (bearer(req) === secret || q.secret === secret)
+          : (String(process.env.VERCEL_ENV) !== 'production');
+        if (!authorized) return res.status(401).json({ ok: false, error: 'Unauthorized context-step call' });
+        const wsId = str(body.workspace_id || q.workspace_id);
+        if (!wsId) return res.status(400).json({ ok: false, error: 'workspace_id is required.' });
+        const depth = Math.max(0, +(body._depth || q.depth || 0));
+        const MAX_DEPTH = 60;      // backstop: catalog + extract + repos + ~15 knowledge batches
+        let store;
+        try { store = pack.serviceStore(); }
+        catch (e) { return res.status(503).json({ ok: false, error: e.message, note: 'The background chain needs SUPABASE_SERVICE_ROLE_KEY. Without it the pack is built one step per client call.' }); }
+        const row = await pack.getPackRow(store, wsId, str(body.brand_key || q.brand_key));
+        if (!row) return res.status(404).json({ ok: false, error: 'no_pack_for_workspace' });
+        const step = await pack.advancePack(store, row, {});
+        let chained = false;
+        // Chain only while making progress and inside the backstop, so a
+        // permanently failing step stops instead of hot-looping.
+        if (step.remaining > 0 && depth < MAX_DEPTH) chained = (await fireContextChain(wsId, depth)).fired;
+        return res.status(200).json({ ok: true, stage: step.stage, done: !!step.done, depth, chained, pack: packSummary(step.pack) });
+      }
+      case 'context-pack': {
+        const pack = require('./brand-context-pack.js');
+        const wsId = str(q.workspace_id || body.workspace_id) || (await activeWorkspaceId(auth));
+        if (!wsId) return res.status(200).json({ ok: true, pack: null, note: 'No active brand workspace on this request.' });
+        const store = pack.userStore(auth.token);
+        return res.status(200).json(await pack.contextFor(store, wsId, { brandKey: str(q.brand_key || body.brand_key) }));
+      }
+      case 'context-design': {
+        // The raw DESIGN.md, servable as text/markdown so it can be downloaded
+        // or handed straight to a coding agent.
+        const pack = require('./brand-context-pack.js');
+        const wsId = str(q.workspace_id || body.workspace_id) || (await activeWorkspaceId(auth));
+        if (!wsId) return res.status(404).json({ ok: false, error: 'no_active_workspace' });
+        const store = pack.userStore(auth.token);
+        const row = await pack.getPackRow(store, wsId, str(q.brand_key || body.brand_key));
+        if (!row || !row.design_md) {
+          return res.status(404).json({ ok: false, error: 'no_design_md', note: 'No DESIGN.md has been built for this brand yet. Run op=context-build.' });
+        }
+        if (String(q.format || '') === 'md') {
+          res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+          res.setHeader('Content-Disposition', `attachment; filename="DESIGN.md"`);
+          return res.status(200).send(row.design_md);
+        }
+        return res.status(200).json({ ok: true, design_md: row.design_md, design: row.design || {}, brand_key: row.brand_key });
+      }
+      case 'context-list': {
+        const pack = require('./brand-context-pack.js');
+        const wsId = str(q.workspace_id || body.workspace_id) || (await activeWorkspaceId(auth));
+        if (!wsId) return res.status(200).json({ ok: true, packs: [] });
+        const store = pack.userStore(auth.token);
+        const rows = await pack.listPackRows(store, wsId);
+        return res.status(200).json({ ok: true, packs: rows.map(packSummary) });
+      }
+      case 'context-apply': {
+        const pack = require('./brand-context-pack.js');
+        const wsId = str(body.workspace_id || q.workspace_id);
+        if (!wsId) return res.status(400).json({ ok: false, error: 'workspace_id is required.' });
+        await assertCanWrite(auth, wsId, 'apply a context pack to it');
+        const store = pack.userStore(auth.token);
+        const out = await pack.applyPack(store, wsId, body.fields || {}, body.sources || {});
+        invalidateBrandCaches({ userId: auth.user_id, workspaceId: wsId });
+        return res.status(200).json(Object.assign({ ok: true }, out, {
+          note: 'Fields listed under skipped_user_owned were left alone because a person supplied them. '
+            + 'That refusal happens inside brand_context_apply() in the database, not here.',
+        }));
+      }
       case 'extract': {
         const out = await require('./brand-extract.js').runExtract(auth, {
           url: str(body.url || q.url, 500),
@@ -1363,7 +1603,9 @@ async function handle(req, res) {
       default:
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
-          available: ['defaults', 'list', 'active', 'get', 'save', 'activate', 'delete', 'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract'],
+          available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract',
+            'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
   } catch (err) {
@@ -1378,6 +1620,7 @@ module.exports = {
   restAs,
   // colour
   normHex, contrast, luminance, saturation, isDarkNeutral, shade, readableOn, readableAsText, validatePalette,
+  TEXT_AA,
   // brand
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,
   readiness, shellPayload, slugify, DEFAULT_BRAND,
@@ -1386,4 +1629,6 @@ module.exports = {
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
   importCatalog, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
+  // context pack + field provenance
+  claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
 };

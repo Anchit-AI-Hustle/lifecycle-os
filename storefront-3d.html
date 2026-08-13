@@ -42,7 +42,7 @@
   /* Top bar */
   .topbar{top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:18px 26px}
   .brand{font-family:var(--head);font-weight:600;letter-spacing:.22em;font-size:22px;color:var(--fg)}
-  .brand small{display:block;font-family:var(--body);font-size:9px;letter-spacing:.4em;color:var(--lava);margin-top:-2px}
+  .brand small{display:block;font-family:var(--body);font-size:9px;letter-spacing:.4em;color:var(--brand-accent-text,var(--lava));margin-top:-2px}
   .topbar .right{display:flex;gap:10px;align-items:center}
   .icobtn{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--fg);font-size:16px;text-decoration:none}
   .cart{position:relative}
@@ -50,7 +50,7 @@
 
   /* Collections rail */
   .collections{top:96px;left:26px;width:210px;padding:14px}
-  .collections h4{font-family:var(--body);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lava);font-weight:800;margin-bottom:10px}
+  .collections h4{font-family:var(--body);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand-accent-text,var(--lava));font-weight:800;margin-bottom:10px}
   .collections button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--sub);font-family:var(--body);
     font-size:14px;font-weight:600;padding:9px 12px;border-radius:9px;cursor:pointer;transition:all .15s}
   .collections button:hover{color:var(--fg)}
@@ -58,16 +58,16 @@
 
   /* Hero eyebrow */
   .hero{bottom:34px;left:26px;max-width:360px;padding:2px 4px}
-  .hero .eb{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--lava);font-weight:800;margin-bottom:8px}
+  .hero .eb{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--brand-accent-text,var(--lava));font-weight:800;margin-bottom:8px}
   .hero h1{font-family:var(--head);font-size:38px;line-height:1.02;color:var(--fg);text-shadow:0 2px 20px rgba(0,0,0,.4)}
   .hero p{color:var(--sub);font-size:13.5px;line-height:1.55;margin-top:8px}
 
   /* Instant checkout */
   .checkout{top:96px;right:26px;width:300px;padding:18px;display:flex;flex-direction:column;gap:12px}
-  .checkout .lab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--lava);font-weight:800}
+  .checkout .lab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand-accent-text,var(--lava));font-weight:800}
   .checkout .thumb{width:100%;height:150px;border-radius:12px;background:var(--vh-ink) center/cover no-repeat;border:1px solid var(--panel-line)}
   .checkout .nm{font-family:var(--head);font-size:20px;line-height:1.1;color:var(--fg)}
-  .checkout .pr{font-size:17px;font-weight:700;color:var(--lava)}
+  .checkout .pr{font-size:17px;font-weight:700;color:var(--brand-accent-text,var(--lava))}
   .checkout .qty{display:flex;align-items:center;gap:14px;font-size:14px;color:var(--fg)}
   .checkout .qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--panel-line);background:transparent;color:var(--fg);font-size:16px;cursor:pointer}
   .checkout .buy{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--lava);color:var(--vh-ink);border:0;border-radius:12px;
@@ -86,7 +86,7 @@
   :root[data-variant="light"] .regionsw button.active{background:var(--lava);color:var(--vh-ink)}
 
   /* loading + fallback */
-  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;color:var(--lava);font-size:14px;letter-spacing:.05em}
+  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;color:var(--brand-accent-text,var(--lava));font-size:14px;letter-spacing:.05em}
   #fallback{position:absolute;inset:0;z-index:15;overflow:auto;padding:90px 26px 40px;display:none}
   #fallback.on{display:block}
   #fallback h1{font-family:var(--head);font-size:34px;color:var(--fg);margin-bottom:14px}
@@ -95,7 +95,7 @@
   #fgrid .im{height:150px;background:var(--vh-ink) center/cover no-repeat}
   #fgrid .bd{padding:12px}
   #fgrid .t{font-family:var(--head);font-size:17px}
-  #fgrid .p{color:var(--lava);font-weight:700;margin-top:4px}
+  #fgrid .p{color:var(--brand-accent-text,var(--lava));font-weight:700;margin-top:4px}
   /* ── Mobile-first layout (<=820px): panels stay VISIBLE, repositioned for
      touch — collections become a top scroll-bar, checkout a bottom sheet.
      (Previously .overlay.side was display:none, hiding both on mobile.) ── */
@@ -177,7 +177,7 @@
   .rcard .ravatar{flex:0 0 46px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font:800 16px/1 'Montserrat',Georgia,serif;color:var(--vh-ink);letter-spacing:.02em;box-shadow:0 4px 12px rgba(0,0,0,.3);border:1.5px solid rgba(251,245,234,.28)}
   .rcard .rmeta{min-width:0}
   .rcard .rmeta .who{color:var(--fg);font-size:14px;font-weight:800;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rcard .rmeta .rstars{color:var(--lava);letter-spacing:2px;font-size:13px;margin-top:3px}
+  .rcard .rmeta .rstars{color:var(--brand-accent-text,var(--lava));letter-spacing:2px;font-size:13px;margin-top:3px}
   .rcard blockquote{margin:0 0 14px;color:var(--fg);font-size:14.5px;line-height:1.58}
   .rcard .vf{display:inline-flex;align-items:center;gap:4px;color:var(--vh-ink-dim);font-size:11px;font-weight:800;background:rgba(127,217,169,.12);border:1px solid rgba(127,217,169,.32);border-radius:999px;padding:3px 9px}
   /* product grid */

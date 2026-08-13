@@ -260,7 +260,11 @@ function yamlTokens(map, indent, sources) {
  * A scale level from a custom-property name: `--radius-lg` → `lg`,
  * `--space-4` → `4`, `--radius` → `base`.
  */
-const SCALE_WORDS = /^(?:radius|rounded|corner|space|spacing|gap|gutter|size|shadow|elevation|depth|duration|transition|ease|easing|timing|motion|border|width|stroke|breakpoint|screen|bp|token|ds|ui|sys|ref|md|theme)$/;
+// Group words and namespace prefixes only. A word that is also a plausible
+// SCALE LEVEL must never appear here: `md` did, so `--radius-md` folded to
+// `base` and collided with every other unsuffixed radius token, quietly losing
+// the middle of the scale.
+const SCALE_WORDS = /^(?:radius|rounded|corner|space|spacing|gap|gutter|size|shadow|elevation|depth|duration|transition|ease|easing|timing|motion|border|width|stroke|breakpoint|screen|bp|token|ds|ui|sys|ref|theme)$/;
 
 function scaleLevel(tokenName) {
   const parts = String(tokenName || '').replace(/^--/, '').split('-').filter(Boolean);
@@ -314,7 +318,10 @@ function designMdTokens(report, brand) {
     const worst = (surface && surfaceAlt)
       ? (core.contrast(identityColour, surface) <= core.contrast(identityColour, surfaceAlt) ? surface : surfaceAlt)
       : (surface || surfaceAlt || '#ffffff');
-    const TEXT_AA = 4.9;
+    // The SAME floor the live shell's tokens are built from, imported rather
+    // than restated. A second copy of the number is how a DESIGN.md comes to
+    // certify a contrast the running app does not actually paint.
+    const TEXT_AA = core.TEXT_AA || 4.9;
 
     const adjust = (name, raw, why) => {
       if (!raw) return '';
@@ -350,8 +357,9 @@ function designMdTokens(report, brand) {
     if (primaryText) { colors['primary-text'] = primaryText; sources.colors['primary-text'] = `computed from primary for use as TEXT (WCAG AA ${TEXT_AA}:1 against ${worst})`; }
     if (colors.secondary) {
       colors['on-secondary'] = core.readableOn(colors.secondary, ink || '#111111', surface || '#ffffff', surfaceAlt);
+      sources.colors['on-secondary'] = 'computed: the highest-contrast choice among this brand\'s own ink and surfaces, for text ON a secondary fill';
       const st = adjust('secondary-text', colors.secondary, 'the action colour used AS text');
-      if (st) colors['secondary-text'] = st;
+      if (st) { colors['secondary-text'] = st; sources.colors['secondary-text'] = `computed from secondary for use as TEXT (WCAG AA ${TEXT_AA}:1 against ${worst})`; }
     }
     if (proposed.muted) {
       const neutral = adjust('neutral', proposed.muted, 'secondary copy is copy: it carries the same AA bar as body text');
@@ -472,7 +480,11 @@ function renderDesignMd(report, brand, meta) {
   const t = designMdTokens(report, brand);
   const markers = [...t.markers];
   const out = [];
-  const push = (s) => out.push(s);
+  // Rest args, not one: the token blocks below are emitted as `push(...lines)`,
+  // and a single-parameter push silently kept only the first line of each -
+  // every colour but `primary`, and every typography property, vanished from
+  // the front matter while the document still looked complete.
+  const push = (...s) => out.push(...s);
   const gap = (field, why) => { const mk = MARKER(field); markers.push(mk); push(`> ${mk}`); push('>'); push(`> ${why}`); };
 
   /* ══ YAML front matter ══════════════════════════════════════════════════ */
@@ -520,8 +532,9 @@ function renderDesignMd(report, brand, meta) {
     + 'browser, so it cannot see computed styles, anything JavaScript paints after load, or which of '
     + 'several competing declarations actually wins the cascade. A browser-based extractor '
     + '(for example the `design-md-chrome` extension, which reads the COMPUTED CSS of a live page) is '
-    + 'strictly more accurate on exactly those points; Vercel serverless cannot run one. So a thin '
-    + 'section below means **this method could not observe it**, not that the brand has none.');
+    + 'strictly more accurate on exactly those points; Vercel serverless cannot run one. So an absent '
+    + 'value here is an absent **OBSERVATION** rather than an absent design decision, and a thin section '
+    + 'below means this method could not observe it — not that the brand has none.');
   push('');
   for (const l of ((report && report.limits) || [])) push(`- ${md.esc(l)}`);
   if (report && report.coverage_note) push(`- ${md.esc(report.coverage_note)}`);
@@ -1719,7 +1732,14 @@ async function startPack(store, workspaceId, { brand, auth, refresh = false, ctx
 async function contextFor(store, workspaceId, { brandKey } = {}) {
   const brand = await brandRow(store, workspaceId).catch(() => null);
   const key = brand && brand.website ? packKey(brand.website, brand.name) : null;
-  const pack = await getPackRow(store, workspaceId, brandKey || (key && key.ok ? key.brand_key : '')).catch(() => null);
+  const wanted = brandKey || (key && key.ok ? key.brand_key : '');
+  let pack = await getPackRow(store, workspaceId, wanted).catch(() => null);
+  // No pack under the brand's CURRENT key does not mean no pack. A brand that
+  // moved domain or changed its name has one under its old key, and returning
+  // "nothing built yet" would hide a perfectly good report AND hide the fact
+  // that it now describes a different site. Fall back to the most recent, then
+  // say plainly that it is stale.
+  if (!pack && wanted) pack = await getPackRow(store, workspaceId, '').catch(() => null);
   const origins = await fieldOrigins(store, workspaceId);
 
   if (!pack) {

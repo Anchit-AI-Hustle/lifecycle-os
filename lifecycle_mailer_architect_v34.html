@@ -118,7 +118,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 /* ── Section label ─────────────────────────────────────────────────────────── */
 .plbl{
   font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
-  color:var(--lava);margin-bottom:1.1rem;
+  color:var(--brand-accent-text,var(--lava));margin-bottom:1.1rem;
   display:flex;align-items:center;gap:10px
 }
 .plbl::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -274,7 +274,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 .strat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
 .sbox{background:#f9fafb;border:1px solid var(--border);border-radius:var(--r);padding:13px 15px}
 .sbox-wide{grid-column:1/-1}
-.slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--lava);margin-bottom:5px}
+.slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-accent-text,var(--lava));margin-bottom:5px}
 .sval{font-size:13px;color:#374151;line-height:1.5}
 .copy-preview-hl{font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;font-weight:600;color:#D0473E;line-height:1.2;margin-bottom:2px}
 .copy-preview-sub{font-size:11px;color:#555;line-height:1.5;margin:6px 0 10px}
@@ -322,7 +322,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
   transition:all .2s;user-select:none;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif
 }
 .type-chip.on{background:var(--lava);color:#111111;border-color:var(--lava);box-shadow:0 2px 8px rgba(171,135,67,0.25)}
-.type-chip:hover:not(.on){border-color:var(--lava);color:var(--lava);background:var(--lightgold)}
+.type-chip:hover:not(.on){border-color:var(--lava);color:var(--brand-accent-text,var(--lava));background:var(--lightgold)}
 .mkt-tab-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;padding:12px 0 4px;border-bottom:1px solid var(--border)}
 .mkt-tab-btn{
   padding:7px 16px;font-size:12px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;
@@ -343,7 +343,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 .sugg-hdr:hover{background:linear-gradient(90deg,var(--vh-panel-tan) 0%,var(--vh-panel-tan) 100%)}
 .sugg-hdr-lbl{font-size:11px;font-weight:700;color:var(--g);letter-spacing:0.05em}
 .sugg-hdr-sub{font-size:10px;color:#556059;font-style:italic}
-.sugg-arrow{font-size:10px;color:var(--lava);transition:transform .22s cubic-bezier(.4,0,.2,1);display:inline-block}
+.sugg-arrow{font-size:10px;color:var(--brand-accent-text,var(--lava));transition:transform .22s cubic-bezier(.4,0,.2,1);display:inline-block}
 .sugg-grid{
   display:grid;grid-template-columns:repeat(2,1fr);gap:10px;
   padding:14px 14px 16px;background:var(--vh-panel-tan)
@@ -388,7 +388,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .sugg-card-icon{font-size:20px;margin-bottom:8px;display:block;line-height:1}
 .sugg-type{
   font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.14em;
-  color:var(--lava);margin-bottom:5px;display:flex;align-items:center;gap:5px
+  color:var(--brand-accent-text,var(--lava));margin-bottom:5px;display:flex;align-items:center;gap:5px
 }
 .sugg-type-dot{width:5px;height:5px;border-radius:50%;background:var(--lava);flex-shrink:0}
 .sugg-text{font-size:11px;color:#4b5563;line-height:1.55;font-weight:400}
@@ -639,7 +639,7 @@ html[data-theme="green"] .copilot-dock{background:rgba(10,20,16,.78);border-top:
 .copilot-btn .ci{font-size:15px;line-height:1}
 .copilot-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--g)}
 html[data-theme="green"] .copilot-btn{color:#FFFFFF}
-.copilot-btn.cb-listen.playing{color:var(--lava);border-color:var(--lava)}
+.copilot-btn.cb-listen.playing{color:var(--brand-accent-text,var(--lava));border-color:var(--lava)}
 .copilot-btn.cb-listen.playing .ci{animation:listenPulse 1s ease-in-out infinite}
 @keyframes listenPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.18)}}
 .listen-eq{display:none;align-items:flex-end;gap:2px;height:14px}
