@@ -6,7 +6,7 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Knickgasm Agent, talk to our sneaker &amp; streetwear expert</title>
+<title>Brand Agent, talk to an expert</title>
 <style>
   /* This page is an intentionally LIGHT surface (dark ink on chalk). auth.js
      injects theme.css AFTER this inline style, and theme.css redefines :root
@@ -78,8 +78,8 @@
 <body>
 <div class="shell">
   <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700">KNICKGASM · Voice &amp; Chat Concierge <span style="background:var(--vh-ink);color:var(--vh-panel-tan);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
-  <h1>Talk to a Knickgasm expert</h1>
-  <div class="sub">This is the customer-facing concierge, the tool your customers talk to. Ask about benefits, crafting, how long results take, or whether a colorway is worth it, by voice or text. Honest answers, zero pressure. Pick a specialist:</div>
+  <h1>Talk to an expert</h1>
+  <div class="sub" id="agentSub">This is the customer-facing concierge, the tool your customers talk to. Ask about what we offer, how it works and what to expect, by voice or text. Honest answers, zero pressure. Pick a specialist:</div>
   <div class="agentbar" id="agentbar"></div>
 
   <div class="agent-admin">
@@ -111,7 +111,7 @@
       </div>
       <div class="full">
         <label for="afGreeting">Greeting (optional)</label>
-        <input id="afGreeting" placeholder="Namaste! Ask me anything about…" autocomplete="off">
+        <input id="afGreeting" placeholder="e.g. Ask me anything about…" autocomplete="off">
       </div>
       <div class="row-actions">
         <button class="save" id="afSave" type="submit">Save agent</button>
@@ -125,7 +125,7 @@
 <div class="inputrow">
   <div class="inputbox">
     <button type="button" class="btn mic" id="mic" title="Hold a voice conversation">🎙</button>
-    <input id="q" placeholder="Ask anything — “does airbrush actually work?”" autocomplete="off">
+    <input id="q" placeholder="Ask anything" autocomplete="off">
     <button type="button" class="btn send" id="send">Ask</button>
   </div>
   <div class="toggles" id="modeRow" role="group" aria-label="Interaction mode">
@@ -164,6 +164,29 @@
   var CH = (typeof VHChat === 'function') ? VHChat('agent') : null;
   var chatEl = document.getElementById('chat');
   var qEl = document.getElementById('q');
+
+  /* Speak the ACTIVE brand's vocabulary, not tenant zero's.
+     This page shipped asking every tenant about "crafting", "colorways" and
+     whether "airbrush actually works". The brand-name swap in brand-context.js
+     could not fix that: a product noun is not the brand name, and `placeholder`
+     is an attribute, which that pass does not walk at all. So the copy is
+     written neutrally above and the specific words are filled in here from the
+     brand's own offerings[].kind. A brand that declares no kind keeps the
+     neutral wording rather than borrowing somebody else's. */
+  function applyBrandVocabulary(){
+    if(!window.BrandContext || typeof BrandContext.nouns !== 'function') return;
+    var n = BrandContext.nouns(), b = BrandContext.brand;
+    var name = (b && b.name) || '';
+    if(qEl) qEl.placeholder = name ? ('Ask anything about ' + name) : 'Ask anything';
+    var sub = document.getElementById('agentSub');
+    if(sub && n.kind){
+      sub.textContent = 'This is the customer-facing concierge, the tool your '
+        + n.audiencePlural + ' talk to. Ask about our ' + n.offeringPlural
+        + ', how they work and what to expect, by voice or text. Honest answers, zero pressure. Pick a specialist:';
+    }
+  }
+  if(window.BrandContext && typeof BrandContext.onChange === 'function') BrandContext.onChange(applyBrandVocabulary);
+  else applyBrandVocabulary();
   var micBtn = document.getElementById('mic');
   // Interaction mode: 'chat' (text only) · 'narration' (speaks replies) ·
   // 'conversation' (hands-free: speaks, then listens). Mute silences audio in
@@ -328,7 +351,7 @@
   });
   setMode(MODE); // apply persisted/default mode on load
 
-  var FALLBACK=[{id:'agent_knickgasm',name:'Knickgasm',level:'brand',greeting:'Namaste! Ask me anything about our sneakers.',voice:{}}];
+  var FALLBACK=[{id:'agent_brand',name:'Brand Agent',level:'brand',greeting:'Ask me anything.',voice:{}}];
   function loadAgents(selectId){
     return fetch(API+'?action=agents').then(function(r){return r.json();}).then(function(j){
       agents=(j.agents&&j.agents.length)?j.agents:FALLBACK;
