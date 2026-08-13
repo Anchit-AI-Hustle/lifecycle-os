@@ -416,8 +416,34 @@
     { section: 'Share & Track' },
     { id: 'social', label: 'Social Media OS', href: '/social', icon: 'social', ver: 'v2', match: ['/social', '/social-media', '/social-media.html'] },
     { id: 'assets', label: 'Created Assets', href: '/assets', icon: 'analysis', ver: 'v1', match: ['/assets', '/assets.html'] },
-    { id: 'telesuite', label: 'TeleSuite', href: '/telesuite', icon: 'avatars', ver: 'v2',
-      match: ['/telesuite', '/telesuite.html'] },   // the suite has its own in-page nav; do not duplicate it here
+    // ONE navigation layer: the suite no longer renders its own column, so its
+    // modules live here, in the same order as the AI-TeleSuite source app.
+    { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2',
+      match: ['/telesuite', '/telesuite.html'], children: [
+      { id: 'ts-home', label: "Home", href: '/telesuite#home', icon: 'analysis' },
+      { id: 'ts-products', label: "Products", href: '/telesuite#products', icon: 'analysis' },
+      { id: 'ts-knowledgebase', label: "Knowledge Base", href: '/telesuite#knowledge-base', icon: 'analysis' },
+      { id: 'ts-pitchgenerator', label: "AI Pitch Generator", href: '/telesuite#pitch-generator', icon: 'analysis' },
+      { id: 'ts-rebuttalgenerator', label: "AI Rebuttal Assistant", href: '/telesuite#rebuttal-generator', icon: 'analysis' },
+      { id: 'ts-transcription', label: "Audio Transcription", href: '/telesuite#transcription', icon: 'analysis' },
+      { id: 'ts-transcriptiondashboard', label: "Transcription DB", href: '/telesuite#transcription-dashboard', icon: 'analysis' },
+      { id: 'ts-callscoring', label: "AI Call Scoring", href: '/telesuite#call-scoring', icon: 'analysis' },
+      { id: 'ts-callscoringdashboard', label: "Call Scoring DB", href: '/telesuite#call-scoring-dashboard', icon: 'analysis' },
+      { id: 'ts-combinedcallanalysis', label: "Combined Call Analysis", href: '/telesuite#combined-call-analysis', icon: 'analysis' },
+      { id: 'ts-combinedcallanalysisdashboard', label: "Combined Analysis DB", href: '/telesuite#combined-call-analysis-dashboard', icon: 'analysis' },
+      { id: 'ts-voicesalesagent', label: "AI Voice Sales Agent", href: '/telesuite#voice-sales-agent', icon: 'analysis' },
+      { id: 'ts-voicesalesdashboard', label: "Voice Sales DB", href: '/telesuite#voice-sales-dashboard', icon: 'analysis' },
+      { id: 'ts-voicesupportagent', label: "AI Voice Support Agent", href: '/telesuite#voice-support-agent', icon: 'analysis' },
+      { id: 'ts-voicesupportdashboard', label: "Voice Support DB", href: '/telesuite#voice-support-dashboard', icon: 'analysis' },
+      { id: 'ts-createtrainingdeck', label: "Training Material Creator", href: '/telesuite#create-training-deck', icon: 'analysis' },
+      { id: 'ts-trainingmaterialdashboard', label: "Material DB", href: '/telesuite#training-material-dashboard', icon: 'analysis' },
+      { id: 'ts-dataanalysis', label: "AI Data Analyst", href: '/telesuite#data-analysis', icon: 'analysis' },
+      { id: 'ts-dataanalysisdashboard', label: "Data Analysis DB", href: '/telesuite#data-analysis-dashboard', icon: 'analysis' },
+      { id: 'ts-batchaudiodownloader', label: "Batch Audio Downloader", href: '/telesuite#batch-audio-downloader', icon: 'analysis' },
+      { id: 'ts-activitydashboard', label: "Global Activity Log", href: '/telesuite#activity-dashboard', icon: 'analysis' },
+      { id: 'ts-cloneapp', label: "Clone Full App", href: '/telesuite#clone-app', icon: 'analysis' },
+      { id: 'ts-n8nworkflow', label: "n8n Workflow", href: '/telesuite#n8n-workflow', icon: 'analysis' },
+    ] },
 
     { section: 'Assistants' },
     // KicksGPT (internal team chat/info tool) and Knickgasm Agent (customer-facing
