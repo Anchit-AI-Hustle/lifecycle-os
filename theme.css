@@ -43,6 +43,8 @@
   --vh-hairline:  var(--brand-line,      #EBEBEB);
   --vh-font-head: var(--brand-font-heading, 'Montserrat','Raleway',Arial,sans-serif);
   --vh-font-body: var(--brand-font-body,    'Instrument Sans','Helvetica Neue',Arial,sans-serif);
+  --brand-primary-text: #d0473e;
+  --brand-accent-text:  #6a33d8;
 /* <<< BRAND-SYNC:palette */
 
   /* State (theme-independent) */

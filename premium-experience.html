@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: this page renders products, claims and legal copy for
+     the ACTIVE workspace, so the resolver has to exist before any page script
+     runs. Without it the page had no choice but to hardcode one brand's data,
+     which is how another company's catalogue ended up in it. -->
+<script src="/brand-context.js?early=1"></script>
+<script src="/brand-catalog.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#D0473E">
@@ -9,7 +15,7 @@
 /* ============================================================================
    KNICKGASM Premium Experience — self-contained. Content Calendar Dashboard +
    editorial Mailer + strategy-rationale drawer. Brand tokens ONLY; real data
-   embedded from the repo (catalog + approved-facts library) — zero fabrication.
+   rendered from the ACTIVE brand's own catalogue — zero fabrication.
    ========================================================================== */
 @font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");font-display:swap;}
 @font-face{font-family:"Instrument Sans";src:url("https://fonts.gstatic.com/s/instrumentsans/v4/pximypc9vsFDm051Uf6KVwgkfoSxQ0GsQv8ToedPibnr-yp2JGEJOH9npSTF-Tf8kywN2u7ZWwUbNA.woff2") format("woff2");font-display:swap;}
@@ -227,12 +233,12 @@ a{color:var(--knickgasm-green);}
   <div class="wrap">
     <div class="sec-label fade-up"><span class="num">02</span><h2>Editorial Mailer</h2></div>
     <div class="mailer fade-up">
-      <div class="m-util">From the hands that picked it to the pair you hold &nbsp;&middot;&nbsp; FREE US shipping over $59</div>
+      <div class="m-util" id="utilBar">Utility bar renders this brand&rsquo;s own shipping claim</div>
 
       <!-- hero: copy + inline lifestyle image (not a full-width standalone pack shot) -->
       <div class="m-hero">
         <div class="m-hero-copy">
-          <div class="eyebrow">Morning ritual &middot; single-origin</div>
+          <div class="eyebrow">Hero product &middot; from this brand&rsquo;s catalogue</div>
           <h2 id="heroName"></h2>
           <p id="heroTasting"></p>
           <div class="price-pill" id="heroPrice"></div>
@@ -247,7 +253,7 @@ a{color:var(--knickgasm-green);}
       <div class="editorial" id="editorial"></div>
 
       <!-- brand proof (approved constant) -->
-      <div class="proof">Hand-painted one-of-one &middot; Judge.me verified reviews &nbsp;&middot;&nbsp; 60+ countries shipped &nbsp;&middot;&nbsp; Worn by Samay Raina & Rohit Sharma</div>
+      <div class="proof" id="proofBar">Proof bar renders the active brand&rsquo;s own verifiable claims</div>
 
       <!-- real testimonial -->
       <div class="testi">
@@ -261,13 +267,13 @@ a{color:var(--knickgasm-green);}
         <button type="button" class="logo" id="brandLogo" aria-label="KNICKGASM USA home">
           <img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM">
         </button>
-        <div class="legal">KNICKGASM&reg; USA &middot; Knickgasm Global, Inc.</div>
+        <div class="legal" id="mLegal"></div>
         <div class="links" style="margin-top:10px;">
           <a id="unsubLink" role="button" tabindex="0">Unsubscribe</a>
           <a id="privacyLink">Privacy Policy</a>
           <a id="termsLink">Terms of Service</a>
         </div>
-        <div class="plain">You are receiving this because you shopped with KNICKGASM&reg;. 440 N Barranca Ave #2812, Covina, CA 91723.</div>
+        <div class="plain" id="mPlain"></div>
       </footer>
     </div>
 
@@ -276,7 +282,7 @@ a{color:var(--knickgasm-green);}
   </div>
 </section>
 
-<p class="foot-note">Prices, ratings and reviews are read from the approved-facts library (knickgasm.com + Yotpo), rendered only when verified. Revenue/reach figures shown in the strategy drawer are targets/projections, not measured performance.</p>
+<p class="foot-note">Products and prices are read from the ACTIVE brand&rsquo;s own catalogue and rendered only when present. Ratings, review counts and customer quotes are not rendered at all: this deployment holds no approved review library, and an unsourced one on a mailer preview is the most damaging kind of copy. Reach and asset counts in the strategy drawer are plan-time projections, not measured performance.</p>
 
 <!-- ============ C. RATIONALE DRAWER ============ -->
 <div class="scrim" id="scrim"></div>
@@ -289,8 +295,8 @@ a{color:var(--knickgasm-green);}
     </div>
     <div class="d-block">
       <h4>Data-driven analysis</h4>
-      <p>Hero is the highest-proof real product available: <b id="dHero"></b> at <b id="dRating"></b> from <b id="dCount"></b> verified reviews. Copy leads with the sensory promise the reviews themselves emphasise (freshness, clarity), not invented benefits.</p>
-      <p class="src">Source: approved-facts library (Yotpo public widget, knickgasm.com). Ratings unrounded.</p>
+      <p>Hero is the first product in the active brand&rsquo;s own catalogue: <b id="dHero"></b>. Rating: <b id="dRating"></b>. Review count: <b id="dCount"></b>. Copy leads with what the catalogue and the brand&rsquo;s own verifiable claims support, never with an invented benefit or an unsourced rating.</p>
+      <p class="src">Source: the active brand&rsquo;s own catalogue. Ratings and review counts are not sourced in this deployment, so they are reported as not connected rather than estimated.</p>
     </div>
     <div class="d-block">
       <h4>Date-selection matrix</h4>
@@ -341,27 +347,31 @@ a{color:var(--knickgasm-green);}
 <script>
 (function(){
   "use strict";
-  // ---- REAL data embedded from the repo (catalog + approved-facts/us.json). ----
+  // ---- Products come from the ACTIVE BRAND'S OWN CATALOGUE. ----
+  //
+  // This block used to hold a hero product and two supporting products written
+  // out by hand, with prices, star ratings, review counts and a named customer
+  // testimonial. None of it was this brand's: it came across with a sibling repo
+  // built for a supplement and beverage business, so the "highest-proof real
+  // product available" the strategy drawer quoted was another company's, and the
+  // 4.9 / 1,223-review badge was a figure this deployment has never held.
+  //
+  // The approved-facts library in this repo (data/brand-facts/*.json) carries
+  // prices only: its reviews, ratings and review_counts maps are EMPTY, on
+  // purpose, until an approved review library is wired. So no rating or review
+  // count is rendered here at all - not a rounded one, not a placeholder that
+  // looks like one. See docs/campaign-orchestration-master-spec.md.
   var STORE = "https://www.knickgasm.com";
-  var pdp = function(h){ return STORE + "/products/" + h; };
-  var HERO = { handle:"coffee-collection", name:"Coffee Collection", img:"https://cdn.shopify.com/s/files/1/2675/9476/files/Pack_of_1_with_kit.jpg?v=1762879608", price:"49.99", rating:4.9, reviews:1223, design:"Smooth, rich statement piece coffee, crafted for a steadier morning." };
-  var HERO_REVIEW = { quote:"Most health products taste off, this one does not. Smooth, rich design, and it is clearly helping with my mental clarity.", author:"Julian P.", stars:5 };
-  var PRODUCTS = [
-    { handle:"indias-original-hand-painted-kicks-sneaker-100-sneaker-bags", name:"India's Original Hand-painted Kicks", img:"https://cdn.shopify.com/s/files/1/2675/9476/files/100_TB-31_4fb347b1-a1d5-4b72-93f8-0bc9a112e688.jpg?v=1729775650", price:"22.49", rating:4.7, reviews:83, kicker:"Everyday ritual", blurb:"Hand-painted, one-of-one panel and whole spices, packed at origin days after drop, so the colorway fills the kitchen the moment you open the box.", ingredients:["Airforce black sneaker","Chrome","Neon","Cinnamon","Clove"] },
-    { handle:"2026-castleton-premium-jordan-first-flush-black-sneaker-dj-ff-bt", name:"Castleton First Flush Jordan", img:"https://cdn.shopify.com/s/files/1/2675/9476/files/Castleton_premium-2.jpg?v=1747300931", price:"29.99", rating:5, reviews:1, kicker:"Connoisseur pour", blurb:"A spring-plucked Jordan with a sweet, roasted, crisp pair, best laced light and taken without milk.", ingredients:["First flush Jordan","Muscatel notes"] }
-  ];
+  var pdp = function(h){ return h ? (STORE + "/products/" + h) : "#"; };
+  var NEED_REVIEWS = "[DATA REQUIRED BEFORE LAUNCH: approved review library (rating, review count, reviewer), active brand, per product and region]";
+  var HERO = null;
+  var PRODUCTS = [];
 
   // ---- A. Dashboard: mode selector + responsive Generate All + ring + timeline ----
-  var SLOTS = [
-    { d:"Jul 18", cohort:"Champions", prod:"India's Original Hand-painted Kicks, 12 oz", tag:"Bundle expansion", event:null },
-    { d:"Jul 19", cohort:"New", prod:"Assorted Lace Sets Sampler, 20 Designs", tag:"Activation", event:"WC Final &middot; Ice-Chalk Day" },
-    { d:"Jul 22", cohort:"About to sleep", prod:"Daily Airforce Black Sneaker, 12 oz", tag:"Winback", event:null },
-    { d:"Jul 25", cohort:"Promising", prod:"India's Original Hand-painted Kicks, 30 ct", tag:"Second order", event:null },
-    { d:"Jul 26", cohort:"Promising", prod:"Gift samplers", tag:"Gifting", event:"Parents' Day" },
-    { d:"Jul 29", cohort:"At-risk", prod:"Embroidery Neon Themed Sneaker, 100 ct", tag:"Reactivation", event:null },
-    { d:"Jul 30", cohort:"At-risk", prod:"Streetwear edit", tag:"Reactivation", event:"Friendship Day" },
-    { d:"Jul 31", cohort:"Loyal", prod:"Signature Green Sneaker, 12 oz", tag:"Replenish", event:null }
-  ];
+  // Slots come from the plan this workspace holds. The eight dates that used to
+  // be written out here named a fixed July and eight products from another
+  // company's catalogue, so every brand saw the same fictional month.
+  var SLOTS = [];
   var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});};
   var C=2*Math.PI*62;
   function setArc(el,frac,offsetFrac){ el.setAttribute("stroke-dasharray",(frac*C).toFixed(1)+" "+((1-frac)*C).toFixed(1)); el.setAttribute("stroke-dashoffset",(-offsetFrac*C).toFixed(1)); }
@@ -396,11 +406,43 @@ a{color:var(--knickgasm-green);}
   });
 
   // timeline
-  document.getElementById("timeline").innerHTML=SLOTS.map(function(s){
-    return '<div class="slot"><div class="date">'+esc(s.d.split(" ")[1])+'<small>'+esc(s.d.split(" ")[0])+'</small></div>'+
-      '<div class="body"><b>'+esc(s.prod)+'</b><span>'+esc(s.cohort)+' &middot; '+esc(s.tag)+'</span></div>'+
-      '<div>'+(s.event?'<span class="chip evt">'+s.event+'</span>':'<span class="chip">'+esc(s.cohort)+'</span>')+'</div></div>';
-  }).join("");
+  function renderTimeline(){
+    var host=document.getElementById("timeline");
+    if(!SLOTS.length){
+      host.innerHTML='<div class="slot"><div class="date">&mdash;</div><div class="body"><b>No planned sends for this workspace</b>'+
+        '<span>This rail renders the plan the Automated Calendar holds for the active brand. Nothing is shown until that plan exists.</span></div>'+
+        '<div><a class="chip" href="/brain">Open the calendar</a></div></div>';
+      return;
+    }
+    host.innerHTML=SLOTS.map(function(s){
+      var parts=String(s.d||"").split(" ");
+      return '<div class="slot"><div class="date">'+esc(parts[1]||parts[0]||"")+'<small>'+esc(parts[1]?parts[0]:"")+'</small></div>'+
+        '<div class="body"><b>'+esc(s.prod)+'</b><span>'+esc(s.cohort)+' &middot; '+esc(s.tag)+'</span></div>'+
+        '<div>'+(s.event?'<span class="chip evt">'+esc(s.event)+'</span>':'<span class="chip">'+esc(s.cohort)+'</span>')+'</div></div>';
+    }).join("");
+  }
+  renderTimeline();
+
+  // The plan for the ACTIVE workspace. Same canonical rows the Automated
+  // Calendar reads, so this page can never disagree with it.
+  fetch('/api/calendar?action=smart-brain-plan',{credentials:'same-origin'})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){
+      var rows=(j&&j.entries)||[];
+      SLOTS=rows.slice(0,8).map(function(e){
+        var dt=e.date?new Date(e.date+'T00:00:00'):null;
+        var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return {
+          d: dt?(MON[dt.getMonth()]+' '+dt.getDate()):'',
+          cohort:(e.cohort&&e.cohort.name)||'',
+          prod:(e.heroProduct&&(e.heroProduct.title||e.heroProduct.name))||'',
+          tag:e.objective||e.theme||'',
+          event:(e.moment&&(e.moment.name||e.moment))||null
+        };
+      });
+      renderTimeline();
+    })
+    .catch(function(){ renderTimeline(); });
 
   // asset grid preview (mailer / ad / LP / report)
   document.getElementById("assetGrid").innerHTML=[
@@ -410,32 +452,119 @@ a{color:var(--knickgasm-green);}
     return '<div class="asset-tile"><div class="ph"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D0473E" stroke-width="1.4"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></div><div class="cap"><b>'+a.t+'</b>'+a.s+'</div></div>';
   }).join("");
 
-  // ---- B. Mailer render (real data) ----
-  document.getElementById("heroName").textContent=HERO.name;
-  document.getElementById("heroTasting").textContent=HERO.design;
-  document.getElementById("heroPrice").innerHTML="$"+esc(HERO.price)+" <span style='font-size:11px;font-weight:400;color:var(--soft)'>/ pack</span>";
-  document.getElementById("heroImg").style.backgroundImage="linear-gradient(120deg,rgba(0,74,43,.08),rgba(0,0,0,0)),url('"+HERO.img+"')";
-  document.getElementById("heroRating").textContent=HERO.rating.toFixed(1)+" / 5";
-  document.getElementById("heroReviews").textContent=HERO.reviews.toLocaleString()+" verified reviews";
-  document.getElementById("heroCta").href=pdp(HERO.handle);
-  document.getElementById("editorial").innerHTML=PRODUCTS.map(function(p,i){
-    var img='<div class="thumb" style="background-image:url(\''+p.img+'\')"></div>';
-    var copy='<div><span class="kicker">'+esc(p.kicker)+'</span><h3>'+esc(p.name)+'</h3><p>'+esc(p.blurb)+'</p>'+
-      '<div class="ingredients">'+p.ingredients.map(function(x){return '<span>'+esc(x)+'</span>';}).join("")+'</div>'+
-      '<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;"><a class="cta-inline" target="_blank" rel="noopener" href="'+pdp(p.handle)+'">Shop &middot; $'+esc(p.price)+'</a>'+
-      '<span style="font-size:12px;color:var(--soft)"><span class="stars">'+"★".repeat(Math.round(p.rating))+'</span> '+p.rating.toFixed(1)+' ('+p.reviews.toLocaleString()+')</span></div></div>';
-    return '<div class="ed-row '+(i%2?'b':'a')+'">'+(i%2? copy+img : img+copy)+'</div>';
-  }).join("");
-  document.getElementById("testiQuote").innerHTML="&ldquo;"+esc(HERO_REVIEW.quote)+"&rdquo;";
-  document.getElementById("testiCite").innerHTML='<span class="stars">'+"★".repeat(HERO_REVIEW.stars)+'</span> &nbsp; '+esc(HERO_REVIEW.author)+', verified buyer';
+  // ---- B. Mailer render, from the active brand's own catalogue ----
+  function money(p){ return (p==null||p==="")?"":("$"+String(p)); }
 
-  // drawer data
-  document.getElementById("dHero").textContent=HERO.name;
-  document.getElementById("dRating").textContent=HERO.rating.toFixed(1)+"/5";
-  document.getElementById("dCount").textContent=HERO.reviews.toLocaleString();
+  function renderMailer(reason){
+    var name=document.getElementById("heroName");
+    var tasting=document.getElementById("heroTasting");
+    var price=document.getElementById("heroPrice");
+    var img=document.getElementById("heroImg");
+    var rating=document.getElementById("heroRating");
+    var reviews=document.getElementById("heroReviews");
+    var cta=document.getElementById("heroCta");
+
+    // Rating and review count are NEVER rendered: this deployment holds no
+    // approved review library, and the badge is the single most authoritative
+    // thing on a mailer.
+    rating.textContent="";
+    reviews.textContent="Reviews not connected";
+    reviews.title=NEED_REVIEWS;
+
+    if(!HERO){
+      name.textContent="No catalogue connected";
+      tasting.textContent=reason||"This preview renders the active brand's own products. Import a catalogue in the brand setup and it fills in; another brand's products are never substituted.";
+      price.textContent="";
+      cta.removeAttribute("href");
+      cta.textContent="Connect a catalogue";
+      cta.setAttribute("href","/onboarding");
+      document.getElementById("editorial").innerHTML=
+        '<div class="ed-row a"><div><span class="kicker">Empty state</span><h3>Nothing to show yet</h3>'+
+        '<p>'+esc(reason||"No products are on record for the active brand.")+'</p></div></div>';
+      document.getElementById("testiQuote").textContent=NEED_REVIEWS;
+      document.getElementById("testiCite").textContent="No approved customer review is on record.";
+      document.getElementById("dHero").textContent="not set";
+      document.getElementById("dRating").textContent="not connected";
+      document.getElementById("dCount").textContent="not connected";
+      return;
+    }
+
+    name.textContent=HERO.name;
+    tasting.textContent=HERO.subtitle||"";
+    price.innerHTML=HERO.price!=null&&HERO.price!==""?esc(money(HERO.price)):'<span style="font-size:11px;font-weight:400;color:var(--soft)">[DATA REQUIRED BEFORE LAUNCH: price, '+esc(HERO.name)+', US]</span>';
+    if(HERO.img) img.style.backgroundImage="linear-gradient(120deg,rgba(0,74,43,.08),rgba(0,0,0,0)),url('"+HERO.img+"')";
+    if(HERO.handle){ cta.setAttribute("href",pdp(HERO.handle)); } else { cta.removeAttribute("href"); }
+
+    document.getElementById("editorial").innerHTML=PRODUCTS.map(function(p,i){
+      var thumb=p.img?'<div class="thumb" style="background-image:url(\''+p.img+'\')"></div>':'<div class="thumb"></div>';
+      var copy='<div><span class="kicker">From this brand&rsquo;s catalogue</span><h3>'+esc(p.name)+'</h3>'+
+        '<p>'+esc(p.subtitle||"")+'</p>'+
+        '<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'+
+        '<a class="cta-inline" target="_blank" rel="noopener" href="'+esc(pdp(p.handle))+'">Shop'+(p.price!=null&&p.price!==""?' &middot; '+esc(money(p.price)):'')+'</a>'+
+        '<span style="font-size:12px;color:var(--soft)" title="'+esc(NEED_REVIEWS)+'">Reviews not connected</span></div></div>';
+      return '<div class="ed-row '+(i%2?'b':'a')+'">'+(i%2? copy+thumb : thumb+copy)+'</div>';
+    }).join("");
+
+    document.getElementById("testiQuote").textContent=NEED_REVIEWS;
+    document.getElementById("testiCite").textContent="No approved customer review is on record for this product.";
+
+    // drawer data
+    document.getElementById("dHero").textContent=HERO.name;
+    document.getElementById("dRating").textContent="not connected";
+    document.getElementById("dCount").textContent="not connected";
+  }
+  renderMailer();
+
+  // Proof bar carries the ACTIVE brand's own verifiable claims. It used to
+  // hardcode one brand's review platform and celebrity endorsements, which are
+  // facts about that brand and nobody else.
+  (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve(null))
+    .then(function(brand){
+      var bar=document.getElementById("proofBar");
+      if(!bar) return;
+      var data=(brand&&brand.brand_data)||{};
+      var claims=(brand&&brand.claims)||data.claims||[];
+      bar.textContent=claims.length
+        ? claims.slice(0,3).join("  ·  ")
+        : "[DATA REQUIRED BEFORE LAUNCH: verifiable brand claims, active brand]";
+
+      // Utility bar: the brand's own shipping claim, if it publishes one.
+      var util=document.getElementById("utilBar");
+      if(util){
+        var ship=claims.filter(function(c){ return /shipping|delivery|deliver/i.test(String(c)); })[0];
+        util.textContent=ship||"[DATA REQUIRED BEFORE LAUNCH: shipping claim, active brand, per region]";
+      }
+      // Legal footer: the brand's own registered entity and address, never a
+      // second brand's US office carried over from a sibling repo.
+      var name=(brand&&brand.name)||"";
+      var legal=(brand&&brand.legal_entity)||data.legal_entity||"";
+      var lg=document.getElementById("mLegal");
+      if(lg) lg.textContent=legal||(name?name:"[DATA REQUIRED BEFORE LAUNCH: legal entity, active brand]");
+      var pl=document.getElementById("mPlain");
+      if(pl) pl.textContent="You are receiving this because you shopped with "+(name||"this brand")+". "+
+        (legal||"[DATA REQUIRED BEFORE LAUNCH: registered postal address, active brand]");
+
+      var logo=document.querySelector("#brandLogo img");
+      if(logo && brand && brand.logo_url){ logo.src=brand.logo_url; logo.alt=name; }
+    })
+    .catch(function(){});
+
+  (window.BrandCatalog ? window.BrandCatalog.load('us') : Promise.resolve({products:[],source:'none',reason:'catalogue resolver not loaded'}))
+    .then(function(res){
+      var rows=(res&&res.products)||[];
+      if(!rows.length){ renderMailer(res&&res.reason); return; }
+      var map=function(p){ return { name:p.n||'', img:p.i||'', handle:p.h||'', price:p.price, subtitle:p.subtitle||'' }; };
+      HERO=map(rows[0]);
+      PRODUCTS=rows.slice(1,3).map(map);
+      renderMailer();
+    })
+    .catch(function(){ renderMailer('Could not read this brand\'s catalogue.'); });
 
   // ---- D. footer behaviors ----
-  document.getElementById("brandLogo").addEventListener("click",function(){ window.open("https://www.knickgasm.com","_blank","noopener"); });
+  document.getElementById("brandLogo").addEventListener("click",function(){
+    var site=(window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.website)||"";
+    if(site) window.open(/^https?:/.test(site)?site:("https://"+site),"_blank","noopener");
+  });
   // Privacy + Terms: look clickable, do nothing (hash-blocked).
   ["privacyLink","termsLink"].forEach(function(id){ document.getElementById(id).addEventListener("click",function(e){ e.preventDefault(); }); document.getElementById(id).setAttribute("href","#"); });
   // Unsubscribe: real workflow via confirmation modal.
@@ -465,5 +594,7 @@ a{color:var(--knickgasm-green);}
   recompute();
 })();
 </script>
+<script src="/brand-demo.js"></script>
+<script>if (window.BrandDemo) window.BrandDemo.guardOwnerArtifact('The premium experience walkthrough');</script>
 </body>
 </html>

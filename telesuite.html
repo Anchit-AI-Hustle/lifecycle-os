@@ -38,7 +38,7 @@
 
   .main{padding:58px 30px 70px;max-width:1000px}
   @media(max-width:900px){.main{padding:26px 18px 60px}}
-  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:9px}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--brand-accent-text);font-weight:600;margin-bottom:9px}
   h1{font-family:var(--head);font-size:30px;font-weight:600;letter-spacing:-.02em;margin-bottom:9px}
   .lede{color:var(--muted);font-size:14px;line-height:1.68;max-width:720px;margin-bottom:22px}
   h2{font-family:var(--head);font-size:19px;font-weight:600;margin:26px 0 11px}
@@ -47,7 +47,7 @@
 
   .field{margin-bottom:15px}
   label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
-  label .req{color:var(--accent)}
+  label .req{color:var(--brand-accent-text)}
   label .note{font-weight:400;color:var(--muted);margin-left:6px;font-size:11px}
   input[type=text],input[type=url],input[type=number],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);
     border-radius:9px;background:var(--surface);color:var(--ink);font:400 13.5px/1.55 var(--body)}
@@ -73,7 +73,7 @@
   .mod b{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
   .mod p{font-size:11.5px;color:var(--muted);line-height:1.55;margin-bottom:9px}
   .mod .meta{display:flex;gap:10px;font-size:10.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
-  .mod .meta b{display:inline;font-size:11px;color:var(--primary)}
+  .mod .meta b{display:inline;font-size:11px;color:var(--brand-primary-text)}
 
   /* table-layout:auto, deliberately: theme.css defaults every table to
      table-layout:fixed, which splits the width equally and leaves a
@@ -90,7 +90,7 @@
 
   .res{margin-top:20px}
   .res .sec{margin-bottom:16px}
-  .res .sec>h4{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--primary);font-weight:700;margin-bottom:6px}
+  .res .sec>h4{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--brand-primary-text);font-weight:700;margin-bottom:6px}
   .res p{font-size:13.5px;line-height:1.7;margin-bottom:7px}
   .res ul{margin:0 0 8px 19px}.res li{font-size:13.3px;line-height:1.65;margin-bottom:4px}
   .res .kv{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:5px 14px;font-size:13px;line-height:1.6}
@@ -100,7 +100,7 @@
     border-radius:10px;padding:15px;max-height:460px;overflow-y:auto}
 
   .scorehead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:16px}
-  .bigscore{font-family:var(--head);font-size:46px;font-weight:600;line-height:1;color:var(--primary)}
+  .bigscore{font-family:var(--head);font-size:46px;font-weight:600;line-height:1;color:var(--brand-primary-text)}
   .dims{display:grid;gap:7px}
   .dim{display:grid;grid-template-columns:minmax(130px,1.1fr) 84px minmax(0,2fr);gap:11px;align-items:center;font-size:12.4px}
   @media(max-width:700px){.dim{grid-template-columns:1fr}}
@@ -115,7 +115,7 @@
   .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 15%,transparent);padding:2px 6px;border-radius:4px}
   .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
   .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;
-    background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary)}
+    background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--brand-primary-text)}
 
   .callstage{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:16px}
   @media(max-width:800px){.callstage{grid-template-columns:1fr}}
@@ -304,8 +304,8 @@
       var r = await ts('summary');
       (r.summary || []).forEach(function (x) { summary[x.feature] = x; });
       var totals = '<div class="card" style="margin-bottom:18px;display:flex;gap:28px;flex-wrap:wrap">' +
-        '<div><b style="font-family:var(--head);font-size:26px;color:var(--primary)">' + fmt(r.total_runs) + '</b><div class="muted">runs</div></div>' +
-        '<div><b style="font-family:var(--head);font-size:26px;color:var(--primary)">' + fmt(r.total_credits) + '</b><div class="muted">credits spent in TeleSuite</div></div>' +
+        '<div><b style="font-family:var(--head);font-size:26px;color:var(--brand-primary-text)">' + fmt(r.total_runs) + '</b><div class="muted">runs</div></div>' +
+        '<div><b style="font-family:var(--head);font-size:26px;color:var(--brand-primary-text)">' + fmt(r.total_credits) + '</b><div class="muted">credits spent in TeleSuite</div></div>' +
         '</div>';
       $('homeGrid').innerHTML = totals + '<div class="grid">' + REG.subfeatures.filter(function (x) { return x.key !== 'home'; }).map(function (x) {
         var st = summary[x.op] || summary[x.key] || null;

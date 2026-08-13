@@ -91,11 +91,20 @@ header.site .sub {
 .hero h2 { color: var(--knickgasm-chalk); font-size: 1.15rem; margin-bottom: 4px; }
 .hero .lede { color: var(--knickgasm-chalk); opacity: .85; font-size: .88rem; margin-bottom: 22px; max-width: 720px; }
 
+/* One row, sliding when the window does not fit. The column count is set from
+   the loaded plan (see buildFromDays) rather than fixed at the 21 days of the
+   snapshot this page used to ship. */
 .rail {
   display: grid;
-  grid-template-columns: repeat(21, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(18px, 1fr);
   gap: 6px;
   align-items: end;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
 }
 .node {
   background: transparent; border: 0; cursor: pointer; text-align: center;
@@ -297,7 +306,7 @@ footer.site .foot-logo { height: 34px; margin-bottom: 14px; opacity: .95; }
       <h1>Daily Email Calendar</h1>
       <div class="sub">
         <span class="pill">KNICKGASM&reg; USA</span>
-        <span>Sneakers &amp; Botanicals &middot; Live view of the Automated Calendar plan (same canonical smart_calendar_entries)</span>
+        <span>Live view of the Automated Calendar plan (same canonical smart_calendar_entries)</span>
       </div>
     </div>
     <div class="head-actions">
@@ -310,8 +319,8 @@ footer.site .foot-logo { height: 34px; margin-bottom: 14px; opacity: .95; }
 <!-- ============ HERO: CADENCE RAIL ============ -->
 <section class="hero">
   <div class="wrap">
-    <h2>The July cadence &mdash; one send a day, twenty-one days</h2>
-    <p class="lede">Bar height encodes discount depth (the 15% cap is the ceiling; nothing deeper ships). A lava &#9101; under a day means its cohort size still routes to Klaviyo before revenue can be projected. Click any day to jump to its build card.</p>
+    <h2>The cadence in this brand&rsquo;s plan</h2>
+    <p class="lede">Bar height encodes discount depth (the 15% cap is the ceiling; nothing deeper ships). A lava &#9101; under a day means its cohort size still routes to the sending platform before revenue can be projected. Click any day to jump to its build card.</p>
     <div class="rail" id="rail" role="list" aria-label="Send cadence"></div>
     <div class="legend">
       <span><i class="l-fif"></i> 15% off (at-cap)</span>
@@ -335,20 +344,13 @@ footer.site .foot-logo { height: 34px; margin-bottom: 14px; opacity: .95; }
     <div class="flag-grid" style="margin-top:18px;">
       <div class="panel dark">
         <h3 style="color:var(--knickgasm-chalk)">Codes that breach the 15% cap &mdash; do not promote</h3>
-        <p class="cap">These active codes exceed the calendar's discount ceiling and must never appear in a campaign email.</p>
+        <p class="cap">Read from the codes attached to this brand&rsquo;s own planned sends. Anything above the ceiling must never appear in a campaign email.</p>
         <div class="code-chips" id="banned-chips"></div>
       </div>
       <div class="panel">
         <h3>At-cap codes &mdash; safe to use</h3>
         <p class="cap">At or below 15%. Cleared for campaign use.</p>
         <div class="code-chips" id="safe-chips"></div>
-        <div class="swap" style="margin-top:18px; border-top:1px solid var(--hair); padding-top:16px;">
-          <span class="mark">&#8635;</span>
-          <div>
-            <strong>Stock swap &mdash; Jul 25</strong>
-            <p style="font-size:.82rem; margin-top:4px;">Applause CTC Airforce Summer Black Sneaker 12oz = <strong>0 units</strong>. Swapped to <strong>English Breakfast Black Sneaker 12oz</strong> (1,151 units, same category, strong iced-sneaker angle).</p>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -384,24 +386,19 @@ footer.site .foot-logo { height: 34px; margin-bottom: 14px; opacity: .95; }
     <div class="sec-head"><span class="eyebrow">Reference</span><h2>AOV, list &amp; open items</h2></div>
     <div class="divider" style="margin-bottom:18px;"></div>
     <div class="ref-grid">
+      <!-- This panel used to print a six-row store AOV table with net revenue
+           and order counts per product type. Those figures were another
+           company's, carried over with the rest of the sibling repo, and this
+           page has no connection that could produce the equivalent for the
+           active brand. A commercial table nobody here measured is worse than
+           a stated gap: the whole send plan gets anchored to it. -->
       <div class="panel">
-        <h3>Store AOV &mdash; last 90 days</h3>
-        <p class="cap">Overall AOV $42.71. Coffee and Themed Supplement excluded per sneakers-only rule.</p>
-        <table class="aov">
-          <thead><tr><th>Product type</th><th>AOV</th><th>Net (90d)</th><th>Orders</th></tr></thead>
-          <tbody>
-            <tr class="hi"><td>One of One</td><td><span class="n">$62.64</span></td><td>$14,264</td><td>230</td></tr>
-            <tr><td>Black Sneakers &middot; Hand-painted</td><td><span class="n">$37.95</span></td><td>$22,753</td><td>605</td></tr>
-            <tr><td>Kicks Sneakers &middot; Hand-painted</td><td><span class="n">$34.01</span></td><td>$20,438</td><td>602</td></tr>
-            <tr><td>Green Sneakers &middot; Lace Sets</td><td><span class="n">$27.84</span></td><td>$6,104</td><td>220</td></tr>
-            <tr><td>Green Sneakers &middot; Hand-painted</td><td><span class="n">$27.52</span></td><td>$6,111</td><td>224</td></tr>
-            <tr><td>Themed Sneakers &middot; Lace Sets</td><td><span class="n">$26.80</span></td><td>$15,941</td><td>598</td></tr>
-          </tbody>
-        </table>
-        <p class="aov-note">One of One AOV ($62.64) runs 47% above store average &mdash; the Jul 22 send to 58 buyers is the highest revenue-per-recipient day despite the smallest list.</p>
+        <h3>Store AOV</h3>
+        <p class="cap">[DATA REQUIRED BEFORE LAUNCH: average order value by product type, active brand, per region.]</p>
+        <p class="aov-note">This page reads the campaign plan, not the order book. Connect the store or order export to the Data Analysis workbench and the per-category economics behind these sends are measured there, once, for whichever brand is active.</p>
         <div style="margin-top:18px; border-top:1px solid var(--hair); padding-top:14px;">
           <h3 style="font-size:.95rem;">Total email-subscribed list</h3>
-          <p class="list-note" style="margin-top:6px;">Not retrievable via ShopifyQL or Admin GraphQL. Pull from <strong>Klaviyo &rarr; Lists &amp; Segments &rarr; All Subscribers</strong>, or Shopify Admin &rarr; Customers &rarr; filter <code>Email subscription = Subscribed</code> &rarr; export.</p>
+          <p class="list-note" style="margin-top:6px;">[DATA REQUIRED BEFORE LAUNCH: subscribed list size, active brand.] Pull it from the connected sending platform&rsquo;s all-subscribers list, or from the store&rsquo;s customer export filtered to subscribed.</p>
         </div>
       </div>
       <div class="panel">
@@ -422,7 +419,7 @@ footer.site .foot-logo { height: 34px; margin-bottom: 14px; opacity: .95; }
       <li>Palette locked to four tokens &mdash; green #D0473E, lava #6A33D8, ink #111111, chalk #FFFFFF</li>
       <li>@font-face for Montserrat + Instrument Sans injected before application rules; headings to head font, body/UI to body font</li>
       <li>Discount cap 15% enforced &mdash; over-cap codes shown struck-through and marked do-not-promote</li>
-      <li>ESP-pending sends carry the plan but withhold revenue projection until the real Klaviyo size lands (zero fabrication)</li>
+      <li>Sends whose cohort size is still pending carry the plan but withhold revenue projection until the real segment size lands (zero fabrication)</li>
       <li>Every date, price, code, cohort size, image URL and rationale carried verbatim from source</li>
     </ul>
     <p class="closer">Build-ready view of the Automated Calendar. Same guardrails the export engine applies.</p>
@@ -430,83 +427,69 @@ footer.site .foot-logo { height: 34px; margin-bottom: 14px; opacity: .95; }
 </footer>
 
 <script>
-/* ============ DATA (verbatim from source calendar) ============ */
-var IMG = {
-  embroidery: "https://cdn.shopify.com/s/files/1/2675/9476/files/Organic_Embroidery_Ginger_Front.jpg?v=1743675761",
-  chai12:   "https://cdn.shopify.com/s/files/1/2675/9476/files/Original_chai_ba5f65d4-7560-4423-b25a-c09cd33e7172.jpg?v=1724678893",
-  airforce:    "https://cdn.shopify.com/s/files/1/2675/9476/files/Daily-Airforce.jpg?v=1724678892",
-  green:    "https://cdn.shopify.com/s/files/1/2675/9476/files/Signature_green_tea_f953d287-3e7a-4973-9957-5e6e8bd22130.jpg?v=1724678892",
-  eb:       "https://cdn.shopify.com/s/files/1/2675/9476/files/English_Breakfast.jpg?v=1724678893",
-  darj:     "https://cdn.shopify.com/s/files/1/2675/9476/files/Daily_Jordan.jpg?v=1724678892",
-  sampler:  "https://cdn.shopify.com/s/files/1/2675/9476/files/Artboard_6_5b2e4b3e-57ab-4973-b87a-87b4a9d8c5e1.jpg?v=1721974416",
-  chai100:  "https://cdn.shopify.com/s/files/1/2675/9476/files/100_TB-31_4fb347b1-a1d5-4b72-93f8-0bc9a112e688.jpg?v=1729775650",
-  dbl:      "https://cdn.shopify.com/s/files/1/2675/9476/files/Double-Spiced.jpg?v=1726478767"
-};
+/* ============ DATA ============
+ *
+ * There is NO bundled calendar here, deliberately.
+ *
+ * This file used to carry a "curated July snapshot": twenty-one fully written
+ * sends with hero products, prices, unit counts, cohort sizes, discount codes
+ * and a store AOV table. None of it described this brand. It arrived with a
+ * sibling repo built for a tea, coffee and Ayurvedic-supplement business, and a
+ * search-and-replace rebrand renamed the products on the cards while leaving
+ * that company's catalogue, inventory, list sizes and promo codes underneath.
+ * It rendered whenever the live plan was empty, which is the normal state for a
+ * brand that has just onboarded, so the first calendar a new workspace ever saw
+ * was another company's July.
+ *
+ * Everything below is derived from the plan this workspace actually holds
+ * (smart_calendar_entries, the same canonical rows the Automated Calendar
+ * reads). When that plan is empty the page says so. An empty calendar is a true
+ * statement about a brand with no plan yet; a borrowed one is not.
+ */
 
-// Curated July snapshot — kept ONLY as an explicitly-labelled fallback when the
-// live plan is unavailable, never presented as current. The live view below
-// reads the same canonical smart_calendar_entries the Automated Calendar uses.
-var REFERENCE_DAYS = [
- {dom:11,wd:"Fri",week:1,offer:"d-none",esp:true,theme:"Post-purchase nurture, deepen the ritual",cohort:"Post-Purchase 0-14d",size:"818 total, subscribed % to ESP",hero:"Embroidery Neon Themed Sneaker Tisane, 100 Count",price:"$25.99",stock:"In stock, 2,376 units",img:IMG.embroidery,support:"India's Original Hand-painted Kicks 12oz ($25.99), Daily Airforce Black Sneaker 12oz ($25.99)",offerTxt:"No discount, protect margin, build loyalty",code:"",subject:"Your KNICKGASM order just got a companion",preheader:"Complete your morning ritual with this fan favourite.",cta:"Add to My Ritual",suppress:"None (highest priority cohort)",rationale:"Recency is highest, nurture before next purchase window; Embroidery Neon is top themed by units."},
- {dom:12,wd:"Sat",week:1,offer:"d-ten",esp:true,theme:"Browse recovery, bring them back to cart",cohort:"Browse Abandon 7d",size:"to ESP (browse behaviour)",hero:"India's Original Hand-painted Kicks Sneaker, 12 oz",price:"$25.99",stock:"In stock, 1,179 units",img:IMG.chai12,support:"Double Spice Hand-painted Kicks 3.53oz ($19.99), Embroidery Neon Tisane 100ct ($25.99)",offerTxt:"10% off",code:"HELLO10",subject:"Still thinking about it? Here is a nudge",preheader:"Your kicks is waiting, grab 10% off today only.",cta:"Complete My Order",suppress:"Exclude Jul 11 Post-Purchase",rationale:"Browse abandoners need low-friction incentive; Hand-painted Kicks is #1 sneaker by revenue and most-viewed category."},
- {dom:13,wd:"Sun",week:1,offer:"d-fif",esp:true,theme:"Kicks affinity, celebrate their favourite",cohort:"Kicks Affinity (purchased kicks, active 1yr)",size:"to ESP (product-type filter)",hero:"India's Original Hand-painted Kicks Sneaker, 12 oz",price:"$25.99",stock:"In stock, 1,179 units",img:IMG.chai12,support:"Double Spice Hand-painted Kicks 3.53oz ($19.99), India's Original Hand-painted Kicks 100ct ($23.99)",offerTxt:"15% off (at-cap)",code:"SUMMER15",subject:"Your kicks, your summer, your 15% off",preheader:"Stock up on India's #1 kicks before summer ends.",cta:"Shop My Kicks",suppress:"Exclude Jul 11 Post-Purchase; Jul 12 Browse Abandon",rationale:"Kicks is #1 sneaker category by revenue ($20,438); affinity buyers have highest repurchase intent."},
- {dom:14,wd:"Mon",week:1,offer:"d-fif",esp:false,theme:"VIP early access, premium recognition",cohort:"VIP HIGH tier, active 90d",size:"2,330 total, subscribed % to ESP",hero:"Daily Airforce Black Sneaker, 12 oz",price:"$25.99",stock:"In stock, 787 units",img:IMG.airforce,support:"English Breakfast Black Sneaker 12oz ($23.99), Daily Jordan 2nd Flush 12oz ($23.99)",offerTxt:"15% off (at-cap)",code:"VIP15",subject:"Your VIP offer, just for you",preheader:"Exclusive 15% off, because you are one of our best.",cta:"Claim My VIP Offer",suppress:"Exclude Jul 11-13 cohorts",rationale:"VIP HIGH = $69.74 avg spend/order; Monday send maximises weekday opens for premium audience."},
- {dom:15,wd:"Tue",week:1,offer:"d-fif",esp:true,theme:"Streetwear ritual, morning botanical stack",cohort:"Streetwear/Themed Affinity (active 1yr)",size:"to ESP (product-type filter)",hero:"Embroidery Neon Themed Sneaker Tisane, 100 Count",price:"$25.99",stock:"In stock, 2,376 units",img:IMG.embroidery,support:"Embroidery Airbrush Tisane 100ct (price to ESP), Signature Green Sneaker 12oz ($29.99)",offerTxt:"15% off (at-cap)",code:"KNICKGASM15",subject:"Your streetwear ritual, 100 pairs at a time",preheader:"Embroidery Neon, the themed your mornings deserve.",cta:"Shop My Streetwear Sneakers",suppress:"Exclude Jul 11-14 cohorts",rationale:"Themed Sneakers Lace Sets = $15,940 net/90d; 2,376 units in stock supports a volume push."},
- {dom:16,wd:"Wed",week:1,offer:"d-ten",esp:true,theme:"Cross-category, green to black buyers",cohort:"Black buyers, no Green/Themed crossover",size:"to ESP (exclusion filter)",hero:"Signature Green Sneaker, 12 oz",price:"$29.99",stock:"In stock, 637 units",img:IMG.green,support:"Daily Airforce Black Sneaker 12oz ($25.99), English Breakfast Black Sneaker 12oz ($23.99)",offerTxt:"10% off",code:"KNICKGASM10",subject:"Black sneaker lover? Try this next",preheader:"Signature Green, smooth, light, and perfect iced.",cta:"Try Signature Green",suppress:"Exclude Jul 11-15 cohorts",rationale:"Cross-sell green to black-only buyers expands basket; $29.99 hero lifts AOV above $42.73 store average."},
- {dom:17,wd:"Thu",week:1,offer:"d-fif",esp:true,theme:"Green sneaker affinity, summer iced green",cohort:"Green Sneaker Affinity (active 1yr)",size:"to ESP (product-type filter)",hero:"Signature Green Sneaker, 12 oz",price:"$29.99",stock:"In stock, 637 units",img:IMG.green,support:"Embroidery Neon Tisane 100ct ($25.99), India's Original Hand-painted Kicks 12oz ($25.99)",offerTxt:"15% off (at-cap)",code:"SUMMER15",subject:"Iced Signature Green, your summer step",preheader:"Craft it hot, pour it over ice. 15% off today.",cta:"Shop Signature Green",suppress:"Exclude Jul 11-16 cohorts",rationale:"Green affinity buyers primed for repurchase; summer iced framing drives seasonal urgency."},
- {dom:18,wd:"Fri",week:2,offer:"d-fif",esp:false,theme:"First-purchase activation, welcome",cohort:"New Subscribers <=30d, 0 orders",size:"177, 100% subscribed",hero:"Daily Airforce Black Sneaker, 12 oz",price:"$25.99",stock:"In stock, 787 units",img:IMG.airforce,support:"India's Original Hand-painted Kicks 12oz ($25.99), Assorted Hand-painted Sampler 10 Sneakers ($17.99)",offerTxt:"15% off (at-cap)",code:"NEW15",subject:"Welcome, your first KNICKGASM sneaker awaits",preheader:"15% off your first order. Start with our bestseller.",cta:"Shop My First Sneaker",suppress:"Exclude Jul 11-17 cohorts",rationale:"177 confirmed subscribers with 0 orders = highest conversion opportunity; NEW15 is purpose-built."},
- {dom:19,wd:"Sat",week:2,offer:"d-fif",esp:false,theme:"Cart recovery, close the loop",cohort:"Cart Recovery (abandoned checkouts, 7d)",size:"83, subscribed % to ESP",hero:"English Breakfast Black Sneaker, 12 oz",price:"$23.99",stock:"In stock, 1,151 units",img:IMG.eb,support:"Daily Airforce Black Sneaker 12oz ($25.99), India's Original Hand-painted Kicks 12oz ($25.99)",offerTxt:"15% off (at-cap)",code:"CART15",subject:"You left something behind, here is 15% off",preheader:"Your cart is still waiting. Grab it before it is gone.",cta:"Complete My Order",suppress:"Exclude Jul 11-18 cohorts",rationale:"83 high-intent abandoners; CART15 is designated recovery code; $23.99 is lowest-friction entry."},
- {dom:20,wd:"Sun",week:2,offer:"d-fif",esp:true,theme:"Black sneaker affinity, the full lineup",cohort:"Black Sneaker Affinity (active 1yr)",size:"to ESP (product-type filter)",hero:"English Breakfast Black Sneaker, 12 oz",price:"$23.99",stock:"In stock, 1,151 units",img:IMG.eb,support:"Daily Airforce Black Sneaker 12oz ($25.99), Daily Jordan 2nd Flush 12oz ($23.99)",offerTxt:"15% off (at-cap)",code:"SUMMER15",subject:"Three black sneakers. One perfect summer",preheader:"English Breakfast, Airforce, Jordan, all 15% off.",cta:"Shop Black Sneakers",suppress:"Exclude Jul 11-19 cohorts",rationale:"Black Sneakers Hand-painted = $22,753 net/90d, highest sneaker-category revenue; Sunday captures weekend browsers."},
- {dom:21,wd:"Mon",week:2,offer:"d-fif",esp:false,theme:"Subscribe and Save, lock in the ritual",cohort:"Repeat buyers, subscribed (>=2 orders, 60d)",size:"1,720, 100% subscribed",hero:"India's Original Hand-painted Kicks Sneaker, 12 oz",price:"$25.99",stock:"In stock, 1,179 units",img:IMG.chai12,support:"Embroidery Neon Tisane 100ct ($25.99), Daily Airforce Black Sneaker 12oz ($25.99)",offerTxt:"15% off first S&S order",code:"KNICKGASM15",subject:"Never run out, subscribe and save 15%",preheader:"You already love it. Now make it automatic.",cta:"Start My Subscription",suppress:"Exclude Jul 11-20 cohorts",rationale:"1,720 confirmed repeat subscribers = highest S&S pool; Hand-painted Kicks is #1 replenishment SKU."},
- {dom:22,wd:"Tue",week:2,offer:"d-fif",esp:false,theme:"Single studio prestige, connoisseur drop",cohort:"Premium One of One (active 1yr)",size:"58, subscribed % to ESP",hero:"Daily Jordan Second Flush Black Sneaker, 12 oz",price:"$23.99",stock:"In stock, 624 units",img:IMG.darj,support:"English Breakfast Black Sneaker 12oz ($23.99), Daily Airforce Black Sneaker 12oz ($25.99)",offerTxt:"15% off (at-cap), prestige framing",code:"VIP15",subject:"Jordan Second Flush, summer's finest pair",preheader:"For the connoisseur in you, 15% off this week only.",cta:"Shop One of One",suppress:"Exclude Jul 11-21 cohorts",rationale:"58 proven one-of-one buyers; One of One AOV = $62.64 (highest of all categories)."},
- {dom:23,wd:"Wed",week:2,offer:"d-fif",esp:true,theme:"Replenishment nudge, you are running low",cohort:"Replenishment 55-95d, Kicks/Black",size:"to ESP (type + date window)",hero:"India's Original Hand-painted Kicks Sneaker, 12 oz",price:"$25.99",stock:"In stock, 1,179 units",img:IMG.chai12,support:"Daily Airforce Black Sneaker 12oz ($25.99), India's Original Hand-painted Kicks 100ct ($23.99)",offerTxt:"15% off (at-cap)",code:"KNICKGASM15",subject:"Time to restock your kicks, we think",preheader:"It has been about 2 months, your box might be running low.",cta:"Restock My Kicks",suppress:"Exclude Jul 11-22 cohorts",rationale:"55-95 day window = natural replenishment cycle for 12oz hand-painted; timing trigger maximises relevance."},
- {dom:24,wd:"Thu",week:2,offer:"d-ten",esp:true,theme:"Discovery / sampler, find your favourite",cohort:"Variety/Sampler (new/undecided)",size:"to ESP (browse behaviour)",hero:"Assorted Sneaker Hand-painted Sampler, 10 Sneakers",price:"$17.99",stock:"In stock, 202 units",img:IMG.sampler,support:"India's Original Hand-painted Kicks 12oz ($25.99), Signature Green Sneaker 12oz ($29.99)",offerTxt:"10% off",code:"HELLO10",subject:"Not sure where to start? Try all 10",preheader:"10 sneakers, one sampler, one easy decision.",cta:"Try the Sampler",suppress:"Exclude Jul 11-23 cohorts",rationale:"Sampler at $17.99 is lowest AOV entry, ideal for undecided buyers; 202 units limits volume."},
- {dom:25,wd:"Fri",week:3,offer:"d-fif",esp:true,theme:"Bling kicks summer, peak season push",cohort:"Iced/Summer Affinity",size:"to ESP",hero:"English Breakfast Black Sneaker, 12 oz",price:"$23.99",stock:"In stock, 1,151 units",img:IMG.eb,support:"Daily Airforce Black Sneaker 12oz ($25.99), Signature Green Sneaker 12oz ($29.99)",offerTxt:"15% off (at-cap)",code:"SUMMER15",subject:"Craft it, ice it, step it, 15% off",preheader:"The best bling kicks starts with great hand-painted.",cta:"Shop Bling Kicks Picks",suppress:"Exclude Jul 11-24 cohorts",swap:true,rationale:"Applause CTC Airforce Summer = 0 stock; English Breakfast is next-highest black sneaker (1,151 units)."},
- {dom:26,wd:"Sat",week:3,offer:"d-fif",esp:false,theme:"Win-back, we miss you",cohort:"Winback 120-365d",size:"8,510 total, subscribed % to ESP",hero:"Daily Airforce Black Sneaker, 12 oz",price:"$25.99",stock:"In stock, 787 units",img:IMG.airforce,support:"India's Original Hand-painted Kicks 12oz ($25.99), English Breakfast Black Sneaker 12oz ($23.99)",offerTxt:"15% off (at-cap)",code:"IAMBACK",subject:"It has been a while, welcome back",preheader:"Your 15% off is waiting. Come back to your ritual.",cta:"Claim My Welcome-Back Offer",suppress:"Exclude Jul 11-25 cohorts",rationale:"8,510 lapsed buyers = largest recoverable pool; IAMBACK is semantically perfect and unused (0 uses)."},
- {dom:27,wd:"Sun",week:3,offer:"d-fif",esp:true,theme:"Kicks value pack, bulk up for summer",cohort:"Heavy Kicks buyers (value pack)",size:"to ESP (purchase frequency)",hero:"India's Original Hand-painted Kicks Sneaker, 100 Count",price:"$23.99",stock:"In stock, 900 units",img:IMG.chai100,support:"India's Original Hand-painted Kicks 12oz ($25.99), Double Spice Hand-painted Kicks 3.53oz ($19.99)",offerTxt:"15% off (at-cap)",code:"KNICKGASM15",subject:"100 pairs of kicks, stock up now",preheader:"The value pack your mornings have been waiting for.",cta:"Shop the 100-Count Pack",suppress:"Exclude Jul 11-26 cohorts",rationale:"100ct at $23.99 = lower per-pair cost; value framing drives bulk purchase; 900 units supports volume."},
- {dom:28,wd:"Mon",week:3,offer:"d-fif",esp:true,theme:"First-purchase activation, bold intro",cohort:"Activation / Non-buyers (subscribers, 0 orders)",size:"to ESP (non-buyer beyond 30d)",hero:"Double Spice Hand-painted Kicks Sneaker, 3.53 oz",price:"$19.99",stock:"In stock, 752 units",img:IMG.dbl,support:"India's Original Hand-painted Kicks 12oz ($25.99), Assorted Hand-painted Sampler 10 Sneakers ($17.99)",offerTxt:"15% off (at-cap)",code:"NEW15",subject:"Your boldest pair starts at $19.99",preheader:"Double Spice Hand-painted Kicks, the intro that converts.",cta:"Try Double Spice Kicks",suppress:"Exclude Jul 11-27 cohorts",rationale:"Double Spice at $19.99 is lowest-friction kicks entry; 297 units sold in 90d proves conversion."},
- {dom:29,wd:"Tue",week:3,offer:"d-fif",esp:true,theme:"Streetwear reprise, evening botanical",cohort:"Streetwear/Themed Affinity (2nd touch)",size:"to ESP",hero:"Embroidery Neon Themed Sneaker Tisane, 100 Count",price:"$25.99",stock:"In stock, 2,376 units",img:IMG.embroidery,support:"Daily Airforce Black Sneaker 12oz ($25.99), Signature Green Sneaker 12oz ($29.99)",offerTxt:"15% off (at-cap)",code:"KNICKGASM15",subject:"100 pairs of calm, your evening ritual",preheader:"Embroidery Neon Tisane, wind down the right way.",cta:"Shop Streetwear Sneakers",suppress:"Exclude Jul 11-28; suppress Jul 15 openers who converted",rationale:"Second streetwear touch uses evening/calm angle vs Jul 15 morning, distinct enough to avoid fatigue."},
- {dom:30,wd:"Wed",week:3,offer:"d-fif",esp:false,theme:"High-AOV gifting, summer gift sets",cohort:"High-AOV / Gifting (orders >=$75, active 1yr)",size:"32,496 total (broad, refine in ESP)",hero:"Daily Airforce Black Sneaker, 12 oz",price:"$25.99",stock:"In stock, 787 units",img:IMG.airforce,support:"Signature Green Sneaker 12oz ($29.99), India's Original Hand-painted Kicks 12oz ($25.99)",offerTxt:"15% off min $75",code:"SAVE15",subject:"The gift of great sneaker, 15% off $75+",preheader:"Summer gifting made easy, premium sneakers, beautifully packaged.",cta:"Shop Sneaker Gifts",suppress:"Exclude Jul 11-29 cohorts",rationale:"SAVE15's $75 min naturally filters for high-AOV intent; add last_order_date >= 2025-07-11 in ESP."},
- {dom:31,wd:"Thu",week:3,offer:"d-fif",esp:true,theme:"Broad top picks, bestseller sweep",cohort:"Broad / Top Picks (all remaining subscribed)",size:"to ESP (residual after suppressions)",hero:"Daily Airforce Black Sneaker, 12 oz",price:"$25.99",stock:"In stock, 787 units",img:IMG.airforce,support:"India's Original Hand-painted Kicks 12oz ($25.99), Embroidery Neon Tisane 100ct ($25.99)",offerTxt:"15% off (at-cap)",code:"SUMMER15",subject:"July's best sneakers, one last look",preheader:"Our top picks this summer, 15% off before August.",cta:"Shop July's Best",suppress:"Suppress all Jul 11-30 converters",rationale:"Broad send mops up remaining subscribed list; end-of-month urgency drives last-day conversions."}
-];
+/* Discount guardrails, computed from the plan's own offers rather than from a
+   stored code list. The cap is the product rule (15%), not a brand fact. */
+var DISCOUNT_CAP = 15;
 
-var BANNED = [
- ["SHUBHDA35","35%"],["GREEN30","30%"],["ANGELS30","30%"],["HOME20","20%"],["ICED20","20%"],
- ["DEAL20","20%"],["RECOVER20","20%"],["SMILE20","20%"],["SAVINGS20","20%"],["INSIDER20","20%"],
- ["VIP20","20%"],["VAH20","20%"]
-];
-var SAFE = [["SUMMER15","15%"],["VIP15","15%"],["KNICKGASM15","15%"],["SAVE15","15% min $75"],["NEW15","15%"],["BACK15","15%"],["IAMBACK","15%"],["CART15","15%"],["HELLO10","10%"],["KNICKGASM10","10%"]];
+function codeGuardrails(DAYS){
+  var seen = {};
+  (DAYS || []).forEach(function(d){
+    var code = (d.code || '').trim();
+    if (!code) return;
+    var pct = Number(String(d.offerTxt || '').replace(/[^0-9.]/g, '')) || 0;
+    if (!seen[code] || pct > seen[code]) seen[code] = pct;
+  });
+  var banned = [], safe = [];
+  Object.keys(seen).sort().forEach(function(code){
+    (seen[code] > DISCOUNT_CAP ? banned : safe).push([code, seen[code] + '%']);
+  });
+  return { banned: banned, safe: safe };
+}
 
-var BLOCKERS = [
- ["Email-subscribed list total count","Klaviyo master list count"],
- ["Subscribed % for each cohort","Klaviyo segment overlap"],
- ["Browse Abandon cohort size (Jul 12)","Klaviyo browse abandon flow"],
- ["Kicks Affinity cohort size (Jul 13)","Klaviyo: ordered product type contains Kicks"],
- ["Streetwear/Themed Affinity size (Jul 15, 29)","Klaviyo: type contains Themed"],
- ["Black-no-Green/Themed size (Jul 16)","Klaviyo: exclusion segment"],
- ["Green Sneaker Affinity size (Jul 17)","Klaviyo: type contains Green"],
- ["Black Sneaker Affinity size (Jul 20)","Klaviyo: type contains Black"],
- ["Replenishment 55-95d size (Jul 23)","Klaviyo flow filter"],
- ["Variety/Sampler cohort size (Jul 24)","Klaviyo: 0-order subscribers"],
- ["Iced/Summer Affinity size (Jul 25)","Klaviyo: title contains Airforce Summer"],
- ["Heavy Kicks cohort size (Jul 27)","Klaviyo: ordered kicks 2+ times"],
- ["Activation/Non-buyers size (Jul 28)","Klaviyo: subscribed + 0 orders, all time"],
- ["High-AOV gifting subscribed % (Jul 30)","Add last_order_date >= 2025-07-11 in Klaviyo"],
- ["Embroidery Airbrush Tisane price (Jul 15)","Shopify Admin, Products"],
- ["Applause CTC Airforce Summer restock date (Jul 25)","Internal ops / 3PL"],
- ["Discount code expiry dates","Shopify Admin, Discounts, filter active"],
- ["Total subscribed list for residual sizing (Jul 31)","Klaviyo after suppressions"]
-];
+/* Open blockers, computed from the plan. A slot whose cohort size has not come
+   back from the sending platform cannot carry a revenue projection, and that is
+   the only blocker this page can know about without inventing one. */
+function openBlockers(DAYS){
+  var out = [];
+  (DAYS || []).forEach(function(d){
+    if (d.esp) out.push([(d.dateLabel || ('Day ' + d.dom)) + ': cohort size for ' + (d.cohort || 'this send'),
+                         'the connected sending platform, segment size']);
+  });
+  if (!out.length && (DAYS || []).length) {
+    out.push(['No open blockers: every planned send in this window carries a real cohort size.', '']);
+  }
+  return out;
+}
 
 /* ============ HELPERS ============ */
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
 
-/* ============ RENDER PIPELINE (live plan first, reference snapshot fallback) ============ */
+/* ============ RENDER PIPELINE (live plan only) ============ */
 var rail = document.getElementById('rail');
 var grid = document.getElementById('cal-grid');
 var countEl = document.getElementById('count');
 var cards = [];
-var ACTIVE = REFERENCE_DAYS;
+var ACTIVE = [];
 var fWeek = 'all', fOffer = null;
 
 function applyFilters(){
@@ -526,19 +509,28 @@ function buildFromDays(DAYS, live){
   var espCount = DAYS.filter(function(d){ return d.esp; }).length;
   var sizedCount = DAYS.length - espCount;
   var first = DAYS[0], last = DAYS[DAYS.length - 1];
-  var range = (first && last) ? ((first.dateLabel || ('July ' + first.dom)) + ' to ' + (last.dateLabel || ('July ' + last.dom))) : '';
+  var range = (first && last) ? ((first.dateLabel || ('Day ' + first.dom)) + ' to ' + (last.dateLabel || ('Day ' + last.dom))) : '';
+  var blockers = openBlockers(DAYS);
+  var realBlockers = espCount;
   document.getElementById('kpis').innerHTML =
     '<div class="kpi"><div class="num">' + DAYS.length + '</div><div class="lab">Planned sends</div><div class="note">' + esc(range) + '</div></div>' +
-    '<div class="kpi"><div class="num">' + sizedCount + '<small> / ' + DAYS.length + '</small></div><div class="lab">Cohorts sized</div><div class="note">' + espCount + ' route to ESP</div></div>' +
-    '<div class="kpi"><div class="num">$42.71</div><div class="lab">Store AOV 90d</div><div class="note">Sneakers-only</div></div>' +
-    '<div class="kpi"><div class="num">' + (live ? 'LIVE' : 'REF') + '</div><div class="lab">Source</div><div class="note">' + (live ? 'smart_calendar_entries' : 'static July snapshot') + '</div></div>' +
-    '<div class="kpi"><div class="num">' + BLOCKERS.length + '</div><div class="lab">Open blockers</div><div class="note">Resolve before revenue projection</div></div>';
+    '<div class="kpi"><div class="num">' + sizedCount + '<small> / ' + DAYS.length + '</small></div><div class="lab">Cohorts sized</div><div class="note">' + espCount + ' route to the sending platform</div></div>' +
+    // Average order value is a commercial fact about the active brand. It is
+    // never printed from a constant here: the number that used to sit in this
+    // tile belonged to another company's store.
+    '<div class="kpi"><div class="num" style="font-size:.9rem;line-height:1.35">Not connected</div><div class="lab">Store AOV</div><div class="note">[DATA REQUIRED BEFORE LAUNCH: average order value, active brand, per region]</div></div>' +
+    '<div class="kpi"><div class="num">LIVE</div><div class="lab">Source</div><div class="note">smart_calendar_entries</div></div>' +
+    '<div class="kpi"><div class="num">' + realBlockers + '</div><div class="lab">Open blockers</div><div class="note">Resolve before revenue projection</div></div>';
+
+  renderGuardrails(DAYS);
+  renderBlockers(blockers);
+  renderWeekFilters(DAYS);
 
   rail.innerHTML = '';
   DAYS.forEach(function(d){
     var n = document.createElement('button');
     n.className = 'node'; n.setAttribute('role','listitem');
-    n.setAttribute('aria-label', (d.dateLabel || ('July ' + d.dom)) + ' ' + d.wd + ', ' + d.offerTxt + (d.esp ? ', cohort size pending ESP' : ''));
+    n.setAttribute('aria-label', (d.dateLabel || ('Day ' + d.dom)) + ' ' + d.wd + ', ' + d.offerTxt + (d.esp ? ', cohort size pending ESP' : ''));
     n.innerHTML = '<span class="esp">' + (d.esp ? '&#9101;' : '') + '</span><div class="bar ' + d.offer + '"></div><span class="dom">' + d.dom + '</span><span class="dow">' + d.wd + '</span>';
     n.addEventListener('click', function(){ jumpTo(d.dom); });
     rail.appendChild(n);
@@ -552,7 +544,7 @@ function buildFromDays(DAYS, live){
     var swapBadge = d.swap ? ' &#8635;' : '';
     c.innerHTML =
       '<div class="card-top">' +
-        '<div class="date"><span class="d">' + esc(d.dateLabel || ('July ' + d.dom)) + '</span><span class="wd">' + esc(d.wd) + '</span></div>' +
+        '<div class="date"><span class="d">' + esc(d.dateLabel || ('Day ' + d.dom)) + '</span><span class="wd">' + esc(d.wd) + '</span></div>' +
         '<div class="theme">' + esc(d.theme) + swapBadge + '</div>' +
         '<span class="offer-tag ' + d.offer + '">' + esc(d.offerTxt) + (d.code ? ' &middot; ' + esc(d.code) : '') + '</span>' +
       '</div>' +
@@ -581,23 +573,52 @@ function buildFromDays(DAYS, live){
   applyFilters();
 }
 
-/* banned + safe chips (reference guardrails, always shown) */
-var bc = document.getElementById('banned-chips');
-BANNED.forEach(function(pair){ var s = document.createElement('span'); s.className = 'chip banned'; s.innerHTML = esc(pair[0]) + ' <span class="rate">' + esc(pair[1]) + '</span>'; bc.appendChild(s); });
-var sc = document.getElementById('safe-chips');
-SAFE.forEach(function(pair){ var s = document.createElement('span'); s.className = 'chip safe'; s.innerHTML = esc(pair[0]) + ' <span class="rate">' + esc(pair[1]) + '</span>'; sc.appendChild(s); });
+/* Discount guardrails, from the codes the PLAN carries. A stored list of one
+   brand's promo codes told every other workspace which of its own codes were
+   over-cap, which it cannot possibly know. */
+function renderGuardrails(DAYS){
+  var g = codeGuardrails(DAYS);
+  var bc = document.getElementById('banned-chips');
+  var sc = document.getElementById('safe-chips');
+  var fill = function(host, pairs, cls, empty){
+    host.innerHTML = '';
+    if (!pairs.length) { host.innerHTML = '<span class="cap">' + esc(empty) + '</span>'; return; }
+    pairs.forEach(function(pair){
+      var s = document.createElement('span');
+      s.className = 'chip ' + cls;
+      s.innerHTML = esc(pair[0]) + ' <span class="rate">' + esc(pair[1]) + '</span>';
+      host.appendChild(s);
+    });
+  };
+  fill(bc, g.banned, 'banned', 'No planned send in this window breaches the ' + DISCOUNT_CAP + '% cap.');
+  fill(sc, g.safe, 'safe', 'No discount codes are attached to this plan yet.');
+}
 
-/* blockers */
-var bl = document.getElementById('blockers');
-document.getElementById('blocker-count').textContent = BLOCKERS.length + ' outstanding.';
-BLOCKERS.forEach(function(pair, i){
-  var li = document.createElement('li');
-  var id = 'bk' + i;
-  li.innerHTML = '<input type="checkbox" id="' + id + '"><label for="' + id + '"><span class="item">' + esc(pair[0]) + '</span><span class="where">' + esc(pair[1]) + '</span></label>';
-  var cb = li.querySelector('input');
-  cb.addEventListener('change', function(){ li.classList.toggle('done', cb.checked); });
-  bl.appendChild(li);
-});
+/* Open blockers, from the plan. */
+function renderBlockers(pairs){
+  var bl = document.getElementById('blockers');
+  bl.innerHTML = '';
+  document.getElementById('blocker-count').textContent = pairs.length ? (pairs.length + ' outstanding.') : '';
+  pairs.forEach(function(pair, i){
+    var li = document.createElement('li');
+    var id = 'bk' + i;
+    li.innerHTML = '<input type="checkbox" id="' + id + '"><label for="' + id + '"><span class="item">' + esc(pair[0]) + '</span><span class="where">' + esc(pair[1]) + '</span></label>';
+    var cb = li.querySelector('input');
+    cb.addEventListener('change', function(){ li.classList.toggle('done', cb.checked); });
+    bl.appendChild(li);
+  });
+}
+
+/* Week filters follow the loaded window instead of naming one fixed month. */
+function renderWeekFilters(DAYS){
+  var host = document.getElementById('week-filters');
+  if (!host) return;
+  var weeks = {};
+  DAYS.forEach(function(d){ weeks[d.week] = (weeks[d.week] || 0) + 1; });
+  var keys = Object.keys(weeks).sort();
+  host.innerHTML = '<button type="button" class="btn active" data-week="all">All ' + DAYS.length + '</button>' +
+    keys.map(function(k){ return '<button type="button" class="btn" data-week="' + esc(k) + '">Week ' + esc(k) + ' &middot; ' + weeks[k] + '</button>'; }).join('');
+}
 
 /* ============ FILTERS ============ */
 document.getElementById('week-filters').addEventListener('click', function(e){
@@ -634,7 +655,7 @@ document.getElementById('export-btn').addEventListener('click', function(){
     return [
       d.iso || ('2026-07-' + (d.dom < 10 ? '0' + d.dom : d.dom)),
       ({Sun:'Sunday',Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday'})[d.wd] || d.wd,
-      d.theme, d.cohort, (d.esp ? 'Size pending Klaviyo (ESP)' : 'Sized'),
+      d.theme, d.cohort, (d.esp ? 'Size pending from the sending platform' : 'Sized'),
       d.offerTxt, d.code || '', d.subject || '', d.preheader || '', d.cta,
       d.hero, d.price || '', d.support || '', d.suppress || '', d.rationale || ''
     ];
@@ -643,7 +664,7 @@ document.getElementById('export-btn').addEventListener('click', function(){
   var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'knickgasm-usa-daily-email-calendar.csv';
+  a.download = 'daily-email-calendar.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 });
 
@@ -673,10 +694,29 @@ function mapEntry(e, i, day0){
     img: hp.image || hp.image_url || hp.imageUrl || '',
     support: support,
     subject: (e.copy && e.copy.subject) || '', preheader: (e.copy && e.copy.preheader) || '',
-    cta: 'Open in KNICKGASM Brain', suppress: '',
+    cta: 'Open in the Automated Calendar', suppress: '',
     rationale: (e.analysis && e.analysis.summary) || e.rationale || ''
   };
 }
+
+/* The only honest state when this workspace has no plan. There is no bundled
+   calendar to fall back to, by design. */
+function renderEmpty(reason){
+  ACTIVE = [];
+  cards = [];
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi" style="grid-column:1/-1"><div class="num" style="font-size:1rem;line-height:1.4">No calendar for this workspace yet</div>' +
+    '<div class="lab">Source</div><div class="note">' + esc(reason) + '</div></div>';
+  rail.innerHTML = '';
+  grid.innerHTML = '<div class="panel" style="grid-column:1/-1"><h3>Nothing planned yet</h3>' +
+    '<p class="cap">' + esc(reason) + '</p>' +
+    '<p class="cap">Build one in the <a href="/brain">Automated Calendar</a>. This page renders only what this brand&rsquo;s own plan contains, so nothing appears until that plan does.</p></div>';
+  if (countEl) countEl.textContent = 'Showing 0 of 0 sends';
+  renderGuardrails([]);
+  renderBlockers([]);
+  renderWeekFilters([]);
+}
+
 function loadLive(){
   fetch('/api/calendar?action=smart-brain-plan').then(function(r){ return r.json(); }).then(function(j){
     var entries = (j && j.entries) || [];
@@ -687,9 +727,11 @@ function loadLive(){
       var day0 = use[0].date ? new Date(use[0].date + 'T00:00:00') : null;
       buildFromDays(use.map(function(e, i){ return mapEntry(e, i, day0); }), true);
     } else {
-      buildFromDays(REFERENCE_DAYS, false);
+      renderEmpty('The plan for this workspace holds no email sends.');
     }
-  }).catch(function(){ buildFromDays(REFERENCE_DAYS, false); });
+  }).catch(function(err){
+    renderEmpty('Could not read the plan: ' + ((err && err.message) || 'request failed') + '.');
+  });
 }
 loadLive();
 </script>

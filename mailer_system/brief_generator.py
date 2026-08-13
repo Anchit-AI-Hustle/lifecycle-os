@@ -20,7 +20,7 @@ def load_targets() -> dict:
 def get_seasonal_hook() -> str | None:
     month = datetime.now().month
     hooks = {
-        1:  "New Year ritual reset",
+        1:  "New Year rotation reset",
         2:  "Valentine gifting",
         3:  "Spring streetwear reset",
         4:  "Spring streetwear reset",
@@ -98,13 +98,20 @@ def build_brief(
     winning_cta_word = extract_winning_cta_verb(winning_campaigns)
     winning_cta_top = winning_campaigns[0] if winning_campaigns else {}
 
-    # ── Product default ─────────────────────────────────────────────
+    # ── Product ─────────────────────────────────────────────────────
+    # Order: an explicit override, else the top SKU the warehouse actually
+    # returned. There is deliberately NO hardcoded fallback product: this line
+    # used to name one, and because the engine was copied from a sibling repo
+    # built for a different company it named that company's tea with the brand
+    # word swapped in. Every campaign that ran with no SKU data therefore briefed
+    # the model on a product this brand has never sold. A visible gap in the
+    # brief is recoverable; an invented product name in a sent mailer is not.
     if override_product:
         product = override_product
     elif top_skus:
         product = top_skus[0]
     else:
-        product = "Jordan First Flush"
+        product = "[DATA REQUIRED BEFORE LAUNCH: product, from the live catalog or --override_product]"
 
     # ── Offer ───────────────────────────────────────────────────────
     if override_offer:

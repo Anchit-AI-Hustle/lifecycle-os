@@ -339,7 +339,8 @@ export function parseRoute(
   }
 
   // Meta landers isolate a single product/bundle taken from the first path seg
-  // (e.g. knickgasm.com/face_puffiness_v1 → "face_puffiness_v1").
+  // (e.g. try.knickgasm.com/spiderman-x-nike-air-force-1 →
+  // "spiderman-x-nike-air-force-1").
   let isolatedHandle: string | null = null;
   if (isMetaLander) {
     const seg = pathname.split('/').filter(Boolean)[0];
@@ -1145,12 +1146,12 @@ function Fallback2DStore() {
     >
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <h1 style={{ fontFamily: theme.headingFont, color: sceneFg, fontSize: 34, marginBottom: 6 }}>
-          {route.isMetaLander ? 'Your ritual, one tap away' : 'Knickgasm'}
+          {route.isMetaLander ? 'One pair, one tap away' : 'Knickgasm'}
         </h1>
         <p style={{ color: subFg, marginBottom: 28, maxWidth: 560 }}>
           {route.isMetaLander
             ? 'A single, considered choice. Fast checkout, nothing in the way.'
-            : 'Single-studio, hand-painted. Lace-up a moment that restores.'}
+            : 'Hand-painted one-of-ones on 100% original sneakers.'}
         </p>
         {loading ? (
           <p style={{ color: theme.accent }}>Loading the catalog…</p>

@@ -20,20 +20,58 @@
  * rows to, so unattributed server jobs (the daily cron) stay consistent.
  */
 
+/**
+ * Every table the content-scoping migrations gave a `workspace_id` column.
+ *
+ * This list is NOT a matter of taste. `supabase/migrations/*_scope_*.sql` add
+ * the column, backfill it to tenant zero and put an `is_brand_member` policy on
+ * it; a table that has the column but is missing HERE is read unfiltered by
+ * every service-role path and written with workspace_id NULL, which means one
+ * brand reads another brand's rows and its own writes become invisible. Both
+ * failures are silent.
+ *
+ * `tests/workspace-scope.spec.js` re-derives the list from the migration files
+ * and fails when the two drift, so adding a table to a migration without adding
+ * it here breaks the build instead of leaking at runtime.
+ *
+ * Keep in sync with lib/smart-brain/services.js WORKSPACE_SCOPED.
+ */
 const SCOPED_TABLES = new Set([
-  // Content that belongs to exactly ONE brand. Every table here carries a
-  // workspace_id column; a read must filter by it and a write must stamp it.
-  // Keep this list in sync with api/_shared/workspace-scope.js SCOPED_TABLES -
-  // a table with workspace_id that is MISSING here reads across brands and
-  // writes NULL (invisible rows), which is exactly how competitor rows and
-  // social posts previously landed unattributed.
+  // 20260810120000 — the campaign pipeline.
   'kb_knowledge', 'brand_assets', 'smart_calendar_entries',
-  'smart_generated_campaigns', 'smart_generated_assets', 'ads_generated',
-  'landing_pages_generated', 'mailers_generated', 'social_posts_generated',
+  'smart_generated_campaigns', 'ads_generated',
+  'landing_pages_generated', 'mailers_generated',
+  // 20260810160000 — the rest of the brand's content.
   'competitor_brands', 'competitor_emails_classified', 'competitor_landing_pages',
-  'smart_competitor_campaigns', 'smart_competitor_signals', 'smart_products',
-  'smart_orders', 'smart_users', 'smart_events', 'smart_campaigns',
-  'smart_cohorts', 'smart_festivals', 'smart_funnels', 'smart_sales_history',
+  'ci_ads', 'ci_emails', 'ci_funnels', 'ci_landing_pages', 'ci_offers',
+  'ci_screenshots', 'ci_creative_tags', 'ci_asset_versions',
+  'kb_campaigns', 'kb_files', 'kb_top_emails', 'kb_daily_digest',
+  'cohorts', 'calendar_slots', 'campaign_specs', 'calendar_feedback',
+  'social_posts_generated', 'smart_products', 'smart_campaigns',
+  'smart_generated_assets', 'smart_cohorts', 'smart_orders', 'smart_users',
+  'smart_events', 'smart_competitor_campaigns', 'smart_competitor_signals',
+  'smart_sales_history', 'smart_festivals', 'smart_funnels',
+  'klaviyo_campaigns', 'klaviyo_events', 'klaviyo_metrics', 'klaviyo_segments',
+  'shopify_orders', 'webengage_events', 'performance_metrics',
+  'pagedeck_pages', 'pagedeck_experiments', 'pagedeck_competitor_pages',
+  'mvt_experiments', 'saved_items', 'uploaded_files',
+  // 20260813121000 — the per-brand competitor universe.
+  'brand_competitors',
+  // 20260814090000 — the singletons, the analytics control plane and the
+  // competitive-intelligence brand register.
+  'lifecycle_brand_kit',
+  'analytics_hourly_runs', 'analytics_anomaly_state',
+  'analytics_action_outcomes', 'analytics_alert_settings',
+  'brands',
+  'smart_calendar', 'smart_calendar_reviews', 'smart_assets',
+  'smart_campaign_assets', 'smart_campaign_metrics', 'smart_review_queue',
+  'smart_feedback', 'smart_confidence', 'smart_library_scores',
+  'smart_mvt_results', 'smart_recalibrations',
+  'smart_agents', 'smart_agent_sessions', 'smart_agent_messages',
+  'smart_agent_knowledge',
+  // 20260814090000 §3b — the backbone tables whose workspace_id was a legacy
+  // TEXT column defaulting to the literal 'knickgasm'.
+  'activity_logs', 'exports', 'agent_runs',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }
@@ -112,6 +150,33 @@ async function resolve(env, req, explicit) {
     return ws || null;
   }
   return defaultWorkspaceId(env);
+}
+
+/**
+ * The workspace for the request currently being served, for code that is too
+ * deep in the stack to have been handed `req`.
+ *
+ * The generic Supabase helper (`supa.js`) is called from ~40 sites across the
+ * competitive-intelligence collectors, the Klaviyo mirror, PageDeck and the
+ * dashboards, and none of them take a request. Threading `req` through all of
+ * them is the change nobody finishes, and every site anyone forgets reads
+ * ACROSS BRANDS in silence - which is exactly how one advertiser's spend ended
+ * up on every brand's Paid Media table.
+ *
+ * `request-scope.js` (AsyncLocalStorage) already carries the request for the
+ * LLM key lookup, for the same reason. This reuses it. Outside a wrapped
+ * handler - a test, a script, the cron worker - there is no store, and the
+ * behaviour is the documented userless one: the oldest workspace.
+ *
+ * A router that resolved the workspace once already puts it on
+ * `req.__workspaceId`; that wins, so a request never resolves twice and never
+ * disagrees with the guard its own router applied.
+ */
+async function currentWorkspaceId(env) {
+  let req = null;
+  try { req = require('./request-scope.js').currentRequest(); } catch (_) { req = null; }
+  if (req && req.__workspaceId) return String(req.__workspaceId);
+  return resolve(env, req);
 }
 
 /**
@@ -201,4 +266,5 @@ function invalidate({ userId, workspaceId } = {}) {
 }
 
 module.exports = {
-  brandForWorkspace, SCOPED_TABLES, isScoped, resolve, defaultWorkspaceId, filterFor, stamp, invalidate };
+  brandForWorkspace, SCOPED_TABLES, isScoped, resolve, currentWorkspaceId,
+  defaultWorkspaceId, filterFor, stamp, invalidate };

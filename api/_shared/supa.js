@@ -64,6 +64,28 @@ async function rest(path, { method = 'GET', body, prefer, query } = {}) {
   return json;
 }
 
+// ── Brand isolation ─────────────────────────────────────────────────────────
+// This client holds the SERVICE-ROLE key, which bypasses RLS completely. So the
+// `is_brand_member` policies on the content tables protect the browser and
+// protect nothing here: an unfiltered select through this module returns EVERY
+// brand's rows, and an unstamped insert lands with workspace_id NULL, invisible
+// to every policy that would later show it to its owner.
+//
+// Both failures are silent, both were present at ~40 call sites (the CI
+// collectors, the Klaviyo mirror, PageDeck, the dashboards), and none of those
+// call sites takes a request object to scope itself with. So the scoping is
+// applied HERE, once, for every caller including the ones not written yet.
+// `workspace-scope.currentWorkspaceId()` finds the request through
+// AsyncLocalStorage; outside a wrapped handler it resolves the oldest
+// workspace, which is the documented behaviour for cron and scripts.
+const wsScope = require('./workspace-scope.js');
+
+async function scopeFor(table) {
+  if (!wsScope.isScoped(table)) return null;
+  const ws = await wsScope.currentWorkspaceId(env());
+  return ws ? String(ws) : '';   // '' means scoped-but-unresolved
+}
+
 // SELECT with PostgREST filters. opts: { select, order, limit, ...eqFilters }
 async function select(table, opts = {}) {
   const query = {};
@@ -71,6 +93,13 @@ async function select(table, opts = {}) {
   if (opts.order)  query.order  = opts.order;
   if (opts.limit)  query.limit  = String(opts.limit);
   for (const [k, v] of Object.entries(opts.filters || {})) query[k] = v; // e.g. {brand_id:'eq.3'}
+  const ws = await scopeFor(table);
+  if (ws !== null) {
+    // Unresolvable workspace returns NOTHING rather than everything. Empty is
+    // the honest answer for a brand with no data; another brand's rows are not.
+    if (!ws) return [];
+    if (!query.workspace_id) query.workspace_id = `eq.${ws}`;
+  }
   return rest(table, { query });
 }
 
@@ -79,11 +108,29 @@ async function insert(table, rows, { upsertOn } = {}) {
     ? `return=representation,resolution=merge-duplicates`
     : 'return=representation';
   const query = upsertOn ? { on_conflict: upsertOn } : undefined;
-  return rest(table, { method: 'POST', body: rows, prefer, query });
+  const ws = await scopeFor(table);
+  let body = rows;
+  if (ws !== null) {
+    // Refuse rather than write an orphan. A row with workspace_id NULL is not
+    // an error anyone sees: it is accepted, and then no brand can ever read it.
+    if (!ws) throw new Error(`supabase insert ${table} refused: no workspace resolved, and an unstamped row would be invisible to every brand`);
+    const list = Array.isArray(rows) ? rows : [rows];
+    const stamped = list.map((r) => (r && typeof r === 'object' && r.workspace_id ? r : Object.assign({}, r, { workspace_id: ws })));
+    body = Array.isArray(rows) ? stamped : stamped[0];
+  }
+  return rest(table, { method: 'POST', body, prefer, query });
 }
 
 async function update(table, patch, filters) {
-  return rest(table, { method: 'PATCH', body: patch, prefer: 'return=representation', query: filters });
+  const query = Object.assign({}, filters || {});
+  const ws = await scopeFor(table);
+  if (ws !== null) {
+    // An UPDATE filtered only by primary key crosses brands as readily as a
+    // SELECT does - the id of another brand's row is all it takes.
+    if (!ws) throw new Error(`supabase update ${table} refused: no workspace resolved, so the patch could land on another brand's row`);
+    query.workspace_id = `eq.${ws}`;
+  }
+  return rest(table, { method: 'PATCH', body: patch, prefer: 'return=representation', query });
 }
 
 // ── Storage: upload bytes to a bucket and return the public URL ──────────────
@@ -105,4 +152,4 @@ async function uploadObject(bucket, objectPath, body, contentType = 'application
   return { path: clean, public_url: `${url}/storage/v1/object/public/${bucket}/${clean}` };
 }
 
-module.exports = { env, headers, rest, select, insert, update, uploadObject, sha1, hashObj };
+module.exports = { env, headers, rest, select, insert, update, uploadObject, sha1, hashObj, scopeFor };

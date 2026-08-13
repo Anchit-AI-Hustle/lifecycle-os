@@ -1,4 +1,4 @@
-# Dependencies for the KNICKGASM Analytics Streamlit-in-Snowflake app, for the
+# Dependencies for the Lifecycle OS Analytics Streamlit-in-Snowflake app, for the
 # Snowsight Workspaces (Git-native) flow. Use EITHER this file OR environment.yml
 # — both declare the same four packages, all from the Snowflake Anaconda channel.
 #
@@ -8,9 +8,9 @@
 # uses neither, and adding an external PyPI package would force a
 # PYPI_ACCESS_INTEGRATION that is otherwise unnecessary.
 [project]
-name = "knickgasm-analytics"
+name = "lifecycle-os-analytics"
 version = "1.0.0"
-description = "KNICKGASM Analytics — Data Analysis + Ads Analytics (Streamlit in Snowflake)."
+description = "Lifecycle OS Analytics — Data Analysis + Ads Analytics (Streamlit in Snowflake)."
 requires-python = ">=3.11"
 dependencies = [
     "streamlit",

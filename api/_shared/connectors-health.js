@@ -32,7 +32,7 @@ async function probeShopify() {
   const base = { id: 'shopify', name: 'Shopify', kind: 'live-api' };
   const dom = (process.env.SHOPIFY_STORE_DOMAIN || '').trim();
   const tok = (process.env.SHOPIFY_ADMIN_TOKEN || '').trim();
-  const exportsOk = market.performance('US').ok; // real CSV exports available regardless
+  const exportsOk = (await market.performance('US')).ok; // the bundled export, and only for the workspace it belongs to
   if (!dom || !tok) {
     return { ...base, live: false, source: exportsOk ? 'public storefront + CSV market exports (real, not live)' : 'none', blocker: 'Set SHOPIFY_STORE_DOMAIN (e.g. knickgasm.myshopify.com) + a read-scoped SHOPIFY_ADMIN_TOKEN (read_orders, read_products, read_customers, read_inventory).' };
   }

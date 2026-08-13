@@ -88,7 +88,7 @@ The app's `ingestEmail()` runs the **same** noise filter, brand-name cleaning, p
 # Ingest a test mailer
 curl -X POST "https://<your-app>.vercel.app/api/competitor?action=ingest" \
   -H "Content-Type: application/json" -H "x-ingest-token: $INGEST_TOKEN" \
-  -d '{"from":"news@kickstradomis.com","fromName":"Kickstradomis","subject":"New Jordan First Flush","html":"<h1>Fresh drop</h1>","receivedAt":"2026-06-09T08:00:00Z"}'
+  -d '{"from":"news@kickstradomis.com","fromName":"Kickstradomis","subject":"New custom drop this week","html":"<h1>Fresh drop</h1>","receivedAt":"2026-06-09T08:00:00Z"}'
 
 # Pull a brand's active Meta ads (deep-link if no APIFY_TOKEN)
 curl "https://<your-app>.vercel.app/api/competitor?action=adlibrary&brand=Kickstradomis&country=US&limit=20"

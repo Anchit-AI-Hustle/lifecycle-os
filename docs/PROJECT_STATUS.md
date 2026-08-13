@@ -23,7 +23,7 @@ fabrication, closed source-of-truth, design HARD rules, launch gate).
 - **Live health probe:** `GET /api/connectors-health` does a real round-trip per platform → `{live, latency_ms, sample, blocker}`. Never fabricates.
 - **Read-only egress guard** (`read-only-egress.js`): Shopify/Klaviyo/WebEngage are structurally fetch-only — writes throw before they leave. **Nothing is ever written back to those platforms.**
 
-## 2. KicksGPT / SteepSense — the brand LLM
+## 2. KicksGPT — the brand LLM
 Provider-agnostic tool-calling loop over the 6-provider `llm.js` waterfall. Tools:
 `catalog_products · market_performance · ask_analytics · webengage_performance · run_analysis ·
 validate_data_accuracy · analyst_insights · list_cohorts · get_calendar · get_competitor_benchmarks ·
