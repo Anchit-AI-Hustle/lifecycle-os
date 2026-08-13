@@ -398,8 +398,10 @@ function discoveryPrompt(brand, opts) {
 }
 
 // Domains a model reaches for when it is filling a shape rather than reporting
-// a fact. Any of these means the answer was fabricated, so it is dropped.
-const PLACEHOLDER_DOMAIN_RX = /^(example|examples?|test|sample|domain|yourbrand|brandname|company|competitor|placeholder|acme|foo|bar)\.|(^|\.)(example|invalid|test|localhost|local)$/i;
+// a fact: the names RFC 2606 reserves precisely so they can never belong to a
+// real company, and the usual stand-ins. Any of these means the answer was
+// fabricated, so it is dropped rather than stored as a competitor's homepage.
+const PLACEHOLDER_DOMAIN_RX = /^(examples?|test|sample|domain|yourbrand|brandname|company|competitor|placeholder|acme|foo|bar)\.|(^|\.)(example|invalid|test|localhost|local)$|(^|\.)example\.(com|net|org)$/i;
 const VALID_DOMAIN_RX = /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
 
 /**
@@ -496,13 +498,14 @@ async function rest(pathAndQuery, { method = 'GET', body, prefer, apikey, token 
 const COLS = 'id,workspace_id,name,website,domain,category,country,positioning,newsletter_url,source,evidence,verification,data_gaps,subscription_status,date_subscribed,confirmation_required,confirmation_completed,is_active,first_seen,last_seen';
 
 /**
- * Reads and writes AS THE CALLER, so the RLS policies decide what they may
- * touch. This is the store every user-facing request uses.
+ * One store, built over whichever credential the caller has. Both variants
+ * filter by workspace_id on EVERY query, including the service one: the
+ * service key bypasses RLS entirely, so it has to scope itself - the same
+ * obligation workspace-scope.js exists to enforce elsewhere.
  */
-function userStore(token) {
-  const call = (p, o) => rest(p, Object.assign({ token }, o || {}));
+function makeStore(kind, call) {
   return {
-    kind: 'user',
+    kind,
     async list(workspaceId) {
       const rows = await call(`${TABLE}?select=${COLS}&workspace_id=eq.${encodeURIComponent(workspaceId)}&order=name.asc&limit=${MAX_UNIVERSE}`);
       return Array.isArray(rows) ? rows : [];
@@ -510,8 +513,26 @@ function userStore(token) {
     async insert(workspaceId, rows) {
       if (!rows.length) return [];
       const body = rows.map((r) => Object.assign({}, r, { workspace_id: workspaceId }));
-      const out = await call(`${TABLE}?select=${COLS}`, { method: 'POST', body, prefer: 'return=representation,resolution=ignore-duplicates' });
-      return Array.isArray(out) ? out : [];
+      try {
+        const out = await call(`${TABLE}?select=${COLS}`, { method: 'POST', body, prefer: 'return=representation' });
+        return Array.isArray(out) ? out : [];
+      } catch (err) {
+        // The caller de-duplicates against what it read, but two runs can
+        // overlap (an activation and the daily sweep), and then the unique
+        // index rejects the WHOLE batch for one row. Retry row by row so the
+        // rest still lands: batches here are tens of rows, not thousands.
+        if (!/duplicate key|23505|409/.test(String(err && err.message))) throw err;
+        const kept = [];
+        for (const row of body) {
+          try {
+            const one = await call(`${TABLE}?select=${COLS}`, { method: 'POST', body: [row], prefer: 'return=representation' });
+            if (Array.isArray(one) && one[0]) kept.push(one[0]);
+          } catch (e) {
+            if (!/duplicate key|23505|409/.test(String(e && e.message))) throw e;
+          }
+        }
+        return kept;
+      }
     },
     async patch(workspaceId, id, patchBody) {
       return call(`${TABLE}?id=eq.${encodeURIComponent(id)}&workspace_id=eq.${encodeURIComponent(workspaceId)}`, {
@@ -528,40 +549,8 @@ function userStore(token) {
         prefer: 'resolution=merge-duplicates,return=minimal',
       });
     },
-  };
-}
-
-/**
- * The service-role store, for the scheduled sweep, which has no user token.
- * The service key bypasses RLS entirely, so every query here scopes ITSELF by
- * workspace - the obligation workspace-scope.js exists to enforce elsewhere.
- */
-function serviceStore() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!key) { const e = new Error('SUPABASE_SERVICE_ROLE_KEY missing'); e.status = 503; throw e; }
-  const call = (p, o) => rest(p, Object.assign({ apikey: key, token: key }, o || {}));
-  const base = userStore('');
-  return Object.assign({}, base, {
-    kind: 'service',
-    async list(workspaceId) {
-      const rows = await call(`${TABLE}?select=${COLS}&workspace_id=eq.${encodeURIComponent(workspaceId)}&order=name.asc&limit=${MAX_UNIVERSE}`);
-      return Array.isArray(rows) ? rows : [];
-    },
-    async insert(workspaceId, rows) {
-      if (!rows.length) return [];
-      const body = rows.map((r) => Object.assign({}, r, { workspace_id: workspaceId }));
-      const out = await call(`${TABLE}?select=${COLS}`, { method: 'POST', body, prefer: 'return=representation,resolution=ignore-duplicates' });
-      return Array.isArray(out) ? out : [];
-    },
-    async patch(workspaceId, id, patchBody) {
-      return call(`${TABLE}?id=eq.${encodeURIComponent(id)}&workspace_id=eq.${encodeURIComponent(workspaceId)}`, {
-        method: 'PATCH', body: patchBody, prefer: 'return=minimal',
-      });
-    },
-    async workspace(workspaceId) {
-      const rows = await call(`brand_workspaces?select=*&id=eq.${encodeURIComponent(workspaceId)}&limit=1`);
-      return (Array.isArray(rows) && rows[0]) || null;
-    },
+    // Only the sweep needs to enumerate brands, and only the service credential
+    // can see past its own membership to do it.
     async activeWorkspaces(limit) {
       const rows = await call(`brand_workspaces?select=id,name,slug,status,updated_at&status=eq.active&order=updated_at.desc&limit=${Number(limit) || 50}`);
       return Array.isArray(rows) ? rows : [];
@@ -570,13 +559,19 @@ function serviceStore() {
       const rows = await call(`${REFRESH_TABLE}?select=workspace_id,last_run_at,last_added,last_source`);
       return Array.isArray(rows) ? rows : [];
     },
-    async setRefresh(workspaceId, row) {
-      return call(`${REFRESH_TABLE}?on_conflict=workspace_id`, {
-        method: 'POST', body: [Object.assign({ workspace_id: workspaceId }, row)],
-        prefer: 'resolution=merge-duplicates,return=minimal',
-      });
-    },
-  });
+  };
+}
+
+/** Reads and writes AS THE CALLER, so the RLS policies are the authority. */
+function userStore(token) {
+  return makeStore('user', (p, o) => rest(p, Object.assign({ token }, o || {})));
+}
+
+/** The service-role store, for the scheduled sweep, which has no user token. */
+function serviceStore() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!key) { const e = new Error('SUPABASE_SERVICE_ROLE_KEY missing'); e.status = 503; throw e; }
+  return makeStore('service', (p, o) => rest(p, Object.assign({ apikey: key, token: key }, o || {})));
 }
 
 /**
@@ -652,8 +647,12 @@ async function addCompetitors(store, workspaceId, candidates) {
 /**
  * Seed a workspace from its OWN record. Runs on activation, so it must be
  * fast, deterministic and network-free: no LLM call, no third-party fetch.
- * Idempotent - a workspace that already has a universe is left alone unless
- * `force` is set.
+ *
+ * Safe to run repeatedly - addCompetitors de-duplicates - and it is MEANT to
+ * be, because a brand record grows. An operator who adds three competitors to
+ * their brand data next month should get them on the next run rather than
+ * having to clear the universe first. `onlyIfEmpty` is for the activation hook,
+ * where the point is to do nothing at all to a brand that is already set up.
  */
 async function seedForWorkspace(store, workspaceId, opts) {
   const o = opts || {};
@@ -665,7 +664,7 @@ async function seedForWorkspace(store, workspaceId, opts) {
     };
   }
   const existing = await store.list(workspaceId);
-  if (existing.length && !o.force) {
+  if (existing.length && o.onlyIfEmpty) {
     return { ok: true, added: 0, skipped: existing.length, total: existing.length, note: 'This brand already has a competitor universe; seeding left it untouched.' };
   }
 

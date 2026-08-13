@@ -76,7 +76,10 @@ function universeContext(req, url) {
   // A CRON_SECRET arriving in the Authorization header is not a user session;
   // handing it to PostgREST as a JWT would just 401.
   if (token && token !== secret) return { store: universe.userStore(token), workspaceId: wsId };
-  if (authorized(req)) return { store: universe.serviceStore(), workspaceId: wsId };
+  if (authorized(req)) {
+    try { return { store: universe.serviceStore(), workspaceId: wsId }; }
+    catch (err) { return { error: 'supabase_not_configured', note: err.message }; }
+  }
   return { error: 'sign_in_required', note: 'Sign in, or call with CRON_SECRET and an explicit workspace_id.' };
 }
 
@@ -203,9 +206,7 @@ module.exports = async function handler(req, res) {
     if (action === 'seed') {
       const ctx = universeContext(req, url);
       if (ctx.error) { res.status(401).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
-      const out = await universe.seedForWorkspace(ctx.store, ctx.workspaceId, {
-        force: url.searchParams.get('force') === '1',
-      });
+      const out = await universe.seedForWorkspace(ctx.store, ctx.workspaceId);
       res.status(200).json(Object.assign({ ok: out.ok !== false }, out));
       return;
     }

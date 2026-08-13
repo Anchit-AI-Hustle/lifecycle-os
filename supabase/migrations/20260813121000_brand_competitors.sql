@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260813120000_brand_competitors.sql
+-- 20260813121000_brand_competitors.sql
 -- The per-brand competitor universe, in Postgres instead of a Google Sheet.
 --
 -- WHY THIS TABLE EXISTS

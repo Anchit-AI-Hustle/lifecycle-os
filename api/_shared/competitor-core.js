@@ -723,6 +723,13 @@ function isOwnBrand(domainOrUrl) {
   return OWN_DOMAINS.some((o) => d === o || d.endsWith('.' + o));
 }
 
+// NOTE ON WHERE THE RECORD LIVES NOW. This list feeds the legacy Google-Sheet
+// universe only. The competitor universe the app reads is per workspace and
+// lives in Supabase (competitor-universe.js), seeded from each brand's OWN
+// record — for tenant zero that is the market-study tiers in
+// data/brands/_default.json, which now carry the same names and verified URLs
+// as structured entries. Keep the two in step if a URL here is re-verified.
+//
 // Priority seed brands — the curated KNICKGASM competitive set, researched and
 // URL-verified 2026-08-03. Direct competitors are India's custom-sneaker studios;
 // retail/marketplaces and indie brands compete for the same sneakerhead wallet;
