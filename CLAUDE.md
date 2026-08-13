@@ -26,6 +26,33 @@ all logic in `api/_shared/`, mounted via `?action=` on `public-config.js` / `bra
     comes ONLY from an identity signal (theme-color, manifest `theme_color`, a `--brand-*` token),
     and an identity-vs-action disagreement is reported as a conflict rather than resolved. No
     browser is available, so this is CSS/HTML parsing and its blind spots are returned in `limits[]`.
+  - **The brand CONTEXT PACK** — `_shared/brand-context-pack.js` on `?op=context-*` (still 12/12),
+    table `brand_context_packs`. One durable record per brand, built from its own URL and kept as its
+    standing context: a **DESIGN.md** in the open `google-labs-code/design.md` format (Apache-2.0,
+    version `alpha` — conform to it, do NOT invent a shape), a knowledge base from that domain ONLY
+    (verbatim: each page's own declared description and headings, no LLM paraphrase — a paraphrase of
+    a brand fact is a new brand fact nobody approved), the catalogue via the existing `importCatalog`,
+    and a GitHub repo search. **Keyed to URL AND name** (`brand_key = <host>|<folded name>`, unique
+    per workspace): re-running updates, lookalike names cannot collide, and a domain/name change
+    starts a new pack instead of overwriting a report about a different site.
+    - **DESIGN.md rules**: front matter `version/name/description/omitted/colors/typography/rounded/
+      spacing`; the 8 spec sections in order, each exactly ONCE (a duplicate heading rejects the file).
+      The spec's `omitted` key IS our zero-fabrication rule — an unpublished section is declared
+      omitted *with a reason*, never filled. `primary` comes ONLY from an identity signal; `secondary`
+      only when the action colour genuinely differs; **never promote a frequency-ranked colour**. Text
+      tokens are the `readableAsText()`-adjusted values against the worst-case surface using
+      `core.TEXT_AA` (never a raw brand colour as text), and every adjustment is printed with ratios.
+    - **User data wins, structurally**: `brand_field_provenance` + the `brand_context_apply()` SQL
+      function is the ONLY door an automatic value may come through, and it refuses any field whose
+      origin is `user` — in the database, not in call order. `saveWorkspace()` calls
+      `brand_fields_claim_user()` with the fields the operator actually sent. `voice.banned` can never
+      be machine-filled.
+    - **GitHub degrades honestly**: `searched:false` (could not reach GitHub) is NEVER reported as
+      "no repositories". A repo is the brand's only on evidence independent of its name (the site
+      links to that owner, or the repo `homepage` is on the brand's domain); a name match is
+      `unverified` and never counted.
+    - Long work is a **convergent queue on the pack row** (`stage` + `queue_state`, self-firing via
+      `op=context-step`), same pattern as `smart-brain-plan.js prebuildAssets()`.
 - **Credits** — every feature costs credits. `api/_shared/credit-catalog.js` is the single source of
   truth for prices; **a feature key missing from it throws rather than running free**. Spend via
   `credits.meter()` hold → settle/release so a failed run is always refunded. The balance-moving SQL
