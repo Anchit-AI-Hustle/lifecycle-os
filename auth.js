@@ -161,7 +161,14 @@
     try {
       if (IS_FROZEN_DIFF) return;
       var d = document;
-      [['/brand-context.js?v=20260809', 'data-vh-brand'], ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
+      // region-context loads after brand-context because the market list IS the
+      // brand's own `regions`. Loading it here rather than page by page is the
+      // point: region selection was present on 17 of 66 pages, in six different
+      // shapes, none of which shared the choice, so picking a market on one
+      // page silently reverted on the next.
+      [['/brand-context.js?v=20260809', 'data-vh-brand'],
+        ['/region-context.js?v=20260813', 'data-vh-region'],
+        ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
         if (d.querySelector('script[' + pair[1] + ']')) return;
         var s = d.createElement('script');
         s.src = pair[0];
