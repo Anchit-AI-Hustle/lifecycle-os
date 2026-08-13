@@ -6,6 +6,8 @@
 //
 // Run: npx playwright test tests/ad-rows.spec.js
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 const rows = require('../api/_shared/ad-rows-core.js');
 
 test('Google cost is micros, not currency', () => {
@@ -124,6 +126,22 @@ test('rollup reports ROAS once any row actually converts', () => {
   expect(out.revenue_trustworthy).toBe(true);
   expect(out.roas).toBeCloseTo(3, 6);
   expect(out.revenue_note).toBeNull();
+});
+
+test('the live analytics path uses this module, not a private copy', () => {
+  // These mappers were duplicated inside data-analysis-core, and the copy there
+  // rolled ROAS, CPA and conversion rate up to 0 rather than null. Pinning the
+  // behaviour in this file while production kept its own copy would mean the
+  // tests pass and no user ever sees the fix.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'api/_shared/data-analysis-core.js'), 'utf8');
+  expect(src).toContain("require('./ad-rows-core.js')");
+  for (const gone of ['function metaRows(', 'function googleRows(', 'function tiktokRows(', 'function adKpis(']) {
+    expect(src, `${gone} should no longer be defined here`).not.toContain(gone);
+  }
+
+  // And the module really is what ads() rolls up with.
+  const core = require('../api/_shared/data-analysis-core.js');
+  expect(typeof core.ads).toBe('function');
 });
 
 test('a failed or unknown platform response yields no rows, not fabricated ones', () => {

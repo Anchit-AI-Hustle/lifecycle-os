@@ -83,38 +83,17 @@ async function authorize(req, { cron = false } = {}) {
   } catch (_) { return { ok: false, status: 401, error: 'operator_verification_unavailable' }; }
 }
 
-function actionValue(rows, names) {
-  const keys = names.map((x) => x.toLowerCase());
-  for (const x of Array.isArray(rows) ? rows : []) { const k = text(x.action_type || x.actionType).toLowerCase(); if (keys.some((q) => k === q || k.includes(q))) return n(x.value); }
-  return 0;
-}
-function metaRows(r) {
-  return (r.data || []).map((x) => { const spend = n(x.spend), impressions = n(x.impressions), clicks = n(x.clicks), conversions = actionValue(x.actions, ['purchase','omni_purchase','offsite_conversion.fb_pixel_purchase']), revenue = actionValue(x.action_values, ['purchase','omni_purchase','offsite_conversion.fb_pixel_purchase']);
-    const level = r.level || 'account', entity = level === 'ad' ? x.ad_name || x.ad_id : level === 'adset' ? x.adset_name || x.adset_id : level === 'campaign' ? x.campaign_name || x.campaign_id : x.account_name || x.account_id;
-    return { platform: 'Meta', level, entity: entity || '(unnamed)', entity_id: x.ad_id || x.adset_id || x.campaign_id || x.account_id || '', campaign: x.campaign_name || '', ad_group: x.adset_name || '', status: '', spend, impressions, clicks,
-      ctr: x.ctr != null ? n(x.ctr) / 100 : rate(clicks, impressions), cpc: x.cpc != null ? n(x.cpc) : rate(spend, clicks), cpm: x.cpm != null ? n(x.cpm) : rate(spend * 1000, impressions), conversions,
-      conversion_rate: rate(conversions, clicks), cpa: rate(spend, conversions), revenue, roas: Array.isArray(x.purchase_roas) && x.purchase_roas[0] ? n(x.purchase_roas[0].value) : rate(revenue, spend), reach: n(x.reach), frequency: n(x.frequency) }; });
-}
-function googleRows(r) {
-  const batches = Array.isArray(r.data) ? r.data : [], rows = batches.flatMap((b) => Array.isArray(b && b.results) ? b.results : []);
-  return rows.map((x) => { const m = x.metrics || {}, spend = n(m.costMicros) / 1e6, impressions = n(m.impressions), clicks = n(m.clicks), conversions = n(m.conversions || m.allConversions), revenue = n(m.conversionsValue || m.allConversionsValue), level = r.level || 'account';
-    const entity = level === 'ad' ? x.adGroupAd && x.adGroupAd.ad && (x.adGroupAd.ad.name || x.adGroupAd.ad.id) : level === 'adgroup' || level === 'adset' ? x.adGroup && (x.adGroup.name || x.adGroup.id) : level === 'campaign' ? x.campaign && (x.campaign.name || x.campaign.id) : x.customer && (x.customer.descriptiveName || x.customer.id);
-    return { platform: 'Google', level, entity: entity || '(unnamed)', entity_id: String(x.adGroupAd && x.adGroupAd.ad && x.adGroupAd.ad.id || x.adGroup && x.adGroup.id || x.campaign && x.campaign.id || x.customer && x.customer.id || ''), campaign: x.campaign && x.campaign.name || '', ad_group: x.adGroup && x.adGroup.name || '', status: x.adGroupAd && x.adGroupAd.status || x.adGroup && x.adGroup.status || x.campaign && x.campaign.status || '', spend, impressions, clicks,
-      ctr: m.ctr != null ? n(m.ctr) : rate(clicks, impressions), cpc: m.averageCpc != null ? n(m.averageCpc) / 1e6 : rate(spend, clicks), cpm: rate(spend * 1000, impressions), conversions, conversion_rate: rate(conversions, clicks), cpa: rate(spend, conversions), revenue, roas: rate(revenue, spend), reach: 0, frequency: 0 }; });
-}
-function tiktokRows(r) {
-  const root = r.data || {}, rows = Array.isArray(root.list) ? root.list : Array.isArray(root) ? root : [];
-  return rows.map((x) => { const d = x.dimensions || {}, m = x.metrics || x, spend = n(m.spend), impressions = n(m.impressions), clicks = n(m.clicks), conversions = n(m.complete_payment || m.real_time_conversion || m.conversion), revenue = n(m.total_complete_payment_value || m.complete_payment_value), level = r.level || 'account';
-    const entity = d.ad_name || d.ad_id || d.adgroup_name || d.adgroup_id || d.campaign_name || d.campaign_id || d.advertiser_name || d.advertiser_id || '(unnamed)';
-    const norm = (v) => n(v) > 1 ? n(v) / 100 : n(v);
-    return { platform: 'TikTok', level, entity, entity_id: String(d.ad_id || d.adgroup_id || d.campaign_id || d.advertiser_id || ''), campaign: d.campaign_name || '', ad_group: d.adgroup_name || '', status: d.status || '', spend, impressions, clicks,
-      ctr: m.ctr != null ? norm(m.ctr) : rate(clicks, impressions), cpc: m.cpc != null ? n(m.cpc) : rate(spend, clicks), cpm: m.cpm != null ? n(m.cpm) : rate(spend * 1000, impressions), conversions,
-      conversion_rate: m.conversion_rate != null ? norm(m.conversion_rate) : rate(conversions, clicks), cpa: m.cost_per_conversion != null ? n(m.cost_per_conversion) : rate(spend, conversions), revenue, roas: rate(revenue, spend), reach: n(m.reach), frequency: n(m.frequency) }; });
-}
-function adKpis(rows) { const x = rows.reduce((a, r) => { a.spend += r.spend; a.impressions += r.impressions; a.clicks += r.clicks; a.conversions += r.conversions; a.revenue += r.revenue; a.reach += r.reach; return a; }, { spend:0, impressions:0, clicks:0, conversions:0, revenue:0, reach:0 }); return { ...x, ctr: rate(x.clicks,x.impressions), cpc: rate(x.spend,x.clicks), cpm: rate(x.spend*1000,x.impressions), conversion_rate: rate(x.conversions,x.clicks), cpa: rate(x.spend,x.conversions), roas: rate(x.revenue,x.spend) }; }
+// Meta / Google / TikTok row mapping and the rollup used to be duplicated
+// here. They now live in _shared/ad-rows-core.js so one mapping serves every
+// consumer: the private copies had already drifted, and the rollup here
+// returned 0 for ROAS, CPA and conversion rate on an account with no
+// conversions. An account whose checkout happens on a third party reports
+// zero purchases by construction, so a 0 reads as "sold nothing" and drags a
+// blended ROAS toward zero. ad-rows-core returns null there instead.
+const adRows = require('./ad-rows-core.js');
 async function ads({ market = 'US', level = 'ad', since, until } = {}) {
   const raw = await adsCore.summary({ market, level, metricGroup: 'all', since, until });
-  const platforms = (raw.platforms || []).map((p) => { let rows = []; if (p.ok && p.platform === 'meta') rows = metaRows(p); if (p.ok && p.platform === 'google') rows = googleRows(p); if (p.ok && p.platform === 'tiktok') rows = tiktokRows(p); return { platform: p.platform, connected: Boolean(p.connected), ok: Boolean(p.ok), source: p.source || null, fetched_at: p.fetched_at || null, status: p.status || null, error: p.error || null, need_env: p.need_env || [], rows, kpis: adKpis(rows), raw_note: p.hint || null }; });
+  const platforms = (raw.platforms || []).map((p) => { const rows = adRows.rowsFor(p); return { platform: p.platform, connected: Boolean(p.connected), ok: Boolean(p.ok), source: p.source || null, fetched_at: p.fetched_at || null, status: p.status || null, error: p.error || null, need_env: p.need_env || [], rows, kpis: adRows.rollup(rows), raw_note: p.hint || null }; });
   const rows = platforms.flatMap((p) => p.rows).sort((a,b) => b.spend - a.spend);
   // Fallback: when the live Snowflake read yields no rows (PAT / network-policy
   // blocked, or unconfigured on this deploy), serve a cached real-data snapshot
@@ -127,13 +106,13 @@ async function ads({ market = 'US', level = 'ad', since, until } = {}) {
         const srows = snap.rows;
         const sp = ['meta', 'google', 'tiktok'].map((name) => {
           const pr = srows.filter((r) => String(r.platform || '').toLowerCase() === name);
-          return { platform: name, connected: false, ok: pr.length > 0, source: 'snapshot', fetched_at: snap.generated_at, status: null, error: null, need_env: [], rows: pr, kpis: adKpis(pr), raw_note: null };
+          return { platform: name, connected: false, ok: pr.length > 0, source: 'snapshot', fetched_at: snap.generated_at, status: null, error: null, need_env: [], rows: pr, kpis: adRows.rollup(pr), raw_note: null };
         });
-        return { ok: true, generated_at: iso(), cached: true, cached_at: snap.generated_at, market, level: 'ad', window: snap.window || raw.window, freshness: 'Cached snapshot of real Snowflake ad data — the live read is unavailable on this deployment (network policy pending); it resumes automatically once set.', connected_platforms: snap.connected_platforms || [], pending_platforms: snap.pending_platforms || [], kpis: adKpis(srows), platforms: sp, rows: srows, note: snap.note };
+        return { ok: true, generated_at: iso(), cached: true, cached_at: snap.generated_at, market, level: 'ad', window: snap.window || raw.window, freshness: 'Cached snapshot of real Snowflake ad data — the live read is unavailable on this deployment (network policy pending); it resumes automatically once set.', connected_platforms: snap.connected_platforms || [], pending_platforms: snap.pending_platforms || [], kpis: adRows.rollup(srows), platforms: sp, rows: srows, note: snap.note };
       }
     } catch (e) { /* no snapshot bundled — fall through to the live (empty) shape */ }
   }
-  return { ok: true, generated_at: iso(), market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adKpis(rows), platforms, rows, note: raw.note };
+  return { ok: true, generated_at: iso(), market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
 }
 
 function metricNames(resp) { const rows = resp && resp.ok && resp.data && Array.isArray(resp.data.data) ? resp.data.data : []; return Object.fromEntries(rows.map((m) => [m.id, text(m.attributes && m.attributes.name)])); }
