@@ -241,7 +241,16 @@
 
   var DATA = null;
   var expFilter = "all";
-  var DONE_KEY = "growth-os-done";
+
+  // Checklist ticks are namespaced by brand AND by growth model. The keys are
+  // positional (surface-0-0, week-1-2), so a single global key would carry a
+  // tick from one brand's first audit item onto an unrelated first item after a
+  // brand switch, and quietly falsify the operational record.
+  function doneKey(){
+    var b = (DATA && DATA.brand && DATA.brand.name) || "unknown";
+    var k = (DATA && DATA.model && DATA.model.kind) || "unknown";
+    return "growth-os-done:" + b + ":" + k;
+  }
 
   // ── helpers ───────────────────────────────────────────────────────────────
   function el(id){ return document.getElementById(id); }
@@ -255,10 +264,10 @@
     return '<span class="basis basis-' + k + '">' + k + '</span>';
   }
   function done(){
-    try { return JSON.parse(localStorage.getItem(DONE_KEY) || "{}"); } catch(e){ return {}; }
+    try { return JSON.parse(localStorage.getItem(doneKey()) || "{}"); } catch(e){ return {}; }
   }
   function setDone(map){
-    try { localStorage.setItem(DONE_KEY, JSON.stringify(map)); } catch(e){ /* private mode */ }
+    try { localStorage.setItem(doneKey(), JSON.stringify(map)); } catch(e){ /* private mode */ }
   }
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -580,7 +589,19 @@
       + esc(msg) + "</td></tr>";
   }
 
-  function load(){
+  // auth.js is deferred and the Supabase session resolves after it, so the very
+  // first paint can easily precede a usable token. Waiting briefly for one
+  // avoids sending an anonymous request that the router correctly refuses.
+  function whenAuthReady(cb, waited){
+    var w = waited || 0;
+    var s = null;
+    try { s = window.LifecycleAuth && window.LifecycleAuth.session; } catch(e){ s = null; }
+    if ((s && s.access_token) || w >= 4000) return cb();
+    setTimeout(function(){ whenAuthReady(cb, w + 200); }, 200);
+  }
+
+  function load(attempt){
+    var tries = attempt || 0;
     var headers = { "Content-Type": "application/json" };
     try {
       var s = window.LifecycleAuth && window.LifecycleAuth.session;
@@ -590,7 +611,19 @@
     fetch("/api/brain?action=growth-os", { headers: headers })
       .then(function(r){ return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
       .then(function(d){
-        if (!d || !d.ok) throw new Error("The growth model could not be built for this workspace.");
+        if (!d) throw new Error("empty response");
+        // The router answers an unauthenticated request with ok:true plus an
+        // error code and empty collections, rather than substituting another
+        // brand's workspace. Checking only `ok` would let that through and
+        // render a blank dashboard, which reads as a brand with no growth
+        // opportunities instead of a session that is not ready yet.
+        if (d.error === "workspace_unresolved" && tries < 2){
+          // The session was still settling. Retry rather than stranding the
+          // page on an error the user can only clear by reloading by hand.
+          return setTimeout(function(){ load(tries + 1); }, 700 * (tries + 1));
+        }
+        if (d.error) throw new Error(d.note || d.error);
+        if (!d.ok) throw new Error("The growth model could not be built for this workspace.");
         renderAll(d);
       })
       .catch(function(e){
@@ -599,8 +632,9 @@
       });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load);
-  else load();
+  function boot(){ whenAuthReady(function(){ load(0); }); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();
 </script>
 </body>

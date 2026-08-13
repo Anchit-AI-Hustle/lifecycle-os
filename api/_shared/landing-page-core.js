@@ -1,5 +1,8 @@
 const callLLM = require('./llm.js');
 const SM = require('./scenario-model.js');
+const brandRuntime = require('./brand-runtime.js');
+const offeringKinds = require('./offering-kinds.js');
+const { runDesignLoop } = require('./lp-design-loop.js');
 let DESIGN = null;
 try { DESIGN = require('../../data/design-intelligence.js'); } catch (_) { DESIGN = null; }
 
@@ -8,6 +11,9 @@ const scrub = (value) => {
   catch (_) { return String(value || '').replace(/[\u2013\u2014]/g, '-'); }
 };
 
+// Tenant zero's region map, used only when the ACTIVE brand has no region row
+// for the requested market. It is a fallback of last resort, not the default:
+// resolveStore() below prefers the caller's own brand every time.
 const STORE = {
   US: 'https://knickgasm.com',
   UK: 'https://knickgasm.com',
@@ -19,7 +25,58 @@ const STORE = {
   ME: 'https://knickgasm.com',
 };
 
+/** The store base for THIS brand and market. Never another brand's domain. */
+function resolveStore(brand, market) {
+  const facts = brandRuntime.regionFacts(brand, market);
+  if (facts && facts.store) return 'https://' + String(facts.store).replace(/^https?:\/\//, '');
+  if (brand && brand.website) return brand.website;
+  if (brandRuntime.isDefault(brand)) return STORE[market] || STORE.US;
+  // A custom brand with no region and no website must not inherit tenant zero's
+  // storefront. Say what is missing instead, so the page carries the gap.
+  return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + market + ']';
+}
+
+/**
+ * The interactive-state section is the one part of the design system that
+ * assumed a physical product ("pick a colourway"). What a reader of a news
+ * section or a member on a plan should be offered instead is different, so the
+ * axis is chosen from what the brand actually sells.
+ */
+function sensoryAxis(brand) {
+  const offs = Array.isArray(brand && brand.offerings) ? brand.offerings : [];
+  const kinds = new Set(offs.map((o) => o && o.kind).filter(Boolean));
+  const cs = (brand && brand.catalog_source) || {};
+  if (cs.kind && cs.kind !== 'none' && cs.kind !== 'manual') kinds.add('product');
+  if (kinds.has('section') || kinds.has('programme')) {
+    return 'four selectable reader states such as Morning, Commute, Evening, Weekend, each changing which content is surfaced';
+  }
+  if (kinds.has('event')) {
+    return 'four selectable states covering the run-up to the date such as Announced, Early, Final week, Day of, each changing the copy and the call to action';
+  }
+  if (kinds.has('plan')) {
+    return 'four selectable states covering the tiers or usage levels on offer, each changing which benefits are shown';
+  }
+  if (kinds.has('service')) {
+    return 'four selectable states covering the stages of the engagement such as Enquiry, Scope, Delivery, Aftercare';
+  }
+  return 'at least four selectable states drawn from real, supplied attributes of the offering, never invented ones';
+}
+
+/**
+ * Wall-clock this handler may spend in total. The design loop only starts with
+ * whatever is left after generation, and skips entirely when that is too small
+ * to finish a full-document revision, so adding the pass cannot push a request
+ * past the platform's function timeout.
+ *
+ * Must stay UNDER the maxDuration set for the function that serves this route
+ * (api/ai/generate.js, 120s in vercel.json) with room for the response. A
+ * budget above that ceiling would let the loop run the request off the end of
+ * the function and lose a page that had already generated successfully.
+ */
+const BUDGET_MS = Number(process.env.LP_BUDGET_MS || 0) || 110000;
+
 module.exports = async function handler(req, res) {
+  const startedAt = Date.now();
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -31,9 +88,14 @@ module.exports = async function handler(req, res) {
     try { body = JSON.parse(body); } catch (_) { return res.status(400).json({ error: 'invalid_json_body' }); }
   }
 
+  // The ACTIVE brand, resolved server-side. Everything brand-shaped in the
+  // prompt below is derived from this: another tenant must never receive tenant
+  // zero's palette, fonts, vocabulary or storefront.
+  const brand = await brandRuntime.resolve(req);
+
   const market = String(body.market || body.region || 'US');
   const channel = String(body.channel || 'landing');
-  const store = STORE[market] || STORE.US;
+  const store = resolveStore(brand, market);
   const motionProfile = String(body.motion_profile || 'immersive-balanced');
   const brief = String(body.brief || body.prompt || '').slice(0, 9000);
   if (brief.trim().length < 20) return res.status(400).json({ error: 'brief_required' });
@@ -44,34 +106,26 @@ module.exports = async function handler(req, res) {
   const designVariation = String(body.design_variation || body.variation || '');
   const designDirective = (DESIGN && designVariation) ? DESIGN.directivePrompt('landing_page', designVariation) : '';
 
-  const systemPrompt = `You are a senior D2C conversion copywriter, interaction designer, and front-end developer for KNICKGASM.
+  const brandName = (brand && brand.name) || 'this brand';
+  const systemPrompt = `You are a senior conversion copywriter, interaction designer, and front-end developer for ${brandName}.
 
 OUTPUT CONTRACT
 Return ONLY one complete production-ready HTML document from <!doctype html> to </html>. No markdown fences or commentary. Use inline CSS and a small inline JavaScript block. No external libraries, CDNs, Google Fonts, remote JS, React, Three.js, Framer runtime, or Motion runtime. The page must work by opening the downloaded HTML file directly.
 
-BRAND TOKENS, EXACT
-:root {
-  --font-head: "Montserrat", Georgia, "Times New Roman", serif;
-  --font-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
-  --knickgasm-green: #D0473E;
-  --knickgasm-lava: #6A33D8;
-  --knickgasm-ink: #111111;
-  --knickgasm-chalk: #FFFFFF;
-}
-Only these four hex colours may appear. Apply var(--font-head) to h1, h2, h3, h4, .heading, .title, .subhead, .eyebrow. Apply var(--font-body) to body, p, li, span, button, input, label, .body-text.
-Primary CTA: green background and chalk text. Secondary CTA: lava border or background and green text. Headings green on light surfaces and chalk on dark surfaces. Body text ink. Default section background chalk. Lava for rule lines, badges, hover and active accents.
+BRAND CONSTRAINTS (authoritative, derived from this brand's own record)
+${brandRuntime.brandBlock(brand)}
 
-VOICE
-Warm, sensory, story-driven, premium. Prefer ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted. Never use wellness journey, transform, liquid gold, game-changer, LIMITED TIME, hurry, don't miss out, last chance, while supplies last. No fabricated ratings, review counts, medical claims, prices, products or guarantees.
+APPLYING THOSE TOKENS
+Declare the palette and the two families as CSS custom properties on :root and reference them everywhere; no colour or family may appear that is not in the block above. Apply the heading family to h1, h2, h3, h4, .heading, .title, .subhead, .eyebrow. Apply the body family to body, p, li, span, button, input, label, .body-text. Primary CTA: brand primary background with the surface colour as its text. Secondary CTA: accent border or background. Default section background is the brand surface. Use the accent for rule lines, badges, hover and active states.
 
 FRAMER AND MOTION-INSPIRED INTERACTION SYSTEM
 Treat 3D, 4D and 5D as concrete interaction layers, not labels pasted onto the page.
 
 3D SPATIAL DEPTH
-- Build an above-the-fold product stage using CSS perspective, transform-style: preserve-3d, layered planes, a six-face or convincing multi-surface product pack, floating botanicals and a pair or liquid sphere.
-- Product responds subtly to pointer position using requestAnimationFrame and rotateX/rotateY. Touch users get a gentle automatic orbit.
+- Build an above-the-fold stage for whatever this brand actually offers, using CSS perspective, transform-style: preserve-3d and layered planes. Compose it from shapes and type that suit that offering; do not assume a physical package.
+- The stage responds subtly to pointer position using requestAnimationFrame and rotateX/rotateY. Touch users get a gentle automatic orbit.
 - Cards use restrained hover and press depth similar to Framer component hover/press effects.
-- Never rely on an image to fake the entire 3D scene. Use semantic HTML/CSS shapes and an optional labelled product-image slot.
+- Never rely on an image to fake the entire 3D scene. Use semantic HTML/CSS shapes and an optional labelled image slot.
 
 4D TIME AND SCROLL
 - Use scroll progress as a timeline, inspired by Framer Scroll Transform and Motion useScroll/useTransform patterns.
@@ -81,7 +135,7 @@ Treat 3D, 4D and 5D as concrete interaction layers, not labels pasted onto the p
 - Motion must guide attention toward proof and CTA, never delay access to content.
 
 5D PARTICIPATION AND SENSORY STATE
-- Include an interactive sensory or ritual component with at least four selectable states such as Colorway, Body, Brightness, Finish or Morning, Afternoon, Evening, Gift.
+- Include an interactive component offering ${sensoryAxis(brand)}.
 - Changing state must update visible copy and at least one visual property using accessible buttons and aria-pressed.
 - Add a Pause Motion control.
 - Respect prefers-reduced-motion. In reduced motion, all content is immediately visible and interactions still work without continuous movement.
@@ -122,11 +176,25 @@ TECHNICAL QUALITY
       stage: 'landing-page-spatial',
     });
     let html = scrub(out && out.text);
+    // The caller-side scrubber enforces tenant zero's banned list; the ACTIVE
+    // brand's own list is applied on top so a custom brand's forbidden phrases
+    // are stripped too.
+    html = brandRuntime.scrubForBrand(html, brand);
     html = String(html).replace(/^\s*```(?:html)?\s*/i, '').replace(/```\s*$/, '').trim();
     if (!/<!doctype/i.test(html) || !/<body/i.test(html) || !/<\/html>/i.test(html)) {
       return res.status(502).json({ error: 'invalid_html_generation' });
     }
-    return res.status(200).json({ ok: true, html });
+
+    // Bounded design pass. It returns the original page on any error, timeout
+    // or truncated revision, so this can never turn a good response into a bad
+    // one; the only thing at stake is whether the page got better.
+    const spent = Date.now() - startedAt;
+    const { html: finalHtml, quality } = await runDesignLoop({
+      html, brand, brief, market, store, channel,
+      timeBoxMs: Math.max(0, BUDGET_MS - spent),
+    });
+
+    return res.status(200).json({ ok: true, html: finalHtml, quality });
   } catch (error) {
     const msg = error && error.message ? error.message : String(error);
     const busy = /rate limit|rate.?limit|quota|429|credit|balance|insufficient|overloaded/i.test(msg);
