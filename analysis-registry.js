@@ -403,7 +403,7 @@
         '#lc-analysis-crumb .lc-crumb-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;',
         'overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;font-size:12.5px}',
         '#lc-analysis-crumb .lc-crumb-row > *{flex:0 0 auto;white-space:nowrap}',
-        '#lc-analysis-crumb a{color:var(--lava,#6A33D8);font-weight:700;text-decoration:none}',
+        '#lc-analysis-crumb a{color:var(--brand-accent-text,#6A33D8);font-weight:700;text-decoration:none}',
         '#lc-analysis-crumb a:hover{text-decoration:underline}',
         '#lc-analysis-crumb .lc-crumb-sep,#lc-analysis-crumb .lc-crumb-here{color:var(--soft,#556059)}',
         '#lc-analysis-crumb .lc-crumb-here{font-weight:700}',

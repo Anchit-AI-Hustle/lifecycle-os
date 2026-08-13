@@ -441,7 +441,7 @@
       const dot = stale > 0 ? '#d9b25a' : '#3fa46a';
       const label = stale > 0
         ? ('<b style="color:#111111">' + stale + ' of ' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' need regeneration — a source fact changed since they were built'
-           + ' <span style="color:var(--vh-lava)">(STALE)</span>')
+           + ' <span style="color:var(--brand-accent-text)">(STALE)</span>')
         : ('<b style="color:#111111">' + total + '</b> generated campaign' + (total === 1 ? '' : 's') + ' tracked, all current against source');
       strip.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:' + dot + ';display:inline-block;flex:0 0 auto"></span>'
         + '<span>Source sync · ' + label + '</span>'

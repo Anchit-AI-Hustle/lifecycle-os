@@ -964,6 +964,59 @@ function typographyCandidates(ctx) {
   };
 }
 
+/* ── non-colour design tokens (spacing, radius, elevation, motion) ─────────
+   A design system is not only its palette and its two typefaces. Radius,
+   spacing rhythm, shadow depth and transition timing are the difference between
+   a page that looks like the brand and a page that merely uses its colours.
+
+   These are taken ONLY from custom properties whose NAME says what they are -
+   `--radius-lg`, `--space-4`, `--shadow-md`. A measured value off a single rule
+   (`padding: 14px` on one card) is not a system token, it is one measurement,
+   and presenting it as the brand's spacing scale is exactly the kind of
+   confident guess this module exists to refuse. A site that ships no named
+   tokens therefore reports none, and design.md carries the marker. */
+
+const TOKEN_GROUPS = [
+  ['radius', /(?:^|-)(?:radius|rounded|corner)(?:-|$)/, /^-?[\d.]+(?:px|rem|em|%)$|^(?:0|9999px|50%)$/],
+  ['spacing', /(?:^|-)(?:space|spacing|gap|gutter|size)(?:-|\d|$)/, /^-?[\d.]+(?:px|rem|em|ch|vw|vh)$/],
+  ['shadow', /(?:^|-)(?:shadow|elevation)(?:-|$)/, /./],
+  ['motion', /(?:^|-)(?:duration|transition|ease|easing|timing|motion)(?:-|$)/, /./],
+  ['border', /(?:^|-)(?:border-width|stroke-width|hairline)(?:-|$)/, /^-?[\d.]+(?:px|rem|em)$/],
+  ['breakpoint', /(?:^|-)(?:breakpoint|screen|bp)(?:-|$)/, /^[\d.]+(?:px|rem|em)$/],
+];
+
+/**
+ * Named, non-colour design tokens the site's own stylesheets declare.
+ * Returns `{ radius: [cand], spacing: [cand], … }`, each carrying the sheet it
+ * was declared in and the selector it was declared on.
+ */
+function designTokenCandidates(ctx) {
+  const out = {};
+  for (const [group] of TOKEN_GROUPS) out[group] = [];
+  for (const sheet of (ctx.sheets || [])) {
+    const rules = cssRulesets(sheet.css || '');
+    const { values, origin } = customProperties(rules);
+    for (const [name, rawVal] of values) {
+      const n = String(name).toLowerCase();
+      const val = clip(rawVal, 120);
+      if (!val || /^var\(/.test(val)) continue;              // unresolved reference: reported by nobody as a value
+      if (parseColor(val)) continue;                          // a colour belongs to the palette, not here
+      for (const [group, nameRx, valueRx] of TOKEN_GROUPS) {
+        if (!nameRx.test(n)) continue;
+        if (!valueRx.test(val)) continue;
+        out[group].push(cand(val, `css:custom-property ${name}`, sheet.url, CONF.declared,
+          `${name}: ${val};  (declared on ${clip(origin.get(name) || '?', 50)})`, { token: name }));
+        break;                                                // one group per token, first match wins
+      }
+    }
+  }
+  for (const k of Object.keys(out)) {
+    const seen = new Set();
+    out[k] = out[k].filter((c) => c && !seen.has(c.token) && seen.add(c.token)).slice(0, 16);
+  }
+  return out;
+}
+
 /* ── social profiles ───────────────────────────────────────────────────── */
 
 const SOCIAL_HOSTS = [
@@ -1524,6 +1577,7 @@ async function extractBrand(startUrl, opts) {
   // ── per-page collection.
   const bags = { name: [], tagline: [], logo: [], social: [], claims: [], legal: [], docs: [], sightings: [], unparsed: new Map(), regions: new Map(), currencies: [], samples: [] };
   let typography = { heading: [], body: [], mono: [], font_faces: [], google_font_links: [] };
+  let designTokens = null;
   let inlineSvg = null;
 
   for (const [url, html] of pageList) {
@@ -1562,6 +1616,7 @@ async function extractBrand(startUrl, opts) {
       bags.sightings.push(...cs.sightings);
       for (const u of cs.unparsed) bags.unparsed.set(u.fn, (bags.unparsed.get(u.fn) || 0) + u.occurrences);
       typography = typographyCandidates(ctx);
+      designTokens = designTokenCandidates(ctx);
     } else {
       // Non-home pages still contribute their own inline <style> and their
       // declared theme-color, which regional storefronts often differ on.
@@ -1603,6 +1658,15 @@ async function extractBrand(startUrl, opts) {
         typography.body.length ? [] : [MARKER('typography.body')],
       ),
     },
+    // Radius / spacing / elevation / motion, from NAMED tokens only. Empty is a
+    // real answer: it means the site ships no named scale, not that it has none.
+    design_tokens: Object.assign({
+      groups: designTokens || {},
+      note: 'Only custom properties whose NAME declares what they are were taken. A padding measured off one rule is one measurement, not a spacing scale, so nothing was inferred from usage.',
+    }, {
+      markers: designTokens && Object.values(designTokens).some((l) => l.length)
+        ? [] : [MARKER('design tokens (radius, spacing, elevation, motion)')],
+    }),
     voice: null,   // filled below
     claims: {
       candidates: rankCandidates(bags.claims, 24),
@@ -1715,7 +1779,7 @@ module.exports = {
   cssRulesets, customProperties, splitDecls, declsOf, selectorRole, tokenNameRole, propWeight,
   colourSightings, rankColours, proposePalette,
   // fields
-  nameCandidates, taglineCandidates, logoCandidates, inlineSvgLogo, typographyCandidates,
+  nameCandidates, taglineCandidates, logoCandidates, inlineSvgLogo, typographyCandidates, designTokenCandidates,
   socialCandidates, claimCandidates, legalCandidates, regionCandidates, voiceSamples,
   googleFontLinks, primaryFamily, blockTexts, trustRanges,
   // helpers
