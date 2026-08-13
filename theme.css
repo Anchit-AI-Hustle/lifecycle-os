@@ -493,3 +493,42 @@ html.vh-reduce .vh-reveal { opacity: 1 !important; transform: none !important; }
   .vh-raised-card { transition: none; }
   .vh-depth-interaction:hover { transform: rotateX(4deg) rotateY(var(--vh-3d-turn)) rotateZ(var(--vh-3d-tilt)); }
 }
+
+/* ── Region picker (region-context.js) ──────────────────────────────────────
+   One market selector, shared by every page. Styled here rather than per page
+   so it looks the same everywhere, and so a page gets it by including auth.js
+   without shipping its own copy.
+
+   The active chip takes its text colour from --brand-on-primary, which is
+   contrast-computed per brand. Hardcoding white here would make the label
+   vanish for any brand whose primary is light, which is exactly the bug this
+   file already carries a guard against. */
+.rgn-bar{
+  display:flex; align-items:center; gap:6px;
+  flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden;
+  -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+  margin:10px 0;
+}
+.rgn-bar > *{flex:0 0 auto}
+.rgn-label{
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--brand-ink-muted,#5a6169); margin-right:2px;
+}
+.rgn-chip{
+  font-family:inherit; font-size:12px; font-weight:600;
+  padding:5px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--brand-line,#e6e6e6);
+  background:var(--brand-surface-alt,#fff);
+  color:var(--brand-ink,#111);
+  transition:border-color .12s, background .12s, color .12s;
+}
+.rgn-chip:hover{border-color:var(--brand-primary,#6A33D8)}
+.rgn-chip[aria-pressed="true"]{
+  background:var(--brand-primary,#6A33D8);
+  color:var(--brand-on-primary,#fff);
+  border-color:var(--brand-primary,#6A33D8);
+}
+.rgn-chip:focus-visible{outline:2px solid var(--brand-accent,#D0473E); outline-offset:2px}
+/* A single-region brand gets a statement, not a control that cannot act. */
+.rgn-solo,.rgn-none{font-size:12px; color:var(--brand-ink-muted,#5a6169)}
+.rgn-solo b{color:var(--brand-ink,#111)}
