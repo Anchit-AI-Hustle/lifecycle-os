@@ -4,8 +4,8 @@
  * brand-reviews.js — the brand's OWN testimonials, read off its OWN site.
  * ---------------------------------------------------------------------------
  * WHY THIS EXISTS. The Smart Brain copy prompt used to hand the model a proof
- * shape already filled in: `"rating": {"value": 4.9, "count": "250,000+"}` and
- * `"author": "first name, initial"`. A model given a filled shape completes it,
+ * shape already filled in: a star rating, a review count, and a reviewer field
+ * templated down to the FORM of a name. A model given a filled shape completes it,
  * so every campaign shipped a star rating, a review count and a reviewer that
  * nobody had ever approved, on a page served to real traffic at /lp/:id.
  *
@@ -19,8 +19,8 @@
  *     but never reworded. There is no LLM anywhere in this file — a paraphrase
  *     of a customer's words is a new testimonial nobody wrote.
  *  2. THE AUTHOR IS NEVER SYNTHESISED. If the page names the reviewer we carry
- *     that name exactly; if it does not, the review carries NO author. We never
- *     manufacture "Sarah M., Portland" to fill the slot.
+ *     that name exactly; if it does not, the review carries NO author. A
+ *     plausible-looking initial-and-city is not generated to fill the slot.
  *  3. THE RATING IS NEVER ROUNDED OR INFERRED. It is carried only when the page
  *     states one, as the exact string the page stated, with its scale.
  *  4. NO TRANSFER. Every review records the product and the page it came from,

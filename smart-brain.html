@@ -617,9 +617,9 @@ function renderAd(ad){
 
   // Static ad: the REAL creative photograph at the REAL placement ratio, with
   // only the copy the ad actually carries composed over it. The proof chip used
-  // to fall back to a literal tenant-zero claim ("Hand-painted one-of-one"), so
-  // every brand's ad preview asserted one company's proof; it now renders only
-  // when the ad carries a proof line drawn from the brand's own claims.
+  // to fall back to a hardcoded claim belonging to tenant zero, so every brand's
+  // ad preview asserted one company's proof; it now renders only when the ad
+  // carries a proof line drawn from the active brand's own claims.
   add('Primary text', ad.primary_text);
   if(ad.platform==='google'){ add('Headlines', ad.headlines); add('Descriptions', ad.descriptions); }
   const ov = ad.overlay||{};
