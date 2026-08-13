@@ -28,36 +28,53 @@
  */
 
 // 1) ── Discount cap + code registry ────────────────────────────────────────
+//
+// The CAP is policy and belongs here: it is a rule about how deep this platform
+// will ever discount, and it holds for every brand.
+//
+// The CODES do not. A discount code is a fact that exists in one brand's store,
+// and this module used to carry ten of tenant zero's real ones - SUMMER15,
+// VIP15, KNICKGASM15 - as the registry every brand's calendar drew from. A code
+// invented for a brand that never created it does not merely name the wrong
+// company: a customer types it at checkout and it fails. So the registry now
+// comes from the brand's own record (`offers.codes`), and a brand that lists
+// none gets NO code, not a plausible one.
+//
+// The banned list is likewise per brand - a code that breached the cap in one
+// store means nothing in another. (Tenant zero's list carried `VAH20`, a
+// leftover of the previous brand, which is gone.)
 const DISCOUNT_CAP = 0.15; // 15% ceiling. Anything above is do-not-promote.
 
-// Real KNICKGASM code registry. rate = fractional discount; min = order minimum.
-// Everything at or below DISCOUNT_CAP is cleared ("safe"); above it is banned.
-const CODES = {
-  // At-cap (15%) — the workhorse lifecycle codes, each with a semantic home.
-  SUMMER15: { rate: 0.15, note: 'Seasonal / affinity default' },
-  VIP15:    { rate: 0.15, note: 'VIP + one-of-one prestige' },
-  KNICKGASM15: { rate: 0.15, note: 'General at-cap / replenishment' },
-  NEW15:    { rate: 0.15, note: 'First-purchase activation' },
-  CART15:   { rate: 0.15, note: 'Cart / checkout recovery' },
-  IAMBACK:  { rate: 0.15, note: 'Winback (lapsed buyers)' },
-  BACK15:   { rate: 0.15, note: 'Winback alternate' },
-  SAVE15:   { rate: 0.15, min: 75, note: 'High-AOV / gifting, min $75' },
-  // Light (10%) — low-friction nudges for discovery + browse.
-  HELLO10:  { rate: 0.10, note: 'Browse / sampler discovery' },
-  KNICKGASM10: { rate: 0.10, note: 'Cross-category nudge' },
-};
+/** The brand's own code registry, keyed by code. `{}` when it declares none. */
+function codesOf(brand) {
+  const list = (brand && brand.offers && Array.isArray(brand.offers.codes)) ? brand.offers.codes : [];
+  const out = {};
+  for (const c of list) {
+    if (!c || !c.code) continue;
+    out[String(c.code).toUpperCase()] = { rate: Number(c.rate) || 0, min: c.min || null, note: c.note || '', slot: c.slot || '' };
+  }
+  return out;
+}
 
-// Codes that BREACH the cap and must never appear in a campaign email.
-const BANNED_CODES = {
-  SHUBHDA35: 0.35, GREEN30: 0.30, ANGELS30: 0.30, HOME20: 0.20, ICED20: 0.20,
-  DEAL20: 0.20, RECOVER20: 0.20, SMILE20: 0.20, SAVINGS20: 0.20,
-  INSIDER20: 0.20, VIP20: 0.20, VAH20: 0.20,
-};
+/** Codes this brand has declared as breaching its cap. */
+function bannedOf(brand) {
+  const list = (brand && brand.offers && Array.isArray(brand.offers.banned_codes)) ? brand.offers.banned_codes : [];
+  const out = {};
+  for (const c of list) { if (c && c.code) out[String(c.code).toUpperCase()] = Number(c.rate) || 0; }
+  return out;
+}
 
-function isCodeSafe(code) {
+/** This brand's cap, falling back to the platform ceiling. */
+function capOf(brand) {
+  const v = brand && brand.offers && Number(brand.offers.discount_cap);
+  return Number.isFinite(v) && v > 0 ? Math.min(v, DISCOUNT_CAP) : DISCOUNT_CAP;
+}
+
+function isCodeSafe(code, brand) {
   const c = String(code || '').toUpperCase();
+  const CODES = codesOf(brand), BANNED_CODES = bannedOf(brand);
   if (BANNED_CODES[c] != null) return false;
-  if (CODES[c]) return CODES[c].rate <= DISCOUNT_CAP + 1e-9;
+  if (CODES[c]) return CODES[c].rate <= capOf(brand) + 1e-9;
   return null; // unknown code — caller decides
 }
 
@@ -72,31 +89,62 @@ function inTeaScope(productType) {
 }
 
 // 2+3) ── Offer depth + code by cohort/objective intent ─────────────────────
-// Returns { depth: 'none'|'ten'|'fif', pct, code, min, rationale }.
-function offerFor(cohortName, objective) {
+// Returns { depth: 'none'|'ten'|'fif', pct, code, min, slot, rationale, data_gaps }.
+//
+// The DEPTH and the reasoning are the platform's to decide: they come from the
+// cohort's behaviour, which is the brand's own data, and the logic holds for
+// any brand. The CODE is not. It is selected from the brand's own registry by
+// the SLOT this decision lands in, and when the brand has declared no code for
+// that slot the offer ships without one and says so. Ten literal codes used to
+// live in this function - one brand's real codes, handed to every brand.
+const SLOT_RULES = [
+  { slot: 'post_purchase', depth: 'none', pct: 0,
+    match: (s) => /post.?purchase|nurture|thank|onboarding|welcome ritual/.test(s) && !/new sub|non.?buyer|activation/.test(s),
+    why: 'No discount right after purchase: protect margin, deepen the relationship before the next window.' },
+  { slot: 'vip',          depth: 'fif', pct: 0.15, match: (s) => /vip|champion|single.?studio|prestige|connoisseur/.test(s),
+    why: 'VIP / prestige tier earns the full at-cap recognition offer.' },
+  // Cart / checkout recovery is at-cap; a bare "browse abandon" is NOT - it
+  // falls through to the light discovery nudge below.
+  { slot: 'cart',         depth: 'fif', pct: 0.15, match: (s) => /cart|checkout/.test(s),
+    why: 'High-intent cart recovery: at-cap incentive closes the loop.' },
+  { slot: 'winback',      depth: 'fif', pct: 0.15, match: (s) => /winback|win.?back|lapsed|at.?risk|non.?engager/.test(s),
+    why: 'Lapsed buyers need the strongest allowed offer to re-activate.' },
+  { slot: 'activation',   depth: 'fif', pct: 0.15, match: (s) => /new sub|first.?purchase|activation|non.?buyer/.test(s),
+    why: 'First-purchase activation: at-cap offer to convert a 0-order subscriber.' },
+  { slot: 'high_aov',     depth: 'fif', pct: 0.15, match: (s) => /gift|gifting|high.?aov/.test(s),
+    why: 'Gifting / high-AOV: at-cap, with any order minimum the brand attaches to that code.' },
+  { slot: 'replenishment', depth: 'fif', pct: 0.15, match: (s) => /replenish|subscribe|subscription|repeat|loyal/.test(s),
+    why: 'Replenishment / repeat purchase: at-cap to lock in the next order.' },
+  { slot: 'seasonal',     depth: 'fif', pct: 0.15, match: (s) => /affinity|themed|seasonal|summer|winter|festival/.test(s),
+    why: 'Affinity cohort with high repurchase intent: seasonal at-cap offer.' },
+  { slot: 'discovery',    depth: 'ten', pct: 0.10, match: (s) => /browse|discovery|sampler|variety|undecided|cross.?sell|cross.?category/.test(s),
+    why: 'Discovery / browse: a light nudge, not a deep cut.' },
+];
+
+function offerFor(cohortName, objective, brand) {
   const s = `${cohortName || ''} ${objective || ''}`.toLowerCase();
-  const mk = (depth, pct, code, rationale) => {
-    const min = (CODES[code] && CODES[code].min) || null;
-    return { depth, pct, code: pct > 0 ? code : '', min, rationale };
-  };
-  // No discount — protect margin, build loyalty right after a purchase.
-  if (/post.?purchase|nurture|thank|onboarding|welcome ritual/.test(s) && !/new sub|non.?buyer|activation/.test(s)) {
-    return mk('none', 0, '', 'No discount right after purchase: protect margin, deepen the ritual before the next window.');
+  const rule = SLOT_RULES.find((r) => r.match(s))
+    || { slot: 'general', depth: 'ten', pct: 0.10, why: 'General audience: light 10% nudge.' };
+
+  const pct = Math.min(rule.pct, capOf(brand));
+  if (pct <= 0) return { depth: 'none', pct: 0, code: '', min: null, slot: rule.slot, rationale: rule.why, data_gaps: [] };
+
+  // The brand's own code for this slot, else any code of theirs at the right
+  // depth, else none. Never a code this brand has not declared.
+  const CODES = codesOf(brand);
+  const entries = Object.entries(CODES);
+  const bySlot = entries.find(([, c]) => c.slot === rule.slot && c.rate <= pct + 1e-9);
+  const byRate = entries.find(([, c]) => Math.abs(c.rate - pct) < 1e-9);
+  const picked = bySlot || byRate || null;
+
+  if (!picked) {
+    return {
+      depth: rule.depth, pct, code: '', min: null, slot: rule.slot,
+      rationale: `${rule.why} No code is shown: this brand has published none for the "${rule.slot}" slot.`,
+      data_gaps: [`[DATA REQUIRED BEFORE LAUNCH: discount code for the "${rule.slot}" offer slot, ${(brand && brand.name) || 'brand'}]`],
+    };
   }
-  // At-cap 15% for the high-intent lifecycle cohorts, each to its semantic code.
-  if (/vip|champion|single.?studio|prestige|connoisseur/.test(s)) return mk('fif', 0.15, 'VIP15', 'VIP / prestige tier earns the full at-cap recognition offer.');
-  // Cart / checkout recovery is at-cap; a bare "browse abandon" is NOT (it drops
-  // to the light discovery nudge below), so match cart/checkout specifically.
-  if (/cart|checkout/.test(s))                                     return mk('fif', 0.15, 'CART15', 'High-intent cart recovery: at-cap incentive closes the loop.');
-  if (/winback|win.?back|lapsed|at.?risk|non.?engager/.test(s))    return mk('fif', 0.15, 'IAMBACK', 'Lapsed buyers need the strongest allowed offer to re-activate.');
-  if (/new sub|first.?purchase|activation|non.?buyer/.test(s))     return mk('fif', 0.15, 'NEW15', 'First-purchase activation: at-cap offer to convert a 0-order subscriber.');
-  if (/gift|gifting|high.?aov/.test(s))                            return mk('fif', 0.15, 'SAVE15', 'Gifting / high-AOV: at-cap with a $75 minimum that self-selects intent.');
-  if (/replenish|subscribe|subscription|repeat|loyal/.test(s))     return mk('fif', 0.15, 'KNICKGASM15', 'Replenishment / subscription: at-cap to lock in the repeat ritual.');
-  if (/affinity|black|green|kicks|streetwear|themed|iced|summer/.test(s)) return mk('fif', 0.15, 'SUMMER15', 'Affinity cohort with high repurchase intent: seasonal at-cap offer.');
-  // Light 10% for low-commitment discovery / browse / sampler / cross-sell.
-  if (/browse|discovery|sampler|variety|undecided|cross.?sell|cross.?category/.test(s)) return mk('ten', 0.10, 'HELLO10', 'Discovery / browse: a light nudge, not a deep cut.');
-  // Default: light nudge with a general code.
-  return mk('ten', 0.10, 'KNICKGASM10', 'General audience: light 10% nudge.');
+  return { depth: rule.depth, pct, code: picked[0], min: picked[1].min || null, slot: rule.slot, rationale: rule.why, data_gaps: [] };
 }
 
 // 4) ── ESP-pending gating ──────────────────────────────────────────────────
@@ -145,7 +193,7 @@ function stockSwapNote(hero, alternate) {
 }
 
 module.exports = {
-  DISCOUNT_CAP, CODES, BANNED_CODES, isCodeSafe,
+  DISCOUNT_CAP, codesOf, bannedOf, capOf, isCodeSafe,
   inTeaScope, OUT_OF_SCOPE_TYPES,
   offerFor, isEspPending, suppressionFor,
   revenuePerRecipient, stockSwapNote,
