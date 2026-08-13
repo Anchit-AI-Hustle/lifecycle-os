@@ -1,9 +1,74 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Terms of Service - Lifecycle OS</title></head>
-<body style="background:#FFFFFF;color:#111111;font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;max-width:720px;margin:0 auto;padding:48px 24px;line-height:1.6">
-<h1 style="font-family:'Montserrat','Raleway',Georgia,serif;color:#D0473E">Terms of Service</h1>
-<p><em>Lifecycle OS - internal marketing operations tool. Last updated: 5 July 2026.</em></p>
-<p>This application is provided for authorized KNICKGASM team members only. By signing in you agree to:</p>
-<ul><li>Use the tool solely for KNICKGASM business purposes.</li><li>Keep generated content and data confidential.</li><li>Not attempt to access accounts or data belonging to others.</li></ul>
-<p>The tool is provided as-is, without warranty. Access may be revoked at any time. All content generated belongs to KNICKGASM.</p>
-<p>Questions: contact the KNICKGASM team via <a href="https://knickgasm.com" style="color:#6A33D8">knickgasm.com</a>.</p>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Terms of Service - Lifecycle OS</title>
+<script src="/brand-context.js?early=1"></script>
+<style>
+  :root{
+    --ink:var(--brand-ink,#111111);--surface:var(--brand-surface,#FFFFFF);
+    --primary:var(--brand-primary,#D0473E);--accent:var(--brand-accent,#6A33D8);
+    --head:var(--brand-font-head,'Montserrat','Raleway',Georgia,serif);
+    --body:var(--brand-font-body,'Instrument Sans','Helvetica Neue',Arial,sans-serif);
+  }
+  body{background:var(--surface);color:var(--ink);font-family:var(--body);max-width:720px;margin:0 auto;padding:48px 24px;line-height:1.6}
+  h1{font-family:var(--head);color:var(--primary)}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<h1>Terms of Service</h1>
+<p><em>Lifecycle OS - marketing operations workspace. Last updated: 13 August 2026.</em></p>
+
+<p>This workspace is operated by <b data-brand-entity>the workspace owner</b>. It is provided for people that organisation has authorised. By signing in you agree to:</p>
+<ul>
+  <li>Use the workspace solely for <b data-brand-name>that organisation</b>'s business purposes.</li>
+  <li>Keep generated content and data confidential.</li>
+  <li>Not attempt to access accounts, brands or data belonging to others.</li>
+</ul>
+
+<p>Each brand workspace is private to its owner. Content generated inside a workspace belongs to <b data-brand-entity>the workspace owner</b>, not to the platform or to any other workspace.</p>
+
+<p>The tool is provided as-is, without warranty. Access may be revoked at any time.</p>
+
+<p>Questions: contact <b data-brand-name>the brand team</b><span data-brand-contact></span>.</p>
+
+<script>
+/* These pages are white-labelled per brand: whoever is signed in sees THEIR
+   own organisation named, not the brand this suite originally shipped for.
+   Terms that name another company tell a user they are not authorised to use
+   their own workspace, and that their work belongs to someone else.
+
+   Everything below degrades to the neutral wording already in the markup, so a
+   signed-out reader or a failed brand fetch still gets a coherent page rather
+   than an empty one. */
+(function () {
+  'use strict';
+  function esc(s){ return String(s == null ? '' : s); }
+
+  function paint(brand) {
+    if (!brand) return;
+    var name = esc(brand.name).trim();
+    var entity = esc(brand.legal_entity).trim() || name;
+    if (entity) {
+      document.querySelectorAll('[data-brand-entity]').forEach(function (el) { el.textContent = entity; });
+    }
+    if (name) {
+      document.querySelectorAll('[data-brand-name]').forEach(function (el) { el.textContent = name; });
+    }
+
+    // Contact: only ever the brand's OWN recorded address or site. Never a
+    // guessed address built from the brand name, and never another brand's.
+    var contact = (brand.contact && (brand.contact.email || brand.contact.support_email)) || '';
+    var site = esc(brand.website).trim();
+    var out = '';
+    if (contact) out = ' at <a href="mailto:' + esc(contact) + '">' + esc(contact) + '</a>';
+    else if (site) out = ' via <a href="' + esc(site) + '" rel="noopener">' + esc(site).replace(/^https?:\/\//, '') + '</a>';
+    document.querySelectorAll('[data-brand-contact]').forEach(function (el) { el.innerHTML = out; });
+  }
+
+  try {
+    if (window.BrandContext) {
+      if (window.BrandContext.brand) paint(window.BrandContext.brand);
+      window.BrandContext.onChange(function (s) { paint(s && s.brand); });
+    }
+  } catch (e) { /* neutral wording stands */ }
+})();
+</script>
 </body></html>
