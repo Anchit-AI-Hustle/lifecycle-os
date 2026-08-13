@@ -127,8 +127,8 @@
     {
       id: 'ads-warehouse', label: 'Paid Media, warehouse depth', href: '/ads-dashboard', parent: 'live-ads',
       analysis: 'paid-media-warehouse',
-      what: 'The warehouse view of the same ad accounts: every column the platform returns, audience cohorts by age, gender, country, device and placement, naming-standard compliance and the metric-definition catalog.',
-      why: 'It reads Snowflake directly rather than the platform reporting APIs, and its compliance and catalog panels have no equivalent in the Paid Media tab. The tab stays the cross-platform summary; this is the drill-down.',
+      what: 'The warehouse view of paid media: every column the platform returns, audience cohorts by age, gender, country, device and placement, naming-standard compliance and the metric-definition catalog.',
+      why: 'It reads a Snowflake warehouse directly rather than the platform reporting APIs, and its compliance and catalog panels have no equivalent in the Paid Media tab. Note the scope difference: a warehouse is a DEPLOYMENT-level connection with no per-workspace credential, so the page labels its figures as such, while the Paid Media tab reads the ad accounts this workspace connected. Nothing is shown there until a deployment names its own tables.',
     },
     // There was a third ads drill-down here, "Paid Media knowledge base" at
     // /ads-master. It described "the programme record behind the numbers:

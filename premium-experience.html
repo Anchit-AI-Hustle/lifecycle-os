@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: this page renders products, claims and legal copy for
+     the ACTIVE workspace, so the resolver has to exist before any page script
+     runs. Without it the page had no choice but to hardcode one brand's data,
+     which is how another company's catalogue ended up in it. -->
+<script src="/brand-context.js?early=1"></script>
+<script src="/brand-catalog.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#D0473E">
@@ -227,7 +233,7 @@ a{color:var(--knickgasm-green);}
   <div class="wrap">
     <div class="sec-label fade-up"><span class="num">02</span><h2>Editorial Mailer</h2></div>
     <div class="mailer fade-up">
-      <div class="m-util">From the hands that picked it to the pair you hold &nbsp;&middot;&nbsp; FREE US shipping over $59</div>
+      <div class="m-util" id="utilBar">Utility bar renders this brand&rsquo;s own shipping claim</div>
 
       <!-- hero: copy + inline lifestyle image (not a full-width standalone pack shot) -->
       <div class="m-hero">
@@ -261,13 +267,13 @@ a{color:var(--knickgasm-green);}
         <button type="button" class="logo" id="brandLogo" aria-label="KNICKGASM USA home">
           <img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM">
         </button>
-        <div class="legal">KNICKGASM&reg; USA &middot; Knickgasm Global, Inc.</div>
+        <div class="legal" id="mLegal"></div>
         <div class="links" style="margin-top:10px;">
           <a id="unsubLink" role="button" tabindex="0">Unsubscribe</a>
           <a id="privacyLink">Privacy Policy</a>
           <a id="termsLink">Terms of Service</a>
         </div>
-        <div class="plain">You are receiving this because you shopped with KNICKGASM&reg;. 440 N Barranca Ave #2812, Covina, CA 91723.</div>
+        <div class="plain" id="mPlain"></div>
       </footer>
     </div>
 
@@ -516,10 +522,30 @@ a{color:var(--knickgasm-green);}
     .then(function(brand){
       var bar=document.getElementById("proofBar");
       if(!bar) return;
-      var claims=(brand&&(brand.claims||(brand.brand_data&&brand.brand_data.claims)))||[];
+      var data=(brand&&brand.brand_data)||{};
+      var claims=(brand&&brand.claims)||data.claims||[];
       bar.textContent=claims.length
         ? claims.slice(0,3).join("  ·  ")
         : "[DATA REQUIRED BEFORE LAUNCH: verifiable brand claims, active brand]";
+
+      // Utility bar: the brand's own shipping claim, if it publishes one.
+      var util=document.getElementById("utilBar");
+      if(util){
+        var ship=claims.filter(function(c){ return /shipping|delivery|deliver/i.test(String(c)); })[0];
+        util.textContent=ship||"[DATA REQUIRED BEFORE LAUNCH: shipping claim, active brand, per region]";
+      }
+      // Legal footer: the brand's own registered entity and address, never a
+      // second brand's US office carried over from a sibling repo.
+      var name=(brand&&brand.name)||"";
+      var legal=(brand&&brand.legal_entity)||data.legal_entity||"";
+      var lg=document.getElementById("mLegal");
+      if(lg) lg.textContent=legal||(name?name:"[DATA REQUIRED BEFORE LAUNCH: legal entity, active brand]");
+      var pl=document.getElementById("mPlain");
+      if(pl) pl.textContent="You are receiving this because you shopped with "+(name||"this brand")+". "+
+        (legal||"[DATA REQUIRED BEFORE LAUNCH: registered postal address, active brand]");
+
+      var logo=document.querySelector("#brandLogo img");
+      if(logo && brand && brand.logo_url){ logo.src=brand.logo_url; logo.alt=name; }
     })
     .catch(function(){});
 
@@ -535,7 +561,10 @@ a{color:var(--knickgasm-green);}
     .catch(function(){ renderMailer('Could not read this brand\'s catalogue.'); });
 
   // ---- D. footer behaviors ----
-  document.getElementById("brandLogo").addEventListener("click",function(){ window.open("https://www.knickgasm.com","_blank","noopener"); });
+  document.getElementById("brandLogo").addEventListener("click",function(){
+    var site=(window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.website)||"";
+    if(site) window.open(/^https?:/.test(site)?site:("https://"+site),"_blank","noopener");
+  });
   // Privacy + Terms: look clickable, do nothing (hash-blocked).
   ["privacyLink","termsLink"].forEach(function(id){ document.getElementById(id).addEventListener("click",function(e){ e.preventDefault(); }); document.getElementById(id).setAttribute("href","#"); });
   // Unsubscribe: real workflow via confirmation modal.
@@ -565,5 +594,7 @@ a{color:var(--knickgasm-green);}
   recompute();
 })();
 </script>
+<script src="/brand-demo.js"></script>
+<script>if (window.BrandDemo) window.BrandDemo.guardOwnerArtifact('The premium experience walkthrough');</script>
 </body>
 </html>

@@ -86,7 +86,9 @@ async function analyze({ message = '' }) {
 
   if (wantsAudience && marketAnalytics) {
     const mk = marketFromText(q);
-    const aud = marketAnalytics.audience(mk);
+    // Gated: the bundled Shopify export belongs to tenant zero. Another
+    // workspace gets ok:false and the connect instruction, not these totals.
+    const aud = await marketAnalytics.audience(mk);
     if (aud && aud.ok) {
       data.audience = aud;
       // Cohort SHAPE (share of the analyzed RFM records) — reported as shares,

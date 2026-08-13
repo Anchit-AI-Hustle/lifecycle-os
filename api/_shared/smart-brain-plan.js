@@ -2205,6 +2205,11 @@ async function dbCheck({ config: cfg = {} } = {}) {
 module.exports = {
   // exported for scripts/test-brand-isolation.js only
   __test_emailHtml: emailHtml,
+  // exported for tests/brand-data-scope.spec.js: the slot-id namespace is the
+  // thing that stops two brands sharing a primary key, so it is asserted on
+  // directly rather than inferred from a full sync.
+  __test_offeringPlanEntries: offeringPlanEntries,
+  __test_workspaceNs: workspaceNs,
   syncDaily, getPlan, previewEntry, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
   prebuildAssets, healOrphans, dbCheck, syncStatus,
   // exported for unit testing (pure scenario helpers)

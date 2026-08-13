@@ -367,11 +367,16 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
   //     wrapper) or clip (`overflow:hidden`, ideally with text-overflow and the
   //     full value on a title). Doing neither is the bug.
   {
-    const nowrapCell = /(?:^|[,{}\s])(?:table\s+)?(?:t[dh]|[.#][\w-]+\s+t[dh])[^{}]*\{[^{}]*white-space\s*:\s*nowrap/i;
-    const optsOut = /table-layout\s*:\s*auto/i.test(cssOnly);
-    const clips = /t[dh][^{}]*\{[^{}]*overflow\s*:\s*hidden/i.test(cssOnly);
-    if (nowrapCell.test(cssOnly) && !optsOut && !clips) {
-      const m = cssOnly.match(nowrapCell);
+    // Comments are stripped and the selector token needs a word boundary. Both
+    // matter: the first version of this rule matched `th` inside the word "the"
+    // in a CSS comment and reported a page with no <table> on it at all. A gate
+    // that fails on prose is a gate people learn to ignore.
+    const css = cssOnly.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const nowrapCell = /(?:^|[,{}\s])(?:table\s+)?(?:t[dh]|[.#][\w-]+\s+t[dh])(?![\w-])[^{}]*\{[^{}]*white-space\s*:\s*nowrap/i;
+    const optsOut = /table-layout\s*:\s*auto/i.test(css);
+    const clips = /t[dh](?![\w-])[^{}]*\{[^{}]*overflow\s*:\s*hidden/i.test(css);
+    if (nowrapCell.test(css) && !optsOut && !clips) {
+      const m = css.match(nowrapCell);
       add(file, 'BLOCKER', 'table-cell-overlap',
         'table cells are white-space:nowrap under the global table-layout:fixed default, so a value wider than its equal-share column paints over the next one - set table-layout:auto on the table (with a scrolling wrapper) or overflow:hidden on the cells',
         lineOf(html, m.index));

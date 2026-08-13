@@ -177,32 +177,37 @@ Score and enhance as instructed."""
 
 if __name__ == "__main__":
     # Smoke test with dummy data
+    # Smoke-test fixture only. It never leaves this __main__ block, but it is
+    # still written as this brand: the previous fixture described a single-estate
+    # tea harvest with the brand name swapped in, inherited from the sibling repo
+    # this engine was copied from, and a fixture is where a wrong mental model of
+    # the business quietly propagates into real copy.
     dummy_response = {
         "response": {
             "subject_lines": [
-                "The studio is ready. Are you?",
-                "Your Jordan ritual, rediscovered",
-                "15% off — a welcome back from us"
+                "The bench is free. Want a pair?",
+                "Your one-of-one, still unpainted",
+                "A design slot, held for you"
             ],
-            "preheader": "Single-studio First Flush, hand-painted and waiting for you",
+            "preheader": "Hand-painted on a 100% original base, made for one person",
             "sections": {
                 "hero": {
                     "copy": {
-                        "headline": "From the misty slopes of Jordan",
-                        "subheadline": "Your first flush drop — the year's finest leaves, still waiting for you.",
+                        "headline": "Nobody else owns this pair",
+                        "subheadline": "Pick a design or send a reference, and an artist paints it once, by hand.",
                         "cta": "Lace-up Again"
                     },
-                    "design_guidance": {"image_suggestion": "Mist-covered Jordan hills at dawn"}
+                    "design_guidance": {"image_suggestion": "Artist at the bench, brush on the panel"}
                 }
             },
-            "cta_options": ["Lace-up Again", "Return to Ritual", "Claim 15% Off"],
+            "cta_options": ["Lace-up Again", "Start Your Pair", "See The Designs"],
             "performance_notes": {}
         }
     }
     dummy_brief = {
         "campaign_type": "win_back_vip",
-        "product": "Jordan First Flush",
-        "offer": "15% off",
+        "product": "[DATA REQUIRED BEFORE LAUNCH: product, from the live catalog]",
+        "offer": "[DATA REQUIRED BEFORE LAUNCH: approved offer]",
         "audience_description": "120 high-CLV customers"
     }
     result = enhance_mailer_copy(dummy_response, dummy_brief)

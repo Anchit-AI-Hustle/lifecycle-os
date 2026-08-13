@@ -26,7 +26,6 @@
     "seed:products": "node scripts/seed-smart-products.js",
     "seed:assets": "node scripts/seed-brand-assets.js",
     "build:july": "node scripts/build-july-mailers.js && node scripts/build-july-studio.js",
-    "build:ads-snapshot": "node scripts/build-ads-live-snapshot.js",
     "mobile:sync": "cap sync",
     "mobile:android": "cap sync android && cd android && ./gradlew assembleDebug",
     "mobile:android:open": "cap open android",

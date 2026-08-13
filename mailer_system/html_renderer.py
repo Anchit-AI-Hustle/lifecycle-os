@@ -18,6 +18,22 @@ def _replace(template, mapping):
     return template
 
 
+# Placeholder for any slot the model did not fill.
+#
+# Nothing in this file may assert a product fact, a price, a rating, a customer
+# count or a testimonial. The defaults here used to do all four, and because
+# this engine was copied from a sibling repo built for a different company they
+# described that company's business - a single-estate tea, plucked at altitude,
+# vacuum-sealed after harvest, at $18 - with the brand name swapped. A default
+# is exactly where a fabricated fact hides, because it only renders when the
+# model went quiet, which is when nobody is looking.
+#
+# So an unfilled slot now renders the marker. A mailer with a visible gap gets
+# fixed; a mailer with a plausible invented product gets sent.
+def _missing(what):
+    return f"[DATA REQUIRED BEFORE LAUNCH: {what}]"
+
+
 def _parse_stat(stat_raw):
     if isinstance(stat_raw, dict):
         return stat_raw.get('value', ''), stat_raw.get('label', '')
@@ -31,16 +47,19 @@ def render_hero(sections):
     hero = sections.get('hero', {})
     copy = hero.get('copy', {})
     design = hero.get('design_guidance', {})
-    image_suggestion = design.get('image_suggestion', 'Overhead flatlay of hand-painted sneaker on dark stone surface')
+    image_suggestion = design.get('image_suggestion', 'Overhead flatlay of a hand-painted pair on a plain surface')
 
     template = _load('hero.html')
     return _replace(template, {
-        'EYEBROW': 'From the Studios of India',
-        'HEADLINE': copy.get('headline', 'Your morning ritual, reimagined'),
-        'SUBHEADLINE': copy.get('subheadline', 'Single-studio sneakers, hand-painted and shipped direct.'),
+        # Approved claim (data/brands/_default.json). Safe as a constant.
+        'EYEBROW': 'Hand-painted in Mumbai',
+        'HEADLINE': copy.get('headline') or _missing('hero headline'),
+        'SUBHEADLINE': copy.get('subheadline') or _missing('hero subheadline'),
         'CTA_TEXT': copy.get('cta', 'Shop Now'),
         'CTA_URL': 'https://knickgasm.com',
-        'HERO_IMAGE_URL': 'https://knickgasm.com/cdn/hero-placeholder.jpg',
+        # No invented CDN path. An empty src renders a broken image, which is a
+        # visible instruction to drop a real verified asset in.
+        'HERO_IMAGE_URL': '',
         'IMAGE_SUGGESTION': image_suggestion,
     })
 
@@ -56,9 +75,12 @@ def render_value(sections):
             return b.get('label', default_label), b.get('description', default_desc)
         return default_label, default_desc
 
-    b1_label, b1_desc = get_benefit(0, 'Direct from Studio', 'Sourced from one of ones across India')
-    b2_label, b2_desc = get_benefit(1, 'Freshness Guaranteed', 'Vacuum-sealed within 3 days of drop')
-    b3_label, b3_desc = get_benefit(2, 'Ethically Traded', 'Fair-wage partnerships with every studio')
+    # Fallbacks are the brand's approved verifiable claims and nothing else
+    # (data/brands/_default.json -> claims). No freshness, sourcing or trade
+    # claim is made: none has been approved for this brand.
+    b1_label, b1_desc = get_benefit(0, 'One of one', 'Hand-painted by India\'s best artists, never repeated')
+    b2_label, b2_desc = get_benefit(1, 'Original bases', 'Made on 100% original brand sneakers')
+    b3_label, b3_desc = get_benefit(2, 'Built to wear', 'Water and scratch resistant designs')
 
     template = _load('value.html')
     return _replace(template, {
@@ -75,17 +97,20 @@ def render_product(sections):
     product = sections.get('product', {})
     copy = product.get('copy', {})
     design = product.get('design_guidance', {})
-    image_suggestion = design.get('image_suggestion', 'Close-up of dry sneaker panels in a ceramic bowl, natural light')
+    image_suggestion = design.get('image_suggestion', 'Close-up of the hand-painted linework on the panel, natural light')
 
     template = _load('product.html')
     return _replace(template, {
-        'PRODUCT_NAME': copy.get('product_name', 'Jordan First Flush'),
-        'PRODUCT_DESC': copy.get('description', 'The first drop of the season — light, floral, and unmistakably Jordan. Plucked between March and April at elevations above 6,000 feet, this flush captures the awakening of the studio.'),
-        'EMOTIONAL_HOOK': copy.get('emotional_hook', 'A pair that carries the memory of the mountain.'),
-        'PRICE_CALLOUT': copy.get('price_callout', 'From $18'),
+        'PRODUCT_NAME': copy.get('product_name') or _missing('product name, from the live catalog'),
+        'PRODUCT_DESC': copy.get('description') or _missing('product description, from the live catalog'),
+        'EMOTIONAL_HOOK': copy.get('emotional_hook') or _missing('product hook line'),
+        'PRICE_CALLOUT': copy.get('price_callout') or _missing('price and currency, per region'),
         'PRODUCT_CTA': copy.get('cta', 'Explore'),
-        'PRODUCT_URL': 'https://knickgasm.com/collections/jordan',
-        'PRODUCT_IMAGE_URL': 'https://knickgasm.com/cdn/product-placeholder.jpg',
+        # A product URL must point at the actual PDP for the product above, so it
+        # cannot be defaulted. The all-products collection is the only link that
+        # is true regardless of which product the model chose.
+        'PRODUCT_URL': 'https://knickgasm.com/collections/all',
+        'PRODUCT_IMAGE_URL': '',
         'IMAGE_SUGGESTION': image_suggestion,
     })
 
@@ -94,20 +119,29 @@ def render_trust(sections):
     trust = sections.get('trust', {})
     copy = trust.get('copy', {})
 
-    stats = copy.get('stats', [
-        {'value': '50K+', 'label': 'Happy Customers'},
-        {'value': '4.8★', 'label': 'Average Rating'},
-        {'value': '30+', 'label': 'Studio Partners'},
-    ])
+    # Customer counts, star averages and partner counts are approved-data
+    # figures. There is no approved review library in this repo yet, so there is
+    # no honest default: an unfilled stat renders the marker.
+    fallback_stats = [
+        {'value': '', 'label': _missing('customer count, approved figure')},
+        {'value': '', 'label': _missing('average rating and review count, approved figure')},
+        {'value': '', 'label': _missing('third trust stat, approved figure')},
+    ]
+    stats = copy.get('stats') or fallback_stats
 
-    s1_val, s1_lab = _parse_stat(stats[0]) if len(stats) > 0 else ('50K+', 'Happy Customers')
-    s2_val, s2_lab = _parse_stat(stats[1]) if len(stats) > 1 else ('4.8★', 'Average Rating')
-    s3_val, s3_lab = _parse_stat(stats[2]) if len(stats) > 2 else ('30+', 'Studio Partners')
+    def stat_at(idx):
+        if idx < len(stats):
+            return _parse_stat(stats[idx])
+        return _parse_stat(fallback_stats[idx])
+
+    s1_val, s1_lab = stat_at(0)
+    s2_val, s2_lab = stat_at(1)
+    s3_val, s3_lab = stat_at(2)
 
     template = _load('trust.html')
     return _replace(template, {
-        'QUOTE': copy.get('quote', 'I have tried sneakers from all over the world. Nothing compares to the clarity and freshness of Knickgasm\'s one-of-one Jordan.'),
-        'ATTRIBUTION': copy.get('attribution', 'Sarah M., Portland — Verified Buyer'),
+        'QUOTE': copy.get('quote') or _missing('approved customer quote, per product and region'),
+        'ATTRIBUTION': copy.get('attribution') or _missing('reviewer attribution, approved review library'),
         'STAT_1_VALUE': s1_val,
         'STAT_1_LABEL': s1_lab,
         'STAT_2_VALUE': s2_val,
@@ -123,8 +157,10 @@ def render_footer(sections):
 
     template = _load('footer.html')
     return _replace(template, {
-        'CLOSING_LINE': copy.get('closing_line', 'Every pair is a journey back to origin.'),
-        'GUARANTEE_NOTE': copy.get('guarantee_note', '30-day happiness guarantee. No questions asked.'),
+        'CLOSING_LINE': copy.get('closing_line', 'One pair, painted once, for one person.'),
+        # A returns/guarantee policy is a legal commitment, not copy. Never
+        # default one in.
+        'GUARANTEE_NOTE': copy.get('guarantee_note') or _missing('returns and guarantee policy, per region'),
         'FOOTER_CTA': copy.get('cta', 'Shop Knickgasm'),
         'FOOTER_CTA_URL': 'https://knickgasm.com',
     })

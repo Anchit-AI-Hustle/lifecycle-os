@@ -120,12 +120,12 @@ const TOOLS = {
   },
   market_performance: {
     mutates: false,
-    desc: 'REAL sales performance from our Shopify order exports (US or UK): top products by revenue AND by units (exact net sales, quantity, orders), full monthly revenue trend, month-on-month change, the CURRENT month run-rate PROJECTION, product-type mix, channel split, discount split, returning-customer rate. USE THIS for any "top/best/most-selling product", revenue, orders, AOV, trend, run-rate or projection question. params: {market} (US|UK, defaults to current market).',
+    desc: 'Sales performance from the ACTIVE brand\'s own connected store export (US or UK): top products by revenue AND by units (exact net sales, quantity, orders), full monthly revenue trend, month-on-month change, the CURRENT month run-rate PROJECTION, product-type mix, channel split, discount split, returning-customer rate. USE THIS for any "top/best/most-selling product", revenue, orders, AOV, trend, run-rate or projection question. params: {market} (US|UK, defaults to current market).',
     run: async (a) => marketAnalytics.performance(a.market || a.region || 'US'),
   },
   audience_base: {
     mutates: false,
-    desc: 'REAL customer / audience base for a market, straight from the Shopify export: unique purchasing customers over the window (new + returning), returning-customer rate, orders. USE THIS for any "audience base / customer base / how many customers / how big is our audience" question — it is the ONLY source for the real customer-base SIZE. Do NOT quote list_cohorts counts as the audience size (those are a modelled RFM sample). params: {market} (US|UK, defaults to current market).',
+    desc: 'Customer / audience base for a market, from the ACTIVE brand\'s own store export: unique purchasing customers over the window (new + returning), returning-customer rate, orders. USE THIS for any "audience base / customer base / how many customers / how big is our audience" question — it is the ONLY source for the real customer-base SIZE. Do NOT quote list_cohorts counts as the audience size (those are a modelled RFM sample). params: {market} (US|UK, defaults to current market).',
     run: async (a) => marketAnalytics.audience(a.market || a.region || 'US'),
   },
   ask_analytics: {
@@ -159,6 +159,11 @@ const TOOLS = {
     mutates: false,
     desc: 'Run the data-accuracy validation agent: re-derives every analytics metric from live repo data and checks it against the canonical USA D2C report (source of truth). Returns per-metric verdicts (PASS/CONSISTENT/MISMATCH/MISSING/MISLEADING) + counts. USE THIS before quoting a historical/all-time number so you never cite a figure our own validator has flagged. No params.',
     run: async () => {
+      // The validator compares the BUNDLED export against a canonical report,
+      // both of which describe tenant zero's store. Running it for another
+      // workspace would report that brand's data accuracy from somebody else's
+      // numbers.
+      if (!(await marketAnalytics.ownsBundledExport())) return { ok: false, scope: 'other_workspace', error: marketAnalytics.BUNDLED_OWNER_NOTE };
       const { runValidation } = require('./data-validation-core.js');
       const r = runValidation();
       return { summary: r.summary, flagged: r.checks.filter(c => ['MISMATCH', 'MISSING', 'MISLEADING'].includes(c.verdict)).map(c => ({ metric: c.metric, verdict: c.verdict, delta: c.delta, note: c.note })) };
@@ -168,6 +173,7 @@ const TOOLS = {
     mutates: false,
     desc: 'Grounded growth-analyst agent over the live trailing-12mo analytics, made caveat-aware by the data-accuracy validator (it will not build a recommendation on a flagged figure). Returns ranked insights with hypothesis + target metric + expected impact. params: {question?}.',
     run: async (a) => {
+      if (!(await marketAnalytics.ownsBundledExport())) return { ok: false, scope: 'other_workspace', error: marketAnalytics.BUNDLED_OWNER_NOTE };
       const { runAnalyst } = require('./feature-agent.js');
       const { runValidation, loadMarketData } = require('./data-validation-core.js');
       let md = null; try { md = loadMarketData(); } catch (_) { md = null; }
@@ -256,7 +262,15 @@ const TOOLS = {
   klaviyo: {
     mutates: false, // individual write ops are gated inside klaviyo-core until a key exists
     desc: `Talk to Klaviyo (email/SMS lifecycle). params: {op, ...opParams}. Ops: ${Object.keys(klaviyo.OPS).join(', ')}. Examples — list audiences: {op:'get_lists'}; segments: {op:'get_segments'}; performance: {op:'campaign_report'}; subscribe: {op:'subscribe_profiles', list_id, emails:[]}. Returns a 'not_connected' stub describing the exact API call until KLAVIYO_API_KEY is set.`,
-    run: async (a) => klaviyo.dispatch(a.op, a),
+    // The workspace's OWN Klaviyo credentials. Dispatching with no creds fell
+    // back to KLAVIYO_API_KEY - the deployment's account - so the assistant
+    // read another company's lists, segments and campaigns on request.
+    run: async (a) => {
+      const creds = await require('./workspace-connections-core.js')
+        .credentialsForCurrentRequest('klaviyo').catch(() => null);
+      if (!creds) return { ok: false, connected: false, scope: 'other_workspace', error: 'This brand has not connected a Klaviyo account. Connect one on /connections; the deployment key belongs to another account and is never read on this brand\'s behalf.' };
+      return klaviyo.dispatch(a.op, a, creds);
+    },
   },
 };
 

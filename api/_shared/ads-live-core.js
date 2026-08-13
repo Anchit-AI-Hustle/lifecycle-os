@@ -165,7 +165,10 @@ select day, count(distinct ad_id) as ads_live, count(distinct campaign_name) as 
         byDay[d].spend = round(byDay[d].spend + num(r.spend)); byDay[d].impressions += num(r.impressions);
         byDay[d].clicks += num(r.clicks); byDay[d].link_clicks += num(r.inline_link_clicks);
       });
-      return { ok: true, connected: true, source: 'meta-marketing-api', since: from, until: to, today: todayISO(), rows: Object.values(byDay).sort((a, c) => a.day.localeCompare(c.day)) };
+      // META_ACCESS_TOKEN is a deployment env var, so this path is deployment
+      // scoped too, exactly like the warehouse one. Say so on the payload.
+      return { ok: true, connected: true, source: 'meta-marketing-api', data_scope: snow.DATA_SCOPE,
+        since: from, until: to, today: todayISO(), rows: Object.values(byDay).sort((a, c) => a.day.localeCompare(c.day)) };
     } catch (e) { /* fall through to the warehouse */ }
   }
   if (!srcs.length) return snow.noSources({ since: from, until: to, today: todayISO(), rows: [], hint: NO_SOURCE_HINT });

@@ -14,7 +14,8 @@
  *
  * This module used to ship a hardcoded registry: nineteen named ad-account
  * feeds with real platform account ids, lifetime spend and fully-qualified
- * warehouse table names, plus a Target/Costco retail-media funnel. None of it
+ * warehouse table names, plus a retail-media funnel joining that advertiser's
+ * spend to a named mass retailer's in-store sell-through. None of it
  * belonged to this product. It was one advertiser's warehouse layout, carried
  * across when this repo was copied from a sibling project and rebranded by
  * search-and-replace: the brand token in `<BRAND>_DB` was rewritten, while the
@@ -549,9 +550,13 @@ async function runStatement(sql, timeoutMs = 45000) {
 
 function notConnected(sql, extra) {
   const gated = !liveConnectorsEnabled();
-  return Object.assign({ ok: false, connected: false, not_connected: true, live_connectors_disabled: gated, would_query: sql,
+  // data_scope rides on the not-connected envelope too: this is the payload a
+  // page actually renders most of the time, so it is exactly where the "whose
+  // figures are these" statement has to be present.
+  return Object.assign({ ok: false, connected: false, not_connected: true, data_scope: DATA_SCOPE,
+    live_connectors_disabled: gated, would_query: sql,
     hint: gated
-      ? 'Live connectors are disabled (LIVE_CONNECTORS is off). The app is running on cached/snapshot data and will not query Snowflake. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to run this read-only query for real. The SQL above is exactly what would be sent.'
+      ? 'Live connectors are disabled (LIVE_CONNECTORS is off), so no query is sent to Snowflake and no figure is shown — there is no bundled snapshot to fall back to. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to run this read-only query for real. The SQL above is exactly what would be sent.'
       : 'Set SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PAT, SNOWFLAKE_WAREHOUSE (+ SNOWFLAKE_DATABASE/ROLE) in Vercel env to run this read-only query for real. The SQL above is exactly what will be sent.' }, extra || {});
 }
 
@@ -694,7 +699,7 @@ async function ping() {
   const missing = ['account', 'user', 'pat', 'warehouse'].filter((k) => !present[k]).map((k) => `SNOWFLAKE_${k.toUpperCase()}`);
   if (!liveConnectorsEnabled()) {
     return { ok: false, connected: false, configured: false, reachable: false, live_connectors_disabled: true, present,
-      hint: 'Live connectors are disabled (LIVE_CONNECTORS is off). The app runs on cached/snapshot data and will not reach Snowflake. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to test a live connection.' };
+      hint: 'Live connectors are disabled (LIVE_CONNECTORS is off), so nothing reaches Snowflake and the ads panels stay empty — there is no bundled snapshot to fall back to. Set LIVE_CONNECTORS=on (plus the SNOWFLAKE_* env vars) to test a live connection.' };
   }
   if (!isConfigured()) {
     return { ok: false, connected: false, configured: false, reachable: false, present, missing,

@@ -23,7 +23,7 @@
   .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
   h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--head);margin:0;text-wrap:balance;}
   h1{font-size:32px;} h2{font-size:21px;margin-top:2px;} h3{font-size:16px;}
-  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--accent);font-weight:700;}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--brand-accent-text);font-weight:700;}
   p.lede{color:var(--soft);max-width:72ch;margin:6px 0 0;}
   .tabs{display:flex;flex-wrap:nowrap;gap:4px;margin:22px 0 8px;border-bottom:1px solid var(--line);;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .tabs > *{flex:0 0 auto}
@@ -47,7 +47,7 @@
   :root[data-theme="dark"] .v2{background:var(--vh-ink);color:var(--vh-ink-dim);}
   .row{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:15px 18px;margin-bottom:10px;}
   .row .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
-  .row .code{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.05em;}
+  .row .code{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--brand-accent-text);letter-spacing:.05em;}
   .row .name{font-weight:700;color:var(--head);font-size:15px;}
   .row dl{margin:10px 0 0;display:grid;grid-template-columns:130px 1fr;gap:5px 14px;}
   .row dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;padding-top:2px;}
@@ -276,7 +276,7 @@ renderSimple('behavioral', BEHAVIORAL, 'Signal', 'How we use it');
 // actually-rendered .row items so the number can never drift from content.
 (function annotateCounts(){
   const CNT = 'display:inline-block;margin-left:7px;padding:1px 8px;border-radius:999px;'
-    + 'background:rgba(171,135,67,0.14);color:var(--lava);font-size:11px;font-weight:700;vertical-align:middle';
+    + 'background:rgba(171,135,67,0.14);color:var(--brand-accent-text);font-size:11px;font-weight:700;vertical-align:middle';
   ['engagement','englevel','product','lifecycle','rfm','behavioral'].forEach(id=>{
     const panel=document.getElementById('panel-'+id); if(!panel) return;
     const n=panel.querySelectorAll('.row').length; if(!n) return;

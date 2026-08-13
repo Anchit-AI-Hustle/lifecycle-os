@@ -257,12 +257,15 @@ function median(xs){const a=xs.map(Number).filter(Number.isFinite).sort((x,y)=>x
  * until 20260814090000, so every signed-in brand read every other brand's
  * results. It is workspace-scoped now (supa.select applies the filter).
  *
- * `activity_logs`, `agent_runs` and `connector_sync_runs` are DEPLOYMENT
- * telemetry: which serverless job ran, which connector sync failed. They are
- * still read - an operator needs them - but they are reported under an explicit
- * `deployment` scope, and the fallback that reshaped raw activity rows INTO the
- * actions table is gone. That fallback made platform-wide log lines look like
- * this brand's marketing actions, complete with an actions_tracked count.
+ * `activity_logs` and `agent_runs` carry a workspace too - a legacy TEXT column
+ * that held the literal 'knickgasm' until 20260814090000 converted it - so they
+ * are scoped as well. `connector_sync_runs` genuinely is deployment telemetry
+ * (which serverless sync ran, which one failed) and is reported under an
+ * explicit `deployment` scope rather than as this brand's activity.
+ *
+ * The fallback that reshaped raw activity rows INTO the actions table is gone.
+ * It made platform log lines look like this brand's marketing actions, complete
+ * with an actions_tracked count that counted somebody else's cron.
  */
 async function actions(){
   const ws = await activeWorkspace();

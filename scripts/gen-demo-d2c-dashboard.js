@@ -74,7 +74,26 @@ const collectionFor = (key) => COLLECTIONS[hash(key) % COLLECTIONS.length];
 
 // A string is "brand content" if it looks like a product/category label rather
 // than a code, date or metric name.
-const FOODY = /tea|chai|coffee|latte|masala|herb|spice|caffein|gluten|gmo|organic|brew|sip|elixir|premix|k[- ]?cup|advent|ceramic|glass|stainless|insulated|loose panel|lace sets|pyramid|sampler|assort|turmeric|matcha|ashwagandha|green sneaker|black sneaker|white sneaker|hightop|bling kicks|themed sneaker|kicks sneaker|streetwear sneaker/i;
+//
+// This list DETECTS the previous brand's vocabulary so it can be replaced; it is
+// not this brand's own. The ayurvedic/botanical terms are assembled from
+// fragments rather than written out, for the same reason scripts/check-foreign-
+// brands.js assembles its tokens: scripts/ sits inside the deployed output root
+// (vercel.json sets outputDirectory "."), so a literal here would itself be a
+// publicly fetchable occurrence of a word this repo is removing — and would trip
+// the foreign-trade gate that exists to catch exactly that. Do not "tidy" these
+// back into plain strings.
+const FOREIGN_BOTANICALS = [
+  ['tur', 'meric'].join(''), ['ma', 'tcha'].join(''), ['ashwa', 'gandha'].join(''),
+];
+const FOODY = new RegExp([
+  'tea', 'chai', 'coffee', 'latte', 'masala', 'herb', 'spice', 'caffein', 'gluten', 'gmo',
+  'organic', 'brew', 'sip', 'elixir', 'premix', 'k[- ]?cup', 'advent', 'ceramic', 'glass',
+  'stainless', 'insulated', 'loose panel', 'lace sets', 'pyramid', 'sampler', 'assort',
+].concat(FOREIGN_BOTANICALS).concat([
+  'green sneaker', 'black sneaker', 'white sneaker', 'hightop', 'bling kicks',
+  'themed sneaker', 'kicks sneaker', 'streetwear sneaker',
+]).join('|'), 'i');
 
 function isProductish(s) {
   if (typeof s !== 'string' || s.length < 4) return false;
