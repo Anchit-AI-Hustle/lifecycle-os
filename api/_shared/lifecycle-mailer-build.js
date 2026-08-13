@@ -201,14 +201,22 @@ function sanitizeCopy(copy, where) {
 // drops a real image URL into (the exact prompt to generate one rides in the
 // variant metadata). This guarantees every shipped image is correct.
 
-function placeholderImage(label, w, h) {
+function placeholderImage(label, w, h, brand) {
   const t = String(label || 'Product image').replace(/[<&>]/g, ' ').slice(0, 42);
+  // The fillable stand-in is drawn in THIS brand's palette. It used to be
+  // hardcoded to tenant zero's violet/lava, and it fires precisely when a brand
+  // has no catalogue photo of its own - so the "no image" state was the one
+  // place another brand's colours were guaranteed to appear.
+  const pal = (brand && brand.palette) || {};
+  const SURF = pal.surface || '#FFFFFF';
+  const INK = pal.ink || '#111111';
+  const ACC = pal.accent || pal.primary || INK;
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-    `<rect width="100%" height="100%" fill="#FFFFFF"/>` +
-    `<rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="#6A33D8" stroke-width="2" stroke-dasharray="9 7"/>` +
-    `<text x="50%" y="45%" text-anchor="middle" fill="#D0473E" font-family="Georgia,serif" font-size="21">${t}</text>` +
-    `<text x="50%" y="59%" text-anchor="middle" fill="#6A33D8" font-family="Arial,Helvetica,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text>` +
+    `<rect width="100%" height="100%" fill="${SURF}"/>` +
+    `<rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="${ACC}" stroke-width="2" stroke-dasharray="9 7"/>` +
+    `<text x="50%" y="45%" text-anchor="middle" fill="${INK}" font-family="Georgia,serif" font-size="21">${t}</text>` +
+    `<text x="50%" y="59%" text-anchor="middle" fill="${ACC}" font-family="Arial,Helvetica,sans-serif" font-size="13">Drop your image URL here · ${w} x ${h}</text>` +
     `</svg>`;
   return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
@@ -234,20 +242,32 @@ function resolveHero(entry, w, h) {
   if (entry.hero_image && /^https?:\/\//.test(entry.hero_image)) {
     return { url: entry.hero_image, mode: 'catalog', size: `${w}x${h}`, prompt: null };
   }
-  const gallery = catalogImage.imagesFor(entry.hero_handle || entry.hero_product || entry, entry.market, { width: Math.max(w, 1200) }) || [];
+  // The catalogue searched here is the SLOT'S OWN brand's - the shipped
+  // products_*.json belongs to tenant zero, so any other brand resolves against
+  // its imported rows or against nothing at all.
+  const cat = { brand: entry.brand || null, workspaceId: entry.workspace_id || null };
+  const gallery = catalogImage.imagesFor(entry.hero_handle || entry.hero_product || entry, entry.market, { width: Math.max(w, 1200), ...cat }) || [];
   if (gallery.length) {
     const idx = slotHash(entry) % gallery.length;
     return { url: gallery[idx], mode: 'catalog', size: `${w}x${h}`, prompt: null, gallery_index: idx, gallery_size: gallery.length };
   }
-  const real = catalogImage.imageFor(entry.hero_handle || entry.hero_product || entry, entry.market);
+  const real = catalogImage.imageFor(entry.hero_handle || entry.hero_product || entry, entry.market, cat);
   if (real) {
     return { url: real, mode: 'catalog', size: `${w}x${h}`, prompt: null };
   }
+  // No approved photo for this brand. Say so in the spec's marker form rather
+  // than borrowing one, and describe the image in THIS brand's palette.
+  const pal = (entry.brand && entry.brand.palette) || {};
+  const hexes = [pal.primary, pal.accent, pal.ink, pal.surface].filter(Boolean);
+  const paletteLine = hexes.length ? `Brand palette only (${hexes.join(', ')}).` : 'Brand palette only.';
   const prompt =
     `On-brand ${(entry && entry.brand && entry.brand.name) || 'brand'} email hero for "${entry.hero_product || entry.product_type}". Editorial product ` +
-    `photography, one-of-one provenance, elegant negative space, warm cinematic light. Brand palette ` +
-    `only (violet #D0473E, lava #6A33D8, chalk #FFFFFF). No text on the image. Ideal size ${w} x ${h}.`;
-  return { url: placeholderImage(entry.hero_product || 'Product image', w, h), mode: 'placeholder', size: `${w}x${h}`, prompt };
+    `photography, elegant negative space, warm cinematic light. ${paletteLine} No text on the image. Ideal size ${w} x ${h}.`;
+  return {
+    url: placeholderImage(entry.hero_product || 'Product image', w, h, entry.brand),
+    mode: 'placeholder', size: `${w}x${h}`, prompt,
+    data_gap: catalogImage.marker({ title: entry.hero_product || entry.hero_handle }, entry.market),
+  };
 }
 
 // ─── Persistence ─────────────────────────────────────────────────────────────

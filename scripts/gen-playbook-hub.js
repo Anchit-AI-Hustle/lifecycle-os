@@ -63,19 +63,19 @@ function head(title, desc) {
 '  h1,h2,h3,h4,.font-head{font-family:"Montserrat","Raleway",Georgia,serif;}',
 '  .nav-link{transition:background .12s,color .12s;}',
 '  .nav-link:hover{background:rgba(171,135,67,.16);color:var(--knickgasm-chalk);}',
-'  .nav-link.active{background:var(--knickgasm-lava);color:var(--knickgasm-green);font-weight:700;}',
+'  .nav-link.active{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));font-weight:700;}',
 '  .card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:14px;}',
 '  .metric{background:#fff;border:1px solid var(--line);border-radius:12px;}',
-'  .metric .mv{font-family:"Montserrat",Georgia,serif;color:var(--knickgasm-green);}',
+'  .metric .mv{font-family:"Montserrat",Georgia,serif;color:var(--brand-primary-text,var(--knickgasm-green));}',
 '  table.grid-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:820px;table-layout:fixed;}',
 '  table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;}',
 '  table.grid-tbl th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;}',
 '  table.grid-tbl tr:nth-child(even) td{background:#faf7f0;}',
 '  table.grid-tbl tr:last-child td{border-bottom:0;}',
-'  .tier-1{color:var(--knickgasm-green);font-weight:700;} .tier-2{color:var(--knickgasm-lava-ink);font-weight:700;} .tier-3{color:var(--soft);font-weight:700;}',
+'  .tier-1{color:var(--brand-primary-text,var(--knickgasm-green));font-weight:700;} .tier-2{color:var(--knickgasm-lava-ink);font-weight:700;} .tier-3{color:var(--soft);font-weight:700;}',
 '  .tierbadge{display:inline-flex;flex-direction:column;line-height:1.12;border-radius:8px;padding:4px 9px;text-align:center;}',
 '  .tierbadge b{font-size:11px;font-weight:800;} .tierbadge i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;opacity:.85;}',
-'  .tb1{background:rgba(0,74,43,.10);color:var(--knickgasm-green);} .tb2{background:rgba(171,135,67,.18);color:#8a6a2f;} .tb3{background:rgba(23,23,23,.07);color:var(--soft);}',
+'  .tb1{background:rgba(0,74,43,.10);color:var(--brand-primary-text,var(--knickgasm-green));} .tb2{background:rgba(171,135,67,.18);color:#8a6a2f;} .tb3{background:rgba(23,23,23,.07);color:var(--soft);}',
 '  td.num{font-variant-numeric:tabular-nums;font-weight:700;color:var(--knickgasm-ink);white-space:nowrap;}',
 '  .rtab{cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--knickgasm-ink);border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}',
 '  .rtab:hover{border-color:var(--knickgasm-lava);} .rtab.on{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-color:var(--knickgasm-green);}',
@@ -83,9 +83,9 @@ function head(title, desc) {
 '  .mstab:hover{border-color:var(--knickgasm-lava);} .mstab.on{background:var(--knickgasm-lava-ink);color:#fff;border-color:var(--knickgasm-lava-ink);}',
 '  .av-card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:16px;padding:22px;}',
 '  .av-face{width:56px;height:56px;border-radius:999px;background:var(--knickgasm-green);display:inline-flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 0 0 3px rgba(171,135,67,.35);}',
-'  .av-quote{font-family:"Montserrat",Georgia,serif;font-style:italic;color:var(--knickgasm-green);border-left:3px solid var(--knickgasm-lava);padding-left:12px;margin:12px 0;}',
+'  .av-quote{font-family:"Montserrat",Georgia,serif;font-style:italic;color:var(--brand-primary-text,var(--knickgasm-green));border-left:3px solid var(--knickgasm-lava);padding-left:12px;margin:12px 0;}',
 '  .av-q{cursor:pointer;text-align:left;background:#faf6ec;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12.5px;color:var(--knickgasm-ink);transition:background .12s,border-color .12s;font-family:inherit;}',
-'  .av-q:hover{border-color:var(--knickgasm-lava-ink);} .av-q.on{background:var(--knickgasm-lava);color:var(--knickgasm-green);font-weight:700;border-color:var(--knickgasm-lava-ink);}',
+'  .av-q:hover{border-color:var(--knickgasm-lava-ink);} .av-q.on{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));font-weight:700;border-color:var(--knickgasm-lava-ink);}',
 '  .av-bubble{display:none;margin-top:12px;background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:12px;border-top-left-radius:3px;padding:13px 15px;font-size:13.5px;line-height:1.55;}',
 '  .av-roster{display:flex;flex-wrap:wrap;gap:10px;}',
 '  .av-chip{display:flex;align-items:center;gap:8px;cursor:pointer;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:6px 14px 6px 6px;font-family:inherit;font-size:13px;color:var(--knickgasm-ink);transition:border-color .12s;}',
@@ -95,18 +95,18 @@ function head(title, desc) {
 '  .msg{max-width:82%;padding:11px 15px;border-radius:14px;font-size:14px;line-height:1.55;white-space:pre-wrap;}',
 '  .msg.user{align-self:flex-end;background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-bottom-right-radius:4px;}',
 '  .msg.bot{align-self:flex-start;background:var(--knickgasm-chalk);color:var(--knickgasm-ink);border:1px solid var(--line);border-bottom-left-radius:4px;}',
-'  .msg.bot a{color:var(--knickgasm-green);font-weight:600;}',
+'  .msg.bot a{color:var(--brand-primary-text,var(--knickgasm-green));font-weight:600;}',
 '  .prompt-chip{cursor:pointer;background:#faf6ec;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--knickgasm-ink);font-family:inherit;}',
 '  .prompt-chip:hover{border-color:var(--knickgasm-lava);}',
 '  .askbar{display:flex;gap:8px;margin-top:12px;}',
 '  .askbar input{flex:1;border:1.5px solid var(--knickgasm-lava);border-radius:12px;padding:11px 14px;font-family:inherit;font-size:14px;color:var(--knickgasm-ink);background:#fff;}',
-'  .mic{min-width:46px;border:1.5px solid var(--knickgasm-lava);background:var(--knickgasm-chalk);color:var(--knickgasm-green);border-radius:12px;cursor:pointer;font-size:16px;}',
+'  .mic{min-width:46px;border:1.5px solid var(--knickgasm-lava);background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-primary-text,var(--knickgasm-green));border-radius:12px;cursor:pointer;font-size:16px;}',
 '  .mic.on{background:#c0392b;color:#fff;border-color:#c0392b;}',
 '  .pill{display:inline-block;border-radius:999px;padding:2px 11px;font-size:11px;font-weight:700;border:1px solid var(--line);}',
 '  .btn-primary{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:10px;font-weight:700;transition:filter .12s;} .btn-primary:hover{filter:brightness(1.15);}',
-'  .btn-lava{background:var(--knickgasm-lava);color:var(--knickgasm-green);border-radius:10px;font-weight:800;transition:filter .12s;} .btn-lava:hover{filter:brightness(1.05);}',
+'  .btn-lava{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));border-radius:10px;font-weight:800;transition:filter .12s;} .btn-lava:hover{filter:brightness(1.05);}',
 '  .wire{border:2px dashed var(--knickgasm-lava);border-radius:12px;background:repeating-linear-gradient(45deg,#fff,#fff 12px,#faf6ec 12px,#faf6ec 24px);padding:16px;min-height:96px;}',
-'  .wire .wl{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:11.5px;color:var(--knickgasm-green);font-weight:700;letter-spacing:.02em;}',
+'  .wire .wl{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:11.5px;color:var(--brand-primary-text,var(--knickgasm-green));font-weight:700;letter-spacing:.02em;}',
 '  details.blueprint{background:var(--knickgasm-ink);border-radius:12px;overflow:hidden;border:1px solid var(--line);}',
 '  details.blueprint>summary{list-style:none;cursor:pointer;padding:13px 18px;color:var(--knickgasm-chalk);font-family:"Montserrat",Georgia,serif;font-size:16px;background:var(--knickgasm-green);display:flex;align-items:center;justify-content:space-between;}',
 '  details.blueprint>summary::-webkit-details-marker{display:none;}',
@@ -114,7 +114,7 @@ function head(title, desc) {
 '  details.blueprint pre{margin:0;padding:18px;overflow-x:auto;color:#e8ede9;font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12.5px;line-height:1.6;}',
 '  .code-out{font-family:ui-monospace,"JetBrains Mono",Menlo,monospace;font-size:12.5px;line-height:1.55;}',
 '  .flow-node{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;}',
-'  a{color:var(--knickgasm-green);} a:hover{color:var(--knickgasm-lava-ink);}',
+'  a{color:var(--brand-primary-text,var(--knickgasm-green));} a:hover{color:var(--knickgasm-lava-ink);}',
 '  ::selection{background:var(--knickgasm-lava);color:#fff;}',
 '  section[data-section]{scroll-margin-top:18px;}',
 '  /* Data-table alignment: headers over values (equal-width), first column left, rest centered. */',
@@ -504,7 +504,7 @@ function competitorMatrix(dossierPrefix) {
   const rows = COMPETITORS.map(function (c) {
     const href = dossierPrefix + "dossiers/" + c.slug + ".html";
     return '<tr>' +
-      '<td><a href="' + href + '" class="font-semibold" style="color:var(--knickgasm-green);text-decoration:underline;">' + c.name + '</a><div class="text-[11px]" style="color:var(--soft);">' + c.category + '</div></td>' +
+      '<td><a href="' + href + '" class="font-semibold" style="color:var(--brand-primary-text,var(--knickgasm-green));text-decoration:underline;">' + c.name + '</a><div class="text-[11px]" style="color:var(--soft);">' + c.category + '</div></td>' +
       '<td>' + tierBadge(c) + '</td>' +
       '<td>' + c.price + '</td>' +
       '<td>' + c.lead + '</td>' +
@@ -849,9 +849,9 @@ metricCard("Price band", "$99.84 to $261.95", "Full custom pair, US. UK &pound;7
 metricCard("Lead time", "10 to 15 days", "Made-to-order, stated before checkout.", "green"),
 '        </div>',
 '        <div class="card p-5"><h3 class="font-head text-lg text-knickgasm-green">Reading the arena</h3><ul class="mt-2 space-y-2 text-sm" style="color:var(--knickgasm-ink);">' +
-'<li><b style="color:var(--knickgasm-green);">The gap is structural.</b> Bespoke studios will not list a price, configurators will not paint artwork, and the marketplace long tail will not guarantee an original base.</li>' +
-'<li><b style="color:var(--knickgasm-green);">Demand is created for us.</b> Brand configurators educate an enormous audience that personalisation is worth paying for, then stop at colour.</li>' +
-'<li><b style="color:var(--knickgasm-green);">Third-party sizing is a dependency.</b> [DATA REQUIRED BEFORE LAUNCH: US custom-sneaker service market size, cited firm, US]. Own order data is the better source and should be wired in first.</li></ul></div>',
+'<li><b style="color:var(--brand-primary-text,var(--knickgasm-green));">The gap is structural.</b> Bespoke studios will not list a price, configurators will not paint artwork, and the marketplace long tail will not guarantee an original base.</li>' +
+'<li><b style="color:var(--brand-primary-text,var(--knickgasm-green));">Demand is created for us.</b> Brand configurators educate an enormous audience that personalisation is worth paying for, then stop at colour.</li>' +
+'<li><b style="color:var(--brand-primary-text,var(--knickgasm-green));">Third-party sizing is a dependency.</b> [DATA REQUIRED BEFORE LAUNCH: US custom-sneaker service market size, cited firm, US]. Own order data is the better source and should be wired in first.</li></ul></div>',
 '      </section>',
 '      <section data-section id="benchmarks" class="space-y-4">',
 secHead("Benchmarks", "The catalog, tier by tier", "The real price ladder, read from the built catalogs rather than estimated."),
@@ -888,7 +888,7 @@ function buildMarketStudy() {
   ];
 
   const smRows = SM.map(function (r) {
-    return '<tr><td><a href="../dossiers/' + r[1] + '.html" style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + r[0] + '</a></td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td>' + r[5] + '</td><td>' + r[6] + '</td></tr>';
+    return '<tr><td><a href="../dossiers/' + r[1] + '.html" style="color:var(--brand-primary-text,var(--knickgasm-green));text-decoration:underline;font-weight:600;">' + r[0] + '</a></td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td>' + r[5] + '</td><td>' + r[6] + '</td></tr>';
   }).join("\n              ");
 
   const COH = [
@@ -904,7 +904,7 @@ function buildMarketStudy() {
       '<div><dt class="text-[11px] uppercase font-bold" style="color:var(--soft);">Demographics</dt><dd class="mt-0.5">' + c.demo + '</dd></div>' +
       '<div><dt class="text-[11px] uppercase font-bold" style="color:var(--soft);">Geography</dt><dd class="mt-0.5">' + c.geo + '</dd></div>' +
       '<div><dt class="text-[11px] uppercase font-bold" style="color:var(--soft);">Mechanics</dt><dd class="mt-0.5">' + c.mech + '</dd></div>' +
-      '<div><dt class="text-[11px] uppercase font-bold" style="color:var(--soft);">Product mapping</dt><dd class="mt-0.5"><b style="color:var(--knickgasm-green);">' + c.map + '</b></dd></div>' +
+      '<div><dt class="text-[11px] uppercase font-bold" style="color:var(--soft);">Product mapping</dt><dd class="mt-0.5"><b style="color:var(--brand-primary-text,var(--knickgasm-green));">' + c.map + '</b></dd></div>' +
       '</dl></div>';
   }).join("\n          ");
 
@@ -931,8 +931,8 @@ function buildMarketStudy() {
   const VAH_MB = { n: "KNICKGASM", v: "Hand-painted one-of-one custom sneakers", t: "Category leader (India)", r: ["US", "UK", "Global", "India"], site: "knickgasm.com", aov: "AF1 median ~$156 (UK ~&pound;124)", hook: "Browsable one-of-one on a 100% original base", churn: "Occasion cycles, new collections, care follow-up" };
   function mbRow(b, vah) {
     const nameCell = vah ? "<b>" + b.n + "</b>"
-      : (b.detail ? '<a href="../dossiers/' + b.s + '.html" style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + b.n + '</a>'
-        : '<a href="https://' + b.site + '" target="_blank" rel="noopener" style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + b.n + '</a>');
+      : (b.detail ? '<a href="../dossiers/' + b.s + '.html" style="color:var(--brand-primary-text,var(--knickgasm-green));text-decoration:underline;font-weight:600;">' + b.n + '</a>'
+        : '<a href="https://' + b.site + '" target="_blank" rel="noopener" style="color:var(--brand-primary-text,var(--knickgasm-green));text-decoration:underline;font-weight:600;">' + b.n + '</a>');
     return '<tr data-regions="' + b.r.join(",") + '"' + (vah ? ' style="background:rgba(171,135,67,.1);"' : "") + '><td>' + nameCell + '</td><td>' + b.v + '</td><td>' + b.t + '</td><td class="num">' + b.aov + '</td><td>' + b.hook + '</td><td>' + b.churn + '</td></tr>';
   }
   const marketRows = MB.map(function (b) { return mbRow(b, false); }).join("\n              ") + "\n              " + mbRow(VAH_MB, true);
@@ -945,7 +945,7 @@ function buildMarketStudy() {
       '<div class="text-[12px] mt-1" style="color:var(--soft);">' + b.v + ' &middot; ' + b.aov + '</div>' +
       '<p class="text-[12.5px] mt-2" style="color:var(--knickgasm-ink);"><b class="text-knickgasm-green">Hook:</b> ' + b.hook + '</p>' +
       '<p class="text-[12.5px] mt-1" style="color:var(--knickgasm-ink);"><b class="text-knickgasm-green">Retention:</b> ' + b.churn + '</p>' +
-      '<p class="text-[12.5px] mt-2"><a href="' + link + '"' + target + ' style="color:var(--knickgasm-green);text-decoration:underline;font-weight:600;">' + cta + '</a></p></div>';
+      '<p class="text-[12.5px] mt-2"><a href="' + link + '"' + target + ' style="color:var(--brand-primary-text,var(--knickgasm-green));text-decoration:underline;font-weight:600;">' + cta + '</a></p></div>';
   }
   const briefCards = MB.map(briefCard).join("\n          ");
   const regionTabs = REGIONS.map(function (r, i) { return '<button type="button" class="rtab' + (i === 0 ? " on" : "") + '" data-region="' + r + '">' + r + '</button>'; }).join("");
@@ -1319,7 +1319,7 @@ hero("Feature 05", "Intraday Pace &amp; Predictive Calculators",
 '      <section data-section id="pace" class="space-y-4">',
 secHead("Intraday", "Hour-over-hour pace", ""),
 '        <div class="grid gap-4 sm:grid-cols-3">' +
-'<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net revenue (this hour)</div><div class="mv text-3xl mt-1" id="pace-rev">$0</div><div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--knickgasm-green);">&nbsp;</div></div>' +
+'<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net revenue (this hour)</div><div class="mv text-3xl mt-1" id="pace-rev">$0</div><div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">&nbsp;</div></div>' +
 '<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Unit order velocity</div><div class="mv text-3xl mt-1" id="pace-vel">0</div><div class="text-[12px] mt-1" style="color:var(--soft);">orders / hr</div></div>' +
 '<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net new subscriptions</div><div class="mv text-3xl mt-1" id="pace-sub">0</div><div class="text-[12px] mt-1" style="color:var(--soft);">this hour</div></div>' +
 '        </div>',
@@ -1442,7 +1442,7 @@ secHead("Contract", "System prompt skeleton", "The operational contract, machine
 function buildDossier(c) {
   function list(arr) { return '<ul class="mt-1 space-y-1 text-sm list-disc pl-5" style="color:var(--knickgasm-ink);">' + arr.map(function (x) { return '<li>' + x + '</li>'; }).join("") + '</ul>'; }
   const wires = c.wires.map(function (w) { return wireBox(w[0], w[1]); }).join("\n          ");
-  const steps = c.path.map(function (s, i) { return '<li><b style="color:var(--knickgasm-green);">Step ' + (i + 1) + '.</b> ' + s + '</li>'; }).join("");
+  const steps = c.path.map(function (s, i) { return '<li><b style="color:var(--brand-primary-text,var(--knickgasm-green));">Step ' + (i + 1) + '.</b> ' + s + '</li>'; }).join("");
   const main = [
 '      <nav class="text-[12.5px]" style="color:var(--soft);"><a href="../index.html">Hub</a> &rsaquo; <a href="../features/competitor-index.html">Competitor Dossiers</a> &rsaquo; <span style="color:var(--knickgasm-ink);">' + c.name + '</span></nav>',
 hero("Forensic Dossier", c.name, c.category + ". Desktop and mobile UX teardown, wireframe outlines, technical stack footprint, and a Knickgasm battle card with an explicit path to progress. Intelligence is directional and labelled, not audited data."),
@@ -1454,7 +1454,7 @@ metricCard("AOV", c.aov, "Estimated average order value") +
 metricCard("D-180 retention", c.d180, "Day-180 retained rate", "lava") +
 '<div class="metric p-5"><div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Primary hook</div><div class="text-[15px] mt-2 font-head text-knickgasm-green">' + c.hook + '</div></div>' +
 '        </div>',
-'        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">' + c.churnShort + '</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--knickgasm-green);">' + c.stackShort + '</p></div>',
+'        <div class="card p-5"><span class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Churn strategy</span><p class="text-sm mt-1" style="color:var(--knickgasm-ink);">' + c.churnShort + '</p><span class="text-[11px] uppercase tracking-[.06em] font-bold mt-3 block" style="color:var(--soft);">Core tech stack</span><p class="code-out mt-1" style="color:var(--brand-primary-text,var(--knickgasm-green));">' + c.stackShort + '</p></div>',
 '      </section>',
 
 '      <section data-section id="viewport" class="space-y-4">',

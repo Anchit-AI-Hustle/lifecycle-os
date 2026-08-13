@@ -41,8 +41,7 @@ const adInsights = require('./ad-insights-core.js');
 let callLLM = null;
 try { callLLM = require('./llm.js'); } catch (_) { callLLM = null; }
 
-const fs = require('fs');
-const path = require('path');
+const catalogServer = require('./brand-catalog-server.js');
 
 // ── Real product catalog (source of truth for names + links) ─────────────────
 // Canonical per-region store domains (per the product owner): US knickgasm.com,
@@ -54,29 +53,36 @@ const STORE_BASE = {
   GLOBAL: 'https://knickgasm.com',
   IN: 'https://knickgasm.in',
 };
-// Only us/uk/global catalogs are built; other markets reuse the global catalog.
-const CATALOG_FILE = { US: 'products_us.json', UK: 'products_uk.json', GLOBAL: 'products_global.json' };
-const _catalogCache = {};
 function normMarket(m) {
   const u = String(m || 'US').toUpperCase();
   return (u === 'US' || u === 'UK' || u === 'GLOBAL' || u === 'IN') ? u : 'US';
 }
-function loadCatalog(market) {
-  const region = CATALOG_FILE[market] ? market : 'GLOBAL';
-  if (_catalogCache[region]) return _catalogCache[region];
-  try {
-    const p = path.join(__dirname, '..', '..', 'data', 'catalog', CATALOG_FILE[region]);
-    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
-    _catalogCache[region] = Array.isArray(raw) ? raw : (raw.products || raw.items || []);
-  } catch (_) { _catalogCache[region] = []; }
-  return _catalogCache[region];
+// The catalogue this assistant may cite: the ACTIVE brand's own products.
+// It used to read data/catalog/products_*.json off disk, so the tool whose
+// description promises "REAL products for the ACTIVE brand ... from its own
+// catalog" returned tenant zero's 436 sneakers to every workspace, under a note
+// telling the model these were the ONLY valid product names and URLs.
+function loadCatalog(market, brand) {
+  return catalogServer.productsFor(market, { brand: brand || null }).products;
 }
-function storeBase(market) { return STORE_BASE[normMarket(market)] || STORE_BASE.US; }
+// The storefront whose PDPs may be linked. A brand's own regional store wins;
+// STORE_BASE describes tenant zero's storefronts and is used only when no brand
+// record says otherwise.
+function storeBase(market, brand) {
+  if (brand && (brand.id || brand.slug)) {
+    let f = null;
+    try { f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) { f = null; }
+    if (f && f.store) return 'https://' + f.store;
+    return String(brand.website || '').replace(/\/$/, '');
+  }
+  return STORE_BASE[normMarket(market)] || STORE_BASE.US;
+}
 // Returns REAL products with exact names, prices and verified PDP URLs.
-function catalogProducts({ query, market } = {}) {
+function catalogProducts({ query, market, brand } = {}) {
   const mk = normMarket(market);
-  const base = storeBase(mk);
-  const products = loadCatalog(mk);
+  const base = storeBase(mk, brand);
+  const cat = catalogServer.productsFor(mk, { brand: brand || null });
+  const products = cat.products;
   const q = String(query || '').toLowerCase().trim();
   const toRec = (p) => ({
     name: p.n || p.name || '',
@@ -98,11 +104,21 @@ function catalogProducts({ query, market } = {}) {
       .sort((a, b) => b.score - a.score)
       .map((x) => x.r);
   }
+  if (!list.length && cat.source === 'none') {
+    // No catalogue for this brand. Say so plainly instead of handing the model
+    // another brand's products, which it would then quote as fact.
+    return {
+      ok: true, market: mk, store: base, count: 0, source: cat.source, products: [],
+      note: cat.reason + ' Do not name or link a product until one is imported; '
+        + 'write [DATA REQUIRED BEFORE LAUNCH: product catalogue, all, ' + mk + '] instead.',
+    };
+  }
   return {
     ok: true,
     market: mk,
     store: base,
     count: list.length,
+    source: cat.source,
     note: 'These are the ONLY valid product names and URLs. Do not modify a handle or invent another.',
     products: list.slice(0, 20),
   };
@@ -116,7 +132,7 @@ const TOOLS = {
   catalog_products: {
     mutates: false,
     desc: 'Look up REAL products for the ACTIVE brand with their exact names, prices and verified store URLs from its own catalog. ALWAYS call this before naming a product or giving a product link. params: {query} (optional name/keyword to filter, e.g. "coffee collection"), {market} (US|UK|Global|IN, defaults to current market). Returns [{name, handle, price, url}] — the ONLY valid product names and URLs. Never invent or edit a handle or domain.',
-    run: async (a) => catalogProducts(a),
+    run: async (a) => catalogProducts(a),   // `brand` is injected by chat() below
   },
   market_performance: {
     mutates: false,
@@ -478,20 +494,36 @@ function renderTranscript(history, message, working) {
  * The conversational tool-calling loop.
  * @returns {ok, reply, steps:[{tool,args,summary}], provider, brand}
  */
-async function chat({ message, history = [], market = 'US', maxSteps = 3, workspaceId = null } = {}) {
+/**
+ * The tool-calling turn, run with the brand's own catalogue pinned to it.
+ *
+ * The wrapper exists because a tool can reach a product lookup INDIRECTLY - via
+ * the calendar, the campaign builders or the asset generators - and those paths
+ * do not take a brand argument. Pinning the catalogue for the whole turn means
+ * an indirect read resolves to this workspace's rows or to nothing, never to
+ * the shipped tenant-zero files.
+ */
+async function chat(opts = {}) {
+  const wsId = opts.workspaceId || null;
+  let brandRecord = null;
+  if (wsId) {
+    try {
+      brandRecord = await require('./workspace-scope.js').brandForWorkspace({
+        url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+        key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+      }, wsId);
+    } catch (_) { brandRecord = null; }
+  }
+  return catalogServer.withCatalog({ brand: brandRecord, workspaceId: wsId }, () => _chat(opts, brandRecord));
+}
+
+async function _chat({ message, history = [], market = 'US', maxSteps = 3, workspaceId = null } = {}, resolvedBrand = null) {
   // Resolve the ACTIVE workspace's brand record so the assistant speaks as
   // THAT brand (name, industry, regions, claims). Falls back to tenant zero
   // only for a userless call.
-  let brandRecord = null;
-  if (workspaceId) {
-    try {
-      const wsScope = require('./workspace-scope.js');
-      brandRecord = await wsScope.brandForWorkspace({
-        url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
-        key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
-      }, workspaceId);
-    } catch (_) { brandRecord = null; }
-  }
+  // Already resolved by the wrapper above; re-reading it here would issue a
+  // second lookup per turn for the same answer.
+  const brandRecord = resolvedBrand;
   const brand = brandRecord && brandRecord.id
     ? Object.assign({}, brandRecord, { tagline: brandRecord.tagline || BRAND_LLM_TAGLINE })
     : { name: BRAND_LLM_NAME, tagline: BRAND_LLM_TAGLINE };
@@ -605,7 +637,10 @@ async function chat({ message, history = [], market = 'US', maxSteps = 3, worksp
         // performance, ad insights AND asset generation for the chosen region.
         const runArgs = (args && args.market != null && String(args.market).trim()) ? args : { ...(args || {}), market };
         let result;
-        try { result = await tool.run(runArgs); } catch (e) { result = { ok: false, error: e.message }; }
+        // Every tool runs FOR the resolved brand. Passing it explicitly (rather
+        // than relying on the ambient scope alone) means a tool that reaches a
+        // catalogue cannot read tenant zero's by omission.
+        try { result = await tool.run(Object.assign({ brand }, runArgs)); } catch (e) { result = { ok: false, error: e.message }; }
         collectAssets(name, result, assets); // client-only asset channel (before truncation)
         working.push({ tool: name, args: runArgs, result });
         steps.push({ tool: name, args: runArgs, summary: truncate(result, 600) });

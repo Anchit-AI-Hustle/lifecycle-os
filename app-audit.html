@@ -13,7 +13,12 @@
      deep purple (readable on the light canvas), never light-on-light. */
   html:root, html:root[data-theme]{ --bg:#FFFFFF; --panel:#ffffff; --panel2:var(--vh-panel-tan); --line:rgba(171,135,67,.28);
     --green:#D0473E; --lava:#6A33D8; --chalk:#D0473E; --ink:#111111; --soft:#556059;
-    --good:#2f8f57; --watch:#9a7420; --bad:#c0492e; }
+    /* Score colours. These are read as TEXT (the legend, the per-card score),
+       so they take the brand's state tokens rather than page-local literals:
+       the old green measured 4.05:1 on the canvas, the old red was off-palette.
+       --watch stays local deliberately - --brand-warn is a 2.4:1 yellow that
+       only works as a fill, and this one is written as text. */
+    --good:var(--brand-ok,#1a7f37); --watch:#9a7420; --bad:var(--brand-err,#c0392b); }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;}
   .wrap{max-width:1080px;margin:0 auto;padding:26px 20px 100px;}
@@ -88,7 +93,11 @@
   <div class="blockers" id="blockers"></div>
 
   <div class="sec-h">Feature scorecard</div>
-  <div class="legend">Colour: <b style="color:#3fa46a">≥8.5 strong</b> · <b style="color:var(--brand-accent-text)">7 - 8.4 needs work</b> · <b style="color:#d1795f">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
+  <!-- The legend keyed itself to the RING colours, which are 12px strokes tuned
+       as graphics, not text: 3.1:1 and 3.2:1 on the canvas. It now uses the same
+       three vars the scorecard itself colours with, so the key and the thing it
+       explains cannot drift apart again. -->
+  <div class="legend">Colour: <b style="color:var(--good)">≥8.5 strong</b> · <b style="color:var(--brand-accent-text)">7 - 8.4 needs work</b> · <b style="color:var(--bad)">&lt;7 priority</b>. "Now" is today; the roadmap below lifts each toward 9.5.</div>
   <div class="grid" id="grid" style="margin-top:10px;"></div>
 
   <div class="sec-h">Roadmap to ≥ 9.5 everywhere</div>
@@ -139,7 +148,9 @@
   ];
   function overallOf(f){ return (f.a*0.4 + f.i*0.2 + f.e*0.2 + f.r*0.2); }
   function col(v){ return v>=8.5?'var(--good)':v>=7?'var(--watch)':'var(--bad)'; }
-  function ringColor(v){ return v>=9.5?'#3fa46a':v>=8?'#d9b25a':'#d1795f'; }
+  // Same three vars as col(), so ring, bars, score and legend agree. The old
+  // amber was 2.0:1 against the canvas - under the 3:1 floor for a graphic.
+  function ringColor(v){ return v>=9.5?'var(--good)':v>=8?'var(--watch)':'var(--bad)'; }
 
   // Overall = average of audited features' overall.
   var overalls = FEATURES.map(overallOf);

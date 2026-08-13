@@ -5,9 +5,18 @@
 // -> standalone HTML via compileHTML(theme, variant, baseOrigin). Faithful port
 // (type annotations stripped only); kept in sync with the sibling app.
 // ─────────────────────────────────────────────────────────────────────────────
+// ── TENANT ZERO ONLY ────────────────────────────────────────────────────────
 // Campaign-hub landing themes. Each is a real KNICKGASM angle (self-expression,
 // fandom, occasion, collecting, care) — never a health or benefit claim. Product
-// facts, prices and images below all come from data/catalog/products_us.json.
+// facts, prices and images below are TENANT ZERO'S, read from its own catalogue
+// (data/catalog/products_us.json) and its own Shopify CDN.
+//
+// This is a hand-written CONTENT LIBRARY for one brand: there is no
+// brand-agnostic version of "Naruto on an Air Force 1", and nothing here can be
+// re-skinned into another company's page. brain-generate.pickCampaignHubLP()
+// therefore returns null for every brand that is not tenant zero, which falls
+// the caller through to the brand-derived generator. Do not add a call site that
+// skips that gate.
 const ASSETS = {
   spiderman: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/28DE9946-D17C-4315-8861-E3DD69D53938.jpg?v=1783339509",
   manUtd: "https://cdn.shopify.com/s/files/1/0754/4094/7522/files/FullSizeRender_463ec0c1-bdb5-410d-bd57-2cebd9f0edac.jpg?v=1785616541",
@@ -244,7 +253,8 @@ function compileHTML(theme, variant, baseOrigin) {
   const cartFlowUrl = theme && theme.variantLink ? theme.variantLink : "https://knickgasm.com/collections/all";
   const targetUrl = variant.deliveryPath === 'checkout' ? directCheckoutUrl : cartFlowUrl;
 
-  // Hero + supporting imagery come from the live catalog (data/catalog/products_us.json).
+  // Hero + supporting imagery are tenant zero's own catalogue photos (see the
+  // TENANT ZERO ONLY note at the top of this file).
   const heroImage = (theme && theme.assets && theme.assets.heroFace) || ASSETS.spiderman;
   const ingredientImage = (theme && theme.assets && theme.assets.ksmRoot) || ASSETS.gtr;
   const trustBadgeImage = ASSETS.ropeLaces;
@@ -546,7 +556,7 @@ function compileHTML(theme, variant, baseOrigin) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   ${baseOrigin ? `<base href="${baseOrigin}/" />` : ''}
-  <title>KNICKGASM Coffee Collection - ${theme.name}</title>
+  <title>KNICKGASM - ${theme.name}</title>
   <style>
     /* KNICKGASM brand fonts (exact assets) */
     @font-face {

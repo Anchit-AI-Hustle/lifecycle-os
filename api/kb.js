@@ -127,6 +127,68 @@ async function ingestFiles(req, res, env) {
   });
 }
 
+/**
+ * INGEST-SITE — file one batch of the ACTIVE brand's OWN site into the KB.
+ *
+ * Two things make this different from `?action=ingest`, and both are deliberate:
+ *
+ * 1. SCOPE. It rides on site-crawl's same-origin rules, so it can only ever
+ *    reach this brand's own domain and the hosts that brand has declared. There
+ *    is no URL parameter to point it somewhere else.
+ * 2. NO PARAPHRASE. `?action=ingest` runs an LLM over a page and stores the
+ *    summary, which is right for a competitor's blog post and wrong for the
+ *    brand's own copy: a paraphrase of a brand fact is a new brand fact nobody
+ *    approved. This stores each page's own declared description and its own
+ *    headings, verbatim.
+ *
+ * It also skips `ingest-guardrail.js` on purpose. That guardrail keeps the
+ * COMPETITOR/market learning log on-topic; a brand's own pages are on-topic for
+ * that brand by definition, and the guardrail's lexicon is tenant zero's
+ * industry, so it would drop a publisher's or a menswear brand's own homepage.
+ *
+ * Batched and resumable through the pack row, so a large site streams through
+ * as many small calls rather than one that times out.
+ */
+async function ingestSite(req, res, env) {
+  const pack = require('./_shared/brand-context-pack.js');
+  const wsId = req.__workspaceId ? String(req.__workspaceId) : null;
+  if (!wsId) return res.status(200).json(NOTHING({ error: 'workspace_unresolved' }));
+
+  const token = (() => {
+    const h = String((req.headers && (req.headers.authorization || req.headers.Authorization)) || '');
+    const m = /^Bearer\s+(.+)$/i.exec(h.trim());
+    return m ? m[1].trim() : '';
+  })();
+
+  let store;
+  try { store = token ? pack.userStore(token) : pack.serviceStore(); }
+  catch (e) { return res.status(503).json({ ok: false, error: e.message }); }
+
+  try {
+    const row = await pack.getPackRow(store, wsId);
+    if (!row) {
+      return res.status(404).json({
+        ok: false, error: 'no_context_pack',
+        note: 'A brand\'s own-site ingest runs inside its context pack, which is keyed to the brand\'s URL '
+          + 'and name. Build one first: /api/brand?op=context-build.',
+      });
+    }
+    if (row.stage !== 'knowledge') {
+      return res.status(200).json({
+        ok: true, skipped: true, stage: row.stage,
+        note: `This pack is at stage "${row.stage}". The own-site ingest runs at stage "knowledge".`,
+      });
+    }
+    const step = await pack.advancePack(store, row, {});
+    return res.status(200).json({
+      ok: true, workspace_id: wsId, stage: step.stage, done: !!step.done,
+      knowledge: (step.pack && step.pack.knowledge) || {},
+    });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
@@ -170,6 +232,11 @@ module.exports = async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
     return ingestFiles(req, res, env);
   }
+  // ── 1c. INGEST-SITE — one batch of the ACTIVE brand's OWN site ──────────
+  if (action === 'ingest-site') {
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+    return ingestSite(req, res, env);
+  }
   // ── 2. LIST — read kb_knowledge ─────────────────────────────────────────
   if (action === 'list') {
     if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'GET only' });
@@ -199,7 +266,7 @@ module.exports = async function handler(req, res) {
     return brandKit(req, res, env);
   }
 
-  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|list|top-emails|brands|classify-emails|digest|brand-kit' });
+  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|ingest-files|ingest-site|list|top-emails|brands|classify-emails|digest|brand-kit' });
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

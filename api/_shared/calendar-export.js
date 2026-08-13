@@ -13,36 +13,27 @@
  *   Expected CTR % · Expected Clicks · Expected Metrics Basis ·
  *   Product Links (real) · Product Image Links (real) · Mailer + Asset Prompts
  *
- * Everything is deterministic and sourced from real data — the product catalog
- * (data/catalog/products_{region}.json) for links/images/prices, the shared
+ * Everything is deterministic and sourced from real data — the ACTIVE BRAND's own
+ * catalogue (brand-catalog-server: its brand_catalog_products rows, or the
+ * shipped files when the brand IS tenant zero) for links/images/prices, the shared
  * master-prompt builder for the per-asset prompts, and a documented cohort-tier
  * benchmark model for the expected metrics. No LLM call, so it is instant and
  * reproducible.
  */
 
-const fs = require('fs');
-const path = require('path');
 const { buildMasterPrompt, regionFacts } = require('./master-prompt.js');
+const catalogServer = require('./brand-catalog-server.js');
 const GR = require('./calendar-guardrails.js');
 
 // ── Catalog ------------------------------------------------------------------
-const CAT = {};
-function regionKey(market) {
-  const m = String(market || 'US').toLowerCase();
-  if (m.startsWith('uk')) return 'uk';
-  if (/global|eu|au|me|row|rest/.test(m)) return 'global';
-  return 'us';
-}
-function catalog(market) {
-  const r = regionKey(market);
-  if (CAT[r]) return CAT[r];
-  let arr = [];
-  try {
-    const raw = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'catalog', `products_${r}.json`), 'utf8'));
-    arr = Array.isArray(raw) ? raw : (raw.products || raw.items || []);
-  } catch (_) { arr = []; }
-  CAT[r] = arr;
-  return arr;
+// Whose products go in the sheet is decided by brand-catalog-server, not by a
+// path on disk: data/catalog/products_*.json is TENANT ZERO'S catalogue, and an
+// export built for another brand listed that brand's sends against this one's
+// sneakers, prices, PDP links and photos. An entry carries the brand it was
+// planned for, so every lookup here is scoped to it; a brand with no catalogue
+// exports honest empty product columns rather than a foreign product row.
+function catalog(market, brand) {
+  return catalogServer.productsFor(market, { brand: brand || null }).products;
 }
 function storeBase(market) {
   const f = regionFacts(String(market || 'US').toUpperCase());
@@ -67,8 +58,8 @@ function fromRow(p, market) {
 // overlap, needs >= 2 shared words to be a confident PDP match). If nothing is
 // confident we NEVER substitute a wrong product — we return the hero title with
 // a real store-search link and no image, so a link is always honest.
-function resolveProduct(ref, market) {
-  const arr = catalog(market);
+function resolveProduct(ref, market, brand) {
+  const arr = catalog(market, brand);
   if (!arr.length || !ref) return null;
   let handle = null, title = null;
   if (typeof ref === 'string') { handle = ref; title = ref.replace(/[-_]+/g, ' '); }
@@ -107,7 +98,7 @@ function stableIndex(str, n) {
 // (cross-sell), favouring bestsellers, then fill from the same type. Always real
 // catalog rows, never the hero itself.
 function supportingProducts(heroResolved, entry, market, n = 2) {
-  const arr = catalog(market);
+  const arr = catalog(market, entry && entry.brand);
   if (!arr.length) return [];
   const heroHandle = heroResolved && heroResolved.handle;
   const heroType = (heroResolved && heroResolved.type) || '';
@@ -249,7 +240,7 @@ const COLUMNS = [
 //   { index, priorCohorts:[names] } for the send's position in the sorted plan.
 function buildRow(entry, ctx = {}) {
   const market = entry.market || 'US';
-  const hero = resolveProduct(entry.heroProduct || entry.hero_handle || entry.hero_product, market)
+  const hero = resolveProduct(entry.heroProduct || entry.hero_handle || entry.hero_product, market, entry.brand)
     || (entry.heroProduct ? { title: entry.heroProduct.title, handle: entry.heroProduct.handle || null, image: null, price: null, type: entry.heroProduct.category || 'product', url: storeBase(market) } : null);
   const supporting = hero ? supportingProducts(hero, entry, market, 2) : [];
   const cohortName = (entry.cohort && entry.cohort.name) || entry.cohort_label || entry.cohort_key || '';
