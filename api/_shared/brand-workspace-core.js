@@ -742,6 +742,68 @@ async function assertPublicUrl(rawUrl) {
  * and only after the SSRF guard above clears the destination. Facts are copied
  * verbatim from the store; nothing is synthesised.
  */
+/**
+ * Catalogue from the brand's OWN SITE, for every brand without a product feed.
+ *
+ * rowsFromStorefront can read exactly one thing: a Shopify /products.json. A
+ * publisher, an events programme, a service, or any store not on Shopify had no
+ * route in at all, so its assets fell back to DATA REQUIRED markers.
+ *
+ * This crawls the brand's interlinked pages and takes only what the site itself
+ * DECLARES in structured data. See _shared/site-crawl.js for why nothing is
+ * read out of prose.
+ */
+async function rowsFromSite(startUrl, region, brand) {
+  const { crawlSite } = require('./site-crawl.js');
+  const candidate = httpUrl(startUrl) || (brand && brand.website) || '';
+  if (!candidate) { const e = new Error('A site URL is required to crawl.'); e.status = 400; throw e; }
+  // Same SSRF guard the storefront import uses: a public host must not be able
+  // to bounce this onto an internal one.
+  const base = await assertPublicUrl(candidate);
+
+  const out = await crawlSite(base, { brand: brand || { website: base } });
+  if (!out.ok) {
+    const e = new Error(out.error === 'start_url_out_of_scope'
+      ? 'That URL is not on this brand\'s own domain. A catalogue may only be crawled from the brand\'s own site.'
+      : 'The site crawl could not start.');
+    e.status = 400; throw e;
+  }
+
+  const rows = [];
+  for (const o of out.offerings) {
+    const title = str(o.name, 300);
+    if (!title) continue;
+    rows.push({
+      region,
+      title,
+      handle: slugify(title),
+      sku: str(o.sku, 120) || null,
+      description: str(o.description, 4000) || null,
+      product_type: str(o.kind, 120) || null,
+      collections: [],
+      price: num(o.price),
+      compare_at: null,
+      currency: str(o.currency, 8).toUpperCase() || null,
+      image_url: httpUrl(o.image) || null,
+      product_url: httpUrl(o.url) || null,
+      in_stock: null,
+      tags: [],
+      source: 'site_crawl',
+    });
+    if (rows.length >= MAX_CATALOG_ROWS) break;
+  }
+
+  return {
+    rows, base,
+    // Carried through so the caller can surface it rather than presenting a
+    // partial crawl as the whole catalogue.
+    crawl: {
+      pages_visited: out.pages_visited, stopped: out.stopped,
+      coverage_note: out.coverage_note, images: out.images, notes: out.notes,
+    },
+  };
+}
+
 async function rowsFromStorefront(storeUrl, region) {
   const candidate = httpUrl(storeUrl);
   if (!candidate) { const e = new Error('Store URL is not a valid http(s) URL.'); e.status = 400; throw e; }
@@ -919,9 +981,10 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
 
   let parsed;
   if (k === 'storefront' || k === 'shopify_public') parsed = await rowsFromStorefront(url, reg);
+  else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, ws);
   else if (k === 'json') parsed = rowsFromJson(text, reg);
   else if (k === 'csv') parsed = rowsFromCsv(text, reg);
-  else { const e = new Error('kind must be one of: csv, json, storefront.'); e.status = 400; throw e; }
+  else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
 
   if (!parsed.rows.length) { const e = new Error('No usable product rows were found in that source.'); e.status = 400; throw e; }
 
@@ -967,8 +1030,8 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
   }
 
   const source = {
-    kind: k === 'storefront' ? 'shopify_public' : k,
-    url: k === 'storefront' ? (parsed.base || httpUrl(url)) : '',
+    kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
+    url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
     imported_at: new Date().toISOString(),
     row_count: inserted,
     batch,
