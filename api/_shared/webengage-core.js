@@ -74,8 +74,14 @@ function parseDump(buf, name) {
   }
   return rows;
 }
-async function upsert(url, key, rows) {
+async function upsert(url, key, rows, workspaceId) {
   if (!rows.length) return 0;
+  // A row written without a workspace lands with workspace_id NULL: accepted by
+  // the database, invisible to every brand, including the one whose events they
+  // are. Refuse instead, so the dump stays in the bucket for a run that can
+  // attribute it.
+  if (!workspaceId) throw new Error('webengage upsert refused: no workspace resolved, so the events would be stored unattributed');
+  rows = rows.map((r) => Object.assign({ workspace_id: String(workspaceId) }, r));
   let n = 0;
   for (let i = 0; i < rows.length; i += 500) {
     const batch = rows.slice(i, i + 500);
@@ -94,9 +100,11 @@ async function upsert(url, key, rows) {
 }
 
 /** Twice-daily sync: drain the bucket into webengage_events. Idempotent (event_id dedupe). */
-async function syncFromStorage({ bucket } = {}) {
+async function syncFromStorage({ bucket, workspaceId = null } = {}) {
   const { url, key } = env();
   if (!url || !key) return { ok: false, connected: false, note: 'Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. WebEngage pushes .gz dumps to the Supabase Storage bucket; this drains them into webengage_events.' };
+  const ws = await workspaceFor(workspaceId);
+  if (!ws) return { ok: false, connected: true, note: 'No brand workspace resolved for this sync, so no WebEngage events were stored. Events written without an owner are readable by nobody and attributable to the wrong brand.' };
   const b = bucket || BUCKET();
   const out = { ok: true, connected: true, bucket: b, files: 0, rows: 0, errors: [] };
   let files = [];
@@ -106,7 +114,7 @@ async function syncFromStorage({ bucket } = {}) {
     try {
       const buf = await downloadFile(url, key, b, name);
       const rows = parseDump(buf, name);
-      const n = await upsert(url, key, rows);
+      const n = await upsert(url, key, rows, ws);
       out.rows += n; out.files += 1;
       await deleteFile(url, key, b, name);   // keep the bucket light after a successful write
     } catch (e) { out.errors.push({ file: name, error: e.message }); }
@@ -122,10 +130,28 @@ function attr(row, key) {
   const a = p.attributes || p.eventData || p.data || {};
   return p[key] != null ? p[key] : (a[key] != null ? a[key] : undefined);
 }
-async function fetchRows({ event, hours = 24, market, limit = 10000 }) {
+/**
+ * The workspace whose events these are.
+ *
+ * webengage_events carries workspace_id (20260810160000) and this module read
+ * it unfiltered with the service-role key, so every brand's Data Analysis
+ * mailer tab counted every other brand's pushes, clicks and campaign names as
+ * its own. An unresolvable workspace reads nothing rather than everything.
+ */
+async function workspaceFor(explicit) {
+  if (explicit) return String(explicit);
+  try {
+    const { url, key } = env();
+    return await require('./workspace-scope.js').currentWorkspaceId({ url, key });
+  } catch (_) { return null; }
+}
+
+async function fetchRows({ event, hours = 24, market, limit = 10000, workspaceId = null }) {
   const { url, key } = env();
   if (!url || !key) return { connected: false, rows: [] };
-  const parts = ['select=event_name,user_id,event_time,raw_payload', `event_time=gte.${encodeURIComponent(sinceIso(hours))}`, `limit=${limit}`, 'order=event_time.desc'];
+  const ws = await workspaceFor(workspaceId);
+  if (!ws) return { connected: true, rows: [], workspace_unresolved: true };
+  const parts = ['select=event_name,user_id,event_time,raw_payload', `event_time=gte.${encodeURIComponent(sinceIso(hours))}`, `limit=${limit}`, 'order=event_time.desc', `workspace_id=eq.${encodeURIComponent(ws)}`];
   if (event) parts.push(`event_name=eq.${encodeURIComponent(event)}`);
   const r = await fetch(`${url}/rest/v1/webengage_events?${parts.join('&')}`, { headers: hdrs(key) }).catch(() => null);
   if (!r || !r.ok) return { connected: true, rows: [] };
@@ -135,8 +161,8 @@ async function fetchRows({ event, hours = 24, market, limit = 10000 }) {
 }
 
 /** Top campaigns by an event (default Notification Clicked) in a window. */
-async function campaignPerformance({ event = 'Notification Clicked', hours = 24, market, top = 15 } = {}) {
-  const { connected: c, rows } = await fetchRows({ event, hours, market });
+async function campaignPerformance({ event = 'Notification Clicked', hours = 24, market, top = 15, workspaceId = null } = {}) {
+  const { connected: c, rows } = await fetchRows({ event, hours, market, workspaceId });
   if (!c) return { ok: false, connected: false, note: 'WebEngage store not configured (SUPABASE_SERVICE_ROLE_KEY).' };
   const by = new Map();
   for (const r of rows) {
@@ -149,8 +175,8 @@ async function campaignPerformance({ event = 'Notification Clicked', hours = 24,
 }
 
 /** Event-type mix in a window (Notification Clicked / Cart Abandoned / ...). */
-async function eventSummary({ hours = 24, market } = {}) {
-  const { connected: c, rows } = await fetchRows({ hours, market });
+async function eventSummary({ hours = 24, market, workspaceId = null } = {}) {
+  const { connected: c, rows } = await fetchRows({ hours, market, workspaceId });
   if (!c) return { ok: false, connected: false };
   const by = new Map();
   for (const r of rows) { by.set(r.event_name, (by.get(r.event_name) || 0) + 1); }
@@ -158,10 +184,10 @@ async function eventSummary({ hours = 24, market } = {}) {
 }
 
 /** Engagement (event counts) for a set of user ids — join key for RFM cohorts. */
-async function userEngagement(userIds = [], { hours = 720 } = {}) {
+async function userEngagement(userIds = [], { hours = 720, workspaceId = null } = {}) {
   const ids = (userIds || []).filter(Boolean).map(String);
   if (!ids.length) return { ok: true, connected: connected(), engagement: {} };
-  const { connected: c, rows } = await fetchRows({ hours, limit: 20000 });
+  const { connected: c, rows } = await fetchRows({ hours, limit: 20000, workspaceId });
   if (!c) return { ok: false, connected: false };
   const set = new Set(ids); const eng = {};
   for (const r of rows) { if (r.user_id && set.has(String(r.user_id))) { const u = (eng[r.user_id] = eng[r.user_id] || { events: 0, clicks: 0 }); u.events += 1; if (/click/i.test(r.event_name)) u.clicks += 1; } }

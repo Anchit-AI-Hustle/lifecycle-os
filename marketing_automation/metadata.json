@@ -1,6 +1,6 @@
 {
   "name": "Knickgasm Campaign Hub",
-  "description": "Knickgasm India Coffee Collection UK launch marketing automation dashboard, compiling high-converting landing pages for various stress, bloating, and face puffiness campaign themes.",
+  "description": "Local workspace over the Lifecycle OS landing-page compiler: picks a KNICKGASM campaign angle and a funnel variant and compiles the standalone HTML page, plus the matching Meta/Google ad copy and mailer pointers derived from the same theme record.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

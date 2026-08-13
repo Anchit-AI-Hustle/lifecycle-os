@@ -206,7 +206,11 @@ async function syncConnector(id, trigger = 'manual') {
     } else if (c.id === 'klaviyo') {
       // Read-only Klaviyo → Supabase pull (segments/sizes, metrics, campaigns).
       const ks = require('./klaviyo-sync.js');
-      const r = await ks.run().catch((e) => ({ ok: false, connected: true, records: 0, message: 'Klaviyo sync error: ' + (e && e.message || e) }));
+      // The workspace's OWN Klaviyo credentials, never the deployment's: the
+      // mirror this writes is read back as the brand's lifecycle performance.
+      const creds = await require('./workspace-connections-core.js')
+        .credentialsForCurrentRequest('klaviyo').catch(() => null);
+      const r = await ks.run({ creds }).catch((e) => ({ ok: false, connected: true, records: 0, message: 'Klaviyo sync error: ' + (e && e.message || e) }));
       records = r.records || 0;
       status = r.ok ? 'success' : (r.connected === false ? 'skipped' : 'error');
       message = r.message || 'Klaviyo read-only sync complete.';

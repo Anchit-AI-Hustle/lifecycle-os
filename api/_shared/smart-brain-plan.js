@@ -25,6 +25,7 @@ const {
   smartConfig, SmartBrainDbAdapter, KnowledgeBaseService, AnalysisService,
   CompetitorBenchmarkingService, CalendarIntelligenceService, GenerationService,
 } = require('../../lib/smart-brain/services.js');
+const crypto = require('crypto');
 const callLLM = require('./llm.js');
 const { parseJSON } = require('./llm.js');
 // Shared-source-of-truth engine (spec §24b). Optional — never let a sync
@@ -188,7 +189,26 @@ function daysAgoIso(n) { return new Date(Date.now() - n * 86400000).toISOString(
 // without colliding, and a given date always resolves to the same ids across
 // syncs. cohortSlug keeps the id filesystem/URL-safe.
 function cohortSlug(name) { return String(name || 'core').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 32) || 'core'; }
-function stableId(date, market, cohort) { return `cal_${date}_${String(market).toLowerCase()}_${cohortSlug(cohort)}`; }
+/**
+ * `smart_calendar_entries.id` is the PRIMARY KEY, and this id is derived purely
+ * from date + market + cohort - which every brand on the platform shares. Two
+ * workspaces planning 2026-09-01 / US / Nurture therefore produced the SAME
+ * primary key, so whichever synced second lost its slot to an
+ * ignore-duplicates upsert and its calendar came back empty, while its
+ * conditional UPDATEs landed on the other brand's row.
+ *
+ * `ns` is a per-workspace namespace appended to the id. It is EMPTY for tenant
+ * zero, deliberately: every historical row was backfilled to the oldest
+ * workspace, and generated landing pages are served at /lp/<campaign_id>, which
+ * is this id. Renaming those would break live URLs to fix a collision they
+ * cannot have. Every other workspace gets its own id space from its first sync.
+ */
+function stableId(date, market, cohort, ns) { return `cal_${date}_${String(market).toLowerCase()}_${cohortSlug(cohort)}${ns || ''}`; }
+/** The id namespace for a workspace: empty for tenant zero, stable elsewhere. */
+function workspaceNs(workspaceId, isZero) {
+  if (isZero || !workspaceId) return '';
+  return `_w${crypto.createHash('sha1').update(String(workspaceId)).digest('hex').slice(0, 8)}`;
+}
 
 // How long telemetry/log rows are kept before the daily sync evicts them.
 const RETENTION_DAYS = 30;
@@ -289,7 +309,7 @@ function _mulberry32(seedStr) {
   };
 }
 
-function offeringPlanEntries(brand, offerings, startDate, days) {
+function offeringPlanEntries(brand, offerings, startDate, days, ns) {
   const oc = require('./offering-campaign.js');
   const regions = (Array.isArray(brand.regions) && brand.regions.length) ? brand.regions : [];
   const markets = regions.map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
@@ -333,7 +353,7 @@ function offeringPlanEntries(brand, offerings, startDate, days) {
       const cohort = cohorts[(i + markets.indexOf(market)) % cohorts.length];
       const confidence = Math.round((0.45 + rnd() * 0.3) * 100) / 100;   // demo, deterministic
       entries.push({
-        id: stableId(date, market, cohort),
+        id: stableId(date, market, cohort, ns),
         date, market,
         status: 'needs_human_verification',
         confidence,
@@ -523,7 +543,8 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
   let ctx, fresh;
   if (!pb.isZero) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
-    fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon) : [];
+    const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
+    fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon, ns) : [];
     if (!fresh.length) {
       // Carry the SAME keys as the success return below. A caller that reads
       // `plan` got undefined here and rendered its untouched previous screen,
@@ -723,7 +744,8 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
   const pb = await planningBrand(config, db);
   if (!pb.isZero) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
-    const entries = pb.brand ? offeringPlanEntries(pb.brand, offs, todayIso(), config.calendarDays) : [];
+    const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
+    const entries = pb.brand ? offeringPlanEntries(pb.brand, offs, todayIso(), config.calendarDays, ns) : [];
     if (!entries.length) {
       return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
     }

@@ -144,6 +144,26 @@
       "permanent": false
     },
     {
+      "source": "/ads-master",
+      "destination": "/data-analysis?tab=live-ads",
+      "permanent": false
+    },
+    {
+      "source": "/ad-campaigns-master",
+      "destination": "/data-analysis?tab=live-ads",
+      "permanent": false
+    },
+    {
+      "source": "/ad-campaigns-master.html",
+      "destination": "/data-analysis?tab=live-ads",
+      "permanent": false
+    },
+    {
+      "source": "/ads-kb",
+      "destination": "/data-analysis?tab=live-ads",
+      "permanent": false
+    },
+    {
       "source": "/usa-d2c-report",
       "destination": "/data-analysis?tab=review",
       "permanent": false
@@ -161,6 +181,41 @@
     {
       "source": "/business-review",
       "destination": "/data-analysis?tab=review",
+      "permanent": false
+    },
+    {
+      "source": "/storefront-3d-us.html",
+      "destination": "/3d/us",
+      "permanent": false
+    },
+    {
+      "source": "/storefront-3d-us",
+      "destination": "/3d/us",
+      "permanent": false
+    },
+    {
+      "source": "/storefront-3d-uk.html",
+      "destination": "/3d/uk",
+      "permanent": false
+    },
+    {
+      "source": "/storefront-3d-uk",
+      "destination": "/3d/uk",
+      "permanent": false
+    },
+    {
+      "source": "/storefront-3d-global.html",
+      "destination": "/3d/global",
+      "permanent": false
+    },
+    {
+      "source": "/storefront-3d-global",
+      "destination": "/3d/global",
+      "permanent": false
+    },
+    {
+      "source": "/mailers/01_coffee_upsell_engagers.html",
+      "destination": "/studio",
       "permanent": false
     }
   ],
@@ -622,18 +677,6 @@
     {
       "source": "/ads",
       "destination": "/ad-campaigns.html"
-    },
-    {
-      "source": "/ads-master",
-      "destination": "/ad-campaigns-master.html"
-    },
-    {
-      "source": "/ad-campaigns-master",
-      "destination": "/ad-campaigns-master.html"
-    },
-    {
-      "source": "/ads-kb",
-      "destination": "/ad-campaigns-master.html"
     },
     {
       "source": "/ads-dashboard",

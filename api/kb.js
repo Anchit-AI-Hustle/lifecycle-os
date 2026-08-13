@@ -31,6 +31,26 @@
 const crypto = require('crypto');
 const wsScope = require('./_shared/workspace-scope.js');
 
+/**
+ * The workspace filter for a scoped table, or a sentinel that means "return
+ * nothing". Every read in this file goes through it.
+ *
+ * kb_knowledge, kb_top_emails, kb_daily_digest, competitor_brands and
+ * competitor_emails_classified all carry workspace_id and all were read
+ * unfiltered here, with the SERVICE-ROLE key, which bypasses the RLS policies
+ * that would otherwise have caught it. So the Knowledge Base listed every
+ * brand's ingested documents, Competitive Benchmarking listed every brand's
+ * competitor set, and the top-emails library mixed them together.
+ */
+async function wsFilter(table, env, req) {
+  try { return await wsScope.filterFor(table, env, req); }
+  catch (_) { return null; }
+}
+const NOTHING = (extra) => Object.assign({
+  ok: true, items: [], count: 0, workspace_id: null,
+  note: 'No active brand workspace on this request, so nothing is returned. Another brand\'s knowledge is never substituted. Hard-refresh the page so the brand context loads, then try again.',
+}, extra || {});
+
 // ── Shared: supabase config ────────────────────────────────────────────────
 function supaEnv() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -94,7 +114,7 @@ async function ingestFiles(req, res, env) {
       if (!buf.length) { results.push({ name, ok: false, error: 'empty file' }); continue; }
       const built = await kbFiles.buildRecord({ name, path: f.path || name, size: buf.length, buf, brand });
       const row = Object.assign({}, built.row, { workspace_id: wsId, market: String(f.market || '') || null });
-      const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=url_hash`, {
+      const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=workspace_id,url_hash`, {
         method: 'POST',
         headers: { apikey: env.key, Authorization: `Bearer ${env.key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify([row]),
@@ -117,7 +137,10 @@ async function ingestFiles(req, res, env) {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // The browser sends its Supabase session so the workspace can be resolved;
+  // without this header on the preflight the token never arrives and every
+  // request looks anonymous.
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
@@ -125,6 +148,24 @@ module.exports = async function handler(req, res) {
   let env;
   try { env = supaEnv(); }
   catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
+
+  // ── Workspace scoping (same contract as api/brain.js and api/calendar.js) ─
+  // Resolve ONCE per request: explicit param, else the caller's JWT -> their
+  // active workspace, else the default only for a userless (cron) call. A
+  // BROWSER request that carries neither is refused rather than served the
+  // default workspace's knowledge base.
+  try {
+    req.__workspaceId = await wsScope.resolve(env, req);
+    const q0 = (req && req.query) || {};
+    const b0 = (req && req.body && typeof req.body === 'object') ? req.body : {};
+    const hadExplicit = !!(q0.workspace_id || b0.workspace_id);
+    const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization));
+    const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
+    if (!hadExplicit && !hadAuth && fromBrowser) {
+      return res.status(200).json(NOTHING({ error: 'workspace_unresolved', brands: [], brand_kit: null }));
+    }
+    if (req.query) req.query.workspace_id = req.query.workspace_id || req.__workspaceId || undefined;
+  } catch (_) { /* scoping must never hard-fail the router */ }
 
   // ── 1. INGEST — fetch a URL, LLM-summarize, store ───────────────────────
   if (action === 'ingest') {
@@ -224,10 +265,12 @@ async function brandKit(req, res, env) {
 // ═══════════════════════════════════════════════════════════════════════════
 async function dailyDigest(req, res, env) {
   const headers = sbHeaders(env);
+  const wsDigest = await wsFilter('kb_daily_digest', env, req);
+  if (wsDigest === null) return res.status(200).json(NOTHING({ latest: null }));
   // GET: return the most recent stored digest (fast, for the UI).
   if (req.method === 'GET') {
     try {
-      const r = await fetch(`${env.url}/rest/v1/kb_daily_digest?select=*&order=digest_date.desc&limit=${Math.min(parseInt(req.query?.limit || '1', 10) || 1, 30)}`, { headers });
+      const r = await fetch(`${env.url}/rest/v1/kb_daily_digest?select=*&order=digest_date.desc&limit=${Math.min(parseInt(req.query?.limit || '1', 10) || 1, 30)}${wsDigest}`, { headers });
       if (!r.ok) return res.status(r.status).json({ ok: false, items: [], error: (await r.text()).slice(0, 300) });
       const items = await r.json();
       return res.status(200).json({ ok: true, items, latest: items[0] || null });
@@ -240,10 +283,13 @@ async function dailyDigest(req, res, env) {
   // the digest physically cannot see filtered junk (RAG sandbox on the way in).
   const sinceIso = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   let rows = [];
+  const wsKnowledge = await wsFilter('kb_knowledge', env, req);
+  // `return []` used to sit here, inside an HTTP handler: nothing was ever
+  // written to the response, so the request hung until the platform timed it
+  // out. Answer honestly instead.
+  if (wsKnowledge === null) return res.status(200).json(NOTHING({ latest: null }));
   try {
-    const wsF = await wsScope.filterFor('kb_knowledge', env, req);
-    if (wsF === null) return [];   // no workspace resolved: return nothing, never everything
-    const q = `${env.url}/rest/v1/kb_knowledge?select=title,summary,key_points,market,vertical,url,added_at&status=eq.summarized&added_at=gte.${encodeURIComponent(sinceIso)}&order=added_at.desc&limit=80${wsF}`;
+    const q = `${env.url}/rest/v1/kb_knowledge?select=title,summary,key_points,market,vertical,url,added_at&status=eq.summarized&added_at=gte.${encodeURIComponent(sinceIso)}&order=added_at.desc&limit=80${wsKnowledge}`;
     const r = await fetch(q, { headers });
     if (r.ok) rows = await r.json();
   } catch (_) { rows = []; }
@@ -257,7 +303,23 @@ async function dailyDigest(req, res, env) {
   let digest_md = '';
   let signals = [];
   const callLLM = require('./_shared/llm.js');
-  const SYS = `You are a D2C market-intelligence analyst for a US/UK custom sneaker, streetwear and sneaker-care brand. Synthesise the last 24 hours of clean competitor/market signals into ONE concise operational daily lesson (2-4 short paragraphs). Group by PATTERN not by source: name the brands, quote hard numbers/changes where present, and call out coordinated shifts (e.g. several brands moving to the same hook, a shared offer-architecture change). Cover only Offer Architecture, Acquisition Hooks, Retention Flows, and US/UK retail expansion. No fluff, no thought-leadership. Return STRICT JSON: {"digest_md":"<markdown lesson>","signals":[{"pattern":"<short>","brands":["..."],"vertical":"Custom Sneakers|Sneaker Retail|Sneaker Care|Streetwear","market":"US|UK","evidence":"<one line>"}]}.`;
+  // The analyst persona used to be hardcoded to "a US/UK custom sneaker,
+  // streetwear and sneaker-care brand", so a menswear or publishing workspace
+  // had its own captured signals read back to it through another industry's
+  // lens, with that industry's verticals in the output schema. It comes from
+  // the ACTIVE brand's own record now, and from the markets and verticals the
+  // rows themselves carry - never a shipped default.
+  const digestBrand = req.__workspaceId
+    ? await wsScope.brandForWorkspace(env, req.__workspaceId).catch(() => null)
+    : null;
+  const who = digestBrand
+    ? `${digestBrand.name}${digestBrand.industry ? ` (${digestBrand.industry})` : ''}`
+    : 'this brand';
+  const scopeLine = [
+    markets.length ? `markets ${markets.join('/')}` : '',
+    verticals.length ? `verticals ${verticals.join(', ')}` : '',
+  ].filter(Boolean).join(' · ') || 'the markets and verticals present in the log';
+  const SYS = `You are a market-intelligence analyst for ${who}. Synthesise the last 24 hours of clean competitor/market signals into ONE concise operational daily lesson (2-4 short paragraphs). Group by PATTERN not by source: name the brands, quote hard numbers/changes where present, and call out coordinated shifts (e.g. several brands moving to the same hook, a shared offer-architecture change). Cover Offer Architecture, Acquisition Hooks, Retention Flows and channel/retail expansion, restricted to ${scopeLine}. Use ONLY the markets and verticals that appear in the log; never introduce an industry, market or vertical that is not there. No fluff, no thought-leadership. Return STRICT JSON: {"digest_md":"<markdown lesson>","signals":[{"pattern":"<short>","brands":["..."],"vertical":"<one that appears in the log>","market":"<one that appears in the log>","evidence":"<one line>"}]}.`;
   const logLines = rows.map((x, i) => `[${i + 1}] (${x.market || '?'}/${x.vertical || '?'}) ${x.title || ''} — ${String(x.summary || '').slice(0, 300)}`).join('\n');
   try {
     const out = await callLLM({ systemPrompt: SYS, userMessage: `CLEAN LEARNING LOG (last 24h, ${rows.length} entries):\n${logLines}\n\nReturn the JSON digest.`, responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.4, timeoutMs: 40000, stage: 'kb-daily-digest', tier: 'fast' });
@@ -269,15 +331,25 @@ async function dailyDigest(req, res, env) {
   } catch (_) { /* fall through to deterministic fallback */ }
   if (!digest_md) {
     // No LLM — a deterministic roll-up so the digest still ships (never fabricate).
-    digest_md = `Daily D2C digest ${digestDate}: ${rows.length} clean signals across ${verticals.join(', ') || 'n/a'} (${markets.join('/') || 'US/UK'}). Top items:\n` + rows.slice(0, 8).map((x) => `- ${x.title || x.url}`).join('\n') + `\n\n(LLM synthesis unavailable — set a text API key for the narrative lesson.)`;
+    // The markets line reports what the rows actually carry; it used to fall
+    // back to the literal "US/UK", which is a claim about coverage the log may
+    // not support.
+    digest_md = `Daily digest ${digestDate}: ${rows.length} clean signals across ${verticals.join(', ') || 'no recorded vertical'} (${markets.join('/') || 'no recorded market'}). Top items:\n` + rows.slice(0, 8).map((x) => `- ${x.title || x.url}`).join('\n') + `\n\n(LLM synthesis unavailable — set a text API key for the narrative lesson.)`;
   }
 
   try {
-    await fetch(`${env.url}/rest/v1/kb_daily_digest?on_conflict=digest_date`, {
-      method: 'POST',
-      headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
-      body: JSON.stringify({ digest_date: digestDate, markets, verticals, sources_n: rows.length, digest_md, signals }),
-    });
+    // Upsert on (workspace_id, digest_date). The old conflict target was
+    // digest_date alone, so the second brand to synthesise on a given day
+    // overwrote the first brand's digest instead of storing its own.
+    const digestRow = await wsScope.stamp('kb_daily_digest',
+      { digest_date: digestDate, markets, verticals, sources_n: rows.length, digest_md, signals }, env, req);
+    if (digestRow && digestRow.workspace_id) {
+      await fetch(`${env.url}/rest/v1/kb_daily_digest?on_conflict=workspace_id,digest_date`, {
+        method: 'POST',
+        headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
+        body: JSON.stringify(digestRow),
+      });
+    }
   } catch (_) { /* best-effort persist */ }
   return res.status(200).json({ ok: true, digest_date: digestDate, sources_n: rows.length, markets, verticals, digest_md, signals });
 }
@@ -338,7 +410,17 @@ async function ingest(req, res, env) {
     } finally { clearTimeout(t); }
   }
 
-  const SYSTEM_PROMPT = `You are the knowledge curator for KNICKGASM — a premium D2C sneaker brand. You receive raw extracted text from a web page and distill it into a useful reference for the marketing team.
+  // The curator persona is built from the ACTIVE brand. It used to name
+  // KNICKGASM and "a premium D2C sneaker brand" outright, so every workspace's
+  // ingested documents were summarised for somebody else's marketing team and
+  // came back with somebody else's framing.
+  const ingestBrand = req.__workspaceId
+    ? await wsScope.brandForWorkspace(env, req.__workspaceId).catch(() => null)
+    : null;
+  const curatorFor = ingestBrand
+    ? `${ingestBrand.name}${ingestBrand.industry ? `, ${ingestBrand.industry}` : ''}`
+    : 'this brand';
+  const SYSTEM_PROMPT = `You are the knowledge curator for ${curatorFor}. You receive raw extracted text from a web page and distill it into a useful reference for the marketing team.
 
 Return STRICT JSON ONLY:
 {"summary":"<60-120 words>","key_points":["<5 takeaways>"],"tags":["<2-5 short tags>"]}
@@ -346,6 +428,7 @@ Return STRICT JSON ONLY:
 Rules:
 - Be specific. Reference numbers, brand names, frameworks if mentioned.
 - Skip headers, ads, navigation.
+- Summarise only what the page says. Never add a fact about ${curatorFor} that the page does not contain.
 - If the text is empty/garbage, return {"summary":"<could not extract content>","key_points":[],"tags":["error"]}.
 - Output the JSON object only, starting with { and ending with }.`;
 
@@ -376,14 +459,25 @@ Rules:
   const hash = urlHash(canonical);
   const headers = sbHeaders(env);
 
-  // Upsert initial 'queued' row
+  // Upsert initial 'queued' row.
+  //
+  // This used to read `row = await wsScope.stamp('kb_knowledge', row, …)` with
+  // `row` still undefined on the line after its own declaration, and then throw
+  // the result away: the body posted below was a separate object literal with
+  // no workspace_id on it. So every ingested document landed with workspace_id
+  // NULL - accepted by the database, invisible to every brand including the one
+  // that ingested it. Stamp the object that is actually written.
   let row;
   try {
-    row = await wsScope.stamp('kb_knowledge', row, env, req);
-    const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=url_hash`, {
+    const queued = await wsScope.stamp('kb_knowledge',
+      { url: canonical, url_hash: hash, source_type, tags: userTags, status: 'queued', added_by }, env, req);
+    if (!queued || !queued.workspace_id) {
+      return res.status(200).json(NOTHING({ stage: 'workspace', error: 'workspace_unresolved' }));
+    }
+    const r = await fetch(`${env.url}/rest/v1/kb_knowledge?on_conflict=workspace_id,url_hash`, {
       method: 'POST',
       headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
-      body: JSON.stringify({ url: canonical, url_hash: hash, source_type, tags: userTags, status: 'queued', added_by }),
+      body: JSON.stringify(queued),
     });
     if (!r.ok) throw new Error(`${r.status} ${(await r.text().catch(() => '')).slice(0,300)}`);
     const data = await r.json(); row = Array.isArray(data) ? data[0] : data;
@@ -449,7 +543,9 @@ Rules:
 async function listKnowledge(req, res, env) {
   const limit = Math.min(parseInt(req.query?.limit || '200', 10) || 200, 500);
   const status = req.query?.status ? `&status=eq.${encodeURIComponent(req.query.status)}` : '';
-  const url = `${env.url}/rest/v1/kb_knowledge?select=id,url,source_type,title,author,summary,key_points,tags,status,added_by,added_at,processed_at&order=added_at.desc&limit=${limit}${status}`;
+  const ws = await wsFilter('kb_knowledge', env, req);
+  if (ws === null) return res.status(200).json(NOTHING());
+  const url = `${env.url}/rest/v1/kb_knowledge?select=id,url,source_type,title,author,summary,key_points,tags,status,added_by,added_at,processed_at&order=added_at.desc&limit=${limit}${status}${ws}`;
   try {
     const r = await fetch(url, { headers: sbHeaders(env) });
     if (!r.ok) return res.status(r.status).json({ ok: false, items: [], error: (await r.text()).slice(0, 300) });
@@ -482,7 +578,9 @@ async function topEmails(req, res, env) {
     const market = req.query?.market;
     const orderBy = req.query?.order === 'open' ? 'open_rate.desc' : (req.query?.order === 'rev' ? 'revenue.desc' : 'added_at.desc');
     const filter = market ? `&market=eq.${encodeURIComponent(market)}` : '';
-    const url = `${env.url}/rest/v1/kb_top_emails?select=*&order=${orderBy}&limit=${limit}${filter}`;
+    const ws = await wsFilter('kb_top_emails', env, req);
+    if (ws === null) return res.status(200).json(NOTHING());
+    const url = `${env.url}/rest/v1/kb_top_emails?select=*&order=${orderBy}&limit=${limit}${filter}${ws}`;
     const r = await fetch(url, { headers: sbHeaders(env) });
     if (!r.ok) return res.status(r.status).json({ ok: false, items: [], error: (await r.text()).slice(0, 300) });
     const items = await r.json();
@@ -495,10 +593,14 @@ async function topEmails(req, res, env) {
   if (rawRows.length > 200) return res.status(400).json({ ok: false, error: 'Bulk limit is 200 rows per request' });
   const rows = rawRows.map(normalize).filter(Boolean);
   if (!rows.length) return res.status(400).json({ ok: false, error: 'No valid rows — each needs subject + body_text' });
+  // A row written without a workspace lands with workspace_id NULL, which no
+  // brand can ever read back. Refuse instead of filing it into the void.
+  if (!req.__workspaceId) return res.status(200).json(NOTHING({ inserted: 0, error: 'workspace_unresolved' }));
+  const stamped = await wsScope.stamp('kb_top_emails', rows, env, req);
   const r = await fetch(`${env.url}/rest/v1/kb_top_emails`, {
     method: 'POST',
     headers: { ...sbHeaders(env), Prefer: 'return=representation' },
-    body: JSON.stringify(rows),
+    body: JSON.stringify(stamped),
   });
   if (!r.ok) return res.status(r.status).json({ ok: false, inserted: 0, error: (await r.text()).slice(0, 300) });
   const inserted = await r.json();
@@ -513,6 +615,14 @@ async function brands(req, res, env) {
   const pick = (o, ks) => ks.reduce((r, k) => (o[k] !== undefined ? (r[k] = o[k], r) : r), {});
   const headers = sbHeaders(env);
 
+  // Every branch below is scoped. A competitor set is one of the most
+  // brand-specific things in the product - a menswear brand's rivals are not a
+  // sneaker brand's - and this router read, wrote, patched and DELETED
+  // competitor_brands rows by bare id with the service-role key. The id of
+  // another brand's row was all it took to edit or remove it.
+  const ws = await wsFilter('competitor_brands', env, req);
+  if (ws === null) return res.status(200).json(NOTHING({ brands: [] }));
+
   if (req.method === 'GET') {
     const q = req.query || {};
     const f = [];
@@ -520,7 +630,7 @@ async function brands(req, res, env) {
     if (q.region) f.push(`region=eq.${encodeURIComponent(q.region)}`);
     if (q.active !== undefined && q.active !== 'all') f.push(`is_active=eq.${q.active === 'false' ? 'false' : 'true'}`);
     const filterStr = f.length ? `&${f.join('&')}` : '';
-    const url = `${env.url}/rest/v1/competitor_brands?select=*&order=category.asc,region.asc,priority.asc,name.asc&limit=500${filterStr}`;
+    const url = `${env.url}/rest/v1/competitor_brands?select=*&order=category.asc,region.asc,priority.asc,name.asc&limit=500${filterStr}${ws}`;
     const r = await fetch(url, { headers });
     if (!r.ok) return res.status(r.status).json({ ok: false, items: [], error: (await r.text()).slice(0, 300) });
     const items = await r.json();
@@ -530,10 +640,12 @@ async function brands(req, res, env) {
     const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
     const row = pick(body, ALLOWED);
     if (!row.name || !row.category || !row.region) return res.status(400).json({ ok: false, error: 'name, category, region required' });
-    const r = await fetch(`${env.url}/rest/v1/competitor_brands?on_conflict=name,region`, {
+    const stamped = await wsScope.stamp('competitor_brands', row, env, req);
+    if (!stamped || !stamped.workspace_id) return res.status(200).json(NOTHING({ brands: [] }));
+    const r = await fetch(`${env.url}/rest/v1/competitor_brands?on_conflict=workspace_id,name,region`, {
       method: 'POST',
       headers: { ...headers, Prefer: 'return=representation,resolution=merge-duplicates' },
-      body: JSON.stringify(row),
+      body: JSON.stringify(stamped),
     });
     if (!r.ok) return res.status(r.status).json({ ok: false, error: (await r.text()).slice(0, 300) });
     const data = await r.json();
@@ -544,21 +656,24 @@ async function brands(req, res, env) {
     const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
     const patch = pick(body, ALLOWED);
     if (!Object.keys(patch).length) return res.status(400).json({ ok: false, error: 'no fields to update' });
-    const r = await fetch(`${env.url}/rest/v1/competitor_brands?id=eq.${id}`, {
+    const r = await fetch(`${env.url}/rest/v1/competitor_brands?id=eq.${encodeURIComponent(id)}${ws}`, {
       method: 'PATCH',
       headers: { ...headers, Prefer: 'return=representation' },
       body: JSON.stringify(patch),
     });
     if (!r.ok) return res.status(r.status).json({ ok: false, error: (await r.text()).slice(0, 300) });
     const data = await r.json();
-    return res.status(200).json({ ok: true, brand: Array.isArray(data) ? data[0] : data });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return res.status(404).json({ ok: false, error: 'not_found_in_this_workspace' });
+    return res.status(200).json({ ok: true, brand: row });
   }
   if (req.method === 'DELETE') {
     const id = req.query?.id; if (!id) return res.status(400).json({ ok: false, error: 'id required' });
     const hard = req.query?.hard === '1';
+    const target = `${env.url}/rest/v1/competitor_brands?id=eq.${encodeURIComponent(id)}${ws}`;
     const r = hard
-      ? await fetch(`${env.url}/rest/v1/competitor_brands?id=eq.${id}`, { method: 'DELETE', headers })
-      : await fetch(`${env.url}/rest/v1/competitor_brands?id=eq.${id}`, { method: 'PATCH', headers, body: JSON.stringify({ is_active: false }) });
+      ? await fetch(target, { method: 'DELETE', headers })
+      : await fetch(target, { method: 'PATCH', headers, body: JSON.stringify({ is_active: false }) });
     if (!r.ok) return res.status(r.status).json({ ok: false, error: (await r.text()).slice(0, 300) });
     return res.status(200).json({ ok: true, deleted: hard ? 'hard' : 'soft' });
   }
@@ -583,9 +698,14 @@ async function classifyEmails(req, res, env) {
   }
   const dedupeKey = (e) => `${(e.senderEmail || '').toLowerCase()}|${(e.subject || '').trim()}|${e.receivedAt || ''}`;
 
+  // The captured competitor mail archive is per brand, and the rollup below is
+  // a count of THIS brand's captures. Unfiltered it counted everyone's.
+  const ws = await wsFilter('competitor_emails_classified', env, req);
+  if (ws === null) return res.status(200).json(NOTHING({ counts: {}, byBrand: {}, total: 0 }));
+
   if (req.method === 'GET') {
     if (req.query?.summary === '1') {
-      const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?select=format,brand&limit=2000`, { headers });
+      const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?select=format,brand&limit=2000${ws}`, { headers });
       const items = r.ok ? await r.json() : [];
       const counts = items.reduce((a, it) => (a[it.format] = (a[it.format] || 0) + 1, a), {});
       const byBrand = items.reduce((a, it) => {
@@ -598,7 +718,7 @@ async function classifyEmails(req, res, env) {
     }
     const limit = Math.min(parseInt(req.query?.limit || '200', 10) || 200, 500);
     const fmt = req.query?.format ? `&format=eq.${encodeURIComponent(req.query.format)}` : '';
-    const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?select=*&order=classified_at.desc&limit=${limit}${fmt}`, { headers });
+    const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?select=*&order=classified_at.desc&limit=${limit}${fmt}${ws}`, { headers });
     const items = r.ok ? await r.json() : [];
     return res.status(200).json({ ok: true, items });
   }
@@ -619,7 +739,7 @@ async function classifyEmails(req, res, env) {
 
   let existing = new Set();
   if (!reclassify) {
-    const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?select=email_key&limit=2000`, { headers });
+    const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?select=email_key&limit=2000${ws}`, { headers });
     if (r.ok) existing = new Set((await r.json()).map((x) => x.email_key));
   }
 
@@ -646,11 +766,18 @@ async function classifyEmails(req, res, env) {
     });
   }
   if (!toUpsert.length) return res.status(200).json({ ok: true, scanned, skipped, inserted: 0, counts });
-  const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?on_conflict=email_key`, {
+  const stamped = await wsScope.stamp('competitor_emails_classified', toUpsert, env, req);
+  const r = await fetch(`${env.url}/rest/v1/competitor_emails_classified?on_conflict=workspace_id,email_key`, {
     method: 'POST',
     headers: { ...headers, Prefer: 'return=minimal,resolution=merge-duplicates' },
-    body: JSON.stringify(toUpsert),
+    body: JSON.stringify(stamped),
   });
   if (!r.ok) return res.status(r.status).json({ ok: false, error: (await r.text()).slice(0, 300), scanned, inserted: 0 });
   return res.status(200).json({ ok: true, scanned, skipped, inserted: toUpsert.length, counts });
 }
+
+// Wrapped so everything this router calls - including the generic Supabase
+// helper in _shared/supa.js, which has no `req` of its own - can resolve THIS
+// caller's workspace and scope its reads and writes to it. See
+// api/_shared/request-scope.js for why an ambient variable would not do.
+module.exports = require('./_shared/request-scope.js').wrap(module.exports);

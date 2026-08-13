@@ -459,16 +459,12 @@ module.exports = async function handler(req, res) {
         if (op === 'ping') return res.json(await adsSnowflake.ping());
         if (op === 'budgets') return res.json(adsSnowflake.budgets());
         if (op === 'describe') return res.json(await adsSnowflake.describe({ platform: p.platform, level: p.level }));
-        // The ad-account studio: every account, what it is used for, and the KPI
-        // it can honestly be judged on (see adAccounts() in the core).
+        // The configured ad feeds and the KPI each can honestly be judged on
+        // (see adSources() in the core). There is no bundled account registry:
+        // a feed exists only when the deployment names its warehouse table.
         if (op === 'accounts') return res.json(await adsSnowflake.accounts({ since: p.since, until: p.until, accounts: p.accounts }));
         if (op === 'multi-daily') return res.json(await adsSnowflake.multiDaily({ since: p.since, until: p.until, accounts: p.accounts, by: p.by }));
         if (op === 'campaigns') return res.json(await adsSnowflake.campaigns({ since: p.since, until: p.until, account: p.account, level: p.level }));
-        // Retail funnel: spend in MAPLEMONK joined to outcomes in MAPLEMONK1 (Target
-        // Roundel attributed sales + real Target store sell-through). The only way
-        // to answer "is the Target programme working" — the Meta retail account has
-        // no pixel, so on its own it can only ever look like cost.
-        if (op === 'retail-funnel') return res.json(await adsSnowflake.retailFunnel({ since: p.since, until: p.until, by: p.by }));
         if (op === 'cohort') return res.json(await adsSnowflake.cohort({ platform: p.platform, dimension: p.dimension, measure: p.measure, account: p.account, since: p.since, until: p.until, level: p.level }));
         return res.json(await adsSnowflake.metrics({ platform: p.platform, account: p.account, since: p.since, until: p.until, level: p.level, limit: p.limit }));
       }

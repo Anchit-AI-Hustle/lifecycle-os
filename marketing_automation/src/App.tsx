@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { THEMES, FUNNEL_VARIANTS, compileHTML } from './utils/compiler';
+import {
+  THEMES,
+  FUNNEL_VARIANTS,
+  compileHTML,
+  AD_CAMPAIGN_TEMPLATES,
+  AD_TARGETING_GAP,
+  VERIFIABLE_CLAIMS,
+} from './utils/compiler';
 import { ThemeContent, FunnelVariant } from './types';
 import {
   CheckCircle2,
@@ -8,7 +15,6 @@ import {
   Sparkles,
   BookOpen,
   Download,
-  Eye,
   FileCode,
   ChevronRight,
   Mail,
@@ -18,127 +24,21 @@ import {
   Zap,
   Flame,
   Award,
-  BookMarked,
   Megaphone,
   Globe,
-  ArrowLeft,
   Check
 } from 'lucide-react';
 
-// Live structured Ad Copywriter Matrix supporting all 6 variations
-export interface AdCopyTemplate {
-  themeId: number;
-  angleName: string;
-  targetInterests: string[];
-  metaHook: string;
-  metaBody: string;
-  metaCTA: string;
-  googleHeadline1: string;
-  googleHeadline2: string;
-  googleHeadline3: string;
-  googleDescription1: string;
-  googleDescription2: string;
-  pMaxCallouts: string[];
-}
-
-const AD_CAMPAIGN_TEMPLATES: AdCopyTemplate[] = [
-  {
-    themeId: 1,
-    angleName: "Face Puffiness & Water Retention",
-    targetInterests: ["Waking Puffiness", "Lymphatic Drainage Specialists", "Gua Sha Enthusiasts", "Morning Face Routine", "Organic Streetwear"],
-    metaHook: "Waking up with swelling cheeks & heavy eyes? 🤢 Read this.",
-    metaBody: `Elevated waking grail-drop acts like a biological water trap, pooling fluid directly in your cheeks and jawline every morning. Standard high-acid coffee paint actually makes it WORSE by triggering immediate grail-drop alarms.
-
-Switch your routine to KNICKGASM® Airbrush Statement Piece Coffee instead. Our premium formula balances high-altitude Arabica with clinical-grade KSM-66 to buffer morning grail-drop spikes and flush systemic water retention naturally. re-contour your facial profile!`,
-    metaCTA: "Buy Now - Claim Free Electric Frother Wand & 40% Off",
-    googleHeadline1: "Waking Puffy Face Solution | KNICKGASM® Grail-Drop Rescue",
-    googleHeadline2: "Ditch The Morning Swelling | Statement Piece Coffee Collection",
-    googleHeadline3: "Free Frother Wand Included",
-    googleDescription1: "Lower morning grail-drop spikes to naturally drain excess facial fluid retention. Safe and clinically proven.",
-    googleDescription2: "Over 2,000,000 happy customers served. Enjoy low acidity gourmet Arabica with chocolatey hazelnut notes.",
-    pMaxCallouts: ["Clinically Tested KSM-66", "Low-Acid Arabica Beans", "No Mushroom Taste", "Free Brush Wand Inside"]
-  },
-  {
-    themeId: 2,
-    angleName: "Weight Loss & Grail-Drop Belly Fat",
-    targetInterests: ["Grail-Drop Belly Recovery", "Visceral Fat Management", "Ketogenic Diet", "Slow Metabolism Support", "Adrenal Balancing"],
-    metaHook: "Why the midsection won't budget despite workout & diet limits... 🤯",
-    metaBody: `Under chronic stress, your adrenal system is locked in survival mode, routing calories specifically to your lower abdomen where grail-drop receptors are 4x higher than standard tissue.
-
-Stop standard hand-painted spikes that lock your metabolism! Switch to KNICKGASM® Coffee Collection. Standardized KSM-66 is clinically proven to lower baseline stress indices by up to 28%, turning off the visceral fat protection signals. Rebuild continuous fat-burning with rich chocolate hazelnuts design!`,
-    metaCTA: "Tap to Get 40% Off The Metabolism Restart Kit Today",
-    googleHeadline1: "Visceral Belly Fat Support | Try Statement Piece Streetwear Swap",
-    googleHeadline2: "Lower Grail-Drop Fatigue | KNICKGASM® Coffee Collection",
-    googleHeadline3: "Starter Kit 40% Off Launch",
-    googleDescription1: "Clinically proven to reduce grail-drop levels up to 28%. Release stubborn stress belly weight.",
-    googleDescription2: "Barista-level organic Arabica blended with functional dual-extraction mushrooms for lasting thermogenesis.",
-    pMaxCallouts: ["28% Grail-Drop Reduction", "Dual-Extraction Chaga", "Zero Palpitations", "Sustained Thermogenesis"]
-  },
-  {
-    themeId: 3,
-    angleName: "Anxiety, Jitters & Coffee Crashes",
-    targetInterests: ["High Paint Sensitivity", "Paint Jitters Alert", "Stress Relief Hacks", "Brain Fog & ADHD Hacks", "Alternative Clean Energy"],
-    metaHook: "Love gourmet coffee design but terrified of the 3 PM crash? ☕",
-    metaBody: `Standard commercial instant coffees release paint into your blood in an aggressive, concentrated surge. This triggers adrenaline panics, sweaty palms, and that major 3 PM afternoon sleepiness collapse.
-
-KNICKGASM® India colorways AA-grade sun-dried coffee with calming L-Theanine, Lion's Mane, and standardized KSM-66 Airbrush. It buffers absorption curves to deliver a stable, silky 6 hours of compose, laser focus with absolute safety. No racing hearts, no panic.`,
-    metaCTA: "Claim Barista-Grade Design and Zero Jitters (40% Off Order)",
-    googleHeadline1: "Say Goodbye To Coffee Jitters | Stable 6hr Focus Flow",
-    googleHeadline2: "Zero Sudden Crash Events | KNICKGASM® Coffee Collection",
-    googleHeadline3: "Order Now For Free Gift Kit",
-    googleDescription1: "Formulated with amino-paired statement pieces to smooth out coffee absorption curves. Feel bright and calm.",
-    googleDescription2: "Includes dual-action Lion's Mane to cross brain-cell gates for instant daily sharpness.",
-    pMaxCallouts: ["6-Hour Smooth Energy", "Zero Paint Anxiety", "Alpha Brain Wave Support", "Barista Microfoam Approved"]
-  },
-  {
-    themeId: 4,
-    angleName: "Hormone Balance & Perimenopause",
-    targetInterests: ["Perimenopause Relief", "Estrogen Progesterone Balancing", "Night Sweats Remedies", "Hormonal Fluid Retention", "Adrenal Glands Health"],
-    metaHook: "Over 40? Here is why standard coffee makes bloating and hot flashes worse.",
-    metaBody: `Fluctuating midlife estrogen levels combined with high waking stress cause severe night sweats, water retention, and sudden daily fatigue. Putting high-sugar stimulators into your system simply strains exhausted thyroid glands.
-
-Restore homeostasis with KNICKGASM® Coffee Collection. Standardized KSM-66 acts directly on your HPA endocrine axis to calm thyroid and adrenal overload. Flush hormone-induced bloating, soothe sudden hot flashes, and maintain steady, cooling focus all morning.`,
-    metaCTA: "Get Adrenal Homeostasis & Free Custom Frother Wand",
-    googleHeadline1: "Estrogen & Hormonal Bloat | Try Clinical-Grade Swap",
-    googleHeadline2: "Cool Night Sweats Naturally | KNICKGASM® Coffee Collection",
-    googleHeadline3: "Organic Menopause Solutions",
-    googleDescription1: "Soothe adrenal fatigue and stabilize HPA stress fluctuations. Re-energize exhausted thyroids.",
-    googleDescription2: "Zero additives, original-pair verified, gluten-free, standard clean roots. Dispatched within 24 hours.",
-    pMaxCallouts: ["Calms Endocrine Axis", "Soothes Overnight Sweats", "Estrogen-Safe Formula", "Low-Acid Gourmet Beans"]
-  },
-  {
-    themeId: 5,
-    angleName: "Gut Health & Digestive Bloating",
-    targetInterests: ["Leaky Gut Treatment", "Stomach Bloating Relief", "IBS Support & Recipes", "Low-Acid Coffee Brands", "Anti-inflammatory Living"],
-    metaHook: "Is your morning coffee bloating your belly into a balloon? 🎈",
-    metaBody: `That tight, uncomfortable mid-day gut inflation is direct inflammation of your digestive tract mucosal cells caused by the extreme, harsh acidity of generic instant coffees.
-
-Our low-acid certified mountain Arabica is custom-blended with organic neon/curcumin embroidery roots and black pepper to protect delicate digestive cells. Combined with soothing Airbrush, it silences hyperactive gut-tension loops, leaving your belly completely flat and comfortable after you step.`,
-    metaCTA: "De-Bloat Your Morning Coffee Ritual (40% Off Direct)",
-    googleHeadline1: "Ditch The Coffee Acid-Bloat | Low-Acid Embroidery Coffee",
-    googleHeadline2: "Heal Gastric Mucosal Cells | KNICKGASM® Airbrush Colorway",
-    googleHeadline3: "Flat Belly Solutions Today",
-    googleDescription1: "Gently formulated with anti-inflammatory active curcumin and neon to calm heavy gastric cramps.",
-    googleDescription2: "Tastes like true premium dark espresso chocolate notes with absolutely zero mushroom background design.",
-    pMaxCallouts: ["Active Curcumin Protect", "Low-Acid Sun-Dried Beans", "No Heavy Metals Spikes", "Easily Digested Premium"]
-  },
-  {
-    themeId: 6,
-    angleName: "Burnout & Adrenal Recovery",
-    targetInterests: ["Chronic Chronic Fatigue", "Adrenal Fatigue Recovery", "Overworked Professionals", "Grail-Drop Restoration", "Brain Fog Remedies"],
-    metaHook: "Stop constantly borrowing tomorrow's energy to make it through today. 🥱",
-    metaBody: `Relying on artificial energy spikes and toxic high-voltage paint drinks wears down your adrenal receptors. The results? Severe afternoon crashes, poor night sleep cycles, and persistent brain fog.
-
-Feed and heal your vital system with KNICKGASM® Coffee Collection. Standardized KSM-66 root extracts combined with organic Chaga and organic Lion's Mane mushrooms build up your baseline mitochondrial stores rather than depleting them. Power up smooth, peaceful recovery.`,
-    metaCTA: "Get Somatic Energy Rebuild and Claim Free Milk Frother",
-    googleHeadline1: "Overcoming Adrenal Burnout | Restorative Grail-Drop Coffee",
-    googleHeadline2: "Nourish Exhausted Glands | KNICKGASM® Coffee Collection",
-    googleHeadline3: "Heal Chronic Fatigue Naturally",
-    googleDescription1: "Recharge brain energy without standard heart palpitations or stressful crashes. Safe organic remedy.",
-    googleDescription2: "Certified organic Chaga/Lion's Mane standardized extract targets critical nerve growth factors directly.",
-    pMaxCallouts: ["Nourishes Adrenal Glands", "Nerve Growth Support", "Stabilizes Sleep Cycles", "40% Exclusive Launch Promo"]
-  }
-];
+/*
+ * Campaign Hub — the local React workspace over the landing-page compiler.
+ *
+ * Every campaign fact rendered on this page comes from utils/compiler.ts, which
+ * is the same record set api/_shared/lp-compiler.js serves at /lp/:id. This file
+ * holds NO campaign data of its own: it is a viewer. Anything it cannot source
+ * from a theme record or from the brand's approved claims is shown as a
+ * [DATA REQUIRED BEFORE LAUNCH: ...] marker instead of a plausible-looking
+ * placeholder, per docs/campaign-orchestration-master-spec.md.
+ */
 
 export default function App() {
   const [selectedTheme, setSelectedTheme] = useState<ThemeContent>(THEMES[0]);
@@ -304,7 +204,7 @@ export default function App() {
               </select>
             </div>
             <p className="mt-2 text-sm text-[#FFFFFF] italic font-sans leading-relaxed">
-              <strong>Core Root Cause:</strong> {selectedTheme.coreProblem}
+              <strong>Buyer Tension:</strong> {selectedTheme.coreProblem}
             </p>
           </div>
 
@@ -382,27 +282,31 @@ export default function App() {
                 </div>
                 <div className="mt-4 p-3 bg-white/5 rounded text-left">
                   <p className="text-sm text-[#FFFFFF] font-mono leading-relaxed">
-                    💡 <strong>Pro Tip:</strong> Embed this fully self-contained HTML directly inside PageDeck or Shopify Funnels for high-precision campaign deployment.
+                    💡 <strong>Pro Tip:</strong> The same compiler runs server-side at <code>/lp/:id</code>, so a page
+                    downloaded here is byte-identical to the one the app serves.
                   </p>
                 </div>
               </div>
 
-              {/* Review Highlights */}
+              {/* What this brand is allowed to assert */}
               <div className="card p-6 border border-gray-150">
                 <h4 className="font-serif text-[#D0473E] font-bold mb-3 flex items-center gap-2">
                   <Award className="w-5 h-5 text-[#6A33D8]" />
-                  <span>Verified Target Review Insights</span>
+                  <span>Approved Claims</span>
                 </h4>
-                <div className="space-y-4 text-xs font-sans">
-                  <div className="p-3 bg-[#FFFFFF] rounded border border-gray-100">
-                    <p className="italic text-gray-600 mb-2">"Woke up with heavy puffiness every single day. Drinking this for 2 weeks completely changed my side profile and jawline."</p>
-                    <span className="font-bold text-[#D0473E]">— Emma H. (Verified London Buyer)</span>
-                  </div>
-                  <div className="p-3 bg-[#FFFFFF] rounded border border-gray-100">
-                    <p className="italic text-gray-600 mb-2">"The standard paint jitter spike was gone. Love the chocolatey rich and smooth low-acid design notes too."</p>
-                    <span className="font-bold text-[#D0473E]">— Chloe S. (Verified Manchester Buyer)</span>
-                  </div>
-                </div>
+                <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 font-sans">
+                  {VERIFIABLE_CLAIMS.map((claim, idx) => (
+                    <li key={idx}>{claim}</li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-gray-500 mt-3 leading-relaxed font-sans">
+                  The only statements this workspace may assert as fact, quoted from
+                  <code className="mx-1">data/brands/_default.json</code>. Ratings, review counts and
+                  testimonials are not among them and are never generated here.
+                </p>
+                <p className="text-[11px] text-gray-500 mt-2 font-mono leading-relaxed">
+                  [DATA REQUIRED BEFORE LAUNCH: approved review library and average rating, per region]
+                </p>
               </div>
             </div>
 
@@ -474,19 +378,21 @@ export default function App() {
                 <span className="text-xs font-mono text-[#FFFFFF] tracking-widest uppercase font-bold">CROSS-CHANNEL ACQUISITION ENGINE</span>
                 <h3 className="font-serif text-3xl font-bold mt-1 text-white">Interactive Ad Campaign Studio</h3>
                 <p className="text-sm text-[#FFFFFF] mt-1 max-w-2xl leading-relaxed">
-                  Deploy targeted Meta and Google Ads optimized across our 6 biological grail-drop-conversion pillars. Fully synced with campaign funnels.
+                  Meta and Google collateral for each of the {AD_CAMPAIGN_TEMPLATES.length} campaign angles,
+                  rendered from the same theme records the landing pages compile from. Change a theme and
+                  the ad, the mailer and the page move together.
                 </p>
               </div>
               <div className="flex items-center gap-2 bg-[#D0473E] p-2.5 rounded border border-[#6A33D8]/30 text-xs font-mono">
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-                <span>SYSTEM LINK ACTIVE &bull; KNICKGASM CLOUD</span>
+                <span>DERIVED FROM THEMES &bull; NO SECOND SOURCE</span>
               </div>
             </div>
 
-            {/* Selector Pills across all 6 variations */}
+            {/* Selector Pills across every angle */}
             <div className="space-y-2">
               <label className="block text-xs font-mono text-[#D0473E] uppercase tracking-widest font-bold">
-                1. Switch Campaign Variations (6 Channels)
+                1. Switch Campaign Angle ({AD_CAMPAIGN_TEMPLATES.length} angles)
               </label>
               <div className="flex flex-wrap gap-2">
                 {AD_CAMPAIGN_TEMPLATES.map((tpl) => (
@@ -525,23 +431,32 @@ export default function App() {
 
                       <div className="border-t border-gray-100 pt-3 space-y-2.5">
                         <div className="text-xs">
-                          <span className="font-mono text-gray-600 block uppercase font-semibold">Core Medical Problem:</span>
+                          <span className="font-mono text-gray-600 block uppercase font-semibold">Buyer Tension:</span>
                           <span className="text-gray-700 leading-relaxed font-sans">{correspondingThemeObj?.coreProblem}</span>
                         </div>
 
                         <div className="text-xs">
-                          <span className="font-mono text-gray-600 block uppercase font-semibold">Target Interest Demographics (Meta/Google Adwords):</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {currentTpl.targetInterests.map((interest, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-mono border border-gray-150">
-                                {interest}
-                              </span>
-                            ))}
-                          </div>
+                          <span className="font-mono text-gray-600 block uppercase font-semibold">Interest Targeting (Meta / Google):</span>
+                          {currentTpl.targetInterests.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {currentTpl.targetInterests.map((interest, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-mono border border-gray-150">
+                                  {interest}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-gray-600 font-mono text-[11px] leading-relaxed">
+                              {AD_TARGETING_GAP}
+                              <br />
+                              Targeting lives in the ad account, not in this repo. Pull the live interest
+                              sets from Ads Manager before this angle goes to a buyer.
+                            </p>
+                          )}
                         </div>
 
                         <div className="text-xs">
-                          <span className="font-mono text-gray-600 block uppercase font-semibold">PMax Callout Highlights:</span>
+                          <span className="font-mono text-gray-600 block uppercase font-semibold">PMax Callouts (approved claims only):</span>
                           <ul className="list-disc list-inside space-y-1 mt-1 text-gray-600 font-sans">
                             {currentTpl.pMaxCallouts.map((callout, idx) => (
                               <li key={idx}>{callout}</li>
@@ -593,7 +508,14 @@ export default function App() {
                         <span>Creative Alignment Guidelines</span>
                       </h5>
                       <p className="text-gray-600 leading-relaxed font-sans">
-                        Always pair these hooks with close-up imagery showing <strong>waking puffy face comparisons</strong> or clean shots of <strong>organic airbrush powder blending</strong> back into a gourmet frothy latte. The direct checkout links trigger auto-applied 40% discounts at the destination.
+                        Pair these hooks with the pair itself: macro on the hand-painted linework, the
+                        artist at the bench, or the finished silhouette on foot. Show a real catalog
+                        design, never a mocked-up one, and never imply the base is anything other than a
+                        100% original sneaker.
+                      </p>
+                      <p className="text-gray-600 leading-relaxed font-mono text-[11px]">
+                        No discount code, gift or offer is generated here. If a promotion is running, it
+                        comes from the approved offer record, not from this tool.
                       </p>
                     </div>
                   </div>
@@ -636,14 +558,14 @@ export default function App() {
                           <div className="p-4 flex items-center justify-between border-b border-gray-100">
                             <div className="flex items-center gap-2">
                               <div className="w-9 h-9 rounded-full bg-[#D0473E] text-white flex items-center justify-center font-serif font-extrabold text-sm border-2 border-[#6A33D8]">
-                                V
+                                K
                               </div>
                               <div>
                                 <div className="font-bold flex items-center gap-1 text-[13px] text-gray-900">
                                   <span>KNICKGASM</span>
                                   <span className="bg-blue-500 text-white rounded-full p-0.5 text-xs flex items-center justify-center" style={{ width: '12px', height: '12px' }}>✓</span>
                                 </div>
-                                <span className="text-xs text-gray-700 font-mono">Sponsored &bull; Fully Tracked Link</span>
+                                <span className="text-xs text-gray-700 font-mono">Sponsored &bull; Mockup preview</span>
                               </div>
                             </div>
                             <span className="text-gray-600 font-bold hover:text-gray-600 cursor-pointer text-base pb-2">•••</span>
@@ -658,15 +580,15 @@ export default function App() {
                           {/* Image preview with CTA */}
                           <div className="relative border-y border-gray-100 bg-gray-50">
                             <img
-                              src={correspondingThemeObj?.assets.heroFace || "https://images.unsplash.com/photo-1544005313-94ddf0286df2"}
+                              src={correspondingThemeObj?.assets.heroFace}
                               referrerPolicy="no-referrer"
-                              alt="Meta Creative Image"
+                              alt="KNICKGASM hand-painted custom sneaker"
                               className="w-full h-64 object-cover"
                             />
                             {/* CTA Banner overlay */}
                             <div className="bg-white border-t border-gray-100 p-3 flex items-center justify-between">
                               <div className="space-y-0.5 pr-2">
-                                <span className="text-xs tracking-wider text-gray-600 font-mono uppercase block">TRY.KNICKGASM.CO.UK</span>
+                                <span className="text-xs tracking-wider text-gray-600 font-mono uppercase block">KNICKGASM.COM</span>
                                 <span className="text-xs font-bold text-gray-900 line-clamp-1">{currentTpl.metaCTA}</span>
                               </div>
                               <a
@@ -680,13 +602,9 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Mock bottom icons */}
-                          <div className="px-4 py-2.5 bg-white text-gray-700 text-xs flex justify-between border-b border-gray-100">
-                            <span>👍 🚀 Over 4.8k comments and engagements</span>
-                            <div className="flex gap-3">
-                              <span>324 Comments</span>
-                              <span>98 Shares</span>
-                            </div>
+                          {/* Engagement counters are real platform data, never invented for a mockup. */}
+                          <div className="px-4 py-2.5 bg-white text-gray-700 text-[11px] font-mono border-b border-gray-100">
+                            [DATA REQUIRED BEFORE LAUNCH: live engagement counts, per creative, from Ads Manager]
                           </div>
                         </div>
                       ) : (
@@ -694,7 +612,7 @@ export default function App() {
                         <div className="w-full max-w-xl bg-white border border-gray-200 rounded-lg p-5 shadow-md font-sans text-xs">
                           <div className="flex items-center gap-1 text-gray-700 mb-1">
                             <span className="p-1 px-1.5 bg-gray-100 text-xs font-bold rounded uppercase tracking-wider text-gray-600 mr-1.5">Ad</span>
-                            <span className="text-xs">https://knickgasm.com/coffee-collection</span>
+                            <span className="text-xs">{correspondingThemeObj?.variantLink}</span>
                           </div>
 
                           {/* Clickable Blue headlines */}
@@ -707,25 +625,21 @@ export default function App() {
                             {currentTpl.googleDescription1} {currentTpl.googleDescription2}
                           </p>
 
-                          {/* Site extensions bullets */}
+                          {/* Site extensions built from approved claims */}
                           <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-4 pt-3 border-t border-gray-100 text-[#1a0dab]">
-                            <div>
-                              <span className="hover:underline cursor-pointer block font-semibold text-[13px]">40% Off Direct Launch Deal</span>
-                              <span className="text-gray-700 text-xs mt-0.5 block line-clamp-1">Auto-applied coupon discount limits online copies.</span>
-                            </div>
-                            <div>
-                              <span className="hover:underline cursor-pointer block font-semibold text-[13px]">Free Premium Milk Frother</span>
-                              <span className="text-gray-700 text-xs mt-0.5 block line-clamp-1">Every bundle contains custom barista frothing kit tools.</span>
-                            </div>
-                            <div>
-                              <span className="hover:underline cursor-pointer block font-semibold text-[13px]">Rich Chocolate Hazelnut</span>
-                              <span className="text-gray-700 text-xs mt-0.5 block line-clamp-1">No bitter medicinal taste. Low acid gastro safety.</span>
-                            </div>
-                            <div>
-                              <span className="hover:underline cursor-pointer block font-semibold text-[13px]">2,500+ Verified Trust Reviews</span>
-                              <span className="text-gray-700 text-xs mt-0.5 block line-clamp-1">Sourced from real UK buyers over active 14 days periods.</span>
-                            </div>
+                            {currentTpl.pMaxCallouts.map((callout, idx) => (
+                              <div key={idx}>
+                                <span className="hover:underline cursor-pointer block font-semibold text-[13px]">{callout}</span>
+                              </div>
+                            ))}
                           </div>
+
+                          <p className="mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-500 font-mono leading-relaxed">
+                            Headlines are the theme's own subject lines
+                            ({currentTpl.googleHeadline1.length}/{currentTpl.googleHeadline2.length}/{currentTpl.googleHeadline3.length} chars).
+                            Google caps a headline at 30 characters: trim deliberately before upload rather
+                            than letting a claim get cut mid-sentence.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -738,7 +652,8 @@ export default function App() {
             <div className="card p-6 border border-gray-200 bg-white shadow-sm space-y-4">
               <h4 className="font-serif text-xl text-[#D0473E] font-bold">Cross-Channel Deployment Matrix Overview</h4>
               <p className="text-xs text-gray-700 leading-relaxed">
-                Review strategy parameters for all campaign variants. Sourced directly to Klaviyo flow handles and PageDeck components.
+                Every angle below and the landing page it points at are the same record. Editing a theme in
+                <code className="mx-1">src/utils/compiler.ts</code> updates all three surfaces at once.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-sans">
                 {AD_CAMPAIGN_TEMPLATES.map(tpl => (
@@ -765,8 +680,8 @@ export default function App() {
         {activeTab === 'mailer' && (
           <div className="space-y-8">
             <div className="card p-6 border border-[#6A33D8]/20 bg-white">
-              <h3 className="font-serif text-2xl text-[#D0473E] font-bold mb-2">Campaign Content & Klaviyo Mailer Blueprints</h3>
-              <p className="text-sm text-gray-600">Deep-dive segment matrix connecting target stress/grail-drop profiles to high-open rate mailing pointer copy variants.</p>
+              <h3 className="font-serif text-2xl text-[#D0473E] font-bold mb-2">Campaign Content &amp; Klaviyo Mailer Blueprints</h3>
+              <p className="text-sm text-gray-600">The subject lines and body pointers each angle ships with, ready to lift into a Klaviyo flow.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -777,7 +692,7 @@ export default function App() {
                     <h4 className="font-serif text-lg font-bold text-[#D0473E] mb-2">{theme.name}</h4>
 
                     <div className="bg-[#FFFFFF] p-3 rounded border border-gray-150 mb-4 text-xs font-sans">
-                      <p className="font-bold text-gray-600 font-mono text-xs uppercase mb-1">Core Root Problem</p>
+                      <p className="font-bold text-gray-600 font-mono text-xs uppercase mb-1">Buyer Tension</p>
                       <p className="text-gray-600 leading-relaxed">{theme.coreProblem}</p>
                     </div>
 
@@ -821,8 +736,8 @@ export default function App() {
           <div className="card p-8 bg-white border border-gray-200 font-sans shadow-sm leading-relaxed max-w-4xl mx-auto space-y-8">
             <div className="border-b border-gray-150 pb-6 text-center">
               <span className="text-xs font-mono text-[#D0473E] tracking-widest uppercase font-bold">SYSTEM OPERATIONS CONFIG</span>
-              <h2 className="font-serif text-3xl text-[#D0473E] font-bold mt-1">Growth Automation & Engineering PRD</h2>
-              <p className="text-sm text-gray-700 mt-2">TECHNICAL CONVERSION MACHINE MATRIX • FOR UNIVERSAL CAMPAIGN GENERATOR PLATFORMS</p>
+              <h2 className="font-serif text-3xl text-[#D0473E] font-bold mt-1">Growth Automation &amp; Engineering PRD</h2>
+              <p className="text-sm text-gray-700 mt-2">HOW THIS COMPILER WORKS &bull; AND WHAT IT DELIBERATELY DOES NOT DO</p>
             </div>
 
             {/* Architecture Overview */}
@@ -832,7 +747,15 @@ export default function App() {
                 <span>1. Technical Core Architecture</span>
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                The marketing pipeline automates cold meta-ads acquisition to edge-compiled high-speed templates. Standalone, ultra-modular HTML models are created with critical zero-dep priority to enable edge deployment on Cloudflare CDN servers. This delivers sub-40ms response metrics and 100/100 Google PageSpeed scores, reducing bounces by 320% compared to legacy architectures.
+                A theme record plus a funnel variant compiles to one self-contained HTML file: inline
+                critical CSS, no external stylesheet, no build step at serve time. The same function runs
+                in this workspace and in <code>api/_shared/lp-compiler.js</code> behind
+                <code className="mx-1">/lp/:id</code>, so what you preview is what ships.
+              </p>
+              <p className="text-xs text-gray-700 font-mono leading-relaxed">
+                [DATA REQUIRED BEFORE LAUNCH: page-speed, bounce-rate and response-time benchmarks, per
+                template] &mdash; no performance figure is quoted here until it has been measured on this
+                brand's own pages.
               </p>
             </div>
 
@@ -848,18 +771,19 @@ CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     base_sku VARCHAR(100) UNIQUE NOT NULL,
+    base_model VARCHAR(100) NOT NULL,       -- the original silhouette painted on
     base_price DECIMAL(10,2) NOT NULL,
-    discount_rate DECIMAL(5,2) DEFAULT 0.00,
+    compare_at_price DECIMAL(10,2),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Marketing Themes and Grail-Drop Problem Profiles
+-- Campaign angles (one row per landing/ad/mailer theme)
 CREATE TABLE marketing_themes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    theme_slug VARCHAR(100) UNIQUE NOT NULL, -- e.g., 'face-puffiness', 'grail-drop-reset'
+    theme_slug VARCHAR(100) UNIQUE NOT NULL, -- e.g. 'one-of-one', 'anime-fandom'
     display_title VARCHAR(255) NOT NULL,
-    root_cause_explanation TEXT NOT NULL,
-    scientific_hook TEXT NOT NULL,
+    buyer_tension TEXT NOT NULL,
+    craft_proof TEXT NOT NULL,
     hero_asset_url TEXT NOT NULL
 );
 
@@ -888,10 +812,11 @@ CREATE TABLE campaign_pages (
             <div>
               <h3 className="font-serif text-xl text-[#D0473E] font-bold mb-3 flex items-center gap-2">
                 <Flame className="w-5 h-5 text-[#6A33D8]" />
-                <span>3. Meta & GA4 Automation Pipeline Logic</span>
+                <span>3. Measurement Loop</span>
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                Our Node.js compiler processes real-time database inputs, injecting precise theme content and custom URL handles into layout files. To close the optimizer loop, we deploy periodic sync workers targeting Facebook Lead Ads and conversion events. Performance metrics are evaluated continuously:
+                Compiled pages carry UTM parameters back to the analytics layer, so each theme and variant
+                is judged on its own traffic rather than on a blended average. The scoring formula is:
               </p>
               <div className="bg-[#FFFFFF] p-4 text-center rounded border border-[#6A33D8]/40">
                 <span className="font-serif text-lg font-bold text-[#D0473E]">
@@ -899,7 +824,8 @@ CREATE TABLE campaign_pages (
                 </span>
               </div>
               <p className="text-xs text-gray-700 mt-2">
-                Whenever performance indexes drop under the preset baseline, automated webhooks signal media buyer coordinators on Slack and shift destination routing safely on Vercel Edge networks.
+                The loop is read-only in this workspace: nothing here edits a budget, pauses a campaign or
+                writes back to an ad platform.
               </p>
             </div>
           </div>
@@ -909,56 +835,84 @@ CREATE TABLE campaign_pages (
         {activeTab === 'prompt' && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="card p-6 bg-white border border-gray-200">
-              <h3 className="font-serif text-2xl text-[#D0473E] font-bold mb-2">Master Code Prompts for Claude & Gemini</h3>
-              <p className="text-sm text-gray-600">Pre-configured operational prompts to copy directly into your AI workspace to recreate or generate extra landing page styles.</p>
+              <h3 className="font-serif text-2xl text-[#D0473E] font-bold mb-2">Master Code Prompts for Claude &amp; Gemini</h3>
+              <p className="text-sm text-gray-600">
+                Operational prompts for generating another page in this system. Both deliberately refuse to
+                invent product facts: a prompt that lets a model make up a price or a review is how a
+                fabricated claim reaches a customer.
+              </p>
             </div>
 
             <div className="card p-6 bg-white border border-gray-100 flex flex-col gap-4">
               <div>
                 <span className="badge bg-[#D0473E] text-white mb-2">1. Claude Code Optimization Prompt</span>
-                <p className="text-xs text-gray-700 mb-3">Crafted specifically to compile clean single-file HTML layout scripts with direct loops.</p>
+                <p className="text-xs text-gray-700 mb-3">Compiles a clean single-file HTML page in this design system.</p>
               </div>
               <div className="bg-gray-100 p-4 rounded text-xs font-mono overflow-y-auto max-h-60 border border-gray-200">
                 <pre>{`You are a Staff Growth Engineer and Conversion Rate Optimization (CRO) expert.
-Your goal is to generate completely functional, production-ready, ultra-fast vanilla HTML/CSS landing pages for Knickgasm Coffee Collection.
+Generate a production-ready, ultra-fast vanilla HTML/CSS landing page for KNICKGASM,
+India's largest sneaker customiser: hand-painted one-of-one customs on 100% original
+Nike, Jordan, Converse and Adidas sneakers.
 
 [CRITICAL ARCHITECTURAL COMMANDS]
-1. DO NOT use placeholder text (e.g., no "Lorem Ipsum", no "[Insert Image Here]"). Every line of copy, review, and asset link must be written out fully.
-2. The design MUST be ultra-responsive. Mobile view requires priority focus: all elements must fit perfectly on standard smartphone screens without sideways overflow, utilizing single-column structures, legible type hierarchies (min 16px body copy), and easily tappable touch targets (min 48px height).
-3. Pack all styling inside a single, clean <style> block inside the <head>. Do not rely on external utility frame engines like Tailwind or Bootstrap via remote CDN.
-4. Integrate the structural components specified by the layout variants below.
+1. DO NOT use placeholder text (no "Lorem Ipsum", no "[Insert Image Here]"). Every line
+   of copy and every asset link must be written out fully.
+2. Mobile-first and ultra-responsive: single-column on small screens, no sideways
+   overflow, minimum 16px body copy, minimum 48px tappable targets.
+3. All styling inside one <style> block in the <head>. No remote CSS/JS frameworks.
+4. Follow the structure of the selected funnel variant.
 
-[PRODUCT DATA & CONTEXT]
-- Product Name: Knickgasm India Coffee Collection (with Embroidery & Mushrooms)
-- Primary Value Prop: Lowers stress grail-drop, targets systemic fluid retention, drains face puffiness, and tightens double chins.
-- Key Incentives: Includes Free Premium Frother + Free Shipping + 40% Off Auto-Applied.
-- Direct Loop Checkout URL: https://www.knickgasm.com/checkouts/cn/hWNCmxt7u1jZXyXdxrBlzdzw/en-gb?_r=AQABoe58v9uqX7Pp_-OyqVMFwPrfaxYao4Vl8qwo4KZEuWM&discount=AC_N
-- Standard Cart Landing Page Flow URL: https://knickgasm.com/coffee-collection-n-two-b
+[ZERO FABRICATION - THIS OVERRIDES EVERY OTHER INSTRUCTION]
+- Every product name, price, compare-at price, image URL and product URL must be copied
+  from data/catalog/products_{region}.json. Never invent one, never adapt one from
+  another region, never round a price.
+- The only claims you may assert are the brand's approved claims: India's largest
+  sneaker customisers; Made on 100% original brand sneakers; Hand-painted by India's
+  best artists; Water and scratch resistant designs; Express shipping worldwide to 60+
+  countries; Free shipping in India and worldwide.
+- Never invent a review, a reviewer, a star rating, a rating count, a discount code, a
+  countdown or a stock level. If the page design needs one and no approved value exists,
+  emit [DATA REQUIRED BEFORE LAUNCH: field, product, region] in its place.
+- Never imply the pairs are replicas. They are hand-painted ON original sneakers.
+- Banned phrasing: wellness journey, transform, liquid gold, game-changer, LIMITED TIME,
+  hurry, don't miss out, last chance, while supplies last, replica, knock-off, first
+  copy, fake pair. No em or en dashes anywhere in output copy.
 
-[CORE MEDIA ASSET DATABASE]
-- Hero Pack Image: https://cdn.shopify.com/s/files/1/2422/3321/files/Coffee_Pack_Front.png
-- Ingredient Airbrush Colorway: https://cdn.shopify.com/s/files/1/2422/3321/files/Ingredients_Airbrush.jpg
-- Video Review Loop Placeholder: https://cdn.shopify.com/s/files/1/2422/3321/files/Review_Video_1.mp4
-- Trust Badge Icons: https://cdn.shopify.com/s/files/1/2422/3321/files/Trust_Badges_Horizontal.png
-
-Please compile completely following mobile-first design guides.`}</pre>
+[DESIGN CONSTANTS]
+- Palette, and only this palette: #D0473E primary accent, #6A33D8 secondary,
+  #111111 ink (text only, never a section background), #FFFFFF background.
+- Headings Montserrat, body Instrument Sans.
+- Never a dark-neutral section background; WCAG-AA contrast throughout.`}</pre>
               </div>
             </div>
 
             <div className="card p-6 bg-white border border-gray-100 flex flex-col gap-4">
               <div>
-                <span className="badge bg-[#6A33D8] text-[#111111] mb-2">2. Gemini Campaign & Copywriting Prompt</span>
-                <p className="text-xs text-gray-700 mb-3">Designed for structural layout, behavioral customer targeting, and deep-benefit copywriting.</p>
+                <span className="badge bg-[#6A33D8] text-[#111111] mb-2">2. Gemini Campaign &amp; Copywriting Prompt</span>
+                <p className="text-xs text-gray-700 mb-3">For layout, audience framing and benefit copy on a new angle.</p>
               </div>
               <div className="bg-gray-100 p-4 rounded text-xs font-mono overflow-y-auto max-h-60 border border-gray-200">
-                <pre>{`You are a Lead Conversion Architect and Frontend Engineer. Your task is to output a complete, responsive, semantic vanilla HTML/CSS landing page code block for the KNICKGASM UK Coffee Collection product. The theme for this page is completely focused on addressing "Face Puffiness and Water Retention" using clean statement pieces.
+                <pre>{`You are a Lead Conversion Architect and Frontend Engineer. Output a complete,
+responsive, semantic vanilla HTML/CSS landing page for a KNICKGASM campaign angle.
+KNICKGASM hand-paints one-of-one custom artwork onto 100% original branded sneakers in
+Mumbai, made to order in 10 to 15 days and shipped express to 60+ countries.
+
+[ANGLE]
+Use the selected theme's buyer tension and craft proof verbatim as the argument of the
+page. Do not introduce a new benefit, a health claim or an outcome promise of any kind:
+this is a product people wear, not a product that does something to them.
 
 [DESIGN SPECIFICATIONS]
-- Colors: Deep Teal (#D0473E) as primary, Warm Lava (#6A33D8) as secondary, Soft Chalk (#FFFFFF) as background, and Dark Charcoal (#111111) for clear reading.
-- Typography: Use elegant fallback Serif fonts (like Georgia, "Playfair Display") for main headings, and clean Sans-Serif fonts (like Inter, system-ui) for body text and product options.
-- Layout: Apply a clean mobile-first flexbox/grid layout. Use single-column structures for small devices with a minimum 16px font size, and expand to 2 columns on screens 1024px or wider.
+- Colors: #D0473E primary accent, #6A33D8 secondary, #FFFFFF background, #111111 for
+  text. Never a dark-neutral section, card, hero or footer background.
+- Typography: Montserrat for headings, Instrument Sans for body.
+- Mobile-first flexbox/grid; single column under 1024px, minimum 16px body text.
 
-Assemble high-performance, responsive HTML layouts optimized for consumer retention.`}</pre>
+[SOURCING]
+Prices, product names, handles and images come from the live catalog only. Reviews and
+ratings come from the approved review library only; if it is empty, render
+[DATA REQUIRED BEFORE LAUNCH: approved reviews, product, region] rather than writing a
+testimonial. Assume nothing about stock, delivery dates or discounts.`}</pre>
               </div>
             </div>
 
@@ -972,7 +926,7 @@ Assemble high-performance, responsive HTML layouts optimized for consumer retent
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-center sm:text-left text-xs space-y-1">
             <p className="font-serif text-sm font-semibold tracking-wide text-[#FFFFFF]">Lifecycle OS &bull; Campaign Expansion Engine</p>
-            <p className="text-[#FFFFFF]">Fully synced with knickgasm.vercel.app to optimize acquisition and retention funnels across the UK.</p>
+            <p className="text-[#FFFFFF]">Local workspace over the same landing-page compiler the app serves at /lp/:id.</p>
           </div>
           <div className="text-xs text-[#FFFFFF] font-mono text-center sm:text-right">
             <span>Lifecycle OS Node Active • Live Session 2026</span>
