@@ -48,7 +48,8 @@
     .tl .ev{ position:relative; padding:8px 0 8px 14px; border-left:2px solid var(--line); }
     .tl .ev::before{ content:''; position:absolute; left:-7px; top:14px; width:10px; height:10px; border-radius:50%; background:var(--lava); }
     .tl .ev .d{ font-size:12px; color:var(--dim); }
-    .tabs{ display:flex; gap:6px; margin:10px 0 0; flex-wrap:wrap; }
+    .tabs{ display:flex; gap:6px; margin:10px 0 0; flex-wrap:nowrap; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .tabs > *{flex:0 0 auto}
     .tab{ padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:var(--panel2); color:var(--txt); cursor:pointer; font-size:14px; }
     .tab.active{ background:var(--lava); color:var(--ink); border-color:var(--lava); }
     .muted{ color:var(--dim); font-size:14px; }

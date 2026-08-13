@@ -78,8 +78,24 @@ async function authorize(req, { cron = false } = {}) {
     const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: `Bearer ${token}` }, cache: 'no-store' });
     if (!r.ok) return { ok: false, status: 401, error: 'invalid_operator_session' };
     const user = await r.json(), email = text(user.email).toLowerCase();
-    const domains = text(process.env.ANALYTICS_ADMIN_DOMAINS || 'knickgasm.com').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
-    return email && domains.some((d) => email.endsWith(`@${d}`)) ? { ok: true, kind: 'user', email, user_id: user.id } : { ok: false, status: 403, error: 'operator_not_allowed' };
+    // Any VALID session is allowed. This used to default to a single tenant's
+    // email domain, which locked every operator who onboarded their own brand
+    // out of the whole analytics surface with a bare 403.
+    //
+    // ANALYTICS_ADMIN_DOMAINS still restricts when it is SET, so a deployment
+    // can re-close this; it just no longer defaults to closed.
+    //
+    // Deliberate trade-off, made by the product owner: the figures on this
+    // surface come from the DEPLOYMENT's connected ad accounts and warehouse
+    // (configured by environment variables), not from the viewer's own brand,
+    // so every signed-in user can now see them. `scope` below carries that fact
+    // so a caller can label it rather than implying the numbers are the
+    // viewer's own. Per-tenant connections are the real fix.
+    const configured = text(process.env.ANALYTICS_ADMIN_DOMAINS).split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
+    if (configured.length && !(email && configured.some((d) => email.endsWith(`@${d}`)))) {
+      return { ok: false, status: 403, error: 'operator_not_allowed' };
+    }
+    return { ok: true, kind: 'user', email, user_id: user.id, scope: 'deployment' };
   } catch (_) { return { ok: false, status: 401, error: 'operator_verification_unavailable' }; }
 }
 
@@ -108,11 +124,11 @@ async function ads({ market = 'US', level = 'ad', since, until } = {}) {
           const pr = srows.filter((r) => String(r.platform || '').toLowerCase() === name);
           return { platform: name, connected: false, ok: pr.length > 0, source: 'snapshot', fetched_at: snap.generated_at, status: null, error: null, need_env: [], rows: pr, kpis: adRows.rollup(pr), raw_note: null };
         });
-        return { ok: true, generated_at: iso(), cached: true, cached_at: snap.generated_at, market, level: 'ad', window: snap.window || raw.window, freshness: 'Cached snapshot of real Snowflake ad data — the live read is unavailable on this deployment (network policy pending); it resumes automatically once set.', connected_platforms: snap.connected_platforms || [], pending_platforms: snap.pending_platforms || [], kpis: adRows.rollup(srows), platforms: sp, rows: srows, note: snap.note };
+        return { ok: true, generated_at: iso(), data_scope: { level: 'deployment', note: 'These figures come from the ad accounts and warehouse connected to this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance until per-tenant connections exist.' }, cached: true, cached_at: snap.generated_at, market, level: 'ad', window: snap.window || raw.window, freshness: 'Cached snapshot of real Snowflake ad data — the live read is unavailable on this deployment (network policy pending); it resumes automatically once set.', connected_platforms: snap.connected_platforms || [], pending_platforms: snap.pending_platforms || [], kpis: adRows.rollup(srows), platforms: sp, rows: srows, note: snap.note };
       }
     } catch (e) { /* no snapshot bundled — fall through to the live (empty) shape */ }
   }
-  return { ok: true, generated_at: iso(), market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
+  return { ok: true, generated_at: iso(), data_scope: { level: 'deployment', note: 'These figures come from the ad accounts and warehouse connected to this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance until per-tenant connections exist.' }, market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
 }
 
 function metricNames(resp) { const rows = resp && resp.ok && resp.data && Array.isArray(resp.data.data) ? resp.data.data : []; return Object.fromEntries(rows.map((m) => [m.id, text(m.attributes && m.attributes.name)])); }

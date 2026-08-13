@@ -176,7 +176,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 }
 .btn-primary{background:var(--g);color:var(--chalk);box-shadow:0 1px 3px rgba(0,74,43,0.3)}
 .btn-primary:hover{background:var(--vh-ink);box-shadow:0 4px 12px rgba(0,74,43,0.3)}
-.btn-lava{background:var(--lava);color:#fff;box-shadow:0 1px 3px rgba(171,135,67,0.3)}
+.btn-lava{background:var(--lava);color:var(--brand-on-accent,#fff);box-shadow:0 1px 3px rgba(171,135,67,0.3)}
 .btn-lava:hover{background:var(--vh-lava);box-shadow:0 4px 12px rgba(171,135,67,0.35)}
 .btn-outline{background:#fff;color:var(--g);border:1.5px solid var(--g)}
 .btn-outline:hover{background:var(--lightg)}
@@ -221,7 +221,7 @@ body{font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;background:var(
 .pchip img{width:34px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0}
 .pchip-name{font-size:11px;font-weight:600;color:#374151;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;flex-shrink:0;letter-spacing:0.04em}
-.badge-lava{background:var(--lava);color:#fff}
+.badge-lava{background:var(--lava);color:var(--brand-on-accent,#fff)}
 .badge-g{background:var(--g);color:#fff}
 
 /* ── Generation stages ──────────────────────────────────────────────────────── */
@@ -365,6 +365,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
     gap:8px;padding:12px 14px 16px;
     scrollbar-width:none
   }
+  .sugg-grid > *{flex:0 0 auto}
   .sugg-grid::-webkit-scrollbar{display:none}
   .sugg-card{
     flex:0 0 220px;min-width:220px;scroll-snap-align:start

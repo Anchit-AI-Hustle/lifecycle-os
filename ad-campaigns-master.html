@@ -30,7 +30,8 @@
   h3{font-family:var(--serif);font-weight:700;color:var(--head);font-size:17px;margin:14px 0 6px}
   .lede{color:var(--dim);margin:6px 0 0;max-width:86ch;font-size:14.5px;font-weight:500}
   .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--lava-deep);margin:16px 0 8px}
-  .tabs{display:flex;flex-wrap:wrap;gap:2px;margin:18px 0 4px;border-bottom:2px solid var(--line-strong)}
+  .tabs{display:flex;flex-wrap:nowrap;gap:2px;margin:18px 0 4px;border-bottom:2px solid var(--line-strong);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .tabs > *{flex:0 0 auto}
   .tabs button{background:transparent;border:0;border-bottom:3px solid transparent;color:var(--dim);font-family:inherit;font-weight:700;font-size:13.5px;padding:10px 14px;cursor:pointer;margin-bottom:-2px}
   .tabs button.on{color:var(--green);border-bottom-color:var(--lava)}
   .panel{display:none}.panel.on{display:block}
@@ -43,7 +44,7 @@
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:11px;box-shadow:var(--shadow);margin:8px 0;background:var(--surface)}
   table{border-collapse:collapse;width:100%;font-size:13px;background:var(--surface);white-space:nowrap}
   th,td{padding:8px 11px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.3px;font-weight:500;color:var(--text)}
-  th{background:var(--green);color:#fff;font-family:var(--sans);font-weight:700;font-size:11.5px;position:sticky;top:0;cursor:pointer;white-space:nowrap}
+  th{background:var(--green);color:var(--brand-on-primary,#fff);font-family:var(--sans);font-weight:700;font-size:11.5px;position:sticky;top:0;cursor:pointer;white-space:nowrap}
   th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
   td:first-child{color:var(--ink);font-weight:600;max-width:330px;white-space:normal}
   /* Text cells wrap so a long value can never overlap the next column; numeric
@@ -67,7 +68,7 @@
   .linkrow .t{flex:1;min-width:0}
   .linkrow .t b{color:var(--ink);font-size:13.5px}
   .linkrow .t .m{font-size:12px;color:var(--dim);margin-top:2px}
-  .btn{display:inline-block;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:7px 14px;font-weight:700;font-size:12.5px;text-decoration:none;white-space:nowrap}
+  .btn{display:inline-block;background:var(--green);color:var(--brand-on-primary,#fff);border:1px solid var(--lava);border-radius:8px;padding:7px 14px;font-weight:700;font-size:12.5px;text-decoration:none;white-space:nowrap}
   .btn.ghost{background:transparent;color:var(--green)}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:900px){.two{grid-template-columns:1fr}}
@@ -98,7 +99,7 @@
   .rangetiles .rt{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;
     border:1px solid var(--line-strong);background:var(--surface-2);color:var(--dim)}
   .rangetiles .rt:hover{border-color:var(--lava);color:var(--head)}
-  .rangetiles .rt.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .rangetiles .rt.on{background:var(--green);color:var(--brand-on-primary,#fff);border-color:var(--green)}
   .rangetiles .rtlab{font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lava-deep);margin-right:4px}
   .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow);margin:10px 0}
   .chartcard h3{margin:0 0 2px}
@@ -121,11 +122,12 @@
   .legend i{width:12px;height:12px;border-radius:3px;border:1px solid var(--line-strong);display:inline-block}
   /* Chip filter bars and horizontal distribution bars, matching the UGC
      dashboard's scannable pattern. White surface, green fill, no dark panels. */
-  .chipbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:12px 0 4px}
+  .chipbar{display:flex;flex-wrap:nowrap;gap:7px;align-items:center;margin:12px 0 4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .chipbar > *{flex:0 0 auto}
   .chipbar .cb{background:var(--surface);border:1px solid var(--line-strong);border-radius:999px;color:var(--dim);
     font-family:var(--sans);font-weight:700;font-size:12px;padding:6px 13px;cursor:pointer;line-height:1.2}
   .chipbar .cb:hover{border-color:var(--lava);color:var(--head)}
-  .chipbar .cb.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .chipbar .cb.on{background:var(--green);color:var(--brand-on-primary,#fff);border-color:var(--green)}
   .chipbar .cblab{font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lava-deep);margin-right:3px}
   .dist{margin:6px 0 2px}
   .dist .row{display:grid;grid-template-columns:minmax(150px,26%) 1fr auto;gap:11px;align-items:center;padding:5px 0}
@@ -202,7 +204,7 @@
   <div class="panel" id="p-calendar">
     <div class="bar">
       <label>Month<select id="cal-month"></select></label>
-      <label>&nbsp;<button type="button" class="apply" id="cal-today" style="cursor:pointer;font-family:inherit;background:var(--green);color:#fff;border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px">Jump to today</button></label>
+      <label>&nbsp;<button type="button" class="apply" id="cal-today" style="cursor:pointer;font-family:inherit;background:var(--green);color:var(--brand-on-primary,#fff);border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px">Jump to today</button></label>
       <span class="srcchip" id="cal-src">source: - </span>
     </div>
     <div class="legend">

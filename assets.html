@@ -29,7 +29,8 @@
 
   /* Controls */
   .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 20px 0 14px; }
-  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 6px; flex-wrap:nowrap; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .tabs > *{flex:0 0 auto}
   .chip { font-size: 12px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.25);
     border-radius: 99px; padding: 7px 14px; cursor: pointer; font-family: inherit; transition: all .14s; white-space: nowrap; }
   .chip:hover { border-color: #6A33D8; color: #111111; }
