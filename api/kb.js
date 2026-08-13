@@ -210,24 +210,39 @@ module.exports = async function handler(req, res) {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BRAND KIT — read/write the brand-truth singleton (lifecycle_brand_kit id=1)
+// BRAND KIT — read/write the ACTIVE brand's kit row (lifecycle_brand_kit)
 // ═══════════════════════════════════════════════════════════════════════════
-// This is what /brand (brand.html) edits. Every generator reads the same row,
-// so a change here is the ONE place brand truth is set for the whole platform.
+// This is what /brand (brand.html) edits.
+//
+// It used to be a literal singleton: `id INT PRIMARY KEY CHECK (id = 1)`, read
+// with `?id=eq.1` and written with `{ id: 1 }`. So every brand on the platform
+// opened the Brand Kit page and saw tenant zero's palette, typography and
+// voice, and every SAVE overwrote that one row for everybody else. The read
+// policy was `USING (true)`, so it was world-readable on top of that.
+//
+// One row per workspace now (20260814090000), keyed by the workspace id.
 async function brandKit(req, res, env) {
   const base = `${env.url}/rest/v1`;
   const H = sbHeaders(env);
+  const ws = req.__workspaceId ? String(req.__workspaceId) : null;
+  if (!ws) return res.status(200).json(NOTHING({ brand_kit: null, markets: [] }));
 
   if (req.method === 'GET') {
     const [kitRes, mktRes] = await Promise.all([
-      fetch(`${base}/lifecycle_brand_kit?id=eq.1&select=*`, { headers: H }),
+      fetch(`${base}/lifecycle_brand_kit?workspace_id=eq.${encodeURIComponent(ws)}&select=*&limit=1`, { headers: H }),
       fetch(`${base}/lifecycle_market_config?select=*&order=market.asc`, { headers: H }).catch(() => null),
     ]);
     if (!kitRes.ok) return res.status(502).json({ ok: false, error: `brand_kit read failed: ${await kitRes.text()}` });
     const rows = await kitRes.json();
     let markets = [];
     if (mktRes && mktRes.ok) markets = await mktRes.json().catch(() => []);
-    return res.status(200).json({ ok: true, brand_kit: rows[0] || null, markets });
+    // A brand that has never saved a kit gets NOTHING, not tenant zero's kit.
+    // The onboarding record (brand_workspaces) is that brand's palette and
+    // typography until it saves one here.
+    return res.status(200).json({
+      ok: true, workspace_id: ws, brand_kit: rows[0] || null, markets,
+      note: rows[0] ? null : 'This brand has not saved a brand kit yet. Its palette, typography and voice come from its onboarding record until it does; no other brand\'s kit is shown in the meantime.',
+    });
   }
 
   if (req.method === 'POST' || req.method === 'PUT') {
@@ -242,12 +257,12 @@ async function brandKit(req, res, env) {
       return res.status(400).json({ ok: false, error: 'palette needs primary, accent, bg and text as #RRGGBB' });
     }
     const row = {
-      id: 1, palette, typography, voice,
+      id: ws, workspace_id: ws, palette, typography, voice,
       footer_blocks: footer_blocks || {},
       guide_pdf_url: guide_pdf_url || null,
       updated_at: new Date().toISOString(),
     };
-    const r = await fetch(`${base}/lifecycle_brand_kit?on_conflict=id`, {
+    const r = await fetch(`${base}/lifecycle_brand_kit?on_conflict=workspace_id`, {
       method: 'POST',
       headers: { ...H, Prefer: 'resolution=merge-duplicates,return=representation' },
       body: JSON.stringify([row]),

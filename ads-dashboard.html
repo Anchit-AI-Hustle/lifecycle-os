@@ -6,14 +6,14 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ads Analysis, from Snowflake</title>
+<title>Ads Analysis, from the warehouse</title>
 <link rel="icon" href="/favicon.png">
 <style>
   :root{
     --green:#D0473E; --lava:#6A33D8; --lava-deep:var(--vh-ink); --ink:#111111; --chalk:#FFFFFF;
     --bg:var(--vh-panel-tan); --surface:#ffffff; --surface-2:#FFFFFF; --line:var(--vh-panel-tan); --line-strong:var(--vh-lava);
-    /* Contrast tokens matched to /ads-master: every text/background pair is
-       dark-on-light and clears WCAG-AA (>=4.5:1). */
+    /* Contrast tokens: every text/background pair is dark-on-light and clears
+       WCAG-AA (>=4.5:1). */
     --text:var(--vh-ink); --dim:var(--vh-ink); --head:#D0473E;
     --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan);
     --shadow:0 4px 16px rgba(0,74,43,.08);
@@ -31,7 +31,7 @@
   .bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:18px 0 6px;
     background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow)}
   .bar label{font-size:12px;color:var(--dim);font-weight:600;display:flex;flex-direction:column;gap:4px}
-  select,input[type=date]{font-family:inherit;font-size:13px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--surface-2);color:var(--ink)}
+  select,input[type=date],input[type=search]{font-family:inherit;font-size:13px;border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--surface-2);color:var(--ink)}
   button.apply{background:var(--green);color:var(--brand-on-primary,#fff);border:1px solid var(--lava);border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer}
   button.apply:hover{background:var(--vh-ink)}
   .tabs{display:flex;flex-wrap:nowrap;gap:2px;margin:16px 0 4px;border-bottom:2px solid var(--line-strong);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
@@ -49,7 +49,12 @@
   .sc .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
   .sc .v{font-family:var(--serif);font-size:24px;font-weight:700;color:var(--head);font-variant-numeric:tabular-nums}
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:11px;box-shadow:var(--shadow);margin:8px 0}
-  table{border-collapse:collapse;width:100%;font-size:13px;background:var(--surface);white-space:nowrap}
+  /* theme.css sets table-layout:fixed globally and relies on wrapping to keep a
+     long value inside its cell. These tables set white-space:nowrap on th/td, so
+     they must opt OUT of the fixed layout as well: under fixed layout every
+     column gets an equal share regardless of content, and an unwrappable value
+     wider than its share paints over the next column. .tbl-wrap scrolls. */
+  table{border-collapse:collapse;width:100%;table-layout:auto;font-size:13px;background:var(--surface);white-space:nowrap}
   th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--text)}
   th{background:var(--green);color:var(--brand-on-primary,#fff);font-family:var(--sans);font-weight:700;font-size:11.5px;position:sticky;top:0;white-space:nowrap}
   th:first-child,td:first-child{text-align:left;font-family:var(--sans)}
@@ -69,7 +74,7 @@
     padding:11px 14px;margin:14px 0 0;font-size:13px;color:var(--vh-ink);font-weight:500;line-height:1.55}
   .empty{padding:22px;text-align:center;color:var(--dim);background:var(--surface);border:1px dashed var(--line-strong);border-radius:11px}
   code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--lava-deep);white-space:pre-wrap;word-break:break-word;display:inline-block}
-  /* Duration tiles — always visible above the chart, same contract as /ads-master. */
+  /* Duration tiles — always visible above the chart. */
   .rangetiles{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 4px}
   .rangetiles .rt{font-family:var(--mono);font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;
     border:1px solid var(--line-strong);background:var(--surface-2);color:var(--dim)}
@@ -98,7 +103,7 @@
     <button type="button" data-p="overview" class="on">Overview</button>
     <button type="button" data-p="rows">Campaign / ad rows</button>
     <button type="button" data-p="cohorts">Cohorts</button>
-    <button type="button" data-p="sop">SOP compliance</button>
+    <button type="button" data-p="sop">Naming compliance</button>
     <button type="button" data-p="metrics">Metrics &amp; accuracy</button>
     <button type="button" data-p="source">Source &amp; connection</button>
   </div>
@@ -434,32 +439,38 @@
     var over=res.days_over_cap||0;
     $('#sop-pacing').innerHTML=
       '<div class="scorecards" style="margin-bottom:10px">'+
-        '<div class="sc"><div class="k">Cap applied</div><div class="v">'+money(res.cap_usd)+'<span style="font-size:12px;font-weight:400">/day</span></div></div>'+
+        '<div class="sc"><div class="k">Cap applied</div><div class="v"'+(res.cap_usd==null?' style="font-size:17px"':'')+'>'+(res.cap_usd==null?'not set':money(res.cap_usd)+'<span style="font-size:12px;font-weight:400">/day</span>')+'</div></div>'+
         '<div class="sc" style="border-left-color:'+(over?'var(--warn)':'var(--good)')+'"><div class="k">Days over cap</div><div class="v">'+intf(over)+'</div></div>'+
         '<div class="sc"><div class="k">Total overspend</div><div class="v">'+money(res.total_overspend)+'</div></div>'+
         '<div class="sc"><div class="k">Worst day</div><div class="v" style="font-size:16px">'+(res.worst_day?esc2(res.worst_day.date)+' +'+money(res.worst_day.over_by):'none')+'</div></div>'+
       '</div>'+
       '<div class="frame">'+days.map(function(d){
-        var w=Math.min(100,Math.round(d.spend/(res.cap_usd||1)*100));
-        return '<div class="barrow"><span class="lab">'+esc2(d.date)+'</span><span class="track"><span class="fill" style="width:'+w+'%;background:'+(d.over?'linear-gradient(90deg,#8f2f1f,var(--vh-lava))':'linear-gradient(90deg,var(--green),var(--lava))')+'"></span></span><span class="val">'+money(d.spend)+(d.over?' ⚠':'')+'</span></div>';
+        // With no cap, bars are scaled to the busiest day in the window rather
+        // than to an invented cap, so nothing reads as "x% of budget".
+        var scale=res.cap_usd!=null?res.cap_usd:Math.max.apply(null,days.map(function(x){return x.spend||0;}).concat([1]));
+        var w=Math.min(100,Math.round(d.spend/(scale||1)*100));
+        return '<div class="barrow"><span class="lab">'+esc2(d.date)+'</span><span class="track"><span class="fill" style="width:'+w+'%;background:'+(d.over?'linear-gradient(90deg,var(--vh-ink),var(--vh-lava))':'linear-gradient(90deg,var(--green),var(--lava))')+'"></span></span><span class="val">'+money(d.spend)+(d.over?' ⚠':'')+'</span></div>';
       }).join('')+'</div>'+
       '<p class="note">'+esc2(res.note||'')+'</p>';
   }
   function renderSopRef(sop){
     if(!sop){$('#sop-ref').innerHTML='';return;}
-    var p=sop.patterns||{}, sc=sop.scoring||{};
+    var p=sop.patterns||{};
+    // The scoring-threshold table that used to sit here published one
+    // advertiser's creative-scoring formulas as though they were the standard.
+    // The structural rules below hold for anyone; a scoring model does not.
     $('#sop-ref').innerHTML='<div class="frame">'+
       '<p class="eyebrow" style="margin-top:0">Naming patterns</p>'+
       '<div class="tbl-wrap"><table data-sortable><thead><tr><th style="text-align:left">Level</th><th style="text-align:left">Pattern</th></tr></thead><tbody>'+
         [['Campaign',p.campaign],['Ad set',p.adset],['Ad',p.ad]].map(function(x){return '<tr><td style="text-align:left">'+esc2(x[0])+'</td><td style="text-align:left"><code>'+esc2(x[1])+'</code></td></tr>';}).join('')+
       '</tbody></table></div>'+
-      '<p class="eyebrow">Scoring thresholds (how a creative earns spend)</p>'+
-      '<div class="tbl-wrap"><table data-sortable><thead><tr><th style="text-align:left">Platform</th><th style="text-align:left">Formula</th><th style="text-align:left">Ad Recommended</th><th style="text-align:left">Consider</th></tr></thead><tbody>'+
-        ['tiktok','instagram'].map(function(k){var v=sc[k]||{};return '<tr><td style="text-align:left">'+k+'</td><td style="text-align:left;white-space:normal;font-family:var(--sans)">'+esc2(v.formula)+'</td><td style="text-align:left">'+esc2(v.ad_recommended)+'</td><td style="text-align:left">'+esc2(v.consider)+'</td></tr>';}).join('')+
-      '</tbody></table></div>'+
+      '<p class="eyebrow">Rules applied</p>'+
+      '<ul style="font-size:12.5px;color:var(--dim);margin:6px 0 0;padding-left:20px">'+
+        (sop.rules||[]).map(function(r){return '<li style="margin:3px 0">'+esc2(r)+'</li>';}).join('')+
+      '</ul>'+
       '<p class="note"><b>The chain:</b> <code>'+esc2(sop.chain)+'</code></p>'+
-      '<p class="note"><b>Run gate:</b> '+esc2((sc||{}).run_gate||'')+'</p>'+
-      '<p class="note"><b>Authority:</b> '+esc2(sop.authority||'')+' · <a href="'+esc2(sop.master_sheet)+'" target="_blank" rel="noopener">master tracking sheet ↗</a></p></div>';
+      '<p class="note"><b>Permitted token values:</b> '+esc2(sop.tokens_note||'')+'</p>'+
+      '<p class="note"><b>Daily cap:</b> '+esc2((sop.caps&&sop.caps.note)||'')+'</p></div>';
   }
   // Reads JSON but never lets a non-JSON response (a static-preview 404 page,
   // an auth redirect) surface as a raw parse error in the UI.

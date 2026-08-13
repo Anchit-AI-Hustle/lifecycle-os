@@ -22,7 +22,7 @@
   .shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:32px;align-items:start}
   @media(max-width:980px){.shell{grid-template-columns:1fr}.preview-wrap{position:static!important}}
 
-  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--accent);font-weight:600;margin-bottom:10px}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--brand-accent-text);font-weight:600;margin-bottom:10px}
   h1{font-family:var(--head);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:10px}
   .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:26px}
 
@@ -30,7 +30,7 @@
   .step-pip{flex:1;min-width:74px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card);
     font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:.15s}
   .step-pip.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
-  .step-pip.done{border-color:var(--primary);color:var(--primary)}
+  .step-pip.done{border-color:var(--primary);color:var(--brand-primary-text)}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:26px}
   .card h2{font-family:var(--head);font-size:21px;font-weight:600;margin-bottom:6px}
@@ -38,7 +38,7 @@
 
   .field{margin-bottom:16px}
   label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;letter-spacing:.02em}
-  label .req{color:var(--accent)}
+  label .req{color:var(--brand-accent-text)}
   label .note{font-weight:400;color:var(--muted);margin-left:6px}
   input[type=text],input[type=url],input[type=number],select,textarea{
     width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
@@ -102,7 +102,7 @@
   .ws.active{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,transparent)}
   .ws-dot{width:24px;height:24px;border-radius:7px;flex:none}
   .ws b{font-size:13.5px}.ws small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
-  .ws .tag{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--primary)}
+  .ws .tag{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-primary-text)}
 
   .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 14%,transparent);
     padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0}
@@ -114,7 +114,7 @@
   .muted{color:var(--muted);font-size:12px;line-height:1.6}
   .region-row{display:grid;grid-template-columns:80px 90px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
   @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}}
-  .link{color:var(--primary);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+  .link{color:var(--brand-primary-text);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
 
   /* Starter brand profiles (step 1). Deliberately industry-varied so the
      gallery reads as "this platform runs any brand", not one vertical. */
@@ -206,6 +206,28 @@
   function lum(h) { return rgb(h).map(function (v) { var s = v/255; return s <= 0.03928 ? s/12.92 : Math.pow((s+0.055)/1.055, 2.4); }).reduce(function (a, c, i) { return a + c * [0.2126,0.7152,0.0722][i]; }, 0); }
   function contrast(a, b) { var x = lum(a), y = lum(b); var hi = Math.max(x,y), lo = Math.min(x,y); return Math.round(((hi+0.05)/(lo+0.05))*100)/100; }
   function shade(h, t) { var tgt = t >= 0 ? 255 : 0, a = Math.abs(t); return '#' + rgb(h).map(function (v) { return Math.round(v + (tgt - v) * a).toString(16).padStart(2,'0'); }).join(''); }
+  /* The brand colour DARKENED until it reads as text on `bg`. Mirrors
+     readableAsText() in api/_shared/brand-workspace-core.js, which computes the
+     --brand-*-text tokens the rest of the app uses.
+
+     The live preview has to apply it too, or it lies: it promises "this is how
+     the app will look for you once this brand is active" while showing raw
+     palette colours the app itself would never render as text. A brand with a
+     light primary saw its own preview render the stat numbers and captions
+     almost invisibly - and then the real app, which adjusts, looked different
+     from the preview that sold it. */
+  function readableAsText(color, bg, target) {
+    var want = target || 4.5;
+    if (!color) return '#111111';
+    if (contrast(color, bg) >= want) return color;
+    var dir = lum(bg) > 0.5 ? -1 : 1;
+    for (var t = 0.05; t <= 1.0001; t += 0.05) {
+      var c = shade(color, dir * t);
+      if (contrast(c, bg) >= want) return c;
+    }
+    return dir < 0 ? '#000000' : '#ffffff';
+  }
+
   function readableOn(bg) {
     /* Best of the brand's own text-capable colours: ink, PAGE surface, card
        surface. The page surface counts - if primary-on-page passes AA, then
@@ -238,18 +260,18 @@
       '</div>' +
       '<div class="pv-body" style="background:' + esc(p.surface) + '">' +
         '<div class="pv-h" style="font-family:' + esc(head.stack) + ';color:' + esc(p.ink) + '">' + esc(brand.tagline || 'Lifecycle campaigns, built for you') + '</div>' +
-        '<div class="pv-p" style="font-family:' + esc(body.stack) + ';color:' + esc(p.muted || shade(p.ink, .35)) + '">' +
+        '<div class="pv-p" style="font-family:' + esc(body.stack) + ';color:' + esc(readableAsText(p.muted || shade(p.ink, .35), p.surface || '#fff')) + '">' +
           'Your cohorts, calendar, mailers and TeleSuite runs, all in your brand.</div>' +
         '<div class="pv-btns">' +
           '<span class="pv-btn" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + ';border-color:' + esc(p.primary) + ';font-family:' + esc(body.stack) + '">Generate calendar</span>' +
-          '<span class="pv-btn" style="background:transparent;color:' + esc(p.accent || p.primary) + ';border-color:' + esc(p.accent || p.primary) + ';font-family:' + esc(body.stack) + '">Open studio</span>' +
+          '<span class="pv-btn" style="background:transparent;color:' + esc(readableAsText(p.accent || p.primary, p.surface || '#fff')) + ';border-color:' + esc(p.accent || p.primary) + ';font-family:' + esc(body.stack) + '">Open studio</span>' +
         '</div>' +
         '<div class="pv-cards">' +
           ['Active cohorts,12','Credits left,500'].map(function (c) {
             var parts = c.split(',');
             return '<div class="pv-card" style="background:' + esc(p.surface_alt || '#fff') + ';border-color:' + esc(shade(p.ink, .84)) + '">' +
-              '<b style="font-family:' + esc(head.stack) + ';color:' + esc(p.primary) + '">' + esc(parts[1]) + '</b>' +
-              '<span style="font-family:' + esc(body.stack) + ';color:' + esc(p.muted || shade(p.ink, .35)) + '">' + esc(parts[0]) + '</span></div>';
+              '<b style="font-family:' + esc(head.stack) + ';color:' + esc(readableAsText(p.primary, p.surface_alt || '#fff')) + '">' + esc(parts[1]) + '</b>' +
+              '<span style="font-family:' + esc(body.stack) + ';color:' + esc(readableAsText(p.muted || shade(p.ink, .35), p.surface_alt || '#fff')) + '">' + esc(parts[0]) + '</span></div>';
           }).join('') +
         '</div>' +
       '</div>';

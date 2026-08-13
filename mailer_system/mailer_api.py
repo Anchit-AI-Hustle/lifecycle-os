@@ -120,9 +120,14 @@ def generate_mailer(brief: dict) -> dict:
 
 
 if __name__ == "__main__":
+    # Smoke-test fixture. The product names are real titles from the live US
+    # catalog (data/shopify/products_export_usa.csv). The previous fixture listed
+    # three teas with the brand word swapped in, carried over from the sibling
+    # repo this engine was copied from - and a fixture is what an engineer reads
+    # to learn what this business sells.
     dummy_brief = {
         "campaign_type": "win_back_vip",
-        "product": "Jordan First Flush",
+        "product": "Spiderman x Nike Air Force 1",
         "goal": "win_back_vip",
         "audience_description": "120 high-CLV customers at churn risk (avg CLV $240)",
         "audience_size": 120,
@@ -136,7 +141,11 @@ if __name__ == "__main__":
             "retention_rate_current": 22.4,
             "retention_rate_target": 30.0,
             "subscription_pct_current": 11.2,
-            "top_skus": ["Jordan First Flush", "Airforce Breakfast", "Signature Green"],
+            "top_skus": [
+                "Spiderman x Nike Air Force 1",
+                "Manchester United F.C. x Nike Air Force 1",
+                "Coffee Dip x Nike Air Force 1",
+            ],
             "winning_cta": {}
         }
     }

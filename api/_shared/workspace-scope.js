@@ -57,10 +57,21 @@ const SCOPED_TABLES = new Set([
   'mvt_experiments', 'saved_items', 'uploaded_files',
   // 20260813121000 — the per-brand competitor universe.
   'brand_competitors',
-  // 20260814090000 — the singletons and the analytics control plane.
+  // 20260814090000 — the singletons, the analytics control plane and the
+  // competitive-intelligence brand register.
   'lifecycle_brand_kit',
   'analytics_hourly_runs', 'analytics_anomaly_state',
   'analytics_action_outcomes', 'analytics_alert_settings',
+  'brands',
+  'smart_calendar', 'smart_calendar_reviews', 'smart_assets',
+  'smart_campaign_assets', 'smart_campaign_metrics', 'smart_review_queue',
+  'smart_feedback', 'smart_confidence', 'smart_library_scores',
+  'smart_mvt_results', 'smart_recalibrations',
+  'smart_agents', 'smart_agent_sessions', 'smart_agent_messages',
+  'smart_agent_knowledge',
+  // 20260814090000 §3b — the backbone tables whose workspace_id was a legacy
+  // TEXT column defaulting to the literal 'knickgasm'.
+  'activity_logs', 'exports', 'agent_runs',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

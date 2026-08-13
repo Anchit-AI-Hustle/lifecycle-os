@@ -383,6 +383,27 @@
 <div class="toast" id="toast"></div>
 
 <script>
+
+  // ── The ACTIVE brand, for anything this page prints or bakes into a prompt ──
+  // The wordmark drawn onto every generated ad creative was a literal string
+  // carrying the name of the brand this repo was forked from. It survived the
+  // rebrand and was painted onto every workspace's creatives. A generated
+  // creative carries the name of the brand that asked for it.
+  function activeBrand() {
+    try { return (window.BrandContext && window.BrandContext.brand) || null; } catch (_) { return null; }
+  }
+  function brandName() {
+    var b = activeBrand();
+    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]';
+  }
+  function brandWordmark() { return String(brandName()).toUpperCase(); }
+  function brandStrapline() {
+    var b = activeBrand();
+    var c = (b && (b.claims || (b.brand_data && b.brand_data.claims))) || [];
+    if (Array.isArray(c) && c.length) return String(c[0]).toUpperCase();
+    return (b && b.tagline) ? String(b.tagline).toUpperCase() : '';
+  }
+
 (function () {
   const $ = (s) => document.querySelector(s);
   const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -657,9 +678,10 @@
     // Wordmark (top)
     x.fillStyle = '#FFFFFF';
     x.font = '700 ' + Math.round(base * 0.05) + "px 'Montserrat', Georgia, serif";
-    x.fillText('V A H D A M', W / 2, H * 0.10);
+    x.fillText(brandWordmark(), W / 2, H * 0.10);
     x.fillStyle = '#6A33D8'; x.font = '600 ' + Math.round(base * 0.022) + "px 'Instrument Sans', Arial, sans-serif";
-    x.fillText('HAND-PAINTED ONE-OF-ONES', W / 2, H * 0.14);
+    var _strap = brandStrapline();
+    if (_strap) x.fillText(_strap, W / 2, H * 0.14);
     // Offer pill (sits just above safe-zone floor) — ONLY drawn when a real
     // offer exists; with no verified offer, pillH=0 so no empty lava pill shows
     // and the headline block anchors to the safe floor.

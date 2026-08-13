@@ -55,9 +55,14 @@ async function resolveBrand({ brand_id, brand_name, domain }) {
     if (rows[0]) return rows[0];
   }
   if (!brand_name && !domain) return null;
+  // The conflict target is (workspace_id, slug), not slug alone. A competitor
+  // slug is unique WITHIN a brand's watch list; globally unique meant the
+  // second brand to start monitoring the same company adopted the first
+  // brand's row - and with it that brand's captured ads, emails and landing
+  // pages, since every ci_* row hangs off brand_id.
   const [created] = await supa.insert('brands',
     [{ name: brand_name || normalizeDomain(domain), slug, domain: domain ? normalizeDomain(domain) : null }],
-    { upsertOn: 'slug' });
+    { upsertOn: 'workspace_id,slug' });
   return created;
 }
 

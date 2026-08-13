@@ -1,26 +1,42 @@
 # Connecting the deployed app to Snowflake (read-only)
 
-The Ads pages already read Snowflake **in this session** through the Snowflake MCP connector, which is
-per-user and does not apply to the deployed app. Vercel needs its own credentials. Until they are set,
-every ads endpoint returns an honest `{ connected: false, would_query }` envelope carrying the exact SQL
-it would run — no figure is ever invented.
+The Ads pages can read a Snowflake warehouse directly. In a Claude session that happens through the
+per-user Snowflake MCP connector, which does not apply to the deployed app — Vercel needs its own
+credentials. Until they are set, every ads endpoint returns an honest `{ connected: false,
+would_query }` envelope carrying the exact SQL it would run, so no figure is ever invented.
 
-Everything below except the token secret is **verified live** (2026-07-26).
+> **What this document is not.** It is a connection runbook, not a description of a warehouse. An
+> earlier version of this file enumerated a specific Snowflake account, a specific database and a
+> registry of ad accounts with their spend, ROAS and retail sell-through — none of which were this
+> brand's. They came in with the code when this repo was copied from a sibling lifecycle-OS project
+> built for a different company, and the rebrand renamed the company without touching the accounts,
+> the pipeline tables or the retail channels underneath it. KNICKGASM sells hand-painted custom
+> sneakers through knickgasm.com; it does not run a mass-retail media programme, and no figure from
+> that other business belongs in this repo. Everything account-specific below is therefore a value
+> **you fill in for your own deployment**.
 
-## 1. Connection values (verified)
+## 1. Connection values
 
-| Vercel env var | Value | How it was verified |
+Read these from your own Snowflake session (`SELECT CURRENT_ORGANIZATION_NAME(),
+CURRENT_ACCOUNT_NAME(), CURRENT_USER(), CURRENT_WAREHOUSE(), CURRENT_DATABASE();`) and set them in
+Vercel.
+
+| Vercel env var | Value | Where it comes from |
 |---|---|---|
-| `SNOWFLAKE_ACCOUNT` | `UXDEIHW-MO06981` | `CURRENT_ORGANIZATION_NAME()` = `UXDEIHW`, `CURRENT_ACCOUNT_NAME()` = `MO06981`. A POST to `https://UXDEIHW-MO06981.snowflakecomputing.com/api/v2/statements` returns **401** (host correct, token rejected). |
-| `SNOWFLAKE_USER` | `ANCHITTANDON` | `CURRENT_USER()` |
-| `SNOWFLAKE_WAREHOUSE` | `COMPUTE_WH` | `CURRENT_WAREHOUSE()` |
-| `SNOWFLAKE_DATABASE` | `KNICKGASM_DB` | `CURRENT_DATABASE()` |
-| `SNOWFLAKE_ROLE` | `KNICKGASM_APP_READONLY` (create it, step 2) | current session uses `CLAUDE_ROLE`; a dedicated read-only role is preferable for a web app |
+| `SNOWFLAKE_ACCOUNT` | `[DATA REQUIRED BEFORE LAUNCH: Snowflake ORG-ACCOUNT identifier]` | `CURRENT_ORGANIZATION_NAME()` + `-` + `CURRENT_ACCOUNT_NAME()` |
+| `SNOWFLAKE_USER` | `[DATA REQUIRED BEFORE LAUNCH: Snowflake service user]` | `CURRENT_USER()`, or a dedicated app user |
+| `SNOWFLAKE_WAREHOUSE` | `[DATA REQUIRED BEFORE LAUNCH: warehouse]` | `CURRENT_WAREHOUSE()` |
+| `SNOWFLAKE_DATABASE` | `[DATA REQUIRED BEFORE LAUNCH: database holding the ad tables]` | `CURRENT_DATABASE()` |
+| `SNOWFLAKE_ROLE` | a read-only role you create (step 2) | — |
 | `SNOWFLAKE_PAT` | *(secret — you generate it in step 2)* | — |
-| `LIVE_CONNECTORS` | `on` | required; with it off the app deliberately stays on snapshot data |
+| `LIVE_CONNECTORS` | `on` | required; with it off the app never opens an outbound connection and the ads panels stay empty (there is no bundled snapshot to fall back to) |
 
-> **Do not use the account locator.** `BA95169.snowflakecomputing.com` returns **404** for the SQL API v2
-> statements endpoint — only the `ORG-ACCOUNT` form works. Region is `AWS_AP_SOUTH_1`.
+Two identifier gotchas, both generic to Snowflake:
+
+> **Do not use the account locator.** `<LOCATOR>.snowflakecomputing.com` returns **404** for the SQL
+> API v2 statements endpoint — only the `ORG-ACCOUNT` form works. A **401** from the `ORG-ACCOUNT`
+> host means the host is right and the token is wrong, which is a useful thing to be able to tell
+> apart.
 
 ## 2. Create a read-only role and a PAT (run in Snowsight)
 
@@ -28,30 +44,25 @@ The app issues only `SELECT` / `SHOW` / `INFORMATION_SCHEMA` reads and refuses a
 (`WRITE_RE` in `api/_shared/ads-snowflake-core.js`), but the grant should be read-only as well.
 
 ```sql
-CREATE ROLE IF NOT EXISTS KNICKGASM_APP_READONLY;
-GRANT USAGE ON WAREHOUSE COMPUTE_WH TO ROLE KNICKGASM_APP_READONLY;
+-- Substitute <APP_ROLE>, <WAREHOUSE>, <DATABASE>, <APP_USER>.
+CREATE ROLE IF NOT EXISTS <APP_ROLE>;
+GRANT USAGE ON WAREHOUSE <WAREHOUSE> TO ROLE <APP_ROLE>;
 
--- Meta + Google live here
-GRANT USAGE  ON DATABASE KNICKGASM_DB                     TO ROLE KNICKGASM_APP_READONLY;
-GRANT USAGE  ON ALL SCHEMAS    IN DATABASE KNICKGASM_DB   TO ROLE KNICKGASM_APP_READONLY;
-GRANT USAGE  ON FUTURE SCHEMAS IN DATABASE KNICKGASM_DB   TO ROLE KNICKGASM_APP_READONLY;
-GRANT SELECT ON ALL TABLES     IN DATABASE KNICKGASM_DB   TO ROLE KNICKGASM_APP_READONLY;
-GRANT SELECT ON FUTURE TABLES  IN DATABASE KNICKGASM_DB   TO ROLE KNICKGASM_APP_READONLY;
-GRANT SELECT ON ALL VIEWS      IN DATABASE KNICKGASM_DB   TO ROLE KNICKGASM_APP_READONLY;
-GRANT SELECT ON FUTURE VIEWS   IN DATABASE KNICKGASM_DB   TO ROLE KNICKGASM_APP_READONLY;
+GRANT USAGE  ON DATABASE <DATABASE>                     TO ROLE <APP_ROLE>;
+GRANT USAGE  ON ALL SCHEMAS    IN DATABASE <DATABASE>   TO ROLE <APP_ROLE>;
+GRANT USAGE  ON FUTURE SCHEMAS IN DATABASE <DATABASE>   TO ROLE <APP_ROLE>;
+GRANT SELECT ON ALL TABLES     IN DATABASE <DATABASE>   TO ROLE <APP_ROLE>;
+GRANT SELECT ON FUTURE TABLES  IN DATABASE <DATABASE>   TO ROLE <APP_ROLE>;
+GRANT SELECT ON ALL VIEWS      IN DATABASE <DATABASE>   TO ROLE <APP_ROLE>;
+GRANT SELECT ON FUTURE VIEWS   IN DATABASE <DATABASE>   TO ROLE <APP_ROLE>;
 
--- TikTok lives here (DATON.RAW)
-GRANT USAGE  ON DATABASE DATON                         TO ROLE KNICKGASM_APP_READONLY;
-GRANT USAGE  ON ALL SCHEMAS    IN DATABASE DATON       TO ROLE KNICKGASM_APP_READONLY;
-GRANT USAGE  ON FUTURE SCHEMAS IN DATABASE DATON       TO ROLE KNICKGASM_APP_READONLY;
-GRANT SELECT ON ALL TABLES     IN DATABASE DATON       TO ROLE KNICKGASM_APP_READONLY;
-GRANT SELECT ON FUTURE TABLES  IN DATABASE DATON       TO ROLE KNICKGASM_APP_READONLY;
+-- Repeat the four DATABASE grants for any additional database your pipelines load into.
 
-GRANT ROLE KNICKGASM_APP_READONLY TO USER ANCHITTANDON;
+GRANT ROLE <APP_ROLE> TO USER <APP_USER>;
 
 -- The token. Snowflake prints the secret ONCE — copy it straight into Vercel.
-ALTER USER ANCHITTANDON ADD PROGRAMMATIC ACCESS TOKEN KNICKGASM_LIFECYCLE_OS
-  ROLE_RESTRICTION = 'KNICKGASM_APP_READONLY'
+ALTER USER <APP_USER> ADD PROGRAMMATIC ACCESS TOKEN LIFECYCLE_OS_READONLY
+  ROLE_RESTRICTION = '<APP_ROLE>'
   DAYS_TO_EXPIRY   = 90
   COMMENT          = 'lifecycle-os read-only ads dashboard';
 ```
@@ -62,131 +73,106 @@ app change.
 
 ## 3. Set the variables in Vercel
 
-Project **lifecycle-os** → Settings → Environment Variables (Production *and* Preview):
-
-```
-SNOWFLAKE_ACCOUNT=UXDEIHW-MO06981
-SNOWFLAKE_USER=ANCHITTANDON
-SNOWFLAKE_PAT=<paste the token from step 2>
-SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-SNOWFLAKE_DATABASE=KNICKGASM_DB
-SNOWFLAKE_ROLE=KNICKGASM_APP_READONLY
-LIVE_CONNECTORS=on
-```
-
-Then redeploy (env changes do not apply to existing deployments).
+Project **lifecycle-os** → Settings → Environment Variables (Production *and* Preview), using the
+values from step 1 plus the PAT from step 2, and `LIVE_CONNECTORS=on`. Then redeploy — env changes do
+not apply to existing deployments.
 
 ⚠️ On Windows, pipe secrets with `cmd /c "type file | vercel env add"` — PowerShell `echo` prepends a
 UTF-8 BOM and the token will fail auth (see CLAUDE.md, Common Bugs #7).
 
-## 4. Verify (in this order)
+## 4. Point it at your tables
+
+Credentials alone read nothing. Each source table is named by its own env var, and **there are no
+defaults**: an unset feed simply does not exist, `sources()` reports it as `null`, and the endpoint
+returns a `{ no_sources: true }` envelope naming the variable to set.
+
+That is deliberate. `sources()` in `api/_shared/ads-snowflake-core.js` used to carry a full set of
+"starting guess" table names, and they were not a guess — they were the other company's warehouse
+layout, with the brand token in the database name rewritten by the rebrand and the loader schemas
+and table names left intact. A wrong default is worse than no default, because a wrong default
+renders.
+
+| Env var | What it should name |
+|---|---|
+| `SF_META_ADS_TABLE` | the Meta ad-insights table (spend, impressions, clicks, link clicks, by day) |
+| `SF_META_AGE_GENDER_TABLE` | Meta age × gender delivery breakdown (Cohorts tab) |
+| `SF_META_DEVICE_TABLE` | Meta platform / device delivery breakdown (Cohorts tab) |
+| `SF_META_CREATIVES_TABLE` | Meta ad creatives |
+| `SF_GOOGLE_ADS_TABLE`, `SF_GOOGLE_ADGROUP_AD_TABLE` | Google Ads performance reports |
+| `SF_TIKTOK_{ADS,CAMPAIGN,ADGROUP,AD,AGE_GENDER,COUNTRY}_TABLE` | the TikTok reports, per level |
+
+A value of the form `SCHEMA.TABLE` is prefixed with `SNOWFLAKE_DATABASE`; a three-part
+`DB.SCHEMA.TABLE` is used as given. The Streamlit-in-Snowflake app in `snowflake/streamlit/` reads
+the same variable names and, where one is unset, discovers the table by name against
+`INFORMATION_SCHEMA` in the session's current database.
+
+Column names are resolved per PLATFORM (Meta's bare upper-case identifiers, Google's dotted
+lower-case GAQL fields with cost in micros, TikTok's report columns), and every live query
+re-resolves them from `INFORMATION_SCHEMA`, so a loader that names things differently is detected
+rather than assumed.
+
+**Meta conversions and revenue.** Meta returns purchases and revenue as nested `actions` /
+`action_values` arrays, and an Airbyte-normalised load unnests them into sibling tables
+`<STREAM>_ACTIONS` and `<STREAM>_ACTION_VALUES`, joined on `_AIRBYTE_<STREAM>_HASHID`. Set
+`SF_META_ACTION_TABLES=on` if your load follows that convention (optionally `SF_META_ACTION_TYPE`,
+default `purchase`). Without it the base table is read on its own and conversions and revenue come
+back **`null`, meaning "not tracked here" — never `0`**.
+
+Optional, all unset by default and none guessed: `ADS_DAILY_BUDGET_CAP` (+ `ADS_BUDGET_CURRENCY`)
+for spend pacing, `ADS_REPORT_TZ` for the account's reporting timezone (defaults to `UTC`),
+`ADS_LIVE_ACCOUNTS` to narrow which feeds the live view unions, and `ADS_SOP_TOKENS` (a JSON object
+of name-field → permitted values) for naming compliance.
+
+## 5. Verify (in this order)
 
 | Check | Expected |
 |---|---|
-| `/api/brain?action=ads-snowflake&op=ping` | `reachable: true`, a `latency_ms`, `account_host: UXDEIHW-MO06981.snowflakecomputing.com` |
-| `/api/brain?action=ads-live&op=status` | `snowflake.configured: true` |
+| `/api/brain?action=ads-snowflake&op=ping` | `reachable: true`, a `latency_ms`, and your own `account_host` |
+| `/api/brain?action=ads-snowflake&op=status` | `configured: true` **and** `has_sources: true` |
+| `/api/brain?action=ads-live&op=status` | `snowflake.configured: true`, `snowflake.has_sources: true` |
 | `/api/brain?action=ads-live&op=today` | `source: "snowflake"`, today's partial-day rows |
-| `/ads-dashboard` → **Source & connection** | green `reachable` chip |
-| `/ads-master` → **Live Now** | source chip reads `snowflake` instead of `snapshot` |
-| `/ads-dashboard` → **SOP compliance** | real compliance rate and spend-at-risk instead of the not-reachable notice |
+| `/ads-dashboard` → **Source & connection** | green `reachable` chip; each configured feed shows its table, each unset one shows `not set` beside the variable that would name it |
+| `/ads-dashboard` → **Naming compliance** | a real compliance rate and spend-at-risk instead of the not-reachable notice |
 
 Failure modes the ping distinguishes for you: `not connected` (vars missing, it names which),
 `unreachable` + HTTP 401/403 (bad or expired PAT, or the role cannot use the warehouse), and
-`unreachable` + other (wrong account identifier or network).
+`unreachable` + other (wrong account identifier or network). A separate `no_sources: true` response
+means the credentials are fine but no ad table has been named yet — see step 4.
 
-## 5. What goes live, and what will still look empty
+## 6. Reading the numbers once it is live
 
-KNICKGASM runs **13 distinct ad accounts across 17 warehouse feeds** (Meta 10, Google 6, TikTok 1),
-enumerated live on 2026-07-26 by unioning every base insights / ad-performance table in `KNICKGASM_DB`
-and grouping by account. The registry lives in `adAccounts()` in
-`api/_shared/ads-snowflake-core.js` and is served at
-`/api/brain?action=ads-snowflake&op=accounts` (and statically at `/data/ads/ad-accounts.json`).
+Two rules survive from the original notes because they are about measurement, not about any
+particular advertiser:
 
-### US, live
+1. **Accounts are not comparable on one KPI.** Where a pixel or a Google conversion is tracked,
+   revenue / ROAS / CPA are real. Where the checkout happens somewhere the ad cannot be attributed
+   to, no purchase can ever be recorded, so those accounts must return `null` rather than `0` and be
+   judged on CTR, CPC, CPM and reach. A 0.00x ROAS on such an account is a measurement artefact, not
+   a result — ranking on ROAS would report every one of those campaigns as a total failure.
+2. **Never sum across currencies.** A feed reporting GBP or INR cannot be added to a USD feed, and a
+   dashboard that does it produces a number that is wrong in a way nobody can see.
 
-| Account | Id | Warehouse table | Fresh to | Judged on |
-|---|---|---|---|---|
-| Meta — Knickgasm India USA New EST Main (D2C) | `1303870183798748` | `MAPLEMONK.META_USA_ADS_INSIGHTS` | 2026-07-25 + partial day | ROAS |
-| Meta — KNICKGASM USA - Sneaker Ad Account (Target / Costco) | `804570870670763` | `MAPLEMONK.USA_TEA_ADS_ADS_INSIGHTS` | 2026-07-25 + partial day | CTR / CPC / CPM |
-| Google — KNICKGASM | `9797311905` | `MAPLEMONK.US_GOOGLE_ADS_CONSOLIDATED` (filter `ACCOUNT='Google US CONSOLIDATED'`) | 2026-07-25 | ROAS |
-| Google — Raghuvansh (Amazon, Ampd) | `3036820580` | `MAPLEMONK.US_AMZ_GADS_AD_GROUP_AD_REPORT` | 2026-07-25 | CTR / CPC |
-| TikTok — KNICKGASM USA | `7393105007056388112` | `DATON.RAW.TIKTOK_ADS_USA_AD_REPORT_DAILY` | 2026-07-14 (paused) | CTR / CPC |
+And one parsing trap worth keeping: CSV-loaded feeds (Airbyte and similar) often carry **two date
+formats in one column** — `DD-MM-YYYY` on older rows and `DD-MM-YYYY H:MI` on newer ones — and money
+as text with a currency symbol and thousands separators. Parsing only the bare date form silently
+drops the newest rows and makes a live feed look stale. Split on the space before parsing
+(`try_to_date(split_part(col,' ',1),'DD-MM-YYYY')`), and strip `$` and `,` before casting a money
+column to a number.
 
-### MAPLEMONK1 is not just breakdown tables
+## 6b. Scope: this is a DEPLOYMENT connection, not a workspace one
 
-`MAPLEMONK1` carries Meta cohort breakdowns for the DTC account (age/gender 11,521 rows ·
-platform/device 11,511 · creatives 9,544) — but it also holds the **entire retail-partner stack**,
-and that is where the Target programme is actually measured:
+There is no per-workspace Snowflake credential in `workspace-connections-core.js`, so anything read
+here belongs to whoever runs the deployment, not to the brand signed in. Every payload therefore
+carries `data_scope: { level: 'deployment' }`, and `/ads-dashboard` renders that statement above the
+figures rather than leaving a reader to assume they are their own.
 
-| Table | Rows | Fresh to | What it is |
-|---|---|---|---|
-| `TARGET_ADS_DAY_TARGET_ADS_REPORT` | 804 | 2026-07-22 | **Target Roundel Media Studio** — a whole additional ad platform, with attributed sales, units, orders and ROAS matched by Target |
-| `TARGET_ADS_KEYWORD_TARGET_ADS_REPORT` | 98,647 | 2026-07-22 | the same Roundel spend by keyword |
-| `TARGET_SALES_TARGET_SALES` | 12,291 | 2026-07-23 | **real Target store sell-through** — $129,605 / 10,406 units across 1,210 stores since 2026-05-01 |
-| `TARGET_AISLE_TARGET_AISLE_REPORT` | 25 | 2026-07-24 | Target Aisle, with its own ROI and redemptions |
-| `TARGET_IBOTTA_REPORT_TARGET_IBOTTA_REPORT` | 143 | 2026-07-24 | Ibotta rebates across Walmart, Instacart, DoorDash, Uber and others |
-| `JB_USA` | 471 | 2026-07-23 | JoinBrands UGC — 302 creators, posts through **2026-07-22**, $36,100.15 creator cost |
-| `WALMART_SALES_DATA_WALMART_SALES_DATA_RAW` | 11.66M | 2026-07-25 | Walmart sell-through |
-| `CADS_USA_SEARCH_TERM_SPONSORED_{PRODUCTS,BRANDS}` | 37,590 | 2026-07-21 | Amazon Ads console search terms |
-| `AVP_NOW_IN_GET_VENDOR_SALES_REPORT` | 765 | 2026-07-25 | Amazon Vendor Central sales |
+A **workspace's own** paid media comes from the ad accounts it connected under `/connections`
+(Meta Ads, Google Ads, TikTok Ads) and is reported at `/data-analysis?tab=live-ads`, via
+`api/_shared/ad-insights-core.js`. That is the per-brand path. This one is the warehouse drill-down,
+and until a deployment names its own tables it shows nothing at all.
 
-This is why both schemas are required. The Meta retail account has no pixel, so on its own it can
-only ever look like cost; `/api/brain?action=ads-snowflake&op=retail-funnel` joins spend in
-`MAPLEMONK` to outcomes in `MAPLEMONK1` and returns three clearly-labelled tiers:
+## 7. Security note
 
-| Month | Meta retail | Roundel | Roundel attr. sales | Roundel ROAS | Target sell-through | Units | Stores |
-|---|---|---|---|---|---|---|---|
-| May 2026 | $3,608.06 | $4,473.74 | $3,433.03 | 0.77 | $21,628 | 2,086 | 814 |
-| June 2026 | $14,422.93 | $28,291.83 | $12,635.91 | 0.45 | $47,642 | 3,902 | 1,072 |
-| July 2026 | $32,217.25 | $7,549.17 | $7,195.74 | 0.95 | $60,335 | 4,418 | 1,090 |
-| **Total** | **$50,248.24** | **$40,314.74** | **$23,264.68** | **0.58** | **$129,605** | **10,406** | — |
-
-`sell_through_per_dollar` (1.43 blended) is deliberately **not** called a ROAS: nothing in the
-warehouse attributes a Target basket to a Meta impression, and sell-through includes baseline
-demand that would have happened without any advertising.
-
-⚠️ **Two date formats in one column.** These retail feeds are Airbyte CSV loads. Dates arrive as
-`DD-MM-YYYY` on older rows and `DD-MM-YYYY H:MI` on newer ones, and money arrives as text with a
-currency symbol and thousands separators (`'$125.95'`, `'2,907,903'`). Parsing only the bare date
-form silently drops the newest rows — it made Target sell-through look like it ended 2026-07-13 when
-it runs to 2026-07-23. Always `split_part(col,' ',1)` first; the registry's `dmy()` helper does.
-
-### Non-US
-
-Live feeds: Meta UK `573128874469619` (fresh to 2026-07-26, the freshest in the warehouse), Meta
-India `70950428`, Google UK `3861674115`, Google India `7719984554`. **UK reports GBP and India
-reports INR — never sum them with the USD accounts.**
-
-### Two corrections to earlier notes in this file
-
-1. **The Target/Costco retail account IS in the warehouse.** It sits in `MAPLEMONK` under
-   `USA_TEA_ADS_ADS_INSIGHTS` — a name that does not match `META_USA%`, which is why a name-based
-   search found only the DTC account. 6,556 rows, 26 campaigns, 214 ads, $50,248.24, from
-   2025-09-24 through the current partial day. Its May ($3,608.06) and June ($14,422.93) spend
-   match the KT Master Ad Tracking Sheet to the cent. A second, older Datachannel mirror exists at
-   `DC_RAW.FB2_KNICKGASM_KNICKGASMUSATEA_US_FBADS_ADPERFORMANCE` but ends 2026-05-31 and holds only 7 of
-   the 26 campaigns — do not report from it.
-2. **US Google is not stale.** `GOOGLE_ADS_US_AD_GROUP_AD_REPORT` holds the **retired** customer
-   `2769294429` ("KNICKGASM - USA - Old") and correctly stops 2023-11-24; the account was closed, not
-   the feed. The live customer is `9797311905` in `US_GOOGLE_ADS_CONSOLIDATED`: 23 campaigns,
-   $72,343.46 spend against $142,983.81 conversion value in 2026 YTD (ROAS 1.98), fresh to
-   2026-07-25. No pipeline work is required.
-
-### The KPI rule that matters more than the connection
-
-Accounts are **not comparable on one KPI**. Where a pixel or a Google conversion is tracked,
-revenue / ROAS / CPA are real. Where checkout happens on **target.com, Instacart or amazon.com**,
-no purchase can ever be attributed back to the ad, so those accounts return `null` rather than `0`
-and must be judged on CTR, CPC, CPM and reach. A 0.00x ROAS on a retail account is a measurement
-artefact, not a result — ranking the studio on ROAS would report every Target and Costco campaign
-as a total failure.
-
-Setting `META_ACCESS_TOKEN` + `META_AD_ACCOUNT_ID` still gives a minute-fresh read for whichever
-account those credentials belong to, and `/api/brain?action=ads-live` prefers it over the
-warehouse. It is no longer required to see Target/Costco at all — the warehouse now carries it.
-
-## 6. Security note
-
-Snowflake credentials for a different user were shared in plain text in the UGC Dashboard Automation
-email thread. Rotate that password and keep access per-user; the app should use the PAT above, never a
-personal password.
+Use the PAT above, never a personal account password, and keep access per-user so a token can be
+revoked without locking anyone else out. If a credential is ever shared in plain text — in an email
+thread, a ticket or a chat — rotate it rather than relying on the thread being private.

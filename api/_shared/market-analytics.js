@@ -13,7 +13,46 @@
  * Supabase order tables and returned $0). Zero fabrication: every figure is a
  * straight export total; the current-month number is a clearly-labelled
  * run-rate projection, never presented as an actual.
+ *
+ * ── WHOSE EXPORT IS IT ─────────────────────────────────────────────────────
+ * One export, compiled into the build. It is TENANT ZERO'S store, and nobody
+ * else's - a second brand that onboards does not acquire this store's orders,
+ * customers or best sellers by signing up.
+ *
+ * The assistant described these figures to the model as "REAL sales performance
+ * from our Shopify order exports", so a brand asking "what is my best seller"
+ * was answered with another company's catalogue and revenue, in the confident
+ * voice of a measured fact. `ownsBundledExport()` is the gate: tenant zero
+ * reads it, every other workspace is told which store to connect. There is no
+ * middle option where the numbers render under a caveat.
  */
+
+const BUNDLED_OWNER_NOTE = 'The sales export compiled into this build belongs to a different brand workspace. Connect this brand\'s own store (Settings -> Connections -> Shopify) or import its order export; no other brand\'s revenue, customers or best sellers are shown in the meantime.';
+
+/**
+ * Whether the CALLER's active workspace is the one the bundled export describes.
+ *
+ * True for tenant zero (the oldest workspace, which every historical row was
+ * backfilled to) and for a call with no workspace context at all - a script or
+ * a build step, which is where this data legitimately gets read wholesale.
+ */
+async function ownsBundledExport() {
+  try {
+    const supa = require('./supa.js');
+    const wsScope = require('./workspace-scope.js');
+    let env; try { env = supa.env(); } catch (_) { return true; }   // no Supabase: single-tenant dev
+    const [active, zero] = await Promise.all([
+      wsScope.currentWorkspaceId(env),
+      wsScope.defaultWorkspaceId(env),
+    ]);
+    if (!active || !zero) return false;      // cannot prove ownership: do not serve it
+    return String(active) === String(zero);
+  } catch (_) { return false; }
+}
+
+function notOurs(market) {
+  return { ok: false, market: normMarket(market), scope: 'other_workspace', basis: 'unset', error: BUNDLED_OWNER_NOTE };
+}
 
 let DATA = null;
 function data() {
@@ -104,7 +143,7 @@ function projectCurrentMonth(monthly) {
  * figure and is NOT reported here (Klaviyo not connected) — so we never conflate
  * a 600-row modelled RFM sample with the real customer base.
  */
-function audience(market) {
+function audienceUnscoped(market) {
   const mk = normMarket(market);
   const m = (data().markets || {})[mk];
   const s = m && m.summary;
@@ -133,7 +172,7 @@ function audience(market) {
 }
 
 /** Rich real performance snapshot for a market — the payload KicksGPT reasons over. */
-function performance(market) {
+function performanceUnscoped(market) {
   const mk = normMarket(market);
   const m = (data().markets || {})[mk];
   if (!m) {
@@ -168,15 +207,23 @@ function performance(market) {
   };
 }
 
+/** Gated public reads: another brand never receives this export's figures. */
+async function audience(market) {
+  return (await ownsBundledExport()) ? audienceUnscoped(market) : notOurs(market);
+}
+async function performance(market) {
+  return (await ownsBundledExport()) ? performanceUnscoped(market) : notOurs(market);
+}
+
 // Market-level month-on-month dips (real). Product-level dips are NOT possible
 // from these exports (top_products is a trailing TOTAL, not a monthly series);
 // that needs a per-product monthly feed, flagged rather than fabricated.
-function marketDips(market, dropPct = 0.15) {
-  const p = performance(market);
+async function marketDips(market, dropPct = 0.15) {
+  const p = await performance(market);
   if (!p.ok || !p.month_on_month || p.month_on_month.change_pct == null) return [];
   const c = p.month_on_month.change_pct;
   if (c <= -dropPct * 100) return [{ market: p.market, metric: 'Revenue (month-on-month)', change_pct: c, latest: p.month_on_month.latest, note: 'latest month is partial; confirm against run-rate' }];
   return [];
 }
 
-module.exports = { performance, audience, marketDips, data, normMarket, cur };
+module.exports = { performance, audience, marketDips, data, normMarket, cur, ownsBundledExport, audienceUnscoped, performanceUnscoped, BUNDLED_OWNER_NOTE };

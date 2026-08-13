@@ -37,7 +37,11 @@
   .chip.on{background:var(--knickgasm-green);color:#fff;border-color:var(--lava)}
   .cnt{color:#48524c;font-size:12px;margin-left:6px}
   .tblscroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px}
+  /* table-layout:auto (not the global fixed default) because the header cells
+     are white-space:nowrap: under fixed layout every column takes an equal
+     share regardless of content, so a header wider than its share paints over
+     the next column. The .tblscroll wrapper carries the overflow. */
+  table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px;table-layout:auto}
   th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair);white-space:nowrap}
   td{padding:12px 12px;border-bottom:1px solid rgba(171,135,67,.12);vertical-align:top}
   td.obj{font-weight:600;color:#111111;max-width:220px}

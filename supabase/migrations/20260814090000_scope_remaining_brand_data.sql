@@ -84,7 +84,23 @@ begin
 
   foreach t in array array[
     'analytics_hourly_runs', 'analytics_anomaly_state',
-    'analytics_action_outcomes', 'analytics_alert_settings'
+    'analytics_action_outcomes', 'analytics_alert_settings',
+    -- `brands` is the competitive-intelligence system of record - the set of
+    -- companies THIS brand monitors, and the parent of every ci_* row. It was
+    -- missed by 20260810160000, so ?action=ci-brands returned every tenant's
+    -- watch list to every tenant.
+    'brands',
+    -- The Smart Brain tables 20260810160000 missed. Each one holds a brand's
+    -- own plan, assets, review decisions, experiments or measured campaign
+    -- results; `smart_calendar` in particular backs the assistant's
+    -- get_calendar tool and `smart_review_queue` backs the Data Analysis
+    -- pending-review count.
+    'smart_calendar', 'smart_calendar_reviews', 'smart_assets',
+    'smart_campaign_assets', 'smart_campaign_metrics', 'smart_review_queue',
+    'smart_feedback', 'smart_confidence', 'smart_library_scores',
+    'smart_mvt_results', 'smart_recalibrations',
+    'smart_agents', 'smart_agent_sessions', 'smart_agent_messages',
+    'smart_agent_knowledge'
   ] loop
     if to_regclass('public.' || t) is null then continue; end if;
     execute format('alter table public.%I add column if not exists workspace_id uuid', t);
@@ -119,6 +135,52 @@ alter table public.analytics_alert_settings drop constraint if exists analytics_
 alter table public.analytics_alert_settings alter column sender_email drop not null;
 alter table public.analytics_alert_settings alter column sender_email drop default;
 
+-- ── 3b. The legacy TEXT workspace column ────────────────────────────────────
+--
+-- 20260706 gave the backbone tables `workspace_id TEXT NOT NULL DEFAULT
+-- 'knickgasm'` - a single-tenant literal, from the older `public.workspaces`
+-- table, years before brand_workspaces existed.
+--
+-- 20260810160000 then tried to scope two of them with
+-- `add column if not exists workspace_id uuid`, which is a NO-OP against an
+-- existing TEXT column, and put an RLS policy on them that casts
+-- `workspace_id::uuid`. Every one of those rows holds the literal 'knickgasm',
+-- so the cast RAISES rather than filtering, and the backfill's
+-- `where workspace_id is null` matched nothing because the column is NOT NULL
+-- with a default. The result is a column that looks scoped, is not, and errors
+-- when the policy touches it.
+--
+-- Convert the literal to tenant zero's real id so the column means what the
+-- rest of the platform assumes it means.
+do $$
+declare
+  t text;
+  first_ws uuid;
+begin
+  select id into first_ws from public.brand_workspaces order by created_at asc limit 1;
+  if first_ws is null then return; end if;
+
+  foreach t in array array[
+    'activity_logs', 'saved_items', 'uploaded_files', 'exports', 'agent_runs'
+  ] loop
+    if to_regclass('public.' || t) is null then continue; end if;
+    -- Only when it is still the legacy TEXT column.
+    if exists (
+      select 1 from information_schema.columns
+       where table_schema = 'public' and table_name = t
+         and column_name = 'workspace_id' and data_type = 'text'
+    ) then
+      execute format('alter table public.%I alter column workspace_id drop default', t);
+      execute format('alter table public.%I alter column workspace_id drop not null', t);
+      execute format($f$update public.%I set workspace_id = %L
+                        where workspace_id is null
+                           or workspace_id !~ '^[0-9a-fA-F-]{36}$'$f$, t, first_ws::text);
+      execute format('alter table public.%I alter column workspace_id type uuid using workspace_id::uuid', t);
+      execute format('create index if not exists %I on public.%I (workspace_id)', t || '_ws_idx', t);
+    end if;
+  end loop;
+end $$;
+
 -- ── 4. Dedupe keys are unique WITHIN a brand, not across the platform ───────
 --
 -- Every one of these was globally unique, which is a cross-brand write with no
@@ -140,7 +202,9 @@ declare
     array['ci_offers',                    'ci_offers_hash_uidx',                     'content_hash'],
     array['kb_campaigns',                 'kb_campaigns_src_uidx',                   'source_db_id'],
     array['cohorts',                      'cohorts_key_uidx',                        'cohort_key'],
-    array['performance_metrics',          'perf_uidx',                               'grain, entity_id, metric_date']
+    array['performance_metrics',          'perf_uidx',                               'grain, entity_id, metric_date'],
+    array['brands',                       'brands_slug_uidx',                        'slug'],
+    array['smart_calendar',               'smart_calendar_slot_uidx',                'slot_date, market, channel, slot_type']
   ];
 begin
   foreach spec slice 1 in array specs loop

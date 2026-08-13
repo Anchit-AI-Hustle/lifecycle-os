@@ -165,6 +165,48 @@ function readableOn(bg, ink, surface, surfaceAlt) {
   return best;
 }
 
+/**
+ * The brand colour, darkened (or lightened) until it is READABLE AS TEXT on
+ * `bg`.
+ *
+ * readableOn() answers the opposite question - what to write ON a brand-colour
+ * fill - and there was no answer for the far more common case: the brand colour
+ * used AS a text colour on the page. Pages write `color: var(--brand-primary)`
+ * for a badge, a link, an active step, a stat; that is legible only while the
+ * brand's primary happens to be dark. Onboard a brand with a light primary and
+ * those elements render correctly and invisibly. That is exactly what happened
+ * to the "ACTIVE" badge on the brand list and the completed steps in the
+ * onboarding wizard: white-on-white, perfectly laid out, unreadable.
+ *
+ * The hue is preserved and only the lightness moves, so the result still reads
+ * as the brand's colour rather than as a generic dark grey. It walks toward the
+ * far end in small steps and stops at the first that clears the target, so a
+ * colour that already passes is returned untouched.
+ *
+ * `target` is 4.5 for body text (WCAG AA). Large or bold text can use 3.0, but
+ * the callers here cannot know the type size, so the stricter bar is the safe
+ * default.
+ */
+function readableAsText(color, bg, target) {
+  const want = target || 4.5;
+  const c = normHex(color);
+  const surface = normHex(bg) || '#ffffff';
+  if (!c) return '#111111';
+  if (contrast(c, surface) >= want) return c;
+
+  // Move AWAY from the background: darken on a light surface, lighten on a
+  // dark one. Going the wrong way can never reach the target.
+  const dir = luminance(surface) > 0.5 ? -1 : 1;
+  for (let t = 0.05; t <= 1.0001; t += 0.05) {
+    const candidate = shade(c, dir * t);
+    if (contrast(candidate, surface) >= want) return candidate;
+  }
+  // Unreachable in practice - pure black or white always clears 4.5 against a
+  // surface the palette validator has already accepted - but never return a
+  // colour that fails.
+  return dir < 0 ? '#000000' : '#ffffff';
+}
+
 /* ── brand normalisation ──────────────────────────────────────────────────── */
 
 const DEFAULT_BRAND = (() => {
@@ -359,6 +401,21 @@ function tokens(brand) {
   const surface = p.surface || '#F7F5F2';
   const surfaceAlt = p.surface_alt || shade(surface, 0.6);
   const muted = p.muted || shade(ink, 0.35);
+  // Text tokens are measured against the WORST-CASE surface they can land
+  // on, not the lightest. A brand's page surface is often a tint while its
+  // cards are white, and the shared rail is tinted too; a colour tuned
+  // against white still fails on the tint, which is precisely where the
+  // nav group labels were landing at 3.6:1. Whichever of the two the brand
+  // colour reads worse on is the one that has to pass.
+  const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+  // Tuned with headroom rather than to exactly 4.5. These tokens do not only
+  // land on the bare surface: the shell paints tinted STATES over it - an
+  // active nav group, a hovered row, a selected chip - each a few percent
+  // darker. A colour that clears 4.5 on the surface itself lands just under it
+  // on the tint, which is how the active group header measured 3.98:1 while
+  // every other label passed. The margin buys those states without pushing a
+  // brand's colour further from what it chose than it has to be.
+  const TEXT_AA = 4.9;
   const t = brand && brand.typography ? brand.typography : {};
 
   return {
@@ -367,11 +424,23 @@ function tokens(brand) {
     '--brand-primary-soft': shade(primary, 0.86),
     '--brand-primary-tint': shade(primary, 0.94),
     '--brand-on-primary': readableOn(primary, ink, surface, surfaceAlt),
+    // The brand colour as a TEXT colour. --brand-on-primary answers what to
+    // write on a primary fill; this answers the far more common case of the
+    // brand colour written on the page. Any rule doing `color:var(--brand-
+    // primary)` must use this instead, or it is legible only for brands whose
+    // primary happens to be dark.
+    '--brand-primary-text': readableAsText(primary, worstSurface, TEXT_AA),
     '--brand-accent': accent,
     '--brand-accent-soft': shade(accent, 0.88),
     '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
+    '--brand-accent-text': readableAsText(accent, worstSurface, TEXT_AA),
     '--brand-ink': ink,
-    '--brand-ink-muted': muted,
+    // Secondary text still has to be READABLE. `shade(ink, .35)` is a fixed
+    // 35% lift toward white with no floor, so a brand with a mid-grey ink got
+    // a muted token that fails AA - and muted is the colour of most of the
+    // small print on every page. AA for body text is the bar here too: this is
+    // supporting copy, not decoration.
+    '--brand-ink-muted': readableAsText(muted, worstSurface, TEXT_AA),
     '--brand-surface': surface,
     '--brand-surface-alt': surfaceAlt,
     '--brand-line': shade(ink, 0.84),
@@ -1038,13 +1107,43 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
   }
 
   let parsed;
-  if (k === 'storefront' || k === 'shopify_public') parsed = await rowsFromStorefront(url, reg);
-  else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, ws);
+  if (k === 'storefront' || k === 'shopify_public') {
+    // A store URL means "read my catalogue", not "read my /products.json".
+    // Only Shopify and its compatibles publish that feed, so every other store
+    // - and every Shopify store that has the endpoint disabled - got "No usable
+    // product rows were found in that source" and no catalogue at all, which is
+    // where the brand's generated assets then fall back to DATA REQUIRED
+    // markers. The crawler reads what the site DECLARES in its own structured
+    // data across its interlinked pages, so it does not care what the store
+    // runs on.
+    try {
+      parsed = await rowsFromStorefront(url, reg);
+    } catch (e) {
+      // A missing feed is not an error to report, it is a reason to try the
+      // other route. A refusal that is about the URL itself (private host,
+      // out of scope) still has to surface.
+      if (e && e.status && e.status !== 502 && e.status !== 404) throw e;
+      parsed = { rows: [], source: null, note: e && e.message };
+    }
+    if (!parsed.rows.length) {
+      const viaFeed = parsed.note || 'no rows in the product feed';
+      parsed = await rowsFromSite(url, reg, ws);
+      if (parsed && parsed.rows) parsed.fallback_from = viaFeed;
+    }
+  } else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, ws);
   else if (k === 'json') parsed = rowsFromJson(text, reg);
   else if (k === 'csv') parsed = rowsFromCsv(text, reg);
   else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
 
-  if (!parsed.rows.length) { const e = new Error('No usable product rows were found in that source.'); e.status = 400; throw e; }
+  if (!parsed.rows.length) {
+    // Say which routes were tried, so the answer is actionable rather than a
+    // dead end: the operator can paste a CSV instead, or fix the feed.
+    const tried = (k === 'storefront' || k === 'shopify_public')
+      ? ' Tried the public product feed and then crawled the site\'s own pages for declared product data.'
+      : '';
+    const e = new Error('No usable product rows were found in that source.' + tried);
+    e.status = 400; throw e;
+  }
 
   // De-dupe on the table's unique key before insert so one bad source row can't
   // abort the whole import.
@@ -1260,7 +1359,7 @@ module.exports = {
   requireUser,
   restAs,
   // colour
-  normHex, contrast, luminance, saturation, isDarkNeutral, shade, readableOn, validatePalette,
+  normHex, contrast, luminance, saturation, isDarkNeutral, shade, readableOn, readableAsText, validatePalette,
   // brand
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,
   readiness, shellPayload, slugify, DEFAULT_BRAND,
