@@ -330,22 +330,58 @@ const AUDIO_BEDS = {
   reels:      '/assets/media/knickgasm-reels-loop.wav',
   underscore: '/assets/media/knickgasm-ad-underscore.wav',
 };
-function audioBedFor(duration_s, { voiceover = false } = {}) {
+/**
+ * These files are ONE tenant's own recordings and are cleared for THAT tenant's
+ * paid media. Handing them to another brand would be two failures at once: the
+ * brand leak, and a licensing claim the other brand cannot stand behind, since
+ * the clearance does not travel with the file.
+ *
+ * So a brand with no bed on file gets a marker, never a loan. Silence in the
+ * edit is a problem the operator can see and solve; an unlicensed track in a
+ * paid campaign is one they find out about later.
+ */
+function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
+  const zeroSlug = (() => {
+    try { return String((require('./brand-runtime.js').defaultBrand() || {}).slug || ''); } catch (_) { return ''; }
+  })();
+  const isZero = !brand || (zeroSlug && String(brand.slug || '') === zeroSlug);
+
+  if (!isZero) {
+    const own = (brand && brand.audio_beds) || null;
+    const bed = own && (voiceover ? own.underscore : (duration_s <= 18 ? own.reels : own.hero));
+    if (!bed) {
+      return {
+        bed: null,
+        origin: '[DATA REQUIRED BEFORE LAUNCH: brand audio bed, all, all]',
+        spec: '',
+        mix: voiceover ? 'bed -18 LUFS, duck 6 dB under VO' : 'music-forward -14 LUFS',
+        note: 'Generated video arrives SILENT. No audio bed is on file for this brand, and another brand\'s bed is not licensed for it. Supply an owned or licensed track before this ships as paid media.',
+      };
+    }
+    return {
+      bed,
+      origin: `${brand.name || 'This brand'} owned (supplied on the brand record)`,
+      spec: (brand.audio_beds && brand.audio_beds.spec) || '',
+      mix: voiceover ? 'bed -18 LUFS, duck 6 dB under VO' : 'music-forward -14 LUFS',
+      note: 'Generated video arrives SILENT — lay this bed under it in the edit and burn in captions.',
+    };
+  }
+
   const bed = voiceover ? AUDIO_BEDS.underscore : (duration_s <= 18 ? AUDIO_BEDS.reels : AUDIO_BEDS.hero);
   return {
     bed,
-    origin: 'KNICKGASM original (royalty-free, cleared for paid media)',
+    origin: `${(brand && brand.name) || 'Tenant zero'} original (royalty-free, cleared for paid media)`,
     spec: '90 BPM, F minor, seamless loop',
     mix: voiceover ? 'bed -18 LUFS, duck 6 dB under VO' : 'music-forward -14 LUFS',
     note: 'Generated video arrives SILENT — lay this bed under it in the edit and burn in captions.',
   };
 }
 
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false } = {}) {
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null } = {}) {
   const p = String(prompt || '').trim();
   if (!p) return { ok: false, error: 'prompt required' };
   const opts = { prompt: p, duration_s, aspect };
-  const audio = audioBedFor(duration_s, { voiceover });
+  const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
 
   if (!anyKey()) {
