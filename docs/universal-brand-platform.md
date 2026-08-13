@@ -183,6 +183,39 @@ frequency-ranked support colour is never promoted. Text tokens (`primary-text`, 
 surface, using the same `TEXT_AA` constant the live shell's tokens are built from; `primary` and
 `secondary` stay raw because they are fills. Every adjustment is printed with its before/after ratio.
 
+**Only the exact correct option, at every edge.** The core rule (identity-only `primary`) was already
+right; these are the remaining places something plausible could have been picked:
+
+- **`secondary` too.** `proposePalette()` falls back to the highest-weighted `support` colour when a
+  site declares no action colour — correct for a wizard where a human confirms, wrong for a token
+  consumed without one. The pack emits `secondary` only when `sources.accent.from_role === 'action'`;
+  otherwise it reports the candidate under "considered and not emitted" with a marker.
+- **The proposal now carries its own confidence.** `sources.<role>` gained `confidence`, `from_role`
+  and `ranked_not_declared`. The wizard was hardcoding `confidence: 'declared'` on every proposed
+  role, so a frequency-ranked leftover was shown with the same authority as the site's own
+  `theme-color`. It now shows the real confidence, tags a ranked colour **ranked, not declared**, and
+  presents an empty role as a first-class outcome rather than something reached by cancelling.
+- **A conflict is a decision.** Brand-vs-CTA disagreement renders both values with their signals,
+  their source URLs and a button each; whichever the operator picks is recorded as their resolution.
+- **Loaded ≠ used.** A `fonts.googleapis.com` href or an `@font-face` proves a download; only a
+  `font-family` rule on a matching selector proves anything renders in it. `brand-extract` ranks
+  link-only candidates `weak` but lets one fill an empty slot, where it becomes candidate `[0]`. The
+  pack emits only `declared`/`strong` candidates; the wizard tags the weak one **loaded, not shown to
+  be used** and its button reads *Use anyway* on a dashed border.
+- **An off-origin redirect is off-origin.** `site-crawl` checked scope on the URL requested and never
+  on the one that answered, so an in-scope path 301'ing to a partner or a marketplace had that body
+  parsed and filed as this brand's. It now compares `r.url` against the allowed hosts and skips with a
+  note. This fixes the catalogue importer and `brand-extract` too, not just the pack.
+- **Derived is labelled derived.** `on-primary`, `primary-text`, `on-secondary`, `secondary-text` and
+  an adjusted `neutral` are computed, not read. Each carries `DERIVED from <input> — <how>` as its
+  YAML comment and appears in a **Derived, not observed** table.
+- **The pack records which option each field took.** `design.selection` holds, per field: the value,
+  the signal, the source URL, the confidence, `rank_taken` out of `candidates_considered`, and
+  `chosen_by` (`top-candidate` / `only-candidate` / `computed` / `refused` / `operator-override`).
+  `applyPack()` rewrites it to `operator-override` naming what the pack had ranked first when a human
+  reaches past it — so "the extraction was wrong" and "a person picked the wrong one of several"
+  stay distinguishable afterwards.
+
 **A stated limit:** a browser extension that reads a live page's COMPUTED CSS (`design-md-chrome`) is
 strictly more accurate — it resolves the cascade and sees runtime themes. Vercel serverless cannot run
 a browser, so this is a stylesheet parse, and that is said in `limits[]` and in the Overview prose so a
