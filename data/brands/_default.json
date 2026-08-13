@@ -152,45 +152,148 @@
           "name": "Tier 2, India custom-sneaker studios",
           "note": "Direct competitors: Moreiarty, Sneak Peek Shoes, The Leather Works (TLW Art House), Shoes Your Daddy, Sneakboo, Courtside, MD Customs.",
           "brands": [
-            { "name": "Moreiarty", "website": "https://www.moreiarty.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Sneak Peek Shoes", "website": "https://www.handpaintedsneaker.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "The Leather Works (TLW Art House)", "website": "https://theleatherworks.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Shoes Your Daddy", "website": "https://www.shoesyourdaddy.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Sneakboo", "country": "India" },
-            { "name": "Courtside", "website": "https://www.courtside.store", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "MD Customs", "website": "https://www.mdcustoms.in/en-us", "country": "India", "source": "Homepage opened and verified 2026-08-03" }
+            {
+              "name": "Moreiarty",
+              "website": "https://www.moreiarty.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Sneak Peek Shoes",
+              "website": "https://www.handpaintedsneaker.com",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "The Leather Works (TLW Art House)",
+              "website": "https://theleatherworks.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Shoes Your Daddy",
+              "website": "https://www.shoesyourdaddy.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Sneakboo",
+              "country": "India"
+            },
+            {
+              "name": "Courtside",
+              "website": "https://www.courtside.store",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "MD Customs",
+              "website": "https://www.mdcustoms.in/en-us",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            }
           ]
         },
         {
           "name": "Tier 3, Sneaker retail and marketplaces",
           "note": "Compete for the same sneakerhead wallet: VegNonVeg, Superkicks, CrepDog Crew, Hype Fly, FindYourKicks, Mainstreet Marketplace.",
           "brands": [
-            { "name": "VegNonVeg", "website": "https://www.vegnonveg.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Superkicks", "website": "https://www.superkicks.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "CrepDog Crew", "website": "https://crepdogcrew.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Hype Fly", "website": "https://hypefly.co.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "FindYourKicks", "website": "https://www.findyourkicks.com", "country": "India", "source": "Homepage opened 2026-08-03; it served a maintenance holding page" },
-            { "name": "Mainstreet Marketplace", "website": "https://marketplace.mainstreet.co.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" }
+            {
+              "name": "VegNonVeg",
+              "website": "https://www.vegnonveg.com",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Superkicks",
+              "website": "https://www.superkicks.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "CrepDog Crew",
+              "website": "https://crepdogcrew.com",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Hype Fly",
+              "website": "https://hypefly.co.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "FindYourKicks",
+              "website": "https://www.findyourkicks.com",
+              "country": "India",
+              "source": "Homepage opened 2026-08-03; it served a maintenance holding page"
+            },
+            {
+              "name": "Mainstreet Marketplace",
+              "website": "https://marketplace.mainstreet.co.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            }
           ]
         },
         {
           "name": "Tier 4, Indie design-led Indian brands",
           "note": "Comet, Gully Labs, Thaely, Banjaaran Studio. Design-forward originals rather than customisation.",
           "brands": [
-            { "name": "Comet", "website": "https://www.wearcomet.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Gully Labs", "website": "https://gullylabs.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Thaely", "website": "https://thaely.com", "country": "India", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Banjaaran Studio", "website": "https://banjaaran.in", "country": "India", "source": "Homepage opened and verified 2026-08-03" }
+            {
+              "name": "Comet",
+              "website": "https://www.wearcomet.com",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Gully Labs",
+              "website": "https://gullylabs.com",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Thaely",
+              "website": "https://thaely.com",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Banjaaran Studio",
+              "website": "https://banjaaran.in",
+              "country": "India",
+              "source": "Homepage opened and verified 2026-08-03"
+            }
           ]
         },
         {
           "name": "Tier 5, Global customisation benchmarks",
           "note": "The Shoe Surgeon, Kickstradomis, and the official programmes Nike By You and Converse By You.",
           "brands": [
-            { "name": "The Shoe Surgeon (SRGN)", "website": "https://www.thesurgeon.com", "country": "USA", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Kickstradomis", "website": "https://kickstradomis.com", "country": "USA", "source": "Homepage opened and verified 2026-08-03" },
-            { "name": "Nike By You", "website": "https://www.nike.com/w/nike-by-you-6ealh", "country": "USA", "source": "Official programme page, verified 2026-08-03" },
-            { "name": "Converse By You", "website": "https://www.converse.com/c/custom", "country": "USA", "source": "Official programme page, verified 2026-08-03" }
+            {
+              "name": "The Shoe Surgeon (SRGN)",
+              "website": "https://www.thesurgeon.com",
+              "country": "USA",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Kickstradomis",
+              "website": "https://kickstradomis.com",
+              "country": "USA",
+              "source": "Homepage opened and verified 2026-08-03"
+            },
+            {
+              "name": "Nike By You",
+              "website": "https://www.nike.com/w/nike-by-you-6ealh",
+              "country": "USA",
+              "source": "Official programme page, verified 2026-08-03"
+            },
+            {
+              "name": "Converse By You",
+              "website": "https://www.converse.com/c/custom",
+              "country": "USA",
+              "source": "Official programme page, verified 2026-08-03"
+            }
           ]
         }
       ],
@@ -204,5 +307,118 @@
         "No public share-of-market figure exists for any Indian customisation studio."
       ]
     }
+  },
+  "offers": {
+    "_note": "This brand's OWN discount codes, as they exist in its store. The platform decides WHETHER to discount and how deep from cohort behaviour; it must never invent the code itself - a code that does not exist in the store fails at the customer's checkout. A brand that lists none gets no code and a DATA REQUIRED marker.",
+    "discount_cap": 0.15,
+    "codes": [
+      {
+        "code": "SUMMER15",
+        "rate": 0.15,
+        "slot": "seasonal",
+        "note": "Seasonal / affinity default"
+      },
+      {
+        "code": "VIP15",
+        "rate": 0.15,
+        "slot": "vip",
+        "note": "VIP + one-of-one prestige"
+      },
+      {
+        "code": "KNICKGASM15",
+        "rate": 0.15,
+        "slot": "replenishment",
+        "note": "General at-cap / replenishment"
+      },
+      {
+        "code": "NEW15",
+        "rate": 0.15,
+        "slot": "activation",
+        "note": "First-purchase activation"
+      },
+      {
+        "code": "CART15",
+        "rate": 0.15,
+        "slot": "cart",
+        "note": "Cart / checkout recovery"
+      },
+      {
+        "code": "IAMBACK",
+        "rate": 0.15,
+        "slot": "winback",
+        "note": "Winback (lapsed buyers)"
+      },
+      {
+        "code": "BACK15",
+        "rate": 0.15,
+        "slot": "winback",
+        "note": "Winback alternate"
+      },
+      {
+        "code": "SAVE15",
+        "rate": 0.15,
+        "min": 75,
+        "slot": "high_aov",
+        "note": "High-AOV / gifting, min $75"
+      },
+      {
+        "code": "HELLO10",
+        "rate": 0.1,
+        "slot": "discovery",
+        "note": "Browse / sampler discovery"
+      },
+      {
+        "code": "KNICKGASM10",
+        "rate": 0.1,
+        "slot": "general",
+        "note": "Cross-category nudge"
+      }
+    ],
+    "banned_codes": [
+      {
+        "code": "SHUBHDA35",
+        "rate": 0.35
+      },
+      {
+        "code": "GREEN30",
+        "rate": 0.3
+      },
+      {
+        "code": "ANGELS30",
+        "rate": 0.3
+      },
+      {
+        "code": "HOME20",
+        "rate": 0.2
+      },
+      {
+        "code": "ICED20",
+        "rate": 0.2
+      },
+      {
+        "code": "DEAL20",
+        "rate": 0.2
+      },
+      {
+        "code": "RECOVER20",
+        "rate": 0.2
+      },
+      {
+        "code": "SMILE20",
+        "rate": 0.2
+      },
+      {
+        "code": "SAVINGS20",
+        "rate": 0.2
+      },
+      {
+        "code": "INSIDER20",
+        "rate": 0.2
+      },
+      {
+        "code": "VIP20",
+        "rate": 0.2
+      }
+    ]
   }
 }

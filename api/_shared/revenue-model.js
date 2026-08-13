@@ -17,8 +17,17 @@
 // roughly 3.7x. The defaults stay (this is a multi-brand platform and one
 // brand's basket is not another's) but every output now carries the basis, so a
 // caller cannot mistake a modelled forecast for a measured one.
+//
+// dailyTarget is DELIBERATELY NOT DEFAULTED. A daily revenue target is a
+// business goal that belongs to the brand: it is the number their plan is
+// judged against, and nobody else can supply it. A hardcoded 1500 meant every
+// brand's calendar was graded against one company's ambition, and returned a
+// verdict - "TARGET FEASIBLE", "TARGET NOT FEASIBLE WITH CURRENT AUDIENCE" -
+// that read as analysis of THEIR business. A forecast is a projection; a
+// verdict against an invented target is a fabricated judgement, which is worse,
+// because it tells the operator to act.
 const DEFAULTS = {
-  dailyTarget: 1500,   // USD attributed email revenue
+  dailyTarget: null,   // USD attributed email revenue — supplied by the brand
   aov: 42.5,           // stated AOV band $42-$43
   clickRate: 0.015,    // unique click rate on delivered (1-2% band → mid 1.5%)
   closeRate: 0.03,     // click → purchase
@@ -75,11 +84,16 @@ function forecastDay(day, opts = {}) {
   const totalRecipients = sends.reduce((s, x) => s + x.recipients, 0);
   const totalOrders = round(sends.reduce((s, x) => s + x.forecast_orders, 0), 2);
   const totalRevenue = round(sends.reduce((s, x) => s + x.forecast_revenue, 0), 2);
-  const target = d.dailyTarget;
+  const target = Number.isFinite(d.dailyTarget) && d.dailyTarget > 0 ? d.dailyTarget : null;
 
+  // With no target there is no verdict to give. The forecast still stands on
+  // its own - it is a projection from this brand's own audience - but nothing
+  // is graded, because there is nothing to grade against.
   let state;
-  const ratio = target > 0 ? totalRevenue / target : 1;
-  if (totalRecipients > 0 && totalRecipients < 1000 && totalRevenue < target) {
+  const ratio = target ? totalRevenue / target : null;
+  if (!target) {
+    state = 'NO TARGET SET';
+  } else if (totalRecipients > 0 && totalRecipients < 1000 && totalRevenue < target) {
     state = 'TARGET NOT FEASIBLE WITH CURRENT AUDIENCE';
   } else if (ratio >= 1.1) state = 'TARGET FEASIBLE — HIGH CONFIDENCE';
   else if (ratio >= 1) state = 'TARGET FEASIBLE';
@@ -94,9 +108,10 @@ function forecastDay(day, opts = {}) {
     total_forecast_orders: totalOrders,
     total_forecast_revenue: totalRevenue,
     target,
-    gap: round(Math.max(0, target - totalRevenue), 2),
-    required_orders: requiredOrders(target, d.aov),
-    required_reach_for_target: requiredReach(target, d),
+    gap: target ? round(Math.max(0, target - totalRevenue), 2) : null,
+    required_orders: target ? requiredOrders(target, d.aov) : null,
+    required_reach_for_target: target ? requiredReach(target, d) : null,
+    data_gaps: target ? [] : ['[DATA REQUIRED BEFORE LAUNCH: daily attributed-email revenue target, this brand, per market]'],
     feasibility: state,
     // The feasibility verdict is only as real as the inputs behind it. A day
     // marked NOT FEASIBLE off the planning band is a statement about the band,

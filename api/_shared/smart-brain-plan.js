@@ -408,13 +408,19 @@ async function buildContext(config, db) {
   return { ownData, kb, analysis, competitorBenchmarks };
 }
 
-function freshEntries(config, ctx, startDate, days) {
+// `brand` is threaded through because the calendar's offer decision selects a
+// discount code from the BRAND'S OWN registry. Without it the planner has no
+// code to offer and says so, which is correct - it must never fall back to a
+// literal, because a code the brand never created fails at the customer's
+// checkout.
+function freshEntries(config, ctx, startDate, days, brand) {
   const calendar = new CalendarIntelligenceService(config).generate({
     analysis: ctx.analysis,
     competitorBenchmarks: ctx.competitorBenchmarks,
     startDate,
     days,
     feedback: ctx.ownData.feedback,
+    brand: brand || null,
   });
   // Re-key on date+market so the same slot keeps the same id across daily syncs.
   const cohortLtv = cohortLtvMap(ctx);
@@ -592,7 +598,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
       if (codes.length) zeroCfg = Object.assign({}, config, { markets: codes });
     } catch (_) { /* keep the shipped default if the record is unreadable */ }
     ctx = await buildContext(zeroCfg, db);
-    fresh = freshEntries(zeroCfg, ctx, start, horizon);
+    fresh = freshEntries(zeroCfg, ctx, start, horizon, pb.brand || require('./brand-runtime.js').defaultBrand());
   }
 
   const changes = [];
@@ -772,7 +778,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
     if (codes.length) cfg2 = Object.assign({}, config, { markets: codes });
   } catch (_) {}
   const ctx = _ctxFallback?.ctx || await buildContext(cfg2, db);
-  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays);
+  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays, pb.brand || require('./brand-runtime.js').defaultBrand());
   return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, status: 'tentative' })) };
 }
 
