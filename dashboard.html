@@ -780,7 +780,7 @@ const FX_RATES = {
   USD: { symbol: '$', rate: 1,   locale: 'en-US' },
   INR: { symbol: '₹', rate: 83,  locale: 'en-IN' },   // ~₹83 / $1
 };
-let CURRENCY = (() => { try { return localStorage.getItem('knickgasm-currency') || 'USD'; } catch { return 'USD'; } })();
+let CURRENCY = (() => { try { return LCStore.get('knickgasm-currency') || 'USD'; } catch { return 'USD'; } })();
 if (!FX_RATES[CURRENCY]) CURRENCY = 'USD';
 function curMeta() { return FX_RATES[CURRENCY] || FX_RATES.USD; }
 // Currency-aware money formatter. Ignores any 2nd arg (older callers + Apex
@@ -2200,7 +2200,7 @@ $('currencyChips').addEventListener('click', (e) => {
   const cur = e.target.dataset.cur;
   if (!cur || cur === CURRENCY) return;
   CURRENCY = cur;
-  try { localStorage.setItem('knickgasm-currency', CURRENCY); } catch {}
+  try { LCStore.set('knickgasm-currency', CURRENCY); } catch {}
   syncCurrencyChips();
   destroyCharts(); rerender();
 });
@@ -2257,7 +2257,7 @@ $('uploadApply').addEventListener('click', () => {
     applied++;
   });
   if (applied > 0) {
-    localStorage.setItem('knickgasm-retention-data', JSON.stringify(DATA));
+    LCStore.set('knickgasm-retention-data', JSON.stringify(DATA));
     $('dataSourceLabel').textContent = `${append ? 'seed + uploaded' : 'uploaded'} (${applied} dataset${applied>1?'s':''})`;
     $('uploadModal').classList.remove('open');
     destroyCharts(); rerender();
@@ -2324,7 +2324,7 @@ function normalizeRow(slot, r) {
 
 $('btnResetSeed').addEventListener('click', () => {
   if (!confirm('Clear all data? This removes any uploaded or linked data and returns to the empty state.')) return;
-  localStorage.removeItem('knickgasm-retention-data');
+  LCStore.remove('knickgasm-retention-data');
   DATA = emptyData();
   STAGE && Object.keys(STAGE).forEach((k) => delete STAGE[k]);
   $('dataSourceLabel').textContent = 'no data — link a database or upload';
@@ -2400,7 +2400,7 @@ $('linkDbConnect').addEventListener('click', async () => {
     if (!loaded) return dbStatus('Source returned no rows for campaigns/customers/orders/products.', 'err');
 
     DATA = next;
-    localStorage.setItem('knickgasm-retention-data', JSON.stringify(DATA));
+    LCStore.set('knickgasm-retention-data', JSON.stringify(DATA));
     const label = DB_TYPE === 'supabase' ? 'Supabase' : 'linked DB';
     $('dataSourceLabel').textContent = `${label} — scoped (${loaded} dataset${loaded > 1 ? 's' : ''})`;
     dbStatus(`✓ Connected — ${loaded} dataset${loaded > 1 ? 's' : ''} loaded. Recomputing…`, 'ok');
@@ -2711,7 +2711,7 @@ $('exportRun').addEventListener('click', () => {
 /* ╔═══════════════════════════════════════════════════════════════════════
  * ║ BOOT
  * ╚═══════════════════════════════════════════════════════════════════════ */
-const stored = localStorage.getItem('knickgasm-retention-data');
+const stored = LCStore.get('knickgasm-retention-data');
 if (stored) {
   try {
     DATA = JSON.parse(stored);

@@ -9444,11 +9444,11 @@ function previewDashboardSideBySide(logIdx,mkt){
 // land the user on the relevant step — never an empty new session.
 function applyCalendarHandoff(){
   var raw;
-  try{ raw = localStorage.getItem('knickgasm-studio-handoff'); }catch(_){ return false; }
+  try{ raw = LCStore.get('knickgasm-studio-handoff'); }catch(_){ return false; }
   if(!raw) return false;
   var H; try{ H = JSON.parse(raw); }catch(_){ return false; }
   // single-use: clear so a manual refresh starts clean
-  try{ localStorage.removeItem('knickgasm-studio-handoff'); }catch(_){}
+  try{ LCStore.remove('knickgasm-studio-handoff'); }catch(_){}
   if(!H || !H.entry) return false;
   var e = H.entry, s = H.strategy || {};
 
