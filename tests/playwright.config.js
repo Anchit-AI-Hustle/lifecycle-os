@@ -5,6 +5,15 @@
 // Or with UI to step through visually:
 //   npx playwright test --ui
 const { defineConfig, devices } = require('@playwright/test');
+const fs = require('fs');
+
+// Some sandboxes ship a Chromium at a fixed path whose build number does not
+// match the one this @playwright/test pins, and cannot download the pinned one.
+// Point at the preinstalled binary when it is there and the pinned download is
+// not. On CI, `npx playwright install` provides the right build and this path
+// does not exist, so the guard is inert and the pinned browser still wins.
+const PREINSTALLED = process.env.PW_CHROMIUM_PATH || '/opt/pw-browsers/chromium';
+const launchOptions = fs.existsSync(PREINSTALLED) ? { executablePath: PREINSTALLED } : {};
 
 module.exports = defineConfig({
   testDir: './tests',
@@ -14,6 +23,7 @@ module.exports = defineConfig({
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'tests/report' }]],
   use: {
     headless: true,
+    launchOptions,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'retain-on-failure',

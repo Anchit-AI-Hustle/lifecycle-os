@@ -125,6 +125,16 @@ module.exports = async function handler(req, res) {
         return await require('./_shared/telesuite-core.js').handle(req, res);
       }
 
+      // ── GROWTH OS ────────────────────────────────────────────────────────
+      // The growth operating picture for the ACTIVE brand: experiment roadmap,
+      // funnel audit, KPI tree, cohort framework, 30-60-90 and week-one plans,
+      // and the competitive read. Deterministic and offline - it is the first
+      // page a new operator opens, so it must render fully with no key, no
+      // quota and no latency. See _shared/growth-os-core.js.
+      case 'growth-os': {
+        return await require('./_shared/growth-os-core.js').handle(req, res);
+      }
+
       // ── OPS ──────────────────────────────────────────────────────────────
       case 'status': {
         const d = core.db();
