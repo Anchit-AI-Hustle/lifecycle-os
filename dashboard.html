@@ -32,7 +32,11 @@
       colors: {
         bg:    { DEFAULT:'#ffffff', soft:'#ffffff', card:'#eef3f0', deep:'#eef3f0' },
         ink:   { DEFAULT:'#111111', dim:'#556059', mute:'#48524c' },
-        green: { DEFAULT:'#D0473E', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
+        // DEFAULT is a FILL (bg-green). Text must not reuse it: it is one brand's
+        // red, hardcoded, and it measured 4.02:1 on the soft-green panel - below
+        // AA for every brand including tenant zero. `ink` is the contrast-adjusted
+        // token, and every text-green-ink became text-green-ink.
+        green: { DEFAULT:'#D0473E', ink:'var(--brand-primary-text, #c6433b)', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
         lava:  { DEFAULT:'#6A33D8', soft:'rgba(171,135,67,0.12)' },
         chalk: '#FFFFFF',
         red:   '#ef4444',
@@ -226,7 +230,7 @@
       </button>
       <div class="nav-brand-head sb-full-label">
         <div class="nav-brand-title text-lava font-bold tracking-widest text-[11px]">KNICKGASM · DTC</div>
-        <div class="text-green font-semibold text-sm leading-tight">Retention OS</div>
+        <div class="text-green-ink font-semibold text-sm leading-tight">Retention OS</div>
       </div>
     </div>
     <div class="nav-brand-sub text-ink-mute text-[10px] px-5 pt-2 pb-2 font-mono sb-full-label">Intelligence Layer v1</div>
