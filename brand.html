@@ -58,15 +58,17 @@
 <div class="wrap">
   <h1>Brand Input</h1>
   <p class="lede">
-    The single brand-truth record for this platform. Every generator - mailers, ads, landing pages,
-    the Smart Brain and KicksGPT - reads these values, so changing them here changes every asset the
-    OS produces next. This is also what you edit first when standing the platform up for a new brand.
+    The brand-truth record for the ACTIVE brand workspace. Every generator - mailers, ads, landing
+    pages, the Smart Brain and KicksGPT - reads these values, so changing them here changes every
+    asset this brand produces next, and no other brand's.
   </p>
 
   <div class="banner">
-    <strong>How this is wired:</strong> saved to the <code>lifecycle_brand_kit</code> singleton in Supabase via
-    <code>/api/kb?action=brand-kit</code>. The palette and typography here must stay in step with
-    <code>api/_shared/master-prompt.js</code> (the prompt-side brand block) - the Verify panel below flags drift.
+    <strong>How this is wired:</strong> saved as THIS brand workspace's own row in
+    <code>lifecycle_brand_kit</code> via <code>/api/kb?action=brand-kit</code>. It used to be one shared
+    singleton, so every brand on the deployment read and overwrote the same palette, typography and
+    voice. Until you save here, the values shown come from this brand's onboarding record - never
+    another brand's kit.
   </div>
 
   <div id="loading" class="loading">Loading brand kit...</div>
@@ -238,25 +240,51 @@
     return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
   }
 
+  /**
+   * The ACTIVE brand's onboarding record, used to seed the form when this
+   * workspace has not saved a kit of its own yet.
+   *
+   * The shipped hex codes below are tenant zero's. Showing them to a brand that
+   * has just onboarded is the same mistake in miniature as the shared
+   * singleton: it presents another brand's palette as this one's starting
+   * point, and one Save makes it real.
+   */
+  function onboarded() {
+    try { return (window.BrandContext && window.BrandContext.brand) || null; } catch (_) { return null; }
+  }
+  function seedPalette() {
+    var b = onboarded(), p = (b && b.palette) || {};
+    return { primary: p.primary || '#D0473E', accent: p.accent || '#6A33D8', text: p.ink || '#111111', bg: p.surface || '#FFFFFF' };
+  }
+  function seedType() {
+    var b = onboarded(), t = (b && b.typography) || {};
+    return {
+      head: (t.heading && t.heading.family) || 'Montserrat', headStack: (t.heading && t.heading.stack) || '',
+      body: (t.body && t.body.family) || 'Instrument Sans', bodyStack: (t.body && t.body.stack) || '',
+    };
+  }
   function fill(kit) {
     current = kit;
     var p = (kit && kit.palette) || {};
-    $('c-primary').value = (p.primary || '#D0473E').toUpperCase();
-    $('c-accent').value = (p.accent || '#6A33D8').toUpperCase();
-    $('c-text').value = (p.text || '#111111').toUpperCase();
-    $('c-bg').value = (p.bg || '#FFFFFF').toUpperCase();
+    var sd = seedPalette();
+    $('c-primary').value = (p.primary || sd.primary).toUpperCase();
+    $('c-accent').value = (p.accent || sd.accent).toUpperCase();
+    $('c-text').value = (p.text || sd.text).toUpperCase();
+    $('c-bg').value = (p.bg || sd.bg).toUpperCase();
     ['primary', 'accent', 'text', 'bg'].forEach(function (n) {
       var v = $('c-' + n).value;
       if (isHex(v)) $('c-' + n + '-pick').value = v;
     });
     var t = (kit && kit.typography) || {};
     var th = t.primary || {}, tb = t.secondary || {};
-    $('t-head').value = th.family || 'Montserrat';
-    $('t-head-stack').value = th.stack || '';
-    $('t-body').value = tb.family || 'Instrument Sans';
-    $('t-body-stack').value = tb.stack || '';
+    var st = seedType();
+    $('t-head').value = th.family || st.head;
+    $('t-head-stack').value = th.stack || st.headStack;
+    $('t-body').value = tb.family || st.body;
+    $('t-body-stack').value = tb.stack || st.bodyStack;
     var v = (kit && kit.voice) || {};
-    $('v-tone').value = v.tone || '';
+    var ob = onboarded();
+    $('v-tone').value = v.tone || ((ob && ob.voice && ob.voice.tone) || '');
     $('v-tagline').value = v.tagline || '';
     $('v-dos').value = (v.dos || []).join('\n');
     $('v-donts').value = (v.donts || []).join('\n');

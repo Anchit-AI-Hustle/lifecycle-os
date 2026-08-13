@@ -1930,6 +1930,25 @@ function catRegion(){
   if(m==='US'||m==='USA')return 'us';
   return 'global';
 }
+/* The ONE place the catalogue is installed. Everything that renders products
+   reads the module-scoped CAT, so there has to be a single setter for it rather
+   than assignments scattered through the loader's success and failure paths.
+   It is exposed on window because this page is a standalone HTML file with no
+   module system: the loader below is the normal caller, and a host or a test
+   harness can supply a catalogue the same way instead of reaching into a
+   closure. */
+function setStudioCatalog(rows, source, reason){
+  CAT = Array.isArray(rows) ? rows : [];
+  CAT_SOURCE = source || (CAT.length ? 'brand' : 'none');
+  CAT_REASON = reason || '';
+  window.CAT = CAT;
+  buildCatFilters();
+  renderCatalog(_activeCatFilter);
+  try{ updateSelInfo(); }catch(_){}
+  return CAT;
+}
+window.setStudioCatalog = setStudioCatalog;
+
 var _catLoaded=null;
 function loadBrandCatalog(force){
   if(_catLoaded && !force) return _catLoaded;
@@ -1937,23 +1956,17 @@ function loadBrandCatalog(force){
     ? window.BrandCatalog.load(catRegion())
     : Promise.resolve({products:[],source:'none',reason:'The catalogue resolver did not load, so no products can be shown.'});
   _catLoaded=loader.then(function(res){
-    CAT=(res&&res.products)||[];
-    CAT_SOURCE=(res&&res.source)||'none';
-    CAT_REASON=(res&&res.reason)||'';
-    window.CAT=CAT;
-    buildCatFilters();
-    renderCatalog(_activeCatFilter);
-    try{ updateSelInfo(); }catch(_){}
+    setStudioCatalog(res&&res.products, res&&res.source, res&&res.reason);
     return res;
   }).catch(function(e){
-    CAT=[]; CAT_SOURCE='none'; CAT_REASON='Could not read this brand\u2019s catalogue: '+(e&&e.message||'request failed');
-    window.CAT=CAT;
-    buildCatFilters();
-    renderCatalog(_activeCatFilter);
+    setStudioCatalog([], 'none', 'Could not read this brand\u2019s catalogue: '+(e&&e.message||'request failed'));
     return null;
   });
   return _catLoaded;
 }
+/* Resolves once the catalogue lookup has settled, so a caller can wait for the
+   real answer before deciding the page is empty. */
+window.studioCatalogReady = function(){ return loadBrandCatalog(); };
 try{
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){loadBrandCatalog();});
   else loadBrandCatalog();

@@ -149,6 +149,12 @@ async function resolve(env, req, explicit) {
     // brand's rows - return null so scoped reads come back empty.
     return ws || null;
   }
+  // Userless: cron, the collectors in workers/, the seed scripts. WORKSPACE_ID
+  // lets an operator run one of those FOR a specific brand; without it they
+  // read and write tenant zero, which is where the backfill put every
+  // historical row. Deliberately last, so it can never override a real user.
+  const pinned = String(process.env.WORKSPACE_ID || '').trim();
+  if (pinned) return pinned;
   return defaultWorkspaceId(env);
 }
 

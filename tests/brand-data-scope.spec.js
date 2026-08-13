@@ -474,3 +474,52 @@ test('the /api/ai/generate landing-page prompt is built from the active brand', 
   // And a brand without a store for the market gets a marker, not tenant zero's.
   expect(src).toMatch(/DATA REQUIRED BEFORE LAUNCH: region store URL, all, \$\{lpRegion\}/);
 });
+
+test('WORKSPACE_ID pins a userless job, and never overrides a real user', async () => {
+  process.env.SUPABASE_URL = 'https://fake.supabase.co';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-key';
+  const env = { url: 'https://fake.supabase.co', key: 'service-role-test-key' };
+  wsScope.invalidate();
+  process.env.WORKSPACE_ID = WS_B;
+  try {
+    await withFakeSupabase((url) => (url.includes('brand_user_prefs') ? [{ active_workspace_id: WS_A }] : [{ id: WS_A }]), async () => {
+      // A collector or seed script: no request at all.
+      expect(await wsScope.resolve(env, null)).toBe(WS_B);
+      // A real signed-in user still wins; an env var must not redirect their
+      // reads into another brand's workspace.
+      wsScope.invalidate();
+      const req = { headers: { authorization: `Bearer ${jwtFor('user-a')}` }, query: {} };
+      expect(await wsScope.resolve(env, req)).toBe(WS_A);
+    });
+  } finally {
+    delete process.env.WORKSPACE_ID;
+    wsScope.invalidate();
+  }
+});
+
+test('every route serving the bundled export gates on who owns it', () => {
+  // The export is compiled into the build and describes exactly one store. Four
+  // routes read it, and each has to answer the ownership question BEFORE it
+  // reports a figure, otherwise the caveat is the only thing standing between a
+  // brand and another company's revenue.
+  const GATED = [
+    ['api/brain.js', /alerts-preview[\s\S]{0,900}?ownsBundledExport\(\)/],
+    ['api/brain.js', /analysis-narrative[\s\S]{0,900}?ownsBundledExport\(\)/],
+    ['api/public-config.js', /validate[\s\S]{0,900}?ownsBundledExport\(\)/],
+    ['api/_shared/brand-llm.js', /validate_data_accuracy[\s\S]{0,1200}?ownsBundledExport\(\)/],
+    ['api/_shared/brand-llm.js', /analyst_insights[\s\S]{0,1600}?ownsBundledExport\(\)/],
+  ];
+  for (const [rel, re] of GATED) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    expect(re.test(src), `${rel} serves the bundled tenant-zero export without checking which workspace is asking`).toBe(true);
+  }
+});
+
+test('the assistant reads the workspace\'s own Klaviyo account, never the deployment key', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'api/_shared/brand-llm.js'), 'utf8');
+  // klaviyo.dispatch(op, params) with no third argument falls back to
+  // KLAVIYO_API_KEY inside klaviyo-core.
+  expect(src).toMatch(/credentialsForCurrentRequest\('klaviyo'\)/);
+  expect(src).toMatch(/klaviyo\.dispatch\(a\.op,\s*a,\s*creds\)/);
+  expect(src).not.toMatch(/klaviyo\.dispatch\(a\.op,\s*a\)/);
+});

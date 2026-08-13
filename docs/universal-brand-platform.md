@@ -117,6 +117,48 @@ Reads and writes go through PostgREST **with the caller's JWT**, so the RLS poli
 `supabase/migrations/20260809120000_brand_workspaces.sql` are the authority. Unlike the older
 single-tenant tables, a workspace is private to its owner and members — not world-readable.
 
+### The data rule: a brand sees its own numbers, or none
+
+Re-skinning and prompt-scoping are only half of "runs as that brand". The other half is that
+every feature must **resolve the active workspace and show that brand's own data, or an honest empty
+state naming what to connect**. Falling back to another brand is obviously wrong; falling back to
+**tenant zero** is equally wrong, and so is rendering a **deployment-level** dataset under a caveat —
+the table paints either way, and a note under a number nobody reads is how the wrong number gets
+acted on.
+
+Three service-role Supabase clients exist and all three bypass RLS, so the scoping lives in them
+rather than at ~40 call sites that would each have to remember:
+
+| Client | Used by | Behaviour |
+|---|---|---|
+| `_shared/supa.js` | CI collectors, Klaviyo mirror, PageDeck, the dashboards | filters scoped reads, stamps scoped writes, **refuses** an unattributable write |
+| `_shared/brain-core.js` `LinkedDb` | every `/api/brain` route and KicksGPT tool | same |
+| `lib/smart-brain/services.js` adapter | the daily loop, prebuild, approve | same, including `update`/`delete` |
+
+They all read one list — `SCOPED_TABLES` in `_shared/workspace-scope.js` — and
+`tests/brand-data-scope.spec.js` re-derives that list **from the migration files** and fails the build
+when the two drift. `currentWorkspaceId()` finds the request through the same AsyncLocalStorage the
+LLM key lookup uses, so a module with no `req` can still scope itself. Outside a request (cron,
+`workers/`, seed scripts) it resolves the oldest workspace; `WORKSPACE_ID` pins a different one, and
+never overrides a signed-in user.
+
+Consequences worth knowing:
+
+- **Deployment credentials are never spent on a brand's behalf.** `KLAVIYO_API_KEY`,
+  `PAGEDECK_*` and the WebEngage bucket describe the deployment's own accounts. Data Analysis reads
+  the workspace's OWN connection (`/connections`) or reports `data_scope.level: 'unconnected'` with
+  the connection to make. PageDeck has no per-brand connection yet, so only its workspace-scoped
+  mirror tables are read.
+- **The bundled Shopify export is tenant zero's.** `market-analytics.ownsBundledExport()` gates it;
+  another workspace asking KicksGPT for its best seller is told which store to connect.
+- **Ids that used to be global are now per brand.** `smart_calendar_entries.id` carries a workspace
+  namespace (empty for tenant zero, whose `/lp/<campaign_id>` URLs are already published), and every
+  dedupe key — `kb_knowledge.url_hash`, `competitor_brands (name, region)`, the `ci_*` content
+  hashes, `brands.slug`, `kb_daily_digest.digest_date` — is unique per workspace instead of globally.
+- **`lifecycle_brand_kit` is no longer a singleton.** It was `id INT PRIMARY KEY CHECK (id = 1)` with
+  a `USING (true)` read policy, so every brand read and overwrote one row. It is one row per
+  workspace, and a brand with no saved kit is seeded from its own onboarding record.
+
 ---
 
 ## 2. Credits
