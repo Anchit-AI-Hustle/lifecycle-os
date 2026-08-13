@@ -1342,10 +1342,28 @@ async function handle(req, res) {
         if (!ws) return res.status(404).json({ ok: false, error: 'workspace_not_found' });
         return res.status(200).json({ ok: true, readiness: readiness(ws, { products: await productCount(auth, ws.id) }) });
       }
+      // Read the WHOLE brand off its own site: name, tagline, logo, colour
+      // schema, typography, observed voice, verbatim claims, social profiles,
+      // legal entity and regions - each as ranked CANDIDATES carrying the URL
+      // and the signal that produced them, so the operator confirms rather
+      // than inherits a guess. Nothing here writes to the workspace; the
+      // wizard applies what the operator accepts through `save` as usual.
+      // Requires a signed-in caller because it makes outbound fetches from the
+      // serverless runtime (see runExtract's SSRF guard). Lazily required so
+      // this module keeps loading when only its colour maths is wanted.
+      case 'extract': {
+        const out = await require('./brand-extract.js').runExtract(auth, {
+          url: str(body.url || q.url, 500),
+          workspace_id: str(body.workspace_id || q.workspace_id),
+          voice: (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false',
+          max_pages: body.max_pages || q.max_pages,
+        });
+        return res.status(out && out.ok === false && out.error ? 400 : 200).json(out);
+      }
       default:
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
-          available: ['defaults', 'list', 'active', 'get', 'save', 'activate', 'delete', 'catalog-import', 'catalog', 'readiness', 'validate-palette'],
+          available: ['defaults', 'list', 'active', 'get', 'save', 'activate', 'delete', 'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract'],
         });
     }
   } catch (err) {

@@ -52,6 +52,43 @@ function readCSVObjects(rel) {
   });
 }
 const num = (v) => { const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+// A market export only carries the columns its own source CSV had. `num()`
+// turns an ABSENT column into 0, which is indistinguishable downstream from a
+// measured zero — and that is how the UK tile read "Returning rate 0.0%" and
+// raised a critical retention alert about a number nobody had measured. Use
+// this for every summary field so an absent column arrives as null, and record
+// the distinction explicitly in `summary_basis` rather than leaving each
+// consumer to guess it from the value.
+const numOrNull = (v) => {
+  if (v == null || String(v).trim() === '') return null;
+  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+  return isFinite(n) ? n : null;
+};
+// `measured` when the export carries the column, `unset` when it does not.
+// Never invent the value; a consumer prints "not measured" from this.
+function basisFor(summary) {
+  const out = {};
+  for (const [k, v] of Object.entries(summary)) out[k] = v == null ? 'unset' : 'measured';
+  return out;
+}
+/**
+ * Returning-customer rate, preferring the counted split and falling back to the
+ * rate the export itself reports.
+ *
+ * Shopify's "Returning customer rate" column IS returning/(new+returning) — on
+ * the US export the column (0.28) and the computed split (1286/4607 = 0.2791)
+ * agree to three decimals, so the two markets stay directly comparable. The UK
+ * export ships the RATE column (0.21) but no "Returning customers" COUNT, and
+ * computing returning/(new+returning) from a missing count produced 0/380 = 0:
+ * a measured 21% published as zero. Take the count when it is there, take the
+ * export's own rate when it is not, and leave the COUNT null either way rather
+ * than back-solving a customer count that nobody counted.
+ */
+function returningRate(newC, retC, reportedRate) {
+  if (newC != null && retC != null && (newC + retC) > 0) return retC / (newC + retC);
+  if (reportedRate != null) return reportedRate;
+  return null;
+}
 
 // ── Cohort retention matrix ────────────────────────────────────────────────
 // Group by cohort quarter; retention[n] = customers active n quarters after the
@@ -84,22 +121,24 @@ function buildCohortMatrix(rel, maxCohorts, maxPeriods) {
 
 function usData() {
   const summary = readCSVObjects('data/market/us/us_market_overall_summary.csv')[0] || {};
+  const s = {
+    orders: numOrNull(summary['Orders']),
+    total_sales: numOrNull(summary['Total sales']),
+    net_sales: numOrNull(summary['Net sales']),
+    gross_sales: numOrNull(summary['Gross sales']),
+    aov: numOrNull(summary['Average order value']),
+    quantity: numOrNull(summary['Quantity ordered']),
+    new_customers: numOrNull(summary['New customers']),
+    returning_customers: numOrNull(summary['Returning customers']),
+    returning_rate: returningRate(
+      numOrNull(summary['New customers']),
+      numOrNull(summary['Returning customers']),
+      numOrNull(summary['Returning customer rate']),
+    ),
+  };
   return {
-    summary: {
-      orders: num(summary['Orders']),
-      total_sales: num(summary['Total sales']),
-      net_sales: num(summary['Net sales']),
-      gross_sales: num(summary['Gross sales']),
-      aov: num(summary['Average order value']),
-      quantity: num(summary['Quantity ordered']),
-      new_customers: num(summary['New customers']),
-      returning_customers: num(summary['Returning customers']),
-      // Compute returning rate the SAME way as UK — returning / (new + returning)
-      // — so the two markets' tiles and thresholds are directly comparable. (The
-      // Shopify "Returning customer rate" column uses a different, smaller
-      // customer denominator, which made US and UK non-comparable.)
-      returning_rate: (num(summary['New customers']) + num(summary['Returning customers'])) ? num(summary['Returning customers']) / (num(summary['New customers']) + num(summary['Returning customers'])) : 0,
-    },
+    summary: s,
+    summary_basis: basisFor(s),
     monthly: readCSVObjects('data/market/us/us_monthly_order_revenue_trend.csv').map((r) => ({
       month: r['Month'], orders: num(r['Orders']), sales: num(r['Total sales']), aov: num(r['Average order value']),
     })),
@@ -142,13 +181,24 @@ function usData() {
 
 function ukData() {
   const t = readCSVObjects('data/market/uk/uk_1_market_totals_last_12_months.csv')[0] || {};
+  const s = {
+    orders: numOrNull(t['Orders']),
+    total_sales: numOrNull(t['Total sales']),
+    gross_sales: numOrNull(t['Gross sales']),
+    net_sales: numOrNull(t['Net sales']),
+    aov: numOrNull(t['Average order value']),
+    quantity: numOrNull(t['Net items sold']),
+    new_customers: numOrNull(t['New customers']),
+    returning_customers: numOrNull(t['Returning customers']),
+    returning_rate: returningRate(
+      numOrNull(t['New customers']),
+      numOrNull(t['Returning customers']),
+      numOrNull(t['Returning customer rate']),
+    ),
+  };
   return {
-    summary: {
-      orders: num(t['Orders']), total_sales: num(t['Total sales']), gross_sales: num(t['Gross sales']),
-      net_sales: num(t['Net sales']), aov: num(t['Average order value']), quantity: num(t['Net items sold']),
-      new_customers: num(t['New customers']), returning_customers: num(t['Returning customers']),
-      returning_rate: (num(t['New customers']) + num(t['Returning customers'])) ? num(t['Returning customers']) / (num(t['New customers']) + num(t['Returning customers'])) : 0,
-    },
+    summary: s,
+    summary_basis: basisFor(s),
     monthly: readCSVObjects('data/market/uk/uk_2_monthly_trend.csv').map((r) => ({
       month: r['Month'], orders: num(r['Orders']), sales: num(r['Total sales']), aov: num(r['Average order value']),
     })),

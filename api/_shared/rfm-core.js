@@ -59,7 +59,14 @@ function round(n, d = 2) { const p = 10 ** d; return Math.round((Number(n) || 0)
  * distribution, so cutoffs adapt to the base.
  */
 function scoreUsers(users, { now = null } = {}) {
-  const t = now || new Date('2026-07-12T00:00:00Z').getTime(); // caller may pass real now
+  // RECENCY IS MEASURED AGAINST TODAY, NEVER AGAINST A DATE IN THE SOURCE.
+  // This defaulted to a literal 2026-07-12, so any caller that did not pass
+  // `now` scored recency as of whatever day that literal happened to be - a
+  // month stale within a month of being written, and silently so: quintile
+  // cutoffs still looked plausible while "At Risk" and "Lost" were both
+  // understated by exactly the drift. A wrong clock produces a wrong cohort with
+  // no error anywhere.
+  const t = now || Date.now();
   const byMarket = {};
   for (const u of users) (byMarket[u.market || 'US'] = byMarket[u.market || 'US'] || []).push(u);
   const out = [];
@@ -85,7 +92,8 @@ function scoreUsers(users, { now = null } = {}) {
  * each with size + validated metrics. Interest tags are reported as overlays.
  */
 function buildRfmCohorts(users, { now = null } = {}) {
-  const scored = scoreUsers(users, { now });
+  const at = now || Date.now();
+  const scored = scoreUsers(users, { now: at });
   const groups = {};
   for (const u of scored) {
     const key = `${u.market}:${u.rfm.segment}`;
@@ -95,6 +103,13 @@ function buildRfmCohorts(users, { now = null } = {}) {
     const m = g.members;
     const overlays = {};
     for (const it of INTEREST_TAGS) overlays[it.tag] = m.filter((u) => (u.interest_tags || []).includes(it.tag)).length;
+    // A member who has NEVER ordered has no recency. `daysSince(...) || 0` read
+    // that absence as "ordered today" and averaged it in, so a cohort of
+    // never-buyers reported an average recency of 0 days - the healthiest
+    // possible number for the least engaged people in the base, and the exact
+    // signal a winback plan reads to decide it is not needed. Never-ordered
+    // members are excluded from the average and counted separately instead.
+    const recencies = m.map((u) => daysSince(u.last_order_at, at)).filter((x) => x != null);
     return {
       id: `coh_${g.market.toLowerCase()}_${g.segment}`,
       name: `${g.segment_name} · ${g.market}`,
@@ -105,7 +120,9 @@ function buildRfmCohorts(users, { now = null } = {}) {
       metrics: {
         avg_orders: round(mean(m.map((u) => Number(u.orders_count) || 0))),
         avg_spent: round(mean(m.map((u) => Number(u.total_spent) || 0))),
-        avg_recency_days: round(mean(m.map((u) => daysSince(u.last_order_at, now || Date.parse('2026-07-12')) || 0)), 0),
+        avg_recency_days: recencies.length ? round(mean(recencies), 0) : null,
+        recency_measured_for: recencies.length,
+        never_ordered: m.length - recencies.length,
         email_engaged_pct: round(m.filter((u) => u.email_engaged).length / m.length, 3),
       },
       overlays,      // behavioural tags as counts, NOT separate cohorts

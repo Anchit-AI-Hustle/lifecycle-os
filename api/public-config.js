@@ -136,6 +136,19 @@ module.exports = async function handler(req, res) {
   if (wantsValidate) {
     res.setHeader('Cache-Control', 'no-store');
     try {
+      // The validator re-derives every analytics metric from the export
+      // compiled into this build and checks it against a canonical report.
+      // Both describe TENANT ZERO'S store, so running it for another workspace
+      // reported that brand's "data accuracy" from another company's numbers -
+      // including the numbers themselves, in every check row.
+      const _mkt = require('./_shared/market-analytics.js');
+      if (!(await _mkt.ownsBundledExport())) {
+        return res.status(200).json({
+          ok: true, checks: [], summary: null,
+          data_scope: { level: 'other_workspace', basis: 'unset' },
+          note: _mkt.BUNDLED_OWNER_NOTE,
+        });
+      }
       const { validate } = require('./_shared/data-validation-core.js');
       const narrative = !(req.query.narrative === '0' || req.query.narrative === 'false');
       return res.status(200).json(await validate({ narrative }));

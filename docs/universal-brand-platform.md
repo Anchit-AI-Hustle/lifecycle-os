@@ -91,6 +91,55 @@ No field is ever machine-filled. Missing data is reported, in the spec's own for
 list. Catalog rows keep `source` (`csv` / `json` / `shopify_public` / `manual`) and the verbatim
 `raw` row, so no product fact can be traced back to a guess.
 
+### Read the whole brand off its own site
+
+`/api/brand?op=extract` (`api/_shared/brand-extract.js`) reads a brand's **identity** from the URL
+the operator pastes on step 1, not just its catalogue: name, tagline, logo, colour schema,
+typography, the tone of its own copy, the sentences it publishes as checkable facts, its social
+profiles, its legal entity and the regions it sells in.
+
+It rides on the SAME crawl as the catalogue importer — `site-crawl.js` gained an optional
+`onPage(html, url, depth)` observer and an optional `rank(url, depth)` queue ordering, so there is
+one crawler with one set of scope, robots and SSRF rules rather than two that can drift apart.
+Stylesheets and the web app manifest are fetched separately, because `crawlSite` refuses anything
+that is not HTML and the palette lives in `.css`.
+
+**Nothing is applied.** Every field comes back as a ranked list of candidates, each carrying the
+page URL and the SIGNAL that produced it (`json-ld:Organization.name`, `meta:theme-color`,
+`css:custom-property --brand-primary`, `html:footer copyright line`, …) and a confidence of
+`declared` / `strong` / `weak`. The wizard renders them with their sources and applies one only when
+the operator presses **Use**; applied values record their provenance into
+`brand_data.brand_extraction.applied`. A field the site did not publish comes back with the spec's
+`[DATA REQUIRED BEFORE LAUNCH: …]` marker instead of a plausible value.
+
+**The brand-colour vs design-system-colour trap.** A company can use blue as its brand colour and
+green for its primary button, and a tool that ranks hexes by frequency returns the two
+undistinguished. Colours here are never pooled: each sighting is classified by the role the site
+itself gave it — `identity` (theme-color, manifest `theme_color`, a `--brand-*` token, `mask-icon`
+colour), `action` (`--primary`/`--accent`/`--cta`, and backgrounds on button/CTA selectors),
+`surface`, `ink`, `support` — and the roles are reported separately. `proposed.primary` is filled
+**only** from an identity signal; the action colour becomes the accent; a disagreement between them
+is reported as a `conflicts` entry naming both values and both sources. With **no** identity signal
+the primary stays empty with a marker: the most-used colour on a page is a different fact from the
+brand colour. `validatePalette()` still runs on the proposal and still gates activation.
+
+**Voice is OBSERVED, never asserted.** The LLM is given verbatim excerpts and told to return `null`
+when the copy shows no observable tone; vocabulary it returns is dropped unless it appears verbatim
+in those excerpts, and so is any evidence quote it did not actually take from them. A provider
+outage produces a marker, not a generic tone. `voice.banned` is always empty — a phrase a brand
+refuses to use cannot be observed from the phrases it did use.
+
+**No browser.** Vercel serverless cannot run Playwright, so this is CSS/HTML parsing: it cannot see
+computed styles, JS-injected themes, SPA-rendered headers, or which declaration actually wins the
+cascade (that is approximated by property and selector weighting). Those limits are returned in
+`limits[]` and shown in the wizard, so a thin report reads as "the site did not publish this" rather
+than "the brand has none". `oklch()`/`oklab()` are converted to sRGB (Tailwind v4 ships whole
+palettes in them); `lab()`, `lch()`, `color()` and `color-mix()` are counted and reported as
+unresolved rather than dropped.
+
+Budgets fit one 120s invocation: crawl 35s + assets 20s + one model call 25s, each reported in
+`notes` when it runs out.
+
 ### Catalog import
 Three routes, all operator-supplied:
 - **Storefront** — GETs `{store}/products.json` (Shopify and compatible), read-only, no credentials.
@@ -110,12 +159,54 @@ Three routes, all operator-supplied:
 ### API
 `/api/brand` → `/api/public-config?action=brand&op=…`
 
-`defaults` · `list` · `active` · `get` · `save` · `activate` · `delete` · `catalog-import` ·
-`catalog` · `readiness` · `validate-palette`
+`defaults` · `presets` · `list` · `active` · `get` · `save` · `activate` · `delete` ·
+`catalog-import` · `catalog` · `readiness` · `validate-palette` · `extract`
 
 Reads and writes go through PostgREST **with the caller's JWT**, so the RLS policies in
 `supabase/migrations/20260809120000_brand_workspaces.sql` are the authority. Unlike the older
 single-tenant tables, a workspace is private to its owner and members — not world-readable.
+
+### The data rule: a brand sees its own numbers, or none
+
+Re-skinning and prompt-scoping are only half of "runs as that brand". The other half is that
+every feature must **resolve the active workspace and show that brand's own data, or an honest empty
+state naming what to connect**. Falling back to another brand is obviously wrong; falling back to
+**tenant zero** is equally wrong, and so is rendering a **deployment-level** dataset under a caveat —
+the table paints either way, and a note under a number nobody reads is how the wrong number gets
+acted on.
+
+Three service-role Supabase clients exist and all three bypass RLS, so the scoping lives in them
+rather than at ~40 call sites that would each have to remember:
+
+| Client | Used by | Behaviour |
+|---|---|---|
+| `_shared/supa.js` | CI collectors, Klaviyo mirror, PageDeck, the dashboards | filters scoped reads, stamps scoped writes, **refuses** an unattributable write |
+| `_shared/brain-core.js` `LinkedDb` | every `/api/brain` route and KicksGPT tool | same |
+| `lib/smart-brain/services.js` adapter | the daily loop, prebuild, approve | same, including `update`/`delete` |
+
+They all read one list — `SCOPED_TABLES` in `_shared/workspace-scope.js` — and
+`tests/brand-data-scope.spec.js` re-derives that list **from the migration files** and fails the build
+when the two drift. `currentWorkspaceId()` finds the request through the same AsyncLocalStorage the
+LLM key lookup uses, so a module with no `req` can still scope itself. Outside a request (cron,
+`workers/`, seed scripts) it resolves the oldest workspace; `WORKSPACE_ID` pins a different one, and
+never overrides a signed-in user.
+
+Consequences worth knowing:
+
+- **Deployment credentials are never spent on a brand's behalf.** `KLAVIYO_API_KEY`,
+  `PAGEDECK_*` and the WebEngage bucket describe the deployment's own accounts. Data Analysis reads
+  the workspace's OWN connection (`/connections`) or reports `data_scope.level: 'unconnected'` with
+  the connection to make. PageDeck has no per-brand connection yet, so only its workspace-scoped
+  mirror tables are read.
+- **The bundled Shopify export is tenant zero's.** `market-analytics.ownsBundledExport()` gates it;
+  another workspace asking KicksGPT for its best seller is told which store to connect.
+- **Ids that used to be global are now per brand.** `smart_calendar_entries.id` carries a workspace
+  namespace (empty for tenant zero, whose `/lp/<campaign_id>` URLs are already published), and every
+  dedupe key — `kb_knowledge.url_hash`, `competitor_brands (name, region)`, the `ci_*` content
+  hashes, `brands.slug`, `kb_daily_digest.digest_date` — is unique per workspace instead of globally.
+- **`lifecycle_brand_kit` is no longer a singleton.** It was `id INT PRIMARY KEY CHECK (id = 1)` with
+  a `USING (true)` read policy, so every brand read and overwrote one row. It is one row per
+  workspace, and a brand with no saved kit is seeded from its own onboarding record.
 
 ---
 
@@ -335,6 +426,8 @@ All logic lives under `api/_shared/`, which Vercel excludes from the count. Frie
 | `supabase/migrations/20260809130000_credits.sql` | wallets, ledger, prices, orders, hold/settle/release/grant/usage |
 | `supabase/migrations/20260809140000_telesuite.sql` | TeleSuite items + runs |
 | `api/_shared/brand-workspace-core.js` | brand CRUD, palette validation, catalog import, readiness, tokens |
+| `api/_shared/brand-extract.js` | **read the whole brand off its own site** — candidates with sources, never a guess |
+| `api/_shared/site-crawl.js` | the one crawler both the catalogue import and the brand extraction ride on |
 | `api/_shared/credit-catalog.js` | **what every feature costs** |
 | `api/_shared/credits-core.js` | the meter: hold / settle / release / grant / usage |
 | `api/_shared/telesuite-core.js` | TeleSuite registry + every operation |
