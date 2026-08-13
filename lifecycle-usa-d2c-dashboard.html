@@ -105,7 +105,7 @@ tr:hover td{background:var(--vh-panel-tan)}
 .pgctl button{font-family:var(--font-body);background:var(--green);color:var(--chalk);border:none;padding:5px 9px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;min-width:30px}
 .pgctl button:disabled{background:#ccc;cursor:default}
 .pgctl button.pgnum{background:#fff;color:var(--green);border:1px solid var(--lava)}
-.pgctl button.pgnum.on{background:var(--lava);color:#fff;border-color:var(--lava)}
+.pgctl button.pgnum.on{background:var(--lava);color:var(--brand-on-accent,#fff);border-color:var(--lava)}
 .pgctl .pgdots{color:#999;padding:0 2px}
 .pgctl b{color:var(--green)}
 .tblwrap.click tbody tr{cursor:pointer}
@@ -142,7 +142,7 @@ footer{text-align:center;font-size:11px;color:#999;padding:20px}
 .gtbar button[data-gg]{border:1px solid var(--chalk);background:transparent;color:var(--chalk);border-radius:7px;padding:5px 12px;font-family:inherit;font-weight:600;font-size:11px;cursor:pointer}
 .gtbar button[data-gg].on{background:var(--chalk);color:var(--green)}
 .gtbar input[type=date]{font-family:inherit;font-size:11px;padding:3px 6px;border-radius:5px;border:0}
-.gtbar .gtapply{background:var(--lava);color:#fff;border:0;border-radius:6px;padding:5px 12px;font-weight:700;cursor:pointer}
+.gtbar .gtapply{background:var(--lava);color:var(--brand-on-accent,#fff);border:0;border-radius:6px;padding:5px 12px;font-weight:700;cursor:pointer}
 .gtbar .gtreset{background:transparent;color:var(--chalk);text-decoration:underline;border:0;cursor:pointer;font-size:11px}
 .gtbar #gtrange{display:none;align-items:center;gap:6px}
 .histpage{display:none;position:fixed;inset:0;background:var(--chalk);z-index:120;overflow:auto}
@@ -155,7 +155,8 @@ footer{text-align:center;font-size:11px;color:#999;padding:20px}
 #histctl{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:6px 0 14px}
 #histctl button[data-hg]{border:1.5px solid var(--lava);background:var(--chalk);color:var(--green);border-radius:7px;padding:5px 13px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer}
 #histctl button[data-hg].on{background:var(--green);color:var(--chalk)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips{display:flex;flex-wrap:nowrap;gap:6px;margin-top:10px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .chips > *{flex:0 0 auto}
 .t8h{color:var(--green);font-weight:600;font-size:13px;margin:12px 0 4px}
 .chip{background:var(--vh-panel-tan);border:1px solid var(--lava);color:var(--green);border-radius:14px;padding:3px 12px;font-size:12px;font-weight:600}
 
