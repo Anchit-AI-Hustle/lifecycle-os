@@ -252,6 +252,38 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
     if (tHit) add(file, 'BLOCKER', 'tenant-vocab', `"${tHit[0]}" hardcoded in app chrome - the shell renders for every brand`);
   }
 
+  // 7c. A page that promises real-only data must not be ABLE to render invented
+  //     numbers. dashboard.html tells the user it never displays synthetic
+  //     figures, and keeps a full synthetic generator in the file with a comment
+  //     saying it is deliberately never called. A comment is not an enforcement:
+  //     one restored call site and the page shows fabricated money while still
+  //     promising it does not, and nothing would catch it. So the promise is
+  //     checked against the call graph.
+  const PROMISES_REAL = /does not display sample or synthetic|never fabricates numbers|runs on your real [^.]*data only/i.test(text);
+  if (PROMISES_REAL) {
+    // Scanned against CODE, not prose. The comment that explains why the
+    // generator is never called says "genSeed() ... is retained but
+    // deliberately never called", and counting that sentence as a call site
+    // would make this rule fire on exactly the page that is doing the right
+    // thing, which is the fastest way to get a check deleted.
+    const codeOnly = html
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:'"\\])\/\/[^\n]*/g, '$1 ');
+
+    const fabricators = [...codeOnly.matchAll(/function\s+(gen(?:Seed|Synthetic|Demo|Sample)[A-Za-z]*|makeSynthetic[A-Za-z]*|fabricate[A-Za-z]*)\s*\(/g)]
+      .map((m) => m[1]);
+    for (const fn of [...new Set(fabricators)]) {
+      // Every occurrence of `name(` including the definition itself; more than
+      // one means something actually calls it.
+      const uses = codeOnly.match(new RegExp(`(?<![.\\w$])${fn}\\s*\\(`, 'g')) || [];
+      if (uses.length > 1) {
+        add(file, 'BLOCKER', 'fabricator-reachable',
+          `${fn}() is reachable (${uses.length - 1} call site(s)) on a page that tells the user it shows no synthetic numbers`);
+      }
+    }
+  }
+
   // 8. Hardcoded brand identity on an APP page.
   if (!isAsset) {
     const brandHits = (text.match(/\bKNICKGASM\b|\bKnickgasm\b/g) || []).length;

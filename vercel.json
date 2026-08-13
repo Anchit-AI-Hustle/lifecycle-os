@@ -215,6 +215,14 @@
       "destination": "/telesuite.html"
     },
     {
+      "source": "/growth-os",
+      "destination": "/growth-os.html"
+    },
+    {
+      "source": "/growth",
+      "destination": "/growth-os.html"
+    },
+    {
       "source": "/api/brand",
       "destination": "/api/public-config?action=brand"
     },
