@@ -200,7 +200,7 @@
         '<h1 style="font-family:var(--brand-font-heading,inherit);font-size:22px;margin:0 0 12px">This report belongs to another workspace</h1>' +
         '<p style="margin:0 0 10px;opacity:.85">' + label + ' is a campaign artifact built from tenant zero’s own catalogue and sends. It is not shown while <b>' + String(name).replace(/[<>&]/g, '') + '</b> is active, because none of its figures, products or creatives describe this brand.</p>' +
         '<p style="margin:0 0 18px;opacity:.85">Equivalent reports for this brand appear as its own campaigns run through the calendar and Smart Brain.</p>' +
-        '<a href="/data-analysis" style="font-weight:700;color:var(--brand-primary,#2b6be4)">Open this brand’s analytics workbench →</a></div>';
+        '<a href="/data-analysis" style="font-weight:700;color:var(--brand-primary-text,#2b6be4)">Open this brand’s analytics workbench →</a></div>';
     });
   }
 

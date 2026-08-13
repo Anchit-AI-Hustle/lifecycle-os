@@ -125,6 +125,16 @@ const PROBE = `(() => {
     if (rect.width < 1 || rect.height < 1) continue;
     const op = effectiveOpacity(el);
     if (op < 0.06) continue;                       // deliberately hidden, not a contrast bug
+    // WCAG 1.4.3 exempts INACTIVE controls: a disabled button is dimmed on
+    // purpose and has no contrast requirement. Flagging it would push us toward
+    // "fixing" the one visual cue that says it cannot be pressed.
+    if (el.closest('[disabled],[aria-disabled="true"],fieldset:disabled')) continue;
+    // Mid-flight reveal animations are not a contrast failure - the element is
+    // on its way to opacity 1 and this is a snapshot of the journey. Only skip
+    // when the page SAYS it is animating opacity; a permanently dimmed element
+    // has no such transition and is still measured.
+    if (op < 1 && /opacity|all/.test(s.transitionProperty || '') && parseFloat(s.transitionDuration) > 0) continue;
+    if (op < 1 && s.animationName && s.animationName !== 'none') continue;
     const fg = parse(s.color); if (!fg) continue;
     const bg = backdrop(el);
     if (!bg) continue;                             // painted over an image/gradient - not measurable here
@@ -165,10 +175,17 @@ for (const p of PAGES) {
       status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, brand: BRAND, workspaces: [] }),
     }));
     await page.goto(base + '/' + p, { waitUntil: 'load' });
-    // Let the brand layer paint its tokens before measuring; measuring first
-    // would grade the pre-brand defaults, which is not what a customer sees.
-    await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded === true, null, { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(700);
+    // Wait for the tokens to be PAINTED, not merely for the layer to report
+    // loaded. Measuring before that grades theme.css's built-in defaults, which
+    // is not what a customer sees - and it produced a batch of failures naming
+    // tenant zero's red on the rail's fallback tan, on pages that were fine
+    // once the brand arrived. This asserts rather than swallowing a timeout: a
+    // page where the brand never paints is itself worth failing on.
+    await page.waitForFunction(
+      () => document.documentElement.style.getPropertyValue('--brand-primary').trim() !== '',
+      null, { timeout: 20000 },
+    );
+    await page.waitForTimeout(400);
 
     const bad = await page.evaluate(PROBE);
     const summary = bad.slice(0, 12).map((b) => `  ${b.tag}.${b.cls} "${b.text}" ${b.got}:1 (needs ${b.need}, ${b.size}px, opacity ${b.opacity}) ${b.color} on ${b.bg}`).join('\n');

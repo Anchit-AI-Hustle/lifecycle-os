@@ -31,7 +31,10 @@
   .tabs > *{flex:0 0 auto}
     .tab { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #556059; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
     .tab:hover { color: #111111; }
-    .tab.active { color: #D0473E; background: rgba(171,135,67,0.16); }
+    /* The tint is light enough that the contrast-adjusted brand colour still
+       clears AA on it. At 0.16 it measured 4.45:1 - the text token is tuned
+       against the surface, and a heavier tint eats the margin. */
+    .tab.active { color: var(--brand-primary-text,#c6433b); background: rgba(171,135,67,0.09); }
 
     .panel { display: none; margin-top: 18px; }
     .panel.active { display: block; }

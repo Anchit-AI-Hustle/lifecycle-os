@@ -21,14 +21,14 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
   .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
-  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--head);margin:0;text-wrap:balance;}
+  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--brand-primary-text,var(--head));margin:0;text-wrap:balance;}
   h1{font-size:32px;} h2{font-size:21px;margin-top:2px;} h3{font-size:16px;}
   .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--brand-accent-text);font-weight:700;}
   p.lede{color:var(--soft);max-width:72ch;margin:6px 0 0;}
   .tabs{display:flex;flex-wrap:nowrap;gap:4px;margin:22px 0 8px;border-bottom:1px solid var(--line);;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .tabs > *{flex:0 0 auto}
   .tab{cursor:pointer;border:0;background:transparent;color:var(--soft);font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 14px;border-bottom:3px solid transparent;margin-bottom:-1px;border-radius:6px 6px 0 0;white-space:nowrap;transition:background .12s,color .12s;}
-  .tab:hover{color:var(--head);background:var(--chip);}
+  .tab:hover{color:var(--brand-primary-text,var(--head));background:var(--chip);}
   /* Selected tab: solid green pill + chalk text + lava underline — unmistakable in light and dark */
   .tab.active{color:var(--chalk);background:var(--violet);border-bottom-color:var(--lava);box-shadow:0 1px 0 var(--lava);}
   .tab.active .chip{background:rgba(251,245,234,0.16);color:var(--chalk);}
@@ -37,25 +37,25 @@
   .panel{display:none;padding-top:20px;} .panel.active{display:block;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0;}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;}
-  .card .n{font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:var(--head);font-variant-numeric:tabular-nums;line-height:1;}
+  .card .n{font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:var(--brand-primary-text,var(--head));font-variant-numeric:tabular-nums;line-height:1;}
   .card .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);margin-top:5px;}
   .card .d{color:var(--soft);font-size:13px;margin-top:8px;}
   .card.link{cursor:pointer;transition:border-color .15s;} .card.link:hover{border-color:var(--accent);}
-  .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
+  .chip{display:inline-block;background:var(--chip);color:var(--brand-primary-text,var(--head));border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
   .v2{background:var(--vh-panel-tan);color:#D0473E;}
   @media (prefers-color-scheme:dark){.v2{background:var(--vh-ink);color:var(--vh-ink-dim);}}
   :root[data-theme="dark"] .v2{background:var(--vh-ink);color:var(--vh-ink-dim);}
   .row{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:15px 18px;margin-bottom:10px;}
   .row .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
   .row .code{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--brand-accent-text);letter-spacing:.05em;}
-  .row .name{font-weight:700;color:var(--head);font-size:15px;}
+  .row .name{font-weight:700;color:var(--brand-primary-text,var(--head));font-size:15px;}
   .row dl{margin:10px 0 0;display:grid;grid-template-columns:130px 1fr;gap:5px 14px;}
   .row dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;padding-top:2px;}
   .row dd{margin:0;color:var(--ink);font-size:13.5px;}
   .stage-h{display:flex;align-items:baseline;gap:10px;margin:24px 0 10px;flex-wrap:wrap;}
-  .mix{display:inline-flex;gap:6px;flex-wrap:wrap;} .mix span{background:var(--chip);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--head);}
+  .mix{display:inline-flex;gap:6px;flex-wrap:wrap;} .mix span{background:var(--chip);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--brand-primary-text,var(--head));}
   .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:26px;padding-top:14px;}
-  a{color:var(--head);text-decoration-color:var(--accent);}
+  a{color:var(--brand-primary-text,var(--head));text-decoration-color:var(--accent);}
   .how{background:var(--chip);border-radius:8px;padding:14px 16px;margin:14px 0;color:var(--soft);font-size:13.5px;}
   @media (max-width:520px){.row dl{grid-template-columns:1fr;gap:2px 0;} .row dt{margin-top:6px;}}
 </style>
@@ -86,7 +86,7 @@
       <div class="card link" data-goto="behavioral"><div class="n">11</div><div class="lbl">Behavioral</div><div class="d">Interest groups the Smart Brain uses to theme content.</div></div>
     </div>
     <div class="how">
-      <b style="color:var(--head)">How the lenses fit together.</b> Every customer sits in one <b>Lifecycle Stage</b> (where they are in the journey), one <b>RFM Segment</b> (how valuable and recent), one <b>Engagement Level</b> (how they treat our email), and one or more <b>Product Cohorts</b> (what they buy). The <b>Engagement Cohorts</b> are purchase history crossed with engagement level; Cohorts A and B are the specific dormant slices we work right now. <b>Behavioral</b> cohorts cut across everything by interest, so creative can be themed. Pick the lens the task needs: targeting starts with Engagement or Product, cadence uses RFM, journey logic uses Lifecycle Stage, and theming uses Behavioral.
+      <b style="color:var(--brand-primary-text,var(--head))">How the lenses fit together.</b> Every customer sits in one <b>Lifecycle Stage</b> (where they are in the journey), one <b>RFM Segment</b> (how valuable and recent), one <b>Engagement Level</b> (how they treat our email), and one or more <b>Product Cohorts</b> (what they buy). The <b>Engagement Cohorts</b> are purchase history crossed with engagement level; Cohorts A and B are the specific dormant slices we work right now. <b>Behavioral</b> cohorts cut across everything by interest, so creative can be themed. Pick the lens the task needs: targeting starts with Engagement or Product, cadence uses RFM, journey logic uses Lifecycle Stage, and theming uses Behavioral.
     </div>
   </section>
 
