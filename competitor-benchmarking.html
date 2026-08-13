@@ -39,7 +39,8 @@
     .search input:focus { outline: none; border-color: #6A33D8; }
     .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: #48524c; }
     .toolbar { row-gap: 14px; column-gap: 18px; }
-    .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .filters { display: flex; flex-wrap:nowrap; gap: 12px; align-items: center; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .filters > *{flex:0 0 auto}
     .filters .live { margin-left: 4px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
     select, .chk { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
     .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #556059; }

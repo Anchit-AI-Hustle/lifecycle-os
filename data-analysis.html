@@ -28,6 +28,9 @@
   .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
   /* Market toggle */
   .mkt{display:inline-flex;gap:6px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px;}
+  /* A nav bar stays one row and slides. Its items must not shrink, or they
+     compress into unreadable slivers instead of overflowing. */
+  .mkt > *{flex:0 0 auto;white-space:nowrap}
   .mkt button{border:0;background:transparent;color:var(--soft);font-family:inherit;font-weight:700;font-size:13px;padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .15s;}
   .mkt button.on{background:var(--violet);color:var(--chalk);box-shadow:0 0 0 1.5px var(--lava);}
   /* KPI tiles */
@@ -121,7 +124,7 @@
       </div>
     </div>
 
-    <div class="mkt" id="anTabs" role="tablist" aria-label="Analysis section" style="margin:14px 0 4px;flex-wrap:wrap">
+    <div class="mkt" id="anTabs" role="tablist" aria-label="Analysis section" style="margin:14px 0 4px;flex-wrap:nowrap;max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin">
       <button type="button" data-tab="control" class="on">Control Room</button>
       <button type="button" data-tab="acq">Acquisition · Ads + LP</button>
       <button type="button" data-tab="ret">Retention · Mailer + LP</button>
