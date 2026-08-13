@@ -111,23 +111,24 @@ async function ads({ market = 'US', level = 'ad', since, until } = {}) {
   const raw = await adsCore.summary({ market, level, metricGroup: 'all', since, until });
   const platforms = (raw.platforms || []).map((p) => { const rows = adRows.rowsFor(p); return { platform: p.platform, connected: Boolean(p.connected), ok: Boolean(p.ok), source: p.source || null, fetched_at: p.fetched_at || null, status: p.status || null, error: p.error || null, need_env: p.need_env || [], rows, kpis: adRows.rollup(rows), raw_note: p.hint || null }; });
   const rows = platforms.flatMap((p) => p.rows).sort((a,b) => b.spend - a.spend);
-  // Fallback: when the live Snowflake read yields no rows (PAT / network-policy
-  // blocked, or unconfigured on this deploy), serve a cached real-data snapshot
-  // so ad-level history stays viewable. Flips back to live automatically the
-  // moment live rows return.
-  if (!rows.length) {
-    try {
-      const snap = require('./ads-snapshot.json');
-      if (snap && Array.isArray(snap.rows) && snap.rows.length) {
-        const srows = snap.rows;
-        const sp = ['meta', 'google', 'tiktok'].map((name) => {
-          const pr = srows.filter((r) => String(r.platform || '').toLowerCase() === name);
-          return { platform: name, connected: false, ok: pr.length > 0, source: 'snapshot', fetched_at: snap.generated_at, status: null, error: null, need_env: [], rows: pr, kpis: adRows.rollup(pr), raw_note: null };
-        });
-        return { ok: true, generated_at: iso(), data_scope: { level: 'deployment', note: 'These figures come from the ad accounts and warehouse connected to this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance until per-tenant connections exist.' }, cached: true, cached_at: snap.generated_at, market, level: 'ad', window: snap.window || raw.window, freshness: 'Cached snapshot of real Snowflake ad data — the live read is unavailable on this deployment (network policy pending); it resumes automatically once set.', connected_platforms: snap.connected_platforms || [], pending_platforms: snap.pending_platforms || [], kpis: adRows.rollup(srows), platforms: sp, rows: srows, note: snap.note };
-      }
-    } catch (e) { /* no snapshot bundled — fall through to the live (empty) shape */ }
-  }
+  // THERE IS NO SNAPSHOT FALLBACK, deliberately.
+  //
+  // This used to serve api/_shared/ads-snapshot.json whenever the live read
+  // returned nothing. That file held 250 rows of ONE advertiser's real Meta
+  // history - $340,857 of spend against $915,412 of revenue, campaign names
+  // and all - and it was served to every signed-in brand, because "no live
+  // rows" is the normal state for a brand that has connected no ad account.
+  // A workspace that had never spent a penny on advertising opened Paid Media
+  // and read somebody else's tea, coffee and supplement campaigns as its own
+  // performance. The payload carried a data_scope note admitting the figures
+  // were not the brand's, which is not a defence: the table renders either
+  // way, and a caveat under a number nobody reads is how the wrong number
+  // gets acted on.
+  //
+  // An empty result is the correct and honest answer for a brand with no
+  // connection. The page's empty state says which platform to connect. Any
+  // future cached history must be stamped with the workspace that owns it and
+  // filtered by the caller's workspace before it is returned.
   return { ok: true, generated_at: iso(), data_scope: { level: 'deployment', note: 'These figures come from the ad accounts and warehouse connected to this DEPLOYMENT, not from the signed-in brand workspace. They are not this brand\'s own performance until per-tenant connections exist.' }, market: raw.market, level: raw.level, window: raw.window, freshness: 'Fetched on request with cache disabled; source-platform processing and attribution latency still applies.', connected_platforms: raw.connected_platforms || [], pending_platforms: raw.pending_platforms || [], kpis: adRows.rollup(rows), platforms, rows, note: raw.note };
 }
 
