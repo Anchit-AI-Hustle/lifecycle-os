@@ -135,6 +135,17 @@ const PROBE = `(() => {
     // has no such transition and is still measured.
     if (op < 1 && /opacity|all/.test(s.transitionProperty || '') && parseFloat(s.transitionDuration) > 0) continue;
     if (op < 1 && s.animationName && s.animationName !== 'none') continue;
+    // ...and the Web Animations API, which is how Motion One's animate() runs a
+    // reveal. It sets NEITHER transitionProperty NOR animationName, so the two
+    // checks above miss it entirely: the probe caught a stats tile at opacity
+    // 0.49 on its way from 0 to 1 and called it an unreadable label. Only a
+    // RUNNING animation counts - a finished one has left the element at its
+    // real opacity, which is still measured.
+    if (op < 1 && typeof el.getAnimations === 'function') {
+      try {
+        if (el.getAnimations().some((a) => a.playState === 'running')) continue;
+      } catch (e) { /* not animatable in this engine */ }
+    }
     const fg = parse(s.color); if (!fg) continue;
     const bg = backdrop(el);
     if (!bg) continue;                             // painted over an image/gradient - not measurable here
