@@ -303,6 +303,24 @@ async function defaultFetch(url, timeoutMs, ua) {
  *                             a plain BFS off a store homepage spends the whole
  *                             budget on products). Omitted = strict FIFO, the
  *                             existing behaviour, byte for byte.
+ *
+ * Two more make ONE crawl RESUMABLE across serverless invocations, which is what
+ * a whole-site knowledge ingest needs and what a second crawler would otherwise
+ * have been written for:
+ *
+ *   frontier[]                {url, depth} rows to seed the queue with instead
+ *                             of `startUrl`. `startUrl` still defines scope,
+ *                             origin and robots, so a resumed batch cannot widen
+ *                             beyond the site the first batch was pointed at.
+ *                             Every seeded URL is scope-checked like any other.
+ *   skip(url) -> bool         true = do not fetch and do not queue. The caller
+ *                             passes the set it has ALREADY visited in earlier
+ *                             batches, so batch 2 continues where batch 1 ran
+ *                             out instead of re-fetching the same first N pages.
+ *
+ * `frontier_remaining` comes back for the caller to persist: it is the queue at
+ * the moment the budget ran out, which is exactly the seed for the next batch.
+ * Both are optional and change nothing when omitted.
  */
 async function crawlSite(startUrl, opts) {
   const o = Object.assign({}, DEFAULTS, opts || {});
@@ -328,9 +346,22 @@ async function crawlSite(startUrl, opts) {
     } catch (_) { return false; }
   };
 
+  const skip = typeof o.skip === 'function' ? o.skip : null;
   const deadline = Date.now() + o.totalMs;
   const seen = new Set([start]);
-  let queue = [{ url: start, depth: 0 }];
+  // A resumed batch is seeded from the caller's persisted frontier. Scope is
+  // re-checked here rather than trusted: the frontier round-trips through a
+  // database, and a stored row is not evidence that a URL is still on this
+  // brand's own site.
+  const seeded = [];
+  for (const row of (Array.isArray(o.frontier) ? o.frontier : [])) {
+    const u = absolute((row && row.url) || row, start);
+    if (!u || !inScope(u, hosts) || seen.has(u)) continue;
+    if (SKIP_EXT.test(u) || SKIP_PATH.test(u)) continue;
+    seen.add(u);
+    seeded.push({ url: u, depth: Math.max(0, Number((row && row.depth) || 0)) });
+  }
+  let queue = seeded.length ? seeded : [{ url: start, depth: 0 }];
   const pages = [];
   const offerings = [];
   const images = [];
@@ -338,6 +369,7 @@ async function crawlSite(startUrl, opts) {
 
   while (queue.length && pages.length < o.maxPages && Date.now() < deadline) {
     const { url, depth } = queue.shift();
+    if (skip && skip(url)) continue;
     if (blockedByRobots(url)) { notes.push(`skipped (robots.txt): ${url}`); continue; }
 
     const r = await fetchImpl(url, o.perRequestMs);
@@ -356,6 +388,7 @@ async function crawlSite(startUrl, opts) {
       for (const link of linksFrom(r.body, r.url || url, hosts)) {
         if (seen.has(link)) continue;
         seen.add(link);
+        if (skip && skip(link)) continue;
         queue.push({ url: link, depth: depth + 1 });
       }
       // Reordering only. Array.prototype.sort is stable, so equal ranks keep
@@ -385,6 +418,10 @@ async function crawlSite(startUrl, opts) {
     ok: true,
     start, hosts: [...hosts],
     pages, pages_visited: pages.length, stopped,
+    // What was still queued when the budget ran out. A caller that persists
+    // this and feeds it back as `frontier` resumes exactly here; a caller that
+    // ignores it behaves as it always did.
+    frontier_remaining: queue.slice(0, 400),
     offerings: dedupe(offerings, (r) => `${r.kind}|${(r.url || '').toLowerCase()}|${r.name.toLowerCase()}`),
     images: dedupe(images, (r) => r.url.toLowerCase()),
     notes: notes.slice(0, 50),
