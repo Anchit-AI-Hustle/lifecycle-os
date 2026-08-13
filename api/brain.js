@@ -203,6 +203,12 @@ module.exports = async function handler(req, res) {
       // recommendation on a flagged figure. (_shared/feature-agent.js analyst role.)
       case 'analysis-narrative': {
         const { runAnalyst } = require('./_shared/feature-agent.js');
+        // Same gate as ?action=validate-data: the inputs below are the bundled
+        // export, which belongs to tenant zero.
+        const _mktA = require('./_shared/market-analytics.js');
+        if (!(await _mktA.ownsBundledExport())) {
+          return res.json({ ok: true, insights: [], data_scope: { level: 'other_workspace', basis: 'unset' }, note: _mktA.BUNDLED_OWNER_NOTE });
+        }
         const { runValidation, loadMarketData } = require('./_shared/data-validation-core.js');
         let md = null; try { md = loadMarketData(); } catch (_) { md = null; }
         const us = md && md.markets && md.markets.US ? md.markets.US : {};
@@ -674,6 +680,19 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       case 'alerts-preview': {
         // Read-only: what anomalies WOULD fire right now (no email). Open — no
         // secret needed, sends nothing, useful from the dashboard/console.
+        //
+        // The anomalies are computed from data/analytics/market-data.js, the
+        // export compiled into this build. That export is TENANT ZERO'S store,
+        // so this endpoint was quietly reporting one company's revenue swings,
+        // by market and by month, to every signed-in brand.
+        const _mkt = require('./_shared/market-analytics.js');
+        if (!(await _mkt.ownsBundledExport())) {
+          return res.json({
+            ok: true, kind: 'anomaly-preview', anomalies: [], thresholds: alerts.TH,
+            data_scope: { level: 'other_workspace', basis: 'unset' },
+            note: _mkt.BUNDLED_OWNER_NOTE,
+          });
+        }
         return res.json({ ok: true, kind: 'anomaly-preview', anomalies: alerts.detectAnomalies(), thresholds: alerts.TH, recipient: alerts.ALERT_EMAIL() });
       }
 

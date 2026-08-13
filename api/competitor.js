@@ -136,8 +136,21 @@ module.exports = async function handler(req, res) {
           note: 'No mail-capture inbox is configured for this deployment, so no competitor mailers have been archived. The competitor universe itself does not depend on it.' });
         return;
       }
+      // The Google Sheet is ONE spreadsheet for the whole deployment: it has no
+      // per-workspace column and no way to acquire one without moving the
+      // archive, so whatever it holds was captured by whoever configured the
+      // inbox. It is reported as a deployment-level source and never as this
+      // brand's own competitor mail. The per-brand universe (?action=universe)
+      // and the workspace-scoped ci_emails table are the sources that answer
+      // per brand.
       const emails = await core.getAllEmails();
-      res.status(200).json({ ok: true, emails });
+      res.status(200).json({
+        ok: true, emails, capture_configured: true,
+        data_scope: {
+          level: 'deployment', basis: 'unset',
+          note: 'This archive is a single shared inbox configured for the DEPLOYMENT, not a mailbox this brand connected. It is shown as a reference corpus, not as this brand\'s own captured competitor mail.',
+        },
+      });
       return;
     }
 

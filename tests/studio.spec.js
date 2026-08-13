@@ -34,6 +34,29 @@ async function bypassAuth(page) {
   });
 }
 
+// The Studio no longer compiles a product catalogue into the page: it resolves
+// the ACTIVE workspace's own catalogue through BrandCatalog at runtime, because
+// the array that used to sit in the file was another company's. Under file://
+// there is no workspace to resolve, so these tests seed a fixture and assert
+// the RENDERER, which is what they were always about. The fixture is obviously
+// synthetic and is never a real brand's catalogue.
+const CATALOG_FIXTURE = [
+  { n: 'Test Hero Pair, Black', i: '', t: ['bestseller'], h: 'test-hero-pair-black', price: '129.00', type: 'Sneakers', subtitle: 'Fixture product' },
+  { n: 'Test Second Pair, White', i: '', t: ['bestseller'], h: 'test-second-pair-white', price: '119.00', type: 'Sneakers', subtitle: 'Fixture product' },
+  { n: 'Test Gift Set', i: '', t: ['gift'], h: 'test-gift-set', price: '199.00', type: 'Gift Sets', subtitle: 'Fixture product' },
+  { n: 'Test Sampler, Five', i: '', t: ['sampler'], h: 'test-sampler-five', price: '89.00', type: 'Samplers', subtitle: 'Fixture product' },
+  { n: 'Test Premium Pair', i: '', t: ['premium'], h: 'test-premium-pair', price: '249.00', type: 'Sneakers', subtitle: 'Fixture product' },
+];
+
+async function seedCatalog(page) {
+  // Wait for the real lookup to settle first. Seeding before it resolves would
+  // be overwritten by its (empty, offline) answer, and the test would then be
+  // asserting against a page with no products without saying so.
+  await page.evaluate(() => (window.studioCatalogReady ? window.studioCatalogReady() : null));
+  await page.evaluate((rows) => window.setStudioCatalog(rows, 'brand', ''), CATALOG_FIXTURE);
+  await page.waitForFunction(() => (window.CAT || []).length > 0, null, { timeout: 5000 });
+}
+
 test.describe('Mailer Studio — responsive smoke', () => {
   test.beforeEach(async ({ page }) => {
     await bypassAuth(page);
@@ -49,6 +72,7 @@ test.describe('Mailer Studio — responsive smoke', () => {
       if (p1) p1.style.display = '';
     });
     await expect(page.locator('#promptIn')).toBeVisible({ timeout: 10_000 });
+    await seedCatalog(page);
   });
 
   test('Step 1 — fields present and visible', async ({ page }, testInfo) => {
@@ -136,14 +160,23 @@ test.describe('Mailer Studio — responsive smoke', () => {
     expect(result.issues.length).toBeGreaterThan(0);
   });
 
-  test('Market currency + reviewer locality propagate correctly', async ({ page }) => {
-    // Two checks across THREE different markets — each market must show its OWN
-    // currency, its OWN reviewer locality (not Indian names in US mailer), and
-    // its OWN store domain. Regression-protects against the "₹ in US mailer" bug.
+  test('Market currency and store domain propagate; no reviewer is invented', async ({ page }) => {
+    // This test used to assert the OPPOSITE of its second half: that a US mailer
+    // contained a US reviewer city, a UK mailer a UK one, and so on. That was
+    // testing a fabrication. The Studio generated reviewer names and hometowns
+    // from a per-market table and printed them as verified buyers, which the
+    // operating contract forbids outright ("never invent reviewers"). The flag
+    // that suppressed them defaulted to OFF, so it happened on every build.
+    //
+    // What is still worth protecting is the real bug this test was written for
+    // (₹ prices in a US mailer) plus the new invariant: no reviewer identity at
+    // all, in any market.
+    const REVIEWER_SURNAMES = /\b(?:Sarah M|Charlotte W|Priya S|Emma L|Marie L|Thomas B|Anna S|Julian P)\b/;
+    const REVIEWER_CITIES = /\b(?:Mumbai|Bangalore|Kolkata|Edinburgh|Amsterdam|Stockholm)\b/;
     const cases = [
-      { mkt: 'US', currency: '$',  badCurrency: '₹', goodCity: /(New York|California|Chicago|Austin|Seattle|Boston|United States)/i, badCity: /Mumbai|Delhi|Bangalore|Kolkata/i, goodHost: 'knickgasm.com', badHost: /knickgasmindia\.com/ },
-      { mkt: 'UK', currency: '£',  badCurrency: '₹', goodCity: /London|Manchester|Edinburgh|Bath|Bristol|Oxford|United Kingdom/i, badCity: /Mumbai|New York/i, goodHost: 'knickgasm.com', badHost: /knickgasmindia\.com/ },
-      { mkt: 'IN', currency: '₹',  badCurrency: '$', goodCity: /Mumbai|Delhi|Bangalore|Kolkata|Chennai|Pune|India/i, badCity: /New York|London/i, goodHost: 'knickgasm.com', badHost: /uk\.knickgasm\.com/ },
+      { mkt: 'US', currency: '$', badCurrency: '₹', goodHost: 'knickgasm.com', badHost: /knickgasmindia\.com/ },
+      { mkt: 'UK', currency: '£', badCurrency: '₹', goodHost: 'knickgasm.com', badHost: /knickgasmindia\.com/ },
+      { mkt: 'IN', currency: '₹', badCurrency: '$', goodHost: 'knickgasm.com', badHost: /uk\.knickgasm\.com/ },
     ];
     await page.fill('#promptIn', '15% off bestsellers — code SAVE15 — free shipping');
     await page.evaluate(() => window.go2 && window.go2());
@@ -156,14 +189,16 @@ test.describe('Mailer Studio — responsive smoke', () => {
           return a + '\n---SPLIT---\n' + b;
         } catch (e) { return ''; }
       }, c.mkt);
-      // Currency present, off-currency absent
+      // Currency present, off-currency absent.
       expect(html, `${c.mkt}: missing ${c.currency}`).toContain(c.currency);
-      // Reviewer locality matches market (best effort: at least one matching city)
-      const cityMatch = html.match(c.goodCity);
-      expect(cityMatch, `${c.mkt}: no matching reviewer city found`).toBeTruthy();
-      // Store domain matches market
+      // Store domain matches market.
       expect(html, `${c.mkt}: missing ${c.goodHost}`).toContain(c.goodHost);
       expect(html.match(c.badHost), `${c.mkt}: leaked ${c.badHost}`).toBeFalsy();
+      // No invented reviewer identity, in any market.
+      expect(html.match(REVIEWER_SURNAMES), `${c.mkt}: an invented reviewer name is in the mailer`).toBeFalsy();
+      expect(html.match(REVIEWER_CITIES), `${c.mkt}: an invented reviewer hometown is in the mailer`).toBeFalsy();
+      // No invented star rating, in any market.
+      expect(html.match(/\b4\.8\b/), `${c.mkt}: an invented rating is in the mailer`).toBeFalsy();
       // KNICKGASM wordmark must appear as text (footer + header) so it's never invisible
       expect((html.match(/KNICKGASM/g) || []).length, `${c.mkt}: KNICKGASM wordmark not visible`).toBeGreaterThanOrEqual(2);
     }

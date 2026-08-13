@@ -21,6 +21,12 @@
  * checkout or follows email links (the brief's "never click links" rule). It
  * reads checkout-link hrefs from the DOM without visiting them.
  *
+ * WORKSPACE: this worker runs OUTSIDE a request, so `_shared/supa.js` scopes its
+ * reads and writes to the oldest workspace (tenant zero) - the documented
+ * behaviour for cron and scripts. Set WORKSPACE_ID to collect for a different
+ * brand; collecting one brand's competitors into another brand's tables is the
+ * exact leak the scoping exists to prevent.
+ *
  * USAGE:
  *   npm run collect:landing
  *   URLS="https://brand.com/pages/sale" npm run collect:landing
