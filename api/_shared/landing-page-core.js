@@ -25,14 +25,37 @@ const STORE = {
   ME: 'https://knickgasm.com',
 };
 
-/** The store base for THIS brand and market. Never another brand's domain. */
+/**
+ * The store base for THIS brand and THIS market. Never another brand's domain,
+ * and never another market's.
+ *
+ * The market must match EXACTLY. brandRuntime.regionFacts() falls back to the
+ * first configured region when the requested one is absent, which is right for
+ * a prompt that just needs a currency example and wrong here: the page tells
+ * the model its links must match the requested market, and the market picker
+ * offers every market, so a brand configured only for UK would have sent US
+ * traffic to a UK checkout while the page claimed to be the US page.
+ */
 function resolveStore(brand, market) {
-  const facts = brandRuntime.regionFacts(brand, market);
-  if (facts && facts.store) return 'https://' + String(facts.store).replace(/^https?:\/\//, '');
+  const want = String(market || '').toUpperCase();
+  const regions = (brand && Array.isArray(brand.regions)) ? brand.regions : [];
+  const hit = regions.find((r) => r && String(r.code || '').toUpperCase() === want);
+  if (hit && hit.store_url) return 'https://' + String(hit.store_url).replace(/^https?:\/\//, '');
+
+  // No region row for this market. The brand's OWN website comes next, and it
+  // must come before the tenant-zero map: isDefault() keys off the presence of
+  // a workspace id, so any brand object without one - a preset, a record passed
+  // in directly - would otherwise be handed tenant zero's storefront.
   if (brand && brand.website) return brand.website;
-  if (brandRuntime.isDefault(brand)) return STORE[market] || STORE.US;
-  // A custom brand with no region and no website must not inherit tenant zero's
-  // storefront. Say what is missing instead, so the page carries the gap.
+
+  // Tenant zero keeps a per-market map here rather than on its record. Identity
+  // is checked by SLUG, not with isDefault(): that returns true for any brand
+  // object without a workspace id, which would hand tenant zero's storefront to
+  // a half-filled record from onboarding.
+  const zero = brandRuntime.defaultBrand() || {};
+  const isZero = brand && zero.slug && String(brand.slug || '') === String(zero.slug);
+  if (isZero && STORE[market]) return STORE[market];
+
   return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + market + ']';
 }
 
@@ -43,9 +66,15 @@ function resolveStore(brand, market) {
  * axis is chosen from what the brand actually sells.
  */
 function sensoryAxis(brand) {
-  const offs = Array.isArray(brand && brand.offerings) ? brand.offerings : [];
+  // A persisted brand_workspaces row keeps offerings under brand_data; only the
+  // preset JSON files carry them at the top level. Reading one shape would give
+  // every onboarded brand the generic fallback.
+  const offs = (Array.isArray(brand && brand.offerings) && brand.offerings)
+    || (brand && brand.brand_data && Array.isArray(brand.brand_data.offerings) && brand.brand_data.offerings)
+    || [];
   const kinds = new Set(offs.map((o) => o && o.kind).filter(Boolean));
-  const cs = (brand && brand.catalog_source) || {};
+  const cs = (brand && brand.catalog_source)
+    || (brand && brand.brand_data && brand.brand_data.catalog_source) || {};
   if (cs.kind && cs.kind !== 'none' && cs.kind !== 'manual') kinds.add('product');
   if (kinds.has('section') || kinds.has('programme')) {
     return 'four selectable reader states such as Morning, Commute, Evening, Weekend, each changing which content is surfaced';
@@ -179,7 +208,7 @@ TECHNICAL QUALITY
     // The caller-side scrubber enforces tenant zero's banned list; the ACTIVE
     // brand's own list is applied on top so a custom brand's forbidden phrases
     // are stripped too.
-    html = brandRuntime.scrubForBrand(html, brand);
+    html = brandRuntime.scrubHtmlForBrand(html, brand);
     html = String(html).replace(/^\s*```(?:html)?\s*/i, '').replace(/```\s*$/, '').trim();
     if (!/<!doctype/i.test(html) || !/<body/i.test(html) || !/<\/html>/i.test(html)) {
       return res.status(502).json({ error: 'invalid_html_generation' });
@@ -207,3 +236,9 @@ TECHNICAL QUALITY
   }
 };
 
+
+// Exposed for tests. The handler is the module's export, so these hang off it
+// rather than replacing it: the store resolver and the interaction axis are the
+// two pieces of per-brand logic worth pinning independently of an LLM call.
+module.exports.resolveStore = resolveStore;
+module.exports.sensoryAxis = sensoryAxis;

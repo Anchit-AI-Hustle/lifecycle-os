@@ -423,7 +423,15 @@ const LEVERS = [
     name: 'Complete the set', levers: ['aov'], impact: 7, ease: 6,
     metrics: ['Order value'],
     hypothesis: (c) => `Adding a companion-offer module to the top ${c.offerNoun} pages, chosen by what is genuinely used together rather than by what is merely also popular, should raise order value without touching acquisition cost.`,
-    grounding: (c) => c.offerCount > 1 ? `The catalogue has ${c.offerCount} offerings to pair from.` : 'Needs at least two offerings before it can run.',
+    grounding: (c) => (c.hasLiveFeed
+      ? 'Pairs are drawn from the connected catalogue.'
+      : c.offerCount > 1 ? `The catalogue has ${c.offerCount} offerings to pair from.`
+        : 'Needs at least two offerings before it can run.'),
+    // There is nothing to pair on a workspace with one offering, so the lever
+    // needs a precondition rather than only a grounding note that says so. A
+    // live catalogue counts: its pairs exist even though the offerings array
+    // beside it is short.
+    requires: (c) => c.hasLiveFeed || c.offerCount > 1,
   },
   {
     id: 'delivery-certainty', kinds: ['product'],
@@ -541,6 +549,10 @@ function contextFor(brand, kind) {
     leakStage: leak.stage,
     offerCount: offs.length,
     offerExample: (offs[0] && offs[0].name) || '',
+    hasLiveFeed: (() => {
+      const cs = brandCatalogSource(brand);
+      return !!(cs.kind && cs.kind !== 'none' && cs.kind !== 'manual');
+    })(),
     regionCount: regions.length,
     regionList: regions.length
       ? regions.map((r) => r.code).join(', ')
@@ -872,10 +884,15 @@ function headlineMetrics(brand, kind, experiments, funnel) {
         note: offs.length ? 'Recorded on the brand record.' : 'None recorded, so offering-level experiments cannot run.',
       };
     })(),
+    // `regions.length || 1` would invent a region for a brand that has none and
+    // stamp it measured, on the exact day-one record this page exists to be
+    // honest about. Report the real count, including zero.
     {
-      label: 'Regions live', value: String(regions.length || 1),
+      label: 'Regions live', value: String(regions.length),
       basis: 'measured',
-      note: regions.length > 1 ? 'Region parity is testable immediately.' : 'One region, so cross-region comparison is unavailable.',
+      note: regions.length > 1 ? 'Region parity is testable immediately.'
+        : regions.length === 1 ? 'One region, so cross-region comparison is unavailable.'
+          : 'No region configured, so no store URL, currency or market can be resolved for any asset.',
     },
     {
       label: 'Experiments ready', value: `${ready.length} of ${experiments.length}`,
@@ -914,6 +931,7 @@ function build(brand, opts) {
   const competitive = buildCompetitive(b);
 
   const gaps = [];
+  if (!((b.regions || []).filter((r) => r && r.code).length)) gaps.push('[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, all, all]');
   if (!brandClaims(b).length) gaps.push('[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
   if (!brandOfferings(b).length && !brandCatalogSource(b).kind) gaps.push('[DATA REQUIRED BEFORE LAUNCH: offerings, all, all]');
   if (!competitive.available) gaps.push(competitive.gap);
