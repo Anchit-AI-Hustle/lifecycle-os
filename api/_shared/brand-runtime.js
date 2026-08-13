@@ -207,4 +207,37 @@ function scrubForBrand(str, brand) {
     .trim();
 }
 
-module.exports = { resolve, brandBlock, regionFacts, scrubForBrand, defaultBrand, isDefault };
+/**
+ * The same banned-phrase net, for a whole HTML DOCUMENT.
+ *
+ * scrubForBrand is a PROSE normaliser: it finishes by collapsing every
+ * whitespace run to a single space so a sentence reads cleanly once a phrase is
+ * cut out. Run that over a document and it collapses newlines too, which turns
+ *
+ *     // set up the pointer parallax
+ *     startInteractions();
+ *
+ * into one line where the call sits inside the comment. The page still renders,
+ * still validates, and quietly does nothing when the user moves the pointer.
+ * Whitespace also carries meaning inside <pre> and <textarea>.
+ *
+ * So this variant removes the phrases and stops. It tidies only the horizontal
+ * run left behind by the excision, and never touches a line terminator.
+ */
+function scrubHtmlForBrand(html, brand) {
+  const v = (brand && brand.voice) || {};
+  let s = String(html == null ? '' : html);
+  if (v.no_em_dashes !== false) s = s.replace(/[—–]/g, ', ');
+  const banned = Array.isArray(v.banned) ? v.banned.filter(Boolean) : [];
+  if (!banned.length) return s;
+  for (const phrase of banned) {
+    try {
+      const rx = new RegExp(String(phrase).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      s = s.replace(rx, '');
+    } catch (_) { /* a phrase that will not compile is skipped, not fatal */ }
+  }
+  // Horizontal whitespace only: [^\S\r\n] is "space-like but not a newline".
+  return s.replace(/[^\S\r\n]{2,}/g, ' ');
+}
+
+module.exports = { resolve, brandBlock, regionFacts, scrubForBrand, scrubHtmlForBrand, defaultBrand, isDefault };
