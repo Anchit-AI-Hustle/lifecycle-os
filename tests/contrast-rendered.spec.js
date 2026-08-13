@@ -206,13 +206,39 @@ test('the brand colour has a readable text form, and it is what pages use', asyn
   expect(core.contrast(t['--brand-ink-muted'], '#FFFFFF')).toBeGreaterThanOrEqual(4.5);
 });
 
+/* Hue of a hex, 0..360 - used to prove the adjustment stays on the brand's own
+   colour instead of sliding toward a generic dark grey. */
+function hueOf(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (!d) return 0;
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
 test('a brand colour that already reads well is left alone', async () => {
-  // The adjustment must be a floor, not a filter: a brand that picked a strong
-  // colour keeps exactly the colour it picked.
+  // The adjustment must be a floor, not a filter.
   const dark = { primary: '#6A33D8', accent: '#D0473E', ink: '#111111', surface: '#FFFFFF', surface_alt: '#FFFFFF' };
   const t = core.tokens({ palette: dark, typography: {} });
+
+  // Clear of the floor by a wide margin (6.8:1) - returned byte-identical.
+  expect(core.contrast(dark.primary, '#FFFFFF')).toBeGreaterThan(core.TEXT_AA);
   expect(t['--brand-primary-text'].toLowerCase()).toBe('#6a33d8');
-  expect(t['--brand-accent-text'].toLowerCase()).toBe('#d0473e');
+
+  // Tenant zero's own red is the interesting case: 4.51:1 on white, i.e. it
+  // passes bare WCAG AA by a hundredth and has nothing left for the tinted
+  // states the shell paints over the surface. It IS below the floor, so it does
+  // move - and the floor is read from core.TEXT_AA rather than restated here,
+  // because a test that restates it is how this file came to assert 4.5 while
+  // tokens() had been built on 4.9 since the token was introduced. What must
+  // not happen is the colour being REPLACED rather than deepened.
+  expect(core.contrast(dark.accent, '#FFFFFF')).toBeLessThan(core.TEXT_AA);
+  const accentText = t['--brand-accent-text'];
+  expect(core.contrast(accentText, '#FFFFFF')).toBeGreaterThanOrEqual(core.TEXT_AA);
+  expect(hueOf(accentText)).toBeCloseTo(hueOf(dark.accent), 0);   // still the brand's red
+  expect(core.saturation(accentText)).toBeGreaterThan(0.4);       // not a grey
+  // and it stops at the floor rather than darkening past it
+  expect(core.contrast(accentText, '#FFFFFF')).toBeLessThan(core.TEXT_AA + 0.5);
 });
 
 test('no page writes the raw brand colour as a text colour', async () => {

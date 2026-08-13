@@ -624,6 +624,7 @@
           '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
           '<button type="button" class="btn" id="saveDraft">Save as draft</button>' +
         '</div>' +
+        contextBlock() +
         '<div style="margin-top:26px"><label>Your brands</label><div class="ws-list" id="wsList"><p class="muted">Loading…</p></div>' +
           '<button type="button" class="btn" id="newBrand" style="margin-top:6px;padding:8px 14px;font-size:12px">+ Onboard another brand</button></div>';
       loadWorkspaces();
@@ -1130,7 +1131,117 @@
     } catch (e) { $('wsList').innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
   }
 
+  /* ── The brand CONTEXT PACK ───────────────────────────────────────────────
+     One durable record per brand, keyed to its URL AND its name: a DESIGN.md in
+     the open google-labs-code/design.md format, a knowledge base built from
+     that domain and nothing else, a catalogue, and a GitHub repository search.
+
+     Two things this UI must keep visible, because both are easy to lose:
+       1. The pack is a REPORT, not an edit. Building one changes nothing about
+          the brand record; applying a value from it is a separate, deliberate
+          act, and it can never overwrite a field the operator typed.
+       2. "Not searched" and "found nothing" are different answers, and the
+          status line says which one happened. */
+  var packState = null, packBusy = false;
+
+  function contextBlock() {
+    if (!brand.id) {
+      return '<div class="xtract" style="margin-top:26px"><h3>Brand context pack</h3>' +
+        '<p class="xmeta">Save this brand first, then build its context pack.</p></div>';
+    }
+    var p = packState;
+    var line;
+    if (packBusy) line = 'Building. This runs as a queue, so it keeps going after you leave this page.';
+    else if (!p) line = 'Not built yet.';
+    else if (p.status === 'complete') {
+      line = 'Built ' + (p.completed_at || '').slice(0, 10) + ' — ' +
+        (p.has_design_md ? 'DESIGN.md ready, ' : 'no DESIGN.md, ') +
+        p.knowledge_ingested + ' page(s) of your own site filed, ' +
+        (p.catalog_skipped === 'user_owned' ? 'catalogue left alone (yours), ' : p.catalog_imported + ' catalogue row(s), ') +
+        (p.repos_searched ? p.repos_verified + ' verified repo(s)' : 'GitHub NOT searched (no access)') +
+        (p.markers ? ' — ' + p.markers + ' outstanding data requirement(s)' : '');
+    } else {
+      line = 'Stage: ' + esc(p.stage) + (p.knowledge_queued ? ' — ' + p.knowledge_queued + ' page(s) still queued' : '') +
+        (p.last_error ? ' — last error: ' + esc(p.last_error) : '');
+    }
+    return '<div class="xtract" style="margin-top:26px"><h3>Brand context pack</h3>' +
+      '<p class="xmeta">Reads your brand from its own site and keeps the result: a DESIGN.md in the open ' +
+        'google-labs-code/design.md format, a knowledge base built from your domain only, your catalogue, and ' +
+        'a GitHub search for your repositories. Every value carries the page it came from. Nothing here is ' +
+        'applied to your brand record, and nothing you typed can be overwritten by it.</p>' +
+      '<p class="xmeta" style="margin-top:8px"><b>' + esc(line) + '</b></p>' +
+      '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
+        '<button type="button" class="btn" id="packBuild">' + (packBusy ? 'Building...' : (packState ? 'Rebuild' : 'Build context pack')) + '</button>' +
+        (packState && packState.has_design_md
+          ? '<button type="button" class="btn" id="packDesign">Download DESIGN.md</button>' : '') +
+      '</div></div>';
+  }
+
+  async function loadPack(quiet) {
+    if (!brand.id) return;
+    try {
+      // No body: api() sends POST whenever there is one, and these two are
+      // reads. The workspace goes on the query string, which the router reads
+      // from either place.
+      var r = await api('context-pack', null, '&workspace_id=' + encodeURIComponent(brand.id));
+      packState = (r && r.pack) || null;
+      if (packState) {
+        packState.markers = (r.markers || []).length;
+        packState.has_design_md = !!r.design_md;
+        packState.knowledge_ingested = (r.knowledge && r.knowledge.ingested) || 0;
+        packState.knowledge_queued = (r.knowledge && r.knowledge.queued) || 0;
+        packState.catalog_imported = (r.catalog && r.catalog.imported) || 0;
+        packState.catalog_skipped = (r.catalog && r.catalog.skipped) || null;
+        packState.repos_searched = !!(r.repositories && r.repositories.searched);
+        packState.repos_verified = ((r.repositories || {}).verified || []).length;
+      }
+      if (!quiet) render();
+    } catch (e) { if (!quiet) console.warn('[onboarding] pack read failed:', e.message); }
+  }
+
+  async function buildPack() {
+    if (packBusy || !brand.id) return;
+    packBusy = true; render();
+    try {
+      var r = await api('context-build', { workspace_id: brand.id, refresh: true });
+      packState = r.pack || null;
+      // Without a service-role key there is no background chain, so the client
+      // IS the queue: keep stepping until it reports done. Said out loud in the
+      // response rather than inferred, so this loop can never spin forever
+      // against a deployment that is in fact chaining server-side.
+      var guard = 0;
+      while (r && r.next_step_required && guard++ < 40) {
+        r = await api('context-build', { workspace_id: brand.id });
+        packState = r.pack || packState;
+        render();
+      }
+      toast(r && r.done ? 'Context pack built.' : 'Context pack building in the background.');
+    } catch (e) {
+      toast(e.message, 4600);
+    } finally {
+      packBusy = false;
+      await loadPack(true);
+      render();
+    }
+  }
+
   function wireReview() {
+    loadPack(true).then(render);
+    var pb = $('packBuild'); if (pb) pb.addEventListener('click', buildPack);
+    var pd = $('packDesign');
+    if (pd) {
+      pd.addEventListener('click', async function () {
+        try {
+          var r = await api('context-design', null, '&workspace_id=' + encodeURIComponent(brand.id));
+          if (!r || !r.design_md) return toast('No DESIGN.md on this pack yet.');
+          var blob = new Blob([r.design_md], { type: 'text/markdown' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob); a.download = 'DESIGN.md';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        } catch (e) { toast(e.message, 4200); }
+      });
+    }
     $('saveDraft').addEventListener('click', async function () {
       brand.status = 'draft';
       try { await save(); toast('Saved as a draft.'); } catch (e) { toast(e.message, 4200); }
