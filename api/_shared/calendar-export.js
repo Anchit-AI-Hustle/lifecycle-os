@@ -35,7 +35,18 @@ const GR = require('./calendar-guardrails.js');
 function catalog(market, brand) {
   return catalogServer.productsFor(market, { brand: brand || null }).products;
 }
-function storeBase(market) {
+// The storefront a product link may point at. A brand's OWN regional store wins;
+// master-prompt's regionFacts() describes tenant zero's stores, so falling
+// through to it for another brand pointed every PDP link in that brand's export
+// at a domain it does not own.
+function storeBase(market, brand) {
+  if (brand && (brand.id || brand.slug)) {
+    let f = null;
+    try { f = require('./brand-runtime.js').regionFacts(brand, String(market || 'US').toUpperCase()); } catch (_) { f = null; }
+    if (f && f.store) return 'https://' + f.store;
+    if (brand.website) return String(brand.website).replace(/\/$/, '');
+    return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + String(market || 'US').toUpperCase() + ']';
+  }
   const f = regionFacts(String(market || 'US').toUpperCase());
   return 'https://' + (f.store || 'knickgasm.com');
 }
@@ -46,11 +57,11 @@ const STOP = new Set(['sneaker', 'sneakers', 'the', 'and', 'with', 'count', 'pac
 function tokens(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length >= 3 && !STOP.has(w));
 }
-function fromRow(p, market) {
+function fromRow(p, market, brand) {
   return {
     title: p.n, handle: p.h, image: (/^https?:\/\//.test(p.i || '') ? p.i : null),
     price: p.price != null ? p.price : null, type: p.type || (p.t && p.t[0]) || 'product',
-    url: p.h ? `${storeBase(market)}/products/${p.h}` : storeBase(market),
+    url: p.h ? `${storeBase(market, brand)}/products/${p.h}` : storeBase(market, brand),
   };
 }
 // Resolve a real catalog product: exact handle, then exact title, then the
@@ -80,10 +91,18 @@ function resolveProduct(ref, market, brand) {
       if (best && bestScore >= need) p = best;
     }
   }
-  if (p) return fromRow(p, market);
-  // No confident catalog match — honest soft fallback (real store search, no image).
+  if (p) return fromRow(p, market, brand);
+  // No confident catalog match — honest soft fallback (this brand's own store
+  // search, no image, and the DATA REQUIRED marker so the empty image column is
+  // read as a gap rather than a styling choice).
   const t = title || (typeof ref === 'string' ? ref : (ref.title || ''));
-  return { title: t, handle: null, image: null, price: null, type: (ref && (ref.category || (ref.heroProduct && ref.heroProduct.category))) || 'product', url: `${storeBase(market)}/search?q=${encodeURIComponent(t)}` };
+  const base = storeBase(market, brand);
+  return {
+    title: t, handle: null, image: null, price: null,
+    type: (ref && (ref.category || (ref.heroProduct && ref.heroProduct.category))) || 'product',
+    url: /^https?:/.test(base) ? `${base}/search?q=${encodeURIComponent(t)}` : base,
+    image_gap: catalogServer.imageMarker({ title: t }, market),
+  };
 }
 
 // Deterministic hash so the same slot always picks the same supporting set.
@@ -112,7 +131,7 @@ function supportingProducts(heroResolved, entry, market, n = 2) {
     const p = ranked[(stableIndex(seed, ranked.length) + i) % ranked.length];
     if (!p || seen.has(p.h)) continue;
     seen.add(p.h);
-    out.push({ title: p.n, handle: p.h, image: p.i, price: p.price != null ? p.price : null, url: `${storeBase(market)}/products/${p.h}` });
+    out.push({ title: p.n, handle: p.h, image: p.i, price: p.price != null ? p.price : null, url: `${storeBase(market, entry && entry.brand)}/products/${p.h}` });
   }
   return out;
 }
@@ -212,6 +231,11 @@ function assetPrompts(entry, market, hero, supporting) {
     cohort: (entry.cohort && entry.cohort.name) || entry.cohort_label || '',
     brief: entry.rationale || entry.objective || '',
     products: [hero, ...supporting].filter(Boolean).map((p) => ({ title: p.title, price: p.price, handle: p.handle, category: p.type })),
+    // The brand these prompts are written FOR. Without it buildMasterPrompt
+    // falls back to tenant zero, so every other brand's export shipped tenant
+    // zero's claims, banned-phrase list, palette and store URLs as the standing
+    // instructions for its own campaign.
+    brand: entry.brand || null,
   };
   const section = (label, o) => `### ${label}\n${buildMasterPrompt(o)}`;
   const imageNote = hero && hero.image
@@ -241,7 +265,7 @@ const COLUMNS = [
 function buildRow(entry, ctx = {}) {
   const market = entry.market || 'US';
   const hero = resolveProduct(entry.heroProduct || entry.hero_handle || entry.hero_product, market, entry.brand)
-    || (entry.heroProduct ? { title: entry.heroProduct.title, handle: entry.heroProduct.handle || null, image: null, price: null, type: entry.heroProduct.category || 'product', url: storeBase(market) } : null);
+    || (entry.heroProduct ? { title: entry.heroProduct.title, handle: entry.heroProduct.handle || null, image: null, price: null, type: entry.heroProduct.category || 'product', url: storeBase(market, entry.brand), image_gap: catalogServer.imageMarker(entry.heroProduct, market) } : null);
   const supporting = hero ? supportingProducts(hero, entry, market, 2) : [];
   const cohortName = (entry.cohort && entry.cohort.name) || entry.cohort_label || entry.cohort_key || '';
   const audience = (entry.cohort && (entry.cohort.size != null ? entry.cohort.size : entry.cohort.count)) || entry.audience_count || 0;

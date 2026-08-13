@@ -365,3 +365,66 @@ test('a revenue forecast names the inputs it assumed', () => {
   expect(measured.basis).toBe('measured');
   expect(measured.assumed_inputs).toEqual([]);
 });
+
+/* ── The brand's own offers, and no verdict without a target ──────────────
+   Two corrections applied together, because they share a shape: a value the
+   platform cannot know must not be invented to fill the field. */
+
+test('a discount code comes from the brand, never from the platform', () => {
+  const GR = require('../api/_shared/calendar-guardrails.js');
+  const zero = require('../api/_shared/brand-runtime.js').defaultBrand();
+
+  // Tenant zero publishes its own registry, so its own codes still resolve.
+  const own = GR.offerFor('Cart abandoners', 'recovery', zero);
+  expect(own.code).toBe('CART15');
+  expect(own.data_gaps).toEqual([]);
+
+  // A brand that has published none gets NO code and says so. A code invented
+  // for a brand that never created it does not merely name the wrong company -
+  // the customer types it at checkout and it fails.
+  const other = GR.offerFor('Cart abandoners', 'recovery', { name: 'Some Publisher' });
+  expect(other.code).toBe('');
+  expect(other.pct).toBe(0.15);                       // the DECISION still stands
+  expect(other.data_gaps.join(' ')).toContain('DATA REQUIRED BEFORE LAUNCH');
+  expect(other.data_gaps.join(' ')).toContain('Some Publisher');
+});
+
+test('no literal discount code survives in the planners', () => {
+  // The regression this guards: ten of one brand's real codes lived in shared
+  // modules and were handed to every tenant.
+  for (const f of ['api/_shared/calendar-guardrails.js', 'lib/smart-brain/services.js']) {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', f), 'utf8');
+    const code = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    const hits = code.match(/['"](?:VIP15|CART15|NEW15|SAVE15|SUMMER15|HELLO10|IAMBACK|BACK15|KNICKGASM1[05])['"]/g) || [];
+    expect(hits, `${f} still carries literal discount codes: ${hits.join(', ')}`).toEqual([]);
+  }
+});
+
+test('the promotional cap counts the discount, not the code string', () => {
+  // Keying the cap on a code was safe only while codes were invented for every
+  // slot. Once they come from the brand, a brand with none would have had every
+  // send counted as non-promotional and the cap silently disabled.
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'smart-brain', 'services.js'), 'utf8');
+  const line = (src.match(/const isPromo = [^\n]*/) || [''])[0];
+  expect(line).toMatch(/offer\.pct|offer\.depth/);
+});
+
+test('a feasibility verdict needs a target the brand actually set', () => {
+  const rm = require('../api/_shared/revenue-model.js');
+  const day = { date: '2026-08-14', sends: [{ recipients: 30000 }, { recipients: 25000 }] };
+
+  // No target: the forecast stands, the verdict does not. A projection is a
+  // projection; a verdict against an invented target tells the operator to act.
+  const blind = rm.forecastDay(day);
+  expect(blind.feasibility).toBe('NO TARGET SET');
+  expect(blind.target).toBeNull();
+  expect(blind.gap).toBeNull();
+  expect(blind.required_orders).toBeNull();
+  expect(blind.total_forecast_revenue).toBeGreaterThan(0);   // still forecast
+  expect(blind.data_gaps.join(' ')).toContain('daily attributed-email revenue target');
+
+  // Given one, it grades exactly as before.
+  const graded = rm.forecastDay(day, { dailyTarget: 1500 });
+  expect(graded.feasibility).not.toBe('NO TARGET SET');
+  expect(graded.gap).not.toBeNull();
+});

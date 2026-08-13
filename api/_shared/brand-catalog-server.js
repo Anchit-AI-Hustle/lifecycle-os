@@ -321,11 +321,23 @@ function productsFor(market, { brand = null, workspaceId = null } = {}) {
   return none(UNRESOLVED_REASON);
 }
 
-/** Does the pinned scope describe the brand this call is for? */
+/**
+ * Does the pinned scope describe the brand this call is for?
+ *
+ * Compared on every identifier both sides can offer, because the two rarely
+ * arrive by the same route: the scope is pinned from a config's `workspace_id`
+ * while the render site passes the brand RECORD, and a preset-shaped brand may
+ * carry a slug but no id. A mismatch is not an error - it just means this call
+ * is for a different brand than the one pinned, and the answer is `none`, never
+ * the pinned brand's rows.
+ */
 function sameTenant(scope, brand, workspaceId) {
-  const want = String(workspaceId || (brand && brand.id) || (brand && brand.slug) || '');
-  if (!want || !scope.key) return false;
-  return String(scope.key) === want;
+  const want = new Set([workspaceId, brand && brand.id, brand && brand.slug]
+    .filter(Boolean).map(String));
+  if (!want.size) return false;
+  const have = [scope.key, scope.brand && scope.brand.id, scope.brand && scope.brand.slug]
+    .filter(Boolean).map(String);
+  return have.some((h) => want.has(h));
 }
 
 /** A workspace's rows narrowed to one region, with the documented widening. */

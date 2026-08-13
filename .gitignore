@@ -41,6 +41,11 @@ test-output/
 test-results/
 tests/report/
 playwright-report/
+# studio.spec.js writes these inside a try/catch and asserts NOTHING against
+# them - they are debug output, not baselines. Tracked, they regenerate on
+# every run and conflicted on every merge, which is how six binary files came
+# to need hand resolution during a routine sync.
+tests/screenshots/
 
 # Compiled analysis exports (keep the README, ignore the workbooks)
 output/*.xlsx
