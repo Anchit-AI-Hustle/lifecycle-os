@@ -108,8 +108,22 @@ function subjectFor(brand) {
 /**
  * Constant for every brand. A generated image is the easiest place in the
  * product to fabricate a fact, so this is not the brand's to soften.
+ *
+ * THE REALITY RULE. The first list covers things that would be *invented* -
+ * a rating nobody gave, a certification nobody issued. The second covers a
+ * subtler failure: things that are real, and therefore must be PHOTOGRAPHED
+ * rather than generated. A model's rendering of a brand's actual packaging is
+ * a plausible fake of a real object, and a generated "customer" is a person
+ * who does not exist presented as one who does. Both are fabrications even
+ * though neither is an invented statistic, and a generator asked for one will
+ * always produce something rather than refuse.
+ *
+ * The remedy is the one this repo uses everywhere else: emit the gap instead
+ * of filling it. A brief that needs real packaging or a real person gets a
+ * labelled empty slot naming the shot required, which is a photography brief
+ * a human can act on - not a synthetic stand-in that ships.
  */
-const NEVER = 'NEVER render: logos, wordmarks, watermarks, UI or inbox chrome, star ratings, review counts, award badges, price tags, certification marks, or any garbled or invented lettering. If text is not explicitly requested, render none at all.';
+const NEVER = 'NEVER render: logos, wordmarks, watermarks, UI or inbox chrome, star ratings, review counts, award badges, price tags, certification marks, or any garbled or invented lettering. If text is not explicitly requested, render none at all. NEVER depict the brand\'s actual retail packaging, labels or a named or identifiable real person: those are photographed, never generated. If the brief requires one, render the scene without it and leave the composition space for it rather than approximating it.';
 
 const QUALITY = 'Gallery-print resolution, true-to-life colour, natural soft lighting, fine material texture, correct anatomy, balanced composition. Avoid blur, noise, banding, compression artifacts, plastic skin, warped shapes, duplicated objects and oversaturation.';
 

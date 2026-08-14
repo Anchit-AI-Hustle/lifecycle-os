@@ -1,9 +1,21 @@
 ---
-description: Generate a brand-compliant Knickgasm HTML landing page that conforms to the /lp/:id serving contract.
-argument-hint: "[offer, e.g. 'coffee collection PDP-style LP for Meta traffic, US']"
+name: landing-page
+description: Generate a brand-compliant HTML landing page for the active brand that conforms to the /lp/:id serving contract.
+argument-hint: "[offer, e.g. '<collection> PDP-style LP for Meta traffic, US']"
 ---
 
 # Landing page generation
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
+Craft rules — structure, motion law, output contract: `docs/creative-craft-contract.md` (§1 Landing pages).
+
 
 Build an HTML landing page for: `$ARGUMENTS`.
 

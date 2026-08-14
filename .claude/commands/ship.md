@@ -1,9 +1,19 @@
 ---
+name: ship
 description: Build and deploy the Lifecycle OS to Vercel.
 argument-hint: "[optional: 'prod' to deploy to production]"
 ---
 
 # Ship
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Deploy the project. Args: `$ARGUMENTS` (`prod`/`production` → production; otherwise preview).
 
