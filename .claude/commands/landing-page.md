@@ -14,6 +14,8 @@ the ACTIVE brand's own record, never from tenant zero. A field the brand has not
 published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
 never filled with a plausible value.
 
+Craft rules — structure, motion law, output contract: `docs/creative-craft-contract.md` (§1 Landing pages).
+
 
 Build an HTML landing page for: `$ARGUMENTS`.
 

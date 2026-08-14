@@ -1143,12 +1143,60 @@ async function saveWorkspace(auth, input) {
   return ws;
 }
 
+/**
+ * Remove a brand, and only report it removed if a row actually went.
+ *
+ * This used to fire the DELETE with `return=minimal` and return
+ * `{ok:true, deleted:id}` no matter what came back. RLS restricts deletion to
+ * `owner_id = auth.uid()` ("workspace delete by owner"), so a member who is not
+ * the owner - and anyone passing an id that does not exist - got a 204 with
+ * ZERO rows removed and was told the brand was deleted. The brand was still
+ * there on the next load. A destructive action that reports success it did not
+ * have is worse than one that fails loudly.
+ *
+ * `return=representation` makes the answer checkable: the rows actually deleted
+ * come back, so absence is distinguishable from success.
+ */
 async function deleteWorkspace(auth, id) {
-  await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', prefer: 'return=minimal' });
+  const wsId = str(id);
+  if (!wsId) { const e = new Error('Which brand? No workspace id was supplied.'); e.status = 400; throw e; }
+
+  // Read first, so "not yours" and "does not exist" get different answers. A
+  // non-member cannot see the row at all, which is the correct RLS behaviour
+  // and reads as "not found" - deliberately not "exists but is not yours".
+  const ws = await getWorkspace(auth, wsId);
+  if (!ws) { const e = new Error('Brand not found (or not yours).'); e.status = 404; throw e; }
+  if (ws.owner_id && ws.owner_id !== auth.user_id) {
+    const e = new Error('Only the owner can delete a brand. You can edit it, or ask the owner to remove it.');
+    e.status = 403; throw e;
+  }
+
+  const gone = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,name`, {
+    method: 'DELETE', prefer: 'return=representation',
+  });
+  const rows = Array.isArray(gone) ? gone : (gone ? [gone] : []);
+  if (!rows.length) {
+    // Reached only if the row vanished between the read and the delete, or a
+    // policy refused it without erroring. Either way nothing was removed.
+    const e = new Error('Nothing was deleted - the brand may have already been removed, or a policy refused it.');
+    e.status = 409; throw e;
+  }
+
   // Nothing survives a delete: the default-workspace cache is keyed on "oldest
   // row", which the delete may itself have removed.
-  invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
-  return { ok: true, deleted: id };
+  invalidateBrandCaches({ userId: auth.user_id, workspaceId: wsId });
+
+  /* Every brand-owned TABLE cascades (connections, secrets, competitors,
+     context packs, review library, credits, telesuite, payments). Storage does
+     NOT: re-hosted review images live in the `brand-review-media` bucket under
+     `<workspace_id>/...` and no foreign key reaches them, so they are reported
+     rather than silently orphaned. */
+  return {
+    ok: true,
+    deleted: wsId,
+    name: (rows[0] && rows[0].name) || ws.name || null,
+    storage_note: `Re-hosted media under brand-review-media/${wsId}/ is not removed by this delete and must be cleared separately.`,
+  };
 }
 
 /** Owner or editor. A `viewer` may read a workspace but must not change it. */
