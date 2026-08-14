@@ -1,11 +1,23 @@
 ---
-description: Generate a brand-compliant Knickgasm HTML mailer (lifecycle email) end-to-end.
-argument-hint: "[brief, e.g. 'welcome series email 2 for green sneaker subscribers, US']"
+name: mailer
+description: Generate a brand-compliant HTML mailer (lifecycle email) for the active brand, end-to-end.
+argument-hint: "[brief, e.g. 'welcome series email 2 for green product subscribers, US']"
 ---
 
 # Mailer generation
 
-Produce a Knickgasm HTML email for: `$ARGUMENTS`.
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
+Craft rules — structure, motion law, output contract: `docs/creative-craft-contract.md` (§2 Mailers).
+
+
+Produce an HTML email for the active brand: `$ARGUMENTS`.
 
 ## Method
 1. Invoke the **`anthropic-skills:knickgasm-d2c-mailer`** skill as the primary engine. It encodes the Mailer Studio contract.

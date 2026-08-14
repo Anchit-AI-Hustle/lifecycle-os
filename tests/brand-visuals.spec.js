@@ -70,6 +70,28 @@ test('the anti-fabrication rules hold for every brand and every mode', () => {
   }
 });
 
+/* The reality rule's second half. The first list stops the model INVENTING
+   proof - a rating nobody gave, a certification nobody issued. This stops it
+   DEPICTING things that are real and must therefore be photographed: a model's
+   rendering of a brand's actual retail packaging is a plausible fake of a real
+   object, and a generated "customer" is a person who does not exist presented
+   as one who does. Neither is an invented statistic, and both are fabrications.
+
+   A generator asked for either produces something rather than refusing, which
+   is why the refusal has to live in the prompt and why the remedy is named:
+   leave the space, do not approximate it. */
+test('no brand or mode may generate real packaging or a real person', () => {
+  for (const brand of [TENANT_ZERO, PUBLISHER, HEALTH]) {
+    for (const mode of MODES) {
+      const p = buildPreamble(brand, mode);
+      expect(p, `${brand.name} / ${mode} must refuse to render real packaging`).toMatch(/actual retail packaging/i);
+      expect(p, `${brand.name} / ${mode} must refuse to render an identifiable person`).toMatch(/identifiable real person/i);
+      // Refusing is not enough on its own: an unstated remedy gets improvised.
+      expect(p, `${brand.name} / ${mode} must say what to do instead`).toMatch(/photographed, never generated/i);
+    }
+  }
+});
+
 test('only the ad mode is allowed to render text', () => {
   const brand = PUBLISHER;
   expect(buildPreamble(brand, 'ad')).toMatch(/ONLY text in frame is the supplied headline/i);

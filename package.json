@@ -42,7 +42,9 @@
     "retheme": "node scripts/retheme-legacy-palette.js",
     "test:isolation": "node scripts/test-brand-isolation.js --ci",
     "check:designmd": "node scripts/check-design-md.js",
-    "check:designmd:ci": "node scripts/check-design-md.js --fail"
+    "check:designmd:ci": "node scripts/check-design-md.js --fail",
+    "check:skills": "node scripts/check-skills.js",
+    "check:skills:ci": "node scripts/check-skills.js --fail"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",

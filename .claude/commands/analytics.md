@@ -1,9 +1,19 @@
 ---
-description: Build a Knickgasm growth/performance report — RFM, cohorts, channel performance — from Supabase + connected analytics.
+name: analytics
+description: Build a growth/performance report for the active brand — RFM, cohorts, channel performance — from Supabase + connected analytics.
 argument-hint: "[report, e.g. 'monthly retention + channel ROAS, US']"
 ---
 
 # Analytics & reporting
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Produce the report described in `$ARGUMENTS`.
 

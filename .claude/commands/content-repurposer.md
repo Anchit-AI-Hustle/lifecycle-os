@@ -1,9 +1,19 @@
 ---
+name: content-repurposer
 description: Content repurposer — give one post, get a thread, email and hooks.
 argument-hint: "[paste the source post/blog/video script]"
 ---
 
 # Content repurposer
+
+## Before you start — resolve the brand
+
+Run `/brand-context` first (or confirm it has already run this session). Every
+fact, product, price, URL, claim, colour and product noun below must come from
+the ACTIVE brand's own record, never from tenant zero. A field the brand has not
+published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
+never filled with a plausible value.
+
 
 Repurpose: `$ARGUMENTS`.
 
@@ -11,7 +21,7 @@ Repurpose: `$ARGUMENTS`.
 1. Extract the source's ONE core claim, its supporting points, and any concrete details (numbers, names, sensory lines) — the details are the value; never dilute them into generalities, never add facts the source does not contain.
 2. Re-shape per format, native to each (not copy-paste):
    - X/Threads thread: 6-9 tweets, hook tweet leads with the sharpest detail, one idea per tweet, closer with CTA.
-   - Email: subject + preview + 150-word body in KNICKGASM voice, one CTA.
+   - Email: subject + preview + 150-word body in the active brand voice, one CTA.
    - IG/Reels hooks: 5 opening lines under 10 words each (curiosity, contrarian, sensory, number-led, question).
    - LinkedIn: 120-word narrative version, first line does the work.
 3. Keep ONE canonical message across all outputs; formats change, the claim does not.
