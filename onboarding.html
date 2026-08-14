@@ -103,6 +103,14 @@
   .ws-dot{width:24px;height:24px;border-radius:7px;flex:none}
   .ws b{font-size:13.5px}.ws small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
   .ws .tag{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-primary-text)}
+  .ws-acts{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+  .ws-act{font-size:11px;font-weight:600;padding:5px 9px;border-radius:7px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);cursor:pointer;line-height:1;min-height:28px}
+  .ws-act:hover{border-color:var(--primary)}
+  /* Destructive, so it reads destructive - but only on hover/focus, because a
+     permanently red control in a list is noise until it is the one you want. */
+  .ws-act.danger:hover,.ws-act.danger:focus{border-color:var(--danger,#B3261E);color:var(--danger,#B3261E)}
+  .ws-act[disabled]{opacity:.45;cursor:not-allowed}
 
   .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 14%,transparent);
     padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0}
@@ -1181,13 +1189,65 @@
         return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '">' +
           '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
           '<span><b>' + esc(w.name) + '</b><small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
-          (w.id === active ? '<span class="tag">Active</span>' : '<span class="tag" style="opacity:.5">Switch</span>') +
+          '<span class="ws-acts">' +
+            (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
+            '<button type="button" class="ws-act" data-act="edit">Edit</button>' +
+            '<button type="button" class="ws-act danger" data-act="delete">Delete</button>' +
+          '</span>' +
         '</div>';
       }).join('') : '<p class="muted">No brands yet. Finish this one and it becomes your first.</p>';
       Array.prototype.forEach.call($('wsList').querySelectorAll('[data-ws]'), function (el) {
-        el.addEventListener('click', async function () {
-          try { await window.BrandContext.setActive(el.dataset.ws); toast('Switched brand. The app is now in that brand.'); loadWorkspaces(); }
+        var id = el.dataset.ws;
+        var row = workspaces.filter(function (w) { return w.id === id; })[0] || {};
+
+        async function switchTo() {
+          try { await window.BrandContext.setActive(id); toast('Switched brand. The app is now in that brand.'); loadWorkspaces(); }
           catch (e) { toast(e.message, 4000); }
+        }
+
+        /* Edit re-enters the wizard on this brand. The wizard already reads
+           `?id=` on boot - it loads that workspace, titles itself "Edit <name>"
+           and resumes at its saved step - so this navigates rather than
+           building a second seeding path beside the one that already exists. */
+        function edit() { location.href = '/onboarding?id=' + encodeURIComponent(id); }
+
+        /* Delete is irreversible and takes more than the brand with it, so it
+           says what goes and asks for the name. A single OK is too cheap for
+           an action that removes a catalogue, stored credentials and a credit
+           ledger; typing the name is the standard bar for that. */
+        async function remove() {
+          var name = row.name || 'this brand';
+          var alsoActive = id === active;
+          var warn = 'Delete ' + name + ' permanently?\n\n'
+            + 'This also removes its catalogue, connected accounts and stored keys, competitor set, '
+            + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.\n\n'
+            + (alsoActive ? 'It is your ACTIVE brand - the app will fall back to another brand, or to onboarding if this is your last one.\n\n' : '')
+            + 'Type the brand name to confirm:';
+          var typed = window.prompt(warn, '');
+          if (typed === null) return;
+          if (typed.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
+            toast('Name did not match. Nothing was deleted.', 4000); return;
+          }
+          try {
+            var r = await window.BrandContext.api('delete', { body: { id: id } });
+            toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
+            if (alsoActive) { try { window.BrandContext.clearCache(); } catch (_) {} }
+            await window.BrandContext.refresh();
+            loadWorkspaces();
+          } catch (e) {
+            // The server distinguishes "not yours" (403) from "not there"
+            // (404) from "nothing was removed" (409). Show what it said.
+            toast(e.message || 'Delete failed.', 5000);
+          }
+        }
+
+        el.addEventListener('click', function (ev) {
+          var btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
+          var act = btn && btn.dataset.act;
+          if (act) ev.stopPropagation();
+          if (act === 'edit') return edit();
+          if (act === 'delete') return remove();
+          return switchTo();          // the row itself, and the Switch button
         });
       });
     } catch (e) { $('wsList').innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }

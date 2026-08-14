@@ -14,6 +14,8 @@ the ACTIVE brand's own record, never from tenant zero. A field the brand has not
 published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
 never filled with a plausible value.
 
+Craft rules — structure, motion law, output contract: `docs/creative-craft-contract.md` (§3 Static ads, §4 Video ads).
+
 
 Write the designer-ready brief for: `$ARGUMENTS`.
 
