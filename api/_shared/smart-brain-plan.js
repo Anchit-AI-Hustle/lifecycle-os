@@ -814,7 +814,7 @@ const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate
 // from tenant zero's record via brand-runtime, so it still cannot drift.
 function brandSystem(brand) {
   let b = brand && brand.id ? brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
   const v = b.voice || {};
   const site = String(b.website || '').replace(/^https?:\/\//, '');
   const lines = [
@@ -835,7 +835,7 @@ function brandSystem(brand) {
 // stage can still run standalone. Pinned provider is returned for speed.
 function strategySystem(brand) {
   let b = brand && brand.id ? brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
   return `You are ${b.name || 'the brand'}'s Head of Growth Strategy - a top lifecycle-marketing analyst${b.industry ? ` for ${b.industry}` : ''}.
 You turn cohort + offering + competitor data into a sharp, differentiated campaign strategy for THIS brand only.
 Be specific and quantitative where the data allows; never borrow another brand's facts.
@@ -1102,7 +1102,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').repla
 /** The ACTIVE brand's palette, with tenant-zero's record only when it IS tenant zero. */
 function brandPal(entry) {
   let b = (entry && entry.brand && entry.brand.id) ? entry.brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
   const p = (b && b.palette) || {};
   return {
     name: (b && b.name) || '',
@@ -1200,7 +1200,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   // name, palette, claims, store. Tenant zero's record is the source only
   // when the entry genuinely belongs to tenant zero.
   let _b = entry.brand && entry.brand.id ? entry.brand : null;
-  if (!_b) { try { _b = require('./brand-runtime.js').defaultBrand(); } catch (_) { _b = {}; } }
+  if (!_b) { try { _b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { _b = {}; } }
   const bName = _b.name || 'the brand';
   const _pal = _b.palette || {};
   const P = _pal.primary || '#D0473E', ACC = _pal.accent || '#6A33D8', INKC = _pal.ink || '#111111', SURF = _pal.surface || '#FFFFFF', SURF2 = _pal.surface_alt || '#f6f6f6';
@@ -1482,7 +1482,7 @@ function emailHtml(entry, copy, creativeUrl) {
   // tenant's. (This path only runs when an LLM produced the copy, which is why
   // it survived the first sweep.)
   const b = (entry.brand && entry.brand.id) ? entry.brand
-    : (() => { try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; } })();
+    : (() => { try { return require('./brand-runtime.js').scopedBrand(null); } catch (_) { return {}; } })();
   const bName = b.name || '';
   const pal = b.palette || {};
   const P = pal.primary || '#111111';

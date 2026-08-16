@@ -198,12 +198,12 @@ async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs 
 
 function brandName(ctx) {
   let b = (ctx && ctx.brand && ctx.brand.id) ? ctx.brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
   return b.name || 'this brand';
 }
 function brandRecord(ctx) {
   let b = (ctx && ctx.brand && ctx.brand.id) ? ctx.brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
   return b || {};
 }
 function brandPersona(ctx, role) {

@@ -39,6 +39,81 @@ const TTL = 30_000;
 
 function isDefault(brand) { return !brand || !brand.id; }
 
+/* ── the brand a GENERATOR should use ──────────────────────────────────────
+ *
+ * `defaultBrand()` means one specific thing: TENANT ZERO, the shipped record.
+ * It is the right answer to "who owns the bundled catalogue" - brand-catalog-
+ * server's tenantZeroSlug() reads its identity from exactly there - and it is
+ * the WRONG answer to "which brand am I generating for", which is what ~26
+ * call sites across the generators were using it for:
+ *
+ *     if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } ... }
+ *
+ * Every one of those turns a brand that failed to resolve into tenant zero, so
+ * a workspace with no brand on the context generated tenant zero's products
+ * under its own name. That is how /social produced posts about one company's
+ * sneakers, with that company's real product URLs, inside another company's
+ * workspace.
+ *
+ * `scopedBrand()` answers the generator's question honestly:
+ *   1. the brand it was handed, if it is a real one;
+ *   2. otherwise the brand PINNED for this generation (AsyncLocalStorage, so
+ *      concurrent brands in one warm runtime cannot see each other);
+ *   3. otherwise an UNRESOLVED brand - never tenant zero.
+ *
+ * An unresolved brand is deliberately usable: it is brand-shaped, so callers do
+ * not crash, and every field a generator would print carries a DATA REQUIRED
+ * marker. The output is visibly incomplete instead of quietly belonging to
+ * somebody else. Silence about a missing brand is what shipped the bug.
+ */
+
+const UNRESOLVED_NOTE = 'brand could not be resolved for this request';
+
+function unresolvedBrand(reason) {
+  const why = String(reason || UNRESOLVED_NOTE);
+  const mark = (field) => `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${why}]`;
+  return {
+    id: '', slug: '', unresolved: true, unresolved_reason: why,
+    name: mark('brand name'),
+    tagline: '', industry: '', website: '',
+    // Empty, not tenant zero's. A renderer with no palette falls back to the
+    // --brand-* tokens the page already carries; a renderer handed tenant
+    // zero's palette paints another brand's colours and looks correct.
+    palette: {}, typography: {}, voice: {}, regions: [],
+    claims: [], offerings: [], competitors: [],
+  };
+}
+
+/** True when this record is the unresolved placeholder rather than a brand. */
+function isUnresolved(brand) { return !!(brand && brand.unresolved === true); }
+
+/**
+ * The brand this generation is for. NEVER tenant zero unless tenant zero is
+ * genuinely what is in scope.
+ */
+function scopedBrand(candidate, opts) {
+  const o = opts || {};
+  if (candidate && (candidate.id || candidate.slug)) return candidate;
+
+  // The catalogue scope pins {brand, workspaceId} for a generation subtree.
+  try {
+    const scope = require('./brand-catalog-server.js').currentScope();
+    if (scope && scope.brand && (scope.brand.id || scope.brand.slug)) return scope.brand;
+  } catch (_) { /* outside a pinned generation */ }
+
+  // The request scope carries the HTTP request the handler is serving.
+  try {
+    const rs = require('./request-scope.js');
+    const req = rs.currentRequest && rs.currentRequest();
+    if (req && req.__brand && (req.__brand.id || req.__brand.slug)) return req.__brand;
+  } catch (_) { /* outside a wrapped handler */ }
+
+  // A caller that explicitly wants tenant zero asks for it by name.
+  if (o.allowTenantZero === true) return defaultBrand();
+
+  return unresolvedBrand(o.reason);
+}
+
 /**
  * Facts a brand carries that are NOT columns on `brand_workspaces`.
  *
@@ -315,6 +390,7 @@ function scrubHtmlForBrand(html, brand) {
 }
 
 module.exports = {
+  scopedBrand, unresolvedBrand, isUnresolved,
   resolve, brandBlock, regionFacts, scrubForBrand, scrubHtmlForBrand,
   defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,
 };
