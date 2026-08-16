@@ -222,6 +222,75 @@ const UNRESOLVED_REASON =
 
 function none(reason) { return { products: [], source: 'none', reason }; }
 
+/* ── tenant zero's OTHER shipped data files ────────────────────────────────
+ *
+ * data/catalog/ was never the only one. `data/product-types.json` carries
+ * tenant zero's product taxonomy, its real product titles and its store's
+ * base_url; `data/festivals.json` is one market's calendar;
+ * `data/cohort-sizes.json` and `data/analytics/*` are one company's numbers.
+ * Every one of them was read straight off disk by modules that serve ALL
+ * brands, with no gate at all.
+ *
+ * That is how /social kept generating one company's sneakers inside another
+ * company's workspace after the catalogue itself had been fixed: the products
+ * were never coming from the catalogue. They were coming from here.
+ *
+ * Same rule, same gate, one place: tenant zero may read its own files; a brand
+ * that is demonstrably not tenant zero gets `null` and a reason the caller
+ * turns into a DATA REQUIRED marker. The check is SYNC and runs before any
+ * disk read, so it cannot be defeated by a cache or a missing await.
+ */
+const TENANT_ZERO_DATA = [
+  'data/product-types.json',
+  'data/festivals.json',
+  'data/cohort-sizes.json',
+  'data/linked-db.json',
+];
+
+function isTenantZeroDataFile(rel) {
+  const r = String(rel || '').replace(/^\.?\//, '');
+  return TENANT_ZERO_DATA.includes(r) || r.startsWith('data/analytics/') || r.startsWith('data/catalog/');
+}
+
+/**
+ * Read one of tenant zero's shipped data files, for a brand that owns it.
+ *
+ * Returns `{ data, source: 'shipped' }` for tenant zero, and
+ * `{ data: null, source: 'none', reason }` for anybody else - never a partial
+ * or a substitute, because a plausible substitute is what shipped the bug.
+ */
+function tenantZeroData(rel, { brand = null, workspaceId = null } = {}) {
+  if (!isTenantZeroDataFile(rel)) {
+    // Not a tenant-zero file: nothing to gate, read it normally.
+    return { data: readJsonRel(rel), source: 'shared', reason: '' };
+  }
+  const zero = isTenantZeroBrand(brand);
+  if (zero === false) {
+    return { data: null, source: 'none', reason: noCatalogueReason(brand, workspaceId) };
+  }
+  if (zero === null) {
+    // No brand supplied. Fall back to whatever this generation pinned; if that
+    // is another brand, the file is still off limits.
+    const scope = currentScope();
+    if (scope && scope.brand && isTenantZeroBrand(scope.brand) === false) {
+      return { data: null, source: 'none', reason: noCatalogueReason(scope.brand, scope.key) };
+    }
+  }
+  return { data: readJsonRel(rel), source: 'shipped', reason: '' };
+}
+
+function readJsonRel(rel) {
+  const fs = require('fs');
+  const path = require('path');
+  for (const base of [path.join(__dirname, '..', '..'), process.cwd()]) {
+    try {
+      const f = path.join(base, rel);
+      if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8'));
+    } catch (_) { /* try the next root */ }
+  }
+  return null;
+}
+
 // ── the async half: resolve, then pin to the generation ────────────────────
 /**
  * Resolve the catalogue that belongs to {brand, workspaceId}.
@@ -368,6 +437,7 @@ function imageMarker(product, market) {
 }
 
 module.exports = {
+  tenantZeroData, isTenantZeroDataFile, TENANT_ZERO_DATA,
   withCatalog, resolve, productsFor, currentScope, invalidate,
   isTenantZeroBrand, tenantZeroSlug, shipped, shippedRegion, regionKey,
   imageMarker, noCatalogueReason, UNRESOLVED_REASON, fromRow, forRegion,
