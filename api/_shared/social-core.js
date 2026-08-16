@@ -131,8 +131,19 @@ function focusFor(dateIso, facts) {
   const t = (facts.types || {})[type] || {};
   const base = (facts.store && facts.store.base_url) || '';
   let product;
-  if (type === 'coffee') {
-    product = { title: t.label || 'coffee-ART Collection', handle: t.handle || 'nike-air-force-1-coffee-dip-rope-laces' };
+  /* A brand that does not own the shipped taxonomy gets a MARKER, not a hero
+     product. These two literals were the actual source of the bug: a brand with
+     no facts of its own still received "coffee-ART Collection" and the handle
+     `nike-air-force-1-coffee-dip-rope-laces`, which resolves to a real product
+     page on tenant zero's store. A default that names somebody else's product
+     is not a default, it is a fabrication with a fallback's name on it. */
+  if (facts && facts.__denied) {
+    const why = facts.__reason || 'this brand has no product catalogue connected';
+    product = { title: '[DATA REQUIRED BEFORE LAUNCH: hero product, ' + why + ']', handle: '' };
+  } else if (type === 'coffee') {
+    product = (t.label || t.handle)
+      ? { title: t.label, handle: t.handle }
+      : { title: '[DATA REQUIRED BEFORE LAUNCH: hero product for this focus lane]', handle: '' };
   } else {
     const list = t.products || [];
     product = list.length ? list[doy % list.length] : { title: '[DATA REQUIRED BEFORE LAUNCH: catalogue item]', handle: '' };
@@ -144,7 +155,9 @@ function focusFor(dateIso, facts) {
     product: {
       title: product.title,
       handle: product.handle,
-      url: base + '/products/' + product.handle,
+      // No handle means no product page. `base + '/products/' + ''` produced a
+      // link to another brand's storefront root, which reads as a real link.
+      url: product.handle ? (base + '/products/' + product.handle) : '',
       price_gbp: product.price_gbp || null,
       compare_at_gbp: product.compare_at_gbp || null,
       image: product.image || null,
@@ -291,6 +304,34 @@ const DEFAULT_OBJECTIVE = {
   facebook: 'traffic', tiktok: 'awareness', linkedin: 'awareness', x: 'traffic',
   pinterest: 'traffic', youtube_shorts: 'awareness', threads: 'awareness', blog: 'conversion',
 };
+/**
+ * Is this link one the ACTIVE brand actually owns?
+ *
+ * This check used to be `link.indexOf('https://knickgasm.com/products/') === 0`
+ * - tenant zero's host, hardcoded, as the ONLY accepted prefix. For every other
+ * brand that inverted the guard: a correct link to the brand's own store was
+ * REJECTED and replaced by the fallback, and the fallback is the focus
+ * product's url, which came from tenant zero's taxonomy. Both paths ended at
+ * the same company's storefront.
+ *
+ * The allowed hosts are now the brand's own region store URLs. A brand that
+ * publishes none allows nothing, so the model cannot invent a destination.
+ */
+function allowedLink(ctx, link) {
+  if (typeof link !== 'string' || !link) return false;
+  const b = (ctx && ctx.brand) || {};
+  const hosts = [];
+  for (const r of (b.regions || [])) {
+    const u = String((r && r.store_url) || '').trim();
+    if (!u) continue;
+    try { hosts.push(new URL(u).host.replace(/^www\./i, '').toLowerCase()); } catch (_) { /* not a URL */ }
+  }
+  if (!hosts.length) return false;
+  let host;
+  try { host = new URL(link).host.replace(/^www\./i, '').toLowerCase(); } catch (_) { return false; }
+  return hosts.indexOf(host) >= 0;
+}
+
 function defaultCta(focus) {
   if (focus.type === 'tb') return 'Shop ' + focus.product.title.split(',')[0];
   return 'Shop ' + focus.product.title.split(',')[0]; // every lane is one-time purchase
@@ -317,7 +358,7 @@ async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
   const per = {};
   for (const key of keys) {
     const got = (out.per_platform || {})[key] || {};
-    const link = typeof got.link === 'string' && got.link.indexOf('https://knickgasm.com/products/') === 0 ? got.link : fb.per_platform[key].link;
+    const link = allowedLink(ctx, got.link) ? got.link : fb.per_platform[key].link;
     per[key] = {
       objective: ['awareness', 'traffic', 'conversion'].indexOf(String(got.objective || '').toLowerCase()) >= 0 ? String(got.objective).toLowerCase() : fb.per_platform[key].objective,
       cta: String(got.cta || fb.per_platform[key].cta),
@@ -678,18 +719,23 @@ function resolveKeys(platforms) {
  * dry_run: no persistence, no image render (prompt placeholder), no video
  * submission when real video keys exist (keyless stubs still returned).
  */
-async function runDaily({ date, platforms, dry_run = false, workspaceId = null } = {}) {
+async function runDaily({ date, platforms, dry_run = false, workspaceId = null, brand = null } = {}) {
   const t0 = Date.now();
   const deadline = t0 + PIPELINE_BUDGET_MS;
   const remaining = () => deadline - Date.now();
   const trace = [];
 
   const iso = normDate(date);
-  const facts = productTypes();
   // The ACTIVE brand travels with the context, so every agent persona, gate
   // and fallback line speaks as that brand rather than tenant zero.
-  let __brand = null;
-  if (workspaceId) {
+  //
+  // Resolved BEFORE the product facts, which is the whole point. `facts` used
+  // to be loaded on the line above this block, so it was tenant zero's
+  // product-types.json no matter which brand the pipeline then went on to
+  // resolve - and that file, not the catalogue, is where the sneaker titles
+  // and the knickgasm.com product URLs were coming from.
+  let __brand = (brand && (brand.id || brand.slug)) ? brand : null;
+  if (!__brand && workspaceId) {
     try {
       const wsScope = require('./workspace-scope.js');
       __brand = await wsScope.brandForWorkspace({
@@ -698,6 +744,14 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null }
       }, workspaceId);
     } catch (_) { __brand = null; }
   }
+
+  /* Tenant zero's shipped product taxonomy, gated exactly like data/catalog/.
+     A brand that is demonstrably not tenant zero gets NOTHING here rather than
+     another company's products, and focusFor() turns that into a DATA REQUIRED
+     marker instead of a hero product nobody sells. */
+  const __gate = require('./brand-catalog-server.js')
+    .tenantZeroData('data/product-types.json', { brand: __brand, workspaceId });
+  const facts = __gate.data || { store: { base_url: '', product_url_pattern: '{base}/products/{handle}' }, types: {}, __denied: __gate.source === 'none', __reason: __gate.reason || '' };
   const ctx = {
     date: iso, dry_run: dry_run === true,
     brand: __brand,
