@@ -76,7 +76,7 @@ function brandGatesBlock(brand) {
   // Derived from the ACTIVE brand: its own banned phrases and its own
   // verifiable claims. No claim is asserted that the record does not carry.
   let b = brand && brand.id ? brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').defaultBrand(); } catch (_) { b = {}; } }
+  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
   const v = b.voice || {};
   const claims = (Array.isArray(b.claims) && b.claims.length) ? b.claims.join('; ') : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims]';
   const out = ['HARD BRAND GATES (a violation rejects the whole output):'];
