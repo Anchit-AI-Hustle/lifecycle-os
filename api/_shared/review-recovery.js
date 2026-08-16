@@ -27,7 +27,7 @@ try { catalogImage = require('./catalog-image.js'); } catch (_) { catalogImage =
 function storeHost(market, brand) {
   // The store host is the ACTIVE brand's own, per region. Never a fixed
   // tenant's domain: a wrong host in a CTA sends readers to another company.
-  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = {}; } }
+  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').scopedBrand(null); } catch (_) { brand = {}; } }
   const m = String(market || 'US').toUpperCase();
   const list = Array.isArray(brand.regions) ? brand.regions : [];
   const hit = list.find((r) => String(r.code || '').toUpperCase() === m) || list[0];
@@ -86,7 +86,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({
 function reviewMailerHtml(product, market, brand) {
   // Brand identity is derived, never hardcoded: a review-recovery mailer is a
   // shared renderer and must carry the ACTIVE brand's wordmark and wording.
-  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = {}; } }
+  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').scopedBrand(null); } catch (_) { brand = {}; } }
   const title = product.title || product.n || ('your last ' + ((brand && brand.name) || 'order'));
   const cta = reviewCtaUrl(product, market, brand);
   let img = null;
