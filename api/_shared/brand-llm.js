@@ -404,7 +404,7 @@ function synthFromWorking(working) {
 
 function systemPrompt(market, brand) {
   // The persona, store domains and claims all derive from the ACTIVE brand.
-  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = {}; } }
+  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').scopedBrand(null); } catch (_) { brand = {}; } }
   const _stores = (Array.isArray(brand.regions) && brand.regions.length)
     ? brand.regions.map((r) => `${r.code} ${String(r.store_url || '').replace(/^https?:\/\//, '')}`).join(' · ')
     : '[DATA REQUIRED BEFORE LAUNCH: region store URLs]';

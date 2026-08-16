@@ -111,6 +111,17 @@ module.exports = async function handler(req, res) {
     }
     req.__workspaceId = __wsId;
     if (req.query) req.query.workspace_id = req.query.workspace_id || __wsId || undefined;
+
+    /* Resolve the brand RECORD here too, not just its id.
+       Handlers used to each resolve their own, and the ones that forgot fell
+       through to `defaultBrand()` inside the generator - which is tenant zero.
+       ?action=social-run-daily was passing `workspaceId` and no brand at all,
+       so every post it wrote came out as tenant zero's products, with tenant
+       zero's real product URLs, inside whatever workspace asked for them.
+       Resolved once, on the request, so no handler has to remember. */
+    try {
+      req.__brand = await require('./_shared/brand-runtime.js').resolve(req, { workspace_id: __wsId });
+    } catch (_) { req.__brand = null; }
   } catch (_) { /* scoping must never hard-fail the router */ }
 
   try {
@@ -607,12 +618,20 @@ module.exports = async function handler(req, res) {
         if (req.method !== 'POST' && !cronAuthorized(req)) {
           return res.status(401).json({ ok: false, error: 'unauthorized (POST from the console, or cron with CRON_SECRET)' });
         }
-        const out = await social.runDaily({
-          workspaceId: req.__workspaceId || null,
-          date: b.date || req.query.date,
-          platforms: b.platforms,
-          dry_run: b.dry_run === true || req.query.dry_run === '1',
-        });
+        // Pin the catalogue for the whole pipeline, the same way buildCampaign
+        // does. Without it social-core's image lookups run with no scope and
+        // resolve against whatever the sync fallback allows.
+        const bcs = require('./_shared/brand-catalog-server.js');
+        const out = await bcs.withCatalog(
+          { brand: req.__brand || null, workspaceId: req.__workspaceId || null },
+          () => social.runDaily({
+            brand: req.__brand || null,
+            workspaceId: req.__workspaceId || null,
+            date: b.date || req.query.date,
+            platforms: b.platforms,
+            dry_run: b.dry_run === true || req.query.dry_run === '1',
+          }),
+        );
         return res.json(out);
       }
       case 'social-list': {
