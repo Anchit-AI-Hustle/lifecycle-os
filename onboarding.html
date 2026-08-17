@@ -1265,6 +1265,9 @@
        2. "Not searched" and "found nothing" are different answers, and the
           status line says which one happened. */
   var packState = null, packBusy = false;
+  // Which brand's pack wireReview() has already fetched this visit; reset when
+  // the wizard leaves step 6 so returning re-reads it.
+  var __packLoadedFor = null;
 
   function contextBlock() {
     if (!brand.id) {
@@ -1348,7 +1351,27 @@
   }
 
   function wireReview() {
-    loadPack(true).then(render);
+    /* Load the context pack ONCE per visit, and re-render only if it changed.
+       This line used to be `loadPack(true).then(render)`, which is an infinite
+       loop: render() calls wireReview(), wireReview() fetches and re-renders,
+       and round it goes. Measured on step 6 with an empty brand: 1154 DOM
+       mutations and 567 requests to /api/ in three seconds - about 190 requests
+       a second - which is what froze the tab into "page not responding" and
+       hammered the backend at the same time.
+
+       loadPack already had the guard for this (`if (!quiet) render()`), and
+       passing quiet:true then chaining .then(render) went around it. So the
+       re-render is now conditional on the data actually changing, the same
+       "only write on change" rule brand-context.js uses to keep its mutation
+       observer from re-triggering itself - and the fetch itself is bounded to
+       once per brand per visit, so even a changing pack cannot cycle. */
+    if (__packLoadedFor !== (brand.id || '')) {
+      __packLoadedFor = brand.id || '';
+      var __before = JSON.stringify(packState || null);
+      loadPack(true).then(function () {
+        if (JSON.stringify(packState || null) !== __before) render();
+      });
+    }
     var pb = $('packBuild'); if (pb) pb.addEventListener('click', buildPack);
     var pd = $('packDesign');
     if (pd) {
@@ -1415,6 +1438,9 @@
 
   function go(n) {
     step = Math.max(1, Math.min(STEPS.length, n));
+    // Leaving review clears the once-per-visit pack guard, so coming back
+    // re-reads it rather than showing a stale pack forever.
+    if (step !== 6) __packLoadedFor = null;
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
