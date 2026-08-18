@@ -123,10 +123,18 @@ test('an async brand read does not yank the operator off the step they chose', a
   // is not visible" against a pip that was plainly visible.
   await page.goto(base + '/onboarding.html');
   await clickPip(page, 4);
-  await page.waitForTimeout(1500);              // well past the read
 
-  const title = await page.evaluate(() => document.getElementById('title').textContent);
-  expect(title, 'the brand read never landed, so this proves nothing').toMatch(/^Edit/);
+  // Wait for the READ, not for a clock. A fixed sleep here is what turned main
+  // red the first time this shipped: 1.5s was ample locally and short on a
+  // loaded runner, so the read had not landed and the test failed on its own
+  // precondition rather than on the behaviour. Rewriting the heading is the
+  // observable moment the restore branch runs, so waiting on it is exact - and
+  // it fails loudly if the read never lands instead of passing vacuously.
+  await page.waitForFunction(
+    () => /^Edit/.test(document.getElementById('title').textContent),
+    null,
+    { timeout: 20000 },
+  );
 
   const on = await page.evaluate(() => document.querySelector('.step-pip.on').dataset.step);
   expect(on, 'the brand read reset the wizard to its saved step').toBe('4');
