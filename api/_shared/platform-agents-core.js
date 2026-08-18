@@ -156,7 +156,10 @@ async function collectAdPlatform(platform, { market, since, until }) {
 }
 
 async function collectKlaviyo({ hours }) {
-  if (!klaviyo.isConnected()) return offline('Set KLAVIYO_API_KEY (+ LIVE_CONNECTORS=on) in Vercel env.');
+  if (!klaviyo.isConnected()) {
+    return offline('Connect Klaviyo for this brand on the Connections page. '
+      + 'The deployment also needs LIVE_CONNECTORS=on before any outbound read is made.');
+  }
   const [metrics, campaigns, segments] = await Promise.all([
     klaviyo.getMetrics().catch((e) => ({ ok: false, error: e.message })),
     klaviyo.getCampaigns({ limit: 50 }).catch((e) => ({ ok: false, error: e.message })),

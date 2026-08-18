@@ -967,6 +967,61 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       }
 
       // ── LIFECYCLE OS BACKBONE (connectors / jobs / activity / dashboard) ──
+      case 'daily-calendar': {
+        // One row per DAY across past, today and future: what was planned,
+        // which assets exist for it, and what was measured.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/daily-calendar-core.js').dayCalendar({
+          market: req.query.market || b.market || 'US',
+          back: Number(req.query.back || b.back) || 14,
+          forward: Number(req.query.forward || b.forward) || 30,
+          workspaceId: __wsId || null,
+        }));
+      }
+
+      case 'revenue-analysis': {
+        // One combined revenue read across region, channel, platform, campaign,
+        // mailer, landing page, product, cohort and time. Every cut declares its
+        // own provenance.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/revenue-analysis-core.js').revenue({
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || 30,
+          since: req.query.since || b.since,
+          until: req.query.until || b.until,
+        }));
+      }
+
+      case 'agent-builder': {
+        // OpenAPI 3.0 spec + execution bridge for Google Vertex AI Agent Builder.
+        // Auth is its OWN key (x-agent-key), not a Supabase session: the caller
+        // is Google's agent runtime, not a browser.
+        const ab = require('./_shared/agent-builder-core.js');
+        const op = String(req.query.op || b.op || 'spec').toLowerCase();
+        if (op === 'spec') {
+          let brand = null;
+          if (__wsId) {
+            const wsScope = require('./_shared/workspace-scope.js');
+            brand = await wsScope.brandForWorkspace({
+              url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+              key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+            }, __wsId).catch(() => null);
+          }
+          const origin = req.headers && (req.headers['x-forwarded-host'] || req.headers.host)
+            ? `https://${req.headers['x-forwarded-host'] || req.headers.host}` : '';
+          const spec = ab.openApiSpec({ origin, brand });
+          return res.status(spec && spec.ok === false ? 503 : 200).json(spec);
+        }
+        // Every other op executes a registry tool, and it authorises on the
+        // agent key rather than a browser session.
+        const gate = ab.authorize(req);
+        if (!gate.ok) return res.status(gate.status || 401).json(gate);
+        if (op === 'status') return res.json(ab.status());
+        return res.json(await ab.runTool(String(req.query.tool || b.tool || ''), b || {}));
+      }
+
       case 'platform-agents': {
         // One analyst agent per platform. ?op=all (default) or ?platform=<id>.
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
