@@ -156,8 +156,8 @@ const PROVIDERS = [
       { key: 'api_version', label: 'Admin API version', secret: false, required: false, placeholder: '2024-10' },
     ],
     oauth_note: '[DATA REQUIRED BEFORE LAUNCH: Shopify OAuth authorize URL, scopes and app registration for this platform]',
-    wired: false,
-    wired_note: 'Stored for this workspace. Commerce reads still run on the public storefront importer and the deployment credentials.',
+    wired: true,
+    wired_note: 'Used by this workspace for live Admin reads: orders, products, customers, inventory and UTM attribution (shopify-core.js). Read-only — the project-wide read-only rule blocks every write verb aimed at a Shopify host, so a read-scoped token is the correct one to paste. The public storefront importer still runs for catalogue discovery and needs no credential.',
   },
 
   /* ── Ads ──────────────────────────────────────────────────────────────── */

@@ -180,6 +180,11 @@
   .xcolrow select{padding:4px 7px;font-size:11px;width:auto}
   .xclaim{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.55}
   .xclaim input{margin-top:3px;width:auto;flex:none}
+  .xdiag{margin-top:11px;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.6;
+    background:color-mix(in srgb,var(--warn,#c9a227) 10%,transparent);
+    border:1px solid color-mix(in srgb,var(--warn,#c9a227) 34%,transparent)}
+  .xdiag ul{margin:7px 0 0 16px}
+  .xdiag li{margin-top:3px}
   .xlimits{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6}
   .xlimits li{margin-left:16px}
 </style>
@@ -941,9 +946,22 @@
       : key === 'voice' ? xVoicePanel()
       : key === 'data' ? xDataPanel() : '';
     if (!body) return '';
+    // When nothing was read, the REASON is the only useful thing on the panel.
+    // The server has always returned it; this page used to drop it and show
+    // "0 page(s)" with no explanation, which left the operator with no next step.
+    var d = extraction.diagnosis;
+    var diag = d
+      ? '<div class="xdiag"><b>' + esc(d.message) + '</b>' +
+        (d.next_steps && d.next_steps.length
+          ? '<ul>' + d.next_steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>'
+          : '') +
+        '</div>'
+      : '';
+
     return '<div class="xtract"><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
       '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
         ' stylesheet(s) read. ' + esc(extraction.coverage_note) + ' Nothing below is applied until you press Use.</div>' +
+      diag +
       '<div style="margin-top:10px">' + body + '</div>' +
       (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
         extraction.limits.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +

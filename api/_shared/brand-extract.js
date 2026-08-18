@@ -1522,9 +1522,13 @@ async function extractBrand(startUrl, opts) {
       fields: {}, markers: [], limits,
     };
   }
-  if (!pages.size) {
-    notes.push('No page could be read at that address.');
-  }
+  // A crawl that succeeded and read NOTHING is the one outcome an operator
+  // cannot act on without being told why. The crawl already knows - it recorded
+  // the status of every attempt - so the reason is classified here rather than
+  // flattened to "no page could be read", which is the same sentence for a
+  // typo, a robots rule and a bot filter.
+  const diagnosis = pages.size ? null : diagnoseEmptyCrawl(startUrl, crawl);
+  if (diagnosis) notes.push(diagnosis.message);
 
   // The home page is the FIRST page the crawl actually read, not the URL that
   // was asked for. Comparing against the requested URL breaks the moment a site
@@ -1738,6 +1742,81 @@ async function extractBrand(startUrl, opts) {
     markers: [...new Set(markers)],
     limits,
     notes: notes.concat(crawl.notes || []).slice(0, 60),
+    // Present ONLY when nothing was read, and the single thing the page should
+    // show first in that case.
+    diagnosis,
+  };
+}
+
+/**
+ * Why did a successful crawl read nothing?
+ *
+ * The crawl records the outcome of every attempt in `notes` ("unreachable
+ * (403): …", "skipped (robots.txt): …"). Collapsing all of those into one
+ * sentence was the bug an operator hit with a site behind a bot filter: the
+ * page said "Read 0 page(s)" and the reason, which the server already had, was
+ * never shown. Each branch below names a DIFFERENT next action, which is the
+ * whole point of separating them.
+ */
+function diagnoseEmptyCrawl(startUrl, crawl) {
+  const notes = (crawl && crawl.notes) || [];
+  const statuses = notes
+    .map((n) => /unreachable \((\d+)\)/.exec(String(n)))
+    .filter(Boolean)
+    .map((m) => Number(m[1]));
+  const robots = notes.filter((n) => /skipped \(robots\.txt\)/.test(String(n))).length;
+  const host = (() => { try { return new URL(startUrl).hostname; } catch (_) { return startUrl; } })();
+  const worst = (code) => statuses.filter((s) => s === code).length;
+
+  if (robots && !statuses.length) {
+    return {
+      reason: 'robots_disallowed',
+      message: `${host} publishes a robots.txt that disallows the pages this reader would have fetched, and this platform honours it. Nothing was read.`,
+      next_steps: [
+        'Fill the brand in by hand below, or start from a template profile.',
+        'If you own this domain, allow the paths you want read in robots.txt and try again.',
+      ],
+    };
+  }
+  if (worst(403) || worst(401) || worst(429)) {
+    return {
+      reason: 'blocked_by_site',
+      message: `${host} answered ${worst(429) ? 'a rate limit' : 'a refusal'} to an automated request (HTTP ${worst(403) ? 403 : worst(401) ? 401 : 429}). That is bot protection on the site, not a problem with the address: a browser opening the same URL will usually load it fine.`,
+      next_steps: [
+        'Fill the brand in by hand below, or start from a template profile - it takes a minute and nothing here is guessed for you.',
+        'Try the exact host your site actually serves on (with or without www), in case only one variant is protected.',
+        'If you own the domain, allow this reader through your bot filter, then re-run.',
+      ],
+    };
+  }
+  if (worst(404) || worst(410)) {
+    return {
+      reason: 'not_found',
+      message: `${host} returned "not found" for that address.`,
+      next_steps: ['Check the URL, including the path and any locale prefix your site uses.'],
+    };
+  }
+  if (statuses.some((s) => s >= 500)) {
+    return {
+      reason: 'site_error',
+      message: `${host} returned a server error, so nothing could be read. This is usually temporary.`,
+      next_steps: ['Try again in a few minutes.'],
+    };
+  }
+  if (statuses.some((s) => s === 0)) {
+    return {
+      reason: 'unreachable',
+      message: `${host} could not be reached at all - the name did not resolve, or the connection timed out.`,
+      next_steps: ['Check the spelling of the domain.', 'Confirm the site is publicly reachable and not behind a VPN or a private network.'],
+    };
+  }
+  return {
+    reason: 'no_html',
+    message: `${host} answered, but nothing it returned was an HTML page this reader could parse. A site rendered entirely by JavaScript publishes almost nothing in its HTML, and there is no browser here to run it.`,
+    next_steps: [
+      'Fill the brand in by hand below, or start from a template profile.',
+      'If your site has a server-rendered page (an about or policy page often is), paste that URL instead.',
+    ],
   };
 }
 

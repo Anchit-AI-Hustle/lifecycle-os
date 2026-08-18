@@ -104,10 +104,29 @@ module.exports = async function handler(req, res) {
     const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization));
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
     if (!hadExplicit && !hadAuth && fromBrowser) {
-      return res.status(200).json({
-        ok: true, error: 'workspace_unresolved', items: [], entries: [], brands: [], posts: [],
-        note: 'This request arrived without an active workspace, so no data is returned. Another brand\'s workspace is never substituted. Hard-refresh the page and try again.',
-      });
+      // No workspace. Another brand's data is NEVER substituted - that was the
+      // original bug and it stays fixed. But returning empty arrays made the
+      // app impossible to evaluate before signing up, so a READ gets synthetic
+      // example data from an invented brand, flagged `demo` on every row.
+      //
+      // A WRITE does not: generating, sending or spending against a brand that
+      // does not exist is not something to simulate, so those still refuse and
+      // say what to do instead.
+      const demo = require('./_shared/demo-mode.js');
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      if (WRITES.test(action)) {
+        return res.status(409).json({
+          ok: false, error: 'no_active_brand', mode: 'demo',
+          message: 'Set up a brand first. This action generates or sends for a specific brand, and there is no honest way to preview that without one.',
+          setup_url: '/onboarding',
+        });
+      }
+      const b = demo.demoBrand(q0.demo_brand || '');
+      const days = Number(q0.days || b0.days) || 7;
+      return res.status(200).json(Object.assign(
+        demo.overview(b, { days }),
+        { error: 'workspace_unresolved', setup_url: '/onboarding', demo_brands: demo.DEMO_BRANDS.map((x) => ({ id: x.id, name: x.name, sector: x.sector })) },
+      ));
     }
     req.__workspaceId = __wsId;
     if (req.query) req.query.workspace_id = req.query.workspace_id || __wsId || undefined;
@@ -948,6 +967,162 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       }
 
       // ── LIFECYCLE OS BACKBONE (connectors / jobs / activity / dashboard) ──
+      case 'domain': {
+        // Suggest, verify and assess a sending domain. ?op=suggest|check|readiness
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const di = require('./_shared/domain-intel.js');
+        const op = String(req.query.op || b.op || 'suggest').toLowerCase();
+
+        if (op === 'check') {
+          const list = Array.isArray(b.domains) ? b.domains : String(req.query.domains || b.domain || '').split(',').map((x) => x.trim()).filter(Boolean);
+          return res.json(await di.checkMany(list, { limit: 12 }));
+        }
+        if (op === 'readiness') {
+          return res.json(await di.sendingReadiness(String(req.query.domain || b.domain || '')));
+        }
+
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+        const tlds = String(req.query.tlds || b.tlds || 'com').split(',').map((x) => x.trim()).filter(Boolean);
+        return res.json(di.suggest(brand, { tlds, count: Number(req.query.count || b.count) || 12 }));
+      }
+
+      case 'logo': {
+        // Build the brief from the brand record. Generation itself goes through
+        // the existing image cascade on /api/ai/image, which is where the
+        // credit metering and the provider waterfall already live.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+        const brief = require('./_shared/logo-brief.js').logoBrief(brand, {
+          style: req.query.style || b.style || 'mark',
+          notes: req.query.notes || b.notes || '',
+        });
+        return res.status(brief.ok ? 200 : 409).json(brief);
+      }
+
+      case 'daily-calendar': {
+        // One row per DAY across past, today and future: what was planned,
+        // which assets exist for it, and what was measured.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/daily-calendar-core.js').dayCalendar({
+          market: req.query.market || b.market || 'US',
+          back: Number(req.query.back || b.back) || 14,
+          forward: Number(req.query.forward || b.forward) || 30,
+          workspaceId: __wsId || null,
+        }));
+      }
+
+      case 'revenue-analysis': {
+        // One combined revenue read across region, channel, platform, campaign,
+        // mailer, landing page, product, cohort and time. Every cut declares its
+        // own provenance.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/revenue-analysis-core.js').revenue({
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || 30,
+          since: req.query.since || b.since,
+          until: req.query.until || b.until,
+        }));
+      }
+
+      case 'agent-builder': {
+        // OpenAPI 3.0 spec + execution bridge for Google Vertex AI Agent Builder.
+        // Auth is its OWN key (x-agent-key), not a Supabase session: the caller
+        // is Google's agent runtime, not a browser.
+        const ab = require('./_shared/agent-builder-core.js');
+        const op = String(req.query.op || b.op || 'spec').toLowerCase();
+        if (op === 'spec') {
+          let brand = null;
+          if (__wsId) {
+            const wsScope = require('./_shared/workspace-scope.js');
+            brand = await wsScope.brandForWorkspace({
+              url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+              key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+            }, __wsId).catch(() => null);
+          }
+          const origin = req.headers && (req.headers['x-forwarded-host'] || req.headers.host)
+            ? `https://${req.headers['x-forwarded-host'] || req.headers.host}` : '';
+          const spec = ab.openApiSpec({ origin, brand });
+          return res.status(spec && spec.ok === false ? 503 : 200).json(spec);
+        }
+        // Every other op executes a registry tool, and it authorises on the
+        // agent key rather than a browser session.
+        const gate = ab.authorize(req);
+        if (!gate.ok) return res.status(gate.status || 401).json(gate);
+        if (op === 'status') return res.json(ab.status());
+        return res.json(await ab.runTool(String(req.query.tool || b.tool || ''), b || {}));
+      }
+
+      case 'platform-agents': {
+        // One analyst agent per platform. ?op=all (default) or ?platform=<id>.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const pa = require('./_shared/platform-agents-core.js');
+        // The analyst is told WHOSE numbers these are. Resolved from the active
+        // workspace; never defaulted to a brand.
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+        const shared = {
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || 30,
+          question: req.query.question || b.question || '',
+          tier: req.query.tier || b.tier || 'standard',
+          brand,
+        };
+        const one = req.query.platform || b.platform;
+        return res.json(one ? await pa.runAgent(one, shared) : await pa.runAll(Object.assign({ platforms: req.query.platforms || b.platforms }, shared)));
+      }
+
+      case 'journey': {
+        // Link-by-link attribution across platforms. The join key is the link,
+        // because it is the only identifier every platform actually writes.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/journey-core.js').linkLedger({
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || 90,
+          since: req.query.since || b.since,
+          until: req.query.until || b.until,
+        }));
+      }
+
+      case 'shopify': {
+        // LIVE read-only Admin reads for the ACTIVE workspace's own store.
+        // ?op=shop|orders|products|customers|inventory|summary|attribution|status
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const sc = require('./_shared/shopify-core.js');
+        const op = String(req.query.op || b.op || 'summary').toLowerCase();
+        return res.json(await sc.dispatch(op, {
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || undefined,
+          limit: Number(req.query.limit || b.limit) || undefined,
+        }));
+      }
+
       case 'os-connectors':
         return res.json({ ok: true, ...(await osb.listConnectors()) });
       case 'os-connector-sync': {
