@@ -967,6 +967,32 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       }
 
       // ── LIFECYCLE OS BACKBONE (connectors / jobs / activity / dashboard) ──
+      case 'platform-agents': {
+        // One analyst agent per platform. ?op=all (default) or ?platform=<id>.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const pa = require('./_shared/platform-agents-core.js');
+        // The analyst is told WHOSE numbers these are. Resolved from the active
+        // workspace; never defaulted to a brand.
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+        const shared = {
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || 30,
+          question: req.query.question || b.question || '',
+          tier: req.query.tier || b.tier || 'standard',
+          brand,
+        };
+        const one = req.query.platform || b.platform;
+        return res.json(one ? await pa.runAgent(one, shared) : await pa.runAll(Object.assign({ platforms: req.query.platforms || b.platforms }, shared)));
+      }
+
       case 'journey': {
         // Link-by-link attribution across platforms. The join key is the link,
         // because it is the only identifier every platform actually writes.
