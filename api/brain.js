@@ -967,6 +967,20 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       }
 
       // ── LIFECYCLE OS BACKBONE (connectors / jobs / activity / dashboard) ──
+      case 'shopify': {
+        // LIVE read-only Admin reads for the ACTIVE workspace's own store.
+        // ?op=shop|orders|products|customers|inventory|summary|attribution|status
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const sc = require('./_shared/shopify-core.js');
+        const op = String(req.query.op || b.op || 'summary').toLowerCase();
+        return res.json(await sc.dispatch(op, {
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || undefined,
+          limit: Number(req.query.limit || b.limit) || undefined,
+        }));
+      }
+
       case 'os-connectors':
         return res.json({ ok: true, ...(await osb.listConnectors()) });
       case 'os-connector-sync': {
