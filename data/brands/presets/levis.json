@@ -1,0 +1,74 @@
+{
+  "slug": "levis",
+  "name": "Levi's",
+  "tagline": "",
+  "industry": "Fashion retail",
+  "website": "https://www.levi.com",
+  "preset": {
+    "label": "Levi's",
+    "sector": "Fashion retail",
+    "blurb": "Denim. Template for a fit-and-size led catalogue with a strong core range.",
+    "verified_at": null,
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read this site on step 1 to extract the real values from https://www.levi.com.",
+    "needs_extraction": true,
+    "palette_source": "default",
+    "typography_source": "default"
+  },
+  "palette": {
+    "primary": "#2B2B2B",
+    "accent": "#5A5A5A",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F5F5",
+    "muted": "#6A6A6A",
+    "line": "#E4E4E4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "typography": {
+    "heading": {
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "google": false,
+      "weights": "600;700"
+    },
+    "body": {
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "google": false,
+      "weights": "400;500;600"
+    }
+  },
+  "voice": {
+    "tone": "",
+    "preferred": [],
+    "banned": [],
+    "no_em_dashes": true,
+    "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Levi's] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
+  },
+  "claims": [
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Levi's]"
+  ],
+  "regions": [],
+  "asset_hosts": [
+    "levi.com"
+  ],
+  "catalog_source": {
+    "kind": "none",
+    "offering_kinds": [
+      "product"
+    ],
+    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+  },
+  "offerings": [],
+  "data_gaps": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Levi's]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography, Levi's]",
+    "[DATA REQUIRED BEFORE LAUNCH: voice, Levi's]",
+    "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Levi's]",
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Levi's]"
+  ],
+  "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
+  "status": "preset"
+}

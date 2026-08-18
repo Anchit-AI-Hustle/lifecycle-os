@@ -138,6 +138,12 @@
   .preset .pswatch i{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.14);display:block}
   .preset .pmeta{font-size:10.5px;opacity:.55;line-height:1.4}
   .preset-note{font-size:11.5px;opacity:.6;margin:2px 0 0;line-height:1.5}
+  /* Says the swatch above it is a placeholder. Deliberately reads as a warning
+     rather than as decoration, and takes its colour from the token that is
+     contrast-checked rather than a literal. */
+  .preset .pchip{display:inline-block;font-size:10.5px;font-weight:600;line-height:1.3;
+    padding:3px 7px;border-radius:999px;border:1px solid var(--line,#e3e3e3);
+    color:var(--brand-accent-text,#7a4a12);background:var(--surface-alt,#f6f6f6);margin-bottom:6px}
 
   /* Read-my-site extraction. Every value the crawler proposes is shown with
      the URL and the signal it came from, and nothing is applied until the
@@ -693,19 +699,33 @@
     if (!host) return;
     if (!PRESETS) { host.textContent = 'Loading brand profiles...'; return; }
     if (!PRESETS.length) { host.innerHTML = '<p class="preset-note">No starter profiles available - fill the form below to add your brand.</p>'; return; }
-    host.innerHTML = PRESETS.map(function (p) {
-      return '<button type="button" class="preset" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
+    /* Verified first. A card whose swatch is the neutral DEFAULT looks exactly
+       like one read from the brand's own stylesheet, so it has to say so on the
+       card itself - an unlabelled placeholder colour is how a wrong brand
+       colour ships. */
+    var ordered = PRESETS.slice().sort(function (a, b) {
+      return (a.palette_source === 'default' ? 1 : 0) - (b.palette_source === 'default' ? 1 : 0);
+    });
+    host.innerHTML = ordered.map(function (p) {
+      var isDefault = p.palette_source === 'default';
+      return '<button type="button" class="preset' + (isDefault ? ' pdefault' : '') + '" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
         '<div class="pswatch">' + (p.swatch || []).map(function (h) { return '<i style="background:' + esc(h) + '"></i>'; }).join('') + '</div>' +
         '<div class="pname">' + esc(p.name) + '</div>' +
         '<div class="psector">' + esc(p.sector || '') + '</div>' +
         '<div class="pblurb">' + esc(p.blurb || '') + '</div>' +
-        '<div class="pmeta">' + esc(p.heading_font || '') + ' / ' + esc(p.body_font || '') + '</div>' +
-        '<div class="pmeta" style="margin-top:4px">Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
-          (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
-          (p.has_catalog ? ' &middot; live feed' : '') + '</div>' +
+        (isDefault
+          ? '<div class="pchip">Default palette, not this brand\'s</div>'
+          : '<div class="pmeta">' + esc(p.heading_font || '') + ' / ' + esc(p.body_font || '') + '</div>') +
+        '<div class="pmeta" style="margin-top:4px">' +
+          (isDefault
+            ? 'Press Read my site above to fill the real values from ' + esc((p.website || '').replace(/^https?:\/\//, '')) + '.'
+            : 'Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
+              (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
+              (p.has_catalog ? ' &middot; live feed' : '')) +
+        '</div>' +
       '</button>';
     }).join('') +
-    '<p class="preset-note">Profiles are starting points built from each brand\'s own public site, not licensed brand kits. Replace with your approved guidelines before running a real programme.</p>';
+    '<p class="preset-note">Profiles are starting points, not licensed brand kits. Replace with your approved guidelines before running a real programme. Cards marked <b>Default palette</b> carry this app\'s neutral placeholder design rather than that brand\'s: nothing about their look was read from their site, so extract it before you judge anything by the colours.</p>';
   }
 
   function loadPresets() {
@@ -734,6 +754,13 @@
         brand.id = keepId;
         presetPicked = slug;
         render();
+        // A template preset has just filled the form with a neutral placeholder
+        // design. Saying so at the moment of the click is the difference between
+        // a default the operator chose and one they did not notice.
+        if (p.preset && p.preset.palette_source === 'default') {
+          toast('Loaded ' + p.name + ' as a template. The colours and fonts are this app\'s neutral default, not ' + p.name + '\'s: press Read my site to extract the real ones.', 6200);
+          var u = $('xUrl'); if (u) { u.value = brand.website || ''; u.focus(); }
+        }
       })
       .catch(function () {});
   }
