@@ -104,10 +104,29 @@ module.exports = async function handler(req, res) {
     const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization));
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
     if (!hadExplicit && !hadAuth && fromBrowser) {
-      return res.status(200).json({
-        ok: true, error: 'workspace_unresolved', items: [], entries: [], brands: [], posts: [],
-        note: 'This request arrived without an active workspace, so no data is returned. Another brand\'s workspace is never substituted. Hard-refresh the page and try again.',
-      });
+      // No workspace. Another brand's data is NEVER substituted - that was the
+      // original bug and it stays fixed. But returning empty arrays made the
+      // app impossible to evaluate before signing up, so a READ gets synthetic
+      // example data from an invented brand, flagged `demo` on every row.
+      //
+      // A WRITE does not: generating, sending or spending against a brand that
+      // does not exist is not something to simulate, so those still refuse and
+      // say what to do instead.
+      const demo = require('./_shared/demo-mode.js');
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      if (WRITES.test(action)) {
+        return res.status(409).json({
+          ok: false, error: 'no_active_brand', mode: 'demo',
+          message: 'Set up a brand first. This action generates or sends for a specific brand, and there is no honest way to preview that without one.',
+          setup_url: '/onboarding',
+        });
+      }
+      const b = demo.demoBrand(q0.demo_brand || '');
+      const days = Number(q0.days || b0.days) || 7;
+      return res.status(200).json(Object.assign(
+        demo.overview(b, { days }),
+        { error: 'workspace_unresolved', setup_url: '/onboarding', demo_brands: demo.DEMO_BRANDS.map((x) => ({ id: x.id, name: x.name, sector: x.sector })) },
+      ));
     }
     req.__workspaceId = __wsId;
     if (req.query) req.query.workspace_id = req.query.workspace_id || __wsId || undefined;
