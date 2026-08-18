@@ -212,7 +212,7 @@
 
   <div class="preview-wrap">
     <div class="preview" id="preview"></div>
-    <p class="pv-note">Live preview. This is how the app will look for you once this brand is active.</p>
+    <p class="pv-note">Live preview of your colours and type. This is how the app will look for you once this brand is active. The two figures on the cards are sample values shown to size the layout, not your data.</p>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -336,6 +336,12 @@
           '<span class="pv-btn" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + ';border-color:' + esc(p.primary) + ';font-family:' + esc(body.stack) + '">Generate calendar</span>' +
           '<span class="pv-btn" style="background:transparent;color:' + esc(readableAsText(p.accent || p.primary, p.surface || '#fff')) + ';border-color:' + esc(p.accent || p.primary) + ';font-family:' + esc(body.stack) + '">Open studio</span>' +
         '</div>' +
+        // These two figures are INVENTED, and they render under the operator's
+        // own brand name beside a real credit balance in the header - a live
+        // screenshot showed "500 Credits left" next to a badge reading 0. The
+        // panel exists to preview COLOUR AND TYPE, so the numbers are only there
+        // to size the cards. They are labelled as samples rather than removed,
+        // because an empty card previews nothing.
         '<div class="pv-cards">' +
           ['Active cohorts,12','Credits left,500'].map(function (c) {
             var parts = c.split(',');
@@ -564,7 +570,15 @@
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">Start from your own website, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
         extractBlock() + xPanel('brand') +
-        '<div id="presetGallery" class="presets">Loading brand profiles...</div>' +
+        // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
+        // shipped brand name into the active brand's throughout the page, which
+        // is right for the shell and catastrophic here: every card describes a
+        // DIFFERENT brand, so the swap renamed tenant zero's card to the active
+        // brand and left its blurb, palette, fonts and catalogue count in place.
+        // Reported live as a card reading "<active brand> - hand-painted
+        // one-of-one custom sneakers, 436-product catalogue", which is another
+        // company's product claim under this operator's name.
+        '<div id="presetGallery" class="presets" data-no-brand-swap>Loading brand profiles...</div>' +
         '<p class="hint" style="margin-top:18px">Or enter your own. Leave anything you are not sure of blank - the platform reports missing data rather than inventing it.</p>' +
         '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
         '<div class="row">' +
@@ -671,7 +685,10 @@
           '<button type="button" class="btn" id="saveDraft">Save as draft</button>' +
         '</div>' +
         contextBlock() +
-        '<div style="margin-top:26px"><label>Your brands</label><div class="ws-list" id="wsList"><p class="muted">Loading…</p></div>' +
+        // Exempt for the same reason as the gallery: this list names the
+        // operator's OTHER workspaces, and swapping the active brand's name
+        // into them makes two different brands read as one.
+        '<div style="margin-top:26px"><label>Your brands</label><div class="ws-list" id="wsList" data-no-brand-swap><p class="muted">Loading…</p></div>' +
           '<button type="button" class="btn" id="newBrand" style="margin-top:6px;padding:8px 14px;font-size:12px">+ Onboard another brand</button></div>';
       loadWorkspaces();
     }
@@ -1008,7 +1025,10 @@
         '</div>'
       : '';
 
-    return '<div class="xtract"><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
+    // Also exempt: these are the values a SITE published, quoted verbatim with
+    // their source URL. Swapping a name inside an extracted candidate would
+    // rewrite the evidence the operator is being asked to approve.
+    return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
       '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
         ' stylesheet(s) read. ' + esc(extraction.coverage_note) + ' Nothing below is applied until you press Use.</div>' +
       diag +
