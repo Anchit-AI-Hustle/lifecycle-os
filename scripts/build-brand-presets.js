@@ -177,6 +177,126 @@ const PRESETS = [
   },
 ];
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEMPLATE PRESETS - the gallery's default entries.
+
+   The five presets above were each read from that brand's own live site on
+   their verified_at date. That is the only way this repo is allowed to state a
+   brand's colours, and it does not scale: it needs a machine that can reach the
+   site, one brand at a time.
+
+   These entries widen the gallery without weakening that rule. A template
+   preset ships a DECLARED DEFAULT design - a neutral greyscale palette and a
+   system font stack that belong to nobody - plus the brand's own homepage. It
+   asserts a name, a URL and a sector label, and nothing else.
+
+   WHY GREYSCALE AND NOT "PROBABLY ABOUT RIGHT". A palette typed from memory is
+   a brand fact nobody verified, and it is the single most visible field in the
+   product: an operator who picks a preset and sees a plausible-looking colour
+   has no reason to check it. Wrong-but-confident is worse here than obviously
+   absent, so the default is a neutral that cannot be mistaken for a brand
+   colour - the same reasoning logo-brief.js uses when it refuses to invent one.
+
+   HOW THE REAL VALUES ARRIVE. Every template carries `needs_extraction` and the
+   site to read. Picking one and pressing Read this site runs the extractor that
+   already exists (brand-extract.js on ?op=extract), from the deployment, which
+   can reach these hosts. Each field then arrives as a CANDIDATE with its source
+   URL for the operator to accept - the same door every other automatic value
+   comes through, and the same one `brand_field_provenance` guards.
+
+   Voice, claims and offerings stay EMPTY with a marker. voice.banned in
+   particular is never machine-filled, by rule.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Belongs to nobody, and passes validatePalette (light surface, AA on ink). */
+const NEUTRAL_PALETTE = {
+  primary: '#2B2B2B', accent: '#5A5A5A', ink: '#111111', surface: '#FFFFFF',
+  surface_alt: '#F5F5F5', muted: '#6A6A6A', line: '#E4E4E4',
+  ok: '#1a7f37', warn: '#c9a227', err: '#c0392b',
+};
+const NEUTRAL_TYPOGRAPHY = {
+  heading: { family: 'system-ui', stack: "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif", google: false, weights: '600;700' },
+  body: { family: 'system-ui', stack: "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif", google: false, weights: '400;500;600' },
+};
+
+const marker = (field, name) => `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${name}]`;
+
+function template(t) {
+  return {
+    slug: t.slug, name: t.name, tagline: '', industry: t.industry, website: t.website,
+    preset: {
+      label: t.name, sector: t.sector, blurb: t.blurb,
+      // Not a date, because nothing was read. Anything else here would be a
+      // verification claim, and this file's whole contract is that verified_at
+      // means somebody looked.
+      verified_at: null,
+      source: "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read this site on step 1 to extract the real values from " + t.website + ".",
+      needs_extraction: true,
+      palette_source: 'default',
+      typography_source: 'default',
+    },
+    palette: { ...NEUTRAL_PALETTE },
+    typography: JSON.parse(JSON.stringify(NEUTRAL_TYPOGRAPHY)),
+    voice: {
+      tone: '', preferred: [], banned: [], no_em_dashes: true,
+      notes: marker('voice, tone and banned phrases', t.name) + " Nothing is inferred: a voice written from memory reads as approved guidance and is not.",
+    },
+    claims: [marker('verifiable claims', t.name)],
+    regions: [],
+    asset_hosts: [t.host],
+    catalog_source: { kind: 'none', offering_kinds: t.offering_kinds || ['product'], note: 'No catalogue is bundled. Import from the site or connect a store before generating product-level assets.' },
+    offerings: [],
+    data_gaps: [
+      marker('brand palette', t.name), marker('typography', t.name),
+      marker('voice', t.name), marker('offerings and catalogue', t.name),
+      marker('regions and store URLs', t.name),
+    ],
+  };
+}
+
+/* Majors across deliberately different lifecycle shapes: a footwear drop, a
+   grocery basket, a subscription renewal and a fintech activation are not the
+   same programme, and the gallery is where an operator learns that. */
+const TEMPLATE_BRANDS = [
+  { slug: 'nike', name: 'Nike', industry: 'Sportswear and footwear', website: 'https://www.nike.com', host: 'nike.com', sector: 'Sportswear', blurb: 'Global sportswear. Template for a drop-led lifecycle: launch, restock and franchise anniversaries.' },
+  { slug: 'adidas', name: 'Adidas', industry: 'Sportswear and footwear', website: 'https://www.adidas.com', host: 'adidas.com', sector: 'Sportswear', blurb: 'Sportswear and performance. Template for a franchise plus collaboration calendar.' },
+  { slug: 'puma', name: 'Puma', industry: 'Sportswear and footwear', website: 'https://www.puma.com', host: 'puma.com', sector: 'Sportswear', blurb: 'Sportswear. Template for sponsorship-led and event-led pushes.' },
+  { slug: 'new-balance', name: 'New Balance', industry: 'Sportswear and footwear', website: 'https://www.newbalance.com', host: 'newbalance.com', sector: 'Sportswear', blurb: 'Footwear. Template for a width and fit driven catalogue with long-running silhouettes.' },
+  { slug: 'zara', name: 'Zara', industry: 'Fashion retail', website: 'https://www.zara.com', host: 'zara.com', sector: 'Fashion retail', blurb: 'Fast fashion. Template for a high-turnover seasonal drop cadence.' },
+  { slug: 'hm', name: 'H&M', industry: 'Fashion retail', website: 'https://www2.hm.com', host: 'hm.com', sector: 'Fashion retail', blurb: 'Fashion retail. Template for seasonal collections plus a membership programme.' },
+  { slug: 'uniqlo', name: 'Uniqlo', industry: 'Fashion retail', website: 'https://www.uniqlo.com', host: 'uniqlo.com', sector: 'Fashion retail', blurb: 'Apparel. Template for a core-basics catalogue with recurring seasonal ranges.' },
+  { slug: 'levis', name: "Levi's", industry: 'Fashion retail', website: 'https://www.levi.com', host: 'levi.com', sector: 'Fashion retail', blurb: 'Denim. Template for a fit-and-size led catalogue with a strong core range.' },
+  { slug: 'myntra', name: 'Myntra', industry: 'Fashion marketplace', website: 'https://www.myntra.com', host: 'myntra.com', sector: 'Marketplace', blurb: 'Fashion marketplace. Template for a multi-brand catalogue and event-led sale calendar.', offering_kinds: ['product', 'plan'] },
+  { slug: 'flipkart', name: 'Flipkart', industry: 'E-commerce marketplace', website: 'https://www.flipkart.com', host: 'flipkart.com', sector: 'Marketplace', blurb: 'General marketplace. Template for category-wide sale events and a membership tier.', offering_kinds: ['product', 'plan'] },
+  { slug: 'amazon', name: 'Amazon', industry: 'E-commerce marketplace', website: 'https://www.amazon.com', host: 'amazon.com', sector: 'Marketplace', blurb: 'General marketplace. Template for a subscription plus replenishment lifecycle.', offering_kinds: ['product', 'plan'] },
+  { slug: 'nykaa', name: 'Nykaa', industry: 'Beauty retail', website: 'https://www.nykaa.com', host: 'nykaa.com', sector: 'Beauty', blurb: 'Beauty retail. Template for a replenishment and shade-led catalogue.' },
+  { slug: 'sephora', name: 'Sephora', industry: 'Beauty retail', website: 'https://www.sephora.com', host: 'sephora.com', sector: 'Beauty', blurb: 'Beauty retail. Template for a loyalty-tier and sampling led programme.', offering_kinds: ['product', 'plan'] },
+  { slug: 'loreal', name: "L'Oreal", industry: 'Beauty and personal care', website: 'https://www.loreal.com', host: 'loreal.com', sector: 'Beauty', blurb: 'Beauty group. Template for a house of brands with separate audiences per label.' },
+  { slug: 'mamaearth', name: 'Mamaearth', industry: 'Beauty and personal care', website: 'https://mamaearth.in', host: 'mamaearth.in', sector: 'Beauty', blurb: 'D2C personal care. Template for a replenishment cycle with strong claim governance.' },
+  { slug: 'boat', name: 'boAt', industry: 'Consumer electronics', website: 'https://www.boat-lifestyle.com', host: 'boat-lifestyle.com', sector: 'Consumer electronics', blurb: 'D2C audio and wearables. Template for a launch and accessory attach lifecycle.' },
+  { slug: 'lenskart', name: 'Lenskart', industry: 'Eyewear retail', website: 'https://www.lenskart.com', host: 'lenskart.com', sector: 'Eyewear', blurb: 'Eyewear. Template for a prescription-led purchase with a long repeat cycle.', offering_kinds: ['product', 'service'] },
+  { slug: 'samsung', name: 'Samsung', industry: 'Consumer technology', website: 'https://www.samsung.com', host: 'samsung.com', sector: 'Consumer technology', blurb: 'Consumer electronics. Template for a flagship launch plus trade-in programme.' },
+  { slug: 'microsoft', name: 'Microsoft', industry: 'Software and devices', website: 'https://www.microsoft.com', host: 'microsoft.com', sector: 'Software', blurb: 'Software and devices. Template for a seat-based subscription lifecycle.', offering_kinds: ['plan', 'product'] },
+  { slug: 'sony', name: 'Sony', industry: 'Consumer technology', website: 'https://www.sony.com', host: 'sony.com', sector: 'Consumer technology', blurb: 'Consumer electronics and entertainment. Template for hardware plus content attach.' },
+  { slug: 'tesla', name: 'Tesla', industry: 'Automotive', website: 'https://www.tesla.com', host: 'tesla.com', sector: 'Automotive', blurb: 'Automotive. Template for a considered high-value purchase with a long consideration window.', offering_kinds: ['product', 'service'] },
+  { slug: 'bmw', name: 'BMW', industry: 'Automotive', website: 'https://www.bmw.com', host: 'bmw.com', sector: 'Automotive', blurb: 'Automotive. Template for a dealer-assisted funnel and a servicing lifecycle.', offering_kinds: ['product', 'service'] },
+  { slug: 'toyota', name: 'Toyota', industry: 'Automotive', website: 'https://www.toyota.com', host: 'toyota.com', sector: 'Automotive', blurb: 'Automotive. Template for a model-year calendar plus after-sales servicing.', offering_kinds: ['product', 'service'] },
+  { slug: 'starbucks', name: 'Starbucks', industry: 'Food and beverage', website: 'https://www.starbucks.com', host: 'starbucks.com', sector: 'Food and beverage', blurb: 'Coffee retail. Template for a rewards programme and a seasonal menu calendar.', offering_kinds: ['product', 'plan'] },
+  { slug: 'mcdonalds', name: "McDonald's", industry: 'Food and beverage', website: 'https://www.mcdonalds.com', host: 'mcdonalds.com', sector: 'Food and beverage', blurb: 'Quick service restaurants. Template for an app-led offer and visit-frequency programme.', offering_kinds: ['product', 'plan'] },
+  { slug: 'coca-cola', name: 'Coca-Cola', industry: 'Food and beverage', website: 'https://www.coca-cola.com', host: 'coca-cola.com', sector: 'Food and beverage', blurb: 'Beverages. Template for a brand-led calendar with no direct catalogue.' },
+  { slug: 'nestle', name: 'Nestle', industry: 'Food and beverage', website: 'https://www.nestle.com', host: 'nestle.com', sector: 'Food and beverage', blurb: 'FMCG group. Template for a house of brands sold through retail rather than direct.' },
+  { slug: 'netflix', name: 'Netflix', industry: 'Streaming media', website: 'https://www.netflix.com', host: 'netflix.com', sector: 'Streaming', blurb: 'Streaming. Template for a renewal, win-back and churn-risk lifecycle.', offering_kinds: ['plan', 'programme'] },
+  { slug: 'spotify', name: 'Spotify', industry: 'Streaming media', website: 'https://www.spotify.com', host: 'spotify.com', sector: 'Streaming', blurb: 'Audio streaming. Template for a free-to-paid upgrade and retention programme.', offering_kinds: ['plan', 'programme'] },
+  { slug: 'airbnb', name: 'Airbnb', industry: 'Travel marketplace', website: 'https://www.airbnb.com', host: 'airbnb.com', sector: 'Travel', blurb: 'Travel marketplace. Template for a two-sided lifecycle with a seasonal booking window.', offering_kinds: ['service'] },
+  { slug: 'makemytrip', name: 'MakeMyTrip', industry: 'Travel marketplace', website: 'https://www.makemytrip.com', host: 'makemytrip.com', sector: 'Travel', blurb: 'Travel booking. Template for a trip-cycle lifecycle with strong seasonality.', offering_kinds: ['service', 'plan'] },
+  { slug: 'stripe', name: 'Stripe', industry: 'Financial technology', website: 'https://stripe.com', host: 'stripe.com', sector: 'Fintech', blurb: 'Payments infrastructure. Template for a developer-led B2B activation lifecycle.', offering_kinds: ['plan', 'service'] },
+  { slug: 'razorpay', name: 'Razorpay', industry: 'Financial technology', website: 'https://razorpay.com', host: 'razorpay.com', sector: 'Fintech', blurb: 'Payments. Template for a B2B onboarding and activation programme.', offering_kinds: ['plan', 'service'] },
+  { slug: 'paytm', name: 'Paytm', industry: 'Financial technology', website: 'https://paytm.com', host: 'paytm.com', sector: 'Fintech', blurb: 'Consumer payments. Template for a transaction-frequency and reactivation programme.', offering_kinds: ['service', 'plan'] },
+  { slug: 'airtel', name: 'Airtel', industry: 'Telecommunications', website: 'https://www.airtel.in', host: 'airtel.in', sector: 'Telecom', blurb: 'Telecom. Template for a recharge and plan-renewal lifecycle.', offering_kinds: ['plan', 'service'] },
+].map(template);
+
+for (const t of TEMPLATE_BRANDS) PRESETS.push(t);
+
 let n = 0;
 for (const p of PRESETS) {
   const rec = { ...p, rights_note: RIGHTS, status: 'preset' };
@@ -189,6 +309,12 @@ const index = PRESETS.map((p) => ({
   slug: p.slug, name: p.name, tagline: p.tagline, industry: p.industry, website: p.website,
   label: p.preset.label, sector: p.preset.sector, blurb: p.preset.blurb,
   verified_at: p.preset.verified_at, source: p.preset.source,
+  // The gallery must be able to say which of these two a card is, because the
+  // swatch renders identically either way and a neutral default that looks
+  // verified is the failure this whole split exists to prevent.
+  palette_source: p.preset.palette_source || 'verified',
+  typography_source: p.preset.typography_source || 'verified',
+  needs_extraction: !!p.preset.needs_extraction,
   swatch: [p.palette.primary, p.palette.accent, p.palette.ink, p.palette.surface],
   heading_font: p.typography.heading.family, body_font: p.typography.body.family,
   has_catalog: p.catalog_source && p.catalog_source.kind !== 'none',
@@ -196,7 +322,7 @@ const index = PRESETS.map((p) => ({
   offering_count: (p.offerings || []).length,
 }));
 fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify({
-  _note: 'Starter brand profiles for /onboarding. Generated by scripts/build-brand-presets.js - edit that file, not these. Every value was read from the brand\'s own live site on verified_at; voice is OBSERVED from public output, never presented as internal guidelines.',
+  _note: 'Starter brand profiles for /onboarding. Generated by scripts/build-brand-presets.js - edit that file, not these. A preset with palette_source "verified" had every value read from the brand\'s own live site on verified_at, and its voice is OBSERVED from public output, never presented as internal guidelines. A preset with palette_source "default" carries this repo\'s neutral placeholder design and NOT the brand\'s: it asserts only a name, a homepage and a sector, and needs_extraction marks it for reading from that site.',
   rights_note: RIGHTS,
   count: index.length, presets: index,
 }, null, 2) + '\n', 'utf8');
