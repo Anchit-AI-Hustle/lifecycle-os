@@ -67,6 +67,11 @@ test('a default preset never claims a verification it did not do', () => {
     expect(p.preset.verified_at, `${row.slug} claims a verification date`).toBeNull();
     expect(p.preset.needs_extraction).toBe(true);
     expect(p.preset.source).toMatch(/Not read from the brand's own site/);
+    // It tells the operator which button to press, so it has to be the button's
+    // real label - extractBlock() renders "Read my site".
+    const label = fs.readFileSync(path.join(ROOT, 'onboarding.html'), 'utf8').match(/'(Read my site)'/);
+    expect(label, 'the extract button was renamed; the presets still name the old one').toBeTruthy();
+    expect(p.preset.source).toContain(label[1]);
     // The card in the gallery has to be able to say so too.
     expect(row.needs_extraction).toBe(true);
     expect(row.typography_source).toBe('default');
