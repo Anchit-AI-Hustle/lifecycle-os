@@ -51,13 +51,25 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => { if (server) await new Promise((r) => server.close(r)); });
 
+/* force:true deliberately. Playwright's own stability check cannot settle on a
+   page that is re-rendering, so without it this fails as a 60s actionability
+   timeout and says nothing about WHY.
+
+   The visible-wait in front of it is not decoration. force skips actionability
+   but still needs a box to aim at, so a pip that has just been REPLACED by a
+   re-render resolves to a detached node with no box and the click dies as
+   "Element is not visible" - which reads like the pip is hidden, and it never
+   was. renderSteps() no longer rebuilds the pips, and this wait re-resolves if
+   anything else ever does. */
+async function clickPip(page, n) {
+  const pip = page.locator(`.step-pip[data-step="${n}"]`);
+  await pip.waitFor({ state: 'visible', timeout: 15000 });
+  await pip.click({ force: true, timeout: 15000 });
+}
+
 async function goToReview(page) {
   await page.goto(base + '/onboarding.html');
-  await page.waitForSelector('.step-pip[data-step="6"]', { timeout: 15000 });
-  // force:true deliberately. Playwright's own stability check cannot settle on
-  // a page that is re-rendering, so without it this fails as a 60s actionability
-  // timeout and says nothing about WHY.
-  await page.click('.step-pip[data-step="6"]', { force: true, timeout: 15000 });
+  await clickPip(page, 6);
 }
 
 test('jumping straight to Review does not spin the network', async ({ page }) => {
@@ -93,12 +105,50 @@ test('the review step still renders its verdict and what is missing', async ({ p
 
 test('leaving Review and returning re-reads the pack', async ({ page }) => {
   await goToReview(page);
-  await page.click('.step-pip[data-step="1"]', { force: true });
+  await clickPip(page, 1);
   let calls = 0;
   page.on('request', (r) => { if (r.url().includes('context-pack')) calls++; });
-  await page.click('.step-pip[data-step="6"]', { force: true });
+  await clickPip(page, 6);
   await page.waitForTimeout(1200);
   // Bounded once-per-visit, not once-per-session: a stale pack forever would be
   // the wrong cure for the loop.
   expect(calls, 'returning to review should re-read the pack exactly once').toBeLessThan(3);
+});
+
+test('an async brand read does not yank the operator off the step they chose', async ({ page }) => {
+  // The cause of the CI flake, and a real defect on its own. boot() reads the
+  // brand asynchronously and then restored its saved step, so a read that
+  // landed a beat late threw the operator back - and if it landed ON a click,
+  // the step row re-rendered under the cursor and the click died as "element
+  // is not visible" against a pip that was plainly visible.
+  await page.goto(base + '/onboarding.html');
+  await clickPip(page, 4);
+  await page.waitForTimeout(1500);              // well past the read
+
+  const title = await page.evaluate(() => document.getElementById('title').textContent);
+  expect(title, 'the brand read never landed, so this proves nothing').toMatch(/^Edit/);
+
+  const on = await page.evaluate(() => document.querySelector('.step-pip.on').dataset.step);
+  expect(on, 'the brand read reset the wizard to its saved step').toBe('4');
+});
+
+test('the step pips survive a re-render instead of being rebuilt under the cursor', async ({ page }) => {
+  // This is the mechanism behind the CI flake: every render() rewrote the pip
+  // row, so a click in flight could land on a node that no longer existed. The
+  // navigation a user aims at should not be recreated by unrelated redraws.
+  await page.goto(base + '/onboarding.html');
+  await page.locator('.step-pip[data-step="1"]').waitFor({ state: 'visible', timeout: 15000 });
+  await page.evaluate(() => { document.querySelector('.step-pip[data-step="1"]').dataset.witness = 'same-node'; });
+
+  for (const n of [2, 3, 6, 1]) await clickPip(page, n);
+
+  const survived = await page.evaluate(() =>
+    document.querySelector('.step-pip[data-step="1"]').dataset.witness === 'same-node');
+  expect(survived, 'the pips were destroyed and recreated by a re-render').toBe(true);
+
+  // And they still carry the state they exist to show.
+  await clickPip(page, 3);
+  const cls = await page.evaluate(() => Array.from(document.querySelectorAll('.step-pip'))
+    .map((b) => b.dataset.step + ':' + b.className.replace('step-pip', '').trim()));
+  expect(cls).toEqual(['1:done', '2:done', '3:on', '4:', '5:', '6:']);
 });
