@@ -83,3 +83,15 @@ scratchpad/
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# ── Customer data never belongs in this repo (17 Aug 2026 audit) ───────────
+# A sibling repo shipped 26,677 real customer records - names, emails, street
+# addresses, phone numbers, spend - in a public tree, plus a third party's
+# $48k Meta Ads export. Neither belonged to us to publish. These patterns are
+# the cheap half of making that unrepeatable; the expensive half is not putting
+# the file there in the first place.
+input/
+uploaded_by_*/
+*_customers.csv
+*_customer_export*.csv
+*-Ads-*.csv
