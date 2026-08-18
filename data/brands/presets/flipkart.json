@@ -9,7 +9,7 @@
     "sector": "Marketplace",
     "blurb": "General marketplace. Template for category-wide sale events and a membership tier.",
     "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read this site on step 1 to extract the real values from https://www.flipkart.com.",
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.flipkart.com.",
     "needs_extraction": true,
     "palette_source": "default",
     "typography_source": "default"
