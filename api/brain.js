@@ -967,6 +967,19 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       }
 
       // ── LIFECYCLE OS BACKBONE (connectors / jobs / activity / dashboard) ──
+      case 'journey': {
+        // Link-by-link attribution across platforms. The join key is the link,
+        // because it is the only identifier every platform actually writes.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/journey-core.js').linkLedger({
+          market: req.query.market || b.market || 'US',
+          days: Number(req.query.days || b.days) || 90,
+          since: req.query.since || b.since,
+          until: req.query.until || b.until,
+        }));
+      }
+
       case 'shopify': {
         // LIVE read-only Admin reads for the ACTIVE workspace's own store.
         // ?op=shop|orders|products|customers|inventory|summary|attribution|status
