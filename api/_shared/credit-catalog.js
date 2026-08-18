@@ -65,6 +65,16 @@ const FEATURES = [
   { key: 'landing.generate',      label: 'Generate landing page',       group: 'Creation', cost: 22, unit: 'per page',      why: 'Full brand-compliant page built from your catalog.' },
   { key: 'social.post',           label: 'Social post',                 group: 'Creation', cost: 6,  unit: 'per post',      why: 'Copy plus hooks and hashtags for one platform.' },
   { key: 'social.daily_run',      label: 'Social daily run',            group: 'Creation', cost: 30, unit: 'per day',       why: 'The 7-agent daily pipeline across every platform.' },
+
+  // ── Publishing and deliverability ─────────────────────────────────────────
+  // A dispatch is priced on the outbound call, not on the asset: the asset was
+  // already paid for when it was created. Preflight is priced separately and
+  // cheaply BECAUSE it should never be the expensive option - a gate somebody
+  // skips to save credits is a gate that does not exist.
+  { key: 'dispatch_preflight',    label: 'Preflight check',             group: 'Publishing', cost: 1,  unit: 'per check',   why: 'Domain authentication, segment health and content spam analysis before a send.' },
+  { key: 'dispatch_publish',      label: 'Dispatch to a platform',      group: 'Publishing', cost: 4,  unit: 'per job',     why: 'One asset queued, mapped and delivered to one channel, with retries.' },
+  { key: 'deliverability_domain_audit', label: 'Domain strength audit', group: 'Publishing', cost: 2,  unit: 'per domain',  why: 'SPF, DKIM, DMARC, MX, BIMI and blocklist lookups for one sending domain.' },
+  { key: 'cohort_optimize',       label: 'Cohort optimisation',         group: 'Publishing', cost: 5,  unit: 'per run',     why: 'RFM and engagement scoring across the contact base, with sunset proposals.' },
   { key: 'email.sequence',        label: 'Email sequence',              group: 'Creation', cost: 16, unit: 'per sequence',  why: 'A full nurture flow with timing and exit rules.' },
   { key: 'content.repurpose',     label: 'Repurpose content',           group: 'Creation', cost: 6,  unit: 'per source post', why: 'Turns one post into a thread, an email and hooks.' },
   { key: 'creative.brief',        label: 'Creative brief',              group: 'Creation', cost: 5,  unit: 'per brief',     why: 'A designer-ready brief from one angle.' },

@@ -542,6 +542,113 @@ module.exports = async function handler(req, res) {
         const out = await webengage.syncFromStorage({ bucket: req.query.bucket });
         return res.json(out);
       }
+      /* ═══ Omnichannel dispatch + deliverability ═══════════════════════════
+         Mounted here rather than as new function files: the Hobby plan caps
+         serverless functions at 12 and this deployment is at 12. All the logic
+         lives in api/_shared/, which is excluded from that count. */
+
+      case 'dispatch-enqueue': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand', message: 'Activate a brand before publishing.' });
+        const out = await require('./_shared/dispatch-core.js').enqueue(auth, __wsId, b);
+        return res.status(out.ok ? 200 : 409).json(out);
+      }
+
+      case 'dispatch-drain': {
+        // The queue drains under the scheduler OR on demand from the console.
+        // A signed-in editor may drain their OWN workspace; only the scheduler
+        // may drain every workspace at once.
+        const dispatch = require('./_shared/dispatch-core.js');
+        if (cronAuthorized(req)) {
+          return res.json(await dispatch.drain({ workspaceId: req.query.workspace_id || null }));
+        }
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand' });
+        await require('./_shared/brand-workspace-core.js').assertCanWrite(auth, __wsId, 'run the dispatch queue');
+        return res.json(await dispatch.drain({ workspaceId: __wsId }));
+      }
+
+      case 'dispatch-list':
+      case 'dispatch-detail':
+      case 'dispatch-cancel': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand' });
+        const dispatch = require('./_shared/dispatch-core.js');
+        if (action === 'dispatch-list') return res.json({ ok: true, jobs: await dispatch.listJobs(auth, __wsId, { status: req.query.status, limit: req.query.limit }) });
+        if (action === 'dispatch-detail') return res.json({ ok: true, detail: await dispatch.jobDetail(auth, __wsId, String(req.query.id || b.id || '')) });
+        return res.json(await dispatch.cancel(auth, __wsId, String(b.id || req.query.id || '')));
+      }
+
+      case 'dispatch-webhook': {
+        // Unauthenticated ON PURPOSE: a platform callback carries a signature,
+        // not a session. ingestWebhook() stores every delivery and acts only on
+        // the ones whose signature verified.
+        const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+        const out = await require('./_shared/dispatch-core.js').ingestWebhook(String(req.query.provider || ''), req.headers, raw);
+        // 200 even on a verification failure: a platform that receives a 4xx
+        // retries for hours and then disables the subscription. The event is
+        // recorded as unverified either way.
+        return res.status(200).json(out);
+      }
+
+      case 'deliverability-domain': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const deliver = require('./_shared/deliverability-core.js');
+        const domain = String(b.domain || req.query.domain || '');
+        const out = await deliver.auditDomain(domain, { selectors: b.selectors || [] });
+        if (out.ok && __wsId) {
+          // Persist so the dashboard and the preflight gate read the same audit
+          // rather than each running their own and disagreeing.
+          await require('./_shared/brand-workspace-core.js').restAs(auth.token, 'domain_health_profiles?on_conflict=workspace_id,domain,role', {
+            method: 'POST',
+            body: [{
+              workspace_id: __wsId, domain: out.domain, role: 'sending',
+              spf: out.records[0], dkim: out.records[1], dmarc: out.records[2], mx: out.records[3], bimi: out.records[4],
+              blacklists: out.blacklists, reputation: out.reputation,
+              score: out.score, score_breakdown: out.score_breakdown, grade: out.grade,
+              last_checked_at: out.checked_at, updated_at: out.checked_at,
+            }],
+            prefer: 'resolution=merge-duplicates,return=minimal',
+          }).catch(() => { /* the audit is still returned */ });
+        }
+        return res.json(out);
+      }
+
+      case 'deliverability-preflight': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return res.json(await require('./_shared/preflight-core.js').run(Object.assign({ workspaceId: __wsId }, b)));
+      }
+
+      case 'deliverability-warmup': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const deliver = require('./_shared/deliverability-core.js');
+        if ((b.op || req.query.op) === 'safety') {
+          return res.json(deliver.evaluateWarmupSafety(b.stats || {}, b.limits || {}));
+        }
+        const plan = deliver.buildWarmupPlan({ startOn: b.start_on, targetDaily: b.target_daily, days: b.days });
+        return res.json({ ok: true, plan, target_daily: b.target_daily, days: plan.length });
+      }
+
+      case 'cohort-optimize': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const engine = require('./_shared/cohort-engine.js');
+        const out = engine.analyseAudience(b.contacts || [], {
+          messagePriority: b.message_priority || 'promotional',
+          inactiveDays: Number(b.inactive_days) || 180,
+        });
+        // The per-contact rows can be large and carry pseudonymous ids; the
+        // caller asks for them explicitly rather than getting them by default.
+        if (!b.include_contacts) delete out.scored;
+        return res.json(Object.assign({ ok: true }, out));
+      }
+
       case 'connectors-health': {
         // REAL live probe of every data platform (Shopify/Klaviyo/WebEngage/
         // Supabase) — actual round-trips, honest live/blocked + the exact blocker.
