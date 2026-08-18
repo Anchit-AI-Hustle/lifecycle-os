@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Publishing &amp; deliverability</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+<script src="/auth.js?v=20260818" defer></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:var(--brand-ink,#111111);--muted:var(--brand-ink-muted,#5a6169);
+    --surface:var(--brand-surface,#FFFFFF);--card:var(--brand-surface-alt,#FFFFFF);
+    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#FFFFFF);
+    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#DDDDDD);
+    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
+    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
+    --mono:var(--brand-font-mono,ui-monospace,Menlo,monospace);
+  }
+  body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 80px;min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--brand-accent-text);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--head);font-size:33px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
+  h2{font-family:var(--head);font-size:20px;font-weight:600;margin:30px 0 12px}
+  h3{font-family:var(--head);font-size:15.5px;font-weight:600;margin:0 0 8px}
+  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:780px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px}
+  .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
+  code{font-family:var(--mono);font-size:12px;background:color-mix(in srgb,var(--muted) 9%,transparent);padding:1px 5px;border-radius:5px}
+
+  .tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+  .tab{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--card);
+    font-family:var(--body);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .panel{display:none}.panel.on{display:block}
+
+  .banner{border-radius:11px;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:18px;border:1px solid}
+  .banner.info{background:color-mix(in srgb,var(--primary) 7%,transparent);border-color:color-mix(in srgb,var(--primary) 28%,transparent)}
+  .banner.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 34%,transparent)}
+  .banner.err{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 32%,transparent)}
+  .banner.ok{background:color-mix(in srgb,var(--ok) 8%,transparent);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}h1{font-size:27px}}
+  .conn{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;display:flex;flex-direction:column;gap:9px}
+  .conn .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .conn .nm{font-size:15.5px;font-weight:700}
+  .chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+  .chip.on{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+  .chip.off{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+  .chip.plat{background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--brand-primary-text)}
+  .chip.bad{background:color-mix(in srgb,var(--err) 12%,transparent);color:var(--err)}
+  .chip.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--brand-warn-text,#7a6210)}
+
+  label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
+  input[type=text],input[type=datetime-local],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    background:var(--surface);color:var(--ink);font-family:var(--body);font-size:13px}
+  textarea{min-height:110px;font-family:var(--mono);font-size:12px;line-height:1.5}
+  input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--primary) 45%,transparent);outline-offset:1px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  button{font-family:var(--body);font-size:13px;font-weight:600;padding:9px 15px;border-radius:9px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer}
+  button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  button.danger{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  /* A link that reads as a button. Not a <button> inside an <a>, which is
+     invalid HTML and which browsers resolve inconsistently. */
+  .btnlink{display:inline-block;font-size:13px;font-weight:600;padding:9px 15px;border-radius:9px;
+    border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none}
+  .btnlink:hover{border-color:var(--primary)}
+
+  /* Domain strength dial */
+  .dial{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .ring{position:relative;width:132px;height:132px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .num{font-family:var(--head);font-size:30px;font-weight:600;line-height:1}
+  .ring .gr{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+
+  .checklist{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .checklist li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.55}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
+  .dot.pass{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.fail{background:var(--err)}.dot.na{background:var(--muted)}
+  .rec-raw{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;display:block;margin-top:3px}
+
+  .bar{height:9px;border-radius:999px;background:color-mix(in srgb,var(--muted) 16%,transparent);overflow:hidden;margin:7px 0}
+  .bar>i{display:block;height:100%;background:var(--primary);border-radius:999px}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+  th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+
+  /* Preflight modal */
+  .modal{position:fixed;inset:0;background:color-mix(in srgb,#000 55%,transparent);display:none;align-items:center;justify-content:center;padding:20px;z-index:60}
+  .modal.on{display:flex}
+  .sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:22px}
+  .verdict{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .verdict .big{font-family:var(--head);font-size:22px;font-weight:600}
+  .fixrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+  .fixrow:last-child{border-bottom:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Lifecycle OS</div>
+  <h1>Publishing &amp; deliverability</h1>
+  <p class="lede">
+    Connect the platforms this brand actually uses, map an asset onto each one, and dispatch it &mdash;
+    with a preflight gate in front that can refuse a send that would damage the sending domain.
+    Nothing leaves this deployment until both the brand and the deployment have turned live publishing on.
+  </p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-panel="hub">Integration hub</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="publish">Publisher</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="domain">Domain strength</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="jobs">Dispatch log</button>
+  </div>
+
+  <div id="msg"></div>
+
+  <!-- ─────────────── Integration hub ─────────────── -->
+  <section class="panel on" id="panel-hub">
+    <div id="hub-state" class="muted">Loading platforms&hellip;</div>
+    <div class="grid" id="hub"></div>
+  </section>
+
+  <!-- ─────────────── Publisher ─────────────── -->
+  <section class="panel" id="panel-publish">
+    <div class="card">
+      <h3>1. Choose channels</h3>
+      <p class="muted">One asset, many destinations. A channel whose platform is not connected is shown and cannot be selected.</p>
+      <div id="channels" class="grid" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>2. The asset</h3>
+      <p class="muted">Paste the asset as JSON, or let a generated asset be loaded here from the calendar. Each adapter maps these fields onto its own payload and reports anything it could not fill.</p>
+      <label for="asset">Asset JSON</label>
+      <textarea id="asset" spellcheck="false">{
+  "subject": "",
+  "preview_text": "",
+  "html": "",
+  "caption": "",
+  "image_url": "",
+  "link": "",
+  "headlines": [],
+  "descriptions": []
+}</textarea>
+      <label for="mapping">Field mapping and defaults (optional)</label>
+      <textarea id="mapping" spellcheck="false">{ "field_map": {}, "defaults": {} }</textarea>
+    </div>
+
+    <div class="card">
+      <h3>3. Audience and timing</h3>
+      <div class="grid">
+        <div>
+          <label for="sendmode">Dispatch</label>
+          <select id="sendmode">
+            <option value="publish">Publish now</option>
+            <option value="schedule">Schedule</option>
+            <option value="draft">Export as draft</option>
+          </select>
+          <div id="when-wrap" style="display:none">
+            <label for="when">Send at</label>
+            <input type="datetime-local" id="when">
+          </div>
+        </div>
+        <div>
+          <label for="priority">Message priority</label>
+          <select id="priority">
+            <option value="promotional">Promotional</option>
+            <option value="high_intent">High intent</option>
+            <option value="re_engagement">Re-engagement</option>
+            <option value="transactional">Transactional</option>
+          </select>
+          <label for="domain-send">Sending domain</label>
+          <input type="text" id="domain-send" placeholder="mail.yourbrand.com">
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;margin-top:14px">
+        <input type="checkbox" id="dryrun" checked style="width:auto">
+        Dry run &mdash; build the exact request and do not send it
+      </label>
+      <div class="row">
+        <button class="primary" id="btn-preflight" data-credit-feature="dispatch_preflight">Run preflight</button>
+        <button id="btn-dispatch" disabled data-credit-feature="dispatch_publish">Dispatch</button>
+      </div>
+      <p class="muted" style="margin-top:8px">Preflight runs before anything is queued. A blocked send can be overridden, and the override is recorded against your account with the reason.</p>
+    </div>
+  </section>
+
+  <!-- ─────────────── Domain strength ─────────────── -->
+  <section class="panel" id="panel-domain">
+    <div class="card">
+      <h3>Check a sending domain</h3>
+      <div class="row" style="margin-top:4px">
+        <input type="text" id="domain-in" placeholder="mail.yourbrand.com" style="flex:1;min-width:220px">
+        <button class="primary" id="btn-domain" data-credit-feature="deliverability_domain_audit">Check</button>
+      </div>
+      <p class="muted" style="margin-top:8px">SPF, DKIM, DMARC, MX and BIMI are parsed, not just counted. A check that cannot complete is reported as unavailable and excluded from the score &mdash; never scored as a failure.</p>
+    </div>
+    <div id="domain-out"></div>
+
+    <div class="card">
+      <h3>Warmup ramp</h3>
+      <div class="grid">
+        <div><label for="wu-target">Target daily volume</label><input type="number" id="wu-target" value="10000" min="10"></div>
+        <div><label for="wu-start">Start date</label><input type="text" id="wu-start" placeholder="2026-09-01"></div>
+      </div>
+      <div class="row"><button id="btn-warmup">Build ramp</button></div>
+      <p class="muted" style="margin-top:8px">The ramp starts with your most engaged contacts, because early engagement is the signal it exists to build. It pauses automatically above 2% bounces or 0.08% complaints.</p>
+      <div id="warmup-out"></div>
+    </div>
+  </section>
+
+  <!-- ─────────────── Dispatch log ─────────────── -->
+  <section class="panel" id="panel-jobs">
+    <div class="card">
+      <div class="row" style="margin-top:0">
+        <button id="btn-refresh-jobs">Refresh</button>
+        <button id="btn-drain">Run the queue now</button>
+      </div>
+      <div id="jobs-out" class="muted" style="margin-top:12px">Loading&hellip;</div>
+    </div>
+  </section>
+</div>
+
+<!-- Preflight modal -->
+<div class="modal" id="pf-modal" role="dialog" aria-modal="true" aria-labelledby="pf-title">
+  <div class="sheet">
+    <div class="verdict">
+      <span class="chip" id="pf-chip">&hellip;</span>
+      <span class="big" id="pf-title">Preflight</span>
+    </div>
+    <p class="muted" id="pf-sum"></p>
+    <div id="pf-checks" style="margin-top:14px"></div>
+    <div class="row" style="justify-content:flex-end">
+      <button id="pf-close">Close</button>
+      <button class="primary" id="pf-proceed">Queue the dispatch</button>
+    </div>
+    <p class="muted" id="pf-override-note" style="margin-top:8px;display:none"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var CONN = '/api/public-config?action=connections';
+  var BRAIN = '/api/brain?action=';
+
+  function token() {
+    try { var a = window.LifecycleAuth; if (a && a.session && a.session.access_token) return a.session.access_token; } catch (_) {}
+    return '';
+  }
+  function workspaceId() {
+    try { return (window.BrandContext && window.BrandContext.workspaceId && window.BrandContext.workspaceId()) || ''; } catch (_) { return ''; }
+  }
+  async function call(url, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    var t = token(); if (t) headers.Authorization = 'Bearer ' + t;
+    var ws = workspaceId();
+    var full = url + (ws ? (url.indexOf('?') >= 0 ? '&' : '?') + 'workspace_id=' + encodeURIComponent(ws) : '');
+    var res = await fetch(full, {
+      method: body ? 'POST' : 'GET', headers: headers, cache: 'no-store',
+      body: body ? JSON.stringify(Object.assign({ workspace_id: ws || undefined }, body)) : undefined
+    });
+    var json = await res.json().catch(function () { return {}; });
+    if (!res.ok) { var e = new Error(json.message || json.error || ('HTTP ' + res.status)); e.payload = json; throw e; }
+    return json;
+  }
+  function esc(s) { var d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+  function note(kind, text) {
+    document.getElementById('msg').innerHTML = '<div class="banner ' + kind + '">' + esc(text) + '</div>';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── tabs ───────────────────────────────────────────────────────────── */
+  var tabs = [].slice.call(document.querySelectorAll('.tab'));
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      tabs.forEach(function (x) { x.setAttribute('aria-selected', String(x === t)); });
+      [].slice.call(document.querySelectorAll('.panel')).forEach(function (p) {
+        p.classList.toggle('on', p.id === 'panel-' + t.dataset.panel);
+      });
+      if (t.dataset.panel === 'jobs') loadJobs();
+    });
+  });
+
+  /* ── integration hub ────────────────────────────────────────────────── */
+  var PLATFORMS = [];
+  var CHANNELS = [];
+  var CONNECTED = {};
+
+  async function loadHub() {
+    var reg, list;
+    try {
+      reg = await call(CONN + '&op=publish-registry');
+    } catch (e) { document.getElementById('hub-state').textContent = 'Could not load the platform registry: ' + e.message; return; }
+    PLATFORMS = reg.platforms || [];
+    CHANNELS = reg.channels || [];
+
+    try {
+      list = await call(CONN + '&op=list');
+      (list.connections || []).forEach(function (c) { CONNECTED[c.provider] = c; });
+    } catch (e) {
+      // Signed out, or no active brand. The registry still renders so the
+      // operator can see what is possible before connecting anything.
+      note('info', 'Showing what can be connected. ' + e.message);
+    }
+    document.getElementById('hub-state').textContent = '';
+    renderHub();
+    renderChannels();
+  }
+
+  function renderHub() {
+    document.getElementById('hub').innerHTML = PLATFORMS.map(function (p) {
+      var c = CONNECTED[p.connection_provider];
+      var connected = !!(c && c.configured);
+      var publishing = !!(c && c.config && (c.config.publishing_enabled === true || c.config.publishing_enabled === 'true'));
+      var chips = [];
+      chips.push('<span class="chip ' + (connected ? 'on' : 'off') + '">' + (connected ? 'connected' : 'not connected') + '</span>');
+      if (connected) chips.push('<span class="chip ' + (publishing ? 'on' : 'warn') + '">' + (publishing ? 'live publishing on' : 'read only') + '</span>');
+      if (!p.endpoints_verified) chips.push('<span class="chip warn">' + p.unverified_operations.length + ' unverified</span>');
+      if (c && c.last_check_ok === false) chips.push('<span class="chip bad">check failed</span>');
+
+      var supported = p.channels.filter(function (x) { return x.supported; }).length;
+      return '<div class="conn">'
+        + '<div class="hd"><span class="nm">' + esc(p.label) + '</span><span>' + chips.join(' ') + '</span></div>'
+        + '<div class="muted">' + esc(p.category) + ' &middot; ' + supported + ' of ' + p.channels.length + ' channels available'
+        + (p.auth_kind === 'oauth' ? ' &middot; sign-in' : ' &middot; API key') + '</div>'
+        + (c && c.last_check_note ? '<div class="muted">' + esc(c.last_check_note) + '</div>' : '')
+        + (!p.endpoints_verified
+          ? '<div class="muted"><strong>Unverified:</strong> ' + esc(p.unverified_operations.join(', '))
+            + '. These paths were implemented from the platform’s conventions and not re-read from its documentation. Confirm them before a first live send.</div>'
+          : '')
+        + (p.platform_prereq && !connected ? '<div class="muted">' + esc(p.platform_prereq.what || '') + '</div>' : '')
+        + '<div class="row">'
+        + (p.auth_kind === 'oauth'
+          ? '<button data-act="connect" data-p="' + esc(p.id) + '">' + (connected ? 'Reconnect' : 'Connect') + '</button>'
+          : '<a class="btnlink" href="/connections">Set key</a>')
+        + (connected ? '<button data-act="publish-toggle" data-p="' + esc(p.connection_provider) + '" data-on="' + (publishing ? '1' : '0') + '">'
+          + (publishing ? 'Turn off live publishing' : 'Turn on live publishing') + '</button>' : '')
+        + (connected ? '<button data-act="check" data-p="' + esc(p.connection_provider) + '">Test</button>' : '')
+        + (connected ? '<button class="danger" data-act="disconnect" data-p="' + esc(p.id) + '">Disconnect</button>' : '')
+        + '</div></div>';
+    }).join('');
+  }
+
+  document.getElementById('hub').addEventListener('click', async function (ev) {
+    var b = ev.target.closest('button[data-act]'); if (!b) return;
+    var act = b.dataset.act, p = b.dataset.p;
+    b.disabled = true;
+    try {
+      if (act === 'connect') {
+        var r = await call(CONN + '&op=oauth-start', { provider: p, return_to: '/publishing' });
+        window.location.href = r.url;
+        return;
+      }
+      if (act === 'disconnect') {
+        if (!window.confirm('Disconnect ' + p + '? Stored credentials for this brand are removed.')) { b.disabled = false; return; }
+        var d = await call(CONN + '&op=oauth-disconnect', { provider: p });
+        note('ok', d.note || 'Disconnected.');
+      }
+      if (act === 'publish-toggle') {
+        var turningOn = b.dataset.on !== '1';
+        if (turningOn && !window.confirm('Turn on live publishing for ' + p + '?\n\nDispatches will leave this deployment and appear on the real account.')) { b.disabled = false; return; }
+        var t = await call(CONN + '&op=publishing', { provider: p, enabled: turningOn });
+        note(turningOn ? 'warn' : 'info', t.note);
+      }
+      if (act === 'check') {
+        var c = await call(CONN + '&op=check', { provider: p });
+        note(c.ok ? 'ok' : 'warn', c.note || (c.connected ? 'Connected.' : 'Not connected.'));
+      }
+      CONNECTED = {}; await loadHub();
+    } catch (e) { note('err', e.message); }
+    b.disabled = false;
+  });
+
+  /* ── publisher ──────────────────────────────────────────────────────── */
+  var selected = [];
+
+  function renderChannels() {
+    document.getElementById('channels').innerHTML = CHANNELS.map(function (ch) {
+      var c = CONNECTED[ch.provider];
+      var ready = !!(c && c.configured) && ch.supported;
+      var why = !ch.supported ? 'not implemented for this platform'
+        : !c || !c.configured ? 'platform not connected' : '';
+      return '<label class="conn" style="cursor:' + (ready ? 'pointer' : 'not-allowed') + ';opacity:' + (ready ? 1 : .55) + '">'
+        + '<div class="hd"><span class="nm" style="font-size:13.5px">' + esc(ch.label) + '</span>'
+        + '<input type="checkbox" data-ch="' + esc(ch.channel) + '" ' + (ready ? '' : 'disabled') + ' style="width:auto">'
+        + '</div>'
+        + '<div class="muted">' + esc(ch.platform_label) + (why ? ' &middot; ' + esc(why) : '') + '</div>'
+        + (ch.required_scopes && ch.required_scopes.length ? '<div class="muted">needs ' + esc(ch.required_scopes.join(', ')) + '</div>' : '')
+        + '</label>';
+    }).join('');
+  }
+
+  document.getElementById('channels').addEventListener('change', function () {
+    selected = [].slice.call(document.querySelectorAll('#channels input[data-ch]:checked')).map(function (i) { return i.dataset.ch; });
+    document.getElementById('btn-dispatch').disabled = true;   // re-run preflight after any change
+  });
+
+  document.getElementById('sendmode').addEventListener('change', function () {
+    document.getElementById('when-wrap').style.display = this.value === 'schedule' ? 'block' : 'none';
+  });
+
+  function readJson(id, label) {
+    var raw = document.getElementById(id).value.trim();
+    if (!raw) return {};
+    try { return JSON.parse(raw); } catch (e) { throw new Error(label + ' is not valid JSON: ' + e.message); }
+  }
+
+  function dispatchSpec(channel) {
+    var mode = document.getElementById('sendmode').value;
+    var when = document.getElementById('when').value;
+    return {
+      channel: channel,
+      mode: mode,
+      scheduled_for: mode === 'schedule' && when ? new Date(when).toISOString() : undefined,
+      asset: readJson('asset', 'The asset'),
+      mapping: readJson('mapping', 'The mapping'),
+      message_priority: document.getElementById('priority').value,
+      sending_domain: document.getElementById('domain-send').value.trim(),
+      dry_run: document.getElementById('dryrun').checked
+    };
+  }
+
+  var lastPreflight = null;
+
+  document.getElementById('btn-preflight').addEventListener('click', async function () {
+    if (!selected.length) { note('warn', 'Select at least one channel.'); return; }
+    this.disabled = true;
+    try {
+      var spec = dispatchSpec(selected[0]);
+      var pf = await call(BRAIN + 'deliverability-preflight', {
+        provider: (CHANNELS.find(function (c) { return c.channel === selected[0]; }) || {}).adapter,
+        channel: selected[0],
+        mode: spec.mode,
+        payload: spec.asset,
+        message_priority: spec.message_priority,
+        sending_domain: spec.sending_domain
+      });
+      lastPreflight = pf;
+      showPreflight(pf);
+    } catch (e) { note('err', e.message); }
+    this.disabled = false;
+  });
+
+  function showPreflight(pf) {
+    var chip = document.getElementById('pf-chip');
+    chip.className = 'chip ' + (pf.verdict === 'pass' ? 'on' : pf.verdict === 'warn' ? 'warn' : 'bad');
+    chip.textContent = pf.verdict;
+    document.getElementById('pf-title').textContent =
+      pf.verdict === 'block' ? 'Blocked' : pf.verdict === 'warn' ? 'Proceed with warnings' : 'Clear to send';
+    document.getElementById('pf-sum').textContent =
+      pf.checks.filter(function (c) { return c.status === 'pass'; }).length + ' of '
+      + pf.checks.filter(function (c) { return c.status !== 'skip'; }).length + ' checks passed.';
+
+    document.getElementById('pf-checks').innerHTML = pf.checks.map(function (c) {
+      var d = c.status === 'pass' ? 'pass' : c.status === 'warn' ? 'warn' : c.status === 'block' ? 'fail' : 'na';
+      return '<div class="fixrow"><div><span class="dot ' + d + '" style="display:inline-block;margin-right:7px"></span>'
+        + '<strong>' + esc(c.label) + '</strong><div class="muted">' + esc(c.detail) + '</div>'
+        + (c.remediation ? '<div class="muted"><em>Fix:</em> ' + esc(c.remediation) + '</div>' : '')
+        + '</div></div>';
+    }).join('');
+
+    var proceed = document.getElementById('pf-proceed');
+    var overrideNote = document.getElementById('pf-override-note');
+    if (pf.verdict === 'block') {
+      proceed.textContent = 'Override and queue anyway';
+      proceed.className = 'danger';
+      overrideNote.style.display = 'block';
+      overrideNote.textContent = 'An override is recorded against your account with the reason, and the blocking checks stay on the job record.';
+    } else {
+      proceed.textContent = 'Queue the dispatch';
+      proceed.className = 'primary';
+      overrideNote.style.display = 'none';
+    }
+    document.getElementById('pf-modal').classList.add('on');
+  }
+
+  document.getElementById('pf-close').addEventListener('click', function () {
+    document.getElementById('pf-modal').classList.remove('on');
+  });
+
+  document.getElementById('pf-proceed').addEventListener('click', async function () {
+    var override = lastPreflight && lastPreflight.verdict === 'block';
+    var reason = '';
+    if (override) {
+      reason = window.prompt('This send is blocked. Why are you overriding?');
+      if (!reason) return;
+    }
+    this.disabled = true;
+    var queued = 0, failed = [];
+    for (var i = 0; i < selected.length; i++) {
+      try {
+        var spec = dispatchSpec(selected[i]);
+        spec.override_preflight = override;
+        spec.override_note = reason;
+        var r = await call(BRAIN + 'dispatch-enqueue', spec);
+        if (r.ok) queued += 1; else failed.push(selected[i] + ': ' + (r.message || 'blocked'));
+      } catch (e) { failed.push(selected[i] + ': ' + e.message); }
+    }
+    this.disabled = false;
+    document.getElementById('pf-modal').classList.remove('on');
+    note(failed.length ? 'warn' : 'ok',
+      queued + ' job(s) queued' + (failed.length ? '; ' + failed.length + ' refused: ' + failed.join(' | ') : '')
+      + (document.getElementById('dryrun').checked ? '. Dry run: the request is built and not sent.' : ''));
+    loadJobs();
+  });
+
+  /* ── domain strength ────────────────────────────────────────────────── */
+  document.getElementById('btn-domain').addEventListener('click', async function () {
+    var d = document.getElementById('domain-in').value.trim();
+    if (!d) { note('warn', 'Enter a domain.'); return; }
+    this.disabled = true;
+    document.getElementById('domain-out').innerHTML = '<div class="card muted">Resolving DNS&hellip;</div>';
+    try {
+      var r = await call(BRAIN + 'deliverability-domain', { domain: d });
+      renderDomain(r);
+    } catch (e) { document.getElementById('domain-out').innerHTML = '<div class="banner err">' + esc(e.message) + '</div>'; }
+    this.disabled = false;
+  });
+
+  function renderDomain(r) {
+    if (!r.ok) { document.getElementById('domain-out').innerHTML = '<div class="banner err">' + esc(r.error) + '</div>'; return; }
+    var pct = r.score == null ? 0 : r.score;
+    var circ = 2 * Math.PI * 56;
+    var colour = r.score == null ? 'var(--muted)' : r.score >= 75 ? 'var(--ok)' : r.score >= 50 ? 'var(--warn)' : 'var(--err)';
+
+    var records = r.records.map(function (rec) {
+      var cls = rec.unavailable ? 'na' : rec.passed ? 'pass' : (rec.type === 'BIMI' ? 'na' : 'fail');
+      var top = (rec.findings && rec.findings[0]) || {};
+      return '<li><span class="dot ' + cls + '"></span><div><strong>' + esc(rec.type) + '</strong> &mdash; ' + esc(top.message || '')
+        + (top.remediation ? '<div class="muted"><em>Fix:</em> ' + esc(top.remediation) + '</div>' : '')
+        + (rec.raw ? '<code class="rec-raw">' + esc(String(rec.raw).slice(0, 200)) + '</code>' : '')
+        + '</div></li>';
+    }).join('');
+
+    document.getElementById('domain-out').innerHTML =
+      '<div class="card"><div class="dial">'
+      + '<div class="ring"><svg width="132" height="132">'
+      + '<circle cx="66" cy="66" r="56" fill="none" stroke="color-mix(in srgb,var(--muted) 18%,transparent)" stroke-width="11"/>'
+      + '<circle cx="66" cy="66" r="56" fill="none" stroke="' + colour + '" stroke-width="11" stroke-linecap="round"'
+      + ' stroke-dasharray="' + circ + '" stroke-dashoffset="' + (circ * (1 - pct / 100)) + '"/></svg>'
+      + '<div class="val"><span class="num">' + (r.score == null ? '&mdash;' : r.score) + '</span><span class="gr">grade ' + esc(r.grade) + '</span></div></div>'
+      + '<div style="flex:1;min-width:230px"><h3>' + esc(r.domain) + '</h3>'
+      + '<p class="muted">' + esc(r.score_breakdown.coverage_note) + '</p>'
+      + (r.score_breakdown.partial ? '<div class="banner warn" style="margin-top:10px">Partial audit: scored against ' + r.score_breakdown.max_possible + ' of 100 points. Unavailable checks are excluded, not failed.</div>' : '')
+      + '</div></div>'
+      + '<ul class="checklist">' + records + '</ul>'
+      + '<h3 style="margin-top:18px">Blocklists</h3>'
+      + '<p class="muted">' + esc(r.blacklists.note) + '</p>'
+      + '<h3 style="margin-top:18px">Reputation feeds</h3>'
+      + '<p class="muted">Google Postmaster: ' + esc(r.reputation.google_postmaster.note) + '</p>'
+      + '<p class="muted">Microsoft SNDS: ' + esc(r.reputation.microsoft_snds.note) + '</p>'
+      + '</div>';
+  }
+
+  document.getElementById('btn-warmup').addEventListener('click', async function () {
+    this.disabled = true;
+    try {
+      var r = await call(BRAIN + 'deliverability-warmup', {
+        target_daily: Number(document.getElementById('wu-target').value) || 10000,
+        start_on: document.getElementById('wu-start').value.trim() || undefined
+      });
+      var max = Math.max.apply(null, r.plan.map(function (d) { return d.cap; }));
+      document.getElementById('warmup-out').innerHTML =
+        '<table><thead><tr><th>Day</th><th>Date</th><th>Cap</th><th>Cohort</th><th>Why</th></tr></thead><tbody>'
+        + r.plan.map(function (d) {
+          return '<tr><td>' + d.day + '</td><td>' + esc(d.date) + '</td>'
+            + '<td>' + d.cap.toLocaleString() + '<div class="bar"><i style="width:' + Math.round(d.cap / max * 100) + '%"></i></div></td>'
+            + '<td>' + esc(d.cohort_tier) + '</td><td class="muted">' + esc(d.why) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    } catch (e) { note('err', e.message); }
+    this.disabled = false;
+  });
+
+  /* ── dispatch log ───────────────────────────────────────────────────── */
+  async function loadJobs() {
+    var el = document.getElementById('jobs-out');
+    try {
+      var r = await call(BRAIN + 'dispatch-list');
+      if (!r.jobs || !r.jobs.length) { el.innerHTML = '<p class="muted">No dispatch jobs yet.</p>'; return; }
+      el.innerHTML = '<table><thead><tr><th>Status</th><th>Channel</th><th>Mode</th><th>Preflight</th><th>Attempts</th><th>Detail</th></tr></thead><tbody>'
+        + r.jobs.map(function (j) {
+          var cls = j.status === 'succeeded' ? 'on' : j.status === 'failed' || j.status === 'blocked' ? 'bad' : 'off';
+          return '<tr><td><span class="chip ' + cls + '">' + esc(j.status) + '</span></td>'
+            + '<td>' + esc(j.channel) + (j.dry_run ? ' <span class="chip off">dry</span>' : '') + '</td>'
+            + '<td>' + esc(j.mode) + '</td>'
+            + '<td>' + esc(j.preflight_verdict || '') + '</td>'
+            + '<td>' + j.attempt_count + '/' + j.max_attempts + '</td>'
+            + '<td class="muted">' + esc(j.last_error || j.external_status || j.external_id || '') + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    } catch (e) { el.innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
+  }
+
+  document.getElementById('btn-refresh-jobs').addEventListener('click', loadJobs);
+  document.getElementById('btn-drain').addEventListener('click', async function () {
+    this.disabled = true;
+    try { var r = await call(BRAIN + 'dispatch-drain', {}); note('info', 'Ran ' + r.ran + ' job(s); ' + r.remaining + ' still runnable.'); loadJobs(); }
+    catch (e) { note('err', e.message); }
+    this.disabled = false;
+  });
+
+  /* ── boot ───────────────────────────────────────────────────────────── */
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('oauth') === 'connected') note('ok', params.get('provider') + ' connected.');
+  if (params.get('oauth') === 'denied') note('warn', 'The sign-in was cancelled or refused at ' + params.get('provider') + '.');
+  if (params.get('oauth') === 'error') note('err', 'The connection did not complete: ' + (params.get('reason') || 'unknown') + '.');
+
+  function boot() { loadHub(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+</body>
+</html>
