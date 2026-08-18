@@ -528,6 +528,128 @@ async function deleteConnection(auth, workspaceId, providerId) {
   return { ok: true, removed: providerId };
 }
 
+/* ── service-role writes, for the paths that have no user JWT ─────────────── */
+/**
+ * ⚠️ THESE BYPASS RLS. They exist for exactly two callers, both of which have
+ * already established which workspace they are acting for by other means:
+ *
+ *   oauth-core.handleCallback()  the OAuth callback is a top-level browser
+ *                                redirect from Meta or Google and carries no
+ *                                Authorization header. Its authority is the
+ *                                single-use `state` row, which was written
+ *                                only after assertCanWrite() passed at step 1
+ *                                and which names the workspace and the user.
+ *
+ *   dispatch-core                the queue runs under the scheduler, not a
+ *                                person, and persists a rotated token for a
+ *                                workspace it read off the job row.
+ *
+ * The rule for adding a third caller: it must already hold a workspace id it
+ * did not take from user input. A caller that passes through a workspace id
+ * from a request body MUST use the JWT paths above instead - that is the whole
+ * reason those exist.
+ */
+async function getConnectionAsService(workspaceId, provider) {
+  if (!workspaceId || !provider) return null;
+  const rows = await serviceRest(
+    `workspace_connections?select=${SELECT_COLS},connect_kind,oauth_scopes,token_expires_at,refresh_expires_at,last_refresh_at,refresh_failure_count,external_account_id,external_account_label,revoked_at`
+    + `&workspace_id=eq.${encodeURIComponent(workspaceId)}&provider=eq.${encodeURIComponent(provider)}&limit=1`,
+  );
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+
+/** Decrypted secrets for one connection id. Never returned to a browser. */
+async function secretsAsService(connectionId) {
+  if (!connectionId) return null;
+  const map = await secretsByConnectionId([connectionId]);
+  return map.get(connectionId) || null;
+}
+
+/** Patch the non-secret columns of a connection row. */
+async function patchConnectionAsService(workspaceId, provider, patch) {
+  if (!workspaceId || !provider) return null;
+  const body = {};
+  const allowed = [
+    'connect_kind', 'oauth_scopes', 'token_expires_at', 'refresh_expires_at', 'last_refresh_at',
+    'refresh_failure_count', 'external_account_id', 'external_account_label', 'revoked_at',
+    'status', 'last_checked_at', 'last_check_ok', 'last_check_note',
+  ];
+  // Allow-list rather than pass-through: this runs as the service role, so a
+  // caller must not be able to set a column nobody vetted (config, secret_hint).
+  for (const k of allowed) if (patch && patch[k] !== undefined) body[k] = patch[k];
+  if (!Object.keys(body).length) return null;
+  return serviceRest(
+    `workspace_connections?workspace_id=eq.${encodeURIComponent(workspaceId)}&provider=eq.${encodeURIComponent(provider)}`,
+    { method: 'PATCH', body, prefer: 'return=minimal' },
+  );
+}
+
+/**
+ * Upsert a connection and its secrets as the service role. Mirrors
+ * saveConnection() but takes the workspace as established fact rather than
+ * checking a caller's rights, because there is no caller to check.
+ */
+async function saveConnectionAsService(input) {
+  const workspaceId = str(input && input.workspace_id);
+  const providerId = str(input && input.provider).toLowerCase();
+  if (!workspaceId || !providerId) { const e = new Error('workspace and provider are required'); e.status = 400; throw e; }
+  const reg = BY_ID.get(providerId);
+
+  const supplied = (input && input.fields && typeof input.fields === 'object') ? input.fields : {};
+  const secrets = {};
+  for (const [k, v] of Object.entries(supplied)) {
+    const value = String(v == null ? '' : v).trim();
+    if (value) secrets[k] = value.slice(0, MAX_SECRET_CHARS);
+  }
+  if (Object.keys(secrets).length && !cryptoConfigured()) {
+    const k = encryptionKey();
+    const e = new Error(k.error); e.status = 503; e.code = 'connection_secrets_unavailable'; throw e;
+  }
+
+  const existing = await getConnectionAsService(workspaceId, providerId);
+  const prior = existing ? await secretsAsService(existing.id) : null;
+  const merged = Object.assign({}, prior || {}, secrets);
+
+  const meta = (input && input.meta) || {};
+  const row = Object.assign({
+    workspace_id: workspaceId,
+    provider: providerId,
+    category: (reg && reg.category) || 'other',
+    auth_kind: (reg && reg.auth_kind) || 'oauth',
+    label: (existing && existing.label) || (reg && reg.label) || providerId,
+    config: (existing && existing.config) || {},
+    secret_fields: Object.keys(merged),
+    secret_hint: hint(merged.access_token || merged.api_key || Object.values(merged)[0] || ''),
+    status: 'active',
+  }, pickMeta(meta));
+
+  const saved = await serviceRest(`workspace_connections?on_conflict=workspace_id,provider&select=id`, {
+    method: 'POST',
+    body: [row],
+    prefer: 'resolution=merge-duplicates,return=representation',
+  });
+  const savedRow = Array.isArray(saved) ? saved[0] : saved;
+
+  if (Object.keys(merged).length && savedRow && savedRow.id) {
+    const enc = encryptSecrets(merged);
+    await serviceRest('workspace_connection_secrets?on_conflict=connection_id', {
+      method: 'POST',
+      body: [Object.assign({ connection_id: savedRow.id, workspace_id: workspaceId, updated_at: new Date().toISOString() }, enc)],
+      prefer: 'resolution=merge-duplicates,return=minimal',
+    });
+  }
+  RESOLVED.clear();
+  return { ok: true, id: savedRow && savedRow.id };
+}
+
+function pickMeta(meta) {
+  const out = {};
+  for (const k of ['connect_kind', 'oauth_scopes', 'token_expires_at', 'refresh_expires_at', 'last_refresh_at', 'refresh_failure_count', 'external_account_id', 'external_account_label', 'revoked_at']) {
+    if (meta[k] !== undefined) out[k] = meta[k];
+  }
+  return out;
+}
+
 /* ── AI routing ───────────────────────────────────────────────────────────── */
 
 /**
@@ -901,6 +1023,23 @@ async function handle(req, res) {
     });
   }
 
+  // The OAuth callback is a top-level browser redirect from Meta or Google and
+  // carries no Authorization header, so it MUST be reachable unauthenticated.
+  // Its authority is the single-use `state` row instead; see oauth-core.js.
+  if (op === 'oauth-callback') {
+    const out = await require('./oauth-core.js').handleCallback(req);
+    res.setHeader('Cache-Control', 'no-store');
+    res.writeHead(302, { Location: out.redirect });
+    return res.end();
+  }
+
+  // The publishable registry of what can be sent where. Public like the
+  // provider registry above, because the page renders it before connecting.
+  if (op === 'publish-registry') {
+    const reg = require('./adapters/registry.js');
+    return res.status(200).json({ ok: true, platforms: reg.registryView(), channels: reg.allChannels() });
+  }
+
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
 
@@ -935,10 +1074,47 @@ async function handle(req, res) {
         return res.status(200).json({ ok: true, routing: await getRouting(auth, workspaceId), providers: registryView(true).filter((p) => p.llm_provider) });
       case 'routing-save':
         return res.status(200).json({ ok: true, routing: await saveRouting(auth, workspaceId, body.routing || body) });
+
+      /* ── OAuth ──────────────────────────────────────────────────────── */
+      case 'oauth-start':
+        return res.status(200).json(await require('./oauth-core.js').beginAuthorization(req, auth, workspaceId, body.provider ? body : q));
+      case 'oauth-disconnect':
+        return res.status(200).json(await require('./oauth-core.js').revoke(auth, workspaceId, str(body.provider || q.provider)));
+
+      /* ── the live-publishing switch ─────────────────────────────────── */
+      // Deliberately its OWN operation rather than a field on `save`. Turning on
+      // the ability to send as somebody's brand should be a decision an operator
+      // makes on purpose, not a key that rides along in a form post.
+      case 'publishing': {
+        const provider = str(body.provider || q.provider).toLowerCase();
+        const enable = body.enabled === true || body.enabled === 'true';
+        await brandCore.assertCanWrite(auth, workspaceId, 'change live publishing');
+        const existing = await getConnectionRow(auth, workspaceId, provider);
+        if (!existing) { const e = new Error(`${provider} is not connected on this brand.`); e.status = 404; throw e; }
+        await brandCore.restAs(
+          auth.token,
+          `workspace_connections?workspace_id=eq.${encodeURIComponent(workspaceId)}&provider=eq.${encodeURIComponent(provider)}`,
+          {
+            method: 'PATCH',
+            body: { config: Object.assign({}, existing.config || {}, { publishing_enabled: enable, publishing_enabled_at: enable ? new Date().toISOString() : null, publishing_enabled_by: enable ? auth.user_id : null }) },
+            prefer: 'return=minimal',
+          },
+        );
+        RESOLVED.clear();
+        return res.status(200).json({
+          ok: true,
+          provider,
+          publishing_enabled: enable,
+          note: enable
+            ? 'Live publishing is on for this platform. Sends will leave this deployment, subject to the preflight gate and the deployment-wide LIVE_CONNECTORS switch.'
+            : 'Live publishing is off. Jobs will build the exact request and stop without sending.',
+        });
+      }
+
       default:
         return res.status(400).json({
           ok: false, error: 'unknown_connections_operation',
-          available: ['registry', 'list', 'save', 'delete', 'check', 'routing', 'routing-save'],
+          available: ['registry', 'publish-registry', 'list', 'save', 'delete', 'check', 'routing', 'routing-save', 'oauth-start', 'oauth-callback', 'oauth-disconnect', 'publishing'],
         });
     }
   } catch (err) {
@@ -952,6 +1128,9 @@ module.exports = {
   PROVIDERS, BY_ID, BY_LLM, registryView, knownModels,
   // storage
   listConnections, saveConnection, deleteConnection, getRouting, saveRouting, normalizeRouting,
+  // service-role storage (OAuth callback + the dispatch queue only — see the
+  // warning above those functions before adding a caller)
+  getConnectionAsService, secretsAsService, patchConnectionAsService, saveConnectionAsService,
   // resolution
   buildOverrides, llmOverridesFor, llmOverridesForCurrentRequest,
   credentialsFor, credentialsForCurrentRequest,

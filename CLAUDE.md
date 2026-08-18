@@ -121,6 +121,40 @@ TEMPLATES for building and demos, not licences to use a third party's marks — 
 `rights_note` saying so, and the gallery repeats it. Regenerate via `scripts/build-brand-presets.js`
 (edit that file, not the generated JSON).
 
+## ⭐ Publishing + deliverability (2026-08-18) — read `docs/publishing-and-deliverability.md`
+The platform can now SEND, not just create. One pipeline, still 12/12 functions (everything in
+`api/_shared/`, mounted on `brain.js` `?action=dispatch-*|deliverability-*|cohort-*` and
+`public-config.js?action=connections&op=oauth-*`). UI at `/publishing`.
+`asset → channel_mappings → preflight → dispatch_jobs → adapter → sync_log ← webhooks`.
+- **Adapters** — `api/_shared/adapters/`: `BasePlatformAdapter` / `AdPlatformAdapter` /
+  `CrmPlatformAdapter` (contract also written as real TypeScript in `types.d.ts`, and a test fails
+  if it drifts). Meta (Graph + Marketing + `ads_archive`), Google Ads, Klaviyo, WebEngage, plus
+  Braze / ActiveCampaign / Customer.io hooks. **Never add an endpoint a platform's docs did not give
+  you**: every adapter carries `sources`, and an endpoint that could not be confirmed is
+  `verified:false` and shows in the hub as "N unverified". Klaviyo's WRITE paths and all three hooks
+  are currently unverified; the hooks refuse to send until `endpoints_confirmed` is set.
+- **Three switches before anything leaves**: `LIVE_CONNECTORS=on` (repo-wide, off by default) AND
+  per-workspace publishing (a deliberate toggle, not a form field) AND — for Klaviyo/Shopify/
+  WebEngage only — `<PLATFORM>_ALLOW_WRITES=1`, because `read-only-egress.js` is a standing rule and
+  an adapter does not get to decide it does not apply. Miss one and the job builds the EXACT request
+  and stops, showing it.
+- **The queue is a convergent row-based queue, not BullMQ** — Vercel Hobby has nowhere to run a
+  worker. Same pattern as `smart-brain-plan.prebuildAssets`. Leases, exponential backoff with
+  jitter, a platform's own `Retry-After` outranking our arithmetic, and a unique index on
+  `(workspace_id, idempotency_key)` that is the actual anti-double-post guarantee.
+- **The preflight gate can BLOCK.** Credential, scopes, mapping gaps, domain auth, blocklists,
+  warmup cap, segment health, frequency cap, unsubscribe, content spam. **A check that could not run
+  returns `warn`, NEVER `pass`** — a gate that approves what it could not inspect is worse than no
+  gate. Blocks are overridable and the override is recorded with the operator's id and reason.
+- **Three lies this domain invites, all refused in code**: a refused blocklist query is never
+  "clean" (`isRefusalCode`, Spamhaus answers refusals with `127.255.255.x`); a DNS lookup that
+  timed out is `unavailable` and EXCLUDED from the score's denominator rather than scored 0; and no
+  send time is recommended without open history. Audience sizes are never invented.
+- **No raw email addresses** — `subscriber_engagement_scores` holds a per-workspace-salted SHA-256
+  plus the ESP's own profile id. Pseudonymisation, not anonymisation, so the table keeps brand RLS.
+- **Warmup never widens past `engaged_60`** — adding lapsed contacts to a ramp collapses the
+  engagement rate at exactly the moment the domain is building one.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating

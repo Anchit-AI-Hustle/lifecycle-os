@@ -87,6 +87,25 @@ const SCOPED_TABLES = new Set([
   // brand, and serving one brand's testimonial under another's name is the
   // fabrication this whole path exists to prevent.
   'brand_review_library', 'brand_review_scan',
+  // 20260818140000 — publishing and deliverability. These matter more than most
+  // of the list above, because the dispatch queue runs under the SERVICE ROLE
+  // with no request to resolve a workspace from: a job read without the filter
+  // would be dispatched with one brand's credentials against another brand's
+  // payload, and the send is not recallable. The queue does filter explicitly,
+  // and this is the structural backstop.
+  //
+  // subscriber_engagement_scores and dns_audit_log are the two whose leak would
+  // be a data-protection incident rather than an embarrassment: the first is a
+  // brand's contact base (hashed, but a membership set), the second is its
+  // sending infrastructure.
+  'channel_mappings', 'dispatch_jobs', 'dispatch_attempts',
+  'platform_sync_log', 'platform_webhook_events',
+  'domain_health_profiles', 'dns_audit_log', 'warmup_schedules',
+  'preflight_audits', 'audience_cohorts', 'subscriber_engagement_scores',
+  // The PKCE verifier store. Scoped for completeness; it is additionally RLS-on
+  // with no policy and revoked from both browser roles, so nothing but the
+  // service role can reach it at all.
+  'oauth_authorization_states',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }
