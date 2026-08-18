@@ -240,7 +240,9 @@
     if(st) st.textContent='running · '+agenticMarket();
     if(bar) bar.style.display='';
     if(msg) msg.textContent='Inspecting data, calculating funnel math, planning the calendar and writing content…';
-    fetch('/api/brain?action=agentic-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({market:agenticMarket(),tier:'maxpower',withCreatives:false})})
+    // Scope the run to the period the operator selected, not to the default.
+    var runDays=(SELECTED_DAYS==='all')?90:(Number(SELECTED_DAYS)||90);
+    fetch('/api/brain?action=agentic-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({market:agenticMarket(),tier:'maxpower',days:runDays,withCreatives:false})})
       .then(function(r){return r.json();})
       .then(function(d){
         if(!d.ok) throw new Error(d.error||'agentic flow failed');

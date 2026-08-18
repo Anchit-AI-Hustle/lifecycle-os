@@ -316,15 +316,41 @@ async function runAgentic(){
     // background via the convergent smart-brain-prebuild queue. Building creatives
     // inline used to blow past the serverless time limit (the "server took too
     // long" timeout). The plan itself is quick; assets converge after.
-    const r = await fetch('/api/brain?action=agentic-run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ market, tier: TIER, withCreatives: false })});
+    // The duration chips used to filter the TABLE only: the run itself never
+    // received the selected period, so it planned the default window and then
+    // built assets for a single day of it. The selection is the run's scope.
+    const runDays = (SELECTED_DAYS === 'all') ? 90 : Number(SELECTED_DAYS) || 7;
+    const r = await fetch('/api/brain?action=agentic-run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ market, tier: TIER, days: runDays, withCreatives: false })});
     const d = await safeJson(r);
     if(!d.ok){ out.innerHTML = `<p style="color:#b00">Failed: ${esc(d.error||'unknown')}</p>`; return; }
     const stages = (d.stages||[]).map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--vh-panel-tan)"><b>${s.ok?'✓':'✗'} ${esc(s.stage)}</b> — ${esc(s.summary||'')}</div>`).join('');
     const ideas = (d.ideation&&d.ideation.ideas||[]).map(i=>`<li><b>${esc(i.title)}</b> — ${esc(i.action||i.why||'')} <span style="color:#48524c">(${esc(i.impact||'')}/${esc(i.effort||'')})</span></li>`).join('');
+    // One row per DAY the run actually produced assets for. This is the thing
+    // the period selector was always supposed to drive.
+    const built = (d.campaigns||[]);
+    const dayRows = built.length
+      ? built.map(c => `<tr><td style="padding:5px 8px">${esc(c.date||'—')}</td><td style="padding:5px 8px">${esc(c.market||'')}</td>`
+          + `<td style="padding:5px 8px">${esc(c.cohort||'')}</td><td style="padding:5px 8px">${esc(c.subject||c.theme||'—')}</td>`
+          + `<td style="padding:5px 8px">${c.score==null?'—':esc(String(c.score))}${c.passed===false?' ⚠':''}</td></tr>`).join('')
+      : '';
+    const coverage = d.days_requested
+      ? `<p style="color:#48524c;margin-top:6px">Built <b>${d.days_built}</b> of <b>${d.days_planned}</b> planned send(s) across the next ${d.days_requested} day(s).`
+        + (d.days_remaining > 0
+          ? ` The remaining ${d.days_remaining} are queued for the background prebuild and appear on the dashboard as they finish.`
+          : ' Every planned send in the window has its assets.')
+        + `</p>`
+      : '';
+
     out.innerHTML = `<div class="label">Flow · ${esc(d.mode)} · tier ${esc(d.tier)}</div>
       <div style="margin:8px 0">${stages}</div>
-      <h2 style="font-size:18px;margin-top:14px">Ideation — what to do next</h2><ul>${ideas||'<li>—</li>'}</ul>
-      <p style="color:#48524c;margin-top:12px">Creative assets (mailers, ads, landing pages, images) are prebuilding in the background and will appear on the dashboard shortly.</p>`;
+      ${coverage}
+      ${dayRows ? `<h2 style="font-size:18px;margin-top:14px">Assets by day</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
+        <thead><tr style="text-align:left;color:#48524c">
+          <th style="padding:5px 8px">Date</th><th style="padding:5px 8px">Market</th>
+          <th style="padding:5px 8px">Cohort</th><th style="padding:5px 8px">Subject</th>
+          <th style="padding:5px 8px">Score</th></tr></thead><tbody>${dayRows}</tbody></table>` : ''}
+      <h2 style="font-size:18px;margin-top:14px">Ideation — what to do next</h2><ul>${ideas||'<li>—</li>'}</ul>`;
   }catch(e){ out.innerHTML = `<p style="color:#b00">Error: ${esc(e.message||e)}</p>`; }
 }
 
