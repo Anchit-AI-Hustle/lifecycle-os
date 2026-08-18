@@ -230,7 +230,10 @@ function template(t) {
       // verification claim, and this file's whole contract is that verified_at
       // means somebody looked.
       verified_at: null,
-      source: "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read this site on step 1 to extract the real values from " + t.website + ".",
+      // "Read my site" is the exact label on the button in extractBlock(). An
+      // instruction that names a control by a slightly different name sends the
+      // reader looking for something that is not on the page.
+      source: "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from " + t.website + ".",
       needs_extraction: true,
       palette_source: 'default',
       typography_source: 'default',
