@@ -331,11 +331,14 @@ module.exports = async function handler(req, res) {
   if (req.query && req.query.action === 'landing-page') {
     return require('../_shared/landing-page-core.js')(req, res);
   }
-  // CORS — allow same-origin + preview deploys
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-gemini-key');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  /* WHO may spend the provider budget.
+     This route shipped with Access-Control-Allow-Origin:* and no inbound auth
+     of any kind, in a public repo - so an unauthenticated POST reached the full
+     six-provider cascade and drained whichever key answered. requireCaller
+     handles CORS, the preflight, and the 401/429, so it replaces the wildcard
+     rather than sitting beside it. */
+  if (!(await require('../_shared/require-caller.js').requireCaller(req, res))) return;
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, x-user-gemini-key');
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   // Provider waterfall + tier routing live in api/_shared/llm.js. Here we only

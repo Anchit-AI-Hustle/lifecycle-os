@@ -27,3 +27,10 @@ workers
 reports
 .github
 mobile
+
+# Never serve raw data as a static asset. robots.txt Disallow is a crawler
+# hint, not access control: a file under the repo root is fetchable by URL.
+input/
+uploaded_by_*/
+*_customers.csv
+*-Ads-*.csv

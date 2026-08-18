@@ -85,10 +85,10 @@ const POLLINATIONS_SIZE_MAP = {
 };
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  /* Same gate as generate.js. The only `Authorization` strings in this file
+     were OUTBOUND headers to the image providers, which is why a grep for auth
+     looked like it found something. There was no inbound check at all. */
+  if (!(await require('../_shared/require-caller.js').requireCaller(req, res))) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   let body = req.body;
