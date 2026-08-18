@@ -83,32 +83,100 @@ async function runAgentic(opts = {}) {
   const scenarioSet = await buildScenarios({ analysis, baseCalendar: calendar, market, tier });
   rec('calendar', true, `${(calendar.entries || []).length} entries · ${scenarioSet.scenarios.length} scenarios (default ${scenarioSet.default})`, { scenarios: scenarioSet.scenarios.map((s) => ({ key: s.key, label: s.label, cadencePerWeek: s.cadencePerWeek })) });
 
-  // 5+6. CONTENT (script) + ASSET CREATION — top entry of the default (medium) plan, score-gated retry
-  const topEntry = (calendar.entries || [])[0];
-  let campaign = null, review = null, attempt = 0;
-  if (topEntry) {
+  // 5+6. CONTENT (script) + ASSET CREATION
+  //
+  // This used to build calendar.entries[0] and nothing else, so a run over a
+  // 30 day period produced ONE campaign and the chosen period only ever sized
+  // the plan. It now builds one campaign per entry across the requested window.
+  //
+  // WHY IT IS STILL BOUNDED. Building creatives inline is exactly what used to
+  // blow the serverless time limit (see the comment in smart-brain.html). So
+  // this fills a time box, and whatever it could not reach is handed to the
+  // existing convergent prebuild queue rather than dropped. The counts are
+  // returned either way, because "built 12 of 30" is a fact the operator needs
+  // and "here are your assets" over a partial set is not.
+  const windowDays = Number(days || config.calendarDays) || 30;
+  const horizon = new Date(Date.now() + windowDays * 86400000).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const inWindow = (calendar.entries || []).filter((e) => !e.date || (e.date >= today && e.date <= horizon));
+
+  const assetBudgetMs = Number(opts.assetBudgetMs) || (withCreatives ? 30000 : 15000);
+  const assetDeadline = Date.now() + assetBudgetMs;
+
+  const campaigns = [];
+  const reviews = [];
+  let review = null;
+  let buildError = null;
+
+  for (const entry of inWindow) {
+    if (Date.now() >= assetDeadline) break;
+    let built = null;
+    let entryReview = null;
+    let attempt = 0;
     do {
       attempt += 1;
       try {
-        campaign = await plan.buildCampaign(topEntry, config, { withCreatives });
-      } catch (e) { rec('content+asset', false, `build failed: ${String(e && e.message || e)}`); break; }
-      review = await reviewStage(campaign, tier);
-      if (review.pass) break;
-      topEntry.regenerate_counter = (topEntry.regenerate_counter || 0) + 1; // diverge on retry
-    } while (attempt <= maxRetries);
-    if (campaign) {
-      rec('content+asset', true, `built campaign "${campaign.subject || (campaign.copy && campaign.copy.subject) || topEntry.theme || 'campaign'}" (attempt ${attempt}, creatives ${withCreatives ? 'on' : 'off'})`, { subject: campaign.subject || (campaign.copy && campaign.copy.subject) });
-      rec('smart-review', !!review, review ? `score ${review.score} · ${review.pass ? 'PASS' : 'RETRY-EXHAUSTED'}` : 'n/a', review);
-    }
-  } else {
-    rec('content+asset', false, 'no calendar entry to build');
+        built = await plan.buildCampaign(entry, config, { withCreatives });
+      } catch (e) { buildError = String((e && e.message) || e); built = null; break; }
+      entryReview = await reviewStage(built, tier);
+      if (entryReview.pass) break;
+      entry.regenerate_counter = (entry.regenerate_counter || 0) + 1;   // diverge on retry
+      // Retry only while there is budget left; a score-gated retry that runs
+      // the clock out costs every LATER day its asset.
+    } while (attempt <= maxRetries && Date.now() < assetDeadline);
+
+    if (!built) continue;
+    campaigns.push({
+      date: entry.date || null,
+      market: entry.market || market,
+      cohort: entry.cohort || entry.segment || null,
+      theme: entry.theme || null,
+      subject: built.subject || (built.copy && built.copy.subject) || null,
+      score: entryReview ? entryReview.score : null,
+      passed: entryReview ? !!entryReview.pass : null,
+      campaign: built,
+    });
+    reviews.push(entryReview);
+    if (!review) review = entryReview;                 // first review, for the existing field
   }
+
+  const remaining = inWindow.length - campaigns.length;
+  if (campaigns.length) {
+    rec('content+asset', true,
+      `built ${campaigns.length} of ${inWindow.length} campaign(s) across ${windowDays} day(s), creatives ${withCreatives ? 'on' : 'off'}`
+      + (remaining > 0 ? ` — ${remaining} still to build, queued for the background prebuild` : ''),
+      { days: windowDays, built: campaigns.length, planned: inWindow.length, remaining, dates: campaigns.map((c) => c.date) });
+    rec('smart-review', true,
+      `${reviews.filter((r) => r && r.pass).length} of ${reviews.length} passed the score gate`,
+      { scores: reviews.map((r) => (r ? r.score : null)) });
+  } else {
+    rec('content+asset', false,
+      inWindow.length
+        ? `no campaign could be built${buildError ? `: ${buildError}` : ''}`
+        : `the plan has no entry inside the next ${windowDays} day(s), so there was nothing to build`);
+  }
+
+  // Backward compatible: callers that read `campaign` still get the first one.
+  const campaign = campaigns.length ? campaigns[0].campaign : null;
 
   // 8. IDEATION (net-new stage)
   const ideation = await ideate({ analysis, calendar, review: review || {}, market, tier });
   rec('ideation', true, `${ideation.ideas.length} next-actions`, { ideas: ideation.ideas.map((i) => i.title) });
 
-  return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', tier, market, stages, strategy, scenarios: scenarioSet, campaign, review, ideation };
+  return {
+    ok: true,
+    mode: db.connected ? 'db-linked' : 'local-fallback',
+    tier, market, stages, strategy, scenarios: scenarioSet,
+    // One entry per day the run actually produced assets for.
+    campaigns,
+    days_requested: windowDays,
+    days_planned: inWindow.length,
+    days_built: campaigns.length,
+    days_remaining: remaining,
+    // Kept so existing callers do not break.
+    campaign, review,
+    ideation,
+  };
 }
 
 module.exports = { runAgentic };
