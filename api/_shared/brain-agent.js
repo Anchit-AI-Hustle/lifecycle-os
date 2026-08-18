@@ -30,7 +30,7 @@ try { marketAnalytics = require('./market-analytics.js'); } catch (_) { marketAn
 const dataClass = require('./data-classification.js');
 // Customer-facing evidence + brand/confidentiality guardrails (ported from Knickgasm-Super-App).
 // Appended to the BUYER chat() persona only — never to teamChat() (internal analyst).
-const { EVIDENCE_RULES, BRAND_GUARDRAILS } = require('./evidence-policy.js');
+const { EVIDENCE_RULES, evidenceRules, BRAND_GUARDRAILS } = require('./evidence-policy.js');
 
 // Detect whether a message is asking for analytical/data figures rather than
 // product advice. Routing is keyword-based and conservative: a hit sends the
@@ -322,7 +322,7 @@ RULES — CLEAR AND TO-THE-POINT:
 - If asked something outside KNICKGASM products/sneaker/streetwear, say so briefly and steer back in one sentence.
 - COMPETITOR & PRICING POLICY: you only ever recommend KNICKGASM products (the catalog above), never a competitor. Do NOT quote, confirm, estimate, or look up another brand's prices, and never suggest or point the customer to a cheaper brand as the better deal. If a customer asks you to compare prices or name a cheaper option, do not give competitor figures; instead reframe the conversation onto VALUE and make KNICKGASM the most reasonable choice on what actually makes a pair worth it: what a hand-painted one-of-one actually costs, an original Nike/Jordan/Adidas base rather than a copy, a water & scratch resistant paint system, express worldwide shipping and the free gifts. Stay honest and on-brand: champion KNICKGASM's value in your own words, but never invent a competitor's number and never claim KNICKGASM is literally the cheapest if that is not something you can stand behind, sell the worth, not a false price.
 - Reply in the user's language if they switch (incl. Hindi/Hinglish). Stay spoken-friendly (this may be read aloud).
-- Write the way you speak: complete, flowing sentences only. NO markdown, headings, bullet or numbered lists, tables, asterisks, or emoji — if you name a few products, say them inside a sentence, never as a list.` + EVIDENCE_RULES + BRAND_GUARDRAILS;
+- Write the way you speak: complete, flowing sentences only. NO markdown, headings, bullet or numbered lists, tables, asterisks, or emoji — if you name a few products, say them inside a sentence, never as a list.` + evidenceRules(brand || null) + BRAND_GUARDRAILS;
 
   const convo = history.slice(-10).map((m) => `${m.role === 'user' ? 'Customer' : agent.name}: ${m.content}`).join('\n');
   const userMessage = `${convo ? convo + '\n' : ''}Customer: ${message}\n${agent.name}:`;

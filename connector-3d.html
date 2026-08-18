@@ -206,7 +206,10 @@
           (p.price?'<div class="price">'+esc(p.price)+'</div>':'')+
           '<p class="lede" style="margin:8px 0 0;">A single spatial checkout, stripped of the full store, so the path from tap to pair is short.</p>'+
           '<a class="cta" href="'+p.url+'" target="_blank" rel="noopener">Add to cart</a>'+
-          '<div class="proof">Rated 4.9 of 5 by 250,000 plus reviewers</div>'+
+          // A rating and a review count are facts, and neither is in this brand's
+          // approved claims. Proof renders from the brand's own record or not at all.
+          (function(){var c=((window.BrandContext&&BrandContext.brand&&BrandContext.brand.claims)||[])[0];
+            return c?'<div class="proof">'+String((c&&c.text)||c)+'</div>':'';})()+
         '</div></div>';
     }
 

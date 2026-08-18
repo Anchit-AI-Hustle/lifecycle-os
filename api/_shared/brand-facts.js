@@ -23,8 +23,19 @@
  *     "claims":  { "<sku>": [ "approved claim string" ] },
  *     "prices":  { "<sku>": "29.99" } }
  * A missing key = no approved data for that product (renderers omit the block).
- * The 4.9 / 250,000+ / Rohit Sharma brand proof bar is an APPROVED brand constant and
- * is NOT gated here — it lives in the renderers as a verified constant.
+ * CORRECTION (18 Aug 2026). This comment used to say the 4.9 / 250,000+ /
+ * named-celebrity proof bar was "an APPROVED brand constant ... NOT gated
+ * here", living in the renderers as a verified constant. It was not approved,
+ * and that sentence is what licensed it to spread: the brand record
+ * (data/brands/_default.json) lists exactly six claims, and a rating, a review
+ * count, a Judge.me verification, a B Corp certification and a named
+ * endorsement are none of them. CLAUDE.md says it plainly - never assert
+ * anything else as fact.
+ *
+ * There is no such thing as a proof constant that lives outside the brand
+ * record. If a claim is true and approved, it belongs in the record, where one
+ * edit reaches every surface and leaves an audit trail. Anything else renders
+ * as a DATA REQUIRED marker.
  * ---------------------------------------------------------------------------
  */
 const fs = require('fs');
