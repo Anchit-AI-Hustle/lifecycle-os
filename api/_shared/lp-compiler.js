@@ -540,7 +540,7 @@ function compileHTML(theme, variant, baseOrigin) {
 
           <div class="card p-8 bg-chalk max-w-xl mx-auto mb-12">
             <h3 class="font-serif text-xl font-bold text-brand mb-2">Our Quality Standard</h3>
-            <p class="text-xs text-gray-600 leading-relaxed font-sans">100% original branded base sneakers • Hand-painted by India's best sneaker artists • Water and scratch resistant finish • Made to order in 10 to 15 days • Express shipping to 60+ countries • Worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.</p>
+            <p class="text-xs text-gray-600 leading-relaxed font-sans">100% original branded base sneakers • Hand-painted by India's best sneaker artists • Water and scratch resistant finish • Made to order in 10 to 15 days • Express shipping to 60+ countries.</p>
           </div>
 
           <a href="${cartFlowUrl}" class="btn btn-primary px-12 py-4 uppercase tracking-wider inline-block block font-bold text-sm">Start Your One-Of-One</a>

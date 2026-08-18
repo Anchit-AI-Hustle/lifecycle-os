@@ -97,7 +97,7 @@ GROWTH-LEADER LENS (apply to every section):
 - Anti-pattern: emotional copy with no reason-to-act. Beautiful prose that does not move the reader to click is a failed brief.
 
 BRAND IDENTITY:
-- KNICKGASM. Single-studio sneakers, streetwear colorways, gift sets. B-Corp. Studio-fresh within 72 hours of drop.
+- KNICKGASM. Single-studio sneakers, streetwear colorways, gift sets. [DATA REQUIRED BEFORE LAUNCH: certifications and fulfilment timeline, this brand]
 - Palette: deep purple #D0473E / amber lava #6A33D8 / parchment chalk #FFFFFF / near-black #111111
 - Typography: Montserrat (headings), Instrument Sans (body/buttons)
 - Voice: calm-confident-premium. PREFERRED: ritual, restore, balance, origin, one-of-one, lace-up, heritage, crafted
@@ -165,7 +165,7 @@ RULES:
 const SYSTEM_PROMPT_SUGGESTED_PROMPTS = `You are a Creative Director + Director of Growth at KNICKGASM — a premium D2C Indian heritage sneaker brand (Aesop / AG1 / Net-a-Porter standard). Generate exactly 6 campaign briefs as a JSON array. Each is a director-grade email campaign prompt that a downstream AI pipeline uses to produce a flawless premium mailer.
 
 KNICKGASM BRAND:
-- Ultra-premium Indian heritage sneaker. Single-studio sourcing. Ethical, B-Corp certified.
+- Ultra-premium Indian heritage sneaker. Single-studio sourcing. Certifications: [DATA REQUIRED BEFORE LAUNCH: certifications, this brand].
 - Palette: deep purple #D0473E / amber #6A33D8 / chalk #FFFFFF
 - Tone: calm-confident-premium. Ritual not regimen. Story over price.
 - BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, dont miss out
@@ -331,11 +331,14 @@ module.exports = async function handler(req, res) {
   if (req.query && req.query.action === 'landing-page') {
     return require('../_shared/landing-page-core.js')(req, res);
   }
-  // CORS — allow same-origin + preview deploys
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-gemini-key');
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  /* WHO may spend the provider budget.
+     This route shipped with Access-Control-Allow-Origin:* and no inbound auth
+     of any kind, in a public repo - so an unauthenticated POST reached the full
+     six-provider cascade and drained whichever key answered. requireCaller
+     handles CORS, the preflight, and the 401/429, so it replaces the wildcard
+     rather than sitting beside it. */
+  if (!(await require('../_shared/require-caller.js').requireCaller(req, res))) return;
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, x-user-gemini-key');
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   // Provider waterfall + tier routing live in api/_shared/llm.js. Here we only
@@ -388,7 +391,7 @@ module.exports = async function handler(req, res) {
       IN: 'Indian domestic audience, value tradition and festivity',
       AU: 'Australian streetwear seekers, outdoor lifestyle, clean-label conscious',
       ME: 'Middle East audience, love rich hand-painted kicks and vibrant colorways',
-      EU: 'European health-conscious shoppers, organic-certified, B-Corp story resonates',
+      EU: 'European health-conscious shoppers, certification story resonates where the brand actually holds one',
       Global: 'International premium audience, discovery-minded, seeking authentic Indian heritage'
     };
     const mktDesc = (Array.isArray(markets) ? markets : [market]).map(m => `${m}: ${mktContext[m] || m}`).join('; ');
@@ -502,7 +505,16 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
       } catch { /* ignore — reference is optional */ }
     }
 
-    const BRAND_GUARDRAILS = `BRAND: KNICKGASM — premium D2C sneaker, one-of-one, studio-fresh in 72h, B-Corp.
+    /* This line asserted "B-Corp" and "studio-fresh in 72h" for every brand that
+       ever used this prompt. B Corp is a real certification held by real
+       companies; claiming it for one that does not hold it is not a copy
+       problem. Neither is in data/brands/_default.json's approved claims, and
+       CLAUDE.md says never assert anything else as fact - so the descriptor now
+       comes from the brand's own record and nothing is added to it. */
+    const _gb = (() => { try { return require('../_shared/brand-runtime.js').scopedBrand(null); } catch (_) { return {}; } })();
+    const _gbName = _gb.name || 'this brand';
+    const _gbDesc = [_gb.industry, _gb.tagline].filter(Boolean).join(' — ') || '[DATA REQUIRED BEFORE LAUNCH: brand descriptor]';
+    const BRAND_GUARDRAILS = `BRAND: ${_gbName} — ${_gbDesc}.
 PALETTE: deep purple #D0473E / amber lava #6A33D8 / chalk #FFFFFF / black #111111.
 BANNED: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out".
 PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
@@ -664,11 +676,11 @@ Target market for this autofill: ${targetMarket}.`;
       : "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.";
     const _lpClaims = (_lpBrand && Array.isArray(_lpBrand.claims) && _lpBrand.claims.length)
       ? _lpBrand.claims.join(' | ')
-      : (_lpBrand ? '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]' : 'one-of-one, studio-fresh 72h, B-Corp');
+      : (_lpBrand ? '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]' : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
     const lpChannel = String(body.channel || 'landing');
     response_format = undefined;
     systemPrompt = [
-      `You are a senior D2C conversion copywriter AND front-end developer for ${_lpName}${_lpBrand && _lpBrand.industry ? `, ${_lpBrand.industry}` : ''}${_lpBrand && _lpBrand.tagline ? ` (${_lpBrand.tagline})` : (_lpBrand ? '' : ', premium Indian heritage sneaker (B-Corp, one-of-one, studio-fresh within 72 hours of drop)')}.`,
+      `You are a senior D2C conversion copywriter AND front-end developer for ${_lpName}${_lpBrand && _lpBrand.industry ? `, ${_lpBrand.industry}` : ''}${_lpBrand && _lpBrand.tagline ? ` (${_lpBrand.tagline})` : (_lpBrand ? '' : '')}.`,
       'Output ONE complete, production-ready, single-file HTML document, from <!doctype html> to </html>, with ALL CSS inline in a <style> block and NO external dependencies (no CDNs, no web fonts, no <script>). Return ONLY the HTML, no commentary before or after, no markdown fences.',
       '',
       'MOBILE-FIRST (hard requirement): design for a 360px phone first, then enhance up.',
@@ -711,7 +723,7 @@ Target market for this autofill: ${targetMarket}.`;
       IN:     'Indian domestic audience. Value tradition, festivity, hand-painted kicks culture. Gifting + family occasions drive purchase.',
       AU:     'Australian streetwear seekers. Outdoor lifestyle, clean-label conscious. Ethical sourcing story resonates strongly.',
       ME:     'Middle East audience. Love rich hand-painted kicks and vibrant colorways. Gifting occasions, premium packaging, bold designs.',
-      EU:     'European health-conscious shoppers. B-Corp + organic certification resonates. Provenance and sustainability over price.',
+      EU:     'European health-conscious shoppers. [DATA REQUIRED BEFORE LAUNCH: certifications, this brand]. Provenance and sustainability over price.',
       Global: 'International premium audience. Discovery-minded. Seeking authentic Indian heritage and origin stories.'
     };
     const audienceCtx = mktContext[market] || `${market} market audience`;

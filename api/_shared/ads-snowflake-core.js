@@ -270,7 +270,8 @@ function describeAccount(s) {
 
 function srcWhere(s, since, until) {
   const parts = [];
-  if (since && until) parts.push(`${s.cols.date.sql} between '${since}' and '${until}'`);
+  const a = isoDate(since), b = isoDate(until);
+  if (a && b) parts.push(`${s.cols.date.sql} between '${a}' and '${b}'`);
   if (s.filter) parts.push(s.filter);
   return parts.length ? ` where ${parts.join(' and ')}` : '';
 }
@@ -585,13 +586,40 @@ async function describe({ platform = 'meta', level, table: tblOverride } = {}) {
   };
 }
 
+/**
+ * A date, or nothing at all.
+ *
+ * `since` and `until` arrive from req.query on ?action=ads-snowflake, which
+ * carries no cron guard, and were interpolated straight into SQL:
+ *
+ *     ` and ${quoteIdent(col)} between '${since}' and '${until}'`
+ *
+ * so `2026-01-01' or '1'='1` - or a closing quote followed by anything - became
+ * part of the statement against the warehouse. The neighbouring accountFilter
+ * already strips quotes, which is what marks this as an oversight rather than a
+ * decision.
+ *
+ * Strict ISO-8601 calendar dates only, and a value that is not one is DROPPED
+ * rather than repaired: a "cleaned" date is a different query than the caller
+ * asked for, returning numbers they did not request and cannot audit.
+ */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+function isoDate(v) {
+  const t = String(v == null ? '' : v).trim();
+  if (!ISO_DATE.test(t)) return '';
+  // Reject impossible calendar dates (2026-02-31) that pass the shape test.
+  const d = new Date(t + 'T00:00:00Z');
+  return (d instanceof Date && !isNaN(d) && d.toISOString().slice(0, 10) === t) ? t : '';
+}
+
 function accountFilter(col, account) {
   if (!account || !col) return '';
   return ` and lower(${quoteIdent(col)}) like '%${String(account).toLowerCase().replace(/'/g, '')}%'`;
 }
 function dateFilter(col, since, until) {
-  if (!col || !since || !until) return '';
-  return ` and ${quoteIdent(col)} between '${since}' and '${until}'`;
+  const a = isoDate(since), b = isoDate(until);
+  if (!col || !a || !b) return '';
+  return ` and ${quoteIdent(col)} between '${a}' and '${b}'`;
 }
 
 // Recent rows (all available metrics) for a platform, optionally filtered by a
@@ -723,6 +751,8 @@ async function ping() {
 }
 
 module.exports = {
+  isoDate,   // exported so tests can drive the real validator
+
   status, ping, describe, metrics, cohort, budgets, runStatement,
   isConfigured, PLATFORMS, DIMENSION_CANDIDATES, sources, tableEnvNames,
   adSources, hasSources, noSources, describeAccount, accounts, multiDaily, campaigns,
