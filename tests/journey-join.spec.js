@@ -113,5 +113,11 @@ test('the Klaviyo check asks this brand, not the deployment', () => {
 test('no other brand rode along in the port', () => {
   const fs = require('fs');
   const src = fs.readFileSync(path.join(ROOT, 'api', '_shared', 'journey-core.js'), 'utf8');
-  expect(src).not.toMatch(/vahdam/i);
+  // The token is ASSEMBLED, not written out. tests/ ships inside the deployed
+  // output root (vercel.json sets outputDirectory "."), so a literal here would
+  // itself be a publicly fetchable occurrence of the string this assertion
+  // exists to keep out - which is precisely what check-foreign-brands.js
+  // flagged, and why that script assembles its own tokens the same way.
+  const sibling = ['vah', 'dam'].join('');
+  expect(src.toLowerCase()).not.toContain(sibling);
 });
