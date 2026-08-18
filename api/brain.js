@@ -967,6 +967,54 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
       }
 
       // ── LIFECYCLE OS BACKBONE (connectors / jobs / activity / dashboard) ──
+      case 'domain': {
+        // Suggest, verify and assess a sending domain. ?op=suggest|check|readiness
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const di = require('./_shared/domain-intel.js');
+        const op = String(req.query.op || b.op || 'suggest').toLowerCase();
+
+        if (op === 'check') {
+          const list = Array.isArray(b.domains) ? b.domains : String(req.query.domains || b.domain || '').split(',').map((x) => x.trim()).filter(Boolean);
+          return res.json(await di.checkMany(list, { limit: 12 }));
+        }
+        if (op === 'readiness') {
+          return res.json(await di.sendingReadiness(String(req.query.domain || b.domain || '')));
+        }
+
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+        const tlds = String(req.query.tlds || b.tlds || 'com').split(',').map((x) => x.trim()).filter(Boolean);
+        return res.json(di.suggest(brand, { tlds, count: Number(req.query.count || b.count) || 12 }));
+      }
+
+      case 'logo': {
+        // Build the brief from the brand record. Generation itself goes through
+        // the existing image cascade on /api/ai/image, which is where the
+        // credit metering and the provider waterfall already live.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+        const brief = require('./_shared/logo-brief.js').logoBrief(brand, {
+          style: req.query.style || b.style || 'mark',
+          notes: req.query.notes || b.notes || '',
+        });
+        return res.status(brief.ok ? 200 : 409).json(brief);
+      }
+
       case 'daily-calendar': {
         // One row per DAY across past, today and future: what was planned,
         // which assets exist for it, and what was measured.
