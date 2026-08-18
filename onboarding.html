@@ -244,6 +244,9 @@
     'Manrope','Work Sans','Source Serif 4','Fraunces','Poppins','Nunito','Karla','Libre Baskerville','IBM Plex Sans','Outfit','Bricolage Grotesque'];
 
   var step = 1, paletteCheck = null, workspaces = [], catalogCount = null, busy = false;
+  // Set by go(). Boot restores a saved step asynchronously, and must not do it
+  // once the operator has moved somewhere themselves.
+  var __navigated = false;
   /* The last "read my site" report. Held in memory only: it is a set of
      CANDIDATES, and a candidate becomes part of the brand exactly when the
      operator presses Use, never before. */
@@ -392,12 +395,32 @@
 
   /* ── step rendering ─────────────────────────────────────────────────── */
 
+  /* The pips are BUILT once and afterwards only re-styled. They used to be
+     rewritten wholesale on every render(), which destroyed and recreated the
+     six buttons a user is aiming at - so a click that landed while any async
+     work triggered a re-render hit a node that had just been detached. That is
+     also needless churn on the one page whose reported bug was churn. Same
+     "only write on change" rule as the observer in brand-context.js. */
   function renderSteps() {
-    $('steps').innerHTML = STEPS.map(function (s) {
-      return '<button type="button" class="step-pip ' + (s.n === step ? 'on' : (s.n < step ? 'done' : '')) + '" data-step="' + s.n + '">' + s.n + '. ' + esc(s.label) + '</button>';
-    }).join('');
-    Array.prototype.forEach.call($('steps').querySelectorAll('.step-pip'), function (b) {
-      b.addEventListener('click', function () { go(+b.dataset.step); });
+    var host = $('steps');
+    if (host.childElementCount !== STEPS.length) {
+      host.innerHTML = STEPS.map(function (s) {
+        return '<button type="button" class="step-pip" data-step="' + s.n + '">' + s.n + '. ' + esc(s.label) + '</button>';
+      }).join('');
+      // Delegated, so the handler survives any future rebuild and is never
+      // bound twice to the same button.
+      if (!host.__wired) {
+        host.__wired = true;
+        host.addEventListener('click', function (ev) {
+          var b = ev.target.closest ? ev.target.closest('.step-pip') : null;
+          if (b && host.contains(b)) go(+b.dataset.step);
+        });
+      }
+    }
+    Array.prototype.forEach.call(host.querySelectorAll('.step-pip'), function (b) {
+      var n = +b.dataset.step;
+      var cls = 'step-pip' + (n === step ? ' on' : (n < step ? ' done' : ''));
+      if (b.className !== cls) b.className = cls;
     });
   }
 
@@ -1455,6 +1478,10 @@
   }
 
   function go(n) {
+    // Records that the wizard has been navigated at all, so the async brand
+    // read in boot() cannot restore a saved step on top of one the operator
+    // chose in the meantime. See the restore in boot().
+    __navigated = true;
     step = Math.max(1, Math.min(STEPS.length, n));
     // Leaving review clears the once-per-visit pack guard, so coming back
     // re-reads it rather than showing a stale pack forever.
@@ -1497,7 +1524,13 @@
           var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);
           $('title').textContent = 'Edit ' + brand.name;
           $('lede').textContent = 'Update this brand. Changes apply across the whole app the moment you save.';
-          go(s);
+          // The brand read is async and the operator can be three steps in by
+          // the time it lands. Restoring the saved step unconditionally threw
+          // them back to it mid-edit, and if the jump landed on a click it
+          // re-rendered the step row under the cursor - which is exactly how
+          // this surfaced: a pip click failing as "element is not visible" on
+          // a pip that was plainly there. Restore only if nobody has moved.
+          if (__navigated) render(); else go(s);
           return;
         }
       }
