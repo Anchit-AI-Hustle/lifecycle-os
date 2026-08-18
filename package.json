@@ -46,7 +46,8 @@
     "check:skills": "node scripts/check-skills.js",
     "check:skills:ci": "node scripts/check-skills.js --fail",
     "check:security": "npx playwright test tests/security-endpoints.spec.js --project=desktop-1280 --reporter=line",
-    "check:claims": "npx playwright test tests/claims-approved.spec.js --project=desktop-1280 --reporter=line"
+    "check:claims": "npx playwright test tests/claims-approved.spec.js --project=desktop-1280 --reporter=line",
+    "test:publishing": "playwright test tests/dispatch-engine.spec.js tests/deliverability-cohorts.spec.js tests/oauth-adapters.spec.js"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",

@@ -305,6 +305,7 @@
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
       { id: 'connections',   label: 'Connections & AI Models', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/ai-models', '/models', '/brand-connections.html'] },
       { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
+      { id: 'publishing',    label: 'Publishing & Deliverability', href: '/publishing', icon: 'insights', ver: 'v2', match: ['/publishing', '/publisher', '/deliverability', '/publishing.html'] },
     ]},
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
       { id: 'research',        label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
@@ -487,6 +488,22 @@
   const INFO = {
     // Home is a plain landing link, not a content-producing feature, so it
     // deliberately has NO 5-sub-item IA entry — it renders as a simple link.
+    publishing: {
+      title: 'Publishing & Deliverability',
+      what: "The half of the platform that SENDS. Everything else here creates an asset; this maps one onto the platforms a brand has connected, checks whether sending it is safe, and dispatches it. It also holds the deliverability engine: SPF, DKIM, DMARC, MX and BIMI parsed rather than merely counted, blocklist lookups, a warmup ramp with automatic throttles, and a spam analysis of the specific message about to go out.",
+      who: "The owner or an editor of the active brand workspace. Live publishing is a second, deliberate switch on top of storing a credential, because storing a key is permission to read and sending as somebody's brand is not the same decision.",
+      how: "One pipeline. An asset is mapped by a platform adapter into that platform's own payload; the preflight gate scores domain authentication, warmup caps, segment health, the cross-channel frequency cap and content spam signals, returning pass, warn or block; a passing job joins a queue that leases each job, retries with exponential backoff and jitter, honours a platform's own Retry-After and cannot double-post because a unique idempotency key covers the intent. A block can be overridden, and the override is recorded against the person who made it with their reason.",
+      input: "The asset (copy, HTML, images, headlines), the channels to send it to, a dispatch mode of publish now, schedule or export as draft, and the sending domain. A check that could not be performed is reported as a warning, never as a pass.",
+      steps: [
+        ['Ideology', 'A send that reaches a spam folder is not a send, so the deliverability gate belongs in front of the dispatcher rather than beside it.'],
+        ['Data analysis + review + hypothesis', 'Resolves DNS for the sending domain, scores the audience by recency, frequency and monetary value against the brand\'s own distribution, and estimates bounce risk from addresses that already hard bounced.'],
+        ['Business & strategy decisions', 'Matches message priority to engagement tier and applies the promotional cap of 2 touches per rolling 7 days from the campaign spec, counted ACROSS email, SMS and push rather than per channel.'],
+        ['Content', 'Analyses the specific message for spam signals, image to text ratio, link quality and a missing unsubscribe, which is a legal exposure rather than a matter of taste.'],
+        ['Design + layout + structure', 'The score dial, the DNS checklist and the warmup ramp render from brand tokens like every other surface.'],
+        ['Coding', 'Adapters implement one contract in api/_shared/adapters/; the queue converges on the job row and re-fires itself, because this deployment has nowhere to run a worker process. Mounted on the existing brain and public-config routers, so no thirteenth serverless function.'],
+        ['Final compilation + presentation', 'Every attempt, its error class and its backoff are recorded, and the platform\'s own callbacks reconcile the result. Runs via: /api/brain?action=dispatch-enqueue'],
+      ],
+    },
     connections: {
       title: 'Connections & AI Models',
       what: "The place a brand brings its own accounts. Two things live here: the platforms this brand runs on (commerce, ad platforms, lifecycle and mailer tools) and the AI providers whose models write its work. A key entered here is encrypted inside the server, is never returned to the browser and is never written to a log, so the page can only ever show you its last four characters.",

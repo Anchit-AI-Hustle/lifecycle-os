@@ -231,6 +231,18 @@
   ],
   "rewrites": [
     {
+      "source": "/publisher",
+      "destination": "/publishing.html"
+    },
+    {
+      "source": "/deliverability",
+      "destination": "/publishing.html"
+    },
+    {
+      "source": "/publishing",
+      "destination": "/publishing.html"
+    },
+    {
       "source": "/onboarding",
       "destination": "/onboarding.html"
     },
