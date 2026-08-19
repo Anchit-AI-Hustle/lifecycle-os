@@ -221,6 +221,67 @@ const NEUTRAL_TYPOGRAPHY = {
 
 const marker = (field, name) => `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${name}]`;
 
+/* ── placeholder catalogue ────────────────────────────────────────────────
+   A template preset has no catalogue until its site is harvested, and an empty
+   catalogue makes the preset impossible to DEMO: every generated asset comes
+   out image-free with a marker where the product should be.
+
+   So each one carries a placeholder catalogue shaped by its sector: how many
+   lines that kind of business runs, and what the line names look like. It
+   exists to exercise the layouts.
+
+   THREE THINGS IT DELIBERATELY IS NOT:
+
+   1. NOT the brand's real products. The names are generic by construction
+      ("Running Shoe 01"), never a real model name. A plausible-looking real
+      product name is the failure here: an operator would believe it.
+   2. NOT priced. A price is a fact about a brand, and inventing one is exactly
+      what this repo refuses everywhere else. `price` is null and the renderers
+      already handle a price-free product.
+   3. NOT illustrated. There are no image URLs because we have none until the
+      harvest runs, so assets render image-free with a marker rather than
+      borrowing a photograph from anywhere.
+
+   Every row carries `placeholder: true`, and `catalog_source.kind` is
+   `placeholder`, so no caller can mistake this for a real catalogue without
+   ignoring a field present on every single row. */
+const SECTOR_LINES = {
+  Sportswear: { lines: ['Running Shoe', 'Training Shoe', 'Lifestyle Sneaker', 'Track Jacket', 'Performance Tee'], per: 3 },
+  'Fashion retail': { lines: ['Denim Jacket', 'Knit Sweater', 'Oxford Shirt', 'Chino Trouser', 'Wool Coat'], per: 4 },
+  Marketplace: { lines: ['Category Bundle', 'Seasonal Edit', 'Everyday Essential', 'Member Offer'], per: 5 },
+  Beauty: { lines: ['Cleanser', 'Serum', 'Moisturiser', 'Lip Colour', 'Sunscreen'], per: 4 },
+  'Consumer electronics': { lines: ['Wireless Earbud', 'Smart Watch', 'Portable Speaker', 'Charging Dock'], per: 2 },
+  'Consumer technology': { lines: ['Handset', 'Tablet', 'Laptop', 'Wearable'], per: 2 },
+  Software: { lines: ['Starter Plan', 'Team Plan', 'Business Plan', 'Enterprise Plan'], per: 1 },
+  Automotive: { lines: ['Compact Model', 'Saloon Model', 'SUV Model', 'Electric Model'], per: 1 },
+  'Food and beverage': { lines: ['Signature Blend', 'Seasonal Drink', 'Bakery Item', 'Bundle Pack'], per: 3 },
+  Streaming: { lines: ['Monthly Plan', 'Annual Plan', 'Family Plan'], per: 1 },
+  Travel: { lines: ['City Break', 'Long Haul Fare', 'Stay Package', 'Loyalty Tier'], per: 2 },
+  Fintech: { lines: ['Payments Plan', 'Payouts Plan', 'Checkout Product', 'Reporting Add-on'], per: 1 },
+  Telecom: { lines: ['Prepaid Plan', 'Postpaid Plan', 'Data Add-on', 'Broadband Plan'], per: 2 },
+  Eyewear: { lines: ['Optical Frame', 'Sunglass Frame', 'Reading Glass', 'Contact Lens'], per: 4 },
+};
+
+function placeholderCatalogue(t) {
+  const spec = SECTOR_LINES[t.sector] || { lines: ['Product Line'], per: 3 };
+  const rows = [];
+  for (const line of spec.lines) {
+    for (let i = 1; i <= spec.per; i++) {
+      rows.push({
+        title: `${line} ${String(i).padStart(2, '0')}`,
+        handle: `${line.toLowerCase().replace(/\s+/g, '-')}-${String(i).padStart(2, '0')}`,
+        product_type: line,
+        // Null on purpose. See rule 2 above.
+        price: null, compare_at: null, currency: '',
+        // Empty on purpose. See rule 3 above.
+        image_url: '', product_url: '',
+        placeholder: true,
+      });
+    }
+  }
+  return rows;
+}
+
 function template(t) {
   return {
     slug: t.slug, name: t.name, tagline: '', industry: t.industry, website: t.website,
@@ -247,7 +308,12 @@ function template(t) {
     claims: [marker('verifiable claims', t.name)],
     regions: [],
     asset_hosts: [t.host],
-    catalog_source: { kind: 'none', offering_kinds: t.offering_kinds || ['product'], note: 'No catalogue is bundled. Import from the site or connect a store before generating product-level assets.' },
+    catalog_source: {
+      kind: 'placeholder',
+      offering_kinds: t.offering_kinds || ['product'],
+      note: 'This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand\'s own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store.',
+    },
+    catalog_placeholder: placeholderCatalogue(t),
     offerings: [],
     data_gaps: [
       marker('brand palette', t.name), marker('typography', t.name),
@@ -320,7 +386,9 @@ const index = PRESETS.map((p) => ({
   needs_extraction: !!p.preset.needs_extraction,
   swatch: [p.palette.primary, p.palette.accent, p.palette.ink, p.palette.surface],
   heading_font: p.typography.heading.family, body_font: p.typography.body.family,
-  has_catalog: p.catalog_source && p.catalog_source.kind !== 'none',
+  has_catalog: !!(p.catalog_source && p.catalog_source.kind !== 'none' && p.catalog_source.kind !== 'placeholder'),
+  catalog_kind: (p.catalog_source && p.catalog_source.kind) || 'none',
+  placeholder_products: (p.catalog_placeholder || []).length,
   offering_kinds: (p.catalog_source && p.catalog_source.offering_kinds) || ['product'],
   offering_count: (p.offerings || []).length,
 }));
