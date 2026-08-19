@@ -824,6 +824,23 @@ function brandSystem(brand) {
   if (Array.isArray(v.banned) && v.banned.length) lines.push(`NEVER use: ${v.banned.map((x) => `"${x}"`).join(', ')}.`);
   lines.push('Never invent product facts, prices, URLs, ratings, reviews or statistics; a missing fact is written as [DATA REQUIRED BEFORE LAUNCH: field].');
   lines.push(D2C_KNOWLEDGE);
+
+  // Brief the writer with the SAME rules the validator will apply afterwards.
+  // These used to be two different things: asset-specs.js went into a prompt as
+  // prose, and nothing checked the result, so an over-long Google headline was
+  // found by Google. One source, stated to the writer and enforced on the
+  // artefact - and each asset type is briefed on its own medium rather than all
+  // of them sharing one set of instructions.
+  try {
+    const contracts = require('./asset-contracts.js');
+    lines.push(
+      'EACH ASSET IS BUILT TO ITS OWN CONTRACT. These are not style preferences: they are what the',
+      'medium does to copy that ignores them, and the finished asset is checked against them.',
+      ...['email.mailer', 'ad.meta.static', 'ad.google.rsa', 'ad.tiktok.video', 'landing.page']
+        .map((id) => contracts.brief(id)),
+    );
+  } catch (_) { /* the copywriter still works without the briefs */ }
+
   lines.push('Return STRICT JSON only, no markdown fences.');
   return lines.join('\n');
 }
@@ -1794,6 +1811,46 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
   return campaign;
 }
 
+/**
+ * Judge every finished asset against the contract for ITS OWN type.
+ *
+ * asset-specs.js has always held the real limits, and exactly one file read it:
+ * master-prompt.js, which pastes it into a prompt. So the rules reached the
+ * model as a suggestion and nothing ever checked the artefact that came back. A
+ * Google headline three characters over the limit was discovered by Google.
+ *
+ * This runs AFTER the assets are built, attaches the verdict to each one, and
+ * summarises on the campaign. It does not mutate copy: silently truncating to
+ * fit is how a sentence becomes a fragment nobody wrote. The operator sees what
+ * is wrong and with which rule.
+ */
+function checkAssetContracts(campaign) {
+  const contracts = require('./asset-contracts.js');
+  const summary = { checked: 0, blocking: 0, warnings: 0, by_contract: {}, violations: [] };
+
+  const judge = (asset, label) => {
+    if (!asset) return;
+    const verdict = contracts.check(asset);
+    asset.contract_check = verdict;
+    if (!verdict.contract) return;             // nothing governs this type yet
+    summary.checked += 1;
+    summary.by_contract[verdict.contract] = (summary.by_contract[verdict.contract] || 0) + 1;
+    for (const v of verdict.violations) {
+      if (v.level === 'block') summary.blocking += 1; else summary.warnings += 1;
+      summary.violations.push({ asset: label, contract: verdict.contract, ...v });
+    }
+  };
+
+  judge(campaign.assets && campaign.assets.email, 'email');
+  ((campaign.assets && campaign.assets.ads) || []).forEach((ad, i) =>
+    judge(ad, `ad:${ad.platform}:${ad.creative_type || 'static'}:${ad.variant || 'A'}#${i}`));
+  ((campaign.assets && campaign.assets.landing_pages) || []).forEach((lp, i) =>
+    judge(lp, `landing:${lp.variant || 'A'}#${i}`));
+
+  campaign.contract_check = summary;
+  return summary;
+}
+
 // ── Master prompts (portable, copy-anywhere) ────────────────────────────────
 // Attach a self-contained master_prompt to every generated asset so a human can
 // reproduce/upgrade it in a blank ChatGPT/Claude/Gemini session.
@@ -2106,6 +2163,8 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   attachMasterPrompts(campaign, entry);
   reportCatalogGaps(campaign, entry, trace);
   reportProofGap(campaign, entry, trace);
+  // Last, because it judges the FINISHED artefacts rather than the plan.
+  checkAssetContracts(campaign);
   return campaign;
 }
 
