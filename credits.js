@@ -424,6 +424,12 @@
     get packs() { return state.packs; },
     get loaded() { return state.loaded; },
     get configured() { return state.configured; },
+    // Whether THIS account recharges free, as the server decided it from the
+    // verified session email. Exposed so a page can say so instead of telling a
+    // complimentary account that an operator must confirm a recharge that has
+    // already completed. The list of accounts is never sent to the browser —
+    // only this boolean about the current one.
+    get comp() { return !!state.comp; },
     cost: cost, costText: costText, chip: chipFor, decorate: decorate,
     guard: guard, refresh: refresh, applyReceipt: applyReceipt, openRecharge: openRecharge,
     api: api,
