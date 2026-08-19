@@ -55,13 +55,235 @@
     "sephora.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product",
       "plan"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Cleanser 01",
+      "handle": "cleanser-01",
+      "product_type": "Cleanser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Cleanser 02",
+      "handle": "cleanser-02",
+      "product_type": "Cleanser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Cleanser 03",
+      "handle": "cleanser-03",
+      "product_type": "Cleanser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Cleanser 04",
+      "handle": "cleanser-04",
+      "product_type": "Cleanser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Serum 01",
+      "handle": "serum-01",
+      "product_type": "Serum",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Serum 02",
+      "handle": "serum-02",
+      "product_type": "Serum",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Serum 03",
+      "handle": "serum-03",
+      "product_type": "Serum",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Serum 04",
+      "handle": "serum-04",
+      "product_type": "Serum",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Moisturiser 01",
+      "handle": "moisturiser-01",
+      "product_type": "Moisturiser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Moisturiser 02",
+      "handle": "moisturiser-02",
+      "product_type": "Moisturiser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Moisturiser 03",
+      "handle": "moisturiser-03",
+      "product_type": "Moisturiser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Moisturiser 04",
+      "handle": "moisturiser-04",
+      "product_type": "Moisturiser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lip Colour 01",
+      "handle": "lip-colour-01",
+      "product_type": "Lip Colour",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lip Colour 02",
+      "handle": "lip-colour-02",
+      "product_type": "Lip Colour",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lip Colour 03",
+      "handle": "lip-colour-03",
+      "product_type": "Lip Colour",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lip Colour 04",
+      "handle": "lip-colour-04",
+      "product_type": "Lip Colour",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunscreen 01",
+      "handle": "sunscreen-01",
+      "product_type": "Sunscreen",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunscreen 02",
+      "handle": "sunscreen-02",
+      "product_type": "Sunscreen",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunscreen 03",
+      "handle": "sunscreen-03",
+      "product_type": "Sunscreen",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunscreen 04",
+      "handle": "sunscreen-04",
+      "product_type": "Sunscreen",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Sephora]",

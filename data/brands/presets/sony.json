@@ -55,12 +55,102 @@
     "sony.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Handset 01",
+      "handle": "handset-01",
+      "product_type": "Handset",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Handset 02",
+      "handle": "handset-02",
+      "product_type": "Handset",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Tablet 01",
+      "handle": "tablet-01",
+      "product_type": "Tablet",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Tablet 02",
+      "handle": "tablet-02",
+      "product_type": "Tablet",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Laptop 01",
+      "handle": "laptop-01",
+      "product_type": "Laptop",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Laptop 02",
+      "handle": "laptop-02",
+      "product_type": "Laptop",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Wearable 01",
+      "handle": "wearable-01",
+      "product_type": "Wearable",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Wearable 02",
+      "handle": "wearable-02",
+      "product_type": "Wearable",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Sony]",

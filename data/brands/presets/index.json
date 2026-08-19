@@ -26,6 +26,8 @@
       "heading_font": "Montserrat",
       "body_font": "Instrument Sans",
       "has_catalog": true,
+      "catalog_kind": "shopify_public",
+      "placeholder_products": 0,
       "offering_kinds": [
         "product",
         "service"
@@ -55,6 +57,8 @@
       "heading_font": "Montserrat",
       "body_font": "Faustina",
       "has_catalog": true,
+      "catalog_kind": "manual",
+      "placeholder_products": 0,
       "offering_kinds": [
         "section",
         "plan",
@@ -85,6 +89,8 @@
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "has_catalog": true,
+      "catalog_kind": "manual",
+      "placeholder_products": 0,
       "offering_kinds": [
         "section",
         "plan",
@@ -115,6 +121,8 @@
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "has_catalog": true,
+      "catalog_kind": "manual",
+      "placeholder_products": 0,
       "offering_kinds": [
         "section",
         "programme",
@@ -145,6 +153,8 @@
       "heading_font": "SF Pro Display",
       "body_font": "SF Pro Text",
       "has_catalog": false,
+      "catalog_kind": "none",
+      "placeholder_products": 0,
       "offering_kinds": [
         "product",
         "service",
@@ -175,6 +185,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 15,
       "offering_kinds": [
         "product"
       ],
@@ -203,6 +215,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 15,
       "offering_kinds": [
         "product"
       ],
@@ -231,6 +245,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 15,
       "offering_kinds": [
         "product"
       ],
@@ -259,6 +275,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 15,
       "offering_kinds": [
         "product"
       ],
@@ -287,6 +305,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -315,6 +335,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -343,6 +365,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -371,6 +395,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -399,6 +425,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product",
         "plan"
@@ -428,6 +456,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product",
         "plan"
@@ -457,6 +487,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product",
         "plan"
@@ -486,6 +518,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -514,6 +548,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product",
         "plan"
@@ -543,6 +579,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -571,6 +609,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 20,
       "offering_kinds": [
         "product"
       ],
@@ -599,6 +639,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 8,
       "offering_kinds": [
         "product"
       ],
@@ -627,6 +669,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 16,
       "offering_kinds": [
         "product",
         "service"
@@ -656,6 +700,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 8,
       "offering_kinds": [
         "product"
       ],
@@ -684,6 +730,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "plan",
         "product"
@@ -713,6 +761,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 8,
       "offering_kinds": [
         "product"
       ],
@@ -741,6 +791,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "product",
         "service"
@@ -770,6 +822,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "product",
         "service"
@@ -799,6 +853,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "product",
         "service"
@@ -828,6 +884,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 12,
       "offering_kinds": [
         "product",
         "plan"
@@ -857,6 +915,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 12,
       "offering_kinds": [
         "product",
         "plan"
@@ -886,6 +946,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 12,
       "offering_kinds": [
         "product"
       ],
@@ -914,6 +976,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 12,
       "offering_kinds": [
         "product"
       ],
@@ -942,6 +1006,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 3,
       "offering_kinds": [
         "plan",
         "programme"
@@ -971,6 +1037,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 3,
       "offering_kinds": [
         "plan",
         "programme"
@@ -1000,6 +1068,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 8,
       "offering_kinds": [
         "service"
       ],
@@ -1028,6 +1098,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 8,
       "offering_kinds": [
         "service",
         "plan"
@@ -1057,6 +1129,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "plan",
         "service"
@@ -1086,6 +1160,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "plan",
         "service"
@@ -1115,6 +1191,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 4,
       "offering_kinds": [
         "service",
         "plan"
@@ -1144,6 +1222,8 @@
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 8,
       "offering_kinds": [
         "plan",
         "service"

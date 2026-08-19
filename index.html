@@ -49,6 +49,12 @@
   .brandline{font-size:13px;color:var(--soft);margin-top:14px}
   .brandline b{color:var(--ink)}
   code{background:var(--panel);padding:1px 6px;border-radius:5px;font-size:12.5px}
+  /* The problem statement. Reads before "What it does" on purpose: a feature
+     list answers "what is this" and never answers "why does it need to exist". */
+  .problem{border-left:3px solid var(--primary);padding:2px 0 2px 18px;margin:18px 0 8px}
+  .problem p{margin:0 0 12px;font-size:15.5px;line-height:1.65;color:var(--soft)}
+  .problem p strong{color:var(--ink)}
+  .problem .answer{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);color:var(--ink)}
   footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--soft)}
 </style>
 </head>
@@ -60,6 +66,25 @@
     typography drive every screen, its voice and rules govern every generated asset, and its own
     catalogue, cohorts and market study are the only data anyone sees.</p>
   <p class="brandline" id="brandline">Checking which brand is active&hellip;</p>
+
+  <h2>The problem this solves</h2>
+  <div class="problem">
+    <p><strong>Lifecycle marketing needs a constant stream of assets</strong> &mdash; mailers, ads and
+      landing pages, one per cohort per market per week &mdash; and every one has to be on-brand and
+      factually correct.</p>
+    <p><strong>Generative tools make the first half fast and the second half dangerous.</strong> Asked
+      for a mailer, they return a convincing one containing a price nobody set, a rating nobody earned,
+      a review nobody wrote and a claim nobody approved. It reads perfectly, which is exactly why it
+      ships. Run more than one brand and the same fluency quietly puts one brand's products, colours
+      and copy inside another brand's campaign.</p>
+    <p><strong>These are not typos.</strong> An invented rating is an advertising-standards exposure.
+      Another company's product claim under your name is worse. Both are discovered after the send,
+      by someone else.</p>
+    <p class="answer"><strong>So this platform is built the other way round:</strong> a fact it does not
+      have stays missing and says so, and one brand's data cannot reach another brand's workspace
+      &mdash; not as a policy someone has to follow, but because the code path does not exist. Every
+      claim on this page is enforced by a test or a gate, and the sections below name which.</p>
+  </div>
 
   <h2>What it does</h2>
   <div class="grid">

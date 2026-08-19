@@ -14,6 +14,9 @@
   .wrap{max-width:1280px;margin:0 auto}
   .top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
   .eyebrow{color:var(--brand-accent-text);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+  /* Reads before the first number, not after it. */
+  .problem-note{border-left:3px solid var(--primary,#D0473E);padding:2px 0 2px 14px;margin:12px 0 0;
+    font-size:13.5px;line-height:1.6;max-width:78ch}
   h1{font-family:Georgia,serif;font-size:38px;line-height:1.05;margin:8px 0 10px}
   p{color:#556059;line-height:1.55}
   .btn{border:0;border-radius:10px;background:var(--lava);color:var(--brand-on-accent,#fff);padding:12px 16px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block}
@@ -61,7 +64,15 @@
     <div>
       <div class="eyebrow">Lifecycle OS</div>
       <h1>Master Dashboard</h1>
-      <p>The single control plane for every action across the app, connector health, the Daily Intelligence Refresh, all generated work (campaigns, mailers, ads, landing pages, calendar slots), competitor and knowledge intelligence, agent runs, and recent activity from every feature. Every number is read from the database; blanks mean not yet connected or no data.</p>
+      <p>The single control plane for every action across the app, connector health, the Daily Intelligence Refresh, all generated work (campaigns, mailers, ads, landing pages, calendar slots), competitor and knowledge intelligence, agent runs, and recent activity from every feature.</p>
+      <!-- The problem, stated where the numbers are read. A dashboard's whole
+           job is to be trusted, so the reader is told up front what it will and
+           will not do rather than discovering it from a blank cell. -->
+      <p class="problem-note"><strong>What this page is for.</strong> A lifecycle programme fails quietly
+        in two ways: work that looks finished but was never approved, and numbers that look measured but
+        were filled in. So <strong>every figure here is read from the database</strong>, and anything
+        missing shows as a blank or a dash rather than a zero. A blank means not connected or no data
+        yet. It never means none.</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button type="button" class="btn" id="refresh-btn">Run Daily Intelligence Refresh</button>

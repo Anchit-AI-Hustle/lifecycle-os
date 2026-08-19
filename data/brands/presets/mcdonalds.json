@@ -55,13 +55,147 @@
     "mcdonalds.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product",
       "plan"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Signature Blend 01",
+      "handle": "signature-blend-01",
+      "product_type": "Signature Blend",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Signature Blend 02",
+      "handle": "signature-blend-02",
+      "product_type": "Signature Blend",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Signature Blend 03",
+      "handle": "signature-blend-03",
+      "product_type": "Signature Blend",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Drink 01",
+      "handle": "seasonal-drink-01",
+      "product_type": "Seasonal Drink",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Drink 02",
+      "handle": "seasonal-drink-02",
+      "product_type": "Seasonal Drink",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Drink 03",
+      "handle": "seasonal-drink-03",
+      "product_type": "Seasonal Drink",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Bakery Item 01",
+      "handle": "bakery-item-01",
+      "product_type": "Bakery Item",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Bakery Item 02",
+      "handle": "bakery-item-02",
+      "product_type": "Bakery Item",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Bakery Item 03",
+      "handle": "bakery-item-03",
+      "product_type": "Bakery Item",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Bundle Pack 01",
+      "handle": "bundle-pack-01",
+      "product_type": "Bundle Pack",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Bundle Pack 02",
+      "handle": "bundle-pack-02",
+      "product_type": "Bundle Pack",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Bundle Pack 03",
+      "handle": "bundle-pack-03",
+      "product_type": "Bundle Pack",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, McDonald's]",
