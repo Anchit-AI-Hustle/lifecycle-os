@@ -36,6 +36,11 @@ const FEATURES = [
   // the brand up, and brand setup is free here. It reads pages and stylesheets
   // and makes at most one small model call to describe the tone it observed.
   { key: 'brand.extract',         label: 'Read brand from website',     group: 'Included', cost: 0, unit: 'always free', why: 'Reading your own site to fill in your own brand record is part of setup, which is free.' },
+  // Same reasoning as brand.extract: this is setup. It is one small model call
+  // that writes OPTIONS for a single field, and charging for it would put a
+  // price on getting unstuck on the first screen, which is where an abandoned
+  // field turns into a DATA REQUIRED marker in every asset generated later.
+  { key: 'brand.suggest',         label: 'Suggest options for a field', group: 'Included', cost: 0, unit: 'always free', why: 'Suggesting wording options during brand setup is part of setup, which is free. Nothing is saved until you pick one.' },
   { key: 'dashboard.view',        label: 'Dashboards and reports',      group: 'Included', cost: 0, unit: 'always free', why: 'Viewing analytics already computed is free.' },
   // Connecting a payment gateway costs nothing: it is a sign-in and a token
   // exchange, with no model call anywhere in the path. The key exists so the
