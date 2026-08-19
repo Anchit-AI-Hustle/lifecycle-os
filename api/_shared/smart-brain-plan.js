@@ -162,7 +162,7 @@ async function callLLMTiered(opts) {
   }
   throw lastErr;
 }
-const { buildMasterPrompt, regionFacts } = require('./master-prompt.js');
+const { buildMasterPrompt, promptsFor, regionFacts } = require('./master-prompt.js');
 const SM = require('./scenario-model.js');
 const OfferingCampaign = require('./offering-campaign.js');
 const { buildEntryAnalysis } = require('./output-reasoning.js');
@@ -1871,12 +1871,17 @@ function attachMasterPrompts(campaign, entry) {
     campaign.assets.email.master_prompt_v1 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V1' });
     campaign.assets.email.master_prompt_v2 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V2' });
     campaign.assets.email.master_prompt = campaign.assets.email.master_prompt_v2;
+    campaign.assets.email.prompts = promptsFor(campaign.assets.email, 'mailer');
   }
   for (const lp of campaign.assets.landing_pages || []) {
     lp.master_prompt = buildMasterPrompt({ ...base, assetType: 'landing_page' });
+    lp.prompts = promptsFor(lp, 'landing_page');
   }
   for (const ad of campaign.assets.ads || []) {
     ad.master_prompt = buildMasterPrompt({ ...base, assetType: 'ad', platform: ad.platform });
+    // The index that stops an image brief being copied as if it were the ad.
+    // Built AFTER master_prompt exists, or the asset row has nothing to point at.
+    ad.prompts = promptsFor(ad, 'ad');
   }
   return campaign;
 }

@@ -199,6 +199,8 @@ function buildMasterPrompt(o = {}) {
   return [
     `You are ${brandName}'s senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.`,
     ``,
+    deliverable(assetType, platform, variant),
+    ``,
     BLOCK,
     ``,
     `MARKET: ${market} · Store: https://${facts.store} · Currency: ${facts.currency}${cohort ? ` · Audience cohort: ${cohort}` : ''}`,
@@ -210,7 +212,180 @@ function buildMasterPrompt(o = {}) {
     ``,
     `QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims. If you must assume a detail, choose the most on-brand option and proceed — do not ask questions.`,
     extra ? `\nADDITIONAL CONSTRAINTS:\n${String(extra).trim()}` : '',
+    ``,
+    outputFormat(assetType, platform),
   ].filter((l) => l !== '').join('\n').trim();
+}
+
+/**
+ * WHAT THE OPERATOR IS OWED, STATED FIRST.
+ *
+ * These prompts are built to be pasted into ChatGPT, Gemini or Claude and come
+ * back with the FINISHED THING. That was not what happened: a mailer prompt
+ * pasted into Gemini returned a product photograph, because the copy the
+ * operator grabbed was an element brief and nothing in the prompt said which
+ * kind it was.
+ *
+ * So an asset prompt now opens by naming its deliverable in one line, before
+ * any brand block or product list, and closes by pinning the output format. A
+ * model that reads only the first and last paragraph still produces the right
+ * artefact.
+ *
+ * The distinction this enforces:
+ *   ASSET prompt    returns the complete, usable artefact (the whole mailer,
+ *                   the whole landing page, the whole ad unit).
+ *   ELEMENT prompt  returns one part of it (a hero photograph, a headline).
+ *                   Those live on `creative_brief` and are labelled as such.
+ */
+function deliverable(assetType, platform, variant) {
+  const t = String(assetType || 'mailer').toLowerCase();
+  if (t === 'ad') {
+    return `DELIVERABLE: ONE COMPLETE ${String(platform).toUpperCase()} AD UNIT, ready to upload. Not a concept, not a moodboard, not only an image brief. Every field the platform requires, plus the creative, plus the reasoning.`;
+  }
+  if (t === 'landing_page' || t === 'lp') {
+    return 'DELIVERABLE: ONE COMPLETE, SELF-CONTAINED LANDING PAGE as a single HTML document I can save and open. Not a wireframe, not a section list, not a description of a page.';
+  }
+  return `DELIVERABLE: ONE COMPLETE EMAIL MAILER (${variant === 'V1' ? 'text-only' : 'text and visual'}), ready to paste into an ESP. Not a plan, not a section-by-section outline, not only a hero image. The finished email.`;
+}
+
+/**
+ * The last thing the model reads, and the most literal.
+ *
+ * "Produce a mailer" is ambiguous to a model that can also produce a picture of
+ * one. Naming the artefact, the container and what must NOT come back removes
+ * the ambiguity.
+ */
+function outputFormat(assetType, platform) {
+  const t = String(assetType || 'mailer').toLowerCase();
+  const common = 'Return the artefact itself and nothing else: no preamble, no explanation of what you did, no markdown fence around the whole answer, no follow-up questions.';
+
+  if (t === 'ad') {
+    return [
+      'OUTPUT FORMAT — return ALL of these, in this order, with these exact headings:',
+      '1. COPY — every field this platform requires, each on its own line, each within its character limit.',
+      '2. CREATIVE — a complete, self-contained HTML block that renders the ad unit at the correct aspect ratio, using ONLY hosted image URLs I have supplied (never base64, never a placeholder service).',
+      '3. IMAGE BRIEF — the shot description, only if a photograph still needs to be produced.',
+      '4. WHY — two lines on the angle and who it is for.',
+      common,
+    ].join('\n');
+  }
+
+  if (t === 'landing_page' || t === 'lp') {
+    return [
+      'OUTPUT FORMAT: ONE HTML document, complete and self-contained.',
+      'It must start with <!doctype html> and end with </html>. All CSS inline in a <style> block. No external stylesheet, no framework, no build step.',
+      'Every image is an <img> pointing at a hosted URL I supplied. Never base64. Never a placeholder image service. If I supplied no image for a slot, leave the slot out rather than inventing a source.',
+      'The page must render correctly with JavaScript disabled.',
+      common,
+    ].join('\n');
+  }
+
+  return [
+    'OUTPUT FORMAT: ONE email HTML document, complete and paste-ready.',
+    'Table-based layout (Outlook renders with the Word engine), max 600px content column, all CSS inline on the elements. No <style> in the head that the layout depends on, no flexbox or grid, no JavaScript.',
+    'Every image is an <img> with a hosted URL I supplied plus real alt text. Never base64: Gmail clips a message past roughly 102KB and the mailer would be cut mid-layout.',
+    'The email must read completely with images disabled.',
+    'Before the HTML, give: 3 subject lines, 1 preheader, and the plain-text version.',
+    common,
+  ].join('\n');
+}
+
+/* ═══ Element prompts ═════════════════════════════════════════════════════
+ *
+ * The other half of the same fix. An image brief is a perfectly good prompt —
+ * it just does not produce a mailer, and the operator who pastes it has no way
+ * to know that from the text. So an element prompt now says, in its first line,
+ * that it produces ONE PART, names the part, names the asset the part belongs
+ * to, and points at the prompt that produces the whole thing.
+ *
+ * Deliberately NOT wrapped in the brand block: this is a shot description going
+ * to an image model, and burying it under six paragraphs of typography rules is
+ * how a hero photograph comes back with text baked into it.
+ */
+const PROMPT_KIND = { ASSET: 'asset', ELEMENT: 'element' };
+
+const ELEMENT_LABEL = {
+  image: 'ONE STILL PHOTOGRAPH',
+  hero: 'ONE HERO PHOTOGRAPH',
+  video: 'ONE VIDEO CLIP',
+  copy: 'ONE BLOCK OF COPY',
+};
+
+/**
+ * Wrap a raw element brief so it announces what it produces.
+ * @param {string} brief   the shot/copy description as authored
+ * @param {object} o
+ * @param {'image'|'hero'|'video'|'copy'} [o.produces]
+ * @param {string} [o.partOf]  human name of the asset this element sits inside
+ * @returns {string}
+ */
+function buildElementPrompt(brief, o = {}) {
+  const text = String(brief || '').trim();
+  if (!text) return '';
+  const produces = ELEMENT_LABEL[String(o.produces || 'image').toLowerCase()] || ELEMENT_LABEL.image;
+  const partOf = String(o.partOf || 'the finished asset').trim();
+  const head = `DELIVERABLE: ${produces} — ONE ELEMENT of ${partOf}, not the asset itself. Do not return an email, an ad unit or a page. Return only this element.`;
+  const foot = (produces === ELEMENT_LABEL.copy)
+    ? 'Return the copy only. No commentary.'
+    : 'Return the image only. No text baked into the image, no watermark, no logo, no border, no collage of options. One frame.';
+  return [head, '', text, '', foot].join('\n');
+}
+
+/**
+ * The one call a UI needs: everything copyable for an asset, each labelled with
+ * what it returns. A surface that renders this list cannot show an element
+ * prompt without also showing the asset prompt beside it.
+ *
+ * An ASSET row does not carry its own text — it carries `from`, the field on
+ * the asset that already holds it. Copying a ~5KB prompt into a second place on
+ * the same object is how the two drift, and it doubles a payload that is
+ * already ~180 slots wide in the prebuild queue. An ELEMENT row DOES carry
+ * text, because the wrapped form exists nowhere else.
+ *
+ * @param {object} asset   a built asset (email / ad / landing page)
+ * @param {'mailer'|'ad'|'landing_page'} assetType
+ * @param {object} [opt]
+ * @param {boolean} [opt.inline]  also resolve `text` on asset rows
+ * @returns {Array<{id,label,kind,produces,from?,text?}>}
+ */
+function promptsFor(asset, assetType, opt = {}) {
+  const a = asset || {};
+  const t = String(assetType || 'mailer').toLowerCase();
+  const out = [];
+  const assetName = t === 'ad'
+    ? `a complete ${String(a.platform || '').toUpperCase() || 'paid'} ad unit`
+    : (t === 'landing_page' || t === 'lp') ? 'a complete landing page' : 'a complete email mailer';
+
+  const asAsset = (id, from, label, produces) => {
+    const text = String(a[from] || '').trim();
+    if (!text) return;
+    const row = { id, label, kind: PROMPT_KIND.ASSET, produces, from };
+    if (opt.inline) row.text = text;
+    out.push(row);
+  };
+  const asElement = (id, label, produces, text) => {
+    const s = String(text || '').trim();
+    if (s) out.push({ id, label, kind: PROMPT_KIND.ELEMENT, produces, text: s });
+  };
+
+  // The complete artefact ALWAYS comes first. Ordering is not cosmetic here:
+  // the operator copies the first thing that looks like the job.
+  if (t === 'mailer') {
+    asAsset('master_prompt_v2', a.master_prompt_v2 ? 'master_prompt_v2' : 'master_prompt',
+      'Complete mailer, text and visual', 'the whole email');
+    asAsset('master_prompt_v1', 'master_prompt_v1', 'Complete mailer, text only', 'the whole email');
+  } else {
+    asAsset('master_prompt', 'master_prompt',
+      `Complete ${t === 'ad' ? 'ad unit' : 'landing page'}`, `the whole ${t === 'ad' ? 'ad' : 'page'}`);
+  }
+
+  // Then the parts, each stating that it is a part.
+  asElement('creative_brief', 'Hero image only', 'one photograph',
+    buildElementPrompt(a.creative_brief || (a.creative && a.creative.brief), { produces: 'hero', partOf: assetName }));
+  asElement('script', 'Video clip only', 'one clip',
+    buildElementPrompt(a.script, { produces: 'video', partOf: assetName }));
+
+  return out;
 }
 
 // `brandBlockFor(brand)` lets any prompt site swap tenant zero's block for the
@@ -221,4 +396,7 @@ function brandBlockFor(brand) {
   catch (_) { return BRAND_BLOCK; }
 }
 
-module.exports = { buildMasterPrompt, BRAND_BLOCK, brandBlockFor, regionFacts, REGION };
+module.exports = {
+  buildMasterPrompt, BRAND_BLOCK, brandBlockFor, regionFacts, REGION,
+  buildElementPrompt, promptsFor, deliverable, outputFormat, PROMPT_KIND,
+};
