@@ -132,27 +132,67 @@ CustomerProfile, CampaignPerformanceRecord, ForecastScenario, AssetStatus, Creat
 CampaignPlan. (See the source message / types/ for exact field lists.)
 
 ## 4. Brand design system
-Use the approved repo design system as primary. Approved tokens:
-`--font-head:"Montserrat",Georgia,"Times New Roman",serif; --font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;`
-`--knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF; --knickgasm-white:#FFFFFF (only if repo authorizes)`.
-Headings/titles/eyebrows -> font-head; body/p/li/span/button/input/label -> font-body.
-Primary CTA: green bg, chalk text. Secondary CTA: lava border, transparent bg, green text.
+
+**Colours are named by ROLE, never by hue.** This section used to name them by
+hue, and the names were wrong: it called `#D0473E` "green" and `#6A33D8` "lava",
+which are the palette role names of the tea brand this codebase was forked from.
+Find-and-replace changed the brand name and left the colour words, so the
+governing design spec instructed every generator to "use green" for a colour
+that is red, and forbade "dark green text on green" for a palette containing no
+green at all.
+
+It matters more than tidiness. This is a MULTI-BRAND platform: the active brand
+supplies its own palette, so the primary is red for one tenant, blue for the
+next and black for a third. Any hue word here is wrong for almost every brand
+that will ever read it. Roles are the only thing that stays true.
+
+Approved tokens, by role:
+
+| Role | Tenant zero's value | What it is for |
+|---|---|---|
+| `--brand-primary` | `#D0473E` | The brand's main colour. Primary CTA fill, brand bands. |
+| `--brand-accent` | `#6A33D8` | Secondary/support. Borders, small accents. |
+| `--brand-ink` | `#111111` | Body text. |
+| `--brand-surface` | `#FFFFFF` | Page and card ground. |
+
+Typography: `--brand-font-heading` (`Montserrat`) for headings, titles and
+eyebrows; `--brand-font-body` (`Instrument Sans`) for body, list, span, button,
+input and label.
+
+> **Legacy aliases.** `theme.css` still defines `--vh-green`, `--vh-lava`,
+> `--vh-chalk` and `--vh-black` as aliases of primary/accent/surface/ink. The
+> names are inherited and misleading for the same reason as above, but they are
+> referenced widely enough that renaming them is its own change. Read them as
+> role aliases; write new code against the `--brand-*` roles.
+
+Primary CTA: primary fill, surface-coloured text. Secondary CTA: accent border,
+transparent fill, primary-coloured text — each subject to the contrast rules
+below, which override any of these defaults.
 
 ### 4.1 Section-background rule (HARD)
 Never use black/near-black/charcoal/`#111111`/any dark neutral as a SECTION/card/footer/hero/banner/
-modal/dashboard-panel/email-module background. Section backgrounds use only approved green, chalk,
-beige, lava, white, or approved light neutral. `#111111` only for readable text or tiny approved
-details. When a "dark" treatment is wanted, use KNICKGASM green, not black.
+modal/dashboard-panel/email-module background. Section backgrounds use only the brand's own primary,
+its surface, an approved light neutral, or an approved tint of those. `#111111` only for readable text
+or tiny approved details. When a "dark" treatment is wanted, use the BRAND PRIMARY, not black.
+(`validatePalette()` in `api/_shared/brand-workspace-core.js` enforces this at activation: a
+dark-neutral surface blocks the brand from going live.)
 
 ### 4.2 Contrast rules (HARD, target >= WCAG AA)
-Never: dark green text on green; ink/black text on green; lava on light beige/chalk when insufficient;
-chalk/white text on chalk/beige/lava/white; light lava on white; low-opacity critical copy; text over
-busy imagery without a contrast layer; too-faint placeholder/disabled/border colours. Pairings —
-Green bg: chalk/white text, lava small accents only. Chalk/beige/white bg: green headings, ink body,
-lava accents, green CTA. Lava bg: green (or approved readable ink) text only if it passes. Image bg:
-solid contrast panel/overlay/container (shadow is secondary aid only). Readable at all viewports +
-email fallback + reduced image load + high-contrast modes. Prioritize > minimum for headings/CTA/
-price/rating/labels.
+Never: primary-on-primary text; ink/black text on the primary when it fails AA; accent on a light
+surface when insufficient; surface-coloured text on a light surface; low-opacity critical copy; text
+over busy imagery without a contrast layer; too-faint placeholder/disabled/border colours.
+
+Pairings — **Primary bg:** surface-coloured text, accent for small details only. **Surface bg:**
+primary headings, ink body, accent details, primary CTA. **Accent bg:** only text that measurably
+passes against it. **Image bg:** a solid contrast panel/overlay/container (a shadow is a secondary aid,
+never the contrast itself).
+
+Do not judge these by eye. `readableOn()` and `readableAsText()` in
+`api/_shared/brand-workspace-core.js` compute the passing choice, and the
+`--brand-*-text` tokens are the adjusted values: a raw brand colour is never
+used as text. Readable at all viewports, plus email fallback, reduced image load
+and high-contrast modes. Prioritise above the minimum for headings, CTA, price,
+rating and labels.
 
 ### 4.3 UI consistency & design sanity
 Parallel/repeated cards (row/group/carousel/comparison/review/product/benefit/pricing/campaign group)
