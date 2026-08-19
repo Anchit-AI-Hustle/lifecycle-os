@@ -105,6 +105,27 @@ async function openBrain(page, { planResponse, syncResponse, approveResponse } =
   });
 
   await page.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
+
+  /* Wait for the page's OWN boot load to settle before any test clicks.
+     smart-brain.html ends with `autoGenerateOnLoad()`, which calls loadPlan();
+     loadPlan takes a ticket and DISCARDS its own render if a newer action has
+     claimed the screen since (`stillCurrent`). A click that lands while that
+     boot fetch is in flight therefore interleaves two ticketed loads, and the
+     table can be left empty with no error - which is what CI reported:
+
+         locator('#plan tr.planrow')  Expected: 1  Received: 0
+         20 x locator resolved to 0 elements
+
+     Stated plainly: this could NOT be reproduced locally (90 runs, 6 workers,
+     six CPU burners), so this waits on the boot load because the interleaving
+     is visible in the source, not because this exact sequence was observed.
+     #mode is the signal: it ships as " - " and is only written by loadPlan's
+     render path, so it changing means one full load has landed. */
+  await page.waitForFunction(
+    () => { const el = document.getElementById('mode'); return el && el.textContent.trim() !== '-'; },
+    null, { timeout: 15000 },
+  ).catch(() => {});   // a test may deliberately stub a response that never renders
+
   return errors;
 }
 
