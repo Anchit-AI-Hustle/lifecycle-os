@@ -445,6 +445,83 @@ function metered(handler, featureFor, unitsFor, opts) {
  * CREDITS_ALLOW_SELF_SERVE=1 (dev/staging), the order is fulfilled immediately
  * so the flow is testable end to end.
  */
+/* ── complimentary accounts ───────────────────────────────────────────────
+   Named accounts whose credit RECHARGE is free: an order they place is
+   fulfilled immediately at no charge, as often as they like.
+
+   FIVE THINGS THAT MAKE THIS SAFE TO HAVE AT ALL.
+
+   1. IT KEYS ON A VERIFIED IDENTITY. The email comes from `requireUser`, which
+      verifies the bearer token against Supabase's own /auth/v1/user and returns
+      the address on the USER RECORD. It is never read from the request body, a
+      query string or a header a caller controls, so it cannot be claimed by
+      typing it.
+
+   2. EXACT ADDRESSES, NEVER A DOMAIN. A domain rule here would be a quiet
+      disaster: "@<company>.com" grants free credits to every current and future
+      employee of that company, including people who have never used this
+      product. Each address is matched whole, case-insensitively.
+
+   3. IT GRANTS CREDITS, IT DOES NOT DISABLE METERING. A comp account still
+      spends credits per feature, still holds and settles, and still shows a
+      balance. Only the top-up is free. That keeps their usage visible in the
+      same ledger as everyone else's, which is what makes cost reporting mean
+      anything.
+
+   4. IT IS RECORDED AS WHAT IT IS. The fulfilment provider is `comp_account`,
+      never a payment provider, so a free grant can never be read later as
+      revenue or as a paid order.
+
+   5. IT IS EDITABLE WITHOUT A DEPLOY. CREDITS_COMP_ACCOUNTS (comma separated)
+      adds addresses from the environment.
+
+   6. THE ADDRESSES ARE NOT IN THIS FILE. **This repository is public.**
+      Hardcoding three real people's email addresses would publish them to
+      anyone who opens the repo, and everything under the deployment's output
+      root is fetchable besides. So the built-in entries are SHA-256 hashes of
+      the lowercased address.
+
+      To be clear about what hashing does and does not buy: an email address is
+      guessable, so a hash is not a secret and is not being treated as one. It
+      simply stops this repo from being a plaintext list of who gets free
+      credits, and it keeps the check exact. Anyone operating the deployment can
+      still add addresses in the clear through the environment variable.
+   ───────────────────────────────────────────────────────────────────────── */
+const crypto = require('crypto');
+
+/** SHA-256 of the lowercased, trimmed address. See rule 6. */
+const COMP_ACCOUNT_HASHES = [
+  '0d074d11ddd73323cf8ca2491f86cff054674426edc4b2646f25c10e7fc70ed4',
+  'e28343321c0195fa3e63081acb6dc023b6bb0eb927c0cb575c2e7863e0634edb',
+  '39f1ab678af01ba0cfeb4887d34b2696b89f6a68043bfad6fcceb0d52d334f09',
+];
+
+function emailHash(email) {
+  return crypto.createHash('sha256').update(String(email || '').trim().toLowerCase()).digest('hex');
+}
+
+/** Addresses added by the environment, in the clear, lowercased. */
+function envCompAccounts() {
+  return String(process.env.CREDITS_COMP_ACCOUNTS || '')
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/** Every comp entry, as hashes, so the two sources compare identically. */
+function compAccounts() {
+  return [...new Set([...COMP_ACCOUNT_HASHES, ...envCompAccounts().map(emailHash)])];
+}
+
+/**
+ * Whole-address match on a VERIFIED email. Deliberately not a domain check, not
+ * a prefix check and not a regex: see rule 2 above. Hashing makes a partial
+ * match impossible by construction, which is a pleasant side effect.
+ */
+function isCompAccount(email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!e || !e.includes('@')) return false;
+  return compAccounts().includes(emailHash(e));
+}
+
 async function createOrder(auth, { pack_key, workspace_id }) {
   const p = catalog.pack(pack_key);
   if (!p) { const e = new Error('Unknown credit pack.'); e.status = 400; throw e; }
@@ -455,6 +532,20 @@ async function createOrder(auth, { pack_key, workspace_id }) {
     prefer: 'return=representation',
   });
   const order = Array.isArray(rows) ? rows[0] : rows;
+
+  // A complimentary account's recharge lands immediately and costs nothing.
+  // Recorded as `comp_account` rather than as a payment provider, so this can
+  // never be counted as revenue or mistaken for a paid order in the ledger.
+  if (isCompAccount(auth && auth.email)) {
+    const out = await fulfilOrder(order.id, {
+      provider: 'comp_account',
+      provider_ref: `comp:${String(auth.email).toLowerCase()}`,
+    });
+    return Object.assign({}, out, {
+      comp: true,
+      message: `Complimentary account: ${credits} credits added at no charge.`,
+    });
+  }
 
   if (String(process.env.CREDITS_ALLOW_SELF_SERVE || '') === '1') {
     return await fulfilOrder(order.id, { provider: 'self_serve', provider_ref: 'CREDITS_ALLOW_SELF_SERVE=1' });
@@ -542,6 +633,9 @@ async function handle(req, res) {
           ok: true,
           wallet: { id: w.id, balance: w.balance, held: w.held, lifetime_granted: w.lifetime_granted, lifetime_spent: w.lifetime_spent, low_balance_threshold: w.low_balance_threshold, workspace_id: w.workspace_id },
           low: Number(w.balance) <= Number(w.low_balance_threshold || 0),
+          // So the Recharge button can say "free" instead of quoting a price
+          // this account will never be charged.
+          comp: isCompAccount(auth.email),
           features: await priceList(),
           packs: catalog.PACKS,
         });
@@ -579,4 +673,5 @@ async function handle(req, res) {
 module.exports = {
   handle, meter, withCredits, enforce, metered, wallet, ledger, usage, priceList, overrides,
   createOrder, fulfilOrder, configured, catalog,
+  isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
 };
