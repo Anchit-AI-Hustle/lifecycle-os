@@ -138,6 +138,21 @@
   .preset .pswatch i{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.14);display:block}
   .preset .pmeta{font-size:10.5px;opacity:.55;line-height:1.4}
   .preset-note{font-size:11.5px;opacity:.6;margin:2px 0 0;line-height:1.5}
+  /* Suggested options. Deliberately NOT styled like an extracted candidate:
+     those carry a source URL and real provenance, these carry a model's
+     opinion, and making them look alike would launder one into the other. */
+  .sug{margin-top:9px}
+  .sug-btn{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;cursor:pointer;
+    border:1px dashed var(--line,#d8d8d8);background:transparent;color:var(--brand-primary-text,#1F5FD0)}
+  .sug-btn:hover{border-style:solid}
+  .sug-note{font-size:11px;opacity:.66;margin:7px 0 0;line-height:1.5;max-width:62ch}
+  .sug-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+  .sug-opt{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;cursor:pointer;
+    border:1px dashed var(--line,#d8d8d8);border-radius:9px;padding:7px 10px;background:var(--surface-alt,#fafafa);
+    max-width:100%;font:inherit}
+  .sug-opt:hover{border-style:solid;border-color:var(--primary,#1F5FD0)}
+  .sug-val{font-size:12.5px;font-weight:600;color:var(--ink,#111)}
+  .sug-why{font-size:10.5px;opacity:.62;line-height:1.4}
   /* Says the swatch above it is a placeholder. Deliberately reads as a warning
      rather than as decoration, and takes its colour from the token that is
      contrast-checked rather than a literal. */
@@ -541,6 +556,81 @@
       '</div>';
   }
 
+  /* ── AI-written OPTIONS for a field ───────────────────────────────────────
+     Typing a tone or a banned list against a placeholder is where most people
+     stall, and a stalled field becomes an empty one, which becomes a
+     [DATA REQUIRED BEFORE LAUNCH: ...] marker in every asset generated later.
+
+     These are OPTIONS and the wizard is careful to keep them looking like it.
+     They are visually distinct from an extracted candidate (which carries a
+     source URL and a real provenance) because a chip that looked the same
+     would launder a model's guess into evidence. Nothing is applied until the
+     operator clicks one, and what they click becomes THEIRS. */
+  var SUGGEST = {};      // field -> { busy, error, options[], dropped[], disclaimer }
+
+  function suggestBlock(field) {
+    var s = SUGGEST[field];
+    var btn = '<button type="button" class="sug-btn" data-suggest="' + esc(field) + '" data-credit-feature="brand.suggest">' +
+      (s && s.busy ? 'Writing options...' : 'Suggest options') + '</button>';
+    if (!s || (!s.options && !s.error)) return '<div class="sug">' + btn + '</div>';
+    if (s.error) return '<div class="sug">' + btn + '<p class="sug-note">' + esc(s.error) + '</p></div>';
+    if (!s.options.length) return '<div class="sug">' + btn + '<p class="sug-note">No options came back.</p></div>';
+    return '<div class="sug">' + btn +
+      '<p class="sug-note">' + esc(s.disclaimer || '') + '</p>' +
+      '<div class="sug-list">' +
+        s.options.map(function (o, i) {
+          return '<button type="button" class="sug-opt" data-use-suggest="' + esc(field) + '" data-i="' + i + '">' +
+            '<span class="sug-val">' + esc(o.value) + '</span>' +
+            (o.why ? '<span class="sug-why">' + esc(o.why) + '</span>' : '') + '</button>';
+        }).join('') +
+      '</div>' +
+      // A filter that hides its own work reads as a model that never
+      // misbehaves, so anything stripped is counted here.
+      (s.dropped && s.dropped.length
+        ? '<p class="sug-note">' + s.dropped.length + ' option(s) were dropped for stating something a customer could check.</p>'
+        : '') +
+      '</div>';
+  }
+
+  async function runSuggest(field) {
+    if (SUGGEST[field] && SUGGEST[field].busy) return;
+    SUGGEST[field] = { busy: true };
+    render();
+    try {
+      var r = await api('suggest', { field: field, workspace_id: brand.id || '', brand: brand });
+      SUGGEST[field] = r && r.ok
+        ? { options: r.options || [], dropped: r.dropped || [], disclaimer: r.disclaimer }
+        : { error: (r && r.note) || 'Could not write options for this field.' };
+    } catch (e) {
+      SUGGEST[field] = { error: e.message };
+    }
+    render();
+  }
+
+  function useSuggestion(field, i) {
+    var s = SUGGEST[field]; if (!s || !s.options || !s.options[i]) return;
+    var v = s.options[i].value;
+    if (field === 'voice.preferred' || field === 'voice.banned') {
+      var key = field.split('.')[1];
+      if (brand.voice[key].indexOf(v) < 0) brand.voice[key].push(v);
+    } else if (field === 'voice.tone') { brand.voice.tone = v; }
+    else if (field === 'voice.notes') { brand.voice.notes = v; }
+    else if (field === 'tagline') { brand.tagline = v; }
+    // Picked by the operator, so it is theirs from here: recorded as a user
+    // value, never as something the platform derived.
+    noteSource(field, { value: v, signal: 'chosen by the operator from suggested options', source_url: '', confidence: 'user' });
+    render();
+  }
+
+  function bindSuggest(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-suggest]'), function (b) {
+      b.addEventListener('click', function () { runSuggest(b.dataset.suggest); });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll('[data-use-suggest]'), function (b) {
+      b.addEventListener('click', function () { useSuggestion(b.dataset.useSuggest, +b.dataset.i); });
+    });
+  }
+
   function bindChips(root) {
     Array.prototype.forEach.call(root.querySelectorAll('[data-rm]'), function (b) {
       b.addEventListener('click', function () { brand.voice[b.dataset.rm].splice(+b.dataset.i, 1); render(); });
@@ -623,14 +713,18 @@
         xPanel('voice') +
         '<p class="hint">These rules are injected into every generation prompt in the platform, including TeleSuite. Banned phrases are enforced, not suggested.</p>' +
         '<div class="field"><label>Tone <span class="note">how the brand sounds</span></label>' +
-          '<input type="text" data-path="voice.tone" value="' + esc(brand.voice.tone) + '" placeholder="warm, plain spoken, never hyped"></div>' +
+          '<input type="text" data-path="voice.tone" value="' + esc(brand.voice.tone) + '" placeholder="warm, plain spoken, never hyped">' +
+          suggestBlock('voice.tone') + '</div>' +
         '<div class="field"><label>Preferred vocabulary <span class="note">press Enter to add</span></label>' +
-          '<input type="text" data-add="preferred" placeholder="ritual, small batch, origin">' + chipEditor('preferred', brand.voice.preferred) + '</div>' +
+          '<input type="text" data-add="preferred" placeholder="ritual, small batch, origin">' + chipEditor('preferred', brand.voice.preferred) +
+          suggestBlock('voice.preferred') + '</div>' +
         '<div class="field"><label>Banned phrases <span class="note">press Enter to add</span></label>' +
-          '<input type="text" data-add="banned" placeholder="game-changer, hurry, last chance">' + chipEditor('banned', brand.voice.banned) + '</div>' +
+          '<input type="text" data-add="banned" placeholder="game-changer, hurry, last chance">' + chipEditor('banned', brand.voice.banned) +
+          suggestBlock('voice.banned') + '</div>' +
         '<div class="field"><label style="display:flex;align-items:center;gap:8px;font-weight:600">' +
           '<input type="checkbox" data-path="voice.no_em_dashes" ' + (brand.voice.no_em_dashes ? 'checked' : '') + ' style="width:auto"> Never use em dashes or en dashes</label></div>' +
-        '<div class="field"><label>Notes for the writer</label><textarea data-path="voice.notes" placeholder="Testimonials read as short personal stories, not reviews.">' + esc(brand.voice.notes) + '</textarea></div>' +
+        '<div class="field"><label>Notes for the writer</label><textarea data-path="voice.notes" placeholder="Testimonials read as short personal stories, not reviews.">' + esc(brand.voice.notes) + '</textarea>' +
+          suggestBlock('voice.notes') + '</div>' +
         actions('Typography', 'Data & catalog');
     }
 
@@ -693,7 +787,7 @@
       loadWorkspaces();
     }
 
-    bindInputs(c); bindFonts(c); bindChips(c);
+    bindInputs(c); bindFonts(c); bindChips(c); bindSuggest(c);
     if (step === 2) renderVerdict();
     wireActions();
     if (step === 5) wireImport();
