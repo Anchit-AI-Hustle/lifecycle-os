@@ -100,12 +100,16 @@ test('the full statement is still there, below', async ({ page }) => {
   expect(full.split(/\s+/).length).toBeGreaterThan(120);
 });
 
-test('the problem statement is legible against its own background', async ({ page }) => {
+test('every part of the problem statement is legible against its background', async ({ page }) => {
   await open(page, 'index.html');
   // This repo's standing rule: no dark-on-dark, no light-on-light. A statement
   // nobody can read is the same as one that is not there.
-  const ratio = await page.evaluate(() => {
-    const el = document.querySelector('#solving');
+  //
+  // EVERY element in the block, not just the container. Measuring only #solving
+  // read the paragraph's own colour and never the eyebrow's — which is how a
+  // raw `var(--primary)` sat there as a text colour, caught by
+  // contrast-rendered.spec.js instead of by this file.
+  const results = await page.evaluate(() => {
     const parse = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
     const lum = (rgb) => {
       const [r, g, b] = rgb.map((v) => {
@@ -114,19 +118,53 @@ test('the problem statement is legible against its own background', async ({ pag
       });
       return 0.2126 * r + 0.7152 * g + 0.0722 * b;
     };
-    // Walk up for the first non-transparent background.
-    let bgEl = el; let bg = null;
-    while (bgEl) {
-      const c = getComputedStyle(bgEl).backgroundColor;
-      if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) { bg = parse(c); break; }
-      bgEl = bgEl.parentElement;
-    }
-    if (!bg) bg = [255, 255, 255];
-    const fg = parse(getComputedStyle(el).color);
-    const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
-    return (a + 0.05) / (b + 0.05);
+    const bgOf = (el) => {
+      let n = el;
+      while (n) {
+        const c = getComputedStyle(n).backgroundColor;
+        if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) return parse(c);
+        n = n.parentElement;
+      }
+      return [255, 255, 255];
+    };
+    const root = document.querySelector('#solving');
+    const nodes = [root, ...root.querySelectorAll('*')];
+    return nodes
+      // Only elements that actually render text of their own.
+      .filter((el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+      .map((el) => {
+        const [a, b] = [lum(parse(getComputedStyle(el).color)), lum(bgOf(el))].sort((x, y) => y - x);
+        return {
+          tag: el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''),
+          ratio: (a + 0.05) / (b + 0.05),
+        };
+      });
   });
-  expect(ratio, `contrast is ${ratio.toFixed(2)}:1, below the AA body-text floor`).toBeGreaterThanOrEqual(4.5);
+  expect(results.length, 'no text elements found in the statement').toBeGreaterThan(1);
+  for (const r of results) {
+    // 4.5:1 is the AA body-text floor; the eyebrow is small and bold, so it
+    // gets no large-text exemption.
+    expect(r.ratio, `${r.tag} is ${r.ratio.toFixed(2)}:1, below the AA body-text floor`).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+test('the statement uses the contrast-adjusted brand tokens, not a raw brand colour', async ({ page }) => {
+  await open(page, 'index.html');
+  // The rule the raw `var(--primary)` broke. A brand primary is chosen to fill
+  // a shape, not to be read at 11px — `--brand-primary-text` is the same hue
+  // darkened until it clears AA against the surface it sits on.
+  //
+  // NOT redundant with the measured test above, and the margin shows why:
+  // tenant zero's #D0473E on white is 4.51:1, a hundredth over the floor. So
+  // measurement passes for the brand that happens to be loaded and says
+  // nothing about the other 82 in the preset library. This rule is what covers
+  // them, which is why it is asserted on the CSS rather than on a rendering.
+  const raw = await page.evaluate(() => {
+    const css = [...document.querySelectorAll('style')].map((s) => s.textContent).join('\n');
+    const block = css.slice(css.indexOf('.solving'), css.indexOf('.problem{'));
+    return (block.match(/color\s*:\s*var\(--(primary|accent)\)/g) || []);
+  });
+  expect(raw, 'a raw brand colour is used as a text colour').toEqual([]);
 });
 
 /* ═══ the dashboard ═══════════════════════════════════════════════════════ */
