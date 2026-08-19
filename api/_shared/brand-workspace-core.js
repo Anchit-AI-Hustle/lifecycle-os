@@ -1648,11 +1648,25 @@ async function handle(req, res) {
         });
         return res.status(out && out.ok === false && out.error ? 400 : 200).json(out);
       }
+      case 'suggest': {
+        // Options for ONE field, written from this brand's own record. Nothing
+        // is written here: the response is candidates, and the operator's click
+        // is what puts a value in the record (as their own, not the model's).
+        const ws = str(body.workspace_id || q.workspace_id);
+        let brand = body.brand && typeof body.brand === 'object' ? body.brand : null;
+        if (!brand && ws) {
+          try { brand = await require('./workspace-scope.js').brandForWorkspace(ws); } catch (_) { brand = null; }
+        }
+        const out = await require('./brand-suggest.js').suggest(
+          str(body.field || q.field, 40), brand, { count: Number(body.count || q.count) || 0 },
+        );
+        return res.status(out && out.ok === false && out.error === 'unknown_field' ? 400 : 200).json(out);
+      }
       default:
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
