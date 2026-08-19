@@ -55,13 +55,59 @@
     "tesla.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product",
       "service"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Compact Model 01",
+      "handle": "compact-model-01",
+      "product_type": "Compact Model",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Saloon Model 01",
+      "handle": "saloon-model-01",
+      "product_type": "Saloon Model",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "SUV Model 01",
+      "handle": "suv-model-01",
+      "product_type": "SUV Model",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Electric Model 01",
+      "handle": "electric-model-01",
+      "product_type": "Electric Model",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Tesla]",

@@ -55,13 +55,59 @@
     "razorpay.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "plan",
       "service"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Payments Plan 01",
+      "handle": "payments-plan-01",
+      "product_type": "Payments Plan",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Payouts Plan 01",
+      "handle": "payouts-plan-01",
+      "product_type": "Payouts Plan",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Checkout Product 01",
+      "handle": "checkout-product-01",
+      "product_type": "Checkout Product",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Reporting Add-on 01",
+      "handle": "reporting-add-on-01",
+      "product_type": "Reporting Add-on",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Razorpay]",

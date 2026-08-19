@@ -830,6 +830,7 @@
         '<div class="pmeta" style="margin-top:4px">' +
           (isDefault
             ? 'Press Read my site above to fill the real values from ' + esc((p.website || '').replace(/^https?:\/\//, '')) + '.'
+              + (p.placeholder_products ? ' Ships with ' + p.placeholder_products + ' placeholder products so the layouts render; they are not this brand\'s.' : '')
             : 'Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
               (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
               (p.has_catalog ? ' &middot; live feed' : '')) +
