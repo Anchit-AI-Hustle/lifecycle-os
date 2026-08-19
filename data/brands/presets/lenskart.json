@@ -55,13 +55,191 @@
     "lenskart.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product",
       "service"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Optical Frame 01",
+      "handle": "optical-frame-01",
+      "product_type": "Optical Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Optical Frame 02",
+      "handle": "optical-frame-02",
+      "product_type": "Optical Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Optical Frame 03",
+      "handle": "optical-frame-03",
+      "product_type": "Optical Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Optical Frame 04",
+      "handle": "optical-frame-04",
+      "product_type": "Optical Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunglass Frame 01",
+      "handle": "sunglass-frame-01",
+      "product_type": "Sunglass Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunglass Frame 02",
+      "handle": "sunglass-frame-02",
+      "product_type": "Sunglass Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunglass Frame 03",
+      "handle": "sunglass-frame-03",
+      "product_type": "Sunglass Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Sunglass Frame 04",
+      "handle": "sunglass-frame-04",
+      "product_type": "Sunglass Frame",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Reading Glass 01",
+      "handle": "reading-glass-01",
+      "product_type": "Reading Glass",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Reading Glass 02",
+      "handle": "reading-glass-02",
+      "product_type": "Reading Glass",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Reading Glass 03",
+      "handle": "reading-glass-03",
+      "product_type": "Reading Glass",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Reading Glass 04",
+      "handle": "reading-glass-04",
+      "product_type": "Reading Glass",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Contact Lens 01",
+      "handle": "contact-lens-01",
+      "product_type": "Contact Lens",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Contact Lens 02",
+      "handle": "contact-lens-02",
+      "product_type": "Contact Lens",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Contact Lens 03",
+      "handle": "contact-lens-03",
+      "product_type": "Contact Lens",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Contact Lens 04",
+      "handle": "contact-lens-04",
+      "product_type": "Contact Lens",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Lenskart]",

@@ -55,12 +55,179 @@
     "newbalance.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Running Shoe 01",
+      "handle": "running-shoe-01",
+      "product_type": "Running Shoe",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Running Shoe 02",
+      "handle": "running-shoe-02",
+      "product_type": "Running Shoe",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Running Shoe 03",
+      "handle": "running-shoe-03",
+      "product_type": "Running Shoe",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Training Shoe 01",
+      "handle": "training-shoe-01",
+      "product_type": "Training Shoe",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Training Shoe 02",
+      "handle": "training-shoe-02",
+      "product_type": "Training Shoe",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Training Shoe 03",
+      "handle": "training-shoe-03",
+      "product_type": "Training Shoe",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lifestyle Sneaker 01",
+      "handle": "lifestyle-sneaker-01",
+      "product_type": "Lifestyle Sneaker",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lifestyle Sneaker 02",
+      "handle": "lifestyle-sneaker-02",
+      "product_type": "Lifestyle Sneaker",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Lifestyle Sneaker 03",
+      "handle": "lifestyle-sneaker-03",
+      "product_type": "Lifestyle Sneaker",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Track Jacket 01",
+      "handle": "track-jacket-01",
+      "product_type": "Track Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Track Jacket 02",
+      "handle": "track-jacket-02",
+      "product_type": "Track Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Track Jacket 03",
+      "handle": "track-jacket-03",
+      "product_type": "Track Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Performance Tee 01",
+      "handle": "performance-tee-01",
+      "product_type": "Performance Tee",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Performance Tee 02",
+      "handle": "performance-tee-02",
+      "product_type": "Performance Tee",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Performance Tee 03",
+      "handle": "performance-tee-03",
+      "product_type": "Performance Tee",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, New Balance]",

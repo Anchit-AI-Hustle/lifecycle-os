@@ -55,13 +55,235 @@
     "flipkart.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product",
       "plan"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Category Bundle 01",
+      "handle": "category-bundle-01",
+      "product_type": "Category Bundle",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Category Bundle 02",
+      "handle": "category-bundle-02",
+      "product_type": "Category Bundle",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Category Bundle 03",
+      "handle": "category-bundle-03",
+      "product_type": "Category Bundle",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Category Bundle 04",
+      "handle": "category-bundle-04",
+      "product_type": "Category Bundle",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Category Bundle 05",
+      "handle": "category-bundle-05",
+      "product_type": "Category Bundle",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Edit 01",
+      "handle": "seasonal-edit-01",
+      "product_type": "Seasonal Edit",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Edit 02",
+      "handle": "seasonal-edit-02",
+      "product_type": "Seasonal Edit",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Edit 03",
+      "handle": "seasonal-edit-03",
+      "product_type": "Seasonal Edit",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Edit 04",
+      "handle": "seasonal-edit-04",
+      "product_type": "Seasonal Edit",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Seasonal Edit 05",
+      "handle": "seasonal-edit-05",
+      "product_type": "Seasonal Edit",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Everyday Essential 01",
+      "handle": "everyday-essential-01",
+      "product_type": "Everyday Essential",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Everyday Essential 02",
+      "handle": "everyday-essential-02",
+      "product_type": "Everyday Essential",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Everyday Essential 03",
+      "handle": "everyday-essential-03",
+      "product_type": "Everyday Essential",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Everyday Essential 04",
+      "handle": "everyday-essential-04",
+      "product_type": "Everyday Essential",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Everyday Essential 05",
+      "handle": "everyday-essential-05",
+      "product_type": "Everyday Essential",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Member Offer 01",
+      "handle": "member-offer-01",
+      "product_type": "Member Offer",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Member Offer 02",
+      "handle": "member-offer-02",
+      "product_type": "Member Offer",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Member Offer 03",
+      "handle": "member-offer-03",
+      "product_type": "Member Offer",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Member Offer 04",
+      "handle": "member-offer-04",
+      "product_type": "Member Offer",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Member Offer 05",
+      "handle": "member-offer-05",
+      "product_type": "Member Offer",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Flipkart]",

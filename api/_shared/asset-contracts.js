@@ -101,6 +101,7 @@ const CONTRACTS = {
       `Body text is at least ${M.mobile.body.minFontPx}px on mobile, because iOS auto-zooms anything smaller and the layout jumps.`,
       `Tap targets are at least ${M.mobile.tapTargetPx}px high.`,
       'The mailer must be COMPLETE with images disabled. An image-only mailer is a blank rectangle to a reader whose client blocks images by default.',
+      'Images are REFERENCED by hosted URL, never embedded as base64. Gmail clips past roughly 102KB and the mailer is truncated mid-layout.',
       'Animation may only hide content inside the same gated block that animates it, or a client that strips animation paints the mailer permanently invisible (see motion-design.js).',
     ],
     algorithm: [
@@ -124,7 +125,7 @@ const CONTRACTS = {
       if (a.html && /<img[^>]*>/i.test(a.html) && !/alt=/i.test(a.html)) {
         v.push(warn('html', 'An image with no alt text is invisible to a reader whose client blocks images, and to a screen reader.'));
       }
-      return v;
+      return v.concat(urlsNotPayloads(a, ['html']));
     },
   },
 
@@ -181,7 +182,7 @@ const CONTRACTS = {
       return withArtefact(
         adCopyValidator('ad.meta.video')(asset), asset,
         'A video ad with no renderable artefact. A reviewer cannot approve what does not exist, and this has shipped as a play triangle drawn over a gradient before.',
-      );
+      ).concat(urlsNotPayloads(asset || {}, ['motion_html']));
     },
   },
 
@@ -296,7 +297,7 @@ const CONTRACTS = {
       if (a.html && /class="[^"]*\bsx\b/.test(a.html) && !/sx-on/.test(a.html)) {
         v.push(block('html', 'Reveal classes are present without the sx-on guard, so a visitor with no JavaScript gets a permanently blank page.'));
       }
-      return v;
+      return v.concat(urlsNotPayloads(a, ['html']));
     },
   },
 };
@@ -305,6 +306,42 @@ const CONTRACTS = {
 
 function block(slot, message) { return { level: 'block', slot, message }; }
 function warn(slot, message) { return { level: 'warn', slot, message }; }
+
+/**
+ * A rendered asset REFERENCES its images; it does not carry them.
+ *
+ * The rule already existed as a sentence in one renderer's header ("Hosted
+ * image URLs only - never base64") and was enforced nowhere, so nothing stopped
+ * the next renderer from inlining a photo. Embedding one is not a style
+ * preference:
+ *
+ *   - a base64 hero adds roughly a third to its own byte size and Gmail clips a
+ *     message over ~102KB, so the mailer is truncated mid-layout;
+ *   - most clients refuse to render base64 images at all, so the "safe" choice
+ *     is the one that shows nothing;
+ *   - an embedded copy cannot be swapped, re-cropped or CDN-resized later, and
+ *     it is invisible to the asset provenance the rest of this repo relies on.
+ *
+ * creative-image.js already uploads a generated data-URL to Storage and returns
+ * the public URL, so the correct path exists. This makes using it mandatory.
+ *
+ * `data:image/svg+xml` is deliberately allowed: it is small, uncompressed
+ * markup used for textures such as the ad grain, not a photograph pretending to
+ * be a URL.
+ */
+const RASTER_DATA_URI = /data:image\/(png|jpe?g|webp|gif|avif|bmp|tiff?)\s*;\s*base64/i;
+
+function urlsNotPayloads(asset, slots) {
+  const v = [];
+  for (const slot of slots) {
+    const html = asset && asset[slot];
+    if (typeof html !== 'string' || !html) continue;
+    if (RASTER_DATA_URI.test(html)) {
+      v.push(block(slot, 'An image is embedded as base64 instead of referenced by URL. Gmail clips a message past roughly 102KB so the layout is cut mid-way, many clients refuse to render base64 images at all, and an embedded copy can never be swapped or resized. Upload it (creative-image.js does this already) and reference the hosted URL.'));
+    }
+  }
+  return v;
+}
 
 /**
  * The artefact check for a video contract.

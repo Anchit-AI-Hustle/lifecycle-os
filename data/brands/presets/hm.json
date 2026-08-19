@@ -55,12 +55,234 @@
     "hm.com"
   ],
   "catalog_source": {
-    "kind": "none",
+    "kind": "placeholder",
     "offering_kinds": [
       "product"
     ],
-    "note": "No catalogue is bundled. Import from the site or connect a store before generating product-level assets."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
+  "catalog_placeholder": [
+    {
+      "title": "Denim Jacket 01",
+      "handle": "denim-jacket-01",
+      "product_type": "Denim Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Denim Jacket 02",
+      "handle": "denim-jacket-02",
+      "product_type": "Denim Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Denim Jacket 03",
+      "handle": "denim-jacket-03",
+      "product_type": "Denim Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Denim Jacket 04",
+      "handle": "denim-jacket-04",
+      "product_type": "Denim Jacket",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Knit Sweater 01",
+      "handle": "knit-sweater-01",
+      "product_type": "Knit Sweater",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Knit Sweater 02",
+      "handle": "knit-sweater-02",
+      "product_type": "Knit Sweater",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Knit Sweater 03",
+      "handle": "knit-sweater-03",
+      "product_type": "Knit Sweater",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Knit Sweater 04",
+      "handle": "knit-sweater-04",
+      "product_type": "Knit Sweater",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Oxford Shirt 01",
+      "handle": "oxford-shirt-01",
+      "product_type": "Oxford Shirt",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Oxford Shirt 02",
+      "handle": "oxford-shirt-02",
+      "product_type": "Oxford Shirt",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Oxford Shirt 03",
+      "handle": "oxford-shirt-03",
+      "product_type": "Oxford Shirt",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Oxford Shirt 04",
+      "handle": "oxford-shirt-04",
+      "product_type": "Oxford Shirt",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Chino Trouser 01",
+      "handle": "chino-trouser-01",
+      "product_type": "Chino Trouser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Chino Trouser 02",
+      "handle": "chino-trouser-02",
+      "product_type": "Chino Trouser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Chino Trouser 03",
+      "handle": "chino-trouser-03",
+      "product_type": "Chino Trouser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Chino Trouser 04",
+      "handle": "chino-trouser-04",
+      "product_type": "Chino Trouser",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Wool Coat 01",
+      "handle": "wool-coat-01",
+      "product_type": "Wool Coat",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Wool Coat 02",
+      "handle": "wool-coat-02",
+      "product_type": "Wool Coat",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Wool Coat 03",
+      "handle": "wool-coat-03",
+      "product_type": "Wool Coat",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    },
+    {
+      "title": "Wool Coat 04",
+      "handle": "wool-coat-04",
+      "product_type": "Wool Coat",
+      "price": null,
+      "compare_at": null,
+      "currency": "",
+      "image_url": "",
+      "product_url": "",
+      "placeholder": true
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, H&M]",
