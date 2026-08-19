@@ -67,7 +67,12 @@
       what: 'New against returning customers, the returning-customer rate and discount exposure.',
     },
     {
-      id: 'cohort', label: 'Cohorts', group: 'Business performance', kind: 'native',
+      // "Cohort Retention", not "Cohorts". This tab is retention curves over
+      // first-purchase cohorts; the Cohorts feature at /cohorts is where cohorts
+      // are DEFINED (engagement, product, lifecycle, RFM). Both were called
+      // "Cohorts" in the rail, one as a row and one as a group heading, so the
+      // menu looked like it listed the same thing twice.
+      id: 'cohort', label: 'Cohort Retention', group: 'Business performance', kind: 'native',
       analysis: 'cohort-retention', region: 'per-market',
       source: 'the active brand\'s market export',
       what: 'First-purchase cohorts and how each one keeps ordering over the quarters that follow.',

@@ -559,3 +559,24 @@ The shared LHS menu (`auth.js`, element `#lifecycle-nav`; model exposed as `wind
 - **Menu items carry the V1/V2 taxonomy badge** (see "Version taxonomy" above); where both generations of a capability exist they are labelled **Draft 1 / Draft 2** (Plan V1 = Draft 1 vs Mailer Calendar V2 = Draft 2 of calendaring; Mailer Studio V1 = Draft 1 vs Mailer Calendar built mailers = Draft 2 of mailer creation).
 - Content lives in `auth.js` (`NAV`, `SUBQ`, `INFO`). String rules there: double-quoted strings only (apostrophes fine; never a double quote or backtick inside), text positions only. The nav must render signed-out too and degrade gracefully when Supabase/config fetches fail.
 - **Sanctioned rendering (2026-07-09):** the five common questions render in a **`?`-triggered popup/modal** (`#lnav-ipanel`), all five shown at once as headings (`.lnav-ipanel-q`) with their content, Step-by-Step Working as a numbered list with `Runs via:` lines; content is written via `textContent` (no HTML-escaping needed). The rail no longer carries an inline five-item accordion — it lists the real feature links and their group sub-sections (groups start collapsed except the active group). Sections follow the sequential marketer workflow: Research & Benchmark → Plan → Design & Create → Share & Track → Assistants; rows show only the quiet V1/V2 chip (Draft 1/2 lives in tooltips + the `?` popup). Superseded the 2026-07-04 inline-accordion rendering.
+- **NOTHING IN THE RAIL IS OFFERED TWICE (2026-08-19).** Five duplicates were live at once, each of a different kind, so the gate
+  (`tests/nav-no-duplicates.spec.js`) checks each kind separately and measures the RENDERED rail with every group expanded:
+  - **One destination, one row.** Compare rows by where they LAND, not by their href. `/ads-master` is a **redirect** (`vercel.json`
+    `redirects`, not `rewrites`) onto `/data-analysis?tab=live-ads`, which Data Analysis already listed as "Paid Media" — two rows, one
+    page, invisible to any check that reads raw hrefs or only reads `rewrites`. The top-level row is gone and its `?` content moved to
+    the row that survives. The ONLY allowed pair is the wordmark and the Home row: a logo linking home is chrome, not a menu item.
+  - **A `gid` is not an `id`.** A `?` chip renders for any `id` OR `gid` carrying an `INFO` entry, so the two namespaces must not
+    collide. `Market Study` (gid `research`) and its first row (id `research`) rendered the SAME panel twice, one under the other; the
+    row is now `research-all`, matching the `research-us`/`research-uk` rows beside it.
+  - **A group describes itself.** The 3D group carried gid `landing`, so its chip opened the LANDING PAGES description and the
+    storefront had none of its own. Now `storefront3d` + its own `INFO` entry. (The sibling repo hit this exact defect and its fix
+    comment says so.)
+  - **Two features, two groups.** `3D Storefront & Websites` held the storefront AND every landing-page feature, so the builder's own
+    sub-pages sat under a heading that never says "landing page" while "Landing Pages" appeared as a row under both Competitor
+    Benchmarking and Knowledge Base. Split into `3D Storefront & Websites` + `Landing Pages`, matching the sibling's IA.
+  - **A nested row never repeats an always-visible top-level row.** TeleSuite's first row was "Home", the same word as the top-level
+    Home pointing elsewhere; it is "Overview (all tools)" now. Repeats BETWEEN nested rows are fine when the heading disambiguates
+    them — "Meta Ads" under Competitor Benchmarking / Knowledge Base / Ad Campaigns are three different things and the sibling keeps
+    them bare too, so the test allows exactly that set and fails on any NEW repeat.
+  - **Nothing ships unreachable.** `/landing-pages` (the builder root — only its four `#anchor` rows existed) and `/rfm` (serves
+    `dashboard.html`; no row at all) are now in the rail, and every rail destination must resolve to a rewrite, a redirect or a file.
