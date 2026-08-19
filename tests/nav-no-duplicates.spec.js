@@ -140,6 +140,29 @@ test('a repeated label is only ever a channel row inside its own section', async
   expect(unexpected, 'a new repeated label appeared in the rail').toEqual([]);
 });
 
+test('no group heading repeats a row label', async ({ page }) => {
+  // A heading is a <button> and a row is an <a>, so a check that only reads
+  // links never compares them. That is how "Cohorts" ended up as both a group
+  // heading (cohort DEFINITIONS at /cohorts) and a row inside Data Analysis
+  // (retention curves at ?tab=cohort) — two different features, one word, and
+  // the rail read as if it listed the same thing twice.
+  await openRail(page);
+  const out = await page.evaluate(() => {
+    const txt = (el) => {
+      const t = el.querySelector('.lnav-txt');
+      return ((t || el).textContent || '').trim();
+    };
+    return {
+      headings: [...document.querySelectorAll('.lnav-side .lnav-ghead')].map(txt),
+      rows: [...document.querySelectorAll('.lnav-side a.lnav-link')].map(txt),
+    };
+  });
+  expect(out.headings.length, 'no group headings found, so this proves nothing').toBeGreaterThan(5);
+  const rows = new Set(out.rows.filter(Boolean));
+  const clash = out.headings.filter((h) => h && rows.has(h));
+  expect(clash, 'a group heading uses the same words as a row').toEqual([]);
+});
+
 test('no group row repeats an always-visible top-level row', async ({ page }) => {
   // The worst kind of repeat: a nested row using the same word as a row that is
   // on screen at all times. "Home" inside TeleSuite did exactly this.

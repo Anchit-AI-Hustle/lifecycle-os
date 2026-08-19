@@ -348,7 +348,7 @@
       { id: 'da-control',  label: 'Control Room',                  href: '/data-analysis?tab=control',              icon: 'analysis' },
       { id: 'da-acq',      label: 'Acquisition',                   href: '/data-analysis?tab=acq',                  icon: 'insights' },
       { id: 'da-ret',      label: 'Retention',                     href: '/data-analysis?tab=ret',                  icon: 'insights' },
-      { id: 'da-cohort',   label: 'Cohorts',                       href: '/data-analysis?tab=cohort',               icon: 'cohort' },
+      { id: 'da-cohort',   label: 'Cohort Retention',              href: '/data-analysis?tab=cohort',               icon: 'cohort' },
       { id: 'da-liveads',  label: 'Paid Media',                    href: '/data-analysis?tab=live-ads',             icon: 'ads', match: ['/ads-master', '/ad-campaigns-master', '/ads-kb', '/ad-campaigns-master.html'] },
       { id: 'da-mailer',   label: 'Owned Channels',                href: '/data-analysis?tab=mailer-intelligence',  icon: 'insights' },
       { id: 'da-landing',  label: 'Landing & Experiments',         href: '/data-analysis?tab=landing-intelligence', icon: 'landing' },
@@ -428,10 +428,17 @@
       { id: 'web-india',  label: '🇮🇳 India Website',  href: '/3d/in',     icon: 'knickgasm', match: ['/3d/in', '/3d/india', '/store-3d-in'] },
       { id: 'lp-overview', label: 'Design References', href: '/website-designs', icon: 'landing', match: ['/website-designs', '/website-designs.html'] },
     ]},
-    { group: 'Landing Pages', icon: 'landing', gid: 'landing', ver: 'v2', match: ['/landing-pages', '/landing-pages.html', '/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'], children: [
+    // "Landing Page Builder", not "Landing Pages". Competitor Benchmarking and
+    // Knowledge Base each carry a "Landing Pages" ROW, and both are part of a
+    // parallel channel set (Mailers / Meta / Google / TikTok / Landing Pages)
+    // that this repo's design rules say to keep equal and aligned — renaming one
+    // of them to dodge a collision would break the set. Naming this group for
+    // what it holds costs nothing and leaves those rows alone. (The reference
+    // repo calls its group "Landing Pages" and carries the same collision.)
+    { group: 'Landing Page Builder', icon: 'landing', gid: 'landing', ver: 'v2', match: ['/landing-pages', '/landing-pages.html', '/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'], children: [
       // The builder itself, first. Its four rows are anchors INSIDE this page,
       // so without it there was no row that opened the page from the top.
-      { id: 'lp-build',   label: 'Landing Page Builder', href: '/landing-pages', icon: 'landing', match: ['/landing-pages', '/landing-pages.html'] },
+      { id: 'lp-build',   label: 'Overview (all channels)', href: '/landing-pages', icon: 'landing', match: ['/landing-pages', '/landing-pages.html'] },
       { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages#mailers',  icon: 'mailer' },
       { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages#meta',     icon: 'meta' },
       { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages#google',   icon: 'google' },
@@ -458,7 +465,11 @@
       // (all regions)"), so this follows that.
       { id: 'ts-home', label: "Overview (all tools)", href: '/telesuite#home', icon: 'analysis' },
       { id: 'ts-products', label: "Products", href: '/telesuite#products', icon: 'analysis' },
-      { id: 'ts-knowledgebase', label: "Knowledge Base", href: '/telesuite#knowledge-base', icon: 'analysis' },
+      // "Call Knowledge Base": the top-level Knowledge Base group is the
+      // app-wide one, and this is TeleSuite's own grounding library for pitches,
+      // rebuttals and call scoring. Two rows reading "Knowledge Base" and
+      // opening two different libraries is the repeat this removes.
+      { id: 'ts-knowledgebase', label: "Call Knowledge Base", href: '/telesuite#knowledge-base', icon: 'analysis' },
       { id: 'ts-pitchgenerator', label: "AI Pitch Generator", href: '/telesuite#pitch-generator', icon: 'analysis' },
       { id: 'ts-rebuttalgenerator', label: "AI Rebuttal Assistant", href: '/telesuite#rebuttal-generator', icon: 'analysis' },
       { id: 'ts-transcription', label: "Audio Transcription", href: '/telesuite#transcription', icon: 'analysis' },
