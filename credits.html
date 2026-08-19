@@ -100,7 +100,15 @@
     </div>
     <div class="card">
       <h2 style="margin:0 0 4px;font-size:17px">Add credits</h2>
-      <p class="muted" style="margin-bottom:14px">Pick a pack to record a recharge order.</p>
+      <!-- Two different things happen behind this button, so it must not say
+           one of them unconditionally. On a complimentary account the credits
+           land immediately; on every other account the order is recorded and an
+           operator confirms it, because no payment processor is connected. The
+           shared panel in credits.js already said this correctly and this page
+           did not, so a comp account was told an operator had to approve a
+           recharge that had in fact already completed. The server decides;
+           this only renders its answer. -->
+      <p class="muted" style="margin-bottom:14px" id="packnote">Pick a pack to record a recharge order.</p>
       <div class="packs" id="packs"></div>
     </div>
   </div>
@@ -169,6 +177,15 @@
 
   function renderPacks() {
     var packs = (window.Credits && window.Credits.packs) || [];
+    // `comp` comes from the balance response, which reads the VERIFIED session
+    // email server-side. The browser never holds the list of comp accounts —
+    // that would be an announcement of who is exempt.
+    var note = $('packnote');
+    if (note) {
+      note.textContent = (window.Credits && window.Credits.comp)
+        ? 'This account recharges free. Picking a pack adds the credits immediately at no charge, and usage is still metered so your spend stays visible below.'
+        : 'Pick a pack to record a recharge order.';
+    }
     $('packs').innerHTML = packs.length ? packs.map(function (p) {
       var total = p.credits + (p.bonus || 0);
       return '<div class="pack" data-pack="' + esc(p.key) + '">' +
