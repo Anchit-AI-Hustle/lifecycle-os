@@ -178,6 +178,44 @@ whether an artefact exists to play.
 - **Validation never rewrites copy.** Truncating to fit is how a sentence becomes a fragment nobody
   wrote. `checkAssetContracts()` attaches `contract_check` per asset + a campaign summary; the
   copywriter is briefed with the SAME contracts, so writer and check cannot disagree.
+- **Routing is per CREATIVE TYPE, not per platform** (2026-08-19). `contractFor()` sent every TikTok
+  ad to `ad.tiktok.video` while Meta beside it branched correctly, so every TikTok STILL (the builder
+  ships an A/B pair per platform) was reported with three violations it could not satisfy. A false
+  block is not a safe failure: blocks are overridable by design, so a gate that routinely blocks what
+  it misread teaches the operator that overriding is routine. `ad.tiktok.static` is built from the
+  same `asset-specs` numbers as everything else.
+- **The app builds to its own contracts** (2026-08-19). Running one campaign through the real
+  builders on the noLLM path reported 7 blocking + 1 warning against the app's OWN output; all five
+  causes were real and had shipped. The template mailer was `<main>`/`<section>` with `max-width` and
+  an inline-block `<a>` — Outlook renders with the WORD engine, which honours neither, so the email
+  spanned the window and the CTA lost its button. The landing page's CTA was a `<button>` with no
+  handler. Video ads had no `primary_text`/`headline` (Meta requires both on video exactly as on
+  static). `attachMotionCreative` ran only inside the LLM branch, so every noLLM build shipped video
+  ads with nothing to play — despite the artefact needing no model. Now **0 blocking, 0 warnings**,
+  asserted by `tests/generation-quality.spec.js`, which BUILDS a campaign rather than reading source.
+
+## ⭐ An asset prompt and an element prompt are different things (2026-08-19) — read `docs/asset-and-element-prompts.md`
+An operator copied the prompt `smart-brain.html` offers, pasted it into Gemini and got a product
+photograph instead of an email. Nothing was broken in the model: the only prompt the console ever
+surfaced was an ad's `creative_brief` — an IMAGE brief, doing exactly what it says — while
+`master_prompt`, which has produced the finished artefact since the beginning, was never rendered on
+that page at all. Neither prompt announced its kind.
+- **ASSET prompt** returns the complete artefact (`master_prompt`, `master_prompt_v{1,2}`). It OPENS
+  by naming the deliverable and CLOSES by pinning the container, so a model reading only the first
+  and last paragraph still builds the right thing. The three things Gemini returned instead — a plan,
+  an outline, a hero image — are ruled out BY NAME. Every asset prompt forbids base64: Gmail clips
+  past ~102KB and the mailer arrives cut in half.
+- **ELEMENT prompt** returns one part (`creative_brief`, `script`), wrapped by `buildElementPrompt()`
+  so its first line says so. Deliberately NOT wrapped in the brand block — this goes to an image
+  model, and burying a shot description under typography rules is how a hero comes back with text
+  baked into it. An empty brief yields no prompt at all.
+- **`promptsFor(asset, type)`** is the index the UI renders, whole-asset prompts FIRST — ordering is
+  the fix, not decoration, because the operator copies the first thing that looks like the job. An
+  asset row carries `from` (the field already holding the text) instead of a copy: ~700 bytes vs
+  ~11KB, across a ~180-slot prebuild queue. Element rows carry `text`, which exists nowhere else.
+- The console shows both kinds together, the kind as a chip INSIDE the button (an operator in a hurry
+  reads the button, never the title attribute). Tests stub the clipboard and assert what actually
+  lands there.
 
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
@@ -329,6 +367,33 @@ line of every SUCCESSFUL copy application. The mutations had already landed so a
 the throw was swallowed and every campaign reported `copywriter.provider: 'template-fallback'`,
 creatives `none`, and the console's "no LLM provider answered" banner — on copy an LLM had just
 written.
+
+**Whose cohort, and is it the right campaign for them (2026-08-19).** Four more defects, all found by
+EXECUTING the planner rather than reading it (`tests/brain-cohort-planning.spec.js` runs it over
+every segment `rfm-core` can emit, derived by walking the quintile space so a new segment arrives
+automatically):
+- **`objectiveFor()` matched almost nothing.** It tested `/winback|at-risk/i` — hyphenated — while
+  `rfm-core.segmentFor()` emits **"At Risk"** with a SPACE. Nor did "Can't Lose Them", "Hibernating",
+  "Lost", "About to Sleep", "Need Attention" or "Promising" contain any of the four literals it
+  looked for. **Eight of the eleven canonical segments fell through to the default, and the default
+  is the objective written for someone who has never bought.** The objective briefs the copywriter,
+  sets offer depth and shapes every asset on the slot, so a customer weeks from churning was being
+  sent an introduction to the brand — and the reviewer saw a coherent campaign and approved it. Now
+  an ordered table on the segments' own words: `can't lose` → high-value reactivation; `at risk /
+  hibernating / lapsed` → reactivation; `lost` → last-chance; `about to sleep / need attention` →
+  pre-lapse retention; `new / promising / potential` → second-order activation (BEFORE the loyalty
+  rule, because "Potential Loyalist" contains "Loyal" and would otherwise be upsold); `champion /
+  loyal` → premium bundle expansion.
+- **The hero fallback was tenant zero's own assortment**, so a brand with no product scores got a
+  90-day calendar in which every slot in every market planned a campaign for another company's
+  product. Now `placeholderHero(brand)` — a marker naming the gap and the brand, `placeholder:true`
+  carried onto the slot so nothing downstream has to string-match a title.
+- **`entry.heroProduct.title` threw** a bare TypeError on a slot with no hero, killing the whole
+  generation with a message naming neither brand nor missing data. `heroTitleOf(entry)` states the
+  gap instead.
+- **`competitorContext()` read `.byChannel` off an absent benchmark.** A brand whose record names no
+  competitors gets an empty universe BY DESIGN, so one unconfigured feature took down every market's
+  calendar.
 
 ### KicksGPT — the brand LLM (conversational tool-calling over the whole stack)
 `api/_shared/brand-llm.js` is the brand's own "Claude-for-Knickgasm": a provider-agnostic **tool-calling loop** that lets the LLM actually OPERATE the growth stack instead of just chatting. The model emits a strict JSON action each turn (`{action:'tool',...}` — single tool or a `tools:[…]` batch of up to 3 run in parallel — / `{action:'final',...}`); the server executes against the existing `_shared` cores and feeds results back, looping (default 5 steps). Speed: the loop pins the first provider that answers (per-call `preferProvider` in `llm.js`) so later steps skip dead keys, dedupes repeated tool+args calls, 20s per-provider timeout. Quality: the system prompt enforces an **evidence contract** — every recommendation quotes exact tool-sourced figures, names the target metric + expected impact, states a complete hypothesis, and quotes competitor benchmarks. Because tool-calls are plain JSON (not a provider-specific function-calling API), it works across the **entire 6-provider waterfall in `llm.js`**, including the free tiers — no extra keys. Tools registered: `ask_analytics`, `run_analysis`, `list_cohorts`, `get_calendar`, `get_competitor_benchmarks`, `search_knowledge_base`, `list_campaigns`, `generate_calendar`*, `generate_assets_for_slot`*, `run_agentic_campaign`*, `klaviyo` (*=writes/generates, only on explicit ask). Each reuses the SAME logic the `/api/brain ?action=` routes use. Endpoints: `?action=brand-chat` (the loop), `?action=brand-tools` (manifest + klaviyo status). UI: `kicksgpt.html` at `/kicksgpt` (also `/kicks`, `/ask`) — Claude-style chat that shows the tool trace. Rename the product via the single `BRAND_LLM_NAME` constant in `brand-llm.js`.

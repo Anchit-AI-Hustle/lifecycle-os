@@ -2154,6 +2154,27 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     console.warn('[smart-brain] LLM copy failed, using template assets:', e.message);
     trace.push({ agent: 'fallback', role: 'template assets', ok: false, output: { reason: String(e && e.message || e).slice(0, 160) } });
   }
+  // A VIDEO AD CARRIES ITS ARTEFACT ON EVERY PATH.
+  //
+  // attachMotionCreative only ran inside applyCopy, which is the LLM branch —
+  // so every campaign built with noLLM (the orphan-heal republish, and any run
+  // where the provider cascade is rate-limited or unkeyed) shipped its video ads
+  // with nothing to play. That is the exact failure this repo already fixed once
+  // at the console: a reviewer approving a play triangle drawn over a gradient
+  // has approved nothing.
+  //
+  // Nothing about building it needs a model. renderMotionAd composes the
+  // storyboard, the brand's palette and its own catalogue photographs — all of
+  // which exist before any provider is called. So it runs here, for both paths,
+  // and skips any ad the LLM path has already given an artefact.
+  try {
+    const needsMotion = (campaign.assets && campaign.assets.ads || [])
+      .filter((ad) => ad.creative_type === 'video' && !(ad.creative && ad.creative.motion_html));
+    if (needsMotion.length) {
+      const pool = realImagePool(entry, 1400);
+      for (const ad of needsMotion) attachMotionCreative(ad, entry, pool);
+    }
+  } catch (_) { /* a motion build must never take a campaign down */ }
   // Ads QA Critic — deterministic review of the paid-social creatives; runs in BOTH
   // the LLM and noLLM paths. Attaches a verdict + stamps each ad for the studio badge.
   // Advisory (never blocks generation); surfaces type/brand/offer/limit violations.
