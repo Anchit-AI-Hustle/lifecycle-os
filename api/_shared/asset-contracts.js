@@ -266,6 +266,46 @@ const CONTRACTS = {
     },
   },
 
+  /*
+   * The still half of a TikTok placement.
+   *
+   * asset-specs records ONE produced TikTok placement — in-feed, 9:16, noted as
+   * "video / cover" — so the still this app builds for TikTok is a cover frame,
+   * not a separate image-ad format. That is the whole reason it needs its own
+   * contract rather than the video one: it is judged on the same frame and the
+   * same safe areas, and on NONE of the things only a video has. Demanding a
+   * script and a motion artefact from a still is not a stricter check, it is a
+   * wrong one.
+   *
+   * Every number here is read from asset-specs at require time, the same as
+   * every other contract. Nothing about TikTok is asserted that the spec does
+   * not already record.
+   */
+  'ad.tiktok.static': {
+    id: 'ad.tiktok.static',
+    medium: 'paid-social',
+    label: 'TikTok static / cover frame',
+    structure: [
+      { slot: 'caption', required: true, ...(A.tiktok && A.tiktok.copy && A.tiktok.copy.caption ? limit(A.tiktok.copy.caption, 'caption', 'Caption truncates in feed.') : unbounded('asset-specs.js records no caption limit for TikTok, so none is enforced.')) },
+      { slot: 'headline', required: false, ...unbounded('TikTok has no separate headline field; carried only when the creative bakes one in.') },
+      { slot: 'creative_brief', required: true, ...unbounded('What the frame shows. Without it nothing can be rendered.') },
+    ],
+    design: [
+      `Vertical ${placement(A.tiktok, 'in_feed') || '9:16'}; ${safeOf(A.tiktok, 'in_feed') || 'keep copy clear of the UI chrome on all four edges'}.`,
+      'It is the frame the feed stops on, so it has to read at a glance and at thumbnail size.',
+      'Native to the feed, not a broadcast key art: a polished studio frame reads as an ad and is scrolled.',
+    ],
+    algorithm: [
+      'Pick the frame that would make someone stop, not the most flattering one.',
+      'Compose from the brand\'s own catalogue photography.',
+      'Keep every element out of the platform chrome, which covers more of a 9:16 than it looks.',
+      'Validate, then check it still reads at thumbnail size.',
+    ],
+    // No motion artefact, no script: a still has neither, and requiring them is
+    // what produced three false blocks on every TikTok static this app built.
+    validate: adCopyValidator('ad.tiktok.static'),
+  },
+
   /* ═════════════════════════════════════════════════════════════════════════
      LANDING PAGE. The only surface that runs JavaScript and owns its own
      scroll, which is why it is the only one allowed scroll-driven behaviour.
@@ -404,7 +444,15 @@ function contractFor(asset) {
   const platform = String(asset.platform || '').toLowerCase();
   const type = String(asset.creative_type || asset.type || '').toLowerCase();
   if (platform === 'google') return CONTRACTS['ad.google.rsa'];
-  if (platform === 'tiktok') return CONTRACTS['ad.tiktok.video'];
+  // TikTok was routed to the VIDEO contract unconditionally, while Meta beside
+  // it branched on creative_type. The ad builder produces an A/B pair per
+  // platform — one video, one static — so every TikTok static ad was judged as
+  // a video and reported three blocking violations it could not possibly
+  // satisfy: a script, a caption limit meant for a video, and a motion artefact
+  // a still image does not have. A gate that blocks what it misread is not a
+  // safe failure: it teaches the operator that overriding is routine, and the
+  // override is what the next real block has to survive.
+  if (platform === 'tiktok') return CONTRACTS[type === 'static' ? 'ad.tiktok.static' : 'ad.tiktok.video'];
   if (platform === 'meta') return CONTRACTS[type === 'video' ? 'ad.meta.video' : 'ad.meta.static'];
   if (asset.subject != null || asset.preheader != null) return CONTRACTS['email.mailer'];
   if (asset.hero_headline != null || asset.variant != null && asset.path) return CONTRACTS['landing.page'];
