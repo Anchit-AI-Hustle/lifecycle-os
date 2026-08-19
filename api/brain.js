@@ -496,6 +496,56 @@ module.exports = async function handler(req, res) {
         return res.json(out);
       }
 
+      // ── ADS ANALYSIS (findings, not figures) ─────────────────────────────
+      // ad-insights FETCHES rows. This turns them into observations, actions
+      // and a per-creative read. Every finding quotes the figures that produced
+      // it and names the entity they came from; a rule that cannot cite a
+      // number emits nothing. Outliers are judged against THIS account's own
+      // median, never an industry benchmark we have not verified.
+      case 'ads-analysis': {
+        const p = req.method === 'POST' ? b : Object.assign({}, req.query);
+        const view = String(p.view || 'all');
+        const args = { market: p.market, level: p.level || 'ad', since: p.since, until: p.until };
+        const src = p.platform
+          ? await adInsights.insights({ platform: p.platform, ...args })
+          : await adInsights.summary(args);
+
+        // Keep every platform's blocker verbatim. A disconnected platform has
+        // to reach the UI as its own reason: an empty table reads as "no
+        // activity", which is a different and much more expensive claim.
+        const rows = [];
+        const blockers = [];
+        const pushFrom = (o) => {
+          if (!o) return;
+          if (Array.isArray(o.rows)) rows.push(...o.rows);
+          if (o.connected === false || o.not_connected) {
+            blockers.push({
+              platform: o.platform || 'unknown',
+              blocker: o.hint || o.blocker || 'not connected',
+              need_env: o.need_env || [],
+              would_request: o.would_request || o.would_query || null,
+            });
+          }
+        };
+        if (Array.isArray(src.platforms)) src.platforms.forEach(pushFrom); else pushFrom(src);
+
+        const engine = require('./_shared/ads-insight-engine.js');
+        const payload = {
+          ok: true,
+          market: args.market || 'US',
+          level: args.level,
+          window: src.window || null,
+          fetched_at: new Date().toISOString(),
+          rows_analysed: rows.length,
+          blockers,
+          connected: rows.length > 0,
+        };
+        if (view === 'insights' || view === 'all') Object.assign(payload, engine.deriveInsights(rows));
+        if (view === 'actionables' || view === 'all') Object.assign(payload, engine.deriveActionables(rows));
+        if (view === 'creative' || view === 'all') Object.assign(payload, engine.deriveCreativeAnalysis(rows));
+        return res.json(payload);
+      }
+
       // ── ADS FROM SNOWFLAKE (live warehouse tables; cohort/segmentation) ──
       case 'ads-snowflake': {
         const p = req.method === 'POST' ? b : Object.assign({}, req.query);

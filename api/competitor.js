@@ -315,6 +315,41 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // ── Platform-sourced competitive benchmarking ─────────────────────────
+    // Our platform credentials report on OUR OWN accounts. They cannot return a
+    // competitor's spend, CTR or ROAS, and nothing here estimates one: the
+    // response keeps `comparable` (observable on both sides by the SAME method)
+    // strictly apart from `own_only` (competitor: null, with the reason). See
+    // competitive-benchmark-core.js for why the two never merge.
+    if (action === 'benchmark' || action === 'benchmark-set') {
+      const ctx = universeContext(req, url);
+      if (ctx.error) { res.status(401).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
+      const bench = require('./_shared/competitive-benchmark-core.js');
+      // The OWN side is read from the ACTIVE brand's own store URL. Resolving it
+      // here rather than defaulting inside the module is deliberate: there is no
+      // honest fallback for "which shop is mine".
+      const ownBrand = await universe.brandForWorkspace(ctx.store, ctx.workspaceId).catch(() => null);
+      const result = action === 'benchmark-set'
+        ? await bench.benchmarkSet({
+          market: url.searchParams.get('market') || 'US',
+          category: url.searchParams.get('category'),
+          days: parseInt(url.searchParams.get('days'), 10) || 30,
+          max: url.searchParams.get('max'),
+          store: ctx.store, workspaceId: ctx.workspaceId, ownBrand,
+        })
+        : await bench.benchmark({
+          brand: url.searchParams.get('brand'),
+          domain: url.searchParams.get('domain'),
+          market: url.searchParams.get('market') || 'US',
+          country: url.searchParams.get('country'),
+          days: parseInt(url.searchParams.get('days'), 10) || 30,
+          limit: parseInt(url.searchParams.get('limit'), 10) || 20,
+          ownBrand,
+        });
+      res.status(result && result.ok === false ? 400 : 200).json(result);
+      return;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // COMPETITIVE INTELLIGENCE (Supabase) — ads / emails / landing / offers /
     // funnels. Collectors POST already-fetched payloads; this layer owns dedup,
