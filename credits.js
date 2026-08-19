@@ -115,6 +115,11 @@
       '.lc-credit-pill.is-empty .lc-dot{background:var(--brand-err,#c0392b)}',
       '.lc-credit-pill .lc-add{padding:2px 8px;border-radius:999px;font-size:11px;',
       ' background:var(--brand-primary,#6A33D8);color:var(--brand-on-primary,#fff)}',
+      // Reads as a status, not a promotion: this account is not billed.
+      '.lc-free{margin-left:8px;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;',
+      ' letter-spacing:.02em;text-transform:none;vertical-align:middle;',
+      ' background:var(--surface-alt,#f4f4f4);color:var(--brand-accent-text,#6A33D8);',
+      ' border:1px solid var(--line,#e3e3e3)}',
       '.lc-credit-pill.is-pulse{animation:lcCreditPulse .6s ease}',
       '@keyframes lcCreditPulse{0%{transform:scale(1)}35%{transform:scale(1.13)}100%{transform:scale(1)}}',
       '.lc-credit-chip{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:2px 7px;border-radius:999px;',
@@ -263,14 +268,18 @@
     sheet.innerHTML =
       '<div class="lc-credit-card" role="dialog" aria-modal="true" aria-label="Add credits">' +
         '<button class="lc-close" aria-label="Close">&times;</button>' +
-        '<h3>Add credits</h3>' +
+        '<h3>Add credits' + (state.comp ? ' <span class="lc-free">free on this account</span>' : '') + '</h3>' +
         '<p class="sub">' +
           (o.short
             ? '<b>' + o.feature.label + '</b> costs ' + fmt(o.feature.total) + ' credits and you have ' + fmt(state.balance) + '. You need ' + fmt(o.short) + ' more.'
             : 'You have <b>' + fmt(state.balance) + '</b> credits. Every feature shows its cost before you run it.') +
         '</p>' +
         packs +
-        '<p class="sub" style="margin:16px 0 0">Picking a pack records a recharge order. No payment processor is connected to this deployment, so an operator confirms the order before the credits land. <a href="/credits">See your full usage and ledger</a>.</p>' +
+        '<p class="sub" style="margin:16px 0 0">' +
+          (state.comp
+            ? 'This account recharges free: picking a pack adds the credits immediately at no charge. Usage is still metered, so your spend stays visible in the ledger.'
+            : 'Picking a pack records a recharge order. No payment processor is connected to this deployment, so an operator confirms the order before the credits land.') +
+          ' <a href="/credits">See your full usage and ledger</a>.</p>' +
       '</div>';
 
     function close() { sheet.remove(); document.removeEventListener('keydown', onKey); }
@@ -351,6 +360,9 @@
       state.balance = r.wallet ? Number(r.wallet.balance) : null;
       state.held = r.wallet ? Number(r.wallet.held) : 0;
       state.low = !!r.low;
+      // Server-decided, from the VERIFIED session email. The client never
+      // asserts this; it only renders what the server already concluded.
+      state.comp = !!r.comp;
       state.packs = r.packs || state.packs;
       if (r.features) setFeatures(r.features);
       state.loaded = true;
