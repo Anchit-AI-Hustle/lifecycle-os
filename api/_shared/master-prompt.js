@@ -82,29 +82,39 @@ function creativeFacts(brand) {
 // The visual cascade for every visual asset, in the order the operator chose:
 const VISUAL_CASCADE = `VISUALS — use this source order: (1) if a hosted media URL is provided, embed it (product image/GIF/MP4, e.g. a Shopify product video); (2) else describe an auto-generated animated GIF (2–4 still frames, gentle Ken-Burns or cross-fade) the team can produce from product photography; (3) AI-generated video only as a last resort. Every visual must be photoreal, on-palette, text-free in the image itself (text lives in the layout, not burned into the photo) unless the asset is an ad creative.`;
 
+/*
+ * These describe what the FINISHED email contains, not what to write about it.
+ *
+ * V2 previously opened item 2 with "Section-by-section layout: for each section
+ * give the COPY and the VISUAL". That is an instruction to produce a PLAN, and
+ * it sat in the same prompt as a deliverable line saying "not a
+ * section-by-section outline". Given a contradiction, a model resolves it, and
+ * a breakdown is easier to produce than a finished email — so the outline is
+ * what came back. Both halves now ask for the same artefact.
+ */
 function mailerContract(variant, cf) {
   cf = cf || creativeFacts(null);
   if (variant === 'V1') {
-    return `ASSET: Email mailer — VARIANT V1 (COMPLETE TEXTUAL CONTENT, no imagery).
-Produce a fully text-driven email that stands on its own with zero images.
-Deliver, in order:
-1. 3 subject-line options (≤50 chars) + 1 preheader (≤90 chars).
-2. Editorial hero headline + opening line that earns the scroll.
+    return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
+A finished email that stands on its own with zero images: type, rules, colour and space do all the work. Not a copy deck, and not a description of an email — the email.
+It must CONTAIN, in this order:
+1. Subject lines and preheader (give 3 subject options ≤50 chars and 1 preheader ≤90 chars above the HTML).
+2. An editorial hero headline and an opening line that earns the scroll.
 3. Body: 2–3 short story-driven paragraphs (origin, everyday use, why-now).
-4. A benefit triplet (3 crisp lines).
-5. One tiny personal testimonial (story, not a star rating).
-6. Clear CTA copy + the destination store URL.
-7. Plain-text version suitable for deliverability.
-Compact (~two scrolls). No layout/visual instructions — pure copy.`;
+4. A benefit triplet, 3 crisp lines.
+5. One short personal testimonial — only if one was supplied. None supplied, omit the block rather than writing one.
+6. CTA copy linking to the destination store URL.
+Compact, around two scrolls. Because there are no images, every structural cue has to be typographic: weight, size, rules and generous space.`;
   }
-  return `ASSET: Email mailer — VARIANT V2 (TEXTUAL + VISUAL).
-Produce the same persuasive copy as V1 PLUS a complete visual layout.
-Deliver, in order:
-1. 3 subject lines + preheader.
-2. Section-by-section layout: for each section give the COPY and the VISUAL (hero, lifestyle, product packshot, motion moment).
-3. At least one motion slot (animated GIF or short product video) with an exact creative brief and where it sits. If it is a video, score it to ${cf.audio}. Never a licensed/trending sound.
-4. Benefit strip, social proof, offer bar, CTA — each with copy + visual direction.
-5. Responsive, email-client-safe structure (Outlook bgcolor on colored cells; max ~1200–1500px tall).
+  return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
+The same persuasion as V1, laid out with imagery. A finished email, not a layout plan and not a set of section notes.
+It must CONTAIN, in this order:
+1. Subject lines and preheader (3 options and 1 preheader, above the HTML).
+2. A hero: headline, opening line, and a hero image as an <img> pointing at a hosted URL I supplied. Where I supplied no image for a slot, leave the slot out and put the shot description in an HTML comment beside it — never a placeholder service, never an invented URL.
+3. Body sections carrying the argument, each with its own copy and, where an image was supplied, its own visual.
+4. A motion slot — an animated GIF or a short product video — placed where it earns attention, with its brief in an HTML comment. If it is a video, score it to ${cf.audio}. Never a licensed or trending sound.
+5. A benefit strip, social proof (only from supplied proof), an offer bar (only if an offer was supplied), and one CTA.
+Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
 ${VISUAL_CASCADE}`;
 }
 

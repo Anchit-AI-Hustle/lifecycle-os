@@ -76,6 +76,45 @@ test('every asset prompt forbids the base64 payload that breaks a real send', ()
   }
 });
 
+test('no asset prompt asks for the thing its own deliverable line forbids', () => {
+  // The residual half of the same defect. V2's contract opened with
+  // "Section-by-section layout: for each section give the COPY and the VISUAL"
+  // — an instruction to produce a PLAN — in the same prompt as a deliverable
+  // line reading "not a section-by-section outline". Faced with a
+  // contradiction a model resolves it, and a breakdown is easier to produce
+  // than a finished email, so the breakdown is what came back.
+  //
+  // Each pair is (what the deliverable rules out, what would ask for it).
+  const CONTRADICTIONS = [
+    [/not a plan\b/i, /\bproduce a plan\b|\bwrite a plan\b/i],
+    [/not a section-by-section outline/i, /section-by-section (layout|breakdown|outline)/i],
+    [/not only a hero image/i, /^\s*(produce|generate) (only )?(a|the) (hero )?image\b/im],
+    [/not a wireframe/i, /\bwireframe\b/i],
+    [/not a concept, not a moodboard/i, /\bmoodboard\b/i],
+  ];
+  for (const o of [
+    { assetType: 'mailer', variant: 'V1' },
+    { assetType: 'mailer', variant: 'V2' },
+    { assetType: 'landing_page' },
+    { assetType: 'ad', platform: 'meta' },
+    { assetType: 'ad', platform: 'google' },
+    { assetType: 'ad', platform: 'tiktok' },
+  ]) {
+    const p = mp.buildMasterPrompt(o);
+    const who = `${o.assetType}/${o.variant || o.platform}`;
+    // The deliverable line NAMES what it rules out, so it matches the "asks"
+    // pattern itself. Search everything except that line, or the test reports
+    // the prohibition as the violation.
+    const deliverableLine = p.split('\n').find((l) => l.startsWith('DELIVERABLE:')) || '';
+    expect(deliverableLine, `${who} has no deliverable line`).toBeTruthy();
+    const rest = p.split('\n').filter((l) => !l.startsWith('DELIVERABLE:')).join('\n');
+    for (const [forbids, asks] of CONTRADICTIONS) {
+      if (!forbids.test(deliverableLine)) continue;
+      expect(asks.test(rest), `${who} rules out ${forbids} in its deliverable and asks for it in its contract`).toBe(false);
+    }
+  }
+});
+
 test('the prompt is one self-contained block, with no unresolved placeholder', () => {
   // It is pasted into a BLANK session, so anything the builder failed to fill
   // arrives at the model as literal text.
