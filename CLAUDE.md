@@ -155,6 +155,30 @@ The platform can now SEND, not just create. One pipeline, still 12/12 functions 
 - **Warmup never widens past `engaged_60`** — adding lapsed contacts to a ramp collapses the
   engagement rate at exactly the moment the domain is building one.
 
+## ⭐ Every asset is built to ITS OWN contract (2026-08-19) — read `docs/asset-contracts.md`
+`api/_shared/asset-contracts.js`. `asset-specs.js` always held the real dimensions and copy limits,
+and exactly ONE file consumed it: `master-prompt.js`, which pastes it into a PROMPT. So the rules
+reached the model as prose, every renderer re-typed the numbers (`scripts/lib/ad-creative.js` clamped
+to its own literal 125/40/30 and 30/90), one copy pass wrote email + landing + all three ad platforms
+together, and **nothing ever checked the finished asset** — a Google headline three characters over
+the limit was found by Google.
+A contract states, per asset type: the `structure` it has IN ITS MEDIUM, the `design` rules that
+belong to that surface and no other, the ordered `algorithm` by which it is made, and `validate()`.
+Six: `email.mailer`, `ad.meta.static`, `ad.meta.video`, `ad.google.rsa`, `ad.tiktok.video`,
+`landing.page`. A test asserts the mediums have not collapsed back into one set of rules relabelled —
+email has no JS and must survive images-off; a landing page owns its scroll; a Google RSA has NO
+layout because Google assembles the combination; a video ad is judged on its first second and on
+whether an artefact exists to play.
+- **Numbers are READ, never re-typed** — pulled from `asset-specs.js` at require time; a slot the spec
+  has no number for is DECLARED unbounded rather than quietly given one.
+- **A limit this repo cannot source does NOT block.** `verified` only where the repo already refuses
+  to send copy that breaks it (Google's 30/90/15 — `google-ads-adapter.js` DROPS over-long copy before
+  building a request). Everything else warns. A test walks every `verified` claim and fails if the
+  file it names lacks the enforcement.
+- **Validation never rewrites copy.** Truncating to fit is how a sentence becomes a fragment nobody
+  wrote. `checkAssetContracts()` attaches `contract_check` per asset + a campaign summary; the
+  copywriter is briefed with the SAME contracts, so writer and check cannot disagree.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating

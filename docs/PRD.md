@@ -2,7 +2,7 @@
 
 **Status:** v1.1 (complete) · **Owner:** Anchit Tandon (anchit.tandon@knickgasm.com) · **Last updated:** 2026-07-06
 **Supersedes:** v1.0 of 2026-07-02, and the v0.1 draft of 2026-06-04 (both preserved in git history — the draft documents the original consolidation thinking and is quoted where the "origin" of a feature matters).
-**What changed in v1.1 (2026-07-06):** the V1/V2 version taxonomy (§1.4) is now recorded; the demo/mock access gate has been removed, so every signed-in user gets full live access (§9); the app UI is locked to a single deep-purple theme, with the dark/dusk/light switcher removed (§7.1/§8); domain + OAuth migration tooling was added (§7.5); and the milestones (§11) run through 2026-07-06.
+**What changed in v1.1 (2026-07-06):** the V1/V2 version taxonomy (§1.4) is now recorded; the demo/mock access gate has been removed, so every signed-in user gets full live access (§9); the app UI is locked to a single brand-derived theme, with the dark/dusk/light switcher removed (§7.1/§8); domain + OAuth migration tooling was added (§7.5); and the milestones (§11) run through 2026-07-06.
 
 **Live app:** https://knickgasm.vercel.app/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/lifecycle-os`
 
@@ -28,7 +28,8 @@ The end state this project is building toward, in order of maturity:
 
 1. **A self-driving lifecycle department.** The Smart Brain keeps a rolling 15-day campaign calendar per market, re-planned every morning against fresh data, festivals and competitor moves. Humans stop *producing* campaigns and start *approving* them: every slot arrives with the full funnel already generated — mailer, Meta/Google/TikTok ads, and a hosted landing page — and one click ships or rejects it. Rejection feedback trains the next plan.
 2. **The brand's own AI employee.** KicksGPT is the interface for everything: "plan a winback for lapsed UK sneaker drinkers and generate the assets" is a conversation, not a workflow. It operates the same tools the UI does, quotes real figures with evidence, and refuses to invent data.
-3. **Closed-loop distribution.** Today generation stops at platform-ready objects (`push_status: not_integrated_phase_2`). Phase 2 wires Klaviyo (already fully scaffolded — every operation returns its exact would-be API request until a key is set) and the ad platforms so approved campaigns *send themselves*, and performance flows back into the Brain's winner-detection thresholds.
+3. **Closed-loop distribution.** **Partly shipped (2026-08-18).** The platform can now SEND: `asset → channel_mappings → preflight → dispatch_jobs → adapter → sync_log ← webhooks`, with adapters for Meta, Google Ads, Klaviyo and WebEngage, a row-based convergent queue, idempotency keys, and a preflight gate that can block. UI at `/publishing`; detail in [`publishing-and-deliverability.md`](publishing-and-deliverability.md). Three switches guard it (`LIVE_CONNECTORS=on`, per-workspace publishing, and a per-platform write flag for the guarded ones), so nothing leaves by accident.
+   What is **still** open: the Smart Brain's own approve-to-push path. Its generation service continues to stamp `push_status: not_integrated_phase_2`, meaning an approved slot does not yet hand itself to the dispatch pipeline — an operator moves it across. Wiring that, and feeding delivery and performance back into the Brain's winner-detection thresholds, is the remaining work. These are two different things and the distinction is worth keeping: the pipeline exists and is usable; the automatic handoff from the Brain into it does not.
 4. **Compounding intelligence.** Every asset generated, every competitor email captured, every approval/rejection and every campaign metric lands in the Knowledge Base — so the system's taste and hit-rate improve with use. The long-term moat is not any single generator; it is the accumulated, brand-locked corpus + feedback loop.
 5. **Everywhere the team is.** The same OS installs as a PWA and ships as native Android/iOS super apps (one app containing the whole toolkit), so a plan can be approved from a phone.
 
@@ -256,7 +257,7 @@ Every feature below follows the same lens: **Origin → Need → Purpose → Wha
 ## 7. Platform architecture
 
 ### 7.1 Shape
-- **Frontend:** independent, self-contained static HTML pages (inline CSS/JS; the Studio alone is ~7,700 lines) sharing one auth/nav shell (`auth.js`) and localStorage state. No framework, no build step for pages — deliberate: any page can be understood, patched and shipped in isolation. The UI is locked to a **single deep-purple theme** (`theme.css`): the earlier dark/dusk/light switcher was removed on 2026-07-06, so every page renders on the brand's deep-purple canvas with lava/chalk text and cannot drift to an off-brand light mode.
+- **Frontend:** independent, self-contained static HTML pages (inline CSS/JS; the Studio alone is ~7,700 lines) sharing one auth/nav shell (`auth.js`) and localStorage state. No framework, no build step for pages — deliberate: any page can be understood, patched and shipped in isolation. The UI is locked to a **single brand-derived theme** (`theme.css`): the earlier dark/dusk/light switcher was removed on 2026-07-06, so every page renders on the ACTIVE brand's own surface with its own ink and accent, resolved through the `--brand-*` tokens, and cannot drift off-brand. (Written here as "deep-purple" until 2026-08-19, which was both a wrong hue for the token and a single-tenant assumption on a multi-brand platform.)
 - **Backend:** Vercel serverless functions under `api/`; heavy logic in `api/_shared/` (underscore paths don't count against the function cap) and `lib/`.
 - **Deploy:** single Vercel project (`framework: null`); `npm run build` only rebuilds product catalogs; friendly URLs via `vercel.json` rewrites; CI = HTML smoke check + syntax/function-cap/Playwright gates.
 
@@ -293,7 +294,8 @@ Built at every deploy from Shopify exports: **US 173 · UK 101 · Global 102 act
 
 Source of truth: `Brand style guide.pdf`, codified in `_shared/master-prompt.js` and enforced client-side (`brandPaletteCheck`), server-side (`safeCopy` scrub), and in every prompt:
 
-- **Palette — ONLY four colors:** `#D0473E` deep purple · `#6A33D8` lava · `#111111` near-black · `#FFFFFF` chalk. Known drift tints are explicitly banned and were purged.
+- **Palette — ONLY four colours, named by ROLE:** `#D0473E` primary · `#6A33D8` accent · `#111111` ink · `#FFFFFF` surface. Known drift tints are explicitly banned and were purged.
+  These were previously written as "deep purple", "lava" and "chalk": hue words inherited from the brand this codebase was forked from, and wrong for the colours they label (`#D0473E` is a red). They are also wrong in principle now, because this is a multi-brand platform and the active brand supplies its own palette, so any hue word is wrong for almost every tenant. Roles are the only names that stay true.
 - **Typography:** headings **Montserrat**, body **Instrument Sans** (with exact fallback stacks and `@font-face` sources). No substitute primaries.
 - **Banned phrases:** "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out", "last chance", "while supplies last".
 - **Preferred vocabulary:** ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
@@ -348,7 +350,7 @@ Source of truth: `Brand style guide.pdf`, codified in `_shared/master-prompt.js`
 | Jul 01 | **Native Android + iOS super apps** (Capacitor over live PWA); interactive portfolio-hub homepage; KicksGPT faster loop + evidence answers; **asset hub** with portable prompts |
 | Jul 02 | **This PRD v1.0 + business presentation deck**; Mobile Builds workflow with downloadable APK/IPA links |
 | Jul 03 | **V2 Lifecycle OS layer** (§1.4): cohort **Mailer Calendar** (`/mailer-calendar`), **UK Non-Engagers Hub** (`/uk-non-engagers`), tier-routed LLM/image cascades + video-core, **Social Media OS** (`/social`), retention/influencer knowledge library, and the LHS-nav IA rule; V1/V2 taxonomy adopted |
-| Jul 06 | **Demo/mock access gate removed** (every signed-in user gets live access); **UI locked to a single deep-purple theme** (dark/dusk/light switcher removed); **domain + OAuth migration tooling** (`migrate-domains`/`migrate-oauth`); brand-compliant campaign **mailer pack**; **PRD v1.1** + refreshed decks (PPT/PDF/Word) |
+| Jul 06 | **Demo/mock access gate removed** (every signed-in user gets live access); **UI locked to a single brand-derived theme** (dark/dusk/light switcher removed); **domain + OAuth migration tooling** (`migrate-domains`/`migrate-oauth`); brand-compliant campaign **mailer pack**; **PRD v1.1** + refreshed decks (PPT/PDF/Word) |
 
 ~190 commits, ~27 days of build velocity, 60+ merged PRs.
 
