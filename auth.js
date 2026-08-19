@@ -308,7 +308,12 @@
       { id: 'publishing',    label: 'Publishing & Deliverability', href: '/publishing', icon: 'insights', ver: 'v2', match: ['/publishing', '/publisher', '/deliverability', '/publishing.html'] },
     ]},
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
-      { id: 'research',        label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
+      // 'research-all', not 'research': the GROUP already carries gid 'research',
+      // and a ? chip is rendered for any id or gid that has an INFO entry. With
+      // both keyed the same, the identical panel was offered twice — once on the
+      // group header and again on the row immediately under it. Naming follows
+      // the region rows below.
+      { id: 'research-all',    label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
       { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
       { id: 'research-uk',     label: 'UK Study',               href: '/research?region=uk',     icon: 'insights' },
       { id: 'research-global', label: 'Global Study',           href: '/research?region=global', icon: 'insights' },
@@ -344,12 +349,17 @@
       { id: 'da-acq',      label: 'Acquisition',                   href: '/data-analysis?tab=acq',                  icon: 'insights' },
       { id: 'da-ret',      label: 'Retention',                     href: '/data-analysis?tab=ret',                  icon: 'insights' },
       { id: 'da-cohort',   label: 'Cohorts',                       href: '/data-analysis?tab=cohort',               icon: 'cohort' },
-      { id: 'da-liveads',  label: 'Paid Media',                    href: '/data-analysis?tab=live-ads',             icon: 'ads' },
+      { id: 'da-liveads',  label: 'Paid Media',                    href: '/data-analysis?tab=live-ads',             icon: 'ads', match: ['/ads-master', '/ad-campaigns-master', '/ads-kb', '/ad-campaigns-master.html'] },
       { id: 'da-mailer',   label: 'Owned Channels',                href: '/data-analysis?tab=mailer-intelligence',  icon: 'insights' },
       { id: 'da-landing',  label: 'Landing & Experiments',         href: '/data-analysis?tab=landing-intelligence', icon: 'landing' },
       { id: 'da-actions',  label: 'Actions & Outcomes',            href: '/data-analysis?tab=action-outcomes',      icon: 'insights' },
       { id: 'da-alerts',   label: 'Alert Settings',                href: '/data-analysis?tab=alert-settings',       icon: 'insights' },
       { id: 'da-review',   label: 'Sales & Business Review',       href: '/data-analysis?tab=review',               icon: 'analysis', match: ['/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'] },
+      // dashboard.html is served at /rfm (see vercel.json) and nothing in the
+      // rail pointed at it, so a whole page shipped unreachable. Labelled
+      // "Draft 1" per the V1/V2 taxonomy: the Cohorts group below is Draft 2 of
+      // the same capability.
+      { id: 'da-rfm',      label: 'RFM Dashboard (Draft 1)',       href: '/rfm',                                    icon: 'analysis', ver: 'v1', match: ['/rfm', '/dashboard.html'] },
     ]},
     { group: 'Cohorts', icon: 'cohort', gid: 'cohorts', ver: 'v1', children: [
       { id: 'coh-overview',   label: 'Overview',            href: '/cohorts?tab=overview',   icon: 'cohort' },
@@ -387,7 +397,12 @@
     // Independent LHS item (product-owner request 2026-07-25): the master ads
     // knowledge base + performance dashboard compiled from the KT handover
     // (emails, spend workbook, social update deck) + live connector reads.
-    { id: 'adsmaster', label: 'Ad Campaigns Master Dashboard', href: '/ads-master', icon: 'ads', ver: 'v2', match: ['/ads-master', '/ad-campaigns-master', '/ads-kb', '/ad-campaigns-master.html'] },
+    // "Ad Campaigns Master Dashboard -> /ads-master" used to sit here as a
+    // top-level row. /ads-master is a REDIRECT (vercel.json redirects, not
+    // rewrites) to /data-analysis?tab=live-ads — which the Data Analysis group
+    // already lists as "Paid Media". Two rows, one page, and the redirect hid
+    // it from any check that only reads rewrites. The description that lived on
+    // this row moved to the row that survives.
     { group: 'Ad Campaigns', icon: 'ads', gid: 'ads', ver: 'v1', children: [
       { id: 'ads-perf',    label: 'Ad Performance', href: '/ads-dashboard', icon: 'analysis', ver: 'v2', match: ['/ads-dashboard', '/ad-performance', '/ads-dashboard.html'] },
       { id: 'ads-cal',     label: 'Calendar',   href: '/ad-campaigns.html#calendar', icon: 'calendar' },
@@ -395,21 +410,36 @@
       { id: 'ads-google',  label: 'Google Ads', href: '/ad-campaigns.html#google',   icon: 'google' },
       { id: 'ads-tiktok',  label: 'TikTok Ads', href: '/ad-campaigns.html#tiktok',   icon: 'tiktok' },
     ]},
-    { group: '3D Storefront & Websites', icon: 'landing', gid: 'landing', ver: 'v2', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d', '/store-3d', '/official-designs', '/official-designs.html', '/designs'], children: [
+    // TWO GROUPS, because these are two features.
+    //
+    // Everything below used to sit in one group called "3D Storefront &
+    // Websites": the 3D storefront AND every landing-page feature. So the
+    // landing-page builder's own sub-pages were filed under a heading that does
+    // not mention landing pages, while "Landing Pages" appeared as a row under
+    // Competitor Benchmarking and again under Knowledge Base — three places
+    // using the term, none of them the builder. The builder's own root
+    // (/landing-pages) was not reachable from the rail at all; the four rows
+    // jumped straight to anchors inside it.
+    { group: '3D Storefront & Websites', icon: 'landing', gid: 'storefront3d', ver: 'v2', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d', '/store-3d', '/official-designs', '/official-designs.html', '/designs'], children: [
       { id: 'store3d-all', label: '3D Storefront (overview)', href: '/3d', icon: 'knickgasm', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d'] },
       { id: 'web-us',     label: '🇺🇸 US Website',     href: '/3d/us',     icon: 'knickgasm', match: ['/3d/us', '/store-3d-us'] },
       { id: 'web-uk',     label: '🇬🇧 UK Website',     href: '/3d/uk',     icon: 'knickgasm', match: ['/3d/uk', '/store-3d-uk'] },
       { id: 'web-global', label: '🌍 Global Website',  href: '/3d/global', icon: 'knickgasm', match: ['/3d/global', '/store-3d-global'] },
       { id: 'web-india',  label: '🇮🇳 India Website',  href: '/3d/in',     icon: 'knickgasm', match: ['/3d/in', '/3d/india', '/store-3d-in'] },
       { id: 'lp-overview', label: 'Design References', href: '/website-designs', icon: 'landing', match: ['/website-designs', '/website-designs.html'] },
+    ]},
+    { group: 'Landing Pages', icon: 'landing', gid: 'landing', ver: 'v2', match: ['/landing-pages', '/landing-pages.html', '/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'], children: [
+      // The builder itself, first. Its four rows are anchors INSIDE this page,
+      // so without it there was no row that opened the page from the top.
+      { id: 'lp-build',   label: 'Landing Page Builder', href: '/landing-pages', icon: 'landing', match: ['/landing-pages', '/landing-pages.html'] },
+      { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages#mailers',  icon: 'mailer' },
+      { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages#meta',     icon: 'meta' },
+      { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages#google',   icon: 'google' },
+      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages#tiktok',   icon: 'tiktok' },
       { id: 'lp-templates', label: 'Landing Page Templates', href: '/landing-page-templates', icon: 'landing', match: ['/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'] },
       { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'] },
       { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'] },
       { id: 'lp-agent',   label: 'Landing Page with All-In-One Voice+Chat+Talk Agent',   href: '/lp/agent', icon: 'knickgasm', match: ['/lp/agent'] },
-      { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages.html#mailers',  icon: 'mailer' },
-      { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages.html#meta',     icon: 'meta' },
-      { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages.html#google',   icon: 'google' },
-      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages.html#tiktok',   icon: 'tiktok' },
     ]},
 
     { id: 'music', label: 'Music (Official Songs)', href: '/music', icon: 'knickgasm', ver: 'v2', match: ['/music', '/music.html'] },
@@ -421,7 +451,12 @@
     // modules live here, in the same order as the AI-TeleSuite source app.
     { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2',
       match: ['/telesuite', '/telesuite.html'], children: [
-      { id: 'ts-home', label: "Home", href: '/telesuite#home', icon: 'analysis' },
+      // "Overview", not "Home": the rail already has a Home that goes to /, and
+      // a second row with the same word pointing somewhere else is the kind of
+      // repeat that makes a menu feel duplicated. Every other group's root row
+      // here is named for what it opens ("3D Storefront (overview)", "Overview
+      // (all regions)"), so this follows that.
+      { id: 'ts-home', label: "Overview (all tools)", href: '/telesuite#home', icon: 'analysis' },
       { id: 'ts-products', label: "Products", href: '/telesuite#products', icon: 'analysis' },
       { id: 'ts-knowledgebase', label: "Knowledge Base", href: '/telesuite#knowledge-base', icon: 'analysis' },
       { id: 'ts-pitchgenerator', label: "AI Pitch Generator", href: '/telesuite#pitch-generator', icon: 'analysis' },
@@ -583,21 +618,32 @@
         ['Compilation + presentation', 'An overall rating, the blocker board, the scorecard and the roadmap, plus a downloadable Markdown audit.', '/audit']
       ]
     },
-    adsmaster: {
-      title: "Ad Campaigns Master Dashboard",
-      what: "One surface for the ACTIVE workspace paid ads program: a performance dashboard over the ad accounts that workspace has connected, plus the ads knowledge base it has uploaded - sheets, decks, drive folders and platform links as single-click entries, creative learnings, benchmarks computed from its own delivery, runbooks, owners and open gaps. Zero fabrication: every figure cites a live connector read or the uploaded source it came from, and a workspace with nothing connected sees an empty state rather than another advertiser numbers.",
-      who: "The paid media team of the active brand, and anyone being onboarded onto that brand ads program - it IS the knowledge transfer, in product form.",
-      how: "Live-first, snapshot-honest: Live Now, Calendar and Tracker read /api/brain?action=ads-live for the connected accounts of the active workspace and treat today as a partial day; when no live source is configured the page says so instead of substituting a bundled dataset. The Accounts tab renders the ad-account studio for that workspace. Knowledge comes from what the workspace has uploaded. Links that could not be resolved from its own accounts are listed as pending-access with their owner, never invented.",
-      input: "Nothing to enter. Filters: objective, delivery status, free-text search, sort metric on the ads table; group, status and search on the knowledge base. New handover files extend that workspace knowledge base.",
+    // The Paid Media tab of Data Analysis.
+    //
+    // This slot used to hold the "Ad Campaigns Master Dashboard" description,
+    // keyed 'adsmaster' for a top-level nav row. Two things were wrong with it.
+    // The row redirected onto THIS page, so the rail offered one page twice.
+    // And the text described a page that analysis-registry.js records as
+    // DELETED - eleven tabs, an uploaded ads knowledge base, handover files -
+    // removed because all of it was one advertiser's, carried over when this
+    // repo was copied from a sibling. Re-pointing that text here would have
+    // advertised a feature nobody can open. Rewritten to what this tab is.
+    'da-liveads': {
+      title: "Paid Media",
+      what: "Paid performance for the ad accounts THIS workspace has connected: spend, delivery and campaign rollups read from those accounts. A workspace with nothing connected sees an empty state saying so, never another advertiser's numbers.",
+      who: "The paid media and growth team of the active brand.",
+      how: "Reads the connected ad accounts for the active workspace and treats the current day as partial rather than complete. Where no account is connected for a platform, that platform is reported as not connected instead of being shown as zero. Warehouse-depth rows live on the separate Ads Analysis page, which is a DEPLOYMENT-level Snowflake connection and labels its figures as such.",
+      input: "Nothing to enter. Connect ad accounts under Connections, then filter by objective, delivery status and date range.",
+      pipeline: true,
       steps: [
-        ["Ideology", "One master surface for the ads program: knowledge (links, owners, runbooks) and performance (spend, benchmarks, verdicts) belong together, and both belong to one workspace."],
-        ["Data analysis + review + hypothesis", "Uploaded handover material is parsed; rollups are computed per campaign and objective from the workspace own delivery; benchmarks are derived from that same data rather than assumed."],
-        ["Business & strategy decisions", "Portfolio verdicts per objective, scored on what each account can actually measure - return on ad spend only where a pixel or platform conversion fires, and click and impression economics where the checkout happens somewhere the ad cannot be credited for the sale."],
-        ["Content", "Knowledge base compiled from the workspace own sources: catalogued links, people map, gaps register."],
-        ["Design + layout + structure", "Eleven tabs - Live Now, Calendar, Tracker, Accounts, SOP, Overview, Campaigns & Ads, Creative Intel, Organic & UGC, Knowledge Base, Ops & Data Sources - in the brand palette, white and green only, every table sortable and filterable and every chart carrying duration tiles."],
-        ["Coding", "Static page reading the workspace scoped endpoints (no new serverless function; the Hobby 12-function limit is untouched).", "/ads-master"],
-        ["Final compilation + presentation", "Warehouse-depth rows via the Ads Analysis page; a slide deck generated from the same knowledge base.", "/ads-dashboard"]
-      ]
+        ['Ideology', 'Report what the connected accounts actually returned, and name what is missing rather than filling it in.'],
+        ['Data analysis + review + hypothesis', 'Campaign and objective rollups computed from this workspace\'s own delivery.', '/api/brain?action=ads-live'],
+        ['Business & strategy decisions', 'Verdicts are scored on what each account can actually measure: return on ad spend only where a conversion signal fires, click and impression economics where the sale happens somewhere the ad cannot be credited for it.'],
+        ['Content', 'Per-campaign rows with the platform\'s own metric names, so a figure can be traced back to its source.'],
+        ['Design + layout + structure', 'Sortable, filterable tables in the active brand\'s palette; a not-connected state is a stated message, not an empty chart.'],
+        ['Coding', 'A tab of the Data Analysis page reading workspace-scoped endpoints; no new serverless function, so the 12-function cap is untouched.', '/data-analysis?tab=live-ads'],
+        ['Final compilation + presentation', 'Warehouse-depth rows via the separate Ads Analysis page.', '/ads-dashboard'],
+      ],
     },
     kicksgpt: {
       title: 'Brand Assistant',
@@ -833,6 +879,27 @@
         ['Audio/Video', 'Video ads: scripts and scene plans; video generation rungs are scaffolded to stub gracefully until keys exist.'],
         ['Coding', 'Assets are packaged to correct per-placement specs — ratios, durations, character limits.'],
         ['Final compilation + presentation', 'Everything mirrors into ads_generated for review; platform push remains Phase 2.', '/api/calendar?action=smart-brain-approve'],
+      ],
+    },
+    // Keyed 'storefront3d' to match the nav group's gid. The 3D group used to
+    // carry gid 'landing', so opening its ? chip showed the LANDING PAGES
+    // description — a different feature — and the storefront had no description
+    // of its own anywhere. The two are now separate groups with separate keys.
+    storefront3d: {
+      title: '3D Storefront & Websites',
+      what: "The brand's own store, rebuilt as a browsable 3D scene: product panels in the active brand's palette and typography, one variant per region (US, UK, Global, India). It is the STORE. Campaign destinations for mailers and ads are a different feature, Landing Pages, and they have their own group.",
+      who: "Shoppers browsing the storefront, and anyone reviewing how the brand's own catalogue reads as a site rather than as a list.",
+      how: "The route decides the region (/3d, /3d/us, /3d/uk, /3d/global, /3d/in all serve storefront-3d.html with a variant), and the page renders that region's products. Products come through brand-catalog.js, so the scene shows THIS workspace's own catalogue and shows nothing rather than another brand's when none is connected. A 2D fallback layout takes over when WebGL is unavailable or motion is reduced, so the page is never blank.",
+      input: "Nothing at view time: the route sets the region, and the active brand supplies the palette, the typography and the products.",
+      pipeline: true,
+      steps: [
+        ['Ideology', 'The store as a place to move through rather than a grid to scroll.'],
+        ['Data analysis + review + hypothesis', 'The region variant selects which of the brand\'s market catalogues is shown.'],
+        ['Business & strategy decisions', 'Region switching is a first-class control, because price and availability differ per market.'],
+        ['Content', 'Titles, prices and imagery come from the active brand\'s own catalogue, never a sample set.'],
+        ['Design + layout + structure', 'Brand tokens drive the materials and the type, so the scene re-skins with the workspace.'],
+        ['Coding', 'Rendered in the browser with a 2D fallback for reduced-motion, low-end and crawler traffic.', '/storefront-3d.html'],
+        ['Final compilation + presentation', 'Served per region; Design References collects the static comparisons.', '/3d'],
       ],
     },
     landing: {
