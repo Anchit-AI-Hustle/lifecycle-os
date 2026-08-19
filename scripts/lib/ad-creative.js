@@ -20,12 +20,48 @@ const FONT =
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function clamp(s, n) { s = String(s || ''); return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + '…'; }
 
+/* Limits come from asset-specs.js, which is the single source for them. They
+   used to be re-typed here as 125/40/30 and 30/90, so the spec and the thing
+   that actually shipped could drift apart with nothing to notice.
+
+   The empty-field fallbacks used to be tenant zero's own copy ("Single-studio,
+   hand-painted at origin", "One-of-One, Hand-Painted"). Those rendered into ANY
+   brand's ad whenever a field came through empty, which is another company's
+   product claim under this operator's name. A missing line is now MISSING, and
+   says so, because an ad that quietly asserts something nobody approved is
+   worse than one with a visible gap. */
+const SPECS = require('../../api/_shared/asset-specs.js');
+const META_COPY = SPECS.ADS.meta.copy;
+const GOOGLE_HEADLINE = 30;    // enforced in google-ads-adapter.js
+const GOOGLE_DESC = 90;        // enforced in google-ads-adapter.js
+
 function adCopy(o) {
   const p = o.productName, price = o.price ? ` (${o.price})` : '';
+  const gap = (field) => `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${o.brandName || 'this brand'}, ${o.market || 'all'}]`;
+  const support = o.tastingLine || o.supportLine || '';
   return {
-    meta: { platform: 'Meta (Instagram/Facebook) · 1:1', primary_text: clamp(`${o.headline}. ${o.subline}`, 125), headline: clamp(p, 40), description: clamp(o.tastingLine || 'Single-studio, hand-painted at origin.', 30), cta: 'Shop Now' },
-    tiktok: { platform: 'TikTok / Reels · 9:16', primary_text: clamp(`${o.headline}${price}`, 100), hook: clamp(o.subline, 60), cta: 'Shop Now' },
-    google: { platform: 'Google · Responsive Search', headlines: [clamp(p, 30), clamp(o.headline, 30), clamp('One-of-One, Hand-Painted', 30)], descriptions: [clamp(o.subline, 90), clamp(`${o.tastingLine || ''}. ${shipText(o.market)}.`, 90)], cta: 'Shop' },
+    meta: {
+      platform: 'Meta (Instagram/Facebook) · 1:1',
+      primary_text: clamp(`${o.headline}. ${o.subline}`, META_COPY.primaryText),
+      headline: clamp(p, META_COPY.headline),
+      description: support ? clamp(support, META_COPY.description) : gap('ad description'),
+      cta: 'Shop Now',
+    },
+    tiktok: {
+      platform: 'TikTok / Reels · 9:16',
+      primary_text: clamp(`${o.headline}${price}`, 100),
+      hook: clamp(o.subline, 60),
+      cta: 'Shop Now',
+    },
+    google: {
+      platform: 'Google · Responsive Search',
+      headlines: [clamp(p, GOOGLE_HEADLINE), clamp(o.headline, GOOGLE_HEADLINE)].filter(Boolean),
+      descriptions: [
+        clamp(o.subline, GOOGLE_DESC),
+        support ? clamp(`${support}. ${shipText(o.market)}.`, GOOGLE_DESC) : clamp(shipText(o.market), GOOGLE_DESC),
+      ].filter(Boolean),
+      cta: 'Shop',
+    },
   };
 }
 
