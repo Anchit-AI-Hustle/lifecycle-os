@@ -28,6 +28,12 @@
   .mkchip:hover{border-color:var(--lava);color:#111111}
   .mkchip.on{background:var(--violet,#D0473E);color:var(--brand-on-primary,#fff);border-color:var(--lava)}
   .akbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 10px;padding:8px 0;border-bottom:1px solid rgba(171,135,67,.18)}
+  /* Prompt bar. The kind chip is part of the button, not a tooltip: an operator
+     copying in a hurry reads the button, never the title attribute. */
+  .pkbar{border-bottom:0;padding-bottom:0;margin-bottom:4px}
+  .pkind{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800;
+         letter-spacing:.04em;text-transform:uppercase;background:rgba(0,0,0,.16);vertical-align:middle}
+  .pknote{margin:0 0 10px;font-size:11px}
   .akstatus{font-size:12px;font-weight:700}
   .akstatus.approved{color:#0a7d33} .akstatus.rejected{color:#b91c1c}
   .btn.ok{background:#1d6b45;color:#111111}.btn.no{background:transparent;color:#b91c1c;border:1px solid rgba(232,154,154,.4)}
@@ -649,7 +655,9 @@ function renderAd(ad){
   add('Primary text', ad.primary_text);
   if(ad.platform==='google'){ add('Headlines', ad.headlines); add('Descriptions', ad.descriptions); }
   const ov = ad.overlay||{};
-  if(ad.creative_brief) add('Creative brief', ad.creative_brief);
+  // Named for what it produces. "Creative brief" reads like the brief for the
+  // whole ad; it is the brief for the photograph inside it.
+  if(ad.creative_brief) add('Image brief (one element)', ad.creative_brief);
   const ratio = String(ad.aspect||'1:1').replace(':','/');
   const frame = cr.image
     ? `<img class="adshot" src="${esc(cr.image)}" alt="${esc((ov.headline||ad.headline||platform)+' creative')}" style="aspect-ratio:${esc(ratio)}">`
@@ -787,21 +795,47 @@ function renderPreview(payload, e, i, opts){
       <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download copy</button>
     </div>`;
   };
+  // Every copyable prompt for one asset, whole-asset prompts first, each saying
+  // what it returns. `prompts` is the index the server attached
+  // (master-prompt.promptsFor): an ASSET row names the field holding its text,
+  // an ELEMENT row carries its own wrapped text.
+  window.__SB_PROMPTS = [];
+  const promptBar = (asset) => {
+    const rows = (asset && Array.isArray(asset.prompts)) ? asset.prompts : [];
+    if(!rows.length) return '';
+    let hasElement = false;
+    const btns = rows.map(r => {
+      const text = String((r.kind === 'asset' ? asset[r.from] : r.text) || '').trim();
+      if(!text) return '';
+      if(r.kind !== 'asset') hasElement = true;
+      const isAsset = r.kind === 'asset';
+      const idx = window.__SB_PROMPTS.push({ text, label: r.label }) - 1;
+      return `<button type="button" class="btn sm ${isAsset?'ok':'secondary'}" data-prompt-kind="${esc(r.kind)}"
+        title="Paste into ChatGPT, Claude or Gemini. Returns ${esc(r.produces||'')}."
+        onclick="sbCopyPrompt(${idx}, this)">📋 ${esc(r.label)} <span class="pkind">${isAsset?'whole asset':'one part'}</span></button>`;
+    }).filter(Boolean).join('');
+    if(!btns) return '';
+    const note = hasElement
+      ? 'Green returns the <b>finished asset</b>. Grey returns <b>one element</b> of it — paste a grey one into an image model and you get a picture, not a mailer.'
+      : 'Paste into ChatGPT, Claude or Gemini to get the <b>finished asset</b> back.';
+    return `<div class="akbar pkbar">${btns}</div><p class="pvnote pknote">${note}</p>`;
+  };
+  const emailAsset = campaign.assets?.email || null;
   if(Array.isArray(emailVars) && emailVars.length){
     // Two named types, two variants each — same as the Mailer Studio.
     emailVars.forEach((v, vi)=>{
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ '+esc(v.label || ('Mailer '+(vi+1))), first);
-      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first); first=false; }
-  if(lpHtml){ tab('pv-lp','🛬 Landing page',first); pane('pv-lp', `${liveLpId?`<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" style="color:#0a7d33">/lp/${esc(liveLpId)} ↗</a>.</p>`:''}${expBar('landing-page', lpHtml)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(lpHtml)}"></iframe>`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first); first=false; }
+  if(lpHtml){ const lpAsset = campaign.assets?.landing_pages?.[0] || null; tab('pv-lp','🛬 Landing page',first); pane('pv-lp', `${liveLpId?`<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" style="color:#0a7d33">/lp/${esc(liveLpId)} ↗</a>.</p>`:''}${expBar('landing-page', lpHtml)}${promptBar(lpAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(lpHtml)}"></iframe>`, first); first=false; }
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
   // names its variant and angle, otherwise both A and B collide on the same id
   // ("pv-ad-meta") and read as a duplicate "meta ad" tile (B hidden behind A).
-  ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, JSON.stringify(ad,null,2))+renderAd(ad), first); first=false; });
+  ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, JSON.stringify(ad,null,2))+promptBar(ad)+renderAd(ad), first); first=false; });
   tab('pv-json','{ } Details', first); pane('pv-json', `<pre style="margin:0">${esc(JSON.stringify(campaign && campaign.campaign_id ? campaign : e, null, 2))}</pre>`, first);
 
   const banner = `<span class="st approved">final</span> <span class="pvnote" style="margin:0">Final generated version — the best version of each asset, ready to view and download.</span>`;
@@ -1057,9 +1091,34 @@ window.sbZipAll = function(){
 };
 window.sbCopy = function(idx, btn){
   const item = (window.__SB_EXPORTS||[])[idx]; if(!item) return;
-  const done = (ok)=>{ if(btn){ const t=btn.textContent; btn.textContent = ok?'✓ Copied':'Copy failed'; setTimeout(()=>{btn.textContent=t;},1500); } };
-  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(item.html).then(()=>done(true),()=>done(false)); return; } }catch(_){}
-  try{ const ta=document.createElement('textarea'); ta.value=item.html; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); }catch(_){ done(false); }
+  copyText(item.html, btn);
+};
+
+// One clipboard path for assets and prompts alike. `innerHTML` is restored, not
+// `textContent`: a prompt button carries a nested kind chip, and restoring text
+// would flatten the button into a single unstyled string after the first copy.
+function copyText(text, btn){
+  const s = String(text||''); if(!s) return;
+  const mark = btn ? btn.innerHTML : null;
+  const done = (ok)=>{ if(btn){ btn.innerHTML = ok?'✓ Copied':'Copy failed'; setTimeout(()=>{ btn.innerHTML = mark; },1500); } };
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(()=>done(true),()=>done(false)); return; } }catch(_){}
+  try{ const ta=document.createElement('textarea'); ta.value=s; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); }catch(_){ done(false); }
+}
+
+// THE DEFECT THIS EXISTS FOR.
+//
+// The only prompt this console ever offered was the ad's `creative_brief` — an
+// IMAGE brief. Pasted into Gemini it did exactly what it says and returned a
+// product photograph, while the operator was expecting a mailer. Nothing on
+// screen distinguished a prompt that returns the finished asset from one that
+// returns a part of it, and the prompt that DOES return the finished asset was
+// never surfaced at all.
+//
+// Both are now offered together, the whole-asset prompt first, each labelled
+// with what comes back.
+window.sbCopyPrompt = function(idx, btn){
+  const item = (window.__SB_PROMPTS||[])[idx]; if(!item) return;
+  copyText(item.text, btn);
 };
 
 async function viewEntry(i, forceRegen){

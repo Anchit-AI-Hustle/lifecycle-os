@@ -49,6 +49,19 @@
   .brandline{font-size:13px;color:var(--soft);margin-top:14px}
   .brandline b{color:var(--ink)}
   code{background:var(--panel);padding:1px 6px;border-radius:5px;font-size:12.5px}
+  /* The problem, in the hero, above the fold.
+     The full statement below answers "why does this exist" well, but it sat
+     under a headline and a lede that both answer "what is this" — so a first
+     visitor read two paragraphs of capability before reaching a single line of
+     purpose. This is the one-sentence form, and it is the first prose on the
+     page. Colours resolve through the brand tokens like everything else. */
+  .solving{margin:20px 0 18px;padding:15px 18px;border-radius:12px;background:var(--panel);
+           border:1px solid var(--line);border-left:4px solid var(--primary);
+           font-size:16px;line-height:1.6;color:var(--ink)}
+  .solving-k{display:block;font-family:var(--head);font-weight:700;font-size:11.5px;
+             letter-spacing:.13em;text-transform:uppercase;color:var(--brand-primary-text,var(--ink));margin-bottom:7px}
+  .solving-a{display:block;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);
+             color:var(--soft)}
   /* The problem statement. Reads before "What it does" on purpose: a feature
      list answers "what is this" and never answers "why does it need to exist". */
   .problem{border-left:3px solid var(--primary);padding:2px 0 2px 18px;margin:18px 0 8px}
@@ -62,12 +75,18 @@
 <div class="wrap">
   <div class="kicker">Lifecycle OS</div>
   <h1>Run your whole lifecycle programme <em>as one brand</em>.</h1>
+  <p class="solving" id="solving"><span class="solving-k">The problem</span>
+    AI writes a mailer in seconds and invents the price, the rating and the claim inside it &mdash;
+    and with more than one brand in the room, it reaches for the wrong brand&rsquo;s facts.
+    <span class="solving-a">This platform generates the same assets, but a fact it does not have
+    stays missing and says so, and one brand&rsquo;s data cannot reach another brand&rsquo;s
+    workspace.</span></p>
   <p class="lede">Onboard a brand once and the entire suite becomes that brand: its palette and
     typography drive every screen, its voice and rules govern every generated asset, and its own
     catalogue, cohorts and market study are the only data anyone sees.</p>
   <p class="brandline" id="brandline">Checking which brand is active&hellip;</p>
 
-  <h2>The problem this solves</h2>
+  <h2>The problem this solves, in full</h2>
   <div class="problem">
     <p><strong>Lifecycle marketing needs a constant stream of assets</strong> &mdash; mailers, ads and
       landing pages, one per cohort per market per week &mdash; and every one has to be on-brand and

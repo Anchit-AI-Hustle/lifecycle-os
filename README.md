@@ -17,6 +17,39 @@ many, not a hardcoded owner.
 
 ---
 
+## The problem this solves
+
+Lifecycle marketing needs a constant stream of assets — mailers, ads and landing
+pages, one per cohort per market per week — and every one has to be on-brand and
+factually correct.
+
+Generative tools make the first half fast and the second half dangerous. Asked
+for a mailer, they return a convincing one containing a price nobody set, a
+rating nobody earned, a review nobody wrote and a claim nobody approved. It reads
+perfectly, which is exactly why it ships. Run more than one brand and the same
+fluency quietly puts one brand's products, colours and copy inside another
+brand's campaign.
+
+These are not typos. An invented rating is an advertising-standards exposure.
+Another company's product claim under your name is worse. Both are discovered
+after the send, by someone else.
+
+So the platform is built the other way round: **a fact it does not have stays
+missing and says so**, and **one brand's data cannot reach another brand's
+workspace** — not as a policy someone has to follow, but because the code path
+does not exist. Every such claim is held by a test or a gate:
+
+| Claim | Enforced by |
+|---|---|
+| No fact is invented to fill a gap | `[DATA REQUIRED BEFORE LAUNCH: …]` markers; `gateProof()` strips unsourced proof |
+| One brand's assets never appear under another | `npm run test:isolation`, `tests/brand-catalog-scope.spec.js` |
+| No foreign brand name or figure in the tree | `npm run check:foreign:ci` |
+| Every asset is built to its own medium's rules | `api/_shared/asset-contracts.js`, `tests/generation-quality.spec.js` |
+| A copyable prompt says what it returns | `tests/asset-vs-element-prompts.spec.js` |
+| The right campaign reaches the right cohort | `tests/brain-cohort-planning.spec.js` |
+
+---
+
 ## What it does
 
 ```
@@ -49,6 +82,7 @@ another tenant's data.
 | [`docs/publishing-and-deliverability.md`](docs/publishing-and-deliverability.md) | The send pipeline and the gate in front of it. |
 | [`docs/campaign-orchestration-master-spec.md`](docs/campaign-orchestration-master-spec.md) | The standing operating contract for all campaign and creative generation. |
 | [`docs/asset-contracts.md`](docs/asset-contracts.md) | How each asset type is built to its own medium's rules, and checked. |
+| [`docs/asset-and-element-prompts.md`](docs/asset-and-element-prompts.md) | Why a prompt that returns a photograph is not the prompt that returns the mailer. |
 | [`docs/PRD.md`](docs/PRD.md) | Product requirements and history. |
 
 ---
