@@ -323,8 +323,13 @@ test.describe('competitive-intelligence offers are categorised by the watching b
 test.describe('shared nav describes the feature, not another advertiser\'s programme', () => {
   test('the ads INFO entry names no retail channel this brand does not sell through', () => {
     const src = read('auth.js');
-    const start = src.indexOf('adsmaster: {');
-    expect(start, 'the adsmaster INFO entry is missing').toBeGreaterThan(-1);
+    // Found by TITLE, not by key. This was keyed 'adsmaster', for a top-level
+    // nav row that turned out to redirect onto the Data Analysis paid-media
+    // tab already in the rail; removing that duplicate row moved the entry to
+    // 'da-liveads' and broke a lookup that only knew the old key. The title is
+    // what this test is actually about, so anchor on that.
+    const start = src.indexOf("'da-liveads': {");
+    expect(start, 'the paid-media INFO entry is missing').toBeGreaterThan(-1);
     const entry = src.slice(start, start + 4000);
     for (const channel of [['cost', 'co'].join(''), ['insta', 'cart'].join(''),
       ['tar', 'get.com'].join(''), ['Roun', 'del'].join('')]) {
