@@ -179,3 +179,48 @@ test('the dashboard says what it is for before it shows a number', async ({ page
   expect(text).toMatch(/blank|dash/);
   expect(text, 'the dashboard does not say a blank is not a zero').toMatch(/never means none|not.*zero/);
 });
+
+/* ═══ a token that does not exist paints nothing ══════════════════════════ */
+
+test('every custom property the page uses is actually defined', async ({ page }) => {
+  // HOW THIS BIT: the accent stripe on both problem blocks was
+  // `border-left: 4px solid var(--primary)` — and `--primary` is defined
+  // nowhere. Not in this file, not in theme.css, not by brand-context.js. An
+  // unresolvable var() makes the declaration invalid at computed-value time, so
+  // border-color fell back to currentColor and the brand stripe rendered as
+  // plain ink, indistinguishable from the text beside it. Nothing errors, and
+  // it reads as a design choice.
+  //
+  // The rule is narrower than "every token must be declared here", and the
+  // difference is the fallback. `var(--surface-alt,#f4f4f4)` is injected by
+  // credits.js on every page and resolves to its literal when the token is
+  // absent — that degrades correctly and is not a bug. `var(--primary)` with no
+  // fallback had nothing to fall back TO. So this flags only the unguarded
+  // form: a var() with no fallback naming a token nothing supplies.
+  await open(page, 'index.html');
+  const unresolvable = await page.evaluate(() => {
+    const css = [...document.querySelectorAll('style')].map((s) => s.textContent).join('\n');
+    // `var(--x)` closing immediately — no comma, so no fallback.
+    const bare = new Set([...css.matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/gi)].map((m) => m[1]));
+    const declared = new Set([...css.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gim)].map((m) => m[1]));
+    const root = getComputedStyle(document.documentElement);
+    return [...bare].filter((t) => !declared.has(t) && !root.getPropertyValue(t).trim());
+  });
+  expect(unresolvable, 'these custom properties are used with no fallback and never defined').toEqual([]);
+});
+
+test('the accent stripe is the brand colour, not the text colour', async ({ page }) => {
+  // The visible symptom of the bug above, asserted directly: a stripe the same
+  // colour as the paragraph beside it is not an accent.
+  await open(page, 'index.html');
+  const out = await page.evaluate(() => {
+    const read = (sel) => {
+      const s = getComputedStyle(document.querySelector(sel));
+      return { border: s.borderLeftColor, text: s.color };
+    };
+    return { solving: read('#solving'), problem: read('.problem') };
+  });
+  for (const [name, v] of Object.entries(out)) {
+    expect(v.border, `${name}: the accent stripe is the same colour as the text`).not.toBe(v.text);
+  }
+});
