@@ -294,6 +294,15 @@ const COPY = {
 // the card through the path the renderer itself provides.
 const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
 const lpFallback = require(path.join(ROOT, 'api', '_shared', 'landing-fallback.js'));
+const trigger = require(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
+
+const VARIANT = {
+  subject: 'Back in your rotation', preheader: 'The pair you were looking at',
+  hero_headline: 'Back in your rotation', hero_subline: 'Hand painted on original pairs.',
+  body_blocks: ['It has been a while.', 'Here is what is new since you last looked.'],
+  cta_text: 'See the edit', market: 'US',
+  offer_bar: 'Free shipping worldwide',
+};
 const MOTION_SPEC = {
   loop: false,
   headline: 'Back in your rotation', cta: 'Shop the edit',
@@ -314,6 +323,15 @@ function surfaces() {
     // Also served to real traffic: the page /lp/:id falls back to when a
     // campaign cannot be resolved.
     ['landing (fallback)', lpFallback.buildFallbackLanding({ id: 'cid-1', region: 'us' }), 2, 6],
+    // The shared variant renderer, which the Mailer Calendar and the trigger
+    // path both use. All three render styles, and with an offer bar — the bar
+    // is optional, so a run without an offer never renders the row where the
+    // ink-on-accent label was.
+    ...['visual', 'pure', 'founder'].map((style) => [
+      `mailer variant (${style})`,
+      trigger.helpers.renderTextVariant({ ...VARIANT, style }),
+      1, 5,
+    ]),
   ];
 }
 

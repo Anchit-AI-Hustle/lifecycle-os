@@ -548,9 +548,30 @@ function _renderVariantBody(o) {
   const HEAD = "'Montserrat','Raleway',Georgia,serif";
   const BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 
+  // Brand-derived. These were four tenant-zero literals, in a renderer the
+  // Mailer Calendar uses for EVERY brand, sitting beside helpers (_brand,
+  // brandNameOf, brandStore, brandOrg) that were all carefully derived - so a
+  // second brand's mailer carried its own name and address in another
+  // company's colours.
+  //
+  // `on*` are the text colours for the two brand-coloured grounds, DERIVED
+  // rather than picked. Picking is how the eyebrow, the claims strip and the
+  // offer bar ended up at 1.51:1 and 2.77:1 - the accent on the primary, and
+  // the ink on the accent, both far under the 4.5 floor.
+  const _bpal = (_brand(o).palette) || {};
+  const _core = (() => { try { return require('./brand-workspace-core.js'); } catch (_) { return null; } })();
   const palette = {
-    green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FFFFFF',
+    green: _core ? _core.sectionGround(_bpal.primary, _bpal.accent, _bpal.surface || '#FFFFFF') : (_bpal.primary || '#D0473E'),
+    lava: _bpal.accent || _bpal.primary || '#6A33D8',
+    ink: _bpal.ink || '#111111',
+    chalk: _bpal.surface || '#FFFFFF',
   };
+  palette.onGreen = _core ? _core.textOn(palette.green, palette.chalk, palette.ink) : palette.chalk;
+  palette.onLava = _core ? _core.textOn(palette.lava, palette.chalk, palette.ink) : palette.chalk;
+  // The muted grey for the sender block on a light surface. It was a hardcoded
+  // #9a8f7c, which is 3.18:1 on white - under the floor, and a colour from no
+  // brand's palette. Softened from the ink only as far as AA allows.
+  palette.mutedOnSurface = _core ? _core.readableAsText(palette.ink, palette.chalk, 4.5) : palette.ink;
 
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
   // Brand header: KNICKGASM wordmark linking to the market store (the ONLY header
@@ -563,8 +584,12 @@ function _renderVariantBody(o) {
         </a>
       </td></tr>`;
   // Optional lava offer bar (only when an offer string is supplied).
+  // The label was the INK on the accent - 2.77:1 for tenant zero, under the 4.5
+  // floor, on the one line in the mailer that states the offer. Same pairing as
+  // the mailer CTA, the landing CTA, the video CTA and the ad price pill: four
+  // other files had it too. Derived from the brand's own palette instead.
   const offerBarRow = offer_bar ? `
-      <tr><td align="center" style="background:${palette.lava};padding:9px 14px;font-family:${BODY};font-size:12px;font-weight:700;color:${palette.ink};">${esc(offer_bar)}</td></tr>` : '';
+      <tr><td align="center" style="background:${palette.lava};padding:9px 14px;font-family:${BODY};font-size:12px;font-weight:700;color:${palette.onLava};">${esc(offer_bar)}</td></tr>` : '';
   // Compact product grid: real inline images + PDP links, up to 3 across one row
   // (never one-product-per-vertical-section). Matches the flagship grid exactly.
   const gridProducts = Array.isArray(products) ? products.filter(Boolean).slice(0, 3) : [];
@@ -595,13 +620,19 @@ function _renderVariantBody(o) {
         <a href="${collectionHref}" target="_blank" style="display:inline-block;font-family:${BODY};font-size:13px;font-weight:700;color:${palette.green};border:1.5px solid ${palette.lava};border-radius:8px;padding:11px 24px;text-decoration:none;">Explore the collection</a>
       </td></tr>`;
   // CAN-SPAM footer — nothing clickable except the brand mark (in the header).
-  // Brand HARD rule: NEVER a black / near-black section background. The footer
-  // sits on deep purple (#D0473E); chalk + lava text stay high-contrast on it.
+  // Brand HARD rule: NEVER a black / near-black section background — which this
+  // honours, the footer sitting on the brand primary. The comment here used to
+  // go on to claim "chalk + lava text stay high-contrast on it", and rendering
+  // it showed otherwise: the claims strip was the ACCENT on the primary at
+  // 1.51:1, and the legally required sender identity was the surface at 60%
+  // opacity at 2.54:1. A comment asserting a rule is not the rule being kept.
+  // The sender block is the one line in a commercial email that must be
+  // readable, so it is not faded.
   const brandFooter = `
       <tr><td align="center" style="background:${palette.green};padding:22px 20px 28px;">
-        <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.chalk};">${esc(brandNameOf(o).toUpperCase())}</div>
-        ${brandClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.lava};margin:8px 0;">${brandClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.chalk}99;line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
+        ${brandClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${brandClaims.join(" &middot; ")}</div>` : ""}
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   const blocks = (body_blocks || []).map((b) => `
@@ -635,8 +666,8 @@ function _renderVariantBody(o) {
         <!-- Brand-palette hero block (no external image needed) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
           <tr><td style="padding:34px 26px;text-align:center;">
-            <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:11px;letter-spacing:0.18em;color:${palette.lava};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
-            <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;line-height:1.2;color:${palette.chalk};font-weight:500;">${esc(hero_headline)}</div>
+            <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+            <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;">${esc(hero_headline)}</div>
           </td></tr>
         </table>
       </td></tr>
@@ -682,7 +713,7 @@ function _renderVariantBody(o) {
           <a href="${baseUrl}" style="color:${palette.green};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a>
         </p>
         <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;line-height:1.7;color:#9a8f7c;margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>
