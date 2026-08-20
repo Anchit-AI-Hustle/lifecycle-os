@@ -37,13 +37,33 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({
 // Colorway → hero band background/text + CTA colors (all within the 4-color palette).
 function colorway(name) {
   switch (name) {
+    // "midnight" used to mean the INK band: PAL.ink is #111111 for tenant zero,
+    // so this rendered a near-black hero section — the one thing the design
+    // rules forbid outright ("never black / #111111 / dark-neutral section
+    // backgrounds; use the brand colour or the surface"). It is the dark band
+    // that shows up in a rendered mailer above the fold.
+    //
+    // It is the ACCENT band now, which is a brand colour rather than a neutral
+    // and reads better besides: white on the accent is 6.82:1 against 4.51:1 on
+    // the primary. The eyebrow and pill move to chalk because they sat on ink
+    // before and would be invisible on the accent.
+    //
+    // The CTA also changes, and that was a separate defect: a lava button with
+    // ink text is 2.77:1, under the 4.5 floor, so the label on the button was
+    // failing AA on every midnight send. Chalk button with accent text is
+    // 6.82:1.
     case 'midnight':
-      return { heroBg: PAL.ink, heroText: PAL.chalk, eyebrow: PAL.lava, ctaBg: PAL.lava, ctaText: PAL.ink, pill: PAL.lava };
+      return { heroBg: PAL.lava, heroText: PAL.chalk, eyebrow: PAL.chalk, ctaBg: PAL.chalk, ctaText: PAL.lava, pill: PAL.chalk };
     case 'daylight':
       return { heroBg: PAL.chalk, heroText: PAL.ink, eyebrow: PAL.lava, ctaBg: PAL.green, ctaText: PAL.chalk, pill: PAL.green, headline: PAL.green };
+    // The eyebrow and the pill were the ACCENT on a PRIMARY band: #6A33D8 on
+    // #D0473E is 1.51:1. Two brand colours of similar weight sitting on each
+    // other read as a smudge rather than as text, and this is the DEFAULT
+    // colorway, so it was the most-shipped band in the programme. Chalk on the
+    // primary is 4.51:1.
     case 'violet':
     default:
-      return { heroBg: PAL.green, heroText: PAL.chalk, eyebrow: PAL.lava, ctaBg: PAL.chalk, ctaText: PAL.green, pill: PAL.lava };
+      return { heroBg: PAL.green, heroText: PAL.chalk, eyebrow: PAL.chalk, ctaBg: PAL.chalk, ctaText: PAL.green, pill: PAL.chalk };
   }
 }
 

@@ -253,7 +253,17 @@ any of those, obey it. Load-bearing rules (full detail in the doc):
   segment sizes, or performance. Missing data -> `[DATA REQUIRED BEFORE LAUNCH: field, product, region]`.
 - **Closed source-of-truth** — only the repo + the exact official KNICKGASM regional site for the exact
   product/region. No cross-region reuse of facts/assets/reviews/claims/URLs.
-- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use red or white); enforce
+- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use the brand colour or the
+  surface). **ENFORCED for generated assets since 2026-08-21** by `tests/asset-no-black-background.spec.js`,
+  which RENDERS each asset and measures it — the rule had lived only as prose in a spec that reaches the model
+  as a prompt, and prose is not a gate. It had already been broken three ways: flagship-mailer's `midnight`
+  colorway set `heroBg: PAL.ink` (#111111 for tenant zero) and shipped a near-black hero band; the landing
+  page's footer and the video creative's letterbox both used `background: var(--ink)`. The same sweep found a
+  contrast defect the eye misses in source: **the ACCENT with INK text is 2.77:1**, and it was on the mailer
+  CTA, the landing CTA, the video CTA and the ad price pill. Worse, the DEFAULT `violet` colorway put an
+  accent eyebrow and pill on a primary band — **1.51:1**, a smudge rather than text, on the most-shipped band
+  in the programme. A deep BRAND colour as a ground is fine; a near-neutral is not, which is why the gate
+  classifies by luminance AND hue spread rather than matching a hex; enforce
   WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards; proofread all
   copy; source-map every fact.
 - **Frequency** — promotional cap 2 (absolute 3) per rolling 7 days; do not assume all ~111k are

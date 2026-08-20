@@ -166,6 +166,42 @@ function readableOn(bg, ink, surface, surfaceAlt) {
 }
 
 /**
+ * The first candidate that is ALLOWED to be a section ground.
+ *
+ * "Never black / #111111 / dark-neutral section backgrounds" is one of the
+ * design HARD rules, and validatePalette() has enforced it on the page surface
+ * since the beginning. It reached the ASSET renderers only as prose inside a
+ * prompt, and they broke it three ways: a mailer colorway painting its hero
+ * band with the INK token, a landing-page footer and a video letterbox doing
+ * the same, and - the one no source sweep catches - a last-resort literal.
+ * `pal.primary || '#111111'` renders a black email for any brand record that
+ * has no palette yet.
+ *
+ * A deep BRAND colour is a legitimate dark ground; a near-neutral is not, which
+ * is the distinction isDarkNeutral() already draws for the surface.
+ */
+function sectionGround(...candidates) {
+  for (const c of candidates) {
+    const h = normHex(c);
+    if (h && !isDarkNeutral(h)) return c;
+  }
+  return '#ffffff';
+}
+
+/**
+ * Text that sits ON a brand colour, derived rather than assumed.
+ *
+ * Picked by eye, this is where the sub-AA pairings come from: ink on the accent
+ * is 2.77:1 for tenant zero, and the accent on the primary is 1.51:1 - two
+ * brand colours of similar weight reading as a smudge. Starts from the brand's
+ * own surface (the pairing validatePalette already accepted) and moves only as
+ * far as AA requires.
+ */
+function textOn(ground, surface, target) {
+  return readableAsText(surface || '#ffffff', ground, target || 4.5);
+}
+
+/**
  * The brand colour, darkened (or lightened) until it is READABLE AS TEXT on
  * `bg`.
  *
@@ -1682,6 +1718,7 @@ module.exports = {
   restAs,
   // colour
   normHex, contrast, luminance, saturation, isDarkNeutral, shade, readableOn, readableAsText, validatePalette,
+  sectionGround, textOn,
   TEXT_AA,
   // brand
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,

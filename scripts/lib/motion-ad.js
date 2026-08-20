@@ -171,7 +171,11 @@ function renderMotionAd(spec) {
 <style>
   :root { --green:${PAL.green}; --lava:${PAL.lava}; --ink:${PAL.ink}; --chalk:${PAL.chalk}; --head:${FONT.head}; --body:${FONT.body}; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--ink); display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  /* The letterbox around the 9:16 frame. It was var(--ink), i.e. #111111 for
+     tenant zero — a black ground, which this repo does not ship. The surface
+     keeps the frame the only dark thing on screen, which is where the eye
+     should go anyway. */
+  body { background:var(--chalk); display:flex; align-items:center; justify-content:center; min-height:100vh; }
   .stage { position:relative; width:min(100vw, calc(100vh * 9 / 16)); aspect-ratio:9/16;
            overflow:hidden; background:var(--green);
            font-family:var(--body); }
@@ -200,7 +204,7 @@ function renderMotionAd(spec) {
   .cta h3 { font-family:var(--head); color:var(--chalk);
             font-size:clamp(24px, 7.6vmin, 46px); line-height:1.15; }
   .cta .offer { color:var(--lava); font-size:clamp(15px, 4vmin, 24px); letter-spacing:.04em; }
-  .cta .btn { display:inline-block; background:var(--lava); color:var(--ink); font-weight:700;
+  .cta .btn { display:inline-block; background:var(--lava); color:var(--chalk); font-weight:700;
               padding:14px 34px; border-radius:999px; font-size:clamp(14px, 3.8vmin, 20px); }
   .cta .fn { color:var(--chalk); opacity:.7; font-size:clamp(10px, 2.6vmin, 13px); }
   .bar { position:absolute; left:0; bottom:0; height:4px; background:var(--lava); width:0;
