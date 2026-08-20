@@ -265,19 +265,30 @@ ASSETS it was enforced nowhere. It lived as prose in a spec that reaches the mod
 - **A control is not a section.** The rule says section backgrounds, and `validatePalette` gates the
   surface, not the primary — so a brand whose accent is near-black gets a black BUTTON, as on its own
   site. Gating it produced a white button on a white page. What matters on a control is its LABEL.
-- **Three contrast defects fell out of the same sweep**, each pairing two colours that look
-  deliberate: the ACCENT with INK text is **2.77:1** (mailer CTA, landing CTA, video CTA, ad price
-  pill — four files, one habit); an accent eyebrow/pill on a PRIMARY band is **1.51:1**, and that was
-  the DEFAULT colorway, so the most-shipped band in the programme; and the landing hero paragraph was
-  a hardcoded cream at 82% — **3.29:1**, and a literal that ignores the palette entirely.
-  `textOn()` runs `readableOn()` (pick the brand's better text colour for this ground) then
-  `readableAsText()` (guarantee AA).
+- **Contrast defects fell out of the same sweep**, each pairing two colours that look deliberate.
+  The ACCENT with INK text is **2.77:1** — mailer CTA, landing CTA, video CTA, ad price pill and
+  the mailer offer bar: **five files, one habit**. An accent eyebrow, pill, claims strip or offer
+  line on a PRIMARY band is **1.51:1**, including the DEFAULT colorway. Faded text is the same defect
+  wearing a different hat: an 85% eyebrow at 3.67:1, a 70% video disclaimer at 2.97:1, and — worst —
+  the **CAN-SPAM sender identity at 60% opacity, 2.54:1**, the one line a commercial email is legally
+  required to carry. Plus two hardcoded literals from no brand's palette: a cream at 82% (3.29:1) and
+  a warm grey (3.18:1). `textOn()` runs `readableOn()` (pick the brand's better text colour for this
+  ground) then `readableAsText()` (guarantee AA).
+- **A comment asserting a rule is not the rule being kept.** `calendar-trigger`'s footer comment said
+  "chalk + lava text stay high-contrast on it" while the code two lines below rendered 1.51:1 and
+  2.54:1. That renderer's palette was also four tenant-zero literals sitting beside `_brand(o)`,
+  `brandNameOf(o)`, `brandStore(o)` and `brandOrg(o)` — all carefully derived — so a second brand's
+  mailer carried its own name, links and legal entity in another company's colours.
 - **The gate RENDERS and MEASURES.** Two tests build a real campaign and read `getComputedStyle` in
   Chromium, so the tokens, the cascade, the inherited colour and **CSS `opacity`** are all resolved —
   that is what found the black `emailHtml` fallback and an 85%-faded eyebrow AFTER the source sweep
   had "finished". Each asserts it measured a non-trivial number of grounds and text runs first: **a
   check that inspects nothing passes everything.** One test renders for a brand whose own record
   carries a near-black primary, which tenant zero never exercises.
+- **Every renderer that reaches a customer is in the gate**: both landing-page branches, both mailer
+  branches, all three shared mailer variants (`calendar-trigger.renderTextVariant`), the video
+  creative and the `/lp/:id` fallback page. Adding a renderer to the list is how each round of
+  defects was found — the gate only sees what it is pointed at.
 - Every fix is mutation-verified: restoring each defect fails the gate.
 
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
