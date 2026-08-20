@@ -293,6 +293,7 @@ const COPY = {
 // forces `.cta { opacity: 1 }`, so the audit emulates reduced motion and reads
 // the card through the path the renderer itself provides.
 const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
+const lpFallback = require(path.join(ROOT, 'api', '_shared', 'landing-fallback.js'));
 const MOTION_SPEC = {
   loop: false,
   headline: 'Back in your rotation', cta: 'Shop the edit',
@@ -310,6 +311,9 @@ function surfaces() {
     ['email (LLM branch)', sbPlan.__test_emailHtml(built.calendar_entry || SLOT, COPY, null), 3, 6],
     ['email (built)', built.assets.email && built.assets.email.html, 2, 6],
     ['video creative', motion.renderMotionAd(MOTION_SPEC), 2, 3],
+    // Also served to real traffic: the page /lp/:id falls back to when a
+    // campaign cannot be resolved.
+    ['landing (fallback)', lpFallback.buildFallbackLanding({ id: 'cid-1', region: 'us' }), 2, 6],
   ];
 }
 
