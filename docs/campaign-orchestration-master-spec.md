@@ -196,12 +196,16 @@ over busy imagery without a contrast layer; too-faint placeholder/disabled/borde
 **Text on a brand colour is DERIVED, not chosen** — `core.textOn(ground, surface, ink)` runs
 `readableOn()` (whichever of the brand's own text colours reads better on this ground) then
 `readableAsText()` (move it only as far as AA needs). Picking by eye is where every one of these
-shipped: for tenant zero, the ACCENT with INK text is **2.77:1** (it was on the mailer CTA, the
-landing CTA, the video CTA and the ad price pill), an accent eyebrow or offer line on a PRIMARY band
-is **1.51:1** — two brand colours of similar weight reading as a smudge — and a hardcoded cream at
-82% on the primary is **3.29:1**. Low opacity is the same defect wearing a different hat: an 85%
-eyebrow and a 70% disclaimer both measured under the floor, and **CSS `opacity` is invisible to any
-check that only reads colours**, which is why the gate reads computed styles in a browser.
+shipped: for tenant zero, the ACCENT with INK text is **2.77:1** (mailer CTA, landing CTA, video CTA,
+ad price pill and the mailer offer bar — five files), an accent eyebrow, claims strip or offer line
+on a PRIMARY band is **1.51:1** — two brand colours of similar weight reading as a smudge — and two
+hardcoded literals from no brand's palette measured 3.29:1 and 3.18:1.
+
+Low opacity is the same defect wearing a different hat, and **CSS `opacity` is invisible to any check
+that only reads colours** — which is why the gate reads computed styles in a browser. An 85% eyebrow
+was 3.67:1, a 70% video disclaimer 2.97:1, and the **CAN-SPAM sender identity at 60% opacity was
+2.54:1** — the one line a commercial email is legally required to carry, rendered as the least
+readable thing in the message. Fine print is the text that most needs to be legible: do not fade it.
 
 Pairings — **Primary bg:** surface-coloured text, accent for small details only. **Surface bg:**
 primary headings, ink body, accent details, primary CTA. **Accent bg:** only text that measurably
