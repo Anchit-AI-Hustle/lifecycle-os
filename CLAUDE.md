@@ -194,6 +194,34 @@ whether an artefact exists to play.
   ads with nothing to play — despite the artefact needing no model. Now **0 blocking, 0 warnings**,
   asserted by `tests/generation-quality.spec.js`, which BUILDS a campaign rather than reading source.
 
+## ⭐ Generation is grounded in EVIDENCE, not only rules (2026-08-19) — read `docs/creative-evidence.md`
+`api/_shared/creative-evidence.js`. The planner already worked out which of the brand's own campaigns
+cleared its thresholds, pulled their hooks and stamped the winner on the slot as `ownDataReference` —
+it reached the confidence score, the rationale and the review panel, and **never reached the
+copywriter**. Both prompt builders briefed the writer with market, cohort, product, offer and a flat
+list of COMPETITOR hooks, so every send was written from rules and other people's angles while the
+evidence sat one field away. Now `briefFor(entry)` renders three separated blocks into both prompts:
+**WORKED** (own campaigns with the figures that qualified them, build on the PATTERN not the wording),
+**TIRING** (below the brand's own median click rate), **COMPETITOR** (grouped + counted, awareness only).
+- **A win carries its numbers or it is not a win.** "Top performer" with nothing behind it reads as
+  evidence and IS a claim; a campaign with no metrics is dropped, never promoted on its name.
+- **ROAS is null for owned email, not zero** — a lifecycle send has no spend, and printing 0 reads as
+  a campaign that lost money.
+- **No evidence is a STATE, not an empty string.** A new brand is told there is no history and told
+  explicitly not to invent a campaign, result, benchmark or figure. An omitted section is an invitation.
+- **Fatigue is measured against what we HAVE.** "CTR down 20% from peak" needs a per-creative time
+  series this repo does not store, so it is never claimed; a campaign below the brand's OWN median is
+  what gets reported, in those words. Under three campaigns there is no median and fatigue reports
+  `available:false` with the reason.
+- **A competitor set that could not be read is not an empty one** — same rule as the competitor universe.
+- **Two defects found by RUNNING it**: a campaign appeared in WORKED and TIRING at once (the writer was
+  told to build on the angle it was told not to re-run), and summing `competitorContext` counts across
+  channel rows — which all carry the SAME global hook list — turned 4 sightings into "seen 16x".
+  Inflating evidence is the same defect as inventing it.
+- **What this repo will not pretend**: Meta's `ads_archive` covers social/electoral/political ads only
+  outside the EU (`meta-adapter.js` says so), so competitor creative evidence comes from the competitor
+  universe, the captured email archive and channel benchmarks — never labelled as full ad-library coverage.
+
 ## ⭐ An asset prompt and an element prompt are different things (2026-08-19) — read `docs/asset-and-element-prompts.md`
 An operator copied the prompt `smart-brain.html` offers, pasted it into Gemini and got a product
 photograph instead of an email. Nothing was broken in the model: the only prompt the console ever
