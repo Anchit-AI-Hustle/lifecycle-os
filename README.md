@@ -47,6 +47,7 @@ does not exist. Every such claim is held by a test or a gate:
 | Every asset is built to its own medium's rules | `api/_shared/asset-contracts.js`, `tests/generation-quality.spec.js` |
 | A copyable prompt says what it returns | `tests/asset-vs-element-prompts.spec.js` |
 | The right campaign reaches the right cohort | `tests/brain-cohort-planning.spec.js` |
+| Generation cites real results, or states it has none | `tests/creative-evidence.spec.js` |
 
 ---
 
@@ -83,6 +84,7 @@ another tenant's data.
 | [`docs/campaign-orchestration-master-spec.md`](docs/campaign-orchestration-master-spec.md) | The standing operating contract for all campaign and creative generation. |
 | [`docs/asset-contracts.md`](docs/asset-contracts.md) | How each asset type is built to its own medium's rules, and checked. |
 | [`docs/asset-and-element-prompts.md`](docs/asset-and-element-prompts.md) | Why a prompt that returns a photograph is not the prompt that returns the mailer. |
+| [`docs/creative-evidence.md`](docs/creative-evidence.md) | How generation is grounded in what actually worked, without inventing a result. |
 | [`docs/PRD.md`](docs/PRD.md) | Product requirements and history. |
 
 ---
