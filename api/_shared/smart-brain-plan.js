@@ -163,6 +163,9 @@ async function callLLMTiered(opts) {
   throw lastErr;
 }
 const { buildMasterPrompt, promptsFor, regionFacts } = require('./master-prompt.js');
+// What this brand's own audience already responded to. It was computed by the
+// planner and stamped on the slot, and never reached the writer.
+const creativeEvidence = require('./creative-evidence.js');
 const SM = require('./scenario-model.js');
 const OfferingCampaign = require('./offering-campaign.js');
 const { buildEntryAnalysis } = require('./output-reasoning.js');
@@ -884,7 +887,6 @@ function offeringBrief(entry) {
 }
 
 function strategyPrompt(entry) {
-  const hooks = (entry.competitorContext || []).flatMap((c) => (c.trendingHooks || []).map((h) => h.hook)).slice(0, 6);
   const d = entry.decision || {};
   return `Devise the strategy for ONE lifecycle send. Data:
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
@@ -892,8 +894,9 @@ ${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: 
 - Offer: ${d.offer ? (d.offer.code ? `${d.offer.code} (${Math.round((d.offer.pct || 0) * 100)}%)` : 'no discount') : 'n/a'}
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Reach target: ${entry.reach?.planned_recipients?.toLocaleString?.() || 'n/a'} recipients, ${entry.reach?.per_user_per_week?.min || 2}-${entry.reach?.per_user_per_week?.max || 3} mailers/user/week.
-- Competitor hooks trending (awareness only, do NOT copy): ${hooks.join(' | ') || 'n/a'}
 - ${regionalNuance(entry.market)}
+
+${creativeEvidence.briefFor(entry)}
 
 Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework". Make this send DIFFERENT from a generic promo and true to its cohort + theme.
 Return JSON exactly:
@@ -1070,7 +1073,6 @@ function approvedProofBrief(entry) {
 }
 
 function copyPrompt(entry, fw = null, brief = null) {
-  const hooks = (entry.competitorContext || []).flatMap((c) => (c.trendingHooks || []).map((h) => h.hook)).slice(0, 5);
   const fwLine = fw
     ? `\nCOPY FRAMEWORK: structure the copy with the ${fw.name} framework (${fw.full || fw.name}); the opening beat lands in the subject + hero_headline, the middle beats across intro_paragraph and body_paragraph in order, and the final beat on the cta. Do NOT name the framework in the copy, let the structure do the work.`
     : '';
@@ -1082,7 +1084,7 @@ function copyPrompt(entry, fw = null, brief = null) {
 - Hero product: ${entry.heroProduct?.title} (${entry.heroProduct?.category || (entry.offering && entry.offering.kind) || 'catalogue item'})
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Rationale: ${entry.rationale || ''}
-- Competitor hooks trending (for awareness only, do NOT copy): ${hooks.join(' | ') || 'n/a'}
+${creativeEvidence.briefFor(entry)}
 - ${regionalNuance(entry.market)}${fwLine}${briefLine}
 
 WHO THIS IS FOR:
