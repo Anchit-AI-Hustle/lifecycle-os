@@ -1224,7 +1224,7 @@ function injectProofBlock(html, entry, style = 'visual') {
 // copy here would be a second definition of "black".
 const _wsCore = () => { try { return require('./brand-workspace-core.js'); } catch (_) { return null; } };
 const sectionGround = (...c) => { const k = _wsCore(); return k ? k.sectionGround(...c) : (c.find(Boolean) || '#FFFFFF'); };
-const textOn = (ground, surface) => { const k = _wsCore(); try { return k ? k.textOn(ground, surface) : (surface || '#FFFFFF'); } catch (_) { return surface || '#FFFFFF'; } };
+const textOn = (ground, surface, ink) => { const k = _wsCore(); try { return k ? k.textOn(ground, surface, ink) : (surface || '#FFFFFF'); } catch (_) { return surface || '#FFFFFF'; } };
 
 // try.knickgasm.*-style presell landing page. Self-contained (inline CSS, no external
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
@@ -1244,9 +1244,9 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   // accent eyebrow on the primary band) and 3.29:1 (a hardcoded cream at 82% on
   // the primary) - all under the 4.5 body floor, on a page served to real
   // traffic at /lp/:id. The text is derived now, and the grounds are guarded.
-  const P = sectionGround(_pal.primary, _pal.accent, '#D0473E');
-  const ACC = _pal.accent || '#6A33D8';
-  const ON_P = textOn(P, SURF), ON_ACC = textOn(ACC, SURF);
+  const P = sectionGround(_pal.primary, _pal.accent, SURF);
+  const ACC = _pal.accent || _pal.primary || '#6A33D8';
+  const ON_P = textOn(P, SURF, INKC), ON_ACC = textOn(ACC, SURF, INKC);
   const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
   let facts = regionFacts(entry.market);
   try { const bf = require('./brand-runtime.js').regionFacts(_b, entry.market); if (entry.brand && entry.brand.id && bf) facts = bf; } catch (_) {}
@@ -1538,10 +1538,10 @@ function emailHtml(entry, copy, creativeUrl) {
   // the last-resort literal here was #111111 - so a brand record with no
   // palette shipped a black email. The ground is guarded and the text on it is
   // derived rather than assumed to be the surface.
-  const P = sectionGround(pal.primary, pal.accent, '#D0473E');
-  const ACC = sectionGround(pal.accent, P);
-  const onP = textOn(P, SURF);
-  const onACC = textOn(ACC, SURF);
+  const P = sectionGround(pal.primary, pal.accent, SURF);
+  const ACC = pal.accent || pal.primary || P;
+  const onP = textOn(P, SURF, INK);
+  const onACC = textOn(ACC, SURF, INK);
   const img = creativeUrl || catalogImage.imageFor(entry, entry.market, { brand: entry.brand });
   const heroImg = img
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`

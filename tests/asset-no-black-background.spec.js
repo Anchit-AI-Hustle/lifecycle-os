@@ -209,9 +209,16 @@ const MEASURE = () => {
     const box = el.getBoundingClientRect();
     if (cs.display === 'none' || cs.visibility === 'hidden' || box.width < 2 || box.height < 2) continue;
     const tag = el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : '');
-    // A ground worth judging: opaque, its own (not inherited), and big enough
-    // to read as a section rather than a rule or a dot.
-    if (opaque(cs.backgroundColor) && box.width * box.height > 4000) {
+    // A SECTION ground: opaque, its own (not inherited), and big enough to read
+    // as a band rather than a rule or a dot. A control is deliberately not one
+    // - the rule is about section backgrounds, and a brand whose accent is
+    // near-black is entitled to a black button the same as on its own site.
+    // What matters on a control is its LABEL, which the text walk below judges.
+    // Only the control itself — not the card it sits in. `.cta` on the video
+    // creative is a full-bleed section and must stay measurable; `.btn` inside
+    // it is a <span>, so the tag check alone would miss it.
+    const control = /^(a|button|input|select)$/.test(el.tagName.toLowerCase()) || /\bbtn\b/.test(String(el.className || ''));
+    if (!control && opaque(cs.backgroundColor) && box.width * box.height > 4000) {
       out.grounds.push({ tag, bg: cs.backgroundColor, area: Math.round(box.width * box.height) });
     }
     // Text this element draws itself.
@@ -249,6 +256,9 @@ function flatten(c, bg, fade = 1) {
 }
 
 async function audit(page, html, label) {
+  // Reduced motion so animated-in layers (the video CTA card) are actually on
+  // screen when measured, via the renderer's own reduced-motion rules.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setContent(html, { waitUntil: 'domcontentloaded' });
   const got = await page.evaluate(MEASURE);
   const dark = got.grounds.filter((g) => isDarkNeutral(g.bg));
@@ -278,15 +288,28 @@ const COPY = {
   },
 };
 
+// The video creative's CTA card starts at opacity 0 and animates in, so at
+// t=0 there is nothing to measure. Its own prefers-reduced-motion block already
+// forces `.cta { opacity: 1 }`, so the audit emulates reduced motion and reads
+// the card through the path the renderer itself provides.
+const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
+const MOTION_SPEC = {
+  loop: false,
+  headline: 'Back in your rotation', cta: 'Shop the edit',
+  offer: '20% off this week', footnote: 'Terms apply. Free shipping worldwide.',
+  scenes: [{ seconds: 2, headline: 'Hand painted', sub: 'On original pairs.' }],
+};
+
 function surfaces() {
   const lp = (built.assets.landing_pages || [])[0];
   const lpB = (built.assets.landing_pages || [])[1];
   return [
-    ['landing (built, A)', lp && lp.html, 3, 6],
-    ['landing (built, B)', lpB && lpB.html, 3, 6],
+    ['landing (built, A)', lp && lp.html, 2, 6],
+    ['landing (built, B)', lpB && lpB.html, 2, 6],
     ['landing (/lp/:id)', sbPlan.__test_lpHtml(built.calendar_entry || SLOT, COPY, 'cid-1', null), 6, 18],
     ['email (LLM branch)', sbPlan.__test_emailHtml(built.calendar_entry || SLOT, COPY, null), 3, 6],
     ['email (built)', built.assets.email && built.assets.email.html, 2, 6],
+    ['video creative', motion.renderMotionAd(MOTION_SPEC), 2, 3],
   ];
 }
 
@@ -311,6 +334,30 @@ test('no page the app builds renders text under the AA floor', async ({ page }) 
     bad.push(...r.unreadable);
   }
   expect(bad, 'this text is under the contrast floor for its size').toEqual([]);
+});
+
+test('a brand whose own record carries a near-black primary still gets no black section', async ({ page }) => {
+  // Tenant zero's primary is a strong red, so nothing above exercises the guard
+  // end to end. This is the case it exists for: a record that predates
+  // validatePalette, or one an automatic extractor filled from a site whose
+  // theme-color is #111111. The brand's colours are its own; a NEUTRAL used as
+  // a section ground is what the rule forbids, and the page has to stay
+  // readable either way.
+  const brand = {
+    id: 'ws-black', slug: 'inkco', name: 'Inkco',
+    palette: { primary: '#111111', accent: '#0d0d0d', ink: '#111111', surface: '#FFFFFF', surface_alt: '#f4f4f4' },
+  };
+  const entry = { ...SLOT, brand, workspace_id: 'ws-black' };
+  const pages = [
+    ['inkco /lp/:id', sbPlan.__test_lpHtml(entry, COPY, 'cid-black', null)],
+    ['inkco email', sbPlan.__test_emailHtml(entry, COPY, null)],
+  ];
+  for (const [label, html] of pages) {
+    const r = await audit(page, html, label);
+    expect(r.counted.grounds.length, `${label}: nothing measured`).toBeGreaterThan(1);
+    expect(r.dark, `${label} paints a section a dark neutral`).toEqual([]);
+    expect(r.unreadable, `${label} renders text under the AA floor`).toEqual([]);
+  }
 });
 
 /* ── and the rendered mailer, end to end ──────────────────────────────────── */
