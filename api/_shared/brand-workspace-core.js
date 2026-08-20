@@ -179,6 +179,17 @@ function readableOn(bg, ink, surface, surfaceAlt) {
  *
  * A deep BRAND colour is a legitimate dark ground; a near-neutral is not, which
  * is the distinction isDarkNeutral() already draws for the surface.
+ *
+ * This is for SECTIONS - bands, footers, page and stage grounds - which is what
+ * the rule says and what validatePalette() gates (the surface, not the primary).
+ * A BUTTON is a control, not a section: a brand whose accent is near-black gets
+ * a black button, the same as it would on its own site, and what matters there
+ * is that textOn() keeps the label readable. Gating a control here produced a
+ * white button on a white page.
+ *
+ * Callers should end the chain with the brand's OWN surface. A literal from
+ * some other brand's palette as the last resort is how one tenant's colour ends
+ * up on another tenant's page.
  */
 function sectionGround(...candidates) {
   for (const c of candidates) {
@@ -193,12 +204,17 @@ function sectionGround(...candidates) {
  *
  * Picked by eye, this is where the sub-AA pairings come from: ink on the accent
  * is 2.77:1 for tenant zero, and the accent on the primary is 1.51:1 - two
- * brand colours of similar weight reading as a smudge. Starts from the brand's
- * own surface (the pairing validatePalette already accepted) and moves only as
- * far as AA requires.
+ * brand colours of similar weight reading as a smudge.
+ *
+ * readableOn() picks whichever of the brand's OWN text colours reads better on
+ * the ground, so a light band gets the ink and a dark one gets the surface -
+ * starting from the surface alone put ink-coloured text nowhere and near-white
+ * text on a near-white fallback ground. readableAsText() then guarantees the
+ * target, moving the chosen colour only as far as AA needs.
  */
-function textOn(ground, surface, target) {
-  return readableAsText(surface || '#ffffff', ground, target || 4.5);
+function textOn(ground, surface, ink, target) {
+  const start = readableOn(ground, ink || '#111111', surface || '#ffffff');
+  return readableAsText(start, ground, target || 4.5);
 }
 
 /**

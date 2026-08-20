@@ -245,6 +245,41 @@ that page at all. Neither prompt announced its kind.
   reads the button, never the title attribute). Tests stub the clipboard and assert what actually
   lands there.
 
+## ⭐ No section is ever black, and text on a brand colour is DERIVED (2026-08-21)
+`api/_shared/brand-workspace-core.js` → `sectionGround()` + `textOn()`, gated by
+`tests/asset-no-black-background.spec.js`. A rendered mailer came back with near-black bands. "Never
+black / `#111111` / dark-neutral section backgrounds" has been a design HARD rule all along, and
+`validatePalette()` has enforced it on the page SURFACE since the beginning — but for generated
+ASSETS it was enforced nowhere. It lived as prose in a spec that reaches the model as a prompt, and
+**prose is not a gate**.
+- **The ink token is the brand's TEXT colour, and four renderers painted a section with it** —
+  flagship-mailer's `midnight` colorway (`heroBg: PAL.ink`), the `/lp/:id` footer and the video
+  creative's letterbox (`background: var(--ink)`).
+- **The fallback was the defect, not the data.** `emailHtml`'s palette fallback was
+  `pal.primary || '#111111'`, and every band, the button and the footer on that mailer are painted
+  with it — so a brand record with no palette shipped a BLACK EMAIL. No source sweep finds this;
+  rendering it does.
+- **A chain must end at the brand's OWN surface**, never at a literal from tenant zero's palette.
+  `sectionGround(primary, accent, surface)`. One tenant's red on another tenant's page is the same
+  defect class as one tenant's photo.
+- **A control is not a section.** The rule says section backgrounds, and `validatePalette` gates the
+  surface, not the primary — so a brand whose accent is near-black gets a black BUTTON, as on its own
+  site. Gating it produced a white button on a white page. What matters on a control is its LABEL.
+- **Three contrast defects fell out of the same sweep**, each pairing two colours that look
+  deliberate: the ACCENT with INK text is **2.77:1** (mailer CTA, landing CTA, video CTA, ad price
+  pill — four files, one habit); an accent eyebrow/pill on a PRIMARY band is **1.51:1**, and that was
+  the DEFAULT colorway, so the most-shipped band in the programme; and the landing hero paragraph was
+  a hardcoded cream at 82% — **3.29:1**, and a literal that ignores the palette entirely.
+  `textOn()` runs `readableOn()` (pick the brand's better text colour for this ground) then
+  `readableAsText()` (guarantee AA).
+- **The gate RENDERS and MEASURES.** Two tests build a real campaign and read `getComputedStyle` in
+  Chromium, so the tokens, the cascade, the inherited colour and **CSS `opacity`** are all resolved —
+  that is what found the black `emailHtml` fallback and an 85%-faded eyebrow AFTER the source sweep
+  had "finished". Each asserts it measured a non-trivial number of grounds and text runs first: **a
+  check that inspects nothing passes everything.** One test renders for a brand whose own record
+  carries a near-black primary, which tenant zero never exercises.
+- Every fix is mutation-verified: restoring each defect fails the gate.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating
@@ -254,18 +289,9 @@ any of those, obey it. Load-bearing rules (full detail in the doc):
 - **Closed source-of-truth** — only the repo + the exact official KNICKGASM regional site for the exact
   product/region. No cross-region reuse of facts/assets/reviews/claims/URLs.
 - **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use the brand colour or the
-  surface). **ENFORCED for generated assets since 2026-08-21** by `tests/asset-no-black-background.spec.js`,
-  which RENDERS each asset and measures it — the rule had lived only as prose in a spec that reaches the model
-  as a prompt, and prose is not a gate. It had already been broken three ways: flagship-mailer's `midnight`
-  colorway set `heroBg: PAL.ink` (#111111 for tenant zero) and shipped a near-black hero band; the landing
-  page's footer and the video creative's letterbox both used `background: var(--ink)`. The same sweep found a
-  contrast defect the eye misses in source: **the ACCENT with INK text is 2.77:1**, and it was on the mailer
-  CTA, the landing CTA, the video CTA and the ad price pill. Worse, the DEFAULT `violet` colorway put an
-  accent eyebrow and pill on a primary band — **1.51:1**, a smudge rather than text, on the most-shipped band
-  in the programme. A deep BRAND colour as a ground is fine; a near-neutral is not, which is why the gate
-  classifies by luminance AND hue spread rather than matching a hex; enforce
-  WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards; proofread all
-  copy; source-map every fact.
+  surface); enforce WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards;
+  proofread all copy; source-map every fact. The first two are ENFORCED for generated assets since 2026-08-21
+  — see the section below.
 - **Frequency** — promotional cap 2 (absolute 3) per rolling 7 days; do not assume all ~111k are
   contactable daily (preferred ~31.7k/day); reduce/delay/block when eligibility is short.
 - **Reviews/ratings** — only approved review data; never round 4.9 to 5, never invent reviewers, never

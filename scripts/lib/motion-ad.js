@@ -203,15 +203,29 @@ function renderMotionAd(spec) {
                      ${Math.min(100, ctaStart + 1.5).toFixed(2)}%, 100% { opacity:1; } }
   .cta h3 { font-family:var(--head); color:var(--chalk);
             font-size:clamp(24px, 7.6vmin, 46px); line-height:1.15; }
-  .cta .offer { color:var(--lava); font-size:clamp(15px, 4vmin, 24px); letter-spacing:.04em; }
+  /* The offer line was the ACCENT on the primary card: 1.51:1 at the edge and
+     1.07:1 at the radial centre - two brand colours of similar weight reading
+     as a smudge, on the single most important line of the card. */
+  .cta .offer { color:var(--chalk); font-weight:700; font-size:clamp(15px, 4vmin, 24px); letter-spacing:.04em; }
   .cta .btn { display:inline-block; background:var(--lava); color:var(--chalk); font-weight:700;
               padding:14px 34px; border-radius:999px; font-size:clamp(14px, 3.8vmin, 20px); }
-  .cta .fn { color:var(--chalk); opacity:.7; font-size:clamp(10px, 2.6vmin, 13px); }
+  /* The disclaimer, at 70% opacity, was 2.97:1 at 10-13px. Fine print is the
+     text that most needs to be legible, so it is not faded. */
+  .cta .fn { color:var(--chalk); font-size:clamp(10px, 2.6vmin, 13px); }
   .bar { position:absolute; left:0; bottom:0; height:4px; background:var(--lava); width:0;
          animation:bar ${total}s ${loop ? 'infinite' : '1 forwards'} linear; }
   @keyframes bar { from { width:0 } to { width:100% } }
+  /* A viewer who asked for reduced motion still got a moving creative: the
+     block below stopped the ken-burns, the kinetic type and the CTA, but the
+     SCENE layers keep their own cross-fade animation, so the ad went on
+     cutting between shots and the first frame rendered at opacity 0. Reduced
+     motion now means a single static frame - the opening shot and the CTA
+     card - which is also the only state in which the creative can be measured
+     for contrast rather than caught mid-fade. */
   @media (prefers-reduced-motion: reduce) {
-    .ken, .kin, .cta, .bar { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
+    .ken, .kin, .cta, .bar, .scene { animation: none !important; }
+    .scene { opacity: 0 !important; }
+    .scene:first-of-type { opacity: 1 !important; }
     .kin, .cta { opacity: 1 !important; transform: none !important; }
   }
   .sound { position:absolute; right:5%; top:4%; z-index:5; border:0; cursor:pointer;
