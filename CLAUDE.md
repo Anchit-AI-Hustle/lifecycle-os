@@ -245,6 +245,34 @@ that page at all. Neither prompt announced its kind.
   reads the button, never the title attribute). Tests stub the clipboard and assert what actually
   lands there.
 
+## ⭐ An effect the author's desktop has and the reader's phone does not (2026-08-21)
+`tests/mobile-effects.spec.js` + `tests/motion-ad-mobile.spec.js`. "Effects missing when opened on
+mobile" had four independent causes, and they share a shape: **a CSS feature that is dropped
+SILENTLY by the engine that lacks it**. Nothing errors, the declaration is simply discarded and the
+effect is absent — and it never shows up in review, because review happens on the desktop.
+- **`color-mix()` is dropped WHOLE, it does not fall back.** iOS Safari shipped it in 16.2. Every
+  scrim, text-shadow and CTA ground in `motion-ad.js` used it, so on an older phone the veil, both
+  shadows and the card's ground vanished at once, leaving white type on a bright photograph. The
+  inputs were known colours and fixed percentages, so there was nothing the engine needed to compute:
+  they are mixed at render time (`mix()`/`alpha()`) and emitted as plain `rgba()`/hex. **Resolving it
+  is better than a fallback stack** — the problem stops existing rather than being papered over.
+- **`backdrop-filter` needs `-webkit-`** or the blur is absent on almost every iPhone. 33 unpaired
+  declarations across 12 pages, while `storefront-3d.html` and part of `competitor-benchmarking.html`
+  already carried it — inconsistency, not a decision.
+- **`100vh` on mobile Safari is the LARGE viewport height**: it counts the space the URL bar occupies,
+  so the 9:16 creative ran off the bottom and took the CTA and progress bar with it. `100svh` now,
+  inside `@supports` so an engine without it keeps the `vh` rule.
+- **Reduced motion must mean LESS motion, not NO AD.** iOS turns `prefers-reduced-motion` on in Low
+  Power Mode as well as from the accessibility setting, so a large share of phones land in that
+  branch — and `.cta` is `inset:0`, so pinning it to `opacity:1` there covered the whole frame and
+  hid the shot and the type. The viewer got a static end card and nothing else. It now composes the
+  frame the viewer would have seen at the end: opening shot with its type, CTA as a bottom band.
+  The gate asserts the REVERSE case too — that the ad still animates for everyone who did not ask for
+  less — because a fix that turns the creative into a poster for all viewers would otherwise pass.
+- WebKit is not installed in CI, so the phone-viewport tests run in Chromium with the media feature
+  emulated; the `color-mix` and prefix checks are assertions about the OUTPUT, which is
+  engine-independent and is the actual fix.
+
 ## ⭐ No section is ever black, and text on a brand colour is DERIVED (2026-08-21)
 `api/_shared/brand-workspace-core.js` → `sectionGround()` + `textOn()`, gated by
 `tests/asset-no-black-background.spec.js`. A rendered mailer came back with near-black bands. "Never
