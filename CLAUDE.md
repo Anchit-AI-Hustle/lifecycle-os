@@ -287,8 +287,19 @@ ASSETS it was enforced nowhere. It lived as prose in a spec that reaches the mod
   carries a near-black primary, which tenant zero never exercises.
 - **Every renderer that reaches a customer is in the gate**: both landing-page branches, both mailer
   branches, all three shared mailer variants (`calendar-trigger.renderTextVariant`), the video
-  creative and the `/lp/:id` fallback page. Adding a renderer to the list is how each round of
-  defects was found — the gate only sees what it is pointed at.
+  creative, the `/lp/:id` fallback page and the **Mailer Studio** (loaded and driven as the real
+  page). Adding a renderer to the list is how each round of defects was found — the gate only sees
+  what it is pointed at.
+- **Drive every ARCHETYPE, not every brief.** The Studio gate first typed one brief and measured the
+  result; mutating `countdownBlock`'s ground back to black did NOT fail it, because that section
+  lives only in the `limited-drop-countdown` flow, which the brief never selected. A gate driven by
+  whichever brief someone typed has holes in the shape of the briefs nobody typed. It renders all 11
+  archetypes × 2 variants now (`window._ARCH_FLOW` is exported so the list cannot drift from a copy),
+  which immediately found four more accent-on-primary sections the single brief never reached.
+- **A validator that hardcodes one tenant is worse than none.** The Studio's own `brandPaletteCheck`
+  allowlisted tenant zero's four hexes, so the moment the renderer became brand-derived it would have
+  told every OTHER brand its own colours were off-brand — teaching the operator that the checker is
+  noise. It reads the active brand's palette and typography.
 - Every fix is mutation-verified: restoring each defect fails the gate.
 
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
