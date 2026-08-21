@@ -2318,11 +2318,22 @@ function validateMailerCreative(){
   function brandPaletteCheck(html,label){
     if(!html||html.length<2000){err(label+' HTML is empty or truncated.');return;}
     if(!/<\/html>/i.test(html)){err(label+' HTML missing closing </html> tag.');}
-    // Palette ALLOWLIST (brand HARD rule: only the four brand colours; pure
-    // black/white pass as structural neutrals). Every other hex is surfaced, so
-    // off-palette drift is caught by what IS allowed, not just a fixed denylist
-    // of six known-bad tints.
-    var ALLOWED={'#d0473e':1,'#6a33d8':1,'#111111':1,'#ffffff':1,'#ffffff':1,'#fff':1,'#ffffff':1,'#000':1};
+    // Palette ALLOWLIST, read from the ACTIVE brand's own record. It used to be
+    // four literals of tenant zero's palette, so once the renderer became
+    // brand-derived this checker would have told every OTHER brand that its own
+    // colours were off-brand. A validator that hardcodes one tenant is worse
+    // than none: it teaches the operator to ignore it.
+    var _bp=(window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.palette) || {};
+    var brandHexes=[_bp.primary,_bp.accent,_bp.ink,_bp.surface,_bp.surface_alt]
+      .filter(Boolean).map(function(h){return String(h).toLowerCase();});
+    if(!brandHexes.length) brandHexes=['#d0473e','#6a33d8','#111111','#ffffff'];
+    var ALLOWED={'#fff':1,'#ffffff':1,'#000':1,'#000000':1};
+    brandHexes.forEach(function(h){ALLOWED[h]=1;});
+    // Derived values are legitimate too — the on-primary text, the AA-adjusted
+    // was-price, the section grounds — and they are computed at render time, so
+    // they cannot be listed ahead of time.
+    [_ARCH_ON_GREEN,_ARCH_ON_GOLD,_ARCH_GREEN,_ARCH_GOLD,_ARCH_INK,_ARCH_CREAM]
+      .filter(Boolean).forEach(function(h){ALLOWED[String(h).toLowerCase()]=1;});
     var hexes=html.match(/#[0-9a-fA-F]{3,6}\b/g)||[];
     var off=Array.from(new Set(hexes.map(function(s){return s.toLowerCase();}))).filter(function(h){return !ALLOWED[h];});
     // The six known legacy drift tints stay a hard error; any other off-palette
@@ -2330,9 +2341,15 @@ function validateMailerCreative(){
     var hardBad=off.filter(function(h){return /^#(0f2a1c|d4873a|fdf6e8|1a3a28|1a1a1a|faf8f4)$/.test(h);});
     if(hardBad.length){err(label+' contains off-brand hex codes: '+hardBad.join(', '));}
     var softBad=off.filter(function(h){return hardBad.indexOf(h)<0;});
-    if(softBad.length){warn(label+' uses '+softBad.length+' off-palette hex code(s) — brand allows only #D0473E / #6A33D8 / #111111 / #FFFFFF (+ white/black): '+softBad.slice(0,8).join(', ')+(softBad.length>8?' …':''));}
-    if(!/Montserrat/i.test(html)){warn(label+': Montserrat headline font not declared.');}
-    if(!/Instrument Sans/i.test(html)){warn(label+': Instrument Sans body font not declared.');}
+    if(softBad.length){warn(label+' uses '+softBad.length+' off-palette hex code(s) — this brand allows only '+brandHexes.join(' / ')+' (+ white/black): '+softBad.slice(0,8).join(', ')+(softBad.length>8?' …':''));}
+    // The brand's OWN typography, not two fixed families.
+    var _bt=(window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.typography) || {};
+    var headName=(_bt.heading && (_bt.heading.family || _bt.heading.stack)) || 'Montserrat';
+    var bodyName=(_bt.body && (_bt.body.family || _bt.body.stack)) || 'Instrument Sans';
+    headName=String(headName).split(',')[0].replace(/['"]/g,'').trim();
+    bodyName=String(bodyName).split(',')[0].replace(/['"]/g,'').trim();
+    if(headName && html.indexOf(headName)<0){warn(label+': '+headName+' headline font not declared.');}
+    if(bodyName && html.indexOf(bodyName)<0){warn(label+': '+bodyName+' body font not declared.');}
     // CTAs
     if(!/(SHOP|ADD TO CART|CLAIM|EXPLORE|BEGIN|READ|MEET|CURATE|TRY|BUILD)/i.test(html)){warn(label+': no recognizable CTA verb in HTML.');}
     // Image hosts
@@ -3926,7 +3943,10 @@ function prodPriceBlockHTML(p,prompt,market){
   }
   return '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'+
     '<p style="font-family:Montserrat,Georgia,serif;font-size:16px;font-weight:bold;color:#c0392b;margin:0;letter-spacing:0.02em">'+pricing.sale.display+'</p>'+
-    '<p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:#999;margin:0;text-decoration:line-through">'+pp.display+'</p>'+
+    // The struck-through was-price. #999 on white is 2.85:1, and a price is not
+    // decoration — a reader compares the two numbers. Softened from the brand's
+    // own ink only as far as AA allows.
+    '<p style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;color:'+_archTextOn(_ARCH_CREAM,_ARCH_CREAM,_ARCH_INK)+';margin:0;text-decoration:line-through">'+pp.display+'</p>'+
     '<span style="font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:9px;font-weight:800;color:#fff;background:#c0392b;padding:2px 6px;border-radius:3px;letter-spacing:0.1em">SAVE '+pricing.sale.savings+'</span>'+
   '</div>';
 }
@@ -6700,19 +6720,111 @@ async function analyzeImageAndBuildEmail(base64DataUrl,prods,prompt,market){
 // treatment — no hardcoded skeleton. This guarantees that two campaigns with
 // different briefs render with different layouts, while two campaigns with
 // the same brief still get A/B variants that diverge structurally.
-// All output strictly uses the brand style guide:
-//   palette: #D0473E / #6A33D8 / #111111 / #FFFFFF
-//   fonts:   Montserrat (display), Instrument Sans (body)
+// All output strictly uses the ACTIVE brand's style guide, resolved from its own
+// record. These were four literals of tenant zero's palette in a Studio that any
+// brand signs into, so every brand's mailer came out in one company's colours.
+// The literals below are the last resort only.
+//
+// A mailer cannot use CSS custom properties — Outlook renders with the Word
+// engine and Gmail strips :root — so the values are resolved to hex here, at
+// render time, rather than referenced as tokens.
 // ============================================================================
-const _ARCH_FH='Montserrat,\'Raleway\',Georgia,serif';
-const _ARCH_FB='Instrument Sans,\'Helvetica Neue\',Arial,sans-serif';
-const _ARCH_BG='#FFFFFF';        // page background — chalk
+let _ARCH_FH='Montserrat,\'Raleway\',Georgia,serif';
+let _ARCH_FB='Instrument Sans,\'Helvetica Neue\',Arial,sans-serif';
+let _ARCH_BG='#FFFFFF';        // page background — chalk
 const _ARCH_BORDER='var(--vh-panel-tan)';    // subtle chalk-derived border (allowed neutral)
-const _ARCH_PAPER='#ffffff';
-const _ARCH_GREEN='#D0473E';
-const _ARCH_GOLD='#6A33D8';
-const _ARCH_INK='#111111';
-const _ARCH_CREAM='#FFFFFF';
+let _ARCH_PAPER='#ffffff';
+let _ARCH_GREEN='#D0473E';
+let _ARCH_GOLD='#6A33D8';
+let _ARCH_INK='#111111';
+let _ARCH_CREAM='#FFFFFF';
+// Text ON the two brand-coloured grounds. Derived, never picked: the accent on
+// the ink measured 2.77:1 and the accent on the primary 1.51:1, both under the
+// 4.5 body floor, on bands that carry the offer.
+let _ARCH_ON_GREEN='#FFFFFF';
+let _ARCH_ON_GOLD='#FFFFFF';
+
+/** sRGB relative luminance, WCAG contrast, and the two derivations the mailer
+ *  needs. Kept local because this page ships as one self-contained file with no
+ *  module loader; the server twin is brand-workspace-core's sectionGround/textOn
+ *  and the rules are identical. */
+function _archLum(hex){
+  var h=String(hex||'').replace('#','');
+  if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  if(!/^[0-9a-f]{6}$/i.test(h))return 0;
+  var v=[0,2,4].map(function(i){
+    var c=parseInt(h.slice(i,i+2),16)/255;
+    return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);
+  });
+  return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2];
+}
+function _archContrast(a,b){
+  var x=_archLum(a),y=_archLum(b);
+  return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);
+}
+/** A near-neutral that is also dark. A deep BRAND colour is a legitimate ground;
+ *  a near-black is the thing the design HARD rules forbid outright. */
+function _archIsDarkNeutral(hex){
+  var h=String(hex||'').replace('#','');
+  if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  if(!/^[0-9a-f]{6}$/i.test(h))return false;
+  var p=[0,2,4].map(function(i){return parseInt(h.slice(i,i+2),16);});
+  var spread=Math.max.apply(null,p)-Math.min.apply(null,p);
+  return _archLum('#'+h)<0.06 && spread<40;
+}
+/** The first candidate allowed to be a SECTION ground. */
+function _archGround(){
+  for(var i=0;i<arguments.length;i++){
+    var c=arguments[i];
+    if(c && !_archIsDarkNeutral(c))return c;
+  }
+  return '#FFFFFF';
+}
+/** Whichever of the brand's own text colours reads on `bg`, nudged until it
+ *  clears AA. Mirrors core.readableOn + core.readableAsText. */
+function _archTextOn(bg,surface,ink){
+  var cands=[surface||'#FFFFFF',ink||'#111111'];
+  var best=cands[0],bestC=-1;
+  cands.forEach(function(c){var r=_archContrast(c,bg);if(r>bestC){bestC=r;best=c;}});
+  if(bestC>=4.5)return best;
+  // Move AWAY from the ground; the wrong direction can never reach the target.
+  var dark=_archLum(bg)>0.5;
+  for(var t=0.05;t<=1.0001;t+=0.05){
+    var h=String(best).replace('#',''), tgt=dark?0:255;
+    var mixed='#'+[0,2,4].map(function(i){
+      var v=parseInt(h.slice(i,i+2),16);
+      return Math.round(v+(tgt-v)*t).toString(16).padStart(2,'0');
+    }).join('');
+    if(_archContrast(mixed,bg)>=4.5)return mixed;
+  }
+  return dark?'#000000':'#FFFFFF';
+}
+
+/** Repoint the mailer palette at the ACTIVE brand. Called before every render. */
+function _archSyncBrand(){
+  var b=(window.BrandContext && window.BrandContext.brand) || null;
+  var p=(b && b.palette) || {};
+  var t=(b && b.typography) || {};
+  _ARCH_CREAM = p.surface || '#FFFFFF';
+  _ARCH_BG    = _ARCH_CREAM;
+  _ARCH_PAPER = _ARCH_CREAM;
+  _ARCH_INK   = p.ink || '#111111';
+  // The GROUND for a coloured band. It was the ink token — the brand's TEXT
+  // colour — on four bands in this file, which is what rendered the black
+  // strips: the announcement bar, the countdown, the utility strip and the
+  // urgency block.
+  // The chain prefers the brand's own colours, then its own surface, and only
+  // reaches the literal when there is NO brand at all — a signed-out page under
+  // file://, not another tenant. Falling straight through to the surface when
+  // no brand had loaded turned every band white, which the gate caught as white
+  // text on a white ground.
+  _ARCH_GREEN = _archGround(p.primary, p.accent, p.surface, '#D0473E');
+  _ARCH_GOLD  = p.accent || p.primary || '#6A33D8';
+  _ARCH_ON_GREEN = _archTextOn(_ARCH_GREEN, _ARCH_CREAM, _ARCH_INK);
+  _ARCH_ON_GOLD  = _archTextOn(_ARCH_GOLD,  _ARCH_CREAM, _ARCH_INK);
+  if (t.heading && t.heading.stack) _ARCH_FH = t.heading.stack;
+  if (t.body && t.body.stack) _ARCH_FB = t.body.stack;
+}
 
 // Map (campaignType, variant) → primary archetype.
 // CONTRACT: slot A = V1 (COMPLETE TEXT, imagery stripped at render), slot B = V2
@@ -6757,6 +6869,13 @@ const _ARCH_FLOW={
   'limited-drop-countdown':   ['annBarUrgent','logo','countdownBlock','productGrid3','urgencyQuote','offerBannerBold','trustBar','footer'],
   'subscription-anchor':      ['annBar','logo','subscriptionHero','subscriptionBenefits','productStack','savingsCallout','spotlightCta','footer']
 };
+// Exposed so the contrast gate can enumerate the REAL archetype list rather
+// than keep a copy of it. A section like countdownBlock lives in exactly one
+// flow, and a brief that does not trip that flow's keyword never renders it —
+// a gate driven by whichever brief someone typed has holes in the shape of the
+// briefs nobody typed. A `const` at script scope is not on window, so this is
+// the export that makes every flow reachable.
+window._ARCH_FLOW = _ARCH_FLOW;
 
 function _arch_pickArchetype(st,variant){
   var p=((st.activePrompt||st.rawPrompt||'')+'').toLowerCase();
@@ -6923,10 +7042,12 @@ function _sec_annBar(s,c){
   var blendBadges = (s._secondaryBadges && s._secondaryBadges.length)
     ? ' &middot; <span style="color:'+_ARCH_GOLD+'">'+s._secondaryBadges.join(' &middot; ')+'</span>'
     : '';
-  return '<tr><td style="background:'+_ARCH_GREEN+';padding:10px 22px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:'+_ARCH_CREAM+';margin:0;font-weight:600">'+bar+blendBadges+' &middot; <span style="color:'+_ARCH_GOLD+'">PRICED IN '+hint+'</span></p></td></tr>';
+  return '<tr><td style="background:'+_ARCH_GREEN+';padding:10px 22px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:'+_ARCH_CREAM+';margin:0;font-weight:600">'+bar+blendBadges+' &middot; <span style="color:'+_ARCH_ON_GREEN+'">PRICED IN '+hint+'</span></p></td></tr>';
 }
 function _sec_annBarUrgent(s,c){
-  return '<tr><td style="background:'+_ARCH_INK+';padding:11px 22px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10.5px;letter-spacing:0.24em;text-transform:uppercase;color:'+_ARCH_GOLD+';margin:0;font-weight:800">&#9889; '+(s.annBar||'LIMITED OFFER')+' &#9889;</p></td></tr>';
+  // The announcement bar. It was a BLACK strip (the ink token used as a ground)
+  // with the accent as its text: 2.77:1, and the first thing in the message.
+  return '<tr><td style="background:'+_ARCH_GREEN+';padding:11px 22px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10.5px;letter-spacing:0.24em;text-transform:uppercase;color:'+_ARCH_ON_GREEN+';margin:0;font-weight:800">&#9889; '+(s.annBar||'LIMITED OFFER')+' &#9889;</p></td></tr>';
 }
 function _sec_logo(s,c){
   var base=c.base, sub=c.subline||'PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE';
@@ -7096,9 +7217,9 @@ function _sec_editorialBlock(s,c){
 function _sec_editorialBanner(s,c){
   var hl=s.headline;
   return '<tr><td style="background:'+_ARCH_GREEN+';padding:36px 32px;text-align:center;border-left:1px solid '+_ARCH_GREEN+';border-right:1px solid '+_ARCH_GREEN+'">'+
-    '<p style="font-family:'+_ARCH_FB+';font-size:9.5px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_GOLD+';margin:0 0 14px;text-transform:uppercase">The Curated Edit</p>'+
+    '<p style="font-family:'+_ARCH_FB+';font-size:9.5px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_ON_GREEN+';margin:0 0 14px;text-transform:uppercase">The Curated Edit</p>'+
     '<p style="font-family:'+_ARCH_FH+';font-size:30px;color:'+_ARCH_CREAM+';margin:0 0 6px;line-height:1.1;font-weight:bold">'+hl[0]+'</p>'+
-    (hl[1]?'<p style="font-family:'+_ARCH_FH+';font-size:22px;color:'+_ARCH_GOLD+';margin:0;line-height:1.15;font-style:italic">'+hl[1]+'</p>':'')+
+    (hl[1]?'<p style="font-family:'+_ARCH_FH+';font-size:22px;color:'+_ARCH_ON_GREEN+';margin:0;line-height:1.15;font-style:italic">'+hl[1]+'</p>':'')+
   '</td></tr>';
 }
 function _sec_pullQuote(s,c){
@@ -7115,7 +7236,7 @@ function _sec_testimonialStrip(s,c){
   }
   var quotes={Sale:'Absolute steal — and it actually tastes premium.',Gift:'They opened it and just paused. Best gift in years.',Launch:'Stopped me in my tracks the first morning.',Story:'Every step reminds me the small things matter.',Routine:'My quiet five minutes before the day begins.',Discovery:'I ordered my own that night.',Bestseller:'I keep coming back. There is no other.',Seasonal:'Made the season feel like home.'};
   var q=quotes[s.type]||'There is a moment when the right pair of kicks does more than warm your hands.';
-  return '<tr><td style="background:'+_ARCH_GREEN+';padding:20px 28px;text-align:center"><p style="font-family:'+_ARCH_FH+';font-size:32px;color:'+_ARCH_GOLD+';margin:0;line-height:1">&ldquo;</p><p style="font-family:'+_ARCH_FH+';font-size:13px;color:'+_ARCH_CREAM+';margin:0 0 8px;line-height:1.5;font-style:italic;max-width:420px;display:inline-block">'+q+'</p><p style="font-family:'+_ARCH_FB+';font-size:9px;color:'+_ARCH_GOLD+';margin:0;letter-spacing:0.14em;text-transform:uppercase;font-weight:700">&ndash; '+_arch_reviewerName(c.mt,0)+' &middot; &#9733;&#9733;&#9733;&#9733;&#9733;</p></td></tr>';
+  return '<tr><td style="background:'+_ARCH_GREEN+';padding:20px 28px;text-align:center"><p style="font-family:'+_ARCH_FH+';font-size:32px;color:'+_ARCH_ON_GREEN+';margin:0;line-height:1">&ldquo;</p><p style="font-family:'+_ARCH_FH+';font-size:13px;color:'+_ARCH_CREAM+';margin:0 0 8px;line-height:1.5;font-style:italic;max-width:420px;display:inline-block">'+q+'</p><p style="font-family:'+_ARCH_FB+';font-size:9px;color:'+_ARCH_ON_GREEN+';margin:0;letter-spacing:0.14em;text-transform:uppercase;font-weight:700">&ndash; '+_arch_reviewerName(c.mt,0)+' &middot; &#9733;&#9733;&#9733;&#9733;&#9733;</p></td></tr>';
 }
 function _sec_miniQuotes(s,c){
   var qs=['Stopped me in my tracks.','My quiet five minutes.','I ordered my own that night.'];
@@ -7134,11 +7255,13 @@ function _sec_offerBanner(s,c){
 }
 function _sec_offerBannerBold(s,c){
   var ot=s.offer.text||'LIMITED OFFER', oc=s.offer.code, oct=s.offer.cta||s.cta;
-  return '<tr><td style="background:'+_ARCH_INK+';padding:26px 28px;text-align:center">'+
-    '<p style="font-family:'+_ARCH_FB+';font-size:10px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_GOLD+';margin:0 0 10px;text-transform:uppercase">&#9889; ENDS SOON &#9889;</p>'+
-    '<p style="font-family:'+_ARCH_FH+';font-size:32px;font-weight:bold;color:'+_ARCH_CREAM+';margin:0 0 12px;line-height:1.1">'+ot+'</p>'+
-    (oc?'<p style="font-family:'+_ARCH_FH+';font-size:18px;font-weight:bold;color:'+_ARCH_INK+';margin:0 0 14px;letter-spacing:0.2em;background:'+_ARCH_GOLD+';display:inline-block;padding:6px 20px;border-radius:3px">'+oc+'</p><br>':'')+
-    _arch_btn(c.collUrl,oct,_ARCH_GOLD,'#ffffff')+
+  // Was a black band. The promo code inside it was the ink on the accent —
+  // 2.77:1 — which is the one string in the mailer a reader has to transcribe.
+  return '<tr><td style="background:'+_ARCH_GREEN+';padding:26px 28px;text-align:center">'+
+    '<p style="font-family:'+_ARCH_FB+';font-size:10px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_ON_GREEN+';margin:0 0 10px;text-transform:uppercase">&#9889; ENDS SOON &#9889;</p>'+
+    '<p style="font-family:'+_ARCH_FH+';font-size:32px;font-weight:bold;color:'+_ARCH_ON_GREEN+';margin:0 0 12px;line-height:1.1">'+ot+'</p>'+
+    (oc?'<p style="font-family:'+_ARCH_FH+';font-size:18px;font-weight:bold;color:'+_ARCH_ON_GOLD+';margin:0 0 14px;letter-spacing:0.2em;background:'+_ARCH_GOLD+';display:inline-block;padding:6px 20px;border-radius:3px">'+oc+'</p><br>':'')+
+    _arch_btn(c.collUrl,oct,_ARCH_GOLD,_ARCH_ON_GOLD)+
   '</td></tr>';
 }
 function _sec_softCta(s,c){
@@ -7157,7 +7280,7 @@ function _sec_trustBar(s,c){
   return '<tr><td style="background:'+_ARCH_GREEN+';padding:11px 20px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10px;color:'+_ARCH_CREAM+';margin:0;letter-spacing:0.06em">'+[].concat(brandClaims(2),[mktIntel.shippingNote]).filter(Boolean).join(' &middot; ')+'</p></td></tr>';
 }
 function _sec_urgencyStrip(s,c){
-  return '<tr><td style="background:'+_ARCH_INK+';padding:12px 20px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10.5px;color:'+_ARCH_GOLD+';margin:0;letter-spacing:0.18em;text-transform:uppercase;font-weight:800">&#9889; This week only &middot; Free shipping above order minimum &middot; Trusted by 50,000+</p></td></tr>';
+  return '<tr><td style="background:'+_ARCH_GREEN+';padding:12px 20px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10.5px;color:'+_ARCH_ON_GREEN+';margin:0;letter-spacing:0.18em;text-transform:uppercase;font-weight:800">&#9889; This week only &middot; Free shipping above order minimum &middot; Trusted by 50,000+</p></td></tr>';
 }
 function _sec_urgencyQuote(s,c){
   return '<tr><td style="background:'+_ARCH_PAPER+';padding:18px 32px;text-align:center;border-left:1px solid '+_ARCH_BORDER+';border-right:1px solid '+_ARCH_BORDER+'"><p style="font-family:'+_ARCH_FH+';font-size:16px;color:'+_ARCH_GREEN+';margin:0;font-style:italic;line-height:1.4">"The ones we love most always sell out first."</p></td></tr>';
@@ -7171,11 +7294,14 @@ function _sec_footer(s,c){
   return '<tr><td style="background:'+_ARCH_GREEN+';padding:26px 24px 22px;text-align:center;border-radius:0 0 6px 6px">'+
     '<a href="'+base+'" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;margin-bottom:10px">'+
       '<span style="font-family:'+_ARCH_FH+';font-size:30px;font-weight:bold;color:'+_ARCH_CREAM+';letter-spacing:0.18em;line-height:1;display:inline-block">KNICKGASM<span style="font-size:14px;vertical-align:super;letter-spacing:0;margin-left:2px">&reg;</span></span>'+
-      '<div style="font-family:'+_ARCH_FB+';font-size:9px;color:'+_ARCH_GOLD+';letter-spacing:0.24em;text-transform:uppercase;margin-top:5px;font-weight:700">Premium Indian Sneakers &middot; Direct from Source</div>'+
+      '<div style="font-family:'+_ARCH_FB+';font-size:9px;color:'+_ARCH_ON_GREEN+';letter-spacing:0.24em;text-transform:uppercase;margin-top:5px;font-weight:700">Premium Indian Sneakers &middot; Direct from Source</div>'+
     '</a>'+
     '<div style="height:1px;background:rgba(171,135,67,0.35);margin:14px auto 12px;max-width:240px"></div>'+
     '<p style="font-family:'+_ARCH_FB+';font-size:10px;color:'+_ARCH_CREAM+';margin:0 0 8px"><a href="https://www.instagram.com/knickgasm" target="_blank" rel="noopener noreferrer" style="color:'+_ARCH_CREAM+';text-decoration:none;font-weight:600">Instagram</a> &middot; <a href="https://www.facebook.com/knickgasm" target="_blank" rel="noopener noreferrer" style="color:'+_ARCH_CREAM+';text-decoration:none;font-weight:600">Facebook</a> &middot; <a href="https://www.youtube.com/@knickgasm" target="_blank" rel="noopener noreferrer" style="color:'+_ARCH_CREAM+';text-decoration:none;font-weight:600">YouTube</a></p>'+
-    '<p style="font-family:'+_ARCH_FB+';font-size:9px;color:rgba(251,245,234,0.75);margin:0;line-height:1.75">KNICKGASM Pvt. Ltd. &middot; New Delhi, India &middot; '+mktName+' edition<br><a href="'+base+'/pages/unsubscribe" style="color:'+_ARCH_CREAM+';text-decoration:underline">Unsubscribe</a> &middot; <a href="'+base+'/pages/privacy-policy" style="color:'+_ARCH_CREAM+';text-decoration:underline">Privacy Policy</a> &middot; <a href="'+base+'" style="color:'+_ARCH_CREAM+';text-decoration:underline">'+(base.replace(/^https?:\/\//,'')||'knickgasm.com')+'</a></p>'+
+    // The CAN-SPAM sender identity, formerly a hardcoded cream at 75% opacity —
+    // 2.99:1 on the primary band. It is the one line a commercial email is
+    // legally required to carry, so it is not faded and not a literal.
+    '<p style="font-family:'+_ARCH_FB+';font-size:9px;color:'+_ARCH_ON_GREEN+';margin:0;line-height:1.75">KNICKGASM Pvt. Ltd. &middot; New Delhi, India &middot; '+mktName+' edition<br><a href="'+base+'/pages/unsubscribe" style="color:'+_ARCH_ON_GREEN+';text-decoration:underline">Unsubscribe</a> &middot; <a href="'+base+'/pages/privacy-policy" style="color:'+_ARCH_CREAM+';text-decoration:underline">Privacy Policy</a> &middot; <a href="'+base+'" style="color:'+_ARCH_CREAM+';text-decoration:underline">'+(base.replace(/^https?:\/\//,'')||'knickgasm.com')+'</a></p>'+
   '</td></tr>';
 }
 // ── Archetype-specific sections ─────────────────────────────────────────────
@@ -7242,7 +7368,7 @@ function _sec_ratingStrip(s,c){
 function _sec_founderBlock(s,c){
   return '<tr><td style="background:'+_ARCH_GREEN+';padding:32px 36px;text-align:center;border-left:1px solid '+_ARCH_GREEN+';border-right:1px solid '+_ARCH_GREEN+'">'+
     '<div style="width:80px;height:80px;border-radius:50%;background:'+_ARCH_GOLD+';margin:0 auto 14px;line-height:80px;font-family:'+_ARCH_FH+';font-size:30px;font-weight:bold;color:'+_ARCH_GREEN+'">B</div>'+
-    '<p style="font-family:'+_ARCH_FB+';font-size:9.5px;font-weight:800;letter-spacing:0.28em;color:'+_ARCH_GOLD+';margin:0 0 8px;text-transform:uppercase">A note from the founder</p>'+
+    '<p style="font-family:'+_ARCH_FB+';font-size:9.5px;font-weight:800;letter-spacing:0.28em;color:'+_ARCH_ON_GREEN+';margin:0 0 8px;text-transform:uppercase">A note from the founder</p>'+
     '<p style="font-family:'+_ARCH_FH+';font-size:24px;color:'+_ARCH_CREAM+';margin:0;line-height:1.2;font-weight:bold">'+s.headline[0]+'</p>'+
   '</td></tr>';
 }
@@ -7272,11 +7398,14 @@ function _sec_trendCards(s,c){
   return '<tr><td style="background:'+_ARCH_PAPER+';padding:20px 14px 14px;border-left:1px solid '+_ARCH_BORDER+';border-right:1px solid '+_ARCH_BORDER+'"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>'+cells+'</tr></table></td></tr>';
 }
 function _sec_countdownBlock(s,c){
-  return '<tr><td style="background:'+_ARCH_INK+';padding:28px 28px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_GOLD+';margin:0 0 12px;text-transform:uppercase">Limited drop ends in</p>'+
+  // The countdown block, formerly a black band with three brand-coloured tiles
+  // on it. The band is the brand colour now, so the tiles invert to the surface
+  // — three green-on-green tiles would have disappeared into it.
+  return '<tr><td style="background:'+_ARCH_GREEN+';padding:28px 28px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_ON_GREEN+';margin:0 0 12px;text-transform:uppercase">Limited drop ends in</p>'+
     '<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse"><tr>'+
-      ['48 HRS','LIMITED STOCK','SHIPS NOW'].map(function(t,i){return '<td style="padding:10px 18px;background:'+_ARCH_GREEN+';border:1px solid '+_ARCH_GOLD+';margin:0 4px"><p style="font-family:'+_ARCH_FH+';font-size:18px;font-weight:bold;color:'+_ARCH_CREAM+';margin:0;letter-spacing:0.08em">'+t+'</p></td>'+(i<2?'<td width="6"></td>':'');}).join('')+
+      ['48 HRS','LIMITED STOCK','SHIPS NOW'].map(function(t,i){return '<td style="padding:10px 18px;background:'+_ARCH_CREAM+';border:1px solid '+_ARCH_ON_GREEN+';margin:0 4px"><p style="font-family:'+_ARCH_FH+';font-size:18px;font-weight:bold;color:'+_archTextOn(_ARCH_CREAM,_ARCH_GREEN,_ARCH_INK)+';margin:0;letter-spacing:0.08em">'+t+'</p></td>'+(i<2?'<td width="6"></td>':'');}).join('')+
     '</tr></table>'+
-    '<p style="font-family:'+_ARCH_FH+';font-size:24px;color:'+_ARCH_CREAM+';margin:14px 0 0;line-height:1.15">'+s.headline[0]+'</p>'+
+    '<p style="font-family:'+_ARCH_FH+';font-size:24px;color:'+_ARCH_ON_GREEN+';margin:14px 0 0;line-height:1.15">'+s.headline[0]+'</p>'+
   '</td></tr>';
 }
 function _sec_subscriptionHero(s,c){
@@ -7299,6 +7428,9 @@ function _sec_savingsCallout(s,c){
 
 // ── Master orchestrator ─────────────────────────────────────────────────────
 function _arch_renderEmail(strategy,archetype,variant,uploadedDesignImg,mt){
+  // Repoint the palette at whichever brand is signed in, BEFORE any section
+  // renders. Every _sec_* below reads the _ARCH_* values at call time.
+  _archSyncBrand();
   // Apply per-variant strategy override (different copy/CTA/order for A vs B)
   var s=_arch_buildVariantStrategy(strategy,variant);
   var base=getBase(mt), collUrl=collectionUrl(s.activePrompt||s.rawPrompt,mt);
