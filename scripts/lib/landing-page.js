@@ -46,7 +46,7 @@ function renderLandingPage(o = {}) {
   *{box-sizing:border-box;} body{margin:0;background:${PAL.chalk};color:${PAL.ink};font-family:${BF};-webkit-font-smoothing:antialiased;}
   a{color:inherit;} img{max-width:100%;}
   .cta{display:inline-block;background:${PAL.green};color:${PAL.chalk};font-family:${BF};font-weight:700;letter-spacing:.03em;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:16px;}
-  .cta.lava{background:${PAL.lava};color:${PAL.ink};}
+  .cta.lava{background:${PAL.lava};color:${PAL.chalk};}
   .util{background:${PAL.green};color:${PAL.chalk};text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;padding:11px 16px;}
   .badges{text-align:center;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:${PAL.lava};padding:16px;}
   .stats{text-align:center;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${PAL.ink};padding:0 16px 22px;}

@@ -245,6 +245,91 @@ that page at all. Neither prompt announced its kind.
   reads the button, never the title attribute). Tests stub the clipboard and assert what actually
   lands there.
 
+## ⭐ An effect the author's desktop has and the reader's phone does not (2026-08-21)
+`tests/mobile-effects.spec.js` + `tests/motion-ad-mobile.spec.js`. "Effects missing when opened on
+mobile" had four independent causes, and they share a shape: **a CSS feature that is dropped
+SILENTLY by the engine that lacks it**. Nothing errors, the declaration is simply discarded and the
+effect is absent — and it never shows up in review, because review happens on the desktop.
+- **`color-mix()` is dropped WHOLE, it does not fall back.** iOS Safari shipped it in 16.2. Every
+  scrim, text-shadow and CTA ground in `motion-ad.js` used it, so on an older phone the veil, both
+  shadows and the card's ground vanished at once, leaving white type on a bright photograph. The
+  inputs were known colours and fixed percentages, so there was nothing the engine needed to compute:
+  they are mixed at render time (`mix()`/`alpha()`) and emitted as plain `rgba()`/hex. **Resolving it
+  is better than a fallback stack** — the problem stops existing rather than being papered over.
+- **`backdrop-filter` needs `-webkit-`** or the blur is absent on almost every iPhone. 33 unpaired
+  declarations across 12 pages, while `storefront-3d.html` and part of `competitor-benchmarking.html`
+  already carried it — inconsistency, not a decision.
+- **`100vh` on mobile Safari is the LARGE viewport height**: it counts the space the URL bar occupies,
+  so the 9:16 creative ran off the bottom and took the CTA and progress bar with it. `100svh` now,
+  inside `@supports` so an engine without it keeps the `vh` rule.
+- **Reduced motion must mean LESS motion, not NO AD.** iOS turns `prefers-reduced-motion` on in Low
+  Power Mode as well as from the accessibility setting, so a large share of phones land in that
+  branch — and `.cta` is `inset:0`, so pinning it to `opacity:1` there covered the whole frame and
+  hid the shot and the type. The viewer got a static end card and nothing else. It now composes the
+  frame the viewer would have seen at the end: opening shot with its type, CTA as a bottom band.
+  The gate asserts the REVERSE case too — that the ad still animates for everyone who did not ask for
+  less — because a fix that turns the creative into a poster for all viewers would otherwise pass.
+- WebKit is not installed in CI, so the phone-viewport tests run in Chromium with the media feature
+  emulated; the `color-mix` and prefix checks are assertions about the OUTPUT, which is
+  engine-independent and is the actual fix.
+
+## ⭐ No section is ever black, and text on a brand colour is DERIVED (2026-08-21)
+`api/_shared/brand-workspace-core.js` → `sectionGround()` + `textOn()`, gated by
+`tests/asset-no-black-background.spec.js`. A rendered mailer came back with near-black bands. "Never
+black / `#111111` / dark-neutral section backgrounds" has been a design HARD rule all along, and
+`validatePalette()` has enforced it on the page SURFACE since the beginning — but for generated
+ASSETS it was enforced nowhere. It lived as prose in a spec that reaches the model as a prompt, and
+**prose is not a gate**.
+- **The ink token is the brand's TEXT colour, and four renderers painted a section with it** —
+  flagship-mailer's `midnight` colorway (`heroBg: PAL.ink`), the `/lp/:id` footer and the video
+  creative's letterbox (`background: var(--ink)`).
+- **The fallback was the defect, not the data.** `emailHtml`'s palette fallback was
+  `pal.primary || '#111111'`, and every band, the button and the footer on that mailer are painted
+  with it — so a brand record with no palette shipped a BLACK EMAIL. No source sweep finds this;
+  rendering it does.
+- **A chain must end at the brand's OWN surface**, never at a literal from tenant zero's palette.
+  `sectionGround(primary, accent, surface)`. One tenant's red on another tenant's page is the same
+  defect class as one tenant's photo.
+- **A control is not a section.** The rule says section backgrounds, and `validatePalette` gates the
+  surface, not the primary — so a brand whose accent is near-black gets a black BUTTON, as on its own
+  site. Gating it produced a white button on a white page. What matters on a control is its LABEL.
+- **Contrast defects fell out of the same sweep**, each pairing two colours that look deliberate.
+  The ACCENT with INK text is **2.77:1** — mailer CTA, landing CTA, video CTA, ad price pill and
+  the mailer offer bar: **five files, one habit**. An accent eyebrow, pill, claims strip or offer
+  line on a PRIMARY band is **1.51:1**, including the DEFAULT colorway. Faded text is the same defect
+  wearing a different hat: an 85% eyebrow at 3.67:1, a 70% video disclaimer at 2.97:1, and — worst —
+  the **CAN-SPAM sender identity at 60% opacity, 2.54:1**, the one line a commercial email is legally
+  required to carry. Plus two hardcoded literals from no brand's palette: a cream at 82% (3.29:1) and
+  a warm grey (3.18:1). `textOn()` runs `readableOn()` (pick the brand's better text colour for this
+  ground) then `readableAsText()` (guarantee AA).
+- **A comment asserting a rule is not the rule being kept.** `calendar-trigger`'s footer comment said
+  "chalk + lava text stay high-contrast on it" while the code two lines below rendered 1.51:1 and
+  2.54:1. That renderer's palette was also four tenant-zero literals sitting beside `_brand(o)`,
+  `brandNameOf(o)`, `brandStore(o)` and `brandOrg(o)` — all carefully derived — so a second brand's
+  mailer carried its own name, links and legal entity in another company's colours.
+- **The gate RENDERS and MEASURES.** Two tests build a real campaign and read `getComputedStyle` in
+  Chromium, so the tokens, the cascade, the inherited colour and **CSS `opacity`** are all resolved —
+  that is what found the black `emailHtml` fallback and an 85%-faded eyebrow AFTER the source sweep
+  had "finished". Each asserts it measured a non-trivial number of grounds and text runs first: **a
+  check that inspects nothing passes everything.** One test renders for a brand whose own record
+  carries a near-black primary, which tenant zero never exercises.
+- **Every renderer that reaches a customer is in the gate**: both landing-page branches, both mailer
+  branches, all three shared mailer variants (`calendar-trigger.renderTextVariant`), the video
+  creative, the `/lp/:id` fallback page and the **Mailer Studio** (loaded and driven as the real
+  page). Adding a renderer to the list is how each round of defects was found — the gate only sees
+  what it is pointed at.
+- **Drive every ARCHETYPE, not every brief.** The Studio gate first typed one brief and measured the
+  result; mutating `countdownBlock`'s ground back to black did NOT fail it, because that section
+  lives only in the `limited-drop-countdown` flow, which the brief never selected. A gate driven by
+  whichever brief someone typed has holes in the shape of the briefs nobody typed. It renders all 11
+  archetypes × 2 variants now (`window._ARCH_FLOW` is exported so the list cannot drift from a copy),
+  which immediately found four more accent-on-primary sections the single brief never reached.
+- **A validator that hardcodes one tenant is worse than none.** The Studio's own `brandPaletteCheck`
+  allowlisted tenant zero's four hexes, so the moment the renderer became brand-derived it would have
+  told every OTHER brand its own colours were off-brand — teaching the operator that the checker is
+  noise. It reads the active brand's palette and typography.
+- Every fix is mutation-verified: restoring each defect fails the gate.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating
@@ -253,9 +338,10 @@ any of those, obey it. Load-bearing rules (full detail in the doc):
   segment sizes, or performance. Missing data -> `[DATA REQUIRED BEFORE LAUNCH: field, product, region]`.
 - **Closed source-of-truth** — only the repo + the exact official KNICKGASM regional site for the exact
   product/region. No cross-region reuse of facts/assets/reviews/claims/URLs.
-- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use red or white); enforce
-  WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards; proofread all
-  copy; source-map every fact.
+- **Design HARD rules** — never black/`#111111`/dark-neutral section backgrounds (use the brand colour or the
+  surface); enforce WCAG-AA contrast (no dark-on-dark / light-on-light); equal-size aligned parallel cards;
+  proofread all copy; source-map every fact. The first two are ENFORCED for generated assets since 2026-08-21
+  — see the section below.
 - **Frequency** — promotional cap 2 (absolute 3) per rolling 7 days; do not assume all ~111k are
   contactable daily (preferred ~31.7k/day); reduce/delay/block when eligibility is short.
 - **Reviews/ratings** — only approved review data; never round 4.9 to 5, never invent reviewers, never

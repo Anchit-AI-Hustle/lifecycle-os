@@ -49,6 +49,37 @@ function paletteOf(spec) {
     chalk: p.surface || PALETTE.chalk,
   };
 }
+/* ── colour maths, resolved HERE rather than by the viewer's engine ─────────
+ *
+ * Every scrim, text-shadow and CTA ground in this creative was written as
+ * `color-mix(in srgb, ...)`. A browser that does not implement color-mix drops
+ * the whole declaration as invalid at parse time — it does not fall back — and
+ * iOS Safari only shipped it in 16.2. On an older phone the veil, the two text
+ * shadows and the CTA's ground all vanished: the effects went missing, and the
+ * type was left white on a bright photograph with nothing behind it.
+ *
+ * The inputs are known colours and fixed percentages, so there is nothing the
+ * engine needs to compute. Mixing here emits a plain rgba()/hex that every
+ * engine has always understood, and the fallback problem stops existing.
+ */
+function _rgb(hex) {
+  let h = String(hex || '').replace('#', '').trim();
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  if (!/^[0-9a-f]{6}$/i.test(h)) return [0, 0, 0];
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+/** `color-mix(in srgb, hex p%, transparent)` */
+function alpha(hex, p) {
+  const [r, g, b] = _rgb(hex);
+  return `rgba(${r},${g},${b},${Math.round(p * 1000) / 1000})`;
+}
+/** `color-mix(in srgb, a p%, b)` */
+function mix(a, b, p) {
+  const A = _rgb(a), B = _rgb(b);
+  const out = [0, 1, 2].map((i) => Math.round(A[i] * p + B[i] * (1 - p)));
+  return '#' + out.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
 function fontsOf(spec) {
   const t = ((spec && spec.brand) || {}).typography || {};
   return {
@@ -171,48 +202,92 @@ function renderMotionAd(spec) {
 <style>
   :root { --green:${PAL.green}; --lava:${PAL.lava}; --ink:${PAL.ink}; --chalk:${PAL.chalk}; --head:${FONT.head}; --body:${FONT.body}; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--ink); display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  /* The letterbox around the 9:16 frame. It was var(--ink), i.e. #111111 for
+     tenant zero — a black ground, which this repo does not ship. The surface
+     keeps the frame the only dark thing on screen, which is where the eye
+     should go anyway. */
+  body { background:var(--chalk); display:flex; align-items:center; justify-content:center; min-height:100vh; }
   .stage { position:relative; width:min(100vw, calc(100vh * 9 / 16)); aspect-ratio:9/16;
            overflow:hidden; background:var(--green);
            font-family:var(--body); }
+  /* On mobile Safari 100vh is the LARGE viewport height — it counts the space
+     the URL bar is currently occupying — so a 9:16 frame sized from it runs off
+     the bottom of the screen and takes the CTA card and the progress bar with
+     it. svh is the small viewport height, which is what is actually on screen.
+     Declared second so an engine without svh keeps the vh rule above. */
+  @supports (height: 100svh) {
+    body { min-height:100svh; }
+    .stage { width:min(100vw, calc(100svh * 9 / 16)); }
+  }
   .scene { position:absolute; inset:0; opacity:0; }
   .scene img, .scene .solid { position:absolute; inset:-4%; width:108%; height:108%;
            object-fit:cover; will-change:transform; }
-  .scene .solid { background:radial-gradient(120% 90% at 50% 30%, color-mix(in srgb, var(--green) 78%, var(--ink)) 0%, var(--green) 70%); }
+  .scene .solid { background:radial-gradient(120% 90% at 50% 30%, ${mix(PAL.green, PAL.ink, 0.78)} 0%, var(--green) 70%); }
   .veil { position:absolute; inset:0;
           background:linear-gradient(180deg,
-                     color-mix(in srgb, var(--ink) 42%, transparent) 0%,
+                     ${alpha(PAL.ink, 0.42)} 0%,
                      transparent 34%, transparent 55%,
-                     color-mix(in srgb, var(--green) 62%, transparent) 100%); }
+                     ${alpha(PAL.green, 0.62)} 100%); }
   .type { position:absolute; left:7%; right:7%; top:9%; }
   .type h2 { font-family:var(--head); font-weight:700;
              color:var(--chalk); font-size:clamp(26px, 8.5vmin, 54px); line-height:1.12;
-             text-shadow:0 2px 22px color-mix(in srgb, var(--ink) 45%, transparent); }
+             text-shadow:0 2px 22px ${alpha(PAL.ink, 0.45)}; }
   .type p { color:var(--chalk); opacity:.94; font-size:clamp(14px, 3.6vmin, 22px);
-            margin-top:10px; text-shadow:0 1px 14px color-mix(in srgb, var(--ink) 50%, transparent); }
+            margin-top:10px; text-shadow:0 1px 14px ${alpha(PAL.ink, 0.5)}; }
   .kin { opacity:0; will-change:transform,opacity; }
   .cta { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
          justify-content:center; gap:16px; text-align:center; padding:0 9%;
-         background:radial-gradient(130% 100% at 50% 20%, color-mix(in srgb, var(--green) 78%, var(--ink)) 0%, var(--green) 72%);
+         background:radial-gradient(130% 100% at 50% 20%, ${mix(PAL.green, PAL.ink, 0.78)} 0%, var(--green) 72%);
          opacity:0; animation:ctain ${total}s ${loop ? 'infinite' : '1 forwards'} linear; }
   @keyframes ctain { 0%, ${Math.max(0, ctaStart - 2).toFixed(2)}% { opacity:0; }
                      ${Math.min(100, ctaStart + 1.5).toFixed(2)}%, 100% { opacity:1; } }
   .cta h3 { font-family:var(--head); color:var(--chalk);
             font-size:clamp(24px, 7.6vmin, 46px); line-height:1.15; }
-  .cta .offer { color:var(--lava); font-size:clamp(15px, 4vmin, 24px); letter-spacing:.04em; }
-  .cta .btn { display:inline-block; background:var(--lava); color:var(--ink); font-weight:700;
+  /* The offer line was the ACCENT on the primary card: 1.51:1 at the edge and
+     1.07:1 at the radial centre - two brand colours of similar weight reading
+     as a smudge, on the single most important line of the card. */
+  .cta .offer { color:var(--chalk); font-weight:700; font-size:clamp(15px, 4vmin, 24px); letter-spacing:.04em; }
+  .cta .btn { display:inline-block; background:var(--lava); color:var(--chalk); font-weight:700;
               padding:14px 34px; border-radius:999px; font-size:clamp(14px, 3.8vmin, 20px); }
-  .cta .fn { color:var(--chalk); opacity:.7; font-size:clamp(10px, 2.6vmin, 13px); }
+  /* The disclaimer, at 70% opacity, was 2.97:1 at 10-13px. Fine print is the
+     text that most needs to be legible, so it is not faded. */
+  .cta .fn { color:var(--chalk); font-size:clamp(10px, 2.6vmin, 13px); }
   .bar { position:absolute; left:0; bottom:0; height:4px; background:var(--lava); width:0;
          animation:bar ${total}s ${loop ? 'infinite' : '1 forwards'} linear; }
   @keyframes bar { from { width:0 } to { width:100% } }
+  /* REDUCED MOTION IS A STATIC POSTER, NOT A BLANK ONE.
+     iOS turns prefers-reduced-motion on in Low Power Mode as well as from the
+     accessibility setting, so a large share of phones land here — and what they
+     got was the CTA card ALONE. The card is inset:0, so pinning it to opacity 1
+     covered the whole 9:16 frame and hid the shot and the type underneath it:
+     opening the ad on a phone showed no effects and no creative, just the end
+     card. (The overlay was pinned here before the scenes were frozen too, so
+     this predates freezing them.)
+     Reduced motion now composes the frame the viewer would have seen at the
+     end of the ad: the opening shot with its type, and the CTA as a band across
+     the bottom rather than a full-bleed cover. No motion, all of the message.
+     It is also the only state in which the creative can be measured for
+     contrast rather than caught mid-fade. */
   @media (prefers-reduced-motion: reduce) {
-    .ken, .kin, .cta, .bar { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
-    .kin, .cta { opacity: 1 !important; transform: none !important; }
+    .ken, .kin, .cta, .bar, .scene { animation: none !important; }
+    .scene { opacity: 0 !important; }
+    .scene:first-of-type { opacity: 1 !important; }
+    .kin { opacity: 1 !important; transform: none !important; }
+    .cta { opacity: 1 !important; transform: none !important;
+           inset: auto 0 0 0 !important; padding: 7% 9% !important;
+           gap: 12px !important; justify-content: flex-end !important; }
+    /* The type sits at the top, the card at the bottom; without this the two
+       overlap on a short viewport. */
+    .type { bottom: auto !important; }
+    .bar { width: 100% !important; }
   }
   .sound { position:absolute; right:5%; top:4%; z-index:5; border:0; cursor:pointer;
-           background:color-mix(in srgb, var(--ink) 55%, transparent); color:var(--chalk); font:600 11px/1 var(--body);
-           letter-spacing:.12em; padding:8px 11px; border-radius:999px; backdrop-filter:blur(4px); }
+           background:${alpha(PAL.ink, 0.55)}; color:var(--chalk); font:600 11px/1 var(--body);
+           letter-spacing:.12em; padding:8px 11px; border-radius:999px;
+           /* Safari has only shipped this unprefixed very recently, so on most
+              iPhones the blur behind the sound pill was simply absent. The
+              prefixed form is what the phone in question actually reads. */
+           -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
 </style></head>
 <body>
 <div class="stage" role="img" aria-label="${esc(spec.product || BRAND_NAME)} advertisement">

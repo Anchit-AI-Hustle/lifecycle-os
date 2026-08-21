@@ -1210,6 +1210,22 @@ function injectProofBlock(html, entry, style = 'visual') {
   return i === -1 ? s + block : s.slice(0, i) + block + s.slice(i);
 }
 
+/* ── section grounds and the text that sits on them ───────────────────────── */
+// "Never black / #111111 / dark-neutral section backgrounds" is a HARD design
+// rule, and until now it reached these renderers only as prose inside a prompt.
+// Prose is not a gate, and the renderers broke it: this file's landing footer
+// was `background:var(--ink)`, and emailHtml's palette fallback was
+// `pal.primary || '#111111'` - so a brand record with no palette rendered its
+// hero band, its button and its footer black. The fallback was the defect, not
+// the data.
+//
+// The classifier and the text derivation live in brand-workspace-core, which is
+// where the same rule is enforced on the page surface at activation. A second
+// copy here would be a second definition of "black".
+const _wsCore = () => { try { return require('./brand-workspace-core.js'); } catch (_) { return null; } };
+const sectionGround = (...c) => { const k = _wsCore(); return k ? k.sectionGround(...c) : (c.find(Boolean) || '#FFFFFF'); };
+const textOn = (ground, surface, ink) => { const k = _wsCore(); try { return k ? k.textOn(ground, surface, ink) : (surface || '#FFFFFF'); } catch (_) { return surface || '#FFFFFF'; } };
+
 // try.knickgasm.*-style presell landing page. Self-contained (inline CSS, no external
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
@@ -1222,7 +1238,15 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   if (!_b) { try { _b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { _b = {}; } }
   const bName = _b.name || 'the brand';
   const _pal = _b.palette || {};
-  const P = _pal.primary || '#D0473E', ACC = _pal.accent || '#6A33D8', INKC = _pal.ink || '#111111', SURF = _pal.surface || '#FFFFFF', SURF2 = _pal.surface_alt || '#f6f6f6';
+  const INKC = _pal.ink || '#111111', SURF = _pal.surface || '#FFFFFF', SURF2 = _pal.surface_alt || '#f6f6f6';
+  // Three pairings on this page were picked by eye against tenant zero and
+  // measured, for that brand, at 2.77:1 (ink on the accent button), 1.51:1 (the
+  // accent eyebrow on the primary band) and 3.29:1 (a hardcoded cream at 82% on
+  // the primary) - all under the 4.5 body floor, on a page served to real
+  // traffic at /lp/:id. The text is derived now, and the grounds are guarded.
+  const P = sectionGround(_pal.primary, _pal.accent, SURF);
+  const ACC = _pal.accent || _pal.primary || '#6A33D8';
+  const ON_P = textOn(P, SURF, INKC), ON_ACC = textOn(ACC, SURF, INKC);
   const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
   let facts = regionFacts(entry.market);
   try { const bf = require('./brand-runtime.js').regionFacts(_b, entry.market); if (entry.brand && entry.brand.id && bf) facts = bf; } catch (_) {}
@@ -1277,19 +1301,19 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
-:root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--head:${FONT_HEAD};--body:${FONT_BODY}}
+:root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--on-moss:${ON_P};--on-lava:${ON_ACC};--head:${FONT_HEAD};--body:${FONT_BODY}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
-.bar{background:var(--moss-deep);color:var(--chalk);text-align:center;font-size:13px;letter-spacing:.04em;padding:10px 16px}
+.bar{background:var(--moss-deep);color:var(--on-moss);text-align:center;font-size:13px;letter-spacing:.04em;padding:10px 16px}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px}
 h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
-.hero{background:var(--moss);color:var(--chalk);text-align:center;padding:64px 22px 72px}
-.hero .eyebrow{color:var(--lava);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 0 18px}
+.hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:64px 22px 72px}
+.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 0 18px}
 .hero h1{font-size:40px;max-width:720px;margin:0 auto 16px}
-.hero p{max-width:560px;margin:0 auto 28px;color:rgba(251,245,234,.82)}
-.btn{display:inline-block;background:var(--lava);color:var(--ink);font-weight:700;text-decoration:none;padding:16px 34px;border-radius:6px;border:0;cursor:pointer;font-size:16px}
-.btn-dark{background:var(--moss);color:var(--chalk)}
+.hero p{max-width:560px;margin:0 auto 28px;color:var(--on-moss)}
+.btn{display:inline-block;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:16px 34px;border-radius:6px;border:0;cursor:pointer;font-size:16px}
+.btn-dark{background:var(--moss);color:var(--on-moss)}
 .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:18px 30px;background:var(--chalk-warm);padding:18px 22px;font-size:13px;color:var(--ink-dim);text-align:center}
 .sec{padding:54px 0}
 .sec h2{font-size:30px}
@@ -1298,7 +1322,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
 .why ul{padding:0;margin:0}
 .reveal{background:#fff;border:1px solid #e7ddc6;border-radius:14px;padding:30px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
 .reveal .price{font-family:var(--head);font-size:30px;color:var(--moss)}
-.proof{background:var(--moss-near);color:var(--chalk);text-align:center}
+.proof{background:var(--moss-near);color:var(--on-moss);text-align:center}
 .proof blockquote{font-family:var(--head);font-size:26px;max-width:680px;margin:0 auto;line-height:1.35}
 .proof .who{color:var(--lava);font-weight:700;margin-top:16px}
 .proof .proofshot{width:140px;border-radius:12px;margin:0 auto 18px}
@@ -1313,7 +1337,11 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
 .guarantee{background:var(--chalk-warm);text-align:center;border-radius:14px;padding:34px;margin:30px 0}
 .sticky{position:sticky;bottom:0;background:#fff;border-top:1px solid #e7ddc6;display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 22px;box-shadow:0 -6px 24px rgba(0,0,0,.08)}
 .sticky .info{font-size:14px}.sticky .info b{display:block;font-family:var(--head);font-size:16px}
-footer{background:var(--ink);color:rgba(251,245,234,.6);text-align:center;padding:26px;font-size:12px}
+/* The footer was a near-black band (var(--ink) is #111111 for tenant zero),
+   which the design rules forbid for any section. It is the brand primary now,
+   with the contrast-adjusted on-primary text rather than a 60%-opacity cream
+   that was only legible because the ground behind it was black. */
+footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26px;font-size:12px}
 @media(max-width:640px){.hero h1{font-size:30px}.sec h2{font-size:24px}.sticky .info .sub{display:none}}
 </style></head>
 <body>
@@ -1504,11 +1532,16 @@ function emailHtml(entry, copy, creativeUrl) {
     : (() => { try { return require('./brand-runtime.js').scopedBrand(null); } catch (_) { return {}; } })();
   const bName = b.name || '';
   const pal = b.palette || {};
-  const P = pal.primary || '#111111';
-  const ACC = pal.accent || P;
   const INK = pal.ink || '#111111';
   const SURF = pal.surface || '#FFFFFF';
-  const onP = pal.surface || '#FFFFFF';
+  // Every band, the button and the footer on this mailer are painted ${P}, and
+  // the last-resort literal here was #111111 - so a brand record with no
+  // palette shipped a black email. The ground is guarded and the text on it is
+  // derived rather than assumed to be the surface.
+  const P = sectionGround(pal.primary, pal.accent, SURF);
+  const ACC = pal.accent || pal.primary || P;
+  const onP = textOn(P, SURF, INK);
+  const onACC = textOn(ACC, SURF, INK);
   const img = creativeUrl || catalogImage.imageFor(entry, entry.market, { brand: entry.brand });
   const heroImg = img
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
@@ -1517,17 +1550,17 @@ function emailHtml(entry, copy, creativeUrl) {
 <body style="margin:0;background:${SURF};color:${INK};font-family:${FONT_BODY}">
 <main style="max-width:680px;margin:auto;background:${SURF}">
   <section style="background:${P};color:${onP};padding:44px 36px;text-align:center">
-    <p style="letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px;opacity:.85">${bName}</p>
+    <p style="letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">${bName}</p>
     <h1 style="font-family:${FONT_HEAD};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
   </section>
   ${heroImg}
   <section style="padding:36px">
     <p style="line-height:1.7">${E.intro_paragraph}</p>
     <p style="line-height:1.7">${E.body_paragraph}</p>
-    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:${ACC};color:${onP};padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || entry.cta || 'See more'}</a></p>
+    <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:${ACC};color:${onACC};padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || entry.cta || 'See more'}</a></p>
   </section>
   ${proofBlockHtml(entry)}
-  <footer style="background:${P};color:${onP}99;text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName} ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
+  <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName} ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
 </main>
 </body></html>`;
 }
