@@ -603,7 +603,7 @@ html[data-theme="green"] .vhd-skel{background:linear-gradient(90deg,var(--vh-ink
 .app{padding-bottom:96px}
 .copilot-dock{
   position:fixed;left:0;right:0;bottom:0;z-index:9000;display:flex;flex-direction:column;
-  background:rgba(251,245,234,.85);backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
+  background:rgba(251,245,234,.85);-webkit-backdrop-filter:blur(14px) saturate(1.25); backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
   border-top:1px solid var(--border);box-shadow:0 -6px 24px rgba(0,0,0,.08)
 }
 html[data-theme="green"] .copilot-dock{background:rgba(10,20,16,.78);border-top:1px solid var(--border2);box-shadow:0 -6px 28px rgba(0,0,0,.5)}
@@ -676,7 +676,7 @@ html[data-theme="green"] .copilot-input,html[data-theme="green"] .copilot-exp{ba
   .step-n.active{animation:stepPop .42s cubic-bezier(.34,1.56,.64,1)}
   @keyframes stepPop{0%{transform:scale(.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 }
-html[data-theme="green"] .panel{background:rgba(15,29,24,.72);backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1)}
+html[data-theme="green"] .panel{background:rgba(15,29,24,.72);-webkit-backdrop-filter:blur(10px) saturate(1.1); backdrop-filter:blur(10px) saturate(1.1);-webkit-backdrop-filter:blur(10px) saturate(1.1)}
 html[data-theme="green"] .btn-primary{box-shadow:0 0 0 1px rgba(171,135,67,.25),0 4px 18px rgba(0,74,43,.5)}
 html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67,.4),0 6px 26px rgba(0,74,43,.65),0 0 22px rgba(0,74,43,.4)}
 </style>
@@ -695,7 +695,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 </head>
 <body>
 <!-- Link-loading overlay -->
-<div id="linkLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,74,43,0.82);backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:18px">
+<div id="linkLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,74,43,0.82);-webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);align-items:center;justify-content:center;flex-direction:column;gap:18px">
   <div style="background:#fff;border-radius:20px;padding:36px 44px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.3);min-width:280px">
     <div style="font-family:serif;font-size:22px;font-weight:700;color:#D0473E;letter-spacing:0.06em;margin-bottom:4px">KNICKGASM&#174;</div>
     <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#6A33D8;margin-bottom:22px">Mailer Studio</div>
@@ -705,7 +705,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
   </div>
 </div>
 <!-- Dashboard record detail modal -->
-<div id="dashRecordModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);overflow-y:auto;padding:20px 10px">
+<div id="dashRecordModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);-webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);overflow-y:auto;padding:20px 10px">
   <div style="max-width:720px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.32)">
     <div id="dashRecordBody" style="display:flex;flex-direction:column"></div>
   </div>
@@ -983,7 +983,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 </div>
 <div id="p4" class="panel" style="display:none">
   <!-- Step 4 sticky navigation bar -->
-  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
+  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;-webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
     <button type="button" class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Back to Products</button>
     <button type="button" class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
     <span style="flex:1"></span>
@@ -1196,7 +1196,7 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
 <div id="analyzeStatus"></div>
 <div id="p5" style="display:none">
   <!-- Step 5 sticky navigation bar — clear back / forward / restart options -->
-  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
+  <div style="position:sticky;top:var(--hdr);z-index:50;background:linear-gradient(180deg,#fff 0%,#fff 75%,rgba(255,255,255,0.92) 100%);border-bottom:1.5px solid var(--vh-panel-tan);padding:12px 18px;margin:0 0 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;-webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);border-radius:10px 10px 0 0">
     <button type="button" class="btn btn-outline btn-sm" onclick="goBack(4)" style="white-space:nowrap">&larr; Back to Refine</button>
     <button type="button" class="btn btn-outline btn-sm" onclick="goBack(2)" style="white-space:nowrap">&larr; Products</button>
     <button type="button" class="btn btn-outline btn-sm" onclick="goBack(1)" style="white-space:nowrap">&larr; Brief</button>
@@ -2370,7 +2370,7 @@ function gateFinalOutput(){
   var existing=document.getElementById('sanityModal'); if(existing)existing.remove();
   var modal=document.createElement('div');
   modal.id='sanityModal';
-  modal.style.cssText='position:fixed;inset:0;z-index:10002;background:rgba(15,30,22,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif';
+  modal.style.cssText='position:fixed;inset:0;z-index:10002;background:rgba(15,30,22,0.7);-webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif';
   var hasErr=r.issues.some(function(i){return i.level==='err';});
   var heading=hasErr?'Cannot proceed — fix these first':'Review before continuing';
   var headingColor=hasErr?'#c0392b':'#6A33D8';
@@ -2960,7 +2960,7 @@ window.viewMarketHtml=function(mkt){
   var modal=document.createElement('div');
   modal.id='vhdHtmlViewerModal';
   modal.setAttribute('role','dialog');modal.setAttribute('aria-label','HTML source code for '+mkt);
-  modal.style.cssText='position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);padding:20px 10px;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif';
+  modal.style.cssText='position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);padding:20px 10px;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif';
   var safeHtml=String(html).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   modal.innerHTML=
     '<div style="background:#fff;border-radius:14px;max-width:1100px;width:100%;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;max-height:calc(100vh - 40px)">'+

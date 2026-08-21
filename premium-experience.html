@@ -104,7 +104,7 @@ a{color:var(--brand-primary-text,var(--knickgasm-green));}
 .m-hero-copy h2{font-size:38px;line-height:1.05;margin:0 0 14px;}
 .m-hero-copy p{font-size:15.5px;color:var(--vh-ink);margin:0 0 22px;font-style:italic;}
 .m-hero-img{position:relative;min-height:340px;background-size:cover;background-position:center;}
-.m-hero-img .badge{position:absolute;left:22px;bottom:22px;background:rgba(0,74,43,.92);color:var(--knickgasm-chalk);border-radius:12px;padding:10px 14px;font-size:12px;backdrop-filter:blur(3px);}
+.m-hero-img .badge{position:absolute;left:22px;bottom:22px;background:rgba(0,74,43,.92);color:var(--knickgasm-chalk);border-radius:12px;padding:10px 14px;font-size:12px;-webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);}
 .m-hero-img .badge b{font-family:var(--font-head);font-size:15px;display:block;}
 .price-pill{display:inline-flex;align-items:baseline;gap:8px;border:1.5px solid var(--knickgasm-lava);color:var(--brand-primary-text,var(--knickgasm-green));border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;width:fit-content;margin-bottom:20px;}
 .price-pill s{color:var(--soft);font-weight:400;font-size:12px;}
@@ -142,7 +142,7 @@ a{color:var(--brand-primary-text,var(--knickgasm-green));}
 
 /* ---- C. Rationale drawer ---- */
 .rationale-cta{position:sticky;bottom:22px;margin:26px auto 0;display:block;}
-.scrim{position:fixed;inset:0;background:rgba(10,20,16,.55);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s;z-index:60;}
+.scrim{position:fixed;inset:0;background:rgba(10,20,16,.55);-webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s;z-index:60;}
 .scrim.open{opacity:1;pointer-events:auto;}
 .drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,94vw);background:var(--knickgasm-chalk);box-shadow:-20px 0 60px rgba(0,0,0,.3);transform:translateX(102%);transition:transform .38s cubic-bezier(.22,1,.36,1);z-index:61;overflow-y:auto;}
 .drawer.open{transform:none;}
@@ -159,7 +159,7 @@ a{color:var(--brand-primary-text,var(--knickgasm-green));}
 .src{font-size:10.5px;color:var(--soft);margin-top:4px;}
 
 /* ---- unsubscribe modal ---- */
-.modal-scrim{position:fixed;inset:0;background:rgba(10,20,16,.6);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:80;padding:22px;}
+.modal-scrim{position:fixed;inset:0;background:rgba(10,20,16,.6);-webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:80;padding:22px;}
 .modal-scrim.open{display:flex;}
 .modal{background:#fff;border-radius:16px;max-width:420px;width:100%;padding:28px;text-align:center;box-shadow:0 30px 70px rgba(0,0,0,.4);animation:fadeUp .3s ease both;}
 .modal h3{font-size:21px;margin:0 0 8px;}
