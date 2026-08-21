@@ -71,7 +71,7 @@ function composed(o, { w, ar, wordmarkTop, headline, sub, showPrice, ctaLabel, h
   const bg = o.heroImageUrl
     ? `background-image:linear-gradient(to bottom,rgba(0,74,43,0) 38%,rgba(0,74,43,.55) 66%,rgba(23,23,23,.86) 100%),url('${esc(o.heroImageUrl)}');background-size:cover;background-position:center;`
     : `background:${PAL.green};`;
-  const price = (showPrice && o.price) ? `<span style="display:inline-block;background:${PAL.lava};color:${PAL.ink};font-family:${BF};font-weight:700;font-size:13px;padding:5px 12px;border-radius:999px;margin-right:8px;">${esc(o.price)}</span>` : '';
+  const price = (showPrice && o.price) ? `<span style="display:inline-block;background:${PAL.lava};color:${PAL.chalk};font-family:${BF};font-weight:700;font-size:13px;padding:5px 12px;border-radius:999px;margin-right:8px;">${esc(o.price)}</span>` : '';
   return `<div style="width:${w}px;max-width:100%;aspect-ratio:${ar};${bg}border-radius:14px;overflow:hidden;position:relative;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 6px 20px rgba(23,23,23,.14);">
     <div style="padding:16px 18px;display:flex;align-items:center;gap:8px;">
       <span style="font-family:${HF};letter-spacing:.28em;font-weight:700;color:${PAL.chalk};font-size:15px;text-shadow:0 1px 6px rgba(0,0,0,.4);">KNICKGASM</span>

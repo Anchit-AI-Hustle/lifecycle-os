@@ -177,10 +177,35 @@ or tiny approved details. When a "dark" treatment is wanted, use the BRAND PRIMA
 (`validatePalette()` in `api/_shared/brand-workspace-core.js` enforces this at activation: a
 dark-neutral surface blocks the brand from going live.)
 
+**Enforced in the RENDERERS since 2026-08-21.** Until then this rule reached generated assets only
+as prose inside a prompt, and prose is not a gate: the mailer's `midnight` colorway painted its hero
+band with the INK token, the `/lp/:id` footer and the video letterbox did the same, and `emailHtml`'s
+palette fallback was `pal.primary || '#111111'` — so a brand record with no palette shipped a black
+email. Every section ground now goes through `core.sectionGround(...candidates)`, which returns the
+first candidate that is not a dark neutral. Two rules for callers: **end the chain at the brand's OWN
+surface**, never at a literal from another brand's palette; and **a control is not a section** — a
+brand whose accent is near-black gets a black BUTTON, as on its own site, and what matters there is
+that `core.textOn()` keeps the label readable. Gate: `tests/asset-no-black-background.spec.js`, which
+RENDERS each asset in a browser and measures the computed styles.
+
 ### 4.2 Contrast rules (HARD, target >= WCAG AA)
 Never: primary-on-primary text; ink/black text on the primary when it fails AA; accent on a light
 surface when insufficient; surface-coloured text on a light surface; low-opacity critical copy; text
 over busy imagery without a contrast layer; too-faint placeholder/disabled/border colours.
+
+**Text on a brand colour is DERIVED, not chosen** — `core.textOn(ground, surface, ink)` runs
+`readableOn()` (whichever of the brand's own text colours reads better on this ground) then
+`readableAsText()` (move it only as far as AA needs). Picking by eye is where every one of these
+shipped: for tenant zero, the ACCENT with INK text is **2.77:1** (mailer CTA, landing CTA, video CTA,
+ad price pill and the mailer offer bar — five files), an accent eyebrow, claims strip or offer line
+on a PRIMARY band is **1.51:1** — two brand colours of similar weight reading as a smudge — and two
+hardcoded literals from no brand's palette measured 3.29:1 and 3.18:1.
+
+Low opacity is the same defect wearing a different hat, and **CSS `opacity` is invisible to any check
+that only reads colours** — which is why the gate reads computed styles in a browser. An 85% eyebrow
+was 3.67:1, a 70% video disclaimer 2.97:1, and the **CAN-SPAM sender identity at 60% opacity was
+2.54:1** — the one line a commercial email is legally required to carry, rendered as the least
+readable thing in the message. Fine print is the text that most needs to be legible: do not fade it.
 
 Pairings — **Primary bg:** surface-coloured text, accent for small details only. **Surface bg:**
 primary headings, ink body, accent details, primary CTA. **Accent bg:** only text that measurably
