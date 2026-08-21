@@ -382,6 +382,95 @@ test('a brand whose own record carries a near-black primary still gets no black 
   }
 });
 
+/* ── the Mailer Studio, driven as the real page ───────────────────────────── */
+
+// The Studio is the renderer an operator watches build a mailer, and it is the
+// one the black bands were reported on: four of its sections used the ink token
+// as a section ground (the announcement bar, the countdown block, the utility
+// strip and the urgency block), each with the ACCENT as their text, which is
+// 2.77:1. Its palette was also four tenant-zero literals in a Studio any brand
+// signs into.
+//
+// It ships as one self-contained ~7700-line page, so the only honest way to
+// check it is to LOAD it, drive it and read what it emits.
+test('the Mailer Studio emits no black section and no unreadable text', async ({ page }) => {
+  test.setTimeout(120_000);
+  const STUDIO = 'file://' + path.resolve(ROOT, 'lifecycle_mailer_architect_v34.html');
+  await page.addInitScript(() => {
+    try {
+      const u = { name: 'Test', email: 'test@example.com', signedInAt: Date.now() };
+      localStorage.setItem('vhd_users', JSON.stringify([u]));
+      localStorage.setItem('vhd_session', JSON.stringify(u));
+    } catch (_) {}
+    Object.defineProperty(window, '_currentUser', {
+      value: { name: 'Test', email: 'test@example.com' }, writable: true, configurable: true,
+    });
+    const hide = () => { const o = document.getElementById('authOverlay'); if (o) o.style.display = 'none'; };
+    document.addEventListener('DOMContentLoaded', hide);
+    setInterval(hide, 200);
+  });
+  await page.goto(STUDIO);
+  await page.locator('#promptIn').waitFor({ timeout: 20_000 });
+  // Obviously synthetic, and never a real brand's catalogue.
+  await page.evaluate(() => (window.studioCatalogReady ? window.studioCatalogReady() : null));
+  await page.evaluate(() => window.setStudioCatalog([
+    { n: 'Test Hero Pair, Black', i: '', t: ['bestseller'], h: 'test-hero-pair-black', price: '129.00', type: 'Sneakers', subtitle: 'Fixture' },
+    { n: 'Test Second Pair, White', i: '', t: ['bestseller'], h: 'test-second-pair-white', price: '119.00', type: 'Sneakers', subtitle: 'Fixture' },
+    { n: 'Test Gift Set', i: '', t: ['gift'], h: 'test-gift-set', price: '199.00', type: 'Gift Sets', subtitle: 'Fixture' },
+  ], 'brand', ''));
+  await page.waitForFunction(() => (window.CAT || []).length > 0, null, { timeout: 10_000 });
+
+  // A brief that reaches the promo sections — the announcement bar, the
+  // countdown and the offer pill only render when there IS an offer, so a brief
+  // without one never renders the rows the black bands were on.
+  await page.fill('#promptIn', '20% off bestsellers with code DROP20 — urgent, limited drop, conversion-focused');
+  await page.evaluate(() => window.go2 && window.go2());
+  await page.waitForTimeout(600);
+
+  // EVERY archetype, not whichever one this brief happens to select. The
+  // countdown block is only in `limited-drop-countdown`, and a brief that does
+  // not trip its keyword never renders it — so restoring its black ground was
+  // caught by nothing. A gate that depends on the brief someone typed is a gate
+  // with holes in the shape of the briefs nobody typed.
+  const variants = await page.evaluate(() => {
+    const out = {};
+    try {
+      if (window.refreshStrategy) window.refreshStrategy();
+      const st = (window.S && window.S.strategy) || (window.buildCampaignStrategy && window.buildCampaignStrategy());
+      const names = Object.keys(window._ARCH_FLOW || {});
+      for (const arch of names) {
+        for (const v of ['A', 'B']) {
+          try { out[arch + ':' + v] = window._arch_renderEmail(st, arch, v, null, 'US') || ''; }
+          catch (e) { out[arch + ':' + v] = 'ERROR ' + e.message; }
+        }
+      }
+    } catch (e) { out.__error = String(e && e.message); }
+    return out;
+  });
+
+  expect(variants.__error, 'could not drive the archetype renderer').toBeFalsy();
+  const names = Object.keys(variants);
+  // All eleven archetypes, both variants.
+  expect(names.length, `only ${names.length} archetype renders produced`).toBeGreaterThanOrEqual(20);
+
+  const bad = { dark: [], unreadable: [] };
+  let measuredGrounds = 0, measuredText = 0;
+  for (const [v, html] of Object.entries(variants)) {
+    expect(html.startsWith('ERROR'), `${v} threw: ${html.slice(0, 120)}`).toBe(false);
+    expect(html.length, `Studio ${v} produced no HTML`).toBeGreaterThan(4000);
+    const r = await audit(page, html, `studio ${v}`);
+    measuredGrounds += r.counted.grounds.length;
+    measuredText += r.counted.text.length;
+    bad.dark.push(...r.dark);
+    bad.unreadable.push(...r.unreadable);
+  }
+  // A check that inspects nothing passes everything.
+  expect(measuredGrounds, `only ${measuredGrounds} grounds measured across all archetypes`).toBeGreaterThan(60);
+  expect(measuredText, `only ${measuredText} text runs measured across all archetypes`).toBeGreaterThan(200);
+  expect([...new Set(bad.dark)], 'the Studio paints these sections a dark neutral').toEqual([]);
+  expect([...new Set(bad.unreadable)], 'the Studio renders this text under the AA floor').toEqual([]);
+});
+
 /* ── and the rendered mailer, end to end ──────────────────────────────────── */
 
 test('a rendered mailer contains no near-black background declaration', () => {
