@@ -141,6 +141,15 @@
       ' border:1px solid var(--brand-line,#e2e2e2);border-radius:11px;cursor:pointer;background:var(--brand-surface,#faf9f7)}',
       '.lc-pack:hover{border-color:var(--brand-primary,#6A33D8)}',
       '.lc-pack b{font-size:15px}.lc-pack small{display:block;color:var(--brand-ink-muted,#556);font-weight:400;margin-top:3px}',
+      // The price uses the contrast-adjusted primary token, never the raw
+      // brand colour; the unpriced marker uses the same muted TEXT token as
+      // the blurb, because there is no contrast-adjusted warn token to reach
+      // for and a new hex here would be a fabricated brand value.
+      '.lc-pack .lc-price{font-size:12px;font-weight:600;margin-top:6px;color:var(--brand-primary-text,#d0473e)}',
+      '.lc-pack .lc-price-free{color:var(--brand-ok,#1a7f37)}',
+      '.lc-pack .lc-price-none{color:var(--brand-ink-muted,#556);font-weight:500;font-style:italic;line-height:1.45}',
+      '.lc-pack.lc-unpriced{cursor:default;border-style:dashed}',
+      '.lc-pack.lc-unpriced:hover{border-color:var(--brand-line,#e6e6e6)}',
       '.lc-credit-card .lc-close{float:right;border:0;background:transparent;font-size:22px;cursor:pointer;line-height:1;color:var(--brand-ink-muted,#556)}',
       '@media (max-width:640px){.lc-credit-pill{top:auto;bottom:14px;right:14px}}',
       '@media (prefers-reduced-motion:reduce){.lc-credit-pill.is-pulse{animation:none}}',
@@ -256,10 +265,22 @@
     var sheet = document.createElement('div');
     sheet.className = 'lc-credit-sheet';
     sheet.setAttribute('data-no-brand-swap', '1');
+    // Same rule as the /credits page: a pack states its money price, and an
+    // unpriced pack is not offered for sale. `data-pack` is what binds the
+    // click handler below, so omitting it is what makes the card inert —
+    // the styling only reflects that, it does not create it.
     var packs = (state.packs || []).map(function (p) {
-      var total = p.credits + (p.bonus || 0);
-      return '<div class="lc-pack" data-pack="' + p.key + '">' +
-        '<span><b>' + p.label + '</b><small>' + p.blurb + '</small></span>' +
+      var total = p.total_credits != null ? p.total_credits : (p.credits + (p.bonus || 0));
+      var price = p.price || {};
+      var buyable = state.comp || price.configured;
+      var money = state.comp
+        ? '<small class="lc-price lc-price-free">free on this account</small>'
+        : price.configured
+          ? '<small class="lc-price">' + price.display + '</small>'
+          : '<small class="lc-price lc-price-none">' + (price.marker || 'No price set') + '</small>';
+      return '<div class="lc-pack' + (buyable ? '' : ' lc-unpriced') + '"' +
+        (buyable ? ' data-pack="' + p.key + '"' : ' aria-disabled="true"') + '>' +
+        '<span><b>' + p.label + '</b><small>' + p.blurb + '</small>' + money + '</span>' +
         '<span style="text-align:right"><b>' + fmt(total) + '</b>' +
         (p.bonus ? '<small>' + fmt(p.credits) + ' + ' + fmt(p.bonus) + ' bonus</small>' : '<small>credits</small>') +
         '</span></div>';
@@ -287,7 +308,9 @@
     sheet.addEventListener('click', function (e) { if (e.target === sheet) close(); });
     sheet.querySelector('.lc-close').addEventListener('click', close);
     document.addEventListener('keydown', onKey);
-    sheet.querySelectorAll('.lc-pack').forEach(function (el) {
+    // Only the priced (or complimentary) cards carry data-pack, so this binds
+    // nothing to a pack that cannot be bought.
+    sheet.querySelectorAll('.lc-pack[data-pack]').forEach(function (el) {
       el.addEventListener('click', async function () {
         el.style.opacity = '.6';
         try {
