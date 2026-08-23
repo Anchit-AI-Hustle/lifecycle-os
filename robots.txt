@@ -1,9 +1,59 @@
-# Lifecycle OS — internal growth/lifecycle operations tool.
-# This is a private, sign-in-gated application, not a public website.
-# Do not index or crawl any of it (the live customer store is knickgasm.com).
+# Lifecycle OS — a brand marketing platform. Onboard a brand once and the whole
+# suite runs as that brand.
+#
+# WHAT THIS FILE IS AND IS NOT SAYING.
+#
+# It used to say "This is a private, sign-in-gated application, not a public
+# website" and disallow everything. Half of that is true and half of it is not,
+# and the false half was blocking a page this repo deliberately serves to
+# everyone.
+#
+# True: almost every page requires a Google sign-in, and indexing those would
+# put search results in front of people that lead to a login wall and nothing
+# else. Those stay disallowed.
+#
+# Not true: that no page is public. auth.js `isOpenPage()` returns true for the
+# homepage, with the comment "The HOMEPAGE must be publicly viewable (Google
+# OAuth 'app homepage' requirement: not behind a login page, and it explains the
+# app's purpose)". The homepage is the page that describes and sells the
+# product, it is served anonymously on purpose, and it was disallowed anyway —
+# so the one page written to be found could not be. The privacy and terms pages
+# were already excepted for the same OAuth review that checks the homepage.
+#
+# Removed with this: a line naming one tenant's storefront as "the live customer
+# store". This platform runs as whichever brand a user onboards; tenant zero's
+# shop is not a fact about the platform.
+#
+# To make the whole product private again, replace the Allow lines below with
+# nothing. To open more of it, add the page here AND make it render signed-out
+# in auth.js — a page allowed here but gated there is an indexed login wall.
+
 User-agent: *
-Disallow: /
-# Legal pages must stay fetchable (Google OAuth branding verification checks
-# the privacy policy + terms URLs, and they carry no private data).
+
+# The public surface: the page that explains the product, and the legal pages.
+Allow: /$
+Allow: /index.html
 Allow: /privacy.html
 Allow: /terms.html
+
+# Everything else needs a signed-in session and a brand set up.
+Disallow: /
+
+# /studio is open signed-out (auth.js marks it `open: true`) and is still not
+# indexed on purpose: it is a five-step tool, not a page that answers a search.
+# A visitor arriving there cold gets an empty wizard, which is a worse result
+# than not appearing at all.
+Disallow: /studio
+Disallow: /app
+Disallow: /mailer
+Disallow: /lifecycle_mailer_architect_v34.html
+
+# Generated landing pages are built FOR a campaign and are served per campaign
+# id. They belong to whichever brand generated them and must never be indexed
+# under this domain.
+Disallow: /lp/
+
+# The API is not content.
+Disallow: /api/
+
+Sitemap: https://lifecycle-os.anchit-tandon.com/sitemap.xml
