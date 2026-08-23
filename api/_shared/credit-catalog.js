@@ -128,15 +128,122 @@ function welcomeGrant() {
   return Number.isFinite(n) && n >= 0 ? n : 500;
 }
 
-/** Recharge packs. Amounts are the platform's own credit bundles. */
+/* ───────────────────────────────────────────────────────────────────────────
+   RECHARGE PACKS — and why no money figure is written in this file.
+
+   A pack has two numbers: how many CREDITS it grants (below, and settled — a
+   credit is this platform's own internal unit, defined by the feature costs
+   above) and what it COSTS IN MONEY, which is not written here and must not be.
+
+   A price is a commercial decision made by whoever operates the deployment. It
+   depends on their costs, their market and their currency, and this repo has no
+   basis for any of the three. Writing a plausible number here would be the same
+   defect the rest of this codebase exists to prevent: a fabricated fact that
+   reads as a decided one. So `price` is declared as a SLOT and left null.
+
+   An operator fills it, without a deploy, by either:
+     - the `credit_pack_prices` table (migration 20260823170000), or
+     - CREDIT_PACK_PRICES, a JSON object of
+       { "<pack key>": { "currency": "INR", "amount_minor": 49900 } }
+
+   `amount_minor` is the smallest unit of that currency (paise, cents), which is
+   what `credit_orders.amount_minor` has always expected and what every payment
+   gateway in payments-core.js takes. The number of minor units per major unit
+   is asked of Intl rather than assumed, so a zero-decimal currency like JPY is
+   not silently multiplied by a hundred.
+
+   Until a price is set, a pack is NOT purchasable and says so. It does not
+   render a buy button that records an order at a price nobody chose.
+   ─────────────────────────────────────────────────────────────────────────── */
 const PACKS = [
-  { key: 'starter',  label: 'Starter',  credits: 500,    bonus: 0,    blurb: 'Enough to plan a month and build a few mailers.' },
-  { key: 'growth',   label: 'Growth',   credits: 2500,   bonus: 250,  blurb: 'A full campaign cycle with creative and ads.' },
-  { key: 'scale',    label: 'Scale',    credits: 10000,  bonus: 1500, blurb: 'Multi-brand, multi-region, video included.' },
-  { key: 'agency',   label: 'Agency',   credits: 50000,  bonus: 10000, blurb: 'Team-wide usage across every brand workspace.' },
+  { key: 'starter',  label: 'Starter',  credits: 500,    bonus: 0,    blurb: 'Enough to plan a month and build a few mailers.',      price: null },
+  { key: 'growth',   label: 'Growth',   credits: 2500,   bonus: 250,  blurb: 'A full campaign cycle with creative and ads.',         price: null },
+  { key: 'scale',    label: 'Scale',    credits: 10000,  bonus: 1500, blurb: 'Multi-brand, multi-region, video included.',           price: null },
+  { key: 'agency',   label: 'Agency',   credits: 50000,  bonus: 10000, blurb: 'Team-wide usage across every brand workspace.',       price: null },
 ];
 
 function pack(key) { return PACKS.find((p) => p.key === String(key || '').toLowerCase()) || null; }
+
+/** Prices supplied by the environment. A malformed value is ignored, not guessed at. */
+function envPackPrices() {
+  const raw = String(process.env.CREDIT_PACK_PRICES || '').trim();
+  if (!raw) return Object.create(null);
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return Object.create(null);
+    const out = Object.create(null);
+    for (const [k, v] of Object.entries(parsed)) {
+      const p = normalisePrice(v);
+      if (p) out[String(k).toLowerCase()] = p;
+    }
+    return out;
+  } catch (_) { return Object.create(null); }
+}
+
+/**
+ * A price is only a price when BOTH halves are present and sane. A currency
+ * with no amount, or an amount with no currency, is not "nearly priced" — it is
+ * unpriced, and saying so is the whole point.
+ */
+function normalisePrice(v) {
+  if (!v || typeof v !== 'object') return null;
+  const currency = String(v.currency || '').trim().toUpperCase();
+  const amount = Number(v.amount_minor);
+  if (!/^[A-Z]{3}$/.test(currency)) return null;
+  if (!Number.isFinite(amount) || amount < 0 || Math.floor(amount) !== amount) return null;
+  return { currency, amount_minor: amount };
+}
+
+/**
+ * Minor units per major unit, asked of Intl rather than assumed to be 100.
+ * JPY and KRW have none; most have two; a few have three.
+ */
+function minorExponent(currency) {
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits;
+  } catch (_) { return 2; }
+}
+
+/** Human-readable price, formatted server-side so no client has to guess the exponent. */
+function formatPrice(price) {
+  if (!price) return '';
+  const exp = minorExponent(price.currency);
+  const major = price.amount_minor / Math.pow(10, exp);
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency: price.currency, minimumFractionDigits: exp, maximumFractionDigits: exp }).format(major);
+  } catch (_) { return `${price.currency} ${major.toFixed(exp)}`; }
+}
+
+function priceMarker(p) {
+  return `[DATA REQUIRED BEFORE LAUNCH: price, ${p.label} credit pack, currency and amount]`;
+}
+
+/**
+ * Resolve one pack's price. Precedence: operator table, then environment, then
+ * the catalog's own declaration (which is null by design). `overrides` is the
+ * `credit_pack_prices` map, already fetched by the caller.
+ */
+function packPrice(key, overrides) {
+  const p = pack(key);
+  if (!p) return null;
+  const fromDb = normalisePrice(overrides && overrides[p.key]);
+  const fromEnv = fromDb ? null : envPackPrices()[p.key];
+  const fromCode = fromDb || fromEnv ? null : normalisePrice(p.price);
+  const resolved = fromDb || fromEnv || fromCode;
+  const source = fromDb ? 'operator' : fromEnv ? 'environment' : fromCode ? 'catalog' : 'none';
+  if (!resolved) {
+    return { configured: false, currency: null, amount_minor: null, display: '', source, marker: priceMarker(p) };
+  }
+  return { configured: true, currency: resolved.currency, amount_minor: resolved.amount_minor, display: formatPrice(resolved), source, marker: '' };
+}
+
+/** Every pack with its price resolved — what the UI renders. */
+function packList(overrides) {
+  return PACKS.map((p) => Object.assign({}, p, {
+    total_credits: p.credits + (p.bonus || 0),
+    price: packPrice(p.key, overrides),
+  }));
+}
 
 function get(key) { return BY_KEY[key] || null; }
 
@@ -172,4 +279,7 @@ function quote(key, units, overrides) {
   return { key: f.key, label: f.label, group: f.group, unit, why: f.why, cost, units: n, total: cost * n, metered: !!f.metered, estimate: f.estimate };
 }
 
-module.exports = { FEATURES, PACKS, get, list, grouped, quote, pack, welcomeGrant };
+module.exports = {
+  FEATURES, PACKS, get, list, grouped, quote, pack, welcomeGrant,
+  packPrice, packList, formatPrice, minorExponent, normalisePrice, envPackPrices,
+};
