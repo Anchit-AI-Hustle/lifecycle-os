@@ -90,8 +90,16 @@ test('the email is the one the auth check returned, not one the caller sent', ()
 // runs backwards silently yields '' and the assertions below would all pass on
 // nothing, which is worse than failing.
 function compBranch() {
-  const start = src.indexOf('if (isCompAccount(auth && auth.email))');
+  // The call was hoisted to `const comp = isCompAccount(auth && auth.email)`
+  // so the unpriced-pack guard above the insert could reuse the same answer,
+  // and the branch now reads `if (comp) {`. The assertion is about what the
+  // branch DOES, so it follows the marker rather than pinning the old shape —
+  // but the hoisted call is checked too, so the branch cannot become `if
+  // (comp)` against some other variable named comp.
+  expect(src, 'the comp check is gone').toMatch(/const comp = isCompAccount\(auth && auth\.email\);/);
+  const start = src.indexOf('if (comp) {');
   expect(start, 'the comp branch is gone').toBeGreaterThan(-1);
+  expect(src.split('if (comp) {').length - 1, 'ambiguous comp branch').toBe(1);
   const rest = src.slice(start);
   const end = rest.indexOf('if (String(process.env.CREDITS_ALLOW_SELF_SERVE');
   expect(end, 'could not find the end of the comp branch').toBeGreaterThan(0);
@@ -176,9 +184,19 @@ function fakeSupabase() {
   const env = {
     SUPABASE_URL: process.env.SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    CREDIT_PACK_PRICES: process.env.CREDIT_PACK_PRICES,
   };
   process.env.SUPABASE_URL = 'https://fake.supabase.co';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-key';
+  // A PRICED deployment, deliberately. createOrder now refuses to record an
+  // order for a pack with no money price, so on an unpriced deployment every
+  // "everyone else pays" test below would stop at that guard and prove nothing
+  // about the comp path — it would pass for the wrong reason, which is the
+  // failure mode these tests exist to rule out. The unpriced refusal is
+  // exercised separately, further down.
+  process.env.CREDIT_PACK_PRICES = JSON.stringify(Object.fromEntries(
+    credits.catalog.PACKS.map((p) => [p.key, { currency: 'INR', amount_minor: 49900 }]),
+  ));
 
   global.fetch = async (url, init = {}) => {
     const u = String(url);
@@ -285,4 +303,56 @@ test('every comp address in the list actually recharges free', async () => {
       expect(out.credited).toBe(true);
     } finally { fake.restore(); }
   }
+});
+
+/* ═══ an unpriced pack cannot be ordered ══════════════════════════════════ */
+
+test('a pack with no price refuses the order and writes no row', async () => {
+  const fake = fakeSupabase();
+  delete process.env.CREDIT_PACK_PRICES;          // an unpriced deployment
+  const before = process.env.CREDITS_ALLOW_SELF_SERVE;
+  delete process.env.CREDITS_ALLOW_SELF_SERVE;
+  try {
+    let threw = null;
+    try {
+      await credits.createOrder(
+        { user_id: 'u9', email: 'someone.else@example.com' },
+        { pack_key: PACK, workspace_id: 'ws1' },
+      );
+    } catch (e) { threw = e; }
+
+    expect(threw, 'an unpriced pack was ordered anyway').toBeTruthy();
+    expect(threw.status).toBe(409);
+    expect(threw.message).toContain('DATA REQUIRED BEFORE LAUNCH');
+    // The decisive part, and the reason the guard sits ABOVE the insert: no
+    // order row exists. A pending order at a null price is a purchase nobody
+    // can settle and a user who believes they bought something.
+    expect(fake.calls.some((c) => /\/rest\/v1\/credit_orders/.test(c.url) && c.method === 'POST'),
+      'an order row was written for a pack with no price').toBe(false);
+    expect(fake.calls.some((c) => /credit_fulfil_order/.test(c.url))).toBe(false);
+  } finally {
+    fake.restore();
+    if (before === undefined) delete process.env.CREDITS_ALLOW_SELF_SERVE;
+    else process.env.CREDITS_ALLOW_SELF_SERVE = before;
+  }
+});
+
+test('a complimentary account is not blocked by an unset price', async () => {
+  // The price is not this account's concern — it is charged nothing either way.
+  // Blocking it here would be the pricing fix breaking the one account it was
+  // never about.
+  const fake = fakeSupabase();
+  delete process.env.CREDIT_PACK_PRICES;
+  try {
+    const out = await credits.createOrder(
+      { user_id: 'u1', email: 'anchit.tandon@gmail.com' },
+      { pack_key: PACK, workspace_id: 'ws1' },
+    );
+    expect(out.comp).toBe(true);
+    expect(out.credited).toBe(true);
+    const row = fake.calls.find((c) => /\/rest\/v1\/credit_orders/.test(c.url) && c.method === 'POST');
+    expect(row, 'no order row was written for the comp grant').toBeTruthy();
+    // Genuinely zero, not "unknown": this account was charged nothing.
+    expect(row.body[0].amount_minor).toBe(0);
+  } finally { fake.restore(); }
 });
