@@ -1,7 +1,7 @@
 {
   "name": "Lifecycle OS",
   "short_name": "Lifecycle OS",
-  "description": "D2C retention dashboard + 30-day marketing calendar + mailer creator. One workflow from data → plan → mailers.",
+  "description": "Onboard a brand once and the whole suite runs as that brand — its palette, voice, catalogue, cohorts and competitive set. Analyse, plan, create, benchmark, operate and ship, with a missing fact left missing.",
   "start_url": "/",
   "scope": "/",
   "id": "/?source=pwa",
