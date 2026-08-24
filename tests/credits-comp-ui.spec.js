@@ -177,3 +177,43 @@ test('the price text clears the AA contrast floor against the card it sits on', 
   expect(ratio, 'the price must be readable').not.toBeNull();
   expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
+
+/* ── the copy must describe the state the page is actually in ────────────────
+ * Introduced by the pricing change and caught by asking what the page SAYS on
+ * a deployment with no prices set — which is the state every deployment starts
+ * in. Both surfaces told a paying user to "pick a pack to record a recharge
+ * order" while no pack was pickable at all: an instruction nobody could follow.
+ * Three states, not two.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+test('with no pack priced, the page does not tell the user to pick one', async ({ page }) => {
+  comp = false;
+  packs = [{ key: 'starter', label: 'Starter', blurb: 'x', credits: 500, bonus: 0, total_credits: 500, price: UNPRICED }];
+  await open(page);
+  await expect.poll(() => page.evaluate(() => (document.getElementById('packnote') || {}).textContent || ''),
+    { timeout: 15000 }).toMatch(/no pack has a price/i);
+  const t = await page.evaluate(() => document.getElementById('packnote').textContent);
+  expect(t, 'told to pick a pack when none is pickable').not.toMatch(/pick a pack/i);
+  // It must also not read as an outage. Nothing the user already has is affected.
+  expect(t).toMatch(/balance/i);
+});
+
+test('with a pack priced, the ordering copy comes back', async ({ page }) => {
+  comp = false;
+  packs = [{ key: 'starter', label: 'Starter', blurb: 'x', credits: 500, bonus: 0, total_credits: 500, price: PRICED }];
+  await open(page);
+  await expect.poll(() => page.evaluate(() => (document.getElementById('packnote') || {}).textContent || ''),
+    { timeout: 15000 }).toMatch(/record a recharge order/i);
+  const t = await page.evaluate(() => document.getElementById('packnote').textContent);
+  expect(t).not.toMatch(/no pack has a price/i);
+});
+
+test('a comp account is never shown the unpriced copy', async ({ page }) => {
+  comp = true;
+  packs = [{ key: 'starter', label: 'Starter', blurb: 'x', credits: 500, bonus: 0, total_credits: 500, price: UNPRICED }];
+  await open(page);
+  await expect.poll(() => page.evaluate(() => (document.getElementById('packnote') || {}).textContent || ''),
+    { timeout: 15000 }).toMatch(/recharges free/i);
+  const t = await page.evaluate(() => document.getElementById('packnote').textContent);
+  expect(t, 'a comp account was told nothing can be bought').not.toMatch(/no pack has a price/i);
+});

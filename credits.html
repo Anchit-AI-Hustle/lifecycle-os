@@ -192,18 +192,30 @@
     // `comp` comes from the balance response, which reads the VERIFIED session
     // email server-side. The browser never holds the list of comp accounts —
     // that would be an announcement of who is exempt.
+    //
+    // Declared HERE, above its first use. It used to sit below the note block,
+    // where `var` hoisting made it `undefined` rather than a ReferenceError —
+    // so every comp account silently got the paying copy while the diff looked
+    // right. That is the same defect this file was written to document, and it
+    // is why these are driven in a browser rather than read.
+    var comp = !!(window.Credits && window.Credits.comp);
     var note = $('packnote');
     if (note) {
-      note.textContent = (window.Credits && window.Credits.comp)
+      // Same three states as the shared panel: free, orderable, or nothing on
+      // this deployment carries a price yet. "Pick a pack" is not something a
+      // user can do when no pack is pickable.
+      var anyBuyable = comp || packs.some(function (p) { return p && p.price && p.price.configured; });
+      note.textContent = comp
         ? 'This account recharges free. Picking a pack adds the credits immediately at no charge, and usage is still metered so your spend stays visible below.'
-        : 'Pick a pack to record a recharge order.';
+        : anyBuyable
+          ? 'Pick a pack to record a recharge order.'
+          : 'No pack has a price on this deployment yet, so none can be ordered. An operator sets one before credits can be bought; your balance and every free feature are unaffected.';
     }
     // A pack shows what it COSTS, not only what it grants. Until an operator
     // sets a price it is not purchasable: it carries the DATA REQUIRED marker
     // and no click handler, because a button that records an order at a price
     // nobody chose is worse than no button. A complimentary account is exempt
     // from the price, so its packs stay clickable and read "free".
-    var comp = !!(window.Credits && window.Credits.comp);
     $('packs').innerHTML = packs.length ? packs.map(function (p) {
       var total = p.total_credits != null ? p.total_credits : (p.credits + (p.bonus || 0));
       var price = p.price || {};

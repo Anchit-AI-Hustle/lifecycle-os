@@ -269,6 +269,9 @@
     // unpriced pack is not offered for sale. `data-pack` is what binds the
     // click handler below, so omitting it is what makes the card inert —
     // the styling only reflects that, it does not create it.
+    var anyBuyable = state.comp || (state.packs || []).some(function (p) {
+      return p && p.price && p.price.configured;
+    });
     var packs = (state.packs || []).map(function (p) {
       var total = p.total_credits != null ? p.total_credits : (p.credits + (p.bonus || 0));
       var price = p.price || {};
@@ -297,9 +300,14 @@
         '</p>' +
         packs +
         '<p class="sub" style="margin:16px 0 0">' +
+          // THREE states, not two. Telling a user to pick a pack when no pack
+          // on this deployment has a price is an instruction they cannot
+          // follow — and unpriced is the state every deployment starts in.
           (state.comp
             ? 'This account recharges free: picking a pack adds the credits immediately at no charge. Usage is still metered, so your spend stays visible in the ledger.'
-            : 'Picking a pack records a recharge order. No payment processor is connected to this deployment, so an operator confirms the order before the credits land.') +
+            : anyBuyable
+              ? 'Picking a pack records a recharge order. No payment processor is connected to this deployment, so an operator confirms the order before the credits land.'
+              : 'No pack has a price on this deployment yet, so none can be ordered. An operator sets one before credits can be bought; your existing balance and every free feature are unaffected.') +
           ' <a href="/credits">See your full usage and ledger</a>.</p>' +
       '</div>';
 
