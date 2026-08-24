@@ -1347,7 +1347,11 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26p
 <body>
 <div class="bar">${esc(bName)} · ${esc(entry.market)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
 <section class="hero">
-  <p class="eyebrow">${esc(entry.cohort?.name ? entry.cohort.name + ' edit' : 'Featured')}</p>
+  <!-- The eyebrow read "<cohort> edit" — so a landing page served to a real
+       visitor announced the RFM bucket the business had put them in:
+       "Hibernating edit", "At Risk edit", "Lost edit". The market is a place and
+       is fine to say; the segment is an internal classification and is not. -->
+  <p class="eyebrow">${esc(entry.market ? entry.market + ' edit' : 'Featured')}</p>
   <h1>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
   <p>${esc(L.hero_sub || entry.rationale || '')}</p>
   <a class="btn" href="${esc(shopUrl)}">${cta}</a>
