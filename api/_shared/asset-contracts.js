@@ -229,7 +229,24 @@ const CONTRACTS = {
         if (seen.has(k)) v.push(warn('headlines', `"${h}" is duplicated, which spends one of the 15 slots on nothing.`));
         seen.add(k);
       }
-      if (heads.length && heads.length < 3) v.push(warn('headlines', `Only ${heads.length} headline(s). The format exists to be combined; with this few there is nothing to test.`));
+      /* ZERO IS NOT "NOTHING TO CHECK".
+       *
+       * This read `if (heads.length && heads.length < 3)`, so one or two
+       * headlines warned and NONE passed silently — while `headlines` is
+       * declared required above. Every Google ad the app built carried no
+       * headlines array at all and was reported ok:true, and
+       * google-ads-adapter.js then refuses to build a request below 3
+       * headlines and 2 descriptions. The gate was approving an ad the
+       * adapter would not send.
+       *
+       * These block rather than warn because the minimum is not an advisory
+       * number read off a spec sheet: this repo already enforces it, in
+       * google-ads-adapter.js, before a request is made.
+       */
+      if (!heads.length) v.push(block('headlines', 'A responsive search ad has no headlines. Google assembles the ad from them, so there is nothing to serve; google-ads-adapter.js refuses to build the request.'));
+      else if (heads.length < 3) v.push(block('headlines', `Only ${heads.length} headline(s). google-ads-adapter.js requires at least 3 before it will build a request, and the format exists to be combined.`));
+      if (!descs.length) v.push(block('descriptions', 'A responsive search ad has no descriptions. google-ads-adapter.js requires at least 2.'));
+      else if (descs.length < 2) v.push(block('descriptions', `Only ${descs.length} description(s). google-ads-adapter.js requires at least 2.`));
       return v;
     },
   },
