@@ -335,20 +335,26 @@ async function openWithCampaign(page, campaign) {
   return { errors };
 }
 
-/** Expand the slot and open one asset tab.
+/** Expand the slot and return one asset's section.
  *
- * Panes are display:none unless `.on`, and the first tab is the analysis pane —
- * so every assertion below is scoped to `.pvpane.on`. Asserting on a bare
- * `.pkbar` passes on markup the operator cannot see, which is the same class of
- * mistake as the bug under test. */
+ * The preview used to be a TAB STRIP — one pane visible, the rest display:none
+ * — so this clicked a tab and scoped to `.pvpane.on`. Every asset is now
+ * stacked and open inside the row, so there is no tab to click and `.on` no
+ * longer singles anything out.
+ *
+ * The protection it was written for still holds, and matters just as much:
+ * scope to the section for THIS asset and assert it is visible. Asserting on a
+ * bare `.pkbar` anywhere in the row passes on markup the operator cannot see,
+ * which is the same class of mistake as the bug under test. */
 async function openAssetTab(page, label) {
   const view = page.locator('button:has-text("View")').first();
   await expect(view).toBeVisible({ timeout: 20_000 });
   await view.click();
-  const tab = page.locator('.pvtab', { hasText: label }).first();
-  await expect(tab, `no "${label}" tab in the preview`).toBeVisible({ timeout: 30_000 });
-  await tab.click();
-  return page.locator('.pvpane.on').first();
+  const section = page.locator('.pvsec', { has: page.locator('.pvsech', { hasText: label }) }).first();
+  await expect(section, `no "${label}" section in the preview`).toBeVisible({ timeout: 30_000 });
+  const pane = section.locator('.pvpane').first();
+  await expect(pane, `the "${label}" pane is in the DOM but not visible`).toBeVisible({ timeout: 10_000 });
+  return pane;
 }
 
 test('the console offers the whole-asset prompt, and copies the whole asset', async ({ page }) => {

@@ -99,6 +99,12 @@
   .pvtab.on{color:#111111;border-bottom-color:var(--lava);background:rgba(171,135,67,.08)}
   .adimg{width:100%;max-height:420px;object-fit:cover;border-radius:8px;margin:4px 0 12px;border:1px solid rgba(171,135,67,.2);display:block}
   .pvpane{display:none}.pvpane.on{display:block}
+  /* Stacked sections. Each asset keeps its own heading so a long row stays
+     readable, and a rule separates one asset from the next. */
+  .pvsec{border-top:1px solid rgba(171,135,67,.22);padding:14px 0 4px;margin:0}
+  .pvsec:first-of-type{border-top:0;padding-top:4px}
+  .pvsech{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:#556059}
   .pvframe{width:100%;height:560px;border:1px solid rgba(171,135,67,.22);border-radius:12px;background:#fff}
   .pvexport{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
   .pvnote{color:#556059;font-size:12px;margin:0 0 10px}
@@ -580,6 +586,14 @@ const PREVIEW_CACHE = {};   // keyed by entry id → preview payload (avoid re-c
 
 function clearPreview(){ $('preview').innerHTML = ''; }
 
+/* The strip is now a JUMP, not a switcher: every pane is open, so this scrolls
+   to a section instead of hiding the other ten. */
+window.pvJump = function(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  (el.closest('.pvsec') || el).scrollIntoView({ behavior:'smooth', block:'start' });
+};
+/* Kept because other surfaces still render a real tab strip through it. */
 window.pvTab = function(btn, paneId){
   const root = btn.closest('.pvroot') || btn.closest('#preview');
   if(!root) return;
@@ -763,9 +777,25 @@ function renderPreview(payload, e, i, opts){
   const cw        = payload.copywriter || campaign.copywriter || {};
   const liveLpId  = e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null;
 
-  const tabs = [], panes = [];
-  const tab = (id,label,on)=> tabs.push(`<button type="button" class="pvtab${on?' on':''}" onclick="pvTab(this,'${id}')">${label}</button>`);
-  const pane= (id,html,on)=> panes.push(`<div class="pvpane${on?' on':''}" id="${id}">${html}</div>`);
+  /* EVERY RECORD AND ASSET INSIDE THE EXPANDED ROW, ALL AT ONCE.
+   *
+   * This used to be a tab strip: one pane visible, the rest display:none. So a
+   * reviewer approving a slot could only ever see one asset at a time and had
+   * to remember the others — and the count of things behind those tabs grew to
+   * a mailer, two landing pages, eight ads, the analysis and the JSON.
+   *
+   * The panes are now STACKED under headings and all are open. The pane ids are
+   * unchanged on purpose: they are what the download/copy controls and the ad
+   * hydration address, and what the tests assert are unique per ad.
+   *
+   * `tab()` keeps its name and signature because eleven call sites use it; it
+   * now records a heading rather than a button. `on` is ignored — everything is
+   * shown — and kept so those call sites did not all need editing for a value
+   * that no longer means anything.
+   */
+  const heads = [], panes = [];
+  const tab = (id,label)=> heads.push({ id, label });
+  const pane= (id,html)=> panes.push({ id, html });
 
   let first = true;
   // Analysis first — the "why" behind everything below it.
@@ -831,7 +861,22 @@ function renderPreview(payload, e, i, opts){
       first=false;
     });
   } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first); first=false; }
-  if(lpHtml){ const lpAsset = campaign.assets?.landing_pages?.[0] || null; tab('pv-lp','🛬 Landing page',first); pane('pv-lp', `${liveLpId?`<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" style="color:#0a7d33">/lp/${esc(liveLpId)} ↗</a>.</p>`:''}${expBar('landing-page', lpHtml)}${promptBar(lpAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(lpHtml)}"></iframe>`, first); first=false; }
+  // EVERY landing page, not just the first. The builder ships an A/B pair and
+  // only landing_pages[0] was ever rendered, so the B variant existed in the
+  // payload, was downloaded by "Download all", and could not be looked at.
+  // Stacking makes showing both free; the tab strip is what made it a choice.
+  const lpList = (campaign.assets?.landing_pages && campaign.assets.landing_pages.length)
+    ? campaign.assets.landing_pages
+    : (lpHtml ? [{ title: 'Landing page', html: lpHtml }] : []);
+  lpList.forEach((lp, li) => {
+    const html = String(lp.html || '');
+    if (!html) return;
+    const id = 'pv-lp' + (li ? '-' + li : '');
+    const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
+    tab(id, label, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" style="color:#0a7d33">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+    first = false;
+  });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
   // names its variant and angle, otherwise both A and B collide on the same id
   // ("pv-ad-meta") and read as a duplicate "meta ad" tile (B hidden behind A).
@@ -867,8 +912,17 @@ function renderPreview(payload, e, i, opts){
       const reason = (fb && fb.output && fb.output.reason) || 'the LLM cascade returned nothing for this slot';
       return `<div class="pvnote" style="margin-top:4px;color:#ffd9d0;background:#3a1414;border-radius:6px;padding:6px 9px;font-size:11px">⚠ Copy used the <b>template fallback</b>: ${esc(reason)}. This means no LLM provider answered — check that at least one text API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / CEREBRAS_API_KEY / XAI_API_KEY) is set and not quota-exhausted for this deployment, then Regenerate.</div>`;
     })()}
-    <div class="pvtabs">${tabs.join('')}</div>
-    ${panes.join('')}</div>`;
+    ${(() => {
+      // A jump strip, not a switcher: the row is tall now, so these scroll to a
+      // section rather than hiding the others.
+      if (heads.length < 2) return '';
+      return `<div class="pvtabs">${heads.map(h=>`<button type="button" class="pvtab" onclick="pvJump('${h.id}')">${h.label}</button>`).join('')}</div>`;
+    })()}
+    ${panes.map((p) => {
+      const h = heads.find((x) => x.id === p.id);
+      return `<section class="pvsec"><h4 class="pvsech">${h ? h.label : ''}</h4>`
+        + `<div class="pvpane on" id="${p.id}">${p.html}</div></section>`;
+    }).join('')}</div>`;
   // Video ads carry a real animated creative; point each iframe at the exact
   // bytes of it (Blob URL) now that the panes are in the DOM.
   hydrateMotionAds(host);
