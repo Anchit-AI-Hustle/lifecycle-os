@@ -242,6 +242,12 @@ test('.env.example leaks no complimentary address', () => {
   const env = fs.readFileSync(path.resolve(__dirname, '..', '.env.example'), 'utf8');
   // This file is inside the deployed output root, same as tests/. Documenting
   // the VARIABLE must not mean publishing who is exempt.
-  expect(env).not.toMatch(/@(gmail|vahdam)\./i);
+  //
+  // Deliberately a GENERIC address check rather than a list of domains. Naming
+  // a domain here would itself write that name into a tracked, publicly served
+  // file - which is what check-foreign-brands.js caught the first version of
+  // this doing. It is also the stronger assertion: no address of any kind.
+  const addresses = env.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || [];
+  expect(addresses, `an address is documented in .env.example: ${addresses.join(', ')}`).toEqual([]);
   expect(env).toMatch(/^CREDITS_COMP_ACCOUNTS=\s*$/m);
 });

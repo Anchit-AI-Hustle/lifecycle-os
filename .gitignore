@@ -79,6 +79,11 @@ workers/.artifacts/
 # local dashboard build artifacts
 scratchpad/
 .env*
+# ...but NOT the template. It holds no values, only variable names and the
+# notes an operator needs, and CLAUDE.md tells people to read it. The blanket
+# rule above meant it had never been in the repo at all, so that reference
+# pointed at a file only the person who wrote it could see.
+!.env.example
 
 # Python bytecode cache
 __pycache__/
