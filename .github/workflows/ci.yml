@@ -47,6 +47,15 @@ jobs:
         # into this company's campaign just as surely as a hardcoded page string.
         run: npm run check:skills:ci
 
+      - name: A test executes the logic it guards
+        # A source-text assertion proves a string is present, not that the code
+        # behaves. Both tests guarding the unauthenticated-LLM-proxy finding were
+        # source assertions, and both still passed when the gate's refusal was
+        # discarded — putting the open proxy back. Some claims genuinely are about
+        # a file (a secret must not appear in shipped output), so this does not
+        # forbid them: it holds the count per file and fails when one RISES.
+        run: npm run check:executed:ci
+
       - name: DESIGN.md conforms to the open spec
         # DESIGN.md is google-labs-code/design.md, an existing Apache-2.0 format
         # with its own linter. Our tests can only check the shape we THINK the
