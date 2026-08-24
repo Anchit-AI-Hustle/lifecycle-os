@@ -794,8 +794,11 @@ function renderPreview(payload, e, i, opts){
    * that no longer means anything.
    */
   const heads = [], panes = [];
-  const tab = (id,label)=> heads.push({ id, label });
-  const pane= (id,html)=> panes.push({ id, html });
+  // `_on` is the old "is this the open tab" flag. Nothing is hidden any more so
+  // it is ignored — declared rather than dropped so the arity matches the call
+  // sites that still pass it, instead of silently taking extra arguments.
+  const tab = (id,label,_on)=> heads.push({ id, label });
+  const pane= (id,html,_on)=> panes.push({ id, html });
 
   let first = true;
   // Analysis first — the "why" behind everything below it.
