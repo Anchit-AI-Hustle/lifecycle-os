@@ -330,6 +330,30 @@ ASSETS it was enforced nowhere. It lived as prose in a spec that reaches the mod
   noise. It reads the active brand's palette and typography.
 - Every fix is mutation-verified: restoring each defect fails the gate.
 
+## ⭐ A test that reads the source is not a test of the behaviour (2026-08-23)
+`scripts/check-executed-tests.js`, CI step `npm run check:executed:ci`. The two tests guarding the
+UNAUTHENTICATED LLM PROXY finding both asserted on source text: that `requireCaller(req, res)`
+appears in the handler, and that its index is below the first provider call. Changing
+`if (!(await requireCaller(req, res))) return;` to `await requireCaller(req, res);` puts the open
+proxy straight back - the gate runs, its refusal is discarded, and the six-provider cascade spends
+real keys for an anonymous caller. **Both source tests still PASSED.** Only the executed ones failed.
+- **Executed now**: `api/ai/generate.js` and `api/ai/image.js` are `require`d and CALLED - the shipped
+  entry point with its `credits.metered` and `request-scope` wrappers, which is what an attacker
+  reaches. An anonymous POST and a forged bearer are both refused, and `global.fetch` is replaced with
+  one that throws, so **no provider call escapes the gate** - a 401 that had already made the call
+  would still have cost money.
+- **A source assertion is NOT automatically wrong.** "A comp account's address must not appear in a
+  file the browser downloads", "a foreign brand's product names must not appear in the deployed
+  output", "a migration must contain the revoke" - those are file properties and a file check is the
+  RIGHT tool. No script can tell them apart; the judgement is whether the claim is about the FILE or
+  about what the code DOES.
+- So the gate is a **ratchet, not a ban**: a per-file count that fails when one RISES, and says
+  nothing when one falls. Baseline **176 across 43 files**. Largest debts: `brand-asset-content` 13,
+  `brand-context-pack` 13, `brand-data-scope` 11, `brand-suggest` 11, `journey-join` 8.
+- Related: run the WHOLE suite after a change, not the files you touched. The credit-pricing guard
+  broke three tests in `credits-comp-accounts.spec.js` and CI found them, because the local run had
+  covered only the two suites the diff named.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating
