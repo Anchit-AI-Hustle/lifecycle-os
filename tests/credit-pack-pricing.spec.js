@@ -197,3 +197,51 @@ test('the order insert carries the price columns that have always existed', () =
   expect(block).toContain('amount_minor');
   expect(block).toContain('currency');
 });
+
+/* ── the operator has to be able to find the switch ──────────────────────────
+ * The whole design of this change is "an operator sets the price without a
+ * deploy". That is worth nothing if the file which tells operators what they
+ * can set does not mention it — and .env.example had no credits section at
+ * all, so CREDIT_WELCOME_GRANT, CREDITS_ALLOW_SELF_SERVE and
+ * CREDITS_COMP_ACCOUNTS were undocumented too.
+ *
+ * This is a claim about a FILE (see scripts/check-executed-tests.js on why
+ * that is the right tool here): the question is whether the text exists, not
+ * what any code does with it.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+test('every operator-settable credits variable is documented in .env.example', () => {
+  const fs = require('fs');
+  const env = fs.readFileSync(path.resolve(__dirname, '..', '.env.example'), 'utf8');
+
+  // Read from the CODE rather than typed here, so a variable renamed in the
+  // modules is caught instead of this list quietly describing the old name.
+  const sources = ['api/_shared/credit-catalog.js', 'api/_shared/credits-core.js']
+    .map((f) => fs.readFileSync(path.resolve(__dirname, '..', f), 'utf8')).join('\n');
+  const used = [...new Set([...sources.matchAll(/process\.env\.(CREDITS?_[A-Z0-9_]+)/g)].map((m) => m[1]))];
+
+  expect(used.length, 'no credits env var found — the extraction is broken').toBeGreaterThanOrEqual(3);
+  for (const name of used) {
+    expect(env, `${name} is settable but absent from .env.example`).toMatch(new RegExp('^' + name + '=', 'm'));
+  }
+});
+
+test('.env.example documents the unit, because the unit is the trap', () => {
+  const fs = require('fs');
+  const env = fs.readFileSync(path.resolve(__dirname, '..', '.env.example'), 'utf8');
+  const block = env.slice(env.indexOf('CREDIT_PACK_PRICES') - 1400, env.indexOf('CREDIT_PACK_PRICES') + 40);
+  // An operator who reads "amount_minor" as rupees rather than paise prices the
+  // pack at a hundredth of what they meant. Saying so is the point.
+  expect(block).toMatch(/amount_minor/);
+  expect(block.toLowerCase()).toMatch(/smallest unit/);
+  expect(block).toMatch(/paise|cents/i);
+});
+
+test('.env.example leaks no complimentary address', () => {
+  const fs = require('fs');
+  const env = fs.readFileSync(path.resolve(__dirname, '..', '.env.example'), 'utf8');
+  // This file is inside the deployed output root, same as tests/. Documenting
+  // the VARIABLE must not mean publishing who is exempt.
+  expect(env).not.toMatch(/@(gmail|vahdam)\./i);
+  expect(env).toMatch(/^CREDITS_COMP_ACCOUNTS=\s*$/m);
+});

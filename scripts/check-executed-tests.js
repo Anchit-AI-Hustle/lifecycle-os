@@ -34,6 +34,13 @@
  *
  * Update BASELINE deliberately when adding a genuine file-property assertion.
  *
+ * WHAT IT MISSES. The match is on the NAME of the variable being asserted, so a
+ * file read into a differently-named variable is not counted — three added to
+ * credit-pack-pricing.spec.js on 2026-08-24 (`env`, `block`) slipped past it.
+ * That is a known limit, not a claim to be complete: this is a ratchet against
+ * the common shape, and widening the name list means re-baselining every file.
+ * Treat the number as a trend, never as an audit.
+ *
  * Run: node scripts/check-executed-tests.js [--fail]
  * ---------------------------------------------------------------------------
  */
