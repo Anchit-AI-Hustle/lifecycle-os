@@ -700,13 +700,23 @@ body::after {
           mask-composite: intersect;
 }
 
+/* WHY EVERY BARE ELEMENT BELOW IS WRAPPED IN :where().
+   theme.css is appended by auth.js with `defer`, so it loads AFTER every page's
+   own inline <style>. A bare `button {}` here therefore does NOT lose the
+   specificity tie — it WINS on source order and silently overrides the page. A
+   rule documented as a "lowest-specificity default" once overrode ten pages'
+   own table CSS exactly this way. :where() contributes zero specificity, so
+   these are the defaults they claim to be and any page rule beats them. The
+   `.vh-*` kit classes stay unwrapped on purpose: those are opt-in components a
+   page asked for, not defaults imposed on it. */
+
 /* ── Technical typography ───────────────────────────────────────────────────
    Monospace with wide tracking for METADATA only — labels, eyebrows, column
    heads, chips. Never for body copy or headings, which stay in the brand's own
    families. Tabular figures everywhere a number sits above another number;
    that is a legibility fix as much as a look. */
 .vh-eyebrow, .vh-section-label, .vh-chip, .vh-badge,
-.vh-table th, table th {
+.vh-table th, :where(table th) {
   font-family: var(--vh-font-mono);
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -722,7 +732,7 @@ body::after {
    A solid button gets a light-catching top edge and a brand-tinted glow on
    hover. The glow reuses --vh-line-hot, which is already a brand-derived rgba,
    so no new colour is introduced and nothing needs mixing at runtime. */
-.vh-btn, button, .btn, [role="button"], input[type="submit"] {
+.vh-btn, .btn, [role="button"], :where(button, input[type="submit"]) {
   border-radius: var(--vh-r-sm);
   transition: transform var(--vh-t-fast) var(--vh-ease-spring),
               box-shadow var(--vh-t-hud) var(--vh-ease-spring),
@@ -731,18 +741,18 @@ body::after {
 .vh-btn-solid, .btn.primary, button.primary {
   box-shadow: inset 0 1px 0 var(--vh-glass-edge), var(--vh-lift-1);
 }
-.vh-btn:hover, button:hover, .btn:hover, [role="button"]:hover {
+.vh-btn:hover, .btn:hover, [role="button"]:hover, :where(button:hover) {
   box-shadow: 0 0 0 3px var(--vh-line-hot), var(--vh-lift-2);
 }
 
 /* Inputs: frosted, with a brand rule that draws itself on focus. */
-.vh-input, .vh-select, .vh-textarea, input, select, textarea {
+.vh-input, .vh-select, .vh-textarea, :where(input, select, textarea) {
   background-color: var(--vh-glass-strong);
   border-radius: var(--vh-r-sm);
   transition: border-color var(--vh-t-fast), box-shadow var(--vh-t-hud) var(--vh-ease-spring);
 }
 .vh-input:focus, .vh-select:focus, .vh-textarea:focus,
-input:focus, select:focus, textarea:focus {
+:where(input:focus, select:focus, textarea:focus) {
   box-shadow: 0 0 0 3px var(--vh-line-hot);
 }
 
@@ -757,12 +767,12 @@ input:focus, select:focus, textarea:focus {
 /* ── Precision tables ───────────────────────────────────────────────────────
    Column rules, not zebra fill: a hairline grid reads as instrumentation, a
    striped one reads as a spreadsheet. */
-.vh-table th, table th {
+.vh-table th, :where(table th) {
   background-color: var(--vh-glass-strong);
   border-bottom: 1px solid var(--vh-line-hot);
 }
 .vh-table-wrap { box-shadow: var(--vh-lift-1); }
-.vh-table tr, table tr { transition: background-color var(--vh-t-fast) linear; }
+.vh-table tr, :where(table tr) { transition: background-color var(--vh-t-fast) linear; }
 
 /* ── Motion ─────────────────────────────────────────────────────────────────
    Decorative only, and only for viewers who have not asked for less. A sheen
@@ -830,7 +840,7 @@ input:focus, select:focus, textarea:focus {
 /* ── Gradient hairlines ─────────────────────────────────────────────────────
    A divider that fades in and out of the brand colour reads as instrumentation;
    a flat grey line reads as a document. */
-hr, .vh-divider {
+.vh-divider, :where(hr) {
   height: 1px;
   border: 0;
   background-image: linear-gradient(90deg,
