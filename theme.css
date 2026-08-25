@@ -534,3 +534,330 @@ html.vh-reduce .vh-reveal { opacity: 1 !important; transform: none !important; }
 /* A single-region brand gets a statement, not a control that cannot act. */
 .rgn-solo,.rgn-none{font-size:12px; color:var(--brand-ink-muted,#5a6169)}
 .rgn-solo b{color:var(--brand-ink,#111)}
+
+/* ============================================================================
+   FUTURISTIC LAYER (2026-08-25) — "tech-savvy & futuristic", app-wide.
+   ----------------------------------------------------------------------------
+   WHY IT LIVES HERE AND NOWHERE ELSE. auth.js appends theme.css with `defer`,
+   so this stylesheet lands AFTER each page's own inline <style>. At equal
+   specificity the later rule wins, which is what lets one file re-skin ~50
+   self-contained pages at once. Nothing below raises specificity artificially
+   and nothing uses !important, so a page that genuinely needs its own treatment
+   (the frozen diff snapshot, the WebGL storefront) still overrides it.
+
+   THE CONSTRAINT THAT SHAPED THE WHOLE DESIGN. The obvious futuristic idiom is
+   a black neon console. This repo forbids it: dark-neutral section backgrounds
+   are a HARD rule, validatePalette() BLOCKS activation on them, and
+   tests/asset-no-black-background.spec.js fails them. So the future here comes
+   from DEPTH, MOTION and PRECISION on the brand's own light surface, not from
+   turning the lights off. That is also the only version that works for every
+   tenant: a neon palette would be one brand's, imposed on all of them.
+
+   FOUR RULES THIS FILE KEEPS, each of which is a defect this repo already paid
+   for once:
+     · No hardcoded brand colour. Every tint is `var(--brand-*)` carried at low
+       OPACITY on its own layer. Opacity is used deliberately instead of
+       color-mix(): color-mix() is dropped WHOLE by engines that lack it (iOS
+       Safari before 16.2) — it does not degrade, the declaration simply
+       vanishes — and that is how a scrim, two shadows and a CTA ground all
+       disappeared at once from the video creative.
+     · Every backdrop-filter carries its -webkit- pair, or the blur is absent on
+       almost every iPhone. These are the first backdrop-filters in this file.
+     · Text colours are NOT touched. Surfaces move by a percent or two of
+       luminance and the ink tokens stay exactly as they were, so every contrast
+       ratio the rendered-contrast gates measure is preserved by construction.
+     · Reduced motion means LESS motion, never less content. Every decorative
+       animation sits inside `prefers-reduced-motion: no-preference`; nothing is
+       hidden that reduced motion then fails to reveal.
+   ========================================================================== */
+
+:root {
+  /* The layer below never writes a colour literal. These two aliases are the
+     ONLY place a default appears, and each repo's default is its OWN — porting
+     this block between repos carried tenant zero's red and purple hexes,
+     written inline as fallbacks, into a repo whose palette is green and gold —
+     the cross-tenant leak this codebase has a gate for. The literals are not
+     repeated here either: quoting a value in the comment that explains why it
+     was removed still ships it in the file. Brand first, this repo's own token
+     second, no third option. */
+  --vh-fx-primary: var(--brand-primary, var(--vh-green));
+  --vh-fx-accent:  var(--brand-accent,  var(--vh-lava));
+}
+
+:root {
+  /* Frosted surfaces. These are neutral whites, not brand colours: the brand
+     tint arrives underneath, from the ambient field, and shows THROUGH. */
+  --vh-glass:        rgba(255, 255, 255, 0.72);
+  --vh-glass-strong: rgba(255, 255, 255, 0.88);
+  --vh-glass-edge:   rgba(255, 255, 255, 0.95);
+
+  /* Motion. A spring for anything that should feel driven rather than eased. */
+  --vh-ease-spring: cubic-bezier(.22, 1.15, .36, 1);
+  --vh-t-hud: .28s;
+
+  /* Elevation, restated for a light surface. The inherited --vh-shadow is a
+     0.45-alpha black sized for a dark theme; at these radii on white it reads
+     as smudge rather than lift. */
+  --vh-lift-1: 0 1px 2px rgba(17,17,17,.05), 0 10px 24px rgba(17,17,17,.06);
+  --vh-lift-2: 0 2px 6px rgba(17,17,17,.06), 0 22px 48px rgba(17,17,17,.10);
+}
+
+/* ── The ambient field ──────────────────────────────────────────────────────
+   Two fixed layers behind everything: an aurora built from the ACTIVE brand's
+   own primary and accent, and a fine technical grid. Both are inert
+   (pointer-events:none) and sit at negative z-index, so no page's stacking or
+   hit-testing changes. The brand colours are drawn at full strength and the
+   LAYER is faded — see the note above on why this is not color-mix(). */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+body::before {
+  background:
+    radial-gradient(60% 46% at 12% 0%,   var(--vh-fx-primary) 0%, transparent 62%),
+    radial-gradient(52% 40% at 92% 8%,   var(--vh-fx-accent) 0%, transparent 60%),
+    radial-gradient(70% 50% at 50% 104%, var(--vh-fx-accent) 0%, transparent 66%);
+  opacity: .07;
+}
+body::after {
+  background-image:
+    repeating-linear-gradient(to right,  var(--vh-line) 0 1px, transparent 1px 120px),
+    repeating-linear-gradient(to bottom, var(--vh-line) 0 1px, transparent 1px 120px);
+  opacity: .22;
+  /* The mask is INVERTED from the obvious version, and that was a real defect
+     rather than a taste call. Fading the grid in from the TOP put its hardest
+     lines directly behind the first screen of copy on every page — visible in a
+     dashboard screenshot as rules cutting through the heading. Content lives in
+     the middle, so the grid is masked OUT of the middle and left at the edges,
+     where it frames the page instead of competing with it. */
+  -webkit-mask-image: radial-gradient(88% 70% at 50% 46%, transparent 0%, #000 100%);
+          mask-image: radial-gradient(88% 70% at 50% 46%, transparent 0%, #000 100%);
+}
+
+/* ── Frosted surfaces ───────────────────────────────────────────────────────
+   Applied by PROPERTY only. Deliberately no global ::before/::after on .card or
+   .panel: ~50 pages own those pseudo-elements and a blanket claim on them would
+   silently erase page-specific ornament. The HUD ticks below are scoped to
+   .vh-card, this repo's own kit class, which nothing else decorates. */
+.vh-card, .card, .panel, .tile, .kpi, [data-chart-host] {
+  background-color: var(--vh-glass);
+  /* The energy line: a 2px rule of the brand's OWN primary→accent along the top
+     edge of every surface. It is a layered background-image rather than a
+     ::before precisely so it claims no pseudo-element from any of the ~50 pages
+     that own theirs. background-image paints above background-color, and the
+     border-radius clips it, so it follows the corner without extra rules. */
+  background-image: linear-gradient(90deg,
+    var(--vh-fx-primary) 0%,
+    var(--vh-fx-accent) 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: 0 0;
+  border: 1px solid var(--vh-line);
+  border-radius: var(--vh-r-lg);
+  box-shadow: var(--vh-lift-1), inset 0 1px 0 var(--vh-glass-edge);
+  transition: transform var(--vh-t-hud) var(--vh-ease-spring),
+              box-shadow var(--vh-t-hud) var(--vh-ease-spring),
+              border-color var(--vh-t-hud) var(--vh-ease-spring),
+              background-size var(--vh-t-hud) var(--vh-ease-spring);
+}
+/* On hover the line thickens rather than the card changing colour — the
+   surface stays the brand's surface, which is the rule, and the feedback comes
+   from the instrument rather than the paint. */
+.vh-card:hover, .card:hover, .tile:hover, .kpi:hover { background-size: 100% 3px; }
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .vh-card, .card, .panel, .tile, .kpi, [data-chart-host] {
+    -webkit-backdrop-filter: blur(14px) saturate(1.35);
+            backdrop-filter: blur(14px) saturate(1.35);
+  }
+}
+.vh-card:hover, .card:hover, .tile:hover, .kpi:hover {
+  border-color: var(--vh-line-hot);
+  box-shadow: var(--vh-lift-2), inset 0 1px 0 var(--vh-glass-edge);
+}
+
+/* HUD corner ticks — the one piece of pure ornament, and the reason it is safe
+   is that .vh-card::after is unused across every page in this repo. */
+.vh-card { position: relative; }
+.vh-card::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  border: 1px solid var(--vh-fx-accent);
+  border-radius: calc(var(--vh-r-lg) - 5px);
+  opacity: .16;
+  -webkit-mask-image:
+    linear-gradient(to right, #000 0 18px, transparent 18px calc(100% - 18px), #000 calc(100% - 18px) 100%),
+    linear-gradient(to bottom, #000 0 18px, transparent 18px calc(100% - 18px), #000 calc(100% - 18px) 100%);
+  -webkit-mask-composite: source-in;
+          mask-image:
+    linear-gradient(to right, #000 0 18px, transparent 18px calc(100% - 18px), #000 calc(100% - 18px) 100%),
+    linear-gradient(to bottom, #000 0 18px, transparent 18px calc(100% - 18px), #000 calc(100% - 18px) 100%);
+          mask-composite: intersect;
+}
+
+/* ── Technical typography ───────────────────────────────────────────────────
+   Monospace with wide tracking for METADATA only — labels, eyebrows, column
+   heads, chips. Never for body copy or headings, which stay in the brand's own
+   families. Tabular figures everywhere a number sits above another number;
+   that is a legibility fix as much as a look. */
+.vh-eyebrow, .vh-section-label, .vh-chip, .vh-badge,
+.vh-table th, table th {
+  font-family: var(--vh-font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.vh-table, .vh-table td, table td,
+.kpi, .tile, [class*="kpi"] .num, [class*="stat"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ── Reactive controls ──────────────────────────────────────────────────────
+   A solid button gets a light-catching top edge and a brand-tinted glow on
+   hover. The glow reuses --vh-line-hot, which is already a brand-derived rgba,
+   so no new colour is introduced and nothing needs mixing at runtime. */
+.vh-btn, button, .btn, [role="button"], input[type="submit"] {
+  border-radius: var(--vh-r-sm);
+  transition: transform var(--vh-t-fast) var(--vh-ease-spring),
+              box-shadow var(--vh-t-hud) var(--vh-ease-spring),
+              border-color var(--vh-t-hud) var(--vh-ease-spring);
+}
+.vh-btn-solid, .btn.primary, button.primary {
+  box-shadow: inset 0 1px 0 var(--vh-glass-edge), var(--vh-lift-1);
+}
+.vh-btn:hover, button:hover, .btn:hover, [role="button"]:hover {
+  box-shadow: 0 0 0 3px var(--vh-line-hot), var(--vh-lift-2);
+}
+
+/* Inputs: frosted, with a brand rule that draws itself on focus. */
+.vh-input, .vh-select, .vh-textarea, input, select, textarea {
+  background-color: var(--vh-glass-strong);
+  border-radius: var(--vh-r-sm);
+  transition: border-color var(--vh-t-fast), box-shadow var(--vh-t-hud) var(--vh-ease-spring);
+}
+.vh-input:focus, .vh-select:focus, .vh-textarea:focus,
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px var(--vh-line-hot);
+}
+
+/* Keyboard focus: a dual ring, brand accent outside, page surface inside, so it
+   stays visible over a card, a table row or a photograph alike. */
+:focus-visible {
+  outline: 2px solid var(--vh-fx-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--vh-glass-strong);
+}
+
+/* ── Precision tables ───────────────────────────────────────────────────────
+   Column rules, not zebra fill: a hairline grid reads as instrumentation, a
+   striped one reads as a spreadsheet. */
+.vh-table th, table th {
+  background-color: var(--vh-glass-strong);
+  border-bottom: 1px solid var(--vh-line-hot);
+}
+.vh-table-wrap { box-shadow: var(--vh-lift-1); }
+.vh-table tr, table tr { transition: background-color var(--vh-t-fast) linear; }
+
+/* ── Motion ─────────────────────────────────────────────────────────────────
+   Decorative only, and only for viewers who have not asked for less. A sheen
+   crosses a card once on hover; the card itself lifts on a spring. Note what is
+   NOT here: nothing is hidden at rest, so the reduced-motion branch has nothing
+   to restore and cannot leave a viewer with a blank panel — the failure mode
+   that turned the video creative into a poster. */
+@media (prefers-reduced-motion: no-preference) {
+  .vh-card:hover, .card:hover, .tile:hover, .kpi:hover { transform: translateY(-3px); }
+  .vh-btn:active, button:active, .btn:active { transform: translateY(1px) scale(.995); }
+
+  /* The opacity belongs in the KEYFRAMES, not on :hover. Put it on the hover
+     rule and the animation ends, the transform reverts to none, and the bar
+     snaps back to the left edge of the card and SITS there at full strength for
+     as long as the cursor stays — a white slab over the content, permanent
+     until you move the mouse away. Animating it to 0 means the sheen is gone
+     when it finishes wherever it finishes. */
+  @keyframes vh-sheen {
+    from { transform: translateX(-120%); opacity: .65; }
+    to   { transform: translateX(220%);  opacity: 0; }
+  }
+  .vh-card::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 36%;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 0%, var(--vh-glass-edge) 50%, transparent 100%);
+    opacity: 0;
+    border-radius: inherit;
+  }
+  .vh-card:hover::before { animation: vh-sheen .9s var(--vh-ease-soft) 1; }
+}
+
+/* ── The rail ───────────────────────────────────────────────────────────────
+   The shared nav is on every screen, so it carries more of the app's character
+   than any single page. Frosted, with the active row lit by the brand's own
+   accent rather than a heavier fill. */
+/* TWO things the obvious version got wrong here, both caught by rendering it.
+ *
+ * 1. `backdrop-filter` on #lifecycle-nav MOVED THE WHOLE RAIL. That element is a
+ *    static, zero-height container; the visible rail is `.lnav-side`, a
+ *    position:fixed CHILD. A backdrop-filter (like a filter or a transform)
+ *    makes its element a containing block for fixed descendants, so the rail
+ *    stopped being anchored to the viewport and re-anchored to a 976px-wide,
+ *    0-height box — it floated into the middle of the page over the content.
+ *
+ * 2. The rail must NOT be frosted at all. Its own source comment records the
+ *    reason: the rail's text tokens are contrast-adjusted against
+ *    --brand-surface, and painting it any other tint put the group labels and
+ *    every ? chip at 4.44:1 — under AA. A translucent rail would let the
+ *    ambient field show through and tint it, which is that same defect arriving
+ *    by a new route.
+ *
+ * So the rail keeps its brand surface and its position, and takes only the
+ * things that cannot affect either: a hairline edge and a glow on the active
+ * row, both box-shadow, which never changes the colour behind the text. */
+#lifecycle-nav .lnav-side {
+  border-right: 1px solid var(--vh-line);
+}
+#lifecycle-nav .lnav-link.active {
+  box-shadow: 0 0 0 1px var(--vh-line-hot), var(--vh-lift-1);
+}
+
+/* ── Gradient hairlines ─────────────────────────────────────────────────────
+   A divider that fades in and out of the brand colour reads as instrumentation;
+   a flat grey line reads as a document. */
+hr, .vh-divider {
+  height: 1px;
+  border: 0;
+  background-image: linear-gradient(90deg,
+    transparent 0%,
+    var(--vh-fx-primary) 22%,
+    var(--vh-fx-accent) 78%,
+    transparent 100%);
+  opacity: .38;
+}
+
+/* ── Live status ────────────────────────────────────────────────────────────
+   Opt-in: <span class="vh-live"></span>. The pulse is decorative, so the dot is
+   fully visible WITHOUT it — reduced motion loses the animation, never the
+   indicator. */
+.vh-live {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--vh-fx-accent);
+  box-shadow: 0 0 0 3px var(--vh-line-hot);
+  vertical-align: middle;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes vh-pulse {
+    0%   { box-shadow: 0 0 0 0   var(--vh-line-hot); }
+    70%  { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0   transparent; }
+  }
+  .vh-live { animation: vh-pulse 2.2s var(--vh-ease-soft) infinite; }
+}
