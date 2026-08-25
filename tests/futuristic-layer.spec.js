@@ -57,9 +57,14 @@ test.beforeAll(async () => {
 test.afterAll(async () => { if (server) await new Promise((r) => server.close(r)); });
 
 async function open(page, file, brand) {
-  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.fulfill({
-    status: 200, contentType: 'text/javascript', body: 'window.tailwind = window.tailwind || {};',
-  }));
+  // Nothing here may leave the machine. A goto that waits on Google Fonts or a
+  // CDN spends ~13s per navigation failing slowly, and this file navigates
+  // seven times. Scripts get an inert stub because a couple of pages read a
+  // global from one; everything else is ABORTED outright rather than answered.
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => (
+    route.request().resourceType() === 'script'
+      ? route.fulfill({ status: 200, contentType: 'text/javascript', body: 'window.tailwind = window.tailwind || {};' })
+      : route.abort('failed')));
   await page.route(/\/api\//, (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, brand: null, workspaces: [], entries: [] }),
   }));
@@ -88,11 +93,25 @@ test('the nav rail stays pinned to the viewport edge', async ({ page }) => {
   });
   expect(rail, 'the rail is missing entirely').not.toBeNull();
   expect(rail.position, 'the rail is no longer fixed').toBe('fixed');
-  // The whole bug in one assertion: a containing block on any ancestor moves
-  // this off the left edge.
-  expect(rail.x, 'the rail has come off the viewport edge — check for a filter, backdrop-filter or transform on an ancestor').toBe(0);
   expect(rail.y).toBe(0);
   expect(rail.w, 'the rail is no longer rail-width').toBeLessThan(400);
+
+  // x <= 0 is the invariant that holds on EVERY viewport, and asserting x === 0
+  // everywhere was wrong: below the breakpoint the rail is a drawer, docked
+  // off-canvas at translateX(-100%), so its measured x is -248 on a phone and a
+  // tablet. The defect this guards produced x = +276 — pushed INTO the content,
+  // because a backdrop-filter on the static #lifecycle-nav container made it the
+  // containing block for its position:fixed child. Off-canvas is a layout
+  // decision; positive is always the bug.
+  expect(rail.x, 'the rail has been pushed into the content — check for a filter, backdrop-filter or transform on an ancestor')
+    .toBeLessThanOrEqual(0);
+
+  // Where the rail is DOCKED, it must sit exactly on the edge.
+  const docked = await page.evaluate(() => {
+    const el = document.querySelector('#lifecycle-nav .lnav-side');
+    return getComputedStyle(el).transform === 'none';
+  });
+  if (docked) expect(rail.x, 'a docked rail must sit on the viewport edge').toBe(0);
 });
 
 test('no ancestor of the rail creates a containing block for fixed children', async ({ page }) => {
