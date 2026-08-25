@@ -348,11 +348,59 @@ real keys for an anonymous caller. **Both source tests still PASSED.** Only the 
   RIGHT tool. No script can tell them apart; the judgement is whether the claim is about the FILE or
   about what the code DOES.
 - So the gate is a **ratchet, not a ban**: a per-file count that fails when one RISES, and says
-  nothing when one falls. Baseline **176 across 43 files**. Largest debts: `brand-asset-content` 13,
+  nothing when one falls. Baseline **177 across 44 files**. Largest debts: `brand-asset-content` 13,
   `brand-context-pack` 13, `brand-data-scope` 11, `brand-suggest` 11, `journey-join` 8.
+- **It counts CODE, not comments** (2026-08-25). A test that replaces a source assertion explains
+  itself by QUOTING the assertion it replaced — the most useful thing its header can say — and the
+  raw scan then counted the explanation and reported the file as having gained the debt it had just
+  paid off (`no-substitute-data.spec.js` scored +4 for describing the four it converted). Same
+  `codeOnly` shape as `asset-contracts.spec.js`, whose comment records the same trap. Third time.
 - Related: run the WHOLE suite after a change, not the files you touched. The credit-pricing guard
   broke three tests in `credits-comp-accounts.spec.js` and CI found them, because the local run had
   covered only the two suites the diff named.
+
+## ⭐ The app looks like an instrument, without turning the lights off (2026-08-25)
+The **futuristic layer** at the end of `theme.css`, gated by `tests/futuristic-layer.spec.js`. One
+block re-skins ~50 self-contained pages, because `auth.js` appends `theme.css` with `defer` — it
+lands AFTER each page's inline `<style>`, so at equal specificity it wins. Nothing raises specificity
+and nothing uses `!important`, so a page that needs its own treatment still overrides it.
+- **The obvious idiom is forbidden here, and that shaped the whole design.** "Futuristic" usually
+  means a black neon console; dark-neutral section backgrounds are a HARD rule, `validatePalette()`
+  BLOCKS activation on them and `asset-no-black-background.spec.js` fails them. So the future comes
+  from DEPTH, MOTION and PRECISION on the brand's own light surface: an ambient aurora built from the
+  active brand's primary and accent, a technical grid, frosted surfaces, a brand-gradient **energy
+  line** along the top edge of every card, monospace tabular metadata, spring easing. It is also the
+  only version that is multi-tenant — a neon palette would be one brand's, imposed on all of them.
+- **No colour literal, anywhere in the layer.** Two aliases (`--vh-fx-primary` / `--vh-fx-accent`)
+  are the only place a default appears, and each repo's default is its OWN token. Porting the block
+  to the sibling repo carried tenant zero's red and purple in as inline fallbacks, so every card in a
+  green-and-gold app drew another company's colours. The gate asserts ZERO hexes in the block —
+  stricter than "no tenant-zero hex", because any hex is a colour the layer decided for itself.
+  Mask gradients are excluded on purpose: a mask uses only the ALPHA channel, so `#000` there is a
+  shape, not a colour, and counting it would train the next person to add exceptions until the check
+  means nothing.
+- **`backdrop-filter` on the wrong element MOVED THE WHOLE NAV RAIL.** `#lifecycle-nav` is a static,
+  zero-height container; the visible rail is `.lnav-side`, a `position:fixed` CHILD. A
+  backdrop-filter — like a `filter` or a `transform` — makes its element a containing block for fixed
+  descendants, so the rail stopped being anchored to the viewport and floated into the middle of the
+  page over the content. The CSS is entirely valid; only rendering shows it. The gate measures the
+  rail's rect and walks its ancestors for anything that creates a containing block.
+- **The rail is never frosted**, and its own source comment says why: its text tokens are
+  contrast-adjusted against `--brand-surface`, and painting it any other tint put the group labels
+  and every `?` chip at **4.44:1**. A translucent rail would let the ambient field through and tint
+  it — the same defect arriving by a new route. It takes only `box-shadow`, which cannot change the
+  colour behind text.
+- **`color-mix()` is not used**, deliberately. Engines that lack it drop the declaration WHOLE rather
+  than degrading (the 2026-08-21 finding). Brand tint is carried as full-strength colour on a layer
+  with low `opacity`, which every engine supports.
+- **Every `backdrop-filter` carries its `-webkit-` pair** and sits behind `@supports`; the gate fails
+  on an unpaired one. Text colours are NOT touched at all — surfaces move a percent or two of
+  luminance and the ink tokens are untouched, so the rendered-contrast gates hold by construction
+  (36 contrast/nav/black-background tests pass unchanged).
+- **The sheen's opacity lives in the @keyframes, not on `:hover`.** On the hover rule the animation
+  ends, the transform reverts, and the bar snaps back to the card's left edge and SITS there at full
+  strength until the cursor leaves — a white slab over the content.
+- Every one of those four defects is mutation-verified: restoring it fails the gate.
 
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign

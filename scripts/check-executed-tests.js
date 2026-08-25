@@ -108,12 +108,40 @@ const BASELINE = {
   'sibling-parity.spec.js': 1,
   'social-brand-scope.spec.js': 1,
   'table-overlap.spec.js': 1,
+  // 2026-08-25. Legitimate, and the reason is worth writing down because it is
+  // the distinction this whole script exists to make. The claim is that the
+  // sheen's `opacity` is owned by the @keyframes and NOT by the :hover rule —
+  // a question about which rule declares a property, which is a fact about the
+  // file. Reproducing it in a browser would need a hover held past the end of a
+  // 0.9s animation, and would then be measuring the same thing less reliably.
+  // The other two file checks in that spec (no colour literal, every
+  // backdrop-filter prefixed) are NOT counted here: they assert on variables
+  // named `block` and `hexes`, which the matcher does not recognise. That is
+  // the blind spot documented at the top, visible in this very file.
+  'futuristic-layer.spec.js': 1,
 };
+
+/**
+ * Strip comments before counting.
+ *
+ * WHY: a test that REPLACES a source assertion explains itself by quoting the
+ * assertion it replaced — that is the most useful thing its header can say. A
+ * raw scan then counts the explanation and reports the file as having gained
+ * the very debt it just paid off. tests/no-substitute-data.spec.js converted
+ * four source assertions into executed ones and was scored +4 for describing
+ * them.
+ *
+ * This is the third time this exact pattern has bitten in this repo — see the
+ * `codeOnly` helper in asset-contracts.spec.js, whose comment says the same
+ * thing — so this uses the same shape: block comments, and only FULL-LINE `//`
+ * comments, which leaves `https://` untouched.
+ */
+const codeOnly = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
 function counts() {
   const out = {};
   for (const f of fs.readdirSync(TESTS).filter((x) => x.endsWith('.spec.js')).sort()) {
-    const body = fs.readFileSync(path.join(TESTS, f), 'utf8');
+    const body = codeOnly(fs.readFileSync(path.join(TESTS, f), 'utf8'));
     const n = (body.match(SOURCE_ASSERT) || []).length;
     if (n) out[f] = n;
   }
