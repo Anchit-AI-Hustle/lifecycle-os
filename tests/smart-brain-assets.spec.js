@@ -500,3 +500,52 @@ test('a static ad pane shows the real photograph, and says so when there is none
     else expect(s.empty).toBe(true);
   }
 });
+
+/* ── every record and asset, inside the expanded row ────────────────────────
+ * The preview was a TAB STRIP: one pane visible, the rest display:none. A
+ * reviewer approving a slot could see one asset at a time out of a mailer, two
+ * landing pages, eight ads, the analysis and the JSON — and had to hold the
+ * rest in their head. It is stacked now, all open, inside the row.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+test('every asset pane is open at once, not one behind a tab', async ({ page }) => {
+  const { campaign, entry } = await builtCampaign(OTHER_BRAND);
+  await openConsole(page);
+  const result = await page.evaluate(({ campaign, entry }) => {
+    const host = document.createElement('div');
+    host.id = 'stack-host';
+    document.body.appendChild(host);
+    renderPreview({ campaign, ads: campaign.assets.ads }, entry, 0, { target: host });
+    const panes = [...host.querySelectorAll('.pvpane')];
+    return {
+      panes: panes.length,
+      open: panes.filter((p) => p.classList.contains('on')).length,
+      sections: host.querySelectorAll('.pvsec').length,
+      headings: [...host.querySelectorAll('.pvsech')].map((h) => h.textContent.trim()),
+    };
+  }, { campaign, entry });
+
+  // A check that found no panes would pass every assertion below it.
+  expect(result.panes, 'no panes were rendered to check').toBeGreaterThan(2);
+  expect(result.open, 'a pane is hidden behind a tab').toBe(result.panes);
+  expect(result.sections, 'every pane needs its own titled section').toBe(result.panes);
+  expect(result.headings.length).toBe(result.panes);
+  for (const h of result.headings) expect(h.length, 'a section has no heading').toBeGreaterThan(0);
+});
+
+test('both landing pages are shown, not just the first', async ({ page }) => {
+  const { campaign, entry } = await builtCampaign(OTHER_BRAND);
+  const lps = (campaign.assets.landing_pages || []).filter((l) => l && l.html);
+  test.skip(lps.length < 2, 'this campaign built fewer than two landing pages');
+  await openConsole(page);
+  const ids = await page.evaluate(({ campaign, entry }) => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    renderPreview({ campaign, ads: campaign.assets.ads }, entry, 0, { target: host });
+    return [...host.querySelectorAll('.pvpane')].map((p) => p.id).filter((id) => id.startsWith('pv-lp'));
+  }, { campaign, entry });
+  // The builder ships an A/B pair and only landing_pages[0] was ever rendered,
+  // so the B variant was downloadable and not viewable.
+  expect(ids.length, `only ${ids.length} landing page pane(s) for ${lps.length} pages`).toBe(lps.length);
+  expect(new Set(ids).size, 'two landing pages collided on one pane id').toBe(ids.length);
+});

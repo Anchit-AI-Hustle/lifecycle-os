@@ -92,6 +92,34 @@ async function overrides() {
   return OVERRIDES;
 }
 
+let PACK_OVERRIDES = null, PACK_OVERRIDES_AT = 0;
+
+/**
+ * Operator-set pack prices. Same shape and same TTL as the feature overrides.
+ * A failed read yields an EMPTY map, never a stale-but-confident one: the
+ * consequence of missing a price here is that a pack shows as unpriced, which
+ * is the safe direction. The consequence of inventing one is a charge.
+ */
+async function packOverrides() {
+  if (PACK_OVERRIDES && Date.now() - PACK_OVERRIDES_AT < OVERRIDE_TTL) return PACK_OVERRIDES;
+  try {
+    const rows = await serviceRest('credit_pack_prices?select=pack_key,currency,amount_minor');
+    const map = Object.create(null);
+    for (const r of Array.isArray(rows) ? rows : []) map[String(r.pack_key || '').toLowerCase()] = r;
+    PACK_OVERRIDES = map; PACK_OVERRIDES_AT = Date.now();
+  } catch (_) { PACK_OVERRIDES = PACK_OVERRIDES || Object.create(null); PACK_OVERRIDES_AT = Date.now(); }
+  return PACK_OVERRIDES;
+}
+
+/**
+ * The packs the UI renders, with prices resolved. Every response that used to
+ * send `catalog.PACKS` raw sends this instead, so a pack can never reach the
+ * browser without saying whether it can actually be bought.
+ */
+async function packList() {
+  return catalog.packList(await packOverrides());
+}
+
 /** The price list the UI renders, with any operator override already applied. */
 async function priceList() {
   const ov = await overrides();
@@ -526,9 +554,40 @@ async function createOrder(auth, { pack_key, workspace_id }) {
   const p = catalog.pack(pack_key);
   if (!p) { const e = new Error('Unknown credit pack.'); e.status = 400; throw e; }
   const credits = p.credits + (p.bonus || 0);
+  const price = catalog.packPrice(p.key, await packOverrides());
+  const comp = isCompAccount(auth && auth.email);
+
+  // A complimentary account is exempt from the price, so an unset price is not
+  // in its way — it is charged nothing either way. Everyone else is BLOCKED
+  // here rather than in the UI, because a disabled button is a suggestion and
+  // this is the guarantee: an order is a record that someone owes an amount,
+  // and there is no amount to owe until an operator sets one. Recording a
+  // pending order with a null price produces a queue of purchases nobody can
+  // ever settle, and a user who believes they have bought something.
+  if (!comp && !price.configured) {
+    const e = new Error(
+      `The ${p.label} pack has no price set on this deployment, so it cannot be ordered. `
+      + `An operator sets one in the credit_pack_prices table or CREDIT_PACK_PRICES. ${price.marker}`
+    );
+    e.status = 409;
+    throw e;
+  }
+
   const rows = await serviceRest('credit_orders?select=*', {
     method: 'POST',
-    body: [{ user_id: auth.user_id, workspace_id: workspace_id || null, pack_key: p.key, credits, status: 'pending' }],
+    body: [{
+      user_id: auth.user_id,
+      workspace_id: workspace_id || null,
+      pack_key: p.key,
+      credits,
+      status: 'pending',
+      // The columns have been on this table since the first credits migration
+      // and nothing ever wrote them, so every order recorded to date says
+      // nothing about what it was worth. A comp order is genuinely zero, in the
+      // pack's currency when one is known.
+      amount_minor: comp ? 0 : price.amount_minor,
+      currency: price.currency,
+    }],
     prefer: 'return=representation',
   });
   const order = Array.isArray(rows) ? rows[0] : rows;
@@ -536,7 +595,7 @@ async function createOrder(auth, { pack_key, workspace_id }) {
   // A complimentary account's recharge lands immediately and costs nothing.
   // Recorded as `comp_account` rather than as a payment provider, so this can
   // never be counted as revenue or mistaken for a paid order in the ledger.
-  if (isCompAccount(auth && auth.email)) {
+  if (comp) {
     const out = await fulfilOrder(order.id, {
       provider: 'comp_account',
       provider_ref: `comp:${String(auth.email).toLowerCase()}`,
@@ -551,8 +610,8 @@ async function createOrder(auth, { pack_key, workspace_id }) {
     return await fulfilOrder(order.id, { provider: 'self_serve', provider_ref: 'CREDITS_ALLOW_SELF_SERVE=1' });
   }
   return {
-    ok: true, order, status: 'pending', credited: false,
-    message: 'Order recorded. No payment processor is connected to this deployment, so an operator must confirm it before the credits land.',
+    ok: true, order, status: 'pending', credited: false, price,
+    message: `Order recorded for ${price.display}. No payment processor is connected to this deployment, so an operator must confirm it before the credits land.`,
   };
 }
 
@@ -606,7 +665,7 @@ async function handle(req, res) {
     return res.status(200).json({
       ok: true,
       features: await priceList().catch(() => catalog.list()),
-      packs: catalog.PACKS,
+      packs: await packList().catch(() => catalog.packList(null)),
       welcome_grant: catalog.welcomeGrant(),
       configured: configured(),
     });
@@ -619,7 +678,7 @@ async function handle(req, res) {
     return res.status(503).json({
       ok: false, error: 'credits_unavailable',
       message: 'The credit meter needs SUPABASE_SERVICE_ROLE_KEY on this deployment.',
-      features: await priceList().catch(() => catalog.list()), packs: catalog.PACKS,
+      features: await priceList().catch(() => catalog.list()), packs: await packList().catch(() => catalog.packList(null)),
     });
   }
 
@@ -637,7 +696,7 @@ async function handle(req, res) {
           // this account will never be charged.
           comp: isCompAccount(auth.email),
           features: await priceList(),
-          packs: catalog.PACKS,
+          packs: await packList().catch(() => catalog.packList(null)),
         });
       }
       case 'ledger':

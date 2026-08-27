@@ -210,3 +210,71 @@ test('the artefact is built once, not rebuilt over one the LLM path made', () =>
   const src = require('fs').readFileSync(path.join(ROOT, 'api/_shared/smart-brain-plan.js'), 'utf8');
   expect(src).toMatch(/filter\(\(ad\) => ad\.creative_type === 'video' && !\(ad\.creative && ad\.creative\.motion_html\)\)/);
 });
+
+/* ═══ a Google ad is a responsive search ad, and one headline is not one ═══
+ * Every Google ad the app built carried a single `headline` and no
+ * `headlines`/`descriptions` arrays, while asset-contracts routes it to
+ * `ad.google.rsa` — which declares both as required lists — and
+ * google-ads-adapter.js refuses to build a request below 3 and 2. The
+ * contract reported ok:true anyway, because its check was written
+ * `if (heads.length && heads.length < 3)`: one or two warned, NONE passed.
+ * The console was approving an ad the adapter would not send.
+ * ══════════════════════════════════════════════════════════════════════ */
+
+function googleAds() {
+  return (campaign.assets.ads || []).filter((a) => a.platform === 'google');
+}
+
+test('every Google ad carries enough headlines and descriptions to be served', () => {
+  const ads = googleAds();
+  expect(ads.length, 'no Google ad was built to check').toBeGreaterThan(0);
+  for (const a of ads) {
+    const h = a.headlines || [];
+    const d = a.descriptions || [];
+    expect(h.length, `${a.id} has ${h.length} headline(s); the adapter needs 3`).toBeGreaterThanOrEqual(3);
+    expect(d.length, `${a.id} has ${d.length} description(s); the adapter needs 2`).toBeGreaterThanOrEqual(2);
+  }
+});
+
+test('no Google line is over the limit, because the platform deletes rather than shortens', () => {
+  for (const a of googleAds()) {
+    for (const h of a.headlines || []) {
+      expect(h.length, `headline "${h}" is ${h.length} chars; Google drops it whole`).toBeLessThanOrEqual(30);
+    }
+    for (const d of a.descriptions || []) {
+      expect(d.length, `a description is ${d.length} chars; dropped, not shortened`).toBeLessThanOrEqual(90);
+    }
+  }
+});
+
+test('the headlines are distinct, because a duplicate spends a slot on nothing', () => {
+  for (const a of googleAds()) {
+    const h = (a.headlines || []).map((x) => x.trim().toLowerCase());
+    expect(new Set(h).size, `${a.id} repeats a headline: ${h.join(' | ')}`).toBe(h.length);
+  }
+});
+
+test('an RSA with no headlines BLOCKS rather than passing silently', () => {
+  // The regression guard for the zero-case. Driven through the real contract,
+  // because the defect was that absent read as "nothing to check".
+  const rsa = contracts.CONTRACTS['ad.google.rsa'];
+  expect(rsa, 'the RSA contract is gone').toBeTruthy();
+
+  const empty = rsa.validate({ platform: 'google' });
+  const blocking = empty.filter((v) => v.level === 'block');
+  expect(blocking.length, 'an RSA with nothing in it was reported clean').toBeGreaterThan(0);
+  expect(JSON.stringify(empty)).toMatch(/headlines/);
+  expect(JSON.stringify(empty)).toMatch(/descriptions/);
+
+  // And the just-under case, which used to warn, is also not sendable.
+  const thin = rsa.validate({ headlines: ['One', 'Two'], descriptions: ['Only one'] });
+  expect(thin.filter((v) => v.level === 'block').length,
+    'two headlines and one description is below what the adapter will send').toBeGreaterThan(0);
+
+  // A well-formed one still passes, so this is not blocking everything.
+  const ok = rsa.validate({
+    headlines: ['Alpha 01', 'Brand', 'US Edit'],
+    descriptions: ['A description that fits.', 'A second, different one.'],
+  });
+  expect(ok.filter((v) => v.level === 'block')).toEqual([]);
+});

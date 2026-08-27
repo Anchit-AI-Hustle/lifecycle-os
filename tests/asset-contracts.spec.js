@@ -97,10 +97,15 @@ test('an unverified limit warns and never fails the asset', () => {
 });
 
 test('a verified limit blocks, and names where the enforcement lives', () => {
+  // TWO descriptions on purpose. This test is about the 30-character LIMIT, and
+  // an RSA below the adapter's minimum of 2 descriptions now blocks in its own
+  // right — a real defect that used to pass silently. Leaving the fixture short
+  // would make this assertion count someone else's violation and stop isolating
+  // the rule it is named for.
   const out = contracts.check({
     platform: 'google',
     headlines: ['a'.repeat(31), 'short one', 'another angle'],
-    descriptions: ['fine'],
+    descriptions: ['fine', 'a second, different one'],
   });
   expect(out.ok).toBe(false);
   expect(out.blocking).toBe(1);
