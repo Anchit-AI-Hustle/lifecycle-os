@@ -26,7 +26,12 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 /* ═══ 1. Nobody spends the provider budget without identifying themselves ══ */
 
 for (const route of ['api/ai/generate.js', 'api/ai/image.js']) {
-  test(`${route} refuses an unauthenticated caller`, () => {
+  test(`${route} runs the caller gate before any provider work`, () => {
+    /* A SOURCE claim, kept as one deliberately: that the gate is the first
+       thing in the handler is a property of the file, and it is cheap to check.
+       What it CANNOT prove is that an anonymous POST is actually refused —
+       that is a runtime claim, and it is executed in the test below. This one
+       stays because it localises a regression to the line that caused it. */
     const src = read(route);
     expect(src, 'the route must run the caller gate before any provider work').toMatch(/requireCaller\(req, res\)/);
 
@@ -49,6 +54,143 @@ for (const route of ['api/ai/generate.js', 'api/ai/image.js']) {
     const src = read(route).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     expect(src, 'Access-Control-Allow-Origin:* is what made the open route usable from anywhere')
       .not.toMatch(/Access-Control-Allow-Origin['"]\s*,\s*['"]\*/);
+  });
+}
+
+/* ── executed, not read ───────────────────────────────────────────────────────
+ * The finding was an unauthenticated proxy that spent six real provider keys.
+ * Everything above proves a string is present and two indices are ordered. It
+ * would still pass if requireCaller were called and its FALSE return ignored,
+ * if the module threw and something swallowed it, or if a later wrapper
+ * re-entered the handler. The only claim that matters is what a request
+ * actually gets, so these send one.
+ *
+ * The routes are wrapped at export time (credits.metered, then request-scope),
+ * so requiring the module gives the SHIPPED entry point, wrappers included —
+ * which is the thing an attacker reaches.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+function fakeRes() {
+  const r = {
+    statusCode: null, body: null, headers: {}, ended: false,
+    setHeader(k, v) { this.headers[String(k).toLowerCase()] = v; },
+    status(c) { this.statusCode = c; return this; },
+    json(o) { this.body = o; this.ended = true; return this; },
+    send(o) { this.body = o; this.ended = true; return this; },
+    end() { this.ended = true; return this; },
+  };
+  return r;
+}
+
+/**
+ * Hosts that cost money when they are called. Supabase is NOT one of them: the
+ * routes are wrapped in credits.metered(), whose own gate runs before the
+ * handler and reads the price catalog, so an anonymous request legitimately
+ * touches Postgres on its way to being refused. Forbidding ALL network traffic
+ * made this test pass alone and fail in the full suite, where an earlier spec
+ * had left SUPABASE_URL set — a sharper assertion is also a deterministic one.
+ */
+const PROVIDER_HOSTS = /(openai|anthropic|googleapis|generativelanguage|x\.ai|groq|cerebras|pollinations|higgsfield|elevenlabs)\./i;
+
+/** Records every request and refuses to let a provider one succeed. */
+function watchNetwork(handleSupabase) {
+  const real = global.fetch;
+  const all = [];
+  global.fetch = async (url, init) => {
+    const u = String(url);
+    all.push(u);
+    if (PROVIDER_HOSTS.test(u)) throw new Error(`a provider call escaped the gate: ${u}`);
+    if (handleSupabase) return handleSupabase(u, init);
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+  return {
+    all,
+    get providers() { return all.filter((u) => PROVIDER_HOSTS.test(u)); },
+    /** Calls that would MOVE a balance, as opposed to reading a price list. */
+    get balanceMoves() { return all.filter((u) => /\/rpc\/credit_(grant|hold|spend|release|fulfil)/.test(u)); },
+    restore() { global.fetch = real; },
+  };
+}
+
+for (const route of ['api/ai/generate.js', 'api/ai/image.js']) {
+  test(`${route} actually refuses an anonymous POST and spends nothing`, async () => {
+    // Pinned rather than inherited, so this exercises the SAME path whether or
+    // not the runner has Supabase configured and whichever spec ran before it.
+    const saved = {
+      CRON_SECRET: process.env.CRON_SECRET,
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    };
+    delete process.env.CRON_SECRET;                    // the scheduler door is shut
+    process.env.SUPABASE_URL = 'https://fake.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-test-key';
+
+    const net = watchNetwork((u) => {
+      // Whatever it asks Supabase, the answer is "this caller is nobody".
+      if (/\/auth\/v1\/user/.test(u)) return { ok: false, status: 401, text: async () => '{}' };
+      return { ok: true, status: 200, text: async () => '[]' };
+    });
+    try {
+      const handler = require(path.join(ROOT, route));
+      expect(typeof handler, `${route} must export a handler`).toBe('function');
+
+      const res = fakeRes();
+      await handler(
+        { method: 'POST', headers: {}, query: {}, body: { task: 'concepts', prompt: 'hello' } },
+        res,
+      );
+
+      expect(res.ended, 'the route never answered the anonymous caller').toBe(true);
+      expect([401, 402, 503], `an anonymous POST to ${route} got ${res.statusCode}`).toContain(res.statusCode);
+      expect(res.body && res.body.ok).toBe(false);
+      // The two decisive ones. A 401 that had already called a provider would
+      // still have cost money, and an anonymous caller must not put a hold on
+      // anybody's balance on the way to being turned away.
+      expect(net.providers, `${route} called a provider before refusing`).toEqual([]);
+      expect(net.balanceMoves, `${route} moved a credit balance for an anonymous caller`).toEqual([]);
+      // And it must not hand a wildcard to the browser on the way out.
+      expect(res.headers['access-control-allow-origin']).not.toBe('*');
+    } finally {
+      net.restore();
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k]; else process.env[k] = v;
+      }
+    }
+  });
+
+  test(`${route} refuses a forged bearer token without calling a provider`, async () => {
+    // A token is not trusted because it is present. requireUser verifies it
+    // against Supabase's own /auth/v1/user, and that lookup is the ONLY network
+    // call permitted here — a provider call would mean the gate was bypassed.
+    const real = global.fetch;
+    const seen = [];
+    global.fetch = async (url) => {
+      const u = String(url);
+      seen.push(u);
+      if (/\/auth\/v1\/user/.test(u)) {
+        return { ok: false, status: 401, text: async () => JSON.stringify({ msg: 'invalid token' }) };
+      }
+      throw new Error(`a provider call escaped the gate: ${u}`);
+    };
+    const savedCron = process.env.CRON_SECRET;
+    delete process.env.CRON_SECRET;
+    try {
+      const handler = require(path.join(ROOT, route));
+      const res = fakeRes();
+      await handler(
+        { method: 'POST', headers: { authorization: 'Bearer not-a-real-token' }, query: {},
+          body: { task: 'concepts', prompt: 'hello' } },
+        res,
+      );
+      expect(res.ended).toBe(true);
+      expect([401, 503], `forged token got ${res.statusCode}`).toContain(res.statusCode);
+      expect(seen.filter((u) => !/\/auth\/v1\/user/.test(u)),
+        'a provider was called on behalf of a forged token').toEqual([]);
+    } finally {
+      global.fetch = real;
+      if (savedCron === undefined) delete process.env.CRON_SECRET;
+      else process.env.CRON_SECRET = savedCron;
+    }
   });
 }
 

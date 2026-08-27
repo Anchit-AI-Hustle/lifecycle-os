@@ -46,6 +46,8 @@
     "check:designmd": "node scripts/check-design-md.js",
     "check:designmd:ci": "node scripts/check-design-md.js --fail",
     "check:skills": "node scripts/check-skills.js",
+    "check:executed": "node scripts/check-executed-tests.js",
+    "check:executed:ci": "node scripts/check-executed-tests.js --fail",
     "check:skills:ci": "node scripts/check-skills.js --fail",
     "check:security": "npx playwright test tests/security-endpoints.spec.js --project=desktop-1280 --reporter=line",
     "check:claims": "npx playwright test tests/claims-approved.spec.js --project=desktop-1280 --reporter=line",
