@@ -200,7 +200,9 @@ function designFor(css) {
       typography: Object.assign({}, typo, {
         slots: ts.slots, scale: ts.scale, tokens: ts.tokens, root_font_size: ts.root_font_size,
       }),
-      palette: { proposed: {}, sources: {}, conflicts: [], roles: {} },
+      // A real primary, so the document has a Colors section for the observed
+      // text colours to land in. With an empty palette `colors` is null.
+      palette: { proposed: { primary: '#D0473E' }, sources: {}, conflicts: [], roles: {} },
       design_tokens: { groups: {} },
     },
   }, { name: 'Test' });
@@ -215,9 +217,20 @@ test('DESIGN.md carries the scale beside the family', () => {
   expect(out.typography.heading.fontSize).toBe('48px');
   expect(out.typography.heading.fontWeight).toBe('700');
   expect(out.typography.heading.letterSpacing).toBe('-0.02em');
-  expect(out.typography.heading.color).toBe('#111111');
   expect(out.typography.body.lineHeight).toBe('1.6');
-  expect(out.typography.body.color).toBe('#1a1a1a');
+
+  // Text colour is real, and it is emitted under COLORS, not typography.
+  // google-labs-code/design.md defines typography as fontFamily, fontSize,
+  // fontWeight, lineHeight, letterSpacing, fontFeature and fontVariation; the
+  // official linter rejects a `color` key there. Named `-ink` rather than
+  // `-text` because a `*-text` token in this document is the contrast-ADJUSTED
+  // form of a brand colour, and these are read as published.
+  expect(out.colors['heading-ink']).toBe('#111111');
+  expect(out.colors['body-ink']).toBe('#1a1a1a');
+  for (const tok of Object.values(out.typography)) {
+    expect(Object.keys(tok), 'a key the design.md spec does not define was emitted')
+      .not.toContain('color');
+  }
   // The marker is for an ABSENT fact. Emitting it beside the fact it asks for
   // is how an operator learns the markers are noise.
   expect((out.markers || []).some((m) => /typography scale/i.test(m)),
@@ -233,7 +246,8 @@ test('a scale that could only be read from a scoped selector is reported, not em
   expect(out.typography.heading.fontSize, 'a component-scoped size became a brand token').toBeUndefined();
   const reported = (out.not_observed || []).map((n) => n.token);
   expect(reported).toContain('typography.heading.fontSize');
-  expect(reported).toContain('typography.heading.color');
+  // A scoped colour is not emitted either.
+  expect(out.colors['heading-ink']).toBeUndefined();
   // And the operator is told the gap exists.
   expect((out.markers || []).some((m) => /typography scale/i.test(m))).toBe(true);
 });
