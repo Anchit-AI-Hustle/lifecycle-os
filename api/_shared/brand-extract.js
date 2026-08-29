@@ -983,6 +983,264 @@ function typographyCandidates(ctx) {
   };
 }
 
+/* ── type scale, weight, rhythm and text colour ────────────────────────────
+   WHAT THIS REPLACED, and why the old answer was wrong. Until now the extractor
+   read font FAMILIES and nothing else, and both this module and the context
+   pack said so in as many words: "Font size, weight, line-height and letter
+   spacing cannot be observed", followed by a
+   [DATA REQUIRED BEFORE LAUNCH: typography scale] marker. That was an honest
+   statement of a limit that did not exist. A `font-size` on `h1` is published in
+   exactly the same stylesheet, on exactly the same selector, as the
+   `font-family` beside it — the module simply never looked at the property.
+
+   So these are read with the SAME rules and the SAME honesty as families:
+     · a named custom property (`--text-lg`, `--font-size-base`, `--leading-tight`)
+       is `declared` — the site is stating its own scale;
+     · a declaration on a bare `h1`..`h6`, `body` or `:root` selector is `strong`;
+     · anything else is `weak`, offered and not chosen.
+   The caveats that apply to colour apply here unchanged and are repeated in
+   `limits`: no browser renders the page, so a size set by JavaScript or won by a
+   cascade this module approximates is not what a visitor sees.
+
+   TEXT COLOUR is gathered here too, not in the palette. The palette's job is the
+   brand's colours by ROLE; this is what colour a heading, a paragraph and a link
+   are actually painted, which is a typographic fact and the thing an operator
+   means when they ask what their font colours are. */
+
+const TYPE_TOKEN_GROUPS = [
+  ['size', /(?:^|-)(?:font-?size|text|fs|type|step)(?:-|\d|$)/,
+    /^(?:[\d.]+(?:px|rem|em|pt|%)|clamp\(.+\)|calc\(.+\))$/i],
+  ['weight', /(?:^|-)(?:font-?weight|weight|fw)(?:-|\d|$)/,
+    /^(?:[1-9]00|1000|normal|bold|lighter|bolder)$/i],
+  ['leading', /(?:^|-)(?:line-?height|leading|lh)(?:-|\d|$)/,
+    /^(?:[\d.]+(?:px|rem|em|%)?|normal)$/i],
+  ['tracking', /(?:^|-)(?:letter-?spacing|tracking|ls)(?:-|\d|$)/,
+    /^(?:-?[\d.]+(?:px|rem|em)|normal)$/i],
+];
+
+/** The typographic slot a selector speaks for: h1..h6, body, link or button. */
+function typeSlot(sel) {
+  const s = String(sel || '');
+  const h = /(?:^|[\s,>+~])h([1-6])(?=$|[\s,:.\[{])/i.exec(s);
+  if (h) return 'h' + h[1];
+  // `html` / `:root` is the ROOT, not the body, and conflating them loses the
+  // real body size. A site that sets `html { font-size: 62.5% }` — the standard
+  // "1rem = 10px" trick — was reported as having 62.5% body text, because that
+  // rule reached the body slot first and the actual `body { font-size: 1.6rem }`
+  // then lost the tie. The root is captured on its own, by rootFontSize().
+  const isRoot = /(?:^|[\s,])(?:html|:root)(?=$|[\s,:.\[{])/i.test(s);
+  const namesBody = /(?:^|[\s,>+~])body(?=$|[\s,:.\[{])/i.test(s);
+  if (isRoot && !namesBody) return '';
+  const role = selectorRole(s);
+  if (role === 'ground') return 'body';
+  if (role === 'link') return 'link';
+  if (role === 'action') return 'button';
+  if (/(?:^|[\s,>+~])p(?=$|[\s,:.\[{])/i.test(s)) return 'body';
+
+  // CLASS-NAMED HEADINGS. Reading only bare `h1`..`h6` looked correct and was
+  // nearly useless in practice: run over 197KB of this repo's own Mailer Studio
+  // CSS it returned two rows, because that page — like most modern sites, and
+  // like every Tailwind or Shopify theme — styles `.vh-h1` and `.title`, never
+  // `h1`. A class literally named `h1` or `heading-2` is the site stating which
+  // typographic role that rule is for, so it is read, and it stays `weak`
+  // because a class is not the element.
+  //
+  // TWO RULES, both learned by running this over real CSS rather than reasoning
+  // about it. A first version allowed any prefix and matched the role word
+  // anywhere, which handed `.nav-title` the h1 slot and `.copy-preview-hl` the
+  // body slot — a title inside a component is that component's title, not the
+  // page's heading scale, and `copy-preview-hl` is not body copy.
+  //   1. The role word must END the class name. `.copy-preview-hl` is out;
+  //      `.copy` and `.vh-h1` are in.
+  //   2. A component prefix disqualifies it outright. A heading inside a card,
+  //      a modal or a nav is scoped to that component by definition.
+  const COMPONENT = /^(?:nav|navbar|header|footer|menu|card|chip|badge|modal|dialog|tooltip|toast|popover|sidebar|aside|panel|tab|accordion|drawer|banner|alert|widget|table|form|input|field|label|crumb|breadcrumb|pagination|pager|slide|carousel|thumb|avatar|icon|logo)$/i;
+  const okPrefix = (pre) => !pre || !COMPONENT.test(pre.replace(/-$/, ''));
+
+  let m = /(?:^|[\s,>+~])\.((?:[\w]+-)?)h(?:eading)?-?([1-6])(?![\w-])/i.exec(s);
+  if (m && okPrefix(m[1])) return 'h' + m[2];
+  m = /(?:^|[\s,>+~])\.((?:[\w]+-)?)(?:title|headline|display)(?![\w-])/i.exec(s);
+  if (m && okPrefix(m[1])) return 'h1';
+  m = /(?:^|[\s,>+~])\.((?:[\w]+-)?)(?:subtitle|subhead|subheading)(?![\w-])/i.exec(s);
+  if (m && okPrefix(m[1])) return 'h2';
+  m = /(?:^|[\s,>+~])\.((?:[\w]+-)?)(?:body|copy|paragraph|prose|rte)(?![\w-])/i.exec(s);
+  if (m && okPrefix(m[1])) return 'body';
+  m = /(?:^|[\s,>+~])\.((?:[\w]+-)?)(?:link|anchor)(?![\w-])/i.exec(s);
+  if (m && okPrefix(m[1])) return 'link';
+  return '';
+}
+
+/** Every comma-separated part is one simple selector: no descendant, no combinator. */
+function isSimpleSelector(sel) {
+  const parts = String(sel || '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (!parts.length) return false;
+  return parts.every((p) => !/[\s>+~]/.test(p));
+}
+
+const TYPE_PROPS = ['font-size', 'font-weight', 'line-height', 'letter-spacing', 'text-transform', 'font-style', 'color'];
+const TYPE_KEY = {
+  'font-size': 'size', 'font-weight': 'weight', 'line-height': 'line_height',
+  'letter-spacing': 'letter_spacing', 'text-transform': 'transform', 'font-style': 'style', color: 'color',
+};
+
+/**
+ * A size in px where that can be said without inventing anything.
+ *
+ * `rem` is resolved against the root size the site DECLARED, not against a
+ * guessed 16 — a site that sets `html { font-size: 62.5% }` (a common trick)
+ * has a 10px root, and reporting its 1.6rem body as 25.6px would be a fabricated
+ * number wearing a unit. When the root is unknown the browser default is used
+ * and the assumption is recorded on the candidate rather than hidden in it.
+ * `em` is deliberately NOT converted: it is relative to the parent, and this
+ * module does not build a box tree, so there is no parent to resolve against.
+ */
+function sizeInPx(value, rootPx) {
+  const v = String(value || '').trim();
+  let m = /^([\d.]+)px$/i.exec(v);
+  if (m) return { px: +m[1], assumed: false };
+  m = /^([\d.]+)rem$/i.exec(v);
+  if (m) return { px: +(+m[1] * (rootPx.value || 16)).toFixed(2), assumed: !rootPx.declared };
+  m = /^([\d.]+)pt$/i.exec(v);
+  if (m) return { px: +(+m[1] * (4 / 3)).toFixed(2), assumed: false };
+  return null;
+}
+
+/**
+ * The declared root font size, so `rem` means something.
+ * Only `html`/`:root` counts, and a percentage is resolved off the 16px browser
+ * default because that is what a percentage there is defined against.
+ */
+function rootFontSize(rules, values) {
+  for (const r of rules) {
+    if (r.at || !/(?:^|[\s,])(?:html|:root)(?=$|[\s,:.\[{])/i.test(r.selector || '')) continue;
+    const d = (r.decls || []).find((x) => x.prop === 'font-size');
+    if (!d) continue;
+    let v = String(d.value || '').trim();
+    const vm = /var\(\s*(--[\w-]+)\s*(?:,([^)]*))?\)/.exec(v);
+    if (vm) v = values.has(vm[1]) ? values.get(vm[1]) : (vm[2] || '').trim();
+    let m = /^([\d.]+)px$/i.exec(v);
+    if (m) return { value: +m[1], declared: true, evidence: `${clip(r.selector, 40)} { font-size: ${v} }` };
+    m = /^([\d.]+)%$/i.exec(v);
+    if (m) return { value: +(16 * (+m[1] / 100)).toFixed(2), declared: true, evidence: `${clip(r.selector, 40)} { font-size: ${v} }` };
+  }
+  return { value: 16, declared: false, evidence: 'No root font-size was declared; the 16px browser default is assumed.' };
+}
+
+/**
+ * The site's type scale, weights, rhythm and text colours.
+ *
+ * Returns `{ tokens, slots, scale, root_font_size }` — `tokens` are the named
+ * scales the site declares, `slots` is per-role (h1..h6, body, link, button)
+ * with one best candidate per property, and `scale` is the ordered size ladder
+ * an operator can read at a glance.
+ */
+function typeScaleCandidates(ctx) {
+  const tokens = {};
+  for (const [group] of TYPE_TOKEN_GROUPS) tokens[group] = [];
+  const slots = {};
+  const bump = (slot, key, c) => {
+    if (!c) return;
+    slots[slot] = slots[slot] || {};
+    const prev = slots[slot][key];
+    if (!prev || CONF_ORDER[c.confidence] < CONF_ORDER[prev.confidence]) slots[slot][key] = c;
+  };
+
+  let root = { value: 16, declared: false, evidence: '' };
+  for (const sheet of (ctx.sheets || [])) {
+    const rules = cssRulesets(sheet.css || '');
+    const { values, origin } = customProperties(rules);
+    const r0 = rootFontSize(rules, values);
+    if (r0.declared && !root.declared) root = r0; else if (!root.evidence) root = r0;
+
+    // 1. Named scales — the site stating its own system.
+    for (const [name, val] of values) {
+      const n = name.toLowerCase();
+      const v = String(val || '').trim();
+      for (const [group, nameRx, valRx] of TYPE_TOKEN_GROUPS) {
+        if (!nameRx.test(n) || !valRx.test(v)) continue;
+        // `--text-muted: #667` is a colour, not a size. The value pattern above
+        // already rejects it, which is why both halves are checked.
+        tokens[group].push(cand(v, `css:custom-property ${name}`, sheet.url, CONF.declared,
+          `${name}: ${clip(v, 60)};  (declared on ${clip(origin.get(name) || '?', 40)})`,
+          Object.assign({ token: name }, group === 'size' ? { px: (sizeInPx(v, root) || {}).px || null } : {})));
+        break;
+      }
+    }
+
+    // 2. Measured declarations, per typographic slot.
+    for (const r of rules) {
+      if (r.at) continue;
+      const slot = typeSlot(r.selector);
+      if (!slot) continue;
+      // STRENGTH IS THE SHAPE OF THE SELECTOR, not whether it is an element.
+      // Marking every class `weak` was wrong in a way that mattered: `.vh-h1` is
+      // the site NAMING its heading style, which is evidence of the same kind as
+      // `h1`, and treating it as weak meant class-based sites — most of the web
+      // — emitted no scale at all. What genuinely weakens a declaration is being
+      // SCOPED: `.hero .title` is the title inside a hero, not the brand's h1.
+      // So a simple selector (no descendant or sibling combinator) is strong;
+      // anything compound is weak. Component-prefixed classes were already
+      // rejected outright by typeSlot.
+      const bare = isSimpleSelector(r.selector);
+      for (const prop of TYPE_PROPS) {
+        const d = (r.decls || []).find((x) => x.prop === prop);
+        if (!d) continue;
+        let v = String(d.value || '').trim();
+        const vm = /var\(\s*(--[\w-]+)\s*(?:,([^)]*))?\)/.exec(v);
+        const viaToken = !!vm;
+        if (vm) v = values.has(vm[1]) ? values.get(vm[1]) : (vm[2] || '').trim();
+        if (!v || /^(?:inherit|initial|unset|revert)$/i.test(v)) continue;
+
+        let extra = { via_token: viaToken ? vm[1] : '' };
+        if (prop === 'font-size') {
+          const px = sizeInPx(v, root);
+          if (px) extra = Object.assign(extra, { px: px.px, px_assumed_root: px.assumed });
+        }
+        if (prop === 'color') {
+          const hex = parseColor(v);
+          if (!hex) continue;
+          extra = Object.assign(extra, { hex });
+        }
+        bump(slot, TYPE_KEY[prop], cand(v, `css:${prop} on ${clip(r.selector, 50)}`, sheet.url,
+          bare ? CONF.strong : CONF.weak, `${clip(r.selector, 70)} { ${prop}: ${clip(d.value, 50)} }`, extra));
+      }
+    }
+  }
+
+  const dedupe = (list) => {
+    const seen = new Set(), out = [];
+    for (const c of list.filter(Boolean)) {
+      const k = (c.token || '') + '|' + c.value.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k); out.push(c);
+    }
+    return out.sort((a, b) => (a.px || 0) - (b.px || 0)).slice(0, 24);
+  };
+  for (const g of Object.keys(tokens)) tokens[g] = dedupe(tokens[g]);
+
+  // The ladder, largest first — the shape an operator recognises as "the scale".
+  const ORDER = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'body', 'link', 'button'];
+  // A row earns its place with a size, a weight OR a colour. Requiring a size
+  // dropped the link row entirely — `a { color: … }` is the single most useful
+  // thing an operator means by "my font colours", and it almost never carries a
+  // font-size.
+  const scale = ORDER
+    .filter((s) => slots[s] && (slots[s].size || slots[s].weight || slots[s].color))
+    .map((s) => ({
+      slot: s,
+      size: slots[s].size ? slots[s].size.value : '',
+      px: slots[s].size ? (slots[s].size.px || null) : null,
+      weight: slots[s].weight ? slots[s].weight.value : '',
+      line_height: slots[s].line_height ? slots[s].line_height.value : '',
+      letter_spacing: slots[s].letter_spacing ? slots[s].letter_spacing.value : '',
+      color: slots[s].color ? slots[s].color.hex : '',
+      confidence: (slots[s].size || slots[s].weight || slots[s].color).confidence,
+      source_url: (slots[s].size || slots[s].weight || slots[s].color).source_url,
+    }));
+
+  return { tokens, slots, scale, root_font_size: root };
+}
+
 /* ── non-colour design tokens (spacing, radius, elevation, motion) ─────────
    A design system is not only its palette and its two typefaces. Radius,
    spacing rhythm, shadow depth and transition timing are the difference between
@@ -1490,6 +1748,10 @@ async function extractBrand(startUrl, opts) {
     'No browser: this reads published HTML and CSS, it does not render the page. Colours applied by JavaScript, themes chosen at runtime, and anything a single-page app paints after load are invisible to it.',
     'Cascade is approximated, not resolved: a declaration is weighted by its property and its selector, not by which rule actually wins on screen.',
     'Content behind a login, a consent wall, a region gate or an interaction is not read.',
+    'The type scale is attributed by SELECTOR, not by what renders. A size on `h1`, on `.h1` or on a class '
+      + 'named for the role is read; a utility-first site that sets every size with classes like `text-2xl` '
+      + 'publishes no rule this can attribute to a heading, and reads as having no scale rather than as having '
+      + 'one this could not see.',
   ];
 
   // Identity pages first. A BFS that just takes the first N links off a store
@@ -1600,6 +1862,7 @@ async function extractBrand(startUrl, opts) {
   // ── per-page collection.
   const bags = { name: [], tagline: [], logo: [], social: [], claims: [], legal: [], docs: [], sightings: [], unparsed: new Map(), regions: new Map(), currencies: [], samples: [] };
   let typography = { heading: [], body: [], mono: [], font_faces: [], google_font_links: [] };
+  let typeScale = null;
   let designTokens = null;
   let inlineSvg = null;
 
@@ -1639,6 +1902,7 @@ async function extractBrand(startUrl, opts) {
       bags.sightings.push(...cs.sightings);
       for (const u of cs.unparsed) bags.unparsed.set(u.fn, (bags.unparsed.get(u.fn) || 0) + u.occurrences);
       typography = typographyCandidates(ctx);
+      typeScale = typeScaleCandidates(ctx);
       designTokens = designTokenCandidates(ctx);
     } else {
       // Non-home pages still contribute their own inline <style> and their
@@ -1676,9 +1940,19 @@ async function extractBrand(startUrl, opts) {
     typography: {
       heading: typography.heading, body: typography.body, mono: typography.mono,
       font_faces: typography.font_faces, google_font_links: typography.google_font_links,
+      // The scale, the weights, the rhythm and the text colours. These used to
+      // be declared unobservable and shipped as a marker; they are published in
+      // the same stylesheets as the families and are read the same way.
+      scale: (typeScale && typeScale.scale) || [],
+      slots: (typeScale && typeScale.slots) || {},
+      tokens: (typeScale && typeScale.tokens) || { size: [], weight: [], leading: [], tracking: [] },
+      root_font_size: (typeScale && typeScale.root_font_size) || null,
       markers: [].concat(
         typography.heading.length ? [] : [MARKER('typography.heading')],
         typography.body.length ? [] : [MARKER('typography.body')],
+        // A site that publishes no size anywhere genuinely has none to read, and
+        // that is a different statement from "this cannot be read".
+        (typeScale && typeScale.scale.length) ? [] : [MARKER('typography scale (size, weight, line-height, letter-spacing)')],
       ),
     },
     // Radius / spacing / elevation / motion, from NAMED tokens only. Empty is a
@@ -1878,6 +2152,7 @@ module.exports = {
   colourSightings, rankColours, proposePalette,
   // fields
   nameCandidates, taglineCandidates, logoCandidates, inlineSvgLogo, typographyCandidates, designTokenCandidates,
+  typeScaleCandidates, typeSlot, sizeInPx, rootFontSize, isSimpleSelector,
   socialCandidates, claimCandidates, legalCandidates, regionCandidates, voiceSamples,
   googleFontLinks, primaryFamily, blockTexts, trustRanges,
   // helpers

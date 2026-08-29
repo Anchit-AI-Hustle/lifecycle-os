@@ -402,6 +402,45 @@ and nothing uses `!important`, so a page that needs its own treatment still over
   strength until the cursor leaves — a white slab over the content.
 - Every one of those four defects is mutation-verified: restoring it fails the gate.
 
+## ⭐ A brand's typography is its SCALE, not two family names (2026-08-27)
+`api/_shared/brand-extract.js` → `typeScaleCandidates()`, gated by `tests/brand-type-scale.spec.js`.
+Setup-from-URL read font FAMILIES and stopped. Both the extractor and the context pack said so in as
+many words — *"Font size, weight, line-height and letter-spacing cannot be read reliably from a
+stylesheet parse"* — and shipped a `[DATA REQUIRED BEFORE LAUNCH: typography scale]` marker. **That
+was an honest sentence about a limit that did not exist.** A `font-size` on `h1` is published in the
+same rule, in the same stylesheet, as the `font-family` beside it; the module never read the
+property. An existing test asserted the defect (`expect(Object.keys(tok)).toEqual(['fontFamily'])`),
+which is why it survived so long.
+- **Now read, per slot** (h1–h6, body, link, button): size, weight, line-height, letter-spacing,
+  text-transform, font-style and the **text colour** — the last being what an operator actually means
+  by "font colours". Plus the site's own NAMED scales (`--text-lg`, `--leading-tight`, `--tracking-*`).
+  Same confidence model as families: `declared` (named token) → `strong` (simple selector) → `weak`.
+- **`rem` is resolved against the root the SITE declared**, never a guessed 16. A site using the
+  standard `html{font-size:62.5%}` trick has a 10px root, so its `1.6rem` body is 16px — reporting
+  25.6px would be a fabricated number wearing a unit. `em` is deliberately NOT converted: it is
+  relative to a parent, and this module builds no box tree. An assumed root is labelled assumed.
+- **`html` is the root, `body` is the body.** Collapsing them into one slot let `html{font-size:62.5%}`
+  win the body slot, and the brand was recorded as having 62.5% body text.
+- **Strength is the SHAPE of the selector, not whether it is an element.** Marking every class `weak`
+  was wrong in a way that mattered: `.vh-h1` is the site NAMING its heading style. Reading only bare
+  `h1`..`h6` returned **two rows from 197KB** of this repo's own Mailer Studio CSS, because it — like
+  most of the web — styles `.vh-h1` and never `h1`. What genuinely weakens a rule is being SCOPED:
+  `.hero .title` is a title inside a hero, not the brand's h1. Simple selector → strong, compound → weak.
+- **A component prefix disqualifies a class outright**, and the role word must END the class name.
+  Without both, `.nav-title` took the h1 slot and `.copy-preview-hl` took the body slot.
+- **A row earns its place with a size, a weight OR a colour.** Requiring a size dropped the link row
+  entirely, and `a { color: … }` almost never carries one.
+- **The honest limit is recorded, not implied**: attribution is by SELECTOR, so a utility-first site
+  (`text-2xl`) publishes no rule attributable to a heading and reads as having no scale — which is a
+  different statement from having one that could not be seen. Closing that needs either real cascade
+  resolution (specificity + order) or a headless browser, and Chromium does not fit the Hobby
+  serverless path.
+- Catalogue was already covered and was NOT rebuilt: it is stage one of the pack
+  (`STAGES = ['catalog','extract','knowledge','repos','done']`), through the existing `importCatalog`,
+  and blocks activation until it has rows.
+- Every one of the five defects above was found by RUNNING the extractor over real stylesheets in
+  this repo, not by reading the parser, and each is mutation-verified.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating

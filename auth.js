@@ -1692,14 +1692,17 @@
 
     // Sign-in / sign-out wiring
     const signinBtn = wrap.querySelector('#lnav-signin');
-    if (signinBtn) signinBtn.onclick = (e) => {
+    if (signinBtn) signinBtn.onclick = async (e) => {
       if (window.LifecycleAuth?.client) {
         e.preventDefault();
-        rememberReturnTo();
-        window.LifecycleAuth.client.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: location.origin + location.pathname },
-        });
+        const msg = await startGoogleSignIn();
+        if (msg) {
+          // Say it where the user is looking. Navigating to a dead host and
+          // letting the browser explain is what this replaces.
+          signinBtn.textContent = 'Sign-in unavailable';
+          signinBtn.title = msg;
+          if (typeof alert === 'function') alert(msg);
+        }
       }
     };
     const signoutBtn = wrap.querySelector('#lnav-signout');
@@ -1831,18 +1834,14 @@
           setTimeout(() => { btn.disabled = false; btn.innerHTML = btn.dataset.original || 'Sign in with Google'; }, 1800);
           return;
         }
-        rememberReturnTo();
-        const { error } = await window.LifecycleAuth.client.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: location.origin + location.pathname },
-        });
-        if (error) throw error;
+        const msg = await startGoogleSignIn();
+        if (msg) throw new Error(msg);
       } catch (e) {
         btn.disabled = false;
         btn.textContent = 'Sign in with Google';
         const err = document.createElement('div');
         err.className = 'llw-err';
-        err.textContent = 'Sign-in failed: ' + (e.message || e);
+        err.textContent = (e && e.message) || String(e);
         btn.parentElement.insertBefore(err, btn);
       }
     };
@@ -1902,10 +1901,78 @@
   // so sign-in works even when the config fetch is unavailable — e.g. on Vercel
   // preview deployments where Deployment Protection redirects /api/public-config
   // to an auth page (HTML, not JSON), or any transient endpoint failure.
-  const PUBLIC_SUPABASE_FALLBACK = {
-    url: 'https://fswdwmkgggzyxrdzabnh.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzd2R3bWtnZ2d6eXhyZHphYm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDQ5MDUsImV4cCI6MjEwMTI4MDkwNX0.KB4za4F7mTjQOY5-gxBoWguGDlgMu_dsyg9Nb-H9614',
-  };
+  //
+  // THE FALLBACK NO LONGER CARRIES A PROJECT REF, and that is the fix rather
+  // than a tidy-up. It held a hardcoded Supabase project which was later
+  // deleted, so every visitor whose /api/public-config did not answer was sent
+  // to `<dead-ref>.supabase.co` and got Chrome's DNS_PROBE_FINISHED_NXDOMAIN —
+  // no app error, no explanation, because signInWithOAuth NAVIGATES and cannot
+  // fail on a host that does not resolve.
+  //
+  // This is the SECOND time a baked-in ref went stale here: the Mailer Studio's
+  // own comment records being repointed off "a stale third project". A constant
+  // that must track an external resource will drift again, and on a multi-tenant
+  // platform one project ref is the same defect class as one brand's colour.
+  //
+  // A deployment that genuinely needs a fallback (a preview where Deployment
+  // Protection blocks /api/public-config) sets window.__SUPABASE_FALLBACK__ in
+  // its own HTML. Nothing is shipped here.
+  const PUBLIC_SUPABASE_FALLBACK = (typeof window !== 'undefined' && window.__SUPABASE_FALLBACK__) || { url: '', anonKey: '' };
+
+  /**
+   * Is this auth host actually reachable?
+   *
+   * `mode: 'no-cors'` on purpose. A CORS refusal and a dead host both reject a
+   * normal fetch, so a CORS-mode probe would block sign-in on a perfectly good
+   * project. An opaque no-cors response means DNS resolved and the server
+   * answered, which is the only thing being asked.
+   *
+   * A REJECTION blocks sign-in and explains why. A TIMEOUT does not: a slow
+   * network is not a missing project, and refusing to sign a user in because
+   * their connection is poor would be a worse bug than the one this fixes.
+   */
+  const REACH_CACHE = new Map();
+  async function authHostReachable(url) {
+    if (!url) return false;
+    if (REACH_CACHE.has(url)) return REACH_CACHE.get(url);
+    let ok = true;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 4000);
+    try {
+      await fetch(url.replace(/\/+$/, '') + '/auth/v1/health', { mode: 'no-cors', signal: ctl.signal });
+    } catch (e) {
+      ok = (e && e.name === 'AbortError');   // timed out → give it the benefit of the doubt
+    } finally {
+      clearTimeout(timer);
+    }
+    REACH_CACHE.set(url, ok);
+    return ok;
+  }
+
+  /**
+   * Start Google sign-in, but never hand the browser to a host that is not
+   * there. Returns an error STRING on refusal so both call sites can show it.
+   */
+  async function startGoogleSignIn() {
+    const client = window.LifecycleAuth && window.LifecycleAuth.client;
+    const cfg = window.__SUPABASE__ || {};
+    if (!client || !cfg.url) {
+      return 'This deployment has no Supabase configuration. Set SUPABASE_URL and SUPABASE_ANON_KEY in the Vercel project, then reload.';
+    }
+    if (!(await authHostReachable(cfg.url))) {
+      let host = cfg.url;
+      try { host = new URL(cfg.url).host; } catch (_) { /* show the raw value */ }
+      return 'The sign-in service for this deployment cannot be reached (' + host + ' does not resolve). '
+        + 'Its Supabase project has been deleted or renamed. Set SUPABASE_URL and SUPABASE_ANON_KEY in the '
+        + 'Vercel project to a live project, then reload.';
+    }
+    rememberReturnTo();
+    const { error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: location.origin + location.pathname },
+    });
+    return error ? ('Sign-in failed: ' + (error.message || error)) : '';
+  }
 
   async function getConfig() {
     if (window.__SUPABASE__?.url && window.__SUPABASE__?.anonKey) return window.__SUPABASE__;
@@ -1981,6 +2048,10 @@
   }
 
   async function init() {
+    // Exposed so the sign-in guard can be driven directly. The buttons call the
+    // same function; a test that clicked them would be measuring the button, and
+    // the thing that broke was the guard.
+    window.__startGoogleSignIn__ = startGoogleSignIn;
     window.LifecycleAuth = {
       client: null,
       session: null,
