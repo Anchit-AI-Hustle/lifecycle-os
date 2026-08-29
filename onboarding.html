@@ -194,6 +194,19 @@
     padding:3px 9px;font-size:11px;background:var(--card);cursor:pointer;color:var(--ink)}
   .xalt:hover{border-color:var(--primary)}
   .xsw{width:15px;height:15px;border-radius:4px;border:1px solid var(--line);display:inline-block;flex:none}
+  /* The type-scale ladder. Scrolls inside its own box: seven columns on a phone
+     must not widen the page. */
+  /* table-layout:auto, deliberately. theme.css sets a global table-layout:fixed
+     default, which divides the container into equal shares; a nowrap header
+     wider than its share then paints over the next column. The .xbody wrapper
+     above scrolls, so auto sizing has somewhere to go. */
+  .xtable{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px;table-layout:auto}
+  .xtable th{text-align:left;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--soft);padding:4px 8px 4px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  .xtable td{padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:middle;
+    font-variant-numeric:tabular-nums}
+  .xtable code{font-size:11px}
+  .xrow .xbody{min-width:0;overflow-x:auto}
   .xconflict{border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);
     background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;line-height:1.6}
   .xconflict b{display:block;margin-bottom:4px}
@@ -1028,7 +1041,39 @@
         '</div><button type="button" class="xbtn' + (loadedOnly ? ' weak' : '') + '" data-xa="' + esc(act) + '" data-xi="0">' +
           (loadedOnly ? 'Use anyway' : 'Use') + '</button></div>';
     }
-    return slot('Heading', t.heading, 'font-heading') + slot('Body', t.body, 'font-body');
+    var out = slot('Heading', t.heading, 'font-heading') + slot('Body', t.body, 'font-body');
+
+    // THE SCALE. Families alone were never the whole answer to "what is my
+    // typography": size, weight, line-height, letter-spacing and the colour the
+    // text is actually painted are what make a rendered page look like the
+    // brand. They are read from the same stylesheets, on the same selectors.
+    var rows = (t.scale || []);
+    if (rows.length) {
+      var body = rows.map(function (r) {
+        return '<tr><td><code>' + esc(r.slot) + '</code></td>' +
+          '<td>' + esc(r.size || '&mdash;') + (r.px ? ' <span class="xtag">' + esc(String(r.px)) + 'px</span>' : '') + '</td>' +
+          '<td>' + esc(r.weight || '&mdash;') + '</td>' +
+          '<td>' + esc(r.line_height || '&mdash;') + '</td>' +
+          '<td>' + esc(r.letter_spacing || '&mdash;') + '</td>' +
+          '<td>' + (r.color ? '<span class="xsw" style="background:' + esc(r.color) + '"></span> ' + esc(r.color) : '&mdash;') + '</td>' +
+          '<td><span class="xtag' + (r.confidence === 'weak' ? ' weak' : '') + '">' + esc(r.confidence) + '</span></td></tr>';
+      }).join('');
+      var rf = t.root_font_size;
+      out += '<div class="xrow"><div class="xlabel">Type scale</div><div class="xbody">' +
+        '<table class="xtable"><thead><tr><th>Slot</th><th>Size</th><th>Weight</th><th>Line height</th><th>Tracking</th><th>Colour</th><th></th></tr></thead>' +
+        '<tbody>' + body + '</tbody></table>' +
+        (rf ? '<div class="xsrc">Root font size ' + esc(String(rf.value)) + 'px &mdash; ' + esc(rf.evidence || '') + '</div>' : '') +
+        '<div class="xsrc">Read from your published CSS. Rows marked <b>weak</b> came from a scoped selector ' +
+        '(a heading inside one component), so they describe that component rather than your scale.</div>' +
+        '</div><button type="button" class="xbtn" data-xa="type-scale" data-xi="0">Use this scale</button></div>';
+    } else {
+      out += '<div class="xrow"><div class="xlabel">Type scale</div><div class="xbody">' +
+        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: typography scale (size, weight, line-height, letter-spacing), all, all]</div>' +
+        '<div class="xsrc">No font size was published on a selector this could attribute to a heading, body ' +
+        'text, a link or a button. A site that sets its type entirely from JavaScript reads as empty here.</div>' +
+        '</div></div>';
+    }
+    return out;
   }
 
   function xVoicePanel() {
@@ -1204,6 +1249,27 @@
       };
       if (c.google !== false) loadPreviewFont(c.value);
       noteSource('typography.' + slot, c);
+    }
+    else if (act === 'type-scale') {
+      // Additive: the family fields keep their shape, the scale hangs off them,
+      // so nothing that already reads brand.typography[slot].family changes.
+      var byslot = {};
+      (f.typography.scale || []).forEach(function (r) { byslot[r.slot] = r; });
+      [['heading', 'h1'], ['body', 'body']].forEach(function (pair) {
+        var r = byslot[pair[1]];
+        if (!r) return;
+        brand.typography[pair[0]] = brand.typography[pair[0]] || { family: '', stack: '' };
+        brand.typography[pair[0]].scale = {
+          size: r.size || '', px: r.px || null, weight: r.weight || '',
+          line_height: r.line_height || '', letter_spacing: r.letter_spacing || '', color: r.color || ''
+        };
+        noteSource('typography.' + pair[0] + '.scale', {
+          value: r.size || r.weight || r.color, signal: 'css declaration',
+          source_url: r.source_url || '', confidence: r.confidence
+        });
+      });
+      brand.typography.scale_rows = f.typography.scale || [];
+      brand.typography.root_font_size = f.typography.root_font_size || null;
     }
     else if (act === 'voice') {
       var v = f.voice && f.voice.value; if (!v) return;

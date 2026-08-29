@@ -119,6 +119,13 @@ const BASELINE = {
   // named `block` and `hexes`, which the matcher does not recognise. That is
   // the blind spot documented at the top, visible in this very file.
   'futuristic-layer.spec.js': 1,
+  // 2026-08-27. Two, both legitimate, and both about the FILE rather than the
+  // behaviour. The extractor used to ship a sentence saying the type scale
+  // "cannot be read reliably from a stylesheet parse", and a marker justified by
+  // it. The sentence was false and it is the thing that has to stay gone, so the
+  // test asserts the text is absent from the source. Everything else in that
+  // file executes the real modules against real CSS.
+  'brand-type-scale.spec.js': 2,
 };
 
 /**

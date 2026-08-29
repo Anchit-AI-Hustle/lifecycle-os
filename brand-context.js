@@ -428,7 +428,11 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              ? 'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands. If sign-in fails, the Google OAuth client needs this callback allowed: https://fswdwmkgggzyxrdzabnh.supabase.co/auth/v1/callback'
+              ? 'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands. '
+                + 'If sign-in fails, the Google OAuth client needs this deployment\u2019s Supabase callback allowed: '
+                // Derived, never hardcoded: a baked-in project ref went stale twice and
+                // told operators to allowlist a callback for a project that no longer exists.
+                + (((window.__SUPABASE__ || {}).url || '<SUPABASE_URL is not configured for this deployment>').replace(/\/+$/, '') + '/auth/v1/callback')
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :

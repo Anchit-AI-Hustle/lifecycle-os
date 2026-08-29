@@ -1330,12 +1330,15 @@ console.log('%c[KNICKGASM Mailer] Build:','color:#D0473E;font-weight:bold','supa
 // 3. Run the SQL in the comment block below to create the required tables
 // ═══════════════════════════════════════════════════════════════════════════
 const SUPABASE_CONFIG={
-  // Unified to the real lifecycle-os project (fswdwmkgggzyxrdzabnh) — the
-  // same project auth.js + data/linked-db.json use. Was pointed at a stale third
-  // project (ozlmmiyyjmmfdvvrtgdp). anon key only (public/publishable).
-  url:'https://fswdwmkgggzyxrdzabnh.supabase.co',
-  anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzd2R3bWtnZ2d6eXhyZHphYm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDQ5MDUsImV4cCI6MjEwMTI4MDkwNX0.KB4za4F7mTjQOY5-gxBoWguGDlgMu_dsyg9Nb-H9614',
-  enabled:true
+  // NO PROJECT REF IS BAKED IN. This constant has now gone stale twice — it was
+  // repointed off "a stale third project (ozlmmiyyjmmfdvvrtgdp)", and the value
+  // that replaced it was a project later deleted, which is what broke sign-in
+  // across the app. It reads whatever auth.js resolved from /api/public-config
+  // (i.e. the SUPABASE_URL env var) and stays disabled until there is one, so
+  // the dashboard is localStorage-only rather than writing to a dead host.
+  url:((window.__SUPABASE__||{}).url)||'',
+  anonKey:((window.__SUPABASE__||{}).anonKey)||'',
+  get enabled(){ return !!(this.url && this.anonKey); }
 };
 /* ═══ REQUIRED SQL — paste into Supabase SQL Editor ══════════════════════════
 -- Table 1: mailers_generated (every generated mailer)

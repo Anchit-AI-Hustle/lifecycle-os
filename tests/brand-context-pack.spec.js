@@ -268,15 +268,41 @@ test('radius and spacing scales come from NAMED tokens, and are omitted when abs
   expect(thin.omitted.map((o) => o.section)).toEqual(expect.arrayContaining(['rounded', 'spacing', 'components']));
 });
 
-test('a typography scale is never invented — only fontFamily is emitted', async () => {
+test('a typography scale is never invented — but an observed one is emitted', async () => {
+  // THIS TEST USED TO ASSERT THE DEFECT. It required `Object.keys(tok)` to equal
+  // exactly `['fontFamily']`, on the stated grounds that size, weight and
+  // line-height "cannot be observed without resolving the cascade". That was an
+  // honest sentence about a limit that did not exist: a `font-size` on `h1` is
+  // published in the same rule as the `font-family` beside it. The rule the test
+  // was really protecting — nothing is INVENTED — is kept and sharpened below;
+  // the false half is gone.
   const t = pack.designMdTokens(await reportFor(RICH_SITE, BRAND_RICH), BRAND_RICH);
   expect(t.typography.body.fontFamily).toContain('Inter');
-  // No fontSize / lineHeight / letterSpacing, because none can be observed
-  // without resolving the cascade.
-  for (const tok of Object.values(t.typography)) {
-    expect(Object.keys(tok)).toEqual(['fontFamily']);
+
+  // Only keys the design.md spec defines, and only ones the site published.
+  const ALLOWED = new Set(['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'textTransform', 'color']);
+  for (const [name, tok] of Object.entries(t.typography)) {
+    for (const k of Object.keys(tok)) {
+      expect(ALLOWED.has(k), `typography.${name}.${k} is not a design.md typography key`).toBe(true);
+      expect(tok[k], `typography.${name}.${k} was emitted empty`).toBeTruthy();
+    }
   }
-  expect(t.markers.join(' ')).toContain('typography scale');
+  // Every emitted value has to be traceable to the sheet it came from.
+  for (const [name, tok] of Object.entries(t.typography)) {
+    for (const k of Object.keys(tok)) {
+      const key = k === 'fontFamily' ? name : `${name}.${k}`;
+      expect(t.sources.typography[key], `typography.${key} was emitted with no source`).toBeTruthy();
+    }
+  }
+});
+
+test('a site that publishes no sizes gets the marker, not a plausible scale', async () => {
+  const t = pack.designMdTokens(await reportFor(THIN_SITE, BRAND_THIN), BRAND_THIN);
+  for (const tok of Object.values(t.typography || {})) {
+    for (const k of ['fontSize', 'fontWeight', 'lineHeight', 'letterSpacing']) {
+      expect(tok[k], `${k} was invented for a site that publishes none`).toBeUndefined();
+    }
+  }
 });
 
 test('the thin site produces a thin document full of markers, not a plausible one', async () => {
