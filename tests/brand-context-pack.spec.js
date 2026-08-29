@@ -280,7 +280,10 @@ test('a typography scale is never invented — but an observed one is emitted', 
   expect(t.typography.body.fontFamily).toContain('Inter');
 
   // Only keys the design.md spec defines, and only ones the site published.
-  const ALLOWED = new Set(['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'textTransform', 'color']);
+  // Exactly the properties google-labs-code/design.md defines. The official
+  // linter in check:designmd:ci rejects anything else, so this list is the spec's,
+  // not ours.
+  const ALLOWED = new Set(['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'fontFeature', 'fontVariation']);
   for (const [name, tok] of Object.entries(t.typography)) {
     for (const k of Object.keys(tok)) {
       expect(ALLOWED.has(k), `typography.${name}.${k} is not a design.md typography key`).toBe(true);

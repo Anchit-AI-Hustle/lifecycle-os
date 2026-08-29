@@ -469,11 +469,18 @@ function designMdTokens(report, brand) {
     // The measured slot behind each named role: a heading's scale is its h1.
     const slots = typ.slots || {};
     const SLOT_FOR = { heading: 'h1', body: 'body' };
+    // ONLY the properties google-labs-code/design.md defines for typography:
+    // fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, fontFeature,
+    // fontVariation. `color` and `textTransform` are NOT among them, and the
+    // official linter rejects them — CLAUDE.md's rule for this document is
+    // conform to the spec, do not invent a shape. The observed text colours are
+    // real and are kept; they are emitted under `colors`, where a colour
+    // belongs, a few lines below.
     const SCALE_KEYS = [
       ['size', 'fontSize'], ['weight', 'fontWeight'],
       ['line_height', 'lineHeight'], ['letter_spacing', 'letterSpacing'],
-      ['transform', 'textTransform'], ['color', 'color'],
     ];
+    const inkFor = {};
     let emittedScale = 0;
     const put = (name, c) => {
       if (!c) return;
@@ -481,6 +488,9 @@ function designMdTokens(report, brand) {
       sources.typography[name] = `${c.signal || 'declared'} · ${c.source_url || ''}`;
       const slot = slots[SLOT_FOR[name]];
       if (!slot) return;
+      if (slot.color && USABLE_CONF.has(slot.color.confidence)) {
+        inkFor[name] = { hex: slot.color.hex || slot.color.value, cand: slot.color };
+      }
       for (const [from, to] of SCALE_KEYS) {
         const v = slot[from];
         if (!v || !USABLE_CONF.has(v.confidence)) {
@@ -507,6 +517,21 @@ function designMdTokens(report, brand) {
     put('mono', monoC);
     typoNotes.push('Every family here was found in a `font-family` declaration on a selector that matches this '
       + 'kind of text. A family the page merely LOADS is listed under "considered and not emitted" instead.');
+    // Named `-ink`, deliberately NOT `-text`. In this document a `*-text` token
+    // is the contrast-ADJUSTED form of a brand colour, produced by
+    // readableAsText(). These are the colours the site actually paints its text,
+    // read as published and adjusted by nothing, so borrowing that suffix would
+    // claim an AA guarantee nobody made.
+    for (const [name, got] of Object.entries(inkFor)) {
+      if (!got.hex) continue;
+      colors[`${name}-ink`] = got.hex;
+      sources.colors[`${name}-ink`] = `${got.cand.signal || 'declared'} · ${got.cand.source_url || ''}`;
+    }
+    if (Object.keys(inkFor).length) {
+      typoNotes.push('The `*-ink` colours under Colors are what this site paints its heading and body text, '
+        + 'read as published. They are NOT contrast-adjusted: unlike the `*-text` tokens, nothing has checked '
+        + 'them against a surface.');
+    }
     if (emittedScale) {
       typoNotes.push('Size, weight, line-height, letter-spacing and text colour are read from the same '
         + 'stylesheets, on the same selectors. No browser renders the page, so a value set by JavaScript or one '
