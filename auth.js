@@ -2004,6 +2004,88 @@
     return null;
   }
 
+  /**
+   * A standing, dismissible bar explaining why the app has no data.
+   *
+   * Brand tokens only, and never a dark ground: `--vh-warn` on the brand's own
+   * surface, ink text. A banner that hardcoded its own colours would be the one
+   * element on the page that ignores the active brand, and a dark one would
+   * break the repo's standing no-dark-section rule.
+   */
+  function injectNoBackendNotice(kind) {
+    if (document.getElementById('lc-nobackend')) return;
+    // Dismissed for this tab? Check before building anything.
+    try { if (sessionStorage.getItem('lc-nobackend-hid')) return; } catch (e) { /* private mode */ }
+    var bar = document.createElement('div');
+    bar.id = 'lc-nobackend';
+    bar.setAttribute('role', 'status');
+    bar.style.cssText = [
+      'position:sticky', 'top:0', 'z-index:120',
+      'background:var(--vh-panel-2,#f5f5f5)',
+      'color:var(--vh-ink,#111111)',
+      'border-bottom:1px solid var(--vh-line,#ebebeb)',
+      'box-shadow:inset 0 3px 0 var(--vh-warn,#c9a227)',
+      'font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)',
+      'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
+    ].join(';');
+    var txt = document.createElement('div');
+    txt.style.cssText = 'flex:1;min-width:0';
+    // Two different causes, and naming the wrong one sends the operator to
+    // check the thing that is not broken. Unconfigured is a missing env var;
+    // unreachable is a project that was deleted, renamed or paused, and the
+    // host it named is worth printing because that is what has to change.
+    var host = '';
+    try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
+    var cause = (kind === 'unreachable' && host)
+      ? 'The database this deployment points at (<code>' + host + '</code>) cannot be reached, so there is '
+        + 'nothing to sign in to. Its Supabase project has most likely been deleted, renamed or paused.'
+      : 'This deployment has no <code>SUPABASE_URL</code> / <code>SUPABASE_ANON_KEY</code> set, so there is '
+        + 'nothing to sign in to.';
+    txt.innerHTML = '<b>Running without a database.</b> ' + cause
+      + ' Every page is open and usable, but it shows only what this browser holds: '
+      + '<b>nothing is loaded from or saved to a server, and sign-in is unavailable.</b> '
+      + 'Set <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> on the deployment to a live '
+      + 'project to restore accounts and saved work.';
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.textContent = 'Dismiss';
+    x.style.cssText = 'flex:none;border:1px solid var(--vh-line,#ebebeb);background:transparent;'
+      + 'color:var(--vh-ink,#111111);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit';
+    x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-nobackend-hid', '1'); } catch (e) {} };
+    bar.appendChild(txt); bar.appendChild(x);
+    (document.body || document.documentElement).insertBefore(bar, (document.body || document.documentElement).firstChild);
+  }
+
+  /**
+   * A signed-out visitor is about to be gated. Should they be?
+   *
+   * Only if there is something on the other side of the wall. A login wall
+   * keeps unauthorised people away from DATA; when the configured Supabase host
+   * does not resolve, no query can succeed, no session can be established, and
+   * the wall is protecting nothing while costing every feature.
+   *
+   * This is the case the original outage actually left production in, and the
+   * no-config branch above does NOT cover it: the env var was still set, it
+   * just named a project that had been deleted. `config` is therefore truthy,
+   * so every "is it configured" check passed and the wall went up with
+   * "Sign in to continue" — no cause named, and a button that navigated the
+   * browser to a host that does not exist.
+   *
+   * The probe fails CLOSED on doubt. A timeout counts as reachable (see
+   * authHostReachable), so a slow network keeps the wall rather than opening
+   * the app; only an outright DNS/network refusal opens it. And the wall
+   * returns by itself the moment the host answers again — nothing is latched.
+   */
+  async function gateSignedOut(wallError) {
+    if (await authHostReachable((window.__SUPABASE__ || {}).url)) {
+      injectLoginWall(wallError);
+      return;
+    }
+    removeLoginWall();
+    injectTopbar(null);
+    injectNoBackendNotice('unreachable');
+  }
+
   // ─── Access mode ─────────────────────────────────────────────────────────
   // Every signed-in user gets full, live access. The former demo/mock-mode
   // gate (which simulated write/generation calls for non-knickgasm.com accounts),
@@ -2086,7 +2168,24 @@
         return;
       }
       if (isOpenPage()) { injectTopbar(null); return; }
-      injectLoginWall();
+      //
+      // NO BACKEND AT ALL. Until now this fell through to injectLoginWall(),
+      // which is a wall nobody can get past: signing in requires a Supabase
+      // project, and there isn't one. Every page except the homepage, the legal
+      // pages and the Studio became unreachable — not gated, unreachable.
+      //
+      // A login wall exists to keep unauthorised people away from data. With no
+      // configuration there is no client, so no query can be issued and there is
+      // no data on the other side to protect. The wall was costing every feature
+      // and defending nothing.
+      //
+      // So the app runs, unauthenticated, on whatever local state it has, and
+      // SAYS so. Note what is NOT changed: this branch is only reached when
+      // there is no configuration whatsoever. The moment a real SUPABASE_URL is
+      // set, `config` is truthy, this code never runs, and a signed-out visitor
+      // meets the wall exactly as before.
+      injectTopbar(null);
+      injectNoBackendNotice();
       return;
     }
 
@@ -2119,7 +2218,7 @@
         const { data: { session: s2 } } = await client.auth.getSession();
         if (!s2?.user && !window.LifecycleAuth.session) {
           removeSigningInOverlay();
-          if (!isOpenPage()) injectLoginWall('Sign-in did not complete. Please try again.');
+          if (!isOpenPage()) await gateSignedOut('Sign-in did not complete. Please try again.');
           else injectTopbar(null);
         }
       }, 4500);
@@ -2127,7 +2226,7 @@
       // Open feature (Mailer Studio) — no sign-in required; show nav as guest.
       injectTopbar(null);
     } else {
-      injectLoginWall();
+      await gateSignedOut();
     }
 
     // Listen for sign-in / sign-out and react globally.
@@ -2147,7 +2246,7 @@
         const tb = document.getElementById('lifecycle-nav');
         if (tb) tb.remove();
         if (isOpenPage()) injectTopbar(null);   // stay open — no wall on the Studio
-        else injectLoginWall();
+        else await gateSignedOut();
       }
     });
   }

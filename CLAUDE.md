@@ -441,6 +441,50 @@ which is why it survived so long.
 - Every one of the five defects above was found by RUNNING the extractor over real stylesheets in
   this repo, not by reading the parser, and each is mutation-verified.
 
+## ⭐ A login wall that defends nothing (2026-08-30)
+`auth.js` -> `gateSignedOut()` + `injectNoBackendNotice()`, gated by `tests/signed-out-usable.spec.js`
+(both repos). The Supabase project this app pointed at was deleted, so `<ref>.supabase.co` went
+NXDOMAIN. Every page that is not the homepage, a legal page or the Studio then showed a login wall
+nobody could get past, because getting past it needs the very project that no longer exists. **The
+whole product became unreachable, not gated.**
+- **A wall keeps unauthorised people away from DATA.** With no reachable backend there is no session
+  to obtain and no query that can succeed, so there is nothing on the other side to protect. It cost
+  every feature and defended nothing. So the app opens, unauthenticated, on whatever local state it
+  has, and SAYS so.
+- **The case that mattered was the one that looked configured.** Two states reach the same dead end:
+  no `SUPABASE_URL` at all, and — the state production was actually left in — the env var still SET
+  and still naming the deleted project. In the second, `config` is truthy, so every "is it
+  configured" check passed, the wall went up reading *"Sign in to continue"* with no cause named, and
+  the button navigated the browser to a host that does not resolve. **Fixing only the unconfigured
+  branch would have left the live deployment exactly as broken as it was found** — and the first
+  version of this fix did exactly that, which is only visible by booting the app against a dead host.
+- **Fail CLOSED on doubt.** A timeout counts as REACHABLE, so a slow network keeps the wall; only an
+  outright DNS/network refusal opens the app. `mode:'no-cors'` because a CORS refusal and a dead host
+  both reject a normal fetch, and blocking sign-in on a healthy project would be a worse bug than the
+  one being fixed. Nothing is latched: the wall returns by itself once the host answers.
+- **The notice names the CAUSE and the HOST**, because that is the value the operator has to change.
+  Brand tokens only and never a dark ground (`--vh-panel-2` surface, `--vh-warn` inset) — a banner
+  that hardcoded its colours would be the one element ignoring the active brand.
+- **One probe, not two.** The sibling repo had already solved reachability (`authBackendReachable`,
+  with offline/timeout/unreachable reasons and a remedy per reason). Porting a second, weaker probe
+  next to it would have left two implementations to drift apart — the same defect class as one
+  brand's colour or one project ref. `gateSignedOut` there reuses the existing one.
+- **A dead constant shipped in the browser.** `PUBLIC_SUPABASE_FALLBACK` held a hardcoded project ref
+  as last-resort config; it is now empty and a deployment that needs one sets
+  `window.__SUPABASE_FALLBACK__` in its own HTML. This was the SECOND time a baked-in ref went stale
+  here — the Mailer Studio's own comment records being repointed off "a stale third project".
+- **The fixture lied, and the auth-bypass guard failed because of it.** The spec's catch-all route
+  aborted the `/auth/v1/health` probe, so the "live backend" case read as unreachable and the app
+  opened — reported as the app dropping its wall. Reachability is now stated per case. A harness that
+  manufactures a failure is the same problem as one that manufactures a pass.
+- **CI could not have caught the related parse error.** `data/design-intelligence.js` had an
+  unescaped apostrophe (`the brand's`) closing a single-quoted string; the whole file failed to
+  parse, so `/design-intelligence` ran none of its JavaScript — and CI was green, because the syntax
+  check walked `api lib workers scripts` plus a HAND-KEPT list of four root files. It is
+  `git ls-files '*.js'` now (287 files, all parsing): a hand-kept list is a list that gets forgotten.
+- Three mutations verified in both repos: making the opening unconditional (an auth bypass) fails the
+  gate, restoring the unpassable wall fails it, and making `gateSignedOut` always wall fails it.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating
