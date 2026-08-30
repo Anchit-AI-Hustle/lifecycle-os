@@ -1730,122 +1730,17 @@
     });
   }
 
-  // ─── Login wall ─────────────────────────────────────────────────────
-  function injectLoginWall(error) {
-    if (document.getElementById('lifecycle-loginwall')) return;
-    const wall = document.createElement('div');
-    wall.id = 'lifecycle-loginwall';
-    wall.innerHTML = `
-      <style>
-        #lifecycle-loginwall {
-          position: fixed; inset: 0; z-index: 9999;
-          background: #ffffff;
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Inter', system-ui, sans-serif;
-          padding: 20px;
-        }
-        #lifecycle-loginwall .llw-card {
-          max-width: 460px; width: 100%;
-          background: #ffffff; border: 1px solid rgba(171,135,67,0.25);
-          border-radius: 16px; padding: 40px 36px;
-          text-align: center; box-shadow: 0 20px 60px rgba(0,74,43,0.16);
-        }
-        #lifecycle-loginwall .llw-dot {
-          width: 44px; height: 44px; border-radius: 50%;
-          background: linear-gradient(135deg, #6A33D8, #D0473E);
-          margin: 0 auto 18px;
-        }
-        #lifecycle-loginwall .llw-title {
-          font-size: 12px; letter-spacing: 0.22em; color: #6A33D8;
-          text-transform: uppercase; font-weight: 700;
-          margin-bottom: 10px;
-        }
-        #lifecycle-loginwall h1 {
-          font-family: 'Lora','Inter',serif; font-size: 26px;
-          color: #111111; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;
-        }
-        #lifecycle-loginwall h1 em { color: #6A33D8; font-style: italic; }
-        #lifecycle-loginwall p {
-          color: #556059; font-size: 13.5px; line-height: 1.6;
-          margin: 0 0 24px;
-        }
-        #lifecycle-loginwall button {
-          display: inline-flex; align-items: center; justify-content: center;
-          gap: 10px; padding: 13px 22px;
-          background: #D0473E; color: #ffffff;
-          border: none; border-radius: 9px;
-          font-family: inherit; font-size: 14px; font-weight: 600;
-          letter-spacing: 0.02em; cursor: pointer;
-          width: 100%; transition: opacity .15s;
-        }
-        #lifecycle-loginwall button:hover  { opacity: 0.92; }
-        #lifecycle-loginwall button:disabled { opacity: 0.5; cursor: not-allowed; }
-        #lifecycle-loginwall .llw-foot {
-          margin-top: 18px; font-size: 11px; color: #48524c;
-          font-family: 'JetBrains Mono', monospace;
-        }
-        #lifecycle-loginwall .llw-err {
-          color: #f87171; font-size: 12px; padding: 10px;
-          background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
-          border-radius: 8px; margin-bottom: 18px;
-        }
-        #lifecycle-loginwall .llw-config {
-          color: #7a5510; font-size: 11px; padding: 12px;
-          background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4);
-          border-radius: 8px; margin-top: 16px; text-align: left;
-          font-family: 'JetBrains Mono', monospace; line-height: 1.6;
-        }
-      </style>
-      <div class="llw-card">
-        <div class="llw-dot"></div>
-        <div class="llw-title">Lifecycle OS</div>
-        <h1>Sign in to <em>continue</em></h1>
-        <p>Used by the retention growth team. Sign in once with your Google account — the session keeps you signed in across Dashboard, Calendar, and Mailer Studio.</p>
-        ${error ? `<div class="llw-err">${error}</div>` : ''}
-        <button id="llw-btn" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
-            <path fill="#FBBC04" d="M5.84 14.1A6.6 6.6 0 0 1 5.47 12c0-.73.13-1.44.36-2.1V7.07H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.83z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.07.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.3 9.14 5.38 12 5.38z"/>
-          </svg>
-          Sign in with Google
-        </button>
-        <div class="llw-foot">One-time sign-in · Session persists</div>
-        ${window.__SUPABASE__?.url ? '' : `
-          <div class="llw-config">
-            <b>⚠ Supabase not configured yet.</b><br>
-            The login wall is rendered, but no Supabase project URL is set.
-            Once provisioned, set <code>SUPABASE_URL</code> + <code>SUPABASE_ANON_KEY</code>
-            on Vercel and redeploy. Until then, Google sign-in click will be a no-op.
-          </div>
-        `}
-      </div>
-    `;
-    document.body.appendChild(wall);
-
-    document.getElementById('llw-btn').onclick = async function () {
-      const btn = this;
-      btn.disabled = true;
-      btn.textContent = 'Redirecting to Google…';
-      try {
-        if (!window.LifecycleAuth.client) {
-          btn.textContent = 'Supabase not configured';
-          setTimeout(() => { btn.disabled = false; btn.innerHTML = btn.dataset.original || 'Sign in with Google'; }, 1800);
-          return;
-        }
-        const msg = await startGoogleSignIn();
-        if (msg) throw new Error(msg);
-      } catch (e) {
-        btn.disabled = false;
-        btn.textContent = 'Sign in with Google';
-        const err = document.createElement('div');
-        err.className = 'llw-err';
-        err.textContent = (e && e.message) || String(e);
-        btn.parentElement.insertBefore(err, btn);
-      }
-    };
-  }
+  // ─── Login wall — REMOVED ───────────────────────────────────────────
+  // There is no login wall any more. It blocked every page that was not the
+  // homepage, a legal page or the Studio, and it was never the security
+  // boundary: the anon key it gated ships in the browser, and RLS (74
+  // `is_brand_member` policies, 135 `auth.uid()` checks) is what actually
+  // decides which rows a caller can read. With no session those policies all
+  // fail and a signed-out caller gets nothing, wall or no wall.
+  //
+  // removeLoginWall() stays: a browser holding a cached page from before this
+  // change can still have the element in the DOM, and gateSignedOut() clears
+  // it rather than leaving a wall nobody can dismiss.
 
   function removeLoginWall() {
     const w = document.getElementById('lifecycle-loginwall');
@@ -2012,78 +1907,100 @@
    * element on the page that ignores the active brand, and a dark one would
    * break the repo's standing no-dark-section rule.
    */
-  function injectNoBackendNotice(kind) {
-    if (document.getElementById('lc-nobackend')) return;
+  function injectSignedOutNotice(kind) {
+    if (document.getElementById('lc-authnotice')) return;
     // Dismissed for this tab? Check before building anything.
-    try { if (sessionStorage.getItem('lc-nobackend-hid')) return; } catch (e) { /* private mode */ }
+    try { if (sessionStorage.getItem('lc-authnotice-hid')) return; } catch (e) { /* private mode */ }
     var bar = document.createElement('div');
-    bar.id = 'lc-nobackend';
+    bar.id = 'lc-authnotice';
     bar.setAttribute('role', 'status');
     bar.style.cssText = [
       'position:sticky', 'top:0', 'z-index:120',
       'background:var(--vh-panel-2,#f5f5f5)',
       'color:var(--vh-ink,#111111)',
       'border-bottom:1px solid var(--vh-line,#ebebeb)',
-      'box-shadow:inset 0 3px 0 var(--vh-warn,#c9a227)',
+      // Being signed out is an ordinary state, not a fault. Only the two
+      // states someone has to FIX wear the warning colour.
+      'box-shadow:inset 0 3px 0 ' + (kind === 'signed-out'
+        ? 'var(--vh-accent,#6A33D8)' : 'var(--vh-warn,#c9a227)'),
       'font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)',
       'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
     ].join(';');
     var txt = document.createElement('div');
     txt.style.cssText = 'flex:1;min-width:0';
-    // Two different causes, and naming the wrong one sends the operator to
-    // check the thing that is not broken. Unconfigured is a missing env var;
-    // unreachable is a project that was deleted, renamed or paused, and the
-    // host it named is worth printing because that is what has to change.
+    // THREE states, not one, and naming the wrong one sends the reader to
+    // check the thing that is not broken. `unconfigured` is a missing env var
+    // on the deployment; `unreachable` is a project that no longer answers, and
+    // its host is worth printing because that is the value that has to change;
+    // `signed-out` is the ordinary case where everything works and this visitor
+    // simply has no session. Only the first two are anyone's to fix.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
-    var cause = (kind === 'unreachable' && host)
-      ? 'The database this deployment points at (<code>' + host + '</code>) cannot be reached, so there is '
-        + 'nothing to sign in to. Its Supabase project has most likely been deleted, renamed or paused.'
-      : 'This deployment has no <code>SUPABASE_URL</code> / <code>SUPABASE_ANON_KEY</code> set, so there is '
-        + 'nothing to sign in to.';
-    txt.innerHTML = '<b>Running without a database.</b> ' + cause
-      + ' Every page is open and usable, but it shows only what this browser holds: '
-      + '<b>nothing is loaded from or saved to a server, and sign-in is unavailable.</b> '
-      + 'Set <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> on the deployment to a live '
-      + 'project to restore accounts and saved work.';
+    var body;
+    if (kind === 'sdk') {
+      body = '<b>Sign-in is unavailable: the Supabase library did not load.</b> auth.js loads '
+        + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
+        + 'outage will all do this. Every page is still open and usable. To sign in, retry on a '
+        + 'different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
+    } else if (kind === 'signed-out') {
+      body = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
+        + 'what this browser holds. <b>Your saved workspace, brands and campaigns load once you sign in</b> '
+        + '- so an empty panel here means "not signed in", not "no data".';
+    } else if (kind === 'unreachable' && host) {
+      body = '<b>Running without a database.</b> The database this deployment points at (<code>' + host
+        + '</code>) cannot be reached, so there is nothing to sign in to - its Supabase project has most '
+        + 'likely been deleted, renamed or paused. Every page is open and usable, but <b>nothing is loaded '
+        + 'from or saved to a server.</b> Point <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> '
+        + 'at a live project to restore accounts and saved work.';
+    } else {
+      body = '<b>Running without a database.</b> This deployment has no <code>SUPABASE_URL</code> / '
+        + '<code>SUPABASE_ANON_KEY</code> set, so there is nothing to sign in to. Every page is open and '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Set them on the deployment to '
+        + 'restore accounts and saved work.';
+    }
+    txt.innerHTML = body;
     var x = document.createElement('button');
     x.type = 'button';
     x.textContent = 'Dismiss';
     x.style.cssText = 'flex:none;border:1px solid var(--vh-line,#ebebeb);background:transparent;'
       + 'color:var(--vh-ink,#111111);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit';
-    x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-nobackend-hid', '1'); } catch (e) {} };
+    x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-authnotice-hid', '1'); } catch (e) {} };
     bar.appendChild(txt); bar.appendChild(x);
     (document.body || document.documentElement).insertBefore(bar, (document.body || document.documentElement).firstChild);
   }
 
   /**
-   * A signed-out visitor is about to be gated. Should they be?
+   * A signed-out visitor is never blocked. Anywhere.
    *
-   * Only if there is something on the other side of the wall. A login wall
-   * keeps unauthorised people away from DATA; when the configured Supabase host
-   * does not resolve, no query can succeed, no session can be established, and
-   * the wall is protecting nothing while costing every feature.
+   * WHY THIS IS NOT AN AUTH BYPASS, which is the obvious objection: the wall
+   * was never the security boundary and could not have been. The anon key it
+   * gated is PUBLIC by design — it ships in the browser and /api/public-config
+   * hands it to anyone who asks — so anything the wall "protected" was already
+   * one curl away. What actually protects the data is ROW LEVEL SECURITY: 74
+   * `is_brand_member` policies and 135 `auth.uid()` checks across the
+   * migrations. With no session `auth.uid()` is null, every one of those
+   * policies fails, and a signed-out caller gets zero rows. Even the four
+   * aggregate views granted to `anon` are `security_invoker=on`, so the same
+   * RLS applies through them.
    *
-   * This is the case the original outage actually left production in, and the
-   * no-config branch above does NOT cover it: the env var was still set, it
-   * just named a project that had been deleted. `config` is therefore truthy,
-   * so every "is it configured" check passed and the wall went up with
-   * "Sign in to continue" — no cause named, and a button that navigated the
-   * browser to a host that does not exist.
+   * So the wall was costing every feature and defending nothing that RLS was
+   * not already defending. Removing it changes what the UI SHOWS, never what
+   * the database RETURNS.
    *
-   * The probe fails CLOSED on doubt. A timeout counts as reachable (see
-   * authHostReachable), so a slow network keeps the wall rather than opening
-   * the app; only an outright DNS/network refusal opens it. And the wall
-   * returns by itself the moment the host answers again — nothing is latched.
+   * What replaces it is an explanation, not a gate: a dismissible bar that says
+   * the visitor is signed out and what that means for the data on screen. An
+   * empty dashboard with no explanation reads as "no data" rather than "not
+   * signed in", and silence reads as a design choice.
    */
-  async function gateSignedOut(wallError) {
-    if (await authHostReachable((window.__SUPABASE__ || {}).url)) {
-      injectLoginWall(wallError);
-      return;
-    }
+  async function gateSignedOut() {
     removeLoginWall();
     injectTopbar(null);
-    injectNoBackendNotice('unreachable');
+    // Which of the three signed-out states is this? They need different words:
+    // a missing env var, a project that no longer answers, and simply being
+    // logged out are three different things to be told.
+    const url = (window.__SUPABASE__ || {}).url;
+    if (!url) { injectSignedOutNotice('unconfigured'); return; }
+    injectSignedOutNotice(await authHostReachable(url) ? 'signed-out' : 'unreachable');
   }
 
   // ─── Access mode ─────────────────────────────────────────────────────────
@@ -2169,23 +2086,16 @@
       }
       if (isOpenPage()) { injectTopbar(null); return; }
       //
-      // NO BACKEND AT ALL. Until now this fell through to injectLoginWall(),
-      // which is a wall nobody can get past: signing in requires a Supabase
-      // project, and there isn't one. Every page except the homepage, the legal
-      // pages and the Studio became unreachable — not gated, unreachable.
+      // NO BACKEND AT ALL. This used to fall through to a login wall nobody
+      // could get past: signing in requires a Supabase project, and there is
+      // not one. Every page except the homepage, the legal pages and the Studio
+      // became unreachable — not gated, unreachable.
       //
-      // A login wall exists to keep unauthorised people away from data. With no
-      // configuration there is no client, so no query can be issued and there is
-      // no data on the other side to protect. The wall was costing every feature
-      // and defending nothing.
-      //
-      // So the app runs, unauthenticated, on whatever local state it has, and
-      // SAYS so. Note what is NOT changed: this branch is only reached when
-      // there is no configuration whatsoever. The moment a real SUPABASE_URL is
-      // set, `config` is truthy, this code never runs, and a signed-out visitor
-      // meets the wall exactly as before.
+      // The app runs unauthenticated on whatever local state it has, and SAYS
+      // so. This branch handles only the unconfigured case; being signed out
+      // with a working backend is equally unblocked, in gateSignedOut().
       injectTopbar(null);
-      injectNoBackendNotice();
+      injectSignedOutNotice('unconfigured');
       return;
     }
 
@@ -2218,14 +2128,14 @@
         const { data: { session: s2 } } = await client.auth.getSession();
         if (!s2?.user && !window.LifecycleAuth.session) {
           removeSigningInOverlay();
-          if (!isOpenPage()) await gateSignedOut('Sign-in did not complete. Please try again.');
-          else injectTopbar(null);
+          // Sign-in did not complete. That is worth SAYING, and it is not a
+          // reason to take the app away: the visitor came here to use it.
+          await gateSignedOut();
         }
       }, 4500);
-    } else if (isOpenPage()) {
-      // Open feature (Mailer Studio) — no sign-in required; show nav as guest.
-      injectTopbar(null);
     } else {
+      // Signed out. EVERY page is open — there is no longer a gated set, so
+      // there is nothing for isOpenPage() to decide here.
       await gateSignedOut();
     }
 
@@ -2245,8 +2155,7 @@
       } else {
         const tb = document.getElementById('lifecycle-nav');
         if (tb) tb.remove();
-        if (isOpenPage()) injectTopbar(null);   // stay open — no wall on the Studio
-        else await gateSignedOut();
+        await gateSignedOut();   // signed out mid-session: stay open, say so
       }
     });
   }
@@ -2417,10 +2326,36 @@
   }
 
 
+  // init() is async and was invoked with NO catch, so any rejection — most
+  // realistically the supabase-js CDN being blocked by an ad blocker or a
+  // network policy — became an unhandled promise rejection and the page
+  // rendered NOTHING: no nav, no notice, no reason. A blank page is the least
+  // actionable failure there is, and it is the one state that makes "every page
+  // is usable signed out" untrue.
+  //
+  // So the app opens here too. A CDN that would not serve supabase-js is a
+  // reason sign-in cannot RUN; it is not a reason to withhold every page from
+  // someone who is allowed to read them anyway.
+  function boot() {
+    Promise.resolve()
+      .then(init)
+      .catch((e) => {
+        try {
+          injectTopbar(null);
+          const isLocal = location.protocol === 'file:'
+            || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
+          if (isLocal) return;
+          // Name what failed. Only the SDK load and the client construction can
+          // reject here, and both leave sign-in impossible for the same reason.
+          injectSignedOutNotice(/supabase-js|createClient/i.test(String(e && e.message)) ? 'sdk' : 'unreachable');
+        } catch (_) { /* nothing left to render into */ }
+      });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    init();
+    boot();
   }
 })();
 
