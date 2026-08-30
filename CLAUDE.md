@@ -441,6 +441,41 @@ which is why it survived so long.
 - Every one of the five defects above was found by RUNNING the extractor over real stylesheets in
   this repo, not by reading the parser, and each is mutation-verified.
 
+## ⭐ Signed out is a usable state, not a locked one (2026-08-30, supersedes the section below)
+`auth.js` -> the login wall is GONE. `gateSignedOut()` opens every page for a signed-out visitor
+whether or not the backend is reachable; `injectSignedOutNotice(kind)` explains which of four states
+this is. Gated by `tests/signed-out-usable.spec.js` (9 tests) in both repos.
+- **Why this is not an auth bypass, which is the obvious objection.** The wall was never the security
+  boundary and could not have been: the anon key it gated is PUBLIC by design — it ships in the
+  browser and `/api/public-config` hands it to anyone who asks — so anything the wall "protected" was
+  always one curl away. **RLS is the boundary**: 74 `is_brand_member` policies and 135 `auth.uid()`
+  checks. With no session `auth.uid()` is null, every one fails, and a signed-out caller reads
+  nothing. Even the four aggregate views granted to `anon` are `security_invoker=on`. Removing the
+  wall changes what the UI SHOWS, never what the database RETURNS.
+- **The test moved to the real boundary.** The old guard asserted "a configured deployment still
+  walls" — a UX proxy for security. It is replaced by three that check the thing that actually
+  matters: the app never fabricates a signed-in state (`LifecycleAuth.internal` stays false, and that
+  flag is what grants full live access), the RLS policy counts have not thinned out, and **no NEW
+  object is granted to `anon`**. A wall is a proxy for a boundary; test the boundary.
+- **What the anon ratchet found, and it is worth knowing**: `smart_generated_campaigns` and
+  `smart_brain_runs` carry `using (true)` policies AND anon grants, on purpose since
+  `20260719120000`, so `/lp/:id` can serve a generated landing page on the anon key when
+  `SUPABASE_SERVICE_ROLE_KEY` is unset. Pre-existing, unaffected by this change in either direction,
+  and now pinned by name so a new one has to be argued for.
+- **Four states, four sentences, and only three are anyone's to fix**: `unconfigured` (no env var),
+  `unreachable` (a project deleted/renamed/paused — its host is printed, because that is the value
+  that has to change), `sdk` (the supabase-js CDN was blocked), and `signed-out` (everything works;
+  this visitor has no session). The last one takes the ACCENT rule, not the warn rule: being signed
+  out is an ordinary state, and a normal state wearing a warning colour teaches people to ignore the
+  bar. An empty panel with no explanation reads as "no data" rather than "not signed in".
+- **The SDK-failure path would have gone silent.** `boot()`'s catch called `showAuthBackendNotice`,
+  which wrote into the wall's own `#llw-notice` slot — with no wall there is no slot, so it rendered
+  into nothing. It routes through the standing bar now. Deleting a component means auditing what
+  wrote INTO it, not just what called it.
+- The sweep drives **all 66 pages x BOTH configurations** (no backend, and live backend signed out).
+  Only one was ever swept before, and the live one is where the wall used to appear on every page.
+- Mutation-verified: restoring the wall for a live backend fails 2 tests.
+
 ## ⭐ A login wall that defends nothing (2026-08-30)
 `auth.js` -> `gateSignedOut()` + `injectNoBackendNotice()`, gated by `tests/signed-out-usable.spec.js`
 (both repos). The Supabase project this app pointed at was deleted, so `<ref>.supabase.co` went
