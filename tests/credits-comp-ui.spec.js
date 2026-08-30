@@ -208,6 +208,45 @@ test('with a pack priced, the ordering copy comes back', async ({ page }) => {
   expect(t).not.toMatch(/no pack has a price/i);
 });
 
+test('no verdict about prices is rendered before the catalogue arrives', async ({ page }) => {
+  // THE RACE THIS FILE KEPT FAILING ON, and it was a real UI defect rather than
+  // a flaky test. renderPacks() ran at boot with `packs = []` and
+  // `loaded = false`, and from that empty list it wrote the factual claim "No
+  // pack has a price on this deployment yet" - then replaced it with the truth
+  // ~120ms later when the catalogue landed. Every page load flashed a false
+  // statement about the deployment.
+  //
+  // It surfaced as an intermittent failure because the markup's own default
+  // already reads "Pick a pack to record a recharge order.": under load the
+  // poll on line ~206 matched that default BEFORE the boot render, and the
+  // re-read a line later then caught the false verdict. Under no load the boot
+  // render happened first and the poll waited for the real text.
+  //
+  // Asserted on every write to the node, not on the settled value, because the
+  // settled value was always correct - the defect was only ever visible in
+  // between.
+  comp = false;
+  packs = [{ key: 'starter', label: 'Starter', blurb: 'x', credits: 500, bonus: 0, total_credits: 500, price: PRICED }];
+  await page.addInitScript(() => {
+    window.__NOTE_WRITES__ = [];
+    document.addEventListener('DOMContentLoaded', () => {
+      const el = document.getElementById('packnote');
+      if (!el) return;
+      const d = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+      Object.defineProperty(el, 'textContent', {
+        get() { return d.get.call(this); },
+        set(v) { window.__NOTE_WRITES__.push(String(v)); d.set.call(this, v); },
+      });
+    });
+  });
+  await open(page);
+  await expect.poll(() => page.evaluate(() => (window.__NOTE_WRITES__ || []).length),
+    { timeout: 15000 }).toBeGreaterThan(0);
+  const writes = await page.evaluate(() => window.__NOTE_WRITES__ || []);
+  expect(writes.join(' | '), 'a price verdict was rendered from a catalogue that had not loaded')
+    .not.toMatch(/no pack has a price/i);
+});
+
 test('a comp account is never shown the unpriced copy', async ({ page }) => {
   comp = true;
   packs = [{ key: 'starter', label: 'Starter', blurb: 'x', credits: 500, bonus: 0, total_credits: 500, price: UNPRICED }];
