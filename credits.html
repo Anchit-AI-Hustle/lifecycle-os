@@ -200,7 +200,23 @@
     // is why these are driven in a browser rather than read.
     var comp = !!(window.Credits && window.Credits.comp);
     var note = $('packnote');
-    if (note) {
+    // ONLY once there is something to base a verdict on.
+    //
+    // "No pack has a price on this deployment yet" is a factual CLAIM about the
+    // deployment, and this ran at boot with `packs = []` and `loaded = false` -
+    // so every page load flashed that claim before the catalogue had arrived,
+    // then replaced it with the truth. Traced in a browser: boot writes the
+    // false verdict at credits.html:329 with `packs=[] loaded=false`, the
+    // onChange at :331 corrects it ~120ms later.
+    //
+    // A comp account is exempt: `comp` comes from the balance response and does
+    // not depend on the catalogue, so it can be said as soon as it is known.
+    //
+    // Leaving the note untouched keeps the static default already in the markup
+    // ("Pick a pack to record a recharge order."), which is the neutral thing to
+    // say while loading rather than a second loading string to maintain.
+    var known = comp || packs.length > 0 || !!(window.Credits && window.Credits.loaded);
+    if (note && known) {
       // Same three states as the shared panel: free, orderable, or nothing on
       // this deployment carries a price yet. "Pick a pack" is not something a
       // user can do when no pack is pickable.
