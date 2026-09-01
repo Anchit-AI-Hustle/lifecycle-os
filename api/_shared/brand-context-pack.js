@@ -416,9 +416,18 @@ function designMdTokens(report, brand) {
   }
 
   /* ── typography ────────────────────────────────────────────────────────
-     fontFamily only. Sizes, weights and line-heights are not observable from a
-     stylesheet parse without resolving the cascade, and a made-up 16px/1.5 is a
-     made-up design system. */
+     Family, and the SCALE that goes with it: size, weight, line-height and
+     letter-spacing per slot, plus the colour the text is actually painted.
+
+     This block used to emit fontFamily alone and say sizes "are not observable
+     from a stylesheet parse". That was an honest sentence about a limit that did
+     not exist — a `font-size` on `h1` is published in the same rule as the
+     `font-family` beside it. What IS true is the caveat that applied all along
+     and still does: no browser renders the page, so a value set by JavaScript,
+     or one that loses a cascade this module approximates, is not what a visitor
+     sees. So the same confidence gate as families applies — `declared` (a named
+     token) or `strong` (a simple selector) is emitted, `weak` (a scoped one like
+     `.hero .title`) is reported and not emitted. */
   const typ = f.typography || {};
   let typography = null;
   const typoNotes = [];
@@ -457,20 +466,83 @@ function designMdTokens(report, brand) {
   const headC = pickFont('heading'), bodyC = pickFont('body'), monoC = pickFont('mono');
   if (headC || bodyC || monoC) {
     typography = {};
+    // The measured slot behind each named role: a heading's scale is its h1.
+    const slots = typ.slots || {};
+    const SLOT_FOR = { heading: 'h1', body: 'body' };
+    // ONLY the properties google-labs-code/design.md defines for typography:
+    // fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, fontFeature,
+    // fontVariation. `color` and `textTransform` are NOT among them, and the
+    // official linter rejects them — CLAUDE.md's rule for this document is
+    // conform to the spec, do not invent a shape. The observed text colours are
+    // real and are kept; they are emitted under `colors`, where a colour
+    // belongs, a few lines below.
+    const SCALE_KEYS = [
+      ['size', 'fontSize'], ['weight', 'fontWeight'],
+      ['line_height', 'lineHeight'], ['letter_spacing', 'letterSpacing'],
+    ];
+    const inkFor = {};
+    let emittedScale = 0;
     const put = (name, c) => {
       if (!c) return;
       typography[name] = { fontFamily: c.stack || c.value };
       sources.typography[name] = `${c.signal || 'declared'} · ${c.source_url || ''}`;
+      const slot = slots[SLOT_FOR[name]];
+      if (!slot) return;
+      if (slot.color && USABLE_CONF.has(slot.color.confidence)) {
+        inkFor[name] = { hex: slot.color.hex || slot.color.value, cand: slot.color };
+      }
+      for (const [from, to] of SCALE_KEYS) {
+        const v = slot[from];
+        if (!v || !USABLE_CONF.has(v.confidence)) {
+          if (v) {
+            notObserved.push({
+              token: `typography.${name}.${to}`,
+              candidate: v.hex || v.value,
+              why: `Found on \`${(v.signal || '').replace(/^css:[^ ]+ on /, '')}\`, which is a scoped selector rather `
+                + 'than the element or a class named for it. What that rule sets inside its own component is not '
+                + 'necessarily this brand\'s scale, so it is reported rather than emitted.',
+              source_url: v.source_url || '',
+              evidence: v.evidence || '',
+            });
+          }
+          continue;
+        }
+        typography[name][to] = to === 'color' ? (v.hex || v.value) : v.value;
+        sources.typography[`${name}.${to}`] = `${v.signal || 'declared'} · ${v.source_url || ''}`;
+        emittedScale += 1;
+      }
     };
     put('heading', headC);
     put('body', bodyC);
     put('mono', monoC);
-    typoNotes.push('Only `fontFamily` is emitted. Font size, weight, line-height and letter-spacing cannot be '
-      + 'read reliably from a stylesheet parse - resolving which declaration wins needs a browser - so none are '
-      + 'stated rather than guessed.');
     typoNotes.push('Every family here was found in a `font-family` declaration on a selector that matches this '
       + 'kind of text. A family the page merely LOADS is listed under "considered and not emitted" instead.');
-    markers.push(MARKER('typography scale (size, weight, line-height, letter-spacing)'));
+    // Named `-ink`, deliberately NOT `-text`. In this document a `*-text` token
+    // is the contrast-ADJUSTED form of a brand colour, produced by
+    // readableAsText(). These are the colours the site actually paints its text,
+    // read as published and adjusted by nothing, so borrowing that suffix would
+    // claim an AA guarantee nobody made.
+    for (const [name, got] of Object.entries(inkFor)) {
+      if (!got.hex) continue;
+      colors[`${name}-ink`] = got.hex;
+      sources.colors[`${name}-ink`] = `${got.cand.signal || 'declared'} · ${got.cand.source_url || ''}`;
+    }
+    if (Object.keys(inkFor).length) {
+      typoNotes.push('The `*-ink` colours under Colors are what this site paints its heading and body text, '
+        + 'read as published. They are NOT contrast-adjusted: unlike the `*-text` tokens, nothing has checked '
+        + 'them against a surface.');
+    }
+    if (emittedScale) {
+      typoNotes.push('Size, weight, line-height, letter-spacing and text colour are read from the same '
+        + 'stylesheets, on the same selectors. No browser renders the page, so a value set by JavaScript or one '
+        + 'that loses a cascade approximated here is not necessarily what a visitor sees.');
+      if (typ.root_font_size && !typ.root_font_size.declared) {
+        typoNotes.push('No root font-size was declared, so any `rem` above is shown against the 16px browser '
+          + 'default. A site that sets its own root changes every one of these numbers.');
+      }
+    } else {
+      markers.push(MARKER('typography scale (size, weight, line-height, letter-spacing)'));
+    }
     if (!headC) markers.push(MARKER('typography.heading'));
     if (!bodyC) markers.push(MARKER('typography.body'));
   } else {

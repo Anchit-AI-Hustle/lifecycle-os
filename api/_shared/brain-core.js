@@ -39,13 +39,21 @@ function connection() {
     || clean(process.env.SMART_BRAIN_SUPABASE_SERVICE_ROLE_KEY)
     || clean(process.env.SUPABASE_SERVICE_ROLE_KEY)
     || clean(process.env.SUPABASE_SERVICE_KEY);
+  // ORDER MATTERS, and it was wrong. The pinned data/linked-db.json used to
+  // outrank the environment, so a deployment that set SUPABASE_URL correctly
+  // STILL talked to whatever project the file named. That project was later
+  // deleted, which meant Smart Brain kept addressing a host that no longer
+  // resolves and no amount of correct configuration could fix it.
+  //
+  // Configuration beats a checked-in constant. The file is a last resort for a
+  // clone with no env at all, not a priority.
+  const envUrl = clean(process.env.SUPABASE_URL) || clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const envKey = clean(process.env.SUPABASE_ANON_KEY) || clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   let url, key;
-  if (smartUrl && smartKey) { url = smartUrl; key = smartKey; }            // Smart Brain project w/ a real key
-  else if (file.url && file.anonKey) { url = file.url; key = file.anonKey; } // linked project (analytics tables)
-  else {
-    url = clean(process.env.SUPABASE_URL) || clean(process.env.NEXT_PUBLIC_SUPABASE_URL) || smartUrl || file.url || '';
-    key = clean(process.env.SUPABASE_ANON_KEY) || clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) || file.anonKey || '';
-  }
+  if (smartUrl && smartKey) { url = smartUrl; key = smartKey; }            // explicit Smart Brain override
+  else if (envUrl && envKey) { url = envUrl; key = envKey; }               // this deployment's own project
+  else if (file.url && file.anonKey) { url = file.url; key = file.anonKey; } // pinned clone fallback
+  else { url = envUrl || smartUrl || file.url || ''; key = envKey || file.anonKey || ''; }
   _conn = { url: url.replace(/\/$/, ''), key };
   return _conn;
 }

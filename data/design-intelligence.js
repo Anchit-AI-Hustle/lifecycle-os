@@ -70,7 +70,7 @@
         proof: 'Credibility marker in the hero; founder story below.', cta: 'One CTA, repeated where it counts, never a competing offer.' },
       { id: 'social-proof-led', name: 'Social-Proof-Led', bestFor: 'High-consideration, trust-sensitive buyers',
         layout: 'Proof strip above the fold, then benefits with visuals, then FAQ that answers objections.',
-        hook: 'Concrete named proof, quoted from the brand's OWN approved claims and review library - never an invented rating, review count, certification or endorsement.',
+        hook: "Concrete named proof, quoted from the brand's OWN approved claims and review library - never an invented rating, review count, certification or endorsement.",
         proof: 'Reviews + press + guarantees clustered high.', cta: 'Sticky CTA; final CTA after FAQ.' },
       { id: 'long-form-story', name: 'Long-Form Story Scroll', bestFor: 'Full-depth storefront pages, high AOV',
         layout: 'Hero+CTA -> proof -> benefit sections with visuals -> founder story -> trust -> FAQ -> final CTA. Full depth, not one screen.',

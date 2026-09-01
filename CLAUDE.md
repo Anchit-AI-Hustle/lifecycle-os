@@ -402,6 +402,124 @@ and nothing uses `!important`, so a page that needs its own treatment still over
   strength until the cursor leaves — a white slab over the content.
 - Every one of those four defects is mutation-verified: restoring it fails the gate.
 
+## ⭐ A brand's typography is its SCALE, not two family names (2026-08-27)
+`api/_shared/brand-extract.js` → `typeScaleCandidates()`, gated by `tests/brand-type-scale.spec.js`.
+Setup-from-URL read font FAMILIES and stopped. Both the extractor and the context pack said so in as
+many words — *"Font size, weight, line-height and letter-spacing cannot be read reliably from a
+stylesheet parse"* — and shipped a `[DATA REQUIRED BEFORE LAUNCH: typography scale]` marker. **That
+was an honest sentence about a limit that did not exist.** A `font-size` on `h1` is published in the
+same rule, in the same stylesheet, as the `font-family` beside it; the module never read the
+property. An existing test asserted the defect (`expect(Object.keys(tok)).toEqual(['fontFamily'])`),
+which is why it survived so long.
+- **Now read, per slot** (h1–h6, body, link, button): size, weight, line-height, letter-spacing,
+  text-transform, font-style and the **text colour** — the last being what an operator actually means
+  by "font colours". Plus the site's own NAMED scales (`--text-lg`, `--leading-tight`, `--tracking-*`).
+  Same confidence model as families: `declared` (named token) → `strong` (simple selector) → `weak`.
+- **`rem` is resolved against the root the SITE declared**, never a guessed 16. A site using the
+  standard `html{font-size:62.5%}` trick has a 10px root, so its `1.6rem` body is 16px — reporting
+  25.6px would be a fabricated number wearing a unit. `em` is deliberately NOT converted: it is
+  relative to a parent, and this module builds no box tree. An assumed root is labelled assumed.
+- **`html` is the root, `body` is the body.** Collapsing them into one slot let `html{font-size:62.5%}`
+  win the body slot, and the brand was recorded as having 62.5% body text.
+- **Strength is the SHAPE of the selector, not whether it is an element.** Marking every class `weak`
+  was wrong in a way that mattered: `.vh-h1` is the site NAMING its heading style. Reading only bare
+  `h1`..`h6` returned **two rows from 197KB** of this repo's own Mailer Studio CSS, because it — like
+  most of the web — styles `.vh-h1` and never `h1`. What genuinely weakens a rule is being SCOPED:
+  `.hero .title` is a title inside a hero, not the brand's h1. Simple selector → strong, compound → weak.
+- **A component prefix disqualifies a class outright**, and the role word must END the class name.
+  Without both, `.nav-title` took the h1 slot and `.copy-preview-hl` took the body slot.
+- **A row earns its place with a size, a weight OR a colour.** Requiring a size dropped the link row
+  entirely, and `a { color: … }` almost never carries one.
+- **The honest limit is recorded, not implied**: attribution is by SELECTOR, so a utility-first site
+  (`text-2xl`) publishes no rule attributable to a heading and reads as having no scale — which is a
+  different statement from having one that could not be seen. Closing that needs either real cascade
+  resolution (specificity + order) or a headless browser, and Chromium does not fit the Hobby
+  serverless path.
+- Catalogue was already covered and was NOT rebuilt: it is stage one of the pack
+  (`STAGES = ['catalog','extract','knowledge','repos','done']`), through the existing `importCatalog`,
+  and blocks activation until it has rows.
+- Every one of the five defects above was found by RUNNING the extractor over real stylesheets in
+  this repo, not by reading the parser, and each is mutation-verified.
+
+## ⭐ Signed out is a usable state, not a locked one (2026-08-30, supersedes the section below)
+`auth.js` -> the login wall is GONE. `gateSignedOut()` opens every page for a signed-out visitor
+whether or not the backend is reachable; `injectSignedOutNotice(kind)` explains which of four states
+this is. Gated by `tests/signed-out-usable.spec.js` (9 tests) in both repos.
+- **Why this is not an auth bypass, which is the obvious objection.** The wall was never the security
+  boundary and could not have been: the anon key it gated is PUBLIC by design — it ships in the
+  browser and `/api/public-config` hands it to anyone who asks — so anything the wall "protected" was
+  always one curl away. **RLS is the boundary**: 74 `is_brand_member` policies and 135 `auth.uid()`
+  checks. With no session `auth.uid()` is null, every one fails, and a signed-out caller reads
+  nothing. Even the four aggregate views granted to `anon` are `security_invoker=on`. Removing the
+  wall changes what the UI SHOWS, never what the database RETURNS.
+- **The test moved to the real boundary.** The old guard asserted "a configured deployment still
+  walls" — a UX proxy for security. It is replaced by three that check the thing that actually
+  matters: the app never fabricates a signed-in state (`LifecycleAuth.internal` stays false, and that
+  flag is what grants full live access), the RLS policy counts have not thinned out, and **no NEW
+  object is granted to `anon`**. A wall is a proxy for a boundary; test the boundary.
+- **What the anon ratchet found, and it is worth knowing**: `smart_generated_campaigns` and
+  `smart_brain_runs` carry `using (true)` policies AND anon grants, on purpose since
+  `20260719120000`, so `/lp/:id` can serve a generated landing page on the anon key when
+  `SUPABASE_SERVICE_ROLE_KEY` is unset. Pre-existing, unaffected by this change in either direction,
+  and now pinned by name so a new one has to be argued for.
+- **Four states, four sentences, and only three are anyone's to fix**: `unconfigured` (no env var),
+  `unreachable` (a project deleted/renamed/paused — its host is printed, because that is the value
+  that has to change), `sdk` (the supabase-js CDN was blocked), and `signed-out` (everything works;
+  this visitor has no session). The last one takes the ACCENT rule, not the warn rule: being signed
+  out is an ordinary state, and a normal state wearing a warning colour teaches people to ignore the
+  bar. An empty panel with no explanation reads as "no data" rather than "not signed in".
+- **The SDK-failure path would have gone silent.** `boot()`'s catch called `showAuthBackendNotice`,
+  which wrote into the wall's own `#llw-notice` slot — with no wall there is no slot, so it rendered
+  into nothing. It routes through the standing bar now. Deleting a component means auditing what
+  wrote INTO it, not just what called it.
+- The sweep drives **all 66 pages x BOTH configurations** (no backend, and live backend signed out).
+  Only one was ever swept before, and the live one is where the wall used to appear on every page.
+- Mutation-verified: restoring the wall for a live backend fails 2 tests.
+
+## ⭐ A login wall that defends nothing (2026-08-30)
+`auth.js` -> `gateSignedOut()` + `injectNoBackendNotice()`, gated by `tests/signed-out-usable.spec.js`
+(both repos). The Supabase project this app pointed at was deleted, so `<ref>.supabase.co` went
+NXDOMAIN. Every page that is not the homepage, a legal page or the Studio then showed a login wall
+nobody could get past, because getting past it needs the very project that no longer exists. **The
+whole product became unreachable, not gated.**
+- **A wall keeps unauthorised people away from DATA.** With no reachable backend there is no session
+  to obtain and no query that can succeed, so there is nothing on the other side to protect. It cost
+  every feature and defended nothing. So the app opens, unauthenticated, on whatever local state it
+  has, and SAYS so.
+- **The case that mattered was the one that looked configured.** Two states reach the same dead end:
+  no `SUPABASE_URL` at all, and — the state production was actually left in — the env var still SET
+  and still naming the deleted project. In the second, `config` is truthy, so every "is it
+  configured" check passed, the wall went up reading *"Sign in to continue"* with no cause named, and
+  the button navigated the browser to a host that does not resolve. **Fixing only the unconfigured
+  branch would have left the live deployment exactly as broken as it was found** — and the first
+  version of this fix did exactly that, which is only visible by booting the app against a dead host.
+- **Fail CLOSED on doubt.** A timeout counts as REACHABLE, so a slow network keeps the wall; only an
+  outright DNS/network refusal opens the app. `mode:'no-cors'` because a CORS refusal and a dead host
+  both reject a normal fetch, and blocking sign-in on a healthy project would be a worse bug than the
+  one being fixed. Nothing is latched: the wall returns by itself once the host answers.
+- **The notice names the CAUSE and the HOST**, because that is the value the operator has to change.
+  Brand tokens only and never a dark ground (`--vh-panel-2` surface, `--vh-warn` inset) — a banner
+  that hardcoded its colours would be the one element ignoring the active brand.
+- **One probe, not two.** The sibling repo had already solved reachability (`authBackendReachable`,
+  with offline/timeout/unreachable reasons and a remedy per reason). Porting a second, weaker probe
+  next to it would have left two implementations to drift apart — the same defect class as one
+  brand's colour or one project ref. `gateSignedOut` there reuses the existing one.
+- **A dead constant shipped in the browser.** `PUBLIC_SUPABASE_FALLBACK` held a hardcoded project ref
+  as last-resort config; it is now empty and a deployment that needs one sets
+  `window.__SUPABASE_FALLBACK__` in its own HTML. This was the SECOND time a baked-in ref went stale
+  here — the Mailer Studio's own comment records being repointed off "a stale third project".
+- **The fixture lied, and the auth-bypass guard failed because of it.** The spec's catch-all route
+  aborted the `/auth/v1/health` probe, so the "live backend" case read as unreachable and the app
+  opened — reported as the app dropping its wall. Reachability is now stated per case. A harness that
+  manufactures a failure is the same problem as one that manufactures a pass.
+- **CI could not have caught the related parse error.** `data/design-intelligence.js` had an
+  unescaped apostrophe (`the brand's`) closing a single-quoted string; the whole file failed to
+  parse, so `/design-intelligence` ran none of its JavaScript — and CI was green, because the syntax
+  check walked `api lib workers scripts` plus a HAND-KEPT list of four root files. It is
+  `git ls-files '*.js'` now (287 files, all parsing): a hand-kept list is a list that gets forgotten.
+- Three mutations verified in both repos: making the opening unconditional (an auth bypass) fails the
+  gate, restoring the unpassable wall fails it, and making `gateSignedOut` always wall fails it.
+
 ## ⭐ Governing spec: Campaign Orchestration Master Operating Contract
 `docs/campaign-orchestration-master-spec.md` is the standing operating contract for all campaign
 calendar, cohort, mailer, ad, dashboard, and creative generation work. When building or generating

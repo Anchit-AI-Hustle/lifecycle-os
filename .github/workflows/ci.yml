@@ -17,12 +17,23 @@ jobs:
         run: |
           test -f lifecycle_mailer_architect_v34.html
           node -e "const fs=require('fs');const s=fs.readFileSync('lifecycle_mailer_architect_v34.html','utf8');if(!s.includes('<!DOCTYPE html>'))process.exit(1);console.log('v34 OK ('+s.length+' bytes)')"
-      - name: JS syntax check (api / lib / workers / scripts + shared shells)
+      - name: JS syntax check (every tracked .js — no hand-kept list)
+        # WIDENED, because the previous version missed a file that was broken in
+        # production. It checked `api lib workers scripts` plus a HAND-KEPT list
+        # of four root scripts, so `data/design-intelligence.js` was never
+        # parsed — and it had an unescaped apostrophe (`the brand's`) that
+        # terminated a single-quoted string. The whole file failed to parse, so
+        # /design-intelligence ran none of its JavaScript, and CI was green.
+        #
+        # A hand-kept list is a list that gets forgotten; the sibling repo
+        # already learned this and replaced its own with a glob. `git ls-files`
+        # cannot omit a file that exists in the repo. All 287 tracked .js files
+        # parse today, so there is nothing to carve out.
         run: |
           set -e
-          for f in $(find api lib workers scripts -name '*.js'); do node --check "$f"; done
-          for f in auth.js sw.js chart-enhance.js table-sort.js; do [ -f "$f" ] && node --check "$f"; done
-          echo "All JS parses cleanly"
+          n=0
+          for f in $(git ls-files '*.js'); do node --check "$f"; n=$((n+1)); done
+          echo "All $n tracked .js files parse cleanly"
       - name: Function-count guard (Hobby cap = 12)
         # Vercel counts every non-_shared file under api/ as a Serverless Function.
         # The vercel.json "functions" map is OPTIONAL per-function config, so a file
