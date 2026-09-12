@@ -610,12 +610,33 @@ function logoCandidates(ctx) {
     const u = typeof lg === 'string' ? lg : (lg && (lg.url || lg.contentUrl)) || '';
     if (u) push(u, 'json-ld:Organization.logo', CONF.declared, 'schema.org Organization.logo');
   }
+  // AN ICON IS NOT A LOGO, and this bag used to conflate them.
+  //
+  // Manifest icons and apple-touch-icons were pushed at `declared`, and the
+  // site's own labelled wordmark at `strong`. rankCandidates sorts by
+  // confidence, so a 512px square PWA tile beat `<img class="logo">` every
+  // time: a real site publishing both had its APP ICON chosen as the brand
+  // logo, and that is what then went into every mailer, ad and landing page
+  // where a wordmark belongs.
+  //
+  // The site labelling an image "logo" is the strongest statement about its
+  // logo that a page can make, so that ranks first here. Square app icons are
+  // still collected — they are the right art for a favicon or an avatar — but
+  // as `icons`, their own field, and they enter the LOGO bag only as a weak
+  // last resort so a site with no labelled wordmark still gets something.
+  for (const tag of tagsOf(html, 'img')) {
+    const a = attrs(tag);
+    const hay = [a.class, a.id, a.alt, a.src, a['data-src'], a.title].join(' ').toLowerCase();
+    if (!/logo|wordmark|brandmark/.test(hay)) continue;
+    const src = a.src || a['data-src'] || a['data-srcset'] || '';
+    if (src) push(String(src).split(/\s|,/)[0], 'html:img[logo]', CONF.declared, clip(tag, 200));
+  }
   if (manifest && Array.isArray(manifest.icons)) {
     const sized = manifest.icons
       .map((ic) => ({ src: ic && ic.src, area: Math.max(0, ...String((ic && ic.sizes) || '').split(/\s+/).map((s) => { const m = /^(\d+)x(\d+)$/i.exec(s); return m ? +m[1] * +m[2] : 0; })) }))
       .filter((x) => x.src).sort((a, b) => b.area - a.area);
     for (const ic of sized.slice(0, 3)) {
-      push(absolute(ic.src, manifest.__url || url), `manifest:icons(${ic.area ? Math.round(Math.sqrt(ic.area)) + 'px' : 'unsized'})`, CONF.declared, 'web app manifest icon');
+      push(absolute(ic.src, manifest.__url || url), `manifest:icons(${ic.area ? Math.round(Math.sqrt(ic.area)) + 'px' : 'unsized'})`, CONF.weak, 'web app manifest icon - a square app tile, not a wordmark');
     }
   }
   const head = headOf(html);
@@ -623,20 +644,122 @@ function logoCandidates(ctx) {
     const a = attrs(tag);
     const rel = String(a.rel || '').toLowerCase();
     if (!a.href) continue;
-    if (/apple-touch-icon/.test(rel)) push(a.href, 'link:apple-touch-icon', CONF.strong, tag);
-    else if (/(^|\s)mask-icon(\s|$)/.test(rel)) push(a.href, 'link:mask-icon', CONF.strong, tag);
+    if (/apple-touch-icon/.test(rel)) push(a.href, 'link:apple-touch-icon', CONF.weak, tag);
+    else if (/(^|\s)mask-icon(\s|$)/.test(rel)) push(a.href, 'link:mask-icon', CONF.weak, tag);
     else if (/(^|\s)(icon|shortcut icon)(\s|$)/.test(rel)) push(a.href, 'link:icon(favicon)', CONF.weak, tag);
-  }
-  // <img> whose own attributes say "logo". Strong: the site labelled it.
-  for (const tag of tagsOf(html, 'img')) {
-    const a = attrs(tag);
-    const hay = [a.class, a.id, a.alt, a.src, a['data-src'], a.title].join(' ').toLowerCase();
-    if (!/logo|wordmark|brandmark/.test(hay)) continue;
-    const src = a.src || a['data-src'] || a['data-srcset'] || '';
-    if (src) push(String(src).split(/\s|,/)[0], 'html:img[logo]', CONF.strong, clip(tag, 200));
   }
   if (meta['og:image']) push(meta['og:image'], 'opengraph:og:image', CONF.weak, 'og:image is often a share card, not a logo');
   if (meta['twitter:image']) push(meta['twitter:image'], 'meta:twitter:image', CONF.weak, 'twitter:image is often a share card, not a logo');
+  return out.filter(Boolean);
+}
+
+/**
+ * The brand's ICON SET, as its own field rather than mixed into the logo bag.
+ *
+ * A favicon, an apple-touch-icon and a manifest icon are square marks for a
+ * tab, a home screen and an app tile. They are the right art for an avatar or
+ * a favicon and the WRONG art where a wordmark belongs, which is why they are
+ * reported separately with their declared size and purpose instead of being
+ * ranked against the logo.
+ *
+ * Sizes are taken from what the site DECLARED (`sizes`, the manifest's own
+ * field). Nothing is measured: reading the pixel dimensions would mean
+ * fetching every image, and a declared size that turns out to be wrong is the
+ * site's statement, reported as such.
+ */
+function iconCandidates(ctx) {
+  const { html, url, manifest, hosts } = ctx;
+  const out = [];
+  const push = (raw, signal, conf, evidence, extra) => {
+    const abs = absolute(raw, url);
+    if (!abs || !/^https?:/i.test(abs)) return;
+    const off = !siteCrawl.inScope(abs, hosts);
+    out.push(cand(abs, signal, url, conf, evidence,
+      Object.assign({ off_origin: off, host: off ? hostOf(abs) : '' }, extra || {})));
+  };
+  const px = (sizes) => {
+    const n = Math.max(0, ...String(sizes || '').split(/\s+/)
+      .map((t) => { const m = /^(\d+)x(\d+)$/i.exec(t); return m ? Math.min(+m[1], +m[2]) : 0; }));
+    return n || null;
+  };
+  if (manifest && Array.isArray(manifest.icons)) {
+    for (const ic of manifest.icons) {
+      if (!ic || !ic.src) continue;
+      push(absolute(ic.src, manifest.__url || url), 'manifest:icons', CONF.declared,
+        'web app manifest icon', { size_px: px(ic.sizes), sizes: ic.sizes || '', purpose: ic.purpose || '', mime: ic.type || '' });
+    }
+  }
+  for (const tag of tagsOf(headOf(html), 'link')) {
+    const a = attrs(tag);
+    const rel = String(a.rel || '').toLowerCase();
+    if (!a.href) continue;
+    if (/apple-touch-icon/.test(rel)) push(a.href, 'link:apple-touch-icon', CONF.declared, tag, { size_px: px(a.sizes), sizes: a.sizes || '', purpose: 'ios-home-screen' });
+    else if (/(^|\s)mask-icon(\s|$)/.test(rel)) push(a.href, 'link:mask-icon', CONF.declared, tag, { size_px: null, purpose: 'safari-pinned-tab', color: a.color || '' });
+    else if (/(^|\s)(icon|shortcut icon)(\s|$)/.test(rel)) push(a.href, 'link:icon', CONF.declared, tag, { size_px: px(a.sizes), sizes: a.sizes || '', purpose: 'favicon', mime: a.type || '' });
+  }
+  return out.filter(Boolean);
+}
+
+/**
+ * The brand's own IMAGERY, so generation has real photographs to work from
+ * instead of a marker.
+ *
+ * Only images the site published about ITSELF: its share card, the images its
+ * own structured data attaches to a product or article, and in-content <img>
+ * that carry real alt text. Everything records the page it was found on, so an
+ * operator can see which product a photograph belongs to.
+ *
+ * DELIBERATE EXCLUSIONS. Anything already collected as a logo or an icon (a
+ * wordmark is not photography). Sprites, spacers, tracking pixels and data:
+ * URIs. Off-origin images are kept but FLAGGED: a CDN on another host is
+ * normal, and a hotlinked stock photo is not the brand's to use, and this
+ * module cannot tell those apart - so it reports the host and lets the
+ * operator decide rather than silently adopting it.
+ */
+function imageCandidates(ctx) {
+  const { html, url, meta, ld, hosts } = ctx;
+  const out = [];
+  const seen = new Set();
+  const JUNK = /(sprite|spacer|pixel|1x1|blank|placeholder|loading|skeleton|tracking)/i;
+  const push = (raw, signal, conf, evidence, extra) => {
+    const first = String(raw || '').split(/\s|,/)[0];
+    const abs = absolute(first, url);
+    if (!abs || !/^https?:/i.test(abs)) return;      // skips data: and inline
+    if (JUNK.test(abs)) return;
+    const k = abs.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    const off = !siteCrawl.inScope(abs, hosts);
+    out.push(cand(abs, signal, url, conf, evidence,
+      Object.assign({ off_origin: off, host: off ? hostOf(abs) : '' }, extra || {})));
+  };
+
+  // Structured data the site attached to a product or article: the strongest
+  // statement that an image belongs to a specific thing it sells.
+  for (const n of ld) {
+    if (!n || typeof n !== 'object') continue;
+    const type = String(n['@type'] || '').toLowerCase();
+    if (!/product|article|offer|imageobject/.test(type)) continue;
+    const imgs = Array.isArray(n.image) ? n.image : (n.image ? [n.image] : []);
+    for (const im of imgs) {
+      const u = typeof im === 'string' ? im : (im && (im.url || im.contentUrl)) || '';
+      if (u) push(u, `json-ld:${n['@type']}.image`, CONF.declared, `structured data for ${clip(n.name || type, 80)}`, { subject: n.name || '', kind: 'product' });
+    }
+  }
+  if (meta['og:image']) push(meta['og:image'], 'opengraph:og:image', CONF.strong, 'the page share card', { kind: 'share-card' });
+  if (meta['twitter:image']) push(meta['twitter:image'], 'meta:twitter:image', CONF.strong, 'the page share card', { kind: 'share-card' });
+
+  // In-content <img> with real alt text. No alt means the site itself treats it
+  // as decoration, and decoration is not brand imagery.
+  for (const tag of tagsOf(html, 'img')) {
+    const a = attrs(tag);
+    const hay = [a.class, a.id, a.alt, a.src, a.title].join(' ').toLowerCase();
+    if (/logo|wordmark|brandmark|icon|favicon/.test(hay)) continue;   // logo/icon fields own these
+    const alt = String(a.alt || '').trim();
+    if (!alt) continue;
+    const src = a.src || a['data-src'] || a['data-srcset'] || a.srcset || '';
+    if (src) push(src, 'html:img[alt]', CONF.strong, clip(tag, 200), { alt, kind: 'content' });
+  }
   return out.filter(Boolean);
 }
 
@@ -1860,7 +1983,7 @@ async function extractBrand(startUrl, opts) {
   }
 
   // ── per-page collection.
-  const bags = { name: [], tagline: [], logo: [], social: [], claims: [], legal: [], docs: [], sightings: [], unparsed: new Map(), regions: new Map(), currencies: [], samples: [] };
+  const bags = { name: [], tagline: [], logo: [], icons: [], images: [], social: [], claims: [], legal: [], docs: [], sightings: [], unparsed: new Map(), regions: new Map(), currencies: [], samples: [] };
   let typography = { heading: [], body: [], mono: [], font_faces: [], google_font_links: [] };
   let typeScale = null;
   let designTokens = null;
@@ -1882,6 +2005,11 @@ async function extractBrand(startUrl, opts) {
     bags.name.push(...nameCandidates(ctx));
     bags.tagline.push(...taglineCandidates(ctx));
     bags.logo.push(...logoCandidates(ctx));
+    // Collected on EVERY page, not just the home page: a product photograph
+    // lives on the product page, and imagery is the one field where the
+    // interesting rows are never on the front door.
+    bags.icons.push(...iconCandidates(ctx));
+    bags.images.push(...imageCandidates(ctx));
     bags.social.push(...socialCandidates(ctx));
     bags.claims.push(...claimCandidates(ctx));
     const legal = legalCandidates(ctx);
@@ -1929,6 +2057,27 @@ async function extractBrand(startUrl, opts) {
       candidates: [],
     },
     logo: Object.assign(fieldOf(bags.logo, 'logo URL'), { inline_svg: inlineSvg }),
+    // Icons and imagery are SETS, not a single winning value, so they are
+    // reported as ranked lists rather than through fieldOf(). An operator
+    // picking a favicon wants to see the sizes on offer; one briefing a
+    // creative wants the photographs, each with the page it came from.
+    icons: (() => {
+      const ranked = rankCandidates(bags.icons, 24);
+      return ranked.length
+        ? { candidates: ranked, count: ranked.length,
+            note: 'Square app marks (favicon, home-screen, manifest). Sizes are what the site DECLARED; nothing was measured. These are not the logo - see `logo`.' }
+        : { candidates: [], count: 0, marker: MARKER('icons') };
+    })(),
+    images: (() => {
+      const ranked = rankCandidates(bags.images, 60);
+      const offOrigin = ranked.filter((c) => c.off_origin).length;
+      return ranked.length
+        ? { candidates: ranked, count: ranked.length, off_origin_count: offOrigin,
+            note: 'The brand\'s own published imagery, each row carrying the page it was found on. '
+              + (offOrigin ? offOrigin + ' are hosted off-origin: a CDN is normal and a hotlinked stock photo is not the brand\'s to use, and this cannot tell them apart, so they are flagged rather than adopted. ' : '')
+              + 'Logos and icons are excluded - they have their own fields.' }
+        : { candidates: [], count: 0, marker: MARKER('brand imagery') };
+    })(),
     palette: {
       proposed: palette.proposed,
       sources: palette.sources,
@@ -2151,7 +2300,7 @@ module.exports = {
   cssRulesets, customProperties, splitDecls, declsOf, selectorRole, tokenNameRole, propWeight,
   colourSightings, rankColours, proposePalette,
   // fields
-  nameCandidates, taglineCandidates, logoCandidates, inlineSvgLogo, typographyCandidates, designTokenCandidates,
+  nameCandidates, taglineCandidates, logoCandidates, iconCandidates, imageCandidates, inlineSvgLogo, typographyCandidates, designTokenCandidates,
   typeScaleCandidates, typeSlot, sizeInPx, rootFontSize, isSimpleSelector,
   socialCandidates, claimCandidates, legalCandidates, regionCandidates, voiceSamples,
   googleFontLinks, primaryFamily, blockTexts, trustRanges,

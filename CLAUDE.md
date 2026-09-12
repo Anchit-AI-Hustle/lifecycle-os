@@ -442,6 +442,9 @@ which is why it survived so long.
   this repo, not by reading the parser, and each is mutation-verified.
 
 ## ⭐ Signed out is a usable state, not a locked one (2026-08-30, supersedes the section below)
+(See the CORRECTION in the section below: the backend was PAUSED by an org-wide billing hold, not
+deleted. What follows is unaffected — an unreachable backend is unreachable whatever the cause.)
+
 `auth.js` -> the login wall is GONE. `gateSignedOut()` opens every page for a signed-out visitor
 whether or not the backend is reachable; `injectSignedOutNotice(kind)` explains which of four states
 this is. Gated by `tests/signed-out-usable.spec.js` (9 tests) in both repos.
@@ -478,17 +481,29 @@ this is. Gated by `tests/signed-out-usable.spec.js` (9 tests) in both repos.
 
 ## ⭐ A login wall that defends nothing (2026-08-30)
 `auth.js` -> `gateSignedOut()` + `injectNoBackendNotice()`, gated by `tests/signed-out-usable.spec.js`
-(both repos). The Supabase project this app pointed at was deleted, so `<ref>.supabase.co` went
-NXDOMAIN. Every page that is not the homepage, a legal page or the Studio then showed a login wall
-nobody could get past, because getting past it needs the very project that no longer exists. **The
-whole product became unreachable, not gated.**
+(both repos). `<ref>.supabase.co` went NXDOMAIN, so every page that is not the homepage, a legal page
+or the Studio showed a login wall nobody could get past: getting past it needs the very project that
+was not answering. **The whole product became unreachable, not gated.**
+
+**CORRECTION (2026-09-12): the project was never deleted — it was PAUSED, and the whole org was.**
+This section originally recorded "the Supabase project was deleted", concluded from the NXDOMAIN
+result alone. Checked against the Supabase API on 2026-09-12: `fswdwmkgggzyxrdzabnh` exists, Postgres
+17.6.1.155, `status: INACTIVE`, with every table, all 18 SQL functions and all 74 RLS policies intact.
+**A paused project and a deleted one are indistinguishable from the network** — same NXDOMAIN, same
+dead `/auth/v1/authorize` — which is exactly why `auth.js` says "deleted, renamed or paused" and
+never picks one. The diagnosis was already correct IN THE CODE and was not applied to the
+measurement. The actual cause is org-wide: `restore_project` returns `PaymentRequiredException` —
+unpaid invoices on the Vercel-provisioned org (`vercel_icfg_…`), which is why all 8 projects paused
+together rather than one timing out. **Nothing here needed migrating to Neon or anything else; it
+needed an invoice settling.** The lesson is the one this file keeps recording: a signal that two
+causes share does not identify either, and "the host does not resolve" is that kind of signal.
 - **A wall keeps unauthorised people away from DATA.** With no reachable backend there is no session
   to obtain and no query that can succeed, so there is nothing on the other side to protect. It cost
   every feature and defended nothing. So the app opens, unauthenticated, on whatever local state it
   has, and SAYS so.
 - **The case that mattered was the one that looked configured.** Two states reach the same dead end:
   no `SUPABASE_URL` at all, and — the state production was actually left in — the env var still SET
-  and still naming the deleted project. In the second, `config` is truthy, so every "is it
+  and still naming a project that is not answering. In the second, `config` is truthy, so every "is it
   configured" check passed, the wall went up reading *"Sign in to continue"* with no cause named, and
   the button navigated the browser to a host that does not resolve. **Fixing only the unconfigured
   branch would have left the live deployment exactly as broken as it was found** — and the first
