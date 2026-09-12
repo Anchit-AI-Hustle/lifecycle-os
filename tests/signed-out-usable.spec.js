@@ -2,8 +2,8 @@
  * A signed-out visitor is never blocked, anywhere.
  * ---------------------------------------------------------------------------
  * WHY. auth.js walled every page that was not the homepage, a legal page or the
- * Studio. When the Supabase project was deleted that wall became unpassable —
- * getting past it needed the very project that no longer existed — and the
+ * Studio. When the Supabase backend stopped answering that wall became unpassable —
+ * getting past it needed the very project that was not answering — and the
  * whole product was unreachable rather than gated. The wall is now gone
  * outright: signed out is a usable state, not a locked one.
  *
@@ -20,8 +20,9 @@
  * FOUR SIGNED-OUT STATES, each told apart because they need different words —
  * and only three of them are anyone's to fix:
  *   - unconfigured: no SUPABASE_URL at all.
- *   - CONFIGURED BUT GONE: the env var still set, still naming the deleted
- *     project. `config` is therefore truthy, so every "is it configured" check
+ *   - CONFIGURED BUT NOT ANSWERING: the env var still set, still naming a
+ *     project that does not resolve - paused, renamed or deleted look identical
+ *     from here. `config` is therefore truthy, so every "is it configured" check
  *     passed and the wall used to go up reading "Sign in to continue" with no
  *     cause named, over a button that navigated to a host that does not
  *     resolve. This is the state production was actually left in.
@@ -84,7 +85,11 @@ async function open(page, file, { config, reachable = true }) {
     if (/\/auth\/v1\/health/.test(route.request().url())) {
       return reachable
         ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
-        : route.abort('addressunreachable');   // what a deleted project looks like
+        // What a PAUSED project looks like, and a deleted one, and a renamed one:
+        // the network cannot tell them apart, which is why the notice names all
+        // three rather than picking one. (The real outage turned out to be a
+        // pause from an org-wide billing hold - see CLAUDE.md's correction.)
+        : route.abort('addressunreachable');
     }
     if (route.request().resourceType() !== 'script') return route.abort('failed');
     // An ESM import needs a MODULE back. Returning a classic script made
@@ -132,7 +137,10 @@ async function open(page, file, { config, reachable = true }) {
 const NO_BACKEND = { ok: true };                                     // no supabase key at all
 const WITH_BACKEND = { supabase: { url: 'https://live.supabase.co', anonKey: 'anon' } };
 // The state production was actually left in: the env var is still set, it just
-// names a project that no longer exists.
+// names a host that does not resolve. The real cause turned out to be a PAUSE
+// from an org-wide billing hold, not a deletion - indistinguishable over the
+// network, which is the point. The fixture host keeps its blunt name because
+// what is being tested is the unreachability, not the reason.
 const DEAD_BACKEND = { supabase: { url: 'https://deleted-project.supabase.co', anonKey: 'anon' } };
 
 async function wallShown(page) {
