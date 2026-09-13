@@ -402,6 +402,56 @@ and nothing uses `!important`, so a page that needs its own treatment still over
   strength until the cursor leaves — a white slab over the content.
 - Every one of those four defects is mutation-verified: restoring it fails the gate.
 
+## ⭐ Which store is this, and did we read all of it (2026-09-13)
+`api/_shared/storefront-detect.js` + `site-crawl.js` -> `robotsInfo()`/`readSitemaps()`, gated by
+`tests/storefront-and-sitemap.spec.js` (15 tests). Setup-from-URL could read a brand's colours,
+typography, voice, claims, logo, icons, imagery, legal entity and regions. It could not answer the
+one question every competing onboarding flow opens with, and the one an operator checks first:
+**which store is this.** Three defects, all found by RUNNING the pipeline, none visible from reading it.
+- **The platform was never detected.** A fixture declaring Shopify FOUR ways - `<meta
+  name="generator" content="Shopify">`, `Shopify.shop = "…myshopify.com"`, a `cdn.shopify.com`
+  script and `class="shopify-section"` - produced a report containing the string "shopify" **zero
+  times**. Not cosmetic: `importCatalog` established the catalogue route by firing `/products.json`
+  and reading the failure, so every non-Shopify store paid a wasted request and its owner was told
+  *"Public product feed not available at that URL"* - a sentence true of every WooCommerce,
+  BigCommerce and Magento store on earth, which reads as a fault in their site. Now 14 platforms from
+  what the site PUBLISHES about itself (generator tag, the platform's own global object, its own CDN
+  host, its own namespaced classes), each with source URL and confidence. **A platform name in PROSE
+  is not a declaration** - a blog post titled "why we left Shopify" would otherwise make every agency
+  site a Shopify store. A CMS is reported BESIDE the commerce platform, never instead of it: a
+  WooCommerce site is a WordPress site, and collapsing them routes its import as if it had no store.
+  Two commerce platforms at once is reported as a conflict, not resolved.
+- **Detecting a platform does not conjure a feed for it.** Only Shopify's `/products.json` is an
+  endpoint this repo may call, and it already calls it; every other platform routes to the site crawl
+  and `catalogRouteFor()` says so in a sentence that does not imply the operator's store is broken.
+  Same rule as an unverified adapter endpoint: never add one a platform's docs did not give you.
+- **The site's own URL list was fetched and thrown away.** `site-crawl` fetched `robots.txt` on every
+  run and its parser read `user-agent` and `disallow` and discarded the rest - including the
+  `Sitemap:` directive pointing at the site's own declaration of its own pages. Measured on a
+  20-product fixture whose home page links ONE product (the normal shape of a store: the rest live
+  behind a paginated grid a depth-limited walk never unrolls): **1 of 20 products found, then 20 of
+  20.** `Sitemap:` is GROUP-INDEPENDENT in the spec and conventionally sits ABOVE the first
+  `User-agent` line, so reading it inside the `inStar` gate - right beside `disallow`, where it looks
+  correct - discards it on the commonest robots.txt layout there is.
+- **A page count is not coverage.** "14 pages read" is excellent coverage of a 14-page site and 2% of
+  a 700-page one. `coverage_note` now states both, and `sitemap.checked:false` (a resumed batch) is
+  kept distinct from `found:false` (the site publishes none).
+- **`brand-extract` had never honoured robots.txt.** It wraps its fetcher to keep non-HTML out of the
+  page reader - correct, and necessary, so a stylesheet is never parsed as a page. `robots.txt` is
+  `text/plain`, so every robots.txt read as unreachable, the disallow list came back empty, and the
+  user-agent this module sends ("respects robots.txt") was not true for it. Nothing errored; the rule
+  simply stopped applying one layer above where it was implemented. **`robots.txt` and `sitemap.xml`
+  are not pages**, so they take their own `assetFetch` parameter, defaulting to `fetchImpl` - which
+  is byte-for-byte what every existing caller already got.
+- **Scope is re-checked on the sitemap URLs THEMSELVES.** `robots.txt` may legally declare a sitemap
+  on another host; fetching one would take another company's URL list as this brand's, the same
+  worst-case as following an off-site link, arrived at without following one. A `Disallow` still
+  applies to a sitemap-declared URL, as a prefix rule - a sitemap is the site saying "these are my
+  pages", not the site withdrawing a Disallow.
+- One crawl serves both readers: `robots.txt` and `sitemap.xml` are fetched exactly once, and the
+  platform is detected from the pages the crawl already read. No second crawler, no extra request.
+- All four fixes are mutation-verified: restoring each defect fails the gate.
+
 ## ⭐ A brand's typography is its SCALE, not two family names (2026-08-27)
 `api/_shared/brand-extract.js` → `typeScaleCandidates()`, gated by `tests/brand-type-scale.spec.js`.
 Setup-from-URL read font FAMILIES and stopped. Both the extractor and the context pack said so in as

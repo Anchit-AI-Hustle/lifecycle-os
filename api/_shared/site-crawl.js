@@ -240,16 +240,25 @@ function linksFrom(html, pageUrl, hosts) {
 // ── robots.txt ──────────────────────────────────────────────────────────────
 
 /**
- * A minimal, conservative robots check. It reads the `*` group only and honours
- * Disallow prefixes. Anything it cannot parse is treated as allowed, because
- * this only ever visits the operator's OWN site at their request - but the
- * declared rules are still respected rather than ignored outright.
+ * A minimal, conservative robots read. It honours the `*` group's Disallow
+ * prefixes, and it collects the `Sitemap:` directives. Anything it cannot parse
+ * is treated as allowed, because this only ever visits the operator's OWN site
+ * at their request - but the declared rules are still respected rather than
+ * ignored outright.
+ *
+ * `Sitemap:` is GROUP-INDEPENDENT in the robots.txt spec: it applies to the
+ * whole file and is conventionally written at the top, BEFORE the first
+ * `User-agent` line. Reading it inside the `inStar` gate — the obvious place to
+ * put it, right beside `disallow` — would therefore silently discard it on the
+ * most common robots.txt layout there is. It is read outside the gate, and this
+ * comment is here because the gated version looks correct.
  */
-async function disallowedPaths(origin, fetchImpl, timeoutMs) {
+async function robotsInfo(origin, fetchImpl, timeoutMs) {
+  const out = { disallow: [], sitemaps: [], read: false };
   try {
     const r = await fetchImpl(origin + '/robots.txt', timeoutMs);
-    if (!r || !r.ok || !r.body) return [];
-    const rules = [];
+    if (!r || !r.ok || !r.body) return out;
+    out.read = true;
     let inStar = false;
     for (const line of String(r.body).split('\n')) {
       const s = line.split('#')[0].trim();
@@ -258,10 +267,112 @@ async function disallowedPaths(origin, fetchImpl, timeoutMs) {
       const k = rawK.trim().toLowerCase();
       const v = rest.join(':').trim();
       if (k === 'user-agent') inStar = (v === '*');
-      else if (inStar && k === 'disallow' && v) rules.push(v);
+      else if (k === 'sitemap' && v) out.sitemaps.push(v);
+      else if (inStar && k === 'disallow' && v) out.disallow.push(v);
     }
-    return rules;
-  } catch (_) { return []; }
+    return out;
+  } catch (_) { return out; }
+}
+
+/** Kept for callers that only ever wanted the Disallow prefixes. */
+async function disallowedPaths(origin, fetchImpl, timeoutMs) {
+  return (await robotsInfo(origin, fetchImpl, timeoutMs)).disallow;
+}
+
+// ── sitemaps ────────────────────────────────────────────────────────────────
+
+/**
+ * A SITE'S OWN LIST OF ITS OWN URLs.
+ *
+ * Without this, coverage is whatever a breadth-first walk of the home page's
+ * navigation reaches inside `maxDepth`, and a store with hundreds of products
+ * behind a paginated collection grid contributes the handful of products that
+ * happen to be on page one. The site already publishes the answer, in a
+ * standard it chose to publish it in (sitemaps.org), and `robots.txt` — which
+ * this crawler already fetches on every run — conventionally points straight at
+ * it. It was being fetched, parsed, and thrown away.
+ *
+ * Scope is re-checked on every single URL, including the sitemap URLs
+ * themselves: `robots.txt` may legally declare a sitemap on another host, and
+ * fetching one would take another company's URL list as this brand's. A
+ * sitemap is a claim about a site, not a licence to leave it.
+ *
+ * One level of `<sitemapindex>` is followed, which is the shape every large
+ * site uses. Deeper nesting is legal and vanishingly rare; it is capped rather
+ * than recursed so a malformed or hostile index cannot fan out.
+ */
+const SITEMAP_LIMITS = {
+  maxSitemaps: 6,        // the index plus its children
+  maxUrls: 3000,         // declared URLs kept from all sitemaps combined
+};
+
+/** `<loc>` values, entity-decoded. Nothing else in a sitemap is a URL. */
+function locsFrom(xml) {
+  const out = [];
+  for (const m of String(xml || '').matchAll(/<loc\b[^>]*>([\s\S]*?)<\/loc>/gi)) {
+    const v = m[1]
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
+      .trim();
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+const isSitemapIndex = (xml) => /<sitemapindex\b/i.test(String(xml || ''));
+
+async function readSitemaps(origin, declared, fetchImpl, opts) {
+  const o = opts || {};
+  const hosts = o.hosts;
+  const timeoutMs = o.timeoutMs || 8000;
+  const notes = [];
+  const sources = [];
+  const urls = [];
+  const seenSitemap = new Set();
+
+  // Declared first. Only when robots.txt names none do we try the conventional
+  // location - a site that declares its sitemaps has told us where they are,
+  // and guessing a seventh is not an improvement on being told.
+  const queue = (declared && declared.length ? declared.slice() : [origin + '/sitemap.xml'])
+    .map((u) => absolute(u, origin))
+    .filter(Boolean);
+  const guessed = !(declared && declared.length);
+
+  let fetched = 0;
+  while (queue.length && fetched < SITEMAP_LIMITS.maxSitemaps) {
+    const sm = queue.shift();
+    if (!sm || seenSitemap.has(sm)) continue;
+    seenSitemap.add(sm);
+    if (!inScope(sm, hosts)) { notes.push(`skipped (sitemap off-origin): ${sm}`); continue; }
+
+    fetched += 1;
+    let r;
+    try { r = await fetchImpl(sm, timeoutMs); } catch (_) { r = null; }
+    if (!r || !r.ok || !r.body) {
+      // A guessed /sitemap.xml that is not there is the normal case and is not
+      // worth a note; a sitemap robots.txt DECLARED and did not serve is.
+      if (!guessed) notes.push(`unreachable sitemap (${(r && r.status) || 0}): ${sm}`);
+      continue;
+    }
+    // A sitemap reached by an off-origin redirect is off-origin, same rule the
+    // page crawl applies to the URL that ANSWERED rather than the one asked for.
+    const landed = r.url || sm;
+    if (landed !== sm && !inScope(landed, hosts)) { notes.push(`skipped (sitemap redirected off-origin): ${sm} -> ${landed}`); continue; }
+
+    const body = String(r.body);
+    const locs = locsFrom(body);
+    sources.push({ url: sm, kind: isSitemapIndex(body) ? 'index' : 'urlset', declared: locs.length });
+    if (isSitemapIndex(body)) { for (const child of locs) queue.push(absolute(child, sm)); continue; }
+    for (const loc of locs) {
+      const abs = absolute(loc, sm);
+      if (abs) urls.push(abs);
+      if (urls.length >= SITEMAP_LIMITS.maxUrls) break;
+    }
+    if (urls.length >= SITEMAP_LIMITS.maxUrls) { notes.push(`sitemap URL cap (${SITEMAP_LIMITS.maxUrls}) reached; later entries were not read.`); break; }
+  }
+
+  return { found: sources.length > 0, guessed, sources, urls, notes };
 }
 
 // ── Crawl ───────────────────────────────────────────────────────────────────
@@ -332,13 +443,32 @@ async function crawlSite(startUrl, opts) {
     ? (u, ms) => o.fetchImpl(u, ms)
     : (u, ms) => defaultFetch(u, ms, o.userAgent);
 
+  // ROBOTS.TXT AND SITEMAP.XML ARE NOT PAGES.
+  //
+  // `robots.txt` is text/plain and a sitemap is XML. A caller that wraps
+  // `fetchImpl` to keep non-HTML out of its page reader - which brand-extract
+  // does, and must, so a stylesheet is never parsed as a page - was thereby
+  // also filtering these two, and BOTH silently failed: every robots.txt read
+  // as unreachable, so the disallow list came back empty and the crawler's own
+  // user-agent string ("respects robots.txt") was not true for that caller.
+  // Nothing errored; the rule simply stopped applying one layer above where it
+  // was implemented.
+  //
+  // So the non-page fetcher is its own parameter. It defaults to `fetchImpl`,
+  // which is exactly what every existing caller already got.
+  const assetFetch = o.assetFetch
+    ? (u, ms) => o.assetFetch(u, ms)
+    : fetchImpl;
+
   const start = absolute(startUrl, startUrl);
   if (!start || !inScope(start, hosts)) {
     return { ok: false, error: 'start_url_out_of_scope', offerings: [], images: [], pages: [], hosts: [...hosts] };
   }
 
-  let robots = [];
-  try { robots = await disallowedPaths(new URL(start).origin, fetchImpl, o.perRequestMs); } catch (_) {}
+  const origin = new URL(start).origin;
+  let robotsRead = { disallow: [], sitemaps: [], read: false };
+  try { robotsRead = await robotsInfo(origin, assetFetch, o.perRequestMs); } catch (_) {}
+  const robots = robotsRead.disallow;
   const blockedByRobots = (u) => {
     try {
       const p = new URL(u).pathname;
@@ -366,6 +496,42 @@ async function crawlSite(startUrl, opts) {
   const offerings = [];
   const images = [];
   const notes = [];
+
+  // ── the site's own URL list.
+  //
+  // Only on a FRESH crawl. A resumed batch arrives with the frontier the first
+  // batch persisted, which already carries whatever the sitemap contributed;
+  // re-reading it would re-queue pages batch one has visited and spend the
+  // budget arriving where it started.
+  //
+  // Seeded at depth 1, which is the truthful model: the sitemap asserts these
+  // pages belong to the site, exactly as a link from the home page would, so
+  // they expand onward under the same `maxDepth` a linked page gets. Depth 0
+  // would hand them a level of expansion the home page itself does not have.
+  let sitemap = { found: false, checked: false, sources: [], declared: 0, seeded: 0 };
+  if (!seeded.length && o.sitemap !== false) {
+    const sm = await readSitemaps(origin, robotsRead.sitemaps, assetFetch, { hosts, timeoutMs: o.perRequestMs });
+    notes.push(...sm.notes);
+    let added = 0;
+    for (const u of sm.urls) {
+      if (seen.has(u)) continue;
+      if (!inScope(u, hosts)) continue;
+      if (SKIP_EXT.test(u) || SKIP_PATH.test(u)) continue;
+      seen.add(u);
+      queue.push({ url: u, depth: 1 });
+      added += 1;
+    }
+    sitemap = {
+      found: sm.found,
+      checked: true,
+      // "robots.txt named these" and "we tried the conventional location" are
+      // different levels of evidence and are not flattened into one boolean.
+      from: sm.guessed ? 'conventional /sitemap.xml' : 'robots.txt Sitemap directive',
+      sources: sm.sources,
+      declared: sm.urls.length,
+      seeded: added,
+    };
+  }
 
   while (queue.length && pages.length < o.maxPages && Date.now() < deadline) {
     const { url, depth } = queue.shift();
@@ -434,6 +600,11 @@ async function crawlSite(startUrl, opts) {
     ok: true,
     start, hosts: [...hosts],
     pages, pages_visited: pages.length, stopped,
+    // What the site declared about its own URLs, and what that contributed.
+    // `found:false` after `checked:true` means the site publishes no sitemap;
+    // `checked:false` means this was a resumed batch that inherited a frontier.
+    // Neither is "the site has no other pages", and they are not the same thing.
+    sitemap,
     // What was still queued when the budget ran out. A caller that persists
     // this and feeds it back as `frontier` resumes exactly here; a caller that
     // ignores it behaves as it always did.
@@ -444,12 +615,20 @@ async function crawlSite(startUrl, opts) {
     // Said out loud rather than implied: a crawl that stopped early has seen
     // part of the site, and a caller that treats it as the whole catalogue
     // would silently drop offerings.
-    coverage_note: stopped === 'exhausted'
+    coverage_note: (stopped === 'exhausted'
       ? 'Every reachable page within the configured depth was visited.'
-      : `Stopped on the ${stopped === 'time_box' ? 'time box' : 'page limit'} after ${pages.length} pages. This is a PARTIAL view of the site; raise maxPages or maxDepth, or re-run, before treating it as the full catalogue.`,
+      : `Stopped on the ${stopped === 'time_box' ? 'time box' : 'page limit'} after ${pages.length} pages. This is a PARTIAL view of the site; raise maxPages or maxDepth, or re-run, before treating it as the full catalogue.`)
+      // A page count means something different depending on where the URLs came
+      // from. "40 of 40 pages" off a home-page walk and "40 of 812 the site
+      // declares" are the same number and opposite statements about coverage,
+      // and only the second one tells the operator to raise the budget.
+      + (sitemap.found && sitemap.declared
+        ? ` The site's own sitemap declares ${sitemap.declared} URL(s); ${sitemap.seeded} were in scope and queued, and ${pages.length} page(s) were read within the budget.`
+        : (sitemap.checked ? ' The site publishes no sitemap this reader could read, so coverage is whatever its interlinked pages reach within the depth limit.' : '')),
   };
 }
 
 module.exports = {
   crawlSite, extract, linksFrom, allowedHosts, inScope, jsonLdBlocks, metaTags, DEFAULTS,
+  robotsInfo, disallowedPaths, readSitemaps, locsFrom, isSitemapIndex, SITEMAP_LIMITS,
 };
