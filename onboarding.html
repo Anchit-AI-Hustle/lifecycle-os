@@ -1135,13 +1135,53 @@
     return out;
   }
 
+  /* WHICH STORE IS THIS.
+     The first thing an operator checks, and the last thing this page learned to
+     say. It is a REPORT, not a value with a Use button: there is no brand field
+     to apply it to, and what it actually drives is the catalogue route, which
+     the importer records on catalog_source.platform when it runs.
+     "Not detected" is printed in the extractor's own words, because a site that
+     publishes no fingerprint has said nothing about whether it is a store, and
+     rendering that as "no store found" would invent the fact. */
+  function xStorefrontBlock() {
+    var s = extraction && extraction.fields && extraction.fields.storefront;
+    if (!s) return '';
+    var head = s.detected
+      ? '<span class="xtag ' + esc(s.platform.confidence) + '">' + esc(s.platform.confidence) + '</span>' +
+        '<b>' + esc(s.platform.name) + '</b>' +
+        (s.platform.store_handle ? ' <span class="xsrc" style="display:inline">' + esc(s.platform.store_handle) + '</span>' : '')
+      : '<span class="xtag weak">not declared</span><b>No platform declared itself</b>';
+    var cms = s.detected && s.cms && s.cms.id !== s.platform.id
+      ? '<div class="xsrc">Also running on ' + esc(s.cms.name) + ' - ' + esc(s.cms.why) + '.</div>' : '';
+    var conflict = (s.conflicts || []).length
+      ? '<div class="xsrc"><span class="xtag flag">conflict</span>' + esc(s.conflicts[0].message) + '</div>' : '';
+    return '<div class="xrow"><div class="xlabel">Store</div><div class="xbody">' +
+      '<div class="xval">' + head + '</div>' +
+      '<div class="xsrc">' + esc(s.note) + '</div>' +
+      (s.detected ? '<div class="xsrc">Seen on ' + esc(s.platform.source_url) + '</div>' : '') +
+      cms + conflict +
+      '<div class="xsrc"><b>Catalogue route:</b> ' + esc(s.catalog_route.note) + '</div>' +
+      '</div></div>';
+  }
+
+  /* A page count means nothing on its own. "14 pages read" is excellent coverage
+     of a 14-page site and 2% of a 700-page one, and only the site's own sitemap
+     can tell the two apart. */
+  function xCoverageLine() {
+    var sm = extraction && extraction.sitemap;
+    if (!sm || !sm.checked) return '';
+    if (!sm.found) return ' This site publishes no sitemap, so coverage is whatever its interlinked pages reach.';
+    return ' Its sitemap (' + esc(sm.from) + ') declares ' + sm.declared + ' URL(s), ' + sm.seeded + ' of them in scope.';
+  }
+
   function xPanel(key) {
     if (extractError && key === 'brand') {
       return '<div class="xtract"><h3>Could not read that site</h3><div class="xmeta">' + esc(extractError) + '</div></div>';
     }
     if (!extraction || !extraction.ok) return '';
     var body = key === 'brand'
-      ? xRow('Brand name', extraction.fields.name, 'name') +
+      ? xStorefrontBlock() +
+        xRow('Brand name', extraction.fields.name, 'name') +
         xRow('Tagline', extraction.fields.tagline, 'tagline') +
         xRow('Logo', extraction.fields.logo, 'logo',
           extraction.fields.logo.value && extraction.fields.logo.candidates[0] && extraction.fields.logo.candidates[0].off_origin
@@ -1170,7 +1210,8 @@
     // rewrite the evidence the operator is being asked to approve.
     return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
       '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
-        ' stylesheet(s) read. ' + esc(extraction.coverage_note) + ' Nothing below is applied until you press Use.</div>' +
+        ' stylesheet(s) read. ' + esc(extraction.coverage_note) + xCoverageLine() +
+        ' Nothing below is applied until you press Use.</div>' +
       diag +
       '<div style="margin-top:10px">' + body + '</div>' +
       (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
@@ -1180,7 +1221,7 @@
 
   function extractBlock() {
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
-      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
+      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
       '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
         '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(brand.website || '') + '">' +
         '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +

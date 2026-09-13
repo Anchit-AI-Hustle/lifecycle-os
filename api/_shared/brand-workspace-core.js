@@ -891,7 +891,16 @@ async function rowsFromSite(startUrl, region, brand) {
   // to bounce this onto an internal one.
   const base = await assertPublicUrl(candidate);
 
-  const out = await crawlSite(base, { brand: brand || { website: base } });
+  // The crawl is already reading every page; the platform the store runs on is
+  // published on those same pages. Detecting it here costs no extra request and
+  // turns "we tried /products.json and it 502'd" into a statement about the
+  // store: a WooCommerce shop does not publish that feed and never will, and
+  // telling its owner their feed is unavailable reads as a fault in their site.
+  const storefrontPages = [];
+  const out = await crawlSite(base, {
+    brand: brand || { website: base },
+    onPage: (html, url) => { if (storefrontPages.length < 12) storefrontPages.push([url, html]); },
+  });
   if (!out.ok) {
     const e = new Error(out.error === 'start_url_out_of_scope'
       ? 'That URL is not on this brand\'s own domain. A catalogue may only be crawled from the brand\'s own site.'
@@ -925,11 +934,15 @@ async function rowsFromSite(startUrl, region, brand) {
 
   return {
     rows, base,
+    storefront: require('./storefront-detect.js').detectStorefront(storefrontPages),
     // Carried through so the caller can surface it rather than presenting a
     // partial crawl as the whole catalogue.
     crawl: {
       pages_visited: out.pages_visited, stopped: out.stopped,
       coverage_note: out.coverage_note, images: out.images, notes: out.notes,
+      // What the site declared about its own URLs. "40 pages read" and "40 of
+      // the 812 this site declares" are the same number and opposite claims.
+      sitemap: out.sitemap || null,
     },
   };
 }
@@ -1313,9 +1326,22 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
   if (!parsed.rows.length) {
     // Say which routes were tried, so the answer is actionable rather than a
     // dead end: the operator can paste a CSV instead, or fix the feed.
-    const tried = (k === 'storefront' || k === 'shopify_public')
+    //
+    // And name the PLATFORM when the crawl identified one. "Public product feed
+    // not available at that URL" is true of every WooCommerce, BigCommerce and
+    // Magento store on earth and reads as a fault in the operator's site; the
+    // useful sentence is which platform they are on and what that platform
+    // actually publishes.
+    const sf = parsed && parsed.storefront;
+    let tried = (k === 'storefront' || k === 'shopify_public')
       ? ' Tried the public product feed and then crawled the site\'s own pages for declared product data.'
       : '';
+    if (sf && sf.detected) {
+      tried += ` This site is ${sf.platform.name} (${sf.platform.why}). ${sf.catalog_route.note}`
+        + ' Nothing here is a fault in your store: it means the pages that were read declare no structured product data, so add it, or import a CSV.';
+    } else if (k === 'storefront' || k === 'site' || k === 'site_crawl') {
+      tried += ' No commerce platform declared itself on the pages that were read, so there was no feed to prefer and the site crawl was the only route.';
+    }
     const e = new Error('No usable product rows were found in that source.' + tried);
     e.status = 400; throw e;
   }
@@ -1361,6 +1387,7 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     }
   }
 
+  const sf = parsed && parsed.storefront;
   const source = {
     kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
     url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
@@ -1369,6 +1396,15 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     batch,
     region: reg,
     columns: parsed.columns || {},
+    // WHICH STORE THIS CAME FROM. Recorded on the workspace row the generators
+    // read, so the answer is established once instead of re-derived by a failed
+    // request on every import. Null when the crawl route was not taken or the
+    // site published no platform signal — which is not the same as "no store".
+    platform: sf && sf.detected
+      ? { id: sf.platform.id, name: sf.platform.name, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind }
+      : null,
+    sitemap: (parsed.crawl && parsed.crawl.sitemap) || null,
+    coverage_note: (parsed.crawl && parsed.crawl.coverage_note) || '',
   };
   await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(workspace_id)}`, {
     method: 'PATCH', body: { catalog_source: source }, prefer: 'return=minimal',
