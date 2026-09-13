@@ -1704,6 +1704,9 @@ async function stageExtract(store, pack, ctx) {
       manifest_url: report.manifest_url,
       stopped: report.stopped,
       coverage_note: report.coverage_note,
+      // What the site declared about its own URLs, so a pack's page count can
+      // be read as coverage rather than as an unqualified number.
+      sitemap: report.sitemap || null,
       fields: report.fields,
       // The audit trail: which option each field took, out of how many, on what
       // signal, and whether it was computed rather than read.
