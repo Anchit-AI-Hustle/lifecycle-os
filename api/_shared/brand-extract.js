@@ -71,6 +71,7 @@
  */
 
 const siteCrawl = require('./site-crawl.js');
+const storefront = require('./storefront-detect.js');
 
 /**
  * Budgets. api/public-config.js runs with maxDuration 120s, and this whole
@@ -1893,6 +1894,13 @@ async function extractBrand(startUrl, opts) {
 
   const crawl = await siteCrawl.crawlSite(startUrl, {
     brand, fetchImpl: pageFetch, rank,
+    // robots.txt is text/plain and a sitemap is XML, so BOTH were being thrown
+    // away by `pageFetch`'s HTML filter above: every robots.txt read as
+    // unreachable here, which meant this module never honoured a Disallow rule
+    // in its whole life, despite the crawler implementing it correctly and the
+    // user-agent it sends saying it does. Nothing errored - the filter is for
+    // pages and these are not pages.
+    assetFetch: rawFetch,
     maxPages: o.maxPages, maxDepth: o.maxDepth,
     perRequestMs: o.perRequestMs, totalMs: o.totalMs, userAgent: o.userAgent,
     onPage: (html, url) => { if (pages.size < o.maxPages) pages.set(url, html); },
@@ -2051,6 +2059,12 @@ async function extractBrand(startUrl, opts) {
   const fields = {
     name: fieldOf(bags.name, 'brand name'),
     tagline: fieldOf(bags.tagline, 'tagline'),
+    // WHICH STORE IS THIS. Read from the pages the crawl already fetched, so it
+    // costs no request. It was measurably absent: a fixture declaring Shopify
+    // four separate ways produced a report containing the string "shopify"
+    // zero times. It also decides the catalogue route, which importCatalog was
+    // otherwise establishing by trying /products.json and reading the failure.
+    storefront: storefront.detectStorefront(pageList),
     website: {
       value: homeUrl, source_url: homeUrl, signal: 'crawl:resolved home page', confidence: CONF.declared,
       evidence: homeUrl === crawl.start ? 'The URL you supplied.' : `You supplied ${crawl.start}, which resolved to this page.`,
@@ -2161,6 +2175,10 @@ async function extractBrand(startUrl, opts) {
     manifest_url: manifest ? manifest.__url : '',
     stopped: crawl.stopped,
     coverage_note: crawl.coverage_note,
+    // What the site declared about its own URLs. An operator reading "14 pages"
+    // needs to know whether that is the whole site or 14 of 812, and only this
+    // can tell them.
+    sitemap: crawl.sitemap || null,
     fields,
     markers: [...new Set(markers)],
     limits,
