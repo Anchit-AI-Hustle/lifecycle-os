@@ -1,0 +1,35 @@
+# TLS in front of the gateway. Layer on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml [--profile local-db] up -d
+#
+# Caddy answers on 80/443 for ${PROXY_DOMAIN}, obtains and renews a Let's
+# Encrypt certificate by itself, and forwards everything to Kong on 8000.
+# Kong's own host ports are withdrawn so the only way in is through TLS.
+# The Studio dashboard keeps Kong's basic-auth; Google OAuth needs the https
+# origin, which is the point of this file.
+
+services:
+  kong:
+    ports: []
+
+  caddy:
+    container_name: supabase-caddy
+    image: caddy:2.10.0
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    depends_on:
+      kong:
+        condition: service_healthy
+    environment:
+      PROXY_DOMAIN: ${PROXY_DOMAIN}
+    volumes:
+      - ./volumes/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

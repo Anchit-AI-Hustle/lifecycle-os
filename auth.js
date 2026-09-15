@@ -2034,9 +2034,12 @@
     if (!(await authHostReachable(cfg.url))) {
       let host = cfg.url;
       try { host = new URL(cfg.url).host; } catch (_) { /* show the raw value */ }
+      // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
+      // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
+      // its URL from that value and never assumes a *.supabase.co host.
       return 'The sign-in service for this deployment cannot be reached (' + host + ' does not resolve). '
-        + 'Its Supabase project has been deleted or renamed. Set SUPABASE_URL and SUPABASE_ANON_KEY in the '
-        + 'Vercel project to a live project, then reload.';
+        + 'Its Supabase project has been deleted, renamed or paused, or the self-hosted stack is down. '
+        + 'Set SUPABASE_URL and SUPABASE_ANON_KEY in the Vercel project to a live backend, then reload.';
     }
     rememberReturnTo();
     const { error } = await client.auth.signInWithOAuth({

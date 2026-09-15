@@ -261,11 +261,20 @@ module.exports = async function handler(req, res) {
   }
 
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
+  // CONFIGURATION BEATS THE CHECKED-IN FILE. This used to read `ldb.url ||
+  // process.env.SUPABASE_URL`, so every browser was handed whatever project
+  // data/linked-db.json named — a hosted ref that later paused — no matter
+  // what the deployment's SUPABASE_URL said. brain-core.js had the same
+  // ordering defect and was fixed first; this is the browser-facing twin.
+  // Self-hosting depends on it: the URL the app dials must be the one the
+  // env var names, whether that is a *.supabase.co host or your own box.
+  // The file is kept only as a last resort for a clone with no env at all,
+  // and it now ships EMPTY, so nothing is baked in either way.
   const ldb = linkedDb();
   return res.status(200).json({
     supabase: {
-      url: ldb.url || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      anonKey: ldb.anonKey || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ldb.url || '',
+      anonKey: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ldb.anonKey || '',
     },
     app: { name: 'Lifecycle OS', version: '1.0.0', regions: ['US', 'UK', 'Global', 'IN'] },
     flags: { real_facts_only: String(process.env.REAL_FACTS_ONLY || '') === '1' },

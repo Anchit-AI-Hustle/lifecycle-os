@@ -4,6 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Hosted Supabase is a deployment choice, not an assumption (2026-09-15) — read `docs/self-hosted-supabase.md`
+`selfhost/` + `scripts/selfhost-*` run the same open-source services Supabase hosts (Postgres,
+PostgREST, GoTrue, Storage, Realtime, postgres-meta, Studio, behind Kong 2.8.1), pinned to the image
+set upstream shipped together on 2026-09-15, trimmed to what this app calls (no Logflare/Vector,
+edge-runtime, Supavisor or imgproxy). Switching is three Vercel env vars (`SUPABASE_URL`,
+`SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) plus the Google OAuth redirect URI
+`https://<host>/auth/v1/callback`. ONE compose serves two modes: `DB_MODE=local` (the `db` service,
+behind a `local-db` profile) or `DB_MODE=external` (Neon as the database; `depends_on: db` is
+`required: false` so the file needs no editing). Gated by `tests/self-hosted-supabase.spec.js`.
+- **`ANON_KEY`/`SERVICE_ROLE_KEY` are JWTs signed with `JWT_SECRET`**, claims
+  `{role, iss:"supabase", iat, exp}` — `scripts/selfhost-keys.js`, verified with independent Node
+  crypto and against upstream's own shipped demo keys. A "random string" here is a silent 401.
+- **A checked-in constant outranked the environment in the browser-facing route.**
+  `api/public-config.js` read `ldb.url || process.env.SUPABASE_URL`, so every visitor was handed
+  the paused hosted project no matter what the deployment said — the defect `brain-core.js` had
+  already fixed on the server, arriving through the other door. `services.js` and `os-backbone.js`
+  paired an env URL with the FILE's key (a guaranteed 401). Env first everywhere; `data/linked-db.json`
+  now ships EMPTY (third baked-in ref to go stale here). The test PLANTS a pinned file via
+  `process.cwd()` to prove the env wins — with the shipped empty file a regression is invisible.
+- **Timestamp order is not name order.** `20260719_ci_subscriptions.sql` (8-digit prefix, midnight)
+  sorts AFTER `20260719140000_…` by name because `_` > any digit. The applier pads to 14 digits;
+  the ledger is keyed by file name because three prefixes (`20260609`, `20260610`, `20260703`) are
+  used twice, which rules out the CLI's `schema_migrations`. `COMBINED_RUN_THIS.sql` holds 8 of 58
+  migrations — measured, pinned, not used.
+- **A managed Postgres has no superuser, and that is the whole shape of external mode.** Postgres lets
+  only a superuser create a `BYPASSRLS` role, so on Neon `service_role` is RLS-filtered (the bootstrap
+  warns, `selfhost-check.js` reports it, the runbook gives the lead). Realtime's README says its
+  migrations need a superuser and its self-host seed hardcodes `ssl_enforced: false`, so Realtime on
+  Neon is "confirm on your project" — the app degrades to polling (`credits.js` 60 s,
+  `reports/dashboard.html` 5 min). PostgREST with `PGRST_DB_USE_LEGACY_GUCS=false` sets
+  `request.jwt.claims`, NOT `request.jwt.claim.sub`; the upstream init-script `auth.uid()` reads
+  only the latter and would deny everyone — the bootstrap reads both.
+- **Nothing was booted.** Docker was present but image pulls were denied by egress policy and no Neon
+  project was reachable; the runbook says exactly what was executed (compose validated by Docker
+  Compose itself, byte-identical to the kit's own parser; keys; ordering; guards; auth.js in
+  Chromium against `https://db.example.org`) and what was not (any container, any real database).
+
 ## ⭐⭐ It is now a UNIVERSAL brand platform (2026-08-09) — read `docs/universal-brand-platform.md`
 This is no longer a single-brand app. Any signed-in user onboards their own brand and the whole app
 runs as that brand for them. Three layers, none of which added a serverless function (still 12/12 —
