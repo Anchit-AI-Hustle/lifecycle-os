@@ -72,6 +72,7 @@
 
 const siteCrawl = require('./site-crawl.js');
 const storefront = require('./storefront-detect.js');
+const softError = require('./soft-error-detect.js');
 
 /**
  * Budgets. api/public-config.js runs with maxDuration 120s, and this whole
@@ -1915,12 +1916,34 @@ async function extractBrand(startUrl, opts) {
       fields: {}, markers: [], limits,
     };
   }
-  // A crawl that succeeded and read NOTHING is the one outcome an operator
-  // cannot act on without being told why. The crawl already knows - it recorded
-  // the status of every attempt - so the reason is classified here rather than
-  // flattened to "no page could be read", which is the same sentence for a
-  // typo, a robots rule and a bot filter.
-  const diagnosis = pages.size ? null : diagnoseEmptyCrawl(startUrl, crawl);
+  // IS THIS EVEN THE BRAND'S PAGE?
+  //
+  // A status code cannot answer that. A site that refuses datacenter addresses
+  // and non-browser readers answers with a SOFT ERROR - a maintenance page, a
+  // bot challenge, an "access denied" - delivered as HTTP 200. The crawl then
+  // succeeds, and everything below reads that page as the brand: one live run
+  // returned the brand name "Site Maintenance" and the tagline "Oops! Something
+  // went wrong", each with a real source URL and an honest confidence. Nothing
+  // was invented, which is what makes it the worst output this pipeline has -
+  // a fabricated identity wearing real provenance.
+  //
+  // Blocked pages are REMOVED from the list the collectors walk, not flagged.
+  // Flagging leaves every collector free to read them and puts the defect back
+  // the first time an `if` is forgotten downstream.
+  const integrity = softError.assessPages([...pages.entries()]);
+  for (const v of integrity.blocked) {
+    notes.push(`not this brand's own page, so nothing was read from it (${v.reason}): ${v.url} served ${v.served}.`);
+  }
+
+  // Two different outcomes, kept apart. A crawl that read NOTHING is diagnosed
+  // from the crawl's own record of every attempt; a crawl that read pages and
+  // found none of them to be the brand's is diagnosed from what was SERVED.
+  // Both produce the same {reason, message, next_steps} shape, because the
+  // operator's question is the same one either way.
+  const pageList = integrity.usable;
+  const diagnosis = !pages.size
+    ? diagnoseEmptyCrawl(startUrl, crawl)
+    : (pageList.length ? null : softError.diagnoseSoftError(startUrl, integrity, { userAgent: o.userAgent }));
   if (diagnosis) notes.push(diagnosis.message);
 
   // The home page is the FIRST page the crawl actually read, not the URL that
@@ -1928,14 +1951,17 @@ async function extractBrand(startUrl, opts) {
   // redirects (http to https, `/` to `/en-gb`, a trailing slash added): every
   // page then compares unequal, nothing is treated as home, and the whole
   // CSS-derived palette and typography silently disappear from the report.
-  const pageList = [...pages.entries()];
   const homeUrl = pageList.length ? pageList[0][0] : crawl.start;
 
   // ── manifest + stylesheets, once, from the pages we actually read.
   let manifest = null;
   const sheetUrls = [];
   const inlineSheets = [];
-  for (const [url, html] of pages) {
+  // `pageList`, not `pages`: a refused page's own <style> block and its linked
+  // stylesheets are the block page's design system, and a palette or a type
+  // scale read off a Cloudflare interstitial is the same fabrication as a brand
+  // name read off it.
+  for (const [url, html] of pageList) {
     const head = headOf(html);
     for (const tag of tagsOf(head, 'link')) {
       const a = attrs(tag);
@@ -2168,8 +2194,13 @@ async function extractBrand(startUrl, opts) {
     ok: true,
     start: homeUrl,
     hosts: [...hosts],
-    pages: [...pages.keys()],
-    pages_visited: pages.size,
+    // The pages this report was BUILT FROM. A page the site served but that was
+    // not the site (a bot wall, a maintenance holding page, a soft 404) is not
+    // in here and did not contribute a single field - it is listed separately,
+    // under `integrity`, with what it served.
+    pages: pageList.map(([u]) => u),
+    pages_visited: pageList.length,
+    pages_fetched: pages.size,
     stylesheets: fetchedSheets.map((s) => s.url),
     inline_style_blocks: inlineSheets.length,
     manifest_url: manifest ? manifest.__url : '',
@@ -2179,12 +2210,34 @@ async function extractBrand(startUrl, opts) {
     // needs to know whether that is the whole site or 14 of 812, and only this
     // can tell them.
     sitemap: crawl.sitemap || null,
+    // Which of the pages the site served were actually the site. `checked` is
+    // asserted on by the gate for a reason: a check that inspects nothing
+    // passes everything, so the number of pages examined is part of the answer.
+    integrity: {
+      checked: integrity.checked,
+      usable: pageList.length,
+      blocked: integrity.blocked.map((v) => ({
+        url: v.url, reason: v.reason, confidence: v.confidence, served: v.served,
+        title: v.title, h1: v.h1, vendor: v.vendor,
+        signals: v.signals.map((s) => ({
+          kind: s.kind, phrase: s.phrase || s.vendor || '', tier: s.tier || '',
+          weight: s.weight, where: s.where, evidence: s.evidence, why: s.why,
+        })),
+      })),
+      note: integrity.any_blocked
+        ? 'Some of what this site served was not the site: an error, maintenance or bot-challenge page delivered as HTTP 200. Nothing on those pages contributed a brand field; they are listed above with what they served.'
+        : 'Every page read published content of its own. None of them was an error, maintenance or bot-challenge page.',
+    },
     fields,
     markers: [...new Set(markers)],
     limits,
     notes: notes.concat(crawl.notes || []).slice(0, 60),
-    // Present ONLY when nothing was read, and the single thing the page should
-    // show first in that case.
+    // Present ONLY when there is no usable page - either nothing was read at
+    // all, or everything that was read turned out to be somebody's error
+    // template. It is the single thing the page should show first in that case,
+    // ABOVE the empty fields: an empty report with no explanation reads as "this
+    // brand publishes nothing", which is a different and much worse statement
+    // than "your site did not show us its real content".
     diagnosis,
   };
 }
