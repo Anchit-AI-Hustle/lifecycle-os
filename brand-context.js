@@ -93,7 +93,9 @@
     };
   }
 
-  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false };
+  // `mode` is where brand records live for this visitor right now: 'server'
+  // (the account) or 'device' (this browser). See "Where a brand is stored".
+  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false, mode: '' };
   var listeners = [];
   var readyResolve;
   var readyPromise = new Promise(function (r) { readyResolve = r; });
@@ -142,6 +144,627 @@
   }
   function clearCache() {
     try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     WHERE A BRAND IS STORED: THE ACCOUNT, OR THIS DEVICE (2026-09-15)
+
+     Found on the live deployment. The database is paused, the app opens
+     signed-out and says so - and then the first screen of the product could
+     not finish: "Save as draft", "Activate" and the "Your brands" panel all
+     ended in "The database is unreachable". Every command on the wizard was an
+     error, so the wizard was unusable, which is the 2026-08-30 "login wall
+     that defends nothing" one layer up: nothing was being protected, the
+     operator's own typing was simply being thrown away.
+
+     So a brand has two places it can live:
+       server  - brand_workspaces, through the API, for a signed-in account
+                 with a reachable database. Exactly as before.
+       device  - localStorage (DEVICE_KEY), for everyone else: no database
+                 configured, a database that does not answer, or a reachable
+                 one this visitor has no session for. Rows are shaped exactly
+                 like server rows, ids carry the `local-` prefix, and each is
+                 stamped storage:'device' so nothing downstream has to guess.
+
+     THE DECISION IS NOT MADE HERE. auth.js already answers "is there a
+     backend, and am I signed in to it" (its probe, its session, the notice
+     bar), and publishes that answer as LifecycleAuth.backend. This file reads
+     it. A second reachability check here would be two implementations of one
+     question, which drift - the defect this repo keeps recording.
+
+     What never happens on the device path: a request to the server. The rows
+     are written and read locally, activation paints the same --brand-* tokens
+     the server path paints (the maths below mirrors api/_shared/
+     brand-workspace-core.js and tests/onboarding-without-backend.spec.js
+     asserts the two agree), and validatePalette() gates activation exactly as
+     the server's buildRow() does. Nothing is written to the account
+     unauthenticated, LifecycleAuth.internal stays false, and the server's own
+     gate is untouched. Once a signed-in, reachable session exists, device rows
+     are OFFERED for sync through the ordinary save op - never uploaded
+     silently, and the device copy stays until the account row exists.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  var DEVICE_KEY = 'lifecycle.brand.device.workspaces';
+  var DEVICE_PREFIX = 'local-';
+  // The brand ops that have a device implementation. Everything else (extract,
+  // suggest, catalog-import, context-*) is the server's, and each of those is
+  // rendered as a DISABLED control with its reason by the wizard when it cannot
+  // run - not routed here to fail.
+  var DEVICE_OPS = { list: 1, active: 1, get: 1, save: 1, activate: 1, delete: 1 };
+  // Which of auth.js's backend kinds means "there is no account to write to".
+  var KIND_DEVICE = { unconfigured: 1, unreachable: 1, sdk: 1, 'signed-out': 1 };
+  // How long to wait for auth.js to decide before falling back to the server
+  // path, which is what every page did before this existed. The gate's own
+  // hard deadline is 6s; this sits just past it so a slow SDK load still gets
+  // its answer in.
+  var MODE_DEADLINE_MS = 8000;
+
+  function authBackend() {
+    try { var a = window.LifecycleAuth; return (a && a.backend) || null; } catch (_) { return null; }
+  }
+  function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
+  function modeFor(kind) { return KIND_DEVICE[kind] ? 'device' : 'server'; }
+  /** '' while auth.js has not decided (or is absent). */
+  function knownMode() { var k = authKind(); return (k && k !== 'pending') ? modeFor(k) : ''; }
+
+  /**
+   * The mode, once auth.js has decided it. A page with no auth.js at all (a
+   * harness, a bare fixture) has nobody to ask and takes the server path
+   * immediately - that is byte-for-byte what it did before.
+   */
+  function resolveMode() {
+    var m = knownMode();
+    if (m) return Promise.resolve(m);
+    if (!window.__LifecycleAuthBooted) return Promise.resolve('server');
+    return new Promise(function (resolve) {
+      var settled = false, timer;
+      function settle(mode) {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('lifecycleauth:backend', onEvent);
+        clearTimeout(timer);
+        resolve(mode);
+      }
+      function onEvent() { var got = knownMode(); if (got) settle(got); }
+      timer = setTimeout(function () { settle(knownMode() || 'server'); }, MODE_DEADLINE_MS);
+      window.addEventListener('lifecycleauth:backend', onEvent);
+      onEvent();
+    });
+  }
+
+  /* ── colour maths and normalisation, mirroring brand-workspace-core.js ────
+     The server derives the shell's tokens from the operator's palette; a
+     device brand has no server to ask, so the same derivation runs here. Each
+     function is a line-for-line port of its namesake in
+     api/_shared/brand-workspace-core.js, and the parity test drives both over
+     the same palettes so the copies cannot drift apart unnoticed. */
+
+  var HEX_RX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+  var PALETTE_ROLES = ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted', 'ok', 'warn', 'err'];
+  var TEXT_AA = 4.9;
+
+  function str(v, max) { var s = String(v == null ? '' : v).trim(); return max ? s.slice(0, max) : s; }
+  function arr(v, max) {
+    if (!Array.isArray(v)) return [];
+    return v.map(function (x) { return typeof x === 'string' ? x.trim() : x; })
+      .filter(function (x) { return x !== '' && x != null; }).slice(0, max || 200);
+  }
+  function slugify(v) {
+    return String(v == null ? '' : v).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  }
+  function httpUrl(v) {
+    var s = str(v, 500);
+    if (!s) return '';
+    try {
+      var u = new URL(s.indexOf('http') === 0 ? s : 'https://' + s);
+      return (u.protocol === 'http:' || u.protocol === 'https:') ? u.toString().replace(/\/$/, '') : '';
+    } catch (_) { return ''; }
+  }
+  function normHex(v) {
+    var s = String(v == null ? '' : v).trim();
+    if (!s) return '';
+    if (s.charAt(0) !== '#') s = '#' + s;
+    if (!HEX_RX.test(s)) return '';
+    if (s.length === 4) s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+    return s.toLowerCase();
+  }
+  function rgbOf(hex) {
+    var h = normHex(hex) || '#000000';
+    return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  }
+  function luminance(hex) {
+    var chan = rgbOf(hex).map(function (v) { var s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); });
+    return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
+  }
+  function contrast(a, b) {
+    var la = luminance(a), lb = luminance(b);
+    var hi = Math.max(la, lb), lo = Math.min(la, lb);
+    return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
+  }
+  function saturation(hex) {
+    var c = rgbOf(hex).map(function (v) { return v / 255; });
+    var mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]);
+    if (mx === mn) return 0;
+    var l = (mx + mn) / 2;
+    return l > 0.5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn);
+  }
+  function isDarkNeutral(hex) {
+    var h = normHex(hex);
+    if (!h) return false;
+    return luminance(h) < 0.12 && saturation(h) < 0.25;
+  }
+  function shade(hex, t) {
+    var target = t >= 0 ? 255 : 0, amt = Math.abs(t);
+    return '#' + rgbOf(hex).map(function (v) { return Math.round(v + (target - v) * amt); })
+      .map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+  }
+  function readableOn(bg, ink, surface, surfaceAlt) {
+    var candidates = [ink || '#111111', surface || '#ffffff', surfaceAlt]
+      .filter(Boolean).filter(function (c, i, a) { return a.indexOf(c) === i; });
+    var best = candidates[0], bestC = -1;
+    for (var i = 0; i < candidates.length; i++) {
+      var r = contrast(bg, candidates[i]);
+      if (r > bestC) { bestC = r; best = candidates[i]; }
+    }
+    return best;
+  }
+  function readableAsText(color, bg, target) {
+    var want = target || 4.5;
+    var c = normHex(color);
+    var surface = normHex(bg) || '#ffffff';
+    if (!c) return '#111111';
+    if (contrast(c, surface) >= want) return c;
+    var dir = luminance(surface) > 0.5 ? -1 : 1;
+    for (var t = 0.05; t <= 1.0001; t += 0.05) {
+      var candidate = shade(c, dir * t);
+      if (contrast(candidate, surface) >= want) return candidate;
+    }
+    return dir < 0 ? '#000000' : '#ffffff';
+  }
+
+  function normalizePalette(input) {
+    var src = input && typeof input === 'object' ? input : {};
+    var out = {};
+    PALETTE_ROLES.forEach(function (role) { var hex = normHex(src[role]); if (hex) out[role] = hex; });
+    var extra = Array.isArray(src.extra) ? src.extra : [];
+    var cleanExtra = [];
+    extra.slice(0, 12).forEach(function (e) {
+      var hex = normHex(e && e.hex), name = str(e && e.name, 32);
+      if (hex && name) cleanExtra.push({ name: name, hex: hex });
+    });
+    if (cleanExtra.length) out.extra = cleanExtra;
+    return out;
+  }
+  function normalizeFont(f, fallback) {
+    var src = f && typeof f === 'object' ? f : {};
+    var family = str(src.family, 64);
+    if (!family) return null;
+    return {
+      family: family,
+      stack: str(src.stack, 200) || ("'" + family + "'," + fallback),
+      google: src.google !== false,
+      weights: str(src.weights, 40) || '400;600;700',
+    };
+  }
+  function normalizeTypography(input) {
+    var src = input && typeof input === 'object' ? input : {};
+    var out = {};
+    var heading = normalizeFont(src.heading, 'Georgia,serif');
+    var body = normalizeFont(src.body, 'system-ui,-apple-system,Segoe UI,sans-serif');
+    var mono = normalizeFont(src.mono, 'ui-monospace,SFMono-Regular,Menlo,monospace');
+    if (heading) out.heading = heading;
+    if (body) out.body = body;
+    if (mono) out.mono = mono;
+    return out;
+  }
+  function normalizeVoice(input) {
+    var src = input && typeof input === 'object' ? input : {};
+    return {
+      tone: str(src.tone, 400),
+      preferred: arr(src.preferred, 80).map(function (s) { return str(s, 60); }),
+      banned: arr(src.banned, 120).map(function (s) { return str(s, 60); }),
+      no_em_dashes: src.no_em_dashes !== false,
+      notes: str(src.notes, 2000),
+    };
+  }
+  function normalizeRegions(input) {
+    if (!Array.isArray(input)) return [];
+    var out = [];
+    input.slice(0, 24).forEach(function (r) {
+      var code = str(r && r.code, 12).toUpperCase();
+      if (!code) return;
+      out.push({
+        code: code,
+        currency: str(r.currency, 8).toUpperCase(),
+        symbol: str(r.symbol, 4),
+        store_url: httpUrl(r.store_url),
+        pdp_pattern: str(r.pdp_pattern, 200) || '{base}/products/{handle}',
+        collection_pattern: str(r.collection_pattern, 200) || '{base}/collections/{slug}',
+      });
+    });
+    return out;
+  }
+  function normalizeHosts(input, regions) {
+    var set = [];
+    function add(h) { if (h && set.indexOf(h) < 0) set.push(h); }
+    arr(input, 40).forEach(function (h) { add(str(h, 200).replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase()); });
+    (regions || []).forEach(function (r) {
+      if (!r.store_url) return;
+      try { add(new URL(r.store_url).host.toLowerCase()); } catch (_) { /* ignore */ }
+    });
+    return set;
+  }
+
+  /** Mirrors validatePalette() on the server: the design HARD rules, as errors. */
+  function validatePalette(paletteInput) {
+    var p = normalizePalette(paletteInput);
+    var errors = [], warnings = [];
+    ['primary', 'ink', 'surface'].forEach(function (role) {
+      if (!p[role]) errors.push({ field: role, message: 'Missing required colour: ' + role + '.' });
+    });
+    Object.keys(paletteInput || {}).forEach(function (k) {
+      var v = paletteInput[k];
+      if (PALETTE_ROLES.indexOf(k) >= 0 && v && !normHex(v)) errors.push({ field: k, message: '"' + v + '" is not a valid hex colour (use #RGB or #RRGGBB).' });
+    });
+    if (errors.length) return { ok: false, errors: errors, warnings: warnings, palette: p, contrast: {} };
+    var ratios = {
+      ink_on_surface: contrast(p.ink, p.surface),
+      ink_on_surface_alt: contrast(p.ink, p.surface_alt || '#ffffff'),
+      primary_on_surface: contrast(p.primary, p.surface),
+      onprimary: contrast(p.primary, readableOn(p.primary, p.ink, p.surface, p.surface_alt || '#ffffff')),
+      accent_on_surface: p.accent ? contrast(p.accent, p.surface) : null,
+      muted_on_surface: p.muted ? contrast(p.muted, p.surface) : null,
+    };
+    if (isDarkNeutral(p.surface)) errors.push({ field: 'surface', message: 'Page surface is a dark neutral (near-black). Use a light surface, or your brand primary as the dark ground — never black/#111111-style neutrals.' });
+    if (p.surface_alt && isDarkNeutral(p.surface_alt)) errors.push({ field: 'surface_alt', message: 'Card surface is a dark neutral. Use a light surface or a brand-primary tint.' });
+    if (ratios.ink_on_surface < 4.5) errors.push({ field: 'ink', message: 'Body text on the page surface is ' + ratios.ink_on_surface + ':1 — WCAG AA needs 4.5:1. Darken the ink or lighten the surface.' });
+    if (ratios.ink_on_surface_alt < 4.5) errors.push({ field: 'surface_alt', message: 'Body text on cards is ' + ratios.ink_on_surface_alt + ':1 — WCAG AA needs 4.5:1.' });
+    if (ratios.onprimary < 4.5) errors.push({ field: 'primary', message: 'Neither your ink nor your card colour reaches 4.5:1 on the primary (best is ' + ratios.onprimary + ':1). Buttons and primary bands would be unreadable.' });
+    if (ratios.primary_on_surface < 3) warnings.push({ field: 'primary', message: 'Primary on the page surface is ' + ratios.primary_on_surface + ':1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see.' });
+    if (ratios.accent_on_surface != null && ratios.accent_on_surface < 4.5) warnings.push({ field: 'accent', message: 'Accent text on the surface is ' + ratios.accent_on_surface + ':1. Keep accent for fills and rules, not body copy.' });
+    if (ratios.muted_on_surface != null && ratios.muted_on_surface < 4.5) warnings.push({ field: 'muted', message: 'Muted text on the surface is ' + ratios.muted_on_surface + ':1 — secondary copy will fail AA.' });
+    if (p.primary && p.accent && contrast(p.primary, p.accent) < 1.4) warnings.push({ field: 'accent', message: 'Primary and accent are nearly the same tone; the two will not read as distinct.' });
+    return { ok: errors.length === 0, errors: errors, warnings: warnings, palette: p, contrast: ratios };
+  }
+
+  /** Mirrors tokens() on the server: the full --brand-* set the shell paints with. */
+  function tokensFor(brand) {
+    var p = normalizePalette((brand && brand.palette) || {});
+    var primary = p.primary || '#6A33D8';
+    var accent = p.accent || primary;
+    var ink = p.ink || '#111111';
+    var surface = p.surface || '#F7F5F2';
+    var surfaceAlt = p.surface_alt || shade(surface, 0.6);
+    var muted = p.muted || shade(ink, 0.35);
+    var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+    var t = brand && brand.typography ? brand.typography : {};
+    return {
+      '--brand-primary': primary,
+      '--brand-primary-dark': shade(primary, -0.25),
+      '--brand-primary-soft': shade(primary, 0.86),
+      '--brand-primary-tint': shade(primary, 0.94),
+      '--brand-on-primary': readableOn(primary, ink, surface, surfaceAlt),
+      '--brand-primary-text': readableAsText(primary, worstSurface, TEXT_AA),
+      '--brand-accent': accent,
+      '--brand-accent-soft': shade(accent, 0.88),
+      '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
+      '--brand-accent-text': readableAsText(accent, worstSurface, TEXT_AA),
+      '--brand-ink': ink,
+      '--brand-ink-muted': readableAsText(muted, worstSurface, TEXT_AA),
+      '--brand-surface': surface,
+      '--brand-surface-alt': surfaceAlt,
+      '--brand-line': shade(ink, 0.84),
+      '--brand-line-strong': shade(ink, 0.68),
+      '--brand-ok': p.ok || '#1a7f37',
+      '--brand-warn': p.warn || '#c9a227',
+      '--brand-err': p.err || '#c0392b',
+      '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
+      '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
+      '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
+    };
+  }
+  /** Mirrors fontsHref() on the server. */
+  function fontsHrefFor(brand) {
+    var t = (brand && brand.typography) || {};
+    var families = [];
+    ['heading', 'body', 'mono'].forEach(function (slot) {
+      var f = t[slot];
+      if (!f || !f.family || f.google === false) return;
+      var fam = String(f.family).trim().replace(/\s+/g, '+');
+      var weights = String(f.weights || '400;600;700').replace(/[^0-9;]/g, '');
+      if (!fam) return;
+      var spec = weights ? 'family=' + fam + ':wght@' + weights : 'family=' + fam;
+      if (families.indexOf(spec) < 0) families.push(spec);
+    });
+    return families.length ? 'https://fonts.googleapis.com/css2?' + families.join('&') + '&display=swap' : '';
+  }
+  /**
+   * The zero-fabrication marker, in the spec's shape. `product` and `region`
+   * are named only when they apply: a brand-level gap reads
+   * "[DATA REQUIRED BEFORE LAUNCH: logo URL, <brand>]", never padded with
+   * "all, all", which reads as filler where a fact should be.
+   */
+  function launchMarker(field, ctx) {
+    var c = ctx || {};
+    var parts = [field, c.product || c.brand || 'this brand'];
+    if (c.region) parts.push(c.region);
+    return '[DATA REQUIRED BEFORE LAUNCH: ' + parts.join(', ') + ']';
+  }
+  /** Mirrors readiness() on the server. */
+  function readinessFor(brand, counts) {
+    var missing = [];
+    var b = brand || {};
+    var add = function (field, product, region) {
+      missing.push({ field: field, product: product || 'all', region: region || 'all', marker: launchMarker(field, { brand: str(b.name), product: product, region: region }) });
+    };
+    if (!str(b.name)) add('brand name');
+    if (!str(b.website)) add('brand website');
+    if (!str(b.logo_url)) add('logo URL');
+    var pv = validatePalette(b.palette || {});
+    if (!pv.ok) pv.errors.forEach(function (e) { add('palette.' + e.field); });
+    var ty = b.typography || {};
+    if (!ty.heading || !ty.heading.family) add('typography.heading');
+    if (!ty.body || !ty.body.family) add('typography.body');
+    var voice = b.voice || {};
+    if (!str(voice.tone)) add('voice.tone');
+    if (!arr(voice.banned).length) add('voice.banned phrases');
+    var regions = Array.isArray(b.regions) ? b.regions : [];
+    if (!regions.length) add('regions');
+    regions.forEach(function (r) { if (!r.store_url) add('region store URL', '', r.code); });
+    regions.forEach(function (r) { if (!r.currency) add('region currency', '', r.code); });
+    var productCount = counts && typeof counts.products === 'number' ? counts.products : null;
+    if (productCount === 0) add('product catalog');
+    var blocking = missing.filter(function (m) { return /^(brand name|palette\.|typography\.|regions$|product catalog)/.test(m.field); });
+    return {
+      ready: blocking.length === 0,
+      missing: missing,
+      markers: missing.map(function (m) { return m.marker; }),
+      palette: { errors: pv.errors, warnings: pv.warnings, contrast: pv.contrast },
+      products: productCount,
+      status_line: blocking.length === 0 ? 'BRAND READY' : 'NOT LAUNCH READY — DATA DEPENDENCY',
+    };
+  }
+  /** Mirrors shellPayload() on the server, plus the storage stamp. */
+  function shellPayloadFor(brand, extra) {
+    if (!brand) return null;
+    return Object.assign({
+      id: brand.id || null,
+      slug: brand.slug || '',
+      name: brand.name || '',
+      tagline: brand.tagline || '',
+      logo_url: brand.logo_url || '',
+      favicon_url: brand.favicon_url || '',
+      website: brand.website || '',
+      status: brand.status || 'draft',
+      onboarding_step: brand.onboarding_step || 1,
+      palette: brand.palette || {},
+      typography: brand.typography || {},
+      voice: brand.voice || {},
+      regions: brand.regions || [],
+      tokens: tokensFor(brand),
+      fonts_href: fontsHrefFor(brand),
+      storage: 'device',
+    }, extra || {});
+  }
+
+  /* ── the device store ─────────────────────────────────────────────────── */
+
+  function readDevice() {
+    var empty = { version: 1, active_id: '', workspaces: [] };
+    try {
+      var d = JSON.parse(localStorage.getItem(DEVICE_KEY) || 'null');
+      if (!d || typeof d !== 'object' || !Array.isArray(d.workspaces)) return empty;
+      return {
+        version: 1,
+        active_id: String(d.active_id || ''),
+        workspaces: d.workspaces.filter(function (w) { return w && typeof w === 'object' && isDeviceId(w.id); }),
+      };
+    } catch (_) { return empty; }
+  }
+  function writeDevice(d) {
+    try {
+      var ws = d.workspaces || [];
+      if (!ws.length && !d.active_id) { localStorage.removeItem(DEVICE_KEY); return true; }
+      localStorage.setItem(DEVICE_KEY, JSON.stringify({ version: 1, active_id: d.active_id || '', workspaces: ws }));
+      return true;
+    } catch (_) { return false; }
+  }
+  function isDeviceId(id) { return typeof id === 'string' && id.indexOf(DEVICE_PREFIX) === 0 && id.length > DEVICE_PREFIX.length; }
+  function newDeviceId() {
+    var r = '';
+    try {
+      var a = new Uint8Array(8);
+      crypto.getRandomValues(a);
+      r = Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    } catch (_) { r = Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+    return DEVICE_PREFIX + r;
+  }
+  function deviceFind(d, id) {
+    for (var i = 0; i < d.workspaces.length; i++) if (d.workspaces[i].id === id) return d.workspaces[i];
+    return null;
+  }
+  function deviceActiveRow() { var d = readDevice(); return d.active_id ? deviceFind(d, d.active_id) : null; }
+  /** A refusal shaped like the server's, so every caller's catch reads it the same way. */
+  function deviceFail(status, code, message, details) {
+    var e = new Error(message);
+    e.status = status;
+    e.code = code;
+    e.payload = { ok: false, error: code, message: message, storage: 'device' };
+    if (details) { e.details = details; e.payload.details = details; }
+    return e;
+  }
+  /** Mirrors buildRow() on the server: every field normalised, none invented. */
+  function buildDeviceRow(input, existing) {
+    var b = input && typeof input === 'object' ? input : {};
+    var prev = existing || {};
+    var name = str(b.name, 120) || str(prev.name, 120);
+    if (!name) throw deviceFail(400, 'brand_name_required', 'Brand name is required.');
+    var regions = b.regions !== undefined ? normalizeRegions(b.regions) : (prev.regions || []);
+    var now = new Date().toISOString();
+    var row = {
+      id: prev.id || newDeviceId(),
+      slug: slugify(b.slug || prev.slug || name) || ('brand-' + Date.now().toString(36)),
+      name: name,
+      legal_name: b.legal_name !== undefined ? str(b.legal_name, 200) : (prev.legal_name || null),
+      tagline: b.tagline !== undefined ? str(b.tagline, 300) : (prev.tagline || null),
+      industry: b.industry !== undefined ? str(b.industry, 120) : (prev.industry || null),
+      website: b.website !== undefined ? httpUrl(b.website) : (prev.website || null),
+      logo_url: b.logo_url !== undefined ? httpUrl(b.logo_url) : (prev.logo_url || null),
+      favicon_url: b.favicon_url !== undefined ? httpUrl(b.favicon_url) : (prev.favicon_url || null),
+      palette: b.palette !== undefined ? normalizePalette(b.palette) : (prev.palette || {}),
+      typography: b.typography !== undefined ? normalizeTypography(b.typography) : (prev.typography || {}),
+      voice: b.voice !== undefined ? normalizeVoice(b.voice) : (prev.voice || {}),
+      regions: regions,
+      asset_hosts: normalizeHosts(b.asset_hosts !== undefined ? b.asset_hosts : (prev.asset_hosts || []), regions),
+      catalog_source: b.catalog_source !== undefined && b.catalog_source && typeof b.catalog_source === 'object' ? b.catalog_source : (prev.catalog_source || {}),
+      brand_data: b.brand_data !== undefined && b.brand_data && typeof b.brand_data === 'object' ? b.brand_data : (prev.brand_data || {}),
+      status: ['draft', 'active', 'archived'].indexOf(str(b.status)) >= 0 ? str(b.status) : (prev.status || 'draft'),
+      onboarding_step: Number.isFinite(+b.onboarding_step) ? Math.max(1, Math.min(6, +b.onboarding_step)) : (prev.onboarding_step || 1),
+      owner_id: null,
+      created_at: prev.created_at || now,
+      updated_at: now,
+      storage: 'device',
+    };
+    // The same gate the server applies in buildRow(): a DRAFT may carry an
+    // incomplete palette, anything ACTIVE must pass the design rules.
+    if (row.status === 'active') {
+      var v = validatePalette(row.palette);
+      if (!v.ok) throw deviceFail(400, 'palette_invalid', 'Colour schema fails the design rules.', v.errors);
+    }
+    return row;
+  }
+  function deviceFull(row) {
+    return Object.assign({}, row, { tokens: tokensFor(row), fonts_href: fontsHrefFor(row), readiness: readinessFor(row, { products: 0 }), products: 0 });
+  }
+  function queryOf(o) {
+    try { return new URLSearchParams(String((o && o.query) || '').replace(/^[&?]/, '')); } catch (_) { return new URLSearchParams(''); }
+  }
+  /** The id an op is addressed to, when it is a device id; '' otherwise. */
+  function deviceIdIn(o) {
+    var b = (o && o.body) || {};
+    var id = (b.brand && b.brand.id) || b.id || queryOf(o).get('id') || '';
+    return isDeviceId(id) ? id : '';
+  }
+
+  /** The device implementation of the brand ops, answering in the server's shapes. */
+  async function deviceApi(op, opts) {
+    var o = opts || {};
+    var body = o.body || {};
+    var q = queryOf(o);
+    var d = readDevice();
+    var id, ws, row;
+    switch (op) {
+      case 'list':
+        return { ok: true, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), active_id: d.active_id || null, storage: 'device' };
+      case 'active':
+        ws = d.active_id ? deviceFind(d, d.active_id) : null;
+        if (!ws) return { ok: true, brand: null, needs_onboarding: d.workspaces.length === 0, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
+        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: 0 }), products: 0 }), needs_onboarding: false, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
+      case 'get':
+        id = str(q.get('id') || body.id);
+        ws = id ? deviceFind(d, id) : null;
+        if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not saved on this device.');
+        return { ok: true, brand: deviceFull(ws), storage: 'device' };
+      case 'save': {
+        var input = body.brand || body;
+        var sid = str(input && input.id);
+        var prev = sid ? deviceFind(d, sid) : null;
+        if (sid && !prev) throw deviceFail(404, 'workspace_not_found', 'That brand is not saved on this device, so it could not be updated.');
+        row = buildDeviceRow(input, prev);
+        if (prev) d.workspaces = d.workspaces.map(function (w) { return w.id === prev.id ? row : w; });
+        else d.workspaces.unshift(row);
+        // The first brand on this device becomes its active one, exactly as the
+        // first workspace an account creates becomes that account's.
+        if (!d.active_id) d.active_id = row.id;
+        if (!writeDevice(d)) throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the brand (storage is full or blocked), so nothing was saved.');
+        return { ok: true, brand: deviceFull(row), storage: 'device' };
+      }
+      case 'activate':
+        id = str(body.id || q.get('id'));
+        ws = id ? deviceFind(d, id) : null;
+        if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not saved on this device, so it could not be activated.');
+        d.active_id = id;
+        if (!writeDevice(d)) throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the change (storage is full or blocked), so nothing was activated.');
+        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: 0 }), products: 0 }), storage: 'device' };
+      case 'delete':
+        id = str(body.id || q.get('id'));
+        ws = id ? deviceFind(d, id) : null;
+        if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not on this device, so nothing was deleted.');
+        d.workspaces = d.workspaces.filter(function (w) { return w.id !== id; });
+        if (d.active_id === id) d.active_id = '';
+        writeDevice(d);
+        return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
+      default:
+        throw deviceFail(400, 'unknown_brand_operation', 'That operation has no device implementation.');
+    }
+  }
+
+  /**
+   * Everything a page needs to say where a brand would be saved right now.
+   * Synchronous, so a render can read it; `known` is false until auth.js has
+   * decided, and `mode` falls back to the server path until then.
+   */
+  function storageInfo() {
+    var b = authBackend() || {};
+    var k = authKind();
+    var known = !!(k && k !== 'pending');
+    var d = readDevice();
+    return {
+      mode: known ? modeFor(k) : (window.__LifecycleAuthBooted ? (state.mode || 'server') : 'server'),
+      known: known,
+      kind: known ? k : '',
+      reachable: known ? b.reachable : null,
+      signedIn: known ? !!b.signedIn : false,
+      host: b.host || '',
+      device_count: d.workspaces.length,
+      device_active_id: d.active_id || '',
+      // The server's own open path (brand-workspace-core.js, op=extract) applies
+      // ONLY when the backend is provably unreachable or unconfigured. A
+      // reachable backend with no session refuses, and that refusal is the
+      // gate being real - so the wizard disables the control rather than
+      // sending a request it knows will be refused.
+      server_open: k === 'unreachable' || k === 'unconfigured',
+    };
+  }
+
+  /**
+   * Upload every device row to the account through the ordinary save op.
+   * Only for a signed-in, reachable session; never called on the visitor's
+   * behalf without a click. The device copy is removed only after the account
+   * row exists, so an upload that fails leaves the brand exactly where it was.
+   */
+  async function syncDeviceToAccount() {
+    var mode = await resolveMode();
+    if (mode !== 'server') {
+      throw deviceFail(409, 'sign_in_required', 'Sign in first: brands can only be synced to an account that is reachable.');
+    }
+    var d = readDevice();
+    var out = { synced: [], failed: [], remaining: 0 };
+    var wasActive = d.active_id;
+    var activated = '';
+    for (var i = 0; i < d.workspaces.length; i++) {
+      var row = d.workspaces[i];
+      var body = Object.assign({}, row);
+      delete body.id; delete body.storage; delete body.owner_id; delete body.created_at; delete body.updated_at;
+      try {
+        var r = await serverApi('save', { body: { brand: body } });
+        if (!r || !r.brand || !r.brand.id) throw new Error('The account did not confirm the saved brand, so the device copy was kept.');
+        var now = readDevice();
+        now.workspaces = now.workspaces.filter(function (w) { return w.id !== row.id; });
+        if (now.active_id === row.id) now.active_id = '';
+        writeDevice(now);
+        out.synced.push({ from: row.id, to: r.brand.id, name: row.name });
+        if (row.id === wasActive) activated = r.brand.id;
+      } catch (e) {
+        out.failed.push({ id: row.id, name: row.name, message: (e && e.message) || 'This brand could not be uploaded.' });
+      }
+    }
+    out.remaining = readDevice().workspaces.length;
+    // What was live on this device stays live for the account, unless the
+    // account already has a brand of its own in front.
+    if (activated && !state.brand) { try { await setActive(activated); } catch (e) { log(e); } }
+    else await refresh();
+    return out;
   }
 
   /* ── painting ──────────────────────────────────────────────────────────── */
@@ -344,7 +967,22 @@
     return '';
   }
 
+  /**
+   * The brand API. A brand op addressed to a `local-` id is a device op by
+   * construction; the other brand ops go to the device store whenever auth.js
+   * says there is no account to write to (see "Where a brand is stored"), and
+   * to the server otherwise. Everything that is not a brand op (extract,
+   * suggest, catalog-import, context-*, credits) is always the server's.
+   */
   async function api(op, opts) {
+    var o = opts || {};
+    if (DEVICE_OPS[op]) {
+      if (deviceIdIn(o) || (await resolveMode()) === 'device') return deviceApi(op, o);
+    }
+    return serverApi(op, o);
+  }
+
+  async function serverApi(op, opts) {
     var o = opts || {};
     var t = token();
     var headers = { 'Content-Type': 'application/json' };
@@ -375,7 +1013,7 @@
   }
 
   function emit() {
-    var detail = { brand: state.brand, needsOnboarding: state.needsOnboarding, workspaces: state.workspaces };
+    var detail = { brand: state.brand, needsOnboarding: state.needsOnboarding, workspaces: state.workspaces, mode: state.mode };
     listeners.forEach(function (fn) { try { fn(detail); } catch (e) { log(e); } });
     try { window.dispatchEvent(new CustomEvent('brandcontext:change', { detail: detail })); } catch (_) {}
   }
@@ -453,6 +1091,9 @@
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
             ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Google</button>'
+              // Signed out is a usable state: a brand can be set up on this
+              // device now and synced to the account after signing in.
+              + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
             : '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>') +
           '<button type="button" data-gate-about style="background:transparent;color:#111;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer">About this platform</button>' +
         '</div>' +
@@ -500,14 +1141,28 @@
 
   async function refresh() {
     try {
+      var mode = await resolveMode();
       var r = await api('active');
-      state.brand = r.brand || null;
+      var fromDevice = r.storage === 'device';
+      if (r.brand) state.brand = r.brand;
+      // With no account to read, a brand this browser already holds for the
+      // account (painted from the uid-keyed cache at boot) is the last known
+      // truth and stays up: the app opens on whatever local state it has. Only
+      // the SERVER saying "no active brand" un-sets one.
+      else if (!(fromDevice && state.brand && state.brand.storage !== 'device')) state.brand = null;
       state.needsOnboarding = !!r.needs_onboarding;
       state.workspaces = r.workspaces || [];
-      state.signedOut = false;
+      state.mode = fromDevice ? 'device' : mode;
+      // Being signed out of a reachable backend is the one device state where
+      // signing in is an answer, so the gate offers it there and only there.
+      state.signedOut = fromDevice && authKind() === 'signed-out';
       state.loaded = true;
-      if (state.brand) { writeCache(state.brand); paint(state.brand); }
-      else writeCache(null);
+      if (state.brand) {
+        // The device store IS the cache for a device brand; the uid-keyed
+        // cache holds only what the account confirmed.
+        if (state.brand.storage !== 'device') writeCache(state.brand);
+        paint(state.brand);
+      } else if (!fromDevice) writeCache(null);
       emit();
       // Gate whenever there is no ACTIVE brand - having workspaces but none
       // selected is exactly the state that used to slip through.
@@ -533,7 +1188,10 @@
   async function setActive(id) {
     var r = await api('activate', { body: { id: id } });
     state.brand = r.brand || null;
-    if (state.brand) { writeCache(state.brand); paint(state.brand); }
+    if (state.brand) {
+      if (state.brand.storage !== 'device') writeCache(state.brand);
+      paint(state.brand);
+    }
     emit();
     return state.brand;
   }
@@ -547,7 +1205,14 @@
   /* ── boot ──────────────────────────────────────────────────────────────── */
 
   // 1. Paint from cache immediately so the first frame is already the brand.
+  //    The account's cache first (it is what the account confirmed); failing
+  //    that, the brand active on THIS DEVICE, so a device brand survives a
+  //    reload with no flash of the shipped default.
   var cached = readCache();
+  if (!cached) {
+    var deviceActive = deviceActiveRow();
+    if (deviceActive) cached = shellPayloadFor(deviceActive);
+  }
   if (cached) { state.brand = cached; paint(cached); }
 
   // Paint the gate BEFORE the network check resolves. Without this the page is
@@ -565,16 +1230,25 @@
   }
 
   // 2. Revalidate. Wait for auth to have a session, but never wait forever.
+  //    A decided device mode needs no token, so it does not wait for one.
   function start() {
     var tries = 0;
     (function attempt() {
-      if (token() || tries > 10) { refresh(); return; }
+      if (token() || knownMode() === 'device' || tries > 10) { refresh(); return; }
       tries++;
       setTimeout(attempt, 150);
     })();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
+
+  // 3. If auth.js changes its mind after the first read - a sign-in completing
+  //    on the OAuth callback page, a session ending mid-visit - re-read from
+  //    wherever brands now live.
+  window.addEventListener('lifecycleauth:backend', function () {
+    var m = knownMode();
+    if (m && state.loaded && m !== state.mode) refresh();
+  });
 
   // ── Workspace-scope every API call ─────────────────────────────────────
   // The server scopes reads/writes by workspace_id, falling back to the OLDEST
@@ -624,6 +1298,9 @@
         var url = (typeof input === 'string') ? input : (input && input.url) || '';
         var isApi = /^\/api\//.test(url) || url.indexOf(location.origin + '/api/') === 0;
         if (!isApi || UNSCOPED.test(url)) return origFetch.call(window, input, init);
+        // A device brand has no server workspace: stamping its `local-` id
+        // would turn "you are signed out" into "workspace not found".
+        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) return origFetch.call(window, input, init);
         if (state.brand && state.brand.id) { var g = glue(input, state.brand.id, init); return origFetch.call(window, g.input, g.init); }
         // The active brand is not resolved yet. An unstamped content request
         // would fall back to the server's DEFAULT workspace and return another
@@ -636,6 +1313,7 @@
           return new Promise(function (resolve, reject) {
             var waited = 0;
             (function poll() {
+              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { resolve(origFetch.call(self || window, input, init)); return; }
               if (state.brand && state.brand.id) { var g2 = glue(input, state.brand.id, init); resolve(origFetch.call(self || window, g2.input, g2.init)); return; }
               if (state.loaded || waited >= 8000) { resolve(origFetch.call(self || window, input, init)); return; }
               waited += 120;
@@ -709,6 +1387,7 @@
     get needsOnboarding() { return state.needsOnboarding; },
     get workspaces() { return state.workspaces; },
     get loaded() { return state.loaded; },
+    get mode() { return state.mode; },
     ready: function () { return readyPromise; },
     refresh: refresh,
     setActive: setActive,
@@ -716,6 +1395,23 @@
     api: api,
     paint: paint,
     token: token,
+    // Where a brand is stored right now, and the device store itself. The
+    // token maths is exposed so the parity test can drive the SAME functions
+    // the device path paints with, against the server's.
+    storage: storageInfo,
+    syncDeviceToAccount: syncDeviceToAccount,
+    device: {
+      KEY: DEVICE_KEY,
+      isDeviceId: isDeviceId,
+      list: function () { return readDevice().workspaces.map(function (w) { return shellPayloadFor(w); }); },
+      active: function () { return readDevice().active_id || ''; },
+      count: function () { return readDevice().workspaces.length; },
+    },
+    tokensFor: tokensFor,
+    fontsHrefFor: fontsHrefFor,
+    validatePalette: validatePalette,
+    readinessFor: readinessFor,
+    launchMarker: launchMarker,
     nouns: function (b) { return nounsFor(b || state.brand); },
     clearCache: clearCache,
     scopedKey: scoped,
