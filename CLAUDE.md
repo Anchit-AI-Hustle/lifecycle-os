@@ -439,6 +439,70 @@ and nothing uses `!important`, so a page that needs its own treatment still over
   strength until the cursor leaves — a white slab over the content.
 - Every one of those four defects is mutation-verified: restoring it fails the gate.
 
+## ⭐ A brand is saved to the account, or to THIS DEVICE - never to an error (2026-09-15)
+`brand-context.js` -> the device store (`lifecycle.brand.device.workspaces`, ids `local-*`, rows
+stamped `storage:'device'`) + `auth.js` -> `LifecycleAuth.backend` / `backendState()`; gated by
+`tests/onboarding-without-backend.spec.js` (7 tests). Found on the LIVE deployment at
+`/onboarding?step=6` with the project paused: the operator typed a brand, reached "Review and
+activate", and "Your brands" was a red YOUR BRANDS COULD NOT BE LOADED block, "Save as draft" and
+"Activate" both toasted "The database is unreachable ... nothing has been saved", and "Brand context
+pack" said "Save this brand first" on a brand that could not be saved. **Every command on the first
+screen ended in an error, and nothing was being protected** - the 2026-08-30 finding one layer up:
+the app opened, said so, and then threw the operator's own typing away.
+- **The decision is auth.js's, published once, and consumed.** auth.js already answered "is there a
+  backend, and am I signed in to it" for the notice bar (its probe, its session). It now publishes
+  that as `LifecycleAuth.backend = {kind, reachable, signedIn, host}` (`unconfigured | unreachable |
+  sdk | signed-out | signed-in | local`), an event, and a first-decision promise. brand-context.js
+  reads it and routes the six brand ops (`list|active|get|save|activate|delete`) to the device store
+  for the first four kinds and to the server for the last two; a page with no auth.js at all takes
+  the server path exactly as before. **No second probe** - two implementations of one question drift,
+  and the bar would say one thing while the wizard did another.
+- **Three states, and what every wizard command does in each.** *Unreachable / unconfigured:* save,
+  activate, switch, edit and delete all work on the device; "Read my site" stays ON (the server's own
+  open path); context pack, catalogue import and Suggest options render **DISABLED with their reason**
+  in the accent rule - a disabled control with a reason is not an error and never wears `.vh-failure`.
+  *Reachable + signed out:* the same, except "Read my site" is off too, because the server correctly
+  REFUSES extract when a session exists to be had - so the control says "sign in" rather than sending a
+  request known to be refused. *Reachable + signed in:* the server, byte-for-byte as before, and if
+  device rows exist they are OFFERED for sync ("Sync N brands to your account") through the ordinary
+  save op - never uploaded unasked, the device copy removed only after the account row exists, a
+  refused upload shown per brand in the failure frame.
+- **The panel says ONE sentence, in the accent rule**: "Saved on this device only. Once a database is
+  reachable and you sign in, they can be synced to your account" (or "Sign in and they can be synced",
+  when signing in IS the remedy - a sentence about reaching a database would send the reader to fix the
+  thing that is not broken). The standing bar has already stated the cause; the panel does not repeat
+  it as an error. Device rows carry a quiet "on this device" chip and nothing else changes. The gate
+  measures the rule's computed colour against the page's own `--accent` token and asserts it is neither
+  the warn nor the error colour.
+- **The device path paints what the server would have painted.** `tokens()`, `validatePalette()`,
+  `fontsHref()`, `readiness()`, `buildRow()`'s normalisation and `shellPayload()` are ported
+  line-for-line, and the gate drives BOTH - the real page in Chromium and the real server module in
+  Node - over four palettes (tenant zero, a pale primary, an incomplete one, an empty one) and diffs
+  every token. Activation on the device is gated by the same design rules: an active brand with a
+  dark-neutral surface is refused with the server's sentence, a draft with the same palette saves.
+- **What is asserted about the network is the absence of traffic.** In both device states the request
+  log must contain zero brand ops; a save that "worked" by falling through to a 503 would still render
+  the failure this exists to prevent. In the signed-in state the request BODY is asserted and the
+  device key must be null. `page.on('dialog')` is registered first: any dialog fails.
+- **`?step=N` only resumes when boot() has a brand to load**; with no active brand the wizard stays on
+  step 1. A fixture that seeds device rows under a signed-in session therefore reaches review by the
+  pip, the way a person does.
+- **`error-presentation.spec.js`'s "Your brands" cases moved to a SIGNED-IN fixture**, and correctly
+  so: with no account there is no request to refuse and the panel is not a failure. The state in which
+  that panel still asks the server and can be refused is a session whose server then answers 503/500
+  (a session from before the pause, a function that errored) - a real shape, and the one the failure
+  frame was always for. The auth.js-absent "floor" case is unchanged: its stubbed `list()` throws, and
+  a thrown `list()` is a refusal whatever the network looks like.
+- **A marker is never padded.** `readiness()` on the server (`launchMarker()`) and in the wizard emitted
+  `[DATA REQUIRED BEFORE LAUNCH: logo URL, all, all]` - the `field, product, region` template with
+  "all, all" where a fact should be, one per line on the review step. Product and region are named only
+  when they APPLY: `[...: logo URL, <brand>]`, `[...: region store URL, <brand>, US]`, and a
+  product-level gap still names the product in the product's slot.
+- Mutation-verified, each on the assertion it should hit: making the device `save` fall through to the
+  dead host fails on "the draft ... is not listed"; dropping the accent sentence fails on the sentence;
+  rendering the device state in `.vh-failure` fails on "rendered a FAILURE for an ordinary state".
+  `signed-out-usable.spec.js` passes unchanged: `LifecycleAuth.internal` stays false, RLS untouched.
+
 ## ⭐ The login wall that defends nothing, on the SERVER this time (2026-09-15)
 `api/_shared/brand-workspace-core.js` -> `requireUser()` + the `openWithoutBackend` branch, and
 `brand-context.js`'s error line. Gated by `tests/extract-without-backend.spec.js` (9 tests). Found on

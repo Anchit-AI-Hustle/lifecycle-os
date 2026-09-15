@@ -592,18 +592,35 @@ function fontsHref(brand) {
 /* ── readiness (the zero-fabrication gate) ────────────────────────────────── */
 
 /**
- * What is still missing before this brand can launch anything. Reported, never
- * filled in. Marker format is the spec's:
+ * The zero-fabrication marker, in the spec's shape:
  *   [DATA REQUIRED BEFORE LAUNCH: <field>, <product>, <region>]
+ *
+ * The product and region slots are named only when they APPLY. A brand-level
+ * gap used to render as "[DATA REQUIRED BEFORE LAUNCH: logo URL, all, all]",
+ * and on the review step - a list of these, one per line - "all, all" read as
+ * filler where a fact should be, which is the opposite of what a marker is
+ * for. A gap that is the brand's names the brand; a gap that is one region's
+ * names the region after it. brand-context.js carries the same builder for the
+ * device path, and the wizard renders through it too.
+ */
+function launchMarker(field, ctx) {
+  const c = ctx || {};
+  const parts = [field, c.product || c.brand || 'this brand'];
+  if (c.region) parts.push(c.region);
+  return `[DATA REQUIRED BEFORE LAUNCH: ${parts.join(', ')}]`;
+}
+
+/**
+ * What is still missing before this brand can launch anything. Reported, never
+ * filled in. Marker format is launchMarker()'s.
  */
 function readiness(brand, counts) {
   const missing = [];
+  const b = brand || {};
   const add = (field, product, region) => missing.push({
     field, product: product || 'all', region: region || 'all',
-    marker: `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${product || 'all'}, ${region || 'all'}]`,
+    marker: launchMarker(field, { brand: str(b.name), product, region }),
   });
-
-  const b = brand || {};
   if (!str(b.name)) add('brand name');
   if (!str(b.website)) add('brand website');
   if (!str(b.logo_url)) add('logo URL');
@@ -621,8 +638,8 @@ function readiness(brand, counts) {
 
   const regions = Array.isArray(b.regions) ? b.regions : [];
   if (!regions.length) add('regions');
-  for (const r of regions) if (!r.store_url) add('region store URL', 'all', r.code);
-  for (const r of regions) if (!r.currency) add('region currency', 'all', r.code);
+  for (const r of regions) if (!r.store_url) add('region store URL', '', r.code);
+  for (const r of regions) if (!r.currency) add('region currency', '', r.code);
 
   const productCount = counts && typeof counts.products === 'number' ? counts.products : null;
   if (productCount === 0) add('product catalog');
@@ -1899,7 +1916,7 @@ module.exports = {
   TEXT_AA,
   // brand
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,
-  readiness, shellPayload, slugify, DEFAULT_BRAND,
+  readiness, launchMarker, shellPayload, slugify, DEFAULT_BRAND,
   // catalog
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access

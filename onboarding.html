@@ -163,6 +163,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      permanently red control in a list is noise until it is the one you want. */
   .ws-act.danger:hover,.ws-act.danger:focus{border-color:var(--danger,#B3261E);color:var(--danger,#B3261E)}
   .ws-act[disabled]{opacity:.45;cursor:not-allowed}
+  /* Where a brand is stored. A device row is an ordinary row with a quiet chip.
+     The sentence above the list takes the ACCENT rule: being unable to reach a
+     server is an ordinary state here, stated once in the standing bar, and a
+     normal state wearing the warn colour (or the failure frame) teaches people
+     to ignore both. */
+  .ws-chip{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);
+    border-radius:999px;padding:2px 7px;color:var(--muted);white-space:nowrap;margin-left:8px;vertical-align:1px}
+  .ws-note{border-left:3px solid var(--accent);background:var(--card);border-radius:8px;padding:9px 12px;font-size:12.5px;
+    line-height:1.55;color:var(--ink);margin:0 0 10px}
+  .ws-note b{font-weight:600}
+  .ws-note .sync{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:9px}
+  .ws-note .ws{margin:0;cursor:default}
 
   .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 14%,transparent);
     padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0}
@@ -351,6 +363,41 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return window.BrandContext.api(op, { body: body, query: query || '' });
   }
 
+  /* ── Where this brand is being saved ──────────────────────────────────────
+     brand-context.js decides, from auth.js's one answer to "is there a
+     database and am I signed in": the ACCOUNT when there is, THIS DEVICE when
+     there is not. The wizard only reads the decision, to say where a save
+     went, to label device rows, and to render the controls that genuinely
+     need an account as DISABLED with their reason. A disabled control with a
+     reason is not an error and does not wear the failure frame; the failure
+     frame is for a request that was made and refused. */
+  function storageInfo() {
+    try {
+      return (window.BrandContext && typeof window.BrandContext.storage === 'function') ? window.BrandContext.storage() : null;
+    } catch (_) { return null; }
+  }
+  function onDevice() { var s = storageInfo(); return !!(s && s.mode === 'device'); }
+  /* The clause that names what has to change, in the words auth.js's bar uses
+     for the same state. */
+  function accountClause() {
+    var s = storageInfo() || {};
+    return s.kind === 'signed-out' ? 'you sign in' : 'a database is reachable and you sign in';
+  }
+  function needsAccountNote(what, why) {
+    return '<p class="ws-note" data-needs-account="' + esc(what) + '"><b>Needs your account.</b> ' + esc(why) + '</p>';
+  }
+  /* The spec's marker, through the same builder the server and the device path
+     use, so the review list never reads "logo URL, all, all". */
+  function marker(field, product, region) {
+    var name = brand.name || (extraction && extraction.fields && extraction.fields.name && extraction.fields.name.value) || '';
+    if (window.BrandContext && typeof window.BrandContext.launchMarker === 'function') {
+      return window.BrandContext.launchMarker(field, { brand: name, product: product, region: region });
+    }
+    var parts = [field, product || name || 'this brand'];
+    if (region) parts.push(region);
+    return '[DATA REQUIRED BEFORE LAUNCH: ' + parts.join(', ') + ']';
+  }
+
   /* ── colour maths (mirrors the server so the UI can validate instantly) ── */
   function rgb(h) { h = String(h || '').replace('#', ''); if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2]; return [parseInt(h.slice(0,2),16)||0, parseInt(h.slice(2,4),16)||0, parseInt(h.slice(4,6),16)||0]; }
   function lum(h) { return rgb(h).map(function (v) { var s = v/255; return s <= 0.03928 ? s/12.92 : Math.pow((s+0.055)/1.055, 2.4); }).reduce(function (a, c, i) { return a + c * [0.2126,0.7152,0.0722][i]; }, 0); }
@@ -468,7 +515,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* ── readiness (what is still missing, never invented) ──────────────── */
   function readiness() {
     var missing = [];
-    function add(f, prod, reg) { missing.push({ field: f, marker: '[DATA REQUIRED BEFORE LAUNCH: ' + f + ', ' + (prod || 'all') + ', ' + (reg || 'all') + ']' }); }
+    function add(f, prod, reg) { missing.push({ field: f, marker: marker(f, prod, reg) }); }
     if (!brand.name) add('brand name');
     if (!brand.website) add('brand website');
     if (!brand.logo_url) add('logo URL');
@@ -479,7 +526,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!brand.voice.tone) add('voice.tone');
     if (!brand.voice.banned.length) add('voice.banned phrases');
     if (!brand.regions.length) add('regions');
-    brand.regions.forEach(function (r) { if (!r.store_url) add('region store URL', 'all', r.code); });
+    brand.regions.forEach(function (r) { if (!r.store_url) add('region store URL', '', r.code); });
     if (catalogCount === 0 || catalogCount === null) add('product catalog');
     var blocking = missing.filter(function (m) { return /^(brand name|palette\.|typography\.|regions$|product catalog)/.test(m.field); });
     return { ready: blocking.length === 0, missing: missing, blocking: blocking };
@@ -635,6 +682,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   function suggestBlock(field) {
     var s = SUGGEST[field];
+    // Options are written by a language model, which the server runs only for
+    // a signed-in account (an unreachable database must never become a way to
+    // spend model credits without one). Off, with the reason said once - under
+    // the first field on the step, not four times.
+    if (onDevice()) {
+      return '<div class="sug"><button type="button" class="sug-btn" disabled aria-disabled="true" data-needs-account="suggest" data-suggest-off="' + esc(field) + '">Suggest options</button>' +
+        (field === 'voice.tone' ? needsAccountNote('suggest', 'Suggested options are written by a language model, which only runs for a signed-in account. They come back once ' + accountClause() + '. Typing your own values works exactly the same.') : '') +
+        '</div>';
+    }
     var btn = '<button type="button" class="sug-btn" data-suggest="' + esc(field) + '" data-credit-feature="brand.suggest">' +
       (s && s.busy ? 'Writing options...' : 'Suggest options') + '</button>';
     if (!s || (!s.options && !s.error)) return '<div class="sug">' + btn + '</div>';
@@ -819,9 +875,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             '<p class="muted" style="margin-top:6px">A CSV or a JSON array of products.</p>' +
           '</div>' +
           '<div style="display:flex;gap:9px;align-items:center;margin-top:12px;flex-wrap:wrap">' +
-            '<button type="button" class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>' +
+            // The catalogue lives in the database (brand_catalog_products), so
+            // with no account to write to the import is off, with its reason -
+            // not a button that fails after the operator has pasted 5,000 rows.
+            (onDevice()
+              ? '<button type="button" class="btn primary" id="doImport" disabled aria-disabled="true" data-needs-account="catalog-import">Import catalog</button>'
+              : '<button type="button" class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>') +
             '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + ' products in this workspace.') + '</span>' +
           '</div>' +
+          (onDevice()
+            ? '<div style="margin-top:10px">' + needsAccountNote('catalog-import', 'The catalogue is kept in the database beside the brand, so it can be imported once ' + accountClause() + '. Everything else on this brand is saved on this device now, and the review step reports the catalogue as still required rather than inventing one.') + '</div>'
+            : '') +
         '</div>' +
         actions('Voice', 'Review');
       renderRegions();
@@ -1029,7 +1093,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var roleRows = ['primary', 'accent', 'ink', 'surface', 'muted'].map(function (k) {
       var v = p.proposed[k], s = p.sources[k];
       if (!v) return '<div class="xrow"><div class="xlabel">' + esc(k) + '</div><div class="xbody">' +
-        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: palette.' + esc(k) + ', all, all]</div>' +
+        '<div class="marker">' + esc(marker('palette.' + k)) + '</div>' +
         '<div class="xsrc">Leaving this empty is a real answer. The site published nothing that names this ' +
           'role, and an empty field you fill in yourself costs a minute; a wrong one you trust costs a campaign.</div>' +
         '</div></div>';
@@ -1070,7 +1134,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var t = extraction.fields.typography;
     function slot(label, list, act) {
       if (!list.length) return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
-        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: typography.' + (act === 'font-heading' ? 'heading' : 'body') + ', all, all]</div></div></div>';
+        '<div class="marker">' + esc(marker('typography.' + (act === 'font-heading' ? 'heading' : 'body'))) + '</div></div></div>';
       var alts = list.slice(1, 5).map(function (c, i) {
         return '<button type="button" class="xalt" data-xa="' + esc(act) + '" data-xi="' + (i + 1) + '">' + esc(c.value) + '</button>';
       }).join('');
@@ -1120,7 +1184,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '</div><button type="button" class="xbtn" data-xa="type-scale" data-xi="0">Use this scale</button></div>';
     } else {
       out += '<div class="xrow"><div class="xlabel">Type scale</div><div class="xbody">' +
-        '<div class="marker">[DATA REQUIRED BEFORE LAUNCH: typography scale (size, weight, line-height, letter-spacing), all, all]</div>' +
+        '<div class="marker">' + esc(marker('typography scale (size, weight, line-height, letter-spacing)')) + '</div>' +
         '<div class="xsrc">No font size was published on a selector this could attribute to a heading, body ' +
         'text, a link or a button. A site that sets its type entirely from JavaScript reads as empty here.</div>' +
         '</div></div>';
@@ -1165,7 +1229,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<div class="xsrc">' + esc(r.candidates[0].currency_note) + '</div>' +
         '</div><button type="button" class="xbtn" data-xa="regions" data-xi="0">Use</button></div>';
     } else {
-      out += '<div class="xrow"><div class="xlabel">Regions</div><div class="xbody"><div class="marker">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</div></div></div>';
+      out += '<div class="xrow"><div class="xlabel">Regions</div><div class="xbody"><div class="marker">' + esc(marker('regions')) + '</div></div></div>';
     }
     if (s.candidates.length) {
       out += '<div class="xrow"><div class="xlabel">Social</div><div class="xbody">' +
@@ -1283,20 +1347,36 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '</div>';
   }
 
+  /* Reading a site runs on the server. With the database unreachable the server
+     opens this one op (it reads a public page, writes nothing, calls no model);
+     with the database REACHABLE and no session it refuses, because a session
+     exists to be had - so the control is off with its reason instead of sending
+     a request the server is known to refuse. */
+  function extractOff() {
+    var s = storageInfo();
+    return !!(s && s.mode === 'device' && !s.server_open);
+  }
+
   function extractBlock() {
+    var off = extractOff();
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
       '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
       '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
         '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(brand.website || '') + '">' +
-        '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +
-          (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>' +
+        (off
+          ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
+          : '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +
+            (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>') +
       '</div>' +
+      (off
+        ? '<div style="margin-top:10px">' + needsAccountNote('extract', 'Reading a site is done by the server, which does it for a signed-in account while its database is reachable. Sign in and it reads your site; meanwhile every field below can be typed in and the brand is saved on this device.') + '</div>'
+        : '') +
       '<p class="xmeta" style="margin-top:8px">Same rules as the catalog importer: your own domain only, robots.txt respected, read only, and no page is fetched from a private or internal address.</p>' +
       '</div>';
   }
 
   async function runExtract() {
-    if (extractBusy) return;
+    if (extractBusy || extractOff()) return;
     var input = $('xUrl');
     var url = input ? input.value.trim() : '';
     if (!url) { toast('Enter your website address first.'); return; }
@@ -1506,7 +1586,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
 
     $('doImport').addEventListener('click', async function () {
-      if (busy) return;
+      if (busy || this.disabled) return;
       var status = $('impStatus');
       try {
         if (!brand.id) { await save(true); }
@@ -1544,21 +1624,33 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* ── review ─────────────────────────────────────────────────────────── */
   async function loadWorkspaces() {
     try {
+      var st = storageInfo();
       var r = await window.BrandContext.list();
       workspaces = r.workspaces || [];
       var active = r.active_id;
-      $('wsList').innerHTML = workspaces.length ? workspaces.map(function (w) {
-        var p = w.palette || {};
-        return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '">' +
-          '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
-          '<span><b>' + esc(w.name) + '</b><small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
-          '<span class="ws-acts">' +
-            (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
-            '<button type="button" class="ws-act" data-act="edit">Edit</button>' +
-            '<button type="button" class="ws-act danger" data-act="delete">Delete</button>' +
-          '</span>' +
-        '</div>';
-      }).join('') : '<p class="muted">No brands yet. Finish this one and it becomes your first.</p>';
+      var onThisDevice = r.storage === 'device';
+      // A device row is an ordinary row with a quiet chip: the same Switch /
+      // Edit / Delete, the same Active tag. The ONE sentence for the device
+      // state sits above the rows, in the accent rule (storageNote), and the
+      // sync offer below them when a signed-in account can take them.
+      $('wsList').innerHTML =
+        (onThisDevice ? storageNote(st || { mode: 'device' }) : '') +
+        (workspaces.length ? workspaces.map(function (w) {
+          var p = w.palette || {};
+          var local = w.storage === 'device';
+          return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '"' + (local ? ' data-storage="device"' : '') + '>' +
+            '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
+            '<span><b>' + esc(w.name) + '</b>' + (local ? '<span class="ws-chip" data-storage-chip="device">on this device</span>' : '') +
+              '<small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
+            '<span class="ws-acts">' +
+              (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
+              '<button type="button" class="ws-act" data-act="edit">Edit</button>' +
+              '<button type="button" class="ws-act danger" data-act="delete">Delete</button>' +
+            '</span>' +
+          '</div>';
+        }).join('') : '<p class="muted">No brands yet. Finish this one and it becomes your first.</p>') +
+        (onThisDevice ? '' : syncOffer(st));
+      var sb = $('syncDevice'); if (sb) sb.addEventListener('click', syncDevice);
       Array.prototype.forEach.call($('wsList').querySelectorAll('[data-ws]'), function (el) {
         var id = el.dataset.ws;
         var row = workspaces.filter(function (w) { return w.id === id; })[0] || {};
@@ -1623,6 +1715,65 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
   }
 
+  /* The ONE sentence for the device state, in the accent rule. The standing
+     bar has already said whether the database is unreachable or this visitor
+     is signed out; this panel does not repeat it as an error, it says where the
+     rows are and what makes them the account's. */
+  function storageNote(st) {
+    if (!st || st.mode !== 'device') return '';
+    var how = st.kind === 'signed-out'
+      ? 'Sign in and they can be synced to your account.'
+      : 'Once a database is reachable and you sign in, they can be synced to your account.';
+    return '<p class="ws-note" data-storage-note="device"><b>Saved on this device only.</b> ' + how + '</p>';
+  }
+
+  /* Signed in, database reachable, and this browser still holds brands that
+     were built before that: offer to upload them, once, and never do it
+     unasked. The device copies stay until each account row exists. */
+  function syncOffer(st) {
+    if (!st || st.mode !== 'server' || !st.device_count || !window.BrandContext.device) return '';
+    var rows = window.BrandContext.device.list();
+    if (!rows.length) return '';
+    var n = rows.length;
+    return '<div class="ws-note" data-sync-offer="' + n + '">' +
+      '<b>' + n + (n === 1 ? ' brand' : ' brands') + ' saved on this device ' + (n === 1 ? 'is' : 'are') + ' not in your account yet.</b> ' +
+      'Syncing saves ' + (n === 1 ? 'it' : 'them') + ' to your account the same way any brand is saved; the copy on this device is kept until the account has ' + (n === 1 ? 'it' : 'each one') + '.' +
+      '<div class="sync">' + rows.map(function (w) {
+        var p = w.palette || {};
+        // No data-ws: these are not switchable here, they are what will be uploaded.
+        return '<div class="ws" data-ws-sync="' + esc(w.id) + '"><span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
+          '<span><b>' + esc(w.name) + '</b><span class="ws-chip" data-storage-chip="device">on this device</span><small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span></div>';
+      }).join('') +
+        '<button type="button" class="btn" id="syncDevice">Sync ' + n + (n === 1 ? ' brand' : ' brands') + ' to your account</button>' +
+      '</div><div id="syncResult"></div></div>';
+  }
+
+  async function syncDevice() {
+    var btn = $('syncDevice'); if (!btn || btn.disabled) return;
+    btn.disabled = true; btn.textContent = 'Syncing...';
+    try {
+      var out = await window.BrandContext.syncDeviceToAccount();
+      var done = out.synced.length, failed = out.failed.length;
+      toast(done + (done === 1 ? ' brand' : ' brands') + ' synced to your account' + (failed ? '; ' + failed + ' could not be' : '') + '.', 4200);
+      if (failed) {
+        // A refused upload is a real failure: the request was made and the
+        // server said no. It gets the failure frame, per brand, and the device
+        // copy is still there.
+        var slot = $('syncResult');
+        if (slot) slot.innerHTML = out.failed.map(function (f) {
+          return window.LifecycleFailure.html({ message: f.message }, { title: 'Not synced: ' + f.name });
+        }).join('');
+        btn.disabled = false; btn.textContent = 'Retry sync';
+        return;
+      }
+    } catch (e) {
+      toast(window.LifecycleFailure.sentence(e), 4600);
+      btn.disabled = false; btn.textContent = 'Retry sync';
+      return;
+    }
+    loadWorkspaces();
+  }
+
   /* ── The brand CONTEXT PACK ───────────────────────────────────────────────
      One durable record per brand, keyed to its URL AND its name: a DESIGN.md in
      the open google-labs-code/design.md format, a knowledge base built from
@@ -1640,6 +1791,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var __packLoadedFor = null;
 
   function contextBlock() {
+    // The pack is a durable record in the database (brand_context_packs), built
+    // by a server queue. With no account to hold it the control is off, with
+    // its reason, rather than a dead end reading "save this brand first" on a
+    // brand that IS saved - on this device.
+    if (onDevice()) {
+      return '<div class="xtract" style="margin-top:26px"><h3>Brand context pack</h3>' +
+        '<p class="xmeta">Reads your brand from its own site and keeps the result: a DESIGN.md in the open ' +
+          'google-labs-code/design.md format, a knowledge base built from your domain only, your catalogue, and ' +
+          'a GitHub search for your repositories. Every value carries the page it came from.</p>' +
+        '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
+          '<button type="button" class="btn" id="packBuild" disabled aria-disabled="true" data-needs-account="context-pack">Build context pack</button>' +
+        '</div>' +
+        '<div style="margin-top:10px">' + needsAccountNote('context-pack', 'The context pack is kept in the database with your brand, so it can be built once ' + accountClause() + '. Nothing else on this page waits for it.') + '</div>' +
+        '</div>';
+    }
     if (!brand.id) {
       return '<div class="xtract" style="margin-top:26px"><h3>Brand context pack</h3>' +
         '<p class="xmeta">Save this brand first, then build its context pack.</p></div>';
@@ -1735,14 +1901,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
        "only write on change" rule brand-context.js uses to keep its mutation
        observer from re-triggering itself - and the fetch itself is bounded to
        once per brand per visit, so even a changing pack cannot cycle. */
-    if (__packLoadedFor !== (brand.id || '')) {
+    // A device brand has no pack to read: the control is rendered off, and no
+    // request is sent for a record the server could not hold.
+    if (!onDevice() && __packLoadedFor !== (brand.id || '')) {
       __packLoadedFor = brand.id || '';
       var __before = JSON.stringify(packState || null);
       loadPack(true).then(function () {
         if (JSON.stringify(packState || null) !== __before) render();
       });
     }
-    var pb = $('packBuild'); if (pb) pb.addEventListener('click', buildPack);
+    var pb = $('packBuild'); if (pb && !pb.disabled) pb.addEventListener('click', buildPack);
     var pd = $('packDesign');
     if (pd) {
       pd.addEventListener('click', async function () {
@@ -1759,7 +1927,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     $('saveDraft').addEventListener('click', async function () {
       brand.status = 'draft';
-      try { await save(); toast('Saved as a draft.'); } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
+      try {
+        var saved = await save();
+        // Say WHERE it went. A draft on this device is not a draft on the
+        // account, and the difference is the whole reason the row is labelled.
+        toast(saved && saved.storage === 'device' ? 'Saved as a draft on this device.' : 'Saved as a draft.');
+        loadWorkspaces();
+      } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
     });
     $('newBrand').addEventListener('click', function () {
       brand = JSON.parse(JSON.stringify(brand));
@@ -1771,9 +1945,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!pc.ok) { toast('The colour schema still fails the design rules. Fix step 2 first.'); return go(2); }
       brand.status = 'active';
       try {
-        await save();
-        await window.BrandContext.setActive(brand.id);
-        toast('This brand is now live across the app.');
+        var saved = await save();
+        var live = await window.BrandContext.setActive(brand.id);
+        toast((saved && saved.storage === 'device') || (live && live.storage === 'device')
+          ? 'This brand is now live across the app on this device.'
+          : 'This brand is now live across the app.');
         var from = new URLSearchParams(location.search).get('from');
         setTimeout(function () { location.href = from && from !== '/onboarding' ? from : '/'; }, 900);
       } catch (e) {

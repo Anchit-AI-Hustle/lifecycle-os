@@ -2094,6 +2094,7 @@
     var bar = document.createElement('div');
     bar.id = 'lc-authnotice';
     bar.setAttribute('role', 'status');
+    bar.setAttribute('data-kind', kind);
     bar.style.cssText = [
       'position:sticky', 'top:0', 'z-index:120',
       'background:var(--vh-panel-2,#f5f5f5)',
@@ -2179,8 +2180,60 @@
     // a missing env var, a project that no longer answers, and simply being
     // logged out are three different things to be told.
     const url = (window.__SUPABASE__ || {}).url;
-    if (!url) { injectSignedOutNotice('unconfigured'); return; }
-    injectSignedOutNotice(await authHostReachable(url) ? 'signed-out' : 'unreachable');
+    if (!url) { injectSignedOutNotice('unconfigured'); setBackendState('unconfigured'); return; }
+    const kind = (await authHostReachable(url)) ? 'signed-out' : 'unreachable';
+    injectSignedOutNotice(kind);
+    setBackendState(kind);
+  }
+
+  // ─── Backend state: ONE answer to "is there a database, and is this visitor
+  // signed in to it" ──────────────────────────────────────────────────────────
+  // brand-context.js decides from this record, and from nothing else, whether a
+  // brand is saved to the ACCOUNT or to THIS DEVICE. It is derived from the same
+  // probe (authHostReachable) and the same session the notice bar above is built
+  // from, so the bar and the store can never disagree. A second reachability
+  // check in brand-context.js would be the "one probe, not two" defect again:
+  // two implementations that drift, with the bar saying one thing and the
+  // wizard doing another.
+  //
+  //   kind          reachable  signedIn  who fixes it
+  //   unconfigured  false      false     the deployment (no SUPABASE_URL)
+  //   unreachable   false      false     the deployment (project paused/gone)
+  //   sdk           unknown    false     the network (supabase-js CDN blocked)
+  //   signed-out    true       false     nobody: an ordinary state
+  //   signed-in     true       true      -
+  //   local         true       false     localhost preview: no backend, a
+  //                                      preview user, the local server answers
+  //
+  // `pending` until init() has decided. It is published three ways because the
+  // consumers are shaped differently: a field to read, an event to wait on, and
+  // a promise that resolves on the FIRST decision.
+  const BACKEND_KINDS = {
+    pending:      { reachable: null,  signedIn: false },
+    unconfigured: { reachable: false, signedIn: false },
+    unreachable:  { reachable: false, signedIn: false },
+    sdk:          { reachable: null,  signedIn: false },
+    'signed-out': { reachable: true,  signedIn: false },
+    'signed-in':  { reachable: true,  signedIn: true },
+    local:        { reachable: true,  signedIn: false },
+  };
+  let backendResolve;
+  const backendFirst = new Promise((r) => { backendResolve = r; });
+  function backendSnapshot(kind) {
+    const k = BACKEND_KINDS[kind] ? kind : 'pending';
+    let host = '';
+    try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (_) { /* none configured */ }
+    return Object.assign({ kind: k, host }, BACKEND_KINDS[k]);
+  }
+  function setBackendState(kind) {
+    const snap = backendSnapshot(kind);
+    if (window.LifecycleAuth) window.LifecycleAuth.backend = snap;
+    try { window.dispatchEvent(new CustomEvent('lifecycleauth:backend', { detail: snap })); } catch (_) { /* no CustomEvent */ }
+    if (snap.kind !== 'pending') backendResolve(snap);
+    return snap;
+  }
+  function backendPending() {
+    return !window.LifecycleAuth || !window.LifecycleAuth.backend || window.LifecycleAuth.backend.kind === 'pending';
   }
 
   // ─── Access mode ─────────────────────────────────────────────────────────
@@ -2237,6 +2290,10 @@
       user: null,
       internal: false,
       mockMode: false,
+      // See "Backend state" above. `backend` is the current decision and
+      // `backendState()` resolves on the first one, whichever it is.
+      backend: backendSnapshot('pending'),
+      backendState: () => backendFirst,
       signOut: async () => {
         if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();
         window.LifecycleAuth.session = null;
@@ -2262,9 +2319,10 @@
         /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
       if (isLocal) {
         injectTopbar({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
+        setBackendState('local');
         return;
       }
-      if (isOpenPage()) { injectTopbar(null); return; }
+      if (isOpenPage()) { injectTopbar(null); setBackendState('unconfigured'); return; }
       //
       // NO BACKEND AT ALL. This used to fall through to a login wall nobody
       // could get past: signing in requires a Supabase project, and there is
@@ -2276,6 +2334,7 @@
       // with a working backend is equally unblocked, in gateSignedOut().
       injectTopbar(null);
       injectSignedOutNotice('unconfigured');
+      setBackendState('unconfigured');
       return;
     }
 
@@ -2294,6 +2353,7 @@
       window.LifecycleAuth.session = session;
       window.LifecycleAuth.user = session.user;
       applyAccessMode(session.user);
+      setBackendState('signed-in');
       injectTopbar(session.user);
       restoreReturnTo();
       // Keep the Studio frictionless: only prompt for profile on the gated steps.
@@ -2325,6 +2385,7 @@
       window.LifecycleAuth.user = sess?.user || null;
       applyAccessMode(sess?.user || null);
       if (sess?.user) {
+        setBackendState('signed-in');
         removeSigningInOverlay();
         removeLoginWall();
         const existing = document.getElementById('lifecycle-nav');
@@ -2524,10 +2585,14 @@
           injectTopbar(null);
           const isLocal = location.protocol === 'file:'
             || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
-          if (isLocal) return;
+          if (isLocal) { if (backendPending()) setBackendState('local'); return; }
           // Name what failed. Only the SDK load and the client construction can
           // reject here, and both leave sign-in impossible for the same reason.
-          injectSignedOutNotice(/supabase-js|createClient/i.test(String(e && e.message)) ? 'sdk' : 'unreachable');
+          const kind = /supabase-js|createClient/i.test(String(e && e.message)) ? 'sdk' : 'unreachable';
+          injectSignedOutNotice(kind);
+          // A decision already published (a session was found, then something
+          // later in init threw) stands; this only fills in a missing one.
+          if (backendPending()) setBackendState(kind);
         } catch (_) { /* nothing left to render into */ }
       });
   }
