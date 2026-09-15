@@ -107,3 +107,8 @@ uploaded_by_*/
 *_customers.csv
 *_customer_export*.csv
 *-Ads-*.csv
+
+# self-hosted Supabase kit: secrets and the local database live outside git
+selfhost/.env
+selfhost/volumes/db/data/
+selfhost/volumes/storage/
