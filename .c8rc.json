@@ -1,0 +1,25 @@
+{
+  "_comment": "Line coverage for the Node-side logic. Consumed by `c8 report` from scripts/coverage/report.js; the raw V8 files in temp-directory are written by `npm run coverage` (scripts/coverage/run.js). `all` reports a file no test loaded at 0% instead of omitting it. Inline <script> blocks in .html pages are NOT c8's job - see scripts/coverage/browser.js and docs/coverage.md.",
+  "all": true,
+  "include": [
+    "api/**/*.js",
+    "lib/**/*.js",
+    "scripts/lib/**/*.js",
+    "*.js"
+  ],
+  "exclude": [
+    "playwright.config.js",
+    "tests/**",
+    "coverage/**",
+    "node_modules/**",
+    "**/node_modules/**",
+    "**/*.spec.js",
+    "scripts/coverage/**"
+  ],
+  "extension": [".js"],
+  "reporter": ["text-summary", "json-summary", "json", "lcov"],
+  "temp-directory": "coverage/tmp",
+  "reports-dir": "coverage",
+  "merge-async": true,
+  "clean": false
+}
