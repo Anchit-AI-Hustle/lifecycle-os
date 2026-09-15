@@ -151,6 +151,12 @@ async function harvest(startUrl, opts = {}) {
     // same fetch. This is the third rider, not a second crawler.
     brand = await extract.extractBrand(startUrl, {
       maxPages: opts.maxPages || 12,
+      // Forwarded for the same reason site-crawl and brand-extract take one:
+      // what this pipeline REFUSES to conclude is its whole value, and that has
+      // to be assertable without a network. Absent, extractBrand uses its own
+      // default fetcher, which is byte-for-byte what every caller already got.
+      fetchImpl: opts.fetchImpl,
+      voice: opts.voice,
       onPage: (html, url) => {
         pages.push(url);
         for (const img of imagesOnPage(html, url)) images.push(img);
@@ -173,9 +179,20 @@ async function harvest(startUrl, opts = {}) {
       images: [],
       diagnosis: (brand && brand.diagnosis) || null,
       error: failure,
+      // "The crawl did not complete. Run this from an environment that can
+      // reach the public internet" is the right sentence for a network that
+      // never answered, and the WRONG one for a site that answered perfectly
+      // and served a bot wall or a maintenance page with HTTP 200: that crawl
+      // completed, and telling the operator to check their network sends them
+      // to fix the one thing that is working. So when the extractor has already
+      // diagnosed what was SERVED, its sentence replaces the network advice -
+      // and the standing "this says nothing about the site" framing is kept in
+      // both branches, because it is true in both.
       note: failure
         ? `Nothing was read from ${startUrl}: ${failure}. This says nothing about the site.`
-        : `Nothing was read from ${startUrl}. This says nothing about the site - it says the crawl did not complete. Run this from an environment that can reach the public internet.`,
+        : (brand && brand.diagnosis && brand.diagnosis.message)
+          ? `Nothing was read from ${startUrl}. This says nothing about the site. ${brand.diagnosis.message}`
+          : `Nothing was read from ${startUrl}. This says nothing about the site - it says the crawl did not complete. Run this from an environment that can reach the public internet.`,
     };
   }
 
