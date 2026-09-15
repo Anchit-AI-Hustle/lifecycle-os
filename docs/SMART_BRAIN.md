@@ -46,7 +46,7 @@ samples (plan preview + inline-entry approval), so the MVP stays demonstrable.
 
 ## Service boundaries
 
-UI: `/brain` (Smart Brain console), `/agent` (voice/chat agents), `agent-widget.js` (Shopify embed). API: `/api/brain?action=…` (single Vercel function; all logic in `api/_shared/brain-*.js`). DB: the provided linked DB pinned in `data/linked-db.json` (Supabase project `fswdwmkgggzyxrdzabnh`, all tables prefixed `smart_`). Override with `SMART_BRAIN_SUPABASE_URL` / `SMART_BRAIN_SUPABASE_KEY` env vars when relinking to the real production-fed DB.
+UI: `/brain` (Smart Brain console), `/agent` (voice/chat agents), `agent-widget.js` (Shopify embed). API: `/api/brain?action=…` (single Vercel function; all logic in `api/_shared/brain-*.js`). DB: the deployment's `SUPABASE_URL` / `SUPABASE_ANON_KEY` (hosted or self-hosted, see `docs/self-hosted-supabase.md`), all tables prefixed `smart_`; `data/linked-db.json` is an empty last resort, no longer a pinned project. Override with `SMART_BRAIN_SUPABASE_URL` / `SMART_BRAIN_SUPABASE_KEY` env vars when relinking to a separate production-fed DB.
 
 ## Module map (clean contracts)
 

@@ -1,9 +1,9 @@
 {
-  "_comment": "The provided linked DB for the Smart Brain. Public URL + anon key only (safe to commit — same values are served to browsers). To relink to a different DB, replace these values or set SMART_BRAIN_SUPABASE_URL / SMART_BRAIN_SUPABASE_KEY in Vercel env, which take precedence. Harden: add SUPABASE_SERVICE_ROLE_KEY in Vercel env and tighten the allow_all RLS policies.",
+  "_comment": "Last-resort Smart Brain connection for a clone with NO environment at all. It ships EMPTY on purpose: the hosted project ref that used to be pinned here paused and every reader kept dialling it, and a checked-in constant that must track an external resource drifts again (this was the third baked-in ref in the repo's history). Configuration is SUPABASE_URL + SUPABASE_ANON_KEY (or SMART_BRAIN_SUPABASE_URL / SMART_BRAIN_SUPABASE_KEY) on the deployment, hosted or self-hosted alike; every reader (api/public-config.js, api/_shared/brain-core.js, api/_shared/os-backbone.js, lib/smart-brain/services.js) consults the env before this file.",
   "provider": "supabase",
-  "project_ref": "fswdwmkgggzyxrdzabnh",
-  "url": "https://fswdwmkgggzyxrdzabnh.supabase.co",
-  "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzd2R3bWtnZ2d6eXhyZHphYm5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDQ5MDUsImV4cCI6MjEwMTI4MDkwNX0.KB4za4F7mTjQOY5-gxBoWguGDlgMu_dsyg9Nb-H9614",
+  "project_ref": "",
+  "url": "",
+  "anonKey": "",
   "schema": "public",
   "table_prefix": "smart_"
 }

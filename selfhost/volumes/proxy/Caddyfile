@@ -1,0 +1,8 @@
+# One block. {$PROXY_DOMAIN} comes from .env via docker-compose.caddy.yml.
+# Caddy provisions the certificate on first start (port 80 must be reachable
+# from the internet for the ACME challenge). WebSockets (/realtime/v1) are
+# proxied transparently.
+{$PROXY_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy kong:8000
+}

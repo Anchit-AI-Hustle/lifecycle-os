@@ -184,7 +184,9 @@ test('the environment beats the pinned linked-db file', () => {
     SMART_BRAIN_SUPABASE_URL: 'https://smart.supabase.co', SMART_BRAIN_SUPABASE_KEY: 'k',
     SUPABASE_URL: 'https://live.supabase.co', SUPABASE_ANON_KEY: 'k',
   })).toBe('https://smart.supabase.co');
-  // With nothing configured the pinned file is still the last resort, so a
-  // fresh clone behaves as before.
-  expect(resolve({})).toMatch(/supabase\.co$/);
+  // With nothing configured there is NOTHING: data/linked-db.json ships empty
+  // since the self-hosting work (2026-09-15), because the hosted ref it
+  // carried paused and every reader kept dialling it. A fresh clone with no
+  // env now reports "unconfigured" instead of addressing a dead host.
+  expect(resolve({})).toBe('');
 });
