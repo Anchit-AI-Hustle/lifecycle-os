@@ -356,7 +356,21 @@
       cache: 'no-store',
     });
     var json = await res.json().catch(function () { return {}; });
-    if (!res.ok) { var e = new Error(json.error || json.message || ('HTTP ' + res.status)); e.status = res.status; e.payload = json; throw e; }
+    // A SENTENCE FIRST, A CODE ONLY AS A LAST RESORT.
+    //
+    // This read `json.error || json.message`, and `error` is the MACHINE CODE.
+    // Every failure anywhere in the app funnels through this one line, so every
+    // one of them showed the operator a code: the onboarding wizard rendered
+    // "session_verification_unavailable" as the entire explanation of why
+    // reading their own website had failed. The code is still carried on
+    // `e.code` and `e.payload` for anything that needs to branch on it.
+    if (!res.ok) {
+      var e = new Error(json.message || json.error || ('HTTP ' + res.status));
+      e.status = res.status;
+      e.code = json.error || '';
+      e.payload = json;
+      throw e;
+    }
     return json;
   }
 
