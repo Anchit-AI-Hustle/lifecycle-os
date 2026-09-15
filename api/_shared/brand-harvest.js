@@ -179,9 +179,20 @@ async function harvest(startUrl, opts = {}) {
       images: [],
       diagnosis: (brand && brand.diagnosis) || null,
       error: failure,
+      // "The crawl did not complete. Run this from an environment that can
+      // reach the public internet" is the right sentence for a network that
+      // never answered, and the WRONG one for a site that answered perfectly
+      // and served a bot wall or a maintenance page with HTTP 200: that crawl
+      // completed, and telling the operator to check their network sends them
+      // to fix the one thing that is working. So when the extractor has already
+      // diagnosed what was SERVED, its sentence replaces the network advice -
+      // and the standing "this says nothing about the site" framing is kept in
+      // both branches, because it is true in both.
       note: failure
         ? `Nothing was read from ${startUrl}: ${failure}. This says nothing about the site.`
-        : `Nothing was read from ${startUrl}. This says nothing about the site - it says the crawl did not complete. Run this from an environment that can reach the public internet.`,
+        : (brand && brand.diagnosis && brand.diagnosis.message)
+          ? `Nothing was read from ${startUrl}. This says nothing about the site. ${brand.diagnosis.message}`
+          : `Nothing was read from ${startUrl}. This says nothing about the site - it says the crawl did not complete. Run this from an environment that can reach the public internet.`,
     };
   }
 
