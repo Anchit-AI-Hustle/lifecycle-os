@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
 
@@ -717,6 +769,31 @@ function renderEmpty(reason){
   renderWeekFilters([]);
 }
 
+/* The state renderEmpty() must never be asked to describe: the plan could not
+   be READ. "No calendar for this workspace yet" is a statement about the
+   brand's data; this is a statement about us. Same slots, failure framing, and
+   no invitation to go and build a calendar that may already exist. */
+function renderFailure(err){
+  ACTIVE = [];
+  cards = [];
+  window.LifecycleFailure.show(document.getElementById('kpis'), err,
+    { title: 'Could not read the plan' });
+  document.getElementById('kpis').firstChild.style.gridColumn = '1/-1';
+  rail.innerHTML = '';
+  window.LifecycleFailure.show(grid, err, {
+    title: 'Could not read the plan',
+    // Naming the state this is NOT is the whole point of the fix: "Nothing
+    // planned yet" is a statement about the brand's data, and this is a
+    // statement about us.
+    extra: 'Nothing planned yet is a different state, and this is not it. This brand\u2019s own plan may well exist; it could not be read just now, so nothing is shown rather than a stale or borrowed one.',
+  });
+  grid.firstChild.style.gridColumn = '1/-1';
+  if (countEl) countEl.textContent = 'Showing 0 of 0 sends';
+  renderGuardrails([]);
+  renderBlockers([]);
+  renderWeekFilters([]);
+}
+
 function loadLive(){
   fetch('/api/calendar?action=smart-brain-plan').then(function(r){ return r.json(); }).then(function(j){
     var entries = (j && j.entries) || [];
@@ -730,7 +807,10 @@ function loadLive(){
       renderEmpty('The plan for this workspace holds no email sends.');
     }
   }).catch(function(err){
-    renderEmpty('Could not read the plan: ' + ((err && err.message) || 'request failed') + '.');
+    // renderEmpty()'s own headline is "No calendar for this workspace yet" -
+    // an ABSENCE of data. Routing a failure through it told the operator their
+    // brand has nothing scheduled when in fact we could not look.
+    renderFailure(err);
   });
 }
 loadLive();

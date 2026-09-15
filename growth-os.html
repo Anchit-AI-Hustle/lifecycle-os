@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Growth OS</title>
@@ -585,13 +637,19 @@
   });
 
   // ── load ──────────────────────────────────────────────────────────────────
-  function failed(msg){
+  /**
+   * `class="empty"` on that last row is this page's NO-DATA treatment, so a
+   * failure routed through here read as "this brand has no experiments" - the
+   * opposite of what happened. The policy line still carries the sentence; the
+   * table row carries the failure frame, which no data row looks like.
+   */
+  function failed(msg, err){
     el("go-policy").hidden = false;
     el("go-policy").classList.add("err");
     el("go-policy-text").textContent = msg;
     el("go-strip").innerHTML = "";
-    el("go-exp-body").innerHTML = '<tr><td colspan="9" class="empty">'
-      + esc(msg) + "</td></tr>";
+    window.LifecycleFailure.show(el("go-exp-body"), err || msg,
+      { title: "The growth picture could not be loaded", colspan: 9 });
   }
 
   // auth.js is deferred and the Supabase session resolves after it, so the very
@@ -632,8 +690,8 @@
         renderAll(d);
       })
       .catch(function(e){
-        failed("The growth picture could not be loaded (" + e.message
-          + "). It is built from the active brand record, so sign in and pick a brand, then reload.");
+        failed("The growth picture could not be loaded. " + window.LifecycleFailure.sentence(e)
+          + " It is built from the active brand record, so sign in and pick a brand, then reload.", e);
       });
   }
 
