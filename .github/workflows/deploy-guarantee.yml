@@ -1,0 +1,100 @@
+# Deploy guarantee: every green push to main reaches Vercel production, even
+# when the GitHub -> Vercel integration drops the push.
+#
+# THE CASE THIS IS FOR. Commit 254e599 was merged to main on 2026-09-15 at
+# 03:49:37 UTC. CI ran on it and went green at 03:58:24. Vercel created NO
+# production deployment for it: production sat on the previous SHA until a
+# later push moved it. Nothing errored anywhere; the integration simply did
+# not act on one webhook. That is only fixable in dashboard settings today,
+# and a setting cannot promise not to drop the next one either.
+#
+# WHAT IT DOES. After the CI workflow completes with success for a push to
+# main, POST the project's Vercel DEPLOY HOOK. A deploy hook is bound to a
+# BRANCH, not a commit: Vercel builds the branch's current HEAD, so a firing
+# for an older SHA still produces the newest main, and firing it when the
+# integration ALSO deployed costs at most one redundant build of the same
+# commit - identical source, identical output, no user-visible change. That
+# is why this is safe to run on every push: belt and braces, never a conflict.
+#
+# THREE WAYS IN, ONE ACTION:
+#   1. workflow_run of CI, conclusion success, head_branch main, event push -
+#      the normal path for a human merge or a direct push;
+#   2. repository_dispatch `deploy-guarantee`, fired by auto-merge.yml after a
+#      merge it made - because a merge performed with GITHUB_TOKEN starts no
+#      `push` workflow run (GitHub's recursion guard), so CI never runs on main
+#      for that merge commit and path 1 never happens for it. CI did run, on
+#      the PR's merge ref, and that is what auto-merge.yml gated on;
+#   3. workflow_dispatch - the "Run workflow" button, for a deploy by hand.
+#
+# THE ONE THING THE OWNER HAS TO ADD: the repository secret
+# VERCEL_DEPLOY_HOOK_URL. Create the hook in Vercel: the lifecycle-os project
+# -> Settings -> Git -> Deploy Hooks -> name it (e.g. "github-deploy-
+# guarantee"), branch `main`, Create Hook -> copy the URL. Then GitHub: this
+# repository -> Settings -> Secrets and variables -> Actions -> New repository
+# secret -> VERCEL_DEPLOY_HOOK_URL. Without the secret this workflow SKIPS
+# with a notice that names it and says where to create the hook; it never
+# fails, because an unarmed guarantee is not a broken build. With the secret
+# set but the hook refusing (deleted or rotated in Vercel), it DOES fail, so
+# a stale secret is visible in the Actions tab rather than silently useless.
+#
+# It needs no permission on the GitHub token at all and uses no third-party
+# action: one curl, to a URL that is itself the credential (GitHub masks it
+# in the log because it is a secret).
+name: Deploy guarantee (Vercel production)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  repository_dispatch:
+    types: [deploy-guarantee]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why production is being deployed by hand (logged only)'
+        required: false
+        default: 'manual run from the Actions tab'
+
+# Nothing here touches the GitHub API.
+permissions: {}
+
+# Firings queue rather than race; a queued duplicate that GitHub drops loses
+# nothing, because whichever firing survives deploys the branch HEAD.
+concurrency:
+  group: deploy-guarantee
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Fire the Vercel production deploy hook
+    runs-on: ubuntu-latest
+    # For the CI-chained path: only a run that COMPLETED WITH SUCCESS, raised by
+    # a push, on main. A PR whose head branch happens to be called "main" (a
+    # fork's) is a pull_request run and is excluded by the event check. The
+    # dispatch paths carry their own reason and are not re-gated here.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    env:
+      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+      TRIGGER: ${{ github.event_name }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.event.client_payload.sha || github.sha }}
+      REASON: ${{ github.event.client_payload.reason || inputs.reason || 'CI succeeded on main' }}
+    steps:
+      - name: Fire the deploy hook (skip, never fail, when the secret is absent)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deploy guarantee: trigger=$TRIGGER commit=$HEAD_SHA reason: $REASON"
+          if [ -z "${VERCEL_DEPLOY_HOOK_URL:-}" ]; then
+            echo "::notice title=Deploy guarantee is not armed::Repository secret VERCEL_DEPLOY_HOOK_URL is not set, so no deploy hook was fired and production still relies on the Vercel Git integration alone. To arm it: Vercel -> the lifecycle-os project -> Settings -> Git -> Deploy Hooks -> create a hook for branch main and copy its URL; then GitHub -> Settings -> Secrets and variables -> Actions -> new repository secret VERCEL_DEPLOY_HOOK_URL."
+            echo "SKIPPED: VERCEL_DEPLOY_HOOK_URL is not set. Create the hook under Vercel project Settings -> Git -> Deploy Hooks (branch main) and store its URL as that secret."
+            exit 0
+          fi
+          # The hook deploys the branch's current HEAD (see header), so a retry
+          # after a lost response can at worst build the same commit twice.
+          resp="$(curl -fsS --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 -X POST "$VERCEL_DEPLOY_HOOK_URL")"
+          echo "Deploy hook accepted for $HEAD_SHA: $(jq -r '"job " + (.job.id // "?") + " state " + (.job.state // "?")' <<<"$resp" 2>/dev/null || echo "$resp")"

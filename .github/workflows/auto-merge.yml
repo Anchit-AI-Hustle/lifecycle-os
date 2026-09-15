@@ -1,0 +1,274 @@
+# Auto-merge: a pull request merges ONLY after the full CI workflow on its head
+# has completed with success.
+#
+# WHY THIS EXISTS. The owner wants every PR merged the moment it is green.
+# GitHub's own auto-merge refuses on this repository ("Protected branch rules
+# not configured for this branch"): it is armed by branch protection, and main
+# has none. So six PRs in one week were merged by hand 4-6 minutes into a
+# 14-minute CI run, i.e. before CI had said anything. This workflow is the
+# code-side version of the guarantee the dashboard could not give.
+#
+# WHY `workflow_run` AND NOT `pull_request`. A workflow on `pull_request` runs
+# BESIDE CI, not after it, and (for Dependabot and forks) with a read-only
+# token. `workflow_run` fires when the named workflow has COMPLETED, carries its
+# `conclusion` and `head_sha`, and runs in the context of the default branch
+# with the repository's own token, so it can merge. CI is
+# `on: pull_request: {}` (every PR, default activity types opened / synchronize
+# / reopened, no branch filter), so a CI run exists for every PR push and this
+# fires once per such run with `workflow_run.head_sha` = the PR head commit.
+#
+# WHAT IT REFUSES, in the job and not only in protect-main-from-sis.yml:
+#   - a CI run that did not conclude `success` (the job `if`);
+#   - anything whose head is `snowflake-streamlit-app`, three times over: the
+#     trigger's `branches-ignore`, the job `if`, and the script re-reading the
+#     PR's OWN head ref from the API. That branch is the Streamlit-in-Snowflake
+#     distribution and must NEVER merge into main (CLAUDE.md, "SiS distribution
+#     branch"). A hit is an error, not a skip - it should be loud;
+#   - a PR whose head lives in a FORK, or whose author is not a collaborator or
+#     Dependabot. The repository is public: without this, anyone could open a
+#     PR that passes CI and have it land on main with no human in the loop;
+#   - a draft, a conflict (`dirty`), a head that moved after this CI run (the
+#     newer push has its own run), a base other than main, and ANY failed
+#     check or commit status on the head commit - not just CI. With no branch
+#     protection nothing is "required", so `mergeable_state: unstable` means
+#     "a check failed and none of them counted"; that is not green. The SiS
+#     guard workflow, CodeQL and a Vercel preview build are all read here.
+#
+# HOW IT MERGES. Merge commit (`merge_method: merge`), which is what every
+# merge on main already is, with `sha=<head>` so GitHub itself refuses if the
+# head moved between our read and our write (HTTP 409 -> skipped, not failed).
+# A PR that is already merged when we get there exits 0. The head branch is
+# deleted afterwards (the repository has "delete branch on merge" OFF), never
+# main / final-product / snowflake-streamlit-app.
+#
+# WHAT A MERGE BY THIS WORKFLOW DOES NOT DO. Events caused by GITHUB_TOKEN do
+# not start new workflow runs (GitHub's recursion guard; only workflow_dispatch
+# and repository_dispatch are exempt). So the push to main that this merge
+# creates runs NEITHER the CI workflow on main NOR mobile-builds.yml. Vercel's
+# Git integration is a GitHub App and still receives the push. For the deploy
+# guarantee, whose normal trigger is "CI succeeded on main", this job therefore
+# fires deploy-guarantee.yml directly through `repository_dispatch` after every
+# merge it makes. mobile-builds.yml is left as it is: it is not part of this
+# change, and its "Run workflow" button still works.
+#
+# DEPENDABOT. Expected to merge, and here is exactly why, and what is not
+# provable from here. (a) Dependabot pushes are made by the Dependabot app, not
+# by GITHUB_TOKEN, so CI runs on its PRs and this workflow_run fires. (b) The
+# GitHub docs state that workflows triggered by Dependabot get a READ-ONLY
+# GITHUB_TOKEN by default and that the `permissions` key raises it - their own
+# auto-merge example is a pull_request workflow declaring
+# `contents: write` + `pull-requests: write`, exactly what the job below
+# declares. (c) The job uses no repository secret, so the rule that a
+# Dependabot-triggered run sees only Dependabot secrets does not bite. What I
+# could not settle from this repository: whether GitHub classes this CHAINED
+# run (whose `github.actor` is dependabot[bot], inherited from the CI run) as
+# Dependabot-triggered at all. If it does, (b) applies and the merge works; if
+# GitHub were to ignore the explicit permissions for such a run, the merge
+# call answers HTTP 403 and the script reports it as an error naming the
+# remedy (a GitHub App or PAT token in a secret) instead of pretending. Watch
+# the first Dependabot PR after this lands.
+#
+# FIRST RUN. `workflow_run` only reads the workflow file on the DEFAULT branch,
+# so the PR that adds this file is merged by hand, once; from then on it is
+# live for every PR.
+name: Auto-merge after CI
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    # Guard 1 of 3 for the SiS branch (see header). `branches-ignore` filters
+    # on the head branch of the CI run, which for a PR run is the PR branch.
+    branches-ignore: [snowflake-streamlit-app]
+
+# Least privilege at the top, like ci.yml. The one job that merges raises
+# exactly the two scopes it needs on itself, and nothing else.
+permissions: {}
+
+# One run per head commit. Different PRs may proceed in parallel (GitHub
+# serialises the merges); two CI runs for the SAME commit (a re-run) queue,
+# and a duplicate that GitHub cancels from the queue loses nothing.
+concurrency:
+  group: auto-merge-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    name: Merge the PR whose head just went green
+    runs-on: ubuntu-latest
+    # Gate 1 (the reason this file exists): only a CI run that COMPLETED WITH
+    # SUCCESS can lead to a merge. Gate 2: only CI runs raised by a pull_request
+    # event describe a PR head; a push-to-main run has nothing to merge.
+    # Gate 3: guard 2 of 3 for the SiS branch.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_branch != 'snowflake-streamlit-app'
+    permissions:
+      pull-requests: write   # merge the PR
+      contents: write        # the merge commit, deleting the head branch, and the repository_dispatch
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      MAIN: main
+      # Event values reach the script ONLY through env, never interpolated into
+      # it: a branch name is attacker-chosen text on a public repository.
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+      CI_RUN_ID: ${{ github.event.workflow_run.id }}
+      CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+      THIS_RUN_ID: ${{ github.run_id }}
+      FORBIDDEN_HEAD: snowflake-streamlit-app
+      NEVER_DELETE: 'main final-product snowflake-streamlit-app'
+    steps:
+      - name: Merge every open PR whose head is this green commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          say()  { echo "$*"; }
+          skip() { echo "::notice title=Auto-merge skipped PR #$1::$2"; echo "SKIPPED PR #$1: $2"; }
+
+          say "Trigger: CI run $CI_RUN_ID ($CI_RUN_URL) succeeded on $HEAD_REPO@$HEAD_BRANCH = $HEAD_SHA"
+
+          # Guard 3 of 3 for the SiS branch, on the value the event carried. The
+          # loop below re-checks the PR's OWN head ref from the API as well,
+          # because that is the ref that would actually merge.
+          if [ "$HEAD_BRANCH" = "$FORBIDDEN_HEAD" ]; then
+            echo "::error::Refusing to merge: head branch '$HEAD_BRANCH' is the Streamlit-in-Snowflake distribution and must never merge into $MAIN"
+            exit 1
+          fi
+
+          owner="${REPO%%/*}"
+          # Which open PRs have exactly this commit as their head? The payload's
+          # workflow_run.pull_requests[] is empty for forks and not reliable for
+          # same-repo branches either, so ask the API two ways and union them:
+          # the PRs associated with the commit, and open PRs whose head is this
+          # branch. Both are filtered on head.sha == HEAD_SHA.
+          candidates="$(
+            {
+              gh api "repos/$REPO/commits/$HEAD_SHA/pulls?per_page=100" --paginate || true
+              gh api -X GET "repos/$REPO/pulls" -f state=open -f per_page=100 -f "head=$owner:$HEAD_BRANCH" --paginate || true
+            } | jq -r --arg sha "$HEAD_SHA" '.[] | select(.state == "open" and .head.sha == $sha) | .number' | sort -un
+          )"
+          if [ -z "$candidates" ]; then
+            say "No open PR has $HEAD_SHA as its head (already merged, closed, or superseded by a newer push). Nothing to do."
+            exit 0
+          fi
+
+          failures=0
+          for n in $candidates; do
+            pr="$(gh api "repos/$REPO/pulls/$n")"
+            # GitHub computes mergeability lazily; the first read can say "unknown".
+            for _ in 1 2 3 4 5 6; do
+              [ "$(jq -r '.mergeable_state' <<<"$pr")" != "unknown" ] && break
+              sleep "${POLL_SECONDS:-15}"
+              pr="$(gh api "repos/$REPO/pulls/$n")"
+            done
+            eval "$(jq -r '@sh "PR_STATE=\(.state) PR_MERGED=\(.merged) PR_DRAFT=\(.draft) PR_HEAD_SHA=\(.head.sha) PR_HEAD_REF=\(.head.ref) PR_HEAD_REPO=\(.head.repo.full_name // "") PR_BASE=\(.base.ref) PR_MSTATE=\(.mergeable_state) PR_AUTHOR=\(.user.login) PR_ASSOC=\(.author_association // "") PR_TITLE=\(.title)"' <<<"$pr")"
+            say "PR #$n \"$PR_TITLE\" by $PR_AUTHOR ($PR_ASSOC): $PR_HEAD_REPO@$PR_HEAD_REF -> $PR_BASE; state=$PR_STATE merged=$PR_MERGED draft=$PR_DRAFT mergeable_state=$PR_MSTATE"
+
+            if [ "$PR_MERGED" = "true" ]; then
+              say "PR #$n is already merged (someone got there first). Nothing to do."
+              continue
+            fi
+            if [ "$PR_STATE" != "open" ]; then skip "$n" "not open (state=$PR_STATE)"; continue; fi
+            if [ "$PR_HEAD_REF" = "$FORBIDDEN_HEAD" ]; then
+              echo "::error::Refusing to merge PR #$n: its head is '$FORBIDDEN_HEAD', the Streamlit-in-Snowflake distribution, which must never merge into $MAIN"
+              failures=1
+              continue
+            fi
+            if [ "$PR_DRAFT" = "true" ]; then skip "$n" "draft"; continue; fi
+            if [ "$PR_HEAD_REPO" != "$REPO" ]; then
+              skip "$n" "head lives in '$PR_HEAD_REPO' (a fork); only same-repository branches merge automatically"
+              continue
+            fi
+            case "$PR_AUTHOR:$PR_ASSOC" in
+              'dependabot[bot]:'*|*:OWNER|*:MEMBER|*:COLLABORATOR) ;;
+              *) skip "$n" "author $PR_AUTHOR ($PR_ASSOC) is not a collaborator or Dependabot; a human merges this one"; continue;;
+            esac
+            if [ "$PR_BASE" != "$MAIN" ]; then skip "$n" "base is '$PR_BASE'; only PRs into $MAIN merge automatically"; continue; fi
+            if [ "$PR_HEAD_SHA" != "$HEAD_SHA" ]; then
+              skip "$n" "head moved to $PR_HEAD_SHA after this CI run; the newer push has its own CI run"
+              continue
+            fi
+            case "$PR_MSTATE" in
+              clean|unstable) ;;
+              dirty)   skip "$n" "merge conflict with $MAIN"; continue;;
+              blocked) skip "$n" "blocked by branch protection"; continue;;
+              behind)  skip "$n" "behind $MAIN and the repository requires branches to be up to date"; continue;;
+              draft)   skip "$n" "draft"; continue;;
+              unknown) skip "$n" "GitHub had not finished computing mergeability"; continue;;
+              *)       skip "$n" "mergeable_state=$PR_MSTATE"; continue;;
+            esac
+
+            # EVERY check on this commit, not only CI: the SiS guard workflow,
+            # CodeQL, a Vercel preview build. This job's own check run is
+            # excluded (it is in progress by definition). A check still running
+            # is waited for, briefly; then the PR is left for a human.
+            verdict=""
+            for _ in $(seq 1 20); do
+              verdict="$(
+                gh api "repos/$REPO/commits/$HEAD_SHA/check-runs?per_page=100" --paginate \
+                | jq -s -r --arg me "/actions/runs/$THIS_RUN_ID/" '
+                    [ .[].check_runs[] | select(((.details_url // "") | contains($me)) | not) ]
+                    | { failed:  [ .[] | select(.status == "completed" and ((.conclusion // "") | IN("failure","cancelled","timed_out","action_required","startup_failure","stale"))) | .name ],
+                        pending: [ .[] | select(.status != "completed") | .name ] }
+                    | if (.failed | length) > 0 then "failed: " + (.failed | join(", "))
+                      elif (.pending | length) > 0 then "pending: " + (.pending | join(", "))
+                      else "ok" end'
+              )"
+              case "$verdict" in pending:*) sleep "${POLL_SECONDS:-15}";; *) break;; esac
+            done
+            case "$verdict" in
+              ok) ;;
+              failed:*)  skip "$n" "a check on $HEAD_SHA did not pass - $verdict"; continue;;
+              pending:*) skip "$n" "checks still running after waiting - $verdict. Re-run CI, or merge by hand, once they finish"; continue;;
+              *) echo "::error::PR #$n: could not read the check runs for $HEAD_SHA: $verdict"; failures=1; continue;;
+            esac
+            bad_statuses="$(gh api "repos/$REPO/commits/$HEAD_SHA/status" | jq -r '[ .statuses[] | select(.state == "failure" or .state == "error") | .context ] | join(", ")')"
+            if [ -n "$bad_statuses" ]; then skip "$n" "a commit status on $HEAD_SHA failed - $bad_statuses"; continue; fi
+
+            say "Merging PR #$n: CI run $CI_RUN_ID succeeded on its head, every check on $HEAD_SHA is green, mergeable_state=$PR_MSTATE."
+            # `sha=` makes GitHub refuse (HTTP 409) if the head moved after the
+            # reads above - the newer push has its own CI run and its own turn.
+            if resp="$(gh api -X PUT "repos/$REPO/pulls/$n/merge" -f merge_method=merge -f "sha=$HEAD_SHA" 2>&1)"; then
+              merge_sha="$(jq -r '.sha' <<<"$resp")"
+              echo "::notice title=Auto-merged PR #$n::$PR_TITLE -> $MAIN as $merge_sha (CI run $CI_RUN_ID green on $HEAD_SHA)"
+              say "MERGED PR #$n into $MAIN as $merge_sha"
+            else
+              if [ "$(gh api "repos/$REPO/pulls/$n" | jq -r '.merged')" = "true" ]; then
+                say "PR #$n was merged by someone else while this job ran. Nothing to do."
+                continue
+              fi
+              case "$resp" in
+                *"HTTP 405"*|*"HTTP 409"*) skip "$n" "GitHub refused the merge (head moved, or no longer mergeable): $resp"; continue;;
+                *"HTTP 403"*)
+                  echo "::error::PR #$n: the token could not merge ($resp). If this is a Dependabot PR, read the DEPENDABOT paragraph in this workflow's header: the job's explicit permissions should lift Dependabot's read-only default; if GitHub did not honour them here, the remedy is a GitHub App or PAT token in a secret."
+                  failures=1; continue;;
+                *) echo "::error::PR #$n: merge failed: $resp"; failures=1; continue;;
+              esac
+            fi
+
+            case " $NEVER_DELETE $MAIN " in
+              *" $PR_HEAD_REF "*) say "Keeping branch $PR_HEAD_REF (on the never-delete list)";;
+              *)
+                if gh api -X DELETE "repos/$REPO/git/refs/heads/$PR_HEAD_REF" >/dev/null 2>&1; then
+                  say "Deleted merged branch $PR_HEAD_REF"
+                else
+                  say "Branch $PR_HEAD_REF not deleted (already gone, or protected)"
+                fi;;
+            esac
+
+            # A merge made with GITHUB_TOKEN starts no `push` workflow on main,
+            # so CI does not run on this merge commit and deploy-guarantee.yml's
+            # workflow_run trigger never sees it. Fire it directly.
+            if gh api -X POST "repos/$REPO/dispatches" -f event_type=deploy-guarantee \
+                 -f "client_payload[sha]=$merge_sha" -f "client_payload[pr]=$n" \
+                 -f "client_payload[reason]=auto-merge of PR #$n (a GITHUB_TOKEN merge starts no push workflow, so CI does not run on $MAIN for it)" >/dev/null; then
+              say "Dispatched deploy-guarantee for $merge_sha"
+            else
+              echo "::warning::PR #$n merged, but the deploy-guarantee dispatch failed. Vercel's Git integration still deploys $MAIN on its own; the hook can also be fired from the Actions tab (Deploy guarantee -> Run workflow)."
+            fi
+          done
+          exit "$failures"
