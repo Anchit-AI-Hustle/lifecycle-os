@@ -65,12 +65,13 @@ test('a share card is recorded as a share card, not as the hero', () => {
   expect(out[0].note).toMatch(/often not the on-page hero/i);
 });
 
-test('a role is a guess and the payload says so', () => {
+test('a role is a guess', () => {
   expect(harvest.roleOf('<img class="site-logo">', '/logo.svg')).toBe('logo');
   expect(harvest.roleOf('<img>', '/hero-banner.jpg')).toBe('hero');
   expect(harvest.roleOf('<img>', '/products/thing.jpg')).toBe('product');
   expect(harvest.roleOf('<img>', '/media/1234.jpg')).toBe('unknown');
-  expect(src).toMatch(/`role` is a guess from context/);
+  // "...and the payload says so" is asserted on the RUN payload below, not on
+  // the source: `expect(src).toMatch(/role is a guess/)` proved a comment existed.
 });
 
 /* ═══ it rides the existing crawl, and does not add a second one ══════════ */
@@ -78,9 +79,63 @@ test('a role is a guess and the payload says so', () => {
 test('there is one crawler, and this is a rider on it', () => {
   const s = codeOnly(src);
   expect(s).toMatch(/require\('\.\/brand-extract\.js'\)/);
-  expect(s).toMatch(/onPage/);
   // No independent fetch loop: scope, robots and SSRF live in site-crawl.
+  // (A file property, and the right kind of check for it.)
   expect(s).not.toMatch(/new AbortController|await fetch\(/);
+});
+
+/**
+ * THE RIDER ACTUALLY RIDES. This used to be `expect(s).toMatch(/onPage/)` — a
+ * source assertion that passed while the hook was DEAD: brand-extract hardcoded
+ * its own crawl observer and never called the caller's, so a harvest came back
+ * ok:true, reachable:true, pages_visited:6, images.total 0, library [] — while
+ * extractBrand's own images.count on the same site was 6. Only running it shows
+ * that. Mutation: unchain the caller's onPage in brand-extract and this fails.
+ */
+const HOST = 'https://tealight.example';
+const page = (b) => ({ body: b, contentType: 'text/html; charset=utf-8' });
+const SITE = {
+  [`${HOST}/`]: page(`<!doctype html><html><head><title>Tealight</title>
+    <meta property="og:image" content="https://cdn.tealight.example/card.jpg"></head>
+    <body><h1>Tealight</h1><img src="/hero-banner.jpg" alt="Hero" width="1600">
+    <a href="/products/one">One</a></body></html>`),
+  [`${HOST}/products/one`]: page(`<!doctype html><html><head><title>One</title></head>
+    <body><h1>One</h1><img srcset="/p1-400.jpg 400w, /p1-1600.jpg 1600w" src="/p1-400.jpg" alt="Product one"></body></html>`),
+  [`${HOST}/robots.txt`]: { body: 'User-agent: *\nAllow: /', contentType: 'text/plain' },
+};
+const fetchOf = (site) => async (u) => {
+  const k = String(u).split('#')[0];
+  const row = site[k] || site[k.replace(/\/$/, '')];
+  return row
+    ? { ok: true, status: 200, body: row.body, url: k, contentType: row.contentType }
+    : { ok: false, status: 404, body: '', url: k, contentType: 'text/plain' };
+};
+
+test('the harvest returns the images the crawl observed, each with the page it was on', async () => {
+  const out = await harvest.harvest(`${HOST}/`, { maxPages: 4, fetchImpl: fetchOf(SITE) });
+  expect(out.ok).toBe(true);
+  expect(out.reachable).toBe(true);
+  expect(out.pages_visited).toBe(2);
+  // THE DEFECT: this was 0 with the observer unchained.
+  expect(out.images.total, 'the onPage observer never ran').toBeGreaterThan(0);
+  const urls = out.images.library.map((i) => i.url);
+  expect(urls).toContain(`${HOST}/hero-banner.jpg`);
+  expect(urls).toContain(`${HOST}/p1-1600.jpg`);          // widest srcset entry, from the deep page
+  expect(urls).toContain('https://cdn.tealight.example/card.jpg');
+  // Page provenance on every row, and it is a page the crawl actually read.
+  for (const i of out.images.library) expect(out.brand.pages).toContain(i.found_on);
+  expect(out.images.library.find((i) => i.url.endsWith('p1-1600.jpg')).found_on).toBe(`${HOST}/products/one`);
+  expect(out.images.by_role.hero).toBe(1);
+  // The payload says a role is a guess (asserted on the run, not the source).
+  expect(out.images.note).toMatch(/`role` is a guess from context/);
+});
+
+test('a harvest spends no language-model call: the voice is not requested', async () => {
+  // The EXTRACTOR's own note for the `voice:false` branch - not a flag harvest
+  // sets itself, which would only prove a function can set its own flag.
+  const out = await harvest.harvest(`${HOST}/`, { maxPages: 4, fetchImpl: fetchOf(SITE) });
+  expect(out.brand.fields.voice.note).toBe('Voice observation was not requested.');
+  expect(out.brand.fields.voice.value).toBeNull();
 });
 
 /* ═══ unreachable is not empty ════════════════════════════════════════════ */

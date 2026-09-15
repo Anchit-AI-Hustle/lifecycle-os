@@ -301,14 +301,36 @@ function declsOf(body) {
   return out;
 }
 
+/** An at-rule whose body is declarations, not selectors (@font-face, @property…). */
+const NON_SELECTOR_AT = /^@(?:font-face|property|page|counter-style)$/i;
+const nonSelectorAt = (at) => NON_SELECTOR_AT.test(String(at || ''));
+
+/**
+ * A conditional group whose contents describe a DIFFERENT page from the one a
+ * visitor sees by default: the dark colour scheme, print, forced colours.
+ *
+ * This was the defect: cssRulesets() flattened every conditional group with
+ * `at: ''`, so a `@media (prefers-color-scheme: dark) { :root { --brand-surface:
+ * #0B0F0D } }` block was indistinguishable from the root-level declaration it
+ * overrides in the dark theme only — and customProperties() is last-wins, so
+ * the DARK values replaced the light ones. Measured: a site declaring
+ * `--brand-surface:#FFFFFF` proposed `#0b0f0d`, `#ffffff` appeared nowhere in
+ * the report, and validatePalette then rejected the brand's own light palette.
+ */
+const AT_EXCLUDED = /prefers-color-scheme\s*:\s*dark|\bprint\b|forced-colors\s*:\s*active|inverted-colors\s*:\s*inverted/i;
+const atExcluded = (at) => !!at && !nonSelectorAt(at) && AT_EXCLUDED.test(String(at));
+
 /**
  * Flatten a stylesheet into `{selector, decls, at}` rulesets.
  *
- * Conditional group rules (@media, @supports, @layer, @container) are RECURSED
- * INTO rather than skipped, because a large share of a modern site's palette
- * lives inside a `@media (prefers-color-scheme: dark)` or an `@layer base`.
- * @keyframes is skipped outright: its body is nested rulesets of animation
- * steps, and an interpolated colour is not a brand fact.
+ * Conditional group rules (@media, @supports, @container) are RECURSED INTO
+ * rather than skipped, and every nested ruleset CARRIES the enclosing prelude
+ * on `at` — `'@media (prefers-color-scheme: dark)'`, `'@media (max-width:
+ * 600px)'` — so a reader can tell a default-page declaration from one that
+ * only applies under a condition. @layer and @scope are cascade structure,
+ * not conditions, so their children keep whatever `at` they had. @keyframes
+ * is skipped outright: its body is nested rulesets of animation steps, and an
+ * interpolated colour is not a brand fact.
  */
 function cssRulesets(css, depth) {
   const d = depth || 0;
@@ -333,10 +355,15 @@ function cssRulesets(css, depth) {
       if (/^@(?:-\w+-)?keyframes\b/i.test(sel)) continue;
       if (sel.startsWith('@')) {
         const at = (sel.match(/^@[\w-]+/) || [''])[0].toLowerCase();
-        if (at === '@font-face' || at === '@property' || at === '@page' || at === '@counter-style') {
+        if (nonSelectorAt(at)) {
           out.push({ selector: sel, at, decls: declsOf(body) });
         } else {
-          for (const r of cssRulesets(body, d + 1)) out.push(r);
+          const transparent = at === '@layer' || at === '@scope';
+          const cond = sel.replace(/\s+/g, ' ');
+          for (const r of cssRulesets(body, d + 1)) {
+            if (transparent || nonSelectorAt(r.at)) out.push(r);
+            else out.push({ selector: r.selector, at: r.at ? cond + ' ' + r.at : cond, decls: r.decls });
+          }
         }
         continue;
       }
@@ -369,10 +396,27 @@ function cssRulesets(css, depth) {
 function customProperties(rulesets) {
   const raw = new Map();
   const origin = new Map();
+  // Root-level declarations first, then the conditional ones, so the order a
+  // site wrote them in can never let a breakpoint override the default.
+  const rootLevel = [], nested = [];
   for (const r of rulesets) {
+    if (nonSelectorAt(r.at) || atExcluded(r.at)) continue;   // @font-face; the dark scheme; print
+    (r.at ? nested : rootLevel).push(r);
+  }
+  for (const r of rootLevel) {
     for (const d of r.decls) {
       if (!d.prop.startsWith('--')) continue;
       if (!raw.has(d.prop)) origin.set(d.prop, r.selector);
+      raw.set(d.prop, d.value);
+    }
+  }
+  // A token declared ONLY inside a responsive @media is still the site's
+  // token; one that also exists at root level is the root's, whichever came
+  // last in the file. Last-wins across the two was the defect.
+  for (const r of nested) {
+    for (const d of r.decls) {
+      if (!d.prop.startsWith('--') || raw.has(d.prop)) continue;
+      origin.set(d.prop, `${r.selector} in ${r.at}`);
       raw.set(d.prop, d.value);
     }
   }
@@ -436,15 +480,38 @@ const ROLE_WEIGHT = { action: 4, identity: 4, chrome: 3, ground: 3, heading: 2, 
  * primary role, which is usually the same colour and sometimes deliberately is
  * not. They are bucketed apart and compared, never merged.
  */
+/**
+ * A colour that is a FILL — something text is painted on. `--brand-primary-text`,
+ * `--on-primary`, `--accent-fg` are the readable text colours derived FROM those
+ * fills, never the fills themselves and never the ink. Deliberately not
+ * `brand`, `surface` or `bg`: `--brand-text` is the brand's text colour and
+ * `--on-surface` is Material's word for body ink, and both belong in `ink`.
+ */
+const FILL_ROLE_WORD = '(?:primary|secondary|accent|cta|action|btn|button|link|success|ok|warn|warning|error|err|danger|info)';
+const RX_DERIVED_TEXT = new RegExp(`(?:^|-)on-${FILL_ROLE_WORD}(?:-|$)|(?:^|-)${FILL_ROLE_WORD}-(?:text|fg|foreground|contrast)$`);
+
 function tokenNameRole(name) {
   const n = String(name || '').toLowerCase();
-  if (/brand/.test(n)) return 'identity';
-  if (/(?:^|-)(?:primary|accent|cta|action|btn|button|link|highlight|theme)(?:-|$)/.test(n)) return 'action';
-  if (/(?:^|-)(?:bg|background|surface|paper|canvas|page|body-bg)(?:-|$)/.test(n)) return 'surface';
+  // ORDER IS THE FIX. The old reader tested /brand/ first, so on a site using
+  // this repo's own canonical token names — --brand-primary, --brand-accent,
+  // --brand-ink, --brand-surface — all four were filed as IDENTITY and the
+  // accent, ink and surface came back EMPTY with three markers; with an --ok
+  // token beside them the accent then fell through to a success-green. And
+  // --brand-primary-text, a readableAsText() DERIVATION of the primary, was
+  // selected as the primary itself. The role word a token ends in is what the
+  // site is saying about it; the brand prefix only says whose it is.
+  if (RX_DERIVED_TEXT.test(n)) return 'derived';
+  if (/(?:^|-)(?:hover|active|focus|disabled|tint|shade)(?:-|$)/.test(n)) return 'support';
+  if (/(?:^|-)(?:muted|subtle|dim|meta)(?:-|$)/.test(n)) return 'muted';
   if (/(?:^|-)(?:ink|fg|foreground|text|copy|body-color|on-surface)(?:-|$)/.test(n)) return 'ink';
-  if (/(?:^|-)(?:muted|subtle|secondary|dim|meta)(?:-|$)/.test(n)) return 'muted';
+  if (/(?:^|-)(?:bg|background|surface|paper|canvas|page|body-bg)(?:-|$)/.test(n)) return 'surface';
   if (/(?:^|-)(?:border|line|divider|rule|outline)(?:-|$)/.test(n)) return 'support';
-  if (/(?:^|-)(?:success|ok|warn|warning|error|danger|info)(?:-|$)/.test(n)) return 'status';
+  if (/(?:^|-)(?:success|ok|warn|warning|error|err|danger|info)(?:-|$)/.test(n)) return 'status';
+  if (/(?:^|-)(?:accent|cta|action|btn|button|link|highlight)(?:-|$)/.test(n)) return 'action';
+  if (/(?:^|-)secondary(?:-|$)/.test(n)) return 'muted';
+  // --brand, --brand-primary, --color-brand, --brand-blue: the site naming its OWN colour.
+  if (/brand/.test(n)) return 'identity';
+  if (/(?:^|-)(?:primary|theme)(?:-|$)/.test(n)) return 'action';
   return '';
 }
 
@@ -459,10 +526,55 @@ function hostOf(u) {
   try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch (_) { return ''; }
 }
 
+/**
+ * HTML character references, decoded.
+ *
+ * The old reader knew six: nbsp, amp, quot, #39/apos, lt, gt. Everything else
+ * reached the report as the site's SOURCE rather than its TEXT, and that was
+ * measured, not assumed: a footer reading `&copy; 2026 Tealight Trading Ltd.`
+ * yielded NO legal-entity candidate (the copyright pattern needs a literal ©
+ * or the word "copyright"), so the operator was told to look in the footer -
+ * where the value was, and had been read. A "verbatim" claim shipped as
+ * `Free shipping over &pound;40 &mdash; UK only`; the `&mdash;` in it is
+ * invisible to scenario-model's scrubDashes(), so the brand's no-em-dash rule
+ * was bypassed by an encoding.
+ *
+ * ONE pass, one regex, so `&amp;copy;` decodes to the literal `&copy;` the
+ * author wrote and stops there - a second pass would turn it into ©, which is
+ * the text-injection shape a decoder must refuse. Numeric references (decimal
+ * and hex) cover everything the table does not name; an unknown NAMED entity is
+ * left as written rather than guessed at.
+ */
+const NAMED_ENTITIES = {
+  nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>',
+  copy: '©', reg: '®', trade: '™',
+  pound: '£', euro: '€', yen: '¥', cent: '¢',
+  mdash: '—', ndash: '–', hellip: '…',
+  laquo: '«', raquo: '»', ldquo: '“', rdquo: '”', lsquo: '‘', rsquo: '’',
+  bull: '•', middot: '·', deg: '°', times: '×', divide: '÷', plusmn: '±',
+  sect: '§', para: '¶', shy: '', ensp: ' ', emsp: ' ', thinsp: ' ',
+  eacute: 'é', egrave: 'è', agrave: 'à', aacute: 'á', ccedil: 'ç',
+  ouml: 'ö', uuml: 'ü', auml: 'ä', ntilde: 'ñ', szlig: 'ß',
+  frac12: '½', frac14: '¼', frac34: '¾', hearts: '♥', star: '☆', check: '✓',
+};
+
+function decodeEntities(s) {
+  return String(s == null ? '' : s).replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z][a-z0-9]{1,31});/gi, (whole, ref) => {
+    if (ref[0] === '#') {
+      const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+      if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return whole;
+      return String.fromCodePoint(code);
+    }
+    const named = NAMED_ENTITIES[ref] != null ? NAMED_ENTITIES[ref] : NAMED_ENTITIES[ref.toLowerCase()];
+    return named != null ? named : whole;
+  });
+}
+
+/** Attribute values are TEXT too: `alt="Caf&eacute; &amp; Bar"` is "Café & Bar". */
 function attrs(tag) {
   const out = {};
   for (const m of String(tag).matchAll(/([:\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) {
-    out[m[1].toLowerCase()] = m[2] != null ? m[2] : (m[3] != null ? m[3] : m[4]);
+    out[m[1].toLowerCase()] = decodeEntities(m[2] != null ? m[2] : (m[3] != null ? m[3] : m[4]));
   }
   return out;
 }
@@ -476,12 +588,29 @@ function textBetween(html, tag) {
 }
 
 function stripTags(html) {
-  return String(html || '')
+  return decodeEntities(String(html || '')
     .replace(/<(script|style|noscript|template|svg)\b[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/<[^>]+>/g, ' '))
     .replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The page as a TAG SCANNER should see it: with every <script>, <noscript> and
+ * <template> removed. stripTags() already dropped them for TEXT; the tag
+ * scanners and the inline <style> scan did not, and on this repo's own Mailer
+ * Studio page that meant 10 of its 12 "inline stylesheets" were JavaScript
+ * (153KB of code and prompt text parsed as CSS), the heading family was
+ * attributed to `font-family on // ── Master orchestrator`, the logo came back
+ * as `https://knickgasm.example/'+KNICKGASM_LOGO_URL+'`, and 6 of the 7 top
+ * images were JS string concatenations. None of those is a thing the page
+ * publishes; they are the source of the program that publishes it.
+ *
+ * JSON-LD is read from the ORIGINAL html (it lives in a <script>), and so is
+ * storefront detection (a platform's own global object is a script). Only the
+ * markup scanners take this view.
+ */
+function withoutScripts(html) {
+  return String(html || '').replace(/<(script|noscript|template)\b[\s\S]*?<\/\1>/gi, ' ');
 }
 
 /** The <head>, which is where every declared identity signal lives. */
@@ -496,7 +625,12 @@ function footerOf(html) {
 }
 
 const jsonLdNodes = (html) => siteCrawl.jsonLdBlocks(html);
-const metaOf = (html) => siteCrawl.metaTags(html);
+/** Meta content is text the site published, so it is decoded like any other. */
+const metaOf = (html) => {
+  const m = siteCrawl.metaTags(html);
+  for (const k of Object.keys(m)) m[k] = decodeEntities(m[k]);
+  return m;
+};
 
 function ldType(node) {
   const t = node && node['@type'];
@@ -549,7 +683,7 @@ function nameCandidates(ctx) {
   // separate weak candidates rather than a rule that silently picks wrong.
   // Only the HOME page's title is read: a subpage title's other half is the
   // page name ("About | Acme"), which is not a brand-name candidate at all.
-  const title = isHome ? clip((textBetween(html, 'title')[0] || ''), 200) : '';
+  const title = isHome ? clip(stripTags(textBetween(html, 'title')[0] || ''), 200) : '';
   if (title) {
     const parts = title.split(TITLE_SPLIT).map((s) => s.trim()).filter(Boolean);
     if (parts.length === 1) out.push(cand(parts[0], 'html:title', url, CONF.weak, title));
@@ -837,14 +971,25 @@ function colourSightings(ctx) {
       if (!hex) continue;
       const role = tokenNameRole(name);
       if (!role) continue;
-      const w = role === 'identity' ? 80 : role === 'action' ? 55 : 40;
-      add(hex, role === 'support' || role === 'status' ? 'support' : role, w,
-        `css:custom-property ${name}`, sheet.url, `${name}: ${clip(rawVal, 60)};  (declared on ${clip(origin.get(name) || '?', 60)})`);
+      // A derived text token (`--brand-primary-text`, `--on-primary`) IS a text
+      // colour, so it is offered as ink - but below a declared ink (40) and
+      // below the body's own `color` (6), because it is an adjustment of a fill,
+      // not the site's statement of its ink. It is never identity: that is how
+      // theme.css's readableAsText() output was being selected as the primary.
+      const w = role === 'identity' ? 80 : role === 'action' ? 55 : role === 'derived' ? 4 : 40;
+      const bucket = role === 'support' || role === 'status' ? 'support' : role === 'derived' ? 'ink' : role;
+      add(hex, bucket, w,
+        `css:custom-property ${name}${role === 'derived' ? ' (derived text token)' : ''}`, sheet.url,
+        `${name}: ${clip(rawVal, 60)};  (declared on ${clip(origin.get(name) || '?', 60)})`);
     }
 
     // ── declarations, weighted by property and by the selector they sit on.
     for (const r of rules) {
-      if (r.at) continue;
+      // @font-face and friends are not selectors; the dark scheme and print are
+      // a different page. A responsive breakpoint IS this page, read at half
+      // weight so it can never outrank the root-level declaration it adjusts.
+      if (nonSelectorAt(r.at) || atExcluded(r.at)) continue;
+      const nestedScale = r.at ? 0.5 : 1;
       const selRole = selectorRole(r.selector);
       for (const d of r.decls) {
         if (d.prop.startsWith('--')) continue;
@@ -861,13 +1006,13 @@ function colourSightings(ctx) {
         }
         if (!hex) continue;
 
-        const weight = propWeight(d.prop) * (ROLE_WEIGHT[selRole] || 1);
+        const weight = propWeight(d.prop) * (ROLE_WEIGHT[selRole] || 1) * nestedScale;
         let role = 'support';
         if (selRole === 'action' && /^background/.test(d.prop)) role = 'action';
         else if (selRole === 'identity' && /^(background|fill|color)/.test(d.prop)) role = 'identity';
         else if (selRole === 'ground' && /^background/.test(d.prop)) role = 'surface';
         else if (selRole === 'ground' && d.prop === 'color') role = 'ink';
-        add(hex, role, weight, `css:${d.prop} on ${clip(r.selector, 60)}`, sheet.url, `${clip(r.selector, 80)} { ${d.prop}: ${clip(d.value, 60)} }`);
+        add(hex, role, weight, `css:${d.prop} on ${clip(r.selector, 60)}${r.at ? ' in ' + clip(r.at, 40) : ''}`, sheet.url, `${clip(r.selector, 80)} { ${d.prop}: ${clip(d.value, 60)} }`);
       }
     }
   }
@@ -912,10 +1057,14 @@ function rankColours(sightings) {
  *     means an empty primary and a marker, however many colours the site has.
  *   * When identity and action disagree, the disagreement is REPORTED and the
  *     action colour becomes the accent candidate. The operator resolves it.
- *   * `surface` and `ink` come from the page ground; a dark-neutral ground is
- *     reported, not silently replaced (validatePalette blocks it downstream).
+ *   * `surface` and `ink` come from the page ground. A dark ground is NEVER
+ *     proposed as the surface: it is reported in a note and the surface is left
+ *     to the operator (validatePalette would block it downstream anyway).
  *   * Nothing is derived, mixed, lightened or invented to fill a gap.
  */
+/** The module's standing notion of "light": the same threshold it has always used for a non-neutral ground. */
+const SURFACE_MIN_LUM = 0.6;
+
 function proposePalette(roles) {
   const firstBrandy = (list) => (list || []).find((c) => !c.neutral) || null;
   const identity = firstBrandy(roles.identity);
@@ -924,8 +1073,22 @@ function proposePalette(roles) {
   const conflicts = [];
   const notes = [];
 
-  const surfaceList = (roles.surface || []).filter((c) => c.neutral || relLum(c.value) > 0.6);
-  const surface = surfaceList[0] || (roles.surface || [])[0] || null;
+  // A SURFACE MUST BE LIGHT. The old filter was `c.neutral || relLum > 0.6`,
+  // and isNeutral('#0a1410') is true — the neutral clause was an escape hatch
+  // that let a black page ground through as the surface. Measured: candidates
+  // [#0a1410 score 30, #ffffff score 10] proposed #0a1410, and validatePalette
+  // then reported body text at 1.01:1. Now the luminance floor applies to every
+  // candidate; it sits well above validatePalette's own dark-neutral bound
+  // (luminance < 0.12), so nothing proposed here can be blocked there for
+  // darkness. A dark ground with NO light alternative proposes nothing, with a
+  // note — the fallback to `roles.surface[0]` re-admitted exactly the value the
+  // filter had just refused.
+  const surfaceList = (roles.surface || []).filter((c) => relLum(c.value) >= SURFACE_MIN_LUM);
+  const surface = surfaceList[0] || null;
+  if (!surface && (roles.surface || []).length) {
+    const dark = roles.surface[0];
+    notes.push(`The page ground the site declares is dark (${dark.value}, ${dark.signal}). This platform never uses a dark-neutral page surface, so no surface is proposed from it; the light surface is yours to set.`);
+  }
   const inkList = (roles.ink || []).filter((c) => relLum(c.value) < 0.5);
   const ink = inkList[0] || (roles.ink || [])[0] || null;
 
@@ -1053,7 +1216,7 @@ function typographyCandidates(ctx) {
         }
         continue;
       }
-      if (r.at) continue;
+      if (nonSelectorAt(r.at) || atExcluded(r.at)) continue;   // the dark scheme and print are a different page
       const decl = r.decls.find((d) => d.prop === 'font-family' || d.prop === 'font');
       if (!decl) continue;
       let stack = decl.value;
@@ -1066,7 +1229,7 @@ function typographyCandidates(ctx) {
       const fam = primaryFamily(stack);
       if (!fam) continue;
       const role = selectorRole(r.selector);
-      const c = cand(fam, `css:font-family on ${clip(r.selector, 60)}`, sheet.url, role === 'heading' || role === 'ground' ? CONF.strong : CONF.weak,
+      const c = cand(fam, `css:font-family on ${clip(r.selector, 60)}`, sheet.url, (role === 'heading' || role === 'ground') && !r.at ? CONF.strong : CONF.weak,
         `${clip(r.selector, 80)} { font-family: ${clip(decl.value, 70)} }`, { stack: clip(stack, 200) });
       if (role === 'heading') heading.push(c);
       else if (role === 'ground') body.push(c);
@@ -1292,9 +1455,13 @@ function typeScaleCandidates(ctx) {
       }
     }
 
-    // 2. Measured declarations, per typographic slot.
-    for (const r of rules) {
-      if (r.at) continue;
+    // 2. Measured declarations, per typographic slot. Root-level rules first,
+    // then the responsive ones (read WEAK), so a breakpoint can never claim a
+    // slot ahead of the default it adjusts; the dark scheme and print are not
+    // this page and are skipped.
+    const ordered = rules.filter((r) => !r.at)
+      .concat(rules.filter((r) => r.at && !nonSelectorAt(r.at) && !atExcluded(r.at)));
+    for (const r of ordered) {
       const slot = typeSlot(r.selector);
       if (!slot) continue;
       // STRENGTH IS THE SHAPE OF THE SELECTOR, not whether it is an element.
@@ -1326,8 +1493,8 @@ function typeScaleCandidates(ctx) {
           if (!hex) continue;
           extra = Object.assign(extra, { hex });
         }
-        bump(slot, TYPE_KEY[prop], cand(v, `css:${prop} on ${clip(r.selector, 50)}`, sheet.url,
-          bare ? CONF.strong : CONF.weak, `${clip(r.selector, 70)} { ${prop}: ${clip(d.value, 50)} }`, extra));
+        bump(slot, TYPE_KEY[prop], cand(v, `css:${prop} on ${clip(r.selector, 50)}${r.at ? ' in ' + clip(r.at, 40) : ''}`, sheet.url,
+          bare && !r.at ? CONF.strong : CONF.weak, `${clip(r.selector, 70)} { ${prop}: ${clip(d.value, 50)} }`, extra));
       }
     }
   }
@@ -1792,8 +1959,44 @@ async function observeVoice(samples, opts) {
    crawlSite deliberately refuses anything that is not HTML, which is right for
    a page crawl and useless here: the palette and the typography live in .css
    and the manifest lives in .webmanifest. This is the ONLY extra fetcher, it
-   is bounded, and it applies the same scope rule as the crawl.
+   is bounded, and it applies the crawl's scope rule with ONE widening, below.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * The platform whose OWN CDN this URL is on, or ''.
+ *
+ * A stylesheet linked from the brand's own page is the brand's stylesheet
+ * wherever it is hosted — and virtually every Shopify, Squarespace, Wix,
+ * BigCommerce and Webflow theme serves its CSS from the platform CDN, not the
+ * store's domain. The asset fetcher refused anything off-origin, so a Shopify
+ * store lost its ENTIRE design system: measured on a store linking
+ * `https://cdn.shopify.com/…/theme.css` that carried `--brand-primary`,
+ * `--brand-accent` and `h1{font-size:56px}`, the report read stylesheets: [],
+ * palette all empty, typography [], scale 0 rows, 9 markers. Meanwhile
+ * off-origin IMAGES were collected and flagged, and storefront-detect already
+ * trusted those same CDN hosts as platform signals.
+ *
+ * The widening is exactly that table: a host one of storefront-detect's
+ * `asset` signals names. The page CRAWL's scope is untouched (that is the SSRF
+ * and competitor rule); only a linked stylesheet or manifest may be fetched
+ * off-origin, and only from a known platform CDN. A sheet on any other third-
+ * party host stays skipped and noted. Host-only match on purpose: the
+ * path-shaped signals (`/wp-content/plugins/woocommerce/`) describe the
+ * brand's own origin and must not admit a foreign host that happens to carry
+ * that path.
+ */
+function platformCdnOf(url) {
+  const host = hostOf(url);
+  if (!host) return '';
+  for (const p of storefront.PLATFORMS) {
+    for (const s of p.signals || []) {
+      if (s.where !== 'asset' || !s.rx) continue;
+      const rx = s.rx.global ? new RegExp(s.rx.source, s.rx.flags.replace('g', '')) : s.rx;
+      if (rx.test(host)) return p.id;
+    }
+  }
+  return '';
+}
 
 async function defaultAssetFetch(url, timeoutMs, ua) {
   const ctrl = new AbortController();
@@ -1867,7 +2070,12 @@ async function extractBrand(startUrl, opts) {
     return r;
   };
 
-  const pages = new Map();     // url -> html
+  const pages = new Map();     // url -> html, THE BRAND'S OWN pages only
+  // Which of the pages the site served were actually the site. `checked` counts
+  // every page the crawl handed over, including the refused ones, because a
+  // check that inspects nothing passes everything and the count is part of the
+  // answer. Filled by the crawl hook below.
+  const integrity = { checked: 0, blocked: [] };
   const notes = [];
   const limits = [
     'No browser: this reads published HTML and CSS, it does not render the page. Colours applied by JavaScript, themes chosen at runtime, and anything a single-page app paints after load are invisible to it.',
@@ -1904,7 +2112,45 @@ async function extractBrand(startUrl, opts) {
     assetFetch: rawFetch,
     maxPages: o.maxPages, maxDepth: o.maxDepth,
     perRequestMs: o.perRequestMs, totalMs: o.totalMs, userAgent: o.userAgent,
-    onPage: (html, url) => { if (pages.size < o.maxPages) pages.set(url, html); },
+    onPage: (html, url, depth) => {
+      // IS THIS EVEN THE BRAND'S PAGE?
+      //
+      // A status code cannot answer that. A site that refuses datacenter
+      // addresses and non-browser readers answers with a SOFT ERROR - a
+      // maintenance page, a bot challenge, an "access denied" - delivered as
+      // HTTP 200. The crawl then succeeds, and everything downstream reads that
+      // page as the brand: one live run returned the brand name "Site
+      // Maintenance" and the tagline "Oops! Something went wrong", each with a
+      // real source URL and an honest confidence. Nothing was invented, which is
+      // what makes it the worst output this pipeline has - a fabricated identity
+      // wearing real provenance.
+      //
+      // Judged HERE, as the crawl delivers each page, rather than afterwards
+      // over the collected map. That is the difference between removing a
+      // refused page from this module's own collectors and removing it from
+      // EVERY rider: the caller's observer below is chained inside this hook, so
+      // an assessment that ran later would still have handed brand-harvest the
+      // images off a Cloudflare interstitial for the brand's image library.
+      const verdict = softError.assessPage({ html, url, isHome: integrity.checked === 0 });
+      integrity.checked += 1;
+      if (verdict.blocked) {
+        integrity.blocked.push(verdict);
+        notes.push(`not this brand's own page, so nothing was read from it (${verdict.reason}): ${url} served ${verdict.served}.`);
+        return;
+      }
+
+      if (pages.size < o.maxPages) pages.set(url, html);
+      // THE CALLER'S OBSERVER, chained after this module's own. This hook used
+      // to be hardcoded and `o.onPage` was never called, so brand-harvest -
+      // which passes an observer and depends on it entirely - returned ok:true,
+      // pages_visited:6 and an image library of ZERO while this report's own
+      // images.count was 6. Its throws are swallowed for the same reason
+      // site-crawl swallows this one's: a rider must never abort the crawl.
+      if (typeof o.onPage === 'function') {
+        try { o.onPage(html, url, depth); }
+        catch (e) { notes.push(`observer failed on ${url}: ${(e && e.message) || e}`); }
+      }
+    },
   });
   if (!crawl.ok) {
     return {
@@ -1916,32 +2162,14 @@ async function extractBrand(startUrl, opts) {
       fields: {}, markers: [], limits,
     };
   }
-  // IS THIS EVEN THE BRAND'S PAGE?
-  //
-  // A status code cannot answer that. A site that refuses datacenter addresses
-  // and non-browser readers answers with a SOFT ERROR - a maintenance page, a
-  // bot challenge, an "access denied" - delivered as HTTP 200. The crawl then
-  // succeeds, and everything below reads that page as the brand: one live run
-  // returned the brand name "Site Maintenance" and the tagline "Oops! Something
-  // went wrong", each with a real source URL and an honest confidence. Nothing
-  // was invented, which is what makes it the worst output this pipeline has -
-  // a fabricated identity wearing real provenance.
-  //
-  // Blocked pages are REMOVED from the list the collectors walk, not flagged.
-  // Flagging leaves every collector free to read them and puts the defect back
-  // the first time an `if` is forgotten downstream.
-  const integrity = softError.assessPages([...pages.entries()]);
-  for (const v of integrity.blocked) {
-    notes.push(`not this brand's own page, so nothing was read from it (${v.reason}): ${v.url} served ${v.served}.`);
-  }
-
-  // Two different outcomes, kept apart. A crawl that read NOTHING is diagnosed
-  // from the crawl's own record of every attempt; a crawl that read pages and
-  // found none of them to be the brand's is diagnosed from what was SERVED.
-  // Both produce the same {reason, message, next_steps} shape, because the
-  // operator's question is the same one either way.
-  const pageList = integrity.usable;
-  const diagnosis = !pages.size
+  // Two different outcomes, kept apart. A crawl that read NOTHING AT ALL is
+  // diagnosed from the crawl's own record of every attempt; a crawl that read
+  // pages and found none of them to be the brand's is diagnosed from what was
+  // SERVED. Both produce the same {reason, message, next_steps} shape, because
+  // the operator's question is the same one either way - and collapsing them
+  // would answer "a bot wall" with "check the spelling of the domain".
+  const pageList = [...pages.entries()];
+  const diagnosis = !integrity.checked
     ? diagnoseEmptyCrawl(startUrl, crawl)
     : (pageList.length ? null : softError.diagnoseSoftError(startUrl, integrity, { userAgent: o.userAgent }));
   if (diagnosis) notes.push(diagnosis.message);
@@ -1953,16 +2181,24 @@ async function extractBrand(startUrl, opts) {
   // CSS-derived palette and typography silently disappear from the report.
   const homeUrl = pageList.length ? pageList[0][0] : crawl.start;
 
+  // The markup every TAG scanner sees: the page with its <script>, <noscript>
+  // and <template> bodies removed. JSON-LD and storefront detection read the
+  // raw page, because what they look for lives in a <script>.
+  const dom = new Map();
+  for (const [url, html] of pages) dom.set(url, withoutScripts(html));
+
   // ── manifest + stylesheets, once, from the pages we actually read.
   let manifest = null;
   const sheetUrls = [];
   const inlineSheets = [];
-  // `pageList`, not `pages`: a refused page's own <style> block and its linked
-  // stylesheets are the block page's design system, and a palette or a type
-  // scale read off a Cloudflare interstitial is the same fabrication as a brand
-  // name read off it.
-  for (const [url, html] of pageList) {
-    const head = headOf(html);
+  // `dom` is built from `pages`, which a refused page never entered, so a block
+  // page's own <style> block and its linked stylesheets are out of reach here.
+  // That matters as much as the name: a palette read off a Cloudflare
+  // interstitial is the same fabrication wearing a hex code, and a maintenance
+  // page's near-black ground would then have been proposed as the brand's
+  // surface and rejected by validatePalette as the OPERATOR's mistake.
+  for (const [url, markup] of dom) {
+    const head = headOf(markup);
     for (const tag of tagsOf(head, 'link')) {
       const a = attrs(tag);
       const rel = String(a.rel || '').toLowerCase();
@@ -1970,7 +2206,9 @@ async function extractBrand(startUrl, opts) {
       if (/manifest/.test(rel) && !manifest) sheetUrls.push({ kind: 'manifest', url: absolute(a.href, url), from: url });
       else if (/(^|\s)stylesheet(\s|$)/.test(rel)) sheetUrls.push({ kind: 'css', url: absolute(a.href, url), from: url });
     }
-    for (const m of String(html).matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+    // A <style> inside a JavaScript string is source code, not a stylesheet:
+    // `markup` has no scripts in it, so this cannot match one.
+    for (const m of String(markup).matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
       inlineSheets.push({ url, css: m[1].slice(0, o.maxCssChars), origin: 'inline <style>' });
     }
   }
@@ -1985,23 +2223,31 @@ async function extractBrand(startUrl, opts) {
     seenAsset.add(item.url);
     if (item.kind === 'css' && fetchedSheets.length >= o.maxStylesheets) continue;
     if (item.kind === 'manifest' && manifest) continue;
+    // Off-origin: allowed ONLY for a known platform CDN (see platformCdnOf),
+    // and then recorded as off-origin with its host, exactly as images are.
+    // The brand's declared asset hosts are already in `hosts`.
+    let offOrigin = null;
     if (!siteCrawl.inScope(item.url, hosts)) {
-      notes.push(`skipped (off-origin asset): ${item.url}`);
-      continue;
+      const platform = platformCdnOf(item.url);
+      if (!platform) { notes.push(`skipped (off-origin asset): ${item.url}`); continue; }
+      offOrigin = { off_origin: true, host: hostOf(item.url), platform };
     }
     let r = await rawFetch(item.url, o.perRequestMs);
     if (r && !r.ok && r.redirect) {
       const hop = absolute(r.redirect, item.url);
-      if (hop && siteCrawl.inScope(hop, hosts) && !seenAsset.has(hop)) {
+      const hopPlatform = hop ? platformCdnOf(hop) : '';
+      if (hop && !seenAsset.has(hop) && (siteCrawl.inScope(hop, hosts) || hopPlatform)) {
         seenAsset.add(hop);
         r = await rawFetch(hop, o.perRequestMs);
         if (r && r.ok) r.url = hop;
+        if (!siteCrawl.inScope(hop, hosts)) offOrigin = { off_origin: true, host: hostOf(hop), platform: hopPlatform };
       } else {
         notes.push(`skipped (asset redirected off-origin): ${item.url}`);
         continue;
       }
     }
     if (!r || !r.ok || !r.body) { notes.push(`unreachable asset (${(r && r.status) || 0}): ${item.url}`); continue; }
+    if (offOrigin) notes.push(`read (off-origin, ${offOrigin.platform} platform CDN ${offOrigin.host}): ${item.url}`);
     if (item.kind === 'manifest') {
       try { manifest = JSON.parse(r.body); manifest.__url = item.url; }
       catch (_) { notes.push(`manifest is not valid JSON: ${item.url}`); }
@@ -2009,7 +2255,7 @@ async function extractBrand(startUrl, opts) {
     }
     const css = String(r.body).slice(0, Math.min(o.maxCssChars, Math.max(0, cssBudget)));
     cssBudget -= css.length;
-    fetchedSheets.push({ url: item.url, css, origin: 'linked stylesheet' });
+    fetchedSheets.push(Object.assign({ url: item.url, css, origin: 'linked stylesheet', off_origin: false, host: '', platform: '' }, offOrigin || {}));
     if (cssBudget <= 0) { notes.push('CSS budget reached; later stylesheets were not read.'); break; }
   }
   if (!inlineSheets.length && !fetchedSheets.length) {
@@ -2029,8 +2275,11 @@ async function extractBrand(startUrl, opts) {
     // on the home page. A page's own inline <style> belongs to that page only —
     // attributing every page's inline CSS to the home page would count the same
     // shared header block once per page and let it drown the real signals.
+    // `html` here is the script-free markup (see `dom`); JSON-LD comes off the
+    // raw page because that is where it lives.
+    const markup = dom.get(url);
     const ctx = {
-      html, url, isHome, hosts, meta: metaOf(html), ld: jsonLdNodes(html), manifest,
+      html: markup, url, isHome, hosts, meta: metaOf(markup), ld: jsonLdNodes(html), manifest,
       sheets: isHome
         ? inlineSheets.filter((s) => s.url === homeUrl).concat(fetchedSheets)
         : inlineSheets.filter((s) => s.url === url),
@@ -2057,7 +2306,7 @@ async function extractBrand(startUrl, opts) {
     }
     bags.currencies.push(...reg.currencies);
     bags.samples.push(...voiceSamples(ctx));
-    if (!inlineSvg) inlineSvg = inlineSvgLogo(html, url);
+    if (!inlineSvg) inlineSvg = inlineSvgLogo(markup, url);
 
     if (isHome) {
       const cs = colourSightings(ctx);
@@ -2200,8 +2449,17 @@ async function extractBrand(startUrl, opts) {
     // under `integrity`, with what it served.
     pages: pageList.map(([u]) => u),
     pages_visited: pageList.length,
-    pages_fetched: pages.size,
+    // Every page the site handed over, refused ones included. Collapsing this
+    // into pages_visited would hide the difference between a site that refused
+    // us and a site that was never reached, which are opposite problems with
+    // opposite remedies.
+    pages_fetched: integrity.checked,
     stylesheets: fetchedSheets.map((s) => s.url),
+    // The same list with provenance: which sheets were read OFF-ORIGIN from a
+    // platform CDN, and whose. `stylesheets` stays a plain URL list because the
+    // wizard and the context pack consume it as one.
+    stylesheet_sources: fetchedSheets.map((s) => ({ url: s.url, off_origin: !!s.off_origin, host: s.host || '', platform: s.platform || '' })),
+    stylesheets_off_origin: fetchedSheets.filter((s) => s.off_origin).length,
     inline_style_blocks: inlineSheets.length,
     manifest_url: manifest ? manifest.__url : '',
     stopped: crawl.stopped,
@@ -2224,7 +2482,7 @@ async function extractBrand(startUrl, opts) {
           weight: s.weight, where: s.where, evidence: s.evidence, why: s.why,
         })),
       })),
-      note: integrity.any_blocked
+      note: integrity.blocked.length
         ? 'Some of what this site served was not the site: an error, maintenance or bot-challenge page delivered as HTTP 200. Nothing on those pages contributed a brand field; they are listed above with what they served.'
         : 'Every page read published content of its own. None of them was an error, maintenance or bot-challenge page.',
     },
@@ -2376,5 +2634,5 @@ module.exports = {
   socialCandidates, claimCandidates, legalCandidates, regionCandidates, voiceSamples,
   googleFontLinks, primaryFamily, blockTexts, trustRanges,
   // helpers
-  stripTags, headOf, footerOf, attrs, rankCandidates,
+  stripTags, headOf, footerOf, attrs, rankCandidates, decodeEntities, withoutScripts, platformCdnOf, atExcluded, nonSelectorAt,
 };

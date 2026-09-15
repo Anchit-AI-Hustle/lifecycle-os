@@ -110,10 +110,18 @@ test('the palette is taken from where the brand actually declares it', async () 
   expect(p.accent).toBe('#e8b04b');
   expect(from.accent.source_url).toContain('/pdp.css');
 
-  // Neutrals legitimately come from the home page - each role is attributed to
-  // the file it was actually found in, not to one winning stylesheet.
-  expect(from.ink.source_url).toContain('/home.css');
-  expect(from.surface.source_url).toContain('/home.css');
+  // Each role is attributed to the file it was actually found in, not to one
+  // winning stylesheet. /pdp.css DECLARES `--brand-ink` and `--brand-surface`,
+  // so those two roles are its - the home page's `body{color:#222}` is an
+  // inference, and a declared token outranks it. (This test used to expect the
+  // home page here, because every `--brand-*` token was being filed as the
+  // brand's IDENTITY colour and the ink and surface slots never saw them.)
+  expect(p.ink).toBe('#1a1512');
+  expect(from.ink.source_url).toContain('/pdp.css');
+  expect(from.ink.signal).toContain('--brand-ink');
+  expect(p.surface).toBe('#fbf7f0');
+  expect(from.surface.source_url).toContain('/pdp.css');
+  expect(from.surface.signal).toContain('--brand-surface');
 });
 
 test('type and design tokens are attributed to their own page too', async () => {
