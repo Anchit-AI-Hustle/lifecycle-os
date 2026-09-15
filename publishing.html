@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Publishing &amp; deliverability</title>
@@ -298,7 +350,7 @@
     var reg, list;
     try {
       reg = await call(CONN + '&op=publish-registry');
-    } catch (e) { document.getElementById('hub-state').textContent = 'Could not load the platform registry: ' + e.message; return; }
+    } catch (e) { window.LifecycleFailure.show(document.getElementById('hub-state'), e, { title: 'Platform registry could not be loaded' }); return; }
     PLATFORMS = reg.platforms || [];
     CHANNELS = reg.channels || [];
 
@@ -521,12 +573,12 @@
     try {
       var r = await call(BRAIN + 'deliverability-domain', { domain: d });
       renderDomain(r);
-    } catch (e) { document.getElementById('domain-out').innerHTML = '<div class="banner err">' + esc(e.message) + '</div>'; }
+    } catch (e) { window.LifecycleFailure.show(document.getElementById('domain-out'), e, { title: 'Domain check could not be run' }); }
     this.disabled = false;
   });
 
   function renderDomain(r) {
-    if (!r.ok) { document.getElementById('domain-out').innerHTML = '<div class="banner err">' + esc(r.error) + '</div>'; return; }
+    if (!r.ok) { window.LifecycleFailure.show(document.getElementById('domain-out'), r, { title: 'Domain check could not be run' }); return; }
     var pct = r.score == null ? 0 : r.score;
     var circ = 2 * Math.PI * 56;
     var colour = r.score == null ? 'var(--muted)' : r.score >= 75 ? 'var(--ok)' : r.score >= 50 ? 'var(--warn)' : 'var(--err)';
@@ -595,7 +647,12 @@
             + '<td>' + j.attempt_count + '/' + j.max_attempts + '</td>'
             + '<td class="muted">' + esc(j.last_error || j.external_status || j.external_id || '') + '</td></tr>';
         }).join('') + '</tbody></table>';
-    } catch (e) { el.innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
+    } catch (e) {
+      // This slot otherwise holds the dispatch-job table. A muted paragraph
+      // here is indistinguishable from "no jobs yet", which is a different
+      // and far more reassuring statement than "we could not look".
+      window.LifecycleFailure.show(el, e, { title: 'Dispatch jobs could not be loaded' });
+    }
   }
 
   document.getElementById('btn-refresh-jobs').addEventListener('click', loadJobs);

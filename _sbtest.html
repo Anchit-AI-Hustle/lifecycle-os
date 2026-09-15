@@ -38,6 +38,21 @@
   .pvpane{display:none}.pvpane.on{display:block}
   .pvframe{width:100%;height:560px;border:1px solid rgba(171,135,67,.22);border-radius:12px;background:#fff}
   .pvnote{color:#556059;font-size:12px;margin:0 0 10px}
+  /* A FAILURE IS NOT CONTENT. Same markup and class names as the shared
+     treatment in theme.css (auth.js -> LifecycleFailure), declared locally
+     because this scratch harness carries neither auth.js nor theme.css - it is
+     not linked from the rail and has no shared shell. Colours come from this
+     page's own :root tokens, never a literal, and the ground is the light
+     surface: a dark-neutral section background is a hard rule here. */
+  .vh-failure{display:block;margin:0;padding:12px 14px;border:1px solid rgba(171,135,67,.25);
+    border-left:4px solid var(--lava);border-radius:8px;background:var(--chalk);color:var(--ink);
+    font-size:12.5px;line-height:1.5;text-align:left;white-space:normal}
+  /* The TAG is text, so it takes the contrast-adjusted token, never the raw
+     brand accent (--lava). The left EDGE is not text and may take the raw one. */
+  .vh-failure-tag{display:block;margin-bottom:5px;font-size:11px;font-weight:800;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--brand-accent-text)}
+  .vh-failure-msg{display:block;color:var(--ink)}
+  .vh-failure-code{display:block;margin-top:7px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
   .adcard{background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.16);border-radius:12px;padding:14px;margin-bottom:10px}
   .adcard h4{margin:0 0 6px;font-size:12px;color:var(--brand-accent-text);letter-spacing:.08em;text-transform:uppercase}
   .adcard .k{color:#48524c;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
@@ -95,6 +110,25 @@ let PLAN = [];
 
 function reviewerEmail(){ try { return window.LifecycleAuth?.session?.user?.email || null; } catch(_) { return null; } }
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+/* The one place this page turns a caught error into something a reader sees.
+   Three rules, the same three the shared helper enforces: a FRAME so a failure
+   is never mistaken for the data that belongs in the slot, a SENTENCE rather
+   than a bare machine identifier, and never a raw stack trace - a stack in a
+   content slot is the same defect as a code in a list of brands. */
+function failHtml(err, title){
+  var raw = String((err && err.message) || err || '').trim();
+  var code = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/.test(raw) ? raw : '';
+  var msg = code || !raw
+    ? 'The server refused this request and did not explain why.'
+    : (/failed to fetch|networkerror/i.test(raw)
+        ? 'The server could not be reached, so this could not be loaded and nothing has been saved.'
+        : raw);
+  return '<div class="vh-failure" role="alert" data-failure="1">'
+    + '<span class="vh-failure-tag">' + esc(title) + '</span>'
+    + '<span class="vh-failure-msg">' + esc(msg) + '</span>'
+    + (code ? '<span class="vh-failure-code">Reported by the server as: ' + esc(code) + '</span>' : '')
+    + '</div>';
+}
 
 function renderPlan(){
   if(!PLAN.length){ $('plan').innerHTML = '<tr><td colspan="8" style="color:#48524c">No plan yet — click “Run Daily Sync”.</td></tr>'; return; }
@@ -215,7 +249,7 @@ async function viewEntry(i, forceRegen){
     if(!data.ok) throw new Error(data.error || 'Preview failed');
     PREVIEW_CACHE[e.id] = data;
     renderPreview(data, e, i);
-  }catch(err){ $('preview').innerHTML = `<p class="pvnote" style="color:#b91c1c">Preview failed: ${esc(err.message)}</p>`; }
+  }catch(err){ $('preview').innerHTML = failHtml(err, 'Preview failed'); }
 }
 window.viewEntry = viewEntry;
 
@@ -228,7 +262,7 @@ async function loadPlan(){
     PLAN = data.entries || [];
     renderPlan();
     if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; approvals will generate assets but the calendar itself is not persisted.</p>';
-  }catch(e){ $('plan').innerHTML = `<tr><td colspan="8" style="color:#b91c1c">${esc(e.message)}</td></tr>`; }
+  }catch(e){ $('plan').innerHTML = `<tr><td colspan="8">${failHtml(e, 'The plan could not be loaded')}</td></tr>`; }
 }
 
 async function runSync(){
@@ -247,7 +281,7 @@ async function runSync(){
     Object.keys(PREVIEW_CACHE).forEach(k => delete PREVIEW_CACHE[k]);  // slots may have been re-planned
     clearPreview();
     renderPlan();
-  }catch(e){ $('detail').textContent = e.stack || e.message; }
+  }catch(e){ $('detail').innerHTML = failHtml(e, 'Daily Sync failed'); }
   finally{ $('sync').disabled = false; $('sync').textContent = '🔄 Run Daily Sync'; }
 }
 
@@ -266,7 +300,7 @@ async function approve(i){
     renderPlan();
     $('detailTitle').textContent = `Generated · ${data.campaign.name} (copy: ${data.campaign.copywriter?.provider})`;
     renderPreview(data, e, i, { persisted: true });
-  }catch(err){ $('detailTitle').textContent = 'Approve failed'; clearPreview(); $('detail').textContent = err.stack || err.message; }
+  }catch(err){ $('detailTitle').textContent = 'Approve failed'; clearPreview(); $('detail').innerHTML = failHtml(err, 'Approve failed'); }
 }
 
 async function reject(i){
@@ -280,7 +314,7 @@ async function reject(i){
     delete PREVIEW_CACHE[e.id];
     clearPreview();
     renderPlan();
-  }catch(err){ $('detail').textContent = err.stack || err.message; }
+  }catch(err){ $('detail').innerHTML = failHtml(err, 'Reject failed'); }
 }
 window.approve = approve; window.reject = reject;
 
