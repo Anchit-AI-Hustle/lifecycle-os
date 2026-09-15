@@ -372,9 +372,16 @@
 
   function renderHooks(){
     var gws = (DATA && DATA.gateways) || [];
-    el("pay-hook-note").innerHTML = "<b>Not yet receiving.</b> The receiver endpoint is not built. Registering these events before a signature-verifying receiver exists would mean accepting unauthenticated state changes, which is worse than polling. The list is here so the work is specified rather than discovered later.";
+    // The receiver's state comes from the server (receiverInfo in
+    // payments-core.js), never from a sentence typed here: this line used to
+    // say "not built" and would have gone on saying it after it was.
+    var rc = (DATA && DATA.receiver) || null;
+    el("pay-hook-note").innerHTML = rc
+      ? "<b>Receiver: " + esc(rc.endpoint || "") + "</b> " + esc(rc.note || "")
+      : "<b>Receiver state unknown.</b> The reference below lists what each provider sends and how it is verified.";
     el("pay-hooks").innerHTML = gws.map(function(g){
       var w = g.webhooks || {};
+      var verified = !!(rc && (rc.verifies || []).indexOf(g.id) >= 0);
       var evs = (w.events || []).map(function(e){
         return '<div class="li"><b>' + esc(e.name) + '</b>' + esc(e.do) + '</div>';
       }).join("");
@@ -382,6 +389,7 @@
         + '<div class="note" style="margin-bottom:8px">' + esc(w.why || "") + '</div>'
         + evs
         + '<div class="li"><b>Verification</b>' + esc(w.verification || "") + '</div>'
+        + (rc ? '<div class="li"><b>Receiver</b>' + (verified ? "Verifies deliveries in code." : "Refuses deliveries (501) until the scheme is implemented.") + '</div>' : "")
         + '</div>';
     }).join("");
   }
@@ -410,8 +418,15 @@
     var out = [];
     var st = (DATA && DATA.storage) || {};
     if (!st.ready) out.push("Credential storage is not configured on this deployment: " + ((st.missing || []).join(", ") || "unknown") + ".");
-    out.push("The webhook receiver is specified but not built, so a disconnection made at the provider is not yet reflected here automatically.");
+    var rc = (DATA && DATA.receiver) || null;
+    if (!rc || !rc.applies_state_changes) out.push("A verified webhook event is acknowledged but not yet acted on, so a disconnection made at the provider is not yet reflected here automatically.");
+    (rc ? (rc.refuses || []) : []).forEach(function(id){
+      var g = gws.filter(function(x){ return x.id === id; })[0];
+      out.push((g ? g.label : id) + ": webhook deliveries are refused until its signature scheme is implemented in code.");
+    });
     gws.forEach(function(g){
+      var rd = (g.readiness && g.readiness.webhooks) || null;
+      if (rd && !rd.ready) out.push(g.label + ": webhook deliveries are refused until " + (rd.missing || []).join(", ") + " is set.");
       (g.gaps || []).forEach(function(x){ out.push(g.label + ": " + x); });
       var w = g.webhooks || {};
       if (w.verification && w.verification.indexOf("DATA REQUIRED") >= 0) out.push(g.label + ": " + w.verification);
@@ -572,7 +587,7 @@
       // only the connect actions need a workspace.
       return fetch(API + "&op=catalog").then(function(r){ return r.json(); }).then(function(c){
         if (!c || !c.ok) throw new Error((j && j.error) || "catalog_unavailable");
-        DATA = { gateways: c.gateways, connections: {}, storage: c.storage, callback_url: c.callback_url };
+        DATA = { gateways: c.gateways, connections: {}, storage: c.storage, callback_url: c.callback_url, receiver: c.receiver };
         renderAll();
         el("pay-policy").classList.add("err");
         el("pay-policy-text").textContent = "No brand workspace is active for this account, so nothing can be connected yet ("

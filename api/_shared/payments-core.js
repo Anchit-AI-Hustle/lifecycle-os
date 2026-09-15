@@ -59,6 +59,10 @@ const { requireUser, restAs } = require('./brand-workspace-core.js');
 // rather than quietly bypassed, because the guard is a deliberate standing rule
 // and this module is not entitled to decide it does not apply.
 const { assertReadOnly } = require('./read-only-egress.js');
+// A webhook signature is over the bytes that arrived. Vercel hands a handler
+// req.body already parsed, so the receiver reads the bytes through this and
+// never through a re-serialisation. See raw-body.js for how they survive.
+const { readRawBody } = require('./raw-body.js');
 
 const TIMEOUT_MS = 20000;
 
@@ -85,7 +89,11 @@ const GATEWAYS = [
       what: 'Register this app as a Stripe Connect platform, enable onboarding Standard accounts with OAuth in the platform OAuth settings, and add the callback below as a redirect URI.',
       where: 'Stripe Dashboard, Connect platform settings.',
       yields: 'A client id beginning ca_ and the platform secret key you already have.',
-      env: { STRIPE_CONNECT_CLIENT_ID: 'The ca_… client id from the Connect OAuth settings.', STRIPE_SECRET_KEY: 'The platform secret key. Used to exchange the code and to act on connected accounts.' },
+      env: {
+        STRIPE_CONNECT_CLIENT_ID: 'The ca_… client id from the Connect OAuth settings.',
+        STRIPE_SECRET_KEY: 'The platform secret key. Used to exchange the code and to act on connected accounts.',
+        STRIPE_WEBHOOK_SECRET: 'The whsec_… signing secret Stripe shows when the Connect webhook endpoint is created. Used only to verify Stripe-Signature on incoming deliveries. With it unset every delivery is refused; verification is never skipped.',
+      },
     },
 
     endpoints: {
@@ -119,12 +127,13 @@ const GATEWAYS = [
         { name: 'account.updated', do: 'Refresh capabilities and requirements. Sent whenever an account property or status changes.' },
       ],
       delivery: 'A Connect webhook endpoint, which receives events for connected accounts rather than only the platform account.',
-      verification: '[DATA REQUIRED BEFORE LAUNCH: the exact Stripe-Signature verification scheme (header layout and tolerance window) was not re-read from Stripe documentation in this session. Implement it from docs.stripe.com/webhooks/signatures before accepting a live webhook.]',
+      verification: 'Stripe-Signature is a comma-separated list of key=value elements: t=<unix seconds> and one or more v1=<hex signature> (several while a signing secret is being rolled; any one matching is enough). Every other prefix, v0 included, is ignored. The signed payload is the t value, a full stop, and the request body as the exact bytes received; the expected signature is HMAC-SHA256 of that, keyed with the endpoint signing secret (STRIPE_WEBHOOK_SECRET), hex encoded. Each v1 is compared in constant time, and a t more than 300 seconds from the current time, in either direction, is refused as a replay. Verified in code by verifyStripeWebhook() BEFORE the body is parsed, over the raw bytes read by _shared/raw-body.js, never over a re-serialisation of req.body. With no STRIPE_WEBHOOK_SECRET set every delivery is refused rather than accepted unverified.',
     },
     sources: [
       'docs.stripe.com/connect/oauth-reference and docs.stripe.com/connect/oauth-standard-accounts, read 2026-08-13 via search summaries.',
       'docs.stripe.com/connect/webhooks for the two events above.',
       'docs.stripe.com/api/balance for the probe endpoint.',
+      'Stripe-Signature scheme: read 2026-09-15 from Stripe\'s own reference implementation, stripe-node src/Webhooks.ts (DEFAULT_TOLERANCE 300; header split on comma then equals, t and v1 only, other keys ignored; signed payload `${timestamp}.${payload}`; constant-time compare, any v1 may match; the payload must be the raw body as a string or Buffer, a parsed object is rejected). docs.stripe.com/webhooks/signatures was not reachable from the build network that day. One deliberate difference: the reference library refuses only a STALE timestamp, this refuses a future one beyond the tolerance as well.',
     ],
   },
 
@@ -482,6 +491,12 @@ function platformReadiness() {
     ready: has('STRIPE_CONNECT_CLIENT_ID') && has('STRIPE_SECRET_KEY'),
     mode: 'oauth',
     missing: ['STRIPE_CONNECT_CLIENT_ID', 'STRIPE_SECRET_KEY'].filter((n) => !has(n)),
+    // Receiving is separate from connecting: an operator can sign in without
+    // the webhook secret, and every delivery is refused until it is set.
+    webhooks: {
+      ready: has('STRIPE_WEBHOOK_SECRET'),
+      missing: has('STRIPE_WEBHOOK_SECRET') ? [] : ['STRIPE_WEBHOOK_SECRET'],
+    },
   };
 
   // Razorpay is the one gateway with two genuinely different connect paths, so
@@ -805,6 +820,7 @@ function catalog(req) {
     ok: true,
     callback_url: callbackUrl(req),
     storage: readiness._storage,
+    receiver: receiverInfo(req),
     gateways: GATEWAYS.map((g) => ({
       id: g.id,
       label: g.label,
@@ -1038,6 +1054,223 @@ function verifyShopifyCallback(query, appSecret) {
   return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(given));
 }
 
+/* ── webhook receipt: verify the bytes, then read them ────────────────────── */
+
+/** Stripe's documented default tolerance for the signed timestamp, in seconds. */
+const STRIPE_WEBHOOK_TOLERANCE_SEC = 300;
+
+/**
+ * Split a Stripe-Signature header into its timestamp and v1 signatures.
+ *
+ * The header is a comma-separated list of key=value elements. `t` is the unix
+ * timestamp Stripe signed with; `v1` is a signature under the live scheme, and
+ * there can be more than one while an endpoint's secret is being rolled. Every
+ * other prefix (Stripe also sends v0) is discarded, which is what the documented
+ * procedure says to do. The timestamp is kept as the TEXT Stripe sent as well
+ * as a number: the text is what went into the signed payload, the number is
+ * what the tolerance check needs.
+ */
+function parseStripeSignatureHeader(header) {
+  let timestampText = null;
+  const signatures = [];
+  for (const item of String(header || '').split(',')) {
+    const eq = item.indexOf('=');
+    if (eq < 0) continue;
+    const key = item.slice(0, eq).trim();
+    const value = item.slice(eq + 1).trim();
+    if (key === 't') timestampText = value;
+    else if (key === 'v1' && value) signatures.push(value);
+  }
+  if (timestampText === null || !/^\d+$/.test(timestampText)) {
+    return { ok: false, note: 'Unable to extract a t= unix timestamp from the Stripe-Signature header.' };
+  }
+  if (!signatures.length) {
+    return { ok: false, note: 'No v1= signature found in the Stripe-Signature header.' };
+  }
+  return { ok: true, timestampText, timestamp: Number(timestampText), signatures };
+}
+
+/**
+ * Constant-time digest comparison. timingSafeEqual throws on a length
+ * mismatch, and the throw would itself be a timing signal, so unequal length
+ * is simply not a match.
+ */
+function sameDigest(given, expected) {
+  const a = Buffer.from(String(given), 'utf8');
+  const b = Buffer.from(String(expected), 'utf8');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * Verify a Stripe webhook delivery. The documented scheme, nothing else:
+ *
+ *   signed_payload = `${t}.${raw body bytes}`
+ *   expected       = hex(HMAC-SHA256(signing secret, signed_payload))
+ *   accept iff some v1 equals expected (constant time) and |now - t| <= tolerance
+ *
+ * Verification happens BEFORE the body is parsed. A refusal is a structured
+ * object, never a throw, and never carries the event: an unverified body is
+ * not evidence of anything and must not reach code that acts on events.
+ *
+ * @param {object} o
+ * @param {string|string[]} o.header      the Stripe-Signature request header
+ * @param {Buffer|string}   o.rawBody     the body as the exact bytes received
+ * @param {string}          [o.secret]    the endpoint signing secret. Omitted means
+ *                                        STRIPE_WEBHOOK_SECRET; empty means refuse.
+ * @param {number}          [o.toleranceSec=300]
+ * @param {number}          [o.now]       unix seconds; tests pin it
+ * @returns {{ok:boolean, verified:boolean, error?:string, note:string,
+ *            event?:object, timestamp?:number, signatures_checked?:number}}
+ */
+function verifyStripeWebhook({ header, rawBody, secret, toleranceSec = STRIPE_WEBHOOK_TOLERANCE_SEC, now } = {}) {
+  const refuse = (error, note) => ({ ok: false, verified: false, error, note });
+
+  // Fail closed. Same posture as PAYMENTS_ENCRYPTION_KEY and CONNECTION_SECRET_KEY:
+  // a missing secret is a refusal, never a skipped check.
+  const key = secret === undefined
+    ? String(process.env.STRIPE_WEBHOOK_SECRET || '').trim()
+    : String(secret || '').trim();
+  if (!key) {
+    return refuse('stripe_webhook_secret_missing', 'STRIPE_WEBHOOK_SECRET is not set, so no Stripe webhook can be verified. Accepting a delivery unverified is not offered: set the whsec_ signing secret of the webhook endpoint first.');
+  }
+
+  if (rawBody == null || !(Buffer.isBuffer(rawBody) || typeof rawBody === 'string')) {
+    return refuse('raw_body_unavailable', 'The request body was not available as the bytes that arrived, and a signature over re-serialised JSON is not the signature Stripe computed. Nothing was verified.');
+  }
+
+  const h = Array.isArray(header) ? header.join(',') : (header == null ? '' : String(header));
+  if (!h.trim()) return refuse('stripe_signature_header_missing', 'No Stripe-Signature header on the request.');
+  const parsed = parseStripeSignatureHeader(h);
+  if (!parsed.ok) return refuse('stripe_signature_header_malformed', parsed.note);
+
+  const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody, 'utf8');
+  const signedPayload = Buffer.concat([Buffer.from(`${parsed.timestampText}.`, 'utf8'), body]);
+  const expected = crypto.createHmac('sha256', key).update(signedPayload).digest('hex');
+
+  // Every candidate is compared; a match does not short-circuit the loop.
+  let matched = false;
+  for (const sig of parsed.signatures) {
+    if (sameDigest(sig, expected)) matched = true;
+  }
+  if (!matched) {
+    return refuse('stripe_signature_mismatch', `None of the ${parsed.signatures.length} v1 signature(s) matched the HMAC-SHA256 of the timestamp and the raw body under the configured secret.`);
+  }
+
+  // Replay window. Stripe's reference library refuses only a stale timestamp;
+  // this refuses one from the future beyond the tolerance as well, which
+  // Stripe never produces, so the stricter check costs nothing genuine.
+  const at = Number.isFinite(now) ? Math.floor(now) : Math.floor(Date.now() / 1000);
+  const tol = Number.isFinite(toleranceSec) ? Math.max(0, toleranceSec) : STRIPE_WEBHOOK_TOLERANCE_SEC;
+  const age = Math.abs(at - parsed.timestamp);
+  if (tol > 0 && age > tol) {
+    return refuse('stripe_signature_timestamp_outside_tolerance', `The signed timestamp is ${age}s from now, outside the ${tol}s tolerance window, so this delivery is treated as a replay.`);
+  }
+
+  // Only now is the body read as data.
+  let event = null;
+  try { event = JSON.parse(body.toString('utf8')); } catch (_) { event = null; }
+  if (!event || typeof event !== 'object') {
+    return { ok: false, verified: true, error: 'stripe_event_not_json', note: 'The signature verified but the body is not a JSON object, so there is no event to act on.' };
+  }
+  return {
+    ok: true,
+    verified: true,
+    note: 'Stripe-Signature verified: HMAC-SHA256 over the timestamp and the raw body matched, and the timestamp is inside the tolerance window.',
+    timestamp: parsed.timestamp,
+    signatures_checked: parsed.signatures.length,
+    event,
+  };
+}
+
+/**
+ * Which gateways the receiver can verify. A gateway absent here is REFUSED
+ * with 501 rather than accepted unverified; its registry entry still carries
+ * the scheme in prose so the work is specified rather than discovered later.
+ */
+const WEBHOOK_VERIFIERS = {
+  stripe: ({ headers, rawBody }) => verifyStripeWebhook({
+    header: headers && (headers['stripe-signature'] || headers['Stripe-Signature']),
+    rawBody,
+  }),
+};
+
+/** What the receiver does and does not do yet, for the page and the reference. */
+function receiverInfo(req) {
+  const base = baseUrl(req);
+  const verifies = Object.keys(WEBHOOK_VERIFIERS);
+  const refuses = GATEWAYS.map((g) => g.id).filter((id) => !verifies.includes(id));
+  return {
+    endpoint: `${base || ''}/api/payments?op=webhook&gateway=<gateway>`,
+    verifies,
+    refuses,
+    applies_state_changes: false,
+    note: `Every delivery is signature-verified before its body is read as data: ${verifies.join(', ')} through the scheme in code; ${refuses.join(', ')} refused with 501 until each scheme is implemented, so nothing is accepted unverified. A verified event is acknowledged and NOT yet acted on, so a disconnection made at the provider is still not reflected here automatically.`,
+  };
+}
+
+/**
+ * The receiver: POST /api/payments?op=webhook&gateway=<id>.
+ *
+ * Unauthenticated ON PURPOSE, like brain.js's dispatch-webhook: a platform
+ * callback carries a signature, not a session. What it does NOT do is touch
+ * req.body. The bytes come from readRawBody(), the verifier decides, and only
+ * a verified body is parsed.
+ *
+ * A failed verification answers 400, not 200. Stripe shows failed deliveries in
+ * its dashboard and retries with a fresh signature, which is the signal an
+ * operator needs when the secret is wrong; a 200 on a forged or misconfigured
+ * delivery hides that until a real disconnection goes unnoticed.
+ */
+async function receiveWebhook(req, res) {
+  const q = (req && req.query) || {};
+  const g = gateway(q.gateway);
+  if (!g) return res.status(400).json({ ok: false, error: 'unknown_gateway', available: GATEWAYS.map((x) => x.id) });
+  if (String((req && req.method) || 'POST').toUpperCase() !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'method_not_allowed', note: 'A webhook delivery is a POST.' });
+  }
+  const verify = WEBHOOK_VERIFIERS[g.id];
+  if (!verify) {
+    return res.status(501).json({
+      ok: false, verified: false, gateway: g.id, error: 'webhook_verification_not_implemented',
+      note: `${g.label} deliveries are refused until their signature scheme is implemented in code. Nothing is accepted unverified.`,
+      verification: g.webhooks.verification,
+    });
+  }
+
+  try {
+    const raw = await readRawBody(req);
+    if (!raw.ok) {
+      return res.status(500).json({ ok: false, verified: false, gateway: g.id, error: 'raw_body_unavailable', reason: raw.reason, note: raw.note });
+    }
+    const r = verify({ headers: (req && req.headers) || {}, rawBody: raw.bytes });
+    if (!r.ok) {
+      const status = r.error === 'stripe_webhook_secret_missing' ? 503 : 400;
+      return res.status(status).json({ ok: false, verified: !!r.verified, gateway: g.id, error: r.error, note: r.note });
+    }
+    const ev = r.event || {};
+    return res.status(200).json({
+      ok: true,
+      verified: true,
+      gateway: g.id,
+      // Identity of the event, not its payload: enough to correlate with the
+      // provider's dashboard, nothing a caller could not already see there.
+      event: {
+        id: ev.id || null,
+        type: ev.type || null,
+        account: ev.account || null,
+        livemode: typeof ev.livemode === 'boolean' ? ev.livemode : null,
+        created: Number.isFinite(ev.created) ? ev.created : null,
+      },
+      applied: false,
+      note: 'Verified and acknowledged. The state change this event calls for is not applied yet; see the registry entry for what each event should do.',
+    });
+  } catch (err) {
+    // Never a raw throw out of the receiver: the router above it drops the
+    // message, so a caller would see nothing at all.
+    return res.status(500).json({ ok: false, verified: false, gateway: g.id, error: 'webhook_receiver_failed' });
+  }
+}
+
 /** Store a connection. Seals every credential; refuses rather than storing raw. */
 async function store(auth, ws, g, fields) {
   const now = new Date().toISOString();
@@ -1267,6 +1500,7 @@ async function status(auth, req, params) {
     workspace: { id: ws.id, name: ws.name },
     callback_url: callbackUrl(req),
     storage: platformReadiness()._storage,
+    receiver: receiverInfo(req),
     connections: byGateway,
     gateways: catalog(req).gateways,
   };
@@ -1274,22 +1508,33 @@ async function status(auth, req, params) {
 
 /** What to register with each provider so stored state stays true. */
 function webhooks(req) {
-  const base = baseUrl(req);
+  const receiver = receiverInfo(req);
   return {
     ok: true,
-    endpoint: base ? `${base}/api/payments?op=webhook` : '/api/payments?op=webhook',
-    note: 'The receiver is not implemented yet. Registering the events below before a verified receiver exists would mean accepting unauthenticated state changes, which is worse than polling.',
-    gateways: GATEWAYS.map((g) => ({ id: g.id, label: g.label, webhooks: g.webhooks })),
+    endpoint: receiver.endpoint,
+    note: receiver.note,
+    receiver,
+    gateways: GATEWAYS.map((g) => ({
+      id: g.id, label: g.label, webhooks: g.webhooks,
+      receiver: receiver.verifies.includes(g.id) ? 'verified' : 'refused',
+    })),
   };
 }
 
 /* ── router ───────────────────────────────────────────────────────────────── */
 
 const AUTHED_OPS = ['status', 'connect', 'callback', 'save-credentials', 'disconnect', 'probe'];
-const OPEN_OPS = ['catalog', 'webhooks'];
+const OPEN_OPS = ['catalog', 'webhooks', 'webhook'];
 
 async function handle(req, res) {
   const q = (req && req.query) || {};
+
+  // The receiver is routed BEFORE req.body is touched. On Vercel req.body is a
+  // lazy parse of bytes the runtime already read; the receiver needs those
+  // bytes, not the parse, and an unparseable body would throw here before any
+  // signature had been checked. A webhook op only ever comes from the query.
+  if (String(q.op || '').toLowerCase() === 'webhook') return receiveWebhook(req, res);
+
   const body = (req && req.body && typeof req.body === 'object') ? req.body : {};
   const op = String(q.op || body.op || 'catalog').toLowerCase();
 
@@ -1340,6 +1585,8 @@ module.exports = {
   GATEWAYS, gateway, catalog, webhooks, platformReadiness,
   seal, unseal, sealingAvailable, maskHint, redact, redactUrl,
   request, normalizeShop, verifyShopifyCallback,
+  verifyStripeWebhook, parseStripeSignatureHeader, STRIPE_WEBHOOK_TOLERANCE_SEC,
+  WEBHOOK_VERIFIERS, receiverInfo, receiveWebhook,
   stripeAuthorizeUrl, razorpayAuthorizeUrl, shopifyAuthorizeUrl,
   resolveWorkspace, listConnections, publicConnection, SAFE_COLUMNS,
   callbackUrl, baseUrl,
