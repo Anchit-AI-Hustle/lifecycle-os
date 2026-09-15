@@ -202,7 +202,7 @@ class WebEngageAdapter extends CrmPlatformAdapter {
   }
 
   verifyWebhook() {
-    return { verified: false, note: '[DATA REQUIRED BEFORE LAUNCH: WebEngage webhook signature scheme.]' };
+    return { verified: false, reason: 'no_signature_scheme', note: '[DATA REQUIRED BEFORE LAUNCH: WebEngage webhook signature scheme. Until it is wired, a delivery is refused and logged, never acted on.]' };
   }
 }
 
