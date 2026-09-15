@@ -25,4 +25,11 @@ jobs:
           exit 1
       - name: OK (head is not the SiS branch)
         if: github.head_ref != 'snowflake-streamlit-app'
-        run: echo "Head branch '${{ github.head_ref }}' is allowed."
+        # The branch name is attacker-chosen text on a public repo, so it reaches the
+        # shell through an environment variable rather than being interpolated into
+        # the script (actionlint's one finding for this directory). The job runs with
+        # permissions: {} and only echoes, so the practical risk was low; the fix is
+        # mechanical and leaves the blocking step above byte-for-byte unchanged.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: echo "Head branch '$HEAD_REF' is allowed."
