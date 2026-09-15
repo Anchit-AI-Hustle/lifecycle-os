@@ -1211,7 +1211,9 @@
     return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
       '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
         ' stylesheet(s) read. ' + esc(extraction.coverage_note) + xCoverageLine() +
-        ' Nothing below is applied until you press Use.</div>' +
+        ' Nothing below is applied until you press Use.' +
+        // Said on the panel, not only in a toast that has already gone.
+        (extraction.note ? ' ' + esc(extraction.note) : '') + '</div>' +
       diag +
       '<div style="margin-top:10px">' + body + '</div>' +
       (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
@@ -1242,7 +1244,13 @@
       var r = await api('extract', { url: url, workspace_id: brand.id || undefined });
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
-      toast('Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.');
+      // A read that ran without a backend is a DIFFERENT result from a normal
+      // one, and saying so is the whole point: nothing was saved, and the voice
+      // step did not run. Reporting it as an ordinary success would leave the
+      // operator to discover both by noticing an empty Voice step later.
+      toast(r.signed_out
+        ? 'Read ' + r.pages_visited + ' page(s) without signing in. Nothing was saved.'
+        : 'Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.', r.signed_out ? 5200 : 2600);
     } catch (e) {
       extraction = null;
       extractError = e.message;

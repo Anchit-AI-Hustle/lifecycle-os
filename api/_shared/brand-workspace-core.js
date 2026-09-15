@@ -50,24 +50,81 @@ function bearer(req) {
   return m ? m[1].trim() : '';
 }
 
-/** Verify the caller is a signed-in Supabase user. No domain allowlist. */
+/**
+ * Verify the caller is a signed-in Supabase user. No domain allowlist.
+ *
+ * ── AN ERROR CODE IS NOT AN ERROR MESSAGE ──────────────────────────────────
+ * Every refusal here carries a `message`: a sentence naming the cause and what
+ * the reader can do about it. It used to carry only `error` (a machine code)
+ * plus a `hint`/`detail` aimed at whoever was calling the API — so the browser,
+ * which surfaces whatever it is given, printed `session_verification_unavailable`
+ * into the middle of the onboarding wizard as the entire explanation of why
+ * reading a brand's own website had failed. The code is still there for code to
+ * branch on; the sentence is there for the person reading the screen.
+ *
+ * ── "NOT SIGNED IN" AND "NO BACKEND TO SIGN IN TO" ARE DIFFERENT ───────────
+ * `backend_unreachable` on the result separates them, and callers use it to
+ * decide whether this gate is protecting anything at all:
+ *
+ *   sign_in_required / invalid_session          the backend ANSWERED and said
+ *                                               no. There is a session to be
+ *                                               had and this caller lacks it.
+ *   supabase_not_configured / …_unavailable     the backend could not be
+ *                                               reached, so there is no session
+ *                                               ANYONE could present.
+ *
+ * That distinction is already computed here - it is the difference between a
+ * response and a thrown fetch - and it was being flattened into one 503.
+ */
 async function requireUser(req) {
   const token = bearer(req);
-  if (!token) return { ok: false, status: 401, error: 'sign_in_required', hint: 'Send Authorization: Bearer <Supabase access token>.' };
+  if (!token) {
+    return {
+      ok: false, status: 401, error: 'sign_in_required',
+      message: 'You are not signed in, so this could not be saved to your account.',
+      hint: 'Send Authorization: Bearer <Supabase access token>.',
+    };
+  }
   let e;
-  try { e = env(); } catch (err) { return { ok: false, status: 503, error: 'supabase_not_configured', detail: err.message }; }
+  try { e = env(); } catch (err) {
+    return {
+      ok: false, status: 503, error: 'supabase_not_configured', backend_unreachable: true,
+      message: 'This deployment has no database configured, so there is no account to sign in to.',
+      detail: err.message,
+    };
+  }
   try {
     const r = await fetch(`${e.url}/auth/v1/user`, {
       headers: { apikey: e.anon, authorization: `Bearer ${token}` },
       cache: 'no-store',
     });
-    if (!r.ok) return { ok: false, status: 401, error: 'invalid_session' };
+    if (!r.ok) {
+      return {
+        ok: false, status: 401, error: 'invalid_session',
+        message: 'Your sign-in has expired. Sign in again and retry.',
+      };
+    }
     const user = await r.json();
-    if (!user || !user.id) return { ok: false, status: 401, error: 'invalid_session' };
+    if (!user || !user.id) {
+      return {
+        ok: false, status: 401, error: 'invalid_session',
+        message: 'Your sign-in has expired. Sign in again and retry.',
+      };
+    }
     return { ok: true, token, user_id: user.id, email: String(user.email || '').toLowerCase() };
   } catch (err) {
-    return { ok: false, status: 503, error: 'session_verification_unavailable', detail: err.message };
+    return {
+      ok: false, status: 503, error: 'session_verification_unavailable', backend_unreachable: true,
+      message: `The database this deployment points at (${hostOfUrl(e.url)}) is not answering, so sign-in cannot be checked. `
+        + 'Its Supabase project has most likely been deleted, renamed or paused.',
+      detail: err.message,
+    };
   }
+}
+
+/** The host an operator has to change, printed rather than the whole URL. */
+function hostOfUrl(u) {
+  try { return new URL(u).hostname; } catch (_) { return String(u || 'the configured host'); }
 }
 
 /** PostgREST call made AS THE CALLER, so RLS decides what they can touch. */
@@ -1540,7 +1597,75 @@ async function handle(req, res) {
   }
 
   const auth = await requireUser(req);
-  if (!auth.ok) return res.status(auth.status || 401).json(auth);
+
+  // ── A GATE THAT DEFENDS NOTHING ────────────────────────────────────────────
+  //
+  // `extract` reads the PUBLIC WEBSITE the operator just typed and returns a
+  // report. It writes nothing, it reads no table, and with `voice` off it calls
+  // no language model - `runExtract`'s only use of `auth` is an optional
+  // getWorkspace() to widen the crawl scope, already wrapped in a try/catch
+  // that degrades. So when the Supabase host is not answering, requiring a
+  // session here protects no data and no spend. It only guarantees that the
+  // headline feature of the FIRST SCREEN returns a 503, which is exactly what
+  // a signed-out operator met: they pasted their site, pressed the button, and
+  // got `session_verification_unavailable` where the brand should have been.
+  //
+  // This is the 2026-08-30 "login wall that defends nothing" finding arriving
+  // by the other door. That one was fixed in the browser; the server-side gate
+  // on the same screen was not part of it.
+  //
+  // Two things keep this from becoming an open crawler or an open LLM proxy:
+  //
+  //   1. It opens ONLY when the backend is provably unreachable. A backend that
+  //      ANSWERS and rejects the caller (sign_in_required, invalid_session)
+  //      still refuses - a session exists to be had, so the gate is real. Same
+  //      "fail closed on doubt" rule auth.js applies in the browser.
+  //   2. Voice observation is FORCED OFF on this path. It is the single LLM
+  //      call in the extractor, so leaving it on would turn an unreachable
+  //      database into an unauthenticated LLM proxy spending real provider
+  //      keys - the 2026-08-23 finding, re-introduced by way of a fix. The
+  //      response says the voice was skipped and why, rather than returning a
+  //      marker that reads like the site published no voice.
+  //
+  // assertPublicUrl() still runs inside runExtract, so an internal or private
+  // host cannot be reached through this either way.
+  const openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+
+  if (!auth.ok && !openWithoutBackend) return res.status(auth.status || 401).json(auth);
+
+  if (openWithoutBackend) {
+    try {
+      const out = await require('./brand-extract.js').runExtract(
+        { ok: false, token: '', user_id: '', email: '' },
+        {
+          url: str(body.url || q.url, 500),
+          // No workspace can be read with no backend, so scope is the URL itself.
+          workspace_id: '',
+          voice: false,
+          max_pages: body.max_pages || q.max_pages,
+        },
+      );
+      const note = 'Read without signing in, because this deployment\'s database is not answering. '
+        + 'Nothing was saved, and the tone of voice was NOT observed: that step is the only one that needs a '
+        + 'language model, and an unreachable database must not become a way to spend model credits without an account. '
+        + 'Everything else below was read from your site exactly as it always is.';
+      return res.status(out && out.ok === false && out.error ? 400 : 200).json(
+        Object.assign({}, out, {
+          signed_out: true,
+          backend_unreachable: true,
+          voice_skipped: true,
+          note,
+          backend_message: auth.message || '',
+        }),
+      );
+    } catch (err) {
+      return res.status(err && err.status ? err.status : 500).json({
+        ok: false,
+        error: 'extract_failed',
+        message: (err && err.message) || 'That site could not be read.',
+      });
+    }
+  }
 
   try {
     switch (op) {
