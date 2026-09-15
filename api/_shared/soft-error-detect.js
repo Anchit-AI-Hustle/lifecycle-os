@@ -438,6 +438,12 @@ function describe({ title, h1, shape, vendor }) {
  * every collector free to read them, and one `if` forgotten downstream puts the
  * defect straight back; removing them means a refused page cannot contribute a
  * brand field because it is not in the list the collectors walk.
+ *
+ * This is for a caller that already HOLDS a list. `brand-extract` does not use
+ * it: its crawl hands pages over one at a time and chains other riders inside
+ * that hook, so it calls `assessPage()` per page as the page arrives. Judging
+ * afterwards would still have let a refused page reach those riders - the image
+ * harvest would have filed a Cloudflare interstitial's graphics as the brand's.
  */
 function assessPages(pages, opts) {
   const rows = [];

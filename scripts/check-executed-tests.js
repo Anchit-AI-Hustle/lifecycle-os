@@ -91,7 +91,7 @@ const BASELINE = {
   'ad-rows.spec.js': 2,
   'asset-no-black-background.spec.js': 2,
   'brand-extract.spec.js': 2,
-  'brand-harvest.spec.js': 2,
+  'brand-harvest.spec.js': 1,
   'competitor-dashboard.spec.js': 2,
   'data-analysis.spec.js': 2,
   'domain-intel.spec.js': 2,

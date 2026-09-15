@@ -548,6 +548,28 @@ test('structure alone never refuses a brand, however thin the page', async () =>
   expect(v.blocked, 'a thin page with no error wording was refused').toBe(false);
 });
 
+test('the list API splits a set of pages into the brand\'s and somebody\'s error template', async () => {
+  // assessPages() is for a caller that already holds a page list. brand-extract
+  // does not use it - its crawl hands pages over one at a time and chains other
+  // riders inside that hook, so it judges each page as it arrives - but the
+  // whole-list rule (all blocked is a refusal, some blocked is a note) is the
+  // same one and is asserted here directly.
+  const out = se.assessPages([
+    [`${HOST}/`, `<html><head><title>Northwind Tea</title></head><body><h1>Northwind Tea</h1>${REAL_COPY}</body></html>`],
+    [`${HOST}/stale`, '<html><head><title>404 Not Found</title></head><body><h1>Page not found</h1></body></html>'],
+  ]);
+  expect(out.checked).toBe(2);
+  expect(out.usable).toHaveLength(1);
+  expect(out.usable[0][0]).toBe(`${HOST}/`);
+  expect(out.blocked).toHaveLength(1);
+  expect(out.any_blocked).toBe(true);
+  expect(out.all_blocked).toBe(false);
+
+  const none = se.assessPages([[`${HOST}/`, '<html><head><title>Just a moment...</title></head><body><script src="/cdn-cgi/challenge-platform/h/b/x"></script></body></html>']]);
+  expect(none.all_blocked).toBe(true);
+  expect(none.usable).toHaveLength(0);
+});
+
 test('a status code cannot tell these apart, which is why the body is read', async () => {
   // Both fixtures answer 200. The only difference is what is ON them.
   const ok = se.assessPage({ isHome: true, url: `${HOST}/`, html: `<html><head><title>Northwind Tea</title></head><body><h1>Northwind Tea</h1>${REAL_COPY}</body></html>` });

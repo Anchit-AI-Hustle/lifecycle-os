@@ -151,12 +151,12 @@ async function harvest(startUrl, opts = {}) {
     // same fetch. This is the third rider, not a second crawler.
     brand = await extract.extractBrand(startUrl, {
       maxPages: opts.maxPages || 12,
-      // Forwarded for the same reason site-crawl and brand-extract take one:
-      // what this pipeline REFUSES to conclude is its whole value, and that has
-      // to be assertable without a network. Absent, extractBrand uses its own
-      // default fetcher, which is byte-for-byte what every caller already got.
+      // A harvest is the image library plus the report. The voice is the
+      // extractor's ONE language-model call and nothing here reads it, so every
+      // harvest was spending it for nothing.
+      voice: false,
+      brand: opts.brand,
       fetchImpl: opts.fetchImpl,
-      voice: opts.voice,
       onPage: (html, url) => {
         pages.push(url);
         for (const img of imagesOnPage(html, url)) images.push(img);
