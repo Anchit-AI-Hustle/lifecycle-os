@@ -331,6 +331,35 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
 .vh-failure-tr td { padding: 10px 12px; }
 .vh-failure-tr td .vh-failure { width: 100%; }
 
+/* An inline STATUS line: the non-failure sibling of .vh-failure, for what a
+   native alert() used to say - a precondition ("generate a plan first"), a
+   receipt ("added 100 credits"), a browser state. A dialog blocks the page,
+   carries the site's hostname as its title, and cannot take the brand's
+   tokens; this sits beside the control that was pressed. Same panel and ink
+   as the failure block, an ACCENT edge instead of the error edge, because an
+   ordinary state wearing the failure colour teaches people to ignore both.
+   Brand tokens only. `display:block` would otherwise beat the UA's [hidden]
+   rule, hence the explicit hidden case. */
+.vh-status {
+  display: block;
+  margin: 8px 0 0;
+  padding: 9px 12px;
+  border: 1px solid var(--vh-line);
+  border-left: 4px solid var(--vh-lava);
+  border-radius: var(--vh-r-sm);
+  background: var(--vh-panel-2);
+  color: var(--vh-ink);
+  font-family: var(--vh-font-body);
+  font-size: var(--vh-fs-sm);
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+.vh-status[hidden] { display: none; }
+
 /* ============================================================================
    GLOBAL 3D DEPTH LAYER (2026-07-16)
    App-wide dimensionality without touching any page's own CSS: layered

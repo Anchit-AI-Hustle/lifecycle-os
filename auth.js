@@ -40,7 +40,7 @@
       if (!d.querySelector('link[data-vh-theme]')) {
         var l = d.createElement('link');
         l.rel = 'stylesheet';
-        l.href = '/theme.css?v=20260825-futura';
+        l.href = '/theme.css?v=20260915-status';
         l.setAttribute('data-vh-theme', '1');
         (d.head || d.documentElement).appendChild(l);
       }
@@ -1643,6 +1643,23 @@
           color: #556059; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
         #lifecycle-nav .lnav-signout:hover { border-color: #6A33D8; color: #111111; }
         #lifecycle-nav .lnav-signin { color: #7a5f28; text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        /* Why sign-in did not happen, said UNDER the button that was pressed.
+           This replaces a native alert(): a dialog blocks the page, carries the
+           site's hostname as its title so it reads as a site error, and cannot
+           take the brand's tokens. Same rule as the standing bar - the two
+           states someone has to FIX wear the warn edge, being signed out wears
+           the accent, an OAuth refusal wears the error edge. Tokens only, no
+           colour of its own. */
+        #lifecycle-nav .lnav-signin-note {
+          margin: 6px 8px 0; padding: 8px 10px; border-radius: 8px;
+          font-size: 11.5px; line-height: 1.45; text-align: left;
+          background: var(--vh-panel-2); color: var(--vh-ink);
+          border: 1px solid var(--vh-line); box-shadow: inset 3px 0 0 var(--vh-warn);
+        }
+        #lifecycle-nav .lnav-signin-note[data-kind="signed-out"] { box-shadow: inset 3px 0 0 var(--vh-lava); }
+        #lifecycle-nav .lnav-signin-note[data-kind="failed"] { box-shadow: none; padding: 0; border: 0; background: transparent; }
+        #lifecycle-nav .lnav-signin-note code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+        #lifecycle-nav .lnav-signin-note b { color: var(--vh-ink); }
 
         @media (max-width: 960px) {
           #lifecycle-nav .lnav-mbar { display: flex; }
@@ -1870,17 +1887,13 @@
     // Sign-in / sign-out wiring
     const signinBtn = wrap.querySelector('#lnav-signin');
     if (signinBtn) signinBtn.onclick = async (e) => {
-      if (window.LifecycleAuth?.client) {
-        e.preventDefault();
-        const msg = await startGoogleSignIn();
-        if (msg) {
-          // Say it where the user is looking. Navigating to a dead host and
-          // letting the browser explain is what this replaces.
-          signinBtn.textContent = 'Sign-in unavailable';
-          signinBtn.title = msg;
-          if (typeof alert === 'function') alert(msg);
-        }
-      }
+      // Always handled here. The anchor's href="/" used to be the fallback for
+      // a deployment with no client at all, which sent an unconfigured
+      // deployment's visitor to the homepage instead of telling them why.
+      e.preventDefault();
+      const refusal = await signInRefusal();
+      if (!refusal) return;   // the browser is on its way to Google
+      showSignInRefusal(wrap, signinBtn, refusal);
     };
     const signoutBtn = wrap.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
@@ -2022,31 +2035,81 @@
   }
 
   /**
-   * Start Google sign-in, but never hand the browser to a host that is not
-   * there. Returns an error STRING on refusal so both call sites can show it.
+   * Which signed-out state is this browser in? One of
+   *   unconfigured | sdk | unreachable | signed-out
+   * - the same four the standing bar names, decided the same way, so the bar
+   * and the sign-in button can never disagree about what is wrong.
    */
-  async function startGoogleSignIn() {
-    const client = window.LifecycleAuth && window.LifecycleAuth.client;
+  async function signedOutState() {
     const cfg = window.__SUPABASE__ || {};
-    if (!client || !cfg.url) {
-      return 'This deployment has no Supabase configuration. Set SUPABASE_URL and SUPABASE_ANON_KEY in the Vercel project, then reload.';
-    }
-    if (!(await authHostReachable(cfg.url))) {
-      let host = cfg.url;
-      try { host = new URL(cfg.url).host; } catch (_) { /* show the raw value */ }
-      // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
-      // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
-      // its URL from that value and never assumes a *.supabase.co host.
-      return 'The sign-in service for this deployment cannot be reached (' + host + ' does not resolve). '
-        + 'Its Supabase project has been deleted, renamed or paused, or the self-hosted stack is down. '
-        + 'Set SUPABASE_URL and SUPABASE_ANON_KEY in the Vercel project to a live backend, then reload.';
+    if (!cfg.url) return 'unconfigured';
+    // A URL but no client: the SDK never loaded (boot()'s catch). This used to
+    // be reported as "no Supabase configuration", which sends the operator to
+    // check an env var that is set.
+    if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
+    return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
+  }
+
+  /**
+   * Start Google sign-in, but never hand the browser to a host that is not
+   * there. Resolves to null when the redirect has been started, otherwise to
+   * `{ kind, message, html }` naming the state that refused it. The sentence
+   * is signedOutSentence()'s - the SAME words the standing bar shows for that
+   * state - because two hand-written copies of "the project is gone" had
+   * already drifted: the bar said "most likely deleted, renamed or paused"
+   * (the network cannot tell them apart) and this path said "deleted or
+   * renamed", a claim the code cannot make.
+   */
+  async function signInRefusal() {
+    const kind = await signedOutState();
+    if (kind !== 'signed-out') {
+      const s = signedOutSentence(kind);
+      return { kind: kind, message: s.text, html: s.html };
     }
     rememberReturnTo();
-    const { error } = await client.auth.signInWithOAuth({
+    const { error } = await window.LifecycleAuth.client.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: location.origin + location.pathname },
     });
-    return error ? ('Sign-in failed: ' + (error.message || error)) : '';
+    if (!error) return null;
+    const message = 'Sign-in failed: ' + (error.message || error);
+    return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
+  }
+
+  /** String form of signInRefusal(): '' on success, the sentence on refusal. */
+  async function startGoogleSignIn() {
+    const r = await signInRefusal();
+    return r ? r.message : '';
+  }
+
+  /**
+   * Say why sign-in did not happen, where the user is looking: a note under
+   * the rail's Sign-in button carrying the state's sentence, and the standing
+   * bar brought back into view (re-shown if it had been dismissed) so the two
+   * explanations are visibly the same one.
+   */
+  function showSignInRefusal(wrap, btn, refusal) {
+    btn.textContent = 'Sign-in unavailable';
+    btn.title = refusal.message;
+    btn.setAttribute('aria-describedby', 'lnav-signin-note');
+    let note = wrap.querySelector('#lnav-signin-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'lnav-signin-note';
+      note.className = 'lnav-signin-note';
+      note.setAttribute('role', 'alert');
+      const footer = btn.closest('.lnav-user') || btn;
+      footer.insertAdjacentElement('afterend', note);
+    }
+    note.setAttribute('data-kind', refusal.kind);
+    note.innerHTML = refusal.html;
+    if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
+    const bar = injectSignedOutNotice(refusal.kind, { force: true });
+    if (!bar) return;
+    try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
+    bar.style.outline = '2px solid var(--vh-warn)';
+    bar.style.outlineOffset = '-2px';
+    setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
   }
 
   async function getConfig() {
@@ -2080,17 +2143,79 @@
   }
 
   /**
+   * ONE sentence per signed-out state, keyed by `kind`
+   * (unconfigured | unreachable | sdk | signed-out).
+   *
+   * Two surfaces explain why sign-in is not happening: the standing bar at the
+   * top of every page and the note under the rail's Sign-in button. They were
+   * written separately and disagreed on the live deployment - the bar said the
+   * project "has most likely been deleted, renamed or paused" (correct: those
+   * are indistinguishable from the network, see CLAUDE.md's correction) while
+   * the sign-in path said it "has been deleted or renamed", a definite claim
+   * the code cannot make. Both render THIS now, so they cannot diverge.
+   *
+   * Returns { kind, html, text }: `html` carries the <b>/<code> emphasis the
+   * bar has always used, `text` is the same words with no markup.
+   */
+  function signedOutSentence(kind) {
+    // THREE states someone can fix, not one, and naming the wrong one sends
+    // the reader to check the thing that is not broken. `unconfigured` is a
+    // missing env var on the deployment; `unreachable` is a project that no
+    // longer answers, and its host is worth printing because that is the value
+    // that has to change; `sdk` is the supabase-js CDN not loading;
+    // `signed-out` is the ordinary case where everything works and this
+    // visitor simply has no session.
+    var host = '';
+    try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
+    var html;
+    if (kind === 'sdk') {
+      html = '<b>Sign-in is unavailable: the Supabase library did not load.</b> auth.js loads '
+        + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
+        + 'outage will all do this. Every page is still open and usable. To sign in, retry on a '
+        + 'different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
+    } else if (kind === 'signed-out') {
+      html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
+        + 'what this browser holds. <b>Your saved workspace, brands and campaigns load once you sign in</b> '
+        + '- so an empty panel here means "not signed in", not "no data".';
+    } else if (kind === 'unreachable' && host) {
+      // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
+      // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
+      // its URL from that value and never assumes a *.supabase.co host.
+      html = '<b>Running without a database.</b> The database this deployment points at (<code>' + host
+        + '</code>) cannot be reached, so there is nothing to sign in to - its Supabase project has most '
+        + 'likely been deleted, renamed or paused, or the self-hosted stack is down. Every page is open and '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Point <code>SUPABASE_URL</code> '
+        + 'and <code>SUPABASE_ANON_KEY</code> at a live backend to restore accounts and saved work.';
+    } else {
+      html = '<b>Running without a database.</b> This deployment has no <code>SUPABASE_URL</code> / '
+        + '<code>SUPABASE_ANON_KEY</code> set, so there is nothing to sign in to. Every page is open and '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Set them on the deployment to '
+        + 'restore accounts and saved work.';
+    }
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return { kind: kind, html: html, text: tmp.textContent };
+  }
+
+  /**
    * A standing, dismissible bar explaining why the app has no data.
    *
    * Brand tokens only, and never a dark ground: `--vh-warn` on the brand's own
    * surface, ink text. A banner that hardcoded its own colours would be the one
    * element on the page that ignores the active brand, and a dark one would
    * break the repo's standing no-dark-section rule.
+   *
+   * `opts.force` re-shows a bar the visitor dismissed for this tab: pressing
+   * Sign-in is a request for the explanation, so the dismissal is set aside.
+   * Returns the bar element (existing or new), or null when nothing rendered.
    */
-  function injectSignedOutNotice(kind) {
-    if (document.getElementById('lc-authnotice')) return;
+  function injectSignedOutNotice(kind, opts) {
+    var existing = document.getElementById('lc-authnotice');
+    if (existing) return existing;
     // Dismissed for this tab? Check before building anything.
-    try { if (sessionStorage.getItem('lc-authnotice-hid')) return; } catch (e) { /* private mode */ }
+    if (!(opts && opts.force)) {
+      try { if (sessionStorage.getItem('lc-authnotice-hid')) return null; } catch (e) { /* private mode */ }
+    }
     var bar = document.createElement('div');
     bar.id = 'lc-authnotice';
     bar.setAttribute('role', 'status');
@@ -2107,38 +2232,11 @@
       'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
     ].join(';');
     var txt = document.createElement('div');
+    txt.id = 'lc-authnotice-text';
     txt.style.cssText = 'flex:1;min-width:0';
-    // THREE states, not one, and naming the wrong one sends the reader to
-    // check the thing that is not broken. `unconfigured` is a missing env var
-    // on the deployment; `unreachable` is a project that no longer answers, and
-    // its host is worth printing because that is the value that has to change;
-    // `signed-out` is the ordinary case where everything works and this visitor
-    // simply has no session. Only the first two are anyone's to fix.
-    var host = '';
-    try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
-    var body;
-    if (kind === 'sdk') {
-      body = '<b>Sign-in is unavailable: the Supabase library did not load.</b> auth.js loads '
-        + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
-        + 'outage will all do this. Every page is still open and usable. To sign in, retry on a '
-        + 'different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
-    } else if (kind === 'signed-out') {
-      body = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Your saved workspace, brands and campaigns load once you sign in</b> '
-        + '- so an empty panel here means "not signed in", not "no data".';
-    } else if (kind === 'unreachable' && host) {
-      body = '<b>Running without a database.</b> The database this deployment points at (<code>' + host
-        + '</code>) cannot be reached, so there is nothing to sign in to - its Supabase project has most '
-        + 'likely been deleted, renamed or paused. Every page is open and usable, but <b>nothing is loaded '
-        + 'from or saved to a server.</b> Point <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> '
-        + 'at a live project to restore accounts and saved work.';
-    } else {
-      body = '<b>Running without a database.</b> This deployment has no <code>SUPABASE_URL</code> / '
-        + '<code>SUPABASE_ANON_KEY</code> set, so there is nothing to sign in to. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Set them on the deployment to '
-        + 'restore accounts and saved work.';
-    }
-    txt.innerHTML = body;
+    // The words come from signedOutSentence(), the one source the sign-in
+    // button also renders. Nothing is written here.
+    txt.innerHTML = signedOutSentence(kind).html;
     var x = document.createElement('button');
     x.type = 'button';
     x.textContent = 'Dismiss';
@@ -2147,6 +2245,7 @@
     x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-authnotice-hid', '1'); } catch (e) {} };
     bar.appendChild(txt); bar.appendChild(x);
     (document.body || document.documentElement).insertBefore(bar, (document.body || document.documentElement).firstChild);
+    return bar;
   }
 
   /**
@@ -2592,9 +2691,40 @@
     '.pdfbar{position:fixed;top:0;left:0;right:0;background:#D0473E;color:#fff;padding:10px 16px;font-size:13px;text-align:center;}' +
     '.pdfbar button{background:#6A33D8;color:#111111;border:0;border-radius:6px;padding:7px 16px;font-weight:700;cursor:pointer;margin-left:8px;}' +
     '@media print{.pdfbar{display:none;}body{margin:0;}}';
-  function openPrintable(title, bodyHtml) {
+  /**
+   * A blocked pop-up is a BROWSER state, not a fault in the document, and it
+   * is said beside the control that asked for it - never as a native alert(),
+   * the one dialog that carries the site's hostname as its title and so reads
+   * as an error in the site. `anchor` is the link or button that was pressed;
+   * without one the element that holds focus (the button, after a click) is
+   * used, and failing that the note stands at the top of the page.
+   */
+  function popupBlockedNote(anchor) {
+    var el = anchor && anchor.nodeType === 1 ? anchor : null;
+    if (!el) {
+      var a = document.activeElement;
+      if (a && a !== document.body && /^(A|BUTTON)$/.test(a.tagName || '')) el = a;
+    }
+    var old = document.getElementById('lc-popup-blocked');
+    if (old) old.remove();
+    var note = document.createElement('div');
+    note.id = 'lc-popup-blocked';
+    note.innerHTML = window.LifecycleFailure.html(
+      new Error('The browser blocked the pop-up this document opens in. Allow pop-ups for this site, then try again.'),
+      { title: 'Pop-up blocked' });
+    if (el && el.parentNode) {
+      note.style.margin = '8px 0';
+      el.insertAdjacentElement('afterend', note);
+    } else {
+      note.style.cssText = 'position:sticky;top:0;z-index:120;padding:10px 16px;background:var(--vh-panel-2)';
+      var root = document.body || document.documentElement;
+      root.insertBefore(note, root.firstChild);
+    }
+    return note;
+  }
+  function openPrintable(title, bodyHtml, anchor) {
     var w = window.open('', '_blank');
-    if (!w) { alert('Allow pop-ups to download the PDF.'); return; }
+    if (!w) { popupBlockedNote(anchor); return; }
     w.document.open();
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title><style>' + CSS + '</style></head><body>' +
       '<div class="pdfbar">Formatted for PDF — use your browser’s <b>Save as PDF</b><button onclick="window.print()">⬇ Save as PDF</button></div>' +
@@ -2603,7 +2733,7 @@
       '</body></html>');
     w.document.close();
   }
-  window.__mdToPdf = function (mdText, title) { openPrintable(title || 'Lifecycle OS document', mdToHtml(mdText)); };
+  window.__mdToPdf = function (mdText, title, anchor) { openPrintable(title || 'Lifecycle OS document', mdToHtml(mdText), anchor); };
   document.addEventListener('click', function (e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href$=".md"]') : null;
     if (!a) return;
@@ -2611,6 +2741,6 @@
     if (/^https?:\/\//i.test(url) && url.indexOf(location.origin) !== 0) return; // leave truly external links alone
     e.preventDefault();
     var title = (a.textContent || 'Lifecycle OS document').replace(/[⬇📄📖🧾👥🎁🖼📊]/g, '').trim().slice(0, 90) || 'Lifecycle OS document';
-    fetch(url).then(function (r) { return r.text(); }).then(function (t) { window.__mdToPdf(t, title); }).catch(function () { window.open(url, '_blank'); });
+    fetch(url).then(function (r) { return r.text(); }).then(function (t) { window.__mdToPdf(t, title, a); }).catch(function () { window.open(url, '_blank'); });
   }, true);
 })();

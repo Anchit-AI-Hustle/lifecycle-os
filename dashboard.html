@@ -691,6 +691,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
     </label>
 
+    <!-- Said here, beside the buttons, never in a native alert(). -->
+    <div id="uploadNote" class="vh-status mb-4" role="status" hidden></div>
+
     <div class="flex gap-2 justify-end">
       <button type="button" id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
       <button type="button" id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">Apply & recompute</button>
@@ -813,6 +816,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
 
     <div class="text-[11px] text-ink-mute mb-4 leading-snug" id="exportHint"></div>
+    <!-- Said here, beside the button, never in a native alert(); the modal
+         stays open so the reader sees it. -->
+    <div id="exportNote" class="vh-status mb-4" role="status" hidden></div>
 
     <div class="flex gap-2 justify-end">
       <button type="button" id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
@@ -2314,13 +2320,16 @@ $('uploadApply').addEventListener('click', () => {
     DATA[slot] = append ? (Array.isArray(DATA[slot]) ? DATA[slot] : []).concat(rows) : rows;
     applied++;
   });
+  const note = $('uploadNote');
   if (applied > 0) {
+    note.hidden = true;
     LCStore.set('knickgasm-retention-data', JSON.stringify(DATA));
     $('dataSourceLabel').textContent = `${append ? 'seed + uploaded' : 'uploaded'} (${applied} dataset${applied>1?'s':''})`;
     $('uploadModal').classList.remove('open');
     destroyCharts(); rerender();
   } else {
-    alert('Drop at least one file first.');
+    note.hidden = false;
+    note.textContent = 'Nothing is staged to apply. Drop at least one file into a slot above first.';
   }
 });
 
@@ -2696,11 +2705,20 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+// Returns false when there was nothing to export, so the caller can leave the
+// modal open with the reason showing instead of closing it over a download
+// that never happened.
 function runExport({ scope, format, view }) {
   const stamp = new Date().toISOString().slice(0, 10);
+  const note = $('exportNote');
+  note.hidden = true;
   if (scope === 'view') {
     const tables = tablesForView(view);
-    if (!tables.length) return alert('Nothing to export for this view.');
+    if (!tables.length) {
+      note.hidden = false;
+      note.textContent = 'Nothing to export for this view: it has no tables with the data currently loaded.';
+      return false;
+    }
     const base = `knickgasm-${view}-${stamp}`;
     if (format === 'csv') {
       downloadBlob(new Blob([tablesToCsv(tables)], { type: 'text/csv' }), base + '.csv');
@@ -2763,8 +2781,8 @@ $('exportFormatChips').addEventListener('click', (e) => {
   updateExportHint();
 });
 $('exportRun').addEventListener('click', () => {
-  runExport({ scope: currentExportScope(), format: exportState.format, view: $('exportView').value });
-  closeExportModal();
+  const ran = runExport({ scope: currentExportScope(), format: exportState.format, view: $('exportView').value });
+  if (ran !== false) closeExportModal();
 });
 
 /* ╔═══════════════════════════════════════════════════════════════════════
