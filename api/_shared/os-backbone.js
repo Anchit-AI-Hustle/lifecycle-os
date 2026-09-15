@@ -116,10 +116,13 @@ function smartBrainEnv() {
   let linked = {};
   try { linked = JSON.parse(require('fs').readFileSync(require('path').join(process.cwd(), 'data', 'linked-db.json'), 'utf8')); } catch (_) {}
   const url = (process.env.SMART_BRAIN_SUPABASE_URL || process.env.SUPABASE_URL || linked.url || '').replace(/\/$/, '');
+  // The env's anon key outranks the file's: the URL above comes from the env
+  // first, and pairing it with the file's key was a 401 waiting to happen.
   const key = process.env.SMART_BRAIN_SUPABASE_SERVICE_ROLE_KEY || process.env.SMART_BRAIN_SUPABASE_KEY
     || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+    || process.env.SUPABASE_ANON_KEY
     || linked.serviceRoleKey || linked.service_role_key
-    || linked.anonKey || process.env.SUPABASE_ANON_KEY || '';
+    || linked.anonKey || '';
   return { url, key };
 }
 async function smartBrainCount(table, filters = {}) {
