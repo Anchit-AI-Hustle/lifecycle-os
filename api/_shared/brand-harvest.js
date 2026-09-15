@@ -151,6 +151,12 @@ async function harvest(startUrl, opts = {}) {
     // same fetch. This is the third rider, not a second crawler.
     brand = await extract.extractBrand(startUrl, {
       maxPages: opts.maxPages || 12,
+      // A harvest is the image library plus the report. The voice is the
+      // extractor's ONE language-model call and nothing here reads it, so every
+      // harvest was spending it for nothing.
+      voice: false,
+      brand: opts.brand,
+      fetchImpl: opts.fetchImpl,
       onPage: (html, url) => {
         pages.push(url);
         for (const img of imagesOnPage(html, url)) images.push(img);
