@@ -17,6 +17,48 @@
   </div>
 
   <script>
+    /* A FAILURE IS NOT CONTENT, and it is not a colour this page invented.
+       Declared locally because this loader carries no shared shell - it
+       document.write()s the campaign over itself, so auth.js (and with it the
+       shared LifecycleFailure treatment + theme.css) cannot live here. Same
+       markup, same three rules: a frame, a sentence rather than a bare machine
+       identifier, and the identifier kept beside it and labelled. Colours come
+       from the brand tokens brand-context.js paints on <html>; with no token
+       the text simply inherits, which is readable, rather than falling back to
+       a literal this page chose for every tenant. Built with textContent, so a
+       server string can never arrive as markup. */
+    function showFailure(loader, title, err) {
+      const raw = String((err && err.message) || err || '').trim();
+      const code = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/.test(raw) ? raw : '';
+      const msg = (!raw || code)
+        ? 'The server refused this request and did not explain why.'
+        : (/failed to fetch|networkerror/i.test(raw)
+            ? 'The server could not be reached, so nothing could be loaded.'
+            : raw);
+      loader.textContent = '';
+      const box = document.createElement('div');
+      box.setAttribute('role', 'alert');
+      box.dataset.failure = '1';
+      box.style.cssText = 'max-width:520px;margin:0 auto;padding:14px 16px;text-align:left;'
+        + 'border:1px solid var(--brand-line);border-left:4px solid var(--brand-err);border-radius:8px;'
+        + 'background:var(--brand-surface-alt);color:var(--brand-ink)';
+      const tag = document.createElement('span');
+      tag.style.cssText = 'display:block;margin-bottom:5px;font-size:11px;font-weight:800;'
+        + 'letter-spacing:.12em;text-transform:uppercase;color:var(--brand-err)';
+      tag.textContent = title;
+      const line = document.createElement('span');
+      line.style.cssText = 'display:block;font-size:14px;line-height:1.5';
+      line.textContent = msg;
+      box.appendChild(tag); box.appendChild(line);
+      if (code) {
+        const c = document.createElement('span');
+        c.style.cssText = 'display:block;margin-top:7px;font:11px/1.4 ui-monospace,Menlo,monospace;color:var(--brand-ink-muted)';
+        c.textContent = 'Reported by the server as: ' + code;
+        box.appendChild(c);
+      }
+      loader.appendChild(box);
+    }
+
     async function init() {
       const loader = document.getElementById('loader');
 
@@ -26,10 +68,8 @@
       const variant = urlParams.get('variant');
 
       if (!theme || !variant) {
-        loader.innerHTML = `
-          <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Initialization Error</div>
-          <div style="font-size: 14px; color: #666;">Missing parameters. URL must include <strong>theme</strong> and <strong>variant</strong> (e.g. ?theme=mother-day&variant=A).</div>
-        `;
+        showFailure(loader, 'Nothing was requested',
+          'The URL must include theme and variant, for example ?theme=mother-day&variant=A.');
         return;
       }
 
@@ -63,18 +103,13 @@
 
         if (error) {
           console.error(error);
-          loader.innerHTML = `
-            <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Database Error</div>
-            <div style="font-size: 14px; color: #666;">${error.message}</div>
-          `;
+          showFailure(loader, 'The campaign could not be read', error);
           return;
         }
 
         if (!campaign || !campaign.html_content) {
-          loader.innerHTML = `
-            <div style="font-size: 20px; font-weight: 600; color: #6A33D8; margin-bottom: 8px;">Campaign Variant Not Found</div>
-            <div style="font-size: 14px; color: #666;">No variant matches the path: <strong>${theme}</strong> (${variant.toUpperCase()}).</div>
-          `;
+          showFailure(loader, 'No such campaign variant',
+            'No variant matches ' + theme + ' (' + variant.toUpperCase() + ').');
           return;
         }
 
@@ -85,10 +120,7 @@
 
       } catch (err) {
         console.error(err);
-        loader.innerHTML = `
-          <div style="font-size: 20px; font-weight: 600; color: #cc3333; margin-bottom: 8px;">Connection Error</div>
-          <div style="font-size: 14px; color: #666;">${err.message || err}</div>
-        `;
+        showFailure(loader, 'The campaign could not be loaded', err);
       }
     }
 

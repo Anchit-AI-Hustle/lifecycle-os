@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
 
@@ -318,7 +370,12 @@
           (price ? '<span style="margin-left:auto"><b>' + esc(price) + '</b></span>' : '') + '</div></a>';
       }).join('') + '</div>';
     } catch (e) {
-      $('homeGrid').innerHTML = '<div class="flag warn">' + esc(e.message) + '</div>';
+      // homeGrid is the module gallery. A bare message here sat where the
+      // tiles do, and `.flag` is built on color-mix(), which older engines drop
+      // WHOLE - so on those phones the tint and border vanished and the error
+      // was plain text in a grid of features. The shared frame needs no
+      // color-mix (see the 2026-08-21 finding).
+      window.LifecycleFailure.show($('homeGrid'), e, { title: 'TeleSuite tools could not be loaded' });
     }
   }
 
@@ -357,7 +414,7 @@
       Array.prototype.forEach.call($('list').querySelectorAll('[data-del]'), function (b) {
         b.addEventListener('click', async function () {
           if (!confirm('Delete this entry?')) return;
-          try { await ts('item-delete', { id: b.dataset.del }); toast('Deleted.'); refresh(); } catch (e) { toast(e.message); }
+          try { await ts('item-delete', { id: b.dataset.del }); toast('Deleted.'); refresh(); } catch (e) { toast(window.LifecycleFailure.sentence(e)); }
         });
       });
     }
@@ -384,7 +441,7 @@
         try {
           await ts('item-save', { item: { id: item.id, kind: kind, name: name, category: $('iCat').value.trim(), content: $('iContent').value, attributes: item.attributes } });
           toast('Saved.'); $('editor').innerHTML = ''; refresh();
-        } catch (e) { toast(e.message, 4500); }
+        } catch (e) { toast(window.LifecycleFailure.sentence(e), 4500); }
       };
       $('iGen').onclick = async function () {
         if (window.Credits && !window.Credits.guard(s.credit_key)) return;
@@ -412,7 +469,7 @@
     $('addItem').onclick = function () { openEditor(null); };
     if ($('seed')) $('seed').onclick = async function () {
       try { var r = await ts('items-seed'); toast(r.seeded ? 'Seeded ' + r.seeded + ' products from your catalog.' : (r.message || 'Nothing to seed.'), 4500); refresh(); }
-      catch (e) { toast(e.message, 4500); }
+      catch (e) { toast(window.LifecycleFailure.sentence(e), 4500); }
     };
     refresh();
   }
@@ -514,10 +571,11 @@
       return;
     }
     if (e.status === 409) {
-      box.innerHTML = '<div class="flag warn">' + esc(e.message) + ' <a href="/onboarding">Set up a brand</a>.</div>';
+      box.innerHTML = window.LifecycleFailure.html(e, { title: 'No brand is active' })
+        + '<p class="muted" style="margin-top:8px"><a href="/onboarding">Set up a brand</a>.</p>';
       return;
     }
-    box.innerHTML = '<div class="flag err">' + esc(e.message) + '</div>';
+    box.innerHTML = window.LifecycleFailure.html(e, { title: 'This run did not complete' });
   }
 
   async function viewTool(s) {
@@ -637,10 +695,10 @@
       Array.prototype.forEach.call($('runs').querySelectorAll('[data-del]'), function (b) {
         b.addEventListener('click', async function () {
           if (!confirm('Delete this run from the log?')) return;
-          try { await ts('run-delete', { id: b.dataset.del }); toast('Deleted.'); viewDashboard(s); } catch (e) { toast(e.message); }
+          try { await ts('run-delete', { id: b.dataset.del }); toast('Deleted.'); viewDashboard(s); } catch (e) { toast(window.LifecycleFailure.sentence(e)); }
         });
       });
-    } catch (e) { $('runs').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>'; }
+    } catch (e) { window.LifecycleFailure.show($('runs'), e, { title: 'Run history could not be loaded' }); }
   }
 
   /* ── voice agents ───────────────────────────────────────────────────── */
@@ -893,7 +951,7 @@
         var blob = new Blob([JSON.stringify(m, null, 2)], { type: 'application/json' });
         var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'telesuite-manifest.json'; a.click();
       };
-    } catch (e) { $('clone').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>'; }
+    } catch (e) { window.LifecycleFailure.show($('clone'), e, { title: 'The manifest could not be built' }); }
   }
 
   async function viewN8n(s) {
@@ -910,7 +968,7 @@
         var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'telesuite-n8n-workflow.json'; a.click();
       };
       $('copy').onclick = function () { navigator.clipboard.writeText(JSON.stringify(r.workflow, null, 2)).then(function () { toast('Copied.'); }); };
-    } catch (e) { $('n8n').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>'; }
+    } catch (e) { window.LifecycleFailure.show($('n8n'), e, { title: 'The workflow could not be built' }); }
   }
 
   /* ── routing ────────────────────────────────────────────────────────── */
@@ -938,7 +996,7 @@
       REG = await r.json();
       if (!REG || !REG.subfeatures) throw new Error('Could not load the TeleSuite registry.');
     } catch (e) {
-      $('main').innerHTML = '<div class="flag err">' + esc(e.message) + '</div>';
+      window.LifecycleFailure.show($('main'), e, { title: 'TeleSuite could not start' });
       return;
     }
     // Delegated so it works for a fresh run and for any transcript reopened
