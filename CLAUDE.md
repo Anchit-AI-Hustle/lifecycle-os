@@ -402,6 +402,47 @@ and nothing uses `!important`, so a page that needs its own treatment still over
   strength until the cursor leaves — a white slab over the content.
 - Every one of those four defects is mutation-verified: restoring it fails the gate.
 
+## ⭐ The login wall that defends nothing, on the SERVER this time (2026-09-15)
+`api/_shared/brand-workspace-core.js` -> `requireUser()` + the `openWithoutBackend` branch, and
+`brand-context.js`'s error line. Gated by `tests/extract-without-backend.spec.js` (9 tests). Found on
+the LIVE deployment, not in the source: the Supabase project is paused, the app correctly opens
+signed-out and SAYS so - and then the headline control of the FIRST SCREEN, "Read my brand from my
+website", answered **`session_verification_unavailable`**. Two independent defects, one screenshot.
+- **`?op=extract` sat below `requireUser()`, and needs no database.** It reads the public website the
+  operator just typed and returns a report: writes nothing, reads no table, and `runExtract`'s only
+  use of `auth` is an optional `getWorkspace()` to widen crawl scope, already wrapped in a try/catch
+  that degrades. With the auth host unreachable the gate protected no data and no spend - it only
+  guaranteed a 503. **This is the 2026-08-30 finding arriving through the other door**: that fix
+  opened the PAGES in the browser and left the server-side gate behind them. Deleting a wall means
+  auditing everything that enforced the same rule elsewhere, not just the wall.
+- **"Not signed in" and "no backend to sign in to" are different**, and that distinction was already
+  computed - it is the difference between a response and a thrown fetch - then flattened into one
+  503. `backend_unreachable` now carries it, and only the unreachable case opens. A backend that
+  ANSWERS and rejects the caller still refuses: a session exists to be had, so the gate is real.
+  Same "fail closed on doubt" rule `auth.js` applies in the browser.
+- **Voice observation is FORCED OFF on the open path.** It is the single LLM call in the extractor, so
+  leaving it on turns an unreachable database into an unauthenticated LLM proxy spending real
+  provider keys - the 2026-08-23 finding, re-introduced by way of a fix. The response says the voice
+  was skipped and why, rather than a marker reading like the site published no voice.
+- **AN ERROR CODE IS NOT AN ERROR MESSAGE.** Every refusal carried `error` (a machine code) plus a
+  `hint`/`detail` written for whoever was calling the API, and **no sentence at all**; `brand-context.js`
+  then read `json.error || json.message` - the CODE first. One line, and **every** failure in the app
+  funnels through it, so an operator was shown an identifier where the explanation should be. Every
+  refusal now carries a `message` naming the cause and the host to change; the code stays on `e.code`
+  for anything that branches on it.
+- **The gate's own first version missed the worst mutation.** Turning `voice:false` into `voice:true` -
+  the open-LLM-proxy case - PASSED. Two reasons, both worth knowing: `llm.js` does
+  `module.exports = async function callLLM(...)`, so **the module IS the function** and stubbing a
+  `.callLLM` property replaced a key that does not exist; and the test asserted `voice_skipped`, a flag
+  the handler sets ITSELF, which only proves a handler can set its own flag. It now intercepts
+  `require.cache` and asserts the note the EXTRACTOR produced. **A check that inspects nothing passes
+  everything** - the same lesson as the rendered-contrast gate, reached from a new direction.
+- The SSRF guard (`assertPublicUrl`) is driven for real against loopback, link-local metadata and a
+  non-standard port, because opening an endpoint to unauthenticated callers makes that guard matter
+  more, not less.
+- All four fixes are mutation-verified, including both directions that must NOT open (an auth bypass
+  on any auth failure, and an open LLM proxy).
+
 ## ⭐ Which store is this, and did we read all of it (2026-09-13)
 `api/_shared/storefront-detect.js` + `site-crawl.js` -> `robotsInfo()`/`readSitemaps()`, gated by
 `tests/storefront-and-sitemap.spec.js` (15 tests). Setup-from-URL could read a brand's colours,
