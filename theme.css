@@ -272,6 +272,66 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
 .vh-container { max-width: 1180px; margin: 0 auto; padding-left: max(var(--vh-s4), var(--vh-safe-left)); padding-right: max(var(--vh-s4), var(--vh-safe-right)); }
 
 /* ============================================================================
+   A FAILURE IS NOT CONTENT (2026-09-15)
+   The one treatment every caught error in this app renders through
+   (auth.js -> window.LifecycleFailure). It exists because an error rendered as
+   `<p class="muted">` or `<div class="empty">` or `<td class="muted">` is
+   INDISTINGUISHABLE from the data that belongs in that slot - on the live
+   deployment "session_verification_unavailable" sat in the "Your brands" list
+   and read as the name of a brand.
+
+   So it is deliberately unlike every content surface in the suite: an
+   uppercase tag naming what could not be done, a heavy left edge in the error
+   colour, and a panel tint. No hard colour anywhere - the edge and tag take
+   --vh-err (brand-derived, defaulting through --brand-err), the SENTENCE takes
+   --vh-ink so the information itself can never be the low-contrast part, and
+   the ground is --vh-panel-2, a light panel. Never a dark-neutral background:
+   that is a HARD rule here and validatePalette()/asset-no-black-background
+   enforce it elsewhere.
+   ============================================================================ */
+.vh-failure {
+  display: block;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--vh-line);
+  border-left: 4px solid var(--vh-err);
+  border-radius: var(--vh-r-sm);
+  background: var(--vh-panel-2);
+  color: var(--vh-ink);
+  font-family: var(--vh-font-body);
+  font-size: var(--vh-fs-sm);
+  line-height: 1.5;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+.vh-failure-tag {
+  display: block;
+  margin-bottom: 5px;
+  font-size: var(--vh-fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--vh-err);
+}
+.vh-failure-msg { display: block; color: var(--vh-ink); }
+.vh-failure-msg + .vh-failure-msg { margin-top: 6px; }
+/* The identifier is kept for a bug report and marked as machine output. It is
+   never the explanation, so it is never the first or the loudest line. */
+.vh-failure-code {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--vh-font-mono);
+  font-size: var(--vh-fs-xs);
+  color: var(--vh-ink-dim);
+}
+/* In a table the block spans the row and inherits none of the cell's own
+   alignment or numeric styling. */
+.vh-failure-tr td { padding: 10px 12px; }
+.vh-failure-tr td .vh-failure { width: 100%; }
+
+/* ============================================================================
    GLOBAL 3D DEPTH LAYER (2026-07-16)
    App-wide dimensionality without touching any page's own CSS: layered
    elevation shadows + hover lift/tilt on cards, tiles and buttons. All

@@ -78,6 +78,183 @@
     } catch (_) {}
   })();
 
+  /* ─── A FAILURE MUST LOOK LIKE A FAILURE ─────────────────────────────────
+     Found on the live deployment. With the Supabase project paused, the
+     onboarding wizard's "Your brands" panel rendered
+
+         session_verification_unavailable
+
+     styled exactly like the brand rows it replaced - a machine identifier sat
+     in a list of brands and read as the name of one. PR #75 made the SENTENCE
+     win over the code in brand-context.js, which was necessary and is not
+     sufficient: an error of any kind dropped into a slot labelled "Your
+     brands" still reads as a brand. The defect is not the wording, it is that
+     a failure was wearing content's clothes - `<p class="muted">`,
+     `<div class="empty">`, `<td class="muted">`, a card body, a table row.
+
+     So every one of those call sites now renders through here, and this is
+     ONE implementation rather than twenty-odd, for the reason this repo keeps
+     recording: two copies drift, and the second one is the one nobody fixes.
+
+     Three things it guarantees, in this order:
+       1. A FRAME. Every failure carries an uppercase tag naming what could not
+          be done, role="alert", and a red-edged panel that no data row in this
+          app looks like. `data-failure="1"` marks it for tests.
+       2. A SENTENCE. A bare machine identifier is never the explanation. Known
+          codes get real words; an unknown one is reported as a sentence with
+          the code kept BESIDE it, labelled, never as the whole message.
+       3. THE CAUSE, where it is knowable. `backend_unreachable` on the payload
+          (a paused, renamed or deleted project - the network cannot tell them
+          apart) says plainly that the database is unreachable and that nothing
+          was saved, because "nothing was saved" is the part an operator will
+          otherwise have to discover by losing work.
+
+     Styling lives in theme.css (.vh-failure), brand tokens only, on the light
+     panel surface - never a dark-neutral ground, which is a HARD repo rule. */
+  (function failurePresentation() {
+    var esc = function (v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    };
+
+    // A machine identifier: snake_case / dotted, no spaces. This is the shape
+    // that must never reach a reader as the whole explanation.
+    var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+    var UNREACHABLE = {
+      backend_unreachable: 1,
+      session_verification_unavailable: 1,
+      supabase_not_configured: 1,
+    };
+
+    var DB_DOWN = 'The database is unreachable, so this could not be loaded and nothing has been saved. '
+      + 'The project it points at is paused, renamed or deleted, which look identical from here.';
+
+    // Codes this app actually emits. Anything not listed still gets a sentence
+    // (see below) - the table is a courtesy, not the guarantee.
+    var SENTENCES = {
+      session_verification_unavailable: DB_DOWN,
+      supabase_not_configured: 'This deployment has no database configured, so nothing can be read or saved here.',
+      backend_unreachable: DB_DOWN,
+      sign_in_required: 'You are signed out, so this could not be loaded. Sign in and try again.',
+      not_authenticated: 'You are signed out, so this could not be loaded. Sign in and try again.',
+      forbidden: 'Your account does not have access to this brand.',
+      not_a_member: 'Your account is not a member of this brand workspace.',
+      no_active_workspace: 'No brand is active yet. Set one up in onboarding, then come back.',
+      not_found: 'That record no longer exists.',
+      rate_limited: 'The service is rate limiting this request. Wait a moment and try again.',
+      insufficient_credits: 'There are not enough credits on this brand to run that.',
+    };
+
+    function payloadOf(e) {
+      if (!e || typeof e !== 'object') return null;
+      if (e.payload && typeof e.payload === 'object') return e.payload;
+      return e;
+    }
+
+    /** The machine identifier behind a failure, or '' when there is none. */
+    function codeOf(e) {
+      if (!e) return '';
+      var p = payloadOf(e) || {};
+      var c = (typeof e === 'object' && e.code) || p.error || p.code || '';
+      if (!c && typeof e === 'object' && e.message && IDENT.test(String(e.message).trim())) c = e.message;
+      if (!c && typeof e === 'string' && IDENT.test(e.trim())) c = e;
+      return String(c || '').trim();
+    }
+
+    function unreachable(e) {
+      var p = payloadOf(e) || {};
+      if (p.backend_unreachable === true) return true;
+      return !!UNREACHABLE[codeOf(e)];
+    }
+
+    /** Always a sentence. Never a bare identifier, never an empty string. */
+    function sentence(e) {
+      if (unreachable(e)) return DB_DOWN;
+      var code = codeOf(e);
+      if (code && SENTENCES[code]) return SENTENCES[code];
+
+      var raw = '';
+      if (typeof e === 'string') raw = e;
+      else if (e && typeof e === 'object') raw = e.message || (payloadOf(e) || {}).message || '';
+      raw = String(raw || '').trim();
+      // Several endpoints answer with `{ ok:false, error:"<a real sentence>" }`
+      // and no `message`. That sentence is the explanation and must be used;
+      // only an IDENTIFIER-shaped `error` is withheld from the reader.
+      if ((!raw || IDENT.test(raw)) && code && !IDENT.test(code)) raw = code;
+
+      // `Failed to fetch` / `NetworkError...` is the browser's words for "the
+      // request never arrived". Left as-is it reads as jargon, so it is said
+      // plainly and, like every other refusal, it says nothing was saved.
+      if (/failed to fetch|networkerror|load failed|err_(?:network|connection)/i.test(raw)) {
+        return 'The server could not be reached, so this could not be loaded and nothing has been saved.';
+      }
+      if (!raw || IDENT.test(raw)) {
+        return code || raw
+          ? 'The server refused this request and did not explain why.'
+          : 'This could not be loaded.';
+      }
+      return raw;
+    }
+
+    /**
+     * The failure block. `opts.title` names what could not be done - it is the
+     * part that stops the panel reading as data, so it is never omitted.
+     */
+    function html(e, opts) {
+      var o = opts || {};
+      var tag = o.title || 'Could not load';
+      var code = codeOf(e);
+      var msg = sentence(e);
+      // The code is kept, because it is what a bug report needs - but it is
+      // labelled and secondary, never the explanation itself.
+      var codeLine = code && code !== msg
+        ? '<span class="vh-failure-code">Reported by the server as: ' + esc(code) + '</span>\n'
+        : '';
+      // The newlines are load-bearing, not formatting. These spans are block
+      // level in CSS, but textContent ignores CSS - so without a separator the
+      // tag and the sentence run together into one unreadable string wherever
+      // the text is read rather than looked at (a screen reader, a copied
+      // error report, a test assertion).
+      return '<div class="vh-failure" role="alert" data-failure="1">'
+        + '<span class="vh-failure-tag">' + esc(tag) + '</span>\n'
+        + '<span class="vh-failure-msg">' + esc(msg) + '</span>\n'
+        + codeLine
+        + (o.extra ? '<span class="vh-failure-msg">' + esc(o.extra) + '</span>' : '')
+        + '</div>';
+    }
+
+    /** The same block as a table row, so a <tbody> never gets a loose <div>. */
+    function rowHtml(e, opts) {
+      var o = opts || {};
+      return '<tr class="vh-failure-tr"><td colspan="' + (Number(o.colspan) || 99) + '">'
+        + html(e, o) + '</td></tr>';
+    }
+
+    /**
+     * Render into an element, choosing the row form for table containers - a
+     * loose <div> inside a <table> is dropped by the parser and the slot ends
+     * up EMPTY, which is the same defect arriving by a different route.
+     */
+    function show(el, e, opts) {
+      var node = typeof el === 'string' ? document.getElementById(el) : el;
+      if (!node) return;
+      var tag = (node.tagName || '').toUpperCase();
+      if (tag === 'TBODY') node.innerHTML = rowHtml(e, opts);
+      else if (tag === 'TABLE') node.innerHTML = '<tbody>' + rowHtml(e, opts) + '</tbody>';
+      else node.innerHTML = html(e, opts);
+    }
+
+    window.LifecycleFailure = {
+      sentence: sentence,
+      code: codeOf,
+      unreachable: unreachable,
+      html: html,
+      rowHtml: rowHtml,
+      show: show,
+    };
+  })();
+
   // ─── Universal brand layer + credit meter ───────────────────────────────
   // brand-context.js re-skins the whole app to the signed-in user's ACTIVE
   // brand workspace (palette, fonts, name, favicon) and sends a user with no
@@ -2319,7 +2496,7 @@
       } catch (e) {
         const err = modal.querySelector('#lpm-err');
         err.className = 'lpm-err';
-        err.textContent = 'Could not save: ' + (e.message || e);
+        err.textContent = 'Nothing was saved. ' + window.LifecycleFailure.sentence(e);
         btn.disabled = false; btn.textContent = 'Save profile';
       }
     });

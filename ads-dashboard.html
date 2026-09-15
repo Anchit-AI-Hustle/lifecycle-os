@@ -1,6 +1,58 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
 
@@ -258,7 +310,11 @@
   function renderCohort(res){
     if(res.no_sources){$('#cohort-body').innerHTML='<div class="empty">'+esc2(res.hint||'')+'</div>';return;}
     if(res.not_connected){$('#cohort-body').innerHTML='<div class="empty">Snowflake not connected. Query:<br><br><code>'+(res.would_query||'').replace(/</g,'&lt;')+'</code></div>';return;}
-    if(!res.ok){$('#cohort-body').innerHTML='<div class="empty">'+(res.error||'No cohort data.')+'</div>';return;}
+    // A REFUSAL, not an absence. This printed the server's own `error` value -
+    // unescaped, and in the empty-state class, so a machine code read as "you
+    // have no cohort data". The two states above (no sources, not connected)
+    // really are empty states and keep their own wording.
+    if(!res.ok){window.LifecycleFailure.show($('#cohort-body'),res,{title:'Cohort view could not be loaded'});return;}
     var rows=res.rows||[];if(!rows.length){$('#cohort-body').innerHTML='<div class="empty">No rows for that dimension.</div>';return;}
     var max=Math.max.apply(null,rows.map(function(r){return num(r.value)||0;}))||1;
     $('#cohort-body').innerHTML='<div class="frame"><h2 style="margin-top:0">'+res.dimension+' × '+res.measure+'</h2>'+rows.slice(0,25).map(function(r){
@@ -306,9 +362,9 @@
   }
   function loadPing(){
     fetch('/api/brain?action=ads-snowflake&op=ping',{cache:'no-store'}).then(function(r){return r.json();}).then(renderPing)
-      .catch(function(e){var el=$('#ping-line');if(el)el.innerHTML='<p class="note"><span class="chip warn">error</span> '+e.message+'</p>';});
+      .catch(function(e){var el=$('#ping-line');if(el)window.LifecycleFailure.show(el,e,{title:'Warehouse check failed'});});
   }
-  function loadCohort(){get('cohort','&dimension='+$('#c-dim').value+'&measure='+$('#c-measure').value).then(renderCohort).catch(function(e){$('#cohort-body').innerHTML='<div class="empty">'+e.message+'</div>';});}
+  function loadCohort(){get('cohort','&dimension='+$('#c-dim').value+'&measure='+$('#c-measure').value).then(renderCohort).catch(function(e){window.LifecycleFailure.show($('#cohort-body'),e,{title:'Cohort view could not be loaded'});});}
 
   // ── Duration tiles: always rendered, and they drive the Since/Until window
   // that every panel on this page (including the cohort chart) reads from.
@@ -354,7 +410,7 @@
   function loadCatalog(){
     if(catalogLoaded)return; catalogLoaded=true;
     fetch('/api/brain?action=ad-metrics&op=catalog',{cache:'no-store'}).then(function(r){return r.json();}).then(renderCatalog)
-      .catch(function(e){catalogLoaded=false;$('#catalog-body').innerHTML='<div class="empty">'+e.message+'</div>';});
+      .catch(function(e){catalogLoaded=false;window.LifecycleFailure.show($('#catalog-body'),e,{title:'Metric catalogue could not be loaded'});});
   }
   function renderAccuracy(res){
     if(!res||!res.ok){$('#accuracy-body').innerHTML='<div class="empty">Accuracy unavailable.</div>';return;}
@@ -379,7 +435,7 @@
     if(!rows||!rows.length){$('#accuracy-body').innerHTML='<div class="empty">No rows to score — connect Snowflake or widen the window.</div>';return;}
     fetch('/api/brain?action=ad-metrics',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'accuracy',rows:rows})})
       .then(function(r){return r.json();}).then(renderAccuracy)
-      .catch(function(e){$('#accuracy-body').innerHTML='<div class="empty">'+e.message+'</div>';});
+      .catch(function(e){window.LifecycleFailure.show($('#accuracy-body'),e,{title:'Accuracy scoring could not be run'});});
   }
   // ── SOP compliance (live names scored against the SOP) ─────────────────────
   var SOPDATA=null;
@@ -501,7 +557,7 @@
         }
         renderSopCards(res);
       })
-      .catch(function(e){$('#sop-cards').innerHTML='<div class="empty">'+esc2(e.message)+'</div>';});
+      .catch(function(e){window.LifecycleFailure.show($('#sop-cards'),e,{title:'SOP compliance could not be scored'});});
     getJSON2('/api/brain?action=ads-sop&op=pacing'+qs).then(renderSopPacing).catch(function(){});
   }
 
@@ -517,7 +573,7 @@
         : (res.not_connected
           ? 'Snowflake not connected yet — add the read-only SNOWFLAKE_* vars in Vercel to fill these with live figures. Nothing is shown until they are set.'
           : 'Live from the warehouse · '+(res.table||'')+' · read-only.');
-    }).catch(function(e){$('#scorecards').innerHTML='<div class="empty">'+esc2(e.message)+'</div>';});
+    }).catch(function(e){window.LifecycleFailure.show($('#scorecards'),e,{title:'Live figures could not be loaded'});});
     loadCatalog();
     loadCohort();
     loadSop(); // re-scores against the naming standard whenever the window changes

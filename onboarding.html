@@ -1,6 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Set up your brand</title>
@@ -284,7 +336,7 @@
   /* The last "read my site" report. Held in memory only: it is a set of
      CANDIDATES, and a candidate becomes part of the brand exactly when the
      operator presses Use, never before. */
-  var extraction = null, extractBusy = false, extractError = '';
+  var extraction = null, extractBusy = false, extractError = null;
 
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -1176,7 +1228,17 @@
 
   function xPanel(key) {
     if (extractError && key === 'brand') {
-      return '<div class="xtract"><h3>Could not read that site</h3><div class="xmeta">' + esc(extractError) + '</div></div>';
+      // The heading stays: it is the sentence the operator reads first, and it
+      // is what tells them the SITE is the thing that could not be read. What
+      // sat under it was `esc(extractError.message)` in `.xmeta` - the content
+      // class - so with the backend paused the whole explanation was the string
+      // `session_verification_unavailable`. `extractError` is now the error
+      // OBJECT, because the payload is what carries `backend_unreachable`, and
+      // that is the difference between "your site could not be read" and "our
+      // database is down and nothing was saved".
+      return '<div class="xtract"><h3>Could not read that site</h3>'
+        + window.LifecycleFailure.html(extractError, { title: 'Nothing was read and nothing was applied' })
+        + '</div>';
     }
     if (!extraction || !extraction.ok) return '';
     var body = key === 'brand'
@@ -1238,7 +1300,7 @@
     var input = $('xUrl');
     var url = input ? input.value.trim() : '';
     if (!url) { toast('Enter your website address first.'); return; }
-    extractBusy = true; extractError = ''; render();
+    extractBusy = true; extractError = null; render();
     try {
       if (!brand.website) { brand.website = url; }
       var r = await api('extract', { url: url, workspace_id: brand.id || undefined });
@@ -1253,8 +1315,8 @@
         : 'Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.', r.signed_out ? 5200 : 2600);
     } catch (e) {
       extraction = null;
-      extractError = e.message;
-      toast(e.message, 4600);
+      extractError = e;
+      toast(window.LifecycleFailure.sentence(e), 4600);
     } finally {
       extractBusy = false;
       render();
@@ -1470,8 +1532,11 @@
         status.textContent = r.imported + ' products imported' + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
         toast('Imported ' + r.imported + ' products.');
       } catch (e) {
-        status.textContent = e.message;
-        toast(e.message, 4200);
+        // This span otherwise reads "N products in this workspace." - a count.
+        // An error string dropped into it is read as a count too, so it gets
+        // the failure frame instead.
+        window.LifecycleFailure.show(status, e, { title: 'Nothing was imported' });
+        toast(window.LifecycleFailure.sentence(e), 4200);
       } finally { busy = false; }
     });
   }
@@ -1500,7 +1565,7 @@
 
         async function switchTo() {
           try { await window.BrandContext.setActive(id); toast('Switched brand. The app is now in that brand.'); loadWorkspaces(); }
-          catch (e) { toast(e.message, 4000); }
+          catch (e) { toast(window.LifecycleFailure.sentence(e), 4000); }
         }
 
         /* Edit re-enters the wizard on this brand. The wizard already reads
@@ -1535,7 +1600,7 @@
           } catch (e) {
             // The server distinguishes "not yours" (403) from "not there"
             // (404) from "nothing was removed" (409). Show what it said.
-            toast(e.message || 'Delete failed.', 5000);
+            toast(window.LifecycleFailure.sentence(e), 5000);
           }
         }
 
@@ -1548,7 +1613,14 @@
           return switchTo();          // the row itself, and the Switch button
         });
       });
-    } catch (e) { $('wsList').innerHTML = '<p class="muted">' + esc(e.message) + '</p>'; }
+    } catch (e) {
+      // THE defect this whole treatment exists for. This slot is labelled
+      // "Your brands"; a `<p class="muted">` here is styled like the rows it
+      // replaced, so on the live deployment the machine code
+      // `session_verification_unavailable` read as the name of a brand. A
+      // failure gets a failure's frame, and nothing that looks like a row.
+      window.LifecycleFailure.show($('wsList'), e, { title: 'Your brands could not be loaded' });
+    }
   }
 
   /* ── The brand CONTEXT PACK ───────────────────────────────────────────────
@@ -1640,7 +1712,7 @@
       }
       toast(r && r.done ? 'Context pack built.' : 'Context pack building in the background.');
     } catch (e) {
-      toast(e.message, 4600);
+      toast(window.LifecycleFailure.sentence(e), 4600);
     } finally {
       packBusy = false;
       await loadPack(true);
@@ -1682,12 +1754,12 @@
           a.href = URL.createObjectURL(blob); a.download = 'DESIGN.md';
           document.body.appendChild(a); a.click(); a.remove();
           setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-        } catch (e) { toast(e.message, 4200); }
+        } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
       });
     }
     $('saveDraft').addEventListener('click', async function () {
       brand.status = 'draft';
-      try { await save(); toast('Saved as a draft.'); } catch (e) { toast(e.message, 4200); }
+      try { await save(); toast('Saved as a draft.'); } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
     });
     $('newBrand').addEventListener('click', function () {
       brand = JSON.parse(JSON.stringify(brand));
@@ -1706,7 +1778,7 @@
         setTimeout(function () { location.href = from && from !== '/onboarding' ? from : '/'; }, 900);
       } catch (e) {
         brand.status = 'draft';
-        toast(e.message, 5000);
+        toast(window.LifecycleFailure.sentence(e), 5000);
       }
     });
   }
