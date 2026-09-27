@@ -68,7 +68,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "google-auth-library": "^11.1.0",
     "googleapis": "^181.0.0",
-    "imapflow": "^2.0.0",
+    "imapflow": "^2.0.6",
     "mailparser": "^3.9.28",
     "xlsx-js-style": "^1.2.0"
   }
