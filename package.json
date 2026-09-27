@@ -66,7 +66,7 @@
     "@capacitor/core": "^8.5.2",
     "@capacitor/ios": "^8.5.1",
     "@vercel/speed-insights": "^2.0.0",
-    "google-auth-library": "^11.0.2",
+    "google-auth-library": "^11.1.0",
     "googleapis": "^181.0.0",
     "imapflow": "^2.0.0",
     "mailparser": "^3.9.28",
