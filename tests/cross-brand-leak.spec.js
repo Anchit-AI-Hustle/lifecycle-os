@@ -70,6 +70,13 @@ const INCLUDED_WITHOUT_SHELL = {
   // A public, sign-in-free demo by design (its own header comment), but a
   // signed-in operator of any brand reaches it from the rail.
   'storefront-3d.html': 'offered to every tenant from the rail (/3d/*) although it carries no shell',
+  // Rail rows "Landing Page Templates" (/templates). A registry of tenant
+  // zero's own final landing pages; for any other brand it renders the
+  // DATA REQUIRED marker through data-shipped-for, never that registry.
+  'template-gallery.html': 'offered to every tenant from the rail (/templates) although it carries no shell',
+  // /premium (rewrite-only): renders products, claims, legal copy and the logo
+  // for the ACTIVE workspace through brand-context, so it is a brand surface.
+  'premium-experience.html': 'reachable at /premium and rendered for the active workspace, no shell',
 };
 
 /** Files that are legitimately tenant-zero-only, each with the reason. Nothing
@@ -86,6 +93,10 @@ const EXCLUDED = {
   // out, so it is not offered to any tenant; changing it to pass this sweep
   // would defeat the reason it exists.
   'diff-version.html': 'frozen reference snapshot, must never change (auth.js IS_FROZEN_DIFF), not offered in the rail',
+  // Built by `npm run build:july` from tenant zero's own July calendar: 48
+  // mailers, ads and landing pages of one tenant's campaign, embedded whole.
+  // Rewrite-only (/july-studio, /usa-july), no shell, no rail row.
+  'lifecycle-usa-july-calendar-mailer-studio.html': 'generated tenant-zero calendar artefact (build:july), rewrite-only, not offered in the rail',
 };
 const PAGES = ALL_PAGES.concat(Object.keys(INCLUDED_WITHOUT_SHELL)).filter((f) => !EXCLUDED[f]).sort();
 const STUDIO = 'lifecycle_mailer_architect_v34.html';
@@ -225,18 +236,27 @@ async function install(page, brand) {
 /** Everything a person could read on the page, by kind. */
 const COLLECT = () => {
   const out = [];
-  const push = (kind, s) => { const t = String(s == null ? '' : s); if (t.trim()) out.push({ kind, text: t }); };
+  const push = (kind, s, where) => { const t = String(s == null ? '' : s); if (t.trim()) out.push({ kind, text: t, where: where || '' }); };
   const SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1 };
+  // Where a text node sits (three ancestors, tag#id.class), so a hit names the
+  // element that rendered it and not only the page.
+  const pathOf = (el) => {
+    const parts = [];
+    for (let e = el, i = 0; e && e.nodeType === 1 && i < 3; e = e.parentElement, i++) {
+      parts.unshift(e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.classList && e.classList.length ? '.' + Array.from(e.classList).slice(0, 2).join('.') : ''));
+    }
+    return parts.join(' > ');
+  };
   const walk = (doc, kind) => {
     if (!doc || !doc.body) return;
     const w = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
       acceptNode: (n) => (n.parentNode && SKIP[n.parentNode.nodeName]) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
     });
-    let n; while ((n = w.nextNode())) push(kind, n.nodeValue);
+    let n; while ((n = w.nextNode())) push(kind, n.nodeValue, pathOf(n.parentElement));
     doc.querySelectorAll('[alt],[title],[placeholder],[aria-label]').forEach((el) => {
-      ['alt', 'title', 'placeholder', 'aria-label'].forEach((a) => { if (el.hasAttribute(a)) push(kind + ':' + a, el.getAttribute(a)); });
+      ['alt', 'title', 'placeholder', 'aria-label'].forEach((a) => { if (el.hasAttribute(a)) push(kind + ':' + a, el.getAttribute(a), pathOf(el)); });
     });
-    doc.querySelectorAll('textarea,input').forEach((el) => push(kind + ':value', el.value));
+    doc.querySelectorAll('textarea,input').forEach((el) => push(kind + ':value', el.value, pathOf(el)));
   };
   push('title', document.title);
   walk(document, 'text');
@@ -261,7 +281,7 @@ function scan(runs, signatures) {
       if (!m) continue;
       seen.add(r.kind);
       const i = m.index;
-      hits.push({ label: sig.label, kind: r.kind, sample: r.text.slice(Math.max(0, i - 70), i + 70).replace(/\s+/g, ' ').trim() });
+      hits.push({ label: sig.label, kind: r.kind, where: r.where || '', sample: r.text.slice(Math.max(0, i - 70), i + 70).replace(/\s+/g, ' ').trim() });
     }
   }
   return hits;
@@ -361,7 +381,7 @@ async function sweep(page, brand, signatures) {
 
 function print(name, r) {
   console.log(`[cross-brand-leak] ${name}: ${r.pages} pages, ${r.runs} text runs, ${r.chars} chars, ${r.canvas} canvas strings, ${r.archetypes} Studio archetype renders (market ${r.studioMarket}), ${r.hits.length} hits`);
-  for (const h of r.hits) console.log(`  ${h.page} [${h.kind}] ${h.label}: …${h.sample}…`);
+  for (const h of r.hits) console.log(`  ${h.page} [${h.kind}${h.where ? ' @ ' + h.where : ''}] ${h.label}: …${h.sample}…`);
   if (r.errors.length) console.log('  drive errors: ' + r.errors.join(' | '));
   try {
     const dir = process.env.LEAK_REPORT_DIR || os.tmpdir();
@@ -406,7 +426,7 @@ test('with The Times of India active, no page renders tenant zero or sibling cop
   const r = await sweep(page, brand, tenantZeroSignatures(ZERO).concat(SIBLING));
   print('times-of-india', r);
   measured(r);
-  expect(r.hits.map((h) => `${h.page} [${h.kind}] ${h.label}: ${h.sample}`), 'another brand\'s facts rendered under The Times of India').toEqual([]);
+  expect(r.hits.map((h) => `${h.page} [${h.kind}${h.where ? ' @ ' + h.where : ''}] ${h.label}: ${h.sample}`), 'another brand\'s facts rendered under The Times of India').toEqual([]);
 });
 
 /* ═══ tenant zero sees its own facts, and never the sibling's ═════════════ */
@@ -417,5 +437,5 @@ test('with tenant zero active, the sibling literals are absent too', async ({ pa
   const r = await sweep(page, brand, SIBLING);
   print('tenant-zero', r);
   measured(r);
-  expect(r.hits.map((h) => `${h.page} [${h.kind}] ${h.label}: ${h.sample}`), 'the sibling brand\'s copy rendered for tenant zero').toEqual([]);
+  expect(r.hits.map((h) => `${h.page} [${h.kind}${h.where ? ' @ ' + h.where : ''}] ${h.label}: ${h.sample}`), 'the sibling brand\'s copy rendered for tenant zero').toEqual([]);
 });
