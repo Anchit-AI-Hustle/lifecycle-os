@@ -258,6 +258,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <button type="button" id="generateAll" class="btn sm ok" onclick="generateAll()" style="display:none;text-align:center" title="Generate the final best version of every asset (mailer, ads, landing page) for the sends currently shown (respects the region filter).">⚙ Generate all</button>
           <button type="button" id="approveAll" class="btn sm ok" onclick="approveAll()" style="display:none;text-align:center" title="Approve and lock every send currently shown that is not already approved (includes prebuilt drafts). Each is built if needed, then locked as ship-ready. Rejected sends are skipped.">✓ Approve all</button>
           <button type="button" id="downloadAll" class="btn sm secondary" onclick="sbZipAll()" style="text-align:center" title="Download every ALREADY-generated asset in view as a nested ZIP — {date}_{cohort}/{date}/mailer + landing + ad files. Retrieval only; never regenerates.">⬇ Download all (.zip)</button>
+          <!-- What the calendar's own actions have to say is said HERE, under
+               the button that was pressed, never in a native alert(). -->
+          <div id="calstate" role="status" aria-live="polite" hidden></div>
         </div>
       </div>
       <div id="mktfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 8px">
@@ -344,6 +347,27 @@ function sbState(kind, message){
   el.hidden = false;
   el.className = 'actstate ' + kind;
   el.innerHTML = (kind === 'busy' ? '<span class="spinner"></span> ' : '') + esc(message);
+}
+// Every outcome is said beside the control that asked for it, never in a
+// native alert(): a dialog blocks the page, carries the site's hostname as its
+// title so it reads as a site error, and cannot take the brand's tokens.
+// `anchor` is the button that was pressed; a button inside a preview toolbar
+// (.pvbar) gets a note right under that toolbar, anything else reports into
+// the calendar card's own #calstate slot.
+function sbSlot(anchor){
+  const bar = anchor && anchor.closest ? anchor.closest('.pvbar') : null;
+  if(!bar) return $('calstate');
+  let slot = bar.nextElementSibling;
+  if(!(slot && slot.classList.contains('sbnote'))){
+    slot = document.createElement('div'); slot.className = 'sbnote';
+    bar.insertAdjacentElement('afterend', slot);
+  }
+  return slot;
+}
+function sbSay(anchor, message){
+  const slot = sbSlot(anchor); if(!slot) return;
+  slot.hidden = false; slot.classList.add('vh-status'); slot.setAttribute('role', 'status');
+  slot.textContent = message;
 }
 // A response can be HTTP 200 and ok:true and still be a refusal: the router
 // answers an unattributable request with an `error` code rather than serving
@@ -943,7 +967,7 @@ function renderPreview(payload, e, i, opts){
   // mailer opened full-screen in a new tab.
   const detailBtn = liveLpId
     ? `<a class="btn sm secondary" href="/lp/${esc(liveLpId)}" target="_blank" rel="noopener">Open detailed page ↗</a>`
-    : `<button type="button" class="btn sm secondary" onclick="openDetailPage(${i})">Open detailed page ↗</button>`;
+    : `<button type="button" class="btn sm secondary" onclick="openDetailPage(${i}, this)">Open detailed page ↗</button>`;
 
   const host = (opts && opts.target) || $('expbody-'+i) || $('preview');
   host.innerHTML = `<div class="pvroot">
@@ -951,7 +975,7 @@ function renderPreview(payload, e, i, opts){
       ${banner}
       <span style="flex:1"></span>
       ${detailBtn}
-      <button type="button" class="btn sm ok" onclick="sbDownloadAll()" title="Download every asset (mailer variants, landing page, ads) as one HTML file">⬇ Download all</button>
+      <button type="button" class="btn sm ok" onclick="sbDownloadAll(this)" title="Download every asset (mailer variants, landing page, ads) as one HTML file">⬇ Download all</button>
       <button type="button" class="btn sm secondary" onclick="viewEntry(${i}, true)">↻ Regenerate</button>
       <button type="button" class="btn sm secondary" onclick="closeExp(${i})" title="Collapse">✕</button>
     </div>
@@ -1058,10 +1082,10 @@ window.viewDecision = function(i){
 };
 // Open the primary mailer full-screen in a new tab (the "detailed page" when a
 // slot is not yet approved and has no hosted /lp/:id).
-window.openDetailPage = function(i){
+window.openDetailPage = function(i, btn){
   const e = PLAN[i]; const p = PREVIEW_CACHE[e && e.id];
   const html = p && (p.email_html || (p.email_variants && p.email_variants.find(v=>v.key==='visual_a')?.html) || (p.campaign?.assets?.email?.html));
-  if(!html){ alert('Open View first to generate the assets, then Open detailed page.'); return; }
+  if(!html){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
   const w = window.open('', '_blank'); if(w){ w.document.open(); w.document.write(String(html).replace(/\{\{\s*landing_page_url\s*\}\}/g,'#')); w.document.close(); }
 };
 
@@ -1084,9 +1108,9 @@ window.sbAsset = function(ak, verdict, btn){
   if(bar){ const s = bar.querySelector('.akstatus'); if(s){ s.textContent = next ? ('· '+next) : ''; s.className = 'akstatus ' + next; } }
 };
 // Combined export: every previewed asset bundled into one downloadable HTML.
-window.sbDownloadAll = function(){
+window.sbDownloadAll = function(btn){
   const items = window.__SB_EXPORTS || [];
-  if(!items.length){ alert('Open View first so the assets are generated.'); return; }
+  if(!items.length){ sbSay(btn, 'Open View first so the assets are generated; there is nothing to download yet.'); return; }
   const parts = items.map(it => `<section style="margin:0 0 28px"><h2 style="font-family:sans-serif;border-bottom:2px solid #6A33D8;padding-bottom:6px">${String(it.name||'asset')}</h2>${it.html}</section>`);
   const doc = `<!doctype html><meta charset="utf-8"><title>Lifecycle OS campaign assets</title><body style="max-width:720px;margin:24px auto;padding:0 16px">${parts.join('\n')}</body>`;
   const blob = new Blob([doc], { type:'text/html' });
@@ -1171,7 +1195,8 @@ function _zipDashboardHTML(rows){
 window.sbZipAll = function(){
   const slug = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
   const gen = PLAN.map((e)=>e).filter(e => slotVisible(e) && PREVIEW_CACHE[e.id]);
-  if(!gen.length){ alert('No generated assets in view yet. Run "Generate all" (or open/Download a row) first — Download all only zips already-generated slots, it never regenerates.'); return; }
+  if(!gen.length){ sbSay(null, 'No generated assets in view yet. Run "Generate all" (or open or download a row) first: Download all only zips already-generated slots, it never regenerates.'); return; }
+  const cal = $('calstate'); if(cal) cal.hidden = true;
   const files = [];
   const rows = []; // for the top-level calendar dashboard
   for(const e of gen){
@@ -1624,7 +1649,9 @@ async function showSchema(){
 // full sheet: themes, products, real links + image links, audience, per-asset
 // prompts, expected metrics). Sends the entries the reviewer currently sees.
 async function exportPlan(){
-  if(!PLAN.length){ alert('No plan to export yet — run a sync first.'); return; }
+  // Both outcomes land in #syncstate, beside the Export button - the same slot
+  // the sync reports into - never in a native alert().
+  if(!PLAN.length){ sbState('empty', 'No plan to export yet. Run a sync first, then export.'); return; }
   const btn=$('export'); const t=btn.textContent; btn.disabled=true; btn.textContent='Exporting…';
   try{
     const r = await fetch(`${API}?action=smart-brain-export`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ entries: PLAN })});
@@ -1634,7 +1661,11 @@ async function exportPlan(){
     a.download='knickgasm-automated-calendar.csv';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
-  }catch(e){ alert('Nothing was exported. ' + window.LifecycleFailure.sentence(e)); }
+    sbState('ok', 'Exported ' + PLAN.length + ' entr' + (PLAN.length === 1 ? 'y' : 'ies') + ' to CSV.');
+  }catch(e){
+    const el=$('syncstate');
+    if(el){ el.hidden=false; el.className='actstate'; window.LifecycleFailure.show(el, e, { title: 'Nothing was exported' }); }
+  }
   finally{ btn.disabled=false; btn.textContent=t; }
 }
 $('sync').addEventListener('click', runSync);
