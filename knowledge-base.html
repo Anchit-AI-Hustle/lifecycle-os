@@ -165,11 +165,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <!-- Region filter — applies to all KNICKGASM + Competitor channels. -->
   <div id="kbRegions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
     <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#48524c; font-weight:600; align-self:center; margin-right:8px">Region</span>
+    <!-- All + one chip per region the ACTIVE brand declares (region-context.js). This
+         library aggregates across markets, so All stays the default. -->
     <button type="button" class="region-chip active" data-region="">All</button>
-    <button type="button" class="region-chip" data-region="US">US</button>
-    <button type="button" class="region-chip" data-region="UK">UK</button>
-    <button type="button" class="region-chip" data-region="Global">Global</button>
-    <button type="button" class="region-chip" data-region="IN">India</button>
   </div>
 
   <!-- Unified "Add to knowledge base" bar — shown for BOTH KNICKGASM and
@@ -473,7 +471,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // ad library. One tile per region (or just the selected region).
     if(state.src==='knickgasm' && AD_TABS.includes(state.chan)){
       const idx = AD_TABS.indexOf(state.chan);
-      const regions = state.region ? [state.region] : ['US','UK','Global','IN'];
+      const regions = state.region ? [state.region] : ((window.RegionContext && window.RegionContext.regions.map(r => r.code)) || []);
       const tiles = regions.map(rg=>{
         const s = knickgasmAdSources(rg)[idx];
         return `<a class="bkb" href="${s.url}" target="_blank" rel="noopener">${meta.icon} KNICKGASM ${esc(meta.name)} · ${esc(REGION_LABELS[rg]||rg)} ↗<span>${esc(s.hint)}</span></a>`;
@@ -693,11 +691,36 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
 
   document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.addEventListener('click',()=>{state.chan=b.dataset.chan;render();}));
-  document.querySelectorAll('#kbRegions .region-chip').forEach(b=>b.addEventListener('click',()=>{
+  $('kbRegions').addEventListener('click',(e)=>{
+    const b = e.target.closest ? e.target.closest('.region-chip[data-region]') : null; if(!b) return;
     state.region = b.dataset.region;
     document.querySelectorAll('#kbRegions .region-chip').forEach(x=>x.classList.toggle('active', x===b));
     render();
-  }));
+  });
+  // Region chips are the ACTIVE brand's own regions plus All, rebuilt when
+  // the brand changes; never a typed list.
+  let _kbRegionsBuilt = null;
+  function buildRegionChips(){
+    const rc = window.RegionContext; if(!rc) return;
+    const opts = rc.options();
+    const key = opts.map(o=>o.code).join('|');
+    if(key === _kbRegionsBuilt) return; _kbRegionsBuilt = key;
+    const host = $('kbRegions');
+    host.querySelectorAll('.region-chip').forEach(x => { if (x.dataset.region !== '') x.remove(); });
+    opts.forEach(o => {
+      const b = document.createElement('button'); b.type='button'; b.className='region-chip'; b.dataset.region=o.code; b.textContent=o.name;
+      if(o.home){ b.dataset.home='1'; b.title='Home market'; }
+      host.appendChild(b);
+    });
+    if(!opts.length){ const m=document.createElement('span'); m.className='region-chip'; m.style.cursor='default'; m.textContent='[DATA REQUIRED BEFORE LAUNCH: regions, all, all]'; host.appendChild(m); }
+    if(state.region && !opts.some(o=>o.code===state.region)){ state.region=''; render(); }
+    host.querySelectorAll('.region-chip[data-region]').forEach(x=>x.classList.toggle('active', x.dataset.region===(state.region||'')));
+  }
+  (function watchRegions(w){
+    const waited=w||0;
+    if(!window.RegionContext){ if(waited<6000) setTimeout(()=>watchRegions(waited+100),100); return; }
+    window.RegionContext.onChange(buildRegionChips);
+  })(0);
 
   // Deep-link parser. New schema: #<chan>[/<region>]. Back-compat: legacy
   // #knickgasm-<chan> / #competitor-<chan> still resolve to the channel; legacy
@@ -713,7 +736,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (chan === 'ads') chan = 'meta';
       state.chan = CHANNELS.includes(chan) ? chan : 'mailers';
     }
-    if (region && ['US','UK','Global','India'].includes(region)) {
+    // A deep-linked region is honoured once the brand's own list is known
+    // (buildRegionChips validates it); until then it is taken as typed.
+    if (region) {
       state.region = region;
       document.querySelectorAll('#kbRegions .region-chip').forEach(x => x.classList.toggle('active', x.dataset.region === region));
     }

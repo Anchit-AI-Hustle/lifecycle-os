@@ -276,7 +276,12 @@ module.exports = async function handler(req, res) {
       url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ldb.url || '',
       anonKey: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ldb.anonKey || '',
     },
-    app: { name: 'Lifecycle OS', version: '1.0.0', regions: ['US', 'UK', 'Global', 'IN'] },
+    // The regions are tenant zero's OWN, read off its record, not a list typed
+    // here: the active brand's markets come from its workspace (brand-context
+    // + region-context), and this public list must never contradict them.
+    app: { name: 'Lifecycle OS', version: '1.0.0', regions: (() => {
+      try { return require('./_shared/brand-runtime.js').defaultBrand().regions.map((r) => r.code); } catch (_) { return []; }
+    })() },
     flags: { real_facts_only: String(process.env.REAL_FACTS_ONLY || '') === '1' },
   });
 };

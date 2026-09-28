@@ -37,7 +37,7 @@
   window.__RegionContextBooted = true;
 
   var KEY = 'lc-active-region';
-  var state = { region: '', regions: [], loaded: false, explicit: false };
+  var state = { region: '', regions: [], home: '', loaded: false, explicit: false };
   var listeners = [];
   var pendingCode = '';   // a setActive that arrived before the brand did
   var readyResolve;
@@ -47,13 +47,48 @@
      a code absent from here still works and simply shows as itself. It must
      never be read as the list of available markets, which is the brand's. */
   var LABELS = {
-    US: 'United States', UK: 'United Kingdom', IN: 'India', EU: 'Europe',
-    AU: 'Australia', AE: 'UAE', ME: 'Middle East', CA: 'Canada',
-    SG: 'Singapore', GLOBAL: 'Global', WORLDWIDE: 'Global',
+    US: 'United States', UK: 'United Kingdom', GB: 'United Kingdom', IN: 'India', EU: 'Europe',
+    AU: 'Australia', AE: 'UAE', ME: 'Middle East', CA: 'Canada', NZ: 'New Zealand',
+    SG: 'Singapore', DE: 'Germany', FR: 'France', JP: 'Japan', GLOBAL: 'Global', WORLDWIDE: 'Global',
   };
+  /* The short form a chip shows. Pages used to write these by hand ("India",
+     "Global") beside codes ("US", "UK"), which is the mix a filter row reads
+     naturally, so the same mix is kept, derived rather than typed. */
+  var NAMES = { IN: 'India', GLOBAL: 'Global', WORLDWIDE: 'Global', EU: 'Europe', AU: 'Australia', ME: 'Middle East', GB: 'UK' };
   function label(code) {
     var c = String(code || '').toUpperCase();
     return LABELS[c] ? LABELS[c] + ' (' + c + ')' : c;
+  }
+  function name(code) {
+    var c = String(code || '').toUpperCase();
+    return NAMES[c] || c;
+  }
+
+  /* The codes pages and records spell the SAME market with. A brand record
+     says IN; a page chip says "India"; an extractor says GB where a record
+     says UK. Matching on the family lets a page control be recognised (and
+     driven) whichever spelling it used, without any page having to change its
+     vocabulary. This is equivalence, not a list of markets: the markets are
+     still only the brand's. */
+  var FAMILY = {
+    US: 'US', USA: 'US', UNITEDSTATES: 'US', AMERICA: 'US',
+    UK: 'UK', GB: 'UK', GBR: 'UK', UNITEDKINGDOM: 'UK', BRITAIN: 'UK',
+    IN: 'IN', IND: 'IN', INDIA: 'IN',
+    GLOBAL: 'GLOBAL', WORLDWIDE: 'GLOBAL', ROW: 'GLOBAL', INTL: 'GLOBAL', INTERNATIONAL: 'GLOBAL', WW: 'GLOBAL',
+    EU: 'EU', EUROPE: 'EU', AU: 'AU', AUS: 'AU', AUSTRALIA: 'AU', ME: 'ME', MIDDLEEAST: 'ME', AE: 'AE', UAE: 'AE',
+  };
+  function family(v) {
+    var k = String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
+    return FAMILY[k] || k;
+  }
+  /** The brand's own code for a value spelt any of the ways above, or ''. */
+  function resolveCode(v) {
+    var f = family(v);
+    if (!f) return '';
+    for (var i = 0; i < state.regions.length; i++) {
+      if (state.regions[i].code === String(v || '').toUpperCase() || family(state.regions[i].code) === f) return state.regions[i].code;
+    }
+    return '';
   }
 
   function store() {
@@ -75,8 +110,33 @@
           currency: r.currency || '',
           symbol: r.symbol || '',
           store_url: r.store_url || '',
+          home: r.home === true,
         };
       });
+  }
+
+  /* The brand's HOME market: the region its record flags, else the one it
+     leads with. This is the default every page control lands on; a brand
+     with no regions has no home, and '' is the honest value for that. */
+  function homeOf(regions) {
+    for (var i = 0; i < regions.length; i++) if (regions[i].home) return regions[i].code;
+    return (regions[0] && regions[0].code) || '';
+  }
+
+  /**
+   * The list a page builds its own market control from: the brand's regions,
+   * each as { code, name, label, home }, optionally with an aggregate row
+   * first (`{ all: 'ALL' }` gives { code:'ALL', name:'All', all:true }). A
+   * brand with no regions returns [] and the page renders its marker state -
+   * never a shipped list, never another brand's.
+   */
+  function options(opts) {
+    var o = opts || {};
+    var out = state.regions.map(function (r) {
+      return { code: r.code, name: name(r.code), label: label(r.code), home: r.code === state.home, all: false };
+    });
+    if (o.all && out.length) out.unshift({ code: String(o.all === true ? 'ALL' : o.all), name: o.allLabel || 'All', label: o.allLabel || 'All markets', home: false, all: true });
+    return out;
   }
 
   function emit() {
@@ -95,9 +155,11 @@
     if (!state.regions.length) { pendingCode = c; return false; }
     // Only a market the brand actually serves. Anything else is refused rather
     // than stored, so a stale link or an old saved value cannot put the app in
-    // a market the brand has no store URL, currency or catalogue for.
-    var ok = state.regions.some(function (r) { return r.code === c; });
-    if (!ok) return false;
+    // a market the brand has no store URL, currency or catalogue for. A
+    // spelling the brand's record does not use ("India" for IN) resolves to
+    // the record's own code rather than being refused.
+    c = resolveCode(c);
+    if (!c) return false;
     state.explicit = true;   // a choice, not our fallback
     if (state.region === c) return true;
     state.region = c;
@@ -108,17 +170,17 @@
 
   function adopt(brand) {
     state.regions = regionsOf(brand);
+    state.home = homeOf(state.regions);
     // A choice made while the brand was still in flight outranks the stored
     // one: it is the more recent instruction.
-    if (pendingCode && state.regions.some(function (r) { return r.code === pendingCode; })) {
-      store().set(KEY, pendingCode);
-    }
+    var pendingResolved = pendingCode ? resolveCode(pendingCode) : '';
+    if (pendingResolved) store().set(KEY, pendingResolved);
     pendingCode = '';
     var saved = String(store().get(KEY) || '').toUpperCase();
     var valid = state.regions.some(function (r) { return r.code === saved; });
-    // Fall back to the brand's FIRST declared region, which is the one its own
-    // record leads with, rather than to a hardcoded default like US.
-    state.region = valid ? saved : ((state.regions[0] && state.regions[0].code) || '');
+    // Fall back to the brand's HOME market - the region its own record flags,
+    // else the one it leads with - rather than to a hardcoded default like US.
+    state.region = valid ? saved : state.home;
     // Whether this is the user's CHOICE or merely our fallback. The bridge
     // below drives a page's own control only on a real choice: forcing the
     // brand's first region onto a page that legitimately defaults to something
@@ -157,7 +219,10 @@
         return;
       }
       host.innerHTML = '<span class="rgn-label">Market</span>' + state.regions.map(function (r) {
+        var isHome = r.code === state.home;
         return '<button type="button" class="rgn-chip" data-region-set="' + escapeHtml(r.code) + '"'
+          + (isHome ? ' data-home="1"' : '')
+          + ' title="' + escapeHtml(label(r.code) + (isHome ? ' - home market' : '')) + '"'
           + ' aria-pressed="' + (r.code === state.region ? 'true' : 'false') + '">'
           + escapeHtml(r.code) + '</button>';
       }).join('');
@@ -261,8 +326,9 @@
       || el.getAttribute('data-region') || '';
     if (!v && el.tagName === 'OPTION') v = el.value;
     if (!v) v = (el.textContent || '').trim();
-    v = String(v).toUpperCase().replace(/[^A-Z]/g, '');
-    return state.regions.some(function (r) { return r.code === v; }) ? v : '';
+    // "India" on a chip and IN on the record are the same market; the bridge
+    // used to compare the raw strings and never drove an India chip at all.
+    return resolveCode(v);
   }
 
   var CLICKABLE = 'button,a,[role="button"],[role="tab"],[data-market],[data-mkt],[data-region]';
@@ -450,9 +516,12 @@
   window.RegionContext = {
     get region() { return state.region; },
     get regions() { return state.regions; },
+    /* The brand's HOME market, '' for a brand with none. Every page control
+       defaults to it; a page that used to open on a literal US now opens here. */
+    get home() { return state.home; },
     get loaded() { return state.loaded; },
     /* Whether `region` is the user's CHOICE or our fallback to the brand's
-       first market. Consumers that drive something expensive off a market
+       home market. Consumers that drive something expensive off a market
        should know which they are looking at. */
     get explicit() { return state.explicit; },
     ready: function () { return readyPromise; },
@@ -461,5 +530,9 @@
     mount: mount,
     mountAll: mountAll,
     label: label,
+    name: name,
+    options: options,
+    resolve: resolveCode,
+    family: family,
   };
 })();
