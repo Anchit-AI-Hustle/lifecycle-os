@@ -172,6 +172,9 @@ function payloadFor(preset, id) {
 
 /* ── the harness ───────────────────────────────────────────────────────────── */
 
+// The signed-in operator whose active workspace is the brand under test.
+const SESSION = { access_token: 'sweep-access-token', user: { id: 'u-sweep', email: 'sweep@example.test' } };
+
 async function install(page, brand) {
   const shell = core.shellPayload(brand);
   const api = {
@@ -186,7 +189,7 @@ async function install(page, brand) {
     entries: [], items: [], rows: [], campaigns: [], connections: [], providers: [], runs: [],
   };
 
-  await page.addInitScript(() => {
+  await page.addInitScript((session) => {
     // Every canvas string, from every frame, before any page script runs.
     window.__canvasText = [];
     try {
@@ -196,15 +199,28 @@ async function install(page, brand) {
         P[m] = function (text) { try { window.__canvasText.push(String(text)); } catch (_) {} return orig.apply(this, arguments); };
       });
     } catch (_) {}
-    // A stand-in for supabase-js so auth.js takes its real signed-out path.
+    // A stand-in for supabase-js holding a SIGNED-IN session. "With The Times
+    // of India active" is an operator signed in to an account whose active
+    // workspace is that brand. brand-context.js routes the brand ops by
+    // auth.js's backend decision (LifecycleAuth.backend.kind): signed-in goes
+    // to the server (the /api/ stub below, which answers this brand), while a
+    // reachable-but-signed-out session goes to the DEVICE store - empty here -
+    // and the page then shows the shipped default, tenant zero, which is the
+    // correct answer for "no brand" and the wrong fixture for this sweep. The
+    // first version of this harness signed nobody in, and once that routing
+    // landed the sweep measured tenant zero under the other brand's name.
     window.supabase = {
       createClient: () => ({
         auth: {
-          getSession: async () => ({ data: { session: null } }),
+          getSession: async () => ({ data: { session } }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
           signInWithOAuth: async () => ({ error: null }),
           signOut: async () => ({}),
         },
+        from: () => ({
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { profile_prompted: true }, error: null }) }) }),
+          update: () => ({ eq: () => Promise.resolve({ error: null }) }),
+        }),
       }),
     };
     // The Studio's own overlay login.
@@ -213,7 +229,7 @@ async function install(page, brand) {
       localStorage.setItem('vhd_users', JSON.stringify([u]));
       localStorage.setItem('vhd_session', JSON.stringify(u));
     } catch (_) {}
-  });
+  }, SESSION);
   page.on('dialog', (d) => d.dismiss().catch(() => {}));
 
   await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
@@ -291,12 +307,28 @@ function scan(runs, signatures) {
   return hits;
 }
 
-async function openPage(page, file) {
+async function openPage(page, file, brand) {
   await page.goto('http://app.example.test/' + file, { waitUntil: 'domcontentloaded' });
-  // brand-context.js waits up to ~1.5 s for a token before it asks for the
-  // active brand; give it that, then time for paint + relabel.
-  await page.waitForFunction(() => window.BrandContext && window.BrandContext.brand, null, { timeout: 12_000 }).catch(() => {});
+  // brand-context.js waits for auth.js's backend decision, then for a token,
+  // before it asks for the active brand; give it that, then time for paint +
+  // relabel. The wait is for THIS brand by slug, not for any brand: the
+  // shipped default paints first from cache on some pages, and a sweep that
+  // read the page at that moment would measure tenant zero and report it
+  // under the other brand's name. Returns the slug the page settled on ('' when
+  // the page has no brand layer at all) so the caller can refuse a mismatch.
+  const want = String((brand && brand.slug) || '').toLowerCase();
+  await page.waitForFunction((slug) => {
+    const B = window.BrandContext;
+    if (!B) return false;
+    const b = B.brand;
+    return !!b && String(b.slug || '').toLowerCase() === slug;
+  }, want, { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(900);
+  return page.evaluate(() => {
+    const B = window.BrandContext;
+    if (!B) return { hasLayer: false, slug: '' };
+    return { hasLayer: true, slug: String((B.brand && B.brand.slug) || '').toLowerCase() };
+  });
 }
 
 /** Drive the Studio the way an operator does, then read every render. */
@@ -364,8 +396,14 @@ async function driveStudio(page, brand) {
 async function sweep(page, brand, signatures) {
   await install(page, brand);
   const report = { pages: 0, runs: 0, chars: 0, canvas: 0, archetypes: 0, hits: [], errors: [] };
+  const want = String(brand.slug || '').toLowerCase();
   for (const f of PAGES) {
-    await openPage(page, f);
+    const settled = await openPage(page, f, brand);
+    // A page that has a brand layer and settled on some OTHER brand (or none)
+    // is a harness failure, not a clean page: whatever it rendered was not
+    // rendered under the brand this sweep is about. Recorded as an error so
+    // measured() fails the run instead of counting the page as swept.
+    if (settled.hasLayer && settled.slug !== want) report.errors.push(`${f}: the page settled on brand "${settled.slug || '(none)'}", not "${want}"`);
     let runs = await page.evaluate(COLLECT);
     if (f === STUDIO) {
       const { rendered, mailerRuns, market } = await driveStudio(page, brand);
