@@ -181,7 +181,9 @@ const OTHER = {
   },
   voice: { tone: 'plain, warm, practical', preferred: ['trail', 'layer'], banned: ['game-changer', 'hurry'], no_em_dashes: true },
   regions: [{ code: 'US', currency: 'USD', symbol: '$', store_url: 'https://northwind.example', home: true }],
-  brand_data: { claims: ['Sewn in Oregon', 'Repaired for life'], legal_entity: 'Northwind Trail Co LLC, 12 Alder St, Portland OR 97201, USA' },
+  // `founded` and a shipping claim are the two facts PR #99's html stage printed
+  // that the brand block does not; they render only because THIS record has them.
+  brand_data: { claims: ['Sewn in Oregon', 'Repaired for life', 'Free shipping on every repair, worldwide'], legal_entity: 'Northwind Trail Co LLC, 12 Alder St, Portland OR 97201, USA', founded: '2009' },
   status: 'active',
 };
 
@@ -560,6 +562,13 @@ test('the mailer the html stage builds itself passes the rendered gates and its 
           expect(doc).toMatch(/<td class="btn vh-m-btn" bgcolor="[^"]+"[^>]*>\s*<a href=/);
           expect(doc, `${label}: the supplied offer is missing`).toContain('20% off shells this week');
           expect(doc, `${label}: the supplied proof is missing`).toContain('Best shell I have owned');
+          // The record's own founding year and shipping claim, and only that record's.
+          if (who === 'other') {
+            expect(doc, `${label}: the founding year on the record is missing`).toContain('EST. 2009');
+            expect(doc, `${label}: the shipping claim on the record is missing`).toContain('Free shipping on every repair, worldwide');
+          } else {
+            expect(doc, `${label}: an EST. line with no founding year on the record`).not.toMatch(/EST\. /);
+          }
 
           const r = await audit(page, doc, label);
           rendered += 1;

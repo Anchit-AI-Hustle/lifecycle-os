@@ -43,6 +43,21 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+/**
+ * Two facts a record MAY carry beyond what the brand block prints, kept from
+ * PR #99's factsFor(): the founding year (an "EST." line in the header) and the
+ * brand's own shipping claim (the one claim worth repeating beside a CTA). Each
+ * is printed only when the record states it; neither is ever a default.
+ */
+function extraFacts(brand) {
+  const b = brand || {};
+  const d = (b.brand_data && typeof b.brand_data === 'object') ? b.brand_data : {};
+  const founded = String(b.founded || d.founded || '').trim();
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter((c) => typeof c === 'string' && c.trim());
+  const shipping = claims.find((c) => /shipping|deliver/i.test(c)) || '';
+  return { founded, foundedLine: founded ? `EST. ${founded.toUpperCase()}` : '', shipping };
+}
+
 /* ── the prompt, built from this brand ──────────────────────────────────── */
 
 function systemPrompt(ctx) {
@@ -87,7 +102,8 @@ ${text
 ${t.fontImport ? `- Font import, verbatim, first in the <head> <style>: ${t.fontImport}` : '- No web font import: the brand record declares none, so use the stacks above as they are.'}
 
 ━━ SECTION LIBRARY (shape only; fill every bracket from the plan) ━━
-HEADER: ${W}px table on ${t.surface}; centred ${logo}
+HEADER: ${W}px table on ${t.surface}; centred ${logo}${ctx.facts.foundedLine ? `; a small "${ctx.facts.foundedLine}" line in ${t.mutedOnSurface} (the record states the founding year)` : ' (no founding year on the record: write no EST. line)'}
+SHIPPING LINE: ${ctx.facts.shipping ? `mention the brand's own claim "${ctx.facts.shipping}" once, as a muted line under the hero CTA; it is the record's own claim.` : 'the brand record carries no shipping claim: write none.'}
 ANNOUNCEMENT BAR (only if an offer was supplied): full-width cell on ${t.accentBand}, one line of ${t.onAccentBand} 13px bold uppercase text stating the supplied offer.
 SPLIT HERO (Variant A): two cells of ${W / 2}px, class "vh-m-col", ${text ? 'copy in both cells (no image)' : 'image left (IMAGE_HERO_URL), copy right'}: eyebrow, <h1> in the heading face, subcopy, CTA cell.
 FULL-BLEED HERO (Variant B): ${text ? '' : `IMAGE_HERO_URL at ${W}px wide, then `}a copy cell on ${t.primary}: eyebrow, <h1> at 40px, subcopy, ghost CTA (2px solid ${t.onPrimary} border, transparent fill, ${t.onPrimary} text).
@@ -287,11 +303,16 @@ function heuristicHtml(ctx, o) {
   const p = (txt, fg, size, extra) => `<p style="margin:0 0 14px;font-family:${F};font-size:${size || BODY_PX}px;line-height:1.6;color:${fg};${extra || ''}">${txt}</p>`;
   const eyebrow = (txt, fg) => `<p style="margin:0 0 8px;font-family:${F};font-size:13px;line-height:1.4;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${fg}">${esc(txt)}</p>`;
 
+  const facts = ctx.facts;
   const header = section(t.surface,
-    (b.logo_url && !text)
+    ((b.logo_url && !text)
       ? `<img src="${esc(b.logo_url)}" alt="${esc(b.name)}" height="30" style="display:block;margin:0 auto;border:0;height:30px;width:auto">`
-      : `<p style="margin:0;font-family:${H};font-size:22px;line-height:1.3;letter-spacing:.14em;text-transform:uppercase;color:${t.onSurface};text-align:center">${esc(b.name)}</p>`,
+      : `<p style="margin:0;font-family:${H};font-size:22px;line-height:1.3;letter-spacing:.14em;text-transform:uppercase;color:${t.onSurface};text-align:center">${esc(b.name)}</p>`)
+    + (facts.foundedLine ? `<p style="margin:6px 0 0;font-family:${F};font-size:12px;line-height:1.4;letter-spacing:.08em;color:${t.mutedOnSurface};text-align:center">${esc(facts.foundedLine)}</p>` : ''),
     'padding:18px 32px;text-align:center');
+  // The brand's OWN shipping claim, once, beside the first CTA; nothing when the
+  // record carries none. A threshold that is not on the record is not written.
+  const shippingLine = (fg) => (facts.shipping ? p(esc(facts.shipping), fg, 12, 'margin:12px 0 0') : '');
 
   // A band, not a control: the accent goes through sectionGround here.
   const announcement = offer
@@ -303,14 +324,16 @@ function heuristicHtml(ctx, o) {
     const copyCell = `${eyebrow(heroEyebrow, t.onPrimary)}`
       + `<h1 style="margin:0 0 16px;font-family:${H};font-size:40px;line-height:1.1;font-weight:400;color:${t.onPrimary}">${esc(heroHeadline)}</h1>`
       + p(esc(heroSubcopy), t.onPrimary, 16, 'max-width:440px;margin-left:auto;margin-right:auto')
-      + ghost(pdpUrl, heroCta, t.onPrimary);
+      + ghost(pdpUrl, heroCta, t.onPrimary)
+      + shippingLine(t.onPrimary);
     hero = (text ? '' : section(t.primary, img('IMAGE_HERO_URL', heroHeadline, W), 'padding:0'))
       + section(t.primary, copyCell, 'padding:48px 40px;text-align:center');
   } else {
     const copy = `${eyebrow(heroEyebrow, t.accentAsText)}`
       + `<h1 style="margin:0 0 14px;font-family:${H};font-size:28px;line-height:1.2;font-weight:700;color:${t.primaryAsText}">${esc(heroHeadline)}</h1>`
       + p(esc(heroSubcopy), t.onSurface)
-      + button(pdpUrl, heroCta, t.accent, t.onAccent);
+      + button(pdpUrl, heroCta, t.accent, t.onAccent)
+      + shippingLine(t.mutedOnSurface);
     hero = text
       ? section(t.surface, copy, 'padding:36px 32px')
       : section(t.surface,
@@ -422,6 +445,7 @@ async function handler(req, res) {
   ctx.store = P.storeFor(ctx.brand, ctx.market);
   ctx.currency = ctx.store.currency;
   ctx.legal = P.legalFor(ctx.brand);
+  ctx.facts = extraFacts(ctx.brand);
   ctx.briefing = P.briefing(ctx, 'email.mailer');
 
   const plan = o.plan;
