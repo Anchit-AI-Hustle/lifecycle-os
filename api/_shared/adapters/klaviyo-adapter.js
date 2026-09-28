@@ -462,7 +462,8 @@ class KlaviyoAdapter extends CrmPlatformAdapter {
   verifyWebhook(_headers, _rawBody) {
     return {
       verified: false,
-      note: '[DATA REQUIRED BEFORE LAUNCH: Klaviyo webhook signature scheme. It was not confirmed in the session that wrote this adapter, and an unverified webhook is stored for diagnosis and never acted on.]',
+      reason: 'no_signature_scheme',
+      note: '[DATA REQUIRED BEFORE LAUNCH: Klaviyo webhook signature scheme. It was not confirmed in the session that wrote this adapter, and an unverified webhook is refused and logged, never acted on.]',
     };
   }
 }

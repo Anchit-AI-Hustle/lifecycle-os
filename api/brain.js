@@ -83,6 +83,24 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const action = String((req.query || {}).action || '').toLowerCase();
+
+  // ── Platform webhooks: routed BEFORE the body is read as data ────────────
+  // A callback is authenticated by a signature over the BYTES that arrived,
+  // and req.body is not those bytes: it is a parse of them, and re-serialising
+  // it changes whitespace, key order and unicode escapes, none of which
+  // survive an HMAC. Until 2026-09-15 this action sat in the switch below and
+  // handed the verifier JSON.stringify(req.body): on a bare stream that was
+  // "{}", behind the Vercel helper it was a re-serialisation, so a genuine
+  // delivery failed and only a canonical one passed. body(req) and the
+  // workspace scoping below both read req.body, and behind the helper that
+  // getter throws a 400 on a non-JSON body, so this has to run before either.
+  // _shared/platform-webhooks.js reads the raw bytes, verifies, and only then
+  // parses. Unauthenticated ON PURPOSE: a platform callback carries a
+  // signature, not a session.
+  if (action === 'dispatch-webhook') {
+    return await require('./_shared/platform-webhooks.js').receive(req, res);
+  }
+
   const b = body(req);
 
   // ── Workspace scoping (same contract as api/calendar.js) ──────────────────
@@ -651,17 +669,8 @@ module.exports = async function handler(req, res) {
         return res.json(await dispatch.cancel(auth, __wsId, String(b.id || req.query.id || '')));
       }
 
-      case 'dispatch-webhook': {
-        // Unauthenticated ON PURPOSE: a platform callback carries a signature,
-        // not a session. ingestWebhook() stores every delivery and acts only on
-        // the ones whose signature verified.
-        const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
-        const out = await require('./_shared/dispatch-core.js').ingestWebhook(String(req.query.provider || ''), req.headers, raw);
-        // 200 even on a verification failure: a platform that receives a 4xx
-        // retries for hours and then disables the subscription. The event is
-        // recorded as unverified either way.
-        return res.status(200).json(out);
-      }
+      // dispatch-webhook is routed ABOVE the switch, before body(req) runs.
+      // See the comment there and _shared/platform-webhooks.js.
 
       case 'deliverability-domain': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
