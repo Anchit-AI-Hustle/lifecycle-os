@@ -4,6 +4,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The money and send paths are EXECUTED, and four of them were wrong (2026-09-28)
+`tests/lib/fake-supabase.js` + `credits-meter-executed`, `dispatch-queue-executed`,
+`oauth-handshake-executed`, `deliverability-gate-executed` (57 tests). `coverage/UNTESTED.md` ranked
+the queue, the vault, the meter and the gate among the worst load-bearing files: every test on them
+was a pure-function test, and nothing ran a hold, a lease, a callback or a resolver. The modules now
+run UNMODIFIED against an in-memory GoTrue + PostgREST that enforces the two facts their correctness
+rests on instead of trusting the caller - the `dispatch_jobs (workspace_id, idempotency_key)` UNIQUE
+INDEX answers a second insert with 23505, and RLS shows a user's token only its own workspaces - with
+the ledger RPCs re-implemented from `20260809130000_credits.sql`, `global.fetch` throwing on any URL a
+case did not route, and `dns.promises` a zone table controlled per name, code and retry count. Every
+assertion is on what was held, settled, refused, leased, stored, redirected or scored; none reads
+source, so the executed-tests ratchet is untouched (178, 45 files). Eleven mutations verified.
+- **`?op=fulfil` could never be reached.** The operator confirms an off-platform payment with
+  `CRON_SECRET`; the op sat below `requireUser()`, which verifies the bearer against `/auth/v1/user`,
+  then compared the SAME bearer to the secret. No token satisfies both, so every real purchase (not
+  comp, not `CREDITS_ALLOW_SELF_SERVE`) stayed `pending` for good. The case read as correct; only
+  driving the router showed it. The operator branch now runs first, compared in constant time.
+- **A sign-in could START on a deployment that could not store its result.** With no
+  `CONNECTION_SECRET_KEY` the operator consented at Klaviyo, the code was exchanged, and
+  `persistGrant()` threw 503 out of `handleCallback()` - OUTSIDE the router's try/catch - so a
+  browser navigation ended on a JSON 500 with the code spent and the token dropped. `oauth-start`
+  refuses 503 up front and writes no state; the callback re-checks BEFORE the exchange
+  (`reason=vault_unavailable`); a throw in the callback is a redirect with a reason, never a body.
+  And `safeReturnTo()` keeps a query on purpose, so `/publishing?tab=hub` landed on
+  `tab=hub?oauth=connected` and the page could not say the connection had succeeded (`landing()`).
+- **A PAUSED warmup never blocked.** The paused branch was nested INSIDE `status === 'active'`, so
+  the send went out at exactly the moment the throttle had said stop. A DNS outage on the A lookup
+  was reported as "No A record for <domain>" - a fact about us stated as a fact about the domain, the
+  confusion the module's own header refuses. `resolveRecord()` promised to carry the system error and
+  `doh.error || sys.error` dropped it every time. A Facebook caption was scored for lacking a subject
+  and an unsubscribe link (bulk EMAIL law): `analyzeContent({ emailRules })`, default unchanged.
+- **The fake is faithful where it matters and nowhere else.** A fake that accepted a second identical
+  row would pass a queue that double-posts; one that answered every URL would pass a send that
+  escaped the kill switch. Column defaults, `Prefer: count=exact` and `resolution=merge-duplicates`
+  are modelled because the modules read them; nothing else is.
+- Coverage (`npm run coverage`, both Chromium projects, `3f1de02` → this branch): credits-core
+  417/736 → 761/766 lines, dispatch-core 169/543 → 539/543, oauth-core 174/515 → 557/557,
+  deliverability-core 454/764 → 780/782, preflight-core 168/250 → 256/262,
+  workspace-connections-core 877/1141 → 994/1152; combined 56.0% → 58.0% (`coverage/UNTESTED.md`).
+
 ## ⭐ A brand has a HOME market, and no control opens on US (2026-09-15)
 `region-context.js` (`home`, `options()`, `resolve()`), `brand-extract.js` → `homeMarket()`,
 `brand-runtime.homeRegion()`, gated by `tests/brand-regions.spec.js` (17 tests, executed). Live
