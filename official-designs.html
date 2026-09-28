@@ -34,11 +34,14 @@
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
 <body>
-<div class="wrap">
+<!-- The showcase is tenant zero's store as a 3D scene, over its catalogue. For
+     any other active brand the shell replaces it with the DATA REQUIRED marker
+     (brand-context.js gateShipped). -->
+<div class="wrap" data-shipped-for="knickgasm" data-shipped-label="official website design showcase (3D scene)">
   <div class="badge">V2 · 3D Engine</div>
   <div class="eyebrow">Official Website Designs</div>
   <h1>The store, rebuilt as a <em>3D scene</em></h1>
-  <p>A true-to-brand recreation of Knickgasm's digital signature rendered as a continuous WebGL scene: floating
+  <p>A true-to-brand recreation of the store's digital signature rendered as a continuous WebGL scene: floating
      product panels, glassmorphic surfaces, brand-cloned colours and typography. Live catalog and pricing come
      from the regional Shopify storefront; historical metrics from the Snowflake to Supabase daily mirror. The
      scene ships in <b>both variations</b>, dark background with light text, and light background with dark text, and degrades automatically to a fast 2D brand layout on low-end, mobile, reduced-motion or crawler traffic so conversion is never sacrificed.</p>
@@ -60,7 +63,7 @@
   <div class="stage"><div data-knickgasm3d data-region="us" data-variant="light" id="mount" style="width:100%;height:100%"></div></div>
 
   <div class="note">
-    <b>Powered by Knickgasm3DConnectorEngine.</b> On the bundled React app it mounts as a context provider
+    <b>Powered by the 3D connector engine.</b> On the bundled React app it mounts as a context provider
     (<code>marketing_automation/src/Knickgasm3DConnectorEngine.tsx</code>); here on the static site it loads through
     the no-build ESM bridge (<code>/assets/knickgasm3d-bridge.js</code>). Meta-ads landers
     (<code>knickgasm.com</code>, <code>knickgasm.com</code>) auto-collapse the scene into a single-product

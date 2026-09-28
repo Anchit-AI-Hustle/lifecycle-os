@@ -170,15 +170,32 @@ module.exports = async function handler(req, res) {
     };
     const tiers = [keys.openai && 'OpenAI', keys.anthropic && 'Anthropic/Claude', keys.gemini && 'Gemini', keys.grok && 'Grok/xAI', keys.groq && 'Groq', keys.cerebras && 'Cerebras'].filter(Boolean);
     const hasProvider = tiers.length > 0;
+    // The text model is the one llm.js would actually try FIRST for the first
+    // configured provider in its own order - read from llm.js, not re-typed
+    // here. With no provider at all there is no model, and the line says so:
+    // this used to print a default model name whatever the environment held,
+    // which read as a configured pipeline on a deployment that had none.
+    let textModel = 'unconfigured';
+    if (hasProvider) {
+      try {
+        const llm = require('./_shared/llm.js');
+        const envKey = { openai: 'OPENAI_API_KEY', anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', grok: 'XAI_API_KEY', groq: 'GROQ_API_KEY', cerebras: 'CEREBRAS_API_KEY' };
+        const first = llm.providerOrder('standard').find((p) => envKey[p] && process.env[envKey[p]]);
+        textModel = first ? `${first}: ${llm.modelsFor(first, 'standard')[0]}` : 'per provider (see llm.js modelsFor)';
+      } catch (_) { textModel = 'per provider (see llm.js modelsFor)'; }
+    }
     return res.status(200).json({
       ok: hasProvider, stage: 'health',
+      // A state, not only a boolean: `unconfigured` is the honest answer when
+      // no provider key is set, and it is never reported as ready.
+      status: hasProvider ? 'ready' : 'unconfigured',
       checks: {
         endpoint_reachable: true, openai_key_set: keys.openai, openai_key_2_set: keys.openai2, openai_key_3_set: keys.openai3,
         openai_keys_total: [keys.openai, keys.openai2, keys.openai3].filter(Boolean).length,
         anthropic_key_set: keys.anthropic, gemini_key_set: keys.gemini, grok_key_set: keys.grok,
         provider_tiers_active: tiers.length, at_least_one_provider: hasProvider,
         image_model: keys.openai ? (process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2 (default)') : 'Pollinations FLUX (free — no OpenAI key)',
-        text_model: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini (default)', node_version: process.version, timestamp: new Date().toISOString(),
+        text_model: textModel, node_version: process.version, timestamp: new Date().toISOString(),
       },
       warnings: hasProvider ? [] : ['CRITICAL: No AI provider keys configured. Set at least GEMINI_API_KEY (free) or OPENAI_API_KEY in Vercel env.'],
       verdict: hasProvider ? 'Pipeline ready · ' + tiers.join(' → ') : 'BLOCKED: No LLM provider configured.',
