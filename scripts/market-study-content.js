@@ -16,6 +16,11 @@
  * region gets an explicit DATA REQUIRED state - never another brand's numbers,
  * and never an invented one.
  *
+ * The HTML renderers live in scripts/lib/market-study-render.js, which is
+ * ALSO inlined into research.html so the browser re-renders for the active
+ * brand with the same code. This module adds the Node-only pieces: the default
+ * brand, the per-brand file names and the .docx body.
+ *
  *   reportInnerHTML(region, brand) -> on-page report block
  *   docHTML(region, brand)         -> standalone HTML
  *   docxDocumentXml(region, brand) -> WordprocessingML body for the .docx
@@ -23,8 +28,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const render = require("./lib/market-study-render.js");
 
-const REGIONS = ["US", "UK", "Global", "India"];
+const REGIONS = render.REGIONS;
 
 function defaultBrand() {
   try {
@@ -43,82 +49,18 @@ function metaFor(brand) {
   return out;
 }
 
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+const esc = render.esc;
 
 function studyFor(brand, region) {
-  const b = brand || defaultBrand();
-  const ms = b.market_study && typeof b.market_study === "object" ? b.market_study : {};
-  return ms[region] || null;
+  return render.studyFor(brand || defaultBrand(), region);
 }
 
-// ── The honest empty state ──────────────────────────────────────────────────
-// Shown whenever the active brand has no study for this region. It names the
-// brand so nobody mistakes another workspace's research for their own.
 function emptyState(region, brand) {
-  const name = esc((brand || defaultBrand()).name || "this brand");
-  return '' +
-    '<div class="card p-5">' +
-      '<div class="font-head text-lg">No market study loaded for ' + name + ' (' + esc(region) + ')</div>' +
-      '<p class="text-[13px] mt-2" style="color:var(--soft);">' +
-        '[DATA REQUIRED BEFORE LAUNCH: market study, ' + esc(region) + ', ' + name + '.] ' +
-        'This platform never shows another brand\'s research in place of yours: market sizing, the ' +
-        'competitive tiers and the strategic read are all specific to an industry, so a study belonging ' +
-        'to a different workspace would be actively misleading here.' +
-      '</p>' +
-      '<p class="text-[13px] mt-2" style="color:var(--soft);">' +
-        'To populate this tab, add a <code>market_study</code> block to the brand record ' +
-        '(<code>data/brands/_default.json</code>, or the brand\'s profile under ' +
-        '<code>data/brands/presets/</code>) with one entry per region. Every sizing row requires a ' +
-        '<code>source</code>; rows without one are rejected rather than displayed.' +
-      '</p>' +
-    '</div>';
-}
-
-function sizingTable(rows) {
-  const sourced = (rows || []).filter(function (r) { return r && r.source; });
-  if (!sourced.length) return "";
-  return '' +
-    '<div class="card p-0 overflow-hidden">' +
-      '<table class="grid-tbl w-full text-[13px]">' +
-        '<thead><tr><th>Segment</th><th>Size</th><th>CAGR</th><th>Source</th></tr></thead><tbody>' +
-        sourced.map(function (r) {
-          return '<tr><td>' + esc(r.segment) + '</td><td>' + esc(r.size) + '</td>' +
-                 '<td>' + esc(r.cagr || "-") + '</td><td>' + esc(r.source) + '</td></tr>';
-        }).join("") +
-        '</tbody></table>' +
-    '</div>';
-}
-
-function tierCards(tiers) {
-  if (!tiers || !tiers.length) return "";
-  return '<div class="grid gap-3 md:grid-cols-2">' + tiers.map(function (t) {
-    return '<div class="card p-5"><div class="font-head text-base">' + esc(t.name) + '</div>' +
-           '<p class="text-[13px] mt-1" style="color:var(--soft);">' + esc(t.note) + '</p></div>';
-  }).join("") + '</div>';
-}
-
-function bulletCard(title, items) {
-  if (!items || !items.length) return "";
-  return '<div class="card p-5"><div class="font-head text-base">' + esc(title) + '</div>' +
-    '<ul class="mt-2 text-[13px] space-y-1" style="color:var(--soft);">' +
-    items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
+  return render.emptyState(region, brand || defaultBrand());
 }
 
 function reportInnerHTML(region, brand) {
-  const b = brand || defaultBrand();
-  const s = studyFor(b, region);
-  if (!s) return emptyState(region, b);
-  return '<div class="space-y-3">' +
-    '<div class="card p-5"><div class="font-head text-lg">' + esc(s.headline || (b.name + " " + region + " market study")) + '</div>' +
-      '<p class="text-[12.5px] mt-1" style="color:var(--soft);">Every figure below carries its published source. Where a number is not published, the gap is listed rather than estimated.</p></div>' +
-    sizingTable(s.sizing) +
-    tierCards(s.tiers) +
-    bulletCard("Strategic read", s.reads) +
-    bulletCard("Known data gaps (not estimated)", s.gaps) +
-  '</div>';
+  return render.reportInnerHTML(region, brand || defaultBrand());
 }
 
 function docHTML(region, brand) {
@@ -142,6 +84,7 @@ function docxDocumentXml(region, brand) {
     p("No study is loaded for this brand and region. Another brand's research is deliberately not substituted.");
   } else {
     p(s.headline || "", true);
+    if (s.position && s.position_source) p("Position: " + s.position + " (source: " + s.position_source + ")");
     (s.sizing || []).filter(function (r) { return r && r.source; }).forEach(function (r) {
       p(r.segment + ": " + r.size + " (CAGR " + (r.cagr || "-") + ") - source: " + r.source);
     });
@@ -160,7 +103,10 @@ module.exports = {
   metaFor: metaFor,
   defaultBrand: defaultBrand,
   studyFor: studyFor,
+  emptyState: emptyState,
   reportInnerHTML: reportInnerHTML,
+  headerCardHTML: function (region, brand, opts) { return render.headerCardHTML(region, brand || defaultBrand(), opts); },
+  landscapeHTML: function (brand) { return render.landscapeHTML(brand || defaultBrand()); },
   docHTML: docHTML,
   docxDocumentXml: docxDocumentXml,
 };

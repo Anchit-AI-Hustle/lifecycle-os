@@ -195,7 +195,10 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
   </aside>
 
   <!-- ============ MAIN VIEWPORT ============ -->
-  <main class="flex-1 min-w-0">
+  <!-- The playbook is tenant zero's own: its market intelligence, avatars and
+       automation loop. For any other active brand the shell replaces it with
+       the DATA REQUIRED marker (brand-context.js gateShipped). -->
+  <main class="flex-1 min-w-0" data-shipped-for="knickgasm" data-shipped-label="growth and automation playbook">
 
     <!-- Mobile top bar -->
     <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);">
