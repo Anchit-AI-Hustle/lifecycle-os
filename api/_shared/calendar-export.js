@@ -39,15 +39,25 @@ function catalog(market, brand) {
 // master-prompt's regionFacts() describes tenant zero's stores, so falling
 // through to it for another brand pointed every PDP link in that brand's export
 // at a domain it does not own.
+/* The market an entry gets when it carries none: the brand's HOME market. */
+function marketOf(entry) {
+  const e = entry || {};
+  if (e.market) return String(e.market);
+  const rt = require('./brand-runtime.js');
+  return rt.homeRegion(e.brand || rt.defaultBrand());
+}
+
 function storeBase(market, brand) {
+  const rt = require('./brand-runtime.js');
+  const mk = String(market || rt.homeRegion(brand || rt.defaultBrand())).toUpperCase();
   if (brand && (brand.id || brand.slug)) {
     let f = null;
-    try { f = require('./brand-runtime.js').regionFacts(brand, String(market || 'US').toUpperCase()); } catch (_) { f = null; }
+    try { f = rt.regionFacts(brand, mk); } catch (_) { f = null; }
     if (f && f.store) return 'https://' + f.store;
     if (brand.website) return String(brand.website).replace(/\/$/, '');
-    return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + String(market || 'US').toUpperCase() + ']';
+    return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + mk + ']';
   }
-  const f = regionFacts(String(market || 'US').toUpperCase());
+  const f = regionFacts(mk);
   return 'https://' + (f.store || 'knickgasm.com');
 }
 
@@ -263,7 +273,7 @@ const COLUMNS = [
 // ctx (optional) threads the running window state so suppression is progressive:
 //   { index, priorCohorts:[names] } for the send's position in the sorted plan.
 function buildRow(entry, ctx = {}) {
-  const market = entry.market || 'US';
+  const market = marketOf(entry);
   const hero = resolveProduct(entry.heroProduct || entry.hero_handle || entry.hero_product, market, entry.brand)
     || (entry.heroProduct ? { title: entry.heroProduct.title, handle: entry.heroProduct.handle || null, image: null, price: null, type: entry.heroProduct.category || 'product', url: storeBase(market, entry.brand), image_gap: catalogServer.imageMarker(entry.heroProduct, market) } : null);
   const supporting = hero ? supportingProducts(hero, entry, market, 2) : [];
@@ -337,7 +347,7 @@ function buildExportCsv(entries) {
   // earlier in the (per-market) window.
   const priorByMarket = {};
   const rows = list.map((entry, index) => {
-    const mk = entry.market || 'US';
+    const mk = marketOf(entry);
     const priorCohorts = (priorByMarket[mk] || []).slice();
     const row = buildRow(entry, { index, priorCohorts });
     const name = (entry.cohort && entry.cohort.name) || entry.cohort_label || entry.cohort_key || '';

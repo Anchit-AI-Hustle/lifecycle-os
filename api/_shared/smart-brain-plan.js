@@ -50,7 +50,10 @@ function syncSourcesFor(campaign) {
   const c = campaign || {};
   const email = (c.assets && c.assets.email) || {};
   const sku = (c.heroProduct && (c.heroProduct.sku || c.heroProduct.handle)) || c.hero_sku || null;
-  const region = c.market || 'US';
+  // A campaign with no market is versioned against the brand's HOME market,
+  // not a literal: the approved-facts lookup below is per region, and 'US'
+  // for an India-only brand answered with facts approved for nowhere.
+  const region = c.market || require('./brand-runtime.js').homeRegion(c.brand || require('./brand-runtime.js').defaultBrand());
   const out = {
     product: { version: sku || c.name || null },
     region: { version: region },
