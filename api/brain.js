@@ -161,6 +161,18 @@ module.exports = async function handler(req, res) {
     } catch (_) { req.__brand = null; }
   } catch (_) { /* scoping must never hard-fail the router */ }
 
+  /* The market a request gets when it names none: the ACTIVE brand's HOME
+     market, from its own record. Every handler below used to fall to the
+     literal 'US', so a brand whose record said IN (and only IN) had its
+     default agentic run, scenario set, assistant turn and every analytics
+     read built for a market it does not serve. */
+  const __homeMarket = () => {
+    try {
+      const rt = require('./_shared/brand-runtime.js');
+      return rt.homeRegion(req.__brand || rt.defaultBrand());
+    } catch (_) { return ''; }
+  };
+
   try {
     switch (action) {
       // ── TELESUITE ────────────────────────────────────────────────────────
@@ -442,7 +454,7 @@ module.exports = async function handler(req, res) {
         const actions = jarvis.detectNavActions(
           b.userText || b.user_text || b.message || '',
           b.assistantText || b.assistant_text || b.reply || '',
-          { market: b.market || 'US', brand: navBrand }
+          { market: b.market || __homeMarket(), brand: navBrand }
         );
         return res.json({ ok: true, actions });
       }
@@ -452,7 +464,7 @@ module.exports = async function handler(req, res) {
         // calendar→content→asset→review→ideation). tier 'budget'|'maxpower'.
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const out = await agentic.runAgentic({
-          market: b.market || 'US',
+          market: b.market || __homeMarket(),
           brief: b.brief || b.theme || '',
           tier: b.tier || 'maxpower',
           days: b.days ? parseInt(b.days, 10) : undefined,
@@ -464,7 +476,7 @@ module.exports = async function handler(req, res) {
 
       case 'calendar-scenarios': {
         // 5-scenario calendar: best / medium(default) / conservative / emergency / instant.
-        const market = b.market || req.query.market || 'US';
+        const market = b.market || req.query.market || __homeMarket();
         const tier = b.tier || req.query.tier || 'maxpower';
         const cfg = smartbrain.smartConfig();
         const sdb = new smartbrain.SmartBrainDbAdapter(cfg);
@@ -482,7 +494,7 @@ module.exports = async function handler(req, res) {
       case 'brand-chat': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         if (!b.message) return res.status(400).json({ ok: false, error: 'message required' });
-        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || 'US', workspaceId: req.__workspaceId || null });
+        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || __homeMarket(), workspaceId: req.__workspaceId || null });
         return res.json(out);
       }
       case 'brand-tools': {
@@ -550,7 +562,7 @@ module.exports = async function handler(req, res) {
         const engine = require('./_shared/ads-insight-engine.js');
         const payload = {
           ok: true,
-          market: args.market || 'US',
+          market: args.market || __homeMarket(),
           level: args.level,
           window: src.window || null,
           fetched_at: new Date().toISOString(),
@@ -1080,7 +1092,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         return res.json(await require('./_shared/daily-calendar-core.js').dayCalendar({
-          market: req.query.market || b.market || 'US',
+          market: req.query.market || b.market || __homeMarket(),
           back: Number(req.query.back || b.back) || 14,
           forward: Number(req.query.forward || b.forward) || 30,
           workspaceId: __wsId || null,
@@ -1094,7 +1106,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         return res.json(await require('./_shared/revenue-analysis-core.js').revenue({
-          market: req.query.market || b.market || 'US',
+          market: req.query.market || b.market || __homeMarket(),
           days: Number(req.query.days || b.days) || 30,
           since: req.query.since || b.since,
           until: req.query.until || b.until,
@@ -1145,7 +1157,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           }, __wsId).catch(() => null);
         }
         const shared = {
-          market: req.query.market || b.market || 'US',
+          market: req.query.market || b.market || __homeMarket(),
           days: Number(req.query.days || b.days) || 30,
           question: req.query.question || b.question || '',
           tier: req.query.tier || b.tier || 'standard',
@@ -1161,7 +1173,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         return res.json(await require('./_shared/journey-core.js').linkLedger({
-          market: req.query.market || b.market || 'US',
+          market: req.query.market || b.market || __homeMarket(),
           days: Number(req.query.days || b.days) || 90,
           since: req.query.since || b.since,
           until: req.query.until || b.until,
@@ -1176,7 +1188,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const sc = require('./_shared/shopify-core.js');
         const op = String(req.query.op || b.op || 'summary').toLowerCase();
         return res.json(await sc.dispatch(op, {
-          market: req.query.market || b.market || 'US',
+          market: req.query.market || b.market || __homeMarket(),
           days: Number(req.query.days || b.days) || undefined,
           limit: Number(req.query.limit || b.limit) || undefined,
         }));

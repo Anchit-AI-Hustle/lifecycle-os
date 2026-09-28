@@ -148,13 +148,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <a class="chip" href="/brain">Open in Automated Calendar →</a>
     </div>
     <div class="filters">
-      <div class="frow"><span class="lbl">Region</span>
-        <button type="button" class="chip" data-mkt="all" onclick="toggleMkt('all')">All</button>
-        <button type="button" class="chip on" data-mkt="US" onclick="toggleMkt('US')">US</button>
-        <button type="button" class="chip" data-mkt="UK" onclick="toggleMkt('UK')">UK</button>
-        <button type="button" class="chip" data-mkt="Global" onclick="toggleMkt('Global')">Global</button>
-        <button type="button" class="chip" data-mkt="India" onclick="toggleMkt('India')">India</button>
-      </div>
+      <!-- Region chips are BUILT from the active brand's own regions (region-context.js)
+           with its HOME market pre-selected; see buildMktChips. They used to be a typed
+           All/US/UK/Global/India row with US on, so an India-only brand opened on a US filter
+           over a plan that has no US rows. -->
+      <div class="frow" id="mktrow"><span class="lbl">Region</span><span id="mktchips" style="display:contents"></span></div>
       <div class="frow"><span class="lbl">Duration</span>
         <button type="button" class="chip" data-dur="7" onclick="setDur(7)">Next 7 days</button>
         <button type="button" class="chip" data-dur="30" onclick="setDur(30)">30 days</button>
@@ -187,12 +185,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // NOT /api/brain — the latter returns "Unknown action", which left this table
   // empty). The agentic sync below fires /api/brain?action=agentic-run separately.
   var API='/api/calendar'; var PLAN=[];
-  var SELECTED_MKT=new Set(['US']); var SELECTED_DAYS=90;
+  // Region selection starts on the brand's HOME market once region-context has
+  // adopted the brand (see buildMktChips); until then nothing is filtered out.
+  var SELECTED_MKT=new Set(); var SELECTED_DAYS=90;
   // Catalog buckets are discovered from the plan, so this starts empty and an
   // empty set means "no catalog filter", not "hide everything".
   var SELECTED_CAT=new Set(); var CAT_KEYS=[];
   function $(id){return document.getElementById(id);}
-  function mktKey(m){var s=String(m||'').toLowerCase();if(s.indexOf('uk')===0)return 'UK';if(s.indexOf('us')===0)return 'US';if(/^in|india/.test(s))return 'India';if(/global|eu|au|me|row|rest/.test(s))return 'Global';return (m||'').toUpperCase();}
+  // A plan row's market and a chip's code are compared by FAMILY (India/IN,
+  // Global/WORLDWIDE, UK/GB), through the shared layer, so a brand's own EU or
+  // AU market is no longer folded into "Global" by a regex written for one tenant.
+  function mktKey(m){return window.RegionContext?window.RegionContext.family(m):String(m||'').toUpperCase().replace(/[^A-Z]/g,'');}
   function mktVisible(e){return SELECTED_MKT.size===0||SELECTED_MKT.has(mktKey(e.market));}
   function durVisible(e){if(SELECTED_DAYS==='all')return true;var t=new Date().toISOString().slice(0,10);var end=new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10);return !e.date||(e.date>=t&&e.date<=end);}
   // The bucket a slot belongs to is whatever the ACTIVE BRAND'S OWN plan says it
@@ -227,7 +230,32 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function slotVisible(e){return mktVisible(e)&&durVisible(e)&&catVisible(e);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  window.toggleMkt=function(m){if(m==='all')SELECTED_MKT.clear();else{if(SELECTED_MKT.has(m))SELECTED_MKT.delete(m);else SELECTED_MKT.add(m);}document.querySelectorAll('[data-mkt]').forEach(function(b){var k=b.dataset.mkt;b.classList.toggle('on',k==='all'?SELECTED_MKT.size===0:SELECTED_MKT.has(k));});render();};
+  window.toggleMkt=function(m){if(m==='all')SELECTED_MKT.clear();else{var k0=mktKey(m);if(SELECTED_MKT.has(k0))SELECTED_MKT.delete(k0);else SELECTED_MKT.add(k0);}paintMktChips();render();};
+  function paintMktChips(){document.querySelectorAll('[data-mkt]').forEach(function(b){var k=b.dataset.mkt;b.classList.toggle('on',k==='all'?SELECTED_MKT.size===0:SELECTED_MKT.has(mktKey(k)));});}
+  // One chip per region THIS brand declares, plus All where there is more than
+  // one; the HOME market starts selected. A brand with no regions gets the
+  // marker, never a shipped list.
+  var _mktBuilt=null;
+  function buildMktChips(){
+    var host=$('mktchips'), rc=window.RegionContext; if(!host||!rc) return;
+    // "All" only where there is a choice to widen: a one-market brand gets
+    // its one market, not a two-way toggle between the same thing twice.
+    var opts=rc.options({all:rc.regions.length>1});
+    var key=opts.map(function(o){return o.code;}).join('|');
+    if(key===_mktBuilt) return; _mktBuilt=key;
+    if(!opts.length){ host.innerHTML='<span class="note">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>'; SELECTED_MKT=new Set(); render(); return; }
+    host.innerHTML=opts.map(function(o){
+      var v=o.all?'all':o.code;
+      return '<button type="button" class="chip" data-mkt="'+esc(v)+'"'+(o.home?' data-home="1" title="Home market"':'')+' onclick="toggleMkt(\''+esc(v)+'\')">'+esc(o.name)+'</button>';
+    }).join('');
+    SELECTED_MKT=new Set(rc.home?[mktKey(rc.home)]:[]);
+    paintMktChips(); render();
+  }
+  (function watchRegions(w){
+    var waited=w||0;
+    if(!window.RegionContext){ if(waited<6000) setTimeout(function(){watchRegions(waited+100);},100); return; }
+    window.RegionContext.onChange(buildMktChips);
+  })(0);
   window.setDur=function(d){SELECTED_DAYS=(d==='all')?'all':Number(d);document.querySelectorAll('[data-dur]').forEach(function(b){b.classList.toggle('on',String(b.dataset.dur)===String(d));});render();};
   window.toggleCat=function(c){if(SELECTED_CAT.has(c)){if(SELECTED_CAT.size===1)return;SELECTED_CAT.delete(c);}else SELECTED_CAT.add(c);document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.toggle('on',SELECTED_CAT.has(b.dataset.cat));});render();};
   // Every tile is measured off the plan that just loaded, or says what is
@@ -281,7 +309,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).catch(function(e){ renderStats(); window.LifecycleFailure.show($('rows'), e, { title: 'The plan could not be loaded', colspan: 6 }); });
   }
   // Region for the agentic run comes from the region chips (single source of truth).
-  function agenticMarket(){ var m=Array.from(SELECTED_MKT)[0]||'US'; return ({US:'US',UK:'UK',Global:'GLOBAL',India:'IN'})[m]||'US'; }
+  // The selected chip, else the brand's HOME market; the brand's own code, never a literal.
+  function agenticMarket(){ var rc=window.RegionContext; var m=Array.from(SELECTED_MKT)[0]||(rc&&rc.home)||''; return (rc&&rc.resolve(m))||m; }
   // Command-and-control: trigger the full agentic flow (plan the calendar + write
   // content) right from the Playbook. The heavy run is async on /api/brain; when it
   // returns we re-pull the plan table (the static-page equivalent of router.refresh).
