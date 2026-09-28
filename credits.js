@@ -349,6 +349,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             ? '<b>' + o.feature.label + '</b> costs ' + fmt(o.feature.total) + ' credits and you have ' + fmt(state.balance) + '. You need ' + fmt(o.short) + ' more.'
             : 'You have <b>' + fmt(state.balance) + '</b> credits. Every feature shows its cost before you run it.') +
         '</p>' +
+        // The outcome of a recharge is said HERE, inside the sheet, never in a
+        // native alert(): a dialog blocks the page, titles itself with the
+        // site's hostname, and cannot take the brand's tokens.
+        '<div class="lc-credit-note" role="status" hidden></div>' +
         packs +
         '<p class="sub" style="margin:16px 0 0">' +
           // THREE states, not two. Telling a user to pick a pack when no pack
@@ -369,15 +373,31 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     document.addEventListener('keydown', onKey);
     // Only the priced (or complimentary) cards carry data-pack, so this binds
     // nothing to a pack that cannot be bought.
+    var note = sheet.querySelector('.lc-credit-note');
+    function say(msg) {
+      note.hidden = false;
+      note.className = 'lc-credit-note vh-status';
+      note.style.marginBottom = '14px';
+      note.textContent = msg;
+    }
     sheet.querySelectorAll('.lc-pack[data-pack]').forEach(function (el) {
       el.addEventListener('click', async function () {
         el.style.opacity = '.6';
         try {
           var r = await api('recharge', { pack_key: el.getAttribute('data-pack') });
-          if (r.credited) { await refresh(); pulse(); alert('Added ' + fmt(r.credits) + ' credits. New balance: ' + fmt(r.balance) + '.'); }
-          else alert(r.message || 'Recharge order recorded.');
-          close();
-        } catch (err) { alert('Nothing was charged. ' + window.LifecycleFailure.sentence(err)); el.style.opacity = ''; }
+          // The sheet stays open with the receipt on it; Close, Escape and the
+          // backdrop still dismiss it. It used to close itself the moment the
+          // dialog was dismissed, so the receipt was the dialog.
+          if (r.credited) { await refresh(); pulse(); say('Added ' + fmt(r.credits) + ' credits. New balance: ' + fmt(r.balance) + '.'); }
+          else say(r.message || 'Recharge order recorded. An operator confirms it before the credits land.');
+          el.style.opacity = '';
+        } catch (err) {
+          note.hidden = false;
+          note.className = 'lc-credit-note';
+          note.style.marginBottom = '14px';
+          window.LifecycleFailure.show(note, err, { title: 'Nothing was charged' });
+          el.style.opacity = '';
+        }
       });
     });
     document.body.appendChild(sheet);

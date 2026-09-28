@@ -178,7 +178,9 @@ api/_shared/adapters/
   extensible-crm.js    Braze / ActiveCampaign / Customer.io hooks
 
 api/_shared/oauth-core.js          handshake, PKCE, refresh, scope validation
-api/_shared/dispatch-core.js       enqueue, lease, drain, backoff, webhooks
+api/_shared/dispatch-core.js       enqueue, lease, drain, backoff, verified-webhook ingest
+api/_shared/platform-webhooks.js   the callback receiver: raw bytes → signature → parse → ingest
+api/_shared/raw-body.js            the request body as the BYTES that arrived (shared with Stripe)
 api/_shared/deliverability-core.js DNS, blocklists, warmup, content
 api/_shared/cohort-engine.js       RFM, sunset, segment health, STO, caps
 api/_shared/preflight-core.js      the gate
@@ -188,6 +190,7 @@ publishing.html                    → /publishing (hub, publisher, domain, log)
 tests/dispatch-engine.spec.js      19 tests
 tests/deliverability-cohorts.spec.js  23 tests
 tests/oauth-adapters.spec.js       20 tests
+tests/meta-webhook-raw-body.spec.js  10 tests, the receiver through the shipped api/brain.js
 ```
 
 ## Endpoints
@@ -204,7 +207,8 @@ All mounted on existing routers — **no thirteenth serverless function**.
 /api/brain?action=dispatch-enqueue          preflight, then queue
                  dispatch-drain             run the queue (cron or an editor, own workspace only)
                  dispatch-list | -detail | -cancel
-                 dispatch-webhook           platform callbacks (signature-verified)
+                 dispatch-webhook           platform callbacks: GET = Meta's verification request,
+                                            POST = a delivery verified over the RAW bytes, then parsed
                  deliverability-domain      full domain audit, persisted
                  deliverability-preflight   the gate, standalone
                  deliverability-warmup      build a ramp / evaluate safety
@@ -217,6 +221,7 @@ New, all optional — absent means that platform reports itself unconfigured:
 
 ```
 META_APP_ID, META_APP_SECRET                          Meta OAuth + webhook signatures
+META_WEBHOOK_VERIFY_TOKEN                             Meta's webhook Verify Token (the GET handshake)
 GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET        Google OAuth
 GOOGLE_ADS_DEVELOPER_TOKEN                            every Google Ads request
 KLAVIYO_OAUTH_CLIENT_ID, KLAVIYO_OAUTH_CLIENT_SECRET  Klaviyo OAuth
