@@ -428,3 +428,78 @@ test('the callback URL is built from this deployment\'s own origin, and the clie
   expect(oauth.clientIdFor('meta')).toBe('');
   expect(oauth.clientIdFor('braze')).toBe('');
 });
+
+/* ═══ found by running it ═════════════════════════════════════════════════ */
+
+// safeReturnTo() keeps a query string on purpose - `/publishing?tab=hub` is a
+// real destination, and the existing spec asserts it survives. The callback
+// then appended its outcome with a second `?`, so the page received
+// `tab=hub?oauth=connected` and no `oauth` parameter: the connection had
+// succeeded and the page could not say so.
+test('a return_to that already carries a query string still receives the oauth status', async () => {
+  const db = world();
+  klaviyoAnswers(db);
+  const s = await start('tok-a', { provider: 'klaviyo', return_to: '/publishing?tab=hub' });
+  const cb = await callback({ provider: 'klaviyo', state: s.payload.state, code: 'c' });
+  const landed = new URL(cb.head.Location, 'https://app.example.test');
+  expect(landed.pathname).toBe('/publishing');
+  expect(landed.searchParams.get('tab')).toBe('hub');
+  expect(landed.searchParams.get('oauth')).toBe('connected');
+  expect(landed.searchParams.get('provider')).toBe('klaviyo');
+
+  const s2 = await start('tok-a', { provider: 'klaviyo', return_to: '/publishing?tab=hub' });
+  const denied = await callback({ provider: 'klaviyo', state: s2.payload.state, error: 'access_denied' });
+  const back = new URL(denied.head.Location, 'https://app.example.test');
+  expect(back.searchParams.get('tab')).toBe('hub');
+  expect(back.searchParams.get('oauth')).toBe('denied');
+  expect(oauth.landing('/connections', { oauth: 'error', reason: 'x' })).toBe('/connections?oauth=error&reason=x');
+});
+
+// With no CONNECTION_SECRET_KEY the sign-in could be STARTED, the operator
+// consented at the platform, the code was exchanged, and persistGrant then
+// threw 503 out of the callback - which sits outside the router's try/catch,
+// so the browser navigation ended on a JSON 500, with the code spent and the
+// state consumed. The vault is now checked before the operator is sent
+// anywhere, and again before the code is exchanged.
+test('a deployment that cannot store a secret refuses to start a sign-in, and a callback that finds the vault gone refuses before burning the code', async () => {
+  const db = world();
+  const seen = klaviyoAnswers(db);
+
+  // No vault: the sign-in is refused up front, with the cause, and nothing is written.
+  delete process.env.CONNECTION_SECRET_KEY;
+  let r = await start('tok-a', { provider: 'klaviyo' });
+  expect(r.code).toBe(503);
+  expect(r.payload.error).toBe('connection_secrets_unavailable');
+  expect(r.payload.message).toMatch(/CONNECTION_SECRET_KEY/);
+  expect(states(db)).toHaveLength(0);
+  process.env.CONNECTION_SECRET_KEY = 'too-short';
+  r = await start('tok-a', { provider: 'klaviyo' });
+  expect(r.code).toBe(503);
+  expect(r.payload.message).toMatch(/too short/);
+  expect(states(db)).toHaveLength(0);
+
+  // The key was present at start and rotated away before the callback (a
+  // deploy in between). The one-time code is NOT exchanged for a token this
+  // deployment would then have to drop: the callback refuses with a reason.
+  process.env.CONNECTION_SECRET_KEY = 'd'.repeat(64);
+  const s = await start('tok-a', { provider: 'klaviyo' });
+  delete process.env.CONNECTION_SECRET_KEY;
+  const cb = await callback({ provider: 'klaviyo', state: s.payload.state, code: 'code-that-must-not-be-burned' });
+  expect(cb.code).toBe(302);
+  expect(cb.head.Location).toBe('/connections?oauth=error&reason=vault_unavailable');
+  expect(seen.exchanges).toHaveLength(0);
+  expect(conns(db)).toHaveLength(0);
+  expect(secrets(db)).toHaveLength(0);
+  expect(JSON.stringify(db.tables)).not.toContain('code-that-must-not-be-burned');
+
+  // The state store itself failing during a callback is a redirect with a
+  // reason, never a JSON body on a browser navigation, and never the row.
+  process.env.CONNECTION_SECRET_KEY = 'd'.repeat(64);
+  const s3 = await start('tok-a', { provider: 'klaviyo' });
+  db.failures.oauth_authorization_states = 500;
+  const down = await callback({ provider: 'klaviyo', state: s3.payload.state, code: 'c3' });
+  expect(down.code).toBe(302);
+  expect(down.head.Location).toBe('/connections?oauth=error&reason=callback_failed');
+  expect(down.payload).toBeNull();
+  expect(seen.exchanges).toHaveLength(0);
+});
