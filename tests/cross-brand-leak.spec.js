@@ -317,12 +317,21 @@ async function openPage(page, file, brand) {
   // under the other brand's name. Returns the slug the page settled on ('' when
   // the page has no brand layer at all) so the caller can refuse a mismatch.
   const want = String((brand && brand.slug) || '').toLowerCase();
+  // First let the brand layer SETTLE (BrandContext.ready resolves once the
+  // active-brand round trip has answered, whatever it answered), then wait
+  // briefly for the slug: a page that settled on the wrong brand is reported
+  // in seconds rather than after a full timeout per page.
+  await page.waitForFunction(() => !!window.BrandContext, null, { timeout: 15_000 }).catch(() => {});
+  await page.evaluate(() => Promise.race([
+    (window.BrandContext && window.BrandContext.ready) ? window.BrandContext.ready() : null,
+    new Promise((r) => setTimeout(r, 15_000)),
+  ])).catch(() => {});
   await page.waitForFunction((slug) => {
     const B = window.BrandContext;
     if (!B) return false;
     const b = B.brand;
     return !!b && String(b.slug || '').toLowerCase() === slug;
-  }, want, { timeout: 15_000 }).catch(() => {});
+  }, want, { timeout: 5_000 }).catch(() => {});
   await page.waitForTimeout(900);
   return page.evaluate(() => {
     const B = window.BrandContext;
