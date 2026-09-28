@@ -35,6 +35,27 @@
  * rules. Each also asserts it measured something first: a check that inspects
  * nothing passes everything.
  *
+ * ── WHY THE "YOUR BRANDS" CASES ARE NOW SIGNED IN (2026-09-15) ─────────────
+ * The first version of this file drove the brand list with NO backend
+ * configured and a `list` route answering 503. That fixture no longer reaches
+ * the failure path, and correctly so: with no account to read, brand-context.js
+ * now serves the wizard from a DEVICE store (tests/onboarding-without-backend
+ * .spec.js), and an ordinary state is not a failure - the panel shows the rows
+ * saved on this device under one accent-rule sentence, never the failure frame.
+ * So the state in which "Your brands" still asks the server, and can still be
+ * refused, is a SIGNED-IN session whose server then answers 503 or 500: a
+ * session obtained before the project paused, a function that errored. That
+ * is the shape these cases now drive (`signedIn: true` below: a session from
+ * the SDK, the health probe answering), and it is a real shape - the failure
+ * frame was never meant for "there is no database", it was meant for "the
+ * request was made and refused".
+ *
+ * The auth.js-absent case ("the floor") is unchanged and still asserts
+ * "Your brands could not be loaded": there the wizard's ONLY source of state
+ * is a stubbed BrandContext whose list() throws, and a thrown list() is a
+ * refusal whatever the network looks like. That assertion was kept
+ * deliberately - the floor exists for exactly that path.
+ *
  * Run: npx playwright test tests/error-presentation.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
@@ -65,17 +86,23 @@ const PAUSED = {
  * preview and takes a different path, so a fixture served from 127.0.0.1 would
  * not be exercising what production runs.
  */
-async function openPage(page, file, { api, query = '', block } = {}) {
+/** What a live, answering auth host looks like to the page. */
+const LIVE_CONFIG = { supabase: { url: 'https://live.supabase.co', anonKey: 'anon' } };
+const SESSION = { access_token: 'test-access-token', user: { id: 'user-1', email: 'operator@example.test' } };
+
+async function openPage(page, file, { api, query = '', block, signedIn = false } = {}) {
   const thrown = [];
   page.on('pageerror', (e) => thrown.push(String(e.message || e)));
 
   // Stand-in for supabase-js so pages that construct a client do not die on a
-  // CDN this harness blocks. No session: the visitor is signed out.
-  await page.addInitScript(() => {
+  // CDN this harness blocks. Signed out unless the case says otherwise - and a
+  // case that needs the wizard to ASK the server for brands must say so (see
+  // the header): with no session there is no account to ask.
+  await page.addInitScript((session) => {
     window.supabase = {
       createClient: () => ({
         auth: {
-          getSession: async () => ({ data: { session: null } }),
+          getSession: async () => ({ data: { session } }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
           signInWithOAuth: async () => ({ error: null }),
           signOut: async () => ({}),
@@ -85,10 +112,17 @@ async function openPage(page, file, { api, query = '', block } = {}) {
         }),
       }),
     };
-  });
+  }, signedIn ? SESSION : null);
 
   // Broadest first, most specific LAST - Playwright's last matching route wins.
   await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
+    // Reachability is stated per case: a signed-in fixture has a host that
+    // answers its probe. Letting the catch-all abort it would read as a dead
+    // backend and route the wizard to the device store, and every "Your
+    // brands" case below would then measure the wrong path.
+    if (signedIn && /\/auth\/v1\/health/.test(route.request().url())) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    }
     if (route.request().resourceType() !== 'script') return route.abort('failed');
     const esm = /\+esm|\.mjs(\?|$)|esm\.sh|\/es\//.test(route.request().url());
     return route.fulfill({
@@ -109,7 +143,12 @@ async function openPage(page, file, { api, query = '', block } = {}) {
     return route.fulfill({ status: 200, contentType: MIME[path.extname(f)] || 'application/octet-stream', body: fs.readFileSync(f) });
   });
   await page.route(/\/api\//, (route) => {
-    const answer = api ? api(new URL(route.request().url())) : null;
+    const u = new URL(route.request().url());
+    // The public config is what tells auth.js there is a backend at all.
+    if (signedIn && !u.searchParams.get('action') && !u.searchParams.has('health')) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LIVE_CONFIG) });
+    }
+    const answer = api ? api(u) : null;
     // `raw` answers with something that is NOT JSON - a gateway error page,
     // which is what a caller's own .json() rejects on. That is the path a
     // `.catch()` handler takes, and it is a different branch from a refusal
@@ -188,7 +227,8 @@ const ONBOARDING_API = (u) => {
 };
 
 async function onboardingReview(page) {
-  await openPage(page, 'onboarding.html', { api: ONBOARDING_API, query: '?id=ws-1&step=6' });
+  // Signed in, so the wizard asks the SERVER for its brands - and is refused.
+  await openPage(page, 'onboarding.html', { api: ONBOARDING_API, query: '?id=ws-1&step=6', signedIn: true });
   await page.waitForSelector('#wsList', { timeout: 15000 });
   // loadWorkspaces() is fired from the step-6 render; wait for it to settle.
   await page.waitForFunction(() => {
@@ -272,6 +312,7 @@ test('a code the server sent is kept, but labelled and secondary', async ({ page
 test('a refusal carrying ONLY a machine code still reads as a sentence', async ({ page }) => {
   await openPage(page, 'onboarding.html', {
     query: '?id=ws-1&step=6',
+    signedIn: true,
     api: (u) => (u.searchParams.get('op') === 'list'
       ? { status: 503, body: { ok: false, error: 'session_verification_unavailable' } }
       : ONBOARDING_API(u)),
@@ -288,6 +329,7 @@ test('a refusal carrying ONLY a machine code still reads as a sentence', async (
 test('an unknown code is reported as a sentence, never as the code itself', async ({ page }) => {
   await openPage(page, 'onboarding.html', {
     query: '?id=ws-1&step=6',
+    signedIn: true,
     api: (u) => (u.searchParams.get('op') === 'list'
       ? { status: 500, body: { ok: false, error: 'widget_frobnicator_offline' } }
       : ONBOARDING_API(u)),
@@ -322,6 +364,11 @@ test('with auth.js absent the failure still renders, and nothing throws', async 
   // The wizard normally gets BrandContext from auth.js too, so it is stubbed
   // here the way the other wizard specs stub it - what is under test is the
   // absence of LifecycleFailure, not the absence of a backend client.
+  //
+  // With no auth.js there is no backend decision and no device store: the
+  // stub below is the wizard's ONLY source of brands, and its list() throws.
+  // A thrown list() is a refusal whatever the network looks like, so this case
+  // still ends in "Your brands could not be loaded" on purpose (see header).
   await page.addInitScript(() => {
     window.BrandContext = {
       ready: async () => ({ id: 'ws-1' }),
@@ -547,8 +594,10 @@ test('the failure block never hardcodes a colour and never goes dark', async ({ 
 test('a successful load still renders brands, not a failure frame', async ({ page }) => {
   // The other half of the gate. A fix that showed a failure on every load would
   // otherwise pass every test above.
+  // A successful SERVER load: an account, reachable, answering with its rows.
   await openPage(page, 'onboarding.html', {
     query: '?id=ws-1&step=6',
+    signedIn: true,
     api: (u) => (u.searchParams.get('op') === 'list'
       ? { body: { ok: true, active_id: 'ws-1', workspaces: [{ id: 'ws-1', name: 'Northwind Tea', slug: 'northwind', tagline: 'Single-origin teas', status: 'active', palette: { primary: '#0a5a28' } }] } }
       : ONBOARDING_API(u)),
