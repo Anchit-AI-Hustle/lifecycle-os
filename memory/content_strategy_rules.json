@@ -267,14 +267,12 @@
   },
 
   "footer_content": {
-    "tagline": "MAKE EVERY PAIR COUNT",
+    "_note": "Footer facts come from the brand record (data/brands/_default.json for tenant zero): tagline, social[] and legal_entity. The values that sat here were a sibling brand's ('MAKE EVERY PAIR COUNT', 'Pvt. Ltd. · New Delhi') with the name swapped, and three social URLs the record does not list.",
+    "tagline": "India's Largest Sneaker Customisers",
     "social_urls": {
-      "instagram": "https://www.instagram.com/knickgasm",
-      "facebook": "https://www.facebook.com/knickgasm",
-      "youtube": "https://www.youtube.com/@knickgasm",
-      "pinterest": "https://www.pinterest.com/knickgasm"
+      "instagram": "https://www.instagram.com/knickgasm/"
     },
-    "legal_text": "KNICKGASM Pvt. Ltd. · New Delhi, India",
+    "legal_text": "KNICKGASM PRIVATE LIMITED, Ghatkopar West, Mumbai 400086, India",
     "unsubscribe_text": "You received this because you subscribed at [store_domain]"
   },
 

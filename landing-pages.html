@@ -289,7 +289,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           </div>
         </div>
         <div class="field"><label>Target keyword(s)</label>
-          <input type="text" data-form="google" name="hero" placeholder="spiderman air force 1, one-of-one custom">
+          <input type="text" data-form="google" name="hero" placeholder="the hero offering, the new arrival">
         </div>
         <div class="field"><label>Headline (matches keyword)</label>
           <input type="text" data-form="google" name="sub" maxlength="30">
@@ -403,10 +403,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
   </section>
 
-  <!-- ─── 3D Templates (Knickgasm3DConnectorEngine) ──────────────────── -->
-  <section class="panel" id="panel-threed">
+  <!-- ─── 3D Templates (the 3D connector engine) ─────────────────────── -->
+  <!-- Built over tenant zero's catalogue and store hosts. For any other active
+       brand the shell replaces the panel with the DATA REQUIRED marker
+       (brand-context.js gateShipped). -->
+  <section class="panel" id="panel-threed" data-shipped-for="knickgasm" data-shipped-label="3D landing templates">
     <div class="channel-info">
-      <b>3D landing templates</b>, powered by the Knickgasm3DConnectorEngine. Each renders as a continuous WebGL scene of floating product panels with an automatic fast 2D fallback for mobile / reduced-motion / crawler traffic. Meta-ads landers (knickgasm.com, knickgasm.com) auto-collapse to a single-product spatial checkout. Live catalog and pricing come from Shopify; historical metrics from the Snowflake to Supabase mirror. </div>
+      <b>3D landing templates</b>, powered by the 3D connector engine. Each renders as a continuous WebGL scene of floating product panels with an automatic fast 2D fallback for mobile / reduced-motion / crawler traffic. Meta-ads landers (knickgasm.com, knickgasm.com) auto-collapse to a single-product spatial checkout. Live catalog and pricing come from Shopify; historical metrics from the Snowflake to Supabase mirror. </div>
     <div style="border:1px solid rgba(171,135,67,.18);border-radius:16px;overflow:hidden;background:var(--vh-ink);margin-bottom:16px">
       <div data-knickgasm3d data-region="us" id="lp-threed-preview" style="width:100%;height:360px"></div>
     </div>
@@ -496,7 +499,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // One bar per panel, placed right after the H3 "Brief the page" header.
   // Calls /api/ai/generate with mode=autofill + surface=lp-<channel>.
   const PROMPT_HINT = {
-    mailers: 'e.g. Build the landing page for our "One-of-One Jordan — 25% off this week" mailer to US best-customers',
+    mailers: 'e.g. Build the landing page for our "Spring edit — 25% off this week" mailer to US best-customers',
     meta:    'e.g. Page for our Meta Advantage+ retargeting ad to lapsed UK buyers — anime customs, free worldwide shipping',
     google:  'e.g. Search ad page for keyword "jordan first flush" — US buyers, match the search intent',
     tiktok:  'e.g. UGC creator drop landing page — hook is "POV: morning coffee crash", US Gen-Z audience',
@@ -580,6 +583,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var c = (b && (b.claims || (b.brand_data && b.brand_data.claims))) || [];
     return Array.isArray(c) ? c.filter(Boolean) : [];
   }
+  function brandPaletteLine() {
+    var p = (activeBrand() || {}).palette || {};
+    if (!p.primary) return '[DATA REQUIRED BEFORE LAUNCH: palette, ' + brandName() + ']';
+    return 'primary ' + p.primary + ', accent ' + (p.accent || p.primary) + ', ink ' + (p.ink || '#111111') + ', surface ' + (p.surface || '#FFFFFF');
+  }
+  function brandTypeLine() {
+    var t = (activeBrand() || {}).typography || {};
+    var h = t.heading && (t.heading.stack || t.heading.family), b = t.body && (t.body.stack || t.body.family);
+    if (!h && !b) return 'Headings and body in the brand\'s own typefaces: [DATA REQUIRED BEFORE LAUNCH: typography, ' + brandName() + '].';
+    return 'Headings in ' + (h || 'the heading stack') + '; body in ' + (b || 'the body stack') + '.';
+  }
+  function brandVoiceLine() {
+    var v = (activeBrand() || {}).voice || {};
+    var tone = v.tone || ('[DATA REQUIRED BEFORE LAUNCH: voice, ' + brandName() + ']');
+    return tone + (Array.isArray(v.preferred) && v.preferred.length ? ' Prefer words like ' + v.preferred.join(', ') + '.' : '');
+  }
+  function brandBannedLine() {
+    var v = (activeBrand() || {}).voice || {};
+    return Array.isArray(v.banned) && v.banned.length ? v.banned.join(', ') + '.' : 'any phrase the brand record bans; invent no proof, rating, review or figure.';
+  }
   function brandStoreBase(region) {
     var b = activeBrand();
     var regions = (b && b.regions) || [];
@@ -598,17 +621,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // zero's and is used only when no brand is active at all.
     const base = brandStoreBase(region) || (activeBrand() ? ('[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + region + ']') : (STORE_BASE[region] || STORE_BASE.US));
     const hero = f.hero || 'Lace-up the moment';
-    const sub = f.sub || 'Hand-painted to order on a 100% original base, built in 10-15 days.';
+    // The brand's own tagline or first claim; never a sentence about a
+    // different company's process.
+    const sub = f.sub || brandTagline() || brandClaims()[0] || ('[DATA REQUIRED BEFORE LAUNCH: hero sub-copy, ' + brandName() + ']');
     const offer = f.offer || '';
     const notes = f.notes || '';
     const codeMatch = offer.match(/\b([A-Z0-9]{4,15})\b/);
     const code = codeMatch ? codeMatch[1] : '';
     const e = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    const props = [
-      ['Single-studio', 'Sourced from one studio, never blended from anonymous lots.'],
-      ['Made to order', 'Hand-painted to your brief, built in 10-15 days.'],
-      ['100% original base', 'Painted on genuine brand sneakers, never replicas.'],
-    ];
+    // The proposition cards are the brand's OWN verifiable claims, or the marker.
+    // The three that sat here described a different company's process.
+    const props = brandClaims().slice(0, 3).map((c) => [c, '']);
+    if (!props.length) props.push(['[DATA REQUIRED BEFORE LAUNCH: verifiable claims, ' + brandName() + ']', 'Nothing is asserted about the brand until its record carries a claim.']);
     return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${e(hero)} · ${e(brandName())}</title>
@@ -639,13 +663,13 @@ ${offer ? `<div class="bar">${e(offer)}${code ? ` · code <b>${e(code)}</b>` : '
 <section class="hero">
   <h1>${e(hero)}</h1>
   <p>${e(sub)}</p>
-  <a class="cta" href="${e(base)}/collections/best-sellers">Shop one-of-one customs</a>
+  <a class="cta" href="${e(base)}/collections/best-sellers">Shop the collection</a>
 </section>
 <section class="props">
-  ${props.map((p) => `<div class="prop"><h3>${e(p[0])}</h3><p>${e(p[1])}</p></div>`).join('')}
+  ${props.map((p) => `<div class="prop"><h3>${e(p[0])}</h3>${p[1] ? `<p>${e(p[1])}</p>` : ''}</div>`).join('')}
 </section>
 ${offer ? `<section class="offer"><h2>${e(offer)}</h2>${code ? `<div class="code">${e(code)}</div>` : ''}<div class="foot-cta"><a class="cta" href="${e(base)}/collections/best-sellers">Claim the offer</a></div></section>` : ''}
-${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">There is a moment when the right pair does more than complete an outfit: it says who you are. A one-of-one, hand-painted on a 100% original base, exists for exactly that.</p>`}
+${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTagline() || ('[DATA REQUIRED BEFORE LAUNCH: brand story, ' + brandName() + ']'))}</p>`}
 <footer>${e(brandName())}${brandClaims().length ? ' · ' + e(brandClaims().join(' · ')) : ''}<br>This page was generated by Lifecycle OS for the ${e(region)} market.</footer>
 </body></html>`;
   }
@@ -746,10 +770,11 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">There is a mome
       'Build a COMPLETE, production-ready, single-file responsive HTML landing page that converts ' + channel + ' traffic in the ' + region + ' market.',
       '',
       'BRAND RULES (strict):',
-      '- Colour palette ONLY: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
-      '- Headings in a Montserrat / serif stack; body in a Instrument Sans / sans-serif stack.',
-      '- Voice: bold, energetic, confident and playful, never corporate. Prefer words like custom, hand-painted, one-of-one, grail, colorway, drop, crafted, original.',
-      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
+      // The ACTIVE brand's own palette, typefaces and voice, never tenant zero's.
+      '- Colour palette ONLY: ' + brandPaletteLine() + '.',
+      '- ' + brandTypeLine(),
+      '- Voice: ' + brandVoiceLine(),
+      '- NEVER use: ' + brandBannedLine(),
       '- Currency in all copy must match the ' + region + ' market.',
       '',
       'PAGE BRIEF:',
@@ -845,7 +870,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">There is a mome
       const key = 'lp-' + channel;
       const list = JSON.parse(localStorage.getItem(key) || '[]');
       list.unshift({
-        hero: 'One of one: Spiderman x Air Force 1', sub: 'Hand-painted on a 100% original base, built in 10-15 days.',
+        hero: 'Sample: the hero offering', sub: 'A sample sub-line; replace it with the brand\'s own.',
         offer: 'Free sample box with your first order', notes: 'Sample page — try Preview, Clone and Copy AI prompt below.',
         region: 'US', channel, created_at: new Date().toISOString(),
       });

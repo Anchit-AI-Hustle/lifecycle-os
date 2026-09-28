@@ -818,7 +818,32 @@ async function start3D(){
   requestAnimationFrame(frame);
 }
 
-init();
+/* The store below is tenant zero's: its catalogue, its collections, its copy.
+   Any OTHER active brand gets the DATA REQUIRED marker, never another
+   company's shop under its own name (the same rule the server applies to the
+   shipped catalogue, brand-catalog-server.ownsBundledExport). A signed-out
+   visitor keeps the public demo. brand-context.js is deferred and so is this
+   module, in document order, so BrandContext exists by the time this runs. */
+(function start(){
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function go(){
+    var B=window.BrandContext;
+    var b=B&&B.brand;
+    if(b&&B.isTenantZero&&!B.isTenantZero(b)){
+      var name=esc(b.name||'this brand');
+      document.title=name+' · 3D Storefront';
+      document.body.innerHTML='<main style="max-width:720px;margin:60px auto;padding:0 20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#111">'+
+        '<h1 style="font-size:24px;margin:0 0 10px">No 3D storefront on the record for '+name+'</h1>'+
+        '<p style="line-height:1.6">[DATA REQUIRED BEFORE LAUNCH: 3D storefront (catalogue, collections and store copy), '+name+'.] '+
+        'The storefront that shipped here was built from another workspace\'s catalogue and copy. This platform never shows one brand\'s store under another brand\'s name.</p></main>';
+      return;
+    }
+    init();
+  }
+  var B0=window.BrandContext;
+  if(B0&&B0.ready) B0.ready().then(go,go);
+  else go();
+})();
 </script>
 </body>
 </html>

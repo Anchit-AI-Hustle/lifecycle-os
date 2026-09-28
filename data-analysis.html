@@ -226,7 +226,24 @@
     GLOBAL: { label:'Global',         region:'global', cur:'$', store:'knickgasm.com' },
     IN:     { label:'India',          region:'in',     cur:'₹', store:'knickgasm.com' }
   };
-  function meta(mk){ return MARKET_META[mk] || { label:mk, region:String(mk||'').toLowerCase(), cur:'$', store:'' }; }
+  function meta(mk){
+    var m = MARKET_META[mk] || { label:mk, region:String(mk||'').toLowerCase(), cur:'$', store:'' };
+    // The store host is the ACTIVE brand's own region store. The shipped map is
+    // tenant zero's and is only ever shown when no brand is active at all.
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (b) {
+        var rs = Array.isArray(b.regions) ? b.regions : [];
+        for (var i = 0; i < rs.length; i++) {
+          if (String(rs[i].code || '').toUpperCase() === String(mk || '').toUpperCase() && rs[i].store_url) {
+            return Object.assign({}, m, { store: String(rs[i].store_url).replace(/^https?:\/\//, '').replace(/\/.*$/, '') });
+          }
+        }
+        return Object.assign({}, m, { store: String(b.website || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '') });
+      }
+    } catch (_) {}
+    return m;
+  }
   function mktLabel(mk){ return meta(mk||MKT).label; }
 
   // ── formatting ──────────────────────────────────────────────────────────

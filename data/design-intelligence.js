@@ -85,7 +85,7 @@
       { id: 'rsa-benefit-stack', name: 'Search RSA Benefit-Stack', bestFor: 'Intent-matched search terms',
         layout: 'Responsive Search Ad: 8-12 headlines mixing benefit + brand + offer + proof; 3-4 descriptions.',
         hook: 'Headline mirrors the exact search intent.',
-        proof: 'A headline dedicated to rating/reviews.', cta: 'Action + benefit ("Shop one-of-one kicks").' },
+        proof: 'A headline dedicated to rating/reviews.', cta: 'Action + benefit ("Shop the new arrivals").' },
       { id: 'pmax-asset-group', name: 'PMax Asset Group', bestFor: 'Automated reach across Google surfaces',
         layout: 'Mixed assets: hero product + lifestyle + logo, short + long headlines, sitelinks; audience signal from best cohorts.',
         hook: 'Lead asset carries the strongest benefit.',
@@ -141,7 +141,7 @@
       'Hook: ' + v.hook,
       'Proof: ' + v.proof,
       'CTA: ' + v.cta,
-      'Keep to the KNICKGASM brand system (palette, fonts, banned phrases, no fabricated facts/prices/reviews).'
+      'Keep to the active brand\'s own system (its palette, fonts and banned phrases; no fabricated facts/prices/reviews).'
     ].join(' ');
   }
 
