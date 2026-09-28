@@ -394,7 +394,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var s = storageInfo() || {};
     return s.kind === 'signed-out' ? 'you sign in' : 'a database is reachable and you sign in';
   }
+  /* The mobile+PIN session (2026-09-28), if that is who is here. Its brands are
+     on this device whichever mode the ACCOUNT is in, so a control that needs a
+     brand IN THE DATABASE says so in those words - never "sign in" to a person
+     who just did. */
+  function phoneSession() { var s = storageInfo(); return (s && s.session) || null; }
   function needsAccountNote(what, why) {
+    var ps = phoneSession();
+    if (ps) {
+      return '<p class="ws-note" data-needs-account="' + esc(what) + '" data-account="mobile-pin"><b>Not available on a mobile-number account.</b> '
+        + esc(what === 'extract'
+          ? 'Reading a site is done by the server, which needs a sign-in it can check. This account is saved on this device only, so the server cannot check it; every field below can be typed in, and the brand is saved on this device.'
+          : 'This is kept in the database beside a brand saved there, and a mobile-number account keeps its brands on this device. Everything else on this brand works exactly the same.') + '</p>';
+    }
     return '<p class="ws-note" data-needs-account="' + esc(what) + '"><b>Needs your account.</b> ' + esc(why) + '</p>';
   }
   /* The spec's marker, through the same builder the server and the device path
@@ -1849,6 +1861,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      rows are and what makes them the account's. */
   function storageNote(st) {
     if (!st || st.mode !== 'device') return '';
+    // A mobile+PIN session (2026-09-28): signed in AND on this device, both at
+    // once, in the one sentence brand-context.js builds for it.
+    if (st.session && st.account_sentence) {
+      return '<p class="ws-note" data-storage-note="device" data-account="mobile-pin"><b>' + esc(st.account_sentence) + '.</b></p>';
+    }
     var how = st.kind === 'signed-out'
       ? 'Sign in and they can be synced to your account.'
       : 'Once a database is reachable and you sign in, they can be synced to your account.';
