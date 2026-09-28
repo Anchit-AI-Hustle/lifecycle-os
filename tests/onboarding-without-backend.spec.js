@@ -390,10 +390,17 @@ test('signed in with a reachable database, the brand goes to the SERVER and noth
   expect(seen.chips, 'a server row carries the device chip').toBe(0);
   expect(seen.note, 'the device sentence shows for an account save').toBe('');
   expect(seen.syncOffers, 'a sync offer with nothing to sync').toBe(0);
-  // Server-only controls are live.
+  // Server-only controls are live as far as the ACCOUNT is concerned. The
+  // catalogue import is still off here, for the other reason it can be off:
+  // this brand was typed without a market, and since the home-market change a
+  // new brand starts with no regions, so there is nowhere to file its rows.
+  // That reason is the home-market gate, never the "needs your account" note.
   await expect(page.locator('#packBuild')).toBeEnabled();
   await page.click('.step-pip[data-step="5"]');
-  await expect(page.locator('#doImport')).toBeEnabled();
+  await expect(page.locator('#doImport')).toBeDisabled();
+  await expect(page.locator('#impGate')).toBeVisible();
+  await expect(page.locator('#impGate')).toContainText('home market');
+  await expect(page.locator('[data-needs-account="catalog-import"]')).toHaveCount(0);
   expect(log.dialogs).toEqual([]);
 });
 
