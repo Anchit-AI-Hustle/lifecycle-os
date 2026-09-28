@@ -1634,6 +1634,8 @@
           color: #556059; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
         #lifecycle-nav .lnav-signout:hover { border-color: #6A33D8; color: #111111; }
         #lifecycle-nav .lnav-signin { color: #7a5f28; text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        /* A press held while boot settles: dimmed and waiting, no colour of its own. */
+        #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
            This replaces a native alert(): a dialog blocks the page, carries the
            site's hostname as its title so it reads as a site error, and cannot
@@ -1923,12 +1925,55 @@
       // a deployment with no client at all, which sent an unconfigured
       // deployment's visitor to the homepage instead of telling them why.
       e.preventDefault();
-      const refusal = await signInRefusal();
-      if (!refusal) return;   // the browser is on its way to Google
-      showSignInRefusal(root, signinBtn, refusal);
+      if (signinBtn.dataset.busy) return;
+      signinBtn.dataset.busy = '1';
+      try {
+        // The rail is mounted before the config, the SDK and the first session
+        // lookup have settled, so this button can be pressed while boot is
+        // still in flight. A diagnosis taken then reads a config fetch that has
+        // not answered as "unconfigured" and a client not yet built as "sdk" -
+        // a deployment fault reported on a healthy backend. The WAIT lives in
+        // signInRefusal() (one place, shared with __startGoogleSignIn__); this
+        // handler only says that it is waiting. Deliberately not a second
+        // await here: two waits let one be removed without a test noticing.
+        const waited = !authReady.settled;
+        if (waited) {
+          signinBtn.textContent = 'Checking sign-in…';
+          signinBtn.setAttribute('aria-busy', 'true');
+        }
+        const refusal = await signInRefusal();
+        if (waited) {
+          signinBtn.textContent = 'Sign in';
+          signinBtn.removeAttribute('aria-busy');
+        }
+        if (!refusal) return;   // the browser is on its way to Google
+        showSignInRefusal(root, signinBtn, refusal);
+      } finally {
+        delete signinBtn.dataset.busy;
+      }
     };
     const signoutBtn = root.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
+  }
+
+  /**
+   * Take back a refusal the rail is showing: the note under the button, the
+   * aria link to it, and the button's own text. Called whenever the state the
+   * note described has been superseded - a session arrived (setRailUser), or
+   * boot resolved signed-out (gateSignedOut). A note left beside a signed-in
+   * chip describes a state that no longer exists. The button text is left
+   * alone while a press is in flight, because that press owns it.
+   */
+  function clearSignInNote(root) {
+    const scope = root || document.getElementById('lifecycle-nav');
+    if (!scope) return;
+    const note = scope.querySelector('#lnav-signin-note');
+    if (note) note.remove();
+    const btn = scope.querySelector('#lnav-signin');
+    if (btn) {
+      btn.removeAttribute('aria-describedby');
+      if (!btn.dataset.busy) { btn.textContent = 'Sign in'; btn.removeAttribute('title'); }
+    }
   }
 
   /**
@@ -1956,6 +2001,9 @@
     if (!nav) { injectTopbar(user); return; }
     const slot = nav.querySelector('.lnav-user');
     if (!slot) return;
+    // The refusal note sits BESIDE .lnav-user, not inside it, so swapping the
+    // block alone would leave a "Sign-in unavailable" note next to the chip.
+    clearSignInNote(nav);
     const tmp = document.createElement('div');
     tmp.innerHTML = railUserHtml(user);
     const next = tmp.firstElementChild;
@@ -2059,23 +2107,42 @@
    * network is not a missing project, and refusing to sign a user in because
    * their connection is poor would be a worse bug than the one this fixes.
    */
+  // Caches the PROBE, not its result, so a second caller while the first is in
+  // flight (a Sign-in press racing gateSignedOut) shares one request.
   const REACH_CACHE = new Map();
-  async function authHostReachable(url) {
-    if (!url) return false;
+  function authHostReachable(url) {
+    if (!url) return Promise.resolve(false);
     if (REACH_CACHE.has(url)) return REACH_CACHE.get(url);
-    let ok = true;
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 4000);
-    try {
-      await fetch(url.replace(/\/+$/, '') + '/auth/v1/health', { mode: 'no-cors', signal: ctl.signal });
-    } catch (e) {
-      ok = (e && e.name === 'AbortError');   // timed out → give it the benefit of the doubt
-    } finally {
-      clearTimeout(timer);
-    }
-    REACH_CACHE.set(url, ok);
-    return ok;
+    const probe = (async () => {
+      let ok = true;
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 4000);
+      try {
+        await fetch(url.replace(/\/+$/, '') + '/auth/v1/health', { mode: 'no-cors', signal: ctl.signal });
+      } catch (e) {
+        ok = (e && e.name === 'AbortError');   // timed out → give it the benefit of the doubt
+      } finally {
+        clearTimeout(timer);
+      }
+      return ok;
+    })();
+    REACH_CACHE.set(url, probe);
+    return probe;
   }
+
+  /**
+   * AUTH READINESS: settled once init() knows the three things a sign-in
+   * diagnosis reads - whether there is a config, whether the SDK client was
+   * built, and what the first session lookup said - or once init() has failed
+   * trying. Nothing that PAINTS waits on this (the rail is mounted before the
+   * first await); only a diagnosis does. Settled on every exit of init() and
+   * in boot()'s catch, so a press can never wait forever.
+   */
+  const authReady = (() => {
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    return { promise, settled: false, settle() { if (!this.settled) { this.settled = true; resolve(); } } };
+  })();
 
   /**
    * Which signed-out state is this browser in? One of
@@ -2104,6 +2171,9 @@
    * renamed", a claim the code cannot make.
    */
   async function signInRefusal() {
+    // Never diagnose a boot still in flight (see authReady). This also covers
+    // window.__startGoogleSignIn__, which pages and tests call directly.
+    await authReady.promise;
     const kind = await signedOutState();
     if (kind !== 'signed-out') {
       const s = signedOutSentence(kind);
@@ -2318,6 +2388,9 @@
   async function gateSignedOut() {
     removeLoginWall();
     injectTopbar(null);
+    // The state is now resolved; a note written against an earlier one (or a
+    // "Checking sign-in…" left by a press that is no longer in flight) goes.
+    clearSignInNote();
     // Which of the three signed-out states is this? They need different words:
     // a missing env var, a project that no longer answers, and simply being
     // logged out are three different things to be told.
@@ -2461,6 +2534,7 @@
 
     const config = await getConfig();
     if (!config) {
+      authReady.settle();   // no config means no SDK and no session to wait for
       // No Supabase configured. On localhost / file:// (dev preview) there is no
       // backend to sign in against, so inject the cross-step top-bar and let the
       // UI run — exactly as the team would see it post-login. Open pages (Mailer
@@ -2499,7 +2573,17 @@
     // above (it exchanges the PKCE ?code= and cleans the URL). Calling
     // exchangeCodeForSession() again here would double-consume the single-use
     // code and fail — so we just wait for getSession() to resolve the session.
-    const { data: { session } } = await client.auth.getSession();
+    let got = null;
+    try {
+      got = await client.auth.getSession();
+    } finally {
+      // Config, client and first lookup are known (or the lookup threw, which
+      // boot() reports). A Sign-in press held on authReady proceeds from here,
+      // BEFORE gateSignedOut's reachability probe, which it shares (see
+      // authHostReachable) rather than waiting behind.
+      authReady.settle();
+    }
+    const session = got && got.data && got.data.session;
     if (session?.user) {
       window.LifecycleAuth.session = session;
       window.LifecycleAuth.user = session.user;
@@ -2743,7 +2827,10 @@
           // later in init threw) stands; this only fills in a missing one.
           if (backendPending()) setBackendState(kind);
         } catch (_) { /* nothing left to render into */ }
-      });
+      })
+      // Whatever init() did or failed to do, the state is now as known as it
+      // will get: release any Sign-in press that was waiting to diagnose it.
+      .finally(() => authReady.settle());
   }
 
   if (document.readyState === 'loading') {
