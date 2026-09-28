@@ -68,7 +68,8 @@
       "symbol": "$",
       "store_url": "https://www.apple.com",
       "pdp_pattern": "{base}/products/{handle}",
-      "collection_pattern": "{base}/collections/{slug}"
+      "collection_pattern": "{base}/collections/{slug}",
+      "home": true
     },
     {
       "code": "IN",

@@ -358,13 +358,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="flex flex-wrap items-center gap-3">
         <button type="button" class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>
-        <div class="flex gap-1.5" id="regionChips">
-          <button type="button" class="filter-chip active" data-region="ALL">All</button>
-          <button type="button" class="filter-chip" data-region="US">US</button>
-          <button type="button" class="filter-chip" data-region="UK">UK</button>
-          <button type="button" class="filter-chip" data-region="Global">Global</button>
-          <button type="button" class="filter-chip" data-region="IN">India</button>
-        </div>
+        <!-- All + one chip per region the ACTIVE brand declares (region-context.js);
+             this page aggregates, so All stays the default. Built by buildRegionChips. -->
+        <div class="flex gap-1.5" id="regionChips"><button type="button" class="filter-chip active" data-region="ALL">All</button></div>
         <div class="h-5 w-px bg-lava/20"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Trend</div>
         <div class="flex gap-1.5" id="granChips" title="Time granularity for the whole dashboard — day-on-day, week-on-week, month-on-month or year-on-year">
@@ -1157,7 +1153,9 @@ function inWindow(iso) {
   return d.getTime() >= cutoff;
 }
 function matchRegion(r) {
-  return STATE.region === 'ALL' || r === STATE.region;
+  // Compared case-insensitively: a chip carries the brand record's code (GLOBAL)
+  // while a data row may spell it as the export did (Global).
+  return STATE.region === 'ALL' || String(r || '').toUpperCase() === String(STATE.region || '').toUpperCase();
 }
 function filteredCampaigns() {
   return DATA.campaigns.filter((c) => inWindow(c.sent_at) && matchRegion(c.region));
@@ -2244,6 +2242,25 @@ $('regionChips').addEventListener('click', (e) => {
   $$('#regionChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
   destroyCharts(); rerender();
 });
+// Region chips are the ACTIVE brand's own regions, never a typed list: a
+// brand selling only in India is not offered a US filter over data it lacks.
+let _regionChipsBuilt = null;
+function buildRegionChips() {
+  const rc = window.RegionContext; if (!rc) return;
+  const opts = rc.options({ all: 'ALL' });
+  const key = opts.map((o) => o.code).join('|');
+  if (key === _regionChipsBuilt) return; _regionChipsBuilt = key;
+  const host = $('regionChips');
+  host.innerHTML = opts.length
+    ? opts.map((o) => '<button type="button" class="filter-chip' + (o.all ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
+    : '<button type="button" class="filter-chip active" data-region="ALL">All</button><span class="text-[11px] text-ink-mute" style="align-self:center">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+  if (STATE.region !== 'ALL' && !opts.some((o) => o.code === STATE.region)) { STATE.region = 'ALL'; try { destroyCharts(); rerender(); } catch (_) {} }
+}
+(function watchRegions(w) {
+  const waited = w || 0;
+  if (!window.RegionContext) { if (waited < 6000) setTimeout(() => watchRegions(waited + 100), 100); return; }
+  window.RegionContext.onChange(buildRegionChips);
+})(0);
 $('granChips').addEventListener('click', (e) => {
   const g = e.target.dataset.gran;
   if (!g || !GRAN[g]) return;

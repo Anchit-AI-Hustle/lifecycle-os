@@ -176,7 +176,10 @@ ${VISUAL_CASCADE}`;
  * @returns {string}
  */
 function buildMasterPrompt(o = {}) {
-  const { assetType = 'mailer', market = 'US', brief = '', products = [], variant = 'V2', platform = 'meta', cohort = '', extra = '', brand = null } = o;
+  const { assetType = 'mailer', brief = '', products = [], variant = 'V2', platform = 'meta', cohort = '', extra = '', brand = null } = o;
+  // A prompt with no market named is built for the brand's HOME market (tenant
+  // zero's own when no brand was resolved), never for a literal 'US'.
+  const market = o.market || brandRuntime.homeRegion(brand || brandRuntime.defaultBrand());
 
   // Multi-tenant: when the caller resolved an active brand workspace, the whole
   // prompt is built from THAT brand instead of tenant zero. `brand` comes from
