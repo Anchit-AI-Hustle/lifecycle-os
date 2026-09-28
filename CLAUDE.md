@@ -36,6 +36,18 @@ US row), and on the server `brain.js` (10 sites), `calendar-generate` (a shipped
 - **`$$` in a JS replacement string is one `$`, and `$'` is the rest of the file.** Two of the sweep
   edits were mangled by `String.replace` patterns before a function replacer was used; the second
   appended 240 lines of the preset builder to its own end. Split/join for literal edits.
+- **Four review findings on the first cut, each real (2026-09-28).** USD is NOT country-unique - it is
+  the pricing currency of global `.com` storefronts - so it left `CURRENCY_COUNTRY` and joined
+  `CURRENCY_ZONE` with EUR: a weak corroborator for US, never a proposal, never a conflict beside a
+  real ccTLD. `sameUrl()` dropped the query string, so `/?country=US` vs `/?country=GB` read as the
+  same page and the x-default matched nothing (or the wrong region); it now compares sorted params.
+  The wizard's catalogue import still fell to `region:"us"` for a brand with no regions (a NEW brand
+  starts with none), filing rows under a market it never declared: it is a disabled control carrying
+  the `home market` marker in the accent rule, and the handler refuses even if the control is forced.
+  And a re-read whose report proposed no home set `home:false` on every row, discarding the
+  operator-confirmed home; the existing flag (and its row) is kept unless a NEW proposal explicitly
+  replaces it, and `brand_extraction.applied['regions.home']` records `origin:'user'` or `replaced`.
+  All four are executed tests in the same spec (21 now) and each is mutation-verified.
 - Left as found: `auth.js` NAV `research-us/uk/global/india` rows (static rail model, deep links now
   fall to the brand's home), `reports/retention-intelligence.html` (no shell, no brand), analytics
   cores whose `'US'` names the bundled export's own market rather than a slot.
