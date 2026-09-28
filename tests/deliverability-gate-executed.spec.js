@@ -555,3 +555,47 @@ test('a blocklist check whose A lookup failed says so and never "no A record"; a
   expect(dmarc.unavailable).toBe(true);
   expect(dmarc.findings[0].message).toMatch(/Could not look up DMARC: ESERVFAIL for TXT _dmarc\.brand\.example\.test; Could not resolve TXT/);
 });
+
+// The paused branch was nested INSIDE `warmup.status === 'active'`, so a
+// warmup the throttle had paused produced no check at all and the send went
+// out. A social caption was scored for lacking an unsubscribe link, a
+// requirement of bulk EMAIL. And a domain with nothing assessable printed
+// "scores null/100".
+test('a paused warmup blocks the send outright; a social caption is not judged for an unsubscribe link; nothing assessable is said in words', async () => {
+  zone(healthyZone());
+  let out = await gate({ warmup: { status: 'paused', paused_reason: 'Bounce rate 3.10% is over the 2.00% limit.' }, audience_size: 10 });
+  expect(checkOf(out, 'warmup')).toMatchObject({ status: 'block' });
+  expect(checkOf(out, 'warmup').detail).toBe('The warmup is paused: Bounce rate 3.10% is over the 2.00% limit..');
+  expect(checkOf(out, 'warmup').remediation).toMatch(/resume the ramp/);
+  expect(out.verdict).toBe('block');
+  expect(out.blocking.join(' ')).toMatch(/Warmup: The warmup is paused/);
+  out = await gate({ warmup: { status: 'paused' }, audience_size: 10 });
+  expect(checkOf(out, 'warmup').detail).toMatch(/safety threshold breached/);
+  out = await gate({ warmup: { status: 'complete' }, audience_size: 10 });
+  expect(checkOf(out, 'warmup'), 'a finished ramp is no longer a constraint').toBeUndefined();
+
+  const social = await preflight.run({
+    provider: 'meta', channel: 'facebook_page', mode: 'publish',
+    connection: { oauth_scopes: ['pages_manage_posts'], config: { publishing_enabled: true }, secret_fields: ['access_token'], status: 'active' },
+    payload: { caption: 'Grail drop this Friday' }, mapping_missing: [],
+  });
+  expect(checkOf(social, 'content_spam')).toMatchObject({ status: 'pass', detail: 'No spam signals found.' });
+  expect(social.verdict).toBe('pass');
+  expect(social.score).toBe(100);
+  // An email still has to carry one, and the analyser's default is unchanged.
+  const email = deliver.analyzeContent({ subject: 'x', html: '<p>hello there</p>' });
+  expect(email.has_unsubscribe).toBe(false);
+  expect(email.signals.some((s) => /unsubscribe/i.test(s.signal))).toBe(true);
+  const caption = deliver.analyzeContent({ subject: '', text: 'hello there', emailRules: false });
+  expect(caption.has_unsubscribe).toBe(false);
+  expect(caption.signals).toEqual([]);
+  // ...while a signal that applies to any copy still does.
+  const urgent = deliver.analyzeContent({ subject: '', text: 'Act now!!! Last chance to win $$$', emailRules: false });
+  expect(urgent.signals.map((s) => s.signal)).toEqual(expect.arrayContaining(['false urgency', 'repeated punctuation']));
+  expect(urgent.signals.some((s) => /subject line|unsubscribe/i.test(s.signal))).toBe(false);
+
+  zone({}, { '*': { code: 'ETIMEOUT' } });
+  out = await gate();
+  expect(checkOf(out, 'domain_auth').detail).toMatch(new RegExp(`^${D} could not be scored\\. Nothing could be checked`));
+  expect(checkOf(out, 'domain_auth').detail).not.toMatch(/null/);
+});
