@@ -139,8 +139,11 @@ async function run(input) {
             `${domain} fails ${gaps.join(' and ')}. Since 2024 Google and Yahoo require all three from bulk senders; mail without them is rejected or filtered rather than delivered.`,
             'Fix the records on the Domain Strength page, then re-check. Each finding there carries the exact record to publish.'));
         } else if (health.score_breakdown && health.score_breakdown.partial) {
+          // A score of null is not a number to print: nothing was assessable.
           checks.push(check('domain_auth', 'Sending domain', 'warn',
-            `${domain} scores ${health.score}/100 across the ${health.score_breakdown.coverage_pct}% of checks that completed. ${health.score_breakdown.coverage_note}`,
+            health.score == null
+              ? `${domain} could not be scored. ${health.score_breakdown.coverage_note}`
+              : `${domain} scores ${health.score}/100 across the ${health.score_breakdown.coverage_pct}% of checks that completed. ${health.score_breakdown.coverage_note}`,
             'Re-run the check so the unverified records are assessed before a large send.'));
         } else {
           checks.push(check('domain_auth', 'Sending domain', health.score >= 75 ? 'pass' : 'warn',
@@ -161,12 +164,17 @@ async function run(input) {
       // Warmup cap
       const warmup = i.warmup || null;
       const size = Number(i.audience_size || (i.segment && i.segment.size) || 0);
-      if (warmup && warmup.status === 'active') {
+      // A PAUSED ramp is the throttle having fired (evaluateWarmupSafety):
+      // bounces or complaints over the line. Until 2026-09-28 this branch sat
+      // INSIDE `status === 'active'`, so a paused warmup produced no check at
+      // all and the send went out at exactly the moment the ramp had said
+      // stop. Found by executing the gate with a paused warmup.
+      if (warmup && warmup.status === 'paused') {
+        checks.push(check('warmup', 'Warmup', 'block', `The warmup is paused: ${warmup.paused_reason || 'safety threshold breached'}.`, 'Resolve the bounce or complaint problem, then resume the ramp.'));
+      } else if (warmup && warmup.status === 'active') {
         const today = warmup.plan && warmup.plan.find((d) => d.date === new Date().toISOString().slice(0, 10));
         const cap = today ? Number(today.cap) : null;
-        if (warmup.status === 'paused') {
-          checks.push(check('warmup', 'Warmup', 'block', `The warmup is paused: ${warmup.paused_reason || 'safety threshold breached'}.`, 'Resolve the bounce or complaint problem, then resume the ramp.'));
-        } else if (cap != null && size > cap) {
+        if (cap != null && size > cap) {
           checks.push(check('warmup', 'Warmup', 'block',
             `This send is ${size} recipients and today's warmup cap is ${cap}. Exceeding a ramp is how a new domain gets filtered, and the damage outlasts the campaign.`,
             `Reduce the audience to ${cap}, or split the send across days.`));
@@ -215,6 +223,10 @@ async function run(input) {
       text: payload.caption || payload.sms_body || '',
       fromDomain: String(i.sending_domain || i.from_domain || ''),
       recentSubjects: i.recent_subjects || [],
+      // A subject line and an unsubscribe path are EMAIL requirements (the
+      // latter bulk email law); a caption has neither and must not be scored
+      // as if it should.
+      emailRules: isEmail,
     });
 
     // The unsubscribe check is legal exposure, not a spam heuristic, so it is
