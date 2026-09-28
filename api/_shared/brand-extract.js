@@ -1773,11 +1773,15 @@ function legalCandidates(ctx) {
     const addr = n.address;
     const a = Array.isArray(addr) ? addr[0] : addr;
     if (a && typeof a === 'object') {
-      const line = [a.streetAddress, a.addressLocality, a.addressRegion, a.postalCode, a.addressCountry && (a.addressCountry.name || a.addressCountry)]
+      const countryRaw = a.addressCountry && (a.addressCountry.name || a.addressCountry);
+      const line = [a.streetAddress, a.addressLocality, a.addressRegion, a.postalCode, countryRaw]
         .filter((x) => typeof x === 'string' && x.trim()).join(', ');
-      if (line) out.push(cand(line, 'json-ld:Organization.address', url, CONF.declared, line, { kind: 'address' }));
+      // The COUNTRY the entity publishes its address in, as an ISO code, so the
+      // home-market derivation can read it without re-parsing the line. Only
+      // from the declared addressCountry field, never guessed from the city.
+      if (line) out.push(cand(line, 'json-ld:Organization.address', url, CONF.declared, line, { kind: 'address', country: countryCodeOf(countryRaw) }));
     } else if (typeof addr === 'string' && addr.trim()) {
-      out.push(cand(addr, 'json-ld:Organization.address', url, CONF.declared, addr, { kind: 'address' }));
+      out.push(cand(addr, 'json-ld:Organization.address', url, CONF.declared, addr, { kind: 'address', country: '' }));
     }
   }
 
@@ -1816,17 +1820,33 @@ function regionCandidates(ctx) {
     if (!rows.has(c)) rows.set(c, { code: c, store_url: '', currency: '', signals: [] });
     return rows.get(c);
   };
+  // `x-default` names no country, so it is not a region row - but it names
+  // the page the site serves when no regional variant applies, and the region
+  // whose alternate shares that URL is the site's own statement of its home
+  // market. Kept beside the rows so homeMarket() can make that comparison.
+  let xDefault = null;
+  // The page's OWN locale (og:locale, not :alternate) and <html lang>, each a
+  // WEAK corroborator for the home market: a locale is a language choice
+  // before it is a market, and a US-run site declaring en-GB is not rare.
+  let ogLocale = null;
+  let lang = null;
 
   for (const tag of tagsOf(html, 'link')) {
     const a = attrs(tag);
     if (!/alternate/i.test(String(a.rel || '')) || !a.hreflang || !a.href) continue;
-    const parts = String(a.hreflang).split('-');
+    const hl = String(a.hreflang).trim();
+    if (/^x-default$/i.test(hl)) {
+      const abs = absolute(a.href, url);
+      if (abs && !xDefault) xDefault = { href: abs, signal: 'link:alternate[hreflang=x-default]', source_url: url, evidence: clip(tag, 160) };
+      continue;
+    }
+    const parts = hl.split('-');
     const region = parts.length > 1 ? parts[parts.length - 1] : '';
     const r = touch(region);
     if (!r) continue;
     const abs = absolute(a.href, url);
     if (abs && !r.store_url) r.store_url = abs;
-    r.signals.push({ signal: 'link:alternate[hreflang]', source_url: url, evidence: clip(tag, 160) });
+    r.signals.push({ signal: 'link:alternate[hreflang]', source_url: url, evidence: clip(tag, 160), href: abs || '' });
   }
   // og:locale:alternate is repeated once per locale, and metaTags() keys by
   // name so only the LAST one survives there. Read the tags directly or a
@@ -1838,6 +1858,13 @@ function regionCandidates(ctx) {
     const region = String(a.content || '').split(/[-_]/)[1] || '';
     const r = touch(region);
     if (r) r.signals.push({ signal: `opengraph:${key}`, source_url: url, evidence: clip(tag, 120) });
+    if (r && key === 'og:locale' && !ogLocale) ogLocale = { code: r.code, signal: 'opengraph:og:locale', source_url: url, evidence: clip(tag, 120) };
+  }
+  const langTag = /<html\b[^>]*\blang\s*=\s*["']?\s*([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,4})?)/i.exec(String(html));
+  if (langTag) {
+    const region = String(langTag[1]).split(/[-_]/)[1] || '';
+    const code = /^[A-Za-z]{2}$/.test(region) ? region.toUpperCase() : '';
+    lang = { value: langTag[1], code, signal: 'html:<html lang>', source_url: url, evidence: clip(langTag[0], 120) };
   }
   // Shopify and friends render the country picker as <option value="GB">.
   for (const m of String(html).matchAll(/<(?:select|input)\b[^>]*name\s*=\s*["']?(?:country_code|country|localization\[country_code\])["']?[\s\S]{0,6000}?<\/select>/gi)) {
@@ -1860,7 +1887,182 @@ function regionCandidates(ctx) {
   }
   if (meta['product:price:currency']) currencies.push({ currency: String(meta['product:price:currency']).toUpperCase().slice(0, 8), signal: 'opengraph:product:price:currency', source_url: url });
 
-  return { regions: [...rows.values()], currencies };
+  return { regions: [...rows.values()], currencies, x_default: xDefault, og_locale: ogLocale, lang };
+}
+
+/* ── the HOME market ───────────────────────────────────────────────────── */
+
+/*
+ * Country-code TLDs that identify a country. This is a DATA table, and its
+ * omissions are deliberate: `.com`, `.net`, `.org`, `.io`, `.co`, `.ai`, `.me`,
+ * `.tv`, `.cc`, `.ly`, `.to`, `.gg`, `.fm`, `.app`, `.dev`, `.shop`, `.store`
+ * and `.eu` are absent because a brand on any of them has told us nothing about
+ * where it is (`.co`, `.me`, `.io`, `.ai` ARE country codes, and are used as
+ * generic suffixes by brands everywhere, which is exactly why they are not
+ * signals). Two-label suffixes are matched before one-label ones.
+ */
+const CC_TLD = {
+  'co.uk': 'GB', 'org.uk': 'GB', 'me.uk': 'GB', 'ltd.uk': 'GB', uk: 'GB',
+  'co.in': 'IN', 'net.in': 'IN', 'org.in': 'IN', 'firm.in': 'IN', in: 'IN',
+  'com.au': 'AU', 'net.au': 'AU', 'org.au': 'AU', au: 'AU',
+  'co.nz': 'NZ', nz: 'NZ', ie: 'IE', ca: 'CA', us: 'US',
+  de: 'DE', fr: 'FR', es: 'ES', it: 'IT', nl: 'NL', be: 'BE', at: 'AT', ch: 'CH', pt: 'PT',
+  se: 'SE', dk: 'DK', no: 'NO', fi: 'FI', pl: 'PL', cz: 'CZ', hu: 'HU', ro: 'RO', gr: 'GR', ua: 'UA', ru: 'RU', tr: 'TR', 'com.tr': 'TR',
+  'co.jp': 'JP', jp: 'JP', 'co.kr': 'KR', kr: 'KR', 'com.cn': 'CN', cn: 'CN', 'com.hk': 'HK', hk: 'HK', 'com.tw': 'TW', tw: 'TW',
+  'com.sg': 'SG', sg: 'SG', 'com.my': 'MY', my: 'MY', 'co.id': 'ID', id: 'ID', 'com.ph': 'PH', ph: 'PH', 'co.th': 'TH', th: 'TH', 'com.vn': 'VN', vn: 'VN',
+  'com.pk': 'PK', pk: 'PK', 'com.bd': 'BD', bd: 'BD', lk: 'LK', np: 'NP',
+  ae: 'AE', 'com.sa': 'SA', sa: 'SA', qa: 'QA', kw: 'KW', bh: 'BH', om: 'OM', 'co.il': 'IL', il: 'IL', 'com.eg': 'EG', eg: 'EG',
+  'co.za': 'ZA', za: 'ZA', 'com.ng': 'NG', ng: 'NG', 'co.ke': 'KE', ke: 'KE',
+  'com.br': 'BR', br: 'BR', 'com.mx': 'MX', mx: 'MX', 'com.ar': 'AR', ar: 'AR', cl: 'CL',
+};
+
+/*
+ * Currencies that identify ONE country. EUR is absent on purpose: a price in
+ * euros is published by twenty countries, so it names a currency zone and not
+ * a home market. XAF, XOF and the dollar pegs are absent for the same reason.
+ */
+const CURRENCY_COUNTRY = {
+  INR: 'IN', USD: 'US', GBP: 'GB', AUD: 'AU', CAD: 'CA', NZD: 'NZ', JPY: 'JP', KRW: 'KR', CNY: 'CN', HKD: 'HK', TWD: 'TW',
+  SGD: 'SG', MYR: 'MY', IDR: 'ID', PHP: 'PH', THB: 'TH', VND: 'VN', PKR: 'PK', BDT: 'BD', LKR: 'LK', NPR: 'NP',
+  AED: 'AE', SAR: 'SA', QAR: 'QA', KWD: 'KW', BHD: 'BH', OMR: 'OM', ILS: 'IL', EGP: 'EG', TRY: 'TR',
+  ZAR: 'ZA', NGN: 'NG', KES: 'KE', BRL: 'BR', MXN: 'MX', ARS: 'AR', CLP: 'CL',
+  SEK: 'SE', DKK: 'DK', NOK: 'NO', PLN: 'PL', CZK: 'CZ', HUF: 'HU', RON: 'RO', CHF: 'CH', UAH: 'UA', RUB: 'RU',
+};
+
+/* Country NAMES as they appear in a published address, to ISO 3166-1 alpha-2. */
+const COUNTRY_NAMES = {
+  india: 'IN', bharat: 'IN',
+  'united states': 'US', 'united states of america': 'US', usa: 'US', 'u.s.a.': 'US', 'u.s.': 'US', america: 'US',
+  'united kingdom': 'GB', uk: 'GB', 'u.k.': 'GB', 'great britain': 'GB', britain: 'GB', england: 'GB', scotland: 'GB', wales: 'GB', 'northern ireland': 'GB',
+  australia: 'AU', canada: 'CA', 'new zealand': 'NZ', ireland: 'IE',
+  germany: 'DE', deutschland: 'DE', france: 'FR', spain: 'ES', 'españa': 'ES', italy: 'IT', italia: 'IT', netherlands: 'NL', 'the netherlands': 'NL', holland: 'NL',
+  belgium: 'BE', austria: 'AT', switzerland: 'CH', portugal: 'PT', sweden: 'SE', denmark: 'DK', norway: 'NO', finland: 'FI', poland: 'PL',
+  'czech republic': 'CZ', czechia: 'CZ', hungary: 'HU', romania: 'RO', greece: 'GR', ukraine: 'UA', russia: 'RU', turkey: 'TR', 'türkiye': 'TR',
+  japan: 'JP', 'south korea': 'KR', korea: 'KR', china: 'CN', 'hong kong': 'HK', taiwan: 'TW', singapore: 'SG', malaysia: 'MY', indonesia: 'ID',
+  philippines: 'PH', thailand: 'TH', vietnam: 'VN', pakistan: 'PK', bangladesh: 'BD', 'sri lanka': 'LK', nepal: 'NP',
+  'united arab emirates': 'AE', uae: 'AE', 'saudi arabia': 'SA', qatar: 'QA', kuwait: 'KW', bahrain: 'BH', oman: 'OM', israel: 'IL', egypt: 'EG',
+  'south africa': 'ZA', nigeria: 'NG', kenya: 'KE', brazil: 'BR', brasil: 'BR', mexico: 'MX', 'méxico': 'MX', argentina: 'AR', chile: 'CL',
+};
+
+/** An ISO 3166-1 alpha-2 code from a declared country value (code or name), or ''. */
+function countryCodeOf(value) {
+  const v = String(value == null ? '' : value).trim();
+  if (!v) return '';
+  if (/^[A-Za-z]{2}$/.test(v)) return v.toUpperCase();
+  return COUNTRY_NAMES[v.toLowerCase().replace(/\s+/g, ' ').replace(/\.$/, '')] || '';
+}
+
+/** The country a host's suffix declares, or '' for a generic suffix. */
+function ccTldOf(host) {
+  const labels = String(host || '').toLowerCase().replace(/:\d+$/, '').split('.').filter(Boolean);
+  if (labels.length < 2) return { code: '', suffix: '' };
+  const two = labels.slice(-2).join('.');
+  if (labels.length >= 3 && CC_TLD[two]) return { code: CC_TLD[two], suffix: two };
+  const one = labels[labels.length - 1];
+  return CC_TLD[one] ? { code: CC_TLD[one], suffix: one } : { code: '', suffix: one };
+}
+
+const sameUrl = (a, b) => {
+  const norm = (u) => { try { const x = new URL(u); return (x.host + x.pathname).toLowerCase().replace(/\/+$/, ''); } catch (_) { return String(u || '').toLowerCase().replace(/\/+$/, ''); } };
+  return !!a && !!b && norm(a) === norm(b);
+};
+
+/**
+ * Which market is HOME, from what the site publishes, and only from that.
+ *
+ * Every input is something already read by the crawl: the home page's
+ * hreflang set, its declared offer currencies, the legal entity's published
+ * address, the storefront platform's own country global and the home host's
+ * suffix. No LLM, no network.
+ *
+ * STRONG signals may propose; WEAK ones may only corroborate. Two strong
+ * signals that name different countries are a CONFLICT, reported with both
+ * and resolved by nobody here: a `.co.uk` domain whose x-default and legal
+ * address both say IN is a real thing (a UK-registered domain for an Indian
+ * business, or the reverse), and picking one would hide it from the operator
+ * who is the only person who knows.
+ */
+function homeMarket(input) {
+  const o = input || {};
+  const strong = [];
+  const weak = [];
+  const notes = [];
+  const push = (list, code, signal, sourceUrl, evidence, confidence) => {
+    const c = String(code || '').toUpperCase();
+    if (!/^[A-Z]{2}$/.test(c)) return;
+    list.push({ code: c, signal, source_url: sourceUrl || '', evidence: clip(evidence, 200), confidence: confidence || CONF.strong });
+  };
+
+  // 1. x-default: the alternate that shares the x-default URL is the home.
+  const regions = Array.isArray(o.regions) ? o.regions : [];
+  if (o.xDefault && o.xDefault.href) {
+    const owners = regions.filter((r) => (r.signals || []).some((s) => s.href && sameUrl(s.href, o.xDefault.href)));
+    const codes = [...new Set(owners.map((r) => r.code))];
+    if (codes.length === 1) push(strong, codes[0], o.xDefault.signal, o.xDefault.source_url, `${o.xDefault.evidence} -> shared by hreflang for ${codes[0]}`, CONF.declared);
+    else if (codes.length > 1) notes.push(`x-default (${o.xDefault.href}) is shared by more than one regional alternate (${codes.join(', ')}), so it names no single home market.`);
+    else notes.push(`x-default (${o.xDefault.href}) matches no regional hreflang alternate, so it names no market on its own.`);
+  }
+
+  // 2. The host's country-code suffix (a data table; generic suffixes are absent).
+  const host = hostOf(o.homeUrl || '');
+  const tld = ccTldOf(host);
+  if (tld.code) push(strong, tld.code, `host:ccTLD .${tld.suffix}`, o.homeUrl, host, CONF.strong);
+  else if (host) notes.push(`.${tld.suffix} is not a country signal.`);
+
+  // 3. The legal entity's published address country.
+  for (const c of (Array.isArray(o.legal) ? o.legal : [])) {
+    if (c && c.kind === 'address' && c.country) push(strong, c.country, c.signal, c.source_url, c.value, CONF.declared);
+  }
+
+  // 4. The currency the HOME PAGE's own offers are declared in.
+  for (const c of (Array.isArray(o.homeCurrencies) ? o.homeCurrencies : [])) {
+    const cur = String((c && c.currency) || '').toUpperCase();
+    if (!cur) continue;
+    const code = CURRENCY_COUNTRY[cur];
+    if (code) push(strong, code, `${c.signal} (${cur})`, c.source_url, cur, CONF.declared);
+    else notes.push(`${cur} is declared on the home page but does not identify one country, so it is not a home-market signal.`);
+  }
+
+  // 5. The storefront platform's own declared country.
+  const sl = o.storefront && o.storefront.platform && o.storefront.platform.store_locale_source;
+  if (sl && sl.country) push(strong, sl.country, sl.signal, sl.source_url, sl.evidence, CONF.declared);
+
+  // Weak corroborators. NEVER promoted: a site's language is not its market.
+  if (o.lang && o.lang.code) push(weak, o.lang.code, o.lang.signal, o.lang.source_url, o.lang.evidence, CONF.weak);
+  if (o.ogLocale && o.ogLocale.code) push(weak, o.ogLocale.code, o.ogLocale.signal, o.ogLocale.source_url, o.ogLocale.evidence, CONF.weak);
+
+  const distinct = [...new Set(strong.map((s) => s.code))];
+  const byCode = (code) => strong.filter((s) => s.code === code);
+  if (distinct.length > 1) {
+    return {
+      proposed: '', confidence: '', signals: [], corroborators: weak, considered: strong, notes,
+      conflict: {
+        field: 'home market',
+        message: `The site's own signals name more than one home market: ${distinct.map((c) => `${c} (${byCode(c).map((s) => s.signal).join(', ')})`).join(' vs ')}. `
+          + 'This is reported rather than resolved, because only you know which is the registered home and which is a market it also serves.',
+        candidates: distinct.map((c) => ({ code: c, signals: byCode(c) })),
+      },
+      marker: MARKER('home market'),
+    };
+  }
+  if (distinct.length === 1) {
+    const code = distinct[0];
+    const corroborating = weak.filter((w) => w.code === code);
+    const dissenting = weak.filter((w) => w.code !== code);
+    return {
+      proposed: code,
+      confidence: byCode(code).some((s) => s.confidence === CONF.declared) ? CONF.declared : CONF.strong,
+      signals: byCode(code), corroborators: corroborating, considered: strong,
+      notes: notes.concat(dissenting.map((d) => `${d.signal} says ${d.code}, which is a language choice, not a market, and is recorded without changing the proposal.`)),
+      conflict: null, marker: '',
+    };
+  }
+  return {
+    proposed: '', confidence: '', signals: [], corroborators: weak, considered: [], notes: notes.concat(
+      weak.length ? [`Only weak signals were found (${weak.map((w) => `${w.signal}=${w.code}`).join(', ')}). A language tag never proposes a market on its own.`] : [],
+    ),
+    conflict: null, marker: MARKER('home market'),
+  };
 }
 
 /* ── voice sampling ────────────────────────────────────────────────────── */
@@ -2268,6 +2470,10 @@ async function extractBrand(startUrl, opts) {
   let typeScale = null;
   let designTokens = null;
   let inlineSvg = null;
+  // The HOME PAGE's own statements about where it is: its x-default alternate,
+  // its <html lang> and its og:locale. Only the front door's - a regional
+  // product page's lang tag describes that page, not the brand.
+  let homeSignals = { xDefault: null, lang: null, ogLocale: null };
 
   for (const [url, html] of pageList) {
     const isHome = url === homeUrl;
@@ -2305,6 +2511,7 @@ async function extractBrand(startUrl, opts) {
       else bags.regions.set(r.code, r);
     }
     bags.currencies.push(...reg.currencies);
+    if (isHome) homeSignals = { xDefault: reg.x_default, lang: reg.lang, ogLocale: reg.og_locale };
     bags.samples.push(...voiceSamples(ctx));
     if (!inlineSvg) inlineSvg = inlineSvgLogo(markup, url);
 
@@ -2331,15 +2538,34 @@ async function extractBrand(startUrl, opts) {
     limits.push(`Colour syntaxes this parser does not resolve were present and were NOT guessed at: ${unparsedList.map((u) => `${u.fn}() x${u.occurrences}`).join(', ')}.`);
   }
 
+  // WHICH STORE IS THIS. Read from the pages the crawl already fetched, so it
+  // costs no request. It was measurably absent: a fixture declaring Shopify
+  // four separate ways produced a report containing the string "shopify"
+  // zero times. It also decides the catalogue route, which importCatalog was
+  // otherwise establishing by trying /products.json and reading the failure.
+  const store = storefront.detectStorefront(pageList);
+
+  // WHICH MARKET IS HOME. Proposed only from strong signals the site itself
+  // publishes; a disagreement between them is a conflict, never a coin toss.
+  const homeCurrencies = bags.currencies.filter((c) => c.source_url === homeUrl);
+  const home = homeMarket({
+    homeUrl, regions: [...bags.regions.values()], legal: bags.legal, homeCurrencies,
+    storefront: store, xDefault: homeSignals.xDefault, lang: homeSignals.lang, ogLocale: homeSignals.ogLocale,
+  });
+  // A single-market site rarely publishes hreflang at all, so until now it
+  // reported NO regions and a marker - while its own suffix, its own prices
+  // and its own registered address all said which market it is. The proposed
+  // home is a region candidate in its own right, carrying the signals that
+  // proposed it; the currency is filled ONLY when the home page declared one.
+  if (home.proposed && !bags.regions.has(home.proposed)) {
+    bags.regions.set(home.proposed, { code: home.proposed, store_url: homeUrl, currency: '', signals: home.signals.map((s) => ({ signal: s.signal, source_url: s.source_url, evidence: s.evidence })) });
+  }
+  const homeCurrency = homeCurrencies.find((c) => CURRENCY_COUNTRY[String(c.currency || '').toUpperCase()] === home.proposed) || null;
+
   const fields = {
     name: fieldOf(bags.name, 'brand name'),
     tagline: fieldOf(bags.tagline, 'tagline'),
-    // WHICH STORE IS THIS. Read from the pages the crawl already fetched, so it
-    // costs no request. It was measurably absent: a fixture declaring Shopify
-    // four separate ways produced a report containing the string "shopify"
-    // zero times. It also decides the catalogue route, which importCatalog was
-    // otherwise establishing by trying /products.json and reading the failure.
-    storefront: storefront.detectStorefront(pageList),
+    storefront: store,
     website: {
       value: homeUrl, source_url: homeUrl, signal: 'crawl:resolved home page', confidence: CONF.declared,
       evidence: homeUrl === crawl.start ? 'The URL you supplied.' : `You supplied ${crawl.start}, which resolved to this page.`,
@@ -2414,10 +2640,22 @@ async function extractBrand(startUrl, opts) {
       note: bags.legal.length ? '' : 'No legal entity was declared. It is usually in a terms or imprint page, or in the footer copyright line.',
     },
     regions: {
-      candidates: [...bags.regions.values()].map((r) => Object.assign({}, r, {
-        currency: '',
-        currency_note: 'A locale is not a currency. Currency is only ever taken from a declared price currency, so this is left for you to set.',
-      })),
+      candidates: [...bags.regions.values()].map((r) => {
+        const isHomeRow = !!home.proposed && r.code === home.proposed;
+        const cur = isHomeRow && homeCurrency ? String(homeCurrency.currency).toUpperCase() : '';
+        return Object.assign({}, r, {
+          home: isHomeRow,
+          currency: cur,
+          currency_signal: cur ? homeCurrency.signal : '',
+          currency_note: cur
+            ? `Taken from the price currency the home page itself declares (${homeCurrency.signal}).`
+            : 'A locale is not a currency. Currency is only ever taken from a declared price currency, so this is left for you to set.',
+        });
+      }),
+      // The proposal, its signals and any conflict - the operator confirms with
+      // Use like every other field. `proposed` is '' with a marker when no
+      // strong signal was published, and '' with `conflict` when two disagree.
+      home,
       currencies_seen: bags.currencies.filter((c, i, a) => a.findIndex((x) => x.currency === c.currency) === i).slice(0, 12),
     },
   };
@@ -2436,6 +2674,7 @@ async function extractBrand(startUrl, opts) {
     if (k === 'social' && !fields.social.candidates.length) markers.push(MARKER('social profiles'));
     if (k === 'legal' && !fields.legal.candidates.length) markers.push(MARKER('legal entity'));
     if (k === 'regions' && !fields.regions.candidates.length) markers.push(MARKER('regions'));
+    if (k === 'regions' && fields.regions.home && fields.regions.home.marker) markers.push(fields.regions.home.marker);
   }
   markers.push(MARKER('voice.banned phrases'));   // never observable, always the operator's
 
@@ -2631,8 +2870,8 @@ module.exports = {
   // fields
   nameCandidates, taglineCandidates, logoCandidates, iconCandidates, imageCandidates, inlineSvgLogo, typographyCandidates, designTokenCandidates,
   typeScaleCandidates, typeSlot, sizeInPx, rootFontSize, isSimpleSelector,
-  socialCandidates, claimCandidates, legalCandidates, regionCandidates, voiceSamples,
-  googleFontLinks, primaryFamily, blockTexts, trustRanges,
+  socialCandidates, claimCandidates, legalCandidates, regionCandidates, homeMarket, countryCodeOf, ccTldOf, voiceSamples,
+  googleFontLinks, primaryFamily, blockTexts, trustRanges, CC_TLD, CURRENCY_COUNTRY,
   // helpers
   stripTags, headOf, footerOf, attrs, rankCandidates, decodeEntities, withoutScripts, platformCdnOf, atExcluded, nonSelectorAt,
 };

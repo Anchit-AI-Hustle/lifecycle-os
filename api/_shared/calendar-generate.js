@@ -478,7 +478,22 @@ module.exports = async function handler(req, res) {
 
   const startDate = body.start_date ? new Date(body.start_date) : new Date();
   const daysReq = Math.min(90, Math.max(7, +body.days || 30));
-  const markets = Array.isArray(body.markets) && body.markets.length ? body.markets : ['US', 'UK', 'Global', 'IN'];
+  // No markets named: the ACTIVE brand's OWN regions, home market first, never
+  // a shipped four-market list. A brand that sells in one country gets a
+  // one-market plan; a brand with no regions declared gets a stated gap.
+  let markets = Array.isArray(body.markets) && body.markets.length ? body.markets : [];
+  if (!markets.length) {
+    try {
+      const rt = require('./brand-runtime.js');
+      const brand = await rt.resolve(req);
+      const home = rt.homeRegion(brand);
+      const codes = ((brand && brand.regions) || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+      markets = codes.sort((a, b) => (a === home ? -1 : b === home ? 1 : 0));
+    } catch (_) { markets = []; }
+  }
+  if (!markets.length) {
+    return res.status(400).json({ error: 'markets_required', message: '[DATA REQUIRED BEFORE LAUNCH: regions, all, all] This brand declares no market, so there is nothing to plan for. Add its regions in Brand setup, or pass `markets` explicitly.' });
+  }
   const capacity = +body.capacity_per_market_per_week || 4;
   const analytics = body.analytics || {};
   // Single mode: maxpower is the default, so the Plan Calendar always adds the

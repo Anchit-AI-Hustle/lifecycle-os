@@ -88,7 +88,7 @@ const PLATFORMS = [
     id: 'shopify', name: 'Shopify', kind: 'commerce',
     signals: [
       { where: 'generator', rx: /shopify/i, confidence: CONF.declared, why: 'the site declares Shopify in its own generator meta tag' },
-      { where: 'html', rx: /Shopify\s*\.\s*(?:shop|theme|routes|currency)\s*=/, confidence: CONF.declared, why: 'the page defines Shopify\'s own global storefront object' },
+      { where: 'html', rx: /Shopify\s*\.\s*(?:shop|theme|routes|currency|country|locale)\s*=/, confidence: CONF.declared, why: 'the page defines Shopify\'s own global storefront object' },
       { where: 'html', rx: /([a-z0-9-]+\.myshopify\.com)/i, confidence: CONF.declared, why: 'the page names a myshopify.com store domain' },
       { where: 'asset', rx: /cdn\.shopify(?:cdn)?\.(?:com|net)/i, confidence: CONF.strong, why: 'assets are served from Shopify\'s own CDN' },
       { where: 'html', rx: /class=["'][^"']*\bshopify-(?:section|payment-button|block)\b/i, confidence: CONF.strong, why: 'the markup uses Shopify\'s own namespaced class names' },
@@ -236,6 +236,30 @@ function handleFrom(html) {
 }
 
 /**
+ * The store's OWN declared country and locale, where the platform publishes
+ * them. Shopify writes `Shopify.country = "IN"` / `Shopify.locale = "en"` into
+ * every storefront page; that is the store telling us which market it is
+ * serving this page for, and it is the one platform global this module reads
+ * that a home-market derivation can use. Nothing is inferred: a store that
+ * does not publish it returns empty strings.
+ */
+function storeLocaleFrom(html, url) {
+  const src = String(html || '');
+  const c = /Shopify\s*\.\s*country\s*=\s*["']([A-Za-z]{2})["']/.exec(src);
+  const l = /Shopify\s*\.\s*locale\s*=\s*["']([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,4})?)["']/.exec(src);
+  if (!c && !l) return null;
+  return {
+    country: c ? c[1].toUpperCase() : '',
+    locale: l ? l[1] : '',
+    signal: 'html:Shopify.country',
+    source_url: url || '',
+    evidence: clip((c && c[0]) || (l && l[0]), 120),
+    confidence: CONF.declared,
+    why: 'the page defines Shopify\'s own storefront country/locale globals for this store',
+  };
+}
+
+/**
  * Collect platform signals from ONE page.
  *
  * Shaped like every other candidate collector in brand-extract.js — it takes
@@ -374,6 +398,12 @@ function summarise(signals, opts) {
         confidence: platform.confidence, source_url: platform.source_url,
         evidence: platform.evidence, why: platform.why,
         store_handle: o.storeHandle || '',
+        // The store's own declared market, when its platform publishes one.
+        // Carried with its page and evidence because brand-extract reads it
+        // as a HOME-market signal, and a signal without a source is a guess.
+        store_country: (o.storeLocale && o.storeLocale.country) || '',
+        store_locale: (o.storeLocale && o.storeLocale.locale) || '',
+        store_locale_source: o.storeLocale || null,
       }
       : null,
     cms: cms[0]
@@ -409,18 +439,20 @@ function summarise(signals, opts) {
 function detectStorefront(pages, opts) {
   const rows = [];
   let handle = '';
+  let locale = null;
   for (const entry of (pages || [])) {
     const url = Array.isArray(entry) ? entry[0] : (entry && entry.url);
     const html = Array.isArray(entry) ? entry[1] : (entry && entry.html);
     if (!html) continue;
     rows.push(...storefrontSignals({ html, url }));
     if (!handle) handle = handleFrom(html);
+    if (!locale) locale = storeLocaleFrom(html, url);
   }
-  return summarise(rows, Object.assign({ storeHandle: handle }, opts || {}));
+  return summarise(rows, Object.assign({ storeHandle: handle, storeLocale: locale }, opts || {}));
 }
 
 module.exports = {
   detectStorefront, storefrontSignals, summarise, catalogRouteFor,
-  generatorOf, assetUrls, handleFrom, rankSignals,
+  generatorOf, assetUrls, handleFrom, storeLocaleFrom, rankSignals,
   PLATFORMS, CONF, MARKER,
 };

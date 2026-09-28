@@ -370,9 +370,14 @@
   function normalizeRegions(input) {
     if (!Array.isArray(input)) return [];
     var out = [];
+    // Exactly ONE home market, or none - the server's rule, kept here so a
+    // device row carries the flag exactly as an account row would.
+    var homeSeen = false;
     input.slice(0, 24).forEach(function (r) {
       var code = str(r && r.code, 12).toUpperCase();
       if (!code) return;
+      var home = r.home === true && !homeSeen;
+      if (home) homeSeen = true;
       out.push({
         code: code,
         currency: str(r.currency, 8).toUpperCase(),
@@ -380,6 +385,7 @@
         store_url: httpUrl(r.store_url),
         pdp_pattern: str(r.pdp_pattern, 200) || '{base}/products/{handle}',
         collection_pattern: str(r.collection_pattern, 200) || '{base}/collections/{slug}',
+        home: home,
       });
     });
     return out;
@@ -510,6 +516,7 @@
     if (!arr(voice.banned).length) add('voice.banned phrases');
     var regions = Array.isArray(b.regions) ? b.regions : [];
     if (!regions.length) add('regions');
+    if (regions.length && !regions.some(function (r) { return r && r.home === true; })) add('home market');
     regions.forEach(function (r) { if (!r.store_url) add('region store URL', '', r.code); });
     regions.forEach(function (r) { if (!r.currency) add('region currency', '', r.code); });
     var productCount = counts && typeof counts.products === 'number' ? counts.products : null;

@@ -408,9 +408,17 @@ function normalizeVoice(input) {
 function normalizeRegions(input) {
   if (!Array.isArray(input)) return [];
   const out = [];
+  // Exactly ONE home market, or none. `home` is a flag the operator confirmed
+  // (or the wizard proposed from the site's own signals and the operator
+  // pressed Use on); a second flag is dropped rather than resolved, because two
+  // homes is not a state a brand can be in. No flag at all is a reported gap,
+  // never silently promoted to the first row.
+  let homeSeen = false;
   for (const r of input.slice(0, 24)) {
     const code = str(r && r.code, 12).toUpperCase();
     if (!code) continue;
+    const home = r.home === true && !homeSeen;
+    if (home) homeSeen = true;
     out.push({
       code,
       currency: str(r.currency, 8).toUpperCase(),
@@ -418,6 +426,7 @@ function normalizeRegions(input) {
       store_url: httpUrl(r.store_url),
       pdp_pattern: str(r.pdp_pattern, 200) || '{base}/products/{handle}',
       collection_pattern: str(r.collection_pattern, 200) || '{base}/collections/{slug}',
+      home,
     });
   }
   return out;
@@ -638,6 +647,10 @@ function readiness(brand, counts) {
 
   const regions = Array.isArray(b.regions) ? b.regions : [];
   if (!regions.length) add('regions');
+  // A brand with markets but no HOME market has every "no market given"
+  // default fall to its first row, which is an ordering accident, not a
+  // decision. Reported, not promoted.
+  if (regions.length && !regions.some((r) => r && r.home === true)) add('home market');
   for (const r of regions) if (!r.store_url) add('region store URL', '', r.code);
   for (const r of regions) if (!r.currency) add('region currency', '', r.code);
 
