@@ -73,6 +73,12 @@ test.describe('Mailer Studio — responsive smoke', () => {
     });
     await expect(page.locator('#promptIn')).toBeVisible({ timeout: 10_000 });
     await seedCatalog(page);
+    // Under file:// there is no brand layer, so the Studio offers the markets
+    // its own built-in catalogue carries and pre-selects NONE: a target market
+    // is a decision, and these tests make it the way an operator would, by
+    // picking a chip. The seven chips with US pre-selected that used to sit in
+    // the markup were a typed list, and the tests relied on that default.
+    await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
   });
 
   test('Step 1 — fields present and visible', async ({ page }, testInfo) => {

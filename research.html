@@ -98,7 +98,7 @@
 <body>
   <!-- ══ MAIN VIEWPORT ══ -->
   <main class="lc-main">
-    <div id="regionTabs" class="lc-tabrow mb-6"><span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Benchmark table</span><button type="button" class="rtab on" data-region="US">US</button><button type="button" class="rtab" data-region="UK">UK</button><button type="button" class="rtab" data-region="EU">EU</button><button type="button" class="rtab" data-region="Global">Global</button><span class="text-[12px]" style="color:#556059;margin-left:6px">Filtering the competitor benchmark table to <b class="text-vink" id="rgLabel">US</b>. (The full regional reports have their own Study selector below.)</span></div>
+    <div id="regionTabs" class="lc-tabrow mb-6"><span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Benchmark table</span><!-- Tabs are BUILT from the active brand's own regions (region-context.js), home market selected. Nothing here is a shipped list. --><span id="regionTabsHost" style="display:contents"></span><span class="text-[12px]" style="color:#556059;margin-left:6px">Filtering the competitor benchmark table to <b class="text-vink" id="rgLabel"></b>. (The full regional reports have their own Study selector below.)</span></div>
     <div class="kicker">Lifecycle OS · Market Study</div>
     <h1 class="text-vink text-[36px] font-bold leading-tight mt-1">Market Study</h1>
     <p class="text-[#111111] max-w-3xl mt-2 text-[15px] leading-relaxed">The market OUTSIDE the brand, per region: sizing, competitive tiers, buyer cohorts and the strategic read, with every figure carrying its published source and every unpublished number listed as a gap rather than estimated. The brand's own trading is measured in <a class="text-vink underline decoration-vgold" href="/data-analysis">Data Analysis</a>, which is the single surface that reports revenue, orders, cohorts and channel performance.</p>
@@ -108,10 +108,8 @@
       <div class="kicker mb-2">Regional Market Studies · full reports</div>
       <div id="msRegionTabs" class="lc-tabrow mb-4">
         <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Study</span>
-        <button type="button" class="rtab on" data-region="US">US</button>
-        <button type="button" class="rtab" data-region="UK">UK</button>
-        <button type="button" class="rtab" data-region="Global">Global</button>
-        <button type="button" class="rtab" data-region="India">India</button>
+        <!-- One tab per region the ACTIVE brand declares, its home market selected; built by the runtime below. -->
+        <span id="msRegionTabsHost" style="display:contents"></span>
       </div>
 
             <div class="ms-panel" data-ms-region="us">
@@ -619,37 +617,66 @@ triggers:
 })();
 </script>
 <script src="/auth.js?v=20260718light" defer></script>
-<script>(function(){var tabs=document.querySelectorAll("#regionTabs .rtab");if(!tabs.length)return;function apply(rg){document.querySelectorAll("#competitors tr[data-regions]").forEach(function(tr){var d=tr.getAttribute("data-regions");tr.style.display=(d==="ALL"||d.split(",").indexOf(rg)>-1)?"":"none";});tabs.forEach(function(t){t.classList.toggle("on",t.getAttribute("data-region")===rg);});var l=document.getElementById("rgLabel");if(l)l.textContent=rg;}tabs.forEach(function(t){t.addEventListener("click",function(){apply(t.getAttribute("data-region"));});});apply("US");})();</script>
-<!-- Regional Market Studies: switch the four report panels + honor ?region= deep-links from the LHS nav subitems -->
-<script>(function(){
-  var tabs=[].slice.call(document.querySelectorAll("#msRegionTabs .rtab"));
-  var panels=[].slice.call(document.querySelectorAll(".ms-panel[data-ms-region]"));
-  if(!tabs.length||!panels.length)return;
-  function show(rg){
-    rg=String(rg||"us").toLowerCase();
-    if(!panels.some(function(p){return p.getAttribute("data-ms-region")===rg;}))rg="us";
-    panels.forEach(function(p){p.style.display=(p.getAttribute("data-ms-region")===rg)?"":"none";});
-    tabs.forEach(function(t){t.classList.toggle("on",t.getAttribute("data-region").toLowerCase()===rg);});
-  }
-  tabs.forEach(function(t){t.addEventListener("click",function(){
-    var rg=t.getAttribute("data-region").toLowerCase();
-    show(rg);
-    try{history.replaceState(null,"","?region="+rg+"#regional-studies");}catch(_){}
-  });});
-  var q=null; try{q=new URLSearchParams(location.search).get("region");}catch(_){}
-  show(q||"us");
-  if(q){var sec=document.getElementById("regional-studies"); if(sec)sec.scrollIntoView({behavior:"smooth",block:"start"});}
-})();</script>
-
+<!-- Region controls on this page are BUILT from the active brand's own regions
+     (region-context.js) and open on its HOME market. They used to be typed
+     here as US/UK/EU/Global and US/UK/Global/India with US pre-selected, so an
+     Indian news brand whose rail already said "Market: India (IN)" landed on a
+     US study by default and was offered markets it does not serve. -->
 <script>
 /* Market Study follows the ACTIVE brand. The static bodies above are rendered
-   for the default workspace at build time; if the signed-in user's active
-   brand differs, re-render from ITS record so nobody is shown another brand's
-   research. A brand with no sourced study for a region gets the explicit
-   DATA REQUIRED state, never a substitute. */
+   for the default workspace at build time; the runtime rebuilds the tab rows
+   and the study panels from the signed-in user's ACTIVE brand - its regions,
+   its home market and ITS record - so nobody is shown another brand's
+   research or another brand's market list. A brand with no sourced study for
+   a region gets the explicit DATA REQUIRED state, never a substitute; a brand
+   with no regions gets the marker, never a shipped default. */
 (function () {
-  var ORDER = ['US','UK','Global','India'];
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function rc(){ return window.RegionContext || null; }
+  function fam(v){ var r=rc(); return r ? r.family(v) : String(v||'').toUpperCase().replace(/[^A-Z]/g,''); }
+  var NONE='[DATA REQUIRED BEFORE LAUNCH: regions, all, all]';
+
+  /* ── 1. Benchmark table filter (top row) ─────────────────────────────── */
+  var topHost=document.getElementById('regionTabsHost');
+  var topBuilt=null;   // null, not '': a brand with NO regions has key '' and must still paint its marker
+  function applyTop(code){
+    var f=fam(code);
+    document.querySelectorAll('#competitors tr[data-regions]').forEach(function(tr){
+      var d=tr.getAttribute('data-regions')||'';
+      tr.style.display=(d==='ALL'||d.split(',').some(function(x){return fam(x)===f;}))?'':'none';
+    });
+    document.querySelectorAll('#regionTabs .rtab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-region')===code);});
+    var l=document.getElementById('rgLabel'); if(l) l.textContent=code?(rc()?rc().name(code):code):'no market configured';
+  }
+  function buildTop(){
+    if(!topHost||!rc()) return;
+    var opts=rc().options();
+    var key=opts.map(function(o){return o.code;}).join('|');
+    if(key===topBuilt) return; topBuilt=key;
+    topHost.innerHTML=opts.length
+      ? opts.map(function(o){return '<button type="button" class="rtab" data-region="'+esc(o.code)+'"'+(o.home?' data-home="1" title="Home market"':'')+'>'+esc(o.name)+'</button>';}).join('')
+      : '<span class="rtab" data-region-none="1" style="cursor:default">'+esc(NONE)+'</span>';
+    applyTop(rc().home);
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target&&e.target.closest?e.target.closest('#regionTabs .rtab[data-region]'):null;
+    if(t) applyTop(t.getAttribute('data-region'));
+  });
+
+  /* ── 2. Regional studies: tabs + panels per brand region ─────────────── */
+  var tabsHost=document.getElementById('msRegionTabsHost');
+  var section=document.getElementById('regional-studies');
+  var studyBuilt=null;
+  var activeBrand=null;
+  function panelFor(code){
+    var panels=[].slice.call(document.querySelectorAll('.ms-panel[data-ms-region]'));
+    for(var i=0;i<panels.length;i++){ if(fam(panels[i].getAttribute('data-ms-region'))===fam(code)) return panels[i]; }
+    var p=document.createElement('div'); p.className='ms-panel'; p.setAttribute('data-ms-region',String(code).toLowerCase()); p.style.display='none';
+    p.innerHTML='<div class="ms-report"></div>';
+    var last=panels[panels.length-1];
+    if(last&&last.parentNode) last.parentNode.insertBefore(p,last.nextSibling); else if(section) section.appendChild(p);
+    return p;
+  }
   function empty(region, name){
     return '<div class="ms-panel"><div class="ms-tier-h">No market study loaded for '+esc(name)+' ('+esc(region)+')</div>'+
       '<p class="ms-note">[DATA REQUIRED BEFORE LAUNCH: market study, '+esc(region)+', '+esc(name)+'.] '+
@@ -672,34 +699,81 @@ triggers:
     return '<div class="kicker mt-6 mb-2">'+esc(title)+'</div><ul class="ms-bul">'+
       items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
   }
-  function render(brand){
-    if(!brand) return;
-    var ms=(brand.market_study&&typeof brand.market_study==='object')?brand.market_study:{};
-    var blocks=document.querySelectorAll('.ms-report');
-    for(var i=0;i<blocks.length&&i<ORDER.length;i++){
-      var region=ORDER[i], s=ms[region];
-      blocks[i].innerHTML = s
-        ? ('<div class="ms-panel"><div class="ms-tier-h">'+esc(s.headline||(brand.name+' '+region))+'</div>'+
-           '<p class="ms-note">Every figure carries its published source. Unpublished numbers are listed as gaps, never estimated.</p></div>'+
-           rows(s)+tiers(s)+bullets('Strategic read',s.reads)+bullets('Known data gaps (not estimated)',s.gaps))
-        : empty(region, brand.name||'this brand');
+  /* A brand's market_study is keyed by whatever it wrote ("India", "IN",
+     "Global"); the region code is matched to that key by family. */
+  function studyFor(brand, code){
+    var ms=(brand&&brand.market_study&&typeof brand.market_study==='object')?brand.market_study:{};
+    var keys=Object.keys(ms);
+    for(var i=0;i<keys.length;i++){ if(fam(keys[i])===fam(code)) return ms[keys[i]]; }
+    return null;
+  }
+  function renderPanel(code, brand){
+    var p=panelFor(code);
+    var name=(brand&&brand.name)||'this brand';
+    var region=rc()?rc().name(code):code;
+    var s=brand?studyFor(brand,code):null;
+    var head='<div class="card p-5" style="border-color:var(--vh-accent,var(--brand-accent));"><div class="font-head text-[20px] text-vink">'+esc(region)+' Market Study &middot; '+esc(name)+'</div>'+
+      '<div class="text-[12.5px]" style="color:var(--soft);">The market outside '+esc(name)+' in '+esc(region)+', from the brand\'s own record. Every figure carries its published source; every unpublished number is listed as a gap.</div></div>';
+    var body=s
+      ? ('<div class="ms-panel"><div class="ms-tier-h">'+esc(s.headline||(name+' '+region))+'</div>'+
+         '<p class="ms-note">Every figure carries its published source. Unpublished numbers are listed as gaps, never estimated.</p></div>'+
+         rows(s)+tiers(s)+bullets('Strategic read',s.reads)+bullets('Known data gaps (not estimated)',s.gaps))
+      : empty(region, name);
+    p.innerHTML=head+'<div class="ms-report">'+body+'</div>';
+    return p;
+  }
+  function show(code){
+    var r=rc();
+    // A deep link (?region=us) or a saved choice is honoured only if the
+    // brand serves that market; otherwise the HOME market, never a literal.
+    var resolved=r?(r.resolve(code)||r.home):'';
+    document.querySelectorAll('.ms-panel[data-ms-region]').forEach(function(p){
+      p.style.display=(resolved&&fam(p.getAttribute('data-ms-region'))===fam(resolved))?'':'none';
+    });
+    document.querySelectorAll('#msRegionTabs .rtab[data-region]').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-region')===resolved);});
+    return resolved;
+  }
+  function buildStudy(){
+    if(!tabsHost||!rc()) return;
+    var opts=rc().options();
+    var key=opts.map(function(o){return o.code;}).join('|')+'::'+((activeBrand&&activeBrand.id)||'');
+    if(key===studyBuilt) return; studyBuilt=key;
+    tabsHost.innerHTML=opts.length
+      ? opts.map(function(o){return '<button type="button" class="rtab" data-region="'+esc(o.code)+'"'+(o.home?' data-home="1" title="Home market"':'')+'>'+esc(o.name)+'</button>';}).join('')
+      : '<span class="rtab" data-region-none="1" style="cursor:default">'+esc(NONE)+'</span>';
+    opts.forEach(function(o){ renderPanel(o.code, activeBrand); });
+    var q=null; try{q=new URLSearchParams(location.search).get('region');}catch(_){}
+    show(q||rc().region||rc().home);
+    if(q&&section) section.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target&&e.target.closest?e.target.closest('#msRegionTabs .rtab[data-region]'):null;
+    if(!t) return;
+    var rg=show(t.getAttribute('data-region'));
+    try{history.replaceState(null,'','?region='+String(rg).toLowerCase()+'#regional-studies');}catch(_){}
+  });
+
+  /* ── 3. Wire to the shared layers ────────────────────────────────────── */
+  function rebuild(){ try{buildTop();buildStudy();}catch(_){ } }
+  function withBrand(b){
+    if(!b){ activeBrand=null; rebuild(); return; }
+    if(b.market_study===undefined && b.id){
+      fetch('/api/public-config?action=brand&op=get&id='+encodeURIComponent(b.id),{credentials:'same-origin'})
+        .then(function(r){return r.json();}).then(function(f){ activeBrand=(f&&f.brand)||b; rebuild(); })
+        .catch(function(){ activeBrand=b; rebuild(); });
+      return;
     }
+    activeBrand=b; rebuild();
   }
-  function boot(){
-    fetch('/api/public-config?action=brand&op=active',{credentials:'same-origin'})
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var b=d&&d.brand;
-        if(!b) return;                       // signed out or no active brand: leave the built default
-        if(b.market_study===undefined){      // shell payload may omit it: fetch the full record
-          return fetch('/api/public-config?action=brand&op=get&id='+encodeURIComponent(b.id||''),{credentials:'same-origin'})
-            .then(function(r){return r.json();}).then(function(f){ render((f&&f.brand)||b); });
-        }
-        render(b);
-      })
-      .catch(function(){});
+  function boot(w){
+    var waited=w||0;
+    if(!rc()){ if(waited<6000){ setTimeout(function(){boot(waited+100);},100); } return; }
+    rc().onChange(function(){ rebuild(); });
+    window.addEventListener('regioncontext:change', rebuild);
+    if(window.BrandContext){ window.BrandContext.onChange(function(s){ withBrand(s&&s.brand); }); }
+    else rebuild();
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){boot(0);}); else boot(0);
 })();
 </script>
 <!-- This page is a drill-down of the Data Analysis workbench, not a rival

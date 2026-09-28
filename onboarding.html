@@ -184,8 +184,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .imp-tab{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer}
   .imp-tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
   .muted{color:var(--muted);font-size:12px;line-height:1.6}
-  .region-row{display:grid;grid-template-columns:80px 90px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
-  @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}}
+  .region-row{display:grid;grid-template-columns:80px 90px 1fr 44px 34px;gap:8px;margin-bottom:8px;align-items:center}
+  .region-row .region-home{display:flex;justify-content:center;align-items:center;height:100%;cursor:pointer}
+  .region-row.region-head span{text-align:left}
+  @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}.region-row.region-head{display:none}}
   .link{color:var(--brand-primary-text);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
 
   /* Starter brand profiles (step 1). Deliberately industry-varied so the
@@ -325,7 +327,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       body: { family: 'Inter', stack: "'Inter',system-ui,-apple-system,Segoe UI,sans-serif", google: true, weights: '400;500;600;700' }
     },
     voice: { tone: '', preferred: [], banned: [], no_em_dashes: true, notes: '' },
-    regions: [{ code: 'US', currency: 'USD', symbol: '$', store_url: '' }],
+    /* No region is pre-filled. A new brand used to start with a US row, so a
+       brand that never sells there carried a US market (and a US default in
+       every generator) unless the operator noticed and deleted it. Regions
+       come from the site read on step 1, or from the operator, or stay a
+       reported gap. */
+    regions: [],
     brand_data: {}, status: 'draft', onboarding_step: 1
   };
 
@@ -526,6 +533,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!brand.voice.tone) add('voice.tone');
     if (!brand.voice.banned.length) add('voice.banned phrases');
     if (!brand.regions.length) add('regions');
+    if (brand.regions.length && !brand.regions.some(function (r) { return r.home === true; })) add('home market');
     brand.regions.forEach(function (r) { if (!r.store_url) add('region store URL', '', r.code); });
     if (catalogCount === 0 || catalogCount === null) add('product catalog');
     var blocking = missing.filter(function (m) { return /^(brand name|palette\.|typography\.|regions$|product catalog)/.test(m.field); });
@@ -1221,15 +1229,42 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   function xDataPanel() {
     var r = extraction.fields.regions, s = extraction.fields.social, l = extraction.fields.legal;
+    var home = r.home || null;
     var out = '';
     if (r.candidates.length) {
+      // Every region with the signals that put it there, the proposed HOME
+      // market with ITS signals, and a conflict when the site's own signals
+      // disagree. Use applies the whole set, home flag included; nothing is
+      // applied until then.
       out += '<div class="xrow"><div class="xlabel">Regions</div><div class="xbody">' +
-        '<div class="xval">' + r.candidates.map(function (x) { return esc(x.code); }).join(', ') + '</div>' +
-        '<div class="xsrc">' + (r.candidates[0].signals[0] ? esc(r.candidates[0].signals[0].signal) + ' &middot; ' + esc(r.candidates[0].signals[0].source_url) : '') + '</div>' +
+        '<div class="xval">' + r.candidates.map(function (x) { return esc(x.code) + (x.home ? ' <span class="xtag declared">home</span>' : ''); }).join(', ') + '</div>' +
+        r.candidates.map(function (x) {
+          var sig = (x.signals || []).slice(0, 3).map(function (g) { return esc(g.signal) + (g.source_url ? ' &middot; ' + esc(g.source_url) : ''); }).join('<br>');
+          return '<div class="xsrc"><b>' + esc(x.code) + '</b>' + (x.currency ? ' &middot; ' + esc(x.currency) : '') + (sig ? '<br>' + sig : '') + '</div>';
+        }).join('') +
         '<div class="xsrc">' + esc(r.candidates[0].currency_note) + '</div>' +
         '</div><button type="button" class="xbtn" data-xa="regions" data-xi="0">Use</button></div>';
     } else {
       out += '<div class="xrow"><div class="xlabel">Regions</div><div class="xbody"><div class="marker">' + esc(marker('regions')) + '</div></div></div>';
+    }
+    if (home && home.proposed) {
+      out += '<div class="xrow" data-xhome="' + esc(home.proposed) + '"><div class="xlabel">Home market</div><div class="xbody">' +
+        '<div class="xval">' + esc(home.proposed) + '</div>' +
+        (home.signals || []).map(function (g) { return xSrcLine({ confidence: g.confidence, signal: g.signal, source_url: g.source_url, evidence: g.evidence }); }).join('') +
+        (home.corroborators && home.corroborators.length ? '<div class="xsrc">Corroborated (weak, never decisive): ' + home.corroborators.map(function (g) { return esc(g.signal) + '=' + esc(g.code); }).join(', ') + '</div>' : '') +
+        '<div class="xsrc">Applied with the regions above when you press Use; the home market is the default every calendar, mailer and ad opens on.</div>' +
+        '</div></div>';
+    } else if (home && home.conflict) {
+      out += '<div class="xrow" data-xhome-conflict="1"><div class="xlabel">Home market</div><div class="xbody">' +
+        '<div class="xconflict"><b>Conflict, not resolved:</b> ' + esc(home.conflict.message) +
+        '<div style="margin-top:6px">' + home.conflict.candidates.map(function (c) {
+          return '<div class="xsrc"><b>' + esc(c.code) + '</b>: ' + c.signals.map(function (g) { return esc(g.signal) + (g.source_url ? ' &middot; ' + esc(g.source_url) : ''); }).join('; ') + '</div>';
+        }).join('') + '</div>' +
+        '<div class="xsrc" style="margin-top:6px">Pick the home market yourself in the region rows below. Regions are still applied by Use; no home is set by it.</div></div>' +
+        '</div></div>';
+    } else if (home) {
+      out += '<div class="xrow"><div class="xlabel">Home market</div><div class="xbody"><div class="marker">' + esc(home.marker || marker('home market')) + '</div>' +
+        '<div class="xsrc">' + esc((home.notes || []).join(' ') || 'Your site published no strong signal (x-default, country-code domain, legal address, home-page price currency or store country). Set it in the region rows below.') + '</div></div></div>';
     }
     if (s.candidates.length) {
       out += '<div class="xrow"><div class="xlabel">Social</div><div class="xbody">' +
@@ -1487,11 +1522,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       toast('Saved ' + f.social.candidates.length + ' social profile(s).');
     }
     else if (act === 'regions') {
+      var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
       brand.regions = f.regions.candidates.map(function (x) {
         var existing = brand.regions.filter(function (r) { return r.code === x.code; })[0] || {};
-        return { code: x.code, currency: existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '' };
+        // Currency only when the site DECLARED it on its own offers (the home
+        // row carries it then); otherwise whatever the operator typed, else empty.
+        return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!proposedHome && x.code === proposedHome };
       });
-      toast('Set ' + brand.regions.length + ' region(s). Currency is still yours to fill in.');
+      if (proposedHome) noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence });
+      toast('Set ' + brand.regions.length + ' region(s)' + (proposedHome ? ', home market ' + proposedHome : ', no home market proposed - pick one below') + '. Check each currency.');
     }
     render();
   }
@@ -1553,13 +1592,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* ── regions ────────────────────────────────────────────────────────── */
   function renderRegions() {
     var box = $('regions'); if (!box) return;
-    box.innerHTML = brand.regions.map(function (r, i) {
-      return '<div class="region-row">' +
-        '<input type="text" data-r="code" data-i="' + i + '" value="' + esc(r.code || '') + '" placeholder="US">' +
-        '<input type="text" data-r="currency" data-i="' + i + '" value="' + esc(r.currency || '') + '" placeholder="USD">' +
-        '<input type="url" data-r="store_url" data-i="' + i + '" value="' + esc(r.store_url || '') + '" placeholder="https://yourbrand.com">' +
-        '<button type="button" class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>';
-    }).join('');
+    var hasHome = brand.regions.some(function (r) { return r.home === true; });
+    box.innerHTML = (brand.regions.length
+      ? '<div class="region-row region-head muted" style="font-size:11px"><span>Code</span><span>Currency</span><span>Store URL</span><span title="Home market: the default every calendar, mailer and ad opens on">Home</span><span></span></div>'
+      : '<div class="marker">' + esc(marker('regions')) + '</div><p class="muted" style="margin:6px 0 0">No market is set. Read your site on step 1 or add the markets you sell in; nothing is assumed.</p>') +
+      brand.regions.map(function (r, i) {
+        return '<div class="region-row">' +
+          '<input type="text" data-r="code" data-i="' + i + '" value="' + esc(r.code || '') + '" placeholder="US">' +
+          '<input type="text" data-r="currency" data-i="' + i + '" value="' + esc(r.currency || '') + '" placeholder="USD">' +
+          '<input type="url" data-r="store_url" data-i="' + i + '" value="' + esc(r.store_url || '') + '" placeholder="https://yourbrand.com">' +
+          '<label class="region-home" title="Home market"><input type="radio" name="regionHome" data-home-i="' + i + '"' + (r.home === true ? ' checked' : '') + '></label>' +
+          '<button type="button" class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>';
+      }).join('') +
+      (brand.regions.length && !hasHome ? '<div class="marker" style="margin-top:4px">' + esc(marker('home market')) + '</div>' : '');
     Array.prototype.forEach.call(box.querySelectorAll('[data-r]'), function (el) {
       el.addEventListener('input', function () {
         var v = el.value;
@@ -1567,11 +1612,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         brand.regions[+el.dataset.i][el.dataset.r] = v;
       });
     });
+    // Exactly one home. The radio group enforces it in the form; the server
+    // enforces it again on save, so a hand-built payload cannot carry two.
+    Array.prototype.forEach.call(box.querySelectorAll('[data-home-i]'), function (el) {
+      el.addEventListener('change', function () {
+        brand.regions.forEach(function (r, i) { r.home = (i === +el.dataset.homeI); });
+        renderRegions();
+      });
+    });
     Array.prototype.forEach.call(box.querySelectorAll('[data-rmr]'), function (b) {
       b.addEventListener('click', function () { brand.regions.splice(+b.dataset.rmr, 1); renderRegions(); });
     });
     var add = $('addRegion');
-    if (add) add.onclick = function () { brand.regions.push({ code: '', currency: '', symbol: '', store_url: '' }); renderRegions(); };
+    if (add) add.onclick = function () { brand.regions.push({ code: '', currency: '', symbol: '', store_url: '', home: brand.regions.length === 0 }); renderRegions(); };
   }
 
   /* ── catalog import ─────────────────────────────────────────────────── */
@@ -1591,7 +1644,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       try {
         if (!brand.id) { await save(true); }
         if (!brand.id) throw new Error('Save the brand first.');
-        var payload = { workspace_id: brand.id, region: (brand.regions[0] && brand.regions[0].code || 'us').toLowerCase() };
+        // The catalogue is imported for the HOME market (the flagged region,
+        // else the first), never a literal.
+        var homeR = brand.regions.filter(function (r) { return r.home === true; })[0] || brand.regions[0] || {};
+        var payload = { workspace_id: brand.id, region: String(homeR.code || 'us').toLowerCase() };
         if (mode === 'storefront') {
           payload.kind = 'storefront';
           payload.url = $('impUrl').value.trim();

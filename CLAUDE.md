@@ -4,6 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A brand has a HOME market, and no control opens on US (2026-09-15)
+`region-context.js` (`home`, `options()`, `resolve()`), `brand-extract.js` → `homeMarket()`,
+`brand-runtime.homeRegion()`, gated by `tests/brand-regions.spec.js` (17 tests, executed). Live
+screenshot, active brand = The Times of India: the rail said "Market: India (IN)" while `/research`
+opened on a US study, `/retention-playbook` filtered to US, the Studio offered seven typed markets
+with US on, and `/plan` planned a US calendar. **Every control carried its own typed list and its
+own typed default, and the record had no way to say which market is home.** Found: `research.html`
+(two tab rows + `ORDER` + `show(q||"us")`), `retention-playbook.html`, `calendar.html`,
+`lifecycle_mailer_architect_v34.html` (7 chips + 25 `||'US'` fallbacks), `dashboard.html`,
+`knowledge-base.html`, `landing-pages.html` (4 groups), `onboarding.html` (a NEW brand started with a
+US row), and on the server `brain.js` (10 sites), `calendar-generate` (a shipped 4-market list),
+`calendar-export`, `landing-page-core`, `master-prompt`, `brand-llm`, `smart-brain-plan`,
+`brand-context-pack`, `public-config` (`app.regions`).
+- **`home:true` on exactly one region.** `normalizeRegions` keeps the first flag and drops any second;
+  none is a reported `[DATA REQUIRED BEFORE LAUNCH: home market]`, never a promotion of row one.
+  `homeRegion(brand)` = the flag, else the row the record leads with, else `''` — a gap, not a
+  literal. Tenant zero's home is IN (its legal address is Mumbai); presets declare theirs.
+- **Derived from what the site publishes, strong signals only**: `hreflang="x-default"` whose URL a
+  regional alternate shares; the host's ccTLD from a DATA table (`.com/.co/.io/.ai/.me/.eu` are
+  deliberately absent); the legal entity's `addressCountry`; the currency the HOME PAGE's own offers
+  declare (EUR names a zone, not a country, so it never proposes); Shopify's own `Shopify.country`
+  captured by `storefront-detect`. `<html lang>` and `og:locale` are WEAK and only corroborate — a
+  language is not a market, and a test mutates that to strong and fails. **Two strong signals that
+  disagree are a conflict with both sides shown, resolved by nobody here.** A single-market `.in`
+  site used to report NO regions; its own suffix, prices and address now make it a candidate.
+- **Every page control is built from `RegionContext.options()`** and opens on `home`; a brand with no
+  regions renders the marker, never a list. Chips and records are matched by FAMILY (`India`/IN,
+  `GB`/UK, `Global`/GLOBAL) — `codeOf()` used to compare raw strings, so the India chips on four
+  pages were never bridged at all. Aggregating pages (dashboard, knowledge base) keep All as default.
+- **`$$` in a JS replacement string is one `$`, and `$'` is the rest of the file.** Two of the sweep
+  edits were mangled by `String.replace` patterns before a function replacer was used; the second
+  appended 240 lines of the preset builder to its own end. Split/join for literal edits.
+- Left as found: `auth.js` NAV `research-us/uk/global/india` rows (static rail model, deep links now
+  fall to the brand's home), `reports/retention-intelligence.html` (no shell, no brand), analytics
+  cores whose `'US'` names the bundled export's own market rather than a slot.
+
 ## ⭐ Hosted Supabase is a deployment choice, not an assumption (2026-09-15) — read `docs/self-hosted-supabase.md`
 `selfhost/` + `scripts/selfhost-*` run the same open-source services Supabase hosts (Postgres,
 PostgREST, GoTrue, Storage, Realtime, postgres-meta, Studio, behind Kong 2.8.1), pinned to the image
