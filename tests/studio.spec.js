@@ -179,6 +179,12 @@ test.describe('Mailer Studio — responsive smoke', () => {
     // all, in any market.
     const REVIEWER_SURNAMES = /\b(?:Sarah M|Charlotte W|Priya S|Emma L|Marie L|Thomas B|Anna S|Julian P)\b/;
     const REVIEWER_CITIES = /\b(?:Mumbai|Bangalore|Kolkata|Edinburgh|Amsterdam|Stockholm)\b/;
+    // The footer now carries the brand's REAL registered entity and address
+    // (tenant zero's is in Mumbai), the one line a commercial email is required
+    // to carry. It is removed before the reviewer-hometown check, so the check
+    // still catches a city printed as a buyer's hometown and not the sender's
+    // own address.
+    const LEGAL = require('../data/brands/_default.json').legal_entity || '';
     const cases = [
       { mkt: 'US', currency: '$', badCurrency: '₹', goodHost: 'knickgasm.com', badHost: /knickgasmindia\.com/ },
       { mkt: 'UK', currency: '£', badCurrency: '₹', goodHost: 'knickgasm.com', badHost: /knickgasmindia\.com/ },
@@ -202,7 +208,8 @@ test.describe('Mailer Studio — responsive smoke', () => {
       expect(html.match(c.badHost), `${c.mkt}: leaked ${c.badHost}`).toBeFalsy();
       // No invented reviewer identity, in any market.
       expect(html.match(REVIEWER_SURNAMES), `${c.mkt}: an invented reviewer name is in the mailer`).toBeFalsy();
-      expect(html.match(REVIEWER_CITIES), `${c.mkt}: an invented reviewer hometown is in the mailer`).toBeFalsy();
+      const proof = LEGAL ? html.split(LEGAL).join('') : html;
+      expect(proof.match(REVIEWER_CITIES), `${c.mkt}: an invented reviewer hometown is in the mailer`).toBeFalsy();
       // No invented star rating, in any market.
       expect(html.match(/\b4\.8\b/), `${c.mkt}: an invented rating is in the mailer`).toBeFalsy();
       // KNICKGASM wordmark must appear as text (footer + header) so it's never invisible

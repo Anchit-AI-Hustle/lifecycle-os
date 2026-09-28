@@ -66,6 +66,64 @@ combined 57,631/102,459 (56.2%) → 60,699/102,478 (59.2%), 1738 tests, 0 failed
   `mailer-assets` defaults `market` to the literal `'UK'` and competitor.js's `benchmark` to `'US'`
   (the 2026-09-15 home-market sweep missed both); `agent-sync` defaults to tenant zero's agent id.
 
+## ⭐ Five functions nobody had ever called (2026-09-28)
+`api/_shared/pipeline-core.js` + `api/ai/pipeline/{strategy,variant,images,html,score}.js`, gated by
+`tests/pipeline-executed.spec.js` (15 tests, executed). `coverage/UNTESTED.md` listed the five
+pipeline stages at **0%**: five of this deployment's TWELVE serverless functions, never loaded by
+any test. Loading them and sending each one request found six things, none of them visible from
+reading the two files beside them (`generate.js`, `image.js`) that had been fixed and looked complete:
+- **The 2026-08-23 finding was still open on five routes.** Each stage opened with `corsHeaders()`
+  (a wildcard) and went straight to `callLLM`. A grep for `requireCaller` under `api/ai/` returned
+  two hits and stopped looking. **No meter** either (a mailer that costs credits through
+  `generate.js` was free through the pipeline) and **no request scope** (a workspace's own keys and
+  model order were ignored; the platform's keys were spent). Deleting a wall means auditing every
+  route that enforced the same rule elsewhere; so does ADDING one.
+- **One tenant's prompt for every tenant, and underneath it a tea brand's.** The system prompts named
+  tenant zero, its hexes, fonts, logo URL, store domains and legal footer, and under a
+  search-and-replace rebrand still read "first-flush", "7,000 feet", "farm direct", "steaming pair",
+  "the finest ... I've ever tasted". A brand onboarded yesterday got a mailer built from all of it.
+- **Instructions to fabricate, as mandatory content.** "⭐⭐⭐⭐⭐ ([N] reviews)", "🔥 [N] units sold in
+  the last 24 hours (N: 25-90)", "4.8/5 · 50K+ REVIEWS", a templated testimonial, an invented code
+  and a shipping threshold, per product card. None of it reachable by `gateProof()`. Seeding a shape
+  with values IS an instruction to invent them (the 2026-08-14 finding), and here the range to
+  invent from was written down.
+- **A black section in the html stage's own fallback** (`#0a1f13` on two Variant B bands), which
+  `asset-no-black-background.spec.js` could not see because this renderer was not on its list. The
+  gate only sees what it is pointed at; a renderer that is never executed is not pointed at.
+- **One door now.** `admit()` (caller gate, body, the brand resolved for THIS request); `briefing()`
+  (the brand block + the `email.mailer` contract brief + the evidence block or its explicit
+  no-evidence state, in every writing prompt); `tokens()` (a section palette through
+  `sectionGround()`/`textOn()`, so no ground is a dark neutral and no text is under AA for ANY
+  record); `mount()` (`credits.metered` then `request-scope.wrap`, with the `image.js` refund rule: a
+  heuristic fallback, a placeholder or a skipped score releases the hold). `llm.js` is resolved at
+  CALL time, because the module IS the function and a scripted model in `require.cache` must reach
+  a stage that was loaded earlier. `mailer_type: 'text'` renders the TEXT type of the taxonomy.
+- **The gate's own first run found the next defect.** The accent used as a SECTION (announcement bar,
+  offer banner) was the raw control colour, so a brand whose accent is `#0d0d0d` got a black band
+  from a token that was correct for its buttons. A control may be dark; a band goes through
+  `sectionGround`. `accentBand`/`onAccentBand` sit beside `accent`/`onAccent` now.
+- **Refusal is asserted in BOTH meter configurations.** With the meter configured, the credits
+  wrapper's own session check refuses first, so a bypass of the stage's caller gate is invisible to
+  a test that only runs the metered shape. The unmetered case is where the mutation fails.
+- **A scorer carries the brand's name, not its block**: it writes no copy. Asserting the block on
+  every prompt was the test being wrong, not the code.
+- **What the images stage returns is not what goes in the mailer.** The data URLs are the provider's
+  payload for review; `hosting_note` says to upload through `creative-image.js` and place the HOSTED
+  url, because the mailer contract BLOCKS embedded base64. The old header comment said the client
+  pastes the data URLs in, which would have shipped a mailer its own contract refuses.
+- Also fixed on the way: `brand-placeholder.js` painted tenant zero's name and hexes for every
+  caller (with a tea-brand subtitle); it paints the brand it is given. `?pipeline=1` health said
+  `text_model: gpt-4o-mini (default)` on a deployment with no key at all; it says `unconfigured`,
+  and the model it names when keyed is read from `llm.js`, not re-typed.
+- Four mutations, each restored: discarding the gate's refusal fails the unmetered refusal test;
+  dropping the evidence block fails the prompt assertion; painting the footer with the ink token
+  fails the rendered gate (26 dark grounds); charging a fallen-back stage fails the ledger assertion.
+- Measured with `npm run coverage` before and after (`docs/coverage.md`): the five stages went from
+  0% each to 90-99% (`html` 503/514, `variant` 364/383, `strategy` 283/291, `images` 205/228,
+  `score` 196/198; `pipeline-core` 287/302), combined **56.1% → 58.3%**. One different test failed
+  in each full run (`workflows-guarantees:418` before, `contrast-rendered:203` after); each passes
+  alone, neither touches the pipeline.
+
 ## ⭐ A brand has a HOME market, and no control opens on US (2026-09-15)
 `region-context.js` (`home`, `options()`, `resolve()`), `brand-extract.js` → `homeMarket()`,
 `brand-runtime.homeRegion()`, gated by `tests/brand-regions.spec.js` (17 tests, executed). Live

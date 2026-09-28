@@ -40,13 +40,14 @@
     },
 
     "S2_brand_header": {
-      "logo_text": "KNICKGASM®",
+      "_note": "The wordmark, founded line and tagline come from the brand record. 'EST. 2015 · NEW DELHI, INDIA' and 'PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE' were a sibling brand's header with the noun swapped; the record carries no founded year, so no EST line is rendered.",
+      "logo_text": "KNICKGASM",
       "logo_font": "Montserrat, Georgia, serif",
       "logo_size": "28-36px bold",
       "logo_color": "#D0473E",
-      "est_line": "EST. 2015 · NEW DELHI, INDIA",
+      "est_line": "[DATA REQUIRED BEFORE LAUNCH: founded year, KNICKGASM] - omit the line until the record carries one",
       "est_style": "8.5px uppercase, letter-spacing 0.36em, #6A33D8",
-      "tagline": "PREMIUM INDIAN SNEAKERS · DIRECT FROM SOURCE",
+      "tagline": "India's Largest Sneaker Customisers",
       "background": "#ffffff"
     },
 

@@ -139,7 +139,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <main class="max-w-7xl mx-auto p-6 space-y-6">
 
   <!-- Program rules banner -->
-  <section class="card p-4">
+  <!-- These rules, with their pack prices, are one tenant's program. For any
+       other active brand the shell replaces them with the DATA REQUIRED marker
+       (brand-context.js gateShipped). -->
+  <section class="card p-4" data-shipped-for="knickgasm" data-shipped-label="program rules (UK engagement program)">
     <div class="label mb-2">Program rules (hard-coded)</div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] leading-relaxed text-ink-dim">
       <div class="p-3 bg-bg-card rounded-lg border border-lava/10"><b class="text-ink">Products &amp; Botanicals</b><br>One-time purchase only - no subscription language, ever.</div>
@@ -154,7 +157,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div>
         <div class="label">Market</div>
         <div class="flex gap-1.5 mt-2">
-          <button type="button" class="filter-chip active" disabled title="This program is UK-only (knickgasm.com)">UK</button>
+          <button type="button" class="filter-chip active" disabled title="This program is UK-only">UK</button>
         </div>
       </div>
       <div>
