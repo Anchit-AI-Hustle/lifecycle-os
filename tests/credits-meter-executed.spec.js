@@ -480,3 +480,53 @@ test('an operator price row overrides the catalogue for the charge, the receipt 
   expect(packs.find((p) => p.key === 'growth').price).toMatchObject({ configured: true, source: 'environment', currency: 'INR' });
   expect(res.payload.features.find((f) => f.key === 'mailer.generate')).toMatchObject({ cost: 7, overridden: true });
 });
+
+/* ═══ found by running it ═════════════════════════════════════════════════ */
+
+// The operator fulfilment op existed, read correctly, and could never be
+// reached: it sat behind requireUser(), which verifies the bearer against
+// /auth/v1/user, and then compared the SAME bearer to CRON_SECRET. No token
+// satisfies both. Every order that was not complimentary or self-serve stayed
+// `pending` for good. The operator now presents CRON_SECRET and no session.
+test('the operator confirms an off-platform payment with CRON_SECRET, exactly once, and a session cannot stand in for it', async () => {
+  const db = world();
+  const run = async (body, headers) => {
+    const res = makeRes();
+    await credits.handle(makeReq({ query: { op: 'fulfil' }, body, headers, method: 'POST' }), res);
+    return res;
+  };
+  const order = db.insert('credit_orders', { user_id: 'user-a', workspace_id: 'ws-a', pack_key: 'starter', credits: 500, status: 'pending', amount_minor: 49900, currency: 'INR' });
+  const asOperator = { authorization: `Bearer ${CRON}` };
+
+  let r = await run({ order_id: order.id, provider: 'bank_transfer', provider_ref: 'TXN-1' }, asOperator);
+  expect(r.code).toBe(200);
+  expect(r.payload).toMatchObject({ ok: true, credited: true, credits: 500 });
+  expect(order).toMatchObject({ status: 'paid', provider: 'bank_transfer', provider_ref: 'TXN-1' });
+  expect(wallet(db)).toMatchObject({ balance: 500, lifetime_granted: 500 });   // the purchase, not a welcome grant
+  expect(db.table('credit_ledger').map((l) => l.kind)).toEqual(['purchase']);
+  expect(db.calls.some((c) => c.url.includes('/auth/v1/user')), 'no session is looked up for an operator').toBe(false);
+
+  // Paid once: a retry, a webhook and an operator racing all land on the same row.
+  r = await run({ order_id: order.id, provider: 'bank_transfer', provider_ref: 'TXN-1' }, asOperator);
+  expect(r.payload.credited).toBe(false);
+  expect(r.payload.message).toMatch(/already fulfilled/i);
+  expect(wallet(db)).toMatchObject({ balance: 500 });
+
+  r = await run({ order_id: 'no-such-order' }, asOperator);
+  expect(r.code).toBe(404);
+  r = await run({ order_id: order.id }, { authorization: 'Bearer not-the-secret' });
+  expect(r.code).toBe(403);
+  r = await run({ order_id: order.id }, { authorization: `Bearer ${CRON}x` });
+  expect(r.code).toBe(403);
+  r = await run({ order_id: order.id }, {});
+  expect(r.code).toBe(403);
+  delete process.env.CRON_SECRET;
+  r = await run({ order_id: order.id }, { authorization: 'Bearer ' });
+  expect(r.code, 'no secret configured means nobody is the operator').toBe(403);
+  process.env.CRON_SECRET = CRON;
+
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  r = await run({ order_id: order.id }, asOperator);
+  expect(r.code).toBe(503);
+  expect(r.payload.error).toBe('credits_unavailable');
+});
