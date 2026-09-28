@@ -39,9 +39,13 @@
   <main class="lc-main">
     <div class="kicker">Lifecycle OS &middot; Music</div>
     <h1 class="text-[34px] font-bold leading-tight mt-1" style="color:#111111">Official Songs</h1>
-    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">KNICKGASM's own music beds, synthesized in-house (scripts/gen-brand-audio.py) so they are original and royalty-free for paid ads. Play a track here, or drop it straight into an ad creative, a Social Media OS video or a landing page. Everything is served natively from this site, no external player.</p>
+    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The brand's own music beds, synthesized in-house (scripts/gen-brand-audio.py) so they are original and royalty-free for paid ads. Play a track here, or drop it straight into an ad creative, a Social Media OS video or a landing page. Everything is served natively from this site, no external player.</p>
 
-    <section class="mt-8">
+    <!-- The tracks are tenant zero's own beds. For any other active brand the
+         shell replaces this section with the DATA REQUIRED marker
+         (brand-context.js gateShipped), the same rule as video-core.audioBedFor():
+         tenant zero's audio is never lent to another brand. -->
+    <section class="mt-8" data-shipped-for="knickgasm" data-shipped-label="brand music beds">
       <div class="kicker mb-2">Brand tracks</div>
       <hr class="divider mb-5">
 

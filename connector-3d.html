@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Spatial Store Connector · KNICKGASM</title>
-<meta name="description" content="Region-routed, Meta-lander-aware spatial storefront powered by the Knickgasm3DConnectorEngine.">
+<meta name="description" content="Region-routed, Meta-lander-aware spatial storefront powered by the 3D connector engine.">
 <style>
   @font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");font-display:swap;}
   :root{
@@ -70,10 +70,14 @@
 </style>
 </head>
 <body>
-  <div class="util" id="util">Region routing and Meta lander detection by the Knickgasm3DConnectorEngine</div>
-  <header class="brand"><img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
+  <div class="util" id="util">Region routing and Meta lander detection by the 3D connector engine</div>
+  <!-- The connector demo drives tenant zero's catalogue and store hosts. For any
+       other active brand the shell replaces it with the DATA REQUIRED marker
+       (brand-context.js gateShipped): one brand's store never appears under
+       another brand's name. -->
+  <header class="brand" data-shipped-for="knickgasm" data-shipped-label="storefront connector demo (logo)"><img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
 
-  <div class="wrap">
+  <div class="wrap" data-shipped-for="knickgasm" data-shipped-label="spatial store connector demo">
     <h1 id="headline">Spatial Store Connector</h1>
     <p class="lede" id="lede">One engine resolves your region, detects Meta Ads landers, sources the catalog Shopify first, and lays out either the full store or a friction stripped spatial checkout.</p>
 
@@ -173,7 +177,7 @@
       // Utility bar copy adapts to the resolved mode.
       document.getElementById('util').textContent = st.isMetaLander
         ? 'Meta lander detected. Global exploration removed for a single spatial checkout.'
-        : 'Region routing and Meta lander detection by the Knickgasm3DConnectorEngine';
+        : 'Region routing and Meta lander detection by the 3D connector engine';
 
       if(st.status === 'loading'){ main.innerHTML = skeleton(); return; }
       if(st.status === 'error'){ main.innerHTML = '<div class="err">Catalog could not be resolved from any source (Storefront API, products.json, or the built catalog JSON).</div>'; return; }

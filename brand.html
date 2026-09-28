@@ -128,8 +128,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <form id="form" hidden>
     <div class="card">
       <h2>Palette</h2>
-      <p class="hint">Exactly four colours. Sourced from the live knickgasm.com theme: red is the primary accent
-        (<code>--color-primary</code>), ink is text and primary buttons, white is the page background.</p>
+      <p class="hint">Exactly four colours, read from the brand's own live site: the primary accent, the secondary accent,
+        ink for text and primary buttons, and the page surface. Nothing here is another brand's starting point.</p>
       <div class="grid c4">
         <div>
           <label for="c-primary">Primary (accent)</label>
@@ -150,10 +150,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
       <div id="contrast"></div>
       <div class="preview" id="preview">
-        <div class="bar" id="pv-bar">KNICKGASM</div>
+        <div class="bar" id="pv-bar">Brand</div>
         <div class="body" id="pv-body">
-          Custom one-of-one customs on 100% original products.
-          <br><span class="cta" id="pv-cta">Shop the drop</span>
+          <span id="pv-copy">Your own copy, in your own palette.</span>
+          <br><span class="cta" id="pv-cta">Shop now</span>
         </div>
       </div>
     </div>
@@ -315,6 +315,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       body: (t.body && t.body.family) || 'Instrument Sans', bodyStack: (t.body && t.body.stack) || '',
     };
   }
+  /* The preview speaks as the brand being edited: its name in the bar, its
+     tagline or first claim as the copy. It used to be tenant zero's wordmark
+     over a sentence about tenant zero's products, for every brand. */
+  function paintPreviewCopy() {
+    var b = onboarded();
+    var bar = $('pv-bar'), copy = $('pv-copy');
+    if (bar) bar.textContent = (b && b.name) || 'Brand';
+    if (copy) {
+      var claims = (b && (b.claims || (b.brand_data && b.brand_data.claims))) || [];
+      copy.textContent = (b && (b.tagline || claims[0])) || 'Your own copy, in your own palette.';
+    }
+  }
+  try {
+    if (window.BrandContext && window.BrandContext.ready) window.BrandContext.ready().then(paintPreviewCopy, paintPreviewCopy);
+    window.addEventListener('brandcontext:change', paintPreviewCopy);
+  } catch (_) {}
   function fill(kit) {
     current = kit;
     var p = (kit && kit.palette) || {};
@@ -407,10 +423,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .then(function () {
         var p = collect().palette;
         var out = [];
-        var expect = ['#D0473E', '#6A33D8', '#111111', '#FFFFFF'];
-        var got = [p.primary, p.accent, p.text, p.bg];
+        // Against the ACTIVE brand's onboarded palette, never a fixed tenant's:
+        // a validator that hardcodes one tenant tells every other brand its own
+        // colours are wrong, which teaches the operator to ignore it.
+        var sd = seedPalette();
+        var expect = [sd.primary, sd.accent, sd.text, sd.bg].map(function (h) { return String(h || '').toUpperCase(); });
+        var got = [p.primary, p.accent, p.text, p.bg].map(function (h) { return String(h || '').toUpperCase(); });
         var matches = expect.filter(function (h) { return got.indexOf(h) !== -1; }).length;
-        out.push('<span class="chip">' + matches + '/4 colours match the live knickgasm.com theme</span>');
+        out.push('<span class="chip">' + matches + '/4 colours match the brand\'s onboarded palette</span>');
         if (matches < 4) {
           out.push('<span class="chip" style="color:#D0473E">Prompt block in api/_shared/master-prompt.js still pins the store palette - update it to match, or generated assets will drift from this page.</span>');
         }

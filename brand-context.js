@@ -53,6 +53,52 @@
   var SHIPPED_NAME_TEST = /\bKNICKGASM\b|\bKnickgasm\b/;
   var SHIPPED_ASSISTANT_TEST = /\bKicksGPT\b/;
   var NEUTRAL_TEST = /\bBrand (Assistant|Agent)\b/;
+  /* A sentence that carries a FACT is never renamed. The rename existed to fix
+     chrome ("KNICKGASM Mailer Studio"); applied to prose it turned one tenant's
+     facts into another's - "Rivals import airbrush; KNICKGASM owns it and is
+     already in ~1,000 Target stores" was shown to The Times of India as a claim
+     about itself. A number, a currency, a percentage, a claim of ownership or
+     presence, a legal suffix: any of these marks the node as a statement about
+     the shipped brand, and it stays exactly as shipped, where the cross-brand
+     sweep (tests/cross-brand-leak.spec.js) can see it and it gets fixed at its
+     source. The same refusal the URL guard below already applies. */
+  var FACT_TEST = /[$£₹€]\s?\d|\d\s?%|\b\d[\d,]{2,}\b|\b(owns?|stores?|founded|est\.|pvt\.?|ltd\.?|limited|inc\.?|headquartered|based in)\b/i;
+
+  /* Shipped material - the built catalogue, the 3D storefront, the audio beds,
+     the playbook, tenant zero's personas and product cohorts - was built from
+     ONE workspace's record and belongs to it. The rule is the server's
+     (brand-catalog-server.ownsBundledExport): another brand gets its own or
+     nothing, never the shipped one under a caveat. A page declares such a
+     section with data-shipped-for="<slug>" (and data-shipped-label="<what>"),
+     and it is replaced by the DATA REQUIRED marker for any other active brand. */
+  var SHIPPED_SLUG = 'knickgasm';
+  function isTenantZero(b) {
+    b = b || state.brand;
+    if (!b) return false;
+    if (b.is_default) return true;
+    return String(b.slug || '').toLowerCase() === SHIPPED_SLUG;
+  }
+  /* No brand at all (a signed-out preview) keeps the shipped default. */
+  function ownsShipped() { return !state.brand || isTenantZero(state.brand); }
+  function escText(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function gateShipped(brand) {
+    if (!brand || isTenantZero(brand)) return;
+    var slug = String(brand.slug || '').toLowerCase();
+    var name = brand.name || 'this brand';
+    var nodes;
+    try { nodes = document.querySelectorAll('[data-shipped-for]'); } catch (_) { return; }
+    nodes.forEach(function (el) {
+      if (el.getAttribute('data-shipped-gated') === '1') return;
+      var owner = String(el.getAttribute('data-shipped-for') || '').toLowerCase();
+      if (owner && owner === slug) return;
+      var what = el.getAttribute('data-shipped-label') || 'this material';
+      el.setAttribute('data-shipped-gated', '1');
+      el.innerHTML = '<div class="card p-5" data-shipped-marker style="border:1px solid var(--brand-line,#e5e5e5);border-radius:14px;padding:20px;background:var(--brand-surface-alt,#fff)">' +
+        '<div style="font-weight:700;margin-bottom:6px">' + escText(what) + ' is not on the record for ' + escText(name) + '</div>' +
+        '<p style="margin:0;line-height:1.6;font-size:13.5px">[DATA REQUIRED BEFORE LAUNCH: ' + escText(what) + ', ' + escText(name) + '.] ' +
+        'What shipped here was built from another workspace\'s own record and catalogue. This platform never shows one brand\'s material under another brand\'s name; add ' + escText(name) + '\'s own to populate it.</p></div>';
+    });
+  }
 
   /* The words a brand uses for the thing it sells and the person who takes it.
      The shipped copy was written for tenant zero, so pages said "sneakers",
@@ -898,6 +944,8 @@
           // Never rewrite anything that looks like a URL, host or identifier —
           // store links, CDN paths and env names must stay byte-exact.
           if (v.indexOf('://') >= 0 || /knickgasm\.(com|co|io|vercel)/i.test(v) || v.indexOf('_') >= 0) return NodeFilter.FILTER_REJECT;
+          // A statement of fact about the shipped brand is not chrome: leave it.
+          if (FACT_TEST.test(v)) return NodeFilter.FILTER_REJECT;
           // MUST use the non-global copies here. `.test()` on a /g regex
           // advances lastIndex, so testing consecutive matching nodes with the
           // shared global regexes would start the next test past the match and
@@ -923,6 +971,7 @@
 
     function run() {
       try { walk(document.body); } catch (e) { log(e); }
+      try { gateShipped(brand); } catch (e) { log(e); }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
@@ -1420,6 +1469,8 @@
     readinessFor: readinessFor,
     launchMarker: launchMarker,
     nouns: function (b) { return nounsFor(b || state.brand); },
+    isTenantZero: isTenantZero,
+    ownsShipped: ownsShipped,
     clearCache: clearCache,
     scopedKey: scoped,
     store: store,
