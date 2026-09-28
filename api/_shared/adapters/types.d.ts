@@ -110,8 +110,19 @@ export interface RefreshResult {
 
 export interface WebhookVerification {
   verified: boolean;
+  /** On refusal, a machine code: secret_missing | raw_body_unavailable | signature_header_missing | signature_mismatch | no_signature_scheme. */
+  reason?: string;
   note: string;
   event?: unknown;
+}
+
+/** The answer to a platform's GET verification request (Meta's hub.challenge handshake). */
+export interface ChallengeVerification {
+  ok: boolean;
+  reason?: string;
+  note?: string;
+  /** The value to send back as the response body, as text. */
+  challenge?: string;
 }
 
 export interface ChannelDescriptor {
@@ -146,7 +157,9 @@ export interface BasePlatformAdapter {
   validatePayload(channelId: string, payload: unknown): ValidationResult;
   dispatch(channelId: string, payload: unknown): Promise<DispatchResult>;
   fetchStatus(externalId: string): Promise<{ ok: boolean; status?: string; detail?: unknown }>;
-  verifyWebhook(headers: unknown, rawBody: string): WebhookVerification;
+  /** `rawBody` is the bytes that arrived (raw-body.js), never a re-serialisation of req.body. */
+  verifyWebhook(headers: unknown, rawBody: Buffer | string): WebhookVerification;
+  verifyChallenge(query: Record<string, string>): ChallengeVerification;
   gap(field: string, extra?: string): string;
 }
 
