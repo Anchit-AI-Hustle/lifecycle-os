@@ -547,8 +547,20 @@ a{color:var(--brand-primary-text,var(--knickgasm-green));}
       if(pl) pl.textContent="You are receiving this because you shopped with "+(name||"this brand")+". "+
         (legal||"[DATA REQUIRED BEFORE LAUNCH: registered postal address, active brand]");
 
+      // The shipped <img> is tenant zero's logo. Another brand's own logo replaces
+      // it; a brand with none on record gets its NAME as a text wordmark, never
+      // another company's mark under its footer.
+      var logoBtn=document.getElementById("brandLogo");
       var logo=document.querySelector("#brandLogo img");
+      var isZero=!brand||brand.is_default||String(brand.slug||"").toLowerCase()==="knickgasm";
+      if(logoBtn && name) logoBtn.setAttribute("aria-label",name+" home");
       if(logo && brand && brand.logo_url){ logo.src=brand.logo_url; logo.alt=name; }
+      else if(logo && brand && !isZero){
+        var mark=document.createElement("span");
+        mark.style.cssText="display:inline-block;font-family:var(--brand-font-heading,inherit);font-weight:800;letter-spacing:.12em;font-size:18px";
+        mark.textContent=name||"[DATA REQUIRED BEFORE LAUNCH: brand name]";
+        logo.replaceWith(mark);
+      }
     })
     .catch(function(){});
 
