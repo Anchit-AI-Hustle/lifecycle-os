@@ -11,9 +11,15 @@
  * that object is a different byte string from the one that was signed:
  * whitespace, key order and unicode escapes all change, and none of them
  * survive an HMAC. A verifier fed a re-serialisation passes or fails on
- * formatting luck rather than on who sent the request. (api/brain.js's
- * dispatch-webhook does exactly that today: `JSON.stringify(req.body)` is the
- * "raw" body it hands the Meta verifier. This module is the path it should use.)
+ * formatting luck rather than on who sent the request.
+ *
+ * WHO READS THROUGH IT. Two receivers, and they must stay the only two paths a
+ * signed body takes: payments-core.js's Stripe receiver
+ * (public-config.js ?action=payments&op=webhook, Stripe-Signature) and
+ * platform-webhooks.js behind api/brain.js ?action=dispatch-webhook (Meta's
+ * X-Hub-Signature-256). Until 2026-09-15 the latter handed its verifier
+ * `JSON.stringify(req.body)` - "{}" on a bare stream, a re-serialisation
+ * behind the helper - which is exactly the defect described above.
  *
  * HOW THE BYTES ARE STILL THERE. @vercel/node's request helper - the code that
  * populates req.body / req.query and adds res.status / res.json - reads the
@@ -35,7 +41,7 @@
  * ---------------------------------------------------------------------------
  */
 
-/** Stripe and the other gateways send events of a few KB; 1 MiB is generous. */
+/** Stripe events and Meta change notifications are a few KB; 1 MiB is generous. */
 const DEFAULT_MAX_BYTES = 1024 * 1024;
 /** On a serverless runtime the body is fully present before invocation. */
 const DEFAULT_TIMEOUT_MS = 10000;
