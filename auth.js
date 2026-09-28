@@ -1321,16 +1321,7 @@
       </div>`;
     }).join('');
 
-    const initials = user ? (user.user_metadata?.name || user.email || '?').trim().slice(0, 1).toUpperCase() : '';
-    const avatar = user
-      ? (user.user_metadata?.avatar_url
-          ? `<span class="lnav-avatar"><img src="${user.user_metadata.avatar_url}" alt=""></span>`
-          : `<span class="lnav-avatar">${initials}</span>`)
-      : '';
-    const userHtml = user
-      ? `<div class="lnav-user">${avatar}<span class="lnav-uname">${user.user_metadata?.name || user.email}</span>
-           <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
-      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/">Sign in</a></div>`;
+    const userHtml = railUserHtml(user);
 
     const wrap = document.createElement('div');
     wrap.id = 'lifecycle-nav';
@@ -1885,18 +1876,7 @@
     }
 
     // Sign-in / sign-out wiring
-    const signinBtn = wrap.querySelector('#lnav-signin');
-    if (signinBtn) signinBtn.onclick = async (e) => {
-      // Always handled here. The anchor's href="/" used to be the fallback for
-      // a deployment with no client at all, which sent an unconfigured
-      // deployment's visitor to the homepage instead of telling them why.
-      e.preventDefault();
-      const refusal = await signInRefusal();
-      if (!refusal) return;   // the browser is on its way to Google
-      showSignInRefusal(wrap, signinBtn, refusal);
-    };
-    const signoutBtn = wrap.querySelector('#lnav-signout');
-    if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
+    wireRailUser(wrap);
 
     // ── Collapse / expand the rail (icon-only), persisted across pages ──
     const COLLAPSE_KEY = 'lifecycle-nav-collapsed';
@@ -1918,6 +1898,69 @@
       try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch {}
       applyCollapsed(collapsed);
     });
+  }
+
+  // The user block at the foot of the rail: the account chip + sign-out when a
+  // session exists, a "Sign in" link otherwise. It is the ONLY part of the rail
+  // that depends on the session, which is why it can be swapped in place (see
+  // setRailUser) instead of the whole rail waiting for the session to resolve.
+  function railUserHtml(user) {
+    const initials = user ? (user.user_metadata?.name || user.email || '?').trim().slice(0, 1).toUpperCase() : '';
+    const avatar = user
+      ? (user.user_metadata?.avatar_url
+          ? `<span class="lnav-avatar"><img src="${user.user_metadata.avatar_url}" alt=""></span>`
+          : `<span class="lnav-avatar">${initials}</span>`)
+      : '';
+    return user
+      ? `<div class="lnav-user">${avatar}<span class="lnav-uname">${user.user_metadata?.name || user.email}</span>
+           <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
+      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/">Sign in</a></div>`;
+  }
+  function wireRailUser(root) {
+    const signinBtn = root.querySelector('#lnav-signin');
+    if (signinBtn) signinBtn.onclick = async (e) => {
+      // Always handled here. The anchor's href="/" used to be the fallback for
+      // a deployment with no client at all, which sent an unconfigured
+      // deployment's visitor to the homepage instead of telling them why.
+      e.preventDefault();
+      const refusal = await signInRefusal();
+      if (!refusal) return;   // the browser is on its way to Google
+      showSignInRefusal(root, signinBtn, refusal);
+    };
+    const signoutBtn = root.querySelector('#lnav-signout');
+    if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
+  }
+
+  /**
+   * THE RAIL IS MOUNTED BEFORE THE SESSION IS KNOWN, and this is how the session
+   * catches up with it.
+   *
+   * Measured on 2026-09-15 with the real supabase-js against an auth host that
+   * does not resolve (a PAUSED project) and the expired session such a browser
+   * still holds in localStorage: `getSession()` retries the token refresh with
+   * exponential backoff for the SDK's whole 30 s auto-refresh window and only
+   * then gives up, so the rail appeared after 25.6-25.8 s on every page
+   * measured (research, smart-brain, retention-playbook alike) and after
+   * 150-270 ms with no stored session. The pages were never at fault: init()
+   * awaited the session before calling injectTopbar(), so for ~25 s each page
+   * had NO navigation at all, and a screenshot taken in that window shows the
+   * content starting at the left edge. The user's own words: "lhs missing in
+   * most of the pages". Nothing in the rail needs the session except this one
+   * block, so the guest rail mounts first, synchronously, and this swaps the
+   * block when (if) a user arrives. Swapped IN PLACE rather than rebuilding the
+   * rail: injectTopbar() registers document/window listeners each time it runs,
+   * and a rebuild on every signed-in load would stack them.
+   */
+  function setRailUser(user) {
+    const nav = document.getElementById('lifecycle-nav');
+    if (!nav) { injectTopbar(user); return; }
+    const slot = nav.querySelector('.lnav-user');
+    if (!slot) return;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = railUserHtml(user);
+    const next = tmp.firstElementChild;
+    slot.replaceWith(next);
+    wireRailUser(nav);
   }
 
   // ─── Login wall — REMOVED ───────────────────────────────────────────
@@ -2407,6 +2450,15 @@
       },
     };
 
+    // THE RAIL FIRST, BEFORE ANY NETWORK. Every await below this line can take
+    // seconds (the config fetch) or tens of seconds (a session refresh against
+    // a host that does not resolve - see setRailUser), and none of them changes
+    // what the rail lists. Only the user block at its foot depends on the
+    // session, and setRailUser() swaps that in when the session is known. A
+    // page with no navigation for 25 s is a page whose features are gone for
+    // anyone who does not know the URLs.
+    injectTopbar(null);
+
     const config = await getConfig();
     if (!config) {
       // No Supabase configured. On localhost / file:// (dev preview) there is no
@@ -2417,7 +2469,7 @@
       const isLocal = location.protocol === 'file:' ||
         /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
       if (isLocal) {
-        injectTopbar({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
+        setRailUser({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
         setBackendState('local');
         return;
       }
@@ -2453,7 +2505,7 @@
       window.LifecycleAuth.user = session.user;
       applyAccessMode(session.user);
       setBackendState('signed-in');
-      injectTopbar(session.user);
+      setRailUser(session.user);
       restoreReturnTo();
       // Keep the Studio frictionless: only prompt for profile on the gated steps.
       if (!isOpenPage()) await maybeShowProfileModal(client, session.user);
@@ -2487,9 +2539,7 @@
         setBackendState('signed-in');
         removeSigningInOverlay();
         removeLoginWall();
-        const existing = document.getElementById('lifecycle-nav');
-        if (existing) existing.remove();   // rebuild so the guest "Sign in" becomes the user chip
-        injectTopbar(sess.user);
+        setRailUser(sess.user);   // the guest "Sign in" becomes the user chip, in place
         restoreReturnTo();
         if (!isOpenPage()) await maybeShowProfileModal(client, sess.user);
       } else {
