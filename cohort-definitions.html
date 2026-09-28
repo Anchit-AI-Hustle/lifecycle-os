@@ -106,7 +106,11 @@
     <div id="englevel"></div>
   </section>
 
-  <section class="panel" id="panel-product" role="tabpanel">
+  <!-- Product cohorts are defined over ONE tenant's assortment (its bases,
+       collections and purchase modes). For any other active brand the shell
+       replaces the panel with the DATA REQUIRED marker (brand-context.js
+       gateShipped); its product cohorts come from its own catalogue. -->
+  <section class="panel" id="panel-product" role="tabpanel" data-shipped-for="knickgasm" data-shipped-label="product cohorts">
     <h2>Product Cohorts</h2>
     <p class="lede">Grouped by what a customer buys: product category, finer collection, and purchase mode. This decides which world a message lives in and which cross-grade is natural. Products &amp; Botanicals are one-time only, Coffee and Supplements lead with subscription.</p>
     <div class="stage-h"><h3>By category</h3></div><div id="prod-cat"></div>
@@ -208,15 +212,15 @@ const STAGES = [
   { id:'lapsed',label:'Lapsed',desc:'Win-back, then a graceful sunset.' },
 ];
 const LIFECYCLE = [
-  {stage:'new',code:'NEW-00',name:'Prospect / Non-buyer',def:'On the list but no purchase yet. Engaged with email or site in the last 30 days.',audience:'Streetwear-curious browsers who signed up for a discount or guide and are still comparing. Trust not yet earned.',trigger:'First-order incentive plus origin story. Lead with freshness proof and a low-risk bestseller or sampler.'},
-  {stage:'new',code:'NEW-01',name:'First-Time Buyer (0 to 45 days)',def:'Exactly one order, placed within the last 45 days. Still inside the first repurchase window.',audience:'Just tried KNICKGASM for the first time. Forming an opinion on taste, freshness and crafting.',trigger:'Onboarding: how to lace-up, what to try next, a gentle second-order nudge before the box runs low.'},
+  {stage:'new',code:'NEW-00',name:'Prospect / Non-buyer',def:'On the list but no purchase yet. Engaged with email or site in the last 30 days.',audience:'Curious browsers who signed up for a discount or guide and are still comparing. Trust not yet earned.',trigger:'First-order incentive plus origin story. Lead with freshness proof and a low-risk bestseller or sampler.'},
+  {stage:'new',code:'NEW-01',name:'First-Time Buyer (0 to 45 days)',def:'Exactly one order, placed within the last 45 days. Still inside the first repurchase window.',audience:'Just tried the brand for the first time. Forming an opinion on quality and service.',trigger:'Onboarding: how to lace-up, what to try next, a gentle second-order nudge before the box runs low.'},
   {stage:'new',code:'NEW-02',name:'Second-Order Pending',def:'One order, 30 to 60 days old, no repeat yet, approaching the end of a typical pack.',audience:'Liked it enough to finish the pack but has not reordered. The make-or-break moment for retention.',trigger:'Replenishment reminder plus a small thank-you offer or free shipping to lock in the habit.'},
-  {stage:'active',code:'ACT-01',name:'Repeat / Habitual',def:'2 to 4 lifetime orders, last order within 60 days. Buying on a roughly regular cadence.',audience:'Has a go-to colorway and reorders it. Open to discovering one adjacent product at a time.',trigger:'Cross-sell the natural next ritual (kicks to embroidery, green to dunks) and introduce subscription savings.'},
+  {stage:'active',code:'ACT-01',name:'Repeat / Habitual',def:'2 to 4 lifetime orders, last order within 60 days. Buying on a roughly regular cadence.',audience:'Has a go-to favourite and reorders it. Open to discovering one adjacent product at a time.',trigger:'Cross-sell the natural next ritual (kicks to embroidery, green to dunks) and introduce subscription savings.'},
   {stage:'active',code:'ACT-02',name:'Growing Basket',def:'3 or more orders with rising AOV or items-per-order over the last 90 days.',audience:'Increasingly invested, trying multiple categories, gifting, exploring bundles.',trigger:'Bundles, design flights, and a free-shipping threshold pegged just above current AOV.'},
   {stage:'active',code:'ACT-03',name:'Subscriber / Auto-Replenish',def:'Holds an active subscription or recurring order.',audience:'Locked into a ritual and predictable revenue. Values consistency and a sense of membership.',trigger:'Retention-first: surprise upgrades, design rotation, easy skip and swap. Never hard-sell, protect churn.'},
   {stage:'vip',code:'VIP-01',name:'Loyal Core',def:'5 or more lifetime orders, last order within 75 days, consistent cadence.',audience:'Reliable repeat buyers who advocate by word of mouth. The backbone of revenue.',trigger:'Recognition, loyalty perks, and first look at new drops before the broader list.'},
-  {stage:'vip',code:'VIP-02',name:'High-Value VIP',def:'Top quintile by lifetime value or AOV well above brand average, active in the last 90 days.',audience:'Premium, gift-heavy, brand-loyal buyers. Care about quality, provenance and exclusivity over discounts.',trigger:'Early and exclusive access, limited one-of-one drops, concierge tone. Discounts are a last resort.'},
-  {stage:'risk',code:'RISK-01',name:'At-Risk Regular',def:'Previously regular (3 or more orders) but no order in 75 to 120 days, past their normal cycle.',audience:'A habitual buyer whose rhythm has slipped. Still warm, but cooling.',trigger:'Personalised "your colorway, restocked" nudge plus a modest, time-bound incentive before they fully lapse.'},
+  {stage:'vip',code:'VIP-02',name:'High-Value VIP',def:'Top quintile by lifetime value or AOV well above brand average, active in the last 90 days.',audience:'Premium, gift-heavy, brand-loyal buyers. Care about quality, provenance and exclusivity over discounts.',trigger:'Early and exclusive access, limited-run previews, concierge tone. Discounts are a last resort.'},
+  {stage:'risk',code:'RISK-01',name:'At-Risk Regular',def:'Previously regular (3 or more orders) but no order in 75 to 120 days, past their normal cycle.',audience:'A habitual buyer whose rhythm has slipped. Still warm, but cooling.',trigger:'Personalised "your favourite is back in stock" nudge plus a modest, time-bound incentive before they fully lapse.'},
   {stage:'risk',code:'RISK-02',name:'One-and-Done Stalling',def:'Single order, now 60 to 120 days old, no second purchase. Aging out of NEW.',audience:'Tried once, never returned. Either taste, price or timing missed.',trigger:'Reason-to-return: a different colorway recommendation, a clear offer, and a freshness reminder.'},
   {stage:'lapsed',code:'LAP-01',name:'Lapsed Buyer',def:'No order in 120 to 270 days. Previously purchased at least once.',audience:'Disengaged but not gone. Needs a strong, specific reason and a freshness reset.',trigger:'Win-back: new-drop news plus a meaningful offer (a clear percentage or a free sampler with order).'},
   {stage:'lapsed',code:'LAP-02',name:'Dormant / Churned',def:'No order in 270+ days and low email engagement. Effectively churned.',audience:'Cold. Treat as near-reacquisition, many will not return at any price.',trigger:'Final win-back sequence, then sunset. One bold offer or brand-story re-introduction, then reduce send frequency.'},
@@ -235,7 +239,7 @@ const RFM = [
   {code:'Lost',def:'Lowest recency and engagement, effectively churned.',use:'One bold re-introduction, then reduce frequency to protect deliverability.'},
 ];
 const BEHAVIORAL = [
-  {code:'VIP Collectors',def:'High-value buyers with a consistent collecting cadence.',use:'Provenance, one-of-one drops, membership tone.'},
+  {code:'VIP Collectors',def:'High-value buyers with a consistent collecting cadence.',use:'Provenance, limited drops, membership tone.'},
   {code:'Streetwear Seekers',def:'Drawn to street culture: themed art, limited drops, statement pairs.',use:'Artist stories and drop-culture framing.'},
   {code:'Kicks Loyalists',def:'Buy pairs repeatedly, strong design preference.',use:'Pair-first launches, artist provenance, crafting stories.'},
   {code:'Gift Buyers',def:'Purchase around occasions, higher AOV, seasonal spikes.',use:'Gift sets, bundles, occasion-timed sends.'},
@@ -245,7 +249,7 @@ const BEHAVIORAL = [
   {code:'Engaged Non-buyers',def:'Open and click within 90 days but have never purchased.',use:'First-purchase nudges, low-risk samplers, remove friction.'},
   {code:'Scuff-Resistant Seekers',def:'Prefer subtle art and protective finishes.',use:'Lead with scuff-resistant finishes and understated palettes. Never push loud statement pairs.'},
   {code:'Ready-to-Ship',def:'Buy ready-designed pairs over custom briefs.',use:'Speed and ease: in-stock designs, natural accessories cross-sell.'},
-  {code:'Authenticity-Driven',def:'Motivated by 100% original base sneakers and durable finishes.',use:'Authenticity proof, durability and care stories, repair over replace.'},
+  {code:'Authenticity-Driven',def:'Motivated by authenticity and durable finishes.',use:'Authenticity proof, durability and care stories, repair over replace.'},
 ];
 
 function renderEngagement(){

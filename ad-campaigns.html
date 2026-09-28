@@ -254,7 +254,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="list-head"><h3>New Google campaign</h3></div>
         <div class="ai-bar" data-surface="google">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
-          <textarea data-ai-prompt placeholder="e.g. Promote one-of-one Jordan First Flush at 25% off in the US, target product-curious buyers searching for premium custom"></textarea>
+          <textarea data-ai-prompt placeholder="e.g. Promote the hero offering at 25% off in the US, target lapsed buyers who browsed but did not buy"></textarea>
           <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
@@ -270,9 +270,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <label class="label">Keywords (comma-separated)</label>
         <input id="g-keywords" placeholder="jordan product, one of one product, premium black product">
         <label class="label">Headlines (one per line, ≤30 chars)</label>
-        <textarea id="g-headlines" placeholder="One-of-One Jordan&#10;Studio-Fresh in 72 Hours&#10;Shop the First Flush"></textarea>
+        <textarea id="g-headlines" placeholder="Headline one&#10;Headline two&#10;Headline three"></textarea>
         <label class="label">Descriptions (one per line, ≤90 chars)</label>
-        <textarea id="g-desc" placeholder="Custom, one-of-one products shipped within 72 hours of drop."></textarea>
+        <textarea id="g-desc" placeholder="What it is, who it is for, and what makes it different. Use only facts on the brand record."></textarea>
         <div class="cre" data-cre="g">
           <div class="cre-head">
             <span class="cre-title">🎨 Ad creatives</span>
@@ -480,19 +480,27 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(() => done(true), () => done(false)); return; } } catch (_) {}
     try { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true); } catch (_) { console.log(txt); done(false); }
   }
-  const BRAND_BLOCK = [
-    'BRAND RULES (strict — obey exactly):',
-    '- Palette, ONLY these four: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
-    "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
-    '- Voice: bold, energetic, confident and playful, never corporate. Prefer: custom, hand-painted, one-of-one, grail, colorway, drop, crafted, original.',
-    "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
-    '- KNICKGASM: India\'s largest sneaker customisers · one-of-one · hand-painted on 100% original base sneakers.'
-  ].join('\n');
+  // The brand block for the ad copywriter, from the ACTIVE brand's own record.
+  // It was six literals of tenant zero's palette, fonts, voice and claims, sent
+  // to the model for every workspace.
+  function BRAND_BLOCK() {
+    var b = activeBrand() || {};
+    var p = b.palette || {}, t = b.typography || {}, v = b.voice || {};
+    var claims = (b.claims || (b.brand_data && b.brand_data.claims) || []).filter(Boolean);
+    return [
+      'BRAND RULES (strict — obey exactly):',
+      '- Palette, ONLY these: primary ' + (p.primary || '[DATA REQUIRED BEFORE LAUNCH: palette]') + ', accent ' + (p.accent || '') + ', ink ' + (p.ink || '') + ', surface ' + (p.surface || '') + '.',
+      '- Headings: ' + ((t.heading && t.heading.stack) || '[DATA REQUIRED BEFORE LAUNCH: heading typeface]') + '. Body: ' + ((t.body && t.body.stack) || '[DATA REQUIRED BEFORE LAUNCH: body typeface]') + '.',
+      '- Voice: ' + (v.tone || '[DATA REQUIRED BEFORE LAUNCH: voice]') + (Array.isArray(v.preferred) && v.preferred.length ? ' Prefer: ' + v.preferred.join(', ') + '.' : ''),
+      (Array.isArray(v.banned) && v.banned.length ? '- NEVER use: ' + v.banned.join(', ') + '.' : '- NEVER use a phrase the brand record bans.'),
+      '- ' + brandName() + ': ' + (claims.length ? claims.join(' · ') : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, ' + brandName() + '] — state no proof, guarantee or credential.')
+    ].join('\n');
+  }
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft, fix them, and return ONLY the corrected final output.';
   function buildAdPrompt(ch, c) {
     const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' : 'TikTok';
     const market = c.market || 'US';
-    return 'ROLE: You are a senior paid-social/search creative director + performance copywriter for KNICKGASM.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK + '\n\n' + [
+    return 'ROLE: You are a senior paid-social/search creative director + performance copywriter for ' + brandName() + '.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK() + '\n\n' + [
       'Produce a scroll-stopping ' + platform + ' ad campaign package.',
       '',
       'CAMPAIGN BRIEF:',
@@ -504,7 +512,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       'DELIVER, clearly labelled:',
       '1) 3 headline options leading with the emotional end-state, never an ingredient list.',
       '2) Primary text / caption + a strong CTA, sized correctly for ' + platform + '.',
-      '3) An IMAGE-GENERATION PROMPT for a photoreal lifestyle scene: brand palette, gallery-print/8K sharpness, soft natural light; KNICKGASM box shows a lava botanical illustration only with NO readable lettering; NO logos, NO watermarks, NO garbled text.',
+      '3) An IMAGE-GENERATION PROMPT for a photoreal lifestyle scene: brand palette, gallery-print/8K sharpness, soft natural light; the product exactly as photographed, with NO readable lettering; NO logos, NO watermarks, NO garbled text.',
       '4) Which cohort/audience this is aimed at and why.',
       'OUTPUT: clean sections, ready to paste into the ' + platform + ' ad builder. No preamble.'
     ].filter(Boolean).join('\n') + SELF_CHECK;
@@ -654,7 +662,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const market = v(cfg.market) || 'US';
     const orient = ch === 't' ? 'vertical 9:16 mobile-first social composition' : 'clean centered composition';
     return [
-      'Ambient lifestyle backdrop for KNICKGASM premium sneaker — an atmospheric sneaker scene with NO product and NO packaging in frame.',
+      'Ambient lifestyle backdrop for ' + brandName() + ' — an atmospheric scene with NO product and NO packaging in frame.',
       'Market: ' + market + '.',
       'Show only: a freshly painted pair drying on a studio bench, taped panels and paint tools nearby, warm natural light, shallow depth of field.',
       'Brand palette accents: deep deep purple #D0473E, amber lava #6A33D8, chalk #FFFFFF.',

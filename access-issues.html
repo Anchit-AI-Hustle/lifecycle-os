@@ -223,7 +223,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   </div>
 
   <label class="fl">Business context (HR roster, agency list, contracts, departures), one line each: <code>email, team, sponsor, status</code></label>
-  <textarea id="hrNotes" placeholder="jane@knickgasm.com, Retention, A. Tandon, active&#10;dev@agency.com, External Agency (contract ended 2026-05), none, departed"></textarea>
+  <textarea id="hrNotes" placeholder="jane@example.com, Retention, A. Tandon, active&#10;dev@agency.com, External Agency (contract ended 2026-05), none, departed"></textarea>
 
   <div class="actions">
     <button type="button" class="btn btn-solid" id="runBtn">Run read-only audit</button>
@@ -708,20 +708,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   document.getElementById("sampleBtn").addEventListener("click", function () {
-    EV.users = parseCSV("User ID,Name,Login email,Account type,Status,2FA status,Role,Group,Store,Assignment date\n1,Anchit Tandon,anchit@knickgasm.com,Staff,Active,Enabled,Administrator,Leadership,us.myshopify.com,2024-01-10\n2,CS Agent,support@knickgasm.com,Staff,Active,Disabled,Customer Service;Manage apps,Support,us.myshopify.com,2025-03-01\n3,Old Dev,dev@agency.com,Collaborator,Active,Enabled,Developer,External,us.myshopify.com,2024-06-01\n3,Old Dev,dev@agency.com,Collaborator,Active,Enabled,Developer,External,uk.myshopify.com,2024-06-01\n4,Marketing Lead,mkt@knickgasm.com,Staff,Active,Enabled,Marketing;Payments,Marketing,us.myshopify.com,2025-02-01\n5,,info@knickgasm.com,Staff,Active,Disabled,Administrator,,us.myshopify.com,2023-09-01");
+    EV.users = parseCSV("User ID,Name,Login email,Account type,Status,2FA status,Role,Group,Store,Assignment date\n1,Anchit Tandon,owner@example.com,Staff,Active,Enabled,Administrator,Leadership,us.myshopify.com,2024-01-10\n2,CS Agent,support@example.com,Staff,Active,Disabled,Customer Service;Manage apps,Support,us.myshopify.com,2025-03-01\n3,Old Dev,dev@agency.com,Collaborator,Active,Enabled,Developer,External,us.myshopify.com,2024-06-01\n3,Old Dev,dev@agency.com,Collaborator,Active,Enabled,Developer,External,uk.myshopify.com,2024-06-01\n4,Marketing Lead,mkt@knickgasm.com,Staff,Active,Enabled,Marketing;Payments,Marketing,us.myshopify.com,2025-02-01\n5,,info@knickgasm.com,Staff,Active,Disabled,Administrator,,us.myshopify.com,2023-09-01");
     EV.roles = parseCSV("Role,Permission,App\nAdministrator,Manage users;Manage apps;Manage billing;Manage settings;Payments,All\nCustomer Service,View orders;Edit orders;View customers,Gorgias\nDeveloper,Edit themes;Manage apps;View orders,\nMarketing,View reports;Edit discounts,Klaviyo\nPayments,Manage payments;View payouts,");
     EV.apps = parseCSV("App,Developer,Owner,Purpose,Category,Permissions,Last activity,Plan,Monthly cost,Usage cost,External billed\nKlaviyo,Klaviyo,Marketing Lead,Email + SMS,email,read_customers;read_orders,2026-07-15,Growth,60,0,0\nGorgias,Gorgias,CS Agent,Helpdesk,support,read_customers;write_orders,2026-07-16,Basic,50,0,0\nJudge.me,Judgeme,,Reviews,reviews,read_products,2026-07-10,Free,0,0,0\nYotpo,Yotpo,,Reviews,reviews,read_customers;write_customers,2025-11-01,Premium,119,0,0\nOldFeed,Custom,,,,write_products;read_orders,2025-01-01,Pro,40,10,0\nTestApp Dev,,,,,read_products,never,Trial,0,0,0");
     document.querySelector('[data-loaded="users"]').textContent = "Sample users loaded.";
     document.querySelector('[data-loaded="roles"]').textContent = "Sample roles loaded.";
     document.querySelector('[data-loaded="apps"]').textContent = "Sample apps loaded.";
-    document.getElementById("hrNotes").value = "dev@agency.com, External Agency (contract ended 2026-05), none, departed\nanchit@knickgasm.com, Leadership, self, active";
+    document.getElementById("hrNotes").value = "dev@agency.com, External Agency (contract ended 2026-05), none, departed\nowner@example.com, Leadership, self, active";
     document.getElementById("runStatus").textContent = "Sample data loaded — click Run.";
   });
 
   document.getElementById("exportBtn").addEventListener("click", function () {
     if (!lastReport) return;
     var blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: "application/json" });
-    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "knickgasm-access-audit.json"; a.click();
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "access-audit.json"; a.click();
   });
   document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
 
