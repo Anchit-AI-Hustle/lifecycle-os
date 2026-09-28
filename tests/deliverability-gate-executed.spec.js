@@ -520,3 +520,38 @@ test('content links that all point away from the sending domain are a signal, an
   expect(on.signals.some((s) => /points away/.test(s.signal))).toBe(false);
   expect(on.links).toBe(4);
 });
+
+/* ═══ found by running it ═════════════════════════════════════════════════ */
+
+// checkBlocklists() tested `!a.records.length` and never `a.ok`, so a DNS
+// outage on the A lookup was reported as "No A record for <domain>" - a fact
+// about the domain, stated from a fact about us, the exact confusion the
+// module's own header says it refuses. And resolveRecord() promised to carry
+// the system resolver's error forward when DoH failed too, but dohQuery always
+// sets its own error, so `doh.error || sys.error` dropped the system code
+// every time.
+test('a blocklist check whose A lookup failed says so and never "no A record"; an unavailable record names the system resolver\'s error first', async () => {
+  zone(healthyZone(), { [D]: { code: 'ETIMEOUT', kind: 'A' } });
+  const bl = await deliver.checkBlocklists(D);
+  expect(bl).toMatchObject({ checked: false, listed: [], refused: [], ips: [] });
+  expect(bl.note).toMatch(/Could not look up the A record/);
+  expect(bl.note).toMatch(/ETIMEOUT/);
+  expect(bl.note).toMatch(/lookup failure, not a clean result/);
+  expect(bl.note).not.toMatch(/No A record/);
+  const out = await gate();
+  expect(checkOf(out, 'blocklist')).toMatchObject({ status: 'warn' });
+  expect(checkOf(out, 'blocklist').detail).not.toMatch(/No A record/);
+  expect(out.verdict).toBe('warn');
+
+  // The genuine absence is still reported as absence.
+  const noA = healthyZone();
+  delete noA[D].A;
+  zone(noA);
+  expect((await deliver.checkBlocklists(D)).note).toMatch(/No A record/);
+
+  // The system resolver's own error is the first thing named, then DoH's.
+  zone({}, { [`_dmarc.${D}`]: { code: 'ESERVFAIL' } });
+  const dmarc = await deliver.auditDmarc(D);
+  expect(dmarc.unavailable).toBe(true);
+  expect(dmarc.findings[0].message).toMatch(/Could not look up DMARC: ESERVFAIL for TXT _dmarc\.brand\.example\.test; Could not resolve TXT/);
+});
