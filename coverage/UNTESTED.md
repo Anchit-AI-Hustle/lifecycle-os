@@ -1,17 +1,17 @@
 # Untested lines — the map
 
-Generated 2026-09-15T04:57:11.244Z at commit `254e599` by `npm run coverage` (regenerate with `npm run coverage:report`; do not hand-edit). How it is measured, and what it cannot see: `docs/coverage.md`.
-Suite: `playwright test --project=desktop-1280 --project=pixel-5 --reporter=line` — exit 0, 391s.
+Generated 2026-09-28T19:04:25.557Z at commit `b8e14b4` by `npm run coverage` (regenerate with `npm run coverage:report`; do not hand-edit). How it is measured, and what it cannot see: `docs/coverage.md`.
+Suite: `playwright test --project=desktop-1280 --project=pixel-5 --reporter=line` — exit 1, 1342s.
 
 ## Totals
 
 | scope | files | lines | covered | uncovered | covered % |
 |---|---:|---:|---:|---:|---:|
-| Node-side modules (api/, lib/, scripts/lib/, root .js) — c8 | 169 | 69220 | 38136 | 31084 | 55.1% |
-| Inline `<script>` in root .html pages — Playwright JS coverage | 66 | 27092 | 11838 | 15254 | 43.7% |
-| **Combined** | 235 | 96312 | 49974 | 46338 | **51.9%** |
+| Node-side modules (api/, lib/, scripts/lib/, root .js) — c8 | 173 | 73119 | 44937 | 28182 | 61.5% |
+| Inline `<script>` in root .html pages — Playwright JS coverage | 67 | 29453 | 14564 | 14889 | 49.4% |
+| **Combined** | 240 | 102572 | 59501 | 43071 | **58%** |
 
-Browser attribution: 193 page flushes, 2377 script records → 1718 external-script hits on 16 files, 470 inline-block hits, 189 unattributed (27 distinct — listed at the end). External-script hits merged into the `node+browser` rows: analysis-registry.js, auth.js, brand-catalog.js, brand-context.js, brand-demo.js, chart-enhance.js, chat-history.js, credits.js, data-analysis-extensions.js, lifecycle-3d-connector-engine.js, motion.js, region-context.js, table-sort.js. Hits on files outside the c8 include scope (not rows here): assets/knickgasm3d-bridge.js, data/analytics/market-data.js, data/design-intelligence.js.
+Browser attribution: 362 page flushes, 4780 script records → 3266 external-script hits on 17 files, 1214 inline-block hits, 300 unattributed (39 distinct — listed at the end). External-script hits merged into the `node+browser` rows: agent-widget.js, analysis-registry.js, auth.js, brand-catalog.js, brand-context.js, brand-demo.js, chart-enhance.js, chat-history.js, credits.js, data-analysis-extensions.js, lifecycle-3d-connector-engine.js, motion.js, region-context.js, table-sort.js. Hits on files outside the c8 include scope (not rows here): assets/knickgasm3d-bridge.js, data/analytics/market-data.js, data/design-intelligence.js.
 
 ## Ranking
 
@@ -21,231 +21,236 @@ Browser attribution: 193 page flushes, 2377 script records → 1718 external-scr
 
 | # | file | kind | lines | covered | uncovered | uncovered % | w | score |
 |---:|---|---|---:|---:|---:|---:|---:|---:|
-| 1 | `lifecycle_mailer_architect_v34.html` | page | 8415 | 3010 | 5405 | 64.2% | 1 | 5405 |
-| 2 | `api/brain.js` | node | 1205 | 0 | 1205 | 100% | 2 | 2410 |
-| 3 | `api/ai/pipeline/html.js` | node | 1066 | 0 | 1066 | 100% | 2 | 2132 |
-| 4 | `dashboard.html` | page | 1989 | 402 | 1587 | 79.8% | 1 | 1587 |
-| 5 | `api/_shared/smart-brain-plan.js` | node | 2904 | 1601 | 1303 | 44.9% | 1 | 1303 |
+| 1 | `lifecycle_mailer_architect_v34.html` | page | 8551 | 3206 | 5345 | 62.5% | 1 | 5345 |
+| 2 | `api/ai/pipeline/html.js` | node | 1066 | 0 | 1066 | 100% | 2 | 2132 |
+| 3 | `api/brain.js` | node | 1226 | 310 | 916 | 74.7% | 2 | 1832 |
+| 4 | `dashboard.html` | page | 2077 | 513 | 1564 | 75.3% | 1 | 1564 |
+| 5 | `api/_shared/smart-brain-plan.js` | node | 2907 | 1601 | 1306 | 44.9% | 1 | 1306 |
 | 6 | `api/ai/generate.js` | node | 1045 | 435 | 610 | 58.4% | 2 | 1220 |
 | 7 | `api/competitor.js` | node | 560 | 0 | 560 | 100% | 2 | 1120 |
-| 8 | `api/_shared/brand-workspace-core.js` | node | 1910 | 892 | 1018 | 53.3% | 1 | 1018 |
-| 9 | `api/ai/pipeline/variant.js` | node | 485 | 0 | 485 | 100% | 2 | 970 |
-| 10 | `api/calendar.js` | node | 458 | 0 | 458 | 100% | 2 | 916 |
-| 11 | `api/_shared/social-core.js` | node | 881 | 0 | 881 | 100% | 1 | 881 |
-| 12 | `api/ai/pipeline/strategy.js` | node | 435 | 0 | 435 | 100% | 2 | 870 |
-| 13 | `api/kb.js` | node | 862 | 431 | 431 | 50% | 2 | 862 |
-| 14 | `api/_shared/telesuite-core.js` | node | 1132 | 335 | 797 | 70.4% | 1 | 797 |
-| 15 | `lifecycle-usa-d2c-dashboard.html` | page | 937 | 153 | 784 | 83.7% | 1 | 784 |
-| 16 | `api/_shared/dispatch-core.js` | node | 542 | 158 | 384 | 70.8% | 2 | 768 |
-| 17 | `api/_shared/brain-generate.js` | node | 830 | 98 | 732 | 88.2% | 1 | 732 |
-| 18 | `telesuite.html` | page | 818 | 95 | 723 | 88.4% | 1 | 723 |
-| 19 | `auth.js` | node+browser | 2436 | 2077 | 359 | 14.7% | 2 | 718 |
-| 20 | `api/_shared/oauth-core.js` | node | 515 | 174 | 341 | 66.2% | 2 | 682 |
-| 21 | `api/_shared/competitor-core.js` | node | 967 | 299 | 668 | 69.1% | 1 | 668 |
-| 22 | `api/_shared/lp-compiler.js` | node | 911 | 252 | 659 | 72.3% | 1 | 659 |
-| 23 | `ad-campaigns.html` | page | 965 | 312 | 653 | 67.7% | 1 | 653 |
-| 24 | `api/_shared/credits-core.js` | node | 736 | 420 | 316 | 42.9% | 2 | 632 |
-| 25 | `api/_shared/deliverability-core.js` | node | 764 | 454 | 310 | 40.6% | 2 | 620 |
-| 26 | `api/public-config.js` | node | 279 | 0 | 279 | 100% | 2 | 558 |
-| 27 | `api/_shared/workspace-connections-core.js` | node | 1141 | 877 | 264 | 23.1% | 2 | 528 |
-| 28 | `api/_shared/calendar-generate.js` | node | 523 | 0 | 523 | 100% | 1 | 523 |
-| 29 | `lib/smart-brain/services.js` | node | 1451 | 937 | 514 | 35.4% | 1 | 514 |
-| 30 | `api/ai/image.js` | node | 432 | 175 | 257 | 59.5% | 2 | 514 |
-| 31 | `publishing.html` | page | 371 | 122 | 249 | 67.1% | 2 | 498 |
-| 32 | `api/ai/pipeline/images.js` | node | 243 | 0 | 243 | 100% | 2 | 486 |
-| 33 | `api/_shared/lifecycle-mailer-build.js` | node | 481 | 0 | 481 | 100% | 1 | 481 |
-| 34 | `api/ai/pipeline/score.js` | node | 236 | 0 | 236 | 100% | 2 | 472 |
-| 35 | `smart-brain.html` | page | 1342 | 874 | 468 | 34.9% | 1 | 468 |
-| 36 | `api/_shared/lifecycle-calendar-generate.js` | node | 463 | 0 | 463 | 100% | 1 | 463 |
-| 37 | `onboarding.html` | page | 1555 | 1099 | 456 | 29.3% | 1 | 456 |
-| 38 | `api/_shared/adapters/klaviyo-adapter.js` | node | 490 | 262 | 228 | 46.5% | 2 | 456 |
-| 39 | `api/_shared/payments-core.js` | node | 1346 | 1118 | 228 | 16.9% | 2 | 456 |
-| 40 | `api/_shared/brain-agent.js` | node | 493 | 83 | 410 | 83.2% | 1 | 410 |
-| 41 | `api/_shared/calendar-trigger.js` | node | 781 | 374 | 407 | 52.1% | 1 | 407 |
-| 42 | `api/_shared/adapters/meta-adapter.js` | node | 505 | 302 | 203 | 40.2% | 2 | 406 |
-| 43 | `storefront-3d.html` | page | 507 | 112 | 395 | 77.9% | 1 | 395 |
-| 44 | `competitor-benchmarking.html` | page | 775 | 383 | 392 | 50.6% | 1 | 392 |
-| 45 | `api/_shared/brand-llm.js` | node | 660 | 273 | 387 | 58.6% | 1 | 387 |
-| 46 | `access-issues.html` | page | 468 | 89 | 379 | 81% | 1 | 379 |
-| 47 | `api/_shared/os-backbone.js` | node | 372 | 0 | 372 | 100% | 1 | 372 |
-| 48 | `copilot.js` | node | 359 | 0 | 359 | 100% | 1 | 359 |
-| 49 | `brand-connections.html` | page | 335 | 157 | 178 | 53.1% | 2 | 356 |
-| 50 | `api/_shared/social-push-core.js` | node | 173 | 0 | 173 | 100% | 2 | 346 |
-| 51 | `api/_shared/daily-calendar-core.js` | node | 413 | 73 | 340 | 82.3% | 1 | 340 |
-| 52 | `agent-widget.js` | node | 329 | 0 | 329 | 100% | 1 | 329 |
-| 53 | `api/_shared/ads-snowflake-core.js` | node | 760 | 433 | 327 | 43% | 1 | 327 |
-| 54 | `landing-pages.html` | page | 525 | 203 | 322 | 61.3% | 1 | 322 |
-| 55 | `api/_shared/brain-calendar.js` | node | 347 | 35 | 312 | 89.9% | 1 | 312 |
-| 56 | `api/_shared/kb-files.js` | node | 283 | 0 | 283 | 100% | 1 | 283 |
-| 57 | `api/_shared/video-core.js` | node | 447 | 164 | 283 | 63.3% | 1 | 283 |
-| 58 | `api/_shared/adapters/google-ads-adapter.js` | node | 331 | 191 | 140 | 42.3% | 2 | 280 |
-| 59 | `knowledge-base.html` | page | 514 | 235 | 279 | 54.3% | 1 | 279 |
-| 60 | `credits.js` | node+browser | 469 | 330 | 139 | 29.6% | 2 | 278 |
-| 61 | `api/_shared/reference-intel.js` | node | 479 | 204 | 275 | 57.4% | 1 | 275 |
-| 62 | `chart-enhance.js` | node+browser | 487 | 220 | 267 | 54.8% | 1 | 267 |
-| 63 | `api/_shared/lifecycle-cohorts.js` | node | 265 | 0 | 265 | 100% | 1 | 265 |
-| 64 | `lifecycle-3d-connector-engine.js` | node+browser | 673 | 418 | 255 | 37.9% | 1 | 255 |
-| 65 | `api/_shared/data-validation-core.js` | node | 251 | 0 | 251 | 100% | 1 | 251 |
-| 66 | `api/_shared/ci-collect.js` | node | 249 | 0 | 249 | 100% | 1 | 249 |
-| 67 | `api/_shared/revenue-analysis-core.js` | node | 352 | 106 | 246 | 69.9% | 1 | 246 |
-| 68 | `api/_shared/shopify-core.js` | node | 540 | 296 | 244 | 45.2% | 1 | 244 |
-| 69 | `calendar.html` | page | 534 | 296 | 238 | 44.6% | 1 | 238 |
-| 70 | `ads-dashboard.html` | page | 351 | 120 | 231 | 65.8% | 1 | 231 |
-| 71 | `ads-masterclass.html` | page | 223 | 0 | 223 | 100% | 1 | 223 |
-| 72 | `api/_shared/journey-core.js` | node | 348 | 126 | 222 | 63.8% | 1 | 222 |
-| 73 | `_sbtest.html` | page | 215 | 0 | 215 | 100% | 1 | 215 |
-| 74 | `api/_shared/snowflake-sync-core.js` | node | 207 | 0 | 207 | 100% | 1 | 207 |
-| 75 | `data-analysis.html` | page | 816 | 616 | 200 | 24.5% | 1 | 200 |
-| 76 | `lifecycle-usa-july-calendar-mailer-studio.html` | page | 199 | 0 | 199 | 100% | 1 | 199 |
-| 77 | `api/_shared/llm.js` | node | 776 | 583 | 193 | 24.9% | 1 | 193 |
-| 78 | `api/_shared/adapters/webengage-adapter.js` | node | 210 | 114 | 96 | 45.7% | 2 | 192 |
-| 79 | `api/_shared/asset-agent.js` | node | 190 | 0 | 190 | 100% | 1 | 190 |
-| 80 | `api/_shared/ad-metrics-catalog.js` | node | 183 | 0 | 183 | 100% | 1 | 183 |
-| 81 | `api/_shared/ads-live-core.js` | node | 308 | 125 | 183 | 59.4% | 1 | 183 |
-| 82 | `api/_shared/brand-context-pack.js` | node | 2163 | 1986 | 177 | 8.2% | 1 | 177 |
-| 83 | `social-media.html` | page | 297 | 124 | 173 | 58.2% | 1 | 173 |
-| 84 | `api/_shared/ci-subscriptions-core.js` | node | 171 | 0 | 171 | 100% | 1 | 171 |
-| 85 | `api/_shared/quality-loop.js` | node | 171 | 0 | 171 | 100% | 1 | 171 |
-| 86 | `api/_shared/competitive-benchmark-core.js` | node | 370 | 205 | 165 | 44.6% | 1 | 165 |
-| 87 | `assets.html` | page | 345 | 180 | 165 | 47.8% | 1 | 165 |
-| 88 | `api/_shared/preflight-core.js` | node | 250 | 168 | 82 | 32.8% | 2 | 164 |
-| 89 | `api/_shared/model-router.js` | node | 152 | 0 | 152 | 100% | 1 | 152 |
-| 90 | `api/_shared/agentic-orchestrator.js` | node | 182 | 32 | 150 | 82.4% | 1 | 150 |
-| 91 | `payments.html` | page | 399 | 324 | 75 | 18.8% | 2 | 150 |
-| 92 | `playbook.html` | page | 286 | 137 | 149 | 52.1% | 1 | 149 |
-| 93 | `api/_shared/alert-channels.js` | node | 173 | 33 | 140 | 80.9% | 1 | 140 |
-| 94 | `lifecycle-calendar.html` | page | 342 | 202 | 140 | 40.9% | 1 | 140 |
-| 95 | `api/_shared/brand-assets-core.js` | node | 139 | 0 | 139 | 100% | 1 | 139 |
-| 96 | `api/_shared/sync-core.js` | node | 250 | 112 | 138 | 55.2% | 1 | 138 |
-| 97 | `api/_shared/alerts-core.js` | node | 136 | 0 | 136 | 100% | 1 | 136 |
-| 98 | `api/_shared/landing-page-core.js` | node | 269 | 134 | 135 | 50.2% | 1 | 135 |
-| 99 | `api/_shared/data-analysis-core.js` | node | 410 | 278 | 132 | 32.2% | 1 | 132 |
-| 100 | `api/_shared/brain-analysis.js` | node | 256 | 126 | 130 | 50.8% | 1 | 130 |
-| 101 | `analysis-registry.js` | node+browser | 476 | 348 | 128 | 26.9% | 1 | 128 |
-| 102 | `api/_shared/lp-design-loop.js` | node | 181 | 53 | 128 | 70.7% | 1 | 128 |
-| 103 | `api/_shared/pagedeck-core.js` | node | 252 | 125 | 127 | 50.4% | 1 | 127 |
-| 104 | `api/_shared/webengage-core.js` | node | 197 | 75 | 122 | 61.9% | 1 | 122 |
-| 105 | `api/_shared/ads-insight-engine.js` | node | 282 | 161 | 121 | 42.9% | 1 | 121 |
-| 106 | `api/_shared/brain-core.js` | node | 263 | 143 | 120 | 45.6% | 1 | 120 |
-| 107 | `api/_shared/feature-agent.js` | node | 196 | 77 | 119 | 60.7% | 1 | 119 |
-| 108 | `api/_shared/brain-review.js` | node | 118 | 0 | 118 | 100% | 1 | 118 |
-| 109 | `api/_shared/adapters/base-adapter.js` | node | 422 | 363 | 59 | 14% | 2 | 118 |
-| 110 | `api/_shared/competitor-universe.js` | node | 846 | 729 | 117 | 13.8% | 1 | 117 |
-| 111 | `scripts/lib/ad-creative.js` | node | 117 | 0 | 117 | 100% | 1 | 117 |
-| 112 | `api/_shared/review-recovery.js` | node | 188 | 74 | 114 | 60.6% | 1 | 114 |
-| 113 | `credits.html` | page | 214 | 160 | 54 | 25.2% | 2 | 108 |
-| 114 | `api/_shared/brand-extract.js` | node | 2327 | 2220 | 107 | 4.6% | 1 | 107 |
-| 115 | `api/_shared/brand-reviews.js` | node | 499 | 394 | 105 | 21% | 1 | 105 |
-| 116 | `brand-context.js` | node+browser | 732 | 630 | 102 | 13.9% | 1 | 102 |
-| 117 | `api/_shared/ci-enrich.js` | node | 98 | 0 | 98 | 100% | 1 | 98 |
-| 118 | `api/_shared/adapters/extensible-crm.js` | node | 280 | 231 | 49 | 17.5% | 2 | 98 |
-| 119 | `brand-catalog.js` | node+browser | 245 | 153 | 92 | 37.6% | 1 | 92 |
-| 120 | `api/_shared/ads-sop-core.js` | node | 302 | 211 | 91 | 30.1% | 1 | 91 |
-| 121 | `sw.js` | node | 91 | 0 | 91 | 100% | 1 | 91 |
-| 122 | `api/_shared/connectors-health.js` | node | 89 | 0 | 89 | 100% | 1 | 89 |
-| 123 | `api/_shared/gif-core.js` | node | 89 | 0 | 89 | 100% | 1 | 89 |
-| 124 | `api/_shared/ci-funnel.js` | node | 87 | 0 | 87 | 100% | 1 | 87 |
-| 125 | `brand-demo.js` | node+browser | 247 | 160 | 87 | 35.2% | 1 | 87 |
-| 126 | `api/_shared/content-core.js` | node | 86 | 0 | 86 | 100% | 1 | 86 |
-| 127 | `kicksgpt.html` | page | 183 | 97 | 86 | 47% | 1 | 86 |
-| 128 | `api/_shared/agent-builder-core.js` | node | 302 | 219 | 83 | 27.5% | 1 | 83 |
-| 129 | `api/_shared/connector-check.js` | node | 83 | 0 | 83 | 100% | 1 | 83 |
-| 130 | `api/_shared/klaviyo-sync.js` | node | 83 | 0 | 83 | 100% | 1 | 83 |
-| 131 | `retention-playbook.html` | page | 128 | 46 | 82 | 64.1% | 1 | 82 |
-| 132 | `scripts/lib/landing-page.js` | node | 80 | 0 | 80 | 100% | 1 | 80 |
-| 133 | `api/_shared/ad-insights-core.js` | node | 252 | 173 | 79 | 31.3% | 1 | 79 |
-| 134 | `campaign.html` | page | 78 | 0 | 78 | 100% | 1 | 78 |
-| 135 | `api/_shared/motion-design.js` | node | 191 | 115 | 76 | 39.8% | 1 | 76 |
-| 136 | `table-sort.js` | node+browser | 216 | 140 | 76 | 35.2% | 1 | 76 |
-| 137 | `api/_shared/ci-email-bridge.js` | node | 75 | 0 | 75 | 100% | 1 | 75 |
-| 138 | `competitive-intelligence.html` | page | 119 | 44 | 75 | 63% | 1 | 75 |
-| 139 | `api/_shared/require-caller.js` | node | 130 | 93 | 37 | 28.5% | 2 | 74 |
-| 140 | `agent.html` | page | 246 | 175 | 71 | 28.9% | 1 | 71 |
-| 141 | `api/_shared/ci-offers.js` | node | 196 | 125 | 71 | 36.2% | 1 | 71 |
-| 142 | `api/_shared/scenario-model.js` | node | 538 | 468 | 70 | 13% | 1 | 70 |
-| 143 | `api/_shared/calendar-scenarios.js` | node | 95 | 30 | 65 | 68.4% | 1 | 65 |
-| 144 | `api/_shared/klaviyo-core.js` | node | 185 | 120 | 65 | 35.1% | 1 | 65 |
-| 145 | `data-engine.html` | page | 128 | 64 | 64 | 50% | 1 | 64 |
-| 146 | `api/_shared/platform-agents-core.js` | node | 350 | 289 | 61 | 17.4% | 1 | 61 |
-| 147 | `api/_shared/brain-kb.js` | node | 96 | 36 | 60 | 62.5% | 1 | 60 |
-| 148 | `premium-experience.html` | page | 251 | 191 | 60 | 23.9% | 1 | 60 |
-| 149 | `api/_shared/supa.js` | node | 155 | 125 | 30 | 19.4% | 2 | 60 |
-| 150 | `api/_shared/copy-frameworks.js` | node | 293 | 234 | 59 | 20.1% | 1 | 59 |
-| 151 | `data-analysis-extensions.js` | node+browser | 643 | 585 | 58 | 9% | 1 | 58 |
-| 152 | `api/_shared/creative-image.js` | node | 55 | 0 | 55 | 100% | 1 | 55 |
-| 153 | `api/_shared/calendar-export.js` | node | 350 | 299 | 51 | 14.6% | 1 | 51 |
-| 154 | `api/_shared/adapters/registry.js` | node | 135 | 112 | 23 | 17% | 2 | 46 |
-| 155 | `all-in-one.html` | page | 151 | 106 | 45 | 29.8% | 1 | 45 |
-| 156 | `api/_shared/brain-competitor.js` | node | 111 | 67 | 44 | 39.6% | 1 | 44 |
-| 157 | `api/_shared/offering-campaign.js` | node | 155 | 113 | 42 | 27.1% | 1 | 42 |
-| 158 | `terms.html` | page | 42 | 0 | 42 | 100% | 1 | 42 |
-| 159 | `api/_shared/brand-suggest.js` | node | 245 | 205 | 40 | 16.3% | 1 | 40 |
-| 160 | `daily-email-calendar.html` | page | 310 | 271 | 39 | 12.6% | 1 | 39 |
-| 161 | `api/_shared/ingest-guardrail.js` | node | 167 | 129 | 38 | 22.8% | 1 | 38 |
-| 162 | `brand.html` | page | 237 | 199 | 38 | 16% | 1 | 38 |
-| 163 | `privacy.html` | page | 37 | 0 | 37 | 100% | 1 | 37 |
-| 164 | `research.html` | page | 162 | 125 | 37 | 22.8% | 1 | 37 |
-| 165 | `api/_shared/brand-placeholder.js` | node | 51 | 15 | 36 | 70.6% | 1 | 36 |
-| 166 | `connectors.html` | page | 84 | 48 | 36 | 42.9% | 1 | 36 |
-| 167 | `api/_shared/mailer-format.js` | node | 115 | 80 | 35 | 30.4% | 1 | 35 |
-| 168 | `api/_shared/growth-os-core.js` | node | 1008 | 974 | 34 | 3.4% | 1 | 34 |
-| 169 | `api/_shared/output-reasoning.js` | node | 321 | 287 | 34 | 10.6% | 1 | 34 |
-| 170 | `api/_shared/mailer-design-strategy.js` | node | 117 | 86 | 31 | 26.5% | 1 | 31 |
-| 171 | `team.html` | page | 46 | 16 | 30 | 65.2% | 1 | 30 |
-| 172 | `api/_shared/agentic-ideation.js` | node | 41 | 13 | 28 | 68.3% | 1 | 28 |
-| 173 | `api/_shared/data-classification.js` | node | 80 | 52 | 28 | 35% | 1 | 28 |
-| 174 | `api/_shared/market-analytics.js` | node | 290 | 265 | 25 | 8.6% | 1 | 25 |
-| 175 | `api/_shared/calendar-guardrails.js` | node | 200 | 176 | 24 | 12% | 1 | 24 |
-| 176 | `music.html` | page | 63 | 39 | 24 | 38.1% | 1 | 24 |
-| 177 | `api/_shared/brand-runtime.js` | node | 396 | 373 | 23 | 5.8% | 1 | 23 |
-| 178 | `connector-3d.html` | page | 114 | 91 | 23 | 20.2% | 1 | 23 |
-| 179 | `api/_shared/credit-catalog.js` | node | 285 | 274 | 11 | 3.9% | 2 | 22 |
-| 180 | `api/_shared/brand-harvest.js` | node | 218 | 197 | 21 | 9.6% | 1 | 21 |
-| 181 | `api/_shared/asset-specs.js` | node | 197 | 179 | 18 | 9.1% | 1 | 18 |
-| 182 | `landing-page-agent.html` | page | 26 | 8 | 18 | 69.2% | 1 | 18 |
-| 183 | `motion.js` | node+browser | 121 | 103 | 18 | 14.9% | 1 | 18 |
-| 184 | `api/_shared/brand-catalog-server.js` | node | 445 | 430 | 15 | 3.4% | 1 | 15 |
-| 185 | `chat-history.js` | node+browser | 73 | 58 | 15 | 20.5% | 1 | 15 |
-| 186 | `api/_shared/cohort-engine.js` | node | 445 | 431 | 14 | 3.1% | 1 | 14 |
-| 187 | `api/_shared/site-crawl.js` | node | 634 | 627 | 7 | 1.1% | 2 | 14 |
-| 188 | `api/_shared/brand-facts.js` | node | 77 | 65 | 12 | 15.6% | 1 | 12 |
-| 189 | `api/_shared/domain-intel.js` | node | 305 | 294 | 11 | 3.6% | 1 | 11 |
-| 190 | `uk-non-engagers.html` | page | 99 | 89 | 10 | 10.1% | 1 | 10 |
-| 191 | `growth-os.html` | page | 402 | 393 | 9 | 2.2% | 1 | 9 |
-| 192 | `region-context.js` | node+browser | 465 | 456 | 9 | 1.9% | 1 | 9 |
-| 193 | `api/_shared/read-only-egress.js` | node | 63 | 59 | 4 | 6.3% | 2 | 8 |
-| 194 | `api/_shared/image-prompt.js` | node | 159 | 153 | 6 | 3.8% | 1 | 6 |
-| 195 | `api/_shared/master-prompt.js` | node | 412 | 406 | 6 | 1.5% | 1 | 6 |
-| 196 | `official-designs.html` | page | 25 | 19 | 6 | 24% | 1 | 6 |
-| 197 | `scripts/lib/flagship-mailer.js` | node | 138 | 134 | 4 | 2.9% | 1 | 4 |
-| 198 | `website-designs.html` | page | 17 | 14 | 3 | 17.6% | 1 | 3 |
-| 199 | `api/_shared/asset-contracts.js` | node | 521 | 519 | 2 | 0.4% | 1 | 2 |
-| 200 | `api/_shared/revenue-model.js` | node | 124 | 122 | 2 | 1.6% | 1 | 2 |
-| 201 | `app-audit.html` | page | 91 | 89 | 2 | 2.2% | 1 | 2 |
-| 202 | `api/_shared/ad-rows-core.js` | node | 205 | 204 | 1 | 0.5% | 1 | 1 |
-| 203 | `api/_shared/catalog-image.js` | node | 177 | 176 | 1 | 0.6% | 1 | 1 |
-| 204 | `avatars.html` | page | 94 | 93 | 1 | 1.1% | 1 | 1 |
-| 205 | `cohort-definitions.html` | page | 168 | 167 | 1 | 0.6% | 1 | 1 |
-| 206 | `data-analysis-contrast.html` | page | 1 | 0 | 1 | 100% | 1 | 1 |
-| 207 | `design-intelligence.html` | page | 28 | 27 | 1 | 3.6% | 1 | 1 |
-| 208 | `index.html` | page | 23 | 22 | 1 | 4.3% | 1 | 1 |
-| 209 | `mailer-discovery.html` | page | 1 | 0 | 1 | 100% | 1 | 1 |
-| 210 | `template-gallery.html` | page | 1 | 0 | 1 | 100% | 1 | 1 |
-| 211 | `api/_shared/ads-qa.js` | node | 94 | 94 | 0 | 0% | 1 | 0 |
-| 212 | `api/_shared/creative-evidence.js` | node | 274 | 274 | 0 | 0% | 1 | 0 |
-| 213 | `api/_shared/demo-mode.js` | node | 256 | 256 | 0 | 0% | 1 | 0 |
-| 214 | `api/_shared/evidence-policy.js` | node | 69 | 69 | 0 | 0% | 1 | 0 |
-| 215 | `api/_shared/jarvis.js` | node | 138 | 138 | 0 | 0% | 1 | 0 |
-| 216 | `api/_shared/kb-url.js` | node | 36 | 36 | 0 | 0% | 2 | 0 |
-| 217 | `api/_shared/landing-fallback.js` | node | 102 | 102 | 0 | 0% | 1 | 0 |
-| 218 | `api/_shared/live-connectors.js` | node | 33 | 33 | 0 | 0% | 2 | 0 |
-| 219 | `api/_shared/logo-brief.js` | node | 141 | 141 | 0 | 0% | 1 | 0 |
-| 220 | `api/_shared/offering-kinds.js` | node | 120 | 120 | 0 | 0% | 1 | 0 |
-| 221 | `api/_shared/request-scope.js` | node | 72 | 72 | 0 | 0% | 2 | 0 |
-| 222 | `api/_shared/rfm-core.js` | node | 135 | 135 | 0 | 0% | 1 | 0 |
-| 223 | `api/_shared/storefront-detect.js` | node | 426 | 426 | 0 | 0% | 2 | 0 |
-| 224 | `api/_shared/workspace-scope.js` | node | 310 | 310 | 0 | 0% | 2 | 0 |
-| 225 | `scripts/lib/motion-ad.js` | node | 379 | 379 | 0 | 0% | 1 | 0 |
+| 8 | `api/ai/pipeline/variant.js` | node | 485 | 0 | 485 | 100% | 2 | 970 |
+| 9 | `api/calendar.js` | node | 458 | 0 | 458 | 100% | 2 | 916 |
+| 10 | `api/_shared/brand-workspace-core.js` | node | 1940 | 1044 | 896 | 46.2% | 1 | 896 |
+| 11 | `api/ai/pipeline/strategy.js` | node | 435 | 0 | 435 | 100% | 2 | 870 |
+| 12 | `api/kb.js` | node | 862 | 431 | 431 | 50% | 2 | 862 |
+| 13 | `api/_shared/telesuite-core.js` | node | 1132 | 335 | 797 | 70.4% | 1 | 797 |
+| 14 | `lifecycle-usa-d2c-dashboard.html` | page | 937 | 153 | 784 | 83.7% | 1 | 784 |
+| 15 | `api/_shared/brain-generate.js` | node | 830 | 98 | 732 | 88.2% | 1 | 732 |
+| 16 | `api/_shared/social-core.js` | node | 881 | 168 | 713 | 80.9% | 1 | 713 |
+| 17 | `telesuite.html` | page | 876 | 194 | 682 | 77.9% | 1 | 682 |
+| 18 | `ad-campaigns.html` | page | 1024 | 347 | 677 | 66.1% | 1 | 677 |
+| 19 | `api/_shared/competitor-core.js` | node | 967 | 299 | 668 | 69.1% | 1 | 668 |
+| 20 | `api/_shared/lp-compiler.js` | node | 911 | 252 | 659 | 72.3% | 1 | 659 |
+| 21 | `publishing.html` | page | 428 | 150 | 278 | 65% | 2 | 556 |
+| 22 | `api/_shared/calendar-generate.js` | node | 538 | 0 | 538 | 100% | 1 | 538 |
+| 23 | `lib/smart-brain/services.js` | node | 1456 | 937 | 519 | 35.6% | 1 | 519 |
+| 24 | `api/ai/image.js` | node | 432 | 175 | 257 | 59.5% | 2 | 514 |
+| 25 | `auth.js` | node+browser | 2948 | 2694 | 254 | 8.6% | 2 | 508 |
+| 26 | `api/ai/pipeline/images.js` | node | 243 | 0 | 243 | 100% | 2 | 486 |
+| 27 | `api/_shared/lifecycle-mailer-build.js` | node | 481 | 0 | 481 | 100% | 1 | 481 |
+| 28 | `smart-brain.html` | page | 1425 | 949 | 476 | 33.4% | 1 | 476 |
+| 29 | `api/ai/pipeline/score.js` | node | 236 | 0 | 236 | 100% | 2 | 472 |
+| 30 | `api/_shared/payments-core.js` | node | 1593 | 1361 | 232 | 14.6% | 2 | 464 |
+| 31 | `api/_shared/lifecycle-calendar-generate.js` | node | 463 | 0 | 463 | 100% | 1 | 463 |
+| 32 | `api/_shared/brain-agent.js` | node | 493 | 83 | 410 | 83.2% | 1 | 410 |
+| 33 | `api/_shared/calendar-trigger.js` | node | 781 | 374 | 407 | 52.1% | 1 | 407 |
+| 34 | `access-issues.html` | page | 522 | 117 | 405 | 77.6% | 1 | 405 |
+| 35 | `brand-connections.html` | page | 387 | 185 | 202 | 52.2% | 2 | 404 |
+| 36 | `api/_shared/brand-llm.js` | node | 666 | 273 | 393 | 59% | 1 | 393 |
+| 37 | `copilot.js` | node | 359 | 0 | 359 | 100% | 1 | 359 |
+| 38 | `api/public-config.js` | node | 293 | 114 | 179 | 61.1% | 2 | 358 |
+| 39 | `landing-pages.html` | page | 601 | 255 | 346 | 57.6% | 1 | 346 |
+| 40 | `api/_shared/daily-calendar-core.js` | node | 413 | 73 | 340 | 82.3% | 1 | 340 |
+| 41 | `api/_shared/adapters/meta-adapter.js` | node | 546 | 380 | 166 | 30.4% | 2 | 332 |
+| 42 | `api/_shared/ads-snowflake-core.js` | node | 760 | 433 | 327 | 43% | 1 | 327 |
+| 43 | `competitor-benchmarking.html` | page | 863 | 540 | 323 | 37.4% | 1 | 323 |
+| 44 | `onboarding.html` | page | 1913 | 1595 | 318 | 16.6% | 1 | 318 |
+| 45 | `api/_shared/workspace-connections-core.js` | node | 1152 | 994 | 158 | 13.7% | 2 | 316 |
+| 46 | `api/_shared/brain-calendar.js` | node | 347 | 35 | 312 | 89.9% | 1 | 312 |
+| 47 | `knowledge-base.html` | page | 593 | 290 | 303 | 51.1% | 1 | 303 |
+| 48 | `api/_shared/os-backbone.js` | node | 375 | 86 | 289 | 77.1% | 1 | 289 |
+| 49 | `api/_shared/kb-files.js` | node | 283 | 0 | 283 | 100% | 1 | 283 |
+| 50 | `api/_shared/video-core.js` | node | 447 | 164 | 283 | 63.3% | 1 | 283 |
+| 51 | `api/_shared/reference-intel.js` | node | 479 | 204 | 275 | 57.4% | 1 | 275 |
+| 52 | `api/_shared/social-push-core.js` | node | 173 | 37 | 136 | 78.6% | 2 | 272 |
+| 53 | `chart-enhance.js` | node+browser | 487 | 220 | 267 | 54.8% | 1 | 267 |
+| 54 | `api/_shared/lifecycle-cohorts.js` | node | 265 | 0 | 265 | 100% | 1 | 265 |
+| 55 | `api/_shared/adapters/google-ads-adapter.js` | node | 331 | 200 | 131 | 39.6% | 2 | 262 |
+| 56 | `calendar.html` | page | 621 | 362 | 259 | 41.7% | 1 | 259 |
+| 57 | `lifecycle-3d-connector-engine.js` | node+browser | 673 | 418 | 255 | 37.9% | 1 | 255 |
+| 58 | `api/_shared/data-validation-core.js` | node | 251 | 0 | 251 | 100% | 1 | 251 |
+| 59 | `api/_shared/ci-collect.js` | node | 249 | 0 | 249 | 100% | 1 | 249 |
+| 60 | `api/_shared/revenue-analysis-core.js` | node | 352 | 106 | 246 | 69.9% | 1 | 246 |
+| 61 | `api/_shared/shopify-core.js` | node | 540 | 296 | 244 | 45.2% | 1 | 244 |
+| 62 | `_sbtest.html` | page | 234 | 0 | 234 | 100% | 1 | 234 |
+| 63 | `ads-masterclass.html` | page | 223 | 0 | 223 | 100% | 1 | 223 |
+| 64 | `api/_shared/journey-core.js` | node | 348 | 126 | 222 | 63.8% | 1 | 222 |
+| 65 | `storefront-3d.html` | page | 507 | 301 | 206 | 40.6% | 1 | 206 |
+| 66 | `payments.html` | page | 466 | 367 | 99 | 21.2% | 2 | 198 |
+| 67 | `api/_shared/llm.js` | node | 776 | 583 | 193 | 24.9% | 1 | 193 |
+| 68 | `api/_shared/adapters/webengage-adapter.js` | node | 210 | 114 | 96 | 45.7% | 2 | 192 |
+| 69 | `api/_shared/asset-agent.js` | node | 190 | 0 | 190 | 100% | 1 | 190 |
+| 70 | `assets.html` | page | 397 | 208 | 189 | 47.6% | 1 | 189 |
+| 71 | `api/_shared/ads-live-core.js` | node | 308 | 125 | 183 | 59.4% | 1 | 183 |
+| 72 | `api/_shared/brand-context-pack.js` | node | 2165 | 1988 | 177 | 8.2% | 1 | 177 |
+| 73 | `credits.js` | node+browser | 540 | 453 | 87 | 16.1% | 2 | 174 |
+| 74 | `social-media.html` | page | 297 | 124 | 173 | 58.2% | 1 | 173 |
+| 75 | `api/_shared/ci-subscriptions-core.js` | node | 171 | 0 | 171 | 100% | 1 | 171 |
+| 76 | `api/_shared/quality-loop.js` | node | 171 | 0 | 171 | 100% | 1 | 171 |
+| 77 | `api/_shared/competitive-benchmark-core.js` | node | 370 | 205 | 165 | 44.6% | 1 | 165 |
+| 78 | `lifecycle-calendar.html` | page | 394 | 230 | 164 | 41.6% | 1 | 164 |
+| 79 | `data-analysis.html` | page | 816 | 654 | 162 | 19.9% | 1 | 162 |
+| 80 | `credits.html` | page | 272 | 195 | 77 | 28.3% | 2 | 154 |
+| 81 | `api/_shared/snowflake-sync-core.js` | node | 207 | 54 | 153 | 73.9% | 1 | 153 |
+| 82 | `api/_shared/model-router.js` | node | 152 | 0 | 152 | 100% | 1 | 152 |
+| 83 | `api/_shared/agentic-orchestrator.js` | node | 182 | 32 | 150 | 82.4% | 1 | 150 |
+| 84 | `playbook.html` | page | 286 | 137 | 149 | 52.1% | 1 | 149 |
+| 85 | `scripts/lib/selfhost-compose.js` | node | 497 | 349 | 148 | 29.8% | 1 | 148 |
+| 86 | `agent-widget.js` | node+browser | 329 | 184 | 145 | 44.1% | 1 | 145 |
+| 87 | `api/_shared/webengage-core.js` | node | 197 | 55 | 142 | 72.1% | 1 | 142 |
+| 88 | `api/_shared/alert-channels.js` | node | 173 | 33 | 140 | 80.9% | 1 | 140 |
+| 89 | `api/_shared/adapters/klaviyo-adapter.js` | node | 491 | 421 | 70 | 14.3% | 2 | 140 |
+| 90 | `api/_shared/brand-assets-core.js` | node | 139 | 0 | 139 | 100% | 1 | 139 |
+| 91 | `api/_shared/landing-page-core.js` | node | 272 | 134 | 138 | 50.7% | 1 | 138 |
+| 92 | `api/_shared/sync-core.js` | node | 250 | 112 | 138 | 55.2% | 1 | 138 |
+| 93 | `api/_shared/data-analysis-core.js` | node | 410 | 278 | 132 | 32.2% | 1 | 132 |
+| 94 | `api/_shared/brain-analysis.js` | node | 256 | 126 | 130 | 50.8% | 1 | 130 |
+| 95 | `analysis-registry.js` | node+browser | 476 | 348 | 128 | 26.9% | 1 | 128 |
+| 96 | `api/_shared/lp-design-loop.js` | node | 181 | 53 | 128 | 70.7% | 1 | 128 |
+| 97 | `api/_shared/pagedeck-core.js` | node | 252 | 127 | 125 | 49.6% | 1 | 125 |
+| 98 | `ads-dashboard.html` | page | 407 | 284 | 123 | 30.2% | 1 | 123 |
+| 99 | `api/_shared/ads-insight-engine.js` | node | 282 | 161 | 121 | 42.9% | 1 | 121 |
+| 100 | `api/_shared/brain-core.js` | node | 263 | 144 | 119 | 45.2% | 1 | 119 |
+| 101 | `api/_shared/feature-agent.js` | node | 196 | 77 | 119 | 60.7% | 1 | 119 |
+| 102 | `api/_shared/competitor-universe.js` | node | 846 | 729 | 117 | 13.8% | 1 | 117 |
+| 103 | `scripts/lib/ad-creative.js` | node | 117 | 0 | 117 | 100% | 1 | 117 |
+| 104 | `api/_shared/review-recovery.js` | node | 188 | 74 | 114 | 60.6% | 1 | 114 |
+| 105 | `brand-context.js` | node+browser | 1435 | 1321 | 114 | 7.9% | 1 | 114 |
+| 106 | `api/_shared/platform-agents-core.js` | node | 350 | 242 | 108 | 30.9% | 1 | 108 |
+| 107 | `api/_shared/brand-extract.js` | node | 2913 | 2807 | 106 | 3.6% | 1 | 106 |
+| 108 | `api/_shared/brand-reviews.js` | node | 499 | 394 | 105 | 21% | 1 | 105 |
+| 109 | `api/_shared/ci-enrich.js` | node | 98 | 0 | 98 | 100% | 1 | 98 |
+| 110 | `api/_shared/adapters/extensible-crm.js` | node | 280 | 231 | 49 | 17.5% | 2 | 98 |
+| 111 | `lifecycle-usa-july-calendar-mailer-studio.html` | page | 199 | 102 | 97 | 48.7% | 1 | 97 |
+| 112 | `agent.html` | page | 298 | 203 | 95 | 31.9% | 1 | 95 |
+| 113 | `data-analysis-extensions.js` | node+browser | 704 | 609 | 95 | 13.5% | 1 | 95 |
+| 114 | `api/_shared/brain-review.js` | node | 118 | 24 | 94 | 79.7% | 1 | 94 |
+| 115 | `api/_shared/ads-sop-core.js` | node | 302 | 211 | 91 | 30.1% | 1 | 91 |
+| 116 | `sw.js` | node | 91 | 0 | 91 | 100% | 1 | 91 |
+| 117 | `api/_shared/connectors-health.js` | node | 89 | 0 | 89 | 100% | 1 | 89 |
+| 118 | `api/_shared/gif-core.js` | node | 89 | 0 | 89 | 100% | 1 | 89 |
+| 119 | `api/_shared/alerts-core.js` | node | 136 | 49 | 87 | 64% | 1 | 87 |
+| 120 | `api/_shared/ci-funnel.js` | node | 87 | 0 | 87 | 100% | 1 | 87 |
+| 121 | `api/_shared/content-core.js` | node | 86 | 0 | 86 | 100% | 1 | 86 |
+| 122 | `kicksgpt.html` | page | 183 | 97 | 86 | 47% | 1 | 86 |
+| 123 | `api/_shared/agent-builder-core.js` | node | 302 | 219 | 83 | 27.5% | 1 | 83 |
+| 124 | `api/_shared/connector-check.js` | node | 83 | 0 | 83 | 100% | 1 | 83 |
+| 125 | `api/_shared/klaviyo-sync.js` | node | 83 | 0 | 83 | 100% | 1 | 83 |
+| 126 | `brand-demo.js` | node+browser | 247 | 165 | 82 | 33.2% | 1 | 82 |
+| 127 | `retention-playbook.html` | page | 211 | 131 | 80 | 37.9% | 1 | 80 |
+| 128 | `scripts/lib/landing-page.js` | node | 80 | 0 | 80 | 100% | 1 | 80 |
+| 129 | `api/_shared/ad-insights-core.js` | node | 252 | 173 | 79 | 31.3% | 1 | 79 |
+| 130 | `api/_shared/motion-design.js` | node | 191 | 115 | 76 | 39.8% | 1 | 76 |
+| 131 | `brand-catalog.js` | node+browser | 245 | 169 | 76 | 31% | 1 | 76 |
+| 132 | `api/_shared/ci-email-bridge.js` | node | 75 | 0 | 75 | 100% | 1 | 75 |
+| 133 | `table-sort.js` | node+browser | 216 | 142 | 74 | 34.3% | 1 | 74 |
+| 134 | `api/_shared/require-caller.js` | node | 130 | 93 | 37 | 28.5% | 2 | 74 |
+| 135 | `competitive-intelligence.html` | page | 176 | 103 | 73 | 41.5% | 1 | 73 |
+| 136 | `all-in-one.html` | page | 206 | 134 | 72 | 35% | 1 | 72 |
+| 137 | `api/_shared/ci-offers.js` | node | 196 | 125 | 71 | 36.2% | 1 | 71 |
+| 138 | `brand.html` | page | 294 | 227 | 67 | 22.8% | 1 | 67 |
+| 139 | `api/_shared/calendar-scenarios.js` | node | 95 | 30 | 65 | 68.4% | 1 | 65 |
+| 140 | `api/_shared/klaviyo-core.js` | node | 185 | 120 | 65 | 35.1% | 1 | 65 |
+| 141 | `api/_shared/scenario-model.js` | node | 538 | 475 | 63 | 11.7% | 1 | 63 |
+| 142 | `connectors.html` | page | 139 | 76 | 63 | 45.3% | 1 | 63 |
+| 143 | `daily-email-calendar.html` | page | 390 | 327 | 63 | 16.2% | 1 | 63 |
+| 144 | `api/_shared/brain-kb.js` | node | 96 | 36 | 60 | 62.5% | 1 | 60 |
+| 145 | `api/_shared/supa.js` | node | 155 | 125 | 30 | 19.4% | 2 | 60 |
+| 146 | `api/_shared/ad-metrics-catalog.js` | node | 183 | 124 | 59 | 32.2% | 1 | 59 |
+| 147 | `api/_shared/copy-frameworks.js` | node | 293 | 234 | 59 | 20.1% | 1 | 59 |
+| 148 | `team.html` | page | 100 | 44 | 56 | 56% | 1 | 56 |
+| 149 | `campaign.html` | page | 110 | 56 | 54 | 49.1% | 1 | 54 |
+| 150 | `api/_shared/calendar-export.js` | node | 360 | 307 | 53 | 14.7% | 1 | 53 |
+| 151 | `api/_shared/brain-competitor.js` | node | 111 | 67 | 44 | 39.6% | 1 | 44 |
+| 152 | `api/_shared/offering-campaign.js` | node | 155 | 113 | 42 | 27.1% | 1 | 42 |
+| 153 | `landing-page-agent.html` | page | 78 | 36 | 42 | 53.8% | 1 | 42 |
+| 154 | `terms.html` | page | 42 | 0 | 42 | 100% | 1 | 42 |
+| 155 | `api/_shared/adapters/registry.js` | node | 135 | 114 | 21 | 15.6% | 2 | 42 |
+| 156 | `api/_shared/brand-suggest.js` | node | 245 | 205 | 40 | 16.3% | 1 | 40 |
+| 157 | `api/_shared/ingest-guardrail.js` | node | 167 | 129 | 38 | 22.8% | 1 | 38 |
+| 158 | `api/_shared/soft-error-detect.js` | node | 579 | 541 | 38 | 6.6% | 1 | 38 |
+| 159 | `uk-non-engagers.html` | page | 154 | 117 | 37 | 24% | 1 | 37 |
+| 160 | `api/_shared/brand-placeholder.js` | node | 51 | 15 | 36 | 70.6% | 1 | 36 |
+| 161 | `api/_shared/mailer-format.js` | node | 115 | 80 | 35 | 30.4% | 1 | 35 |
+| 162 | `api/_shared/growth-os-core.js` | node | 1008 | 974 | 34 | 3.4% | 1 | 34 |
+| 163 | `api/_shared/output-reasoning.js` | node | 321 | 287 | 34 | 10.6% | 1 | 34 |
+| 164 | `growth-os.html` | page | 460 | 427 | 33 | 7.2% | 1 | 33 |
+| 165 | `api/_shared/adapters/base-adapter.js` | node | 430 | 414 | 16 | 3.7% | 2 | 32 |
+| 166 | `api/_shared/mailer-design-strategy.js` | node | 117 | 86 | 31 | 26.5% | 1 | 31 |
+| 167 | `premium-experience.html` | page | 251 | 221 | 30 | 12% | 1 | 30 |
+| 168 | `api/_shared/creative-image.js` | node | 55 | 26 | 29 | 52.7% | 1 | 29 |
+| 169 | `data-engine.html` | page | 128 | 99 | 29 | 22.7% | 1 | 29 |
+| 170 | `api/_shared/agentic-ideation.js` | node | 41 | 13 | 28 | 68.3% | 1 | 28 |
+| 171 | `api/_shared/data-classification.js` | node | 80 | 52 | 28 | 35% | 1 | 28 |
+| 172 | `api/_shared/market-analytics.js` | node | 290 | 265 | 25 | 8.6% | 1 | 25 |
+| 173 | `api/_shared/calendar-guardrails.js` | node | 200 | 176 | 24 | 12% | 1 | 24 |
+| 174 | `music.html` | page | 63 | 39 | 24 | 38.1% | 1 | 24 |
+| 175 | `api/_shared/brand-catalog-server.js` | node | 445 | 422 | 23 | 5.2% | 1 | 23 |
+| 176 | `api/_shared/brand-runtime.js` | node | 418 | 395 | 23 | 5.5% | 1 | 23 |
+| 177 | `connector-3d.html` | page | 114 | 91 | 23 | 20.2% | 1 | 23 |
+| 178 | `research.html` | page | 235 | 212 | 23 | 9.8% | 1 | 23 |
+| 179 | `api/_shared/asset-specs.js` | node | 197 | 179 | 18 | 9.1% | 1 | 18 |
+| 180 | `motion.js` | node+browser | 121 | 103 | 18 | 14.9% | 1 | 18 |
+| 181 | `privacy.html` | page | 37 | 20 | 17 | 45.9% | 1 | 17 |
+| 182 | `chat-history.js` | node+browser | 73 | 58 | 15 | 20.5% | 1 | 15 |
+| 183 | `api/_shared/site-crawl.js` | node | 634 | 627 | 7 | 1.1% | 2 | 14 |
+| 184 | `api/_shared/brand-facts.js` | node | 77 | 65 | 12 | 15.6% | 1 | 12 |
+| 185 | `api/_shared/preflight-core.js` | node | 262 | 256 | 6 | 2.3% | 2 | 12 |
+| 186 | `api/_shared/domain-intel.js` | node | 305 | 294 | 11 | 3.6% | 1 | 11 |
+| 187 | `api/_shared/credit-catalog.js` | node | 285 | 280 | 5 | 1.8% | 2 | 10 |
+| 188 | `api/_shared/credits-core.js` | node | 766 | 761 | 5 | 0.7% | 2 | 10 |
+| 189 | `api/_shared/cohort-engine.js` | node | 445 | 437 | 8 | 1.8% | 1 | 8 |
+| 190 | `api/_shared/dispatch-core.js` | node | 543 | 539 | 4 | 0.7% | 2 | 8 |
+| 191 | `api/_shared/read-only-egress.js` | node | 63 | 59 | 4 | 6.3% | 2 | 8 |
+| 192 | `region-context.js` | node+browser | 538 | 531 | 7 | 1.3% | 1 | 7 |
+| 193 | `api/_shared/image-prompt.js` | node | 159 | 153 | 6 | 3.8% | 1 | 6 |
+| 194 | `api/_shared/master-prompt.js` | node | 415 | 409 | 6 | 1.4% | 1 | 6 |
+| 195 | `official-designs.html` | page | 25 | 19 | 6 | 24% | 1 | 6 |
+| 196 | `landing-pages/final/lp_all_in_one_agent_v2.html` | page | 19 | 14 | 5 | 26.3% | 1 | 5 |
+| 197 | `api/_shared/brand-harvest.js` | node | 235 | 231 | 4 | 1.7% | 1 | 4 |
+| 198 | `scripts/lib/flagship-mailer.js` | node | 138 | 134 | 4 | 2.9% | 1 | 4 |
+| 199 | `api/_shared/deliverability-core.js` | node | 782 | 780 | 2 | 0.3% | 2 | 4 |
+| 200 | `api/_shared/platform-webhooks.js` | node | 112 | 109 | 3 | 2.7% | 1 | 3 |
+| 201 | `website-designs.html` | page | 17 | 14 | 3 | 17.6% | 1 | 3 |
+| 202 | `api/_shared/asset-contracts.js` | node | 521 | 519 | 2 | 0.4% | 1 | 2 |
+| 203 | `api/_shared/revenue-model.js` | node | 124 | 122 | 2 | 1.6% | 1 | 2 |
+| 204 | `app-audit.html` | page | 91 | 89 | 2 | 2.2% | 1 | 2 |
+| 205 | `api/_shared/ad-rows-core.js` | node | 205 | 204 | 1 | 0.5% | 1 | 1 |
+| 206 | `api/_shared/catalog-image.js` | node | 177 | 176 | 1 | 0.6% | 1 | 1 |
+| 207 | `avatars.html` | page | 94 | 93 | 1 | 1.1% | 1 | 1 |
+| 208 | `cohort-definitions.html` | page | 168 | 167 | 1 | 0.6% | 1 | 1 |
+| 209 | `data-analysis-contrast.html` | page | 1 | 0 | 1 | 100% | 1 | 1 |
+| 210 | `design-intelligence.html` | page | 28 | 27 | 1 | 3.6% | 1 | 1 |
+| 211 | `index.html` | page | 23 | 22 | 1 | 4.3% | 1 | 1 |
+| 212 | `mailer-discovery.html` | page | 1 | 0 | 1 | 100% | 1 | 1 |
+| 213 | `api/_shared/ads-qa.js` | node | 94 | 94 | 0 | 0% | 1 | 0 |
+| 214 | `api/_shared/creative-evidence.js` | node | 274 | 274 | 0 | 0% | 1 | 0 |
+| 215 | `api/_shared/demo-mode.js` | node | 256 | 256 | 0 | 0% | 1 | 0 |
+| 216 | `api/_shared/evidence-policy.js` | node | 69 | 69 | 0 | 0% | 1 | 0 |
+| 217 | `api/_shared/jarvis.js` | node | 138 | 138 | 0 | 0% | 1 | 0 |
+| 218 | `api/_shared/kb-url.js` | node | 36 | 36 | 0 | 0% | 2 | 0 |
+| 219 | `api/_shared/landing-fallback.js` | node | 102 | 102 | 0 | 0% | 1 | 0 |
+| 220 | `api/_shared/live-connectors.js` | node | 33 | 33 | 0 | 0% | 2 | 0 |
+| 221 | `api/_shared/logo-brief.js` | node | 141 | 141 | 0 | 0% | 1 | 0 |
+| 222 | `api/_shared/oauth-core.js` | node | 557 | 557 | 0 | 0% | 2 | 0 |
+| 223 | `api/_shared/offering-kinds.js` | node | 120 | 120 | 0 | 0% | 1 | 0 |
+| 224 | `api/_shared/raw-body.js` | node | 108 | 108 | 0 | 0% | 1 | 0 |
+| 225 | `api/_shared/request-scope.js` | node | 72 | 72 | 0 | 0% | 2 | 0 |
+| 226 | `api/_shared/rfm-core.js` | node | 135 | 135 | 0 | 0% | 1 | 0 |
+| 227 | `api/_shared/storefront-detect.js` | node | 458 | 458 | 0 | 0% | 2 | 0 |
+| 228 | `api/_shared/workspace-scope.js` | node | 310 | 310 | 0 | 0% | 2 | 0 |
+| 229 | `scripts/lib/motion-ad.js` | node | 379 | 379 | 0 | 0% | 1 | 0 |
+| 230 | `template-gallery.html` | page | 1 | 1 | 0 | 0% | 1 | 0 |
 
 10 tracked root pages carry no inline `<script>` block and have nothing to measure here (their behaviour lives in the shared root scripts above): `about.html`, `ad-campaigns-master.html`, `coffee-collection-landing-no-agent.html`, `coffee-collection-landing-with-agent.html`, `diff-version.html`, `frameworks.html`, `knickgasm-grail-drop-presell-v5-variantA.html`, `knickgasm-grail-drop-presell-v5-variantB.html`, `knickgasm-lifecycle-campaign-from-the-30-d-us-variantB.html`, `styleguide.html`.
 
@@ -253,177 +258,223 @@ Browser attribution: 193 page flushes, 2377 script records → 1718 external-scr
 
 One row per contiguous uncovered run of 3+ lines, in file order (capped at 45 per file; runs of 1–2 lines are summarised beneath). The note names the innermost enclosing function from V8's own function ranges; when the run is only part of that function, the first line of code in the run is quoted so the branch can be found without re-deriving it. Line numbers are 1-based and refer to the file at the commit above.
 
-### 1. `lifecycle_mailer_architect_v34.html` — 5405 uncovered of 8415 (64.2%), weight 1, score 5405
+### 1. `lifecycle_mailer_architect_v34.html` — 5345 uncovered of 8551 (62.5%), weight 1, score 5345
 
-Inline blocks: 4 of 4 executed by at least one test.
-
-| lines | note |
-|---|---|
-| L1410–1412 | in `getSupabase()`: `console.warn('[Supabase] SDK not loaded — check internet / CDN access');` |
-| L1414–1421 | in `getSupabase()`: `console.warn('[Supabase] Config still has placeholders — fill in url + anonKey');` |
-| L1571–1583 | `_resolveTables()` never called |
-| L1589–1609 | `supabaseSaveCampaign()` never called |
-| L1611–1619 | `supabaseFetchCampaigns()` never called |
-| L1621–1629 | `supabaseUpsertUser()` never called |
-| L1636–1653 | `runKnickgasmTests()` never called, also `_eq()`, `_truthy()` |
-| L1660–1682 | `statusPill()` never called |
-| L1690–1701 | in `loadKnowledgeBase()`: `try{` |
-| L1707–1711 | `kbPalette()` never called, also `kbTypography()`, `kbMarket()`, `kbProductsForMarket()`, `kbCollections()` |
-| L1714–1728 | `buildClaudeSystemPromptFromKB()` never called |
-| L1733–1745 | `_dataUrlToBlob()` never called, also `_publicStorageUrl()` |
-| L1747–1775 | `supabaseUploadImage()` never called |
-| L1779–1792 | `supabaseHostImageMatrix()` never called |
-| L1812–1820 | in `pdpUrl()`: `var found=CAT.find(function(c){return c.n===name;});` |
-| L1850–1852 | in `collectionUrl()`: `var t=detectType(p);` |
-| L1870–1873 | `goBack()` never called |
-| L2015–2040 | `toggleProd()` never called |
-| L2074–2091 | `activateAutoPick()` never called, also `clearSel()` |
-| L2102–2138 | `selectType()` never called |
-| L2173–2179 | in `_doAutoUpdateChips()`: `document.querySelectorAll('.mkt-chip').forEach(function(b){` |
-| L2254–2266 | `toggleMarket()` never called |
-| L2270–2274 | `_getApiHeaders()` never called |
-| L2289–2292 | in `_updateSmartAIBtn()`: `btn.innerHTML='&#127775; Create Brief with AI';` |
-| L2323–2328 | in `brandPaletteCheck()`: `if(!/<\/html>/i.test(html)){err(label+' HTML missing closing </html> tag.');}` |
-| L2333–2339 | in `brandPaletteCheck()`: `var ALLOWED={'#fff':1,'#ffffff':1,'#000':1,'#000000':1};` |
-| L2346–2348 | in `brandPaletteCheck()`: `var softBad=off.filter(function(h){return hardBad.indexOf(h)<0;});` |
-| L2356–2358 | in `brandPaletteCheck()`: `if(!/(SHOP\|ADD TO CART\|CLAIM\|EXPLORE\|BEGIN\|READ\|MEET\|CURATE\|TRY\|BUILD)/i.test(html)){warn(label…` |
-| L2368–2402 | `gateFinalOutput()` never called, also `_focusFeedbackForRegen()` |
-| L2404–2430 | `clearAndCreate()` never called |
-| L2435–2472 | `generateAudienceWithAI()` never called |
-| L2489–2491 | `smartAIBrief()` never called |
-| L2493–2661 | `createPromptWithAI()` never called |
-| L2664–2694 | `enhancePrompt()` never called, also `updatePromptPlaceholder()` |
-| L2696–2800 | `buildEnhancedPrompt()` never called |
-| L2804–2816 | `toggleSuggestedPrompts()` never called |
-| L2851–2896 | `renderSuggestedPrompts()` never called, also `useSuggestedPromptByIdx()` |
-| L2899–2927 | `renderMarketTabs()` never called |
-| L2929–2946 | `_resolveMailerHtml()` never called, also `downloadMarketMailer()` |
-| L2949–2954 | in `window.previewMailerInModal()`: `_ensureMailerBuilt&&_ensureMailerBuilt(mkt,S.activeVariant\|\|'A');` |
-| L2958–2982 | in `window.viewMarketHtml()`: `_ensureMailerBuilt&&_ensureMailerBuilt(mkt,S.activeVariant\|\|'A');` |
-| L2984–3000 | `showMarketMailer()` never called |
-| L3030–3042 | `showValidErr()` never called |
-| L3097–3112 | `go3()` never called |
-| L3160–3166 | `_getReviewList()` never called |
-| … | 107 more runs of 3+ lines not listed — see `coverage/lcov.info` |
-| short runs | 32 runs of 1–2 lines: L694, L1319–1320, L1408, L1796, L1894–1895, L1903, L1934, L1965–1966, L1975, L2004–2005, L2064–2065, L3054–3055, L3276, L3528–3529, L3531–3532, L3555, L3563–3564, L3599–3600, L3602–3603, L3605, L3853, L3897–3898, L4323, L6223–6224, L6784, L6929–6930, L9365–9366, L9542, L9584–9585, L9659–9660, L9679, L9694 |
-
-### 2. `api/brain.js` — 1205 uncovered of 1205 (100%), weight 2, score 2410
+Inline blocks: 5 of 5 executed by at least one test.
 
 | lines | note |
 |---|---|
-| L1–1205 | never loaded by any test — top-level: core, kb, analysis, competitor, calendar, generate, review, agents, jarvis, agentic, calendarScenarios, smartbrain, brandLlm, klaviyo … (+14 more) |
+| L20–22 | in `sentence()`: `var s = String((e && (e.message \|\| e.error)) \|\| e \|\| '').trim();` |
+| L24–37 | in `html()`: `var d = document.createElement('div');` |
+| L48–51 | in `show()`: `if (!el) return;` |
+| L1467–1469 | in `getSupabase()`: `console.warn('[Supabase] SDK not loaded — check internet / CDN access');` |
+| L1471–1478 | in `getSupabase()`: `console.warn('[Supabase] Config still has placeholders — fill in url + anonKey');` |
+| L1628–1640 | `_resolveTables()` never called |
+| L1646–1666 | `supabaseSaveCampaign()` never called |
+| L1668–1676 | `supabaseFetchCampaigns()` never called |
+| L1678–1686 | `supabaseUpsertUser()` never called |
+| L1693–1710 | `runKnickgasmTests()` never called, also `_eq()`, `_truthy()` |
+| L1717–1739 | `statusPill()` never called |
+| L1747–1758 | in `loadKnowledgeBase()`: `try{` |
+| L1764–1768 | `kbPalette()` never called, also `kbTypography()`, `kbMarket()`, `kbProductsForMarket()`, `kbCollections()` |
+| L1771–1785 | `buildClaudeSystemPromptFromKB()` never called |
+| L1790–1802 | `_dataUrlToBlob()` never called, also `_publicStorageUrl()` |
+| L1804–1832 | `supabaseUploadImage()` never called |
+| L1836–1849 | `supabaseHostImageMatrix()` never called |
+| L1869–1877 | in `pdpUrl()`: `var found=CAT.find(function(c){return c.n===name;});` |
+| L1907–1909 | in `collectionUrl()`: `var t=detectType(p);` |
+| L1927–1930 | `goBack()` never called |
+| L2072–2097 | `toggleProd()` never called |
+| L2131–2148 | `activateAutoPick()` never called, also `clearSel()` |
+| L2159–2195 | `selectType()` never called |
+| L2232–2238 | in `_doAutoUpdateChips()`: `document.querySelectorAll('.mkt-chip').forEach(function(b){` |
+| L2384–2388 | `_getApiHeaders()` never called |
+| L2403–2406 | in `_updateSmartAIBtn()`: `btn.innerHTML='&#127775; Create Brief with AI';` |
+| L2437–2442 | in `brandPaletteCheck()`: `if(!/<\/html>/i.test(html)){err(label+' HTML missing closing </html> tag.');}` |
+| L2447–2453 | in `brandPaletteCheck()`: `var ALLOWED={'#fff':1,'#ffffff':1,'#000':1,'#000000':1};` |
+| L2460–2462 | in `brandPaletteCheck()`: `var softBad=off.filter(function(h){return hardBad.indexOf(h)<0;});` |
+| L2470–2472 | in `brandPaletteCheck()`: `if(!/(SHOP\|ADD TO CART\|CLAIM\|EXPLORE\|BEGIN\|READ\|MEET\|CURATE\|TRY\|BUILD)/i.test(html)){warn(label…` |
+| L2482–2516 | `gateFinalOutput()` never called, also `_focusFeedbackForRegen()` |
+| L2518–2544 | `clearAndCreate()` never called |
+| L2549–2586 | `generateAudienceWithAI()` never called |
+| L2603–2605 | `smartAIBrief()` never called |
+| L2607–2775 | `createPromptWithAI()` never called |
+| L2778–2808 | `enhancePrompt()` never called, also `updatePromptPlaceholder()` |
+| L2810–2914 | `buildEnhancedPrompt()` never called |
+| L2918–2930 | `toggleSuggestedPrompts()` never called |
+| L2965–3011 | `renderSuggestedPrompts()` never called, also `useSuggestedPromptByIdx()` |
+| L3014–3044 | `renderMarketTabs()` never called |
+| L3046–3063 | `_resolveMailerHtml()` never called, also `downloadMarketMailer()` |
+| L3066–3071 | in `window.previewMailerInModal()`: `_ensureMailerBuilt&&_ensureMailerBuilt(mkt,S.activeVariant\|\|'A');` |
+| L3075–3099 | in `window.viewMarketHtml()`: `_ensureMailerBuilt&&_ensureMailerBuilt(mkt,S.activeVariant\|\|'A');` |
+| L3101–3117 | `showMarketMailer()` never called |
+| L3214–3229 | `go3()` never called |
+| … | 115 more runs of 3+ lines not listed — see `coverage/lcov.info` |
+| short runs | 31 runs of 1–2 lines: L39–40, L55, L746, L1375–1376, L1465, L1853, L2022–2023, L2032, L2061–2062, L2121–2122, L2371–2372, L3393, L3645–3646, L3648–3649, L3672, L3680–3681, L3716–3717, L3719–3720, L3722, L3985, L4014–4015, L4440, L5656–5657, L6357–6358, L6918, L7063–7064, L9499–9500, L9720–9721, L9795–9796, L9815, L9830 |
 
-### 3. `api/ai/pipeline/html.js` — 1066 uncovered of 1066 (100%), weight 2, score 2132
+### 2. `api/ai/pipeline/html.js` — 1066 uncovered of 1066 (100%), weight 2, score 2132
 
 | lines | note |
 |---|---|
 | L1–1066 | never loaded by any test — top-level: callLLM, MF, SYSTEM |
 
-### 4. `dashboard.html` — 1587 uncovered of 1989 (79.8%), weight 1, score 1587
-
-Inline blocks: 4 of 4 executed by at least one test.
+### 3. `api/brain.js` — 916 uncovered of 1226 (74.7%), weight 2, score 1832
 
 | lines | note |
 |---|---|
-| L792–796 | `fmtCur()` never called |
-| L798–815 | `fmtCurShort()` never called |
-| L819–841 | `bucketKeyLabel()` never called |
-| L855–859 | `rngFromSeed()` never called |
-| L927–1062 | `genSeed()` never called |
-| L1096–1112 | `inWindow()` never called, also `matchRegion()`, `filteredCampaigns()`, `filteredOrders()`, `filteredCustomers()` |
-| L1117–1144 | `calcExecKpis()` never called |
-| L1146–1162 | `calcCampaignKpis()` never called |
-| L1164–1188 | `calcProductKpis()` never called |
-| L1196–1202 | `quintileScorer()` never called |
-| L1204–1229 | `computeSegments()` never called |
-| L1231–1250 | `segmentSummary()` never called |
-| L1261–1302 | `computeCohorts()` never called |
-| L1307–1343 | `buildAffinityMatrix()` never called |
-| L1348–1516 | `computeInsights()` never called |
-| L1526–1529 | `destroyCharts()` never called |
-| L1548–1641 | `renderExec()` never called |
-| L1644–1750 | `renderCampaigns()` never called |
-| L1753–1822 | `renderSegments()` never called |
-| L1825–1909 | `renderProducts()` never called |
-| L1912–1994 | `renderTime()` never called |
-| L1997–2068 | `renderCohorts()` never called |
-| L2071–2097 | `renderInsights()` never called |
-| L2102–2109 | `kpi()` never called, also `escapeHtml()` |
-| L2111–2115 | `campNameCell()` never called |
-| L2120–2126 | `switchView()` never called |
-| L2133–2140 | in `rerender()`: `if (STATE.view === 'exec') renderExec();` |
-| L2168–2172 | `if (isMobileNav()) { closeMobileDrawer(); return; }` |
-| L2184–2187 | `if (!e.target.dataset.region) return;` |
-| L2190–2195 | `const g = e.target.dataset.gran;` |
-| L2204–2209 | `const cur = e.target.dataset.cur;` |
-| L2226–2248 | `const file = e.target.files[0];` |
-| L2253–2270 | `const append = $('uploadAppend').checked;` |
-| L2273–2327 | `normalizeRow()` never called |
-| L2330–2336 | `if (!confirm('Clear all data? This removes any uploaded or linked data and returns to the empty…` |
-| L2354–2357 | `DB_TYPE = chip.dataset.dbtype;` |
-| L2361–2363 | in `dbStatus()`: `const el = $('linkDbStatus');` |
-| L2366–2374 | `fetchSupabaseTable()` never called |
-| L2377–2414 | `dbStatus('Connecting…');` |
-| L2432–2439 | `goldFillHex()` never called |
-| L2444–2454 | `regionSummaryRows()` never called |
-| L2456–2476 | `sendTimeSummaryRows()` never called |
-| L2479–2568 | `tablesForView()` never called |
-| L2570–2572 | `allTables()` never called |
-| L2575–2580 | `fmtExportVal()` never called |
-| … | 8 more runs of 3+ lines not listed — see `coverage/lcov.info` |
-| short runs | 9 runs of 1–2 lines: L53, L789, L846–847, L2145–2146, L2149–2150, L2212, L2711–2712, L2726, L2741 |
+| L60–64 | `body()` never called |
+| L66–76 | `cronAuthorized()` never called |
+| L103–114 | in `handler()`: `const b = body(req);` |
+| L125–161 | in `handler()`: `const demo = require('./_shared/demo-mode.js');` |
+| L163–186 | in `handler()`: `market, from its own record. Every handler below used to fall to the` |
+| L200–224 | in `handler()`: `const d = core.db();` |
+| L226–231 | in `handler()`: `if (req.method === 'POST') {` |
+| L235–237 | in `handler()`: `const lib = await kb.libraryIndex();` |
+| L239–241 | in `handler()`: `const lib = await kb.libraryIndex();` |
+| L245–248 | in `handler()`: `const out = await analysis.runDaily({ persist: req.method === 'POST' });` |
+| L250–252 | in `handler()`: `const rows = await core.db().select('smart_cohorts', { limit: 200, order: 'value_score.desc', f…` |
+| L254–256 | in `handler()`: `const out = await analysis.filteredLibrary({ channel: req.query.channel, market: req.query.mark…` |
+| L258–260 | in `handler()`: `const rows = await core.db().select('smart_library_scores', { limit: 1000, order: 'score.desc' …` |
+| L265–291 | in `handler()`: `const { runAnalyst } = require('./_shared/feature-agent.js');` |
+| L295–297 | in `handler()`: `const out = await competitor.benchmarks({ persist: req.method === 'POST' });` |
+| L301–305 | in `handler()`: `const filters = { slot_date: `gte.${req.query.from \|\| core.todayIso()}` };` |
+| L307–311 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L313–316 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L318–320 | in `handler()`: `const rows = await core.db().select('smart_festivals', { limit: 500, order: 'mmdd.asc' });` |
+| L322–325 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L327–334 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L336–347 | in `handler()`: `if (req.method === 'POST') {` |
+| L351–355 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L357–361 | in `handler()`: `const filters = {};` |
+| L363–370 | in `handler()`: `const rows = await core.db().select('smart_generated_assets', { filters: { id: `eq.${req.query.…` |
+| L372–376 | in `handler()`: `const filters = {};` |
+| L380–382 | in `handler()`: `const out = await review.queue({ state: req.query.state \|\| 'pending' });` |
+| L384–387 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L389–393 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L395–397 | in `handler()`: `const rows = await core.db().select('smart_confidence', { limit: 20 });` |
+| L404–407 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L409–412 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L414–418 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L420–425 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L427–433 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L435–439 | in `handler()`: `const filters = {};` |
+| L442–460 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L463–475 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L478–491 | in `handler()`: `const market = b.market \|\| req.query.market \|\| __homeMarket();` |
+| L495–499 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });` |
+| L506–515 | in `handler()`: `const op = b.op \|\| req.query.op \|\| 'status';` |
+| L519–527 | in `handler()`: `const p = req.method === 'POST' ? b : Object.assign({}, req.query);` |
+| L536–577 | in `handler()`: `const p = req.method === 'POST' ? b : Object.assign({}, req.query);` |
+| L581–595 | in `handler()`: `const p = req.method === 'POST' ? b : Object.assign({}, req.query);` |
+| L602–608 | in `handler()`: `const p = req.method === 'POST' ? b : Object.assign({}, req.query);` |
+| … | 39 more runs of 3+ lines not listed — see `coverage/lcov.info` |
+| short runs | 6 runs of 1–2 lines: L195–196, L401–402, L501–502, L1198, L1211, L1214 |
 
-### 5. `api/_shared/smart-brain-plan.js` — 1303 uncovered of 2904 (44.9%), weight 1, score 1303
+### 4. `dashboard.html` — 1564 uncovered of 2077 (75.3%), weight 1, score 1564
+
+Inline blocks: 5 of 5 executed by at least one test.
 
 | lines | note |
 |---|---|
-| L48–68 | `syncSourcesFor()` never called |
-| L72–88 | `stampAndRecordSync()` never called |
-| L93–96 | `preLaunchSyncCheck()` never called |
-| L100–111 | `syncStatus()` never called |
-| L130–164 | `callLLMTiered()` never called |
-| L242–256 | `planningBrand()` never called |
-| L270–311 | `_resolveBrandOfferings()` never called |
-| L352–357 | in `offeringPlanEntries()`: `const p = oc.planSend(o, date);` |
-| L405–412 | `buildContext()` never called |
-| L419–435 | `freshEntries()` never called |
-| L443–451 | `cohortLtvMap()` never called, also `toHero()` |
-| L456–470 | `buildStandbyVariant()` never called |
-| L472–484 | `attachScenarioLayer()` never called |
-| L489–505 | `promoteScenario()` never called |
-| L510–518 | `effectiveEntry()` never called |
-| L521–529 | `materialDiff()` never called |
-| L534–544 | `pruneOldRecords()` never called |
-| L548–719 | `syncDaily()` never called |
-| L723–786 | `getPlan()` never called |
-| L807–809 | in `regionalNuance()`: `if (m === 'IN') return 'India market: lead with authenticity, value clarity, and cultural momen…` |
-| L818–849 | `brandSystem()` never called |
-| L856–864 | `strategySystem()` never called |
-| L877–887 | `offeringBrief()` never called |
-| L889–904 | `strategyPrompt()` never called |
-| L906–925 | `strategyBrief()` never called |
-| L996–1000 | in `approvedProof()`: `quote: r.quote,` |
-| L1042–1045 | in `loadBrandReviews()`: `entry.__reviews = [];` |
-| L1454–1461 | `productUrl()` never called |
-| L1572–1628 | `writeCopyWithLLM()` never called |
-| L1633–1642 | `scrubCopyDeep()` never called |
-| L1730–1732 | in `attachMotionCreative()`: `image: images[0] \|\| '',` |
-| L1763–1766 | in `attachMotionCreative()`: `ad.creative = Object.assign({}, ad.creative, { motion_error: String((e && e.message) \|\| e).slic…` |
-| L1932–1947 | `generateCreativeImage()` never called |
-| L1953–1965 | `uploadCreative()` never called |
-| L2106–2121 | in `_buildCampaign()`: `const product = entry.heroProduct \|\| {};` |
-| L2132–2195 | in `_buildCampaign()`: `const sb = await strategyBrief(entry);` |
-| L2260–2267 | in `reportProofGap()`: `if (Array.isArray(trace)) {` |
-| L2304–2319 | `resolveEntry()` never called |
-| L2323–2428 | `previewEntry()` never called |
-| L2432–2509 | `approveEntry()` never called |
-| L2511–2528 | `rejectEntry()` never called |
-| L2534–2556 | `unrejectEntry()` never called |
-| L2565–2607 | `activateScenario()` never called |
-| L2616–2644 | `landingPageResolve()` never called, also `landingPageHtml()` |
-| L2653–2676 | `republishOrphan()` never called |
+| L20–22 | in `sentence()`: `var s = String((e && (e.message \|\| e.error)) \|\| e \|\| '').trim();` |
+| L24–37 | in `html()`: `var d = document.createElement('div');` |
+| L48–51 | in `show()`: `if (!el) return;` |
+| L846–850 | `fmtCur()` never called |
+| L852–869 | `fmtCurShort()` never called |
+| L873–895 | `bucketKeyLabel()` never called |
+| L909–913 | `rngFromSeed()` never called |
+| L981–1116 | `genSeed()` never called |
+| L1150–1168 | `inWindow()` never called, also `matchRegion()`, `filteredCampaigns()`, `filteredOrders()`, `filteredCustomers()` |
+| L1173–1200 | `calcExecKpis()` never called |
+| L1202–1218 | `calcCampaignKpis()` never called |
+| L1220–1244 | `calcProductKpis()` never called |
+| L1252–1258 | `quintileScorer()` never called |
+| L1260–1285 | `computeSegments()` never called |
+| L1287–1306 | `segmentSummary()` never called |
+| L1317–1358 | `computeCohorts()` never called |
+| L1363–1399 | `buildAffinityMatrix()` never called |
+| L1404–1572 | `computeInsights()` never called |
+| L1604–1697 | `renderExec()` never called |
+| L1700–1806 | `renderCampaigns()` never called |
+| L1809–1878 | `renderSegments()` never called |
+| L1881–1965 | `renderProducts()` never called |
+| L1968–2050 | `renderTime()` never called |
+| L2053–2124 | `renderCohorts()` never called |
+| L2127–2153 | `renderInsights()` never called |
+| L2158–2165 | `kpi()` never called, also `escapeHtml()` |
+| L2167–2171 | `campNameCell()` never called |
+| L2176–2182 | `switchView()` never called |
+| L2189–2196 | in `rerender()`: `if (STATE.view === 'exec') renderExec();` |
+| L2224–2228 | `if (isMobileNav()) { closeMobileDrawer(); return; }` |
+| L2265–2270 | `const g = e.target.dataset.gran;` |
+| L2279–2284 | `const cur = e.target.dataset.cur;` |
+| L2301–2325 | `const file = e.target.files[0];` |
+| L2334–2336 | `const rows = STAGE[slot].map((r) => normalizeRow(slot, r));` |
+| L2342–2346 | `note.hidden = true;` |
+| L2353–2407 | `normalizeRow()` never called |
+| L2410–2416 | `if (!confirm('Clear all data? This removes any uploaded or linked data and returns to the empty…` |
+| L2434–2437 | `DB_TYPE = chip.dataset.dbtype;` |
+| L2441–2443 | in `dbStatus()`: `const el = $('linkDbStatus');` |
+| L2446–2454 | `fetchSupabaseTable()` never called |
+| L2457–2495 | `dbStatus('Connecting…');` |
+| L2513–2520 | `goldFillHex()` never called |
+| L2525–2535 | `regionSummaryRows()` never called |
+| L2537–2557 | `sendTimeSummaryRows()` never called |
+| L2562–2586 | in `tablesForView()`: `const k = calcExecKpis();` |
+| … | 15 more runs of 3+ lines not listed — see `coverage/lcov.info` |
+| short runs | 12 runs of 1–2 lines: L39–40, L55, L105, L843, L900–901, L2201–2202, L2205–2206, L2287, L2774, L2784, L2816, L2831 |
+
+### 5. `api/_shared/smart-brain-plan.js` — 1306 uncovered of 2907 (44.9%), weight 1, score 1306
+
+| lines | note |
+|---|---|
+| L48–71 | `syncSourcesFor()` never called |
+| L75–91 | `stampAndRecordSync()` never called |
+| L96–99 | `preLaunchSyncCheck()` never called |
+| L103–114 | `syncStatus()` never called |
+| L133–167 | `callLLMTiered()` never called |
+| L245–259 | `planningBrand()` never called |
+| L273–314 | `_resolveBrandOfferings()` never called |
+| L355–360 | in `offeringPlanEntries()`: `const p = oc.planSend(o, date);` |
+| L408–415 | `buildContext()` never called |
+| L422–438 | `freshEntries()` never called |
+| L446–454 | `cohortLtvMap()` never called, also `toHero()` |
+| L459–473 | `buildStandbyVariant()` never called |
+| L475–487 | `attachScenarioLayer()` never called |
+| L492–508 | `promoteScenario()` never called |
+| L513–521 | `effectiveEntry()` never called |
+| L524–532 | `materialDiff()` never called |
+| L537–547 | `pruneOldRecords()` never called |
+| L551–722 | `syncDaily()` never called |
+| L726–789 | `getPlan()` never called |
+| L810–812 | in `regionalNuance()`: `if (m === 'IN') return 'India market: lead with authenticity, value clarity, and cultural momen…` |
+| L821–852 | `brandSystem()` never called |
+| L859–867 | `strategySystem()` never called |
+| L880–890 | `offeringBrief()` never called |
+| L892–907 | `strategyPrompt()` never called |
+| L909–928 | `strategyBrief()` never called |
+| L999–1003 | in `approvedProof()`: `quote: r.quote,` |
+| L1045–1048 | in `loadBrandReviews()`: `entry.__reviews = [];` |
+| L1457–1464 | `productUrl()` never called |
+| L1575–1631 | `writeCopyWithLLM()` never called |
+| L1636–1645 | `scrubCopyDeep()` never called |
+| L1733–1735 | in `attachMotionCreative()`: `image: images[0] \|\| '',` |
+| L1766–1769 | in `attachMotionCreative()`: `ad.creative = Object.assign({}, ad.creative, { motion_error: String((e && e.message) \|\| e).slic…` |
+| L1935–1950 | `generateCreativeImage()` never called |
+| L1956–1968 | `uploadCreative()` never called |
+| L2109–2124 | in `_buildCampaign()`: `const product = entry.heroProduct \|\| {};` |
+| L2135–2198 | in `_buildCampaign()`: `const sb = await strategyBrief(entry);` |
+| L2263–2270 | in `reportProofGap()`: `if (Array.isArray(trace)) {` |
+| L2307–2322 | `resolveEntry()` never called |
+| L2326–2431 | `previewEntry()` never called |
+| L2435–2512 | `approveEntry()` never called |
+| L2514–2531 | `rejectEntry()` never called |
+| L2537–2559 | `unrejectEntry()` never called |
+| L2568–2610 | `activateScenario()` never called |
+| L2619–2647 | `landingPageResolve()` never called, also `landingPageHtml()` |
+| L2656–2679 | `republishOrphan()` never called |
 | … | 6 more runs of 3+ lines not listed — see `coverage/lcov.info` |
-| short runs | 11 runs of 1–2 lines: L193–194, L200, L348, L1077, L1080, L1281, L1292, L1299, L1551, L1776–1777, L1831–1832 |
+| short runs | 11 runs of 1–2 lines: L196–197, L203, L351, L1080, L1083, L1284, L1295, L1302, L1554, L1779–1780, L1834–1835 |
 
 ### 6. `api/ai/generate.js` — 610 uncovered of 1045 (58.4%), weight 2, score 1220
 
@@ -446,83 +497,77 @@ Inline blocks: 4 of 4 executed by at least one test.
 |---|---|
 | L1–560 | never loaded by any test — top-level: core, universe, ciCollect, ciOffers, ciFunnel, getEnrich(), supa, readBody(), POLL_THROTTLE_MS, lastPoll, lastResult, bearerOf(), universeContext(), authorized() |
 
-### 8. `api/_shared/brand-workspace-core.js` — 1018 uncovered of 1910 (53.3%), weight 1, score 1018
+### 8. `api/ai/pipeline/variant.js` — 485 uncovered of 485 (100%), weight 2, score 970
+
+| lines | note |
+|---|---|
+| L1–485 | never loaded by any test — top-level: callLLM, SYSTEM_A, SYSTEM_B |
+
+### 9. `api/calendar.js` — 458 uncovered of 458 (100%), weight 2, score 916
+
+| lines | note |
+|---|---|
+| L1–458 | never loaded by any test — top-level: generate, lifecycleGen, lifecycleBuild, triggerMailer, plan, calExport, readBody(), selfBaseUrl(), firePrebuild(), smartBrain(), lifecycle(), _credits, _CAL_FEATURE |
+
+### 10. `api/_shared/brand-workspace-core.js` — 896 uncovered of 1940 (46.2%), weight 1, score 896
 
 | lines | note |
 |---|---|
 | L141–145 | in `restAs()`: `const msg = (json && (json.message \|\| json.hint)) \|\| text \|\| res.statusText;` |
 | L313–315 | in `readableAsText()`: (blank/comment lines) |
 | L326–329 | `slugify()` never called |
-| L336–339 | `arr()` never called |
-| L341–348 | `httpUrl()` never called |
 | L362–365 | in `normalizePalette()`: `const hex = normHex(e && e.hex);` |
 | L370–383 | `normalizeFont()` never called |
 | L385–395 | `normalizeTypography()` never called |
 | L397–406 | `normalizeVoice()` never called |
-| L408–424 | `normalizeRegions()` never called |
-| L426–438 | `normalizeHosts()` never called |
-| L576–590 | `fontsHref()` never called |
-| L599–642 | `readiness()` never called |
-| L647–668 | `parseCsv()` never called |
-| L686–695 | `mapHeaders()` never called |
-| L697–700 | `num()` never called |
-| L702–708 | `boolish()` never called |
-| L710–712 | `splitList()` never called |
-| L714–752 | `rowsFromCsv()` never called |
-| L754–788 | `rowsFromJson()` never called |
-| L833–845 | in `v6Groups()`: `const dotted = /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);` |
-| L849–851 | in `v6Groups()`: `const fill = 8 - head.length - tail.length;` |
-| L854–862 | in `v6Groups()`: `const out = [];` |
-| L872–874 | in `isPrivateIp()`: `if (g.every((x) => x === 0)) return true;` |
-| L876–879 | in `isPrivateIp()`: `const firstSixZero = g.slice(0, 5).every((x) => x === 0);` |
-| L881–884 | in `isPrivateIp()`: `const o = [(g[6] >> 8) & 0xff, g[6] & 0xff, (g[7] >> 8) & 0xff, g[7] & 0xff];` |
-| L886–893 | in `isPrivateIp()`: `return isPrivateV4([(g[6] >> 8) & 0xff, g[6] & 0xff, (g[7] >> 8) & 0xff, g[7] & 0xff]);` |
-| L913–915 | in `assertPublicUrl()`: `const e = new Error('That hostname resolves to a private or internal address, so it cannot be i…` |
-| L918–922 | in `assertPublicUrl()`: `if (err && err.status === 400) throw err;` |
-| L943–1005 | `rowsFromSite()` never called |
-| L1007–1043 | `rowsFromStorefront()` never called |
-| L1060–1063 | `invalidateBrandCaches()` never called |
-| L1067–1070 | `listWorkspaces()` never called |
-| L1077–1082 | `productCount()` never called |
-| L1104–1118 | `seedCompetitorsOnActivation()` never called |
-| L1120–1133 | `setActive()` never called |
-| L1136–1176 | `buildRow()` never called |
-| L1209–1213 | in `claimedFields()`: `for (const k of ['claims', 'social', 'legal_entity']) {` |
-| L1226–1238 | `claimUserOwnedFields()` never called |
-| L1240–1266 | `saveWorkspace()` never called |
-| L1282–1322 | `deleteWorkspace()` never called |
-| L1329–1331 | in `assertCanWrite()`: `let role = 'viewer';` |
-| L1335–1339 | in `assertCanWrite()`: `const e = new Error(`Your role on this brand is "${role}", which can view it but not ${what \|\| …` |
-| L1341–1474 | `importCatalog()` never called |
-| L1476–1482 | `listCatalog()` never called |
-| … | 24 more runs of 3+ lines not listed — see `coverage/lcov.info` |
-| short runs | 10 runs of 1–2 lines: L256–257, L453–454, L469–470, L472–473, L476–477, L479–480, L485–486, L491–492, L1596–1597, L1712–1713 |
+| L435–447 | `normalizeHosts()` never called |
+| L677–698 | `parseCsv()` never called |
+| L716–725 | `mapHeaders()` never called |
+| L727–730 | `num()` never called |
+| L732–738 | `boolish()` never called |
+| L740–742 | `splitList()` never called |
+| L744–782 | `rowsFromCsv()` never called |
+| L784–818 | `rowsFromJson()` never called |
+| L863–875 | in `v6Groups()`: `const dotted = /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);` |
+| L879–881 | in `v6Groups()`: `const fill = 8 - head.length - tail.length;` |
+| L884–892 | in `v6Groups()`: `const out = [];` |
+| L902–904 | in `isPrivateIp()`: `if (g.every((x) => x === 0)) return true;` |
+| L906–909 | in `isPrivateIp()`: `const firstSixZero = g.slice(0, 5).every((x) => x === 0);` |
+| L911–914 | in `isPrivateIp()`: `const o = [(g[6] >> 8) & 0xff, g[6] & 0xff, (g[7] >> 8) & 0xff, g[7] & 0xff];` |
+| L916–923 | in `isPrivateIp()`: `return isPrivateV4([(g[6] >> 8) & 0xff, g[6] & 0xff, (g[7] >> 8) & 0xff, g[7] & 0xff]);` |
+| L943–945 | in `assertPublicUrl()`: `const e = new Error('That hostname resolves to a private or internal address, so it cannot be i…` |
+| L948–952 | in `assertPublicUrl()`: `if (err && err.status === 400) throw err;` |
+| L973–1035 | `rowsFromSite()` never called |
+| L1037–1073 | `rowsFromStorefront()` never called |
+| L1090–1093 | `invalidateBrandCaches()` never called |
+| L1097–1100 | `listWorkspaces()` never called |
+| L1107–1112 | `productCount()` never called |
+| L1134–1148 | `seedCompetitorsOnActivation()` never called |
+| L1150–1163 | `setActive()` never called |
+| L1166–1206 | `buildRow()` never called |
+| L1239–1243 | in `claimedFields()`: `for (const k of ['claims', 'social', 'legal_entity']) {` |
+| L1256–1268 | `claimUserOwnedFields()` never called |
+| L1270–1296 | `saveWorkspace()` never called |
+| L1312–1352 | `deleteWorkspace()` never called |
+| L1371–1504 | `importCatalog()` never called |
+| L1506–1512 | `listCatalog()` never called |
+| L1543–1547 | `selfBaseUrl()` never called |
+| L1549–1571 | `fireContextChain()` never called |
+| L1574–1590 | `packSummary()` never called |
+| L1602–1604 | in `handle()`: `const b = DEFAULT_BRAND;` |
+| L1610–1623 | in `handle()`: `try {` |
+| L1699–1706 | in `handle()`: `try {` |
+| L1708–1724 | in `handle()`: `const id = await activeWorkspaceId(auth);` |
+| … | 16 more runs of 3+ lines not listed — see `coverage/lcov.info` |
+| short runs | 8 runs of 1–2 lines: L256–257, L344, L462–463, L481–482, L669, L1368–1369, L1626–1627, L1742–1743 |
 
-### 9. `api/ai/pipeline/variant.js` — 485 uncovered of 485 (100%), weight 2, score 970
-
-| lines | note |
-|---|---|
-| L1–485 | never loaded by any test — top-level: callLLM, SYSTEM_A, SYSTEM_B |
-
-### 10. `api/calendar.js` — 458 uncovered of 458 (100%), weight 2, score 916
-
-| lines | note |
-|---|---|
-| L1–458 | never loaded by any test — top-level: generate, lifecycleGen, lifecycleBuild, triggerMailer, plan, calExport, readBody(), selfBaseUrl(), firePrebuild(), smartBrain(), lifecycle(), _credits, _CAL_FEATURE |
-
-### 11. `api/_shared/social-core.js` — 881 uncovered of 881 (100%), weight 1, score 881
-
-| lines | note |
-|---|---|
-| L1–881 | never loaded by any test — top-level: fs, path, callLLM, scenario, creative, catalogImage, video, push, brandPlaceholder, supa, TABLE, PIPELINE_BUDGET_MS, MARKET, PLATFORM_SPECS … (+56 more) |
-
-### 12. `api/ai/pipeline/strategy.js` — 435 uncovered of 435 (100%), weight 2, score 870
+### 11. `api/ai/pipeline/strategy.js` — 435 uncovered of 435 (100%), weight 2, score 870
 
 | lines | note |
 |---|---|
 | L1–435 | never loaded by any test — top-level: callLLM, SYSTEM |
 
-### 13. `api/kb.js` — 431 uncovered of 862 (50%), weight 2, score 862
+### 12. `api/kb.js` — 431 uncovered of 862 (50%), weight 2, score 862
 
 | lines | note |
 |---|---|
@@ -543,7 +588,7 @@ Inline blocks: 4 of 4 executed by at least one test.
 | L765–856 | `classifyEmails()` never called |
 | short runs | 9 runs of 1–2 lines: L49–50, L57–58, L66, L220–221, L247–248, L255–256, L260–261, L307, L554–555 |
 
-### 14. `api/_shared/telesuite-core.js` — 797 uncovered of 1132 (70.4%), weight 1, score 797
+### 13. `api/_shared/telesuite-core.js` — 797 uncovered of 1132 (70.4%), weight 1, score 797
 
 | lines | note |
 |---|---|
@@ -576,7 +621,7 @@ Inline blocks: 4 of 4 executed by at least one test.
 | L951–1130 | `handle()` never called |
 | short runs | 2 runs of 1–2 lines: L190, L194 |
 
-### 15. `lifecycle-usa-d2c-dashboard.html` — 784 uncovered of 937 (83.7%), weight 1, score 784
+### 14. `lifecycle-usa-d2c-dashboard.html` — 784 uncovered of 937 (83.7%), weight 1, score 784
 
 Inline blocks: 3 of 3 executed by at least one test.
 
@@ -617,28 +662,7 @@ Inline blocks: 3 of 3 executed by at least one test.
 | L1097–1100 | `renderAllForPrint()` never called |
 | short runs | 1 runs of 1–2 lines: L28 |
 
-### 16. `api/_shared/dispatch-core.js` — 384 uncovered of 542 (70.8%), weight 2, score 768
-
-| lines | note |
-|---|---|
-| L54–63 | `serviceEnv()` never called |
-| L65–76 | `rest()` never called |
-| L131–215 | `enqueue()` never called |
-| L224–238 | `claim()` never called |
-| L240–247 | `runnableJobs()` never called |
-| L251–362 | `runJob()` never called |
-| L365–377 | `sanitizeResult()` never called |
-| L381–393 | `logSync()` never called |
-| L404–422 | `drain()` never called |
-| L424–436 | `countRunnable()` never called |
-| L439–447 | `fireNext()` never called |
-| L451–463 | `cancel()` never called |
-| L472–513 | `ingestWebhook()` never called |
-| L517–525 | `listJobs()` never called |
-| L527–536 | `jobDetail()` never called |
-| short runs | 1 runs of 1–2 lines: L379 |
-
-### 17. `api/_shared/brain-generate.js` — 732 uncovered of 830 (88.2%), weight 1, score 732
+### 15. `api/_shared/brain-generate.js` — 732 uncovered of 830 (88.2%), weight 1, score 732
 
 | lines | note |
 |---|---|
@@ -658,90 +682,120 @@ Inline blocks: 3 of 3 executed by at least one test.
 | L724–739 | `funnelSpec()` never called |
 | L742–828 | `generateForSlot()` never called |
 
-### 18. `telesuite.html` — 723 uncovered of 818 (88.4%), weight 1, score 723
-
-Inline blocks: 1 of 1 executed by at least one test.
+### 16. `api/_shared/social-core.js` — 713 uncovered of 881 (80.9%), weight 1, score 713
 
 | lines | note |
 |---|---|
-| L168–170 | in `token()`: `try { if (window.BrandContext) return window.BrandContext.token(); } catch (_) {}` |
-| L174–189 | in `ts()`: `var headers = { 'Content-Type': 'application/json' };` |
-| L194–222 | in `renderValue()`: `depth = depth \|\| 0;` |
-| L225–241 | in `renderResult()`: `if (!result) return '<p class="muted">No result.</p>';` |
-| L244–269 | in `renderScore()`: `var dims = r.dimensions \|\| [];` |
-| L273–292 | in `renderRail()`: `if (!document.getElementById('rail')) return; // single-layer nav: the app rail owns navigation` |
-| L297–300 | in `head()`: `return '<div class="eyebrow">TeleSuite' + (s.group ? ' · ' + esc(s.group) : '') + '</div>' +` |
-| L303–323 | in `viewHome()`: `$('main').innerHTML = head(s) + '<div id="homeGrid"><p class="muted">Loading your run history…<…` |
-| L326–330 | in `loadItems()`: `if (cache[kind === 'product' ? 'products' : 'knowledge']) return cache[kind === 'product' ? 'pr…` |
-| L333–418 | in `viewLibrary()`: `var kind = s.item_kind;` |
-| L423–468 | in `fieldHtml()`: `if (f.type === 'product' \|\| f.type === 'kb') {` |
-| L471–483 | in `collectInputs()`: `var out = {};` |
-| L486–492 | in `fileToBase64()`: `return new Promise(function (resolve, reject) {` |
-| L495–504 | in `audioDuration()`: `return new Promise(function (resolve) {` |
-| L507–521 | in `handleRunError()`: `if (e.status === 402 && e.payload) {` |
-| L524–572 | in `viewTool()`: `$('main').innerHTML = head(s) + '<div class="card"><div id="form"><p class="muted">Loading…</p>…` |
-| L575–602 | in `renderRun()`: `var receipt = r.credits` |
-| L606–644 | in `viewDashboard()`: `var feat = Array.isArray(s.of) ? s.of.join(',') : s.of;` |
-| L648–670 | in `viewVoice()`: `var SR = window.SpeechRecognition \|\| window.webkitSpeechRecognition;` |
-| L673–807 | in `runCall()`: `var history = [], startedAt = Date.now(), listening = false, ended = false, recog = null, speak…` |
-| L811–870 | in `viewBatch()`: `$('main').innerHTML = head(s) +` |
-| L874–897 | in `viewClone()`: `$('main').innerHTML = head(s) + '<div id="clone"><p class="muted">Loading…</p></div>';` |
-| L900–914 | in `viewN8n()`: `$('main').innerHTML = head(s) + '<div id="n8n"><p class="muted">Building the workflow…</p></div…` |
-| L918–933 | in `route()`: `var key = (location.hash \|\| '#home').slice(1) \|\| 'home';` |
-| L944–958 | in `boot()`: `document.addEventListener('click', function (ev) {` |
-| short runs | 1 runs of 1–2 lines: L967 |
+| L74–78 | `loadJson()` never called, also `productTypes()`, `festivalsUK()` |
+| L86–110 | `scrubString()` never called, also `deepScrub()` |
+| L113–121 | `normDate()` never called, also `dayOfYear()` |
+| L128–167 | `focusFor()` never called |
+| L169–185 | `festivalFor()` never called |
+| L193–210 | `llmJson()` never called |
+| L212–227 | `brandName()` never called, also `brandRecord()`, `brandPersona()` |
+| L230–243 | `brandGates()` never called |
+| L246–272 | `fallbackIdeology()` never called, also `ideologyAgent()` |
+| L275–299 | `fallbackHypothesis()` never called, also `hypothesisAgent()` |
+| L320–333 | `allowedLink()` never called |
+| L335–369 | `defaultCta()` never called, also `fallbackStrategy()`, `strategyAgent()` |
+| L378–494 | `tagsFor()` never called, also `focusLine()`, `fallbackContent()`, `fallbackBlog()`, `contentAgent()` |
+| L497–538 | `heroPrompt()` never called, also `designAgent()`, `placeholderImage()` |
+| L541–589 | `fallbackStoryboard()` never called, also `videoAgent()` |
+| L600–675 | `sanitizeContent()` never called, also `enforceLimits()`, `buildPosts()`, `compileAgent()` |
+| L678–706 | `recentThemes()` never called, also `persistPosts()` |
+| L710–715 | `resolveKeys()` never called |
+| L722–838 | `runDaily()` never called |
+| L841–859 | `listPosts()` never called |
+| L862–874 | `setStatus()` never called |
 
-### 19. `auth.js` — 359 uncovered of 2436 (14.7%), weight 2, score 718
+### 17. `telesuite.html` — 682 uncovered of 876 (77.9%), weight 1, score 682
 
-Also loaded in the browser by page tests; counts are the union of both runtimes.
+Inline blocks: 2 of 2 executed by at least one test.
 
 | lines | note |
 |---|---|
-| L51–55 | in `ensureTheme()`: `vp = d.createElement('meta');` |
-| L142–147 | in `window.fetch()`: `if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetc…` |
-| L151–155 | in `window.fetch()`: `opts.headers = headers;` |
-| L201–227 | `window.addEventListener('load', async () => {` |
-| L1648–1650 | in `injectTopbar()`: `if (e.key !== 'Escape') return;` |
-| L1671–1675 | in `document.addEventListener.passive()`: `const n = navEl();` |
-| L1678–1687 | in `document.addEventListener.passive()`: `if (!swiping) return;` |
-| L1696–1706 | in `signinBtn.onclick()`: `if (window.LifecycleAuth?.client) {` |
-| L1727–1729 | in `injectTopbar()`: `collapsed = !collapsed;` |
-| L1753–1775 | in `injectSigningInOverlay()`: `if (document.getElementById('lifecycle-signingin')) return;` |
-| L1777–1779 | in `removeSigningInOverlay()`: `const el = document.getElementById('lifecycle-signingin');` |
-| L1896–1898 | in `getConfig()`: `window.__SUPABASE__ = PUBLIC_SUPABASE_FALLBACK;` |
-| L2013–2016 | in `applyAccessMode()`: `window.LifecycleAuth.internal = !!user;` |
-| L2039–2047 | in `restoreReturnTo()`: `let target = null;` |
-| L2061–2070 | in `signOut()`: `if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();` |
-| L2114–2120 | in `init()`: `window.LifecycleAuth.session = session;` |
-| L2122–2135 | in `init()`: `injectSigningInOverlay();` |
-| L2144–2159 | in `init()`: `window.LifecycleAuth.session = sess;` |
-| L2175–2209 | in `maybeShowProfileModal()`: `let alreadyLocal = false;` |
-| L2212–2326 | in `showProfileModal()`: `if (document.getElementById('lifecycle-profile-modal')) return;` |
-| L2373–2379 | in `inline()`: `return s` |
-| L2381–2405 | in `mdToHtml()`: `var lines = String(md \|\| '').replace(/\r\n?/g, '\n').split('\n');` |
-| L2416–2425 | in `openPrintable()`: `var w = window.open('', '_blank');` |
-| short runs | 2 runs of 1–2 lines: L139–140, L2432 |
+| L20–22 | in `sentence()`: `var s = String((e && (e.message \|\| e.error)) \|\| e \|\| '').trim();` |
+| L24–37 | in `html()`: `var d = document.createElement('div');` |
+| L48–51 | in `show()`: `if (!el) return;` |
+| L246–274 | in `renderValue()`: `depth = depth \|\| 0;` |
+| L277–293 | in `renderResult()`: `if (!result) return '<p class="muted">No result.</p>';` |
+| L296–321 | in `renderScore()`: `var dims = r.dimensions \|\| [];` |
+| L334–341 | in `renderRail()`: `if (g) html += '<div class="rgrp">' + esc(g) + '</div>';` |
+| L365–370 | in `viewHome()`: `var st = summary[x.op] \|\| summary[x.key] \|\| null;` |
+| L383–387 | in `loadItems()`: `if (cache[kind === 'product' ? 'products' : 'knowledge']) return cache[kind === 'product' ? 'pr…` |
+| L390–475 | in `viewLibrary()`: `var kind = s.item_kind;` |
+| L480–525 | in `fieldHtml()`: `if (f.type === 'product' \|\| f.type === 'kb') {` |
+| L528–540 | in `collectInputs()`: `var out = {};` |
+| L543–549 | in `fileToBase64()`: `return new Promise(function (resolve, reject) {` |
+| L552–561 | in `audioDuration()`: `return new Promise(function (resolve) {` |
+| L564–579 | in `handleRunError()`: `if (e.status === 402 && e.payload) {` |
+| L582–630 | in `viewTool()`: `$('main').innerHTML = head(s) + '<div class="card"><div id="form"><p class="muted">Loading…</p>…` |
+| L633–660 | in `renderRun()`: `var receipt = r.credits` |
+| L664–702 | in `viewDashboard()`: `var feat = Array.isArray(s.of) ? s.of.join(',') : s.of;` |
+| L706–728 | in `viewVoice()`: `var SR = window.SpeechRecognition \|\| window.webkitSpeechRecognition;` |
+| L731–865 | in `runCall()`: `var history = [], startedAt = Date.now(), listening = false, ended = false, recog = null, speak…` |
+| L869–928 | in `viewBatch()`: `$('main').innerHTML = head(s) +` |
+| L932–955 | in `viewClone()`: `$('main').innerHTML = head(s) + '<div id="clone"><p class="muted">Loading…</p></div>';` |
+| L958–972 | in `viewN8n()`: `$('main').innerHTML = head(s) + '<div id="n8n"><p class="muted">Building the workflow…</p></div…` |
+| L983–990 | in `route()`: `if (s.kind === 'library') return viewLibrary(s);` |
+| L1005–1010 | in `boot()`: `var b = ev.target.closest && ev.target.closest('[data-copy-transcript]');` |
+| short runs | 4 runs of 1–2 lines: L39–40, L55, L240, L1025 |
 
-### 20. `api/_shared/oauth-core.js` — 341 uncovered of 515 (66.2%), weight 2, score 682
+### 18. `ad-campaigns.html` — 677 uncovered of 1024 (66.1%), weight 1, score 677
+
+Inline blocks: 2 of 2 executed by at least one test.
 
 | lines | note |
 |---|---|
-| L53–62 | `serviceEnv()` never called |
-| L64–80 | `serviceRest()` never called |
-| L85–92 | `selfOrigin()` never called |
-| L94–96 | `callbackUrl()` never called |
-| L125–193 | `beginAuthorization()` never called |
-| L195–202 | `clientIdFor()` never called |
-| L204–211 | `clientSecretFor()` never called |
-| L220–226 | `consumeState()` never called |
-| L231–274 | `handleCallback()` never called |
-| L277–320 | `exchangeCode()` never called |
-| L322–327 | `failNote()` never called |
-| L334–378 | `persistGrant()` never called |
-| L393–436 | `ensureFreshToken()` never called |
-| L472–499 | `revoke()` never called |
+| L20–22 | in `sentence()`: `var s = String((e && (e.message \|\| e.error)) \|\| e \|\| '').trim();` |
+| L24–37 | in `html()`: `var d = document.createElement('div');` |
+| L48–51 | in `show()`: `if (!el) return;` |
+| L448–450 | in `brandName()`: `var b = activeBrand();` |
+| L453–457 | in `brandStrapline()`: `var b = activeBrand();` |
+| L479–482 | in `copyText()`: `const done = (ok) => toast(ok ? (okMsg \|\| 'Copied') : 'Could not copy — see console');` |
+| L493–511 | in `buildAdPrompt()`: `const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' :…` |
+| L513–517 | in `cloneAd()`: `store[ch] = store[ch] \|\| [];` |
+| L519–523 | in `adActionsHtml()`: `const enc = encodeURIComponent(JSON.stringify(c));` |
+| L528–533 | `const cb = e.target.closest('[data-clone]'), pb = e.target.closest('[data-prompt]');` |
+| L542–548 | in `dataUrlToBlob()`: `try {` |
+| L550–559 | in `uploadCreative()`: `const sb = sbClient(); if (!sb \|\| !dataUrl \|\| dataUrl.indexOf('data:') !== 0) return '';` |
+| L564–597 | in `persistAd()`: `const sb = sbClient(); if (!sb) return;` |
+| L632–646 | in `getCopy()`: `const market = v(CRE_CFG[ch].market) \|\| 'US';` |
+| L653–663 | in `buildCreativePrompt()`: `const cfg = CRE_CFG[ch];` |
+| L666–675 | in `wrapText()`: `const words = String(text \|\| '').split(/\s+/).filter(Boolean);` |
+| L678–697 | in `loadImage()`: `return new Promise((resolve) => {` |
+| L701–713 | in `drawBase()`: `x.fillStyle = '#D0473E'; x.fillRect(0, 0, W, H);` |
+| L718–772 | in `composeCreative()`: `const dims = fmt.size.split('x').map(Number); const W = dims[0], H = dims[1];` |
+| L781–795 | in `catalogProducts()`: `const region = /uk/i.test(market) ? 'uk' : /us/i.test(market) ? 'us' : 'global';` |
+| L800–825 | in `realCatalogImage()`: `const cfg = CRE_CFG[ch];` |
+| L828–841 | in `fetchAiVisual()`: `try {` |
+| L844–865 | in `showCreatives()`: `const prev = document.getElementById(ch + '-cre-prev');` |
+| L867–927 | in `genCreative()`: `const note = document.getElementById(ch + '-cre-note');` |
+| L940–949 | in `attachCreative()`: `if (creative[ch]) {` |
+| L972–997 | in `clientMasterPrompt()`: `const platform = CH_PLATFORM[ch];` |
+| L999–1015 | in `copyMasterPrompt()`: `const text = lastMasterPrompt[ch] \|\| clientMasterPrompt(ch);` |
+| L1064–1067 | in `adStatus()`: `if (e.generated_campaign_id \|\| e.status === 'approved' \|\| e.status === 'final') return '<span c…` |
+| L1091–1107 | in `renderAdPlan()`: `if (empty) empty.style.display = 'none';` |
+| L1110–1114 | in `adSlotToggle()`: `const row = $('#adexp-' + i); if (!row) return null;` |
+| L1116–1125 | in `adCard()`: `const img = ad.creative && ad.creative.image;` |
+| L1127–1137 | in `window.viewAdSlot()`: `const e = AD_PLAN[i]; if (!e) return;` |
+| L1140–1143 | in `renderAdSet()`: `const ads = (d && (d.ads \|\| (d.campaign && d.campaign.assets && d.campaign.assets.ads))) \|\| [];` |
+| L1145–1157 | in `window.whyAdSlot()`: `const e = AD_PLAN[i]; if (!e) return;` |
+| L1162–1173 | in `openDay()`: `activeDay = k;` |
+| L1175–1180 | in `$.onclick()`: `if (!activeDay) return;` |
+| L1189–1201 | in `aiBrief()`: `noteEl.textContent = 'Generating…';` |
+| L1204–1206 | in `extractLines()`: `const re = new RegExp(label + '[^\\n:]*:?\\s*(.+)', 'i');` |
+| L1209–1216 | in `$.onclick()`: `const name = $('#g-name').value.trim() \|\| 'Google Search campaign';` |
+| L1219–1224 | in `$.onclick()`: `const name = $('#m-name').value.trim() \|\| 'Meta campaign';` |
+| L1230–1237 | in `creativeThumbs()`: `const assets = Array.isArray(c.creative_assets) ? c.creative_assets : [];` |
+| L1243–1249 | in `renderGoogle()`: `<div class="item">` |
+| L1254–1259 | in `$.onclick()`: `const name = $('#g-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }` |
+| L1266–1273 | in `renderMeta()`: `<div class="item">` |
+| L1278–1282 | in `$.onclick()`: `const name = $('#m-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }` |
+| … | 5 more runs of 3+ lines not listed — see `coverage/lcov.info` |
+| short runs | 5 runs of 1–2 lines: L39–40, L55, L445–446, L935–936, L1408 |
 
-### 21. `api/_shared/competitor-core.js` — 668 uncovered of 967 (69.1%), weight 1, score 668
+### 19. `api/_shared/competitor-core.js` — 668 uncovered of 967 (69.1%), weight 1, score 668
 
 | lines | note |
 |---|---|
@@ -783,107 +837,114 @@ Also loaded in the browser by page tests; counts are the union of both runtimes.
 | L920–959 | `discoverBrands()` never called |
 | short runs | 2 runs of 1–2 lines: L72, L708 |
 
-### 22. `api/_shared/lp-compiler.js` — 659 uncovered of 911 (72.3%), weight 1, score 659
+### 20. `api/_shared/lp-compiler.js` — 659 uncovered of 911 (72.3%), weight 1, score 659
 
 | lines | note |
 |---|---|
 | L251–909 | `compileHTML()` never called |
 
-### 23. `ad-campaigns.html` — 653 uncovered of 965 (67.7%), weight 1, score 653
+### 21. `publishing.html` — 278 uncovered of 428 (65%), weight 2, score 556
 
-Inline blocks: 1 of 1 executed by at least one test.
-
-| lines | note |
-|---|---|
-| L396–398 | in `brandName()`: `var b = activeBrand();` |
-| L401–405 | in `brandStrapline()`: `var b = activeBrand();` |
-| L427–430 | in `copyText()`: `const done = (ok) => toast(ok ? (okMsg \|\| 'Copied') : 'Could not copy — see console');` |
-| L441–459 | in `buildAdPrompt()`: `const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' :…` |
-| L461–465 | in `cloneAd()`: `store[ch] = store[ch] \|\| [];` |
-| L467–471 | in `adActionsHtml()`: `const enc = encodeURIComponent(JSON.stringify(c));` |
-| L476–481 | `const cb = e.target.closest('[data-clone]'), pb = e.target.closest('[data-prompt]');` |
-| L490–496 | in `dataUrlToBlob()`: `try {` |
-| L498–507 | in `uploadCreative()`: `const sb = sbClient(); if (!sb \|\| !dataUrl \|\| dataUrl.indexOf('data:') !== 0) return '';` |
-| L512–545 | in `persistAd()`: `const sb = sbClient(); if (!sb) return;` |
-| L580–594 | in `getCopy()`: `const market = v(CRE_CFG[ch].market) \|\| 'US';` |
-| L601–611 | in `buildCreativePrompt()`: `const cfg = CRE_CFG[ch];` |
-| L614–623 | in `wrapText()`: `const words = String(text \|\| '').split(/\s+/).filter(Boolean);` |
-| L626–645 | in `loadImage()`: `return new Promise((resolve) => {` |
-| L649–661 | in `drawBase()`: `x.fillStyle = '#D0473E'; x.fillRect(0, 0, W, H);` |
-| L666–720 | in `composeCreative()`: `const dims = fmt.size.split('x').map(Number); const W = dims[0], H = dims[1];` |
-| L729–743 | in `catalogProducts()`: `const region = /uk/i.test(market) ? 'uk' : /us/i.test(market) ? 'us' : 'global';` |
-| L748–773 | in `realCatalogImage()`: `const cfg = CRE_CFG[ch];` |
-| L776–789 | in `fetchAiVisual()`: `try {` |
-| L792–813 | in `showCreatives()`: `const prev = document.getElementById(ch + '-cre-prev');` |
-| L815–875 | in `genCreative()`: `const note = document.getElementById(ch + '-cre-note');` |
-| L888–897 | in `attachCreative()`: `if (creative[ch]) {` |
-| L920–945 | in `clientMasterPrompt()`: `const platform = CH_PLATFORM[ch];` |
-| L947–963 | in `copyMasterPrompt()`: `const text = lastMasterPrompt[ch] \|\| clientMasterPrompt(ch);` |
-| L1012–1015 | in `adStatus()`: `if (e.generated_campaign_id \|\| e.status === 'approved' \|\| e.status === 'final') return '<span c…` |
-| L1032–1048 | in `renderAdPlan()`: `if (empty) empty.style.display = 'none';` |
-| L1051–1055 | in `adSlotToggle()`: `const row = $('#adexp-' + i); if (!row) return null;` |
-| L1057–1066 | in `adCard()`: `const img = ad.creative && ad.creative.image;` |
-| L1068–1078 | in `window.viewAdSlot()`: `const e = AD_PLAN[i]; if (!e) return;` |
-| L1081–1084 | in `renderAdSet()`: `const ads = (d && (d.ads \|\| (d.campaign && d.campaign.assets && d.campaign.assets.ads))) \|\| [];` |
-| L1086–1098 | in `window.whyAdSlot()`: `const e = AD_PLAN[i]; if (!e) return;` |
-| L1103–1114 | in `openDay()`: `activeDay = k;` |
-| L1116–1121 | in `$.onclick()`: `if (!activeDay) return;` |
-| L1130–1142 | in `aiBrief()`: `noteEl.textContent = 'Generating…';` |
-| L1145–1147 | in `extractLines()`: `const re = new RegExp(label + '[^\\n:]*:?\\s*(.+)', 'i');` |
-| L1150–1157 | in `$.onclick()`: `const name = $('#g-name').value.trim() \|\| 'Google Search campaign';` |
-| L1160–1165 | in `$.onclick()`: `const name = $('#m-name').value.trim() \|\| 'Meta campaign';` |
-| L1171–1178 | in `creativeThumbs()`: `const assets = Array.isArray(c.creative_assets) ? c.creative_assets : [];` |
-| L1184–1190 | in `renderGoogle()`: `<div class="item">` |
-| L1195–1200 | in `$.onclick()`: `const name = $('#g-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }` |
-| L1207–1214 | in `renderMeta()`: `<div class="item">` |
-| L1219–1223 | in `$.onclick()`: `const name = $('#m-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }` |
-| L1230–1236 | in `renderTikTok()`: `<div class="item">` |
-| L1241–1246 | in `$.onclick()`: `const name = $('#t-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }` |
-| L1249–1255 | in `$.onclick()`: `const name = $('#t-name').value.trim() \|\| 'TikTok campaign';` |
-| … | 2 more runs of 3+ lines not listed — see `coverage/lcov.info` |
-| short runs | 3 runs of 1–2 lines: L393–394, L883–884, L1349 |
-
-### 24. `api/_shared/credits-core.js` — 316 uncovered of 736 (42.9%), weight 2, score 632
+Inline blocks: 2 of 2 executed by at least one test.
 
 | lines | note |
 |---|---|
-| L36–39 | in `env()`: `const e = new Error('SUPABASE_SERVICE_ROLE_KEY missing — the credit meter cannot move a balance…` |
-| L59–62 | in `rpc()`: `const err = new Error(`credits rpc ${fn} -> ${res.status}: ${(json && (json.message \|\| json.hin…` |
-| L119–121 | `packList()` never called |
-| L124–130 | `priceList()` never called |
-| L134–171 | `wallet()` never called |
-| L173–179 | `ledger()` never called |
-| L181–184 | `usage()` never called |
-| L203–206 | in `meter()`: `const e = new Error(`Unknown feature key "${featureKey}" — it must be declared in credit-catalo…` |
-| L220–227 | in `meter()`: `return {` |
-| L231–246 | in `meter()`: `if (!workspaceId) {` |
-| L251–301 | in `meter()`: `return Object.assign({ ok: false, status: 402, error: 'insufficient_credits', quote: q, feature…` |
-| L307–319 | `withCredits()` never called |
-| L347–351 | in `enforce()`: `res.status(err.status \|\| 500).json({ ok: false, error: err.code \|\| 'credit_check_failed', messa…` |
-| L397–461 | in `meteredHandler()`: `const origStatus = res.status.bind(res);` |
-| L642–648 | in `fulfilOrder()`: `return {` |
-| L657–730 | `handle()` never called |
-| short runs | 4 runs of 1–2 lines: L249, L356–357, L463, L610–611 |
+| L20–22 | in `sentence()`: `var s = String((e && (e.message \|\| e.error)) \|\| e \|\| '').trim();` |
+| L24–37 | in `html()`: `var d = document.createElement('div');` |
+| L48–51 | in `show()`: `if (!el) return;` |
+| L328–330 | in `note()`: `document.getElementById('msg').innerHTML = '<div class="banner ' + kind + '">' + esc(text) + '<…` |
+| L336–340 | `tabs.forEach(function (x) { x.setAttribute('aria-selected', String(x === t)); });` |
+| L361–364 | in `loadHub()`: `note('info', 'Showing what can be connected. ' + e.message);` |
+| L372–400 | in `renderHub()`: `var c = CONNECTED[p.connection_provider];` |
+| L405–431 | `var b = ev.target.closest('button[data-act]'); if (!b) return;` |
+| L439–449 | in `renderChannels()`: `var c = CONNECTED[ch.provider];` |
+| L463–466 | in `readJson()`: `var raw = document.getElementById(id).value.trim();` |
+| L469–481 | in `dispatchSpec()`: `var mode = document.getElementById('sendmode').value;` |
+| L486–501 | `if (!selected.length) { note('warn', 'Select at least one channel.'); return; }` |
+| L505–535 | in `showPreflight()`: `var chip = document.getElementById('pf-chip');` |
+| L542–564 | `var override = lastPreflight && lastPreflight.verdict === 'block';` |
+| L569–577 | `var d = document.getElementById('domain-in').value.trim();` |
+| L581–613 | in `renderDomain()`: `if (!r.ok) { window.LifecycleFailure.show(document.getElementById('domain-out'), r, { title: 'D…` |
+| L616–631 | `this.disabled = true;` |
+| L636–656 | in `loadJobs()`: `var el = document.getElementById('jobs-out');` |
+| L660–663 | `this.disabled = true;` |
+| short runs | 6 runs of 1–2 lines: L39–40, L55, L454–455, L459, L538, L675 |
 
-### 25. `api/_shared/deliverability-core.js` — 310 uncovered of 764 (40.6%), weight 2, score 620
+### 22. `api/_shared/calendar-generate.js` — 538 uncovered of 538 (100%), weight 1, score 538
 
 | lines | note |
 |---|---|
-| L71–77 | in `systemQuery()`: `return { ok: true, records: rows.map((r) => (Array.isArray(r) ? r.join('') : String(r))), resol…` |
-| L82–84 | in `systemQuery()`: `await new Promise((r) => setTimeout(r, 250));` |
-| L92–94 | in `resolveRecord()`: `const doh = await dohQuery(name, kind);` |
-| L102–121 | `dohQuery()` never called |
-| L132–147 | `unavailable()` never called |
-| L154–198 | `auditSpf()` never called |
-| L254–310 | `auditDkim()` never called |
-| L314–369 | `auditDmarc()` never called |
-| L373–383 | `auditMx()` never called |
-| L385–401 | `auditBimi()` never called |
-| L419–453 | `checkBlocklists()` never called |
-| L462–472 | `reputationStatus()` never called |
-| L560–579 | in `auditDomain()`: `const [spf, dkim, dmarc, mx, bimi] = await Promise.all([` |
-| L727–732 | in `analyzeContent()`: `const root = String(fromDomain).split('.').slice(-2).join('.');` |
-| short runs | 2 runs of 1–2 lines: L226–227, L513 |
+| L1–538 | never loaded by any test — top-level: fs, path, SM, FESTIVALS, loadFestivals(), ARCHETYPES, CONTENT_TYPES, ASSET_TYPES, SEGMENT_CADENCE_PER_WEEK, WEEK_FOCUS, dateAddDays(), isoDate(), findFestivalForDate(), pickBestSendHourUTC() … (+12 more) |
+
+### 23. `lib/smart-brain/services.js` — 519 uncovered of 1456 (35.6%), weight 1, score 519
+
+| lines | note |
+|---|---|
+| L132–154 | `parseCsv()` never called |
+| L156–160 | `readCsvIfExists()` never called |
+| L184–212 | in `SmartBrainDbAdapter()`: `this.config = config;` |
+| L215–229 | in `workspace()`: `if (this.workspaceId) return this.workspaceId;` |
+| L235–257 | in `select()`: `if (!this.connected) return null;` |
+| L260–266 | in `stamp()`: `if (!SmartBrainDbAdapter.scoped(table)) return rows;` |
+| L268–273 | in `insert()`: `if (!this.connected) return { skipped: true, reason: 'Supabase env not configured' };` |
+| L275–283 | in `upsert()`: `if (!this.connected) return { skipped: true, reason: 'Supabase env not configured' };` |
+| L294–298 | in `_writeScope()`: `if (!SmartBrainDbAdapter.scoped(table)) return { ok: true };` |
+| L300–309 | in `update()`: `if (!this.connected) return { skipped: true, reason: 'Supabase env not configured' };` |
+| L311–322 | in `delete()`: `if (!this.connected) return { skipped: true, reason: 'Supabase env not configured' };` |
+| L324–343 | in `ownData()`: `if (this.connected) {` |
+| L347–367 | in `builtCatalogProducts()`: `if (this._builtCatalog) return this._builtCatalog;` |
+| L369–374 | in `competitorData()`: `if (this.connected) {` |
+| L376–429 | in `localFallbackData()`: `const productsRaw = readCsvIfExists('input/uploaded_by_anchit/shopify_products.csv')` |
+| L435–470 | in `build()`: `const assetByCampaign = new Map();` |
+| L473–496 | `normalizeMetric()` never called |
+| L498–510 | `rollupMetrics()` never called, also `extractHooks()`, `extractAngles()` |
+| L515–530 | in `analyze()`: `const cohorts = buildCohorts(data.users, data.orders);` |
+| L533–631 | `campaignClearsThreshold()` never called, also `daysSince()`, `cohortName()`, `buildCohorts()`, `cohortRules()` (+4) |
+| L636–655 | in `benchmark()`: `const competitors = asArray(data.competitors).map((c) => ({ ...c, channel: String(c.channel \|\| …` |
+| L1003–1010 | `confidenceFor()` never called |
+| L1407–1416 | in `review()`: `const needsHuman = campaigns.filter((c) => c.approval.required \|\| c.status !== 'final');` |
+| L1419–1436 | `runDailySmartBrain()` never called |
+| L1438–1454 | `schemaAssumptions()` never called |
+| short runs | 10 runs of 1–2 lines: L111–112, L120, L127, L762, L764, L780, L782, L788, L932–933, L1181–1182 |
+
+### 24. `api/ai/image.js` — 257 uncovered of 432 (59.5%), weight 2, score 514
+
+| lines | note |
+|---|---|
+| L92–97 | in `handler()`: `if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });` |
+| L132–171 | in `tryGeminiNative()`: `if (!geminiKey) return null;` |
+| L175–212 | in `tryImagen()`: `if (!geminiKey) return null;` |
+| L218–287 | in `tryOpenai()`: `if (!openaiKeys.length) return null;` |
+| L291–328 | in `tryPollinations()`: `const dim = POLLINATIONS_SIZE_MAP[size] \|\| POLLINATIONS_SIZE_MAP['1024x1536'];` |
+| L336–361 | in `tryCloudflare()`: `if (!CF_ACCOUNT \|\| !CF_TOKEN) return null;` |
+| L365–370 | in `handler()`: `? [` |
+| L372–376 | in `handler()`: `: [` |
+| L381–404 | in `handler()`: `const hit = await rung();` |
+| short runs | 2 runs of 1–2 lines: L106–107, L407–408 |
+
+### 25. `auth.js` — 254 uncovered of 2948 (8.6%), weight 2, score 508
+
+Also loaded in the browser by page tests; counts are the union of both runtimes.
+
+| lines | note |
+|---|---|
+| L51–55 | in `ensureTheme()`: `vp = d.createElement('meta');` |
+| L319–323 | in `window.fetch()`: `if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetc…` |
+| L378–404 | `window.addEventListener('load', async () => {` |
+| L1835–1837 | in `injectTopbar()`: `if (e.key !== 'Escape') return;` |
+| L1858–1862 | in `document.addEventListener.passive()`: `const n = navEl();` |
+| L1865–1874 | in `document.addEventListener.passive()`: `if (!swiping) return;` |
+| L1899–1901 | in `injectTopbar()`: `collapsed = !collapsed;` |
+| L2034–2056 | in `injectSigningInOverlay()`: `if (document.getElementById('lifecycle-signingin')) return;` |
+| L2252–2254 | in `getConfig()`: `window.__SUPABASE__ = PUBLIC_SUPABASE_FALLBACK;` |
+| L2513–2522 | in `signOut()`: `if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();` |
+| L2597–2610 | in `init()`: `injectSigningInOverlay();` |
+| L2630–2633 | in `init()`: `const tb = document.getElementById('lifecycle-nav');` |
+| L2676–2682 | in `maybeShowProfileModal()`: `try { localStorage.setItem(shownKey(user), '1'); } catch {}` |
+| L2686–2800 | in `showProfileModal()`: `if (document.getElementById('lifecycle-profile-modal')) return;` |
+| L2869–2875 | `cells()` never called |
+| L2930–2936 | in `openPrintable()`: `w.document.open();` |
+| short runs | 3 runs of 1–2 lines: L331–332, L2490–2491, L2493–2494 |
 
 ## Browser records that could not be attributed to a repo file
 
@@ -891,30 +952,42 @@ Scripts a page executed whose source matches no tracked `.js` file and no inline
 
 | url | chars | flushes | why |
 |---|---:|---:|---|
-| `http://127.0.0.1:35583/legacy.html` | 455 | 1 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
-| `http://127.0.0.1:44023/brand-catalog.js` | 401 | 1 | tracked `brand-catalog.js` served with different content (401 vs 11685 chars) — stubbed or rewritten by a test route |
-| `http://127.0.0.1:35583/legacy.html` | 341 | 1 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
-| `http://127.0.0.1:44023/brand-catalog.js` | 259 | 1 | tracked `brand-catalog.js` served with different content (259 vs 11685 chars) — stubbed or rewritten by a test route |
-| `http://127.0.0.1:44023/brand-catalog.js` | 258 | 1 | tracked `brand-catalog.js` served with different content (258 vs 11685 chars) — stubbed or rewritten by a test route |
+| `http://127.0.0.1:37369/legacy.html` | 455 | 1 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
+| `http://127.0.0.1:43375/brand-catalog.js` | 401 | 1 | tracked `brand-catalog.js` served with different content (401 vs 11685 chars) — stubbed or rewritten by a test route |
+| `http://127.0.0.1:37369/legacy.html` | 341 | 1 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
+| `http://127.0.0.1:43375/brand-catalog.js` | 259 | 1 | tracked `brand-catalog.js` served with different content (259 vs 11685 chars) — stubbed or rewritten by a test route |
+| `http://127.0.0.1:43375/brand-catalog.js` | 258 | 1 | tracked `brand-catalog.js` served with different content (258 vs 11685 chars) — stubbed or rewritten by a test route |
 | `file://…/lifecycle_mailer_architect_v34.html` | 196 | 11 | inline handler attribute (on*="…") on the page — not a <script> block |
-| `https://cdn.jsdelivr.net/npm/motion@11.11.13/+esm` | 173 | 2 | third-party bundle, or a stub a test routed onto that origin |
-| `http://127.0.0.1:35583/legacy.html` | 123 | 1 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
+| `http://app.example.test/competitor-benchmarking.html` | 174 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/motion@11.11.13/+esm` | 173 | 11 | third-party bundle, or a stub a test routed onto that origin |
+| `https://esm.sh/three@0.169.0` | 173 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `http://app.example.test/competitor-benchmarking.html` | 128 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `http://127.0.0.1:37369/legacy.html` | 123 | 1 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
+| `http://app.example.test/competitor-benchmarking.html` | 116 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `file://…/lifecycle_mailer_architect_v34.html` | 92 | 9 | inline handler attribute (on*="…") on the page — not a <script> block |
 | `https://cdn.tailwindcss.com/` | 92 | 4 | third-party bundle, or a stub a test routed onto that origin |
 | `https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js` | 92 | 3 | third-party bundle, or a stub a test routed onto that origin |
 | `https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js` | 92 | 3 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.tailwindcss.com/` | 36 | 14 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js` | 36 | 4 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js` | 36 | 2 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js` | 36 | 2 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js` | 36 | 2 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2` | 36 | 2 | third-party bundle, or a stub a test routed onto that origin |
-| `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js` | 36 | 2 | third-party bundle, or a stub a test routed onto that origin |
-| `file://…/lifecycle_mailer_architect_v34.html` | 28 | 5 | inline handler attribute (on*="…") on the page — not a <script> block |
-| `file://…/lifecycle_mailer_architect_v34.html` | 25 | 107 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `https://cdn.tailwindcss.com/` | 36 | 42 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js` | 36 | 13 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js` | 36 | 6 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js` | 36 | 7 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js` | 36 | 7 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2` | 36 | 7 | third-party bundle, or a stub a test routed onto that origin |
+| `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js` | 36 | 9 | third-party bundle, or a stub a test routed onto that origin |
+| `file://…/lifecycle_mailer_architect_v34.html` | 28 | 4 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `file://…/lifecycle_mailer_architect_v34.html` | 25 | 105 | inline handler attribute (on*="…") on the page — not a <script> block |
 | `file://…/lifecycle_mailer_architect_v34.html` | 25 | 4 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://127.0.0.1:36319/lifecycle_mailer_architect_v34.html` | 25 | 8 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `file://…/lifecycle_mailer_architect_v34.html` | 23 | 16 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://app.example.test/smart-brain.html` | 23 | 1 | third-party bundle, or a stub a test routed onto that origin |
 | `file://…/lifecycle_mailer_architect_v34.html` | 21 | 2 | inline handler attribute (on*="…") on the page — not a <script> block |
-| `http://127.0.0.1:39025/smart-brain.html` | 21 | 1 | inline handler attribute (on*="…") on the page — not a <script> block |
-| `http://127.0.0.1:39025/smart-brain.html` | 21 | 1 | inline handler attribute (on*="…") on the page — not a <script> block |
-| `http://127.0.0.1:35583/legacy.html` | 18 | 7 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
-| `http://127.0.0.1:33389/smart-brain.html` | 13 | 2 | inline handler attribute (on*="…") on the page — not a <script> block |
-| `http://127.0.0.1:39025/smart-brain.html` | 12 | 3 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://127.0.0.1:42957/smart-brain.html` | 21 | 1 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://127.0.0.1:42957/smart-brain.html` | 21 | 1 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://app.example.test/smart-brain.html` | 19 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `http://app.example.test/lifecycle_mailer_architect_v34.html` | 19 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `http://127.0.0.1:37369/legacy.html` | 18 | 7 | no tracked file with this content (`legacy.html` is not a tracked page — a fixture a spec serves itself) |
+| `http://app.example.test/lifecycle_mailer_architect_v34.html` | 15 | 1 | third-party bundle, or a stub a test routed onto that origin |
+| `http://127.0.0.1:45453/smart-brain.html` | 13 | 2 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://127.0.0.1:42957/smart-brain.html` | 12 | 3 | inline handler attribute (on*="…") on the page — not a <script> block |
+| `http://app.example.test/smart-brain.html` | 10 | 1 | third-party bundle, or a stub a test routed onto that origin |

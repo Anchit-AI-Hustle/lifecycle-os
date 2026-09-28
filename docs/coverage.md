@@ -199,6 +199,46 @@ both runtimes), `api/_shared/workspace-connections-core.js` 76.9%,
 The worst 25 by score, with their uncovered ranges, are in
 [`coverage/UNTESTED.md`](../coverage/UNTESTED.md).
 
+### Second measurement, 2026-09-28 — the money and send paths executed
+
+Same command, both Chromium projects. Before (commit `3f1de02`, clean `main`):
+1224 passed, 0 failed, 1154s under coverage; combined **56.0%** (57,366 of
+102,459 lines), Node side 58.6%. After (commit `b8e14b4`): 1280 passed, 1 failed,
+1342s under coverage; combined **58.0%** (59,501 of 102,572 lines), Node side
+61.5%. The one failure is `nav-rail-everywhere.spec.js`'s 500 ms paint budget
+on `smart-brain.html` (727 ms under instrumentation, a page the branch does
+not touch); the same spec passes plainly (8 passed, 3.6m) and passed in the
+instrumented baseline, so the `exit 1` recorded in `UNTESTED.md` is that
+budget under a slower instrumented run, not a coverage gap.
+
+The modules the run was aimed at, lines covered / total (before → after):
+
+| module | before | after |
+|---|---:|---:|
+| `credits-core.js` | 417/736 (56.7%) | 761/766 (99.3%) |
+| `credit-catalog.js` | 274/285 (96.1%) | 280/285 (98.2%) |
+| `dispatch-core.js` | 169/543 (31.1%) | 539/543 (99.3%) |
+| `oauth-core.js` | 174/515 (33.8%) | 557/557 (100%) |
+| `workspace-connections-core.js` | 877/1141 (76.9%) | 994/1152 (86.3%) |
+| `deliverability-core.js` | 454/764 (59.4%) | 780/782 (99.7%) |
+| `preflight-core.js` | 168/250 (67.2%) | 256/262 (97.7%) |
+| `adapters/klaviyo-adapter.js` | 268/491 (54.6%) | 421/491 (85.7%) |
+| `adapters/base-adapter.js` | 369/430 (85.8%) | 414/430 (96.3%) |
+| `adapters/meta-adapter.js` | 358/546 (65.6%) | 380/546 (69.6%) |
+| `adapters/google-ads-adapter.js` | 191/331 (57.7%) | 200/331 (60.4%) |
+
+What moved them is not more assertions on the same functions: it is that
+`enqueue`, `claim`, `runJob`, `drain`, `cancel`, `ingestWebhook`, `listJobs`,
+`jobDetail`, `beginAuthorization`, `handleCallback`, `exchangeCode`,
+`persistGrant`, `ensureFreshToken`, `revoke`, `wallet`, `withCredits`,
+`metered`, `handle`, `auditSpf`/`Dkim`/`Dmarc`/`Mx`/`Bimi`, `checkBlocklists`,
+`dohQuery` and `unavailable` — every one listed as "never called" in the first
+map — now run against an in-memory Supabase (`tests/lib/fake-supabase.js`) and
+a controllable resolver. The run also found four defects the first map could
+not have (an unreachable operator op, a sign-in that could start with no vault
+to store its result, a paused warmup that never blocked, a DNS outage reported
+as "no A record"); they are in the branch's fix commits.
+
 ## Not in CI (yet)
 
 The full run costs ~10 minutes on top of the suite CI already runs, so this is
