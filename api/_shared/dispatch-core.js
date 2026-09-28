@@ -465,36 +465,37 @@ async function cancel(auth, workspaceId, jobId) {
 /* ── webhooks ─────────────────────────────────────────────────────────────── */
 
 /**
- * Ingest a platform callback. Stored BEFORE it is trusted, and acted on only if
- * the signature verified - an unverified event is diagnosis material, never a
- * status change.
+ * Apply a VERIFIED platform callback: record it, then reconcile it against any
+ * job whose external id it names.
+ *
+ * Verification does not happen here. platform-webhooks.js reads the bytes that
+ * arrived, has the adapter check the signature over THOSE bytes, and parses
+ * them only after that, so by the time this runs `event` is trusted and a
+ * refused delivery never reaches it. (Until 2026-09-15 this function verified a
+ * string the router had built with JSON.stringify(req.body), which is not what
+ * any platform signed, and recorded the unverified ones; a refusal is now a
+ * structured log line at the receiver, not an unauthenticated row write.)
+ *
+ * @param {string} provider          adapter id
+ * @param {object} event             the payload, parsed from the verified bytes
+ * @param {{note?:string}} [meta]    the adapter's verification note, for the record
  */
-async function ingestWebhook(provider, headers, rawBody) {
-  const Adapter = adapterFor(provider);
-  if (!Adapter) return { ok: false, error: `Unknown platform "${provider}".` };
-
-  const adapter = new Adapter({ workspaceId: '', credentials: {} });
-  const check = adapter.verifyWebhook(headers, rawBody);
-
-  let parsed = null;
-  try { parsed = JSON.parse(rawBody || 'null'); } catch (_) { /* keep null */ }
+async function ingestWebhook(provider, event, meta = {}) {
+  const parsed = event && typeof event === 'object' ? event : null;
 
   const externalId = parsed && (parsed.id || (parsed.entry && parsed.entry[0] && parsed.entry[0].id)) || null;
+  let stored = true;
   await rest('platform_webhook_events', {
     method: 'POST',
     body: [{
       provider, event_type: (parsed && (parsed.object || parsed.type)) || null,
       external_id: externalId ? String(externalId) : null,
-      verified: !!check.verified,
-      signature_note: String(check.note || '').slice(0, 300),
-      payload: check.verified ? parsed : { unverified: true, bytes: String(rawBody || '').length },
+      verified: true,
+      signature_note: String((meta && meta.note) || 'Signature verified over the raw request bytes.').slice(0, 300),
+      payload: parsed,
     }],
     prefer: 'return=minimal,resolution=merge-duplicates',
-  }).catch(() => { /* a duplicate delivery is not an error */ });
-
-  if (!check.verified) {
-    return { ok: false, verified: false, note: check.note, stored: true };
-  }
+  }).catch(() => { stored = false; /* a duplicate delivery is not an error; a store failure is reported, not hidden */ });
 
   // Reconcile against a job when the event names something we sent.
   let updated = 0;
@@ -509,7 +510,7 @@ async function ingestWebhook(provider, headers, rawBody) {
       updated += 1;
     }
   }
-  return { ok: true, verified: true, jobs_updated: updated };
+  return { stored, jobs_updated: updated };
 }
 
 /* ── reads ────────────────────────────────────────────────────────────────── */
