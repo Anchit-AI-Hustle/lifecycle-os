@@ -245,7 +245,15 @@ class BasePlatformAdapter {
    * stored for diagnosis and never acted on.
    */
   verifyWebhook(_headers, _rawBody) {
-    return { verified: false, note: 'No signature scheme is wired for this platform.' };
+    return { verified: false, reason: 'no_signature_scheme', note: 'No signature scheme is wired for this platform, so its deliveries are refused rather than accepted unverified.' };
+  }
+
+  /**
+   * A platform's verification / handshake request (a GET before any delivery).
+   * No scheme by default: an answer nobody specified is not an answer.
+   */
+  verifyChallenge(_query) {
+    return { ok: false, reason: 'no_challenge_scheme', note: 'No verification-request scheme is wired for this platform.' };
   }
 
   /* — helpers every adapter shares — */

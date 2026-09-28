@@ -205,6 +205,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <button type="button" id="btnExport" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">↓ Export CSV</button>
     </div>
     <div id="planMeta" class="mt-3 text-[12px] text-ink-dim"></div>
+    <!-- What Export has to say is said HERE, beside the button, never in a
+         native alert() (which blocks the page and titles itself with the host). -->
+    <div id="planNote" class="vh-status" role="status" hidden></div>
   </section>
 
   <!-- Calendar grid -->
@@ -789,7 +792,13 @@ $('btnApprove').addEventListener('click', () => {
 $('planSearch').addEventListener('input', (e) => renderTable(e.target.value));
 
 $('btnExport').addEventListener('click', () => {
-  if (!STATE.plan.length) return alert('Generate a plan first.');
+  const note = $('planNote');
+  if (!STATE.plan.length) {
+    note.hidden = false;
+    note.textContent = 'There is no plan to export yet. Generate a plan first, then export it.';
+    return;
+  }
+  note.hidden = true;
   const csv = Papa.unparse(STATE.plan);
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
