@@ -159,6 +159,33 @@ without re-deriving the map.
 
 ## Current numbers
 
+**2026-09-28, the pipeline executed.** Two full runs of the same command on the
+same machine, before and after `tests/pipeline-executed.spec.js` and the fix it
+gates (commit `a8f3f1e`; before = clean `origin/main` at `3f1de02`):
+
+| scope | before | after |
+|---|---:|---:|
+| Node-side modules — c8 | 43,071 / 73,006 (59.0%) | 45,110 / 72,519 (62.2%) |
+| Inline `<script>` in pages | 14,373 / 29,453 (48.8%) | 14,390 / 29,453 (48.9%) |
+| **Combined** | 57,444 / 102,459 (**56.1%**) | 59,500 / 101,972 (**58.3%**) |
+
+Per file, the five functions that had never been loaded (lines change because
+the stages were rebuilt on `api/_shared/pipeline-core.js`, which is new):
+
+| file | before | after |
+|---|---:|---:|
+| `api/ai/pipeline/html.js` | 0 / 1066 (0%) | 503 / 514 (97.9%) |
+| `api/ai/pipeline/variant.js` | 0 / 485 (0%) | 364 / 383 (95.0%) |
+| `api/ai/pipeline/strategy.js` | 0 / 435 (0%) | 283 / 291 (97.3%) |
+| `api/ai/pipeline/images.js` | 0 / 243 (0%) | 205 / 228 (89.9%) |
+| `api/ai/pipeline/score.js` | 0 / 236 (0%) | 196 / 198 (99.0%) |
+| `api/_shared/pipeline-core.js` | (did not exist) | 287 / 302 (95.0%) |
+
+Both runs finished with one failure, and a DIFFERENT one each time
+(`workflows-guarantees.spec.js:418` before, `contrast-rendered.spec.js:203`
+after); each passes when its spec is run alone, so they are timing under the
+full parallel run rather than regressions, and neither touches the pipeline.
+
 First measurement, 2026-09-15, commit `254e599`, `playwright test --project=desktop-1280 --project=pixel-5`
 — 1036 passed, 0 failed, 391s under coverage.
 
