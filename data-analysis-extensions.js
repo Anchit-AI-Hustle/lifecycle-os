@@ -159,11 +159,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   async function userToken() {
     try {
-      if (window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.access_token) return window.LifecycleAuth.session.access_token;
-      if (window.LifecycleAuth && window.LifecycleAuth.client) {
-        var out = await window.LifecycleAuth.client.auth.getSession();
-        return out && out.data && out.data.session && out.data.session.access_token || '';
-      }
+      // 2026-09-28: the mobile+PIN session, and only a token the server can
+      // check (server mode). The Supabase getSession() branch is DISABLED: the
+      // client is anonymous now and never holds a session.
+      if (window.LifecycleAuth && typeof window.LifecycleAuth.apiToken === 'function') return window.LifecycleAuth.apiToken() || '';
+      if (window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.access_token && window.LifecycleAuth.session.mode === 'server') return window.LifecycleAuth.session.access_token;
+      // if (window.LifecycleAuth && window.LifecycleAuth.client) {
+      //   var out = await window.LifecycleAuth.client.auth.getSession();
+      //   return out && out.data && out.data.session && out.data.session.access_token || '';
+      // }
     } catch (_) {}
     return '';
   }
