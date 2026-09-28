@@ -72,11 +72,13 @@ const INCLUDED_WITHOUT_SHELL = {
   'storefront-3d.html': 'offered to every tenant from the rail (/3d/*) although it carries no shell',
   // Rail rows "Landing Page Templates" (/templates). A registry of tenant
   // zero's own final landing pages; for any other brand it renders the
-  // DATA REQUIRED marker through data-shipped-for, never that registry.
-  'template-gallery.html': 'offered to every tenant from the rail (/templates) although it carries no shell',
+  // DATA REQUIRED marker through data-shipped-for, never that registry. It
+  // carried no shell when this sweep first opened it; the rail mounts on it
+  // now, and it stays listed so the reason it is an app surface is on record.
+  'template-gallery.html': 'offered to every tenant from the rail (/templates); swept whether or not it carries the shell',
   // /premium (rewrite-only): renders products, claims, legal copy and the logo
   // for the ACTIVE workspace through brand-context, so it is a brand surface.
-  'premium-experience.html': 'reachable at /premium and rendered for the active workspace, no shell',
+  'premium-experience.html': 'reachable at /premium and rendered for the active workspace; swept whether or not it carries the shell',
 };
 
 /** Files that are legitimately tenant-zero-only, each with the reason. Nothing
@@ -98,7 +100,9 @@ const EXCLUDED = {
   // Rewrite-only (/july-studio, /usa-july), no shell, no rail row.
   'lifecycle-usa-july-calendar-mailer-studio.html': 'generated tenant-zero calendar artefact (build:july), rewrite-only, not offered in the rail',
 };
-const PAGES = ALL_PAGES.concat(Object.keys(INCLUDED_WITHOUT_SHELL)).filter((f) => !EXCLUDED[f]).sort();
+// A page named in INCLUDED_WITHOUT_SHELL that later gains the shell (the rail
+// now mounts on every app page) is swept once, not twice.
+const PAGES = Array.from(new Set(ALL_PAGES.concat(Object.keys(INCLUDED_WITHOUT_SHELL)))).filter((f) => !EXCLUDED[f]).sort();
 const STUDIO = 'lifecycle_mailer_architect_v34.html';
 
 /* ── the signatures ────────────────────────────────────────────────────────── */
