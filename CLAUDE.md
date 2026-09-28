@@ -4,6 +4,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The four ?action= routers are EXECUTED, and executing them found what reading never did (2026-09-28)
+`tests/router-{brain,calendar,competitor,kb}.spec.js` over `tests/router-harness.js`. `api/brain.js`,
+`api/calendar.js`, `api/competitor.js` and `api/kb.js` front almost every feature; until now no test
+loaded three of them and only half of the fourth ran (`coverage/UNTESTED.md`: brain 0/1205, competitor
+0/560, calendar 0/458, kb 431/862). Each spec requires the SHIPPED module - `credits.metered` and
+`request-scope` wrappers included - and drives it over a real `http.Server` with the Vercel request
+shape (the same drained-and-restored stream replica `meta-webhook-raw-body.spec.js` mirrors from
+@vercel/node), so a request arrives the way an attacker's does. Measured with `npm run coverage`,
+same command, same machine, clean `3f1de02` vs the same tree plus these specs and fixes: brain
+310/1226 → 1220/1228, calendar 0/458 → 462/468, competitor 0/560 → 567/567, kb 431/862 → 850/862;
+combined 57,631/102,459 (56.2%) → 60,699/102,478 (59.2%), 1738 tests, 0 failed.
+- **Every action is enumerated from the router's own labels, and a table entry is mandatory.** A new
+  `case` with no test fails the enumeration, and a floor on the count means a gutted enumeration cannot
+  pass. Per action: the admitted request reaches its core with the arguments the router BUILT (the
+  home market from the brand record, the workspace from the session, the caller's own token to a
+  PostgREST store); where a gate exists, an anonymous request and a forged bearer are refused BEFORE
+  the core, with no network call beyond the router's scoping lookups and no credit hold. `global.fetch`
+  throws on any host the fake project does not claim, so a refusal that had already spent money shows
+  up as an escaped call rather than a silent 401.
+- **A stub on a name a module does not export intercepts nothing** (the 2026-09-15 finding, made
+  structural): `Stubs.on()` refuses it. And a router that binds a dependency at LOAD time (brain.js
+  binds `llm.js`; calendar.js destructures `lib/smart-brain/services.js` and binds the two modules
+  that export the function itself) needs its cache entry swapped and the router re-required, or the
+  stub is a key nobody reads.
+- **Four defects, none visible in the source, each pinned by the test that found it:**
+  `?action=lifecycle-build-mailer` answered **500 "q is not defined"** on every request without
+  `force:true` (`q` was declared inside the `lifecycle-list` branch); the `/lp/:id` FALLBACK page never
+  resolved the workspace's brand (`body` exists only inside `smartBrain()`/`lifecycle()`, and the
+  ReferenceError was swallowed by a catch); `api/competitor.js` had **no OPTIONS branch**, so a
+  cross-origin preflight for `?action=poll` RAN the IMAP poll; and `?action=snowflake-metrics`
+  answered 501 with `ok:true` because `Object.assign({ ok:false }, out)` let the core's `ok` win.
+  Against the pristine routers the specs fail on exactly those tests and nowhere else.
+- **The ungated set is pinned by NAME.** 63 brain.js actions carry no caller gate: the only rule on
+  them is browser attribution (an Origin with neither session nor `workspace_id` is refused or served
+  demo data BEFORE the switch), so an anonymous non-browser caller with an explicit `workspace_id`
+  - or none, which resolves to the DEFAULT workspace, tenant zero - reaches the core. Several of those
+  cores reach a model or a paid provider (`console-chat`, `access-narrative`, `brand-chat`,
+  `agent-chat`, `team-chat`, `agentic-run`, `generate`, `video-generate`, `mailer-assets`, `tts`,
+  `calendar-scenarios`, `analysis-narrative`, `social-run-daily` POST). Each is PROVEN admitted for
+  an anonymous server-to-server request, which is what makes the list a measurement: a gate added to
+  one fails its admitted test and the pin shrinks; a NEW ungated action fails the pin and has to be
+  argued for. Recorded here, not changed here - `agent-chat` is the buyer-facing widget and the
+  cron/worker paths are userless by design, so the fix is a decision, not a one-liner.
+- **The credit meter is not stubbed.** `calendar.js`'s metered actions prove, against the fake
+  project, that an anonymous POST is refused with no hold, a session takes a hold that settles for the
+  CATALOG price (the fake `credit_settle` echoes `p_actual`, so the receipt assertion is about the
+  price list, not the fake), a 4xx from the generator RELEASES it, and the scheduler's bearer is free.
+- **Two harness lessons.** The comment stripper used to enumerate the switch ate ~500 lines because
+  `api/*.js` inside a `//` comment read as a block-comment opener (full-line `//` first, then
+  `/* */`). And `workspace-scope`'s per-user preference cache survives a swapped network guard: a test
+  that primes it and then pretends the user has no workspace must `invalidate()` or it reads a table
+  the new guard never claimed and reports a 500.
+- **The coverage tooling needs a git checkout** (`browser.js` uses `git ls-files`), so a copied tree
+  cannot be measured; a clean baseline is taken in the worktree with the changed files reverted and
+  the new specs moved out until Playwright has collected. And the scratchpad is SHARED between agent
+  sessions on this repo: two runs writing one log name interleave, and the "exit=0" you read may be
+  the other session's. Prefix scratch files with the task.
+- Left as found, named so they are argued for rather than forgotten: brain.js's default "Unknown
+  action" reply advertises 57 of the 89 actions it dispatches (the test asserts advertised ⊆ real);
+  `mailer-assets` defaults `market` to the literal `'UK'` and competitor.js's `benchmark` to `'US'`
+  (the 2026-09-15 home-market sweep missed both); `agent-sync` defaults to tenant zero's agent id.
+
 ## ⭐ A brand has a HOME market, and no control opens on US (2026-09-15)
 `region-context.js` (`home`, `options()`, `resolve()`), `brand-extract.js` → `homeMarket()`,
 `brand-runtime.homeRegion()`, gated by `tests/brand-regions.spec.js` (17 tests, executed). Live
