@@ -48,6 +48,8 @@ function main() {
   const page = `<!doctype html>
 <html lang="en">
 <head>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KNICKGASM USA July · Calendar + Mailer Studio</title>
@@ -125,6 +127,10 @@ function main() {
   .assetnote{font-size:11px;color:var(--muted);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;word-break:break-all;}
   footer{color:var(--muted);font-size:12px;padding:24px 22px;text-align:center;}
 </style>
+<!-- The shared shell (LHS rail + theme.css). Served at /july-studio and
+     /usa-july: an app surface, so it carries the same navigation as every
+     other app page. The mailers it previews inside its frames stay bare. -->
+<script src="/auth.js?v=20260718light" defer></script>
 </head>
 <body>
 <header class="top">
