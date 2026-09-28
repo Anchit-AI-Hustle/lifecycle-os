@@ -1917,17 +1917,26 @@ const CC_TLD = {
 };
 
 /*
- * Currencies that identify ONE country. EUR is absent on purpose: a price in
- * euros is published by twenty countries, so it names a currency zone and not
- * a home market. XAF, XOF and the dollar pegs are absent for the same reason.
+ * Currencies that identify ONE country. EUR and USD are absent on purpose: a
+ * price in euros is published by twenty countries, and USD is the pricing
+ * currency of global `.com` storefronts and of plenty of businesses that are
+ * not American, so each names a currency zone and not a home market. XAF, XOF
+ * and the dollar pegs are absent for the same reason.
  */
 const CURRENCY_COUNTRY = {
-  INR: 'IN', USD: 'US', GBP: 'GB', AUD: 'AU', CAD: 'CA', NZD: 'NZ', JPY: 'JP', KRW: 'KR', CNY: 'CN', HKD: 'HK', TWD: 'TW',
+  INR: 'IN', GBP: 'GB', AUD: 'AU', CAD: 'CA', NZD: 'NZ', JPY: 'JP', KRW: 'KR', CNY: 'CN', HKD: 'HK', TWD: 'TW',
   SGD: 'SG', MYR: 'MY', IDR: 'ID', PHP: 'PH', THB: 'TH', VND: 'VN', PKR: 'PK', BDT: 'BD', LKR: 'LK', NPR: 'NP',
   AED: 'AE', SAR: 'SA', QAR: 'QA', KWD: 'KW', BHD: 'BH', OMR: 'OM', ILS: 'IL', EGP: 'EG', TRY: 'TR',
   ZAR: 'ZA', NGN: 'NG', KES: 'KE', BRL: 'BR', MXN: 'MX', ARS: 'AR', CLP: 'CL',
   SEK: 'SE', DKK: 'DK', NOK: 'NO', PLN: 'PL', CZK: 'CZ', HUF: 'HU', RON: 'RO', CHF: 'CH', UAH: 'UA', RUB: 'RU',
 };
+
+/*
+ * Multi-country currencies. They never PROPOSE a home market. USD may
+ * corroborate US weakly (the dollar's issuer is one of the countries that
+ * price in it); EUR names no single country at all, so it is only noted.
+ */
+const CURRENCY_ZONE = { USD: 'US', EUR: '' };
 
 /* Country NAMES as they appear in a published address, to ISO 3166-1 alpha-2. */
 const COUNTRY_NAMES = {
@@ -1962,8 +1971,25 @@ function ccTldOf(host) {
   return CC_TLD[one] ? { code: CC_TLD[one], suffix: one } : { code: '', suffix: one };
 }
 
+/*
+ * Two URLs name the same page when host, path AND query agree. The query is
+ * part of the comparison on purpose: many storefronts publish their regional
+ * alternates as `/?country=US` vs `/?country=GB`, and a comparison that dropped
+ * the query read every one of them as the x-default page - so the x-default
+ * appeared shared by all of them and proposed nothing (or matched whichever
+ * came first). Keys are sorted so parameter order cannot split a match.
+ */
 const sameUrl = (a, b) => {
-  const norm = (u) => { try { const x = new URL(u); return (x.host + x.pathname).toLowerCase().replace(/\/+$/, ''); } catch (_) { return String(u || '').toLowerCase().replace(/\/+$/, ''); } };
+  const norm = (u) => {
+    try {
+      const x = new URL(u);
+      const q = [...x.searchParams.entries()]
+        .map(([k, v]) => [k.toLowerCase(), String(v).toLowerCase()])
+        .sort((p, r) => (p[0] < r[0] ? -1 : p[0] > r[0] ? 1 : p[1] < r[1] ? -1 : p[1] > r[1] ? 1 : 0))
+        .map(([k, v]) => `${k}=${v}`).join('&');
+      return (x.host + x.pathname).toLowerCase().replace(/\/+$/, '') + (q ? `?${q}` : '');
+    } catch (_) { return String(u || '').toLowerCase().replace(/\/+$/, ''); }
+  };
   return !!a && !!b && norm(a) === norm(b);
 };
 
@@ -2020,6 +2046,12 @@ function homeMarket(input) {
     if (!cur) continue;
     const code = CURRENCY_COUNTRY[cur];
     if (code) push(strong, code, `${c.signal} (${cur})`, c.source_url, cur, CONF.declared);
+    else if (Object.prototype.hasOwnProperty.call(CURRENCY_ZONE, cur)) {
+      // A currency many countries price in. USD is recorded as a WEAK
+      // corroborator for US and never proposes; EUR names no country.
+      if (CURRENCY_ZONE[cur]) push(weak, CURRENCY_ZONE[cur], `${c.signal} (${cur})`, c.source_url, cur, CONF.weak);
+      notes.push(`${cur} is declared on the home page but is priced in by many countries, so it is not a home-market signal${CURRENCY_ZONE[cur] ? ` (recorded as a weak corroborator for ${CURRENCY_ZONE[cur]} only)` : ''}.`);
+    }
     else notes.push(`${cur} is declared on the home page but does not identify one country, so it is not a home-market signal.`);
   }
 
@@ -2059,7 +2091,7 @@ function homeMarket(input) {
   }
   return {
     proposed: '', confidence: '', signals: [], corroborators: weak, considered: [], notes: notes.concat(
-      weak.length ? [`Only weak signals were found (${weak.map((w) => `${w.signal}=${w.code}`).join(', ')}). A language tag never proposes a market on its own.`] : [],
+      weak.length ? [`Only weak signals were found (${weak.map((w) => `${w.signal}=${w.code}`).join(', ')}). Weak signals - a language tag, a multi-country currency - never propose a market on their own.`] : [],
     ),
     conflict: null, marker: MARKER('home market'),
   };
@@ -2560,7 +2592,11 @@ async function extractBrand(startUrl, opts) {
   if (home.proposed && !bags.regions.has(home.proposed)) {
     bags.regions.set(home.proposed, { code: home.proposed, store_url: homeUrl, currency: '', signals: home.signals.map((s) => ({ signal: s.signal, source_url: s.source_url, evidence: s.evidence })) });
   }
-  const homeCurrency = homeCurrencies.find((c) => CURRENCY_COUNTRY[String(c.currency || '').toUpperCase()] === home.proposed) || null;
+  // The currency the home page declares for the proposed home (a country-unique
+  // one, or a zone currency whose issuer the home is: USD on a US home).
+  const homeCurrency = home.proposed
+    ? homeCurrencies.find((c) => { const cur = String(c.currency || '').toUpperCase(); return CURRENCY_COUNTRY[cur] === home.proposed || CURRENCY_ZONE[cur] === home.proposed; }) || null
+    : null;
 
   const fields = {
     name: fieldOf(bags.name, 'brand name'),
@@ -2871,7 +2907,7 @@ module.exports = {
   nameCandidates, taglineCandidates, logoCandidates, iconCandidates, imageCandidates, inlineSvgLogo, typographyCandidates, designTokenCandidates,
   typeScaleCandidates, typeSlot, sizeInPx, rootFontSize, isSimpleSelector,
   socialCandidates, claimCandidates, legalCandidates, regionCandidates, homeMarket, countryCodeOf, ccTldOf, voiceSamples,
-  googleFontLinks, primaryFamily, blockTexts, trustRanges, CC_TLD, CURRENCY_COUNTRY,
+  googleFontLinks, primaryFamily, blockTexts, trustRanges, CC_TLD, CURRENCY_COUNTRY, CURRENCY_ZONE, sameUrl,
   // helpers
   stripTags, headOf, footerOf, attrs, rankCandidates, decodeEntities, withoutScripts, platformCdnOf, atExcluded, nonSelectorAt,
 };
