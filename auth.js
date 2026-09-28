@@ -1634,6 +1634,8 @@
           color: #556059; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
         #lifecycle-nav .lnav-signout:hover { border-color: #6A33D8; color: #111111; }
         #lifecycle-nav .lnav-signin { color: #7a5f28; text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        /* A press held while boot settles: dimmed and waiting, no colour of its own. */
+        #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
            This replaces a native alert(): a dialog blocks the page, carries the
            site's hostname as its title so it reads as a site error, and cannot
@@ -1923,12 +1925,55 @@
       // a deployment with no client at all, which sent an unconfigured
       // deployment's visitor to the homepage instead of telling them why.
       e.preventDefault();
-      const refusal = await signInRefusal();
-      if (!refusal) return;   // the browser is on its way to Google
-      showSignInRefusal(root, signinBtn, refusal);
+      if (signinBtn.dataset.busy) return;
+      signinBtn.dataset.busy = '1';
+      try {
+        // The rail is mounted before the config, the SDK and the first session
+        // lookup have settled, so this button can be pressed while boot is
+        // still in flight. A diagnosis taken then reads a config fetch that has
+        // not answered as "unconfigured" and a client not yet built as "sdk" -
+        // a deployment fault reported on a healthy backend. The WAIT lives in
+        // signInRefusal() (one place, shared with __startGoogleSignIn__); this
+        // handler only says that it is waiting. Deliberately not a second
+        // await here: two waits let one be removed without a test noticing.
+        const waited = !authReady.settled;
+        if (waited) {
+          signinBtn.textContent = 'Checking sign-in…';
+          signinBtn.setAttribute('aria-busy', 'true');
+        }
+        const refusal = await signInRefusal();
+        if (waited) {
+          signinBtn.textContent = 'Sign in';
+          signinBtn.removeAttribute('aria-busy');
+        }
+        if (!refusal) return;   // the browser is on its way to Google
+        showSignInRefusal(root, signinBtn, refusal);
+      } finally {
+        delete signinBtn.dataset.busy;
+      }
     };
     const signoutBtn = root.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
+  }
+
+  /**
+   * Take back a refusal the rail is showing: the note under the button, the
+   * aria link to it, and the button's own text. Called whenever the state the
+   * note described has been superseded - a session arrived (setRailUser), or
+   * boot resolved signed-out (gateSignedOut). A note left beside a signed-in
+   * chip describes a state that no longer exists. The button text is left
+   * alone while a press is in flight, because that press owns it.
+   */
+  function clearSignInNote(root) {
+    const scope = root || document.getElementById('lifecycle-nav');
+    if (!scope) return;
+    const note = scope.querySelector('#lnav-signin-note');
+    if (note) note.remove();
+    const btn = scope.querySelector('#lnav-signin');
+    if (btn) {
+      btn.removeAttribute('aria-describedby');
+      if (!btn.dataset.busy) { btn.textContent = 'Sign in'; btn.removeAttribute('title'); }
+    }
   }
 
   /**
@@ -1956,6 +2001,9 @@
     if (!nav) { injectTopbar(user); return; }
     const slot = nav.querySelector('.lnav-user');
     if (!slot) return;
+    // The refusal note sits BESIDE .lnav-user, not inside it, so swapping the
+    // block alone would leave a "Sign-in unavailable" note next to the chip.
+    clearSignInNote(nav);
     const tmp = document.createElement('div');
     tmp.innerHTML = railUserHtml(user);
     const next = tmp.firstElementChild;
@@ -2059,23 +2107,42 @@
    * network is not a missing project, and refusing to sign a user in because
    * their connection is poor would be a worse bug than the one this fixes.
    */
+  // Caches the PROBE, not its result, so a second caller while the first is in
+  // flight (a Sign-in press racing gateSignedOut) shares one request.
   const REACH_CACHE = new Map();
-  async function authHostReachable(url) {
-    if (!url) return false;
+  function authHostReachable(url) {
+    if (!url) return Promise.resolve(false);
     if (REACH_CACHE.has(url)) return REACH_CACHE.get(url);
-    let ok = true;
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 4000);
-    try {
-      await fetch(url.replace(/\/+$/, '') + '/auth/v1/health', { mode: 'no-cors', signal: ctl.signal });
-    } catch (e) {
-      ok = (e && e.name === 'AbortError');   // timed out → give it the benefit of the doubt
-    } finally {
-      clearTimeout(timer);
-    }
-    REACH_CACHE.set(url, ok);
-    return ok;
+    const probe = (async () => {
+      let ok = true;
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 4000);
+      try {
+        await fetch(url.replace(/\/+$/, '') + '/auth/v1/health', { mode: 'no-cors', signal: ctl.signal });
+      } catch (e) {
+        ok = (e && e.name === 'AbortError');   // timed out → give it the benefit of the doubt
+      } finally {
+        clearTimeout(timer);
+      }
+      return ok;
+    })();
+    REACH_CACHE.set(url, probe);
+    return probe;
   }
+
+  /**
+   * AUTH READINESS: settled once init() knows the three things a sign-in
+   * diagnosis reads - whether there is a config, whether the SDK client was
+   * built, and what the first session lookup said - or once init() has failed
+   * trying. Nothing that PAINTS waits on this (the rail is mounted before the
+   * first await); only a diagnosis does. Settled on every exit of init() and
+   * in boot()'s catch, so a press can never wait forever.
+   */
+  const authReady = (() => {
+    let resolve;
+    const promise = new Promise((r) => { resolve = r; });
+    return { promise, settled: false, settle() { if (!this.settled) { this.settled = true; resolve(); } } };
+  })();
 
   /**
    * Which signed-out state is this browser in? One of
@@ -2104,6 +2171,9 @@
    * renamed", a claim the code cannot make.
    */
   async function signInRefusal() {
+    // Never diagnose a boot still in flight (see authReady). This also covers
+    // window.__startGoogleSignIn__, which pages and tests call directly.
+    await authReady.promise;
     const kind = await signedOutState();
     if (kind !== 'signed-out') {
       const s = signedOutSentence(kind);
@@ -2262,6 +2332,7 @@
     var bar = document.createElement('div');
     bar.id = 'lc-authnotice';
     bar.setAttribute('role', 'status');
+    bar.setAttribute('data-kind', kind);
     bar.style.cssText = [
       'position:sticky', 'top:0', 'z-index:120',
       'background:var(--vh-panel-2,#f5f5f5)',
@@ -2317,12 +2388,67 @@
   async function gateSignedOut() {
     removeLoginWall();
     injectTopbar(null);
+    // The state is now resolved; a note written against an earlier one (or a
+    // "Checking sign-in…" left by a press that is no longer in flight) goes.
+    clearSignInNote();
     // Which of the three signed-out states is this? They need different words:
     // a missing env var, a project that no longer answers, and simply being
     // logged out are three different things to be told.
     const url = (window.__SUPABASE__ || {}).url;
-    if (!url) { injectSignedOutNotice('unconfigured'); return; }
-    injectSignedOutNotice(await authHostReachable(url) ? 'signed-out' : 'unreachable');
+    if (!url) { injectSignedOutNotice('unconfigured'); setBackendState('unconfigured'); return; }
+    const kind = (await authHostReachable(url)) ? 'signed-out' : 'unreachable';
+    injectSignedOutNotice(kind);
+    setBackendState(kind);
+  }
+
+  // ─── Backend state: ONE answer to "is there a database, and is this visitor
+  // signed in to it" ──────────────────────────────────────────────────────────
+  // brand-context.js decides from this record, and from nothing else, whether a
+  // brand is saved to the ACCOUNT or to THIS DEVICE. It is derived from the same
+  // probe (authHostReachable) and the same session the notice bar above is built
+  // from, so the bar and the store can never disagree. A second reachability
+  // check in brand-context.js would be the "one probe, not two" defect again:
+  // two implementations that drift, with the bar saying one thing and the
+  // wizard doing another.
+  //
+  //   kind          reachable  signedIn  who fixes it
+  //   unconfigured  false      false     the deployment (no SUPABASE_URL)
+  //   unreachable   false      false     the deployment (project paused/gone)
+  //   sdk           unknown    false     the network (supabase-js CDN blocked)
+  //   signed-out    true       false     nobody: an ordinary state
+  //   signed-in     true       true      -
+  //   local         true       false     localhost preview: no backend, a
+  //                                      preview user, the local server answers
+  //
+  // `pending` until init() has decided. It is published three ways because the
+  // consumers are shaped differently: a field to read, an event to wait on, and
+  // a promise that resolves on the FIRST decision.
+  const BACKEND_KINDS = {
+    pending:      { reachable: null,  signedIn: false },
+    unconfigured: { reachable: false, signedIn: false },
+    unreachable:  { reachable: false, signedIn: false },
+    sdk:          { reachable: null,  signedIn: false },
+    'signed-out': { reachable: true,  signedIn: false },
+    'signed-in':  { reachable: true,  signedIn: true },
+    local:        { reachable: true,  signedIn: false },
+  };
+  let backendResolve;
+  const backendFirst = new Promise((r) => { backendResolve = r; });
+  function backendSnapshot(kind) {
+    const k = BACKEND_KINDS[kind] ? kind : 'pending';
+    let host = '';
+    try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (_) { /* none configured */ }
+    return Object.assign({ kind: k, host }, BACKEND_KINDS[k]);
+  }
+  function setBackendState(kind) {
+    const snap = backendSnapshot(kind);
+    if (window.LifecycleAuth) window.LifecycleAuth.backend = snap;
+    try { window.dispatchEvent(new CustomEvent('lifecycleauth:backend', { detail: snap })); } catch (_) { /* no CustomEvent */ }
+    if (snap.kind !== 'pending') backendResolve(snap);
+    return snap;
+  }
+  function backendPending() {
+    return !window.LifecycleAuth || !window.LifecycleAuth.backend || window.LifecycleAuth.backend.kind === 'pending';
   }
 
   // ─── Access mode ─────────────────────────────────────────────────────────
@@ -2379,6 +2505,10 @@
       user: null,
       internal: false,
       mockMode: false,
+      // See "Backend state" above. `backend` is the current decision and
+      // `backendState()` resolves on the first one, whichever it is.
+      backend: backendSnapshot('pending'),
+      backendState: () => backendFirst,
       signOut: async () => {
         if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();
         window.LifecycleAuth.session = null;
@@ -2404,6 +2534,7 @@
 
     const config = await getConfig();
     if (!config) {
+      authReady.settle();   // no config means no SDK and no session to wait for
       // No Supabase configured. On localhost / file:// (dev preview) there is no
       // backend to sign in against, so inject the cross-step top-bar and let the
       // UI run — exactly as the team would see it post-login. Open pages (Mailer
@@ -2413,9 +2544,10 @@
         /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
       if (isLocal) {
         setRailUser({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
+        setBackendState('local');
         return;
       }
-      if (isOpenPage()) { injectTopbar(null); return; }
+      if (isOpenPage()) { injectTopbar(null); setBackendState('unconfigured'); return; }
       //
       // NO BACKEND AT ALL. This used to fall through to a login wall nobody
       // could get past: signing in requires a Supabase project, and there is
@@ -2427,6 +2559,7 @@
       // with a working backend is equally unblocked, in gateSignedOut().
       injectTopbar(null);
       injectSignedOutNotice('unconfigured');
+      setBackendState('unconfigured');
       return;
     }
 
@@ -2440,11 +2573,22 @@
     // above (it exchanges the PKCE ?code= and cleans the URL). Calling
     // exchangeCodeForSession() again here would double-consume the single-use
     // code and fail — so we just wait for getSession() to resolve the session.
-    const { data: { session } } = await client.auth.getSession();
+    let got = null;
+    try {
+      got = await client.auth.getSession();
+    } finally {
+      // Config, client and first lookup are known (or the lookup threw, which
+      // boot() reports). A Sign-in press held on authReady proceeds from here,
+      // BEFORE gateSignedOut's reachability probe, which it shares (see
+      // authHostReachable) rather than waiting behind.
+      authReady.settle();
+    }
+    const session = got && got.data && got.data.session;
     if (session?.user) {
       window.LifecycleAuth.session = session;
       window.LifecycleAuth.user = session.user;
       applyAccessMode(session.user);
+      setBackendState('signed-in');
       setRailUser(session.user);
       restoreReturnTo();
       // Keep the Studio frictionless: only prompt for profile on the gated steps.
@@ -2476,6 +2620,7 @@
       window.LifecycleAuth.user = sess?.user || null;
       applyAccessMode(sess?.user || null);
       if (sess?.user) {
+        setBackendState('signed-in');
         removeSigningInOverlay();
         removeLoginWall();
         setRailUser(sess.user);   // the guest "Sign in" becomes the user chip, in place
@@ -2673,12 +2818,19 @@
           injectTopbar(null);
           const isLocal = location.protocol === 'file:'
             || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
-          if (isLocal) return;
+          if (isLocal) { if (backendPending()) setBackendState('local'); return; }
           // Name what failed. Only the SDK load and the client construction can
           // reject here, and both leave sign-in impossible for the same reason.
-          injectSignedOutNotice(/supabase-js|createClient/i.test(String(e && e.message)) ? 'sdk' : 'unreachable');
+          const kind = /supabase-js|createClient/i.test(String(e && e.message)) ? 'sdk' : 'unreachable';
+          injectSignedOutNotice(kind);
+          // A decision already published (a session was found, then something
+          // later in init threw) stands; this only fills in a missing one.
+          if (backendPending()) setBackendState(kind);
         } catch (_) { /* nothing left to render into */ }
-      });
+      })
+      // Whatever init() did or failed to do, the state is now as known as it
+      // will get: release any Sign-in press that was waiting to diagnose it.
+      .finally(() => authReady.settle());
   }
 
   if (document.readyState === 'loading') {

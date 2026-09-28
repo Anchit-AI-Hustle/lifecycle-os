@@ -61,8 +61,19 @@
  *   4. The exclusion list is explicit, every entry names its reason, and every
  *      .html a vercel.json rewrite lands on is either swept or excluded - so a
  *      new app page cannot ship without the shell unnoticed.
+ *   5. A rail mounted before boot settles can be PRESSED before boot settles.
+ *      Sign-in waits on auth readiness (config, SDK client, first session
+ *      lookup) and never diagnoses a boot in flight as "unconfigured" or "sdk"
+ *      on a healthy backend; a refusal note is taken back the moment a session
+ *      arrives or the state resolves.
  *
  * Mutations verified (each restores a defect and fails this file):
+ *   - auth.js: drop `await authReady.promise` in signInRefusal()  -> the stalled-config press test
+ *                                                                     fails (an "unconfigured" note renders)
+ *     (that await is the ONLY wait: the first version also awaited in the rail
+ *     handler, and this mutation PASSED because the handler's own wait masked
+ *     it - two waits let one be removed without a test noticing)
+ *   - auth.js: drop clearSignInNote(nav) in setRailUser()         -> the late-session note test fails
  *   - auth.js: remove the early injectTopbar(null) in init(), i.e. put the
  *     await back in front of the render                            -> the stalled-config
  *                                                                     and pending-session tests fail
@@ -183,6 +194,16 @@ async function open(page, file, { config, reachable = true, sdk, configDelayMs =
     // first version of this capture reported auth.js running and the rail
     // never painting on every page.
     mo.observe(document, { childList: true, subtree: true });
+    // Every kind of sign-in refusal note the page EVER renders, in order. A
+    // note that appeared and was replaced still counts: the point is what a
+    // visitor could have read, not what is on screen at the end.
+    window.__noteKinds = [];
+    const noteMo = new MutationObserver(() => {
+      const n = document.getElementById('lnav-signin-note');
+      const k = n && n.getAttribute('data-kind');
+      if (k && window.__noteKinds[window.__noteKinds.length - 1] !== k) window.__noteKinds.push(k);
+    });
+    noteMo.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-kind'] });
   });
   await page.addInitScript((custom) => {
     // eslint-disable-next-line no-new-func
@@ -297,6 +318,31 @@ async function measureRail(page, timeoutMs = 8000) {
 
 const HARNESS_NOISE = /ResizeObserver|Failed to fetch|NetworkError|net::ERR/i;
 
+/** Press the rail's Sign-in; fall back to a dispatched click if something fixed overlaps the footer. */
+async function pressSignIn(page) {
+  const btn = page.locator('#lnav-signin');
+  await btn.waitFor({ state: 'attached', timeout: 10000 });
+  try { await btn.click({ timeout: 4000 }); } catch (e) {
+    if (!/intercepts pointer events|Timeout/.test(String(e.message))) throw e;
+    await btn.evaluate((el) => el.click());
+  }
+}
+
+/** The Sign-in button and its note, as rendered right now. */
+const readSignIn = (page) => page.evaluate(() => {
+  const btn = document.getElementById('lnav-signin');
+  const note = document.getElementById('lnav-signin-note');
+  return {
+    text: btn ? (btn.textContent || '').trim() : null,
+    busy: btn ? btn.getAttribute('aria-busy') : null,
+    describedBy: btn ? btn.getAttribute('aria-describedby') : null,
+    note: !!note,
+    kind: note ? note.getAttribute('data-kind') : null,
+    configSeen: !!((window.__SUPABASE__ || {}).url),
+    oauthCalls: (window.__oauthCalls || []).length,
+  };
+});
+
 /* ═══ 0. the page list is real ════════════════════════════════════════════ */
 
 test('the sweep covers a real page list, and every excluded page exists for the reason given', () => {
@@ -379,6 +425,96 @@ test('the rail is up while /api/public-config is still stalled, on every kind of
     expect(m.problems, `${f}`).toEqual([]);
     expect(m.railPaint - m.authRun, `${f}: rail painted ${m.railPaint - m.authRun} ms after auth.js ran`).toBeLessThanOrEqual(PAINT_BUDGET_MS);
   }
+});
+
+test('Sign-in pressed while the config is stalled waits, and never calls a healthy backend broken', async ({ browser }) => {
+  test.setTimeout(120_000);
+  // The rail is up before the config answers (test above), so its button can
+  // be pressed while boot is still in flight. Diagnosed AT THAT MOMENT, a
+  // config fetch that has not answered reads as "unconfigured" and a client
+  // not yet built as "sdk": a deployment fault reported on a healthy backend,
+  // in a note that then outlives the boot that proves it wrong (Codex finding
+  // on 8c9245e). So the press waits on auth readiness, says so, and diagnoses
+  // once the state is known. Two backends, one press each, 400 ms into a 5 s
+  // stall; every note kind the page ever renders is recorded, not just the
+  // last one on screen.
+  const sdk = () => ({
+    getSession: async () => ({ data: { session: null } }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    signInWithOAuth: async (o) => { (window.__oauthCalls = window.__oauthCalls || []).push(o); return { error: null }; },
+    signOut: async () => ({}),
+  });
+  for (const [label, reachable] of [['healthy backend', true], ['dead host', false]]) {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const page = await ctx.newPage();
+    const { configAnswered } = await open(page, 'research.html', { config: WITH_BACKEND, reachable, configDelayMs: 5000, sdk });
+    const m = await measureRail(page, 3000);
+    expect(m.side, `${label}: no rail to press`).toBe(true);
+    await pressSignIn(page);
+    // The direct entry point pages and tests call, started during the same
+    // stall. It shares the one wait in signInRefusal(); its answer is read
+    // once boot has settled.
+    await page.evaluate(() => { window.__directCall = window.__startGoogleSignIn__(); });
+    await page.waitForTimeout(400);
+    const mid = await readSignIn(page);
+    expect(configAnswered.at, `${label}: the config had already answered, so this measured a settled boot`).toBeNull();
+    expect(mid.configSeen).toBe(false);
+    expect(mid.note, `${label}: a refusal note was rendered while boot was still in flight`).toBe(false);
+    expect(mid.text).toBe('Checking sign-in…');
+    expect(mid.busy).toBe('true');
+    // Boot settles: the SAME press proceeds to the real outcome.
+    if (reachable) {
+      // Two callers (the button and the direct call), two OAuth starts.
+      await page.waitForFunction(() => (window.__oauthCalls || []).length === 2, null, { timeout: 15000 });
+      const end = await readSignIn(page);
+      expect(end.note, 'a healthy backend was given a refusal note').toBe(false);
+      expect(end.text).toBe('Sign in');
+      expect(end.busy).toBeNull();
+      expect(await page.evaluate(() => window.__directCall), 'the direct call diagnosed a boot in flight').toBe('');
+    } else {
+      await page.waitForFunction(() => {
+        const n = document.getElementById('lnav-signin-note');
+        return n && n.getAttribute('data-kind') === 'unreachable';
+      }, null, { timeout: 15000 });
+      const end = await readSignIn(page);
+      expect(end.oauthCalls, 'a dead host was handed the browser').toBe(0);
+      expect(end.text).toBe('Sign-in unavailable');
+      expect(await page.evaluate(() => window.__directCall), 'the direct call named the wrong state').toMatch(/cannot be reached/);
+    }
+    const kinds = await page.evaluate(() => window.__noteKinds.slice());
+    expect(kinds.filter((k) => k === 'unconfigured' || k === 'sdk'),
+      `${label}: a boot in flight was diagnosed as a deployment fault (notes seen: ${kinds.join(', ') || 'none'})`).toEqual([]);
+    await ctx.close();
+  }
+});
+
+test('a session arriving after a refusal takes the note with it and seats the chip', async ({ page }) => {
+  // Config answers at once and the host is dead, so a press yields the honest
+  // "unreachable" refusal. Then a session arrives through onAuthStateChange -
+  // what a completed OAuth round trip does. The user block is swapped in place,
+  // and the note, which sits BESIDE that block rather than inside it, must not
+  // survive next to the signed-in chip.
+  const sdk = () => ({
+    getSession: async () => ({ data: { session: null } }),
+    onAuthStateChange: (cb) => { window.__authCb = cb; return { data: { subscription: { unsubscribe() {} } } }; },
+    signInWithOAuth: async () => ({ error: null }),
+    signOut: async () => ({}),
+  });
+  await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: false, sdk });
+  await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.client && typeof window.__authCb === 'function', null, { timeout: 10000 });
+  await pressSignIn(page);
+  await page.waitForFunction(() => {
+    const n = document.getElementById('lnav-signin-note');
+    return n && n.getAttribute('data-kind') === 'unreachable';
+  }, null, { timeout: 10000 });
+  const before = await readSignIn(page);
+  expect(before.text).toBe('Sign-in unavailable');
+  expect(before.describedBy).toBe('lnav-signin-note');
+  await page.evaluate(() => window.__authCb('SIGNED_IN', { user: { id: 'u2', email: 'late@example.test', user_metadata: { name: 'Late Session' } } }));
+  await expect(page.locator('#lifecycle-nav .lnav-uname')).toHaveText('Late Session', { timeout: 6000 });
+  expect(await page.locator('#lnav-signin-note').count(), 'the refusal note survived beside the signed-in chip').toBe(0);
+  expect(await page.locator('#lnav-signin').count()).toBe(0);
+  expect(await page.locator('[aria-describedby="lnav-signin-note"]').count()).toBe(0);
 });
 
 test('the rail is mounted while getSession() is still pending, even if it never resolves', async ({ page }) => {
