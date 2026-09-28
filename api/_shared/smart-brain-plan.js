@@ -2900,6 +2900,10 @@ module.exports = {
   __test_generateCreatives: generateCreatives,
   __test_applyCopy: applyCopy,
   __test_attachMotionCreative: attachMotionCreative,
+  // The contract check the builder runs on its own output, so a renderer that
+  // lives outside this module (the html pipeline stage) can be judged by the
+  // SAME summary shape rather than by a second walk that could drift from it.
+  checkAssetContracts,
   syncDaily, getPlan, previewEntry, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
   prebuildAssets, healOrphans, dbCheck, syncStatus,
   // exported for unit testing (pure scenario helpers)

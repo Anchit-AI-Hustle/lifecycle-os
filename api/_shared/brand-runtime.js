@@ -415,4 +415,8 @@ module.exports = {
   scopedBrand, unresolvedBrand, isUnresolved,
   resolve, brandBlock, regionFacts, homeRegion, scrubForBrand, scrubHtmlForBrand,
   defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,
+  // The font import the brand block already prints, for a renderer that has to
+  // put the SAME line into a <style> (pipeline-core.tokens): one derivation,
+  // not two that drift.
+  fontImport,
 };
