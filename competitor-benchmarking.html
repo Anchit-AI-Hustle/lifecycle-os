@@ -329,6 +329,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <button type="button" class="a-btn a-prev" id="dv-html-open">Open in new tab</button>
         <button type="button" class="a-btn a-prev" id="dv-html-dl">Download .html</button>
       </div></div>
+      <!-- Said here, beside the buttons, never in a native alert(). -->
+      <div id="dv-html-note" class="vh-status" role="status" hidden></div>
       <div id="dv-html-wrap"></div>
     </div>
     <div id="dv-shot"></div>
@@ -516,8 +518,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <label>Type of Product(s)</label>
         <input type="text" id="fcm-products" placeholder="e.g. Loose panel product, dunks, gear...">
       </div>
+      <!-- This form is not wired to a search. It used to alert "Finding
+           competitors..." and close, which reads as a search having started;
+           the true state is said here, inline, and the modal stays open. -->
+      <div id="fcm-note" class="vh-status" role="status" hidden></div>
       <div style="margin-top: 24px; text-align: right;">
-        <button type="button" class="pm-act pm-detail" onclick="alert('Finding competitors...'); this.closest('#fcm').classList.remove('open')">Find Competitors →</button>
+        <button type="button" class="pm-act pm-detail" onclick="sayInline('fcm-note', 'Not connected yet: this form does not run a search. The competitor set is seeded from the brand record on activation and refreshed by the daily sync.')">Find Competitors →</button>
       </div>
     </div>
   </div>
@@ -536,12 +542,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
         <h4 style="color:#111111; margin-bottom: 8px;">1. Subscribe to Asset Brands</h4>
         <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Automatically subscribe to competitor email lists to capture their assets and marketing sequences.</p>
-        <button type="button" class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #556059; width: 100%; justify-content: center;" onclick="alert('Subscribing...');">Explore more Competitors</button>
+        <button type="button" class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #556059; width: 100%; justify-content: center;" onclick="sayInline('jm-note-sub', 'Not connected yet: nothing was subscribed. This deployment has no sign-up flow for competitor lists.')">Explore more Competitors</button>
+        <div id="jm-note-sub" class="vh-status" role="status" hidden></div>
       </div>
       <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
         <h4 style="color:#111111; margin-bottom: 8px;">2. Simulate Customer Actions</h4>
         <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Visit, add/remove products from cart, and perform actions for real-time segmentation to capture conditional campaigns.</p>
-        <button type="button" class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="alert('Starting journey simulation...');">Become a part of their journey</button>
+        <button type="button" class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="sayInline('jm-note-sim', 'Not connected yet: no simulation was started. This flow is not built in this deployment.')">Become a part of their journey</button>
+        <div id="jm-note-sim" class="vh-status" role="status" hidden></div>
       </div>
     </div>
   </div>
@@ -742,9 +750,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('dv-shot').innerHTML = b.shotBlock;
     $('dv-body').textContent = b.body;
     $('dv-assets').innerHTML = b.assets;
-    $('dv-html-open').onclick = () => { if (!html) return alert('Raw HTML not stored.'); const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); } };
-    $('dv-html-dl').onclick = () => { if (!html) return alert('Raw HTML not stored.'); downloadBlob(html, 'text/html', `${slug(e.brand)}_${slug(e.subject)}.html`); };
+    // An email captured before HTML storage was enabled has nothing to open
+    // or download. Said beside the two buttons, never in a native alert().
+    const noHtml = () => { const n = $('dv-html-note'); n.hidden = false; n.textContent = 'Raw HTML was not stored for this email, so there is nothing to open or download.'; };
+    $('dv-html-note').hidden = true;
+    $('dv-html-open').onclick = () => { if (!html) return noHtml(); const w = window.open('', '_blank'); if (w) { w.document.open(); w.document.write(html); w.document.close(); } };
+    $('dv-html-dl').onclick = () => { if (!html) return noHtml(); downloadBlob(html, 'text/html', `${slug(e.brand)}_${slug(e.subject)}.html`); };
   }
+
+  // Inline status for the static modal buttons above (their handlers are
+  // attributes, so this has to be reachable from the window). A native alert()
+  // blocks the page, carries the site's hostname as its title, and cannot take
+  // the brand's tokens; this writes into the slot next to the button.
+  window.sayInline = function (id, text) {
+    const n = $(id);
+    if (!n) return;
+    n.hidden = false;
+    n.textContent = text;
+  };
 
   function downloadBlob(content, type, filename) {
     const blob = content instanceof Blob ? content : new Blob([content], { type });
@@ -1047,9 +1070,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       (d.subscriptions || []).forEach((s) => { followState[s.brand_key] = { mailers: s.mailers !== false, ads: s.ads !== false, active: s.active !== false }; });
     } catch (_) {}
   }
-  async function toggleFollow(name, domain, channel, on) {
+  // The note a follow chip reports into: the element right after its
+  // .follow-wrap, created on demand. A refusal is said beside the chip that
+  // was pressed, never in a native alert().
+  function followNote(btn, ensure) {
+    const wrap = btn && btn.closest ? btn.closest('.follow-wrap') : null;
+    if (!wrap) return null;
+    let n = wrap.nextElementSibling;
+    if (n && !n.classList.contains('follow-note')) n = null;
+    if (!n && ensure) { n = document.createElement('div'); n.className = 'follow-note'; wrap.insertAdjacentElement('afterend', n); }
+    return n;
+  }
+  async function toggleFollow(name, domain, channel, on, btn) {
     const user = currentUserEmail();
-    if (!user) { alert('Sign in to receive real-time updates.'); return false; }
+    if (!user) {
+      const n = followNote(btn, true);
+      if (n) window.LifecycleFailure.show(n, new Error('You are signed out. Sign in to follow this brand and receive real-time updates.'), { title: 'Sign in first' });
+      return false;
+    }
     const key = brandKeyOf(name, domain);
     const cur = followState[key] || { mailers: false, ads: false };
     const next = { mailers: cur.mailers, ads: cur.ads, active: true };
@@ -1060,8 +1098,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || 'failed');
       followState[key] = next;
+      const old = followNote(btn, false);
+      if (old) old.remove();
       return true;
-    } catch (e) { alert('Nothing was changed. ' + window.LifecycleFailure.sentence(e)); return false; }
+    } catch (e) {
+      const n = followNote(btn, true);
+      if (n) window.LifecycleFailure.show(n, e, { title: 'Nothing was changed' });
+      return false;
+    }
   }
   // Renders the two follow chips for a brand (mailers + ads).
   function followChips(name, domain) {
@@ -1082,7 +1126,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const key = brandKeyOf(name, domain);
     const on = !(followState[key] && followState[key][ch]);
     btn.disabled = true;
-    const okd = await toggleFollow(name, domain, ch, on);
+    const okd = await toggleFollow(name, domain, ch, on, btn);
     btn.disabled = false;
     if (okd) {
       btn.classList.toggle('on', on);
