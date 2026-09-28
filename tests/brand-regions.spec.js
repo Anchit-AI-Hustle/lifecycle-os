@@ -515,7 +515,11 @@ test('review finding 1: the catalogue import refuses without a home market, and 
   await expect(btn).toHaveAttribute('aria-disabled', 'true');
   const gate = page.locator('#impGate');
   await expect(gate).toBeVisible();
-  await expect(gate).toContainText('[DATA REQUIRED BEFORE LAUNCH: home market, all, all]');
+  // The marker names the brand, never "all, all" - the spec's `field, product,
+  // region` slots are filled only where they apply (the marker builder that
+  // arrived with the device store), and this gate goes through that builder.
+  await expect(gate).toContainText('[DATA REQUIRED BEFORE LAUNCH: home market, No Regions Co]');
+  await expect(gate).not.toContainText('all, all');
   // The reason is a statement in the accent rule, not a failure frame.
   await expect(page.locator('#impStatus .vh-failure')).toHaveCount(0);
   const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--brand-accent-text').trim());
