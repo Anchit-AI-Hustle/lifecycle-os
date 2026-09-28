@@ -89,11 +89,14 @@
       <div class="card"><a href="/cohorts" style="text-decoration:none;color:inherit"><div class="n">↗</div><div class="lbl">Cohorts dictionary</div><div class="d">The raw lenses these avatars are composed from live in the Cohorts feature. Market sizing and competitor matrices live in Market Study.</div></a></div>
     </div>
     <div class="how">
-      <b>How avatars fit the rest of the OS.</b> Cohorts (in the Cohorts feature) are the raw lenses: RFM segments, engagement cohorts, lifecycle stages, product cohorts. An <b>Avatar</b> is a curated composite of those lenses plus market truth, given a name and a face. Analytics assigns a live customer to cohorts; the avatar tells the creative team what that person <b>wants, fears and responds to</b>. The market study underneath these avatars lives at <span class="filelink">docs/market-intelligence/us-coffee-d2c-landscape.md</span> (a legacy filename kept because several pages link to that exact path; the contents are the custom-sneaker market study); the live profile fields are captured by <span class="filelink">schemas/cohort-profile.json</span>; the automated actions are wired in <span class="filelink">config/retention-triggers.yaml</span>.
+      <b>How avatars fit the rest of the OS.</b> Cohorts (in the Cohorts feature) are the raw lenses: RFM segments, engagement cohorts, lifecycle stages, product cohorts. An <b>Avatar</b> is a curated composite of those lenses plus market truth, given a name and a face. Analytics assigns a live customer to cohorts; the avatar tells the creative team what that person <b>wants, fears and responds to</b>. The market study underneath these avatars lives at <span class="filelink">docs/market-intelligence/us-coffee-d2c-landscape.md</span> (a legacy filename kept because several pages link to that exact path; the contents are the brand's own market study); the live profile fields are captured by <span class="filelink">schemas/cohort-profile.json</span>; the automated actions are wired in <span class="filelink">config/retention-triggers.yaml</span>.
     </div>
   </section>
 
-  <section class="panel" id="panel-personas" role="tabpanel">
+  <!-- The four avatars restate ONE tenant's cohort definitions. For any other
+       active brand the shell replaces the panel with the DATA REQUIRED marker
+       (brand-context.js gateShipped); an audience is never assumed. -->
+  <section class="panel" id="panel-personas" role="tabpanel" data-shipped-for="knickgasm" data-shipped-label="buyer avatars (personas)">
     <h2>The Four Avatars <span class="chip v2">V2 - active</span></h2>
     <p class="lede">Four behavioural buyer profiles. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--chalk);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), so a brief can be written against a person rather than a percentage. The behaviour on each card is derived from those cohort definitions. Demographic and geographic profile is <b>not</b> stated: this deployment holds no sourced audience research for it, and an invented age band or income range would read as measured. Each of those fields carries its own data marker until a named, dated source is wired in.</p>
     <div id="personas"></div>
