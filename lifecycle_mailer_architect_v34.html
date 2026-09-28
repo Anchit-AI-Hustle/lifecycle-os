@@ -4922,11 +4922,9 @@ async function drawLayout(canvas,prompt,market,prods,variant){
           ctx.moveTo(px+14+pwidth, priceY+6); ctx.lineTo(px+14+pwidth+swidth, priceY+6); ctx.stroke();
         }
       }
-      // Stars + review count
-      ctx.fillStyle=LAVA; ctx.font='10px Arial'; ctx.textAlign='left';
-      ctx.fillText('★★★★★', px+10, priceY+18);
-      ctx.fillStyle='#888'; ctx.font='8.5px Arial';
-      ctx.fillText('(1,200+)', px+62, priceY+19);
+      // No stars and no review count: a five-star row with "(1,200+)" beside it
+      // was drawn here for every product of every brand, a rating and a count
+      // nobody had approved. Proof is rendered only from the brand's own record.
       // ADD TO CART button
       var btn2Y = py+ph-30;
       fillRR(px+8, btn2Y, pw-16, 22, 4, GREEN);
@@ -5027,7 +5025,7 @@ async function drawLayout(canvas,prompt,market,prods,variant){
     const edH=160;
     ctx.fillStyle=CHALK; ctx.fillRect(0,y,W,edH);
     ctx.fillStyle=GREEN; ctx.font='italic 12px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
-    ctx.fillText('— A note from the source —', W/2, y+18);
+    ctx.fillText('— A note from the team —', W/2, y+18);
     ctx.fillStyle=INK; ctx.font='12px Georgia';
     ctx.save(); ctx.translate(W/2,y+44); _drawWrappedCenter(sc, W-80, 5, 20); ctx.restore();
     y+=edH;
