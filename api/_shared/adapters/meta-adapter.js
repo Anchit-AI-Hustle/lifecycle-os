@@ -110,10 +110,16 @@ class MetaAdapter extends AdPlatformAdapter {
         note: 'A short-lived user token comes back from the dialog. It is exchanged for a long-lived token (roughly 60 days) with grant_type=fb_exchange_token; there is no refresh_token grant. A System User token from Business Manager does not expire and is the right choice for unattended publishing.',
       },
       webhooks: {
-        verification: 'X-Hub-Signature-256, an HMAC-SHA256 of the raw body keyed with the app secret, compared in constant time.',
-        note: 'The subscription itself is configured on the app, not per workspace.',
+        callback: '/api/brain?action=dispatch-webhook&provider=meta',
+        verification: 'X-Hub-Signature-256, sha256= plus an HMAC-SHA256 of the RAW request bytes keyed with the app secret (META_APP_SECRET), compared in constant time. The receiver (platform-webhooks.js) reads the bytes that arrived through raw-body.js; it never verifies a re-serialisation of req.body, and refuses when the bytes are not available.',
+        challenge: 'Meta verifies the callback URL once with a GET carrying hub.mode=subscribe, hub.verify_token and hub.challenge. The endpoint answers with the challenge as text only when the token equals META_WEBHOOK_VERIFY_TOKEN; unset or mismatched is a 403.',
+        env: {
+          META_WEBHOOK_VERIFY_TOKEN: 'The Verify Token entered on the app dashboard when the callback URL is registered. Unset means every verification request is refused.',
+        },
+        note: 'The subscription itself is configured on the app, not per workspace. A refused delivery is answered 200 with processed:false and a structured log line, because Meta retries non-200s and disables the subscription on persistent failure.',
       },
       sources: [
+        'developers.facebook.com/docs/graph-api/webhooks/getting-started — the verification request (hub.mode / hub.verify_token / hub.challenge, answered with the challenge) and X-Hub-Signature-256 (sha256= + HMAC-SHA256 of the payload under the app secret). Written from the documented flow as this repo already implemented the signature half; the docs host could NOT be re-read on 2026-09-15, it is blocked from the build environment.',
         'developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow — dialog and token endpoints, read 2026-08-18 via search summaries.',
         'This repo already calls graph.facebook.com/<ver>/act_<id>/insights (ads-live-core.js) and the IG /media + /media_publish and Page /photos shapes (social-push-core.js).',
         'developers.facebook.com/docs/marketing-api — campaign/adset/adcreative/ad object names.',
@@ -475,24 +481,59 @@ class MetaAdapter extends AdPlatformAdapter {
       : { ok: false, detail: { error: r.error } };
   }
 
-  /** X-Hub-Signature-256: HMAC-SHA256 of the RAW body, keyed with the app secret. */
+  /**
+   * X-Hub-Signature-256: `sha256=` + HMAC-SHA256 of the RAW body, keyed with
+   * the app secret. `rawBody` must be the bytes that arrived (a Buffer, or the
+   * string decoded from them, as raw-body.js returns). An object here is
+   * req.body, and there is no signature to check against a re-serialisation of
+   * it, so it is refused rather than stringified. Fails closed with no secret.
+   */
   verifyWebhook(headers, rawBody) {
+    const refuse = (reason, note) => ({ verified: false, reason, note });
     const secret = String(process.env.META_APP_SECRET || '').trim();
-    if (!secret) return { verified: false, note: 'META_APP_SECRET is not set, so no Meta webhook can be verified.' };
+    if (!secret) return refuse('secret_missing', 'META_APP_SECRET is not set, so no Meta webhook can be verified. Accepting a delivery unverified is not offered: set the app secret first.');
+    if (rawBody == null || !(Buffer.isBuffer(rawBody) || typeof rawBody === 'string')) {
+      return refuse('raw_body_unavailable', 'The request body was not available as the bytes that arrived, and a signature over re-serialised JSON is not the signature Meta computed. Nothing was verified.');
+    }
     const get = (k) => (headers && (typeof headers.get === 'function' ? headers.get(k) : headers[k])) || '';
     const sig = String(get('x-hub-signature-256') || get('X-Hub-Signature-256') || '');
-    if (!sig.startsWith('sha256=')) return { verified: false, note: 'No X-Hub-Signature-256 header on the request.' };
+    if (!sig.startsWith('sha256=')) return refuse('signature_header_missing', 'No X-Hub-Signature-256 header carrying a sha256= signature on the request.');
 
     const crypto = require('crypto');
-    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBody || '').digest('hex');
-    const a = Buffer.from(sig);
-    const b = Buffer.from(expected);
+    const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody, 'utf8');
+    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(body).digest('hex');
+    const a = Buffer.from(sig, 'utf8');
+    const b = Buffer.from(expected, 'utf8');
     // Length check first: timingSafeEqual throws on a length mismatch, and the
     // throw would itself be a timing signal.
     const verified = a.length === b.length && crypto.timingSafeEqual(a, b);
+    if (!verified) return refuse('signature_mismatch', 'X-Hub-Signature-256 did not match the HMAC-SHA256 of the raw body under META_APP_SECRET.');
     let event = null;
-    try { event = JSON.parse(rawBody || 'null'); } catch (_) { /* keep null */ }
-    return { verified, note: verified ? 'Signature verified.' : 'Signature did not match.', event: verified ? event : null };
+    try { event = JSON.parse(body.toString('utf8')); } catch (_) { /* keep null */ }
+    return { verified: true, note: 'X-Hub-Signature-256 verified: HMAC-SHA256 over the raw body matched.', event };
+  }
+
+  /**
+   * Meta's verification request, sent once when the callback URL is
+   * registered: GET ?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=<n>.
+   * The endpoint must answer with the challenge, and only when the token is
+   * the one the operator entered on the app dashboard (META_WEBHOOK_VERIFY_TOKEN).
+   * Unset means every verification request is refused: a token nobody chose
+   * is not a token anybody can be checked against.
+   */
+  verifyChallenge(query) {
+    const q = query || {};
+    const refuse = (reason, note) => ({ ok: false, reason, note });
+    const token = String(process.env.META_WEBHOOK_VERIFY_TOKEN || '').trim();
+    if (!token) return refuse('verify_token_missing', 'META_WEBHOOK_VERIFY_TOKEN is not set, so no verification request can be answered. Set it to the Verify Token entered on the Meta app dashboard.');
+    if (String(q['hub.mode'] || '') !== 'subscribe') return refuse('hub_mode_not_subscribe', 'hub.mode is not "subscribe", so this is not a verification request.');
+    const crypto = require('crypto');
+    const sent = Buffer.from(String(q['hub.verify_token'] || ''), 'utf8');
+    const want = Buffer.from(token, 'utf8');
+    if (!(sent.length === want.length && crypto.timingSafeEqual(sent, want))) return refuse('verify_token_mismatch', 'hub.verify_token does not match META_WEBHOOK_VERIFY_TOKEN.');
+    const challenge = q['hub.challenge'];
+    if (challenge == null || String(challenge) === '') return refuse('challenge_missing', 'No hub.challenge to answer with.');
+    return { ok: true, challenge: String(challenge) };
   }
 }
 
