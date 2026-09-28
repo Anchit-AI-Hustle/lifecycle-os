@@ -69,7 +69,8 @@
       "symbol": "₹",
       "store_url": "https://economictimes.indiatimes.com",
       "pdp_pattern": "{base}/products/{handle}",
-      "collection_pattern": "{base}/collections/{slug}"
+      "collection_pattern": "{base}/collections/{slug}",
+      "home": true
     }
   ],
   "asset_hosts": [

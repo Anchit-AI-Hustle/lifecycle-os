@@ -60,71 +60,14 @@ out += html.slice(cursor);
 html = out;
 
 // ── Client-side: follow the signed-in user's ACTIVE brand ───────────────────
-const RUNTIME = `
-<script>
-/* Market Study follows the ACTIVE brand. The static bodies above are rendered
-   for the default workspace at build time; if the signed-in user's active
-   brand differs, re-render from ITS record so nobody is shown another brand's
-   research. A brand with no sourced study for a region gets the explicit
-   DATA REQUIRED state, never a substitute. */
-(function () {
-  var ORDER = ['US','UK','Global','India'];
-  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-  function empty(region, name){
-    return '<div class="ms-panel"><div class="ms-tier-h">No market study loaded for '+esc(name)+' ('+esc(region)+')</div>'+
-      '<p class="ms-note">[DATA REQUIRED BEFORE LAUNCH: market study, '+esc(region)+', '+esc(name)+'.] '+
-      'Market sizing and competitive tiers are industry-specific, so another workspace\\'s study is deliberately not substituted here. '+
-      'Add a market_study block to this brand\\'s record to populate it; every sizing row needs a source.</p></div>';
-  }
-  function rows(s){
-    var sized=(s.sizing||[]).filter(function(r){return r&&r.source;});
-    if(!sized.length) return '';
-    return '<div class="kicker mt-6 mb-2">Market sizing</div><table class="ms-tbl" style="width:100%"><thead><tr><th>Segment</th><th>Size</th><th>CAGR</th><th>Source</th></tr></thead><tbody>'+
-      sized.map(function(r){return '<tr><td>'+esc(r.segment)+'</td><td>'+esc(r.size)+'</td><td>'+esc(r.cagr||'-')+'</td><td>'+esc(r.source)+'</td></tr>';}).join('')+'</tbody></table>';
-  }
-  function tiers(s){
-    if(!s.tiers||!s.tiers.length) return '';
-    return '<div class="kicker mt-6 mb-2">Competitive landscape, the tiers</div><div class="ms-tiers">'+
-      s.tiers.map(function(t){return '<div class="ms-tier"><div class="ms-tier-h">'+esc(t.name)+'</div><p>'+esc(t.note)+'</p></div>';}).join('')+'</div>';
-  }
-  function bullets(title,items){
-    if(!items||!items.length) return '';
-    return '<div class="kicker mt-6 mb-2">'+esc(title)+'</div><ul class="ms-bul">'+
-      items.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
-  }
-  function render(brand){
-    if(!brand) return;
-    var ms=(brand.market_study&&typeof brand.market_study==='object')?brand.market_study:{};
-    var blocks=document.querySelectorAll('.ms-report');
-    for(var i=0;i<blocks.length&&i<ORDER.length;i++){
-      var region=ORDER[i], s=ms[region];
-      blocks[i].innerHTML = s
-        ? ('<div class="ms-panel"><div class="ms-tier-h">'+esc(s.headline||(brand.name+' '+region))+'</div>'+
-           '<p class="ms-note">Every figure carries its published source. Unpublished numbers are listed as gaps, never estimated.</p></div>'+
-           rows(s)+tiers(s)+bullets('Strategic read',s.reads)+bullets('Known data gaps (not estimated)',s.gaps))
-        : empty(region, brand.name||'this brand');
-    }
-  }
-  function boot(){
-    fetch('/api/public-config?action=brand&op=active',{credentials:'same-origin'})
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var b=d&&d.brand;
-        if(!b) return;                       // signed out or no active brand: leave the built default
-        if(b.market_study===undefined){      // shell payload may omit it: fetch the full record
-          return fetch('/api/public-config?action=brand&op=get&id='+encodeURIComponent(b.id||''),{credentials:'same-origin'})
-            .then(function(r){return r.json();}).then(function(f){ render((f&&f.brand)||b); });
-        }
-        render(b);
-      })
-      .catch(function(){});
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
-})();
-</script>
-`;
-if (html.indexOf('build-research-page.js from brand.market_study') >= 0 && html.indexOf('Market Study follows the ACTIVE brand') < 0) {
-  html = html.replace('</body>', RUNTIME + '</body>');
+// The runtime that re-renders the tabs and panels for the ACTIVE brand (its
+// regions, its home market, its record) lives IN research.html, once. It used
+// to be duplicated here as a template string and inserted only when absent,
+// which meant two copies that could drift; now the build asserts the page
+// still carries it, so a stripped page fails the build instead of shipping
+// four static tenant-zero panels to every brand.
+if (html.indexOf('Market Study follows the ACTIVE brand') < 0) {
+  throw new Error('research.html: the active-brand region runtime is missing (marker "Market Study follows the ACTIVE brand"). Restore it before building.');
 }
 
 fs.writeFileSync(FILE, html, 'utf8');

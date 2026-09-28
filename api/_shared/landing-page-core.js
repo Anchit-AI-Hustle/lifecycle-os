@@ -147,7 +147,10 @@ module.exports = async function handler(req, res) {
   // zero's palette, fonts, vocabulary or storefront.
   const brand = await brandRuntime.resolve(req);
 
-  const market = String(body.market || body.region || 'US');
+  // No market named: the brand's own HOME market, never a literal. A store URL
+  // is resolved per market below, so the literal put an India-only brand's
+  // landing page on a US store it does not have.
+  const market = String(body.market || body.region || brandRuntime.homeRegion(brand));
   const channel = String(body.channel || 'landing');
   const store = resolveStore(brand, market);
   const motionProfile = String(body.motion_profile || 'immersive-balanced');

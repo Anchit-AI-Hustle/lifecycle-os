@@ -925,15 +925,10 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
         <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--vh-panel-tan);margin:0">Target Market <span class="req">*</span></label>
         <span style="font-size:10px;color:#556059;font-weight:400">Multi-select, each market gets its own tailored mailer</span>
       </div>
-      <div class="mkt-chips" id="mktChips">
-        <button type="button" class="mkt-chip on" data-mkt="US" onclick="toggleMarket('US',this)">&#127482;&#127480; United States</button>
-        <button type="button" class="mkt-chip" data-mkt="UK" onclick="toggleMarket('UK',this)">&#127468;&#127463; United Kingdom</button>
-        <button type="button" class="mkt-chip" data-mkt="IN" onclick="toggleMarket('IN',this)">&#127470;&#127475; India</button>
-        <button type="button" class="mkt-chip" data-mkt="Global" onclick="toggleMarket('Global',this)">&#127758; Global</button>
-        <button type="button" class="mkt-chip" data-mkt="ME" onclick="toggleMarket('ME',this)">&#127462;&#127466; Middle East</button>
-        <button type="button" class="mkt-chip" data-mkt="AU" onclick="toggleMarket('AU',this)">&#127462;&#127482; Australia</button>
-        <button type="button" class="mkt-chip" data-mkt="EU" onclick="toggleMarket('EU',this)">&#127466;&#127482; Europe</button>
-      </div>
+      <!-- One chip per region the ACTIVE brand declares, its HOME market on; built by
+           renderMarketChips() from region-context.js. The seven typed chips that lived
+           here (US on) offered every brand the same seven markets and opened on US. -->
+      <div class="mkt-chips" id="mktChips"><span class="mkt-chip-none" style="font-size:11px;color:var(--vh-panel-tan)">Loading this brand's markets&hellip;</span></div>
     </div>
 
     <!-- Target User Segment -->
@@ -1357,7 +1352,11 @@ var CAT = [];
 var CAT_SOURCE = 'loading';
 var CAT_REASON = '';
 
-const S={step:1,prompt:'',market:'US',markets:['US'],marketMailers:{},activeMarket:'US',type:'',types:[],audience:'',manualProds:[],finalProds:[],regenCount:0,finalHTML:'',lastImagePrompt:'',generatedPrompt:'',canvasDataUrl:'',uploadedDesignUrl:null};
+/* The market a slot gets when none is chosen: the ACTIVE brand's HOME market
+   (region-context.js), never a literal. Every '||'US'' fallback in this file
+   used to put a brand with no US store on a US mailer. */
+function _homeMkt(){ var rc=window.RegionContext; return (rc&&(rc.home||(rc.regions[0]&&rc.regions[0].code)))||''; }
+const S={step:1,prompt:'',market:'',markets:[],marketMailers:{},activeMarket:'',type:'',types:[],audience:'',manualProds:[],finalProds:[],regenCount:0,finalHTML:'',lastImagePrompt:'',generatedPrompt:'',canvasDataUrl:'',uploadedDesignUrl:null};
 var _audienceManualSet=false;
 window.S=S; // Make S accessible via window so the `window.S&&...` safety guards in helper functions actually work (const declarations at top-level do NOT auto-create window.X properties).
 window.__KNICKGASM_BUILD__='real-fixes-v34';
@@ -1980,7 +1979,7 @@ function buildCatFilters(){
 /* Load the ACTIVE workspace's catalogue. Region follows the Studio's own market
    selection, so a UK campaign picks from the UK catalogue. */
 function catRegion(){
-  var m=(window.S&&(S.market||(S.markets&&S.markets[0])))||'US';
+  var m=(window.S&&(S.market||(S.markets&&S.markets[0])))||_homeMkt();
   m=String(m).toUpperCase();
   if(m==='UK'||m==='GB')return 'uk';
   if(m==='US'||m==='USA')return 'us';
@@ -2221,7 +2220,9 @@ function _doAutoUpdateChips(text){
   }
   // ── Market detection (only if user hasn't manually picked) ──
   if(!S._mktManualSet && t.length>10){
-    var mktKeys=_detectMarketsFromPrompt(text||'');
+    // Only markets THIS brand serves: a brief that mentions London for a brand with
+    // no UK store must not add a UK mailer. Family codes resolve to the record's own.
+    var mktKeys=_detectMarketsFromPrompt(text||'').map(function(k){return window.RegionContext?window.RegionContext.resolve(k):k;}).filter(function(k,i,a){return k&&a.indexOf(k)===i;});
     if(mktKeys.length){
       document.querySelectorAll('.mkt-chip').forEach(function(b){
         var m=b.getAttribute('data-mkt');
@@ -2303,6 +2304,61 @@ function _detectMarketsFromPrompt(text){
   keys.sort(function(a,b){return score[b]-score[a];});
   return keys;
 }
+// ── Market chips: the ACTIVE brand's own regions, home market on ───────────
+// Flags are LABELLING only, keyed by market family; a region with no flag
+// here shows its name. The list of markets is never this table's - it is the
+// brand's, through region-context.js.
+var MKT_FLAGS={US:'&#127482;&#127480;',UK:'&#127468;&#127463;',IN:'&#127470;&#127475;',GLOBAL:'&#127758;',ME:'&#127462;&#127466;',AE:'&#127462;&#127466;',AU:'&#127462;&#127482;',EU:'&#127466;&#127482;',CA:'&#127464;&#127462;',SG:'&#127480;&#127468;',DE:'&#127465;&#127466;',FR:'&#127467;&#127479;',JP:'&#127471;&#127477;'};
+function mktChipLabel(code){
+  var rc=window.RegionContext; var fam=rc?rc.family(code):String(code||'').toUpperCase();
+  var flag=MKT_FLAGS[fam]||''; var text=rc?rc.label(code).replace(/\s*\([A-Z]+\)$/,''):code;
+  return (flag?flag+' ':'')+text;
+}
+var _mktChipsBuilt=null;
+function renderMarketChips(){
+  var host=document.getElementById('mktChips'), rc=window.RegionContext;
+  if(!host||!rc) return;
+  var opts=rc.options();
+  var key=opts.map(function(o){return o.code;}).join('|');
+  if(key===_mktChipsBuilt) return; _mktChipsBuilt=key;
+  if(!opts.length){
+    host.innerHTML='<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-panel-tan)">[DATA REQUIRED BEFORE LAUNCH: regions, all, all] Add this brand\'s markets in Brand setup.</span>';
+    if(!S._mktManualSet){ S.markets=[]; S.market=''; S.activeMarket=''; }
+    return;
+  }
+  // Keep a choice the user already made on this brand; otherwise the home market.
+  var keep=S._mktManualSet?S.markets.map(function(m){return rc.resolve(m);}).filter(Boolean):[];
+  var on=keep.length?keep:[rc.home];
+  host.innerHTML=opts.map(function(o){
+    return '<button type="button" class="mkt-chip'+(on.indexOf(o.code)>=0?' on':'')+'" data-mkt="'+escStudio(o.code)+'"'+(o.home?' data-home="1" title="Home market"':'')+' onclick="toggleMarket(\''+escStudio(o.code)+'\',this)">'+mktChipLabel(o.code)+'</button>';
+  }).join('');
+  S.markets=on.slice(); S.market=on[0]; S.activeMarket=on[0];
+}
+/* No brand layer on this page at all (opened as a file, or the shell failed to
+   load): there is no brand record to read markets from, so the only markets the
+   page can honestly offer are the ones its OWN built-in catalogue carries -
+   page data, not a typed list. NONE is pre-selected: a market is a decision,
+   and with no record there is nothing to decide it from; go2() already asks
+   for one. brand-context.js is a synchronous <head> script, so its absence
+   here is the page telling us there is no shell, not a race. */
+function renderStandaloneMarketChips(){
+  var host=document.getElementById('mktChips'); if(!host) return;
+  var keys=Object.keys(window.REGIONAL_CATALOG||{});
+  host.innerHTML=keys.map(function(k){
+    var c=REGIONAL_CATALOG[k]||{};
+    return '<button type="button" class="mkt-chip" data-mkt="'+escStudio(k)+'" onclick="toggleMarket(\''+escStudio(k)+'\',this)">'+(c.flag?c.flag+' ':'')+escStudio(c.name||k)+'</button>';
+  }).join('')+'<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-panel-tan);align-self:center">No brand is active on this page: pick the target market.</span>';
+  S.markets=[]; S.market=''; S.activeMarket='';
+}
+(function watchRegionsForStudio(w){
+  var waited=w||0;
+  if(!window.BrandContext){
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderStandaloneMarketChips); else renderStandaloneMarketChips();
+    return;
+  }
+  if(!window.RegionContext){ if(waited<6000) setTimeout(function(){watchRegionsForStudio(waited+100);},100); return; }
+  window.RegionContext.onChange(function(){ try{renderMarketChips();}catch(_){} });
+})(0);
 // ── Market chip toggle ──────────────────────────────────────────────────────
 function toggleMarket(m,el){
   var idx=S.markets.indexOf(m);
@@ -2312,7 +2368,7 @@ function toggleMarket(m,el){
   } else {
     S.markets.push(m);el.classList.add('on');
   }
-  S.market=S.markets[0]||'US';
+  S.market=S.markets[0]||_homeMkt();
   S._mktManualSet=true; // user took control — stop auto-detection from overriding
   var ct=S.markets.length;
   showCopyToast(ct===1?'1 market selected':ct+' markets selected — one mailer per market will be generated');
@@ -2368,8 +2424,8 @@ function validateMailerCreative(){
   if(!st.cta||st.cta.length<2){err('CTA button text is empty.');}
   // Build BOTH variants and validate the rendered HTML
   var htmlA='', htmlB='';
-  try{ htmlA=buildEmail(null,S.market||'US')||''; }catch(e){err('Variant A failed to render: '+(e&&e.message||e));}
-  try{ htmlB=buildEmailVariantB(null,S.market||'US')||''; }catch(e){err('Variant B failed to render: '+(e&&e.message||e));}
+  try{ htmlA=buildEmail(null,S.market||_homeMkt())||''; }catch(e){err('Variant A failed to render: '+(e&&e.message||e));}
+  try{ htmlB=buildEmailVariantB(null,S.market||_homeMkt())||''; }catch(e){err('Variant B failed to render: '+(e&&e.message||e));}
   var allowedHex=['#D0473E','#6A33D8','#111111','#FFFFFF'];
   function brandPaletteCheck(html,label){
     if(!html||html.length<2000){err(label+' HTML is empty or truncated.');return;}
@@ -2490,7 +2546,7 @@ async function generateAudienceWithAI(e){
   var btn=document.getElementById('audienceAIBtn');
   var aud=document.getElementById('audienceIn');
   var brief=(document.getElementById('promptIn')||{}).value||S.prompt||'';
-  var primaryMkt=(S.markets&&S.markets[0])||S.market||'US';
+  var primaryMkt=(S.markets&&S.markets[0])||S.market||_homeMkt();
   var type=S.type||detectType(brief)||'Bestseller';
   if(!brief||brief.trim().length<10){
     showCopyToast('Write a brief idea first — even one line — then generate the segment.');
@@ -2547,8 +2603,8 @@ async function createPromptWithAI(){
   var ta=document.getElementById('promptIn');
   var seed=(ta?ta.value:'').trim();
   var type=(window.S&&S.type)?S.type:'Campaign';
-  var mkts=(window.S&&S.markets&&S.markets.length>0)?S.markets:['US'];
-  var primaryMkt=mkts[0]||'US';
+  var mkts=(window.S&&S.markets&&S.markets.length>0)?S.markets:[_homeMkt()];
+  var primaryMkt=mkts[0]||_homeMkt();
 
   function _mapProd(p){
     return {name:p.name||p.n||'',handle:p.handle||p.h||'',category:p.category||(Array.isArray(p.t)?p.t.join(', '):''),type:p.type||'',price:p.price||'',compare_at:p.compare_at||p.compare_price||'',image_url:p.image_url||p.i||''};
@@ -2722,7 +2778,7 @@ function enhancePrompt(){
     return;
   }
   var type=(window.S&&S.type)?S.type:'Auto';
-  var mkts=(window.S&&S.markets&&S.markets.length>0)?S.markets.join(', '):'US';
+  var mkts=(window.S&&S.markets&&S.markets.length>0)?S.markets.join(', '):_homeMkt();
   var enhanced=buildEnhancedPrompt(raw);
   if(ta){
     ta.value=enhanced;
@@ -2743,7 +2799,7 @@ function updatePromptPlaceholder(){
   var ta=document.getElementById('promptIn');
   if(!ta||ta.value.trim())return;
   var type=S.type||'';
-  var mkt=(S.markets&&S.markets[0])||'US';
+  var mkt=(S.markets&&S.markets[0])||_homeMkt();
 }
 
 function buildEnhancedPrompt(raw){
@@ -2755,8 +2811,8 @@ function buildEnhancedPrompt(raw){
   // S.type and S.markets are already set before Enhance is clicked.
   var l=raw.toLowerCase();
   var type=(window.S&&S.type?S.type:null)||detectType(raw);
-  var mkts=(S.markets&&S.markets.length>0)?S.markets:([S.market]||['US']);
-  var primaryMkt=mkts[0]||'US';
+  var mkts=(S.markets&&S.markets.length>0)?S.markets:[S.market||_homeMkt()];
+  var primaryMkt=mkts[0]||_homeMkt();
   var oc=offerCode(raw);
   var ot=offerText(raw);
   var isMultiMkt=mkts.length>1;
@@ -2925,10 +2981,11 @@ function useSuggestedPromptByIdx(i){
     if(cc)cc.textContent=s.text.length+' chars';
   }
   // Set market chip if suggestion has a single market
-  if(s.mkt&&s.mkt!=='Global'){
-    S.markets=[s.mkt];
+  var sMkt=(s.mkt&&s.mkt!=='Global'&&window.RegionContext)?window.RegionContext.resolve(s.mkt):'';
+  if(sMkt){
+    S.markets=[sMkt];S.market=sMkt;S.activeMarket=sMkt;
     document.querySelectorAll('#mktChips .mkt-chip').forEach(function(c){
-      var on=c.getAttribute('data-mkt')===s.mkt;
+      var on=c.getAttribute('data-mkt')===sMkt;
       c.classList.toggle('on',on);
     });
   }
@@ -2952,8 +3009,10 @@ function useSuggestedPromptByIdx(i){
 function renderMarketTabs(){
   var bar=document.getElementById('mktTabBar');
   if(!bar)return;
-  var mkts=S.markets&&S.markets.length>0?S.markets:['US'];
-  var mktLabels={US:'&#127482;&#127480; US',UK:'&#127468;&#127463; UK',IN:'&#127470;&#127475; India',Global:'&#127758; Global',ME:'&#127462;&#127466; Middle East',AU:'&#127462;&#127482; Australia',EU:'&#127466;&#127482; Europe'};
+  var mkts=S.markets&&S.markets.length>0?S.markets:[_homeMkt()];
+  // Labels come from the shared region layer (flag + name), so a brand's own
+  // CA or SG market is labelled rather than shown as a bare code.
+  var mktLabels={}; mkts.forEach(function(m){ mktLabels[m]=mktChipLabel(m); });
   if(mkts.length<=1){bar.style.display='none';return;}
   bar.style.display='block';
   // Top row: tab switcher
@@ -3057,7 +3116,7 @@ function buildCampaignCtxBanner(){
   var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
   var typeBadge={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'#2d6a4f',Story:'#5a3e28',Seasonal:'#7a5c1e','':'#D0473E'};
   var typeLabel=S.type||'Auto';
-  var markets=(S.markets||['US']).map(function(m){return mktFlags[m]||m;}).join(' ');
+  var markets=(S.markets||[_homeMkt()]).map(function(m){return mktFlags[m]||m;}).join(' ');
   var oc=offerCode(S.prompt);
   var brief=(S.prompt||'').substring(0,110)+((S.prompt||'').length>110?'…':'');
   var html='';
@@ -3155,7 +3214,7 @@ function go3(){
     var previewProds=autoPickProducts(S.prompt,S.type||detectType(S.prompt));
     var previewNames=previewProds.slice(0,3).map(function(p){return p.n.split(',')[0];}).join(', ')+(previewProds.length>3?' + '+(previewProds.length-3)+' more':'');
     var typeLabel=S.type||'campaign';
-    var mktLabel=(S.markets||['US']).join(' & ');
+    var mktLabel=(S.markets||[_homeMkt()]).join(' & ');
     if(selInfo)selInfo.innerHTML='<strong>Auto-picking '+previewProds.length+' products</strong> for your <em>'+typeLabel+'</em> brief — '+mktLabel+' market. Starting with: <strong>'+previewNames+'</strong>. These match your campaign theme. <span style="color:#6A33D8;cursor:pointer;text-decoration:underline" onclick="this.parentNode.style.display=\'none\'">Use these</span> or select your own above.';
   } else {
     if(selInfo)selInfo.innerHTML='<strong>'+manCount+' product'+(manCount>1?'s':'')+' selected</strong> for your <em>'+(S.type||'campaign')+'</em> mailer. ✓ Proceeding with your selection.';
@@ -3890,7 +3949,7 @@ function prodBenefit(n){
 // `n` can be a string (product name) or an object (product with .price, .compare_at fields)
 // Returns { regular, currency, currencySymbol, display, raw }
 function prodPrice(n,market){
-  var cat=(window.getRegionalCatalog?getRegionalCatalog(market||'US'):{currency:'USD',currencySymbol:'$'});
+  var cat=(window.getRegionalCatalog?getRegionalCatalog(market||_homeMkt()):{currency:'USD',currencySymbol:'$'});
   var sym=cat.currencySymbol||'$';
   var cur=cat.currency||'USD';
   // ── PRIORITY: Use real catalog price if available ──
@@ -4020,7 +4079,7 @@ function valueSummaryLine(prompt,market){
   if(sig.pct)pieces.push(sig.pct+'% OFF');
   var oc=offerCode(prompt);
   if(oc)pieces.push('Code: '+oc);
-  var cat=window.getRegionalCatalog?getRegionalCatalog(market||'US'):null;
+  var cat=window.getRegionalCatalog?getRegionalCatalog(market||_homeMkt()):null;
   if(cat&&cat.shippingNote)pieces.push(cat.shippingNote);
   return pieces.join(' &middot; ');
 }
@@ -4087,8 +4146,8 @@ function buildCampaignStrategy(){
     activePrompt:p,
     type:type,
     audience:(S.audience||'').trim(),
-    market:S.market||'US',
-    markets:S.markets||['US'],
+    market:S.market||_homeMkt(),
+    markets:S.markets||[_homeMkt()],
     feedbackHistory:(S.feedbackHistory||[]).slice(),
     // ── GOALS (Step 2: products = individual sub-tasks) ──
     products:prods,
@@ -4101,7 +4160,7 @@ function buildCampaignStrategy(){
     cta:ctaText(ep,type),
     sectionTitle:sectionTitle(ep,type),
     productSectionTitle:productSectionTitle(ep,type),
-    annBar:annBarLine(p,S.market||'US',type),
+    annBar:annBarLine(p,S.market||_homeMkt(),type),
     feats:featureStrip(ep),
     ings:ingredients(ep),
     // ── OFFER ──
@@ -4200,7 +4259,7 @@ function _strategyCacheKey(){
     (S.activePrompt||S.prompt||'').slice(0,200),
     S.type||'',
     (S.audience||'').slice(0,120),
-    (S.markets||[S.market||'US']).join(','),
+    (S.markets||[S.market||_homeMkt()]).join(','),
     prods.map(function(p){return (p.n||'').split(',')[0];}).join('|'),
     S.regenCount||0,
     S.manualProds.length?'M':'A'
@@ -4228,8 +4287,8 @@ function buildStrategicDepth(strategy){
   var heroName=hero.n||'';
   var heroCat=s.category||'';
   var prods=s.products||[];
-  var mkts=s.markets||[s.market||'US'];
-  var primaryMkt=s.market||mkts[0]||'US';
+  var mkts=s.markets||[s.market||_homeMkt()];
+  var primaryMkt=s.market||mkts[0]||_homeMkt();
   var hasOffer=!!(s.offer&&(s.offer.pct||s.offer.code));
   var pct=(s.offer&&s.offer.pct)||'';
   var code=(s.offer&&s.offer.code)||'';
@@ -4402,7 +4461,7 @@ function buildImagePrompt(prompt,market,type,prods,variant){
   const moodMap={Sale:'Urgent and bold. Deep deep purple and antique lava dominate. Strong contrast. High-energy urgency with offer-forward hierarchy.',Launch:'Sophisticated and fresh. Clean chalk whites and deep greens. Editorial luxury. New arrival excitement.',Seasonal:'Warm and festive. Rich botanical textures. Celebratory warmth. Seasonal colour palette.',Bestseller:'Confident and aspirational. Social proof-forward. Premium minimalism. Trust-building aesthetic.',Gift:'Elegant gifting aesthetic. Soft chalk, lava-foil feel. Occasion luxury. Ribbon and box photography.',Discovery:'Curious and inviting. Warm variety palette. Sampler spread. Multiple boxes displayed together.',Routine:'Calm and ritualistic. Morning window light, steam rising, slow-living. Meditative quiet.',Story:'Deep and narrative. Earthy, authentic, artisanal. Sneaker studio photography. Heritage and origin.'};
   const detectedType=type||detectType(prompt);
   const mood=moodMap[detectedType]||moodMap.Sale;
-  const mkt={US:'US',UK:'UK',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'}[market]||'US';
+  const mkt={US:'US',UK:'UK',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'}[market]||market||_homeMkt();
   const offer=offerText(prompt);const code=offerCode(prompt);
   const os=offerSub(prompt);
   const ep=buildEffectivePrompt(prompt,prods); // enrich with selected product signals
@@ -4474,7 +4533,7 @@ function buildImagePrompt(prompt,market,type,prods,variant){
     '         Section title centred above stack: "— '+(typeof productSectionTitle==='function'?productSectionTitle(prompt):type)+' —" 22px Montserrat bold.\n'+
     '  [S8-B] LARGE PULL-QUOTE TESTIMONIAL [#D0473E deep violet, 48px padding, centred]\n'+
     '         Single dramatic quote, NOT 3 small cards. Massive 48px lava quotation mark.\n'+
-    '         Quote text 19px Montserrat italic chalk, max 440px wide. Attribution below: "— Verified Customer · '+(market||'US')+' —"\n'+
+    '         Quote text 19px Montserrat italic chalk, max 440px wide. Attribution below: "— Verified Customer · '+(market||_homeMkt())+' —"\n'+
     '  [S9-B] LAVA-ACCENT OFFER BANNER [#6A33D8 lava, 34px padding, centred]\n'+
     '         Bottom-of-flow placement (urgency at the close). White text on lava. Big offer headline 34px Montserrat.\n'+
     '         Promo code pill in white-bordered box. CTA button in deep purple.\n'+
@@ -5122,7 +5181,7 @@ async function runGeneration(feedback){
   refreshStrategy();
   // Build image prompts for EVERY region × BOTH variants — full matrix
   var _t=S.type||detectType(S.prompt);
-  var _mkts=(S.markets&&S.markets.length?S.markets:[S.market||'US']);
+  var _mkts=(S.markets&&S.markets.length?S.markets:[S.market||_homeMkt()]);
   S.imagePrompts={}; // {US:{A:'...',B:'...'}, UK:{A:'...',B:'...'}, …}
   _mkts.forEach(function(m){
     S.imagePrompts[m]={
@@ -5156,7 +5215,7 @@ async function runGeneration(feedback){
   injectCtxBanners();
   switchP4Tab('claude',document.getElementById('tab-claude'));
   var monoEl=document.getElementById('promptMono');if(monoEl)monoEl.textContent=S.lastImagePrompt;
-  var lblEl=document.getElementById('activeImagePromptVariantLabel');if(lblEl)lblEl.textContent=(S.activeImageMarket||'US')+' · Variant '+(S.activeImageVariant||'A');
+  var lblEl=document.getElementById('activeImagePromptVariantLabel');if(lblEl)lblEl.textContent=(S.activeImageMarket||_homeMkt())+' · Variant '+(S.activeImageVariant||'A');
   renderImageVariantSwitcher();
   renderGeneratedImagesMatrix();
   renderContentPreview(); // Pre-render content preview so it's ready when user switches tab
@@ -5208,7 +5267,7 @@ function renderContentPreview(){
   var st=S.strategy||buildCampaignStrategy();
   var prods=S.finalProds||[];
   var p=S.activePrompt||S.prompt||'';
-  var mkt=S.canvasMarket||S.market||'US';
+  var mkt=S.canvasMarket||S.market||_homeMkt();
   var variant=S.canvasVariant||st.primaryVariant||'A';
   var ep=buildEffectivePrompt(p,prods);
   var type=S.type||detectType(p);
@@ -5465,7 +5524,7 @@ function openGoogleSearch(query){openExternalTool('Google Search','https://www.g
 function buildDesignPromptFromCatalog(market,variant){
   var st=S.strategy||buildCampaignStrategy();
   var prods=st.products||S.finalProds||[];
-  var mt=market||S.market||'US';
+  var mt=market||S.market||_homeMkt();
   var mktIntel=getMarketIntel(mt,st.activePrompt||st.rawPrompt||S.prompt||'');
   var hl=st.headline||heroHeadline(S.prompt);
   var sc=st.subCopy||subCopy(S.prompt);
@@ -5513,7 +5572,7 @@ function buildDesignPromptFromCatalog(market,variant){
 }
 // ── Server-side image generation via /api/ai/image ──────────────────────────
 async function generateServerImage(variant){
-  var mt=S.activeImageMarket||S.market||'US';
+  var mt=S.activeImageMarket||S.market||_homeMkt();
   var v=variant||S.activeImageVariant||'A';
   var prompt=buildDesignPromptFromCatalog(mt,v);
   showCopyToast('Generating mailer design via server (gpt-image-2 → Gemini → Pollinations)...');
@@ -5574,7 +5633,7 @@ async function approveWithUpload(){
   if(!S.uploadedDesignUrl){alert('Please upload a design image first.');return;}
   showOnly(5);
   document.getElementById('p5').scrollIntoView({behavior:'smooth'});
-  var mkts=S.markets&&S.markets.length>0?S.markets:['US'];
+  var mkts=S.markets&&S.markets.length>0?S.markets:[_homeMkt()];
   S.activeMarket=mkts[0];
   refreshStrategy();
   // Pre-pick the primary variant suggested by the strategy (A=editorial / B=story)
@@ -5623,7 +5682,7 @@ function _ensureMailerBuilt(mkt,v){
 function approveAndBuild(){
   showOnly(5);
   S.marketMailers={};
-  var mkts=S.markets&&S.markets.length>0?S.markets:['US'];
+  var mkts=S.markets&&S.markets.length>0?S.markets:[_homeMkt()];
   refreshStrategy();
   S.activeVariant=S.strategy.primaryVariant||'A';
   S.activeMarket=mkts[0];
@@ -5669,7 +5728,7 @@ function renderVariantSwitcher(){
     B:'Text + Visual — the same copy plus on-brand imagery/GIF/video (hosted media → auto GIF → AI video).'
   };
   var mkts=Object.keys(S.marketMailers||{});
-  var aMkt=S.activeMarket||mkts[0]||'US';
+  var aMkt=S.activeMarket||mkts[0]||_homeMkt();
   var mktLabels={US:'🇺🇸 US',UK:'🇬🇧 UK',IN:'🇮🇳 IN',Global:'🌍 Global',ME:'🇦🇪 ME',AU:'🇦🇺 AU',EU:'🇪🇺 EU'};
   // ── Region → Variant nav at top ──
   var regionVariantNav=
@@ -5774,7 +5833,7 @@ function downloadBothVariants(){
 function renderCanvasFilterPanel(){
   var box=document.getElementById('canvasFilterPanel');
   if(!box)return;
-  var mkts=(S.markets&&S.markets.length?S.markets:[S.market||'US']);
+  var mkts=(S.markets&&S.markets.length?S.markets:[S.market||_homeMkt()]);
   if(!mkts.length){box.innerHTML='';return;}
   var aMkt=S.canvasMarket||S.market||mkts[0];
   if(mkts.indexOf(aMkt)<0)aMkt=mkts[0];
@@ -6087,7 +6146,7 @@ window.__selectHeroRegion=function(m){
   renderGeneratedImagesMatrix();
 };
 window.regenerateHeroImage=function(){
-  var m=S.activeImageMarket||(S.markets||['US'])[0];
+  var m=S.activeImageMarket||(S.markets||[_homeMkt()])[0];
   if(!S._imageSeeds)S._imageSeeds={};
   S._imageSeeds[m+'_A']=Math.floor(Math.random()*999999);
   S.generatedImages[m].A=pollinationsImageUrl(buildPollinationsPrompt(m,'A'),S._imageSeeds[m+'_A']);
@@ -6541,9 +6600,9 @@ function switchImagePrompt(mkt,v){
   showCopyToast('Showing prompt: '+mkt+' · Variant '+v);
 }
 // Backward-compat alias used by older "Copy A" / "Copy B" buttons
-function switchImageVariant(v){switchImagePrompt(S.activeImageMarket||(S.markets||['US'])[0],v);}
+function switchImageVariant(v){switchImagePrompt(S.activeImageMarket||(S.markets||[_homeMkt()])[0],v);}
 function copyImagePrompt(v){
-  var mkt=S.activeImageMarket||(S.markets||['US'])[0];
+  var mkt=S.activeImageMarket||(S.markets||[_homeMkt()])[0];
   var t=(S.imagePrompts&&S.imagePrompts[mkt])?(S.imagePrompts[mkt][v]||''):'';
   if(!t){showCopyToast('Variant '+v+' prompt not generated yet');return;}
   if(navigator.clipboard){
@@ -6664,7 +6723,7 @@ function previewBothSideBySide(){
   var htmlA=entry.A||'';
   var htmlB=entry.B||'';
   if(!htmlA||!htmlB){showCopyToast('One variant is missing — generate again');return;}
-  var mt=S.activeMarket||'US';
+  var mt=S.activeMarket||_homeMkt();
   var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
   var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global / International',ME:'Middle East',AU:'Australia',EU:'Europe'};
   var mktCurr={US:'USD ($)',UK:'GBP (£)',IN:'INR (₹)',EU:'EUR (€)',AU:'AUD (A$)',ME:'AED (Dh)',Global:'USD ($)'};
@@ -7586,7 +7645,7 @@ function buildEmailVariantB(uploadedDesignImg,mktOverride){
   refreshStrategy();
   var st=S.strategy||buildCampaignStrategy();
   if(!st.products||!st.products.length) return '';
-  var mt=mktOverride||st.market||'US';
+  var mt=mktOverride||st.market||_homeMkt();
   var arch=_arch_pickArchetype(st,'B');  // _ARCH_FAMILY guarantees this is narrative-side
   return _arch_renderEmail(st,arch,'B',uploadedDesignImg,mt);
 }
@@ -7596,7 +7655,7 @@ function buildEmailVariantB(uploadedDesignImg,mktOverride){
 function _legacy_buildEmailVariantB_replaced(uploadedDesignImg,mktOverride){
   refreshStrategy();
   const st=S.strategy||buildCampaignStrategy();
-  const prods=st.products;const mt=mktOverride||st.market||'US';
+  const prods=st.products;const mt=mktOverride||st.market||_homeMkt();
   if(!prods||!prods.length)return '';
   const hero=prods[0];
   const base=getBase(mt);
@@ -7709,7 +7768,7 @@ function buildEmail(uploadedDesignImg,mktOverride){
   refreshStrategy();
   var st=S.strategy||buildCampaignStrategy();
   if(!st.products||!st.products.length) return '';
-  var mt=mktOverride||st.market||'US';
+  var mt=mktOverride||st.market||_homeMkt();
   var arch=_arch_pickArchetype(st,'A');
   var html=_arch_renderEmail(st,arch,'A',uploadedDesignImg,mt);
   if(!mktOverride){
@@ -8011,7 +8070,7 @@ function getMasterSystemPrompt(){
   var prodTags=finalProds.length>0
     ?[...new Set(finalProds.flatMap(function(p){return p.t||[]}))].join(', ')
     :'(none)';
-  var markets=(S.markets&&S.markets.length>0?S.markets:['US']).join(', ');
+  var markets=(S.markets&&S.markets.length>0?S.markets:[_homeMkt()]).join(', ');
   var campaignType=S.type||detectType(S.prompt||'');
   var prompt=S.prompt||'(no prompt entered yet)';
   var ep=buildEffectivePrompt(prompt,finalProds);
@@ -8408,7 +8467,7 @@ function copySubject(i){
   else{var ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showCopyToast('Subject copied!');}
 }
 function resetAll(){
-  S.prompt='';S.market='US';S.markets=['US'];S.marketMailers={};S.activeMarket='US';
+  S.prompt='';S.market=_homeMkt();S.markets=[_homeMkt()];S.marketMailers={};S.activeMarket=_homeMkt();
   S.type='';S.manualProds=[];S.finalProds=[];
   S.regenCount=0;S.finalHTML='';S.lastImagePrompt='';S.generatedPrompt='';
   S.canvasDataUrl='';S.uploadedDesignUrl=null;
@@ -8429,9 +8488,9 @@ function resetAll(){
   // Reset form inputs
   const pt=document.getElementById('promptIn');if(pt){pt.value='';pt.style.minHeight='';}
   const tt=document.getElementById('typeIn');if(tt)tt.value='';
-  // Reset market chips to US only
+  // Reset market chips to the brand's HOME market only
   document.querySelectorAll('#mktChips .mkt-chip').forEach(function(c){
-    c.classList.toggle('on',c.getAttribute('data-mkt')==='US');
+    c.classList.toggle('on',c.getAttribute('data-mkt')===_homeMkt());
   });
   // Hide market tab bar
   const tb=document.getElementById('mktTabBar');if(tb)tb.style.display='none';
@@ -8669,7 +8728,7 @@ function saveMailerToDashboard(){
   refreshStrategy();
   var st=S.strategy||{};
   var user=window._currentUser||{name:'Unknown',email:''};
-  var primaryMkt=S.activeMarket||'US';
+  var primaryMkt=S.activeMarket||_homeMkt();
   var primaryEntry=(S.marketMailers||{})[primaryMkt]||{};
   var variantA=typeof primaryEntry==='string'?primaryEntry:(primaryEntry.A||'');
   var variantB=typeof primaryEntry==='string'?'':(primaryEntry.B||'');
@@ -8690,7 +8749,7 @@ function saveMailerToDashboard(){
     // a Supabase "could not find audience column" error since the table
     // wasn't migrated. The strategy_full JSONB carries it without a schema change.
     primary_market:primaryMkt,
-    markets:S.markets||['US'],
+    markets:S.markets||[_homeMkt()],
     // ── GOALS (products) ──
     hero_product_name:st.hero?st.hero.n:'',
     hero_product_image:st.hero?st.hero.i:'',
@@ -8850,8 +8909,8 @@ function dashSearch(val){
 function regenerateFromRecord(logIdx){
   var e=_getDashEntry(logIdx);if(!e){statusPill('warn','Record not found');return;}
   // Hard reset — wipe old state to avoid contamination
-  S.markets=e.markets||['US'];
-  S.market=(e.markets||['US'])[0];
+  S.markets=e.markets||[_homeMkt()];
+  S.market=(e.markets||[_homeMkt()])[0];
   S.activeMarket=S.market;
   S.type=e.type||detectType(e.fullPrompt||e.prompt||'');
   S.prompt=e.fullPrompt||e.prompt||'';
@@ -8896,7 +8955,7 @@ async function renderDashboard(page){
           title:r.campaign_title||generateCampaignTitle(r.prompt_full||r.prompt_short||'',r.campaign_type,r.product_names,r.primary_market),
           prompt:extractUserIdea(r.prompt_full||r.prompt_short||''),
           fullPrompt:r.prompt_full||'',
-          markets:r.markets||['US'],type:r.campaign_type||'Campaign',
+          markets:r.markets||[_homeMkt()],type:r.campaign_type||'Campaign',
           products:r.product_names||[],
           fullMailers:r.market_mailers||{},
           feedbackHistory:r.feedback_history||[],
@@ -8949,7 +9008,7 @@ async function renderDashboard(page){
   var pageLogs=logs.slice(pageStart,pageStart+_dashPageSize);
   // Compute stats across ALL logs (not just current page)
   var uniqueUsers=[...new Set(logs.map(function(l){return l.userEmail||l.userName||'Unknown';}))];
-  var allMarkets=[...new Set(logs.flatMap(function(l){return l.markets||[l.market||'US'];}))];
+  var allMarkets=[...new Set(logs.flatMap(function(l){return l.markets||[l.market||_homeMkt()];}))];
   var statsBar='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px 10px;background:linear-gradient(135deg,#D0473E,#D0473E);border-radius:10px;color:#FFFFFF;align-items:center">'
     +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
@@ -8965,7 +9024,7 @@ async function renderDashboard(page){
     +'</div>';
   // ── Filter bar — chips for type / market / user + free-text search ──
   var allTypes=[...new Set(allLogs.map(function(l){return l.type||'Campaign';}))].sort();
-  var allMarketsForChips=[...new Set(allLogs.flatMap(function(l){return l.markets||[l.market||'US'];}))].sort();
+  var allMarketsForChips=[...new Set(allLogs.flatMap(function(l){return l.markets||[l.market||_homeMkt()];}))].sort();
   var allUsersForChips=[...new Set(allLogs.map(function(l){return l.userName||'Unknown';}))].filter(function(u){return u && u!=='Unknown';}).sort();
   var typeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'var(--vh-ink)',Story:'var(--vh-ink)',Seasonal:'var(--vh-ink)',Campaign:'#D0473E'};
   function chip(label,active,color,onclick){
@@ -9001,7 +9060,7 @@ async function renderDashboard(page){
     var dt=new Date(e.date);
     // Full timestamp: "Mon, 29 Apr 2026, 02:30:45 PM"
     var dateStr=dt.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+', '+dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
-    var mkts=(e.markets||[e.market||'US']).join(', ');
+    var mkts=(e.markets||[e.market||_homeMkt()]).join(', ');
     var prods=(e.products||[]).slice(0,3).join(' · ')+(e.products&&e.products.length>3?' +more':'');
     var userBadge=!window._anonStudio&&e.userName&&e.userName!=='Unknown'
       ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,#D0473E,#D0473E);color:#FFFFFF;border-radius:20px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>'
@@ -9074,7 +9133,7 @@ async function renderDashboard(page){
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-ink);color:#D0473E;border-radius:10px;border:1px solid var(--vh-panel-tan)">'+mkts+'</span>'
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:#FFFFFF;color:#6A33D8;border-radius:10px;border:1px solid var(--vh-panel-tan)">'+(e.type||'Campaign')+'</span>'
         +'</div>'
-        +'<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;color:#D0473E;font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||['US'])[0]))+'</div>'
+        +'<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;color:#D0473E;font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||[_homeMkt()])[0]))+'</div>'
         +'<div style="font-size:11.5px;color:#555;font-weight:400;margin-bottom:5px;line-height:1.5">'+((e.prompt||'').substring(0,160)+(e.prompt&&e.prompt.length>160?'…':''))+'</div>'
         +(prods?'<div style="font-size:10.5px;color:#666;margin-bottom:3px">&var(--vh-ink); '+prods+'</div>':'')
         +(e.userEmail?'<div style="font-size:10px;color:#aaa">&#9993; '+e.userEmail+'</div>':'')
@@ -9109,7 +9168,7 @@ function viewDashRecord(logIdx){
     var _hl=heroHeadline(p,typ);
     var _sc=subCopy(p,typ);
     var _cta=ctaText(p,typ);
-    var _mkt=(e.markets||['US'])[0];
+    var _mkt=(e.markets||[_homeMkt()])[0];
     var _ann=annBarLine(p,_mkt,typ);
     var _oc=offerCode(p);var _ot=offerText(p);
     var intentMap={Sale:'Drive immediate conversions with urgency + discount mechanics',Launch:'Generate excitement and early-adopter desire for new product',Seasonal:'Anchor purchase intent to seasonal ritual and gifting occasion',Bestseller:'Re-engage warm audiences with social proof and familiarity',Gift:'Inspire gifting decisions with premium framing and recipient empathy',Discovery:'Expand basket depth by surfacing new designs to existing buyers',Routine:'Build long-term subscription and habit loop with streetwear framing',Story:'Deepen brand affinity through emotional origin narrative',Campaign:'Engage and convert target audience with on-brand messaging'};
@@ -9118,7 +9177,7 @@ function viewDashRecord(logIdx){
     var typeBadgeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'var(--vh-ink)',Story:'var(--vh-ink)',Seasonal:'var(--vh-ink)',Campaign:'#D0473E'};
     var dt=new Date(e.date);
     var dateStr=dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' · '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    var mkts=(e.markets||['US']);
+    var mkts=(e.markets||[_homeMkt()]);
     var html='';
     // ── Header ───────────────────────────────────────────────────────────
     html+='<div style="background:linear-gradient(135deg,#D0473E 0%,#D0473E 100%);padding:20px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
@@ -9491,8 +9550,10 @@ function applyCalendarHandoff(){
 
   // 3. Market — map calendar market → an available studio chip (fallback Global).
   try{
-    var avail = ['US','UK','IN','Global','ME','AU','EU'];
-    var mkt = avail.indexOf(e.market)>=0 ? e.market : 'Global';
+    // The brand's OWN markets (region-context), not a typed list; a slot for a
+    // market this brand does not serve lands on its HOME market, not on 'Global'.
+    var rc = window.RegionContext;
+    var mkt = (rc && rc.resolve(e.market)) || _homeMkt() || e.market;
     document.querySelectorAll('.mkt-chip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mkt')===mkt); });
     if(typeof S==='object'){ S.markets=[mkt]; S.market=mkt; S.activeMarket=mkt; S._mktManualSet=true; }
   }catch(_){}
@@ -9659,7 +9720,7 @@ document.addEventListener('DOMContentLoaded',function(){
   }
   function buildCtx(){
     var S=window.S||{};
-    return { brief:S.prompt||S.brief||'', type:S.type||'', markets:S.markets||[S.market||'US'], mailerText:currentMailerText().slice(0,1500) };
+    return { brief:S.prompt||S.brief||'', type:S.type||'', markets:S.markets||[S.market||_homeMkt()], mailerText:currentMailerText().slice(0,1500) };
   }
 
   /* ── Listen (text-to-speech) ── */

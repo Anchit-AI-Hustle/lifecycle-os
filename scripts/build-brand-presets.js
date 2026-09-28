@@ -30,10 +30,14 @@ fs.mkdirSync(OUT, { recursive: true });
 
 const RIGHTS = 'Template only. Public brand attributes observed from the brand\'s own site for building and demonstration; this is not a licence to use the brand\'s marks. Replace with your own approved guidelines before running a real programme.';
 
-const region = (code, currency, symbol, url) => ({
+/* `home` marks the brand's HOME market, the one every "no market named"
+   default resolves to. It is declared per preset from where the brand is
+   registered and prices first, never inferred from list order: the order a
+   record lists its markets in is presentation, not a decision. */
+const region = (code, currency, symbol, url, opts) => Object.assign({
   code, currency, symbol, store_url: url,
   pdp_pattern: '{base}/products/{handle}', collection_pattern: '{base}/collections/{slug}',
-});
+}, opts && opts.home ? { home: true } : {});
 
 const PRESETS = [
   {
@@ -54,7 +58,7 @@ const PRESETS = [
       notes: 'Testimonials read like a friend flexing a new pair. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers.',
     },
     claims: ["India's largest sneaker customisers", 'Made on 100% original brand sneakers', "Hand-painted by India's best artists", 'Water and scratch resistant designs', 'Express shipping worldwide to 60+ countries'],
-    regions: [region('IN', 'INR', '₹', 'https://knickgasm.com'), region('US', 'USD', '$', 'https://knickgasm.com'), region('UK', 'GBP', '£', 'https://knickgasm.com')],
+    regions: [region('IN', 'INR', '₹', 'https://knickgasm.com', { home: true }), region('US', 'USD', '$', 'https://knickgasm.com'), region('UK', 'GBP', '£', 'https://knickgasm.com')],
     asset_hosts: ['knickgasm.com', 'cdn.shopify.com'],
     catalog_source: { kind: 'shopify_public', url: 'https://knickgasm.com/products.json', offering_kinds: ['product', 'service'] },
     offerings: [
@@ -78,7 +82,7 @@ const PRESETS = [
       notes: 'OBSERVED from public output, not official guidelines. Financial copy must never promise returns or read as investment advice; attribute every figure to its source and date.',
     },
     claims: ['Business, markets and economy journalism from The Economic Times'],
-    regions: [region('IN', 'INR', '₹', 'https://economictimes.indiatimes.com')],
+    regions: [region('IN', 'INR', '₹', 'https://economictimes.indiatimes.com', { home: true })],
     asset_hosts: ['economictimes.indiatimes.com', 'img.etimg.com'],
     catalog_source: { kind: 'manual', offering_kinds: ['section', 'plan', 'programme'], note: 'A publisher sells sections, newsletters and subscriptions, not SKUs.' },
     offerings: [
@@ -106,7 +110,7 @@ const PRESETS = [
       notes: 'OBSERVED from public output, not official guidelines. News copy must attribute and date every claim, and never overstate a developing story.',
     },
     claims: ['General news coverage from The Times of India'],
-    regions: [region('IN', 'INR', '₹', 'https://timesofindia.indiatimes.com')],
+    regions: [region('IN', 'INR', '₹', 'https://timesofindia.indiatimes.com', { home: true })],
     asset_hosts: ['timesofindia.indiatimes.com', 'static.toiimg.com'],
     catalog_source: { kind: 'manual', offering_kinds: ['section', 'plan', 'programme'], note: 'A publisher sells sections, newsletters and subscriptions, not SKUs.' },
     offerings: [
@@ -133,7 +137,7 @@ const PRESETS = [
       notes: 'OBSERVED from public output, not official guidelines. HEALTH SAFETY: never make medical claims, never promise outcomes, never present content as diagnosis or treatment; attribute clinical statements to a named qualified source and add a consult-your-doctor line on training and diet content.',
     },
     claims: ['Health, fitness, diet and wellness coverage from The Times of India'],
-    regions: [region('IN', 'INR', '₹', 'https://timesofindia.indiatimes.com/life-style/health-fitness')],
+    regions: [region('IN', 'INR', '₹', 'https://timesofindia.indiatimes.com/life-style/health-fitness', { home: true })],
     asset_hosts: ['timesofindia.indiatimes.com', 'static.toiimg.com'],
     catalog_source: { kind: 'manual', offering_kinds: ['section', 'programme', 'event'], note: 'A health vertical promotes content sections, recurring programmes (training plans, daily routines) and date-bound events (yoga days, runs) - not SKUs.' },
     offerings: [
@@ -162,7 +166,7 @@ const PRESETS = [
       notes: 'OBSERVED from public output, not official guidelines. Let the product carry the claim; never stack superlatives or invent specifications.',
     },
     claims: ['Consumer technology products from Apple'],
-    regions: [region('US', 'USD', '$', 'https://www.apple.com'), region('IN', 'INR', '₹', 'https://www.apple.com/in'), region('UK', 'GBP', '£', 'https://www.apple.com/uk')],
+    regions: [region('US', 'USD', '$', 'https://www.apple.com', { home: true }), region('IN', 'INR', '₹', 'https://www.apple.com/in'), region('UK', 'GBP', '£', 'https://www.apple.com/uk')],
     asset_hosts: ['apple.com', 'www.apple.com', 'store.storeimages.cdn-apple.com'],
     catalog_source: { kind: 'none', offering_kinds: ['product', 'service', 'plan'], note: 'No public product feed; connect a real catalogue before generating product-level assets.' },
     // Product lines as read from apple.com global navigation on verified_at -

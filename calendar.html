@@ -179,12 +179,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="flex flex-wrap items-center gap-3">
       <div>
         <div class="label">Markets</div>
-        <div class="flex gap-1.5 mt-2" id="marketChips">
-          <button type="button" class="filter-chip active" data-market="US">US</button>
-          <button type="button" class="filter-chip" data-market="UK">UK</button>
-          <button type="button" class="filter-chip" data-market="Global">Global</button>
-          <button type="button" class="filter-chip" data-market="IN">India</button>
-        </div>
+        <!-- Built from the active brand's own regions with its HOME market
+             pre-selected (see buildMarketChips). The typed US/UK/Global/India
+             row with US on planned a US calendar for brands with no US store. -->
+        <div class="flex gap-1.5 mt-2" id="marketChips"></div>
       </div>
       <div>
         <div class="label">Plan window</div>
@@ -283,9 +281,10 @@ const $ = (id) => document.getElementById(id);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 const STATE = {
-  // Defaults (product rule): region = US only, duration = the maximum the window
-  // options allow (90d). Autogenerates on load with these.
-  markets: ['US'],
+  // Defaults (product rule): region = the brand's HOME market only (filled by
+  // buildMarketChips once region-context has the brand), duration = the
+  // maximum the window options allow (90d). Autogenerates on load with these.
+  markets: [],
   days: 90,
   capacity: 4,
   plan: [],
@@ -762,6 +761,33 @@ $('marketChips').addEventListener('click', (e) => {
   e.target.classList.toggle('active');
   STATE.markets = $$('#marketChips .filter-chip.active').map((c) => c.dataset.market);
 });
+// One chip per region THIS brand declares, its HOME market on. A brand with no
+// regions gets the marker and an empty selection, never a shipped list.
+let _marketChipsBuilt = null;
+function buildMarketChips() {
+  const rc = window.RegionContext; if (!rc) return;
+  const opts = rc.options();
+  const key = opts.map((o) => o.code).join('|');
+  if (key === _marketChipsBuilt) return; _marketChipsBuilt = key;
+  const host = $('marketChips');
+  if (!opts.length) {
+    host.innerHTML = '<span class="text-[11px] text-ink-mute">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+    STATE.markets = []; return;
+  }
+  host.innerHTML = opts.map((o) => '<button type="button" class="filter-chip' + (o.home ? ' active' : '') + '" data-market="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('');
+  STATE.markets = $$('#marketChips .filter-chip.active').map((c) => c.dataset.market);
+}
+// The first plan is generated once the brand's markets are known, so it is
+// planned for the brand's HOME market rather than for whatever a typed default
+// said. If the region layer never arrives (no shell on this page), the plan
+// still generates and the server resolves the brand's regions itself.
+let _autoPlanned = false;
+function autoPlanOnce() { if (_autoPlanned) return; _autoPlanned = true; generatePlan(); }
+(function watchRegions(w) {
+  const waited = w || 0;
+  if (!window.RegionContext) { if (waited < 6000) return setTimeout(() => watchRegions(waited + 100), 100); return autoPlanOnce(); }
+  window.RegionContext.onChange(() => { buildMarketChips(); autoPlanOnce(); });
+})(0);
 $('daysChips').addEventListener('click', (e) => {
   if (!e.target.dataset.days) return;
   $$('#daysChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
@@ -798,9 +824,8 @@ $('btnExport').addEventListener('click', () => {
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 
-// Auto-generate on first load if analytics present
-if (loadAnalyticsSummary()) generatePlan();
-else generatePlan(); // uses seed
+// Auto-generate on first load: deferred until the brand's markets are known
+// (see autoPlanOnce above), with or without a stored analytics summary.
 </script>
   <script src="/brand-demo.js"></script>
   <script>if (window.BrandDemo) window.BrandDemo.guardOwnerDataset('The V1 30-day plan', "This Draft 1 planner runs on one brand's demo catalogue. Use the Smart Brain calendar for this brand: it plans from the brand's own offerings.");</script>

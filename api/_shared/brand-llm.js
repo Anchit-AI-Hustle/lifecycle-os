@@ -517,13 +517,19 @@ async function chat(opts = {}) {
   return catalogServer.withCatalog({ brand: brandRecord, workspaceId: wsId }, () => _chat(opts, brandRecord));
 }
 
-async function _chat({ message, history = [], market = 'US', maxSteps = 3, workspaceId = null } = {}, resolvedBrand = null) {
+async function _chat({ message, history = [], market: marketIn = '', maxSteps = 3, workspaceId = null } = {}, resolvedBrand = null) {
   // Resolve the ACTIVE workspace's brand record so the assistant speaks as
   // THAT brand (name, industry, regions, claims). Falls back to tenant zero
   // only for a userless call.
   // Already resolved by the wrapper above; re-reading it here would issue a
   // second lookup per turn for the same answer.
   const brandRecord = resolvedBrand;
+  // A turn that names no market is answered for the brand's HOME market - the
+  // one its own record flags - not for a literal that an India-only brand
+  // does not sell in.
+  const market = marketIn || (() => {
+    try { const rt = require('./brand-runtime.js'); return rt.homeRegion(brandRecord && brandRecord.id ? brandRecord : rt.defaultBrand()); } catch (_) { return ''; }
+  })();
   const brand = brandRecord && brandRecord.id
     ? Object.assign({}, brandRecord, { tagline: brandRecord.tagline || BRAND_LLM_TAGLINE })
     : { name: BRAND_LLM_NAME, tagline: BRAND_LLM_TAGLINE };
