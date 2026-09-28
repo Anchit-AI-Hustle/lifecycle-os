@@ -262,11 +262,29 @@ function fontImport(t) {
   return `@import url('https://fonts.googleapis.com/css2?${fams.join('&')}&display=swap');`;
 }
 
+/**
+ * The brand's HOME market: the region its own record flags `home: true`, else
+ * the region the record leads with, else '' — never a literal.
+ *
+ * Every "slot with no market" used to fall to 'US', so a brand whose record
+ * said IN, and only IN, still had its default campaign, export row, landing
+ * page and assistant turn built for a market it does not serve. The empty
+ * string is deliberate for a brand with no regions at all: a caller that needs
+ * a market then has a gap to report, not a market to invent.
+ */
+function homeRegion(brand) {
+  const list = (brand && Array.isArray(brand.regions)) ? brand.regions.filter((r) => r && r.code) : [];
+  const flagged = list.find((r) => r.home === true);
+  const pick = flagged || list[0];
+  return pick ? String(pick.code).toUpperCase() : '';
+}
+
 function regionLines(regions) {
   const list = Array.isArray(regions) ? regions.filter((r) => r && r.code) : [];
   if (!list.length) return missing('regions and store URLs');
+  const home = homeRegion({ regions: list });
   return list.map((r) =>
-    `${r.code}: store ${r.store_url || missing('region store URL', r.code)}` +
+    `${r.code}${String(r.code).toUpperCase() === home ? ' (HOME market)' : ''}: store ${r.store_url || missing('region store URL', r.code)}` +
     `${r.currency ? ` · ${r.currency}` : ''}${r.symbol ? ` (${r.symbol})` : ''}`
   ).join(' | ');
 }
@@ -313,7 +331,11 @@ function brandBlock(brand) {
 function regionFacts(brand, market) {
   const code = String(market || '').toUpperCase();
   const list = (brand && Array.isArray(brand.regions)) ? brand.regions : [];
-  const hit = list.find((r) => String(r.code).toUpperCase() === code) || list[0];
+  // No match (or no market asked for) falls to the brand's HOME market, which
+  // is the region it declared, not merely the one listed first.
+  const home = homeRegion(brand);
+  const hit = list.find((r) => String(r.code).toUpperCase() === code)
+    || list.find((r) => String(r.code).toUpperCase() === home) || list[0];
   if (hit) {
     return {
       store: (hit.store_url || '').replace(/^https?:\/\//, ''),
@@ -391,6 +413,6 @@ function scrubHtmlForBrand(html, brand) {
 
 module.exports = {
   scopedBrand, unresolvedBrand, isUnresolved,
-  resolve, brandBlock, regionFacts, scrubForBrand, scrubHtmlForBrand,
+  resolve, brandBlock, regionFacts, homeRegion, scrubForBrand, scrubHtmlForBrand,
   defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,
 };

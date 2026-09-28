@@ -195,12 +195,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="mailers" name="linked_asset"><option value=""> - pick a mailer or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <div class="regions" data-regions="mailers">
-            <button type="button" class="region-chip" data-region="US">US</button>
-            <button type="button" class="region-chip" data-region="UK">UK</button>
-            <button type="button" class="region-chip" data-region="Global">Global</button>
-            <button type="button" class="region-chip" data-region="India">India</button>
-          </div>
+          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
+          <div class="regions" data-regions="mailers"></div>
         </div>
         <div class="field"><label>Hero headline</label>
           <input type="text" data-form="mailers" name="hero" placeholder="The exact promise the email made — repeat it">
@@ -238,12 +234,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="meta" name="linked_asset"><option value=""> - pick a Meta campaign or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <div class="regions" data-regions="meta">
-            <button type="button" class="region-chip" data-region="US">US</button>
-            <button type="button" class="region-chip" data-region="UK">UK</button>
-            <button type="button" class="region-chip" data-region="Global">Global</button>
-            <button type="button" class="region-chip" data-region="India">India</button>
-          </div>
+          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
+          <div class="regions" data-regions="meta"></div>
         </div>
         <div class="field"><label>Hero headline (≤40 chars, matches ad)</label>
           <input type="text" data-form="meta" name="hero" maxlength="40">
@@ -281,12 +273,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="google" name="linked_asset"><option value=""> - pick a Google campaign or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <div class="regions" data-regions="google">
-            <button type="button" class="region-chip" data-region="US">US</button>
-            <button type="button" class="region-chip" data-region="UK">UK</button>
-            <button type="button" class="region-chip" data-region="Global">Global</button>
-            <button type="button" class="region-chip" data-region="India">India</button>
-          </div>
+          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
+          <div class="regions" data-regions="google"></div>
         </div>
         <div class="field"><label>Target keyword(s)</label>
           <input type="text" data-form="google" name="hero" placeholder="the hero offering, the new arrival">
@@ -324,12 +312,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="tiktok" name="linked_asset"><option value=""> - pick a TikTok creative or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <div class="regions" data-regions="tiktok">
-            <button type="button" class="region-chip" data-region="US">US</button>
-            <button type="button" class="region-chip" data-region="UK">UK</button>
-            <button type="button" class="region-chip" data-region="Global">Global</button>
-            <button type="button" class="region-chip" data-region="India">India</button>
-          </div>
+          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
+          <div class="regions" data-regions="tiktok"></div>
         </div>
         <div class="field"><label>Hook (matches video opener)</label>
           <input type="text" data-form="tiktok" name="hero" placeholder="POV: you finally found a pair nobody else on earth has">
@@ -549,14 +533,38 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   window.addEventListener('hashchange', () => showTab((location.hash||'#mailers').replace('#','')));
 
   // ─── Region chip selection (per-channel) ───────────────────────
-  const selectedRegion = { mailers: 'US', meta: 'US', google: 'US', tiktok: 'US' };
+  // Per channel, the brand's HOME market until the operator picks another;
+  // the chips themselves are the brand's own regions. Nothing here is US by
+  // default any more, because nothing here is a typed list any more.
+  const selectedRegion = { mailers: '', meta: '', google: '', tiktok: '' };
+  const homeRegion = () => (window.RegionContext && window.RegionContext.home) || '';
+  let _lpRegionsBuilt = null;
+  function buildRegionChips() {
+    const rc = window.RegionContext; if (!rc) return;
+    const opts = rc.options();
+    const key = opts.map((o) => o.code).join('|');
+    if (key === _lpRegionsBuilt) return; _lpRegionsBuilt = key;
+    $$('.regions').forEach((grp) => {
+      const channel = grp.dataset.regions;
+      if (!opts.some((o) => o.code === selectedRegion[channel])) selectedRegion[channel] = rc.home;
+      grp.innerHTML = opts.length
+        ? opts.map((o) => '<button type="button" class="region-chip' + (o.code === selectedRegion[channel] ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
+        : '<span class="region-chip" style="cursor:default">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+    });
+  }
   $$('.regions').forEach((grp) => {
     const channel = grp.dataset.regions;
-    const chips = $$('.region-chip', grp);
-    const setActive = (r) => chips.forEach((c) => c.classList.toggle('active', c.dataset.region === r));
-    setActive(selectedRegion[channel]);
-    chips.forEach((c) => c.addEventListener('click', () => { selectedRegion[channel] = c.dataset.region; setActive(c.dataset.region); }));
+    grp.addEventListener('click', (e) => {
+      const c = e.target.closest ? e.target.closest('.region-chip[data-region]') : null; if (!c) return;
+      selectedRegion[channel] = c.dataset.region;
+      $$('.region-chip', grp).forEach((x) => x.classList.toggle('active', x === c));
+    });
   });
+  (function watchRegions(w) {
+    const waited = w || 0;
+    if (!window.RegionContext) { if (waited < 6000) setTimeout(() => watchRegions(waited + 100), 100); return; }
+    window.RegionContext.onChange(buildRegionChips);
+  })(0);
 
   // ─── Real landing-page generator (deterministic, on-brand HTML) ───────
   // Builds a complete, self-contained landing page from the brief fields.
@@ -616,7 +624,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // No server endpoint needed — assembled in the browser from a brand template.
   const STORE_BASE = { US:'https://knickgasm.com', UK:'https://knickgasm.com', IN:'https://knickgasm.com', EU:'https://knickgasm.com', AU:'https://knickgasm.com', ME:'https://knickgasm.com', Global:'https://knickgasm.com' };
   function buildLandingHTML(f) {
-    const region = f.region || f.market || 'US';
+    const region = f.region || f.market || homeRegion();
     // This brand's own storefront for the region; the shipped map is tenant
     // zero's and is used only when no brand is active at all.
     const base = brandStoreBase(region) || (activeBrand() ? ('[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + region + ']') : (STORE_BASE[region] || STORE_BASE.US));
@@ -738,7 +746,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       const html = (f && f._html) || buildLandingHTML(f);
       const m = ensureLandingModal();
       m.querySelector('[data-pm-frame]').srcdoc = html;
-      m.querySelector('[data-pm-title]').textContent = (f.hero || 'Landing page') + ' · ' + (f.region || 'US');
+      m.querySelector('[data-pm-title]').textContent = (f.hero || 'Landing page') + ' · ' + (f.region || homeRegion());
       m.querySelector('[data-pm-download]').onclick = () => downloadLanding(f);
       m.querySelector('[data-pm-prompt]').onclick = (ev) => copyText(buildLandingPrompt(f), ev.target);
       m.querySelector('[data-pm-newtab]').onclick = () => {
@@ -752,7 +760,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'knickgasm-landing-' + (f.region || 'US') + '-' + (f.hero || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.html';
+    a.download = 'knickgasm-landing-' + (f.region || homeRegion()) + '-' + (f.hero || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.html';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
   }
@@ -763,7 +771,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
   // builds the page on free tiers; this is the "bring your own model" output.)
   function buildLandingPrompt(f) {
     f = f || {};
-    var region = f.region || f.market || 'US';
+    var region = f.region || f.market || homeRegion();
     var channel = f.channel || 'landing';
     return [
       'You are a senior D2C conversion copywriter and front-end developer for ' + brandName() + (brandTagline() ? ' \u2014 ' + brandTagline() : '') + (brandClaims().length ? '. The only statements you may present as fact: ' + brandClaims().join(' | ') + '.' : '. No claim may be presented as fact unless it appears in the brief.'),
