@@ -95,8 +95,13 @@ test('a .com site with hreflang en-US/en-GB, USD offers and a US legal address: 
   // .com is NOT a signal, and the report says so rather than staying silent.
   expect(signals.some((s) => /ccTLD/.test(s))).toBe(false);
   expect(home.notes.join(' ')).toMatch(/\.com is not a country signal/);
-  expect(signals).toContain('json-ld:Offer.priceCurrency (USD)');
+  // USD is NOT a strong signal (review finding 4): it is the pricing currency
+  // of global .com storefronts. The address alone proposes US; USD corroborates.
+  expect(signals).not.toContain('json-ld:Offer.priceCurrency (USD)');
   expect(signals).toContain('json-ld:Organization.address');   // "United States", a NAME, resolved to US
+  expect(home.corroborators.map((c) => c.signal + '=' + c.code)).toContain('json-ld:Offer.priceCurrency (USD)=US');
+  // The home page declared USD and the home is US, so the US row carries it.
+  expect(r.fields.regions.candidates.find((c) => c.code === 'US').currency).toBe('USD');
   expect(r.fields.regions.candidates.map((c) => c.code).sort()).toEqual(['GB', 'US']);
   expect(r.fields.regions.candidates.find((c) => c.code === 'GB').home).toBe(false);
 });
@@ -147,7 +152,7 @@ test('<html lang> and og:locale alone NEVER propose a home market', async () => 
   expect(home.proposed).toBe('');
   expect(home.marker).toBe(bx.MARKER('home market'));
   expect(home.corroborators.length).toBe(2);
-  expect(home.notes.join(' ')).toMatch(/language tag never proposes a market/i);
+  expect(home.notes.join(' ')).toMatch(/never propose a market on their own/i);
   // And the pure function agrees, driven directly.
   const direct = bx.homeMarket({ homeUrl: 'https://acme.com/', regions: [], legal: [], homeCurrencies: [], lang: { code: 'IN', signal: 'html:<html lang>', source_url: 'https://acme.com/', evidence: 'x' } });
   expect(direct.proposed).toBe('');
@@ -174,7 +179,56 @@ test('the storefront platform\'s own declared country is a home signal, read off
 test('EUR on the home page names a currency zone, not a home market', () => {
   const out = bx.homeMarket({ homeUrl: 'https://acme.com/', regions: [], legal: [], homeCurrencies: [{ currency: 'EUR', signal: 'json-ld:Offer.priceCurrency', source_url: 'https://acme.com/' }] });
   expect(out.proposed).toBe('');
-  expect(out.notes.join(' ')).toMatch(/EUR .* does not identify one country/);
+  expect(out.corroborators).toEqual([]);                       // EUR names no country at all
+  expect(out.notes.join(' ')).toMatch(/EUR .* priced in by many countries/);
+});
+
+test('review finding 4: USD alone never proposes US, and beside a real signal it manufactures no conflict', async () => {
+  // A global .com storefront pricing in USD, and nothing else published.
+  const usdOnly = {
+    'https://acme.com/': html(`<!doctype html><html><head><title>Acme</title>${product('USD')}</head><body><h1>Acme</h1></body></html>`),
+  };
+  const r = await run('https://acme.com/', usdOnly);
+  expect(r.fields.regions.home.proposed).toBe('');
+  expect(r.fields.regions.home.marker).toBe(bx.MARKER('home market'));
+  expect(r.fields.regions.home.considered).toEqual([]);         // nothing strong was even considered
+  expect(r.fields.regions.home.corroborators.map((c) => c.signal + '=' + c.code)).toEqual(['json-ld:Offer.priceCurrency (USD)=US']);
+  expect(r.fields.regions.home.notes.join(' ')).toMatch(/USD .* priced in by many countries/);
+  expect(r.fields.regions.candidates).toEqual([]);              // no region was invented from a currency
+  // A UK business that prices in dollars: GB from its own suffix, no conflict.
+  const ukUsd = {
+    'https://acme.co.uk/': html(`<!doctype html><html><head><title>Acme</title>${product('USD')}</head><body><h1>Acme</h1></body></html>`),
+  };
+  const uk = await run('https://acme.co.uk/', ukUsd);
+  expect(uk.fields.regions.home.proposed).toBe('GB');
+  expect(uk.fields.regions.home.conflict).toBeNull();
+  expect(uk.fields.regions.candidates.map((c) => c.code + ':' + c.currency)).toEqual(['GB:']);   // USD is not GB's declared currency
+  // The table itself: the country-unique currencies stay, the zone ones are out.
+  expect(bx.CURRENCY_COUNTRY.USD).toBeUndefined();
+  expect(bx.CURRENCY_COUNTRY.EUR).toBeUndefined();
+  for (const cur of ['INR', 'GBP', 'JPY', 'AUD', 'CAD']) expect(bx.CURRENCY_COUNTRY[cur], cur).toBeTruthy();
+});
+
+test('review finding 3: x-default is matched on the query string, so ?country= alternates resolve to ONE region', async () => {
+  // Storefronts that publish their regions as the same path with a country
+  // parameter. A comparison that dropped the query read every alternate as
+  // the x-default page and proposed nothing.
+  const site = {
+    'https://acme.com/': html(`<!doctype html><html><head><title>Acme</title>
+      <link rel="alternate" hreflang="en-US" href="https://acme.com/?country=US">
+      <link rel="alternate" hreflang="en-GB" href="https://acme.com/?country=GB&utm=x">
+      <link rel="alternate" hreflang="x-default" href="https://acme.com/?utm=x&country=GB">
+      </head><body><h1>Acme</h1></body></html>`),
+  };
+  const r = await run('https://acme.com/', site);
+  const home = r.fields.regions.home;
+  expect(home.proposed).toBe('GB');
+  expect(home.signals.map((s) => s.signal)).toEqual(['link:alternate[hreflang=x-default]']);
+  expect(home.notes.join(' ')).not.toMatch(/shared by more than one/);
+  // The comparison itself: order-insensitive on keys, sensitive on values.
+  expect(bx.sameUrl('https://acme.com/?a=1&b=2', 'https://ACME.com/?b=2&a=1')).toBe(true);
+  expect(bx.sameUrl('https://acme.com/?country=US', 'https://acme.com/?country=GB')).toBe(false);
+  expect(bx.sameUrl('https://acme.com/', 'https://acme.com')).toBe(true);
 });
 
 test('generic suffixes are not country signals; the data table decides', () => {
@@ -407,6 +461,140 @@ test('the aggregating pages offer All plus the brand\'s regions, never a typed l
     const on = await chips.evaluateAll((els) => els.filter((e) => e.classList.contains('active')).map((e) => e.getAttribute('data-region')));
     expect(on).toEqual(['IN']);
   }
+});
+
+/* ── the wizard: the two review findings on onboarding.html ─────────────── */
+
+/* Serve the wizard for `brand` with every brand API op answered in-page, and
+   hand back the calls it made so a test can assert what LEFT the page. */
+async function openWizard(page, brand, opts) {
+  const o = opts || {};
+  const calls = [];
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await page.route('**/api/public-config**', async (route) => {
+    const u = new URL(route.request().url());
+    const op = u.searchParams.get('op') || '';
+    let body = null; try { body = JSON.parse(route.request().postData() || 'null'); } catch (_) { body = null; }
+    calls.push({ op, body });
+    let payload;
+    if (op === 'extract') payload = o.report || { ok: false, message: 'no report in this test' };
+    else if (op === 'catalog-import') payload = { ok: true, imported: 3, skipped: 0 };
+    else if (op === 'save') payload = { ok: true, brand: Object.assign({}, brand, { id: brand.id }) };
+    else payload = { ok: true, brand, workspaces: [], active_id: brand.id, pack: null, presets: [] };
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+  });
+  await page.goto(base + '/onboarding.html', { waitUntil: 'load' });
+  await page.locator('.step-pip[data-step="1"]').waitFor({ state: 'visible', timeout: 15000 });
+  // boot() reads the brand asynchronously and retitles the page once it has
+  // applied it; acting before that races the record's own regions.
+  await expect(page.locator('#title')).toContainText('Edit ' + brand.name, { timeout: 15000 });
+  return calls;
+}
+/* force:true and a visible-wait first, for the reason onboarding-review-loop.spec.js records. */
+async function clickPip(page, n) {
+  const pip = page.locator(`.step-pip[data-step="${n}"]`);
+  await pip.waitFor({ state: 'visible', timeout: 15000 });
+  await pip.click({ force: true, timeout: 15000 });
+}
+const WIZ = { palette: { primary: '#1F4E79', accent: '#C8102E', ink: '#1A1A1A', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' }, typography: { heading: { family: 'Inter' }, body: { family: 'Inter' } }, voice: {}, brand_data: {} };
+const IN_BRAND = Object.assign({}, WIZ, { id: 'ws_in', slug: 'inco', name: 'IN Co', website: 'https://acme.com', regions: [{ code: 'IN', currency: 'INR', symbol: '₹', store_url: 'https://acme.com', home: true, pdp_pattern: '{base}/products/{handle}', collection_pattern: '{base}/collections/{slug}' }] });
+/* A real report from the extractor, so the wizard is driven with the exact
+   shape it receives in production rather than a hand-built stand-in. */
+async function reportFor(start, site) {
+  const r = await run(start, site);
+  r.fields.palette.validation = { ok: true, errors: [], warnings: [], contrast: {} };   // runExtract adds this; extractBrand alone does not
+  return r;
+}
+
+test('review finding 1: the catalogue import refuses without a home market, and imports for the home when there is one', async ({ page }) => {
+  // A NEW brand starts with no regions. The import used to fall to "us".
+  const calls = await openWizard(page, Object.assign({}, WIZ, { id: 'ws_none', slug: 'noregions', name: 'No Regions Co', website: 'https://noregions.example', regions: [] }));
+  await clickPip(page, 5);
+  const btn = page.locator('#doImport');
+  await expect(btn).toBeDisabled();
+  await expect(btn).toHaveAttribute('aria-disabled', 'true');
+  const gate = page.locator('#impGate');
+  await expect(gate).toBeVisible();
+  // The marker names the brand, never "all, all" - the spec's `field, product,
+  // region` slots are filled only where they apply (the marker builder that
+  // arrived with the device store), and this gate goes through that builder.
+  await expect(gate).toContainText('[DATA REQUIRED BEFORE LAUNCH: home market, No Regions Co]');
+  await expect(gate).not.toContainText('all, all');
+  // The reason is a statement in the accent rule, not a failure frame.
+  await expect(page.locator('#impStatus .vh-failure')).toHaveCount(0);
+  const accent = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--brand-accent-text').trim());
+  const gateColor = await gate.evaluate((el) => getComputedStyle(el).color);
+  const toRgb = (hex) => { const h = hex.replace('#', ''); return `rgb(${parseInt(h.slice(0, 2), 16)}, ${parseInt(h.slice(2, 4), 16)}, ${parseInt(h.slice(4, 6), 16)})`; };
+  if (/^#[0-9a-f]{6}$/i.test(accent)) expect(gateColor).toBe(toRgb(accent));
+  // Even with the control forced enabled, the handler itself refuses: nothing leaves.
+  await page.fill('#impUrl', 'https://noregions.example');
+  await page.evaluate(() => { const b = document.getElementById('doImport'); b.disabled = false; b.click(); });
+  await page.waitForTimeout(400);
+  expect(calls.filter((c) => c.op === 'catalog-import')).toHaveLength(0);
+  await expect(btn).toBeDisabled();                       // re-gated by the refusal
+  await expect(page.locator('#impStatus .vh-failure')).toHaveCount(0);
+
+  // The same brand with a home market: the request carries THAT market.
+  const calls2 = await openWizard(page, Object.assign({}, IN_BRAND, { regions: IN_BRAND.regions.concat([{ code: 'US', currency: 'USD', symbol: '$', store_url: 'https://acme.com/us' }]) }));
+  await clickPip(page, 5);
+  await expect(page.locator('#doImport')).toBeEnabled();
+  await expect(page.locator('#impGate')).toBeHidden();
+  await page.fill('#impUrl', 'https://acme.com');
+  await page.locator('#doImport').click();
+  await expect.poll(() => calls2.filter((c) => c.op === 'catalog-import').length, { timeout: 10000 }).toBe(1);
+  expect(calls2.find((c) => c.op === 'catalog-import').body.region).toBe('in');
+});
+
+test('review finding 2: a re-read that proposes no home keeps the operator\'s home; a new proposal replaces it and says so', async ({ page }) => {
+  // The site publishes regions (en-US / en-GB) but no strong home signal.
+  const noProposal = await reportFor('https://acme.com/', {
+    'https://acme.com/': html(`<!doctype html><html><head><title>Acme</title>
+      <link rel="alternate" hreflang="en-US" href="https://acme.com/us">
+      <link rel="alternate" hreflang="en-GB" href="https://acme.com/gb">
+      </head><body><h1>Acme</h1></body></html>`),
+  });
+  expect(noProposal.fields.regions.candidates.map((c) => c.code).sort()).toEqual(['GB', 'US']);
+  expect(noProposal.fields.regions.home.proposed).toBe('');
+
+  let calls = await openWizard(page, IN_BRAND, { report: noProposal });
+  await page.fill('#xUrl', 'https://acme.com');
+  await page.locator('#xRun').click();
+  await expect.poll(() => calls.filter((c) => c.op === 'extract').length, { timeout: 10000 }).toBe(1);
+  await clickPip(page, 5);
+  await page.locator('[data-xa="regions"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('[data-xa="regions"]').click();
+  const codes = await page.locator('#regions [data-r="code"]').evaluateAll((els) => els.map((e) => e.value).sort());
+  expect(codes).toEqual(['GB', 'IN', 'US']);                     // the operator's own market is not dropped
+  const homeChecked = () => page.locator('#regions [data-home-i]').evaluateAll((els) => els.filter((e) => e.checked).map((e) => e.closest('.region-row').querySelector('[data-r="code"]').value));
+  expect(await homeChecked()).toEqual(['IN']);                    // and is still home
+  // What gets PERSISTED: press Next, read the save.
+  await page.locator('[data-go="next"]').click();
+  await expect.poll(() => calls.filter((c) => c.op === 'save').length, { timeout: 10000 }).toBeGreaterThan(0);
+  let saved = calls.filter((c) => c.op === 'save').pop().body.brand;
+  expect(saved.regions.filter((r) => r.home === true).map((r) => r.code)).toEqual(['IN']);
+  expect(saved.brand_data.brand_extraction.applied['regions.home']).toMatchObject({ value: 'IN', origin: 'user' });
+
+  // A re-read whose own signals DO propose a home (.co.uk): GB replaces IN, and the record says what it replaced.
+  const proposal = await reportFor('https://acme.co.uk/', {
+    'https://acme.co.uk/': html(`<!doctype html><html><head><title>Acme</title>
+      <link rel="alternate" hreflang="en-GB" href="https://acme.co.uk/">
+      <link rel="alternate" hreflang="en-US" href="https://acme.co.uk/us">
+      </head><body><h1>Acme</h1></body></html>`),
+  });
+  expect(proposal.fields.regions.home.proposed).toBe('GB');
+  calls = await openWizard(page, IN_BRAND, { report: proposal });
+  await page.fill('#xUrl', 'https://acme.co.uk');
+  await page.locator('#xRun').click();
+  await expect.poll(() => calls.filter((c) => c.op === 'extract').length, { timeout: 10000 }).toBe(1);
+  await clickPip(page, 5);
+  await page.locator('[data-xa="regions"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('[data-xa="regions"]').click();
+  expect(await homeChecked()).toEqual(['GB']);
+  await page.locator('[data-go="next"]').click();
+  await expect.poll(() => calls.filter((c) => c.op === 'save').length, { timeout: 10000 }).toBeGreaterThan(0);
+  saved = calls.filter((c) => c.op === 'save').pop().body.brand;
+  expect(saved.regions.filter((r) => r.home === true).map((r) => r.code)).toEqual(['GB']);
+  expect(saved.brand_data.brand_extraction.applied['regions.home']).toMatchObject({ value: 'GB', replaced: 'IN' });
 });
 
 test('a page chip spelt "India" is bridged to the record\'s IN', async ({ page }) => {
