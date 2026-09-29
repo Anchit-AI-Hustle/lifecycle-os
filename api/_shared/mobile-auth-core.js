@@ -356,7 +356,7 @@ async function enter(sql, body, ip) {
   if (!np) return { status: 400, body: { ok: false, error: 'phone_invalid', message: phone.phoneError(b.cc) } };
 
   let rows = await USER_COLS_SQL(sql, np.e164);
-  const isNew = !rows[0];
+  let isNew = !rows[0];
   if (isNew) {
     const name = String(b.name || '').trim().slice(0, 60);
     if (!name) {
@@ -370,8 +370,14 @@ async function enter(sql, body, ip) {
                        values (${np.e164}, ${np.cc}, ${np.local}, ${name}, ${h.hash}, ${h.salt}, now())
                        returning id, name, phone, pin_hash, pin_salt, pin_tries, locked_until`;
     } catch (_) {
-      // Raced with another sign-up for the same number: fall through to sign-in.
+      // Raced with another sign-up for the same number: the unique index let
+      // one insert through and refused this one. The account that now exists
+      // is somebody's, and this request is a SIGN-IN to it - so it goes through
+      // the PIN check below like any other. Review finding 2026-09-29: `isNew`
+      // stayed true here, the PIN branch was skipped, and the loser was issued
+      // a session for the winner's account with a PIN it never typed.
       rows = await USER_COLS_SQL(sql, np.e164);
+      isNew = false;
     }
   }
   const user = rows[0];
@@ -393,14 +399,24 @@ async function enter(sql, body, ip) {
       }
       if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, name: user.name, message: 'Welcome back, ' + user.name + '. Type your PIN.' } };
       if (!verifyPin(b.pin, user.pin_salt, user.pin_hash)) {
-        const tries = (user.pin_tries || 0) + 1;
-        if (tries >= MAX_TRIES) {
-          const until = new Date(Date.now() + LOCK_MINUTES * 60000).toISOString();
-          await sql`update app_users set pin_tries = 0, locked_until = ${until} where id = ${user.id}`;
-          return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until, message: lockMessage(until) } };
+        // ONE statement counts the try and locks the row when the count
+        // reaches MAX_TRIES, and the decision is read from what the database
+        // RETURNS. Review finding 2026-09-29: this was read-increment-write in
+        // JavaScript, so N wrong PINs in flight at once all read 0, all wrote
+        // 1, and the lock never fired - five guesses at a time, for ever.
+        const until = new Date(Date.now() + LOCK_MINUTES * 60000).toISOString();
+        const counted = await sql`update app_users
+                                     set pin_tries = case when pin_tries + 1 >= ${MAX_TRIES} then 0 else pin_tries + 1 end,
+                                         locked_until = case when pin_tries + 1 >= ${MAX_TRIES} then ${until}::timestamptz else locked_until end
+                                   where id = ${user.id}
+                                   returning pin_tries, locked_until`;
+        const c = counted[0] || {};
+        if (c.locked_until && new Date(c.locked_until) > new Date()) {
+          const lockedUntil = new Date(c.locked_until).toISOString();
+          return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: lockedUntil, message: lockMessage(lockedUntil) } };
         }
-        await sql`update app_users set pin_tries = ${tries} where id = ${user.id}`;
-        return { status: 401, body: { ok: false, wrongPin: true, left: MAX_TRIES - tries, error: 'pin_wrong', message: triesMessage(MAX_TRIES - tries) } };
+        const left = Math.max(0, MAX_TRIES - (Number(c.pin_tries) || 0));
+        return { status: 401, body: { ok: false, wrongPin: true, left, error: 'pin_wrong', message: triesMessage(left) } };
       }
       // Locking sets pin_tries to 0, so a lock that has EXPIRED leaves a stale
       // locked_until behind with nothing to reset it - found by driving this

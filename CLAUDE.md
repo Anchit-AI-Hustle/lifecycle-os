@@ -149,7 +149,7 @@ combined 57,631/102,459 (56.2%) → 60,699/102,478 (59.2%), 1738 tests, 0 failed
 ## ⭐ The one sign-in is a mobile number and a 4-digit PIN (2026-09-28) — read `docs/mobile-pin-signin.md`
 `api/_shared/mobile-auth-core.js` + `phone-rules.js` on `public-config.js?action=auth&op=status|enter|me|
 signout|signout_all` (still 12/12), the `MAUTH` block in `auth.js`, gated by `tests/mobile-pin-signin.spec.js`
-(19 tests, executed). The operator's words: "signin/signup with mobile number and a 4 digit password - save in
+(24 tests, executed). The operator's words: "signin/signup with mobile number and a 4 digit password - save in
 db (neon) or local browser cache whichever can be used - just like in parwah-hq", and "comment out all other
 signin and signup". Mirrors parwah-hq's shape: ONE `enter` does sign-up and sign-in (number → PIN row → name
 row for a new number → one Continue button whose label changes), inline in the rail, on the current page.
@@ -179,6 +179,19 @@ row for a new number → one Continue button whose label changes), inline in the
 - **A phone account has no Supabase identity, so its workspaces live on the device in BOTH modes**, and the
   wizard says both halves in one accent-rule sentence: "Signed in as <name> · workspaces are saved on this
   device" (+ "· account in the database" in server mode). Never "sign in" to a person who just did.
+- **The device store is PER ACCOUNT** (review, 2026-09-29): `lifecycle.brand.device.workspaces.<user id>`;
+  the unscoped key serves ONLY the no-session states. A browser is shared, and with one key person B signing
+  in saw person A's brands. A sign-in adopts no anonymous rows, a sign-out deletes none, and brand-context's
+  backend listener re-reads when the NAMESPACE changes, not only the mode (on a device with no database a
+  sign-in leaves the mode at `device`, so a mode-only listener left the previous person's brand on screen).
+- **Three more review findings, each reproduced by an executed test before the fix**: the LOSER of a
+  sign-up race (two first sign-ups for one number, `23505` on the second insert) kept `isNew` and was issued a
+  session for the winner's account - it is a sign-in now and is held to the PIN check; `pin_tries` was
+  read-increment-write in JavaScript, so five concurrent wrong PINs consumed ONE attempt and the lock never
+  fired - it is one `update ... case ... returning` statement and the lock is decided from the RETURNED row
+  (the in-memory store runs statements one at a time so the race is real in the test); and `privacy.html`
+  still said a Google profile authenticates and Supabase Auth holds the session - rewritten for the sign-in
+  that exists, Google under a `data-historical` section. All mutation-verified.
 - **Tests that signed in through a `getSession` stub were re-targeted, and two changed meaning on purpose**:
   `onboarding-without-backend`'s signed-in cases no longer assert a server brand path (no browser session can
   take it), and `error-presentation`'s "Your brands" cases drive the LOCALHOST PREVIEW, the one state left in
@@ -730,7 +743,8 @@ and nothing uses `!important`, so a page that needs its own treatment still over
 - Every one of those four defects is mutation-verified: restoring it fails the gate.
 
 ## ⭐ A brand is saved to the account, or to THIS DEVICE - never to an error (2026-09-15)
-`brand-context.js` -> the device store (`lifecycle.brand.device.workspaces`, ids `local-*`, rows
+`brand-context.js` -> the device store (`lifecycle.brand.device.workspaces` for the no-session states,
+`.<user id>` per signed-in account since 2026-09-29, ids `local-*`, rows
 stamped `storage:'device'`) + `auth.js` -> `LifecycleAuth.backend` / `backendState()`; gated by
 `tests/onboarding-without-backend.spec.js` (7 tests). Found on the LIVE deployment at
 `/onboarding?step=6` with the project paused: the operator typed a brand, reached "Review and
