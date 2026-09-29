@@ -6,6 +6,11 @@
   "framework": null,
   "cleanUrls": false,
   "trailingSlash": false,
+  "git": {
+    "deploymentEnabled": {
+      "claude/**": false
+    }
+  },
   "functions": {
     "api/ai/generate.js": {
       "maxDuration": 120
