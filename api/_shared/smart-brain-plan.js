@@ -2616,20 +2616,31 @@ async function activateScenario({ scenario, reviewer = null, scope = 'all', conf
 // campaign has no LP asset), so a 404 is actionable instead of a mystery. Looks
 // the campaign up by BOTH the row id AND payload.campaign_id (id-scheme drift
 // safety net), then falls back to the landing_pages_generated mirror.
+//
+// The id is the capability, and it is looked up ACROSS workspaces (the guarded
+// point lookup in SmartBrainDbAdapter.select): a /lp link is minted without a
+// workspace, and scoping this read to the adapter's default workspace meant
+// another tenant's persisted page was never found. The row that answers names
+// its owner, and that is reported as `diag.workspace_id` so the caller can
+// render the fallback for the RIGHT brand. When no campaign row exists yet, the
+// calendar slot that advertises the id (generated_campaign_id) names it too.
 async function landingPageResolve(id, cfg = {}, variant = null) {
   const config = smartConfig(cfg);
   const db = new SmartBrainDbAdapter(config);
-  const diag = { id, dbConnected: !!db.connected, campaignFound: false, hasLpHtml: false, fallbackFound: false, source: null };
+  const diag = { id, dbConnected: !!db.connected, campaignFound: false, hasLpHtml: false, fallbackFound: false, calendarEntryFound: false, source: null, workspace_id: null, workspace_source: null };
   if (!db.connected) return { html: null, diag };
+  const owned = (row, source) => { if (row && row.workspace_id && !diag.workspace_id) { diag.workspace_id = String(row.workspace_id); diag.workspace_source = source; } };
+  const one = (table, filters) => db.select(table, { filters, limit: 1, anyWorkspace: true }).catch(() => []);
   // 1) generated campaign by row id, then 2) by payload.campaign_id.
-  let camp = await db.select(config.tableNames.generatedCampaigns, { filters: { id: `eq.${id}` }, limit: 1 }).catch(() => []);
+  let camp = await one(config.tableNames.generatedCampaigns, { id: `eq.${id}` });
   if (camp && camp[0]) diag.source = 'generated_campaigns.id';
   else {
-    camp = await db.select(config.tableNames.generatedCampaigns, { filters: { 'payload->>campaign_id': `eq.${id}` }, limit: 1 }).catch(() => []);
+    camp = await one(config.tableNames.generatedCampaigns, { 'payload->>campaign_id': `eq.${id}` });
     if (camp && camp[0]) diag.source = 'generated_campaigns.campaign_id';
   }
   if (camp && camp[0]) {
     diag.campaignFound = true;
+    owned(camp[0], 'generated_campaigns');
     const lps = camp[0]?.payload?.assets?.landing_pages || [];
     // ?v=b serves the story-led B variant; default serves A (first LP). If B is
     // requested but only one LP was built, fall back rather than 404 a valid page.
@@ -2638,8 +2649,15 @@ async function landingPageResolve(id, cfg = {}, variant = null) {
   }
   // 3) landing_pages_generated mirror (numeric id or campaign_id in payload).
   const filters = /^\d+$/.test(String(id)) ? { id: `eq.${id}` } : { 'payload->>campaign_id': `eq.${id}` };
-  const lp = await db.select(config.tableNames.landingPagesGenerated, { filters, limit: 1 }).catch(() => []);
+  const lp = await one(config.tableNames.landingPagesGenerated, filters);
+  if (lp?.[0]) owned(lp[0], 'landing_pages_generated');
   if (lp?.[0]?.payload?.html) { diag.fallbackFound = true; diag.source = 'landing_pages_generated'; return { html: lp[0].payload.html, diag }; }
+  // 4) no page anywhere: the calendar slot that advertises this id still says
+  //    whose campaign it is, so the fallback can be built for that brand.
+  if (!diag.workspace_id) {
+    const slot = await one(config.tableNames.calendarEntries, { generated_campaign_id: `eq.${id}` });
+    if (slot?.[0]) { diag.calendarEntryFound = true; owned(slot[0], 'calendar_entries'); }
+  }
   return { html: null, diag };
 }
 async function landingPageHtml(id, cfg = {}, variant = null) {
