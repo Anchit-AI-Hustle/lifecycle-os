@@ -107,6 +107,36 @@ function safeReturnTo(value) {
   return s.slice(0, 300);
 }
 
+/**
+ * Where the operator lands, with the outcome appended. safeReturnTo() keeps a
+ * query string on purpose (`/publishing?tab=hub` is a real destination), and
+ * until 2026-09-28 the outcome was appended with a second `?`, which made the
+ * page read `tab=hub?oauth=connected` and no `oauth` at all - the connection
+ * had succeeded and the page could not say so. Found by executing the
+ * callback with such a return_to.
+ */
+function landing(returnTo, params) {
+  const qs = new URLSearchParams(params).toString();
+  return `${returnTo}${returnTo.includes('?') ? '&' : '?'}${qs}`;
+}
+
+/**
+ * The grant this flow ends in is stored encrypted, or not at all. A deployment
+ * with no CONNECTION_SECRET_KEY has nowhere to put it, so the sign-in is
+ * refused BEFORE the operator is sent to consent to it, and the callback
+ * refuses BEFORE the one-time code is exchanged - a token that cannot be
+ * stored would only be thrown away, with the code spent and the state consumed.
+ * Until 2026-09-28 neither check existed: the exchange ran, the vault threw,
+ * and the browser navigation ended on a JSON 500. Same refusal, same code, as
+ * a pasted key on the connections page.
+ */
+function vaultUnavailable() {
+  if (connections.cryptoConfigured()) return null;
+  const e = new Error(`${connections.secretsStorageError()} A platform cannot be connected until it is set, because the grant would have to be stored unencrypted.`);
+  e.status = 503; e.code = 'connection_secrets_unavailable';
+  return e;
+}
+
 /* ── PKCE ─────────────────────────────────────────────────────────────────── */
 
 function base64Url(buf) {
@@ -144,6 +174,9 @@ async function beginAuthorization(req, auth, workspaceId, input) {
     e.status = 503; e.code = 'oauth_app_not_registered';
     throw e;
   }
+
+  const vault = vaultUnavailable();
+  if (vault) throw vault;
 
   // Requested scopes: whatever the caller asked for, intersected with what the
   // adapter declares. A scope this platform cannot explain is not requested -
@@ -251,23 +284,31 @@ async function handleCallback(req) {
   const returnTo = safeReturnTo(row.return_to);
 
   if (providerError) {
-    return { ok: false, redirect: `${returnTo}?oauth=denied&provider=${encodeURIComponent(provider)}`, provider, message: providerError.slice(0, 300) };
+    return { ok: false, redirect: landing(returnTo, { oauth: 'denied', provider }), provider, message: providerError.slice(0, 300) };
   }
-  if (!code) return { ok: false, redirect: `${returnTo}?oauth=error&reason=missing_code`, provider, message: 'The callback carried no authorization code.' };
+  if (!code) return { ok: false, redirect: landing(returnTo, { oauth: 'error', reason: 'missing_code' }), provider, message: 'The callback carried no authorization code.' };
   if (row.provider !== provider) {
     // The state belongs to a different platform than the callback claims.
-    return { ok: false, redirect: `${returnTo}?oauth=error&reason=provider_mismatch`, provider, message: 'The sign-in state did not match the platform that answered.' };
+    return { ok: false, redirect: landing(returnTo, { oauth: 'error', reason: 'provider_mismatch' }), provider, message: 'The sign-in state did not match the platform that answered.' };
+  }
+
+  // The key was present when the flow started (beginAuthorization refuses
+  // without it) and can have been rotated away since. Refuse before the code
+  // is spent; see vaultUnavailable().
+  const vault = vaultUnavailable();
+  if (vault) {
+    return { ok: false, redirect: landing(returnTo, { oauth: 'error', reason: 'vault_unavailable' }), provider, message: vault.message };
   }
 
   const exchanged = await exchangeCode(provider, code, row);
   if (!exchanged.ok) {
-    return { ok: false, redirect: `${returnTo}?oauth=error&reason=exchange_failed`, provider, message: exchanged.note || 'The token exchange failed.' };
+    return { ok: false, redirect: landing(returnTo, { oauth: 'error', reason: 'exchange_failed' }), provider, message: exchanged.note || 'The token exchange failed.' };
   }
 
   await persistGrant(row, provider, exchanged);
   return {
     ok: true,
-    redirect: `${returnTo}?oauth=connected&provider=${encodeURIComponent(provider)}`,
+    redirect: landing(returnTo, { oauth: 'connected', provider }),
     provider,
     message: `${provider} connected.`,
   };
@@ -506,6 +547,7 @@ module.exports = {
   revoke,
   // seams for tests
   safeReturnTo,
+  landing,
   callbackUrl,
   makeVerifier,
   challengeFor,
