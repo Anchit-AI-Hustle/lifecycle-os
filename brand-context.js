@@ -827,6 +827,7 @@
     var known = !!(k && k !== 'pending');
     var d = readDevice();
     var ms = known ? mobileSession() : null;
+    var rs = readSite(k, b, ms);
     return {
       mode: known ? modeFor(k) : (window.__LifecycleAuthBooted ? (state.mode || 'server') : 'server'),
       known: known,
@@ -842,15 +843,77 @@
       // in" nor the account's own sentence says it alone.
       session: ms,
       account_sentence: ms ? accountSentence(ms) : '',
-      // The server's own open path (brand-workspace-core.js, op=extract) applies
-      // when the backend is provably unreachable or unconfigured, and - since
-      // 2026-09-28 - for a SERVER-mode mobile+PIN session, which requireUser()
-      // verifies against the Neon database. A reachable backend with no
-      // checkable session refuses, and that refusal is the gate being real - so
-      // the wizard disables the control rather than sending a request it knows
-      // will be refused.
-      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && ms.mode === 'server' && ms.verified),
+      // "Read my site": what the SERVER will answer to the request this browser
+      // sends. See readSite().
+      read_site: rs,
+      server_open: rs.on,
     };
+  }
+
+  /* ── "READ MY SITE" FOLLOWS THE SERVER'S RULE, NOT THE ACCOUNT TYPE (2026-09-29)
+     The operator's words: "not working after signin". On production (Supabase
+     paused, no DATABASE_URL) a visitor saw the control ON and a person signed in
+     with a mobile number saw it OFF - "Not available on a mobile-number
+     account". This read `kind`, and for a phone session auth.js publishes kind
+     'signed-in' (who is here) with the Supabase state on `backend.supabase` (a
+     separate fact), so EVERY device session read as "not open".
+
+     But the server never sees an account type. It sees a request, and a
+     device-mode token is never sent (auth.js apiToken()), so a person signed in
+     on this device sends EXACTLY the request a visitor sends: no token. The
+     decision is therefore made on the request, the way
+     brand-workspace-core.js handle() makes it:
+       - a server-mode session sends its token: verified, the server reads the
+         site for the account; its database down, the server's own open path
+         reads it without one. ON either way.
+       - no token: ON while nothing could check a session - the workspace
+         database (Supabase) down or unconfigured AND accounts not kept in a
+         database that answers (auth.js's `status()`, one request per page
+         load). Otherwise the server refuses, and so the control is OFF, with
+         the reason for THIS person (onboarding.html extractNote()).
+     Undecided (auth.js still probing, the account store not yet answered) is
+     ON: the server judges, as LifecycleStatus.refusal() does for the same
+     window. `state` names the branch so the page can say the right sentence. */
+  var accountStore = null, accountStoreAsked = false;
+  function askAccountStore() {
+    if (accountStoreAsked) return;
+    var a = window.LifecycleAuth;
+    var ask = a && a.mobile && typeof a.mobile.status === 'function' ? a.mobile.status : null;
+    if (!ask) return;
+    accountStoreAsked = true;
+    Promise.resolve().then(ask).then(function (st) {
+      accountStore = (st && typeof st === 'object') ? st : { mode: 'device', reason: 'status_unavailable', host: '', message: '' };
+    }, function () {
+      accountStore = { mode: 'device', reason: 'status_unavailable', host: '', message: '' };
+    }).then(function () {
+      try { window.dispatchEvent(new CustomEvent('brandcontext:storage', { detail: { account_store: accountStore } })); } catch (_) {}
+    });
+  }
+  function readSite(k, b, ms) {
+    var out = { on: true, decided: false, state: 'undecided', supabase: '', store: accountStore, host: (b && b.host) || '' };
+    if (!k || k === 'pending') return out;
+    if (ms && ms.mode === 'server') { out.decided = true; out.state = 'checkable-session'; return out; }
+    // Everything that follows sends NO token.
+    if (!ms && k !== 'unreachable' && k !== 'unconfigured' && k !== 'signed-out' && k !== 'sdk') {
+      // The localhost preview, or a legacy session: the server judges, as before.
+      out.decided = true; out.state = 'server-judges'; return out;
+    }
+    var supa = ms ? String((b && b.supabase) || 'pending') : (k === 'signed-out' ? 'reachable' : k);
+    out.supabase = supa;
+    if (supa === 'pending') return out;
+    askAccountStore();
+    out.decided = true;
+    if (supa === 'sdk') { out.on = false; out.state = 'sdk'; return out; }
+    if (supa !== 'unreachable' && supa !== 'unconfigured') {
+      // A session could be checked (Supabase answers): the gate is real. The
+      // account store changes only WHAT to say - whether signing in is the
+      // remedy - so the words are not decided until it has answered.
+      out.on = false; out.state = 'backend-answers'; out.decided = !!accountStore; return out;
+    }
+    if (!accountStore) { out.decided = false; return out; }
+    if (accountStore.mode === 'server') { out.on = false; out.state = 'accounts-in-database'; return out; }
+    out.state = 'no-backend';
+    return out;
   }
 
   /** "Signed in as <name> · workspaces are saved on this device[ · account in the database]". */

@@ -1667,6 +1667,67 @@ function packSummary(p) {
   };
 }
 
+/* ── A REQUEST WITH NO TOKEN: could anyone have sent one? (2026-09-29) ───────
+   requireUser() answers a request that carries no token `sign_in_required`
+   BEFORE it looks at any backend - it has nothing to verify - so the
+   `backend_unreachable` flag the extract open path waits for is never set for
+   it. The open path could therefore only ever open for a caller who PRESENTED
+   a token that could not be checked, and nobody presents one any more: Google
+   sign-in is commented out, so no browser holds a Supabase JWT, and a
+   device-mode mobile+PIN token is never sent (LifecycleAuth.apiToken()). A
+   visitor and a person signed in on the device send the SAME request - no
+   token - and on production (Supabase paused, no DATABASE_URL) both were
+   answered 401. The 2026-09-15 tests sent 'a-stale-token' in every case, so
+   the one request a browser actually makes was never driven.
+
+   "A session exists to be had" is decided here for that request, from the two
+   places this server can check a session:
+     - the ACCOUNT store (mobile-auth-core status()): `server` means a mobile
+       number and PIN signed in on this deployment get a token this server
+       verifies - the gate is real, refuse. Unknown fails closed.
+     - the Supabase auth host: requireUser() still verifies a Supabase JWT, so
+       while that host ANSWERS a session exists to be had - refuse. Only an
+       outright network refusal counts as down; a slow answer counts as an
+       answer (fail closed on doubt, the rule auth.js applies to the same
+       /auth/v1/health probe in the browser).
+   Neither able to check anything -> nobody could present a session this
+   server verifies -> the open path applies, voice OFF, exactly as it already
+   did for an unverifiable token. */
+const SESSION_PROBE_MS = 3000;
+
+async function authHostAnswers(e) {
+  let timer;
+  const late = new Promise((resolve) => { timer = setTimeout(() => resolve('late'), SESSION_PROBE_MS); });
+  const probe = fetch(`${e.url}/auth/v1/health`, { headers: { apikey: e.anon }, cache: 'no-store' })
+    .then(() => 'answered', () => 'refused');
+  try { return (await Promise.race([probe, late])) !== 'refused'; }
+  finally { clearTimeout(timer); }
+}
+
+/**
+ * Could a session be checked here right now, for a caller that sent none?
+ * `{ checkable: true }` keeps the gate; `{ checkable: false, message }` says,
+ * in a sentence naming what an operator would change, why nobody could.
+ */
+async function sessionCheckable() {
+  let store = null;
+  try { store = await require('./mobile-auth-core.js').status(); } catch (_) { store = null; }
+  if (!store || store.mode !== 'device') return { checkable: true };
+  const accounts = store.reason === 'no_database_url'
+    ? 'Accounts are kept on each device, because no DATABASE_URL is set.'
+    : `Accounts are not in a database that answers (${store.host || 'the configured database'}).`;
+  let e;
+  try { e = env(); } catch (_) {
+    return { checkable: false, message: `This deployment has no workspace database configured (SUPABASE_URL). ${accounts}` };
+  }
+  if (await authHostAnswers(e)) return { checkable: true };
+  return {
+    checkable: false,
+    message: `The database this deployment points at (${hostOfUrl(e.url)}) is not answering, so no sign-in can be checked. `
+      + `Its Supabase project has most likely been deleted, renamed or paused. ${accounts}`,
+  };
+}
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1737,7 +1798,18 @@ async function handle(req, res) {
   //
   // assertPublicUrl() still runs inside runExtract, so an internal or private
   // host cannot be reached through this either way.
-  const openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+  //
+  // A caller that sent NO token (2026-09-29) is `sign_in_required` whatever
+  // the backend is doing, so for it the same question is asked of both places
+  // a session could be checked - see sessionCheckable() above. That caller is
+  // every browser there is now: signed out, or signed in on the device (whose
+  // token is never sent).
+  let openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+  let noSession = null;
+  if (!auth.ok && !openWithoutBackend && op === 'extract' && auth.error === 'sign_in_required') {
+    noSession = await sessionCheckable();
+    openWithoutBackend = !noSession.checkable;
+  }
 
   if (!auth.ok && !openWithoutBackend) return res.status(auth.status || 401).json(auth);
 
@@ -1753,9 +1825,13 @@ async function handle(req, res) {
           max_pages: body.max_pages || q.max_pages,
         },
       );
-      const note = 'Read without signing in, because this deployment\'s database is not answering. '
+      // Neutral about WHO is here: the server cannot tell a visitor from a
+      // person signed in on the device (neither sends a token), and "read
+      // without signing in" told the second one they were not signed in.
+      const note = 'Read without an account the server could check, because '
+        + (noSession ? 'nothing on this deployment can check a sign-in right now. ' : 'this deployment\'s database is not answering. ')
         + 'Nothing was saved, and the tone of voice was NOT observed: that step is the only one that needs a '
-        + 'language model, and an unreachable database must not become a way to spend model credits without an account. '
+        + 'language model, and a deployment that cannot check a sign-in must not become a way to spend model credits without an account. '
         + 'Everything else below was read from your site exactly as it always is.';
       return res.status(out && out.ok === false && out.error ? 400 : 200).json(
         Object.assign({}, out, {
@@ -1763,7 +1839,7 @@ async function handle(req, res) {
           backend_unreachable: true,
           voice_skipped: true,
           note,
-          backend_message: auth.message || '',
+          backend_message: noSession ? noSession.message : (auth.message || ''),
         }),
       );
     } catch (err) {

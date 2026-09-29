@@ -2798,12 +2798,18 @@
   // state on its own (`supabase: unconfigured|unreachable|reachable|sdk`),
   // because for a phone account `kind:'signed-in'` says who is here while the
   // workspace database can still be unreachable - two different facts.
+  // A no-session kind IS a statement about Supabase, so it is published as one
+  // (2026-09-29). Without it a sign-in made on this page carried `supabase:
+  // 'pending'` forward from the signed-out decision (mauthApply copies the
+  // previous value), and anything asking "is the workspace database down?" for
+  // a phone session read "not decided" until the next reload.
+  const SUPABASE_OF_KIND = { unconfigured: 'unconfigured', unreachable: 'unreachable', 'signed-out': 'reachable', sdk: 'sdk' };
   function backendSnapshot(kind, extra) {
     const k = BACKEND_KINDS[kind] ? kind : 'pending';
     let host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (_) { /* none configured */ }
     const prev = (window.LifecycleAuth && window.LifecycleAuth.backend) || {};
-    return Object.assign({ kind: k, host, session: prev.session || null, supabase: prev.supabase || 'pending' }, BACKEND_KINDS[k], extra || {});
+    return Object.assign({ kind: k, host, session: prev.session || null, supabase: SUPABASE_OF_KIND[k] || prev.supabase || 'pending' }, BACKEND_KINDS[k], extra || {});
   }
   function setBackendState(kind, extra) {
     const snap = backendSnapshot(kind, extra);
