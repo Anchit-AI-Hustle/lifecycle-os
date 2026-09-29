@@ -92,7 +92,9 @@ async function resolveRecord(name, kind) {
   const doh = await dohQuery(name, kind);
   // Carry the system error forward when DoH could not answer either, so the
   // reason shown is the first thing that went wrong rather than the last.
-  return doh.ok ? doh : Object.assign({}, doh, { error: doh.error || sys.error });
+  // (`doh.error || sys.error` never did that: dohQuery always sets its own
+  // error on failure, so the system code was dropped every time.)
+  return doh.ok ? doh : Object.assign({}, doh, { error: sys.error ? `${sys.error}; ${doh.error}` : doh.error });
 }
 
 const resolveTxt = (name) => resolveRecord(name, 'TXT');
@@ -418,8 +420,15 @@ function isRefusalCode(ip) { return /^127\.255\.255\./.test(String(ip)); }
 
 async function checkBlocklists(domain) {
   const a = await resolveA(domain);
+  // "Could not ask" and "no such record" are different answers here exactly as
+  // they are for every other record: a lookup that did not complete says
+  // nothing about the domain. Until 2026-09-28 both fell into the branch
+  // below, and a DNS outage was reported as "No A record for <domain>".
+  if (!a.ok) {
+    return { checked: false, listed: [], refused: [], ips: [], note: `Could not look up the A record for ${domain} (${a.error || 'no resolver answered'}), so there was no IP to query the blocklists for. This is a lookup failure, not a clean result: re-run the check.` };
+  }
   if (!a.records.length) {
-    return { checked: false, listed: [], note: `No A record for ${domain}, so there is no IP to look up on a blocklist. Blocklists list IP addresses; a domain with no A record is checked on domain blocklists only, which this does not query.`, ips: [] };
+    return { checked: false, listed: [], refused: [], note: `No A record for ${domain}, so there is no IP to look up on a blocklist. Blocklists list IP addresses; a domain with no A record is checked on domain blocklists only, which this does not query.`, ips: [] };
   }
 
   const ip = a.records[0];
@@ -686,7 +695,16 @@ const TRIGGER_PHRASES = [
   { rx: /\bwinner\b|\bcongratulations\b.{0,20}\b(won|selected)\b/i, w: 3, why: 'prize language' },
 ];
 
-function analyzeContent({ subject = '', html = '', text = '', fromDomain = '', recentSubjects = [] } = {}) {
+/**
+ * `emailRules` is on by default: this analyser was written for email, and
+ * every existing caller sends email. It governs the two requirements that
+ * exist only for email - a subject line, and an unsubscribe path - and the
+ * preflight gate turns it off for a channel that is not email. A Facebook
+ * caption told it lacks a subject and an unsubscribe link (a legal
+ * requirement of bulk EMAIL) teaches the operator that the gate's warnings
+ * are noise. Every other signal applies to any copy.
+ */
+function analyzeContent({ subject = '', html = '', text = '', fromDomain = '', recentSubjects = [], emailRules = true } = {}) {
   const signals = [];
   const body = String(html || text || '');
   const plain = body.replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -699,7 +717,7 @@ function analyzeContent({ subject = '', html = '', text = '', fromDomain = '', r
   const letters = subject.replace(/[^A-Za-z]/g, '');
   if (letters.length > 6 && letters === letters.toUpperCase()) signals.push({ weight: 2, signal: 'Subject is entirely capitals.', where: 'subject' });
   if (subject.length > 70) signals.push({ weight: 1, signal: `Subject is ${subject.length} characters; most clients truncate near 50.`, where: 'subject' });
-  if (!subject.trim()) signals.push({ weight: 4, signal: 'No subject line.', where: 'subject' });
+  if (emailRules && !subject.trim()) signals.push({ weight: 4, signal: 'No subject line.', where: 'subject' });
 
   // Image-to-text ratio. An image-only email is the oldest filter evasion there
   // is, and filters still treat it as one.
@@ -710,7 +728,7 @@ function analyzeContent({ subject = '', html = '', text = '', fromDomain = '', r
 
   // Missing unsubscribe. This is a legal exposure, not a taste question.
   const hasUnsub = /unsubscribe|list-unsubscribe|opt.?out|{{\s*unsubscribe/i.test(body);
-  if (!hasUnsub) signals.push({ weight: 5, signal: 'No unsubscribe link found. Required by CAN-SPAM, by the GDPR in practice, and by Google and Yahoo bulk sender rules, which also require one-click List-Unsubscribe headers.', where: 'body' });
+  if (emailRules && !hasUnsub) signals.push({ weight: 5, signal: 'No unsubscribe link found. Required by CAN-SPAM, by the GDPR in practice, and by Google and Yahoo bulk sender rules, which also require one-click List-Unsubscribe headers.', where: 'body' });
 
   // Links: bare IPs, shorteners, and mismatched anchor text.
   const links = [...body.matchAll(/href\s*=\s*["']([^"']+)["']/gi)].map((m) => m[1]);
