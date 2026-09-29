@@ -26,6 +26,13 @@
 //   cron-get      social-run-daily: a GET is the cron's, a POST is the console's
 //   cron-flag     os-run-daily-job: only the ?cron=1 path is guarded
 //   agent-key     agent-builder: op=spec is open, every other op needs the key
+//   model         reaches an AI model or a paid provider (MODEL_FEATURE in
+//                 brain.js, 2026-09-29): metered at its catalog key, so an
+//                 anonymous caller (401) and an unlisted phone number (403)
+//                 are refused BEFORE the core; with the meter unconfigured
+//                 the router's own gate refuses the anonymous caller anyway;
+//                 the scheduler's bearer runs free. `model:` on any entry
+//                 names the key, whatever its other gate.
 //   none          only the browser-attribution rule applies: a request that
 //                 looks like a browser (Origin) and carries neither a session
 //                 nor a workspace_id is refused (409) or served demo data,
@@ -35,11 +42,13 @@
 // actions is also proven admitted for an anonymous server-to-server request
 // (no Origin, no bearer), so the label is a measured fact: adding a gate to
 // one of them fails its admitted test, and the pin shrinks; adding a NEW
-// ungated action fails the pin, and has to be argued for. Several of them
-// reach a model or a paid provider (console-chat, access-narrative,
-// brand-chat, agent-chat, team-chat, agentic-run, generate, video-generate,
-// mailer-assets, tts, calendar-scenarios, analysis-narrative). That is the
-// router's current posture, recorded here rather than changed here.
+// ungated action fails the pin, and has to be argued for. Until 2026-09-29
+// twelve of them reached a model or a paid provider for an anonymous caller
+// (console-chat, access-narrative, brand-chat, agent-chat, team-chat,
+// agentic-run, generate, video-generate, mailer-assets, tts,
+// analysis-narrative, agent-analyze); they are the `model` gate now, and the
+// pin shrank by exactly those. calendar-scenarios was listed with them and,
+// executed, reaches neither: it stays ungated.
 //
 // Run: npx playwright test tests/router-brain.spec.js --project=desktop-1280
 const { test, expect } = require('@playwright/test');
@@ -190,7 +199,7 @@ add('library', { gate: 'none', browser: 'demo', run: { method: 'GET', query: { c
 add('scores', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   expect: (r) => { expect(r.out).toEqual({ ok: true, scores: [] }); expect(last('db', 'select')).toEqual(['smart_library_scores', { limit: 1000, order: 'score.desc' }]); },
 });
-add('analysis-narrative', { gate: 'none', browser: 'demo', run: { json: { question: 'what moved?' } },
+add('analysis-narrative', { gate: 'model', model: 'analytics.narrative', browser: 'demo', run: { json: { question: 'what moved?' } },
   stubs: () => {
     S.on(M.market, 'ownsBundledExport', async () => false);
     S.on(M.featureAgent, 'runAnalyst', async () => ({ ok: true, insights: [{ t: 'x' }] }));
@@ -259,7 +268,7 @@ add('mvt', { gate: 'none', browser: 'demo', run: { method: 'GET' },
       expect(last(M.calendar, 'applyMvt')[0]).toEqual({ persist: true });
     } }],
 });
-add('generate', { gate: 'none', browser: 'refuse', run: { json: { slot_id: 'slot_9' } },
+add('generate', { gate: 'model', model: 'brain.slot_prebuild', browser: 'refuse', run: { json: { slot_id: 'slot_9' } },
   stubs: () => S.on(M.generate, 'generateForSlot', async () => ({ ok: true, campaign_id: 'c9' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, campaign_id: 'c9' }); expect(last(M.generate, 'generateForSlot')).toEqual(['slot_9', { persist: true }]); },
   cases: [{ name: 'a POST without slot_id is a 400, not a generation', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.generate, 'generateForSlot')).toEqual([]); } }],
@@ -306,16 +315,16 @@ add('agent-sync', { gate: 'none', browser: 'refuse', run: { json: { agent_id: 'a
   stubs: () => S.on(M.agents, 'syncKnowledge', async () => ({ synced: 1 })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, synced: 1 }); expect(last(M.agents, 'syncKnowledge')).toEqual(['agent_x']); },
 });
-add('agent-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'hi', agent_id: 'agent_x', session_id: 's1' } },
+add('agent-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'hi', agent_id: 'agent_x', session_id: 's1' } },
   stubs: () => S.on(M.agents, 'chat', async () => ({ ok: true, reply: 'r' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, reply: 'r' }); expect(last(M.agents, 'chat')[0]).toEqual({ agentId: 'agent_x', sessionId: 's1', message: 'hi', context: {}, history: [] }); },
   cases: [{ name: 'no message is a 400 before the agent runs', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.agents, 'chat')).toEqual([]); } }],
 });
-add('agent-analyze', { gate: 'none', browser: 'refuse', run: { json: { message: 'how many orders' } },
+add('agent-analyze', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'how many orders' } },
   stubs: () => S.on(M.agents, 'analyze', async () => ({ ok: true, figures: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, figures: [] }); expect(last(M.agents, 'analyze')[0]).toEqual({ message: 'how many orders' }); },
 });
-add('team-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'plan?', session_id: 't1', history: [{ role: 'user' }] } },
+add('team-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'plan?', session_id: 't1', history: [{ role: 'user' }] } },
   stubs: () => S.on(M.agents, 'teamChat', async () => ({ ok: true, reply: 'r' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, reply: 'r' }); expect(last(M.agents, 'teamChat')[0]).toEqual({ sessionId: 't1', message: 'plan?', context: {}, history: [{ role: 'user' }] }); },
 });
@@ -332,7 +341,7 @@ add('jarvis', { gate: 'none', browser: 'public', run: { json: { userText: 'open 
     expect(a[2].market).toBe('UK'); expect(a[2].brand).toBe(BRAND);   // the active brand's HOME market, not a literal
   },
 });
-add('agentic-run', { gate: 'none', browser: 'refuse', run: { json: { brief: 'launch', tier: 'budget', days: '7' } },
+add('agentic-run', { gate: 'model', model: 'campaign.plan', browser: 'refuse', run: { json: { brief: 'launch', tier: 'budget', days: '7' } },
   stubs: () => S.on(M.agentic, 'runAgentic', async () => ({ ok: true, stages: 8 })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, stages: 8 }); expect(last(M.agentic, 'runAgentic')[0]).toEqual({ market: 'UK', brief: 'launch', tier: 'budget', days: 7, withCreatives: true, maxRetries: 1 }); },
 });
@@ -353,7 +362,7 @@ add('calendar-scenarios', { gate: 'none', browser: 'demo', run: { method: 'GET',
     expect(a.baseCalendar.got.feedback).toEqual(['f']); expect(a.analysis).toEqual({ analysed: [{ kb: { feedback: ['f'] } }, { feedback: ['f'] }] });
   },
 });
-add('brand-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'what sells?', history: [{ role: 'user', content: 'x' }] } },
+add('brand-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'what sells?', history: [{ role: 'user', content: 'x' }] } },
   stubs: () => S.on(M.brandLlm, 'chat', async () => ({ ok: true, reply: 'r', trace: [] })),
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, reply: 'r', trace: [] });
@@ -506,7 +515,7 @@ add('webengage-report', { gate: 'none', browser: 'demo', run: { method: 'GET', q
   expect: (r) => { expect(r.out).toEqual({ ok: true, events: [] }); expect(last(M.webengage, 'eventSummary')[0]).toEqual({ hours: 12, market: 'UK' }); },
   cases: [{ name: 'the default op is campaign performance over 24h', run: { method: 'GET', query: {} }, expect: (r) => { expect(r.out).toEqual({ ok: true, campaigns: [] }); expect(last(M.webengage, 'campaignPerformance')[0]).toEqual({ event: 'Notification Clicked', hours: 24, market: null }); } }],
 });
-add('video-generate', { gate: 'none', browser: 'refuse', run: { json: { prompt: 'a shoe', duration: 5 } },
+add('video-generate', { gate: 'model', model: 'video.generate', browser: 'refuse', run: { json: { prompt: 'a shoe', duration: 5 } },
   stubs: () => S.on(M.video, 'generateVideo', async () => ({ ok: true, provider: 'stub', job_id: 'v1' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, provider: 'stub', job_id: 'v1' }); expect(last(M.video, 'generateVideo')[0]).toEqual({ prompt: 'a shoe', duration_s: 5, aspect: '16:9', tier: 'premium' }); },
   cases: [{ name: 'no prompt is a 400 before any provider', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.video)).toEqual([]); } }],
@@ -516,7 +525,7 @@ add('video-status', { gate: 'none', browser: 'refuse', run: { method: 'GET', que
   expect: (r) => { expect(r.out).toEqual({ ok: true, status: 'pending' }); expect(last(M.video, 'getVideoStatus')[0]).toEqual({ provider: 'veo', job_id: 'v1' }); },
   cases: [{ name: 'provider and job_id are both required', run: { method: 'GET', query: { provider: 'veo' } }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.video)).toEqual([]); } }],
 });
-add('mailer-assets', { gate: 'none', browser: 'demo', run: { json: { entry_id: 'e1', market: 'UK' } },
+add('mailer-assets', { gate: 'model', model: 'image.generate', browser: 'demo', run: { json: { entry_id: 'e1', market: 'UK' } },
   stubs: () => {
     S.on(M.mailerBuild, 'buildLifecycleMailer', async () => ({ mailer: { variants: [{ key: 'text_a', html: '<p>t</p>' }, { key: 'visual_a', html: '<p>v</p>' }] } }));
     S.on(M.assetAgent, 'fillMailerAssets', async () => ({ ok: true, filled: 2 }));
@@ -532,7 +541,7 @@ add('mailer-assets-status', { gate: 'none', browser: 'demo', run: { method: 'GET
   stubs: () => { S.on(M.video, 'getVideoStatus', async () => ({ ok: true, status: 'completed', video_url: 'https://cdn.harness.test/v1.mp4' })); S.on(M.gif, 'convertFromVideo', async () => ({ ok: true, gif_url: 'g' })); },
   expect: (r) => { expect(r.out).toMatchObject({ status: 'completed', gif: { ok: true, gif_url: 'g' } }); expect(last(M.gif, 'convertFromVideo')[0]).toEqual({ video_url: 'https://cdn.harness.test/v1.mp4' }); },
 });
-add('social-run-daily', { gate: 'cron-get', browser: 'refuse', run: { json: { date: '2026-10-01', platforms: ['instagram'], dry_run: true } },
+add('social-run-daily', { gate: 'cron-get', model: 'social.daily_run', browser: 'refuse', run: { json: { date: '2026-10-01', platforms: ['instagram'], dry_run: true } },
   stubs: () => { S.on(M.catalogServer, 'withCatalog', async (ctx, fn) => fn()); S.on(M.social, 'runDaily', async () => ({ ok: true, posts: [] })); },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, posts: [] });
@@ -558,7 +567,7 @@ add('social-skip', { gate: 'none', browser: 'refuse', run: { json: { id: 'p2' } 
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: false, error: 'not found' })),
   expect: (r) => { expect(r.status).toBe(400); expect(last(M.social, 'setStatus')).toEqual(['p2', 'skipped']); },
 });
-add('tts', { gate: 'none', browser: 'refuse', run: { json: { text: 'hello there', voice_id: 'voice_h' } },
+add('tts', { gate: 'model', model: 'audio.tts', browser: 'refuse', run: { json: { text: 'hello there', voice_id: 'voice_h' } },
   env: { ELEVENLABS_API_KEY: 'eleven-harness' },
   // The provider IS the core here: the recorded call is the dispatch.
   stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3fakeaudio'), { 'content-type': 'audio/mpeg' })),
@@ -570,7 +579,7 @@ add('tts', { gate: 'none', browser: 'refuse', run: { json: { text: 'hello there'
   cases: [{ name: 'with no key the client is told to fall back, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined },
     expect: (r) => { expect(r.status).toBe(501); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } }],
 });
-add('console-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'what should ship next?' } },
+add('console-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'what should ship next?' } },
   stubs: () => { S.on(M.analysis, 'runDaily', async () => ({ summary: { s: 1 }, patterns: { angle: ['a1'] } })); S.on(M.review, 'recalibrationStatus', async () => ({ overdue: false })); db.rows.smart_calendar = [{ slot_date: '2026-10-01', theme: 't' }]; },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, reply: 'stubbed reply' });
@@ -591,7 +600,7 @@ add('alerts-preview', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   expect: (r) => { expect(r.out).toMatchObject({ ok: true, kind: 'anomaly-preview', anomalies: [], data_scope: { level: 'other_workspace' } }); expect(S.hits(M.alerts)).toEqual([]); },
   cases: [{ name: 'the owner of the bundled export sees its anomalies', run: { method: 'GET' }, stubs: () => { S.on(M.market, 'ownsBundledExport', async () => true); S.on(M.alerts, 'detectAnomalies', () => [{ a: 1 }]); }, expect: (r) => { expect(r.out).toMatchObject({ anomalies: [{ a: 1 }] }); } }],
 });
-add('access-narrative', { gate: 'none', browser: 'demo', run: { json: { report: { staff: 3, apps: ['x'] } } },
+add('access-narrative', { gate: 'model', model: 'analytics.narrative', browser: 'demo', run: { json: { report: { staff: 3, apps: ['x'] } } },
   expect: (r) => { expect(r.out).toEqual({ ok: true, narrative: 'stubbed reply' }); expect(llmCalls.length).toBe(1); expect(llmCalls[0].stage).toBe('access-audit'); expect(llmCalls[0].userMessage).toContain('"staff":3'); expect(llmCalls[0].systemPrompt).toMatch(/READ-ONLY/); },
 });
 add('snowflake-sync', { gate: 'cron', browser: 'refuse', run: { method: 'GET', query: { region: 'uk' } },
@@ -665,7 +674,7 @@ add('agent-builder', { gate: 'agent-key', browser: 'public', run: { method: 'GET
     { name: 'the right key reaches the tool runtime', env: { AGENT_BUILDER_API_KEY: 'agent-key-harness' }, run: { json: { op: 'run', tool: 'list_cohorts', days: 7 }, query: {}, auth: 'none', origin: false, headers: { 'x-agent-key': 'agent-key-harness' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, ran: true }); expect(last(M.agentBuilder, 'runTool')).toEqual(['list_cohorts', { op: 'run', tool: 'list_cohorts', days: 7 }]); } },
   ],
 });
-add('platform-agents', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { days: '14', question: 'why?' } },
+add('platform-agents', { gate: 'user', model: 'analytics.report', browser: 'refuse', run: { method: 'GET', query: { days: '14', question: 'why?' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.platformAgents, 'runAll', async () => ({ ok: true, agents: [] })); S.on(M.platformAgents, 'runAgent', async () => ({ ok: true, agent: 'meta' })); },
   expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: BRAND }); },
   cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toBe(BRAND); } }],
@@ -717,7 +726,7 @@ add('dispatch-webhook', { gate: 'signature', browser: 'n/a',
 
 const defaultsFor = (gate) => {
   if (gate === 'cron') return { auth: 'cron', origin: false };
-  if (gate === 'user') return { auth: 'session', origin: true };
+  if (gate === 'user' || gate === 'model') return { auth: 'session', origin: true };
   return { auth: 'session', origin: true };
 };
 
@@ -729,6 +738,13 @@ function withEnv(env, fn) {
 }
 
 const noHarnessError = (r) => expect((r.out && r.out.harness_error) || undefined, `harness error: ${r.text}`).toBeUndefined();
+const catalog = require(H.ROOT + '/api/_shared/credit-catalog.js');
+/** A metered answer carries the meter's receipt; the entry's own assertions are about the core's payload. */
+function receiptOff(e, r) {
+  if (!e.model || !r.out || typeof r.out !== 'object' || Array.isArray(r.out)) return;
+  if (r.out.credits) expect(r.out.credits.feature).toBe(e.model);
+  delete r.out.credits;
+}
 /** A case's request: its own fields over the base; a case that posts a body is a POST. */
 const caseRun = (base, c) => {
   const m = Object.assign({}, base, c.run || {});
@@ -744,6 +760,7 @@ for (const e of T) {
       if (e.stubs) e.stubs();
       const r = await call(e.action, base);
       noHarnessError(r);
+      receiptOff(e, r);
       e.expect(r);
       expect(guard.escaped, 'a network call escaped').toEqual([]);
     }));
@@ -753,9 +770,69 @@ for (const e of T) {
         if (c.stubs) c.stubs(); else if (e.stubs) e.stubs();
         const r = await call(e.action, caseRun(base, c));
         noHarnessError(r);
+        receiptOff(e, r);
         c.expect(r);
         expect(guard.escaped, 'a network call escaped').toEqual([]);
       }));
+    }
+
+    if (e.model) {
+      // The admitted request above was a SESSION's, so it was metered: held at
+      // the catalog price and settled (or refunded) - asserted here once, and
+      // the receipt is taken off the payload before the entry's own assertions.
+      const metered = (r0) => String(r0.method || (r0.json !== undefined ? 'POST' : 'GET')).toUpperCase() === 'POST' || e.gate === 'user' || e.action === 'analysis-narrative';
+      if (metered(base)) {
+        test(`a session is held at the catalog price of ${e.model} before the core runs`, withEnv(e.env, async () => {
+          if (e.stubs) e.stubs();
+          const r = await call(e.action, base);
+          noHarnessError(r);
+          const hold = guard.calls.find((c) => /\/rpc\/credit_hold/.test(c.url));
+          expect(hold, 'no credit hold was taken').toBeTruthy();
+          const args = JSON.parse(String(hold.body || '{}'));
+          expect(args.p_feature).toBe(e.model);
+          const q = catalog.quote(e.model, undefined, {});
+          expect(Number(args.p_amount)).toBe(q.cost * (args.p_units || q.units));
+          expect(guard.calls.some((c) => /\/rpc\/credit_(settle|release)/.test(c.url)), 'the hold was neither settled nor released').toBe(true);
+        }));
+      }
+      test('an anonymous server-to-server request is refused (401) before the core: no model call, no hold, no provider', withEnv(e.env, async () => {
+        if (e.stubs) e.stubs();
+        const r = await call(e.action, Object.assign({}, base, { auth: 'none', origin: false, query: Object.assign({ workspace_id: H.WS }, base.query || {}) }));
+        expect(r.status).toBe(401);
+        expect(r.out).toMatchObject({ ok: false, error: 'sign_in_required' });
+        expect(typeof r.out.message).toBe('string');
+        expect(actionHits()).toEqual([]);
+        expect(llmCalls).toEqual([]);
+        expect(guard.balanceMoves).toEqual([]);
+        expect(guard.calls.filter((c) => !c.url.startsWith(H.SUPABASE_URL))).toEqual([]);
+      }));
+      test('a forged bearer is refused before the core: no model call, no hold', withEnv(e.env, async () => {
+        if (e.stubs) e.stubs();
+        const r = await call(e.action, Object.assign({}, base, { auth: 'forged', origin: true }));
+        expect(r.status).toBe(401);
+        expect(r.out).toMatchObject({ ok: false, error: 'invalid_session' });
+        expect(guard.authChecks.length).toBe(1);             // checked ONCE, not once per gate
+        expect(actionHits()).toEqual([]);
+        expect(llmCalls).toEqual([]);
+        expect(guard.balanceMoves).toEqual([]);
+      }));
+      test('with the meter NOT configured, the router\'s own gate still refuses the anonymous caller', withEnv(Object.assign({}, e.env, { SUPABASE_SERVICE_ROLE_KEY: undefined }), async () => {
+        if (e.stubs) e.stubs();
+        const r = await call(e.action, Object.assign({}, base, { auth: 'none', origin: false, query: Object.assign({ workspace_id: H.WS }, base.query || {}) }));
+        expect(r.status).toBe(401);
+        expect(actionHits()).toEqual([]);
+        expect(llmCalls).toEqual([]);
+        expect(guard.calls.filter((c) => !c.url.startsWith(H.SUPABASE_URL))).toEqual([]);
+      }));
+      if (e.gate === 'model') {
+        test('the scheduler\'s bearer is admitted, and is never metered', withEnv(e.env, async () => {
+          if (e.stubs) e.stubs();
+          const r = await call(e.action, Object.assign({}, base, { auth: 'cron', origin: false }));
+          expect(r.status).not.toBe(401);
+          expect(r.status).not.toBe(403);
+          expect(guard.balanceMoves).toEqual([]);
+        }));
+      }
     }
 
     if (e.gate === 'user' || e.gate === 'cron-or-user') {
@@ -891,16 +968,27 @@ test.describe('the router', () => {
     // anonymous test above is what makes this a measured list rather than a label.
     const ungated = H.uniqSorted(T.filter((e) => e.gate === 'none').map((e) => e.action));
     expect(ungated).toEqual([
-      'access-narrative', 'ad-insights', 'ad-metrics', 'ads-analysis', 'ads-live', 'ads-snowflake', 'ads-sop',
-      'agent-analyze', 'agent-chat', 'agent-sessions', 'agent-sync', 'agent-upsert', 'agentic-run', 'agents',
-      'alerts-preview', 'analysis-narrative', 'analyze', 'asset', 'assets', 'benchmarks', 'brand-chat', 'brand-tools',
+      'ad-insights', 'ad-metrics', 'ads-analysis', 'ads-live', 'ads-snowflake', 'ads-sop',
+      'agent-sessions', 'agent-sync', 'agent-upsert', 'agents',
+      'alerts-preview', 'analyze', 'asset', 'assets', 'benchmarks', 'brand-tools',
       'calendar', 'calendar-generate', 'calendar-review', 'calendar-scenarios', 'campaigns', 'cohorts', 'confidence',
-      'config', 'connectors-health', 'console-chat', 'decide', 'feedback', 'festivals', 'festivals-extract', 'generate',
-      'growth-os', 'jarvis', 'kb', 'kb-patterns', 'klaviyo', 'library', 'mailer-assets', 'mailer-assets-status', 'mvt',
+      'config', 'connectors-health', 'decide', 'feedback', 'festivals', 'festivals-extract',
+      'growth-os', 'jarvis', 'kb', 'kb-patterns', 'klaviyo', 'library', 'mailer-assets-status', 'mvt',
       'os-connector-sync', 'os-connectors', 'os-dashboard', 'recalibrate', 'review', 'scores', 'snowflake-metrics',
-      'social-approve', 'social-list', 'social-skip', 'status', 'team-chat', 'telesuite', 'tts', 'video-generate',
+      'social-approve', 'social-list', 'social-skip', 'status', 'telesuite',
       'video-status', 'webengage-report',
     ]);
+  });
+
+  test('every action that reaches a model is metered, by name, at an existing catalog key', () => {
+    // The model set, pinned the same way: adding a model action without a
+    // meter fails here, and a key the catalog does not declare fails too.
+    const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
+    expect(modelled).toEqual([
+      'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
+      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+    ]);
+    for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });
 });
 

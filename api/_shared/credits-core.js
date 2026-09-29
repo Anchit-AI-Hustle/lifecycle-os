@@ -261,6 +261,25 @@ function isCompPhone(phone) {
   return compPhones().includes(phoneHash(np.e164));
 }
 
+/**
+ * May this VERIFIED caller reach a model or a paid provider at all? Null when
+ * it may; otherwise the refusal to send (2026-09-29, review).
+ *
+ * The meter already answers this for every metered request: an unlisted phone
+ * number is refused before a wallet exists. But a deployment whose meter is
+ * not configured lets a metered request through UNMETERED (enforce's
+ * `optional`), and the caller gates behind it (require-caller, brain.js,
+ * calendar.js) asked only "is there a session" - so there an unlisted number,
+ * which is free, unverified and unlimited, spent the provider keys with no
+ * wallet at all. That is the faucet the list exists to shut, reopened by a
+ * missing environment variable. The list decides in both configurations now.
+ */
+function spenderRefusal(auth) {
+  if (!auth || auth.ok === false) return null;
+  if (auth.provider === 'mobile-pin' && !isCompPhone(auth.phone)) return mobileAccountRefusal(null);
+  return null;
+}
+
 /** Complimentary by whichever identity the verified session carries: the email of a Supabase account, the number of a phone account. */
 function isCompAuth(auth) {
   if (!auth || typeof auth !== 'object' || auth.ok === false) return false;
@@ -886,4 +905,5 @@ module.exports = {
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
   isCompPhone, isCompAuth, compPhones, phoneHash, COMP_PHONE_HASHES, MOBILE_ACCOUNT_MESSAGE,
+  spenderRefusal,
 };

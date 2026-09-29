@@ -103,6 +103,15 @@ async function requireCaller(req, res, opts) {
     return false;
   }
 
+  // A phone number the operator has not listed holds no wallet, and may not
+  // spend this budget by the side door of an unconfigured meter either
+  // (credits-core.spenderRefusal, 2026-09-29 review).
+  const spend = require('./credits-core.js').spenderRefusal(auth);
+  if (spend) {
+    res.status(spend.status || 403).json(spend);
+    return false;
+  }
+
   if (tooMany(auth.user_id || 'anon')) {
     res.status(429).json({
       ok: false,

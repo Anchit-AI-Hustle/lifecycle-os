@@ -104,6 +104,10 @@ async function smartBrain(req, res, smartAction) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const body = readBody(req);
+  // Set below: a PERSON (verified session) whose request resolved no
+  // workspace - a mobile+PIN account, whose brands live on its device.
+  let personWithoutWorkspace = false;
+  let verified = null;
 
   // Workspace scoping for EVERY smart-brain action. The adapter used to fall
   // back to the oldest workspace whenever no workspace_id arrived, so a signed
@@ -118,8 +122,7 @@ async function smartBrain(req, res, smartAction) {
       url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
       key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
     };
-    const wsId = await wsScope.resolve(scopeEnv, req);
-    body.config = Object.assign({}, body.config, { workspace_id: wsId || null });
+    let wsId = await wsScope.resolve(scopeEnv, req);
 
     // A BROWSER request that carries neither a workspace param nor a user token
     // cannot be attributed to anyone. Serving it the default workspace is how
@@ -128,8 +131,29 @@ async function smartBrain(req, res, smartAction) {
     // no Origin/Referer header and keep the default-workspace behaviour.
     const q0 = (req && req.query) || {};
     const b0 = (req && req.body && typeof req.body === 'object') ? req.body : {};
+    // A phone account names no workspace (workspace-scope.resolve ignores it;
+    // it is removed here too so nothing below reads it back).
+    if (wsScope.carriesMobileToken(req)) { delete q0.workspace_id; delete b0.workspace_id; delete body.workspace_id; }
     const hadExplicit = !!(q0.workspace_id || b0.workspace_id);
-    const hadAuth = !!((req.headers && (req.headers.authorization || req.headers.Authorization)));
+    // A token attributes the request only if the auth backend did not REFUSE
+    // it (2026-09-29, review) - the same rule as api/brain.js. Counting the
+    // header's presence let a forged bearer or a device-mode token past the
+    // envelope below, into sync-daily's writes and approve's generation.
+    const tokenOn = !!(req.headers && (req.headers.authorization || req.headers.Authorization || req.headers['x-lifecycle-token']));
+    const scheduler = require('./_shared/require-caller.js').isCron(req);
+    if (tokenOn && !scheduler) verified = await require('./_shared/brand-workspace-core.js').requireUser(req);
+    const tokenRefused = !!(verified && !verified.ok && Number(verified.status) === 401);
+    if (tokenRefused) {
+      // A credential the backend rejected is answered with the rejection, not
+      // admitted as though nothing had been presented (same rule as brain.js).
+      return res.status(401).json({
+        ok: false, error: verified.error || 'sign_in_required',
+        message: verified.message || 'You are not signed in, so this could not run.',
+      });
+    }
+    const hadAuth = tokenOn;
+    personWithoutWorkspace = !!(verified && verified.ok && !wsId);
+    body.config = Object.assign({}, body.config, { workspace_id: wsId || null });
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
     if (!hadExplicit && !hadAuth && fromBrowser) {
       // `plan` and `insights` are present so this answer has the SAME shape as a
@@ -145,6 +169,64 @@ async function smartBrain(req, res, smartAction) {
       });
     }
   } catch (_) { body.config = body.config || {}; }
+
+  // The brand RECORD this request is for, resolved once onto the request the
+  // way api/brain.js does (2026-09-29, review). calendar.js never set it, so
+  // smart-brain-plan's stampBrand() found no request brand and fell to the
+  // OLDEST workspace's: a phone account's preview and approval were built
+  // and written as tenant zero's campaign, over tenant zero's catalogue.
+  // Only for a PERSON: a userless call (the scheduler, the prebuild chain)
+  // keeps resolving its workspace's own row inside the planner, which is what
+  // a WORKSPACE_ID-pinned run for another brand relies on.
+  try {
+    req.__workspaceId = (body.config && body.config.workspace_id) || null;
+    if (verified && verified.ok) {
+      const rt = require('./_shared/brand-runtime.js');
+      const b = await rt.resolve(req, { workspace_id: req.__workspaceId, auth: verified });
+      req.__brand = (b && (b.id || b.carried === true || b.unresolved === true)) ? b
+        : rt.unresolvedBrand('a signed-in account with no brand workspace');
+    }
+  } catch (_) { req.__brand = null; }
+
+  // GENERATION needs a verified caller or the scheduler, and a phone number
+  // the operator has listed (2026-09-29, review). preview and approve build a
+  // campaign from an `entry` the CALLER may supply - strategy and copy model
+  // calls, and on approve six writes - and neither had any caller gate, so an
+  // anonymous POST with no Origin, a forged token, or an unlisted phone
+  // account spent the deployment's model keys on content of its choosing.
+  const GENERATES = new Set(['preview', 'approve']);
+  if (GENERATES.has(smartAction) && req.method === 'POST' && !require('./_shared/require-caller.js').isCron(req)) {
+    const a = verified || await require('./_shared/brand-workspace-core.js').requireUser(req);
+    if (!a || !a.ok) {
+      return res.status(a && Number(a.status) === 503 ? 503 : 401).json({
+        ok: false, error: (a && a.error) || 'sign_in_required',
+        message: (a && a.message) || 'You are not signed in, so this could not run.',
+        why: 'Building a campaign reaches an AI model on this deployment\'s keys, so it needs a signed-in account or the scheduler\'s secret. Nothing was built and nothing was saved.',
+      });
+    }
+    const spend = require('./_shared/credits-core.js').spenderRefusal(a);
+    if (spend) return res.status(spend.status || 403).json(spend);
+  }
+
+  // A PERSON WITH NO WORKSPACE (a mobile+PIN account) may read, plan and
+  // preview; nothing it does may be WRITTEN, because there is no workspace to
+  // write it into (2026-09-29, review). The adapter now refuses an unstamped
+  // row, and these actions are refused before they spend a model call on a
+  // result that cannot be kept.
+  const NEEDS_WORKSPACE = new Set(['approve', 'reject', 'unreject', 'feedback', 'heal', 'activate-scenario', 'recalibrate', 'weekly-recalibration']);
+  if (personWithoutWorkspace && NEEDS_WORKSPACE.has(smartAction) && req.method === 'POST') {
+    return res.status(409).json({
+      ok: false, error: 'no_workspace',
+      message: 'This saves to a brand workspace in the database, and this sign-in has none: a mobile-number account keeps its brands on the device, so nothing was built and nothing was saved. Preview works; approving needs a brand workspace.',
+    });
+  }
+  if (personWithoutWorkspace) {
+    // Compute, never persist, and never kick the prebuild chain: there is
+    // nothing of this caller's to prebuild, and the chain runs on the
+    // scheduler's secret for the default workspace.
+    body.persist = false;
+    body.prebuild = false;
+  }
 
   try {
     if (smartAction === 'health') {

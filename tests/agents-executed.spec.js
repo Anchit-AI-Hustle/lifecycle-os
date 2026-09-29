@@ -281,7 +281,7 @@ test.describe('calendar.js smart-brain actions', () => {
   test.afterEach(() => { S.restore(); });
   const cal = (action, o) => w.request('/api/calendar', Object.assign({}, o, { query: Object.assign({ action: `smart-brain-${action}` }, (o && o.query) || {}) }));
 
-  test('plan / sync-daily / approve / reject for a phone account reach the core with NO workspace, never the oldest one', async () => {
+  test('plan / sync-daily for a phone account reach the core with NO workspace and persist nothing; approve / reject are refused before the core', async () => {
     S.on(PLAN, 'getPlan', async () => ({ ok: true, entries: [] }));
     S.on(PLAN, 'syncDaily', async () => ({ ok: true, mode: 'stubbed', changes: [] }));
     S.on(PLAN, 'approveEntry', async () => ({ ok: true, approved: true }));
@@ -289,13 +289,24 @@ test.describe('calendar.js smart-brain actions', () => {
     const plan = await cal('plan', { method: 'GET', state: 'phone' });
     expect(plan.status).toBe(200); expect(plan.out.ok).toBe(true);
     expect(S.hit(PLAN, 'getPlan').args[0].config.workspace_id).toBeNull();
-    const sync = await cal('sync-daily', { json: { days: 7, prebuild: false }, state: 'phone' });
-    expect(sync.status).toBe(200); expect(S.hit(PLAN, 'syncDaily').args[0].config.workspace_id).toBeNull();
+    const sync = await cal('sync-daily', { json: { days: 7 }, state: 'phone' });
+    expect(sync.status).toBe(200);
+    const syncArgs = S.hit(PLAN, 'syncDaily').args[0];
+    expect(syncArgs.config.workspace_id).toBeNull();
+    // Computed, never stored, and the scheduler's prebuild chain is not kicked
+    // for a caller who owns nothing to prebuild (2026-09-29, review).
+    expect(syncArgs.persist).toBe(false);
+    expect(sync.out.prebuild_kicked).toBeUndefined();
+    // Approving and rejecting SAVE to a brand workspace, and a phone account
+    // has none: a 409 with a sentence, before anything is built (the stub
+    // stood in for the core, and was never reached).
     const ok = await cal('approve', { json: { entry: { id: 'e1' }, reviewer: 'op' }, state: 'phone' });
-    expect(ok.status).toBe(200); expect(S.hit(PLAN, 'approveEntry').args[0].config.workspace_id).toBeNull();
+    expect(ok.status).toBe(409); expect(ok.out.error).toBe('no_workspace'); expectSentence(ok, 'approve phone');
+    expect(S.hits(PLAN, 'approveEntry')).toEqual([]);
     const no = await cal('reject', { json: { id: 'e1', notes: 'off-brand' }, state: 'phone' });
-    expect(no.status).toBe(200); expect(S.hit(PLAN, 'rejectEntry').args[0].config.workspace_id).toBeNull();
+    expect(no.status).toBe(409); expect(S.hits(PLAN, 'rejectEntry')).toEqual([]);
     for (const h of S.reached) expect(h.args[0].config.workspace_id).not.toBe('ws-oldest');
+    expect(w.llm.calls).toEqual([]);
     expect(w.escaped()).toEqual([]);
   });
   test('an unattributed browser gets the unscoped envelope and reaches nothing; a phone session cannot start the prebuild chain', async () => {
@@ -332,7 +343,16 @@ test.describe('the credit meter for a phone account', () => {
     expect(listed.out.ok).toBe(true);
     expect(listed.out.wallet).toBeTruthy();
     expect(listed.out.wallet.workspace_id).toBeNull();
-    expect(Number(listed.out.wallet.balance)).toBe(catalog.welcomeGrant());
+    // The welcome grant was credited exactly once. The balance itself is the
+    // grant LESS whatever this file's earlier tests spent: since 2026-09-29
+    // the brain agents are metered, so a listed number's turns above were paid for.
+    const grants = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId && l.kind === 'grant' && l.ref === 'welcome');
+    expect(grants.length).toBe(1);
+    expect(Number(grants[0].delta)).toBe(catalog.welcomeGrant());
+    expect(Number(listed.out.wallet.balance)).toBeLessThanOrEqual(catalog.welcomeGrant());
+    const spent = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId && l.kind === 'hold').reduce((n, l) => n - Number(l.delta), 0);
+    const back = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId && (l.kind === 'release' || l.kind === 'refund')).reduce((n, l) => n + Number(l.delta), 0);
+    expect(Number(listed.out.wallet.balance)).toBe(catalog.welcomeGrant() - spent + back);
     expect(listed.out.comp).toBe(true);
     expect(listed.out.account).toBe('mobile-pin');
     expect(listed.out.unavailable).toBeUndefined();
