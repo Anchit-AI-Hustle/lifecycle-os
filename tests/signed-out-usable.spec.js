@@ -261,7 +261,11 @@ test('with a live backend, a signed-out visitor is still not blocked', async ({ 
   const bar = page.locator('#lc-authnotice');
   await expect(bar).toBeVisible();
   await expect(bar).toContainText(/you are signed out/i);
-  await expect(bar).toContainText(/load once you sign in/i);
+  // ...and it names the way in: a mobile number and a PIN, in the rail (since
+  // 2026-09-28; it used to promise that the account's brands "load once you
+  // sign in", which a phone account - whose brands are on this device - cannot
+  // truthfully be told).
+  await expect(bar).toContainText(/sign in with your mobile number and a 4-digit pin/i);
   // ...and it must NOT claim the deployment is broken. That is a different
   // state with a different remedy, and crying outage on a healthy deployment
   // is how a notice teaches people to ignore it.
