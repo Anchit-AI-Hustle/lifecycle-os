@@ -43,7 +43,11 @@ answers within 4 s. Anything else is `{mode:'device', reason, host, message}`:
 | `database_unreachable` | Saved on this device only: the database (`<host>`) is not answering. |
 
 The panel asks once per page load and prints the sentence in the `.vh-status` style before
-anything is typed. After sign-in the same sentence sits under the name in the rail
+anything is typed. On the server the driver is built **once per URL** for the life of the
+warm instance (a module-level map keyed by the URL string, so a test's injected `sql` never
+touches it and a rotated URL gets a fresh client), the schema is therefore ensured once, and
+the status answer is cached per URL: a "server" answer for 30 s, a "device" one for 5 s, so a
+stream of gated requests costs neither the four DDL statements nor a `select 1` each. After sign-in the same sentence sits under the name in the rail
 (`#lnav-umode`), or "Account saved in the database." in server mode.
 
 **Server mode.** The panel posts to `op=enter`; the account is a row in `app_users`; the
