@@ -46,7 +46,10 @@ pages are exempt, so there is no redirect loop.
    `--brand-on-primary` (its real role is text on a dark/primary band, not a surface) and `--lava`
    maps to the brand accent.
 3. Loads the brand's Google Fonts.
-4. Swaps `<title>`, favicon and `theme-color`.
+4. Swaps `<title>` and `theme-color`. NOT the favicon: the tab icon, touch icon, manifest and
+   rail mark are the PLATFORM's own (`assets/lifecycle-os-mark.svg`, see
+   `docs/platform-identity.md`); the active brand's logo renders in the brand slot beneath the
+   wordmark, from its own record.
 5. Re-labels the shipped brand name in visible copy (text nodes only — never URLs, hosts or
    identifiers, and never inside `script`/`code`/`pre`/inputs or `[data-no-brand-swap]`).
 6. Paints from a localStorage cache on the first frame, so there is no flash of the wrong brand.
