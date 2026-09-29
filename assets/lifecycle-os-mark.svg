@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="los-title">
+  <title id="los-title">Lifecycle OS</title>
+  <!--
+    The Lifecycle OS product mark: a closed loop with an advancing arrowhead
+    (the lifecycle that keeps running) around a still core (the OS).
+
+    PLATFORM chrome, not tenant chrome. This file is the browser-tab icon, the
+    touch icon, the PWA icon and the rail mark of a UNIVERSAL brand platform, so
+    it carries no tenant's colour: the three values below are neutral greys by
+    the same saturation rule scripts/audit-pages.js applies to page CSS
+    (lowSat), and tests/platform-identity.spec.js asserts that against tenant
+    zero's palette. A favicon renders in isolation and cannot read the page's
+    brand custom properties, which is why these are literals and not var()
+    references to theme.css.
+
+    Geometry is shared with the inline rail mark in auth.js (LOGO_SVG) and with
+    the rasters scripts/build-platform-mark.js renders from this file; change it
+    here and re-run that script rather than editing a PNG by hand.
+
+    (No double hyphen may appear inside this comment: XML forbids it, and a
+    malformed SVG decodes as nothing in every consumer, silently.)
+  -->
+  <style>
+    :root { --los-ink: #24292E; --los-tile: #F5F6F8; --los-line: #D4D8DE; }
+  </style>
+  <rect id="tile" x="1" y="1" width="62" height="62" rx="15" fill="var(--los-tile, #F5F6F8)" stroke="var(--los-line, #D4D8DE)" stroke-width="2"/>
+  <g id="glyph">
+    <path d="M 36.4 15.58 A 17 17 0 1 1 18.07 22.25" fill="none" stroke="var(--los-ink, #24292E)" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M 22.09 16.52 L 22.82 26.8 L 12.18 19.34 Z" fill="var(--los-ink, #24292E)"/>
+    <circle cx="32" cy="32" r="4.5" fill="var(--los-ink, #24292E)"/>
+  </g>
+</svg>
