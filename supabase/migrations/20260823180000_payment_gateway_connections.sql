@@ -1,12 +1,18 @@
 -- ============================================================================
--- 20261231090000_payment_gateway_connections.sql
+-- 20260823180000_payment_gateway_connections.sql
 -- Payment gateway connections, one per brand workspace.
 --
--- TIMESTAMP NOTE: this file is deliberately stamped far ahead of the current
--- migration head (the newest sibling is 20260810160000) because it was authored
--- in parallel with other work that is also adding migrations. A far-future
--- stamp cannot collide with a filename another branch picks today, and Supabase
--- applies migrations in lexical order, so it simply runs last.
+-- TIMESTAMP NOTE (renamed 2026-09-29): this file was first stamped
+-- 20261231090000, far ahead of the migration head, so that it would run last
+-- while parallel branches were adding migrations. The Supabase CLI refuses
+-- that shape: `supabase db push` keys a migration by its version and will not
+-- apply a local file older than the newest version already recorded on the
+-- database without --include-all, so every migration created after it (with
+-- `supabase migration new`, which stamps the current time) would have been
+-- refused on a database that already had this one. It now sits in the slot it
+-- always occupied in application order - after 20260823170000 and before
+-- everything dated 2026-09 onward - so a database built from zero applies the
+-- same statements in the same order as before.
 --
 -- WHY A DEDICATED TABLE RATHER THAN brand_workspaces.brand_data. A gateway
 -- connection holds live credentials for moving real money. It needs a different
