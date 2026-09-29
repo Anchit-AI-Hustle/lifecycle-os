@@ -9,11 +9,17 @@
  *  - Cross-origin / non-GET: pass through to the network.
  *  - On activate: drop old caches + claim clients so updates ship immediately.
  */
-const VERSION = 'lifecycle-os-v19';
+const VERSION = 'lifecycle-os-v20';
+// The precached icons are the PLATFORM's mark (assets/lifecycle-os-*), never a
+// tenant's: this shell is the same for every brand that signs in. v20 dropped
+// /favicon.png, which was tenant zero's logo. tests/platform-identity.spec.js
+// EXECUTES this install handler and reads the list it hands to addAll().
 const SHELL = [
   '/', '/index.html', '/dashboard.html', '/calendar.html', '/cohort-definitions.html',
   '/auth.js', '/theme.css', '/table-sort.js', '/chart-enhance.js',
-  '/manifest.webmanifest', '/favicon.png',
+  '/manifest.webmanifest',
+  '/assets/lifecycle-os-mark.svg', '/assets/lifecycle-os-32.png', '/assets/lifecycle-os-180.png',
+  '/assets/lifecycle-os-192.png', '/assets/lifecycle-os-512.png', '/assets/lifecycle-os-512-maskable.png',
 ];
 
 self.addEventListener('install', (e) => {
