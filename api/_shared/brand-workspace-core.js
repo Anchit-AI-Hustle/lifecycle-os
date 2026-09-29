@@ -95,10 +95,29 @@ async function requireUser(req) {
         phone: v.user.phone, name: v.user.name, provider: 'mobile-pin',
       };
     }
+    if (v.reason === 'unreachable') {
+      // The SAME distinction the header above draws for the Supabase path,
+      // which this branch flattened (found 2026-09-29): a token of our shape
+      // reaches the server ONLY from a server-mode sign-in (auth.js never
+      // sends a device token), so when the database it lives in is not
+      // answering, the account is in the database and the database is down.
+      // Answering 401 "kept on this device only" told a person whose account
+      // is in Neon that they were signed in on a device - the sentence the
+      // browser's own mode line contradicts a few pixels away - and the 401
+      // was the code every catch reads as "sign in again", which cannot help.
+      return {
+        ok: false, status: 503, error: 'backend_unreachable', backend_unreachable: true,
+        message: 'The database your account is in (' + (v.host || 'the configured host') + ') is not answering, '
+          + 'so your sign-in cannot be checked right now and this could not be saved. Nothing about your account has changed; try again once it answers.',
+        hint: 'DATABASE_URL points at a host that did not answer the session lookup.',
+        mobile_reason: v.reason,
+        detail: v.detail,
+      };
+    }
     return {
       ok: false, status: 401, error: 'sign_in_required',
       message: 'You are not signed in, so this could not be saved to your account. '
-        + (v.reason === 'no_database' || v.reason === 'unreachable'
+        + (v.reason === 'no_database'
           ? 'A sign-in kept on this device only cannot be checked by the server.'
           : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
       hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
