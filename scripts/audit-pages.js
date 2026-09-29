@@ -109,8 +109,50 @@ function stripBrandDataBlocks(html) {
   return out + html.slice(cursor);
 }
 
+/* Elements GATED to one brand are that brand's own material shipped inside an
+   app page, not app chrome, and are excluded the way whole BRAND_ASSET pages
+   are. The key is the attribute the RUNTIME consumes, never a comment anyone
+   could add for a free pass:
+     data-ms-built-for   the Market Study block research.html ships for the
+                         brand it names (scripts/build-research-page.js); at run
+                         time the whole block is re-rendered from the ACTIVE
+                         brand's record, so tenant zero's study never renders
+                         under another brand's name.
+     data-shipped-for    a tenant's own artefact gallery (avatars, playbook,
+                         music beds, templates); brand-context.gateShipped()
+                         replaces the element with the DATA REQUIRED marker for
+                         any other brand.
+   research.html had 10 "sneaker"s before the generated block was visible HTML
+   and 24 after, all inside tenant zero's own study; rule 7b read them as chrome.
+   The element is removed by a balanced walk on its own tag name, so the rest of
+   the page - which IS chrome - is still audited. */
+function stripBrandGatedBlocks(html) {
+  const GATE = /<([a-z][a-z0-9-]*)\b[^>]*\bdata-(?:ms-built-for|shipped-for)=/gi;
+  let out = '', cursor = 0, m;
+  while ((m = GATE.exec(html))) {
+    const start = m.index;
+    if (start < cursor) continue;                       // nested inside one already removed
+    const tag = m[1].toLowerCase();
+    const bodyStart = html.indexOf('>', start) + 1;
+    const openRx = new RegExp('<' + tag + '\\b', 'gi');
+    const closeRx = new RegExp('</' + tag + '\\s*>', 'gi');
+    let depth = 1, p = bodyStart;
+    while (p < html.length && depth > 0) {
+      openRx.lastIndex = p; closeRx.lastIndex = p;
+      const o = openRx.exec(html), c = closeRx.exec(html);
+      if (!c) { p = html.length; break; }
+      if (o && o.index < c.index) { depth++; p = o.index + o[0].length; }
+      else { depth--; p = c.index + c[0].length; }
+    }
+    out += html.slice(cursor, start) + ' ';
+    cursor = p;
+    GATE.lastIndex = p;
+  }
+  return out + html.slice(cursor);
+}
+
 function visibleText(html) {
-  return stripBrandDataBlocks(html)
+  return stripBrandDataBlocks(stripBrandGatedBlocks(html))
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')

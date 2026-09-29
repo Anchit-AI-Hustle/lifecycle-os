@@ -172,6 +172,11 @@ function payloadFor(preset, id) {
 
 /* ── the harness ───────────────────────────────────────────────────────────── */
 
+// "With The Times of India active" is an operator SIGNED IN whose active
+// workspace is that brand. The first version of this harness signed nobody in,
+// and once brand ops started routing by auth.js's backend decision the sweep
+// measured the shipped default (tenant zero) under the other brand's name. The
+// sign-in is seeded below the way the app signs in since 2026-09-28.
 async function install(page, brand) {
   const shell = core.shellPayload(brand);
   const api = {
@@ -305,12 +310,37 @@ function scan(runs, signatures) {
   return hits;
 }
 
-async function openPage(page, file) {
+async function openPage(page, file, brand) {
   await page.goto('http://app.example.test/' + file, { waitUntil: 'domcontentloaded' });
-  // brand-context.js waits up to ~1.5 s for a token before it asks for the
-  // active brand; give it that, then time for paint + relabel.
-  await page.waitForFunction(() => window.BrandContext && window.BrandContext.brand, null, { timeout: 12_000 }).catch(() => {});
+  // brand-context.js waits for auth.js's backend decision, then for a token,
+  // before it asks for the active brand; give it that, then time for paint +
+  // relabel. The wait is for THIS brand by slug, not for any brand: the
+  // shipped default paints first from cache on some pages, and a sweep that
+  // read the page at that moment would measure tenant zero and report it
+  // under the other brand's name. Returns the slug the page settled on ('' when
+  // the page has no brand layer at all) so the caller can refuse a mismatch.
+  const want = String((brand && brand.slug) || '').toLowerCase();
+  // First let the brand layer SETTLE (BrandContext.ready resolves once the
+  // active-brand round trip has answered, whatever it answered), then wait
+  // briefly for the slug: a page that settled on the wrong brand is reported
+  // in seconds rather than after a full timeout per page.
+  await page.waitForFunction(() => !!window.BrandContext, null, { timeout: 15_000 }).catch(() => {});
+  await page.evaluate(() => Promise.race([
+    (window.BrandContext && window.BrandContext.ready) ? window.BrandContext.ready() : null,
+    new Promise((r) => setTimeout(r, 15_000)),
+  ])).catch(() => {});
+  await page.waitForFunction((slug) => {
+    const B = window.BrandContext;
+    if (!B) return false;
+    const b = B.brand;
+    return !!b && String(b.slug || '').toLowerCase() === slug;
+  }, want, { timeout: 5_000 }).catch(() => {});
   await page.waitForTimeout(900);
+  return page.evaluate(() => {
+    const B = window.BrandContext;
+    if (!B) return { hasLayer: false, slug: '' };
+    return { hasLayer: true, slug: String((B.brand && B.brand.slug) || '').toLowerCase() };
+  });
 }
 
 /** Drive the Studio the way an operator does, then read every render. */
@@ -378,8 +408,14 @@ async function driveStudio(page, brand) {
 async function sweep(page, brand, signatures) {
   await install(page, brand);
   const report = { pages: 0, runs: 0, chars: 0, canvas: 0, archetypes: 0, hits: [], errors: [] };
+  const want = String(brand.slug || '').toLowerCase();
   for (const f of PAGES) {
-    await openPage(page, f);
+    const settled = await openPage(page, f, brand);
+    // A page that has a brand layer and settled on some OTHER brand (or none)
+    // is a harness failure, not a clean page: whatever it rendered was not
+    // rendered under the brand this sweep is about. Recorded as an error so
+    // measured() fails the run instead of counting the page as swept.
+    if (settled.hasLayer && settled.slug !== want) report.errors.push(`${f}: the page settled on brand "${settled.slug || '(none)'}", not "${want}"`);
     let runs = await page.evaluate(COLLECT);
     if (f === STUDIO) {
       const { rendered, mailerRuns, market } = await driveStudio(page, brand);
