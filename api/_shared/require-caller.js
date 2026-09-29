@@ -14,8 +14,14 @@
  * budget until a card declined.
  *
  * A caller must now be one of:
- *   - a signed-in user (Supabase JWT, verified against /auth/v1/user), or
+ *   - a signed-in user - since 2026-09-28 a SERVER-mode mobile+PIN session
+ *     (X-Lifecycle-Token, verified against app_sessions in the Neon database;
+ *     see mobile-auth-core.js) - the Supabase-JWT path in requireUser() stays
+ *     for any token of that shape, though nothing in the browser produces one
+ *     any more; or
  *   - the deployment's own scheduler (CRON_SECRET bearer).
+ *   A DEVICE-mode mobile session (no database) cannot be verified and is
+ *   refused exactly like an anonymous call.
  *
  * ── What this does NOT do ──────────────────────────────────────────────────
  * The in-memory limiter below is per warm instance, not global. Vercel runs
@@ -80,7 +86,7 @@ async function requireCaller(req, res, opts) {
     res.setHeader('Access-Control-Allow-Origin', allowed);
     res.setHeader('Vary', 'Origin');
   }
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Lifecycle-Token');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') { res.status(204).end(); return false; }
 
@@ -91,7 +97,8 @@ async function requireCaller(req, res, opts) {
     res.status(auth && auth.status === 503 ? 503 : 401).json({
       ok: false,
       error: (auth && auth.error) || 'sign_in_required',
-      hint: 'These endpoints spend this deployment\'s AI provider budget, so they require a signed-in session (Authorization: Bearer <Supabase access token>) or the scheduler secret.',
+      message: (auth && auth.message) || 'You are not signed in, so this could not run.',
+      hint: 'These endpoints spend this deployment\'s AI provider budget, so they require a signed-in session (X-Lifecycle-Token from a mobile-number sign-in saved in the database) or the scheduler secret.',
     });
     return false;
   }
