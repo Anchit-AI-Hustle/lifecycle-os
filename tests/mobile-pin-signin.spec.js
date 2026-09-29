@@ -180,7 +180,12 @@ test('sign-up is one step: an unknown number asks for a name, then name + PIN cr
   expect(new Date(made.body.expires) - Date.now()).toBeGreaterThan(89 * 86400000);
   // The PIN is never stored: a salted scrypt hash is, and it verifies.
   const u = store.db.app_users[0];
-  expect(u.pin_hash).not.toContain(PIN);
+  // Never a substring check: the salt and hash are random hex, and four digits
+  // WILL appear inside 96 hex characters now and then (CI saw the PIN inside a
+  // salt once). What must hold is that no stored VALUE is the PIN and that the
+  // hash is not the PIN in any encoding.
+  expect(Object.values(u).map(String)).not.toContain(PIN);
+  expect(u.pin_hash).not.toBe(PIN);
   expect(u.pin_hash).toMatch(/^[0-9a-f]{64}$/);
   expect(u.pin_salt).toMatch(/^[0-9a-f]{32}$/);
   expect(core.verifyPin(PIN, u.pin_salt, u.pin_hash)).toBe(true);
@@ -899,7 +904,10 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   expect(u.hash).toMatch(/^[0-9a-f]{64}$/);
   expect(u.salt).toMatch(/^[0-9a-f]{32}$/);
   expect(u.iterations).toBeGreaterThanOrEqual(100000);
-  expect(JSON.stringify(a.users)).not.toContain(PIN);
+  // No stored value is the PIN (a substring check over random hex is flaky: the
+  // salt or hash can contain the four digits by chance, and did once in CI).
+  expect(Object.values(u).map(String)).not.toContain(PIN);
+  expect(Object.keys(u)).not.toContain('pin');
   // Brand ops route to the device store, and the sentence says both halves.
   expect(a.storage.mode).toBe('device');
   expect(a.storage.sentence).toBe('Signed in as Asha · workspaces are saved on this device');
