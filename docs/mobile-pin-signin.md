@@ -11,9 +11,9 @@ browser can produce a Supabase session any more: the Supabase client `auth.js` b
 anonymous (`persistSession:false`, `detectSessionInUrl:false`), the stale-token scans of
 `sb-*-auth-token` are commented out, and the mobile+PIN session is the one session source.
 
-Gated by `tests/mobile-pin-signin.spec.js` (19 tests, all executed: the core is driven with
-an in-memory `sql` tagged template, `api/public-config.js` is executed with stubbed req/res,
-and the real pages run in Chromium on `127.0.0.1`).
+Gated by `tests/mobile-pin-signin.spec.js` (24 tests, all executed: the core is driven with
+an in-memory `sql` tagged template that runs statements one at a time, `api/public-config.js`
+is executed with stubbed req/res, and the real pages run in Chromium on `127.0.0.1`).
 
 ## The pieces
 
@@ -83,8 +83,9 @@ server's by the parity test, over the same inputs, so the copies cannot drift un
 | unknown number, name + weak PIN | `200 {exists:false, needPin:true, error:'pin_invalid', message}` |
 | unknown number, name + PIN | `200 {exists:true, created:true, token, expires, mode:'server', user}` |
 | known number, no PIN | `200 {exists:true, needPin:true, name}` |
-| known number, wrong PIN | `401 {wrongPin:true, left, error:'pin_wrong', message}` (5 tries) |
+| known number, wrong PIN | `401 {wrongPin:true, left, error:'pin_wrong', message}` (5 tries, counted by ONE `update ... returning` statement, so five at once are five) |
 | known number, 5th wrong PIN | `429 {locked:true, error:'pin_locked', until, message}` (15 minutes; the right PIN does not open a locked account) |
+| two first sign-ups for one new number at once | one creates the account; the other is a **sign-in** to it and is held to the PIN check (`wrongPin` unless the PINs match) |
 | known number with no PIN on record | `200 {exists:true, setPin:true, name}` → choose a new PIN (see Reset) |
 | 26th `enter` from one IP in 10 minutes | `429 {error:'rate_limited'}` |
 
@@ -113,12 +114,22 @@ refusals through `LifecycleFailure.html()` in the failure frame; it never opens 
 A phone account has **no Supabase identity**: `brand_workspaces`, credits, connections and
 payments are all gated by `auth.uid()` / RLS, and a Neon uuid is nobody there.
 
-- **Brands and workspaces: on the device, in both modes.** `brand-context.js` routes
-  `list|active|get|save|activate|delete` to the device store whenever the session is
-  `provider:'mobile-pin'`. The onboarding panel says, in the accent rule: *"Signed in as
-  `<name>` · workspaces are saved on this device"* (server mode adds *"· account in the
-  database"*). No sync offer is rendered and `syncDeviceToAccount()` refuses with
-  `account_type_unsupported`: there is no workspace record to sync to.
+- **Brands and workspaces: on the device, in both modes, under the ACCOUNT's own key.**
+  `brand-context.js` routes `list|active|get|save|activate|delete` to the device store whenever
+  the session is `provider:'mobile-pin'`. The store is namespaced per signed-in account
+  (2026-09-29): `lifecycle.brand.device.workspaces.<user id>`. The unscoped
+  `lifecycle.brand.device.workspaces` is used ONLY when nobody is signed in (no database, a
+  database that is not answering, signed out), so onboarding without a backend keeps working; a
+  sign-in never adopts those anonymous rows and a sign-out never deletes them. A browser is
+  shared - with one key for everyone, person B signing in saw person A's brands. The id is read
+  from `LifecycleAuth.session` once auth.js has booted, else from the stored session, because
+  `brand-context.js` paints the first frame before auth.js runs; when auth.js changes the
+  session mid-visit (a sign-in in the panel, a 401 on boot) the listener re-reads because the
+  NAMESPACE changed, not only when the mode did. `BrandContext.device.key()` answers the key in
+  use. The onboarding panel says, in the accent rule: *"Signed in as `<name>` · workspaces are
+  saved on this device"* (server mode adds *"· account in the database"*). No sync offer is
+  rendered and `syncDeviceToAccount()` refuses with `account_type_unsupported`: there is no
+  workspace record to sync to.
 - **Server gates.** `brand-workspace-core.requireUser()` accepts a **server-mode** token
   (verified against `app_sessions`) and returns
   `{ok:true, user_id, phone, name, email:'', provider:'mobile-pin'}`. A device-mode token, an
@@ -185,3 +196,37 @@ where it asserted `true` for a Supabase user.
 A lock that had expired left `locked_until` set after a correct sign-in, because locking zeroes
 `pin_tries` and only `pin_tries` triggered the reset; the browser mirror reset on either field.
 The parity test is there for exactly this class.
+
+## Review findings (2026-09-29), each reproduced with an executed test before it was fixed
+
+- **The loser of a sign-up race was handed the winner's account.** Two first sign-ups for the
+  same new number in flight at once: both read "no row", both insert, the unique index refuses
+  the second with `23505`, and the catch reloaded the winner's row - but `isNew` stayed `true`,
+  so the PIN branch was skipped and a session was issued for an account whose PIN the loser
+  never typed. `isNew` is now set to `false` in that catch, so the loser is a sign-in and is held
+  to the PIN check. The test fires two `enter()`s with different PINs through the in-memory
+  store and asserts the loser gets `wrongPin` and no token; with matching PINs both sign in.
+- **N concurrent wrong PINs consumed ONE attempt.** `pin_tries` was read, incremented in
+  JavaScript and written back, so five wrong PINs at once all read 0, all wrote 1, and the lock
+  never fired - five guesses at a time, for ever. It is now ONE statement:
+  `update ... set pin_tries = case when pin_tries + 1 >= 5 then 0 else pin_tries + 1 end,
+  locked_until = case when ... then <until> else locked_until end ... returning pin_tries,
+  locked_until`, and locked / tries-left is decided from the RETURNED row. The in-memory store
+  runs statements one at a time (a promise chain) so the interleaving is a database's; five
+  concurrent wrong PINs lock the account, ten report four `wrongPin` and six `locked`.
+- **One device store for every account on a shared browser** (above, "under the ACCOUNT's own
+  key"). The test signs A up through the real panel, saves a brand, signs out, signs B up and
+  asserts an empty list and nothing of A's on screen, then signs A back in and asserts her brand
+  is back and painted; an anonymous draft typed before either signed in stays under the
+  unscoped key throughout. `tests/cross-brand-leak.spec.js` and
+  `tests/onboarding-without-backend.spec.js` seed the account's key now.
+- **`privacy.html` said Google authenticates and Supabase Auth holds the session.** Rewritten
+  for the sign-in that exists: what is collected (number, name, a salted PIN hash - scrypt in
+  Neon, PBKDF2 in the browser - sessions as a SHA-256 digest, the attempt counter, the
+  per-address limit), where it lives in each mode, retention (90-day sessions, ten-minute
+  limit rows), and that brand workspaces are kept under a key private to the account. The
+  Google text is under a section marked `data-historical` that says the sign-in was withdrawn
+  on 28 September 2026. The test reads the rendered page and asserts Google is named nowhere
+  else.
+
+All four are mutation-verified: restoring each defect fails its test.
