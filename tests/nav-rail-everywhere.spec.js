@@ -163,10 +163,13 @@ const WITH_BACKEND = { supabase: { url: 'https://live.supabase.co', anonKey: 'an
  * answered from the repo, /api answered with an empty workspace, the SDK
  * stubbed. `sdk` lets a test hand in its own auth stub.
  */
-async function open(page, file, { config, reachable = true, sdk, configDelayMs = 0 } = {}) {
+async function open(page, file, { config, reachable = true, sdk, configDelayMs = 0, auth, seed } = {}) {
   const errors = [], consoleErrors = [];
   page.on('pageerror', (e) => errors.push(String(e.message || e)));
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+  // `seed` (2026-09-28): a stored mobile+PIN session, put in localStorage
+  // before any page script runs, the way a returning visitor's browser holds it.
+  if (seed) await page.addInitScript((s) => { try { localStorage.setItem('lifecycle.auth.session', JSON.stringify(s)); } catch (_) {} }, seed);
   // Timing capture, installed before any page script: WHEN auth.js began to
   // run (it assigns window.__LifecycleAuthBooted on its first line, so a
   // setter records the moment) and when `.lnav-side` first had a non-zero
@@ -243,6 +246,19 @@ async function open(page, file, { config, reachable = true, sdk, configDelayMs =
   }));
   const configAnswered = { at: null };
   await page.route(/\/api\/public-config/, async (route) => {
+    const u = new URL(route.request().url());
+    // The mobile+PIN endpoint (2026-09-28). `auth` is a test's own handler
+    // (op, headers, body) -> {status, body}; without one this deployment has
+    // no DATABASE_URL and says so.
+    if (u.searchParams.get('action') === 'auth') {
+      const op = u.searchParams.get('op');
+      let body = {}; try { body = route.request().postDataJSON() || {}; } catch (_) { body = {}; }
+      const r = (auth && await auth(op, route.request().headers(), body)) || (op === 'status'
+        ? { status: 200, body: { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' } }
+        : { status: 503, body: { ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment.' } });
+      if (r === 'hang') return;   // never answered: the shape of a database that does not come back
+      return route.fulfill({ status: r.status, contentType: 'application/json', body: JSON.stringify(r.body) });
+    }
     if (configDelayMs) await new Promise((r) => setTimeout(r, configDelayMs));
     configAnswered.at = Date.now();
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(config || NO_BACKEND) });
@@ -427,17 +443,31 @@ test('the rail is up while /api/public-config is still stalled, on every kind of
   }
 });
 
-test('Sign-in pressed while the config is stalled waits, and never calls a healthy backend broken', async ({ browser }) => {
+/* SINCE 2026-09-28 the rail's Sign in opens the mobile+PIN panel on the page
+   (tests/mobile-pin-signin.spec.js); the Google guard and its "Checking
+   sign-in…" wait are commented out with it. The four cases below keep their
+   claims - a press during boot never diagnoses a healthy backend as broken, a
+   sign-in seats the chip IN PLACE, the rail never waits on the session lookup -
+   re-targeted at the session source that exists now. */
+
+/** A stored server-mode mobile+PIN session, as a returning visitor's browser holds it. */
+const STORED = (name) => ({
+  token: 'MPINtokenFIXTURE0123456789abcdefghijklmnopqrs', mode: 'server', provider: 'mobile-pin',
+  user: { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: name || 'Asha', phone: '+919876543210' },
+  expires: new Date(Date.now() + 80 * 86400000).toISOString(),
+  storage: { mode: 'server', reason: '', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' },
+});
+const SERVER_STATUS = { status: 200, body: { ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' } };
+
+test('Sign-in pressed while the config is stalled opens the panel at once, and never calls a healthy backend broken', async ({ browser }) => {
   test.setTimeout(120_000);
   // The rail is up before the config answers (test above), so its button can
-  // be pressed while boot is still in flight. Diagnosed AT THAT MOMENT, a
-  // config fetch that has not answered reads as "unconfigured" and a client
-  // not yet built as "sdk": a deployment fault reported on a healthy backend,
-  // in a note that then outlives the boot that proves it wrong (Codex finding
-  // on 8c9245e). So the press waits on auth readiness, says so, and diagnoses
-  // once the state is known. Two backends, one press each, 400 ms into a 5 s
-  // stall; every note kind the page ever renders is recorded, not just the
-  // last one on screen.
+  // be pressed while boot is still in flight. The panel needs nothing from
+  // boot - not the config, not the SDK - so it opens at once; and no note may
+  // diagnose the stalled config as "unconfigured" or the unbuilt client as
+  // "sdk" (the Codex finding on 8c9245e, still guarded). Two backends, one
+  // press each, 400 ms into a 5 s stall; every note kind the page ever renders
+  // is recorded, not just the last one on screen.
   const sdk = () => ({
     getSession: async () => ({ data: { session: null } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
@@ -451,103 +481,99 @@ test('Sign-in pressed while the config is stalled waits, and never calls a healt
     const m = await measureRail(page, 3000);
     expect(m.side, `${label}: no rail to press`).toBe(true);
     await pressSignIn(page);
-    // The direct entry point pages and tests call, started during the same
-    // stall. It shares the one wait in signInRefusal(); its answer is read
-    // once boot has settled.
-    await page.evaluate(() => { window.__directCall = window.__startGoogleSignIn__(); });
     await page.waitForTimeout(400);
     const mid = await readSignIn(page);
+    const panelMid = await page.evaluate(() => !!document.getElementById('lnav-mauth'));
     expect(configAnswered.at, `${label}: the config had already answered, so this measured a settled boot`).toBeNull();
     expect(mid.configSeen).toBe(false);
+    expect(panelMid, `${label}: the panel did not open while boot was in flight`).toBe(true);
     expect(mid.note, `${label}: a refusal note was rendered while boot was still in flight`).toBe(false);
-    expect(mid.text).toBe('Checking sign-in…');
-    expect(mid.busy).toBe('true');
-    // Boot settles: the SAME press proceeds to the real outcome.
-    if (reachable) {
-      // Two callers (the button and the direct call), two OAuth starts.
-      await page.waitForFunction(() => (window.__oauthCalls || []).length === 2, null, { timeout: 15000 });
-      const end = await readSignIn(page);
-      expect(end.note, 'a healthy backend was given a refusal note').toBe(false);
-      expect(end.text).toBe('Sign in');
-      expect(end.busy).toBeNull();
-      expect(await page.evaluate(() => window.__directCall), 'the direct call diagnosed a boot in flight').toBe('');
-    } else {
-      await page.waitForFunction(() => {
-        const n = document.getElementById('lnav-signin-note');
-        return n && n.getAttribute('data-kind') === 'unreachable';
-      }, null, { timeout: 15000 });
-      const end = await readSignIn(page);
-      expect(end.oauthCalls, 'a dead host was handed the browser').toBe(0);
-      expect(end.text).toBe('Sign-in unavailable');
-      expect(await page.evaluate(() => window.__directCall), 'the direct call named the wrong state').toMatch(/cannot be reached/);
-    }
+    expect(mid.text, `${label}: the chip changed its words for a press that needs no wait`).toBe('Sign in');
+    // Boot settles: nothing is handed to Google either way, and no note ever
+    // named a deployment fault.
+    await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending', null, { timeout: 15000 });
+    const end = await readSignIn(page);
+    expect(end.oauthCalls, `${label}: the browser was handed to Google`).toBe(0);
+    expect(end.note).toBe(false);
+    expect(await page.evaluate(() => !!document.getElementById('lnav-mauth')), `${label}: boot settling closed the panel`).toBe(true);
     const kinds = await page.evaluate(() => window.__noteKinds.slice());
     expect(kinds.filter((k) => k === 'unconfigured' || k === 'sdk'),
-      `${label}: a boot in flight was diagnosed as a deployment fault (notes seen: ${kinds.join(', ') || 'none'})`).toEqual([]);
+      `${label}: a boot in flight was diagnosed as a deployment fault (notes seen: ${kinds.join(', ')})`).toEqual([]);
     await ctx.close();
   }
 });
 
-test('a session arriving after a refusal takes the note with it and seats the chip', async ({ page }) => {
-  // Config answers at once and the host is dead, so a press yields the honest
-  // "unreachable" refusal. Then a session arrives through onAuthStateChange -
-  // what a completed OAuth round trip does. The user block is swapped in place,
-  // and the note, which sits BESIDE that block rather than inside it, must not
-  // survive next to the signed-in chip.
-  const sdk = () => ({
-    getSession: async () => ({ data: { session: null } }),
-    onAuthStateChange: (cb) => { window.__authCb = cb; return { data: { subscription: { unsubscribe() {} } } }; },
-    signInWithOAuth: async () => ({ error: null }),
-    signOut: async () => ({}),
-  });
-  await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: false, sdk });
-  await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.client && typeof window.__authCb === 'function', null, { timeout: 10000 });
+test('a sign-in completing in the panel seats the chip in place, with no note beside it', async ({ page }) => {
+  // The Supabase host is dead (the bar says so) and the Neon database is up:
+  // a server-mode sign-in through the panel. The user block is swapped in
+  // place - the rail is not rebuilt - and nothing describing an earlier state
+  // survives beside the signed-in chip.
+  const store = { sessions: {} };
+  const auth = (op, headers, body) => {
+    if (op === 'status') return SERVER_STATUS;
+    if (op === 'enter') {
+      if (!body.name) return { status: 200, body: { ok: true, exists: false } };
+      const token = 'ENTERtokenFIXTURE0123456789abcdefghijklmnopq';
+      store.sessions[token] = 1;
+      return { status: 200, body: { ok: true, exists: true, token, mode: 'server', expires: new Date(Date.now() + 90 * 86400000).toISOString(), user: { id: 'aaaaaaaa-0000-4000-8000-000000000002', name: body.name, phone: '+919876543210' } } };
+    }
+    return { status: 200, body: { ok: true } };
+  };
+  await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: false, auth });
+  await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind === 'unreachable', null, { timeout: 10000 });
+  await page.evaluate(() => { window.__railBefore = document.querySelector('#lifecycle-nav .lnav-side'); });
   await pressSignIn(page);
-  await page.waitForFunction(() => {
-    const n = document.getElementById('lnav-signin-note');
-    return n && n.getAttribute('data-kind') === 'unreachable';
-  }, null, { timeout: 10000 });
-  const before = await readSignIn(page);
-  expect(before.text).toBe('Sign-in unavailable');
-  expect(before.describedBy).toBe('lnav-signin-note');
-  await page.evaluate(() => window.__authCb('SIGNED_IN', { user: { id: 'u2', email: 'late@example.test', user_metadata: { name: 'Late Session' } } }));
+  await page.waitForSelector('#lnav-mauth', { timeout: 5000 });
+  await page.fill('#lnav-mauth-phone', '9876543210');
+  await page.click('#lnav-mauth-go');
+  await page.waitForSelector('#lnav-mauth[data-state="new"]', { timeout: 5000 });
+  await page.fill('#lnav-mauth-name', 'Late Session');
+  await page.fill('#lnav-mauth-pin', '7391');
+  await page.click('#lnav-mauth-go');
   await expect(page.locator('#lifecycle-nav .lnav-uname')).toHaveText('Late Session', { timeout: 6000 });
-  expect(await page.locator('#lnav-signin-note').count(), 'the refusal note survived beside the signed-in chip').toBe(0);
+  expect(await page.locator('#lnav-mauth').count(), 'the panel survived beside the signed-in chip').toBe(0);
+  expect(await page.locator('#lnav-signin-note').count(), 'a note survived beside the signed-in chip').toBe(0);
   expect(await page.locator('#lnav-signin').count()).toBe(0);
   expect(await page.locator('[aria-describedby="lnav-signin-note"]').count()).toBe(0);
+  expect(await page.evaluate(() => window.__railBefore === document.querySelector('#lifecycle-nav .lnav-side')),
+    'the rail was rebuilt rather than updated in place').toBe(true);
+  expect(await page.evaluate(() => ({ mode: window.LifecycleAuth.session.mode, kind: window.LifecycleAuth.backend.kind, internal: window.LifecycleAuth.internal })))
+    .toEqual({ mode: 'server', kind: 'signed-in', internal: false });
+  await expect(page.locator('#lnav-umode')).toHaveText('Account saved in the database.');
 });
 
-test('the rail is mounted while getSession() is still pending, even if it never resolves', async ({ page }) => {
-  // A getSession() that NEVER resolves: the shape of a stale session against a
-  // host that does not answer (measured at ~25.7 s with the real SDK, and open
-  // ended under cross-tab lock contention). The rail must not depend on it.
-  const sdk = () => ({
-    getSession: () => new Promise(() => { window.__sessionStillPending = true; }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
-    signInWithOAuth: async () => ({ error: null }),
-    signOut: async () => ({}),
-  });
-  const { errors } = await open(page, 'research.html', { config: WITH_BACKEND, reachable: false, sdk });
+test('the rail is mounted while a stored session\'s op=me is still pending, even if it never resolves', async ({ page }) => {
+  // A validation that NEVER answers: the shape of a stored session against a
+  // database that does not come back. The rail must not depend on it, and
+  // the chip is seated from the stored session - provisionally, unverified -
+  // rather than withheld until an answer that may never come.
+  const seen = { me: 0 };
+  const auth = (op) => { if (op === 'status') return SERVER_STATUS; if (op === 'me') { seen.me++; return 'hang'; } return null; };
+  const { errors } = await open(page, 'research.html', { config: WITH_BACKEND, reachable: false, auth, seed: STORED('Asha') });
   const m = await measureRail(page, 3000);
-  expect(m.side, 'no rail while the session lookup was pending: ' + m.problems.join(' | ')).toBe(true);
+  expect(m.side, 'no rail while the session validation was pending: ' + m.problems.join(' | ')).toBe(true);
   expect(m.problems).toEqual([]);
-  // ...and the lookup really was still pending when the rail was measured, so
-  // this proves the rail did not simply arrive after a fast session.
-  expect(await page.evaluate(() => window.__sessionStillPending === true), 'the stub session lookup was never reached').toBe(true);
-  expect(await page.evaluate(() => !!document.querySelector('#lifecycle-nav .lnav-signin')), 'the guest rail should offer Sign in').toBe(true);
+  // ...and the validation really was still pending when the rail was measured,
+  // so this proves the rail did not simply arrive after a fast answer.
+  expect(seen.me, 'op=me was never asked').toBe(1);
+  const s = await page.evaluate(() => ({ name: (document.querySelector('#lifecycle-nav .lnav-uname') || {}).textContent || '', verified: window.LifecycleAuth.session && window.LifecycleAuth.session.verified, signin: !!document.querySelector('#lifecycle-nav .lnav-signin') }));
+  expect(s.name).toBe('Asha');
+  expect(s.verified, 'an unanswered validation was reported as verified').toBe(false);
+  expect(s.signin).toBe(false);
   expect(errors.filter((e) => !HARNESS_NOISE.test(e))).toEqual([]);
 });
 
-test('a session that resolves late lands its user chip in the rail that is already mounted', async ({ page }) => {
-  const sdk = () => ({
-    getSession: () => new Promise((resolve) => setTimeout(() => resolve({
-      data: { session: { user: { id: 'u1', email: 'late@example.test', user_metadata: { name: 'Late Session' } } } },
-    }), 1500)),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
-    signInWithOAuth: async () => ({ error: null }),
-    signOut: async () => ({}),
-  });
-  await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: true, sdk });
+test('a stored session validated late lands its refreshed name in the rail that is already mounted', async ({ page }) => {
+  // op=me answers after 1.5 s with the record's CURRENT name. The rail is up
+  // before that; the chip is refreshed in place; the account is not internal
+  // (a phone account has no email domain to key that on - it used to read
+  // true for a Supabase user, and the flip is deliberate).
+  const auth = async (op) => {
+    if (op === 'status') return SERVER_STATUS;
+    if (op === 'me') { await new Promise((r) => setTimeout(r, 1500)); return { status: 200, body: { ok: true, mode: 'server', user: { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Late Session', phone: '+919876543210' }, message: 'Account saved in the database.' } }; }
+    return null;
+  };
+  await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: true, auth, seed: STORED('Asha') });
   const early = await measureRail(page, 1000);
   expect(early.side, 'no rail before the session resolved').toBe(true);
   // Remember the mounted rail so the swap can be shown to be in place.
@@ -556,7 +582,8 @@ test('a session that resolves late lands its user chip in the rail that is alrea
   await expect(page.locator('#lifecycle-nav .lnav-signin')).toHaveCount(0);
   expect(await page.evaluate(() => window.__railBefore === document.querySelector('#lifecycle-nav .lnav-side')),
     'the rail was rebuilt rather than updated in place').toBe(true);
-  expect(await page.evaluate(() => (window.LifecycleAuth || {}).internal)).toBe(true);
+  expect(await page.evaluate(() => (window.LifecycleAuth || {}).internal)).toBe(false);
+  expect(await page.evaluate(() => window.LifecycleAuth.session.verified)).toBe(true);
 });
 
 /* ═══ 3. every inline script parses ═══════════════════════════════════════ */

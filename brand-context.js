@@ -159,15 +159,19 @@
       var u = a && a.session && a.session.user && a.session.user.id;
       if (u) return u;
     } catch (_) {}
-    try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (!k || k.indexOf('-auth-token') < 0) continue;
-        var v = JSON.parse(localStorage.getItem(k) || 'null');
-        var s = v && (v.user || (v.currentSession && v.currentSession.user));
-        if (s && s.id) return s.id;
-      }
-    } catch (_) {}
+    // 2026-09-28: the scan of Supabase's `sb-*-auth-token` entries is DISABLED.
+    // The mobile+PIN session (auth.js) is the one session source; nothing can
+    // produce a Supabase session any more, so an entry found there is a
+    // leftover, not a person.
+    // try {
+    //   for (var i = 0; i < localStorage.length; i++) {
+    //     var k = localStorage.key(i);
+    //     if (!k || k.indexOf('-auth-token') < 0) continue;
+    //     var v = JSON.parse(localStorage.getItem(k) || 'null');
+    //     var s = v && (v.user || (v.currentSession && v.currentSession.user));
+    //     if (s && s.id) return s.id;
+    //   }
+    // } catch (_) {}
     return '';
   }
 
@@ -249,7 +253,27 @@
     try { var a = window.LifecycleAuth; return (a && a.backend) || null; } catch (_) { return null; }
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
-  function modeFor(kind) { return KIND_DEVICE[kind] ? 'device' : 'server'; }
+  /**
+   * The mobile+PIN session (2026-09-28), if that is who is signed in. It has
+   * NO Supabase JWT: brand_workspaces is gated by auth.uid() and a phone
+   * account has none, so its brands live in the device store whichever mode
+   * the ACCOUNT is in - server (the Neon database) or device.
+   */
+  function mobileSession() {
+    try {
+      var a = window.LifecycleAuth;
+      var s = a && a.session;
+      if (s && s.provider === 'mobile-pin' && s.user) return { provider: 'mobile-pin', mode: s.mode || 'device', name: s.user.name || '', phone: s.user.phone || '', verified: s.verified !== false };
+      var b = a && a.backend && a.backend.session;
+      if (b && b.provider === 'mobile-pin') return b;
+    } catch (_) {}
+    return null;
+  }
+  function modeFor(kind) {
+    if (KIND_DEVICE[kind]) return 'device';
+    if (mobileSession()) return 'device';
+    return 'server';
+  }
   /** '' while auth.js has not decided (or is absent). */
   function knownMode() { var k = authKind(); return (k && k !== 'pending') ? modeFor(k) : ''; }
 
@@ -762,6 +786,7 @@
     var k = authKind();
     var known = !!(k && k !== 'pending');
     var d = readDevice();
+    var ms = known ? mobileSession() : null;
     return {
       mode: known ? modeFor(k) : (window.__LifecycleAuthBooted ? (state.mode || 'server') : 'server'),
       known: known,
@@ -771,13 +796,28 @@
       host: b.host || '',
       device_count: d.workspaces.length,
       device_active_id: d.active_id || '',
+      // The mobile+PIN session (2026-09-28), when that is who is signed in, and
+      // the ONE sentence for its state: a phone account is signed in AND its
+      // workspaces are on this device, both at once - so neither "not signed
+      // in" nor the account's own sentence says it alone.
+      session: ms,
+      account_sentence: ms ? accountSentence(ms) : '',
       // The server's own open path (brand-workspace-core.js, op=extract) applies
-      // ONLY when the backend is provably unreachable or unconfigured. A
-      // reachable backend with no session refuses, and that refusal is the
-      // gate being real - so the wizard disables the control rather than
-      // sending a request it knows will be refused.
-      server_open: k === 'unreachable' || k === 'unconfigured',
+      // when the backend is provably unreachable or unconfigured, and - since
+      // 2026-09-28 - for a SERVER-mode mobile+PIN session, which requireUser()
+      // verifies against the Neon database. A reachable backend with no
+      // checkable session refuses, and that refusal is the gate being real - so
+      // the wizard disables the control rather than sending a request it knows
+      // will be refused.
+      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && ms.mode === 'server' && ms.verified),
     };
+  }
+
+  /** "Signed in as <name> · workspaces are saved on this device[ · account in the database]". */
+  function accountSentence(ms) {
+    var s = 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · workspaces are saved on this device';
+    if (ms.mode === 'server') s += ' · account in the database';
+    return s;
   }
 
   /**
@@ -789,6 +829,7 @@
   async function syncDeviceToAccount() {
     var mode = await resolveMode();
     if (mode !== 'server') {
+      if (mobileSession()) throw deviceFail(409, 'account_type_unsupported', 'A mobile-number account keeps its brands on this device: there is no record of it in the workspace database to sync to.');
       throw deviceFail(409, 'sign_in_required', 'Sign in first: brands can only be synced to an account that is reachable.');
     }
     var d = readDevice();
@@ -1006,20 +1047,25 @@
   /* ── data ──────────────────────────────────────────────────────────────── */
 
   function token() {
+    // ONLY a token the server can check (2026-09-28): auth.js answers with the
+    // server-mode mobile+PIN token and '' for a device-mode one, which proves
+    // nothing to anyone but this browser and is never sent.
     try {
       var a = window.LifecycleAuth;
-      if (a && a.session && a.session.access_token) return a.session.access_token;
+      if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
+      if (a && a.session && a.session.access_token && a.session.mode === 'server') return a.session.access_token;
     } catch (_) {}
-    // Supabase stores the session under a project-scoped key; find any of them.
-    try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (!k || k.indexOf('-auth-token') < 0) continue;
-        var v = JSON.parse(localStorage.getItem(k) || 'null');
-        var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
-        if (t) return t;
-      }
-    } catch (_) {}
+    // 2026-09-28: DISABLED - Supabase's project-scoped session keys. Nothing
+    // can produce a Supabase session any more; see currentUserId().
+    // try {
+    //   for (var i = 0; i < localStorage.length; i++) {
+    //     var k = localStorage.key(i);
+    //     if (!k || k.indexOf('-auth-token') < 0) continue;
+    //     var v = JSON.parse(localStorage.getItem(k) || 'null');
+    //     var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
+    //     if (t) return t;
+    //   }
+    // } catch (_) {}
     return '';
   }
 
@@ -1136,19 +1182,24 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              ? 'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands. '
-                + 'If sign-in fails, the Google OAuth client needs this deployment\u2019s Supabase callback allowed: '
-                // Derived, never hardcoded: a baked-in project ref went stale twice and
-                // told operators to allowlist a callback for a project that no longer exists.
-                + (((window.__SUPABASE__ || {}).url || '<SUPABASE_URL is not configured for this deployment>').replace(/\/+$/, '') + '/auth/v1/callback')
+              // 2026-09-28: sign-in is a mobile number and a 4-digit PIN, in
+              // the rail's own panel. The Google sentence and its callback
+              // hint are kept below, commented, for the record:
+              //   'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands. '
+              //   + 'If sign-in fails, the Google OAuth client needs this deployment\u2019s Supabase callback allowed: '
+              //   + (((window.__SUPABASE__ || {}).url || '<SUPABASE_URL is not configured for this deployment>').replace(/\/+$/, '') + '/auth/v1/callback')
+              ? 'You are not signed in. Sign in with your mobile number and a 4-digit PIN to keep your work under your name, '
+                + 'or set up a brand on this device now: it is saved here either way.'
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
-            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Google</button>'
+            // DISABLED 2026-09-28, the Google button:
+            // '<button type="button" data-gate-signin ...>Sign in with Google</button>'
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with your mobile number</button>'
               // Signed out is a usable state: a brand can be set up on this
-              // device now and synced to the account after signing in.
+              // device now.
               + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
             : '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>') +
           '<button type="button" data-gate-about style="background:transparent;color:#111;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer">About this platform</button>' +
@@ -1163,6 +1214,14 @@
     document.body.appendChild(el);
     var signin = el.querySelector('[data-gate-signin]');
     if (signin) signin.addEventListener('click', function () {
+      // 2026-09-28: opens auth.js's inline mobile+PIN panel in the rail. The
+      // gate steps aside so the panel can be used; it returns on the next
+      // resolution if there is still no brand.
+      try {
+        var a = window.LifecycleAuth;
+        if (a && typeof a.openSignIn === 'function') { removeGate(); a.openSignIn(); return; }
+      } catch (_) {}
+      /* ── DISABLED 2026-09-28: the Google redirect. Mobile+PIN replaced it.
       signin.textContent = 'Opening Google...';
       try {
         var a = window.LifecycleAuth;
@@ -1171,7 +1230,8 @@
           return;
         }
       } catch (_) {}
-      // auth.js has not booted yet; it runs the same sign-in on load.
+      ── */
+      // auth.js has not booted yet; it mounts the panel's rail on load.
       location.reload();
     });
     var btn = el.querySelector('[data-gate-about]');

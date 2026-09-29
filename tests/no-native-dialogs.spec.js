@@ -148,6 +148,16 @@ async function open(page, file, opts) {
   await page.route(/\/api\/public-config(\?|$)/, (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(config),
   }));
+  // The mobile+PIN endpoint (2026-09-28): this deployment has no DATABASE_URL,
+  // so accounts are saved on the device and the server says so; an `enter`
+  // reaching it anyway is refused with a sentence.
+  await page.route(/\/api\/public-config\?action=auth/, (route) => {
+    const op = new URL(route.request().url()).searchParams.get('op');
+    const body = op === 'status'
+      ? { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' }
+      : { ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment, so "' + op + '" cannot run on the server. Accounts are saved on this device instead.' };
+    return route.fulfill({ status: op === 'status' ? 200 : 503, contentType: 'application/json', body: JSON.stringify(body) });
+  });
   for (const [matcher, handler] of routes) await page.route(matcher, handler);
 
   await page.goto('http://app.example.test/' + file, { waitUntil: 'domcontentloaded' });
@@ -155,18 +165,28 @@ async function open(page, file, opts) {
   return { dialogs, errors };
 }
 
-/** The rail note and the standing bar, as rendered. */
+/** The rail note, the sign-in panel and the standing bar, as rendered. */
 function readSurfaces(page) {
   return page.evaluate(() => {
     const n = (s) => String(s || '').replace(/\s+/g, ' ').trim();
     const note = document.getElementById('lnav-signin-note');
     const bar = document.getElementById('lc-authnotice-text');
     const btn = document.getElementById('lnav-signin');
+    const panel = document.getElementById('lnav-mauth');
+    const mode = document.getElementById('lnav-mauth-mode');
+    const err = document.getElementById('lnav-mauth-err');
     return {
       note: note ? n(note.textContent) : null,
       kind: note ? note.getAttribute('data-kind') : null,
       bar: bar ? n(bar.textContent) : null,
+      barKind: (document.getElementById('lc-authnotice') || { getAttribute: () => null }).getAttribute('data-kind'),
       button: btn ? n(btn.textContent) : null,
+      panel: !!panel,
+      panelInRail: !!(panel && document.getElementById('lifecycle-nav') && document.getElementById('lifecycle-nav').contains(panel)),
+      mode: mode ? n(mode.textContent) : null,
+      err: err ? n(err.textContent) : null,
+      errFrames: err ? err.querySelectorAll('.vh-failure[data-failure="1"]').length : 0,
+      google: /Sign in with Google/i.test(document.body.innerText || ''),
       oauth: (window.__OAUTH_CALLS__ || []).length,
       url: location.href,
     };
@@ -203,9 +223,16 @@ test('the page list is real', () => {
   expect(PAGES).toContain('index.html');
 });
 
-/* ═══ Sign-in against a dead host: every page, no dialog, one sentence ═══ */
+/* ═══ Sign-in against a dead host: every page, no dialog, the panel here ═══
+   SINCE 2026-09-28 sign-in is a mobile number and a PIN in the rail's own
+   panel (tests/mobile-pin-signin.spec.js); Google is commented out. The dead
+   Supabase host no longer decides whether sign-in can happen - it decides
+   whether the WORKSPACE database is there, and the bar still says so - so
+   pressing Sign in must open the panel on the same page, hand the browser to
+   nobody, and open no dialog. The bar's words are still checked: a dead host
+   is still named, and no cause the network cannot know is picked. */
 
-test('pressing Sign-in against a DEAD host opens no dialog and says the bar\'s sentence, on every page', async ({ page }) => {
+test('pressing Sign-in against a DEAD host opens the panel here, no dialog, no redirect, and the bar still names the host, on every page', async ({ page }) => {
   test.setTimeout(900_000);
   const failures = [];
   const overlapped = [];
@@ -221,15 +248,17 @@ test('pressing Sign-in against a DEAD host opens no dialog and says the bar\'s s
     pressed++;
     const got = await readSurfaces(page);
     if (dialogs.length) failures.push(`${f}: a native dialog opened: ${dialogs.join(' | ')}`);
-    if (!got.note) { failures.push(`${f}: no inline note rendered under the Sign-in button`); continue; }
-    if (got.kind !== 'unreachable') failures.push(`${f}: the note is for state "${got.kind}", expected "unreachable"`);
-    if (!got.bar) failures.push(`${f}: the standing bar is missing after Sign-in was pressed`);
-    // ONE sentence source. The bar and the note must be the same words.
-    else if (got.note !== got.bar) failures.push(`${f}: the note and the bar diverge:\n    note: ${got.note}\n    bar:  ${got.bar}`);
-    if (!/deleted-project\.supabase\.co/.test(got.note)) failures.push(`${f}: the note does not name the host`);
-    if (!/deleted, renamed or paused/i.test(got.note)) failures.push(`${f}: the note picks a cause the network cannot know: ${got.note}`);
+    if (!got.panel) { failures.push(`${f}: no sign-in panel opened in the rail`); continue; }
+    if (!got.panelInRail) failures.push(`${f}: the panel is not inside the rail`);
+    if (!got.bar) failures.push(`${f}: the standing bar is missing`);
+    else {
+      if (!/deleted-project\.supabase\.co/.test(got.bar)) failures.push(`${f}: the bar does not name the host`);
+      if (!/deleted, renamed or paused/i.test(got.bar)) failures.push(`${f}: the bar picks a cause the network cannot know: ${got.bar}`);
+    }
+    if (got.google) failures.push(`${f}: a "Sign in with Google" control is still offered`);
     if (got.oauth) failures.push(`${f}: signInWithOAuth was called for a host that does not resolve`);
     if (/deleted-project\.supabase\.co\/auth/.test(got.url)) failures.push(`${f}: the browser was navigated to the dead host`);
+    if (!new RegExp('/' + f.replace(/[.]/g, '\\.') + '(\\?|#|$)').test(got.url)) failures.push(`${f}: pressing Sign in navigated away, to ${got.url}`);
   }
   if (overlapped.length) console.log(`Sign-in was under another fixed element and had to be dispatched on: ${overlapped.join(', ')}`);
   expect(failures, `\n  ${failures.join('\n  ')}`).toEqual([]);
@@ -238,34 +267,38 @@ test('pressing Sign-in against a DEAD host opens no dialog and says the bar\'s s
 
 /* ═══ the other states, on one page ════════════════════════════════════════ */
 
-test('an UNCONFIGURED deployment says so under the button, in the bar\'s words', async ({ page }) => {
+test('an UNCONFIGURED deployment: the bar says so in its words, and the panel says where an account would be saved', async ({ page }) => {
   const { dialogs } = await open(page, 'retention-playbook.html', { config: NO_BACKEND });
   await pressSignIn(page);
+  await page.waitForFunction(() => /device|database/i.test((document.getElementById('lnav-mauth-mode') || {}).textContent || ''), null, { timeout: 8000 });
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
-  expect(got.note, 'no inline note rendered').toBeTruthy();
-  expect(got.kind).toBe('unconfigured');
-  expect(got.note).toBe(got.bar);
-  expect(got.note).toMatch(/SUPABASE_URL/);
-  expect(got.button).toBe('Sign-in unavailable');
+  expect(got.barKind).toBe('unconfigured');
+  expect(got.bar).toMatch(/SUPABASE_URL/);
+  expect(got.panel, 'no sign-in panel opened').toBe(true);
+  // ONE sentence for where the account goes, from the server's own answer.
+  expect(got.mode).toMatch(/Saved on this device only: no database is configured/);
+  expect(got.button, 'the chip changed its words for a state that is not a refusal').toBe('Sign in');
   // The anchor's href="/" used to be the fallback for this case: the visitor
   // was sent to the homepage instead of being told why.
   expect(got.url).toContain('retention-playbook.html');
 });
 
-test('a blocked supabase-js CDN is named as the cause, under the button and in the bar alike', async ({ page }) => {
+test('a blocked supabase-js CDN is named as the cause in the bar, and sign-in still opens', async ({ page }) => {
   const { dialogs } = await open(page, 'retention-playbook.html', { config: WITH_BACKEND, reachable: true, sdk: false });
   await page.waitForTimeout(4500);   // boot()'s catch renders the rail after the SDK load gives up
   await pressSignIn(page);
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
-  expect(got.kind, 'a URL with no client is the SDK failing to load, not a missing env var').toBe('sdk');
-  expect(got.note).toBe(got.bar);
-  expect(got.note).toMatch(/Supabase library did not load/i);
-  expect(got.note).toMatch(/cdn\.jsdelivr\.net/);
+  expect(got.barKind, 'a URL with no client is the SDK failing to load, not a missing env var').toBe('sdk');
+  expect(got.bar).toMatch(/Supabase library did not load/i);
+  expect(got.bar).toMatch(/cdn\.jsdelivr\.net/);
+  // The SDK is not in the sign-in path any more, and the bar says so.
+  expect(got.bar).toMatch(/mobile number does not need it/i);
+  expect(got.panel).toBe(true);
 });
 
-test('a bar the visitor dismissed comes back when Sign-in is pressed', async ({ page }) => {
+test('a bar the visitor dismissed stays dismissed; pressing Sign-in opens the panel, which carries its own sentence', async ({ page }) => {
   const { dialogs } = await open(page, 'retention-playbook.html', { config: DEAD_BACKEND, reachable: false });
   // Dispatched, not pointer-clicked: the fixed credits pill sits over the
   // bar's Dismiss button at this width, which is a layout matter for another
@@ -273,31 +306,54 @@ test('a bar the visitor dismissed comes back when Sign-in is pressed', async ({ 
   await page.evaluate(() => document.querySelector('#lc-authnotice button').click());
   await expect(page.locator('#lc-authnotice')).toHaveCount(0);
   await pressSignIn(page);
+  await page.waitForFunction(() => /device|database/i.test((document.getElementById('lnav-mauth-mode') || {}).textContent || ''), null, { timeout: 8000 });
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
-  expect(got.bar, 'the dismissed bar did not return').toBeTruthy();
-  expect(got.note).toBe(got.bar);
+  // The bar explained the WORKSPACE database; dismissing it was a choice. The
+  // panel answers the different question it exists for - where the ACCOUNT
+  // goes - and does not drag the bar back to answer it.
+  expect(got.bar).toBeNull();
+  expect(got.panel).toBe(true);
+  expect(got.mode).toMatch(/Saved on this device only/);
 });
 
-test('a LIVE backend still hands the browser to Google, with no note and no dialog', async ({ page }) => {
-  // The fix must not become the new outage: a working project still signs in.
+test('a LIVE backend hands the browser to nobody: the panel opens, no note, no dialog, no OAuth call', async ({ page }) => {
+  // The reverse of the Google-era claim, on purpose. A working Supabase
+  // project changes nothing about sign-in: the account lives in the Neon
+  // database (or on this device), never with Google.
   const { dialogs } = await open(page, 'retention-playbook.html', { config: WITH_BACKEND, reachable: true });
   await pressSignIn(page);
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
-  expect(got.oauth, 'signInWithOAuth was not called on a reachable host').toBe(1);
-  expect(got.note, 'a refusal note rendered for a sign-in that was started').toBeNull();
+  expect(got.oauth, 'signInWithOAuth was called on a reachable host').toBe(0);
+  expect(got.note, 'a refusal note rendered for a state that is not a refusal').toBeNull();
+  expect(got.panel).toBe(true);
+  expect(got.google).toBe(false);
 });
 
-test('an OAuth refusal renders as a failure block under the button, never a dialog', async ({ page }) => {
-  const { dialogs } = await open(page, 'retention-playbook.html', { config: WITH_BACKEND, reachable: true, oauthError: 'Unsupported provider: provider is not enabled' });
+test('a refusal from the auth endpoint renders as a failure block inside the panel, never a dialog', async ({ page }) => {
+  // The server-mode refusal shape: the status says "server", then `enter`
+  // answers 503 because the database stopped answering in between. The
+  // sentence goes through LifecycleFailure, under the field it refuses.
+  const { dialogs } = await open(page, 'retention-playbook.html', {
+    config: WITH_BACKEND, reachable: true,
+    routes: [[/\/api\/public-config\?action=auth/, (route) => {
+      const op = new URL(route.request().url()).searchParams.get('op');
+      if (op === 'status') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' }) });
+      return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'database_unreachable', mode: 'device', host: 'ep-fixture.neon.tech', message: 'The database (ep-fixture.neon.tech) is not answering, so "enter" cannot run on the server right now.' }) });
+    }]],
+  });
   await pressSignIn(page);
+  await page.waitForFunction(() => /database/i.test((document.getElementById('lnav-mauth-mode') || {}).textContent || ''), null, { timeout: 8000 });
+  await page.fill('#lnav-mauth-phone', '9876543210');
+  await page.click('#lnav-mauth-go');
+  await page.waitForFunction(() => ((document.getElementById('lnav-mauth-err') || {}).textContent || '').length > 0, null, { timeout: 8000 });
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
-  expect(got.kind).toBe('failed');
-  const block = await page.locator('#lnav-signin-note .vh-failure[data-failure="1"]').count();
-  expect(block, 'the OAuth error is not rendered through LifecycleFailure').toBe(1);
-  expect(got.note).toMatch(/provider is not enabled/);
+  expect(got.errFrames, 'the refusal is not rendered through LifecycleFailure').toBe(1);
+  expect(got.err).toMatch(/ep-fixture\.neon\.tech.*not answering/);
+  expect(got.panel, 'the panel closed on a refusal').toBe(true);
+  expect(got.url).toContain('retention-playbook.html');
 });
 
 /* ═══ every converted alert(), driven ══════════════════════════════════════ */
