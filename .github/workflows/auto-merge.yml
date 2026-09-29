@@ -33,6 +33,13 @@
 #     protection nothing is "required", so `mergeable_state: unstable` means
 #     "a check failed and none of them counted"; that is not green. The SiS
 #     guard workflow, CodeQL and a Vercel preview build are all read here.
+#     Vercel builds no preview for a `claude/**` head since 2026-09-29
+#     (vercel.json `git.deploymentEnabled`, so agent branches stop spending
+#     the team's 100-a-day deploy budget), and CI's build + Playwright suite
+#     is the build check. A MISSING status is not a failed one and blocks
+#     nothing. Vercel's docs do not say whether it posts any status at all for
+#     a branch it will not build; this repository cannot settle that, so watch
+#     the first agent PR whose head carries the rule.
 #
 # HOW IT MERGES. Merge commit (`merge_method: merge`), which is what every
 # merge on main already is, with `sha=<head>` so GitHub itself refuses if the
