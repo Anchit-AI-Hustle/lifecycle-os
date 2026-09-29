@@ -218,6 +218,28 @@ test.describe('lifecycle-*', () => {
     await call('lifecycle-build-mailer', { json: { id: 'entry_2', force: true } });
     expect(last(LIFE_BUILD, 'buildLifecycleMailer')).toEqual([{ id: 'entry_2', entry: null, force: true }]);
   });
+  // `force` is a BOOLEAN, and a query string carries STRINGS. `!!(body.force ||
+  // q.force)` read `?force=false` and `?force=0` as true, which skipped the
+  // retrieve-first path in buildLifecycleMailer: two LLM calls and the persisted
+  // mailer overwritten, on a request whose author had said NOT to regenerate.
+  // Only 1 / true / yes (any case) enable regeneration; everything else is a
+  // read of what was saved.
+  for (const [where, value] of [['query', 'false'], ['query', '0'], ['query', 'no'], ['query', ''], ['body', false], ['body', 'false'], ['body', 0], ['body', '0']]) {
+    test(`lifecycle-build-mailer takes the RETRIEVE path for ${where} force=${JSON.stringify(value)}`, async () => {
+      S.on(LIFE_BUILD, 'buildLifecycleMailer', async () => ({ ok: true }));
+      const o = where === 'query' ? { json: { id: 'entry_3' }, query: { force: value } } : { json: { id: 'entry_3', force: value } };
+      await call('lifecycle-build-mailer', o);
+      expect(last(LIFE_BUILD, 'buildLifecycleMailer')).toEqual([{ id: 'entry_3', entry: null, force: false }]);
+    });
+  }
+  for (const [where, value] of [['query', '1'], ['query', 'true'], ['query', 'TRUE'], ['query', 'yes'], ['body', true], ['body', 1], ['body', 'Yes']]) {
+    test(`lifecycle-build-mailer REGENERATES for ${where} force=${JSON.stringify(value)}`, async () => {
+      S.on(LIFE_BUILD, 'buildLifecycleMailer', async () => ({ ok: true }));
+      const o = where === 'query' ? { json: { id: 'entry_3' }, query: { force: value } } : { json: { id: 'entry_3', force: value } };
+      await call('lifecycle-build-mailer', o);
+      expect(last(LIFE_BUILD, 'buildLifecycleMailer')).toEqual([{ id: 'entry_3', entry: null, force: true }]);
+    });
+  }
   test('lifecycle-build-mailer without id or entry is a 400 before the builder', async () => {
     S.on(LIFE_BUILD, 'buildLifecycleMailer', async () => ({ ok: true }));
     const r = await call('lifecycle-build-mailer', { json: {} });
@@ -259,18 +281,18 @@ test.describe('lp (the /lp/:id page server)', () => {
     const r = await call('lp', { method: 'GET', query: { id: 'camp_x', debug: '1' }, auth: 'none', origin: false });
     expect(r.out).toEqual({ ok: true, diag: { campaignFound: false, reason: 'no row' } });
   });
-  test('a campaign with no page gets the fallback, built for the WORKSPACE\'S brand (the branch that used to read an undeclared `body`)', async () => {
-    S.on(PLAN, 'landingPageResolve', async () => ({ html: null, diag: { campaignFound: true } }));
+  test('a campaign with no page gets the fallback, built for the brand the RECORD names (the branch that used to read an undeclared `body`)', async () => {
+    S.on(PLAN, 'landingPageResolve', async () => ({ html: null, diag: { campaignFound: true, workspace_id: H.WS } }));
     S.on(WS_SCOPE, 'brandForWorkspace', async () => H.BRAND_ROW);
     S.on(FALLBACK, 'buildFallbackLanding', (o) => `<html><body>${o.brand ? o.brand.name : 'NO BRAND'} ${o.region} ${o.id}</body></html>`);
-    const r = await call('lp', { method: 'GET', query: { id: 'camp_1', region: 'uk', workspace_id: H.WS, hint: 'drop' }, auth: 'none', origin: false });
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_1', region: 'uk', hint: 'drop' }, auth: 'none', origin: false });
     expect(r.status).toBe(200);
     expect(r.headers['x-knickgasm-lp']).toBe('campaign-no-lp-fallback');
     expect(r.text).toBe('<html><body>Harness Brand uk camp_1</body></html>');
     expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS);
     expect(last(FALLBACK, 'buildFallbackLanding')[0]).toMatchObject({ id: 'camp_1', region: 'uk', hint: 'drop' });
   });
-  test('the fallback for a campaign that was never persisted says so in its header, and without a workspace carries no brand', async () => {
+  test('the fallback for a campaign that was never persisted says so in its header, and with no record to name a brand carries none', async () => {
     S.on(PLAN, 'landingPageResolve', async () => ({ html: null, diag: { campaignFound: false } }));
     S.on(WS_SCOPE, 'brandForWorkspace', async () => H.BRAND_ROW);
     S.on(FALLBACK, 'buildFallbackLanding', (o) => `<html>${o.brand ? 'brand' : 'no-brand'}</html>`);
@@ -285,6 +307,180 @@ test.describe('lp (the /lp/:id page server)', () => {
     const r = await call('lp', { method: 'GET', query: { id: 'camp_1' }, auth: 'none', origin: false });
     expect(r.status).toBe(500);
     expect(r.out).toEqual({ ok: false, error: 'store down' });
+  });
+});
+
+/* ── lp: WHOSE brand does the fallback page wear ────────────────────────────
+ *
+ * Post-merge review of PR #103 (P1): an ordinary /lp/<campaign_id> link carries
+ * no workspace_id - smart-brain-plan.js and smart-brain.html mint them that way
+ * - and the router never set req.__workspaceId on the lp path, so `wsId` was
+ * empty, brandForWorkspace was skipped and buildFallbackLanding fell through to
+ * its defaultBrand() door: TENANT ZERO's name, palette, tagline and store on
+ * another tenant's campaign URL.
+ *
+ * Executing it found the defect is one layer deeper too. SmartBrainDbAdapter
+ * scopes every read of smart_generated_campaigns to a workspace, and with none
+ * in the config it resolves the OLDEST one - tenant zero - so another tenant's
+ * PERSISTED campaign was never even found: the bare link fell to the fallback
+ * every time, and the fallback wore tenant zero's brand.
+ *
+ * These tests do not stub the resolver, the adapter, the brand lookup or the
+ * renderer. The fake project answers the three tables the way PostgREST would
+ * - every `eq.` filter on the URL is applied to the rows - so a lookup that
+ * still carries the wrong workspace filter finds nothing, exactly as the real
+ * database would. Tenant zero's signature is read off its own record, never
+ * typed here.
+ */
+const ZERO = require(H.ROOT + '/data/brands/_default.json');
+const hostOf = (u) => { try { return new URL(String(u)).host.replace(/^www\./, ''); } catch (_) { return ''; } };
+const ZERO_SIGNATURE = [...new Set([
+  ZERO.name, ZERO.slug, ZERO.tagline, ZERO.legal_entity,
+  ZERO.palette && ZERO.palette.primary, ZERO.palette && ZERO.palette.accent,
+  hostOf(ZERO.website), ...(ZERO.regions || []).map((r) => hostOf(r.store_url)),
+].filter((s) => s && String(s).length >= 4).map((s) => String(s).toLowerCase()))];
+const signatureHits = (page) => { const low = String(page).toLowerCase(); return ZERO_SIGNATURE.filter((s) => low.includes(s)); };
+
+/** A PostgREST table on the fake project: `eq.` filters (incl. `payload->>key`) and `limit` applied like the database does. */
+function fakeTable(table, rows) {
+  const base = `${H.SUPABASE_URL}/rest/v1/${table}`;
+  guard.route((u) => u === base || u.startsWith(base + '?'), (u) => {
+    const sp = new URL(u).searchParams;
+    let out = rows.slice();
+    for (const [k, v] of sp) {
+      if (k === 'select' || k === 'limit' || k === 'order') continue;
+      const m = /^eq\.(.*)$/.exec(v);
+      if (!m) continue;
+      const j = /^([a-z_]+)->>([a-z_]+)$/.exec(k);
+      out = out.filter((r) => String(((j ? (r[j[1]] || {})[j[2]] : r[k]) ?? '')) === m[1]);
+    }
+    const lim = Number(sp.get('limit'));
+    return H.reply(200, lim ? out.slice(0, lim) : out);
+  });
+}
+const CAMPAIGN = (id, workspace_id, extra) => Object.assign({ id, workspace_id, status: 'prebuilt', payload: { campaign_id: id, assets: { landing_pages: [] } } }, extra || {});
+const realBrandForWorkspace = () => { const real = require(H.ROOT + '/' + WS_SCOPE).brandForWorkspace; return (...a) => real(...a); };
+
+test.describe('lp: the fallback page wears the brand of the RECORD, never tenant zero by default', () => {
+  test('the signature this file checks against is non-trivial and comes from the record', () => {
+    expect(ZERO_SIGNATURE.length).toBeGreaterThanOrEqual(5);
+    expect(ZERO_SIGNATURE).toContain(String(ZERO.name).toLowerCase());
+    expect(ZERO_SIGNATURE).toContain(String(ZERO.palette.primary).toLowerCase());
+  });
+
+  test('a bare /lp/<id> for ANOTHER tenant\'s persisted campaign (no workspace_id in the link) renders the fallback in THAT brand', async () => {
+    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_other', H.WS)]);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    S.on(WS_SCOPE, 'brandForWorkspace', realBrandForWorkspace());
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_other', region: 'uk' }, auth: 'none', origin: false });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(String(r.headers['content-type'])).toMatch(/^text\/html/);
+    // The row was FOUND by its id (the header says the campaign exists and has no page yet)...
+    expect(r.headers['x-knickgasm-lp']).toBe('campaign-no-lp-fallback');
+    // ...its workspace was read off the row, not off the link...
+    expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS);
+    // ...and the page is that brand's, with nothing of tenant zero's on it.
+    expect(r.text).toContain(H.BRAND_ROW.name);
+    expect(r.text.toLowerCase()).toContain(H.BRAND_ROW.palette.primary.toLowerCase());
+    expect(signatureHits(r.text), 'tenant zero on another tenant\'s page').toEqual([]);
+    expect(r.text).not.toContain('[DATA REQUIRED BEFORE LAUNCH');
+    expect(guard.escaped).toEqual([]);
+  });
+
+  test('another tenant\'s PERSISTED page is served from the bare link (the adapter\'s default-workspace filter used to hide it)', async () => {
+    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_lp', H.WS, { payload: { campaign_id: 'camp_lp', assets: { landing_pages: [{ variant: 'A', html: '<!doctype html><title>their page</title>' }] } } })]);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_lp' }, auth: 'none', origin: false });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(r.text).toBe('<!doctype html><title>their page</title>');
+    expect(r.headers['x-knickgasm-lp']).toBeUndefined();
+  });
+
+  test('a campaign nobody persisted renders a NEUTRAL page with the DATA REQUIRED marker, not another tenant\'s brand', async () => {
+    fakeTable('smart_generated_campaigns', []);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    S.on(WS_SCOPE, 'brandForWorkspace', realBrandForWorkspace());
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_ghost' }, auth: 'none', origin: false });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(r.headers['x-knickgasm-lp']).toBe('campaign-not-persisted-fallback');
+    expect(r.text).toMatch(/\[DATA REQUIRED BEFORE LAUNCH: [^\]]*camp_ghost[^\]]*\]/);
+    expect(signatureHits(r.text), 'tenant zero on a page for a campaign that does not exist').toEqual([]);
+    expect(r.text).not.toContain(H.BRAND_ROW.name);
+    expect(S.hits(WS_SCOPE, 'brandForWorkspace')).toEqual([]);
+  });
+
+  test('a ?workspace_id= on the link does not choose the brand: the record does, and without a record nobody does', async () => {
+    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_other', H.WS)]);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    S.on(WS_SCOPE, 'brandForWorkspace', realBrandForWorkspace());
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_other', workspace_id: 'ws_someone_else' }, auth: 'none', origin: false });
+    expect(r.text).toContain(H.BRAND_ROW.name);
+    expect(S.hits(WS_SCOPE, 'brandForWorkspace').map((h) => h.args[1])).toEqual([H.WS]);
+    const g = await call('lp', { method: 'GET', query: { id: 'camp_ghost', workspace_id: H.WS }, auth: 'none', origin: false });
+    expect(g.text).toContain('[DATA REQUIRED BEFORE LAUNCH');
+    expect(g.text).not.toContain(H.BRAND_ROW.name);
+    expect(S.hits(WS_SCOPE, 'brandForWorkspace').length).toBe(1);
+  });
+
+  test('a campaign that IS tenant zero\'s falls back to the shipped default brand', async () => {
+    // WS_OLDEST is the oldest workspace: tenant zero by the repo's standing
+    // definition (workspace-scope.defaultWorkspaceId, market-analytics
+    // .ownsBundledExport). The fake project has no readable brand row for it,
+    // so this is the one case in which the shipped record is the right answer.
+    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_zero', H.WS_OLDEST)]);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    S.on(WS_SCOPE, 'brandForWorkspace', realBrandForWorkspace());
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_zero' }, auth: 'none', origin: false });
+    noHarnessError(r);
+    expect(r.headers['x-knickgasm-lp']).toBe('campaign-no-lp-fallback');
+    expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS_OLDEST);
+    expect(r.text).toContain(ZERO.name);
+    expect(r.text).not.toContain('[DATA REQUIRED BEFORE LAUNCH: brand');
+  });
+
+  test('a record whose brand cannot be read, and which is NOT tenant zero\'s, gets the neutral page rather than the default brand', async () => {
+    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_unread', 'ws_harness_unreadable')]);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    S.on(WS_SCOPE, 'brandForWorkspace', realBrandForWorkspace());
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_unread' }, auth: 'none', origin: false });
+    noHarnessError(r);
+    expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe('ws_harness_unreadable');
+    expect(r.text).toContain('[DATA REQUIRED BEFORE LAUNCH');
+    expect(signatureHits(r.text)).toEqual([]);
+    expect(r.text).not.toContain(H.BRAND_ROW.name);
+  });
+
+  test('a calendar slot that ADVERTISES the id names the brand when the campaign row is not there yet', async () => {
+    fakeTable('smart_generated_campaigns', []);
+    fakeTable('smart_calendar_entries', [{ id: 'slot_1', workspace_id: H.WS, generated_campaign_id: 'camp_slot', status: 'approved', payload: {} }]);
+    fakeTable('landing_pages_generated', []);
+    S.on(WS_SCOPE, 'brandForWorkspace', realBrandForWorkspace());
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_slot' }, auth: 'none', origin: false });
+    noHarnessError(r);
+    expect(r.headers['x-knickgasm-lp']).toBe('campaign-not-persisted-fallback');
+    expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS);
+    expect(r.text).toContain(H.BRAND_ROW.name);
+    expect(signatureHits(r.text)).toEqual([]);
+  });
+
+  test('the neutral page is a real page: html, cacheable, downloadable, and it names the campaign', async () => {
+    fakeTable('smart_generated_campaigns', []);
+    fakeTable('smart_calendar_entries', []);
+    fakeTable('landing_pages_generated', []);
+    const r = await call('lp', { method: 'GET', query: { id: 'camp_ghost', download: '1' }, auth: 'none', origin: false });
+    expect(String(r.headers['content-type'])).toMatch(/^text\/html/);
+    expect(r.headers['content-disposition']).toContain('camp_ghost');
+    expect(r.text).toMatch(/^<!doctype html>/i);
+    expect(r.text).toContain('camp_ghost');
   });
 });
 

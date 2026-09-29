@@ -33,20 +33,82 @@ function pickHero(list, hint) {
 }
 
 /**
+ * WHOSE brand the /lp/:id fallback wears, decided by the RECORD the id
+ * resolved to (its workspace_id), never by the link and never by a literal.
+ *
+ *   record          the workspace's own brand row, read with the service key
+ *   tenant_zero     the row could not be read, but the workspace IS tenant
+ *                   zero (the oldest workspace - the repo's standing definition,
+ *                   see workspace-scope.defaultWorkspaceId and
+ *                   market-analytics.ownsBundledExport), so the shipped record
+ *                   is the right answer
+ *   brand_unreadable the workspace is somebody else's and its brand could not
+ *                   be read: NO brand. Tenant zero's is not a stand-in.
+ *   no_record       nothing names a workspace: NO brand.
+ *
+ * The caller renders the last two as the neutral page below.
+ */
+async function brandForLandingRecord(env, workspaceId) {
+  const ws = String(workspaceId || '').trim();
+  if (!ws) return { brand: null, reason: 'no_record', workspace_id: '' };
+  const wsScope = require('./workspace-scope.js');
+  let brand = null;
+  try { brand = await wsScope.brandForWorkspace(env, ws); } catch (_) { brand = null; }
+  if (brand && (brand.id || brand.slug || brand.name)) return { brand, reason: 'record', workspace_id: ws };
+  let zero = null;
+  try { zero = await wsScope.defaultWorkspaceId(env); } catch (_) { zero = null; }
+  if (zero && String(zero) === ws) return { brand: require('./brand-runtime.js').defaultBrand(), reason: 'tenant_zero', workspace_id: ws };
+  return { brand: null, reason: 'brand_unreadable', workspace_id: ws };
+}
+
+/**
+ * The page /lp/:id serves when the id names NO brand: no record carries it, or
+ * the record's brand could not be read. It states the gap and shows nobody's
+ * name, colours, products or claims in the meantime. No colour is decided here
+ * at all - the ground and the ink are the engine's own light-scheme system
+ * colours, so the page is neither black nor anyone's palette.
+ */
+function buildNeutralLanding({ id = '', attribution = null } = {}) {
+  const a = attribution || {};
+  const why = a.reason === 'brand_unreadable'
+    ? `The campaign's workspace (${a.workspace_id}) exists, but its brand record could not be read.`
+    : 'No persisted campaign or calendar slot carries this id, so no brand can be attributed to it.';
+  const marker = `[DATA REQUIRED BEFORE LAUNCH: brand and landing page, campaign ${id || 'unknown'}]`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Landing page not available · ${e(id || 'campaign')}</title><style>
+:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:Canvas;color:CanvasText;font:16px/1.6 system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif}
+main{max-width:640px;margin:0 auto;padding:56px 22px}h1{font-size:24px;line-height:1.25;margin:0 0 16px}
+.marker{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;padding:14px 16px;border:1px solid CanvasText;border-radius:8px;word-break:break-word}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid CanvasText;font-size:12px}
+</style></head><body><main>
+<h1>This landing page is not available yet</h1>
+<p class="marker">${e(marker)}</p>
+<p>${e(why)} No other brand's page is shown in its place.</p>
+<footer>Campaign ${e(id || 'unknown')}</footer>
+</main></body></html>`;
+}
+
+/**
  * The /lp/:id fallback page. Rendered when a generated landing page cannot be
- * found, so it must belong to the ACTIVE brand: name, palette, store, claims
- * and hero all come from the brand record.
+ * found, so it must belong to the brand the RECORD names: name, palette,
+ * store, claims and hero all come from that brand record.
  *
  * It previously hardcoded tenant zero AND asserted facts no brand record
  * supports - "Rated 4.9 / 5", "Over 250,000 five-star reviews", named celebrity
  * endorsements. Those are fabrications under the zero-fabrication contract, so
  * they are gone for every brand: proof renders only from the brand's own
  * verifiable claims, and nothing renders when it has none.
+ *
+ * With NO brand it renders the neutral page. It used to fall through to
+ * defaultBrand() - tenant zero - so every campaign whose brand did not resolve
+ * (an ordinary /lp link carries no workspace) was served under another
+ * company's name, colours and store. A caller that has established the record
+ * is tenant zero's passes that brand explicitly (brandForLandingRecord does).
  */
-function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null, entry = null } = {}) {
-  const b = (brand && brand.id) ? brand
-    : (entry && entry.brand && entry.brand.id) ? entry.brand
-      : (() => { try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; } })();
+function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null, entry = null, attribution = null } = {}) {
+  const b = (brand && (brand.id || brand.slug || brand.name)) ? brand
+    : (entry && entry.brand && (entry.brand.id || entry.brand.slug || entry.brand.name)) ? entry.brand
+      : null;
+  if (!b) return buildNeutralLanding({ id, attribution });
   const bName = b.name || 'the brand';
   const pal = b.palette || {};
   const P = pal.primary || '#111111';
@@ -99,4 +161,4 @@ ${bene.length ? `<section class="bene">${bene.map(([h, d]) => `<div class="card"
 </body></html>`;
 }
 
-module.exports = { buildFallbackLanding };
+module.exports = { buildFallbackLanding, buildNeutralLanding, brandForLandingRecord };
