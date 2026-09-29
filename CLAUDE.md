@@ -4,6 +4,82 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Every agent answers a phone account, and only a listed number spends (2026-09-29) — read `docs/agents-status.md`
+PR #112 (`48dfa26`, `3425ff7`) executed every agent action in three states and fixed what running them
+found: a phone token fell through `workspace-scope.resolve()` as USERLESS and was scoped to the oldest
+workspace, so KicksGPT answered a phone account as tenant zero; `brand-runtime.resolve()` threw for it and
+fell back to tenant zero's record; the TeleSuite registry, brand-tools, the Agent Builder spec and jarvis got
+the demo envelope, so the hub could not start signed out; every chat action got an envelope with no `reply`
+and the pages printed "undefined"; `telesuite context()` threw restAs's 403 out as a 500; brain.js's catch
+flattened a refusal, a store outage and a crash into one 500. A phone request now runs as the brand record
+it CARRIED (`brand-runtime.carriedBrand()`, re-keyed to a `device:` id) or the unresolved placeholder.
+- **`CREDITS_COMP_PHONES`, and why no migration.** A phone sign-up is free, unverified and unlimited, so a
+  wallet per number is an unlimited faucet on the provider budget: an UNLISTED number is refused before any
+  wallet row or welcome grant exists. A listed number (E.164 through `phone-rules.normPhone`, hashed, matched
+  WHOLE - a prefix, a suffix or another country code is not it) holds one PERSONAL wallet and is metered on
+  it; its recharge is `comp_account`, never a payment. `credit_wallets.user_id` has no foreign key and every
+  ledger function takes `p_user uuid`, so a Neon `app_users.id` (a v4 uuid) is a valid owner as the schema
+  stands; `workspace_id` IS a foreign key to `brand_workspaces`, so a phone wallet is always personal. The
+  three operator emails (`COMP_ACCOUNT_HASHES`) are unchanged and their executed tests pass.
+- **#112 merged 16 seconds after it was opened, before review or CI.** CI failed on it and on main
+  (`contrast-rendered` onboarding, below). The review ran afterwards, as a reviewer who wanted defects,
+  through the SHIPPED routers: every brain.js action (enumerated from its own case labels) x GET/POST x
+  seven caller shapes, and every calendar.js smart-brain action, with a scripted `llm.js` and a fetch that
+  throws on unclaimed hosts (`tests/agents-review.spec.js`, 20 tests: the first 19 all FAIL against main's
+  sources, and 21 mutations - each restoring one defect - fail the test that names them).
+- **An open model proxy on the router with the most of them.** The browser-attribution rule counted a
+  header's PRESENCE, so a forged bearer or a device-mode token (the one the browser never sends) stepped
+  past it; an anonymous POST with no Origin needed nothing at all. Both reached brand-chat, console-chat,
+  team-chat, agent-analyze, access-narrative, agentic-run (26 model calls and a crawl of tenant zero's
+  site), social-run-daily and a video provider. Now: a token attributes only if the backend did not refuse
+  it, and a refused one gets its own 401 sentence; the 14 model actions (`MODEL_FEATURE` in brain.js) are
+  metered at existing catalog keys - the meter refuses anonymous (401) and unlisted (403) before the
+  handler - and gated again in the handler for a deployment whose meter is unconfigured. The scheduler's
+  bearer is free. `requireUser()` is memoised per request, so four gates cost one verification.
+- **"Only a listed number spends" was true for the credits router and nowhere else.** An unlisted phone
+  account ran every brain agent unmetered, and generate.js too wherever `SUPABASE_SERVICE_ROLE_KEY` is
+  unset (enforce's `optional` path). `credits-core.spenderRefusal()` applies the list in require-caller,
+  brain.js and calendar.js whatever the meter's state.
+- **A phone account touched tenant zero's rows, twice over.** `workspace-scope.resolve()` honoured a
+  caller-named `workspace_id` before it asked whether the caller was a phone account (reads of another
+  workspace's agents, calendar and campaigns; PATCHes of its social posts; `ownsBundledExport` true, so the
+  bundled sales export reached the analyst). And `SmartBrainDbAdapter.workspace()` turned the router's
+  correct `null` back into the OLDEST workspace one layer down - team-chat, agent-analyze and the whole
+  smart-brain plan read tenant zero's products, campaigns and metrics with no injection at all. The #112
+  test asserted `config.workspace_id === null` on a STUB, which is exactly the value the adapter then
+  replaced: a stub stands in for the layer where the defect was. calendar.js never set `req.__brand`, so
+  preview/approve stamped tenant zero's brand; preview/approve built a campaign from a CALLER-SUPPLIED
+  entry for anyone; sync/feedback/approve wrote rows with no `workspace_id`. Now the oldest-workspace
+  default is the scheduler's only (`requestHasUser()`), the adapter refuses an unstamped scoped row, a
+  person with no workspace computes but never persists, approve/reject/feedback are `409 no_workspace`, and
+  the built-catalogue fallback is `ownsBundledExport`'s alone.
+- **A carried record could claim to be tenant zero.** Its slug was the client's, and tenant zero is
+  recognised BY SLUG (`isTenantZeroBrand`, `planningBrand`, the assistant's name) - `slug:"knickgasm"`, which
+  the KNICKGASM preset in the gallery carries, pinned the shipped catalogue. The slug is the device id now;
+  typography, palette and catalog_source were arbitrary nested objects ("bounded" held for the strings beside
+  them) and are one level of short scalars; offerings keep their `{kind,name,url}` records, which the first
+  cut dropped as non-strings.
+- **Public means for nobody.** jarvis and the Agent Builder spec, made public for a signed-out page, were
+  answered as the DEFAULT workspace (scoping had already resolved it): tenant zero's storefront and name.
+- **A `CRON_SECRET` of 64 hex characters has a phone token's shape** (`[A-Za-z0-9_-]{40,90}`), so the cron
+  read as a phone account with no workspace. The scheduler's own bearer is excluded, constant-time.
+- **CI's red on `5d2ad8c` was a real defect that looked like a flake.** The credit chip ("— cr") is appended
+  ~1.5 s after the brand paints, and the page-wide contrast probe usually ran first. Its text was
+  `--brand-primary-dark` - a hover shade nobody adjusted for text - on a 12% tint over the wizard's primary
+  button: 1.76:1, and the FREE state 2.94:1. The chip paints its own surface now with the AA-adjusted text
+  token; three deterministic cases WAIT for the chip, in the placeholder, free and paid states.
+- **A store that does not answer is said as such.** With the agents metered, a paused ledger answered every
+  listed account `502 credit_check_failed` whose message was a PostgREST URL; it is `503
+  backend_unreachable` naming the host.
+- **Recorded, not changed**: an anonymous SERVER-TO-SERVER caller can still WRITE through agent-upsert,
+  analyze, calendar-generate, calendar-review, config, feedback, mvt, os-run-daily-job, social-approve and
+  social-skip, and a caller-named `workspace_id` is still trusted for an anonymous caller - the ungated
+  posture of 2026-09-28, now measured as writes and pinned by name. None of them reaches a model any more.
+- **Production is `2b2a992`** (no deployment exists for #108 onward), in device mode (`no_database_url`),
+  with four model-provider variables set and no `DATABASE_URL` or `CREDITS_COMP_PHONES`. On that commit the
+  anonymous model routes above are open; they were not probed, because probing them spends the keys.
+  `docs/agents-status.md` has every surface, what it needs, what production answered and what unblocks it.
+
 ## ⭐ An agent branch does not spend the team's deploy budget (2026-09-29)
 `vercel.json` → `"git": { "deploymentEnabled": { "claude/**": false } }`, gated by
 `tests/vercel-deploy-quota.spec.js` (4 tests, executed with the real `minimatch`). Vercel refused the
