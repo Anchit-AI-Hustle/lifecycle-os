@@ -453,7 +453,23 @@
       else node.innerHTML = html;
     }
 
-    window.LifecycleStatus = { refusal: refusal, ordinary: ordinary, html: statusHtml, htmlFor: htmlFor, show: show };
+    /**
+     * refusal(), once auth.js has DECIDED the state. A page that asks on
+     * load can be earlier than the reachability probe (an unreachable host
+     * takes longer to fail than a live one takes to answer), and a refusal
+     * read while the state is still `pending` is null - so the request went
+     * out and its 503 came back as a frame. Waits for the first decision,
+     * bounded by the same 8 s brand-context.js allows the gate.
+     */
+    function decide(what, opts) {
+      var a = window.LifecycleAuth;
+      var first = a && typeof a.backendState === 'function' ? a.backendState() : null;
+      if (!first || !(a.backend && a.backend.kind === 'pending')) return Promise.resolve(refusal(what, opts));
+      return Promise.race([first, new Promise(function (r) { setTimeout(r, 8000); })])
+        .then(function () { return refusal(what, opts); }, function () { return refusal(what, opts); });
+    }
+
+    window.LifecycleStatus = { refusal: refusal, decide: decide, ordinary: ordinary, html: statusHtml, htmlFor: htmlFor, show: show };
   })();
 
   // ─── Universal brand layer + credit meter ───────────────────────────────

@@ -247,7 +247,10 @@ function instrument(args) {
   function Noop() {}
   Noop.prototype.update = Noop.prototype.destroy = Noop.prototype.resize = function () {};
   Noop.register = function () {};
-  Noop.defaults = { font: {}, plugins: { legend: { labels: {} }, tooltip: {} }, color: '', scale: {}, elements: {} };
+  // Chart.defaults is written at any depth (font.family, plugins.legend.labels.color):
+  // an object that grows a branch for whatever is read.
+  function auto() { return new Proxy({}, { get: function (t, k) { if (typeof k === 'symbol') return undefined; if (!(k in t)) t[k] = auto(); return t[k]; } }); }
+  Noop.defaults = auto();
   window.Chart = window.Chart || Noop;
   window.ChartDataLabels = window.ChartDataLabels || {};
   window.Papa = window.Papa || { parse: function (_, o) { if (o && o.complete) o.complete({ data: [], errors: [] }); return { data: [], errors: [] }; }, unparse: function () { return ''; } };

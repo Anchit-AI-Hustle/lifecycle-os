@@ -152,7 +152,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function getJson(view, params) {
     // Decided before anything is sent (2026-09-29): every tab on this page
     // asked the server and painted its 401 as "<Panel> could not be loaded".
-    if (window.LifecycleStatus) { var stop = window.LifecycleStatus.refusal('This analysis view'); if (stop) throw stop; }
+    if (window.LifecycleStatus) { var stop = await window.LifecycleStatus.decide('This analysis view'); if (stop) throw stop; }
     var token = await userToken();
     var headers = token ? { authorization: 'Bearer ' + token } : {};
     var r = await fetch(apiUrl(view, params), { cache: 'no-store', credentials: 'same-origin', headers: headers });

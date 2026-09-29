@@ -302,7 +302,7 @@ async function generatePlan() {
   if (!cohorts.length) { $('planMeta').innerHTML = '<span class="text-red-400">Pick at least one cohort.</span>'; return; }
   // Decided before anything is sent (2026-09-29): a signed-out visitor used
   // to get the server's 401 painted as "Failed to generate the plan".
-  const stop = window.LifecycleStatus && window.LifecycleStatus.refusal('Generating the calendar', { metered: true });
+  const stop = window.LifecycleStatus && await window.LifecycleStatus.decide('Generating the calendar', { metered: true });
   if (stop) { window.LifecycleStatus.show($('planMeta'), stop); return; }
   const btn = $('btnGenerate');
   btn.disabled = true; btn.textContent = 'Generating…';

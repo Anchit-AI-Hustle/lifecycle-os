@@ -315,7 +315,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // server and painted its 401 as "Dispatch jobs could not be loaded" for
     // every signed-out visitor. The platform registry stays public.
     if (!/registry/.test(url) && window.LifecycleStatus) {
-      var stop = window.LifecycleStatus.refusal(body ? 'This publishing action' : 'Loading this publishing view');
+      var stop = await window.LifecycleStatus.decide(body ? 'This publishing action' : 'Loading this publishing view');
       if (stop) throw stop;
     }
     var headers = { 'Content-Type': 'application/json' };
