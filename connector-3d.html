@@ -155,29 +155,39 @@
     render();
     engine.init({ catalogLimit: 24 }).then(render).catch(function(){ render(); });
 
-    function setText(id, t){ document.getElementById(id).textContent = t; }
+    function setText(id, t){ var n = document.getElementById(id); if(n) n.textContent = t; }
 
     function render(){
+      // For any brand that is not tenant zero the shell has already replaced
+      // this demo's wrap with the DATA REQUIRED marker (gateShipped, above),
+      // and the engine's async init then called back into a page with nothing
+      // to draw into: "Cannot set properties of null" on every open of this
+      // page under another brand (tests/signed-out-actions.spec.js). A gated
+      // demo simply stops rendering.
+      if(!main.isConnected) return;
       var st = engine.getState();
       var cat = engine.getCatalog();
       setText('s-status', st.status);
       setText('s-region', st.region.code + ' (' + st.region.currency + ')');
       var mp = document.getElementById('s-meta');
-      mp.innerHTML = '<span class="pill ' + (st.isMetaLander?'on':'off') + '">' + (st.isMetaLander?'true':'false') + '</span>';
+      if(mp) mp.innerHTML = '<span class="pill ' + (st.isMetaLander?'on':'off') + '">' + (st.isMetaLander?'true':'false') + '</span>';
       setText('s-viewport', st.viewport.mode);
       setText('s-render', st.renderMode);
       setText('s-source', cat.length ? (cat[0].source || 'catalog') : (st.status==='loading'?'loading':'none'));
 
-      var sw = document.getElementById('s-swatches'); sw.innerHTML = '';
-      var pal = st.brand.palette;
-      [pal.forestGreen, pal.lava, pal.ink, pal.chalk].forEach(function(c){
-        var d = document.createElement('div'); d.className='sw'; d.style.background=c; d.title=c; sw.appendChild(d);
-      });
+      var sw = document.getElementById('s-swatches');
+      if(sw){
+        sw.innerHTML = '';
+        var pal = st.brand.palette;
+        [pal.forestGreen, pal.lava, pal.ink, pal.chalk].forEach(function(c){
+          var d = document.createElement('div'); d.className='sw'; d.style.background=c; d.title=c; sw.appendChild(d);
+        });
+      }
 
       // Utility bar copy adapts to the resolved mode.
-      document.getElementById('util').textContent = st.isMetaLander
+      setText('util', st.isMetaLander
         ? 'Meta lander detected. Global exploration removed for a single spatial checkout.'
-        : 'Region routing and Meta lander detection by the 3D connector engine';
+        : 'Region routing and Meta lander detection by the 3D connector engine');
 
       if(st.status === 'loading'){ main.innerHTML = skeleton(); return; }
       if(st.status === 'error'){ main.innerHTML = '<div class="err">Catalog could not be resolved from any source (Storefront API, products.json, or the built catalog JSON).</div>'; return; }
