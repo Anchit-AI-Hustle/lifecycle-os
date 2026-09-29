@@ -2639,8 +2639,17 @@
     bar.id = 'lc-authnotice';
     bar.setAttribute('role', 'status');
     bar.setAttribute('data-kind', kind);
+    // Sticky BELOW the phone top bar, not over it. `--ltb-h` is the rail's own
+    // published height of its fixed mobile bar (0 on a desktop, where there is
+    // none). Found on production's bytes at 390px (2026-09-29): with top:0 and
+    // a z-index above the bar's, this notice - the one that says "the Sign in
+    // chip in the menu" - sat on top of the burger that opens the menu, so a
+    // signed-out phone visitor could not reach Sign in until they had found
+    // Dismiss. It is inserted after the rail for the same reason: the rail's
+    // spacer reserves the fixed bar's height in flow, so the notice starts
+    // under the bar at rest as well as when scrolling.
     bar.style.cssText = [
-      'position:sticky', 'top:0', 'z-index:120',
+      'position:sticky', 'top:var(--ltb-h, 0px)', 'z-index:120',
       'background:var(--vh-panel-2,#f5f5f5)',
       'color:var(--vh-ink,#111111)',
       'border-bottom:1px solid var(--vh-line,#ebebeb)',
@@ -2664,7 +2673,10 @@
       + 'color:var(--vh-ink,#111111);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit';
     x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-authnotice-hid', '1'); } catch (e) {} };
     bar.appendChild(txt); bar.appendChild(x);
-    (document.body || document.documentElement).insertBefore(bar, (document.body || document.documentElement).firstChild);
+    var host = document.body || document.documentElement;
+    var rail = document.getElementById('lifecycle-nav');
+    if (rail && rail.parentNode === host) rail.insertAdjacentElement('afterend', bar);
+    else host.insertBefore(bar, host.firstChild);
     return bar;
   }
 
@@ -3223,7 +3235,35 @@
     if (footer) footer.insertAdjacentElement('afterend', panel);
     else (nav.querySelector('.lnav-side') || nav).appendChild(panel);
     // The rail is a drawer on a phone; make sure it is open when a page asks.
-    if (o.openDrawer !== false) { try { nav.classList.add('open'); } catch (_) {} }
+    // ONLY when it IS a drawer, and ONLY for as long as the panel is up.
+    // Found by driving production's bytes on a desktop viewport (2026-09-29):
+    // `open` was added unconditionally, and the drawer's backdrop
+    // (`#lifecycle-nav.open .lnav-backdrop`, a 55% black sheet with
+    // pointer-events) is not scoped to the phone breakpoint - so on a desktop,
+    // where the rail is always visible and nothing needs opening, the whole
+    // page went dim the moment Sign in was pressed and STAYED dim and
+    // unclickable after the person had signed in or pressed Cancel. Nothing
+    // said why; the only way out was to click the dark area or press Escape.
+    // The rail is a drawer when the burger is RENDERED - a box on screen, not
+    // a breakpoint copied from the stylesheet and not the burger's own
+    // computed display, which stays `flex` on a desktop because it is the
+    // burger's PARENT bar that the media query hides (a child of a
+    // display:none element keeps its own value; the first version of this
+    // check read it and opened the drawer on every desktop). What this panel
+    // opened it closes again when it goes; a drawer the person opened
+    // themselves is left exactly as they had it.
+    let openedDrawer = false;
+    if (o.openDrawer !== false) {
+      try {
+        const burger = nav.querySelector('#lnav-burger');
+        const isDrawer = !!burger && burger.getClientRects().length > 0;
+        if (isDrawer && !nav.classList.contains('open')) { nav.classList.add('open'); openedDrawer = true; }
+      } catch (_) { /* no drawer to open */ }
+    }
+    const closePanel = () => {
+      panel.remove();
+      if (openedDrawer) { try { nav.classList.remove('open'); } catch (_) {} }
+    };
 
     const $ = (id) => panel.querySelector('#' + id);
     const cc = $('lnav-mauth-cc'), phone = $('lnav-mauth-phone'), pinwrap = $('lnav-mauth-pinwrap'), pin = $('lnav-mauth-pin');
@@ -3311,10 +3351,10 @@
       // Signed in.
       const sess = { token: j.token, user: j.user, mode: j.mode || st.mode, expires: j.expires || null, provider: 'mobile-pin', storage: { mode: st.mode, reason: st.reason || '', host: st.host || '', message: st.message || '' } };
       if (!mauthWriteSession(sess)) { fail('This browser refused to remember the sign-in (storage is full or blocked).'); return; }
-      panel.remove();
+      closePanel();
       mauthApply(sess, { verified: true, status: st });
     });
-    $('lnav-mauth-cancel').addEventListener('click', () => { panel.remove(); });
+    $('lnav-mauth-cancel').addEventListener('click', closePanel);
     try { panel.scrollIntoView({ block: 'nearest' }); } catch (_) {}
     try { phone.focus(); } catch (_) {}
     return panel;
