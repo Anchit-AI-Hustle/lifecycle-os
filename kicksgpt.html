@@ -253,7 +253,7 @@
     // Decided BEFORE anything is sent, from the one record auth.js publishes:
     // a sign-in that exists only in this browser cannot be verified by the
     // server, so the turn does not leave and the sentence says why.
-    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Asking the assistant'); if(stop){ addUser(msg); qEl.value=''; addStatus(stop); return; } }
+    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Asking the assistant', { metered: true }); if(stop){ addUser(msg); qEl.value=''; addStatus(stop); return; } }
     qEl.value=''; addUser(msg); history.push({role:'user',content:msg});
     if(CH) CH.append('user', msg);
     var t=document.createElement('div'); t.className='typing'; chatEl.appendChild(t); scroll();

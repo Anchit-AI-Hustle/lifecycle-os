@@ -397,7 +397,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     askNote('');
     // Decided BEFORE anything is sent: a sign-in kept only in this browser
     // cannot be verified by the server, so the turn does not leave.
-    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Asking the agent'); if(stop){ qEl.value=''; el('user', msg); addStatus(stop); return; } }
+    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Asking the agent', { metered: true }); if(stop){ qEl.value=''; el('user', msg); addStatus(stop); return; } }
     qEl.value=''; el('user', msg);
     history.push({role:'user',content:msg});
     if(CH) CH.append('user', msg, current?{agentId:current.id, agentName:current.name}:null);

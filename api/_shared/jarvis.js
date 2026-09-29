@@ -89,6 +89,9 @@ const TABS = [
  * used only when no brand record says otherwise (which is tenant zero's case).
  */
 function storeBaseFor(market, brand) {
+  // The unresolved placeholder names nobody, so it links to nobody's store -
+  // never to the map below, which is tenant zero's (2026-09-29, review).
+  if (brand && brand.unresolved === true) return '';
   if (brand && (brand.id || brand.slug)) {
     let f = null;
     try { f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) { f = null; }

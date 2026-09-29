@@ -166,9 +166,14 @@ function netGuard(opts) {
     get escaped() { return calls.filter((c) => c.escaped).map((c) => `${c.method} ${c.url}`); },
     /** Fake-Supabase REST calls, optionally filtered by a regex on the URL. */
     rest(re) { return calls.filter((c) => c.url.startsWith(SUPABASE_URL + '/rest/v1/') && (!re || re.test(c.url))); },
-    /** REST calls that are NOT the router's own workspace-scoping lookups. */
+    /**
+     * REST calls that are NOT the router's own workspace-scoping lookups, nor
+     * the credit meter's read of the price list (credit_prices: the catalog's
+     * overrides, read before the meter asks who the caller is - a price, not
+     * anybody's data).
+     */
     restBeyondScoping() {
-      return g.rest().filter((c) => !/\/rest\/v1\/(brand_user_prefs|brand_workspaces)\b/.test(c.url));
+      return g.rest().filter((c) => !/\/rest\/v1\/(brand_user_prefs|brand_workspaces|credit_prices)\b/.test(c.url));
     },
     /** Every call that would have MOVED a credit balance. */
     get balanceMoves() { return calls.filter((c) => /\/rest\/v1\/rpc\/credit_(grant|hold|spend|release|settle|fulfil)/.test(c.url)); },

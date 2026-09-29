@@ -152,7 +152,12 @@ function scriptedLlm() {
   const calls = [];
   const fn = async function callLLMStub(o) {
     const opts = o || {};
-    calls.push({ stage: opts.stage || '', tier: opts.tier || '', json: !!(opts.responseFormat && opts.responseFormat.type === 'json_object') });
+    // Which catalogue the generation was pinned to when it reached the model
+    // (brand-catalog-server's AsyncLocalStorage scope): 'shipped' means tenant
+    // zero's bundled files, 'brand' a workspace's own rows, 'none' nothing.
+    let catalog = null;
+    try { const sc = require(path.join(ROOT, 'api/_shared/brand-catalog-server.js')).currentScope(); catalog = sc ? sc.source : null; } catch (_) { catalog = null; }
+    calls.push({ stage: opts.stage || '', tier: opts.tier || '', json: !!(opts.responseFormat && opts.responseFormat.type === 'json_object'), catalog });
     const stage = String(opts.stage || '');
     let text;
     if (stage === 'kicksgpt') text = JSON.stringify({ action: 'final', reply: 'Scripted reply for this turn, with no figure invented.' });

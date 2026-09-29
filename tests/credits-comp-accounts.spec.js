@@ -83,7 +83,9 @@ test('the email is the one the auth check returned, not one the caller sent', ()
 
   // And auth.email itself comes from Supabase's own user endpoint.
   const core = fs.readFileSync(path.join(ROOT, 'api/_shared/brand-workspace-core.js'), 'utf8');
-  const fn = core.slice(core.indexOf('async function requireUser'), core.indexOf('/** PostgREST call made AS THE CALLER'));
+  // requireUser() memoises one verification per request (2026-09-29); the
+  // verification itself is verifyCaller().
+  const fn = core.slice(core.indexOf('async function verifyCaller'), core.indexOf('/** PostgREST call made AS THE CALLER'));
   expect(fn).toMatch(/auth\/v1\/user/);
   expect(fn).toMatch(/email: String\(user\.email/);
 });
