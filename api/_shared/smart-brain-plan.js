@@ -256,8 +256,15 @@ async function planningBrand(config, db) {
     const carried = requestBrand();
     if (carried) {
       if (carried.unresolved) return { isZero: false, brand: null };
+      // A CARRIED record is a device brand, and a device brand is never
+      // tenant zero, whatever name or slug it arrived with (2026-09-29,
+      // review): testing its slug against tenant zero's let any phone
+      // account that sent that slug plan over tenant zero's assortment.
+      if (carried.carried === true || carried.storage === 'device') return { isZero: false, brand: carried };
       return { isZero: /^knickgasm$/i.test(String(carried.slug || carried.name || '')), brand: carried };
     }
+    // A person with no workspace and no brand on the request is not the cron.
+    if (requestIsPerson()) return { isZero: false, brand: null };
     return { isZero: true, brand: null }; // userless (cron) default = tenant zero
   }
   try {
@@ -2063,9 +2070,24 @@ function requestBrand() {
     const rs = require('./request-scope.js');
     const req = rs.currentRequest && rs.currentRequest();
     const b = req && req.__brand;
-    if (b && (b.id || b.slug || b.unresolved === true)) return b;
+    // A record that NAMES a brand: a workspace row (it has an id), a record a
+    // phone account carried, or the unresolved placeholder. The shipped
+    // default (no id - what brand-runtime.resolve() answers every userless
+    // call with) is not an answer here, so a WORKSPACE_ID-pinned scheduler
+    // run keeps resolving its own workspace's row below instead of being
+    // stamped as tenant zero (2026-09-29, review).
+    if (b && (b.id || b.carried === true || b.unresolved === true)) return b;
   } catch (_) { /* outside a wrapped handler */ }
   return null;
+}
+
+/** Is the request being served a PERSON's (session token present), not the scheduler's? */
+function requestIsPerson() {
+  try {
+    const rs = require('./request-scope.js');
+    const req = rs.currentRequest && rs.currentRequest();
+    return !!(req && require('./workspace-scope.js').requestHasUser(req));
+  } catch (_) { return false; }
 }
 
 async function stampBrand(entry, config) {
@@ -2082,7 +2104,11 @@ async function stampBrand(entry, config) {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
     if (!url || !key) return entry;
     const env = { url, key };
-    const wsId = entry.workspace_id || (config && config.workspace_id) || await wsScope.defaultWorkspaceId(env);
+    // The oldest workspace is the SCHEDULER's default, never a person's: a
+    // signed-in caller with no workspace is stamped with no brand here (the
+    // prompt builder then marks the gap) rather than with tenant zero's.
+    const wsId = entry.workspace_id || (config && config.workspace_id) || (requestIsPerson() ? null : await wsScope.defaultWorkspaceId(env));
+    if (!wsId) return entry;
     const brand = await wsScope.brandForWorkspace(env, wsId);
     if (brand) entry.brand = brand;
     else try { console.warn(`[smart-brain] no brand resolved for workspace ${wsId}; prompts will use the default brand`); } catch (_) {}
@@ -2940,6 +2966,10 @@ module.exports = {
   // directly rather than inferred from a full sync.
   __test_offeringPlanEntries: offeringPlanEntries,
   __test_workspaceNs: workspaceNs,
+  // Executed by tests/agents-review.spec.js inside a request scope: which
+  // brand a slot is stamped with, and whether the plan is tenant zero's.
+  __test_stampBrand: stampBrand,
+  __test_planningBrand: planningBrand,
   // exported for tests/smart-brain-assets.spec.js. The prompt, the proof gate,
   // the proof block and the ad artefacts are the four things this module can get
   // wrong in a way that ships to a customer, so each is assertable directly

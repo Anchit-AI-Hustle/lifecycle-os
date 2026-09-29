@@ -261,6 +261,25 @@ function isCompPhone(phone) {
   return compPhones().includes(phoneHash(np.e164));
 }
 
+/**
+ * May this VERIFIED caller reach a model or a paid provider at all? Null when
+ * it may; otherwise the refusal to send (2026-09-29, review).
+ *
+ * The meter already answers this for every metered request: an unlisted phone
+ * number is refused before a wallet exists. But a deployment whose meter is
+ * not configured lets a metered request through UNMETERED (enforce's
+ * `optional`), and the caller gates behind it (require-caller, brain.js,
+ * calendar.js) asked only "is there a session" - so there an unlisted number,
+ * which is free, unverified and unlimited, spent the provider keys with no
+ * wallet at all. That is the faucet the list exists to shut, reopened by a
+ * missing environment variable. The list decides in both configurations now.
+ */
+function spenderRefusal(auth) {
+  if (!auth || auth.ok === false) return null;
+  if (auth.provider === 'mobile-pin' && !isCompPhone(auth.phone)) return mobileAccountRefusal(null);
+  return null;
+}
+
 /** Complimentary by whichever identity the verified session carries: the email of a Supabase account, the number of a phone account. */
 function isCompAuth(auth) {
   if (!auth || typeof auth !== 'object' || auth.ok === false) return false;
@@ -438,6 +457,24 @@ async function enforce(req, res, featureKey, opts) {
   try {
     m = await meter(req, featureKey, o);
   } catch (err) {
+    // A wallet store that did not ANSWER is not a credit-check bug (2026-09-29,
+    // review): the ledger is a table in the workspace database, and when that
+    // project is paused every metered request used to come back as a 502
+    // `credit_check_failed` whose whole message was a PostgREST URL. Now the
+    // brain agents are metered too, so that string would have been what every
+    // listed account read. Said as what it is, naming the host to fix; nothing
+    // ran and nothing was charged, because the hold is what failed.
+    const raw = String((err && err.message) || '');
+    if (!err.code && /-> 5\d\d\b|fetch failed|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|getaddrinfo|socket hang up/i.test(raw)) {
+      let host = '';
+      try { host = new URL(env().url).host; } catch (_) { host = ''; }
+      res.status(503).json({
+        ok: false, error: 'backend_unreachable', backend_unreachable: true,
+        message: `The credit wallet lives in the workspace database${host ? ` (${host})` : ''}, which is not answering, so this did not run and nothing was charged. Its Supabase project has most likely been paused, renamed or deleted.`,
+        detail: raw.slice(0, 300),
+      });
+      return { ok: false };
+    }
     // An unpriced feature key is a bug in the caller, not the user's problem —
     // surface it loudly rather than silently running the feature for free.
     res.status(err.status || 500).json({ ok: false, error: err.code || 'credit_check_failed', message: err.message });
@@ -886,4 +923,5 @@ module.exports = {
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
   isCompPhone, isCompAuth, compPhones, phoneHash, COMP_PHONE_HASHES, MOBILE_ACCOUNT_MESSAGE,
+  spenderRefusal,
 };

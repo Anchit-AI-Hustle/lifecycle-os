@@ -87,6 +87,87 @@ function publicAction(action, req, b) {
   return false;
 }
 
+/**
+ * The actions that reach an AI model or a paid provider, the method on which
+ * they do, and the credit-catalog key each is metered at (2026-09-29, review).
+ *
+ * MEASURED, not read: every action this router dispatches was sent with a
+ * scripted llm.js and a fetch that throws on any unclaimed host, as an
+ * anonymous server-to-server caller, as an unattributed browser, with a
+ * device-shaped token and with a caller-named workspace
+ * (tests/agents-executed.spec.js, "no anonymous shape reaches a model"). These
+ * are the ones that reached the model or a provider. `calendar-scenarios`
+ * reached neither and is not here; `platform-agents` already required a
+ * session.
+ *
+ * Before this, an anonymous POST with no Origin header - or with any token at
+ * all, forged or a device one, since the attribution rule counted a header's
+ * PRESENCE - ran KicksGPT, the console, the team copilot, the analyst, the
+ * 8-stage agentic run (26 model calls and a crawl of tenant zero's site), the
+ * social pipeline and a video provider on this deployment's keys: the
+ * 2026-08-23 open-proxy finding, on the router that has the most of them. And
+ * an UNLISTED phone account - free, unverified, unlimited - spent the same
+ * keys with no wallet, which is the faucet CREDITS_COMP_PHONES exists to shut.
+ *
+ * The meter is the gate: `credits.metered` below refuses an anonymous caller
+ * (401) and an unlisted number (403) BEFORE the handler, holds the price for
+ * a listed number or an account, settles on success and refunds on failure.
+ * On a deployment whose meter is not configured the handler's own gate still
+ * requires a verified caller, the same rule require-caller.js applies to
+ * api/ai/generate.js. The scheduler's bearer is free and unmetered.
+ *
+ * The keys are existing catalog entries; the mapping is the pricing decision,
+ * and it is one line each. `assistant.chat` is the catalog's "Brand assistant
+ * message", which every conversation here is.
+ */
+const MODEL_FEATURE = {
+  'brand-chat': ['POST', 'assistant.chat'],
+  'console-chat': ['POST', 'assistant.chat'],
+  'agent-chat': ['POST', 'assistant.chat'],
+  'team-chat': ['POST', 'assistant.chat'],
+  'agent-analyze': ['POST', 'assistant.chat'],
+  'access-narrative': ['POST', 'analytics.narrative'],
+  'analysis-narrative': [null, 'analytics.narrative'],
+  'agentic-run': ['POST', 'campaign.plan'],
+  generate: ['POST', 'brain.slot_prebuild'],
+  'video-generate': ['POST', 'video.generate'],
+  'mailer-assets': ['POST', 'image.generate'],
+  tts: ['POST', 'audio.tts'],
+  'social-run-daily': ['POST', 'social.daily_run'],
+  'platform-agents': [null, 'analytics.report'],
+};
+
+/** The catalog key this request would spend, or null (a read, a 405, or not a model action). */
+function modelFeature(action, req) {
+  const m = MODEL_FEATURE[action];
+  if (!m) return null;
+  if (m[0] && String((req && req.method) || 'GET').toUpperCase() !== m[0]) return null;
+  return m[1];
+}
+
+/**
+ * The scheduler's own bearer, compared exactly. Unlike cronAuthorized() this
+ * never answers true for a deployment with no CRON_SECRET: "no secret" is not
+ * "the scheduler", and a free, unmetered model call is what it would grant.
+ */
+function schedulerBearer(req) {
+  try { return require('./_shared/require-caller.js').isCron(req); } catch (_) { return false; }
+}
+
+/** Does the request carry a caller token at all (a bearer or a mobile+PIN token)? */
+function tokenOn(req) {
+  const h = (req && req.headers) || {};
+  return !!(h.authorization || h.Authorization || h['x-lifecycle-token'] || h['X-Lifecycle-Token']);
+}
+
+/** No token, no workspace named, and a page's Origin: the browser-attribution rule applies. */
+function unattributedShape(req, b) {
+  const q = (req && req.query) || {};
+  const body = b || ((req && req.body && typeof req.body === 'object') ? req.body : {});
+  const h = (req && req.headers) || {};
+  return !(q.workspace_id || body.workspace_id) && !tokenOn(req) && !!(h.origin || h.referer);
+}
+
 function cronAuthorized(req) {
   const secret = (process.env.CRON_SECRET || '').trim();
   if (secret) {
@@ -102,7 +183,7 @@ function cronAuthorized(req) {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Lifecycle-Token');
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
@@ -133,6 +214,7 @@ module.exports = async function handler(req, res) {
   // unattributed BROWSER request is refused rather than served the default
   // workspace's data.
   let __wsId = null;
+  let __auth = null;
   try {
     const wsScope = require('./_shared/workspace-scope.js');
     const scopeEnv = {
@@ -142,10 +224,54 @@ module.exports = async function handler(req, res) {
     __wsId = await wsScope.resolve(scopeEnv, req);
     const q0 = (req && req.query) || {};
     const b0 = (req && req.body && typeof req.body === 'object') ? req.body : {};
+    // A PHONE ACCOUNT NAMES NO WORKSPACE (2026-09-29, review):
+    // workspace-scope.resolve() already ignores the id; it is also removed
+    // from the request, so no handler that reads req.query/req.body directly
+    // (klaviyo's params, a core that re-resolves) can pick it back up.
+    if (wsScope.carriesMobileToken(req)) {
+      delete q0.workspace_id; delete b0.workspace_id; if (b && typeof b === 'object') delete b.workspace_id;
+    }
     const hadExplicit = !!(q0.workspace_id || b0.workspace_id);
-    const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization || req.headers['x-lifecycle-token']));
+    // A token ATTRIBUTES a request only if the auth backend did not refuse it
+    // (2026-09-29, review). This read a header's PRESENCE, so a forged bearer,
+    // an expired session or a device-mode token (the one the browser never
+    // sends, and the server cannot verify) stepped past the rule below - the
+    // anonymous browser's 409 became a model call. Verified once, memoised on
+    // the request, and reused by the meter, the brand resolve and the handler
+    // gates. A backend that could not be REACHED (503) is not a refusal: the
+    // request keeps its attribution and every gate that needs a session still
+    // answers 503 with the host to fix.
+    if (tokenOn(req) && !schedulerBearer(req)) {
+      __auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+    }
+    const tokenRefused = !!(__auth && !__auth.ok && Number(__auth.status) === 401);
+    // A refused token proves no identity, so the workspace an unverified JWT
+    // `sub` resolved to is not the caller's either.
+    if (tokenRefused && !hadExplicit) __wsId = null;
+    // A credential the backend REJECTED is answered with that rejection - an
+    // expired session is told it expired, a device-mode token is told the
+    // server cannot check it - rather than being served demo data or, off a
+    // browser, admitted as if nobody had presented anything. Only the public
+    // descriptions of the product still answer (for nobody, below).
+    if (tokenRefused && !publicAction(action, req, b)) {
+      return res.status(401).json({
+        ok: false, action, error: __auth.error || 'sign_in_required',
+        message: __auth.message || 'You are not signed in, so this could not run.',
+      });
+    }
+    const hadAuth = tokenOn(req) && !tokenRefused;
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
-    if (!hadExplicit && !hadAuth && fromBrowser && !publicAction(action, req, b)) {
+    if (!hadExplicit && !hadAuth && fromBrowser && publicAction(action, req, b)) {
+      // A PUBLIC action for an unattributed page runs for NOBODY (2026-09-29,
+      // review): a description of the product, answered with no workspace
+      // and the unresolved brand. Scoping had already resolved the default
+      // workspace (userless), so jarvis offered tenant zero's product pages
+      // and storefront, and the Agent Builder spec carried tenant zero's
+      // name, to every signed-out visitor of every other brand.
+      __wsId = null;
+      req.__workspaceId = null;
+      req.__public_unattributed = true;
+    } else if (!hadExplicit && !hadAuth && fromBrowser) {
       // No workspace. Another brand's data is NEVER substituted - that was the
       // original bug and it stays fixed. But returning empty arrays made the
       // app impossible to evaluate before signing up, so a READ gets synthetic
@@ -196,9 +322,34 @@ module.exports = async function handler(req, res) {
        zero's real product URLs, inside whatever workspace asked for them.
        Resolved once, on the request, so no handler has to remember. */
     try {
-      req.__brand = await require('./_shared/brand-runtime.js').resolve(req, { workspace_id: __wsId });
+      const rt = require('./_shared/brand-runtime.js');
+      req.__brand = req.__public_unattributed
+        ? rt.unresolvedBrand('no brand on this request: a signed-out page with no active brand')
+        : await rt.resolve(req, Object.assign({ workspace_id: __wsId }, __auth ? { auth: __auth } : {}));
     } catch (_) { req.__brand = null; }
   } catch (_) { /* scoping must never hard-fail the router */ }
+
+  // ── The model gate (2026-09-29, review) ──────────────────────────────────
+  // An action that reaches a model or a paid provider needs a VERIFIED caller
+  // or the scheduler's secret. With the meter configured, credits.metered
+  // below has already refused anyone else before this handler ran; this is
+  // the same rule for a deployment whose meter is not configured, where the
+  // wrapper lets every request through unmetered. The unattributed browser
+  // never gets here: the attribution rule above answered it.
+  const __modelKey = modelFeature(action, req);
+  if (__modelKey && !schedulerBearer(req)) {
+    const a = __auth || await require('./_shared/brand-workspace-core.js').requireUser(req);
+    if (!a || !a.ok) {
+      const down = !!(a && Number(a.status) === 503);
+      return res.status(down ? 503 : 401).json({
+        ok: false, action, error: (a && a.error) || 'sign_in_required',
+        message: (a && a.message) || 'You are not signed in, so this could not run.',
+        why: `"${action}" reaches an AI model or a paid provider on this deployment's keys, so it needs a signed-in account (a mobile number and PIN saved in the database) or the scheduler's secret. Nothing was run and nothing was charged.`,
+      });
+    }
+    const spend = require('./_shared/credits-core.js').spenderRefusal(a);
+    if (spend) return res.status(spend.status || 403).json(Object.assign({ action }, spend));
+  }
 
   /* The market a request gets when it names none: the ACTIVE brand's HOME
      market, from its own record. Every handler below used to fall to the
@@ -484,12 +635,17 @@ module.exports = async function handler(req, res) {
         // The ACTIVE brand decides which catalogue may be searched for product
         // links and which storefront may be linked. Without it every workspace's
         // assistant offered to open tenant zero's PDPs on tenant zero's domain.
+        // With no workspace, the brand the request RESOLVED decides: the record
+        // a phone account carried, or the unresolved placeholder for a page
+        // nobody is signed in to - never "no brand", which jarvis reads as
+        // tenant zero's storefront map (2026-09-29, review).
+        const noWsBrand = req.__brand && (req.__brand.carried === true || req.__brand.unresolved === true) ? req.__brand : null;
         const navBrand = req.__workspaceId
           ? await require('./_shared/workspace-scope.js').brandForWorkspace({
             url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
             key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
           }, req.__workspaceId).catch(() => null)
-          : null;
+          : noWsBrand;
         const actions = jarvis.detectNavActions(
           b.userText || b.user_text || b.message || '',
           b.assistantText || b.assistant_text || b.reply || '',
@@ -1164,7 +1320,9 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const ab = require('./_shared/agent-builder-core.js');
         const op = String(req.query.op || b.op || 'spec').toLowerCase();
         if (op === 'spec') {
-          let brand = null;
+          // No workspace: the resolved record if it names a brand the caller
+          // carried, else the unresolved placeholder (no brand name in the spec).
+          let brand = req.__brand && (req.__brand.carried === true || req.__brand.unresolved === true) ? req.__brand : null;
           if (__wsId) {
             const wsScope = require('./_shared/workspace-scope.js');
             brand = await wsScope.brandForWorkspace({
@@ -1302,6 +1460,56 @@ function failurePayload(action, err) {
   }
   return { ok: false, action, error: msg, message: `"${action}" failed on the server before it could answer, and nothing was saved. Reported as: ${msg.slice(0, 200)}` };
 }
+
+// ── Metering (2026-09-29, review) ────────────────────────────────────────
+// The model actions (MODEL_FEATURE above) are metered like calendar.js,
+// generate.js and image.js always were: a hold before the handler runs, a
+// settle on a 2xx that carried a real result, a full refund otherwise. The
+// meter's own session check is what refuses an anonymous caller (401) and an
+// unlisted phone number (403, before any wallet exists). Two requests are
+// never metered: the scheduler's (it has no wallet) and an unattributed page's
+// - the attribution rule answers that one with a refusal or demo data before
+// any core runs, so there is nothing to charge for and a 401 from the meter
+// would replace the sentence that says what to do.
+const _credits = require('./_shared/credits-core.js');
+const _brainHandler = module.exports;
+const _meteredBrain = _credits.metered(_brainHandler, (req, b) => {
+  const action = String((req.query || {}).action || '').toLowerCase();
+  const key = modelFeature(action, req);
+  if (!key) return null;
+  if (schedulerBearer(req)) return null;
+  if (unattributedShape(req, b)) return null;
+  return key;
+}, (req, b) => {
+  // audio.tts is priced per 1,000 characters actually synthesised (the
+  // handler sends at most 2,400); everything else is one unit.
+  const action = String((req.query || {}).action || '').toLowerCase();
+  if (action === 'tts') return Math.max(1, Math.ceil(Math.min(2400, String((b && b.text) || '').length) / 1000));
+  return undefined;
+}, {
+  // A 200 that carries no result is not a result: a refusal in the payload,
+  // the bundled export's "not yours" note, or the demo envelope refunds.
+  successIf: (p) => !(p && typeof p === 'object' && (p.ok === false
+    || (p.data_scope && p.data_scope.level === 'other_workspace')
+    || p.mode === 'demo')),
+});
+// The wrapper reads req.body to price a request, and a platform webhook must
+// reach its verifier with the body UNREAD (see dispatch-webhook above). Only
+// a model action - decided from the query and the method alone - goes
+// through the meter; every other request reaches the router untouched.
+module.exports = function brainRouter(req, res) {
+  const action = String(((req && req.query) || {}).action || '').toLowerCase();
+  if (req && req.method !== 'OPTIONS' && modelFeature(action, req)) {
+    // The meter may answer before the router's own header block runs; its
+    // refusal carries the sentence a page shows, so it carries CORS too.
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Lifecycle-Token');
+    res.setHeader('Cache-Control', 'no-store');
+    return _meteredBrain(req, res);
+  }
+  return _brainHandler(req, res);
+};
 
 // Everything this handler calls runs inside the request scope, so llm.js can
 // resolve THIS caller's workspace model routing and keys without every one of

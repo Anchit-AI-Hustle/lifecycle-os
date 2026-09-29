@@ -385,7 +385,7 @@
 
   async function run() {
     banner('');
-    if (await stopped('Running the social pipeline')) return;
+    if (await stopped('Running the social pipeline', { metered: true })) return;
     var btn = $('runBtn');
     btn.disabled = true;
     $('runState').innerHTML = '<span class="spinner"></span>Running the 7-agent pipeline (up to ~80s)…';

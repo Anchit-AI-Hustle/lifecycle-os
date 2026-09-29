@@ -173,13 +173,46 @@ function carriedBrand(body, auth) {
   const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n || 200) : '');
   const list = (v, n, len) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').map((x) => x.trim().slice(0, len || 300)).filter(Boolean).slice(0, n || 40) : []);
   const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+  // ONE level of short scalars, and nothing else (2026-09-29, review). The
+  // first cut passed `typography` and `catalog_source` through as whatever
+  // object arrived, so "bounded" held for the strings beside them and not for
+  // these: a request could carry megabytes of nested JSON into every prompt
+  // the turn built. A key is an identifier, a value a bounded string, a
+  // finite number or a boolean; anything deeper is dropped.
+  const flat = (v, n, len) => {
+    const o = obj(v); const out = {};
+    for (const k of Object.keys(o).slice(0, n || 12)) {
+      if (!/^[A-Za-z0-9_-]{1,40}$/.test(k)) continue;
+      const x = o[k];
+      if (typeof x === 'string') out[k] = x.trim().slice(0, len || 200);
+      else if (typeof x === 'number' && Number.isFinite(x)) out[k] = x;
+      else if (typeof x === 'boolean') out[k] = x;
+    }
+    return out;
+  };
+  // A list whose entries are names, or small records such as an offering's
+  // {kind, name, url} - the shape the presets and the wizard write, and the
+  // one image-prompt, landing-page-core and growth-os read `kind` off.
+  const records = (v, n, fields) => (Array.isArray(v) ? v.slice(0, n).map((x) => (
+    typeof x === 'string' ? x.trim().slice(0, 200) : (x && typeof x === 'object' && !Array.isArray(x) ? flat(x, fields, 300) : null)
+  )).filter((x) => x && (typeof x === 'string' ? x : Object.keys(x).length)) : []);
   const name = str(src.name, 120);
   if (!name) return null;
-  let palette = obj(src.palette);
+  let palette = flat(src.palette, 24, 40);
   try {
     const v = brandCore.validatePalette ? brandCore.validatePalette(palette) : { ok: true };
     if (v && v.ok === false) palette = {};
   } catch (_) { palette = {}; }
+  const typo = obj(src.typography);
+  const typography = {};
+  for (const k of Object.keys(typo).slice(0, 8)) {
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(k)) continue;
+    const x = typo[k];
+    if (typeof x === 'string') typography[k] = x.trim().slice(0, 200);
+    else if (x && typeof x === 'object' && !Array.isArray(x)) typography[k] = flat(x, 10, 200);
+  }
+  const cs = obj(src.catalog_source);
+  const catalogSource = Object.assign(flat(cs, 8, 300), Array.isArray(cs.offering_kinds) ? { offering_kinds: list(cs.offering_kinds, 12, 40) } : {});
   const voice = obj(src.voice);
   const regions = (Array.isArray(src.regions) ? src.regions : []).filter((r) => r && typeof r === 'object').slice(0, 12).map((r) => ({
     code: str(r.code, 8), name: str(r.name, 60), currency: str(r.currency, 8), store_url: str(r.store_url, 300), home: r.home === true,
@@ -187,18 +220,24 @@ function carriedBrand(body, auth) {
   const seed = String((auth && auth.user_id) || '') + '|' + name;
   const id = 'device:' + require('crypto').createHash('sha1').update(seed).digest('hex').slice(0, 16);
   return {
-    id, slug: str(src.slug, 80) || id, storage: 'device', carried: true,
+    // The SLUG is the device id, never the one the request sent (2026-09-29,
+    // review). Tenant zero is recognised by its slug - brand-catalog-server's
+    // isTenantZeroBrand(), smart-brain-plan's planningBrand(), brand-llm's
+    // assistant name - so a carried `slug: "<tenant zero's slug>"` (any phone
+    // account can send one; the KNICKGASM preset in the gallery carries it)
+    // unlocked the shipped catalogue and planned over tenant zero's
+    // assortment. A carried record is a device brand: it owns no server file.
+    id, slug: id, storage: 'device', carried: true,
     name, tagline: str(src.tagline, 300), industry: str(src.industry, 120), website: str(src.website, 300),
     logo_url: str(src.logo_url, 500),
-    palette, typography: obj(src.typography), voice: {
+    palette, typography, voice: {
       tone: str(voice.tone, 300), preferred: list(voice.preferred, 40, 60), banned: list(voice.banned, 60, 80),
       no_em_dashes: voice.no_em_dashes !== false,
     },
-    regions, claims: list(src.claims, 40, 300), offerings: list(src.offerings, 40, 200), competitors: list(src.competitors, 40, 120),
-    // A device brand's catalogue is not on the server either: nothing here
-    // may reach the shipped files, and brand-catalog-server's gate reads this
-    // name to decide that.
-    catalog_source: obj(src.catalog_source),
+    regions, claims: list(src.claims, 40, 300), offerings: records(src.offerings, 40, 10), competitors: records(src.competitors, 40, 8),
+    // A device brand's catalogue is not on the server either, and nothing
+    // here may reach the shipped files: the slug above is what the gate reads.
+    catalog_source: catalogSource,
   };
 }
 
