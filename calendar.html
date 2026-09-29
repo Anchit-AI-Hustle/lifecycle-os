@@ -447,6 +447,14 @@ async function generatePlan() {
   const analytics = loadAnalyticsSummary() || seedAnalytics();
   STATE.analytics = analytics;
 
+  // Decided BEFORE anything is sent (2026-09-29). This ran on load for every
+  // visitor, asked the server, and painted its 401 as a red "Failed to
+  // generate the plan {"ok":false,"error":"sign_in_required"...}" - a fault
+  // frame for the most ordinary state there is. The one sentence for the
+  // state goes in the accent rule instead, and nothing leaves the page.
+  const stop = window.LifecycleStatus && await window.LifecycleStatus.decide('Generating the plan', { metered: true });
+  if (stop) { window.LifecycleStatus.show($('planMeta'), stop); return; }
+
   $('btnGenerate').disabled = true;
   $('btnGenerate').textContent = 'Generating…';
 

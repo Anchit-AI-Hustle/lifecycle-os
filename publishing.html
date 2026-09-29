@@ -317,6 +317,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { return (window.BrandContext && window.BrandContext.workspaceId && window.BrandContext.workspaceId()) || ''; } catch (_) { return ''; }
   }
   async function call(url, body) {
+    // Decided before anything is sent (2026-09-29): the dispatch log asked the
+    // server and painted its 401 as "Dispatch jobs could not be loaded" for
+    // every signed-out visitor. The platform registry stays public.
+    if (!/registry/.test(url) && window.LifecycleStatus) {
+      var stop = await window.LifecycleStatus.decide(body ? 'This publishing action' : 'Loading this publishing view');
+      if (stop) throw stop;
+    }
     var headers = { 'Content-Type': 'application/json' };
     var t = token(); if (t) headers.Authorization = 'Bearer ' + t;
     var ws = workspaceId();
