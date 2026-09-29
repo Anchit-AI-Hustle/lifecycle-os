@@ -75,8 +75,26 @@ function bearer(req) {
  *
  * That distinction is already computed here - it is the difference between a
  * response and a thrown fetch - and it was being flattened into one 503.
+ *
+ * ── ONE VERIFICATION PER REQUEST (2026-09-29) ─────────────────────────────
+ * The answer is memoised on the request object. A brain.js request now asks
+ * it up to four times - the attribution rule (is this token real, or only
+ * present?), the credit meter, the brand resolve and a handler's own gate -
+ * and each ask used to be a round trip to the session store. One request is
+ * one caller: the token cannot change between the asks, so neither can the
+ * answer.
  */
-async function requireUser(req) {
+const AUTH_MEMO = new WeakMap();
+function requireUser(req) {
+  if (!req || typeof req !== 'object') return verifyCaller(req);
+  const hit = AUTH_MEMO.get(req);
+  if (hit) return hit;
+  const p = verifyCaller(req);
+  AUTH_MEMO.set(req, p);
+  return p;
+}
+
+async function verifyCaller(req) {
   // ── A MOBILE + PIN SESSION (2026-09-28) ───────────────────────────────────
   // The one sign-in the browser has now. Its token is 43 base64url characters
   // with no dots (a Supabase JWT has two), so the two cannot be confused. It is

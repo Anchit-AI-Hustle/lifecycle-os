@@ -156,7 +156,16 @@ function carriesMobileToken(req) {
   try {
     const m = require('./mobile-auth-core.js');
     const own = m.tokenOf(req);
-    return !!(own && m.looksLikeToken(own));
+    if (!(own && m.looksLikeToken(own))) return false;
+    // The SCHEDULER's bearer is not a phone token, whatever its shape
+    // (2026-09-29, review). A token of our shape is 40-90 characters of
+    // [A-Za-z0-9_-], and so is a CRON_SECRET minted the usual way
+    // (`openssl rand -hex 32` is 64 of them). Without this the daily cron
+    // and the prebuild self-chain read as a phone account: no workspace,
+    // every scoped read empty, the plan never synced.
+    const secret = String(process.env.CRON_SECRET || '').trim();
+    if (secret && own.length === secret.length && require('crypto').timingSafeEqual(Buffer.from(own), Buffer.from(secret))) return false;
+    return true;
   } catch (_) { return false; }
 }
 
@@ -179,6 +188,17 @@ async function activeWorkspaceForUser(env, userId) {
 /** Resolve the workspace for this call. */
 async function resolve(env, req, explicit) {
   if (explicit) return explicit;
+  // A PHONE ACCOUNT NAMES NO WORKSPACE (2026-09-29, review). It has no
+  // brand_workspaces row at all - its brands are device rows - so a
+  // `workspace_id` on its request is either a device id (`local-*`, which
+  // names nothing on the server) or somebody else's workspace. Checked BEFORE
+  // the caller-named id below: honouring it let a phone account read another
+  // workspace's calendar, agents and campaigns, PATCH its social posts, and -
+  // naming the oldest workspace - reach tenant zero's bundled sales export,
+  // all through the service role. An anonymous caller that names a workspace
+  // is the pre-existing posture of the ungated brain.js actions, recorded in
+  // CLAUDE.md; a phone request is not allowed to be one of those.
+  if (carriesMobileToken(req)) return null;
   const q = (req && req.query) || {};
   const body = (req && req.body && typeof req.body === 'object') ? req.body : {};
   const fromReq = q.workspace_id || body.workspace_id;
@@ -192,17 +212,13 @@ async function resolve(env, req, explicit) {
     // brand's rows - return null so scoped reads come back empty.
     return ws || null;
   }
-  // A MOBILE+PIN SESSION IS A USER TOO (2026-09-29). Its token has no JWT
-  // payload to read a `sub` from, so it fell through this branch and was
-  // treated as USERLESS: every brain.js request from a phone account was
-  // scoped to the DEFAULT workspace - tenant zero - and KicksGPT answered a
-  // phone account as another company's brand, over that company's rows. A
-  // phone account has no brand_workspaces row at all (its brands are device
-  // rows), which is the "no active workspace" case above: nothing scoped,
-  // never the oldest workspace. The token is not verified here - that is
-  // requireUser's job - but an unverified phone token still proves the
-  // request is not the scheduler's, which is all this branch needs.
-  if (carriesMobileToken(req)) return null;
+  // A MOBILE+PIN SESSION IS A USER TOO (2026-09-29): answered at the top of
+  // this function. Its token has no JWT payload to read a `sub` from, so it
+  // used to fall through to here and be treated as USERLESS: every brain.js
+  // request from a phone account was scoped to the DEFAULT workspace - tenant
+  // zero. The token is not verified there - that is requireUser's job - but
+  // an unverified phone token still proves the request is not the
+  // scheduler's, which is all the rule needs.
   // Userless: cron, the collectors in workers/, the seed scripts. WORKSPACE_ID
   // lets an operator run one of those FOR a specific brand; without it they
   // read and write tenant zero, which is where the backfill put every
@@ -325,6 +341,19 @@ function invalidate({ userId, workspaceId } = {}) {
   CACHE.id = null; CACHE.at = 0;
 }
 
+/**
+ * Does this request come from a PERSON (a Supabase JWT or a mobile+PIN
+ * token), as opposed to the scheduler, a script or a worker? Nothing is
+ * verified here - the question is only which fallback rule applies. Code that
+ * resolves "no workspace" to the OLDEST one (tenant zero, the backfill
+ * target) must ask this first: the oldest-workspace default is for userless
+ * work only, and a person with no workspace gets nothing scoped instead.
+ */
+function requestHasUser(req) {
+  if (!req) return false;
+  return !!(userIdFromReq(req) || carriesMobileToken(req));
+}
+
 module.exports = {
   brandForWorkspace, SCOPED_TABLES, isScoped, resolve, currentWorkspaceId,
-  defaultWorkspaceId, filterFor, stamp, invalidate };
+  defaultWorkspaceId, filterFor, stamp, invalidate, requestHasUser, carriesMobileToken };

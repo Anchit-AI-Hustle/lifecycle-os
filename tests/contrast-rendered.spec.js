@@ -288,3 +288,46 @@ test('no page writes the raw brand colour as a text colour', async () => {
   }
   expect(offenders, `use var(--brand-primary-text) / var(--brand-accent-text), which are contrast-adjusted per brand:\n${offenders.join('\n')}`).toEqual([]);
 });
+
+/* The credit chip, measured in EVERY state it can be seen in (2026-09-29).
+   CI on 5d2ad8c failed onboarding.html above with `span.lc-credit-chip "— cr"
+   1.76:1` and the next run passed: the chip is appended ~1.5 s after the brand
+   paints (once the credit meter has decided who is asking), and the page-wide
+   measurement usually ran first. That made a real defect - the chip's text was
+   --brand-primary-dark, a hover shade nobody adjusted for text, on a 12% tint
+   over the wizard's primary button - look like a flake. This waits for the
+   chip to EXIST, in each state, and then measures the page: the placeholder
+   (no price known), the settled free price, and a settled paid price. */
+const catalogList = () => require(path.join(ROOT, 'api', '_shared', 'credit-catalog.js')).list();
+for (const [label, features, want] of [
+  ['placeholder, no price known', () => [], /^— cr$/],
+  ['settled, the free price', () => catalogList(), /^Free$/],
+  ['settled, a paid price', () => catalogList().map((f) => (f.key === 'brand.extract' ? Object.assign({}, f, { cost: 25 }) : f)), /^25 cr$/],
+]) {
+  test(`the credit chip on onboarding.html is readable under a light palette: ${label}`, async ({ page }) => {
+    await page.route('**/api/public-config**', (r) => {
+      const u = new URL(r.request().url());
+      const payload = u.searchParams.get('action') === 'credits'
+        ? { ok: true, features: features(), packs: [] }
+        : { ok: true, brand: BRAND, workspaces: [] };
+      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+    });
+    await page.goto(base + '/onboarding.html', { waitUntil: 'load' });
+    await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--brand-primary').trim() !== '', null, { timeout: 30000 });
+    const chip = page.locator('[data-credit-feature] > .lc-credit-chip').first();
+    await chip.waitFor({ state: 'visible', timeout: 20000 });
+    await expect(chip).toHaveText(want);
+    // The chip is inside an ENABLED primary control (a disabled one is exempt
+    // from the measurement, which would make this test inspect nothing).
+    const host = await chip.evaluate((el) => {
+      const c = el.parentElement;
+      return { disabled: !!c.closest('[disabled],[aria-disabled="true"]'), primaryGround: getComputedStyle(c).backgroundColor };
+    });
+    expect(host.disabled).toBe(false);
+    expect(host.primaryGround).toBe('rgb(243, 182, 177)');
+    await page.waitForTimeout(400);
+    const bad = await page.evaluate(PROBE);
+    const summary = bad.slice(0, 12).map((b) => `  ${b.tag}.${b.cls} "${b.text}" ${b.got}:1 (needs ${b.need}, ${b.size}px, opacity ${b.opacity}) ${b.color} on ${b.bg}`).join('\n');
+    expect(bad, `${bad.length} unreadable text nodes:\n${summary}`).toEqual([]);
+  });
+}
