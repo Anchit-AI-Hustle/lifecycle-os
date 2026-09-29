@@ -962,7 +962,9 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           metric: String((req.query || {}).metric || ''),
           window: String((req.query || {}).window || ''),
         });
-        if (!out.ok || !out.connected) return res.status(501).json(Object.assign({ ok: false }, out));
+        // ok:false has to WIN the merge: the core reports ok:true (it ran) with
+        // connected:false, and merging it last put ok:true in a 501 body.
+        if (!out.ok || !out.connected) return res.status(501).json(Object.assign({}, out, { ok: false }));
         return res.json({ ok: true, rows: out.rows });
       }
 
