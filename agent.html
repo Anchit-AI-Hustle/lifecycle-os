@@ -380,23 +380,40 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(!n){ n=document.createElement('div'); n.id='askNote'; n.className='vh-status'; n.setAttribute('role','status'); document.querySelector('.inputbox').insertAdjacentElement('afterend', n); }
     n.textContent=text;
   }
+  // A refusal is rendered IN the conversation as the state it is (2026-09-29):
+  // an ordinary state in the accent rule, a fault in the failure frame, never
+  // "Hmm, something went wrong: no_active_brand". The shared treatment builds
+  // it with textContent, so a server string never arrives as markup.
+  function addStatus(e, title){
+    var d=document.createElement('div'); d.className='msg agent status';
+    d.innerHTML=window.LifecycleFailure.html(e, { title: title || 'The agent did not answer' });
+    chatEl.appendChild(d); chatEl.scrollTop=chatEl.scrollHeight; return d;
+  }
+  function carriedBrand(){ try { return window.BrandContext && window.BrandContext.carry ? window.BrandContext.carry() : null; } catch(e){ return null; } }
   async function ask(){
     var msg=qEl.value.trim();
     if(!msg){ askNote('Type a question first.'); qEl.focus(); return; }
     if(!current){ askNote('Pick an agent first: the list above is still loading or is empty.'); return; }
     askNote('');
+    // Decided BEFORE anything is sent: a sign-in kept only in this browser
+    // cannot be verified by the server, so the turn does not leave.
+    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Asking the agent'); if(stop){ qEl.value=''; el('user', msg); addStatus(stop); return; } }
     qEl.value=''; el('user', msg);
     history.push({role:'user',content:msg});
     if(CH) CH.append('user', msg, current?{agentId:current.id, agentName:current.name}:null);
     var t=document.createElement('div'); t.className='typing'; t.textContent=current.name+' is thinking…'; chatEl.appendChild(t); chatEl.scrollTop=chatEl.scrollHeight;
     try{
       var r=await fetch(API+'?action=agent-chat',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({agent_id:current.id, session_id:sessionId, message:msg, history:history.slice(-10), context:{page:location.href, ctx:new URLSearchParams(location.search).get('ctx')}})});
-      var j=await r.json();
+        body:JSON.stringify({agent_id:current.id, session_id:sessionId, message:msg, history:history.slice(-10), brand:carriedBrand(), context:{page:location.href, ctx:new URLSearchParams(location.search).get('ctx')}})});
+      var j=await r.json().catch(function(){ return {}; });
       t.remove();
-      if(j.ok){ sessionId=j.session_id; history.push({role:'agent',content:j.reply}); var m=el('agent', j.reply); m.classList.add('speaking'); setTimeout(function(){m.classList.remove('speaking');},1200); maybeSpeak(j.speak||j.reply); if(CH) CH.append('agent', j.reply, current?{agentId:current.id}:null); }
-      else { var em='Hmm, something went wrong: '+(j.error||'unknown')+'. Try again?'; el('agent',em); if(CH) CH.append('agent', em); }
-    }catch(e){ t.remove(); el('agent','I could not reach the brain just now — please try again in a moment.'); }
+      if(j.ok && typeof j.reply==='string' && j.reply.trim()){ sessionId=j.session_id; history.push({role:'agent',content:j.reply}); var m=el('agent', j.reply); m.classList.add('speaking'); setTimeout(function(){m.classList.remove('speaking');},1200); maybeSpeak(j.speak||j.reply); if(CH) CH.append('agent', j.reply, current?{agentId:current.id}:null); }
+      else {
+        var e=Object.assign(new Error((j&&(j.message||j.error))||('HTTP '+r.status)), { status:r.status, payload:j });
+        if(j && j.ok && !j.reply) e.message='The agent answered without a reply, so there is nothing to show for this turn.';
+        addStatus(e);
+      }
+    }catch(e){ t.remove(); addStatus(e); }
   }
 
   document.getElementById('send').onclick=ask;

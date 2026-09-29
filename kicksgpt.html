@@ -234,8 +234,26 @@
     SUGGESTIONS.forEach(function(s){ var b=document.createElement('button'); b.className='schip'; b.textContent=s; b.onclick=function(){ qEl.value=s; ask(); }; box.appendChild(b); });
   }
 
+  // A refusal is rendered IN the conversation, as the state it is (2026-09-29):
+  // an ordinary state (signed out, a sign-in kept on this device, no wallet)
+  // in the accent rule, a genuine fault in the failure frame - never a raw
+  // code, never "Something went wrong: no_active_brand". Built with textContent
+  // by the shared treatment, so a server string never arrives as markup.
+  function addStatus(e, title){
+    var d=document.createElement('div'); d.className='msg bot status';
+    d.innerHTML=window.LifecycleFailure.html(e, { title: title || 'The assistant did not answer' });
+    chatEl.appendChild(d); scroll(); return d;
+  }
+  // The brand this conversation is FOR, when it lives only on this device: the
+  // server has no row to read, so the record travels with the turn and is
+  // used for that turn alone. A server brand is already stamped by workspace_id.
+  function carriedBrand(){ try { return window.BrandContext && window.BrandContext.carry ? window.BrandContext.carry() : null; } catch(e){ return null; } }
   async function ask(){
     var msg=qEl.value.trim(); if(!msg) return;
+    // Decided BEFORE anything is sent, from the one record auth.js publishes:
+    // a sign-in that exists only in this browser cannot be verified by the
+    // server, so the turn does not leave and the sentence says why.
+    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Asking the assistant'); if(stop){ addUser(msg); qEl.value=''; addStatus(stop); return; } }
     qEl.value=''; addUser(msg); history.push({role:'user',content:msg});
     if(CH) CH.append('user', msg);
     var t=document.createElement('div'); t.className='typing'; chatEl.appendChild(t); scroll();
@@ -248,21 +266,25 @@
     t.textContent=assistantName()+' is '+PHASES[0]+'…';
     try{
       var r=await fetch(API+'?action=brand-chat',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:msg, history:history.slice(-12), market:marketEl.value})});
-      var j=await r.json();
+        body:JSON.stringify({message:msg, history:history.slice(-12), market:marketEl.value, brand:carriedBrand()})});
+      var j=await r.json().catch(function(){ return {}; });
       clearInterval(tick); t.remove();
-      if(j.ok){
+      if(j.ok && typeof j.reply==='string' && j.reply.trim()){
         addTools(j.steps);
-        var reply=j.reply||'(no response)';
+        var reply=j.reply;
         addBot(reply);
         addAssets(j.assets);
         history.push({role:'agent',content:reply});
         if(CH) CH.append('agent', reply, { steps:(j.steps&&j.steps.length)?j.steps:undefined, assets:(j.assets&&j.assets.length)?j.assets:undefined });
       } else {
-        var em='Something went wrong: '+(j.error||'unknown')+'.';
-        addBot(em); if(CH) CH.append('agent', em);
+        // The server's own sentence, with its status: a 401/403/409 is a
+        // refusal with a reason, a 5xx a fault, an ok:true with no reply an
+        // answer that never arrived. None of them is a bare code.
+        var e=Object.assign(new Error((j&&(j.message||j.error))||('HTTP '+r.status)), { status:r.status, payload:j });
+        if(j && j.ok && !j.reply) e.message='The assistant answered without a reply, so there is nothing to show for this turn.';
+        addStatus(e);
       }
-    }catch(e){ clearInterval(tick); t.remove(); addBot('I could not reach the brain just now — please try again in a moment.'); }
+    }catch(e){ clearInterval(tick); t.remove(); addStatus(e); }
   }
 
   document.getElementById('send').onclick=ask;

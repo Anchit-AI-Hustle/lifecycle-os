@@ -223,8 +223,16 @@
     fetch(API + '?action=agent-chat', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent_id: agent ? agent.id : (AGENT || 'agent_knickgasm'), session_id: sessionId, message: text, history: history.slice(-10), context: { page: location.href, shopify: true } }),
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (!j.ok) { add('a', 'Sorry — try once more?'); return; }
+    }).then(function (r) { return r.json().catch(function () { return {}; }); }).then(function (j) {
+      // The server's sentence, never its code and never a shrug (2026-09-29):
+      // every refusal carries `message`. A 200 with no reply is said as such
+      // rather than rendered as the word "undefined".
+      if (!j.ok || typeof j.reply !== 'string' || !j.reply.trim()) {
+        var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+        var why = (j && j.message) || (j && j.error && !IDENT.test(String(j.error)) ? j.error : '');
+        add('a', why || (j && j.ok ? 'The agent answered without a reply just now. Please try once more.' : 'The agent could not answer just now. Please try once more.'));
+        return;
+      }
       sessionId = j.session_id; history.push({ role: 'agent', content: j.reply });
       add('a', j.reply);
       // Reply mode governs voice: 'text' stays silent, 'voice'/'call' read the
@@ -237,7 +245,7 @@
           if (replyMode === 'call' && open) setTimeout(startMic, 450);
         });
       }
-    }).catch(function () { add('a', 'Connection hiccup — try again in a moment.'); });
+    }).catch(function () { add('a', 'The agent could not be reached, so nothing was sent. Please try again in a moment.'); });
   }
 
   var input = panel.querySelector('#vah-q');

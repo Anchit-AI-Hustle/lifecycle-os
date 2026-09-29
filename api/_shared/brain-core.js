@@ -58,6 +58,19 @@ function connection() {
   return _conn;
 }
 
+/**
+ * The refusal for a write with no workspace behind it. It carries a status
+ * and a code (2026-09-29) so the router answers it as the refusal it is - a
+ * caller with no workspace row, such as a mobile+PIN account whose brands
+ * live on its device - rather than as a 500 with the reason in the wrong
+ * field. The reason is kept in `detail`; the reader gets a sentence.
+ */
+function noWorkspace(detail) {
+  const e = new Error('This needs a brand workspace in the database, and this sign-in has none: a mobile-number account keeps its brands on the device, so nothing could be written and nothing was saved.');
+  e.status = 409; e.code = 'no_workspace'; e.detail = detail;
+  return e;
+}
+
 class LinkedDb {
   constructor() {
     const c = connection();
@@ -107,7 +120,7 @@ class LinkedDb {
   async _stamp(table, rows) {
     const ws = await this._scope(table);
     if (ws === undefined) return rows;
-    if (ws === null) throw new Error(`linked-db write ${table} refused: no workspace resolved, and an unstamped row would be invisible to every brand`);
+    if (ws === null) throw noWorkspace(`linked-db write ${table} refused: no workspace resolved, and an unstamped row would be invisible to every brand`);
     return rows.map((r) => (r && typeof r === 'object' && r.workspace_id ? r : Object.assign({}, r, { workspace_id: ws })));
   }
   async upsert(table, rows, onConflict) {
@@ -138,7 +151,7 @@ class LinkedDb {
   async update(table, filters, patch) {
     // A PATCH filtered by primary key crosses brands as freely as a SELECT.
     const ws = await this._scope(table);
-    if (ws === null) throw new Error(`linked-db update ${table} refused: no workspace resolved, so the patch could land on another brand's row`);
+    if (ws === null) throw noWorkspace(`linked-db update ${table} refused: no workspace resolved, so the patch could land on another brand's row`);
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) qs.append(k, v);
     if (ws) qs.append('workspace_id', `eq.${ws}`);
@@ -152,7 +165,7 @@ class LinkedDb {
   }
   async remove(table, filters) {
     const ws = await this._scope(table);
-    if (ws === null) throw new Error(`linked-db delete ${table} refused: no workspace resolved, so the delete could remove another brand's row`);
+    if (ws === null) throw noWorkspace(`linked-db delete ${table} refused: no workspace resolved, so the delete could remove another brand's row`);
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) qs.append(k, v);
     if (ws) qs.append('workspace_id', `eq.${ws}`);
