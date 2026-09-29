@@ -57,6 +57,46 @@ state, a raw code, a 401 rendered as an error, a silent 401 or a dead click is a
   2026-09-28 precedent). Mutation-verified: restoring the server-first calendar handler, the silent
   Ask, or a native `alert` each fails the sweep on that row.
 
+## ⭐ Whose brand a bare /lp link wears, and what a gated block is exempt from (2026-09-29)
+Four post-merge review findings on PRs #102/#103, each reproduced by an EXECUTED test first
+(`tests/router-calendar.spec.js` over the harness, `tests/audit-pages.spec.js` driving
+`scripts/audit-pages.js` as a module) and each mutation-verified.
+- **The /lp/:id FALLBACK wore tenant zero's brand on another tenant's campaign.** An ordinary
+  `/lp/<id>` link carries no `workspace_id` (that is how `smart-brain-plan.js` and `smart-brain.html`
+  mint them), so `brandForWorkspace` was skipped and `buildFallbackLanding` fell through to its
+  `defaultBrand()` door. Executing it found the defect one layer deeper: `SmartBrainDbAdapter`
+  scoped the lookup to the DEFAULT workspace, so another tenant's PERSISTED page was never found
+  either - every bare link fell to the fallback, and the fallback was tenant zero's. The id is the
+  capability (the database already serves the row to `anon` by id for exactly this route), so it is
+  now a **guarded point lookup across workspaces** (`anyWorkspace`, refused unless by id with
+  `limit 1`), the row's own `workspace_id` rides `diag` and decides the brand, a calendar slot that
+  advertises the id names it when no row exists yet, and with no record the page is **NEUTRAL** with
+  a `[DATA REQUIRED BEFORE LAUNCH: brand and landing page, campaign <id>]` marker - system colours,
+  nobody's palette. `buildFallbackLanding` no longer reaches for `defaultBrand()`; the shipped
+  record is used only when the record itself is tenant zero's (the oldest workspace), and a link's
+  `?workspace_id=` is ignored, because reading it would let any link name any brand. The fake
+  PostgREST in the spec APPLIES the URL's filters, so a lookup carrying the wrong workspace finds
+  nothing exactly as the real database would.
+- **`force` is a boolean and a query string carries strings.** `!!(body.force || q.force)` read
+  `?force=false` and `?force=0` as true and skipped `buildLifecycleMailer`'s retrieve-first path: two
+  LLM calls and the persisted mailer overwritten, on a request that said not to. `1`/`true`/`yes`,
+  any case, enable; nothing else does.
+- **A gated block is exempt from the CHROME rules, not from the rules that apply everywhere.**
+  `data-ms-built-for` / `data-shipped-for` blocks were stripped once, up front, before every text
+  rule - so a fabricated rating, a banned phrase or a dash inside one was never inspected, though the
+  owning tenant reads it and rule 2 says "everywhere". Two texts now: `text` (code stripped, nothing
+  else) for the everywhere rules, `chrome` (gated blocks removed) for every `!isAsset` rule - the
+  same split the page-level BRAND_ASSET classification already makes. 66 pages, still 0 blockers.
+- **The balanced walk ran on RAW html and failed OPEN.** `<!-- <div data-shipped-for="x"> -->` (or
+  the same in a script string) has no close, so the walk advanced to EOF and everything after it -
+  blockers included - was skipped. Comments, scripts and styles are stripped in ONE left-to-right
+  pass (three separate regex passes have an order-dependent hole either way round), the walk runs on
+  the result, and an unbalanced gate now strips NOTHING and is reported as `gated-unbalanced`: a
+  malformed gate earns no exemption. The comment tests assert the blocker AND the absence of that
+  warning, because the fail-closed half alone would keep the blocker and add noise nobody reads.
+- Left as found: the `X-KNICKGASM-LP` header and `knickgasm-lp-<id>.html` download name on the lp
+  path are tenant-zero literals that predate this round; the router spec still asserts them by name.
+
 ## ⭐ The app chrome is Lifecycle OS's mark, never a tenant's - even in the tab (2026-09-29) — read `docs/platform-identity.md`
 `assets/lifecycle-os-mark.svg` + `scripts/build-platform-mark.js`, gated by `tests/platform-identity.spec.js`
 (8 tests, executed: 45 app pages rendered in Chromium under TWO brands, the manifest fetched, `sw.js` run

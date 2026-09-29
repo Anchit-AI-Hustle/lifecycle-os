@@ -56,6 +56,17 @@ function readBody(req) {
   return req.body;
 }
 
+// A flag on a request is a BOOLEAN, and a query string carries STRINGS.
+// `!!(body.force || q.force)` read `?force=false` and `?force=0` as true, so a
+// request whose author had said NOT to regenerate skipped the retrieve-first
+// path in buildLifecycleMailer: two LLM calls, and the persisted mailer
+// overwritten. Only 1 / true / yes (any case) enable; everything else is off.
+function flag(v) {
+  if (v === true) return true;
+  if (v === false || v === undefined || v === null) return false;
+  return /^(?:1|true|yes)$/i.test(String(v).trim());
+}
+
 // Base URL for self-triggering the background prebuild chain. On Vercel this is
 // VERCEL_URL (the current deployment); SELF_BASE_URL is an optional override.
 function selfBaseUrl() {
@@ -351,7 +362,7 @@ async function lifecycle(req, res, action) {
     if (action === 'lifecycle-build-mailer') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.id && !body.entry) return res.status(400).json({ ok: false, error: 'id (lifecycle entry) or entry is required' });
-      const result = await lifecycleBuild.buildLifecycleMailer({ id: body.id || null, entry: body.entry || null, force: !!(body.force || (q && q.force)) });
+      const result = await lifecycleBuild.buildLifecycleMailer({ id: body.id || null, entry: body.entry || null, force: flag(body.force) || flag(q.force) });
       return res.status(200).json(result);
     }
 
@@ -398,21 +409,22 @@ module.exports = async function handler(req, res) {
         // complete catalog-driven fallback so a link minted before persistence still
         // resolves to a real page. ?debug=1 above still exposes the diag.
         const region = String(req.query?.region || req.query?.r || 'us').toLowerCase();
-        const { buildFallbackLanding } = require('./_shared/landing-fallback.js');
-        // The workspace comes off the request: ?workspace_id= or the id the
-        // scoping resolved. This used to read `body.config.workspace_id`, and
-        // `body` is not declared in this handler (only inside smartBrain() and
-        // lifecycle()), so the ReferenceError was swallowed by the catch below
-        // and the fallback page ALWAYS rendered with no brand.
-        const fbBrand = await (async () => {
-          try {
-            const ws = require('./_shared/workspace-scope.js');
-            const env = { url: (process.env.SUPABASE_URL || '').replace(/\/$/, ''), key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '' };
-            const wsId = (req.query && req.query.workspace_id) || req.__workspaceId || '';
-            return wsId ? await ws.brandForWorkspace(env, wsId) : null;
-          } catch (_) { return null; }
-        })();
-        const fb = buildFallbackLanding({ id, region, hint: String(req.query?.hint || ''), brand: fbBrand });
+        const { buildFallbackLanding, brandForLandingRecord } = require('./_shared/landing-fallback.js');
+        // WHOSE brand the fallback wears is decided by the RECORD the id
+        // resolved to - the smart_generated_campaigns row, the landing page
+        // mirror, or the calendar slot that advertises the id - never by the
+        // link. An ordinary /lp/<id> link carries no workspace_id (that is how
+        // smart-brain-plan.js and smart-brain.html mint them), and reading one
+        // off the query would let any link name any brand. With no record
+        // there is nobody to attribute the page to, so it renders NEUTRAL with
+        // a DATA REQUIRED marker; the shipped default brand is used only when
+        // the record itself is tenant zero's. (An earlier version read
+        // `body.config.workspace_id` here, and `body` is declared only inside
+        // smartBrain() and lifecycle(), so the ReferenceError was swallowed by
+        // the catch below and the page always rendered with no brand.)
+        const env = { url: (process.env.SUPABASE_URL || '').replace(/\/$/, ''), key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '' };
+        const owner = await brandForLandingRecord(env, diag.workspace_id);
+        const fb = buildFallbackLanding({ id, region, hint: String(req.query?.hint || ''), brand: owner.brand, attribution: owner });
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('X-KNICKGASM-LP', diag.campaignFound ? 'campaign-no-lp-fallback' : 'campaign-not-persisted-fallback');
         if (req.query?.download) {
