@@ -220,7 +220,7 @@
       + '<div class="vhd-agent-bar">'
       + '<button class="mic" id="vhdMic" title="Speak">🎤</button>'
       + '<input id="vhdInput" type="text" autocomplete="off" placeholder="Ask the KNICKGASM agent anything…">'
-      + '<button class="send" id="vhdSend" aria-label="Send">&#10148;</button>'
+      + '<button class="send" id="vhdSend" aria-label="Send" data-credit-feature="assistant.chat" data-credit-chip="off">&#10148;</button>'
       + '</div></div>';
     document.body.appendChild(ov); dom.ov = ov;
     dom.msgs = ov.querySelector('#vhdMsgs');
@@ -273,10 +273,32 @@
     if (!n) { n = document.createElement('div'); n.className = 'vhd-agent-note vh-status'; n.setAttribute('role', 'status'); bar.insertAdjacentElement('afterend', n); }
     n.textContent = text;
   }
+  // A refusal is said as the state it is (2026-09-29): a sign-in kept only in
+  // this browser, a signed-out visitor, a phone number with no wallet - the
+  // shared treatment renders each in the accent rule, a fault in the failure
+  // frame, and the server's own `message` is what a reader sees. It used to
+  // print "Sorry, I couldn't reach the model" for a 401 the server had
+  // explained in full.
+  function addStatus(e) {
+    var d = document.createElement('div'); d.className = 'vhd-agent-m bot status';
+    var LF = window.LifecycleFailure;
+    if (LF && typeof LF.html === 'function') d.innerHTML = LF.html(e, { title: 'The assistant did not answer' });
+    else d.textContent = String((e && e.message) || 'The assistant did not answer.');
+    if (dom.msgs) { dom.msgs.appendChild(d); dom.msgs.scrollTop = dom.msgs.scrollHeight; }
+    return d;
+  }
   async function send() {
     var msg = (dom.input.value || '').trim();
     if (!msg) { sendNote('Type a message first.'); try { dom.input.focus(); } catch (e) {} return; }
     sendNote('');
+    // Decided BEFORE anything is sent, from the record auth.js publishes. This
+    // turn is metered (assistant.chat on /api/ai/generate), so a phone account
+    // the server has said has no wallet is told here rather than after a
+    // round trip.
+    if (window.LifecycleStatus && typeof window.LifecycleStatus.decide === 'function') {
+      var stop = await window.LifecycleStatus.decide('Asking the assistant', { metered: true });
+      if (stop) { dom.input.value = ''; addMsg('user', msg); addStatus(stop); return; }
+    }
     dom.input.value = ''; addMsg('user', msg); history.push({ role: 'user', content: msg });
     var t = typing();
     try {
@@ -291,11 +313,18 @@
       });
       var data = await res.json().catch(function () { return {}; });
       if (t && t.remove) t.remove();
-      var reply = ((data && data.text) || '').trim() || "Sorry — I couldn't reach the model just now. Please try again.";
+      if (window.Credits && typeof window.Credits.applyReceipt === 'function') { try { window.Credits.applyReceipt(data); } catch (e) {} }
+      var reply = ((data && data.text) || '').trim();
+      if (!res.ok || !reply) {
+        var e = Object.assign(new Error((data && (data.message || data.detail || data.error)) || ('HTTP ' + res.status)), { status: res.status, payload: data });
+        if (res.ok && !reply) e.message = 'The model answered without any text, so there is nothing to show for this turn.';
+        addStatus(e);
+        return;
+      }
       addMsg('bot', reply); history.push({ role: 'assistant', content: reply });
       speak(reply);
     } catch (e) {
-      if (t && t.remove) t.remove(); addMsg('bot', 'Network hiccup — please try again.');
+      if (t && t.remove) t.remove(); addStatus(e);
     }
   }
 
@@ -334,7 +363,7 @@
       + '<div class="vhd-agent-bar">'
       + '<button class="mic" id="vhdMic" title="Speak">🎤</button>'
       + '<input id="vhdInput" type="text" autocomplete="off" placeholder="' + (CFG.placeholder || 'Ask the KNICKGASM agent anything…') + '">'
-      + '<button class="send" id="vhdSend" aria-label="Send">&#10148;</button>'
+      + '<button class="send" id="vhdSend" aria-label="Send" data-credit-feature="assistant.chat" data-credit-chip="off">&#10148;</button>'
       + '</div>';
     dom.msgs = container.querySelector('#vhdMsgs');
     dom.quick = container.querySelector('#vhdQuick');

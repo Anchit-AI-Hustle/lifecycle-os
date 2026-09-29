@@ -325,15 +325,32 @@ function vercelBodyParser(bytes, contentType) {
  * i-th request's { mode, bodyReads, url }.
  */
 function serve(rel) {
-  const abs = path.isAbsolute(rel) ? rel : path.join(ROOT, rel);
+  // ONE router at `rel`, or SEVERAL keyed by pathname: `{ '/api/brain':
+  // 'api/brain.js', '/api/calendar': 'api/calendar.js', ... }` (2026-09-29,
+  // for the agents specs, whose pages call four routers from one origin). A
+  // pathname the map does not name is a 404 JSON, so a page that reaches for a
+  // fifth router is visible in the log rather than answered by a default.
+  const many = rel && typeof rel === 'object' ? rel : null;
+  const absOf = (r) => (path.isAbsolute(r) ? r : path.join(ROOT, r));
+  const abs = many ? null : absOf(rel);
   const stats = [];
   return new Promise((resolve) => {
     const srv = http.createServer(async (req, res) => {
       const stat = { mode: req.headers['x-mode'] || 'vercel', bodyReads: 0, url: req.url };
       stats.push(stat);
+      const parsed = new URL(req.url, 'http://x');
       const q = {};
-      new URL(req.url, 'http://x').searchParams.forEach((v, k) => { q[k] = v; });
+      parsed.searchParams.forEach((v, k) => { q[k] = v; });
       req.query = q;
+      let target = abs;
+      if (many) {
+        const hit = many[parsed.pathname];
+        if (!hit) { res.statusCode = 404; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ harness_error: `no router mounted at ${parsed.pathname}` })); return; }
+        target = absOf(typeof hit === 'string' ? hit : hit.rel);
+        // A mount may pin a query value the deployment's rewrite adds (for
+        // example /api/ai/landing-page -> /api/ai/generate?action=landing-page).
+        if (hit && typeof hit === 'object' && hit.query) Object.assign(req.query, hit.query);
+      }
       res.status = (c) => { res.statusCode = c; return res; };
       res.json = (j) => { if (!res.headersSent) res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(j)); return res; };
       res.send = (x) => { res.end(typeof x === 'string' || Buffer.isBuffer(x) ? x : JSON.stringify(x)); return res; };
@@ -351,7 +368,7 @@ function serve(rel) {
           counted(vercelBodyParser(bytes, req.headers['content-type']));
           if (stat.mode === 'vercel') restoreBody(req, bytes);
         }
-        await require(abs)(req, res);
+        await require(target)(req, res);
         if (!res.writableEnded) { res.statusCode = 599; res.end(JSON.stringify({ harness_error: 'the router returned without answering' })); }
       } catch (e) {
         if (!res.writableEnded) {

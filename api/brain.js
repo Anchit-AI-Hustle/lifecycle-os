@@ -63,6 +63,30 @@ function body(req) {
   return req.body;
 }
 
+/**
+ * The conversational actions: each turn answers FOR a brand and may spend a
+ * model call. See the browser-attribution rule in the handler.
+ */
+const CHATS = /^(agent-chat|agent-analyze|team-chat|brand-chat|console-chat|platform-agents)$/;
+
+/**
+ * Actions that need no workspace and no session to answer honestly, so the
+ * browser-attribution rule (demo data or a refusal for an unattributed page)
+ * must not apply to them (2026-09-29). The TeleSuite registry is the hub's
+ * FIRST request - a page that loads it before anyone has signed in or set a
+ * brand received the demo overview instead, found no `subfeatures` in it, and
+ * reported "TeleSuite could not start" to every signed-out visitor. The tool
+ * manifest, the Agent Builder OpenAPI document and the navigation detector
+ * are the same shape: a description of the product, not anybody's data.
+ */
+function publicAction(action, req, b) {
+  const op = () => String((req.query && req.query.op) || (b && b.op) || '').toLowerCase();
+  if (action === 'brand-tools' || action === 'jarvis') return true;
+  if (action === 'telesuite') return /^(registry|clone|n8n|)$/.test(op());
+  if (action === 'agent-builder') return /^(spec|)$/.test(op());
+  return false;
+}
+
 function cronAuthorized(req) {
   const secret = (process.env.CRON_SECRET || '').trim();
   if (secret) {
@@ -119,9 +143,9 @@ module.exports = async function handler(req, res) {
     const q0 = (req && req.query) || {};
     const b0 = (req && req.body && typeof req.body === 'object') ? req.body : {};
     const hadExplicit = !!(q0.workspace_id || b0.workspace_id);
-    const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization));
+    const hadAuth = !!(req.headers && (req.headers.authorization || req.headers.Authorization || req.headers['x-lifecycle-token']));
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));
-    if (!hadExplicit && !hadAuth && fromBrowser) {
+    if (!hadExplicit && !hadAuth && fromBrowser && !publicAction(action, req, b)) {
       // No workspace. Another brand's data is NEVER substituted - that was the
       // original bug and it stays fixed. But returning empty arrays made the
       // app impossible to evaluate before signing up, so a READ gets synthetic
@@ -131,11 +155,26 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|social-approve|social-skip|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
           message: 'Set up a brand first. This action generates or sends for a specific brand, and there is no honest way to preview that without one.',
+          setup_url: '/onboarding',
+        });
+      }
+      // A CONVERSATION is not a read either (2026-09-29). The demo envelope
+      // carries calendar rows and cohorts and no `reply`, so every chat
+      // surface that received it for an unattributed visitor rendered nothing
+      // - or the word "undefined" - where the answer should be. An assistant
+      // answers FOR a brand over that brand's data; there is no honest demo
+      // turn for a brand that does not exist, and a model call for one would
+      // be spend with nobody to attribute it to. Refused like a write, with
+      // the sentence the page can show.
+      if (CHATS.test(action)) {
+        return res.status(409).json({
+          ok: false, error: 'no_active_brand', mode: 'demo',
+          message: 'Set up a brand first, then sign in: the assistant answers for a specific brand over that brand\'s own data, and there is no honest way to answer for a brand that does not exist.',
           setup_url: '/onboarding',
         });
       }
@@ -494,7 +533,10 @@ module.exports = async function handler(req, res) {
       case 'brand-chat': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         if (!b.message) return res.status(400).json({ ok: false, error: 'message required' });
-        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || __homeMarket(), workspaceId: req.__workspaceId || null });
+        // The brand this request resolved to rides along, so a caller with no
+        // workspace row (a mobile+PIN account, whose record travels with the
+        // request) is answered as ITS brand rather than as tenant zero's.
+        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || __homeMarket(), workspaceId: req.__workspaceId || null, brand: req.__brand || null });
         return res.json(out);
       }
       case 'brand-tools': {
@@ -1217,9 +1259,49 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
     }
   } catch (err) {
     console.error('[api/brain]', action, err);
-    return res.status(500).json({ ok: false, action, error: err.message });
+    return res.status(failureStatus(err)).json(failurePayload(action, err));
   }
 };
+
+/**
+ * What a thrown error becomes (2026-09-29). Every failure used to be a 500
+ * carrying `error: err.message` and nothing else - a PostgREST 401 from a
+ * paused project, a core's own 403 refusal and a genuine crash all arrived
+ * the same way, and the pages printed whichever raw string came back. Three
+ * kinds now, each with a `message` the page can show as a sentence:
+ *   a refusal a core raised with its own status (err.status 4xx) keeps that
+ *   status and its code; a store that did not answer (a linked-db / supabase
+ *   failure, a DNS or connection error) is 503 backend_unreachable, naming
+ *   the host that has to change; everything else is the 500 it always was,
+ *   with `error` still the raw message so an existing reader loses nothing.
+ */
+function failureStatus(err) {
+  const s = Number(err && err.status) || 0;
+  if (s >= 400 && s < 500) return s;
+  return storeDown(err) ? 503 : 500;
+}
+function storeDown(err) {
+  const msg = String((err && err.message) || err || '');
+  return /linked-db (select|insert|upsert|update|delete)|supabase (get|post|patch|delete) .* -> \d{3}|fetch failed|econnrefused|enotfound|getaddrinfo|network call escaped/i.test(msg);
+}
+function failurePayload(action, err) {
+  const msg = String((err && err.message) || err || 'unknown error');
+  const s = Number(err && err.status) || 0;
+  if (s >= 400 && s < 500) {
+    return { ok: false, action, error: (err && err.code) || 'request_refused', message: msg };
+  }
+  if (storeDown(err)) {
+    let host = '';
+    try { host = new URL(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').hostname; } catch (_) { host = ''; }
+    return {
+      ok: false, action, error: 'backend_unreachable', backend_unreachable: true,
+      message: `The workspace database this deployment points at${host ? ` (${host})` : ''} did not answer, so "${action}" could not run and nothing was saved. `
+        + 'Its Supabase project has most likely been paused, renamed or deleted.',
+      detail: msg.slice(0, 300),
+    };
+  }
+  return { ok: false, action, error: msg, message: `"${action}" failed on the server before it could answer, and nothing was saved. Reported as: ${msg.slice(0, 200)}` };
+}
 
 // Everything this handler calls runs inside the request scope, so llm.js can
 // resolve THIS caller's workspace model routing and keys without every one of

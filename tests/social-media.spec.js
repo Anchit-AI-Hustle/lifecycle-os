@@ -57,7 +57,10 @@ test('social-media.html renders with zero page errors while API is unreachable',
   // the list fetch at 3.5s, but CI scheduling jitter can still delay it; 40s stops
   // the flake without hiding a real regression (the banner still must appear).
   await expect(page.locator('#banner')).toBeVisible({ timeout: 40_000 });
-  await expect(page.locator('#banner')).toContainText('Could not load posts');
+  // The banner leads with what did not happen and then the sentence for why
+  // (2026-09-29: "The saved posts could not be loaded. <reason>"), never the
+  // old "— is the API deployed/reachable?" guess.
+  await expect(page.locator('#banner')).toContainText('could not be loaded');
 
   expect(pageErrors, 'uncaught page errors: ' + pageErrors.join(' | ')).toHaveLength(0);
 });

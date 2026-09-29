@@ -1589,8 +1589,30 @@
     },
   };
 
+  /**
+   * The active brand as a record a request can CARRY (2026-09-29). A brand
+   * kept on this device has no workspace row on the server, so an agent
+   * answering for it has nothing to read: the page sends the record with the
+   * turn and the server uses it for that turn alone (brand-runtime.resolve
+   * takes it only from a verified mobile+PIN session and stores nothing). A
+   * server brand is already stamped by workspace_id, so nothing is carried
+   * for it. Only the fields a generator prints, so a turn is not a kilobyte
+   * of market study.
+   */
+  function carry() {
+    var b = state.brand;
+    if (!b || !b.id || !isDeviceId(b.id)) return null;
+    var pick = ['name', 'slug', 'tagline', 'industry', 'website', 'logo_url', 'palette', 'typography', 'voice', 'regions', 'claims', 'offerings', 'competitors', 'catalog_source'];
+    var out = {};
+    for (var i = 0; i < pick.length; i++) if (b[pick[i]] !== undefined && b[pick[i]] !== null) out[pick[i]] = b[pick[i]];
+    var data = b.brand_data && typeof b.brand_data === 'object' ? b.brand_data : {};
+    ['claims', 'offerings', 'competitors'].forEach(function (k) { if (out[k] === undefined && data[k] !== undefined) out[k] = data[k]; });
+    return out;
+  }
+
   window.BrandContext = {
     get brand() { return state.brand; },
+    carry: carry,
     get needsOnboarding() { return state.needsOnboarding; },
     get workspaces() { return state.workspaces; },
     get loaded() { return state.loaded; },

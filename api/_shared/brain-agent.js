@@ -180,7 +180,15 @@ async function listAgents() {
 
 async function getAgent(agentId) {
   const rows = await db().select('smart_agents', { filters: { id: `eq.${agentId}` }, limit: 1 });
-  if (!rows[0]) throw new Error(`agent ${agentId} not found`);
+  if (!rows[0]) {
+    // A refusal with its own status and a sentence, so the router answers 404
+    // rather than a 500 carrying "agent x not found" as the whole explanation
+    // (2026-09-29). A caller with no workspace row (a mobile+PIN account) has
+    // no agents at all, and this is the sentence it gets.
+    const e = new Error(`The agent "${agentId}" does not exist in this brand's workspace, so the conversation did not run.`);
+    e.status = 404; e.code = 'agent_not_found';
+    throw e;
+  }
   return rows[0];
 }
 
