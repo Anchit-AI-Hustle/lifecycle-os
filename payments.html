@@ -644,12 +644,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // A signed-out or brand-less visitor still gets the whole reference view;
       // only the connect actions need a workspace.
       return fetch(API + "&op=catalog").then(function(r){ return r.json(); }).then(function(c){
-        if (!c || !c.ok) throw new Error((j && j.error) || "catalog_unavailable");
+        if (!c || !c.ok) { var ce = new Error(window.LifecycleFailure.sentence(c || j || "catalog_unavailable")); ce.code = (c && c.error) || (j && j.error) || "catalog_unavailable"; throw ce; }
         DATA = { gateways: c.gateways, connections: {}, storage: c.storage, callback_url: c.callback_url, receiver: c.receiver };
         renderAll();
-        el("pay-policy").classList.add("err");
-        el("pay-policy-text").textContent = "No brand workspace is active for this account, so nothing can be connected yet ("
-          + ((j && j.error) || "not signed in") + "). The reference below is still accurate.";
+        // A code is never the explanation (2026-09-29): this line used to
+        // print "(sign_in_required)" to every signed-out visitor. The state's
+        // own sentence, in the accent rule, says what did not run and why.
+        var stop = window.LifecycleStatus && window.LifecycleStatus.refusal("Connecting a payment gateway");
+        el("pay-policy").classList.remove("err");
+        el("pay-policy").classList.add("vh-status");
+        el("pay-policy").setAttribute("role", "status");
+        el("pay-policy-text").textContent = (stop ? stop.message
+          : "No brand workspace is active for this account, so nothing can be connected yet. " + window.LifecycleFailure.sentence(j || {}))
+          + " The reference below is still accurate.";
       });
     }).catch(function(e){ fail("Payment gateways could not be loaded (" + e.message + ")."); });
   }

@@ -481,10 +481,14 @@ a{color:var(--brand-primary-text,var(--knickgasm-green));}
 
     // Rating and review count are NEVER rendered: this deployment holds no
     // approved review library, and the badge is the single most authoritative
-    // thing on a mailer.
-    rating.textContent="";
-    reviews.textContent="Reviews not connected";
-    reviews.title=NEED_REVIEWS;
+    // thing on a mailer. The badge itself may already be GONE by now - the
+    // brand layer strips unsourced proof for a brand that is not tenant zero -
+    // so a missing node is a state this render tolerates, not a throw that
+    // takes the whole preview down (found by tests/signed-out-actions.spec.js
+    // with the Times of India preset active: renderMailer threw on load).
+    if(rating) rating.textContent="";
+    if(reviews){ reviews.textContent="Reviews not connected"; reviews.title=NEED_REVIEWS; }
+    if(!name||!tasting||!price||!cta) return;
 
     if(!HERO){
       name.textContent="No catalogue connected";

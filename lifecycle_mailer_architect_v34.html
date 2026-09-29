@@ -9463,7 +9463,16 @@ document.addEventListener('DOMContentLoaded',function(){
       var h=el('copilotHistory'); if(h)h.setAttribute('aria-hidden','true');
     },
     send:async function(){
-      var i=el('copilotInput'); if(!i)return; var msg=(i.value||'').trim(); if(!msg)return;
+      var i=el('copilotInput'); if(!i)return; var msg=(i.value||'').trim();
+      // A press with nothing typed used to do nothing at all (2026-09-29):
+      // the precondition is said under the bar, in the accent rule.
+      var row=i.parentElement, host=row&&row.parentElement, n=host&&host.querySelector('.copilot-note');
+      if(!msg){
+        if(!n&&row){ n=document.createElement('div'); n.className='copilot-note vh-status'; n.setAttribute('role','status'); row.insertAdjacentElement('afterend',n); }
+        if(n) n.textContent='Type a message first.';
+        i.focus(); return;
+      }
+      if(n) n.remove();
       this.expand();
       i.value=''; addMsg('user',msg); history.push({role:'user',content:msg});
       var t=typing();

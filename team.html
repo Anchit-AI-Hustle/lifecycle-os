@@ -137,8 +137,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return m;
   }
 
+  // A press with nothing to send used to do nothing at all (2026-09-29): the
+  // precondition is said under the box, in the accent rule.
+  function askNote(text){
+    var n = document.getElementById('askNote');
+    if (!text) { if (n) n.remove(); return; }
+    if (!n) { n = document.createElement('div'); n.id = 'askNote'; n.className = 'vh-status'; n.setAttribute('role', 'status'); q.closest('.row').insertAdjacentElement('afterend', n); }
+    n.textContent = text;
+  }
   async function ask(){
-    var msg = q.value.trim(); if(!msg) return;
+    var msg = q.value.trim();
+    if(!msg){ askNote('Type a question first.'); q.focus(); return; }
+    askNote('');
     q.value=''; add('user', msg); history.push({role:'user',content:msg});
     send.disabled = true;
     var t = add('agent', 'Thinking…');

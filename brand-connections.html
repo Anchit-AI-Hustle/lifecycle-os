@@ -224,6 +224,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   async function api(op, body) {
+    // Decided before anything is sent (2026-09-29): with no account the
+    // server can act for, this page opened on a red "Connections could not be
+    // loaded" for every visitor. The registry stays public.
+    if (!/^(registry|publish-registry)$/.test(op) && window.LifecycleStatus) {
+      var stop = await window.LifecycleStatus.decide(op === 'list' ? 'Loading your connections and model routing' : 'Changing a connection');
+      if (stop) throw stop;
+    }
     var headers = { 'Content-Type': 'application/json' };
     var t = token();
     if (t) headers.Authorization = 'Bearer ' + t;
@@ -457,10 +464,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       $('banner').innerHTML = '';
       renderStorage(); renderPlatforms(); renderRouting();
     } catch (e) {
-      var msg = (e.payload && e.payload.error) === 'no_active_brand'
-        ? 'Onboard and activate a brand first. Connections and model routing belong to a brand workspace, never to the platform as a whole.'
-        : 'Your connections could not be loaded. ' + window.LifecycleFailure.sentence(e);
-      $('banner').innerHTML = window.LifecycleFailure.html({ message: msg, code: '' }, { title: 'Connections could not be loaded' });
+      // The error itself goes through the shared treatment, so an ordinary
+      // state (signed out, a device-only sign-in) renders as the accent
+      // status line and a real refusal keeps the frame with its code beside it.
+      $('banner').innerHTML = (e.payload && e.payload.error) === 'no_active_brand'
+        ? window.LifecycleFailure.html({ message: 'Onboard and activate a brand first. Connections and model routing belong to a brand workspace, never to the platform as a whole.', code: '' }, { title: 'Connections could not be loaded' })
+        : window.LifecycleFailure.html(e, { title: 'Connections could not be loaded' });
       $('platforms').innerHTML = '';
       $('routing').innerHTML = '';
     }
