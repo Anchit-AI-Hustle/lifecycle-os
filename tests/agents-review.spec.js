@@ -393,6 +393,20 @@ test.describe('8. only a listed number spends', () => {
     expect(after.workspace_id).toBeNull();
   });
 
+  test('a listed number whose wallet store is down is told the database is not answering, naming its host - not shown a PostgREST URL - and nothing runs', async () => {
+    // The production shape until the paused Supabase project answers again:
+    // the credit ledger is a table in it, so every metered agent refuses.
+    w.db.failures.credit_wallets = 503;
+    try {
+      const r = await w.request('/api/brain', { query: { action: 'brand-chat' }, json: { message: 'hi', brand: BRAND }, state: 'phone' });
+      expect(r.status, r.text.slice(0, 300)).toBe(503);
+      expect(r.out).toMatchObject({ ok: false, error: 'backend_unreachable', backend_unreachable: true });
+      expect(String(r.out.message)).toContain(new URL(A.BASE).host);
+      expect(String(r.out.message)).not.toMatch(/rest\/v1|select=\*|->/);
+      expect(w.llm.calls).toEqual([]);
+    } finally { delete w.db.failures.credit_wallets; }
+  });
+
   test('with NO meter configured, an unlisted number still reaches no model - on brain.js or on generate.js - and a listed one does', async () => {
     const undo = H.pinEnv({ SUPABASE_SERVICE_ROLE_KEY: undefined });
     try {

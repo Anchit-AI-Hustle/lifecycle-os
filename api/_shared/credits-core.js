@@ -457,6 +457,24 @@ async function enforce(req, res, featureKey, opts) {
   try {
     m = await meter(req, featureKey, o);
   } catch (err) {
+    // A wallet store that did not ANSWER is not a credit-check bug (2026-09-29,
+    // review): the ledger is a table in the workspace database, and when that
+    // project is paused every metered request used to come back as a 502
+    // `credit_check_failed` whose whole message was a PostgREST URL. Now the
+    // brain agents are metered too, so that string would have been what every
+    // listed account read. Said as what it is, naming the host to fix; nothing
+    // ran and nothing was charged, because the hold is what failed.
+    const raw = String((err && err.message) || '');
+    if (!err.code && /-> 5\d\d\b|fetch failed|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|getaddrinfo|socket hang up/i.test(raw)) {
+      let host = '';
+      try { host = new URL(env().url).host; } catch (_) { host = ''; }
+      res.status(503).json({
+        ok: false, error: 'backend_unreachable', backend_unreachable: true,
+        message: `The credit wallet lives in the workspace database${host ? ` (${host})` : ''}, which is not answering, so this did not run and nothing was charged. Its Supabase project has most likely been paused, renamed or deleted.`,
+        detail: raw.slice(0, 300),
+      });
+      return { ok: false };
+    }
     // An unpriced feature key is a bug in the caller, not the user's problem —
     // surface it loudly rather than silently running the feature for free.
     res.status(err.status || 500).json({ ok: false, error: err.code || 'credit_check_failed', message: err.message });
