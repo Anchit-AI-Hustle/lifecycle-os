@@ -56,9 +56,24 @@
  * refusal whatever the network looks like. That assertion was kept
  * deliberately - the floor exists for exactly that path.
  *
+ * ── AND NOW THE LOCALHOST PREVIEW (2026-09-28) ──────────────────────────────
+ * Sign-in became a mobile number and a PIN (tests/mobile-pin-signin.spec.js)
+ * and a phone account has no Supabase identity, so brand-context.js keeps its
+ * brands on the DEVICE whether or not it is signed in. A "signed-in session"
+ * no longer makes the wizard ask the server for "Your brands" - with auth.js
+ * booted, no session does. The one state left in which the wizard DOES ask
+ * the server and can be refused is the localhost dev preview: no Supabase
+ * config, served from 127.0.0.1, where auth.js seats its "Local preview" stub
+ * and brand-context routes brand ops to the server - a developer's page
+ * against a broken or absent API. That is a real shape, it is the shape a
+ * refused "Your brands" now has, and it is what these cases drive
+ * (`local: true` below: a real http server on 127.0.0.1, the /api/ answers
+ * still intercepted).
+ *
  * Run: npx playwright test tests/error-presentation.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
@@ -90,7 +105,26 @@ const PAUSED = {
 const LIVE_CONFIG = { supabase: { url: 'https://live.supabase.co', anonKey: 'anon' } };
 const SESSION = { access_token: 'test-access-token', user: { id: 'user-1', email: 'operator@example.test' } };
 
-async function openPage(page, file, { api, query = '', block, signedIn = false } = {}) {
+/**
+ * The localhost preview (see the header): a real http server on 127.0.0.1.
+ * Started once for the file; the /api/ answers are intercepted by page.route
+ * exactly as for the fixture host.
+ */
+let localServer; let localBase;
+test.beforeAll(async () => {
+  localServer = http.createServer((req, res) => {
+    const [url] = (req.url || '/').split('?');
+    const file = path.join(ROOT, url === '/' ? 'index.html' : url.replace(/^\//, ''));
+    if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('not found'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    fs.createReadStream(file).pipe(res);
+  });
+  await new Promise((r) => localServer.listen(0, '127.0.0.1', r));
+  localBase = 'http://127.0.0.1:' + localServer.address().port;
+});
+test.afterAll(async () => { if (localServer) await new Promise((r) => localServer.close(r)); });
+
+async function openPage(page, file, { api, query = '', block, signedIn = false, local = false } = {}) {
   const thrown = [];
   page.on('pageerror', (e) => thrown.push(String(e.message || e)));
 
@@ -115,7 +149,7 @@ async function openPage(page, file, { api, query = '', block, signedIn = false }
   }, signedIn ? SESSION : null);
 
   // Broadest first, most specific LAST - Playwright's last matching route wins.
-  await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
+  await page.route(/^https?:\/\/(?!app\.example\.test|127\.0\.0\.1)/, (route) => {
     // Reachability is stated per case: a signed-in fixture has a host that
     // answers its probe. Letting the catch-all abort it would read as a dead
     // backend and route the wizard to the device store, and every "Your
@@ -157,6 +191,13 @@ async function openPage(page, file, { api, query = '', block, signedIn = false }
     if (answer) return route.fulfill({ status: answer.status || 200, contentType: 'application/json', body: JSON.stringify(answer.body) });
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
   });
+  if (local) {
+    // The localhost preview: no Supabase config (the api answers `{ok:true}`
+    // for the config request), a real host auth.js recognises as local.
+    await page.goto(localBase + '/' + file + query, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind === 'local', null, { timeout: 15000 });
+    return thrown;
+  }
 
   await page.goto('http://app.example.test/' + file + query, { waitUntil: 'domcontentloaded' });
   return thrown;
@@ -227,8 +268,8 @@ const ONBOARDING_API = (u) => {
 };
 
 async function onboardingReview(page) {
-  // Signed in, so the wizard asks the SERVER for its brands - and is refused.
-  await openPage(page, 'onboarding.html', { api: ONBOARDING_API, query: '?id=ws-1&step=6', signedIn: true });
+  // The localhost preview, so the wizard asks the SERVER for its brands - and is refused.
+  await openPage(page, 'onboarding.html', { api: ONBOARDING_API, query: '?id=ws-1&step=6', local: true });
   await page.waitForSelector('#wsList', { timeout: 15000 });
   // loadWorkspaces() is fired from the step-6 render; wait for it to settle.
   await page.waitForFunction(() => {
@@ -312,7 +353,7 @@ test('a code the server sent is kept, but labelled and secondary', async ({ page
 test('a refusal carrying ONLY a machine code still reads as a sentence', async ({ page }) => {
   await openPage(page, 'onboarding.html', {
     query: '?id=ws-1&step=6',
-    signedIn: true,
+    local: true,
     api: (u) => (u.searchParams.get('op') === 'list'
       ? { status: 503, body: { ok: false, error: 'session_verification_unavailable' } }
       : ONBOARDING_API(u)),
@@ -329,7 +370,7 @@ test('a refusal carrying ONLY a machine code still reads as a sentence', async (
 test('an unknown code is reported as a sentence, never as the code itself', async ({ page }) => {
   await openPage(page, 'onboarding.html', {
     query: '?id=ws-1&step=6',
-    signedIn: true,
+    local: true,
     api: (u) => (u.searchParams.get('op') === 'list'
       ? { status: 500, body: { ok: false, error: 'widget_frobnicator_offline' } }
       : ONBOARDING_API(u)),
@@ -597,7 +638,7 @@ test('a successful load still renders brands, not a failure frame', async ({ pag
   // A successful SERVER load: an account, reachable, answering with its rows.
   await openPage(page, 'onboarding.html', {
     query: '?id=ws-1&step=6',
-    signedIn: true,
+    local: true,
     api: (u) => (u.searchParams.get('op') === 'list'
       ? { body: { ok: true, active_id: 'ws-1', workspaces: [{ id: 'ws-1', name: 'Northwind Tea', slug: 'northwind', tagline: 'Single-origin teas', status: 'active', palette: { primary: '#0a5a28' } }] } }
       : ONBOARDING_API(u)),

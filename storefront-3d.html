@@ -841,6 +841,12 @@ async function start3D(){
     init();
   }
   var B0=window.BrandContext;
+  // A brand this DEVICE holds is painted before ready() resolves (the cache
+  // paint at brand-context's load), so the guard runs on it at once. Waiting
+  // for ready() showed the public demo's copy under the other brand's name for
+  // the ~1.5 s until the store was revalidated - found by the cross-brand
+  // sweep once it painted a device brand (2026-09-28).
+  if(B0&&B0.brand&&B0.isTenantZero&&!B0.isTenantZero(B0.brand)){go();return;}
   if(B0&&B0.ready) B0.ready().then(go,go);
   else go();
 })();

@@ -94,8 +94,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function token() {
     try { if (window.BrandContext && window.BrandContext.token) return window.BrandContext.token(); } catch (_) {}
     try {
+      // 2026-09-28: only a token the server can check - a SERVER-mode
+      // mobile+PIN session. A device-mode token is never sent.
       var a = window.LifecycleAuth;
-      if (a && a.session && a.session.access_token) return a.session.access_token;
+      if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
+      if (a && a.session && a.session.access_token && a.session.mode === 'server') return a.session.access_token;
     } catch (_) {}
     return '';
   }
@@ -462,6 +465,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       state.balance = r.wallet ? Number(r.wallet.balance) : null;
       state.held = r.wallet ? Number(r.wallet.held) : 0;
       state.low = !!r.low;
+      // A mobile-number account has no wallet (2026-09-28): an ordinary state
+      // the pill shows quietly ("Credits", with the reason on hover), never a
+      // failure frame on every page.
+      state.unavailable = r.unavailable || '';
+      if (pillEl) pillEl.title = r.unavailable && r.message ? r.message : 'Credits — click for usage and recharge';
       // Server-decided, from the VERIFIED session email. The client never
       // asserts this; it only renders what the server already concluded.
       state.comp = !!r.comp;
