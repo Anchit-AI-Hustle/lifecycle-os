@@ -4,6 +4,59 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Every action works signed out, or says what needs sign-in, in ONE sentence (2026-09-29)
+`tests/signed-out-actions.spec.js` + `auth.js` → `window.LifecycleStatus` (`refusal` / `decide` / `show`).
+2026-08-30 proved every page OPENS signed out and 2026-09-15 proved the wizard's commands work on the
+device; nobody had pressed the rest of the product's buttons in the state the ordinary visitor is in.
+The sweep drives every visible control on every page that loads auth.js (50 pages, ~325 activations
+per state after de-duplication by signature) in THREE states - a reachable backend with no session,
+an unreachable one, and a mobile+PIN session kept on this device - with the Times of India preset
+active from the device store, and classifies each activation: worked locally (a DOM change, a
+download, a blob, a window, the clipboard, the device store), said what needs sign-in (`.vh-status`,
+accent rule), or disabled with its reason. A dialog, a page error, a failure frame for the ordinary
+state, a raw code, a 401 rendered as an error, a silent 401 or a dead click is a defect.
+- **The same shape on nine pages**: the handler asked the server FIRST, the server answered 401
+  `sign_in_required` exactly as it should, and the page painted it red - `calendar.html` did so ON
+  LOAD (`autoPlanOnce` → `generatePlan`), so the first thing every signed-out visitor saw was
+  *"Failed to generate the plan {"ok":false,"error":"sign_in_required"...}"*. Also `credits.html`
+  (usage + ledger + the three period buttons), `brand-connections.html`, all five
+  `data-analysis.html` tabs, `publishing.html`'s dispatch log, `telesuite.html`, `lifecycle-calendar`;
+  `payments.html` printed `(sign_in_required)` inside a sentence. Being signed out is the most
+  ordinary state there is, and a fault frame for it teaches people the frame means nothing.
+- **One decision, before anything is sent, one sentence per state.** `LifecycleStatus.refusal(what,
+  {metered})` reads the record auth.js already publishes and answers null (a verified server-mode
+  session, the localhost preview, an undecided boot - the server judges) or an Error carrying the
+  state's sentence: `signed-out`, `unreachable` (names the host), `unconfigured`, `device-session`
+  (the server cannot verify an account that exists only in this browser; its token is never sent),
+  `unverified-session`, `no-wallet` (a phone account asked for a metered feature - credits-core's own
+  refusal, said before the request). Pages throw it from their request helper, so every existing
+  `catch` → `LifecycleFailure.show()` renders the status line: `LifecycleFailure.html()` recognises an
+  ordinary refusal - its own, or the server's `sign_in_required` / `credits_require_account` /
+  `account_type_unsupported` - and hands it to `LifecycleStatus`. A 503 from a paused backend on a
+  request that WAS made stays the failure frame; that is what the frame is for.
+- **Decide after auth.js has decided.** `brand-connections.html` still opened red in the UNREACHABLE
+  state only: its `load()` ran before the reachability probe had failed, `refusal()` saw `pending`,
+  answered null, and the 503 came back as a frame. `decide()` awaits `LifecycleAuth.backendState()`
+  (bounded by the gate's 8 s). A live host answers faster than a dead one fails, which is why the
+  signed-out run passed and the unreachable one did not.
+- **A dead click is a defect even when the box is empty**: Ask / Send / the Studio copilot's ➤ with
+  nothing typed did nothing at all. "Type a question first." beside the box, in the accent rule.
+- **Two pages threw on load under any brand but tenant zero**: `premium-experience.html`'s
+  `renderMailer()` wrote to a rating badge the brand layer had already stripped, and
+  `connector-3d.html`'s engine called `render()` back into a wrap `gateShipped` had replaced with the
+  marker. A missing node is a state a render tolerates; a gated demo stops rendering.
+- **The harness had to earn its verdicts**: a ticker mutates in two consecutive windows, a load-time
+  settle in one - only the intersection is excluded, or the calendar's day chips (re-synced once by
+  `region-context.js`) read as dead; a read 150 ms after a press sees "Generating…" and misses the
+  frame the 401 then draws, so the read waits for the press's own API requests to settle; the credit
+  pill's balance poll landing inside a click window is not that click's 401; `.chip`/`.tab` spans with
+  no handler are badges, not controls; a `<select>` is an input whose value changing IS the outcome;
+  blocked CDN globals (`Chart`, `Papa`, `JSZip`…) are stubbed so a page is measured on its own code.
+- **Tests that asserted the frame for a request the page no longer makes moved to the state where it
+  still does**: `error-presentation`'s ledger and TeleSuite cases drive the localhost preview (the
+  2026-09-28 precedent). Mutation-verified: restoring the server-first calendar handler, the silent
+  Ask, or a native `alert` each fails the sweep on that row.
+
 ## ⭐ The money and send paths are EXECUTED, and four of them were wrong (2026-09-28)
 `tests/lib/fake-supabase.js` + `credits-meter-executed`, `dispatch-queue-executed`,
 `oauth-handshake-executed`, `deliverability-gate-executed` (57 tests). `coverage/UNTESTED.md` ranked

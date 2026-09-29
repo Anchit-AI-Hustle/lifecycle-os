@@ -539,7 +539,13 @@ test('an ads panel whose request never returns JSON also shows a failure', async
 });
 
 test('the TeleSuite tool gallery does not fill with an error string', async ({ page }) => {
+  // THE LOCALHOST PREVIEW (2026-09-29, the ledger case's move): with no account
+  // the server can act for, telesuite.html no longer asks for the run summary
+  // - it says so in the accent rule before sending - so the state in which the
+  // request is made and can be refused is the preview, where auth.js lets the
+  // server judge.
   await openPage(page, 'telesuite.html', {
+    local: true,
     api: (u) => (u.searchParams.get('op') === 'registry'
       ? { body: { ok: true, subfeatures: [
           { key: 'home', kind: 'home', label: 'Overview (all tools)', blurb: '' },
