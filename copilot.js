@@ -263,8 +263,20 @@
   }
   function close() { if (dom.ov) dom.ov.classList.remove('open'); stopSpeak(); try { sessionStorage.setItem('vhdAgentDismissed', '1'); } catch (e) {} }
 
+  // A press with nothing to send used to do nothing at all (2026-09-29): the
+  // precondition is said under the bar, in the accent rule, never a dialog.
+  function sendNote(text) {
+    var bar = dom.input && dom.input.closest('.vhd-agent-bar');
+    var n = bar && bar.parentNode && bar.parentNode.querySelector('.vhd-agent-note');
+    if (!text) { if (n) n.remove(); return; }
+    if (!bar) return;
+    if (!n) { n = document.createElement('div'); n.className = 'vhd-agent-note vh-status'; n.setAttribute('role', 'status'); bar.insertAdjacentElement('afterend', n); }
+    n.textContent = text;
+  }
   async function send() {
-    var msg = (dom.input.value || '').trim(); if (!msg) return;
+    var msg = (dom.input.value || '').trim();
+    if (!msg) { sendNote('Type a message first.'); try { dom.input.focus(); } catch (e) {} return; }
+    sendNote('');
     dom.input.value = ''; addMsg('user', msg); history.push({ role: 'user', content: msg });
     var t = typing();
     try {

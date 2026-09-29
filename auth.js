@@ -214,6 +214,15 @@
      */
     function html(e, opts) {
       var o = opts || {};
+      // AN ORDINARY STATE NEVER WEARS THE FAILURE FRAME (2026-09-29). A
+      // signed-out visitor, a sign-in kept on this device only, a phone
+      // account with no wallet: each is a state, not a fault, and the red
+      // frame for it teaches people to ignore the frame. The sentence for it
+      // comes from LifecycleStatus, the one source the pre-send checks use.
+      try {
+        var LS = window.LifecycleStatus;
+        if (LS && LS.ordinary(e)) return LS.htmlFor(e, o);
+      } catch (_) { /* fall through to the frame */ }
       var tag = o.title || 'Could not load';
       var code = codeOf(e);
       var msg = sentence(e);
@@ -264,6 +273,187 @@
       rowHtml: rowHtml,
       show: show,
     };
+  })();
+
+  /* ── An action that needs the server, in a state that cannot reach an
+     account (2026-09-29) ─────────────────────────────────────────────────────
+     tests/signed-out-actions.spec.js drove every visible control on every page
+     in three states - a reachable backend with no session, an unreachable one,
+     and a mobile+PIN session kept on this device - and found the same shape
+     on nine pages: the handler asked the server FIRST, the server answered
+     401 sign_in_required (exactly as it should), and the page rendered that
+     refusal as a red failure frame: "Failed to generate the plan
+     {"ok":false,"error":"sign_in_required",...}" on the calendar, on load, for
+     every visitor who is not signed in. Being signed out is the most ordinary
+     state there is, and a fault frame for it - on the first screen, before a
+     key is pressed - teaches people that the frame means nothing.
+
+     ONE decision, made BEFORE anything is sent, from the one record auth.js
+     already publishes (LifecycleAuth.backend + LifecycleAuth.session), and ONE
+     sentence per state, in the accent rule (.vh-status), naming what did not
+     run and what would let it:
+
+       signed-out          a reachable backend, no session
+       unreachable         the configured database is not answering
+       unconfigured        no SUPABASE_URL at all
+       device-session      a mobile+PIN sign-in saved only in this browser: the
+                           server cannot verify it (its token is never sent)
+       unverified-session  a server-mode phone account whose database is down
+       no-wallet           a phone account asked for a METERED feature: the
+                           server refuses it before a wallet exists
+                           (credits-core's credits_require_account), so the
+                           page says so rather than sending
+
+     `refusal(what, {metered})` answers null when the action may proceed (a
+     verified server-mode session, the localhost preview, or a state auth.js
+     has not decided yet - the server is the judge then). Pages call it in
+     their request helper and THROW the result; every existing catch that goes
+     through LifecycleFailure.show() then renders the status line, because
+     LifecycleFailure recognises an ordinary refusal - its own or the server's
+     401 - and hands it here. Nothing is sent, nothing spins, nothing is red.
+
+     Never a dialog, never a toast as the only trace, brand tokens only. */
+  (function serverActions() {
+    var esc = function (v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    };
+    // The server's codes for "no account it can act for" - ordinary for a
+    // visitor who is not signed in or is signed in on this device only.
+    var ORDINARY = { sign_in_required: 1, not_authenticated: 1, operator_session_required: 1 };
+    // The server's codes for "a phone account cannot do this", in ANY state.
+    var PHONE_ONLY = { credits_require_account: 1, account_type_unsupported: 1 };
+    var WALLET = 'Paid features are metered against a credit wallet, and a wallet belongs to an email account in the '
+      + 'database. A mobile-number sign-in has no wallet, so this feature is not available on it yet.';
+
+    function hostOf() { try { return new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { return ''; } }
+    function backend() { var a = window.LifecycleAuth; return (a && a.backend) || { kind: 'pending' }; }
+    function session() { var a = window.LifecycleAuth; return (a && a.session) || null; }
+    function creditsConfigured() { try { return !(window.Credits && window.Credits.configured === false); } catch (e) { return true; } }
+    /** The sentence the sign-in panel gave for where this device account lives. */
+    function deviceReason() {
+      try {
+        var s = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null');
+        return (s && s.storage && s.storage.message) || '';
+      } catch (e) { return ''; }
+    }
+    function codeOf(e) {
+      if (!e) return '';
+      var p = (e && typeof e === 'object' && e.payload && typeof e.payload === 'object') ? e.payload : (e && typeof e === 'object' ? e : {});
+      return String((typeof e === 'object' && e.code) || p.error || p.code || (typeof e === 'string' ? e : '') || '').trim();
+    }
+    function cap(s) { s = String(s || '').trim(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+    /**
+     * Why `what` cannot run right now, or null. `what` is a noun phrase for
+     * the action ("Generating the plan", "Your usage and ledger").
+     */
+    function refusal(what, opts) {
+      var o = opts || {};
+      var subject = cap(what || 'This action');
+      var s = session();
+      var kind = backend().kind || 'pending';
+      var host = hostOf();
+      var state = '', lead = '', body = '', code = 'sign_in_required', status = 401;
+      if (s && s.provider === 'mobile-pin') {
+        if (s.mode === 'device') {
+          var reason = deviceReason().replace(/\.\s*$/, '');
+          state = 'device-session';
+          lead = 'Not run: this sign-in is saved on this device only.';
+          body = subject + ' runs on the server, which cannot verify an account that exists only in this browser'
+            + (reason ? ' (' + reason + ')' : '') + ', so it did not run and nothing was sent.';
+          if (o.metered) body += ' It is also metered in credits, and a mobile-number sign-in has no credit wallet.';
+        } else if (s.verified === false) {
+          state = 'unverified-session';
+          lead = 'Not run: the database your account is in is not answering.';
+          body = subject + ' needs that database' + (host ? ' (' + host + ')' : '')
+            + ', which is not answering right now, so it did not run and nothing was sent.';
+          code = 'backend_unreachable'; status = 503;
+        } else if (o.metered && creditsConfigured()) {
+          state = 'no-wallet';
+          lead = 'Not available on a mobile-number sign-in.';
+          body = subject + ' is metered against a credit wallet, and a wallet belongs to an email account in the database. '
+            + 'A mobile-number sign-in has no wallet, so it did not run and nothing was sent.';
+          code = 'credits_require_account'; status = 403;
+        } else return null;
+      } else if (kind === 'signed-out') {
+        state = 'signed-out';
+        lead = 'Not run: you are signed out.';
+        body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
+          + 'Sign in with your mobile number and 4-digit PIN (the Sign in chip in the menu), then try again; '
+          + 'everything else on this page keeps working.';
+      } else if (kind === 'unreachable') {
+        state = 'unreachable';
+        lead = 'Not run: the workspace database is unreachable.';
+        body = subject + ' needs the database this deployment points at' + (host ? ' (' + host + ')' : '')
+          + ', which is not answering, so it did not run and nothing was sent. Everything else on this page keeps working.';
+        code = 'backend_unreachable'; status = 503;
+      } else if (kind === 'unconfigured') {
+        state = 'unconfigured';
+        lead = 'Not run: no workspace database is configured.';
+        body = subject + ' needs a workspace database, and this deployment has none set (SUPABASE_URL), '
+          + 'so it did not run and nothing was sent.';
+        code = 'supabase_not_configured'; status = 503;
+      } else {
+        // A verified server-mode session, the localhost preview, the SDK
+        // failing to load, or a boot still deciding: the server is the judge.
+        return null;
+      }
+      var e = new Error(lead + ' ' + body);
+      e.ordinary = true; e.state = state; e.lead = lead; e.body = body; e.code = code; e.status = status;
+      e.payload = { ok: false, error: code, message: e.message, ordinary: true, state: state };
+      return e;
+    }
+
+    /** Is this error an ordinary state rather than a fault? */
+    function ordinary(e) {
+      if (!e) return false;
+      if (typeof e === 'object' && e.ordinary === true) return true;
+      var code = codeOf(e);
+      if (PHONE_ONLY[code]) { var s = session(); return !!(s && s.provider === 'mobile-pin'); }
+      if (ORDINARY[code]) return !!refusal('This');
+      return false;
+    }
+
+    function statusHtml(lead, body) {
+      return '<div class="vh-status" role="status" data-status="1">'
+        + (lead ? '<b>' + esc(lead) + '</b> ' : '') + esc(body) + '</div>';
+    }
+    /** A title like "Usage could not be loaded" / "Failed to generate the plan" → its subject. */
+    function subjectOf(title) {
+      var t = String(title || '').replace(/\s+could not be\b.*$/i, '').replace(/\s+did not\b.*$/i, '').replace(/^failed to\s+/i, '').trim();
+      return cap(t);
+    }
+    /** The status block for an ordinary refusal, the server's or our own. */
+    function htmlFor(e, opts) {
+      var o = opts || {};
+      var code = codeOf(e);
+      if (typeof e === 'object' && e.ordinary === true && e.lead) return statusHtml(e.lead, e.body);
+      if (PHONE_ONLY[code]) {
+        var m = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
+        if (!m || /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/.test(m)) m = WALLET;
+        return statusHtml((o.title ? subjectOf(o.title) + ': ' : '') + 'not available on a mobile-number sign-in.', m);
+      }
+      var r = refusal(o.title ? subjectOf(o.title) : 'This action');
+      if (!r) return statusHtml('', (e && e.message) || 'This did not run.');
+      return statusHtml(r.lead, r.body);
+    }
+    function rowHtml(html, opts) {
+      return '<tr class="vh-status-tr"><td colspan="' + (Number((opts || {}).colspan) || 99) + '">' + html + '</td></tr>';
+    }
+    /** Render a status (a refusal, or plain words) into a slot, table-aware. */
+    function show(el, x, opts) {
+      var node = typeof el === 'string' ? document.getElementById(el) : el;
+      if (!node) return;
+      var html = (x && typeof x === 'object') ? htmlFor(x, opts) : statusHtml('', x);
+      var tag = (node.tagName || '').toUpperCase();
+      if (tag === 'TBODY') node.innerHTML = rowHtml(html, opts);
+      else if (tag === 'TABLE') node.innerHTML = '<tbody>' + rowHtml(html, opts) + '</tbody>';
+      else node.innerHTML = html;
+    }
+
+    window.LifecycleStatus = { refusal: refusal, ordinary: ordinary, html: statusHtml, htmlFor: htmlFor, show: show };
   })();
 
   // ─── Universal brand layer + credit meter ───────────────────────────────
@@ -3114,6 +3304,9 @@
       // the rules, exposed so the parity test can hold this copy to the
       // server's. `status()` answers where accounts are saved right now.
       openSignIn: (opts) => mauthOpenPanel(null, opts),
+      // Why an action that needs the server cannot run right now, or null.
+      // See serverActions(): pages ask BEFORE sending, and throw the answer.
+      serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),
       apiToken: mauthApiToken,
       mobile: {
         SESSION_KEY: MAUTH_SESSION_KEY, USERS_KEY: MAUTH_USERS_KEY,
