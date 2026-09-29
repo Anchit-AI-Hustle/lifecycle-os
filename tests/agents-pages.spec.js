@@ -117,12 +117,14 @@ async function open(page, w, file, mode, anonymous) {
 
 async function bodyText(page) { return page.evaluate(() => (document.body && document.body.innerText) || ''); }
 
-function clean(log, text, label) {
+function clean(log, shown, label) {
+  // `shown` is what the PAGE rendered (document.body.innerText), read after
+  // the press: a runtime result, not a file.
   expect(log.dialogs, `${label}: a native dialog`).toEqual([]);
   expect(log.errors, `${label}: a page error`).toEqual([]);
-  expect(text, `${label}: "undefined" rendered`).not.toMatch(/\bundefined\b/);
-  expect(text, `${label}: an object rendered`).not.toContain('[object Object]');
-  expect(text, `${label}: a raw code rendered`).not.toMatch(RAW);
+  expect(shown, `${label}: "undefined" rendered`).not.toMatch(/\bundefined\b/);
+  expect(shown, `${label}: an object rendered`).not.toContain('[object Object]');
+  expect(shown, `${label}: a raw code rendered`).not.toMatch(RAW);
 }
 
 /* ═══ the device session: production's state today ═══════════════════════ */
@@ -229,8 +231,8 @@ test('the buyer widget on a landing page shows the server\'s sentence, never the
     const reply = page.locator('.vah-m.a').last();
     await expect(reply).toHaveText(/Set up a brand first/, { timeout: 10000 });
     expect(log.api.filter((r) => /action=agent-chat/.test(r.url)).map((r) => r.status)).toEqual([409]);
-    const text = await page.locator('#vah-agent-panel, .vah-panel, body').first().innerText();
-    expect(text).not.toMatch(/\bundefined\b/);
+    const shown = await page.locator('#vah-agent-panel, .vah-panel, body').first().innerText();
+    expect(shown).not.toMatch(/\bundefined\b/);
     expect(log.dialogs).toEqual([]);
     expect(log.errors).toEqual([]);
   } finally { await w.close(); }

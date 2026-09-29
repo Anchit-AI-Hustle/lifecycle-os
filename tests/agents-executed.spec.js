@@ -154,8 +154,8 @@ add('social-run-daily', { run: { json: { dry_run: true, platforms: ['instagram']
     expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(r.out.dry_run).toBe(true);
     // A dry run for a phone account runs as the brand it carried: tenant
     // zero's product taxonomy and store URLs never appear in it.
-    const text = JSON.stringify(r.out);
-    expect(text).not.toMatch(/knickgasm\.com|Air Force|Oldest Brand/i);
+    const payload = JSON.stringify(r.out);
+    expect(payload).not.toMatch(/knickgasm\.com|Air Force|Oldest Brand/i);
   } });
 add('social-approve', { run: { json: { id: 'p1' } }, anonymous: 'refuse',
   phone: (r) => { expect(r.status).toBe(400); expectSentence(r, 'social-approve phone'); } });

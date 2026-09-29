@@ -325,8 +325,8 @@
     // The server's codes for "a phone account cannot do this", in ANY state.
     var PHONE_ONLY = { credits_require_account: 1, account_type_unsupported: 1 };
     var WALLET = 'Paid features are metered against a credit wallet, and a wallet belongs to an email account in the '
-      + 'database or to a mobile number the operator has listed. This mobile-number sign-in is not listed, so it has '
-      + 'no wallet and this feature is not available on it yet.';
+      + 'database or to a mobile number the operator has listed. This mobile-number sign-in has no wallet because its '
+      + 'number is not listed, so this feature is not available on it yet.';
 
     function hostOf() { try { return new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { return ''; } }
     function backend() { var a = window.LifecycleAuth; return (a && a.backend) || { kind: 'pending' }; }
@@ -414,7 +414,7 @@
           state = 'no-wallet';
           lead = 'Not available on this mobile-number sign-in.';
           body = subject + ' is metered against a credit wallet, and a wallet belongs to an email account in the database '
-            + 'or to a mobile number the operator has listed. This number is not listed, so it has no wallet and nothing was sent.';
+            + 'or to a mobile number the operator has listed. This mobile-number sign-in has no wallet because its number is not listed, so nothing was sent.';
           code = 'credits_require_account'; status = 403;
         } else return null;
       } else if (kind === 'signed-out') {

@@ -186,8 +186,8 @@ async function usage(userId, workspaceId, days = 30) {
 /* ── the meter ────────────────────────────────────────────────────────────── */
 
 const MOBILE_ACCOUNT_MESSAGE = 'Paid features are metered against a credit wallet, and a wallet belongs to an email '
-  + 'account in the database or to a mobile number the operator has listed. This mobile-number sign-in is not '
-  + 'listed, so it has no wallet and this feature is not available on it yet.';
+  + 'account in the database or to a mobile number the operator has listed. This mobile-number sign-in has no wallet '
+  + 'because its number is not listed, so this feature is not available on it yet.';
 
 /** The refusal a mobile+PIN account gets from anything that would touch a wallet. */
 function mobileAccountRefusal(quote) {
