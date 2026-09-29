@@ -144,7 +144,7 @@ async function install(page, brand) {
         user: { id: 'dev-sweep0001', name: 'Sweep', phone: '+919876543210' }, expires,
         storage: { mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' },
       }));
-      localStorage.setItem('lifecycle.brand.device.workspaces', JSON.stringify({ version: 1, active_id: seed.id, workspaces: [seed] }));
+      localStorage.setItem('lifecycle.brand.device.workspaces.dev-sweep0001', JSON.stringify({ version: 1, active_id: seed.id, workspaces: [seed] }));
     } catch (_) {}
   }, brand ? Object.assign({}, brand, { id: 'local-sweep0001', status: 'active', storage: 'device', owner_id: null }) : null);
   page.on('dialog', (d) => d.dismiss().catch(() => {}));
