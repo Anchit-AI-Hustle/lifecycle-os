@@ -364,8 +364,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function stopUi(){ listening=false; micBtn.classList.remove('listening'); micBtn.textContent='🎙'; }
 
+  // A press with nothing to send used to do nothing at all - a dead button to
+  // whoever pressed it. The precondition is said beside the box (2026-09-29).
+  function askNote(text){
+    var n=document.getElementById('askNote');
+    if(!text){ if(n) n.remove(); return; }
+    if(!n){ n=document.createElement('div'); n.id='askNote'; n.className='vh-status'; n.setAttribute('role','status'); document.querySelector('.inputbox').insertAdjacentElement('afterend', n); }
+    n.textContent=text;
+  }
   async function ask(){
-    var msg=qEl.value.trim(); if(!msg||!current) return;
+    var msg=qEl.value.trim();
+    if(!msg){ askNote('Type a question first.'); qEl.focus(); return; }
+    if(!current){ askNote('Pick an agent first: the list above is still loading or is empty.'); return; }
+    askNote('');
     qEl.value=''; el('user', msg);
     history.push({role:'user',content:msg});
     if(CH) CH.append('user', msg, current?{agentId:current.id, agentName:current.name}:null);

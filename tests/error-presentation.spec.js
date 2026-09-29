@@ -476,7 +476,12 @@ test('"Could not read that site" explains the cause instead of printing a code',
    ═══════════════════════════════════════════════════════════════════════════ */
 
 test('a credit ledger that could not be read shows a failure ROW, not a data row', async ({ page }) => {
-  await openPage(page, 'credits.html', { api: () => PAUSED });
+  // THE LOCALHOST PREVIEW, deliberately (2026-09-29, the same move the "Your
+  // brands" cases made): with no account the server can act for, the page no
+  // longer ASKS for the ledger - it says so in the accent rule before sending
+  // (tests/signed-out-actions.spec.js) - so the state in which the request is
+  // made and can be refused is the preview, where auth.js lets the server judge.
+  await openPage(page, 'credits.html', { api: () => PAUSED, local: true });
   await page.waitForFunction(() => {
     const t = document.getElementById('ledger');
     return t && !/Loading/i.test(t.textContent || '');

@@ -150,11 +150,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return u.pathname + u.search;
   }
   async function getJson(view, params) {
+    // Decided before anything is sent (2026-09-29): every tab on this page
+    // asked the server and painted its 401 as "<Panel> could not be loaded".
+    if (window.LifecycleStatus) { var stop = window.LifecycleStatus.refusal('This analysis view'); if (stop) throw stop; }
     var token = await userToken();
     var headers = token ? { authorization: 'Bearer ' + token } : {};
     var r = await fetch(apiUrl(view, params), { cache: 'no-store', credentials: 'same-origin', headers: headers });
     var body = await r.json().catch(function () { return null; });
-    if (!r.ok || !body) throw new Error(body && (body.message || body.error) || ('Request failed (' + r.status + ')'));
+    if (!r.ok || !body) {
+      // The code travels WITH the sentence, so the shared treatment can tell
+      // an ordinary refusal from a fault instead of reading prose.
+      var err = new Error(body && (body.message || body.error) || ('Request failed (' + r.status + ')'));
+      if (body && typeof body === 'object') { err.code = body.error || ''; err.payload = body; }
+      err.status = r.status;
+      throw err;
+    }
     return body;
   }
   async function userToken() {
@@ -200,7 +210,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
    * when the database is the thing that is unreachable.
    */
   function failure(title, err) {
-    return panelTitle(title, 'The requested view could not be loaded.')
+    // An ordinary state (signed out, a device-only sign-in) is not a failed
+    // view: the subtitle must not say "could not be loaded" above a status
+    // line that says it simply did not run.
+    var ordinary = !!(window.LifecycleStatus && window.LifecycleStatus.ordinary(err));
+    return panelTitle(title, ordinary ? 'Not loaded in this state.' : 'The requested view could not be loaded.')
       + window.LifecycleFailure.html(err, { title: title + ' could not be loaded' });
   }
 

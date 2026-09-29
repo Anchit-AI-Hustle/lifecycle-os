@@ -106,7 +106,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { return (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.id) || ''; } catch (_) { return ''; }
   }
 
+  /**
+   * Why a wallet read cannot run right now, or null (2026-09-29). Decided
+   * BEFORE the request, from auth.js's one record: a visitor with no account
+   * the server can act for used to have the ledger and the usage table painted
+   * red with the server's 401 on every open of /credits. The price list stays
+   * public; the balance poll has its own quiet path in refresh().
+   */
+  function refusalFor(op) {
+    if (!window.LifecycleStatus || typeof window.LifecycleStatus.refusal !== 'function') return null;
+    var what = /^usage\b/.test(op) ? 'Reading your usage' : /^ledger\b/.test(op) ? 'Reading the credit ledger' : 'This credit operation';
+    return window.LifecycleStatus.refusal(what);
+  }
+
   async function api(op, body) {
+    if (/^(usage|ledger)\b/.test(op)) { var stop = refusalFor(op); if (stop) throw stop; }
     var t = token();
     var headers = { 'Content-Type': 'application/json' };
     if (t) headers.Authorization = 'Bearer ' + t;
@@ -459,6 +473,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   async function refresh() {
+    // No account the server can act for: the pill shows "Credits" quietly
+    // with the reason on hover, and nothing is sent - the same shape a phone
+    // account's wallet:null answer already takes below.
+    var stop = refusalFor('balance');
+    if (stop) {
+      state.wallet = null; state.balance = null; state.held = 0; state.low = false;
+      state.unavailable = stop.state || 'no_account';
+      if (pillEl) pillEl.title = stop.message;
+      state.loaded = true;
+      emit();
+      decorate(document);
+      return state;
+    }
     try {
       var r = await api('balance');
       state.wallet = r.wallet || null;

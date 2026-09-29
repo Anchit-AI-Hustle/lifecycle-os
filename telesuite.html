@@ -223,6 +223,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function wsId() { try { return (window.BrandContext.brand || {}).id || ''; } catch (_) { return ''; } }
 
   async function ts(op, body, query) {
+    // Decided before anything is sent (2026-09-29). The registry, the clone
+    // manifest and the n8n export are public; every other op runs for an
+    // account the server can verify, and a TeleSuite run is metered.
+    if (!/^(registry|clone|n8n)$/.test(op) && window.LifecycleStatus) {
+      var stop = window.LifecycleStatus.refusal(body ? 'This TeleSuite tool' : 'Reading this TeleSuite view', { metered: !!body });
+      if (stop) throw stop;
+    }
     var headers = { 'Content-Type': 'application/json' };
     var t = token(); if (t) headers.Authorization = 'Bearer ' + t;
     var res = await fetch('/api/brain?action=telesuite&op=' + encodeURIComponent(op) + (query || ''), {
