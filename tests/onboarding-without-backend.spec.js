@@ -274,13 +274,16 @@ function readPanel(page, selector) {
   }, selector);
 }
 
-const html = (page) => page.evaluate(() => ({
+// The device store is namespaced per signed-in account (2026-09-29): `device`
+// is the UNSCOPED key (nobody signed in), `deviceAccount` the fixture account's.
+const html = (page) => page.evaluate((keys) => ({
   primary: document.documentElement.style.getPropertyValue('--brand-primary').trim(),
   rail: (document.querySelector('.lnav-brandname') || {}).textContent || '',
-  device: localStorage.getItem('lifecycle.brand.device.workspaces'),
+  device: localStorage.getItem(keys.anon),
+  deviceAccount: localStorage.getItem(keys.account),
   internal: (window.LifecycleAuth || {}).internal,
   mode: window.BrandContext && window.BrandContext.mode,
-}));
+}), { anon: DEVICE_KEY, account: DEVICE_KEY + '.' + SESSION.user.id });
 
 /* ═══════════════════════════════════════════════════════════════════════════
    1. THE DEFECT: no database, every command works, nothing is an error
@@ -445,8 +448,11 @@ test('signed in with a mobile-number account and a reachable database, the brand
   expect(writes, `brand ops were sent for an account that has no workspace record:\n  ${writes.join('\n  ')}`).toEqual([]);
 
   const h = await html(page);
-  expect(h.device, 'nothing was stored on the device').not.toBeNull();
-  expect(JSON.parse(h.device).workspaces.map((w) => w.name)).toContain(BRAND.name);
+  // Under the ACCOUNT's namespace, and nowhere an anonymous visitor or the
+  // next person to sign in on this browser would read it.
+  expect(h.deviceAccount, 'nothing was stored on the device for this account').not.toBeNull();
+  expect(JSON.parse(h.deviceAccount).workspaces.map((w) => w.name)).toContain(BRAND.name);
+  expect(h.device, 'a signed-in account\'s brand was written to the unscoped (anonymous) key').toBeNull();
   expect(h.mode).toBe('device');
   expect(h.internal).toBe(false);
   const seen = await readPanel(page, '#wsList');
@@ -528,10 +534,11 @@ test('signed out of a reachable database, the brand is saved on this device and 
 test('a mobile-number account holding device brands is never offered a sync, and nothing is uploaded', async ({ page }) => {
   test.setTimeout(120_000);
   const log = await harness(page, 'signed-in');
-  // Seed a device brand the way the two device states leave one behind.
+  // Seed a device brand the way a signed-in phone account leaves one behind:
+  // under ITS namespace (2026-09-29), which is the only place its list reads.
   await page.goto(HOST + '/privacy.html', { waitUntil: 'domcontentloaded' });
-  await page.evaluate((b) => {
-    localStorage.setItem('lifecycle.brand.device.workspaces', JSON.stringify({
+  await page.evaluate(({ b, key }) => {
+    localStorage.setItem(key, JSON.stringify({
       version: 1, active_id: 'local-seeded01',
       workspaces: [{
         id: 'local-seeded01', slug: 'harbourlight-goods', name: b.name, status: 'draft', onboarding_step: 6,
@@ -542,7 +549,7 @@ test('a mobile-number account holding device brands is never offered a sync, and
         created_at: '2026-09-15T00:00:00.000Z', updated_at: '2026-09-15T00:00:00.000Z', storage: 'device',
       }],
     }));
-  }, BRAND);
+  }, { b: BRAND, key: DEVICE_KEY + '.' + SESSION.user.id });
 
   // No brand is active on the account, so boot() has nothing to resume at a
   // saved step: the review step is reached the way a person reaches it.
@@ -563,7 +570,7 @@ test('a mobile-number account holding device brands is never offered a sync, and
   expect(refused).toMatchObject({ code: 'account_type_unsupported' });
   expect(refused.message).toMatch(/no record of it in the workspace database/);
   expect(log.saves.length).toBe(0);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('lifecycle.brand.device.workspaces')).workspaces.length), 'the device copy was removed').toBe(1);
+  expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).workspaces.length, DEVICE_KEY + '.' + SESSION.user.id), 'the device copy was removed').toBe(1);
   expect(log.dialogs).toEqual([]);
 });
 
