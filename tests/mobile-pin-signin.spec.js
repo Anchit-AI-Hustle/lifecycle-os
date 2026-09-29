@@ -60,7 +60,17 @@ function fakeSql(opts) {
   let seq = 0;
   const uuid = () => 'aaaaaaaa-0000-4000-8000-' + String(++seq).padStart(12, '0');
   const copy = (r) => Object.assign({}, r);
-  const store = async (strings, ...vals) => {
+  // Statements run ONE AT A TIME, in the order they were issued - a single
+  // connection's view of the world - so two `enter()` calls in flight at once
+  // interleave at every statement boundary exactly as they would against a
+  // database, and a read-modify-write in JavaScript is visible as the race it is.
+  let chain = Promise.resolve();
+  const store = (strings, ...vals) => {
+    const run = chain.then(() => exec(strings, vals));
+    chain = run.catch(() => {});
+    return run;
+  };
+  const exec = async (strings, vals) => {
     const text = strings.join(' $ ').replace(/\s+/g, ' ').trim().toLowerCase();
     db.log.push(text);
     if (db.down) throw new Error('connect ECONNREFUSED ' + (o.host || 'db'));
@@ -80,7 +90,12 @@ function fakeSql(opts) {
     }
     if (text.startsWith('insert into app_users')) {
       const [phone, cc, local, name, hash, salt] = vals;
-      if (db.app_users.some((u) => u.phone === phone)) throw new Error('duplicate key value violates unique constraint "app_users_phone_key"');
+      if (db.app_users.some((u) => u.phone === phone)) {
+        // Postgres' unique_violation, with the code the driver surfaces.
+        const dup = new Error('duplicate key value violates unique constraint "app_users_phone_key"');
+        dup.code = '23505';
+        throw dup;
+      }
       const row = { id: uuid(), phone, phone_cc: cc, phone_local: local, name, pin_hash: hash, pin_salt: salt, pin_set_at: new Date().toISOString(), pin_tries: 0, locked_until: null };
       db.app_users.push(row);
       return [copy(row)];
@@ -90,20 +105,23 @@ function fakeSql(opts) {
       if (u) { u.pin_hash = hash; u.pin_salt = salt; u.pin_tries = 0; u.locked_until = null; }
       return [];
     }
-    if (text.startsWith('update app_users set pin_tries = 0, locked_until = $')) {
-      const [until, id] = vals; const u = db.app_users.find((x) => x.id === id);
-      if (u) { u.pin_tries = 0; u.locked_until = until; }
-      return [];
-    }
     if (text.startsWith('update app_users set pin_tries = 0, locked_until = null')) {
       const u = db.app_users.find((x) => x.id === vals[0]);
       if (u) { u.pin_tries = 0; u.locked_until = null; }
       return [];
     }
-    if (text.startsWith('update app_users set pin_tries = $')) {
-      const [tries, id] = vals; const u = db.app_users.find((x) => x.id === id);
-      if (u) u.pin_tries = tries;
-      return [];
+    // The one statement that counts a wrong PIN and locks at MAX_TRIES, as
+    // Postgres evaluates it: against the row's CURRENT value, under the row
+    // lock, returning what it wrote. (The old read-increment-write pair,
+    // `set pin_tries = $` and `set pin_tries = 0, locked_until = $`, is gone
+    // on purpose: a core that regresses to it hits the unhandled-statement
+    // throw below.)
+    if (/^update app_users set pin_tries = case when pin_tries \+ 1 >= \$ then 0 else pin_tries \+ 1 end, locked_until = case when pin_tries \+ 1 >= \$ then \$ ::timestamptz else locked_until end where id = \$ returning pin_tries, locked_until$/.test(text)) {
+      const [max, , until, id] = vals; const u = db.app_users.find((x) => x.id === id);
+      if (!u) return [];
+      const n = (u.pin_tries || 0) + 1;
+      if (n >= max) { u.pin_tries = 0; u.locked_until = until; } else u.pin_tries = n;
+      return [{ pin_tries: u.pin_tries, locked_until: u.locked_until }];
     }
     if (text.startsWith('insert into app_sessions')) {
       const [token_hash, user_id, device, expires_at] = vals;
@@ -223,6 +241,79 @@ test('five wrong PINs lock the account for fifteen minutes, and the right PIN do
   const after = await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip');
   expect(after.status).toBe(200);
   expect(store.db.app_users[0].locked_until).toBeNull();
+});
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   REVIEW FINDINGS (2026-09-29), each reproduced here BEFORE it was fixed.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+test('REVIEW P1: the loser of a sign-up race for one number is not handed the winner account - it is held to the PIN check like any sign-in', async () => {
+  const core = freshCore();
+  const store = fakeSql();
+  // Two first sign-ups for the SAME new number, in flight at once, with
+  // DIFFERENT PINs (two tabs, two people, a double-tap). Both read "no row",
+  // both insert; the unique index lets one through and answers the other with
+  // 23505. The one that lost must then be treated as a sign-IN to the account
+  // that now exists - which means its PIN is checked against the winner's.
+  const [a, b] = await Promise.all([
+    core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), '203.0.113.1'),
+    core.enter(store, Object.assign({ name: 'Bala', pin: '8052' }, IN), '203.0.113.2'),
+  ]);
+  expect(store.db.app_users.length, 'one number, one account').toBe(1);
+  const winner = a.body.created ? a : b;
+  const loser = a.body.created ? b : a;
+  expect(winner.status).toBe(200);
+  expect(winner.body.token).toBeTruthy();
+  expect(store.db.app_users[0].name).toBe(winner.body.user.name);
+  // The finding: the loser kept `isNew`, skipped the PIN branch, and was
+  // issued a session for an account whose PIN it never typed.
+  expect(loser.body.token, 'the loser of the insert race was issued a session for the winner\'s account').toBeUndefined();
+  expect(loser.body.created).not.toBe(true);
+  expect(loser.status).toBe(401);
+  expect(loser.body).toMatchObject({ ok: false, wrongPin: true, error: 'pin_wrong', left: 4 });
+  expect(store.db.app_sessions.length, 'sessions issued for two enters with one right PIN').toBe(1);
+  expect(store.db.app_sessions[0].user_id).toBe(store.db.app_users[0].id);
+  expect(store.db.app_users[0].pin_tries, 'the wrong PIN did not count as a try').toBe(1);
+  // Same race, but the loser typed the SAME PIN as the winner: that is a
+  // correct sign-in and gets its own session.
+  const twin = fakeSql();
+  const [c, d] = await Promise.all([
+    core.enter(twin, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip'),
+    core.enter(twin, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip'),
+  ]);
+  expect([c.status, d.status]).toEqual([200, 200]);
+  expect([c.body.created, d.body.created].sort()).toEqual([false, true]);
+  expect(twin.db.app_sessions.length).toBe(2);
+});
+
+test('REVIEW P1: five wrong PINs arriving AT ONCE each count, and the account locks', async () => {
+  const core = freshCore();
+  const store = fakeSql();
+  await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
+  // The finding: pin_tries was read, incremented in JavaScript and written
+  // back, so N concurrent wrong PINs all read 0, all wrote 1, and the lock
+  // never fired - a script could try every PIN five at a time.
+  const results = await Promise.all([1, 2, 3, 4, 5].map(() => core.enter(store, Object.assign({ pin: '1357' }, IN), 'ip')));
+  const u = store.db.app_users[0];
+  expect(results.some((r) => r.body.locked), 'five concurrent wrong PINs did not lock the account').toBe(true);
+  expect(u.locked_until, 'the row was not locked').toBeTruthy();
+  expect(new Date(u.locked_until) - Date.now()).toBeGreaterThan(14 * 60000);
+  // Every attempt was counted, not just the last one to write.
+  expect(results.filter((r) => r.body.wrongPin).map((r) => r.body.left).sort()).toEqual([1, 2, 3, 4]);
+  expect(results.filter((r) => r.body.locked).length).toBe(1);
+  expect(results.every((r) => !r.body.token)).toBe(true);
+  // The right PIN does not open it now.
+  const still = await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip');
+  expect(still.status).toBe(429);
+  expect(still.body.token).toBeUndefined();
+  // Ten at once: the lock still fires exactly as it does for five in a row,
+  // and the surplus attempts are answered as locked, never as "tries left".
+  const ten = fakeSql();
+  await core.enter(ten, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
+  const burst = await Promise.all(Array.from({ length: 10 }, () => core.enter(ten, Object.assign({ pin: '1357' }, IN), 'ip')));
+  expect(burst.filter((r) => r.body.wrongPin).length).toBe(4);
+  expect(burst.filter((r) => r.body.locked).length).toBe(6);
+  expect(ten.db.app_users[0].locked_until).toBeTruthy();
 });
 
 test('a weak PIN, a straight run, a wrong length and non-digits are all refused with a sentence', async () => {
@@ -954,6 +1045,116 @@ test('SERVER MODE: the account goes to the database, the token travels in the he
   expect(Object.keys(auth.sessions)).toEqual([]);
   expect(log.dialogs).toEqual([]);
   expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
+});
+
+/* ── the rail's panel, driven: sign up / sign in / sign out (the page reloads on sign-out) ── */
+async function signUp(page, phone, name, pin) {
+  await pressSignIn(page);
+  await typeAndContinue(page, { cc: '+91', phone });
+  await page.waitForSelector('#lnav-mauth[data-state="new"]');
+  await typeAndContinue(page, { name, pin });
+  await page.waitForSelector('#lifecycle-nav .lnav-uname', { timeout: 8000 });
+}
+async function signIn(page, phone, pin) {
+  await pressSignIn(page);
+  await typeAndContinue(page, { cc: '+91', phone });
+  await page.waitForSelector('#lnav-mauth[data-state="need-pin"]');
+  await typeAndContinue(page, { pin });
+  await page.waitForSelector('#lifecycle-nav .lnav-uname', { timeout: 8000 });
+}
+async function signOut(page) {
+  await page.locator('#lnav-signout').evaluate((el) => el.click());
+  await page.waitForFunction(() => !!document.querySelector('#lnav-signin'), null, { timeout: 8000 });
+  await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending'), null, { timeout: 15000 });
+}
+const DEVICE_STORE = 'lifecycle.brand.device.workspaces';
+
+test('REVIEW P1: on a shared browser the device store is the signed-in account\'s own - B never sees A\'s brands, sign-in adopts no anonymous rows, sign-out deletes none', async ({ page }) => {
+  test.setTimeout(180_000);
+  const log = await open(page, 'smart-brain.html');
+  const names = () => page.evaluate(() => window.BrandContext.api('list').then((r) => r.workspaces.map((w) => w.name)));
+  const save = (name) => page.evaluate((n) => window.BrandContext.api('save', { body: { brand: { name: n, palette: { primary: '#1a6b3c', accent: '#b8531f', ink: '#111111', surface: '#ffffff' } } } }).then((r) => r.brand.id), name);
+  const storeKeys = () => page.evaluate((k) => Object.keys(localStorage).filter((x) => x.indexOf(k) === 0).sort(), DEVICE_STORE);
+  const painted = () => page.evaluate(() => (window.BrandContext.brand && window.BrandContext.brand.name) || null);
+
+  // 1. Nobody is signed in. A brand typed now lives under the unscoped key -
+  //    the state onboarding-without-backend relies on - and is painted.
+  await save('Anonymous Draft');
+  expect(await names()).toEqual(['Anonymous Draft']);
+  await page.evaluate(() => window.BrandContext.refresh());
+  expect(await painted()).toBe('Anonymous Draft');
+
+  // 2. A signs up. Her list is EMPTY: a sign-in does not silently adopt what an
+  //    anonymous visitor typed, and what they typed stops being on screen.
+  await signUp(page, '9876543210', 'Asha', PIN);
+  const aId = await page.evaluate(() => window.LifecycleAuth.session.user.id);
+  expect(await names(), 'signing in adopted the anonymous rows').toEqual([]);
+  await page.waitForFunction(() => !window.BrandContext.brand, null, { timeout: 8000 }).catch(() => {});
+  expect(await painted(), 'the anonymous brand stayed on screen after A signed in').toBeNull();
+  await save('Asha Brand');
+  expect(await names()).toEqual(['Asha Brand']);
+
+  // 3. A signs out (the page reloads). The anonymous draft is still there -
+  //    sign-out deletes nothing - and A's brand is not.
+  await signOut(page);
+  expect(await names(), 'signing out deleted the anonymous rows, or left A\'s in the open').toEqual(['Anonymous Draft']);
+
+  // 4. B signs up on the same browser: EMPTY. Not A's brand, not the anonymous one.
+  await signUp(page, '9123456780', 'Bala', '8052');
+  const bId = await page.evaluate(() => window.LifecycleAuth.session.user.id);
+  expect(bId).not.toBe(aId);
+  expect(await names(), 'B sees brands that are not hers').toEqual([]);
+  await page.waitForFunction(() => !window.BrandContext.brand, null, { timeout: 8000 }).catch(() => {});
+  expect(await painted(), 'another account\'s brand stayed on screen after B signed in').toBeNull();
+  await save('Bala Brand');
+  expect(await names()).toEqual(['Bala Brand']);
+  await signOut(page);
+
+  // 5. A signs back in: her brand is back, painted, and only hers.
+  await signIn(page, '9876543210', PIN);
+  expect(await names()).toEqual(['Asha Brand']);
+  await page.waitForFunction(() => window.BrandContext.brand && window.BrandContext.brand.name === 'Asha Brand', null, { timeout: 8000 }).catch(() => {});
+  expect(await painted(), 'A\'s own brand was not painted when she signed back in').toBe('Asha Brand');
+  // A reload paints it from the first frame, from her namespace.
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded, null, { timeout: 15000 });
+  expect(await painted()).toBe('Asha Brand');
+  expect(await names()).toEqual(['Asha Brand']);
+
+  // Three namespaces, nothing lost: the anonymous key and one per account.
+  expect(await storeKeys()).toEqual([DEVICE_STORE, DEVICE_STORE + '.' + aId, DEVICE_STORE + '.' + bId].sort());
+  expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).workspaces.map((w) => w.name), DEVICE_STORE)).toEqual(['Anonymous Draft']);
+  expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).workspaces.map((w) => w.name), DEVICE_STORE + '.' + bId)).toEqual(['Bala Brand']);
+  expect(log.dialogs).toEqual([]);
+  expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
+});
+
+test('REVIEW P2: the privacy policy describes the sign-in that exists (a mobile number, a PIN hash, where each is kept) and no longer says a Google profile authenticates or Supabase Auth holds the session', async ({ page }) => {
+  await page.goto(base + '/privacy.html', { waitUntil: 'domcontentloaded' });
+  const policy = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+  expect(policy.length).toBeGreaterThan(1500);
+  // What IS collected, and where it goes.
+  expect(policy).toMatch(/mobile number/i);
+  expect(policy).toMatch(/4-digit PIN/);
+  expect(policy).toMatch(/salted hash of your PIN, never the PIN itself/i);
+  expect(policy).toMatch(/Neon/);
+  expect(policy).toMatch(/browser's local storage/i);
+  expect(policy).toMatch(/90 days/);
+  expect(policy).toMatch(/not verified by SMS/i);
+  expect(policy).toMatch(/private to that account/i);
+  // What the old policy claimed and the app no longer does.
+  expect(policy).not.toMatch(/Your Google profile is used/i);
+  expect(policy).not.toMatch(/Authentication is handled by Supabase Auth/i);
+  expect(policy).not.toMatch(/your user id and email/i);
+  expect(policy).not.toMatch(/obtained through your Google sign-in/i);
+  expect(policy).not.toMatch(/Google user data we access/i);
+  // Google is named ONLY inside the block marked historical, and that block
+  // says the sign-in was withdrawn and names the date.
+  const google = await page.evaluate(() => Array.from(document.querySelectorAll('p, li, h2')).filter((el) => /Google/.test(el.textContent)).map((el) => ({ historical: !!el.closest('[data-historical]'), snippet: el.textContent.slice(0, 80) })));
+  expect(google.length).toBeGreaterThan(0);
+  expect(google.filter((g) => !g.historical), 'Google is still described as a live part of sign-in').toEqual([]);
+  expect(await page.evaluate(() => (document.querySelector('[data-historical]') || {}).textContent || '')).toMatch(/withdrawn on 28 September 2026/);
+  expect(await page.evaluate(() => document.querySelector('title').textContent)).toMatch(/Privacy/);
 });
 
 test('EVERY page that loads auth.js: pressing Sign in opens the panel on that page, never calls signInWithOAuth, never navigates, shows no Google button', async ({ page }) => {
