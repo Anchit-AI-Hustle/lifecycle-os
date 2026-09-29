@@ -5,7 +5,11 @@
  *
  *   node scripts/audit-pages.js           full report        (npm run audit:pages)
  *   node scripts/audit-pages.js --fail    exit 1 on any BLOCKER (CI gate)
- *   node scripts/audit-pages.js --page x  audit one file
+ *   node scripts/audit-pages.js --page=x  audit one file (relative to the repo, or absolute)
+ *
+ * Also a module: `auditPage(file, html)` returns the findings for one page, and
+ * tests/audit-pages.spec.js drives it over fixture pages so a rule that stops
+ * seeing text fails a test instead of shipping a green CI.
  *
  * WHY THIS EXISTS. Cross-brand and wrong-industry content kept resurfacing one
  * screenshot at a time: the market study, the analytics workbench, the
@@ -28,14 +32,22 @@
  * Pages are classified first: an APP page is product surface and must be
  * brand-neutral; a BRAND ASSET (tenant zero's own landing pages, presells,
  * its agent) may legitimately name and describe that brand.
+ *
+ * TWO TEXTS, and which rule reads which. A page yields
+ *   `text`   - everything a visitor can read (code stripped, nothing else), and
+ *   `chrome` - the same with the blocks GATED to one tenant removed (see
+ *              chromeOf below): what every OTHER tenant sees.
+ * A rule that is skipped on BRAND_ASSET pages (`!isAsset`) asks "is the shell
+ * neutral" and reads `chrome`; a rule that applies EVERYWHERE - fabricated
+ * proof, banned phrases, dashes - reads `text`, because the owning tenant still
+ * sees a gated block, and rule 2 says a fabricated rating is a blocker
+ * everywhere. Stripping the gated blocks once, up front, had exempted them
+ * from every rule (post-merge review of PR #102).
  */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const ARGS = process.argv.slice(2);
-const FAIL_MODE = ARGS.includes('--fail');
-const ONE = (ARGS.find((a) => a.startsWith('--page=')) || '').split('=')[1];
 
 const BRAND = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/brands/_default.json'), 'utf8'));
 const PALETTE = Object.values(BRAND.palette || {}).filter((v) => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v)).map((v) => v.toUpperCase());
@@ -77,42 +89,109 @@ const FABRICATED = [
 
 const NEUTRAL_HEX = /^#(?:[0-9A-F])\1{5}$|^#(?:FFFFFF|000000|F5F5F5|EBEBEB|F7F7F7|FAFAFA|EEEEEE|DDDDDD|CCCCCC|999999|666666|333333|111111|1A1A1A|F6F6F6|F4F4F4|E3E3E3|D2D2D7|6E6E73)$/i;
 
-function walkFiles() {
-  if (ONE) return [ONE];
-  return fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'));
-}
+// Status and data-visualisation colours are FUNCTIONAL, not brand: a chart
+// needs more than four hues and a positive/negative signal must stay legible
+// whatever the brand palette is. Only non-brand, non-functional hues count.
+// Third-party PLATFORM colours identify an ad channel (Google, Meta, TikTok,
+// YouTube, LinkedIn). They are not the tenant's brand and must not be
+// re-themed: a Google Ads tile is supposed to look like Google.
+const PLATFORM = /^#(?:4285F4|34A853|FBBC05|EA4335|FE2C55|25F4EE|1877F2|0A66C2|FF0000|25D366|E60023|FFFC00|1DA1F2|E1306C|5865F2)$/i;
+const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1|8B5CF6|10B981|059669|D97706|EA580C|0891B2|1A7F37|147014|0A7D33|16A34A|18794E|2F8F57|1D6B45|3FA46A|5FB487|8FD3B0|C9A227|B45309|F59E0B|9A7420|C0392B|B91C1C|EF4444|E89A9A|9B3A2E|1D4ED8|305C89|4B8BF5|6A3D7A|7424B5)$/i;
 
-/** Strip tags, scripts and styles so word checks see COPY, not code. */
-// Market-study report bodies are BRAND DATA, not app chrome: they are generated
-// from the active brand's own market_study record (see
-// scripts/build-research-page.js) and re-render client-side per brand. Tenant
-// zero's study legitimately names its own industry there, so those blocks are
-// stripped (with a depth walk - the bodies nest divs) before text extraction.
-function stripBrandDataBlocks(html) {
-  const OPEN = '<div class="ms-report"';
-  let out = '', cursor = 0;
-  while (true) {
-    const start = html.indexOf(OPEN, cursor);
-    if (start < 0) break;
-    const bodyStart = html.indexOf('>', start) + 1;
-    let depth = 1, p = bodyStart;
-    while (p < html.length && depth > 0) {
-      const nextOpen = html.indexOf('<div', p);
-      const nextClose = html.indexOf('</div>', p);
-      if (nextClose < 0) { p = html.length; break; }
-      if (nextOpen >= 0 && nextOpen < nextClose) { depth++; p = nextOpen + 4; }
-      else { depth--; p = nextClose + 6; }
+// Tenant vocabulary hardcoded into app chrome (rule 7b). Exported so the test
+// fixture takes a word the RULE matches rather than one typed from memory.
+const TENANT_VOCAB = /\b(sneakers?|kicks|hand-painted|grails?|colorways?|streetwear|rituals?)\b/gi;
+
+/* ── text extraction ──────────────────────────────────────────────────────── */
+
+/** Same length, same newlines: indices and line numbers survive the strip. */
+const blank = (s) => s.replace(/[^\n]/g, ' ');
+
+/**
+ * Remove comments, scripts and styles - ONE left-to-right pass, the earliest
+ * opener wins, the way a browser tokenises. Three separate regex passes have
+ * an order-dependent hole either way round: a `<script>` opener inside a
+ * comment (scripts first) or a `<!--` inside a script string (comments first)
+ * eats real markup up to the next genuine closer. An unterminated opener runs
+ * to the end of the file, which is also what a browser does with it.
+ */
+function stripCode(html) {
+  const OPEN = /<!--|<script\b|<style\b/gi;
+  let out = '', cursor = 0, m;
+  while ((m = OPEN.exec(html))) {
+    const start = m.index;
+    const kind = m[0].toLowerCase();
+    let end;
+    if (kind === '<!--') {
+      const c = html.indexOf('-->', start + 4);
+      end = c < 0 ? html.length : c + 3;
+    } else {
+      const closeRx = new RegExp('</' + kind.slice(1) + '\\s*>', 'gi');
+      closeRx.lastIndex = start;
+      const c = closeRx.exec(html);
+      end = c ? c.index + c[0].length : html.length;
     }
-    out += html.slice(cursor, start) + ' ';
-    cursor = p;
+    out += html.slice(cursor, start) + blank(html.slice(start, end));
+    cursor = end;
+    OPEN.lastIndex = end;
   }
   return out + html.slice(cursor);
 }
 
+/**
+ * The index just past the close tag that balances an element of `tag` whose
+ * body starts at `bodyStart`, or -1 when nothing balances it. Runs on markup
+ * with code already stripped, so a tag inside a comment or a string cannot
+ * open or close anything here.
+ */
+function balancedEnd(markup, tag, bodyStart) {
+  const openRx = new RegExp('<' + tag + '\\b', 'gi');
+  const closeRx = new RegExp('</' + tag + '\\s*>', 'gi');
+  let depth = 1, p = bodyStart;
+  while (depth > 0) {
+    openRx.lastIndex = p; closeRx.lastIndex = p;
+    const o = openRx.exec(markup), c = closeRx.exec(markup);
+    if (!c) return -1;
+    if (o && o.index < c.index) { depth++; p = o.index + o[0].length; }
+    else { depth--; p = c.index + c[0].length; }
+  }
+  return p;
+}
+
+/**
+ * Remove balanced elements matched by `openRx` (group 1 = tag name, group 2 =
+ * the attribute that gated it), FAILING CLOSED: an element that never closes
+ * is left in place - it earns no exemption - and is reported in `unbalanced`
+ * with its position, so it gets fixed rather than hidden. The old walk
+ * advanced to the end of the file on a missing close and swallowed everything
+ * after it, blockers included.
+ */
+function stripBalanced(markup, openRx, label) {
+  const rx = new RegExp(openRx.source, 'gi');
+  let out = '', cursor = 0, m;
+  const unbalanced = [];
+  while ((m = rx.exec(markup))) {
+    const start = m.index;
+    if (start < cursor) continue;                       // nested inside one already removed
+    const tag = m[1].toLowerCase();
+    const bodyStart = markup.indexOf('>', start) + 1;
+    const end = balancedEnd(markup, tag, bodyStart);
+    if (end < 0) {
+      unbalanced.push({ tag, gate: m[2] || label, index: start });
+      rx.lastIndex = bodyStart;                         // keep scanning: a balanced gate beside it still counts
+      continue;
+    }
+    out += markup.slice(cursor, start) + blank(markup.slice(start, end));
+    cursor = end;
+    rx.lastIndex = end;
+  }
+  return { out: out + markup.slice(cursor), unbalanced };
+}
+
 /* Elements GATED to one brand are that brand's own material shipped inside an
-   app page, not app chrome, and are excluded the way whole BRAND_ASSET pages
-   are. The key is the attribute the RUNTIME consumes, never a comment anyone
-   could add for a free pass:
+   app page, not app chrome, and are excluded from the CHROME rules the way
+   whole BRAND_ASSET pages are. The key is the attribute the RUNTIME consumes,
+   never a comment anyone could add for a free pass:
      data-ms-built-for   the Market Study block research.html ships for the
                          brand it names (scripts/build-research-page.js); at run
                          time the whole block is re-rendered from the ACTIVE
@@ -126,42 +205,38 @@ function stripBrandDataBlocks(html) {
    and 24 after, all inside tenant zero's own study; rule 7b read them as chrome.
    The element is removed by a balanced walk on its own tag name, so the rest of
    the page - which IS chrome - is still audited. */
-function stripBrandGatedBlocks(html) {
-  const GATE = /<([a-z][a-z0-9-]*)\b[^>]*\bdata-(?:ms-built-for|shipped-for)=/gi;
-  let out = '', cursor = 0, m;
-  while ((m = GATE.exec(html))) {
-    const start = m.index;
-    if (start < cursor) continue;                       // nested inside one already removed
-    const tag = m[1].toLowerCase();
-    const bodyStart = html.indexOf('>', start) + 1;
-    const openRx = new RegExp('<' + tag + '\\b', 'gi');
-    const closeRx = new RegExp('</' + tag + '\\s*>', 'gi');
-    let depth = 1, p = bodyStart;
-    while (p < html.length && depth > 0) {
-      openRx.lastIndex = p; closeRx.lastIndex = p;
-      const o = openRx.exec(html), c = closeRx.exec(html);
-      if (!c) { p = html.length; break; }
-      if (o && o.index < c.index) { depth++; p = o.index + o[0].length; }
-      else { depth--; p = c.index + c[0].length; }
-    }
-    out += html.slice(cursor, start) + ' ';
-    cursor = p;
-    GATE.lastIndex = p;
-  }
-  return out + html.slice(cursor);
-}
+const GATE = /<([a-z][a-z0-9-]*)\b[^>]*\b(data-(?:ms-built-for|shipped-for))=/;
+function stripBrandGatedBlocks(markup) { return stripBalanced(markup, GATE, 'data-gated'); }
 
-function visibleText(html) {
-  return stripBrandDataBlocks(stripBrandGatedBlocks(html))
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<!--[\s\S]*?-->/g, ' ')
+// Market-study report bodies are BRAND DATA, not app chrome: they are generated
+// from the active brand's own market_study record (see
+// scripts/build-research-page.js) and re-render client-side per brand. Tenant
+// zero's study legitimately names its own industry there.
+const MS_REPORT = /<(div)\b[^>]*\bclass="(ms-report)"/;
+function stripBrandDataBlocks(markup) { return stripBalanced(markup, MS_REPORT, 'class="ms-report"'); }
+
+/** Markup (code already stripped) to the words a visitor reads. */
+function textOf(markup) {
+  return markup
     .replace(/<[^>]+>/g, ' ')
     .replace(/&[a-z]+;/gi, ' ')
     .replace(/\s+/g, ' ');
 }
 
+/** Everything the page's OWNER reads. */
+function visibleText(html) { return textOf(stripCode(html)); }
+
+/** What every OTHER tenant reads: the gated blocks removed, fail-closed. */
+function chromeOf(html) {
+  const code = stripCode(html);
+  const g = stripBrandGatedBlocks(code);
+  const d = stripBrandDataBlocks(g.out);
+  return { text: textOf(d.out), unbalanced: [...g.unbalanced, ...d.unbalanced] };
+}
+
 function lineOf(html, index) { return html.slice(0, index).split('\n').length; }
+
+/* ── routes ───────────────────────────────────────────────────────────────── */
 
 // Routes the app actually serves.
 const ROUTES = new Set();
@@ -203,17 +278,21 @@ function routePattern(source) {
   return new RegExp('^' + body + '$');
 }
 
-const findings = [];
-function add(file, severity, rule, detail, line) {
-  findings.push({ file, severity, rule, detail, line: line || 0 });
-}
+/* ── one page ─────────────────────────────────────────────────────────────── */
 
-for (const file of walkFiles()) {
-  const abs = path.join(ROOT, file);
-  let html;
-  try { html = fs.readFileSync(abs, 'utf8'); } catch (_) { continue; }
+/** Audit one page. Returns its findings: { file, severity, rule, detail, line }. */
+function auditPage(file, html) {
+  const findings = [];
+  const add = (severity, rule, detail, line) => findings.push({ file, severity, rule, detail, line: line || 0 });
+
   const isAsset = BRAND_ASSET.test(file);
-  const text = visibleText(html);
+  const text = visibleText(html);                 // the owner's view: every rule that applies EVERYWHERE
+  const chrome = chromeOf(html);                  // every other tenant's view: the `!isAsset` rules
+  for (const u of chrome.unbalanced) {
+    add('WARN', 'gated-unbalanced',
+      `<${u.tag} ${u.gate}> never closes, so it earns NO exemption: its content is audited as chrome until the markup is balanced`,
+      lineOf(html, u.index));
+  }
 
   // 1. Wrong-industry vocabulary (app pages only; a brand asset may say "coffee"
   //    when the brand genuinely sells a coffee-THEMED product).
@@ -221,19 +300,19 @@ for (const file of walkFiles()) {
     for (const term of WRONG_INDUSTRY) {
       const rx = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
       let hit = null;
-      for (const mm of text.matchAll(rx)) {
-        const around = text.slice(Math.max(0, mm.index - 120), mm.index + 120);
+      for (const mm of chrome.text.matchAll(rx)) {
+        const around = chrome.text.slice(Math.max(0, mm.index - 120), mm.index + 120);
         if (/banned|do not use|never use|forbidden|avoid these|donts|"default"\s*:\s*\[/i.test(around)) continue;
         hit = mm; break;
       }
-      if (hit) add(file, 'BLOCKER', 'wrong-industry', `"${hit[0]}" - relic of the previous brand's industry`);
+      if (hit) add('BLOCKER', 'wrong-industry', `"${hit[0]}" - relic of the previous brand's industry`);
     }
   }
 
   // 2. Fabricated proof (everywhere: a brand asset must not invent either).
   for (const { rx, what } of FABRICATED) {
     const m = text.match(rx);
-    if (m) add(file, 'BLOCKER', 'fabricated-proof', `${what}: "${m[0]}"${m.length > 1 ? ` (+${m.length - 1} more)` : ''} - the brand publishes no such figure`);
+    if (m) add('BLOCKER', 'fabricated-proof', `${what}: "${m[0]}"${m.length > 1 ? ` (+${m.length - 1} more)` : ''} - the brand publishes no such figure`);
   }
 
   // 3. Off-palette colour in page CSS.
@@ -244,14 +323,6 @@ for (const file of walkFiles()) {
     return out;
   })();
   const hexes = [...new Set((cssOnly.match(/#[0-9A-Fa-f]{6}\b/g) || []).map((h) => h.toUpperCase()))];
-  // Status and data-visualisation colours are FUNCTIONAL, not brand: a chart
-  // needs more than four hues and a positive/negative signal must stay legible
-  // whatever the brand palette is. Only non-brand, non-functional hues count.
-  // Third-party PLATFORM colours identify an ad channel (Google, Meta, TikTok,
-// YouTube, LinkedIn). They are not the tenant's brand and must not be
-// re-themed: a Google Ads tile is supposed to look like Google.
-const PLATFORM = /^#(?:4285F4|34A853|FBBC05|EA4335|FE2C55|25F4EE|1877F2|0A66C2|FF0000|25D366|E60023|FFFC00|1DA1F2|E1306C|5865F2)$/i;
-const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1|8B5CF6|10B981|059669|D97706|EA580C|0891B2|1A7F37|147014|0A7D33|16A34A|18794E|2F8F57|1D6B45|3FA46A|5FB487|8FD3B0|C9A227|B45309|F59E0B|9A7420|C0392B|B91C1C|EF4444|E89A9A|9B3A2E|1D4ED8|305C89|4B8BF5|6A3D7A|7424B5)$/i;
   // A grey with a slight tint is still a NEUTRAL, not a brand colour: a
   // slate/blue-grey UI scale (#0E1116, #F5F7FA) carries no brand meaning.
   // Saturation, not the literal value, is what separates the two - the brand
@@ -268,7 +339,7 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
   };
   const off = hexes.filter((h) => !PALETTE.includes(h) && !NEUTRAL_HEX.test(h) && !FUNCTIONAL.test(h) && !PLATFORM.test(h) && !lowSat(h));
   if (off.length && !isAsset) {
-    add(file, off.length > 12 ? 'BLOCKER' : 'WARN', 'off-palette', `${off.length} non-brand colour(s): ${off.slice(0, 6).join(', ')}`);
+    add(off.length > 12 ? 'BLOCKER' : 'WARN', 'off-palette', `${off.length} non-brand colour(s): ${off.slice(0, 6).join(', ')}`);
   }
 
   // 4. Banned phrases straight from the brand record.
@@ -286,16 +357,16 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
       if (TECHNICAL.test(around) || DOCUMENTS_RULES.test(around)) continue;
       hit = true; break;
     }
-    if (hit) add(file, 'BLOCKER', 'banned-phrase', `"${phrase}" used as copy (not as a documented rule)`);
+    if (hit) add('BLOCKER', 'banned-phrase', `"${phrase}" used as copy (not as a documented rule)`);
   }
 
   // 5. Em/en dashes in visible copy (standing rule).
   const dash = text.match(/[—–]/g);
-  if (dash) add(file, 'WARN', 'dash', `${dash.length} em/en dash(es) in copy - use commas, colons or plain hyphens`);
+  if (dash) add('WARN', 'dash', `${dash.length} em/en dash(es) in copy - use commas, colons or plain hyphens`);
 
   // 6. Asset URLs that cannot exist.
   const badCdn = html.match(/https:\/\/cdn\.shopify\.com\/s\/files\/1\/[a-z]+\//gi);
-  if (badCdn) add(file, 'BLOCKER', 'fabricated-url', `${badCdn.length} CDN path(s) with a non-numeric shop id - these 404`);
+  if (badCdn) add('BLOCKER', 'fabricated-url', `${badCdn.length} CDN path(s) with a non-numeric shop id - these 404`);
 
   // 7. Internal links that go nowhere.
   const hrefs = [...html.matchAll(/href="(\/[^"#][^"]*)"/g)];
@@ -309,21 +380,20 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
     }
     if (!routeExists(href)) broken.add(href);
   }
-  if (broken.size) add(file, 'BLOCKER', 'broken-link', `${broken.size} internal link(s) with no route or file: ${[...broken].slice(0, 5).join(', ')}`);
+  if (broken.size) add('BLOCKER', 'broken-link', `${broken.size} internal link(s) with no route or file: ${[...broken].slice(0, 5).join(', ')}`);
 
   // 7b. Tenant vocabulary hardcoded into app chrome. The app surface renders
   //     for EVERY brand, so no tenant's product language belongs in it - not
   //     even tenant zero's. (Its own campaign hubs are classified as brand
   //     assets above and are allowed their own vocabulary.)
   if (!isAsset) {
-    const TENANT_VOCAB = /\b(sneakers?|kicks|hand-painted|grails?|colorways?|streetwear|rituals?)\b/gi;
     let tHit = null;
-    for (const mm of text.matchAll(TENANT_VOCAB)) {
-      const around = text.slice(Math.max(0, mm.index - 100), mm.index + 100);
+    for (const mm of chrome.text.matchAll(TENANT_VOCAB)) {
+      const around = chrome.text.slice(Math.max(0, mm.index - 100), mm.index + 100);
       if (/banned|donts|forbidden|"default"\s*:\s*\[/i.test(around)) continue;   // documented rules
       tHit = mm; break;
     }
-    if (tHit) add(file, 'BLOCKER', 'tenant-vocab', `"${tHit[0]}" hardcoded in app chrome - the shell renders for every brand`);
+    if (tHit) add('BLOCKER', 'tenant-vocab', `"${tHit[0]}" hardcoded in app chrome - the shell renders for every brand`);
   }
 
   // 7c. A page that promises real-only data must not be ABLE to render invented
@@ -352,7 +422,7 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
       // one means something actually calls it.
       const uses = codeOnly.match(new RegExp(`(?<![.\\w$])${fn}\\s*\\(`, 'g')) || [];
       if (uses.length > 1) {
-        add(file, 'BLOCKER', 'fabricator-reachable',
+        add('BLOCKER', 'fabricator-reachable',
           `${fn}() is reachable (${uses.length - 1} call site(s)) on a page that tells the user it shows no synthetic numbers`);
       }
     }
@@ -370,7 +440,7 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
   for (const m of html.matchAll(/localStorage\.(?:get|set|remove)Item\(\s*['"]([\w.-]+)['"]/g)) {
     if (!BRAND_SCOPED_STATE.test(m[1])) continue;
     if (isAsset) continue;                    // a tenant's own artefact page keeps its own state
-    add(file, 'BLOCKER', 'unscoped-brand-state',
+    add('BLOCKER', 'unscoped-brand-state',
       `localStorage key "${m[1]}" holds brand-specific state but is not scoped to a brand - use LCStore.get/set/remove so a brand switch cannot inherit it`,
       lineOf(html, m.index));
   }
@@ -397,7 +467,7 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
       : ACCENT_BG.test(bg[1]) ? '--brand-on-accent' : null;
     if (!onToken) continue;
     if (!LIGHT_TEXT.test(body)) continue;
-    add(file, 'BLOCKER', 'unreadable-pairing',
+    add('BLOCKER', 'unreadable-pairing',
       `text is hardcoded light on a brand-token background (var(${bg[1]})) - use color:var(${onToken},#fff), which is contrast-computed per brand, or the text vanishes for any brand with a light ${onToken === '--brand-on-primary' ? 'primary' : 'accent'}`);
     break;                                   // one finding per file is enough to act on
   }
@@ -430,7 +500,7 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
     const clips = /t[dh](?![\w-])[^{}]*\{[^{}]*overflow\s*:\s*hidden/i.test(css);
     if (nowrapCell.test(css) && !optsOut && !clips) {
       const m = css.match(nowrapCell);
-      add(file, 'BLOCKER', 'table-cell-overlap',
+      add('BLOCKER', 'table-cell-overlap',
         'table cells are white-space:nowrap under the global table-layout:fixed default, so a value wider than its equal-share column paints over the next one - set table-layout:auto on the table (with a scrolling wrapper) or overflow:hidden on the cells',
         lineOf(html, m.index));
     }
@@ -438,8 +508,8 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
 
   // 8. Hardcoded brand identity on an APP page.
   if (!isAsset) {
-    const brandHits = (text.match(/\bKNICKGASM\b|\bKnickgasm\b/g) || []).length;
-    if (brandHits) add(file, 'WARN', 'hardcoded-brand', `brand name appears ${brandHits}x in visible copy - app surface should resolve the ACTIVE brand`);
+    const brandHits = (chrome.text.match(/\bKNICKGASM\b|\bKnickgasm\b/g) || []).length;
+    if (brandHits) add('WARN', 'hardcoded-brand', `brand name appears ${brandHits}x in visible copy - app surface should resolve the ACTIVE brand`);
   }
 
   // 8b. Tenant zero's PRODUCT VOCABULARY on an app page.
@@ -456,9 +526,9 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
   // brand's offerings[].kind - see BrandContext.nouns().
   if (!isAsset) {
     const VOCAB = /\b(sneakers?|colorways?|airbrush(?:ed|ing)?|streetwear|hand-painted|grail|Namaste)\b/gi;
-    const hits = [...new Set((text.match(VOCAB) || []).map((h) => h.toLowerCase()))];
+    const hits = [...new Set((chrome.text.match(VOCAB) || []).map((h) => h.toLowerCase()))];
     if (hits.length) {
-      add(file, 'WARN', 'tenant-zero-vocabulary',
+      add('WARN', 'tenant-zero-vocabulary',
         `visible copy uses tenant zero's product vocabulary (${hits.join(', ')}) - an app surface must be neutral or derive the noun from the active brand`);
     }
   }
@@ -466,35 +536,67 @@ const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1
   // 9. Product-only assumptions in shared UI copy.
   if (!isAsset) {
     for (const rx of [/\bShop the edit\b/i, /\bAdd to cart\b/i, /\byour cart\b/i]) {
-      const m = text.match(rx);
-      if (m) add(file, 'WARN', 'product-assumption', `"${m[0]}" assumes the brand sells products`);
+      const m = chrome.text.match(rx);
+      if (m) add('WARN', 'product-assumption', `"${m[0]}" assumes the brand sells products`);
     }
   }
+
+  return findings;
 }
 
-// ── Report ──────────────────────────────────────────────────────────────────
-const byFile = {};
-for (const f of findings) (byFile[f.file] = byFile[f.file] || []).push(f);
-const blockers = findings.filter((f) => f.severity === 'BLOCKER');
-const warns = findings.filter((f) => f.severity === 'WARN');
+/* ── the CLI ──────────────────────────────────────────────────────────────── */
 
-const files = Object.keys(byFile).sort();
-for (const f of files) {
-  const rows = byFile[f];
-  const b = rows.filter((r) => r.severity === 'BLOCKER').length;
-  console.log(`\n${f}  (${b} blocker, ${rows.length - b} warn)`);
-  for (const r of rows) console.log(`  ${r.severity.padEnd(7)} ${r.rule.padEnd(18)} ${r.detail}`);
+function pageFiles(one) {
+  if (one) return [one];
+  return fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'));
 }
 
-const clean = walkFiles().length - files.length;
-console.log(`\n${'─'.repeat(72)}`);
-console.log(`Pages audited: ${walkFiles().length}   clean: ${clean}   with findings: ${files.length}`);
-console.log(`BLOCKERS: ${blockers.length}   WARNINGS: ${warns.length}`);
-const byRule = {};
-for (const f of findings) byRule[f.rule] = (byRule[f.rule] || 0) + 1;
-console.log('By rule:', Object.entries(byRule).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}=${v}`).join('  ') || 'none');
+function main(argv) {
+  const ARGS = argv.slice(2);
+  const FAIL_MODE = ARGS.includes('--fail');
+  const ONE = (ARGS.find((a) => a.startsWith('--page=')) || '').split('=')[1];
 
-if (FAIL_MODE && blockers.length) {
-  console.error(`\nFAIL: ${blockers.length} blocker(s). Every element and every word of an app page must be correct for the active brand.`);
-  process.exit(1);
+  const files = pageFiles(ONE);
+  const findings = [];
+  for (const file of files) {
+    const abs = path.isAbsolute(file) ? file : path.join(ROOT, file);
+    let html;
+    try { html = fs.readFileSync(abs, 'utf8'); } catch (_) { continue; }
+    findings.push(...auditPage(path.basename(file), html));
+  }
+
+  // ── Report ──────────────────────────────────────────────────────────────
+  const byFile = {};
+  for (const f of findings) (byFile[f.file] = byFile[f.file] || []).push(f);
+  const blockers = findings.filter((f) => f.severity === 'BLOCKER');
+  const warns = findings.filter((f) => f.severity === 'WARN');
+
+  const withFindings = Object.keys(byFile).sort();
+  for (const f of withFindings) {
+    const rows = byFile[f];
+    const b = rows.filter((r) => r.severity === 'BLOCKER').length;
+    console.log(`\n${f}  (${b} blocker, ${rows.length - b} warn)`);
+    for (const r of rows) console.log(`  ${r.severity.padEnd(7)} ${r.rule.padEnd(18)} ${r.detail}${r.line ? ` (line ${r.line})` : ''}`);
+  }
+
+  const clean = files.length - withFindings.length;
+  console.log(`\n${'─'.repeat(72)}`);
+  console.log(`Pages audited: ${files.length}   clean: ${clean}   with findings: ${withFindings.length}`);
+  console.log(`BLOCKERS: ${blockers.length}   WARNINGS: ${warns.length}`);
+  const byRule = {};
+  for (const f of findings) byRule[f.rule] = (byRule[f.rule] || 0) + 1;
+  console.log('By rule:', Object.entries(byRule).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}=${v}`).join('  ') || 'none');
+
+  if (FAIL_MODE && blockers.length) {
+    console.error(`\nFAIL: ${blockers.length} blocker(s). Every element and every word of an app page must be correct for the active brand.`);
+    return 1;
+  }
+  return 0;
 }
+
+module.exports = {
+  auditPage, visibleText, chromeOf, stripCode, stripBrandGatedBlocks, stripBrandDataBlocks, balancedEnd,
+  WRONG_INDUSTRY, TENANT_VOCAB, FABRICATED, BRAND_ASSET,
+};
+
+if (require.main === module) process.exit(main(process.argv));
