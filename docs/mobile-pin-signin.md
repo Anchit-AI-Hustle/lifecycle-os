@@ -230,3 +230,125 @@ The parity test is there for exactly this class.
   else.
 
 All four are mutation-verified: restoring each defect fails its test.
+
+## Verified on production (2026-09-29)
+
+**Where and what.** Production is `https://lifecycle-os.anchit-tandon.com` (`knickgasm.vercel.app`
+is a 308 onto it). Vercel reports the live production deployment as
+`dpl_8AEwJP1NWLjyvxvSB7yuLmZzSiB9`, built from `main` at commit
+`2b2a992bcfa89d6ccc021a9b2df5724589cd7efc` (PR #105), created 2026-09-29 07:09 UTC. `main`'s head
+`d9ac6a7` is not deployed yet (the free-tier daily deployment quota was spent); both commits carry
+the mobile+PIN sign-in, and `auth.js` differs between them only by the 2026-09-29 `serverActions`
+block, `credits.js` by its two `refusalFor` calls.
+
+**The status endpoint, read from production itself** (through the Vercel connector, because the
+container's egress policy denies the host):
+
+```
+GET /api/public-config?action=auth&op=status
+200 {"ok":true,"mode":"device","reason":"no_database_url","host":"",
+     "message":"Saved on this device only: no database is configured. Set DATABASE_URL to keep accounts in a database."}
+access-control-allow-headers: Authorization, Content-Type, X-Lifecycle-Token · cache-control: no-store
+```
+
+So production runs **device mode**: no `DATABASE_URL` / `NEON_DATABASE_URL` / `POSTGRES_URL` is
+set, accounts live in the browser, PBKDF2 via WebCrypto. `/api/public-config` (no action) still
+names the Supabase project (`fswdwmkgggzyxrdzabnh.supabase.co`, paused) and its anon key, which
+this sign-in does not use.
+
+**The deployed bytes, verified.** `auth.js` (251,081 bytes), `brand-context.js`, `smart-brain.html`
+and `onboarding.html` were fetched from production and are byte-identical to `git show
+2b2a992:<file>`; `credits.js`, `theme.css` and `index.html` match through Vercel's ETag, which is
+the md5 of the body (all seven md5s agree). The deployed `auth.js` carries the panel (`#lnav-mauth`,
+`mauthOpenPanel`, `LifecycleAuth.openSignIn`); its only two `signInWithOAuth` occurrences are
+comment lines under the `DISABLED 2026-09-28` banners, and "Sign in with Google" appears nowhere in
+it. The deployed `brand-context.js` names Google only inside the commented-out gate button.
+
+**The browser drive was against production's deployed bytes, served locally.** The container cannot
+open the production host: the egress proxy answers 403 to CONNECT for both hostnames (curl:
+`CONNECT tunnel failed, response 403`; Chromium: `net::ERR_TUNNEL_CONNECTION_FAILED`), and likewise
+for the supabase-js CDN and the paused Supabase host. So `git archive 2b2a992` (the same bytes as
+the fetched files) was served from `127.0.0.1`, a secure context in which WebCrypto's `subtle`
+exists exactly as on https; `/api/public-config` and `?action=auth&op=status` answered production's
+exact JSON; every other `/api/` route answered 503 with a sentence; the SDK was stubbed with an
+anonymous client and the auth-host probe aborted, which is the state production is in anyway (the
+project is paused, its host does not resolve). Script and record:
+`scratchpad/mobile-pin/drive-prod-bytes.js`, `observations.json`, `screenshots/01..14`. Viewport
+1280x800, fixture number `+91 98765 43210` (nobody's), name "Asha Test", PIN 7391.
+
+What was observed on the deployed bytes, on `/onboarding` and then `/brain`:
+
+- signed out: the Sign in chip, no session, no Google control, no `signInWithOAuth` call;
+- the panel opens on the same page, no navigation; its mode line is exactly production's status
+  sentence; `data-mode="device"`;
+- `+91 5876543210` → *A India number has 10 digits after the country code. Please check it.*;
+  `+1 1015550123` → *A USA / Canada number has 10 digits after the country code. Please check it.*;
+  both in the failure frame, nothing sent;
+- `+91 98765 43210` → *This number is new here, so we will set you up. Already have an account? Check
+  the number above.*, button *Create my account and continue*; PINs `1234` and `0000` → *That PIN is
+  one of the first anyone would try. Please pick another.* with no account stored; `123` → *Your PIN
+  is 4 digits.*;
+- PIN 7391 → the rail reads **Asha Test** with *Saved on this device only: no database is
+  configured…* under it; the panel closes; `LifecycleAuth.session` is `{provider:'mobile-pin',
+  mode:'device', user:{id:'dev-…', phone:'+919876543210'}}`, `internal:false`, backend kind
+  `signed-in`; `BrandContext.storage().account_sentence` is *Signed in as Asha Test · workspaces are
+  saved on this device* and `server_open:false`; the device store holds `salt` (32 hex), `hash`
+  (64 hex), `iterations:120000`, `tries:0`, `lockedUntil:null` and no value equal to the PIN; no
+  `op=enter` or `op=me` left the browser and no request carried a token;
+- the wizard: typing a brand name and pressing *Colour schema →* writes the draft under
+  `lifecycle.brand.device.workspaces.dev-…` (the account's key, `BrandContext.device.key()`); the
+  unscoped key is not written; the review step shows the account sentence above the row;
+- reload keeps the session with no `op=me`; `/brain` shows the same name, key and sentence;
+- sign out reloads: the chip is back, `lifecycle.auth.session` is gone, the account row and the
+  brand under the account key are both kept, the device key is the unscoped one again;
+- sign in again: *Welcome back, Asha Test. Type your PIN.*, button *Sign in*; 7391 signs in as the
+  same id and the brand is listed again;
+- five wrong PINs: *That PIN is not right. 4 tries left.*, then 3, 2, *1 try left*, then *Too many
+  wrong PINs. Try again in 15 minutes.* with `data-state="locked"` and `lockedUntil` set; the right
+  PIN while locked is refused with the lock sentence and no session;
+- no native dialog, no page error.
+
+**Found on the deployed bytes, fixed in this branch** (each reproduced by an executed test before
+the fix, and mutation-verified):
+
+- **The page went dim after Sign in on a desktop and stayed dim after signing in.**
+  `mauthOpenPanel()` added `open` to `#lifecycle-nav` unconditionally ("the rail is a drawer on a
+  phone"), and the drawer's backdrop, a 55% black pointer-catching sheet, is not scoped to the phone
+  breakpoint. At 1280px the rail is always visible, so the only effect was the backdrop: the wizard's
+  own *Colour schema →* button could not be pressed (Playwright: `#lnav-backdrop intercepts pointer
+  events`, screenshot `07a-next-click-blocked-by-backdrop.png`), and nothing said that clicking the
+  dark area or pressing Escape was the way out. The panel now opens the drawer only when the burger
+  is displayed (the rail IS a drawer) and only if it was closed, and closes what it opened when the
+  panel goes (sign-in or Cancel); a drawer the person opened themselves is left as they had it.
+  Test: *the panel opens the rail drawer only where the rail IS a drawer…*, driven at 1280px and at
+  390px.
+- **A server-mode account whose database is down was told it was signed in on a device.**
+  `requireUser()` flattened `verifyToken()`'s `unreachable` (a URL is set, the lookup threw) and
+  `no_database` into one `401 sign_in_required` reading *a sign-in kept on this device only cannot be
+  checked by the server*. A token of our shape reaches the server only from a server-mode sign-in
+  (a device token is never sent), so the sentence contradicted the rail's own mode line, and the 401
+  is the code every catch reads as "sign in again", which cannot help while the database is down.
+  It is `503 backend_unreachable` now, naming the host, with `backend_unreachable:true` so
+  `require-caller` passes the 503 through. `no_database` keeps the 401 and the device sentence.
+- **On a phone the signed-out notice sat on top of the menu button.** The standing bar (*"Sign in
+  with your mobile number and a 4-digit PIN (the Sign in chip in the menu)"*) is `position:sticky;
+  top:0; z-index:120`, inserted as the body's first child; the rail's mobile top bar is fixed at
+  `z-index:100`. At 390px the notice covered the burger that opens the menu the sentence points at,
+  so the first press landed on the notice and the way to Sign in was to find Dismiss first (the
+  drawer test hung on exactly that press: `#lc-authnotice intercepts pointer events`). The bar now
+  sticks at `top: var(--ltb-h, 0px)` (the rail's own published mobile-bar height, 0 on a desktop) and
+  is inserted after `#lifecycle-nav`, whose spacer reserves that height in flow. Nothing changes on a
+  desktop, and the notice is still shown, below the bar. The two halves do different jobs: the
+  sticky offset alone keeps the burger clear at rest but leaves the bar painted over the first
+  50px of what follows it (it still occupies its old place in flow), and the insertion alone keeps
+  it clear at rest but lets it slide over the top bar on scroll; the mutation that fails the test
+  is the deployed state, both reverted together (`Received: "lc-authnotice"` at the burger's
+  centre), and either half alone passes the at-rest check.
+
+**Coverage added** (`tests/mobile-pin-signin.spec.js`, 29 tests, all executed): a device session
+signed in on one page is the session on `/onboarding`, `/index` and `/dashboard` after navigation,
+from the first frame, with no `op=me`; `op=me` refuses a forged, a malformed, a JWT-shaped and an
+absent token with 401 through the shipped handler, `signout_all` invalidates the real one, and a
+page booting with a forged stored session clears it, says so under the chip, and opens no device
+namespace for it; five concurrent wrong PINs through the SHIPPED handler each count and lock the
+row; and the two findings above.
