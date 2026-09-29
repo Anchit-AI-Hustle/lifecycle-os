@@ -230,7 +230,9 @@ async function install(page, brand) {
         user: { id: 'dev-sweep0001', name: 'Sweep', phone: '+919876543210' }, expires,
         storage: { mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' },
       }));
-      localStorage.setItem('lifecycle.brand.device.workspaces', JSON.stringify({ version: 1, active_id: seed.id, workspaces: [seed] }));
+      // The device store is namespaced per signed-in account (2026-09-29):
+      // this row is the sweep account's, under ITS key, not the unscoped one.
+      localStorage.setItem('lifecycle.brand.device.workspaces.dev-sweep0001', JSON.stringify({ version: 1, active_id: seed.id, workspaces: [seed] }));
     } catch (_) {}
   }, Object.assign({}, brand, { id: 'local-sweep0001', status: 'active', storage: 'device', owner_id: null }));
   page.on('dialog', (d) => d.dismiss().catch(() => {}));
