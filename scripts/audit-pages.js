@@ -98,6 +98,24 @@ const NEUTRAL_HEX = /^#(?:[0-9A-F])\1{5}$|^#(?:FFFFFF|000000|F5F5F5|EBEBEB|F7F7F
 const PLATFORM = /^#(?:4285F4|34A853|FBBC05|EA4335|FE2C55|25F4EE|1877F2|0A66C2|FF0000|25D366|E60023|FFFC00|1DA1F2|E1306C|5865F2)$/i;
 const FUNCTIONAL = /^#(?:DC2626|7C3AED|4F46E5|374151|2D3748|1F2937|4B5563|6366F1|8B5CF6|10B981|059669|D97706|EA580C|0891B2|1A7F37|147014|0A7D33|16A34A|18794E|2F8F57|1D6B45|3FA46A|5FB487|8FD3B0|C9A227|B45309|F59E0B|9A7420|C0392B|B91C1C|EF4444|E89A9A|9B3A2E|1D4ED8|305C89|4B8BF5|6A3D7A|7424B5)$/i;
 
+// A grey with a slight tint is still a NEUTRAL, not a brand colour: a
+// slate/blue-grey UI scale (#0E1116, #F5F7FA) carries no brand meaning.
+// Saturation, not the literal value, is what separates the two - the brand
+// colours sit far above this threshold (#D0473E ~60%, #6A33D8 ~68%).
+// Module-level (not inside the page loop) because the platform-identity gate
+// imports it: the platform mark has to be neutral by the SAME definition this
+// audit applies to page CSS, not by a second one that can drift.
+const lowSat = (hex) => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return true;
+  // At the extremes, saturation is mathematically large but visually absent:
+  // #0E1116 is near-black with a 3/255 blue lean. Judge those by lightness.
+  if (l <= 0.12 || l >= 0.92) return (mx - mn) <= 0.06;
+  const d = mx - mn;
+  return (l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)) <= 0.16;
+};
+
 // Tenant vocabulary hardcoded into app chrome (rule 7b). Exported so the test
 // fixture takes a word the RULE matches rather than one typed from memory.
 const TENANT_VOCAB = /\b(sneakers?|kicks|hand-painted|grails?|colorways?|streetwear|rituals?)\b/gi;
@@ -323,20 +341,6 @@ function auditPage(file, html) {
     return out;
   })();
   const hexes = [...new Set((cssOnly.match(/#[0-9A-Fa-f]{6}\b/g) || []).map((h) => h.toUpperCase()))];
-  // A grey with a slight tint is still a NEUTRAL, not a brand colour: a
-  // slate/blue-grey UI scale (#0E1116, #F5F7FA) carries no brand meaning.
-  // Saturation, not the literal value, is what separates the two - the brand
-  // colours sit far above this threshold (#D0473E ~60%, #6A33D8 ~68%).
-  const lowSat = (hex) => {
-    const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
-    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
-    if (mx === mn) return true;
-    // At the extremes, saturation is mathematically large but visually absent:
-    // #0E1116 is near-black with a 3/255 blue lean. Judge those by lightness.
-    if (l <= 0.12 || l >= 0.92) return (mx - mn) <= 0.06;
-    const d = mx - mn;
-    return (l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)) <= 0.16;
-  };
   const off = hexes.filter((h) => !PALETTE.includes(h) && !NEUTRAL_HEX.test(h) && !FUNCTIONAL.test(h) && !PLATFORM.test(h) && !lowSat(h));
   if (off.length && !isAsset) {
     add(off.length > 12 ? 'BLOCKER' : 'WARN', 'off-palette', `${off.length} non-brand colour(s): ${off.slice(0, 6).join(', ')}`);
@@ -596,7 +600,7 @@ function main(argv) {
 
 module.exports = {
   auditPage, visibleText, chromeOf, stripCode, stripBrandGatedBlocks, stripBrandDataBlocks, balancedEnd,
-  WRONG_INDUSTRY, TENANT_VOCAB, FABRICATED, BRAND_ASSET,
+  WRONG_INDUSTRY, TENANT_VOCAB, FABRICATED, BRAND_ASSET, NEUTRAL_HEX, lowSat,
 };
 
 if (require.main === module) process.exit(main(process.argv));

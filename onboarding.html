@@ -56,8 +56,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Set up your brand</title>
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
 <link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
 <script src="/auth.js?v=20260809" defer></script>
 <style>
@@ -472,7 +478,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var initials = (brand.name || 'Br').trim().slice(0, 2).toUpperCase();
     $('preview').innerHTML =
       '<div class="pv-bar" style="background:' + esc(p.surface_alt || '#fff') + ';border-color:' + esc(shade(p.ink, .84)) + '">' +
-        '<span class="pv-logo" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + '">' +
+        '<span class="pv-logo" data-brand-slot="logo" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + '">' +
           (brand.logo_url ? '<img src="' + esc(brand.logo_url) + '" alt="">' : esc(initials)) + '</span>' +
         '<b style="font:600 13px ' + esc(body.stack) + ';color:' + esc(p.ink) + '">' + esc(brand.name || 'Your brand') + '</b>' +
         '<span style="margin-left:auto;font:600 10px ' + esc(body.stack) + ';padding:4px 9px;border-radius:999px;background:' +
