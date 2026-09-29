@@ -478,7 +478,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var initials = (brand.name || 'Br').trim().slice(0, 2).toUpperCase();
     $('preview').innerHTML =
       '<div class="pv-bar" style="background:' + esc(p.surface_alt || '#fff') + ';border-color:' + esc(shade(p.ink, .84)) + '">' +
-        '<span class="pv-logo" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + '">' +
+        '<span class="pv-logo" data-brand-slot="logo" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + '">' +
           (brand.logo_url ? '<img src="' + esc(brand.logo_url) + '" alt="">' : esc(initials)) + '</span>' +
         '<b style="font:600 13px ' + esc(body.stack) + ';color:' + esc(p.ink) + '">' + esc(brand.name || 'Your brand') + '</b>' +
         '<span style="margin-left:auto;font:600 10px ' + esc(body.stack) + ';padding:4px 9px;border-radius:999px;background:' +
