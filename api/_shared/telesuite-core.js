@@ -222,14 +222,35 @@ async function context(req) {
   if (!auth.ok) return { ok: false, auth };
   const body = (req && req.body) || {};
   const q = (req && req.query) || {};
-  let wsId = str(body.workspace_id || q.workspace_id);
-  if (!wsId) wsId = await brandCore.activeWorkspaceId(auth);
-  if (!wsId) {
-    return { ok: false, status: 409, error: 'no_active_brand', message: 'Onboard a brand first — TeleSuite runs against your active brand workspace.' };
+  // A MOBILE+PIN ACCOUNT (2026-09-29). Its library, its runs and its brand
+  // workspace all live in the Supabase database beside an email account, and
+  // a phone account has no identity there: restAs() refuses its token with
+  // account_type_unsupported. That refusal used to be THROWN out of this
+  // function, past handle()'s try/catch, and reach the router as a 500 with
+  // the sentence in the wrong field. It is answered here, as the state it is.
+  if (auth.provider === 'mobile-pin') {
+    return {
+      ok: false, status: 403, error: 'account_type_unsupported',
+      message: 'TeleSuite keeps its products, knowledge base and every run in the workspace database beside an email account, '
+        + 'and a mobile-number sign-in has no record there, so it cannot run TeleSuite yet. Nothing was run and nothing was saved.',
+    };
   }
-  // Read through the CALLER'S token, so RLS is what decides they may see it.
-  const brand = await brandCore.getWorkspace(auth, wsId);
-  if (!brand) return { ok: false, status: 404, error: 'workspace_not_found' };
+  let wsId = str(body.workspace_id || q.workspace_id);
+  let brand = null;
+  try {
+    if (!wsId) wsId = await brandCore.activeWorkspaceId(auth);
+    if (!wsId) {
+      return { ok: false, status: 409, error: 'no_active_brand', message: 'Onboard a brand first — TeleSuite runs against your active brand workspace.' };
+    }
+    // Read through the CALLER'S token, so RLS is what decides they may see it.
+    brand = await brandCore.getWorkspace(auth, wsId);
+  } catch (err) {
+    // A workspace lookup that could not run is a refusal with its own status
+    // and sentence (restAs sets both), never a bare throw out of the router.
+    const status = Number(err && err.status) || 502;
+    return { ok: false, status, error: (err && err.code) || 'workspace_lookup_failed', message: String((err && err.message) || 'The brand workspace could not be read, so TeleSuite did not run.') };
+  }
+  if (!brand) return { ok: false, status: 404, error: 'workspace_not_found', message: 'That brand workspace does not exist or your account cannot see it, so TeleSuite did not run.' };
 
   let role = 'viewer';
   if (brand.owner_id && brand.owner_id === auth.user_id) role = 'owner';

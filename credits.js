@@ -181,6 +181,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '.lc-credit-pill .lc-dot{width:8px;height:8px;border-radius:50%;background:var(--brand-primary,#6A33D8)}',
       '.lc-credit-pill.is-low .lc-dot{background:var(--brand-warn,#c9a227)}',
       '.lc-credit-pill.is-empty .lc-dot{background:var(--brand-err,#c0392b)}',
+      // No wallet on this sign-in: the muted ink, a quiet dot, no warning colour.
+      '.lc-credit-pill.is-none{color:var(--brand-ink-muted,#556);font-weight:500}',
+      '.lc-credit-pill.is-none .lc-dot{background:var(--brand-line,#dcdcdc)}',
       '.lc-credit-pill .lc-add{padding:2px 8px;border-radius:999px;font-size:11px;',
       ' background:var(--brand-primary,#6A33D8);color:var(--brand-on-primary,#fff)}',
       // Reads as a status, not a promotion: this account is not billed.
@@ -238,6 +241,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       pillEl.title = 'Credits — click for usage and recharge';
       pillEl.addEventListener('click', function () { location.href = '/credits'; });
       document.body.appendChild(pillEl);
+    }
+    // A phone account whose number is not on the operator's wallet list has
+    // no wallet, and that is a STATE, not a fault (2026-09-29): the pill says
+    // so in a short sentence, in the muted rule, with the server's full
+    // sentence on hover. It never wears the low/empty colours, because
+    // "no wallet" and "wallet at zero" are different things to be told.
+    pillEl.classList.remove('is-low', 'is-empty');
+    pillEl.classList.toggle('is-none', state.unavailable === 'mobile_account');
+    pillEl.setAttribute('data-credits-state', state.unavailable || (state.balance == null ? 'unknown' : 'wallet'));
+    if (state.unavailable === 'mobile_account') {
+      pillEl.innerHTML = '<span class="lc-dot"></span><span class="lc-none">No credit wallet on this sign-in</span>';
+      return;
     }
     if (state.balance == null) {
       pillEl.innerHTML = '<span class="lc-dot"></span><span>Credits</span>';
@@ -550,6 +565,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     setInterval(function () { if (!realtimeUp && token()) refresh(); }, 60000);
     // Brand switch = different wallet.
     window.addEventListener('brandcontext:change', function () { if (token()) refresh(); });
+    // The session's own state changes after the first frame: a server-mode
+    // phone session is provisional until op=me answers, and the first balance
+    // read used to land in that window, be refused as "the database your
+    // account is in is not answering", and stay that way for the whole 60 s
+    // poll interval - a LISTED number saw no wallet for a minute after every
+    // sign-in (2026-09-29). auth.js publishes each change; read again on it.
+    window.addEventListener('lifecycleauth:backend', function () { refresh(); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
@@ -567,6 +589,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // already completed. The list of accounts is never sent to the browser —
     // only this boolean about the current one.
     get comp() { return !!state.comp; },
+    // Why there is no wallet, as the server said it ('mobile_account' for a
+    // phone number the operator has not listed; '' when a wallet exists or
+    // nothing has been asked yet). auth.js's pre-send decision reads this so
+    // a LISTED phone account is not refused a metered feature on the client
+    // for a wallet the server has just answered with.
+    get unavailable() { return state.unavailable || ''; },
+    get wallet() { return state.wallet; },
     cost: cost, costText: costText, chip: chipFor, decorate: decorate,
     guard: guard, refresh: refresh, applyReceipt: applyReceipt, openRecharge: openRecharge,
     api: api,

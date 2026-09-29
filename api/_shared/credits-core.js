@@ -186,11 +186,86 @@ async function usage(userId, workspaceId, days = 30) {
 /* ── the meter ────────────────────────────────────────────────────────────── */
 
 const MOBILE_ACCOUNT_MESSAGE = 'Paid features are metered against a credit wallet, and a wallet belongs to an email '
-  + 'account in the database. A mobile-number sign-in has no wallet, so this feature is not available on it yet.';
+  + 'account in the database or to a mobile number the operator has listed. This mobile-number sign-in is not '
+  + 'listed, so it has no wallet and this feature is not available on it yet.';
 
 /** The refusal a mobile+PIN account gets from anything that would touch a wallet. */
 function mobileAccountRefusal(quote) {
   return { ok: false, status: 403, error: 'credits_require_account', message: MOBILE_ACCOUNT_MESSAGE, quote: quote || null };
+}
+
+/* ── which mobile-number accounts may hold a wallet at all ─────────────────
+   (2026-09-29). The one sign-in is a mobile number and a 4-digit PIN, and a
+   phone sign-up is free, unverified (no SMS) and unlimited. Handing every new
+   number a wallet with the welcome grant would therefore be an unlimited
+   faucet on this deployment's provider budget: sign up, spend, sign up again.
+   So a phone account may hold a wallet ONLY when its number is on a list the
+   operator controls - the same shape as the complimentary email accounts
+   below, keyed on the VERIFIED number `requireUser` read off the session row,
+   never on anything the request says about itself.
+
+   WHAT THE LIST IS, AND IS NOT. It is an allowlist of WHO MAY HOLD A WALLET.
+   It is not a metering bypass: a listed phone account takes a hold, settles,
+   shows a balance and appears in the same ledger as everyone else (rule 3
+   below applies to it unchanged). Its RECHARGE is complimentary, exactly like
+   a listed email account's, because the two lists mean the same thing - the
+   operator's own accounts.
+
+   HOW A NEON UUID BECOMES A WALLET OWNER WITHOUT A MIGRATION. The wallet
+   schema (20260809130000_credits.sql) declares `credit_wallets.user_id uuid
+   not null default auth.uid()` with NO foreign key to auth.users; credit_ledger
+   and credit_orders carry a bare `user_id uuid` the same way, and every SQL
+   function takes `p_user uuid`. A phone account's id is `app_users.id` in the
+   Neon database - `gen_random_uuid()`, a v4 like Supabase's - so it is a valid
+   owner as the schema stands, and it can never collide with a Supabase user in
+   practice (two random 122-bit values). What a phone account does NOT have is
+   a `brand_workspaces` row: its brands are device rows with `local-` ids, and
+   `credit_wallets.workspace_id` carries a real foreign key, so a phone wallet
+   is ALWAYS the personal one (workspace_id null) and the request's workspace_id
+   is ignored for it. The `user_id = auth.uid()` read policies never match a
+   phone account (it has no Supabase identity), which is fine: every read here
+   is service-role, and the pill polls instead of subscribing to Realtime.
+
+   THE NUMBERS ARE NOT IN THIS FILE. COMP_PHONE_HASHES is EMPTY on purpose: the
+   repository is public and the operator's number is not known to it. The
+   environment is the door: CREDITS_COMP_PHONES, comma-separated, each number
+   normalised through phone-rules.normPhone to E.164 before hashing, so
+   "98765 43210", "+91 98765-43210" and "+919876543210" are one entry. An
+   unparseable entry is dropped rather than matched loosely.
+   ───────────────────────────────────────────────────────────────────────── */
+const phoneRules = require('./phone-rules.js');
+
+/** SHA-256 of the E.164 number. Empty in the repo, see the note above. */
+const COMP_PHONE_HASHES = [];
+
+function phoneHash(e164) {
+  return require('crypto').createHash('sha256').update(String(e164 || '')).digest('hex');
+}
+
+/** Numbers added by the environment, normalised to E.164; anything that fails its country's shape is dropped. */
+function envCompPhones() {
+  return String(process.env.CREDITS_COMP_PHONES || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .map((s) => phoneRules.normPhone(s)).filter(Boolean).map((np) => np.e164);
+}
+
+/** Every listed phone, as hashes, so the two sources compare identically. */
+function compPhones() {
+  return [...new Set([...COMP_PHONE_HASHES, ...envCompPhones().map(phoneHash)])];
+}
+
+/** Whole-number match on a VERIFIED E.164 number: a hash of the normalised number, never a prefix or a suffix. */
+function isCompPhone(phone) {
+  const np = phoneRules.normPhone(phone);
+  if (!np) return false;
+  return compPhones().includes(phoneHash(np.e164));
+}
+
+/** Complimentary by whichever identity the verified session carries: the email of a Supabase account, the number of a phone account. */
+function isCompAuth(auth) {
+  if (!auth || typeof auth !== 'object' || auth.ok === false) return false;
+  if (auth.provider === 'mobile-pin') return isCompPhone(auth.phone);
+  return isCompAccount(auth.email);
 }
 
 /**
@@ -237,14 +312,18 @@ async function meter(req, featureKey, opts) {
   const auth = o.auth || await brandCore.requireUser(req);
   if (!auth.ok) return Object.assign({ ok: false }, auth);
 
-  // A MOBILE-NUMBER ACCOUNT HAS NO WALLET (2026-09-28). Wallets are keyed to
-  // Supabase identities; a Neon account id would create a ghost wallet AND
-  // draw the welcome grant - and a phone sign-up is free, unverified and
-  // unlimited, so that grant would be an unlimited faucet on this deployment's
-  // provider budget. Refused BEFORE the wallet is touched, with a sentence.
-  if (auth.provider === 'mobile-pin') return mobileAccountRefusal(q);
-
-  if (!workspaceId) {
+  // A MOBILE-NUMBER ACCOUNT HAS NO WALLET UNLESS ITS NUMBER IS LISTED
+  // (2026-09-28, widened 2026-09-29). A phone sign-up is free, unverified and
+  // unlimited, so a wallet per number would be an unlimited faucet on this
+  // deployment's provider budget: refused BEFORE the wallet is touched, with a
+  // sentence. A number on the operator's list (see isCompPhone) holds ONE
+  // personal wallet - never a workspace wallet, because its brands are device
+  // rows and credit_wallets.workspace_id is a foreign key to brand_workspaces -
+  // and is metered on it exactly like everyone else.
+  if (auth.provider === 'mobile-pin') {
+    if (!isCompPhone(auth.phone)) return mobileAccountRefusal(q);
+    workspaceId = null;
+  } else if (!workspaceId) {
     try { workspaceId = await brandCore.activeWorkspaceId(auth); } catch (_) { workspaceId = null; }
   }
 
@@ -570,7 +649,13 @@ async function createOrder(auth, { pack_key, workspace_id }) {
   if (!p) { const e = new Error('Unknown credit pack.'); e.status = 400; throw e; }
   const credits = p.credits + (p.bonus || 0);
   const price = catalog.packPrice(p.key, await packOverrides());
-  const comp = isCompAccount(auth && auth.email);
+  // The verified identity decides, whichever kind it is: the session email of
+  // a Supabase account, or the session NUMBER of a listed phone account.
+  // Nothing in the request body or query is consulted.
+  const comp = isCompAuth(auth);
+  const compRef = auth && auth.provider === 'mobile-pin'
+    ? `comp:${String(auth.phone)}`
+    : `comp:${String(auth && auth.email).toLowerCase()}`;
 
   // A complimentary account is exempt from the price, so an unset price is not
   // in its way — it is charged nothing either way. Everyone else is BLOCKED
@@ -592,7 +677,9 @@ async function createOrder(auth, { pack_key, workspace_id }) {
     method: 'POST',
     body: [{
       user_id: auth.user_id,
-      workspace_id: workspace_id || null,
+      // A phone account's workspaces are device rows, and this column is a
+      // foreign key to brand_workspaces: its orders are personal, always.
+      workspace_id: (auth && auth.provider === 'mobile-pin') ? null : (workspace_id || null),
       pack_key: p.key,
       credits,
       status: 'pending',
@@ -613,7 +700,7 @@ async function createOrder(auth, { pack_key, workspace_id }) {
   if (comp) {
     const out = await fulfilOrder(order.id, {
       provider: 'comp_account',
-      provider_ref: `comp:${String(auth.email).toLowerCase()}`,
+      provider_ref: compRef,
     });
     return Object.assign({}, out, {
       comp: true,
@@ -727,11 +814,15 @@ async function handle(req, res) {
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
 
-  // A mobile-number account (2026-09-28): no wallet, see meter(). The balance
-  // read answers 200 with `wallet:null` and the reason, because "this account
-  // has no wallet" is an ordinary state for the header pill to show quietly,
-  // not a failure; anything that would MOVE credits is refused with the sentence.
-  if (auth.provider === 'mobile-pin') {
+  // A mobile-number account (2026-09-28): no wallet unless its number is
+  // listed, see meter(). For an UNLISTED number the balance read answers 200
+  // with `wallet:null` and the reason, because "this account has no wallet" is
+  // an ordinary state for the header pill to show quietly, not a failure;
+  // anything that would MOVE credits is refused with the sentence. A LISTED
+  // number falls through to the ordinary wallet path below, on its personal
+  // wallet only: the request's workspace_id is ignored for it (2026-09-29).
+  const phoneAccount = auth.provider === 'mobile-pin';
+  if (phoneAccount && !isCompPhone(auth.phone)) {
     if (op === 'balance') {
       return res.status(200).json({
         ok: true, wallet: null, low: false, comp: false, unavailable: 'mobile_account', message: MOBILE_ACCOUNT_MESSAGE,
@@ -749,7 +840,7 @@ async function handle(req, res) {
     });
   }
 
-  const workspaceId = String(q.workspace_id || body.workspace_id || '') || null;
+  const workspaceId = phoneAccount ? null : (String(q.workspace_id || body.workspace_id || '') || null);
 
   try {
     switch (op) {
@@ -761,7 +852,9 @@ async function handle(req, res) {
           low: Number(w.balance) <= Number(w.low_balance_threshold || 0),
           // So the Recharge button can say "free" instead of quoting a price
           // this account will never be charged.
-          comp: isCompAccount(auth.email),
+          comp: isCompAuth(auth),
+          // Named so the pill can say WHOSE wallet this is without guessing.
+          account: phoneAccount ? 'mobile-pin' : 'email',
           features: await priceList(),
           packs: await packList().catch(() => catalog.packList(null)),
         });
@@ -792,4 +885,5 @@ module.exports = {
   handle, meter, withCredits, enforce, metered, wallet, ledger, usage, priceList, overrides,
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
+  isCompPhone, isCompAuth, compPhones, phoneHash, COMP_PHONE_HASHES, MOBILE_ACCOUNT_MESSAGE,
 };

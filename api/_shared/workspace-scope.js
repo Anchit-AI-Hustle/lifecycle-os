@@ -151,6 +151,15 @@ function userIdFromReq(req) {
   } catch (_) { return null; }
 }
 
+/** Does the request carry a mobile+PIN session token (X-Lifecycle-Token, or a bearer of that shape)? */
+function carriesMobileToken(req) {
+  try {
+    const m = require('./mobile-auth-core.js');
+    const own = m.tokenOf(req);
+    return !!(own && m.looksLikeToken(own));
+  } catch (_) { return false; }
+}
+
 async function activeWorkspaceForUser(env, userId) {
   if (!userId || !env || !env.url || !env.key) return null;
   const hit = PREF_CACHE.get(userId);
@@ -183,6 +192,17 @@ async function resolve(env, req, explicit) {
     // brand's rows - return null so scoped reads come back empty.
     return ws || null;
   }
+  // A MOBILE+PIN SESSION IS A USER TOO (2026-09-29). Its token has no JWT
+  // payload to read a `sub` from, so it fell through this branch and was
+  // treated as USERLESS: every brain.js request from a phone account was
+  // scoped to the DEFAULT workspace - tenant zero - and KicksGPT answered a
+  // phone account as another company's brand, over that company's rows. A
+  // phone account has no brand_workspaces row at all (its brands are device
+  // rows), which is the "no active workspace" case above: nothing scoped,
+  // never the oldest workspace. The token is not verified here - that is
+  // requireUser's job - but an unverified phone token still proves the
+  // request is not the scheduler's, which is all this branch needs.
+  if (carriesMobileToken(req)) return null;
   // Userless: cron, the collectors in workers/, the seed scripts. WORKSPACE_ID
   // lets an operator run one of those FOR a specific brand; without it they
   // read and write tenant zero, which is where the backfill put every

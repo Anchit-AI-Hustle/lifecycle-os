@@ -158,6 +158,50 @@ function normalizeBrand(brand) {
   return out;
 }
 
+/**
+ * The brand record a request CARRIES, for a caller whose brands are not in
+ * the workspace database (a mobile+PIN account). Only the fields a generator
+ * prints are taken, each bounded, and the id is rewritten to a `device:` id
+ * so nothing downstream can mistake it for a brand_workspaces row or read a
+ * server workspace by it. The palette is validated by the same rule the
+ * wizard applies (validatePalette blocks dark-neutral surfaces); a palette
+ * that fails is dropped, not painted. Nothing here is stored.
+ */
+function carriedBrand(body, auth) {
+  const src = body && typeof body.brand === 'object' && body.brand && !Array.isArray(body.brand) ? body.brand : null;
+  if (!src) return null;
+  const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n || 200) : '');
+  const list = (v, n, len) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').map((x) => x.trim().slice(0, len || 300)).filter(Boolean).slice(0, n || 40) : []);
+  const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+  const name = str(src.name, 120);
+  if (!name) return null;
+  let palette = obj(src.palette);
+  try {
+    const v = brandCore.validatePalette ? brandCore.validatePalette(palette) : { ok: true };
+    if (v && v.ok === false) palette = {};
+  } catch (_) { palette = {}; }
+  const voice = obj(src.voice);
+  const regions = (Array.isArray(src.regions) ? src.regions : []).filter((r) => r && typeof r === 'object').slice(0, 12).map((r) => ({
+    code: str(r.code, 8), name: str(r.name, 60), currency: str(r.currency, 8), store_url: str(r.store_url, 300), home: r.home === true,
+  }));
+  const seed = String((auth && auth.user_id) || '') + '|' + name;
+  const id = 'device:' + require('crypto').createHash('sha1').update(seed).digest('hex').slice(0, 16);
+  return {
+    id, slug: str(src.slug, 80) || id, storage: 'device', carried: true,
+    name, tagline: str(src.tagline, 300), industry: str(src.industry, 120), website: str(src.website, 300),
+    logo_url: str(src.logo_url, 500),
+    palette, typography: obj(src.typography), voice: {
+      tone: str(voice.tone, 300), preferred: list(voice.preferred, 40, 60), banned: list(voice.banned, 60, 80),
+      no_em_dashes: voice.no_em_dashes !== false,
+    },
+    regions, claims: list(src.claims, 40, 300), offerings: list(src.offerings, 40, 200), competitors: list(src.competitors, 40, 120),
+    // A device brand's catalogue is not on the server either: nothing here
+    // may reach the shipped files, and brand-catalog-server's gate reads this
+    // name to decide that.
+    catalog_source: obj(src.catalog_source),
+  };
+}
+
 /** The shipped brand. Never null — generators must always have something. */
 function defaultBrand() {
   return brandCore.DEFAULT_BRAND || {
@@ -179,6 +223,16 @@ async function resolve(req, opts) {
 
     const auth = o.auth || await brandCore.requireUser(req);
     if (!auth || !auth.ok) return defaultBrand();
+
+    // A MOBILE+PIN ACCOUNT HAS NO WORKSPACE ROW (2026-09-29). Its brands live
+    // on the device it signed in on, so there is nothing here to look up -
+    // and `activeWorkspaceId()` used to THROW for it (restAs refuses a phone
+    // token), land in the catch below and hand back tenant zero. Every agent a
+    // phone account reached then wrote as another company. Two honest answers
+    // exist: the record the page CARRIED with the request (the device brand,
+    // used for this request and stored nowhere), or the unresolved placeholder
+    // whose every field is a DATA REQUIRED marker. Tenant zero is neither.
+    if (auth.provider === 'mobile-pin') return carriedBrand(body, auth) || unresolvedBrand('mobile-number account: the brand record is saved on the device, and this request did not carry it');
 
     // Resolve WHICH workspace first, then cache the workspace row against that
     // id. Caching against `<user>|<explicit>` instead would key every implicit
@@ -412,7 +466,7 @@ function scrubHtmlForBrand(html, brand) {
 }
 
 module.exports = {
-  scopedBrand, unresolvedBrand, isUnresolved,
+  scopedBrand, unresolvedBrand, isUnresolved, carriedBrand,
   resolve, brandBlock, regionFacts, homeRegion, scrubForBrand, scrubHtmlForBrand,
   defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,
   // The font import the brand block already prints, for a renderer that has to

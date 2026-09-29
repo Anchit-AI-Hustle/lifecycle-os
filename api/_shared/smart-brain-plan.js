@@ -244,7 +244,22 @@ const SYNC_WRITABLE_STATUSES = 'in.(tentative,rejected)';
 // zero, no fallback plan is generated.
 async function planningBrand(config, db) {
   const wsId = (config && config.workspace_id) || (db && db.workspaceId) || null;
-  if (!wsId) return { isZero: true, brand: null }; // userless (cron) default = tenant zero
+  if (!wsId) {
+    // A REQUEST with no workspace is not the cron (2026-09-29). A mobile+PIN
+    // account has no workspace row - its brand is the record the request
+    // carried, or the unresolved placeholder - and the router already put
+    // that on the request. "No workspace" used to mean "userless, so tenant
+    // zero", and a phone account's plan was built from tenant zero's
+    // offerings and stamped with the OLDEST workspace's name. Only a call
+    // with no request in scope at all (the scheduler, a script) keeps the
+    // documented default.
+    const carried = requestBrand();
+    if (carried) {
+      if (carried.unresolved) return { isZero: false, brand: null };
+      return { isZero: /^knickgasm$/i.test(String(carried.slug || carried.name || '')), brand: carried };
+    }
+    return { isZero: true, brand: null }; // userless (cron) default = tenant zero
+  }
   try {
     const wsScope = require('./workspace-scope.js');
     const env = {
@@ -2036,8 +2051,31 @@ async function generateCreatives(copy, entry, { only = null, lean = false, adPla
  * unstamped and the prompt builder falls back to tenant zero - which is only
  * correct when tenant zero IS the workspace, so the caller logs it.
  */
+/**
+ * The brand the request being served already resolved (api/brain.js and
+ * api/calendar.js put it on req.__brand): a workspace's row, the record a
+ * mobile+PIN account carried, or the unresolved placeholder. Null outside a
+ * request - the scheduler and the scripts - so the userless default keeps
+ * applying there and only there.
+ */
+function requestBrand() {
+  try {
+    const rs = require('./request-scope.js');
+    const req = rs.currentRequest && rs.currentRequest();
+    const b = req && req.__brand;
+    if (b && (b.id || b.slug || b.unresolved === true)) return b;
+  } catch (_) { /* outside a wrapped handler */ }
+  return null;
+}
+
 async function stampBrand(entry, config) {
   if (!entry || entry.brand) return entry;
+  // The request's own brand outranks a workspace lookup, and it is the ONLY
+  // brand a request with no workspace may be stamped with: without this a
+  // phone account's entries were stamped with the oldest workspace's brand,
+  // because "no workspace" fell to defaultWorkspaceId() (2026-09-29).
+  const carried = requestBrand();
+  if (carried) { entry.brand = carried; return entry; }
   try {
     const wsScope = require('./workspace-scope.js');
     const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');

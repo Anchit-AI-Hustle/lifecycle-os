@@ -325,12 +325,49 @@
     // The server's codes for "a phone account cannot do this", in ANY state.
     var PHONE_ONLY = { credits_require_account: 1, account_type_unsupported: 1 };
     var WALLET = 'Paid features are metered against a credit wallet, and a wallet belongs to an email account in the '
-      + 'database. A mobile-number sign-in has no wallet, so this feature is not available on it yet.';
+      + 'database or to a mobile number the operator has listed. This mobile-number sign-in is not listed, so it has '
+      + 'no wallet and this feature is not available on it yet.';
 
     function hostOf() { try { return new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { return ''; } }
     function backend() { var a = window.LifecycleAuth; return (a && a.backend) || { kind: 'pending' }; }
     function session() { var a = window.LifecycleAuth; return (a && a.session) || null; }
     function creditsConfigured() { try { return !(window.Credits && window.Credits.configured === false); } catch (e) { return true; } }
+    /**
+     * Has the server ALREADY said this phone account has no wallet? Decided
+     * from the balance answer the pill loaded, never assumed (2026-09-29): a
+     * phone number the operator listed (CREDITS_COMP_PHONES) holds a wallet
+     * and is metered on it, so refusing every phone account here would have
+     * kept the one account allowed to spend from ever sending. Unknown (the
+     * pill has not answered yet) means the server judges.
+     */
+    function walletKnownAbsent() {
+      try { var C = window.Credits; return !!(C && C.loaded && C.unavailable === 'mobile_account'); } catch (e) { return false; }
+    }
+    /**
+     * A server-mode phone session whose boot check has not answered YET
+     * (2026-09-29). The stored session is seated on the first frame as
+     * provisional (`verified:false`) and op=me is asked afterwards; in that
+     * window the backend is already `signed-in`, so decide() did not wait,
+     * and refusal() read `verified:false` as "the database your account is
+     * in is not answering" - the credit pill and the first TeleSuite view of
+     * every listed account were refused on every sign-in. The tell is the
+     * Supabase state still being `pending`: init() is deciding. Not decided
+     * is not down.
+     */
+    function verifying(s) {
+      return !!(s && s.provider === 'mobile-pin' && s.mode === 'server' && s.verified === false && backend().supabase === 'pending');
+    }
+    /** Resolve once the boot check has answered, or after `ms`. */
+    function verified(ms) {
+      if (!verifying(session())) return Promise.resolve();
+      return new Promise(function (resolve) {
+        var done = false;
+        var finish = function () { if (done) return; done = true; try { window.removeEventListener('lifecycleauth:backend', onEvent); } catch (e) {} resolve(); };
+        var onEvent = function () { if (!verifying(session())) finish(); };
+        window.addEventListener('lifecycleauth:backend', onEvent);
+        setTimeout(finish, ms || 8000);
+      });
+    }
     /** The sentence the sign-in panel gave for where this device account lives. */
     function deviceReason() {
       try {
@@ -357,6 +394,9 @@
       var host = hostOf();
       var state = '', lead = '', body = '', code = 'sign_in_required', status = 401;
       if (s && s.provider === 'mobile-pin') {
+        // Still being checked: the server is the judge, and it verifies the
+        // token itself on every request.
+        if (verifying(s)) return null;
         if (s.mode === 'device') {
           var reason = deviceReason().replace(/\.\s*$/, '');
           state = 'device-session';
@@ -370,11 +410,11 @@
           body = subject + ' needs that database' + (host ? ' (' + host + ')' : '')
             + ', which is not answering right now, so it did not run and nothing was sent.';
           code = 'backend_unreachable'; status = 503;
-        } else if (o.metered && creditsConfigured()) {
+        } else if (o.metered && creditsConfigured() && walletKnownAbsent()) {
           state = 'no-wallet';
-          lead = 'Not available on a mobile-number sign-in.';
-          body = subject + ' is metered against a credit wallet, and a wallet belongs to an email account in the database. '
-            + 'A mobile-number sign-in has no wallet, so it did not run and nothing was sent.';
+          lead = 'Not available on this mobile-number sign-in.';
+          body = subject + ' is metered against a credit wallet, and a wallet belongs to an email account in the database '
+            + 'or to a mobile number the operator has listed. This number is not listed, so it has no wallet and nothing was sent.';
           code = 'credits_require_account'; status = 403;
         } else return null;
       } else if (kind === 'signed-out') {
@@ -464,9 +504,10 @@
     function decide(what, opts) {
       var a = window.LifecycleAuth;
       var first = a && typeof a.backendState === 'function' ? a.backendState() : null;
-      if (!first || !(a.backend && a.backend.kind === 'pending')) return Promise.resolve(refusal(what, opts));
+      var settled = function () { return verified(8000).then(function () { return refusal(what, opts); }); };
+      if (!first || !(a.backend && a.backend.kind === 'pending')) return settled();
       return Promise.race([first, new Promise(function (r) { setTimeout(r, 8000); })])
-        .then(function () { return refusal(what, opts); }, function () { return refusal(what, opts); });
+        .then(settled, settled);
     }
 
     window.LifecycleStatus = { refusal: refusal, decide: decide, ordinary: ordinary, html: statusHtml, htmlFor: htmlFor, show: show };
