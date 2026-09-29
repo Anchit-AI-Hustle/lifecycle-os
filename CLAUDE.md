@@ -287,6 +287,45 @@ row for a new number → one Continue button whose label changes), inline in the
   `pin_tries`, and only `pin_tries` triggered the reset); and the onboarding activation test read
   `BrandContext.mode` ~200 ms before it is decided, which failed identically against main's own tree here.
 
+### Verified on production (2026-09-29) — the drive, the two findings, the coverage
+- **Production runs DEVICE mode**, read from production itself: `?action=auth&op=status` answers
+  `{"mode":"device","reason":"no_database_url",...}` — no `DATABASE_URL` on Vercel. The live deployment is
+  `dpl_8AEwJP1NWLjyvxvSB7yuLmZzSiB9` at `2b2a992` (`d9ac6a7` waits on the free-tier deploy quota). The
+  deployed `auth.js`, `brand-context.js`, `smart-brain.html`, `onboarding.html` are byte-identical to that
+  commit; `credits.js`/`theme.css`/`index.html` match through Vercel's ETag (= md5 of the body). The MAUTH
+  panel ships; both `signInWithOAuth` lines are comments under the dated banners; no Google control anywhere.
+- **The browser drive was against production's deployed bytes served from 127.0.0.1**, because the container's
+  egress policy denies the production host (403 on CONNECT for curl and Chromium alike), the supabase-js CDN
+  and the paused Supabase host. The status endpoint's JSON was production's own. Full flow driven and
+  screenshotted: sign-up with a fixture number, weak PINs `1234`/`0000` refused, invalid +91/+1 numbers refused
+  with the country sentence, reload keeps the session, `/brain` sees it, sign-out keeps the account and the
+  brand, sign-in again, 4/3/2/1 tries left then the 15-minute lock, the right PIN refused while locked, and the
+  wizard writing under `lifecycle.brand.device.workspaces.<user id>`. Record in `docs/mobile-pin-signin.md`.
+- **Finding 1, on the deployed bytes: the page went DIM after Sign in on a desktop and stayed dim after
+  signing in.** `mauthOpenPanel()` added `open` to `#lifecycle-nav` unconditionally and the drawer backdrop is
+  not scoped to the phone breakpoint, so at 1280px the only effect was a 55% black pointer-catching sheet over
+  the page: the wizard's own Next button was unclickable and nothing said Escape was the way out. The panel now
+  opens the drawer only when the burger is DISPLAYED (computed style, not a breakpoint copied from the CSS) and
+  only if it was closed, and closes what it opened when the panel goes; a drawer the person opened stays.
+  **The existing suite could not see it**: after sign-in it only ever `evaluate`d clicks and API calls, never a
+  real click on page content. Driven at 1280px and 390px now, with `click({trial:true})` — the same
+  actionability check that reported the defect.
+- **Finding 2: `requireUser()` told a server-mode account whose database is DOWN that it was "kept on this
+  device only"** (401). A token of our shape only ever comes from a server-mode sign-in, so `unreachable` is
+  the database being down, not the person being signed out: `503 backend_unreachable` naming the host now,
+  `require-caller` passes the 503 through, `no_database` keeps the 401. Same distinction the file's own header
+  draws for the Supabase path, flattened one branch below it.
+- **Finding 3, at 390px: the signed-out notice sat ON the menu button.** The bar that says "the Sign in chip in
+  the menu" is sticky at `top:0`, z-index 120, over the rail's fixed mobile bar (z 100), so on a phone the burger
+  that opens that menu was under it and Sign in was reachable only after Dismiss. It sticks at
+  `top:var(--ltb-h)` now (the rail's published mobile-bar height, 0 on a desktop) and is inserted after the
+  rail, whose spacer reserves that height in flow. Found because the drawer test's burger press hung on
+  `#lc-authnotice intercepts pointer events` — a hang, not a failure, because a click has no default timeout.
+- **Five executed tests added** (29 total): cross-page session after navigation; forged/malformed/JWT-shaped/
+  absent tokens at `op=me` through the shipped handler plus a forged STORED session cleared on boot with the
+  note; the concurrent-lockout race through the shipped handler; and the two findings. Both fixes are
+  mutation-verified.
+
 ## ⭐ Five functions nobody had ever called (2026-09-28)
 `api/_shared/pipeline-core.js` + `api/ai/pipeline/{strategy,variant,images,html,score}.js`, gated by
 `tests/pipeline-executed.spec.js` (15 tests, executed). `coverage/UNTESTED.md` listed the five
