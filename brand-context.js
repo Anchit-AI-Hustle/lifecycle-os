@@ -9,8 +9,9 @@
  *   2. Writes the brand's design tokens onto <html> as inline custom properties.
  *      theme.css resolves every colour and font through those tokens, so all
  *      pages re-skin at once without knowing this file exists.
- *   3. Loads the brand's web fonts, and swaps the document title, favicon and
- *      theme-color.
+ *   3. Loads the brand's web fonts, and swaps the document title and
+ *      theme-color. NOT the favicon: the tab icon is the platform's own mark
+ *      (assets/lifecycle-os-mark.svg) for every brand - see fillBrandSlot().
  *   4. Re-labels the shipped brand name in visible copy, so pages written for
  *      the original single tenant read correctly for the new one.
  *   5. Sends a signed-in user with no brand to /onboarding — the first screen
@@ -973,24 +974,62 @@
         if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; (document.head || document.documentElement).appendChild(meta); }
         meta.setAttribute('content', primary);
       }
-      if (brand.favicon_url || brand.logo_url) {
-        var icon = document.querySelector('link[rel="icon"]');
-        if (icon) icon.href = brand.favicon_url || brand.logo_url;
-      }
-      // The rail mark is the PRODUCT mark by default; when the active brand
-      // supplies its own logo, that replaces it so the shell reads as the
-      // brand the user is working in.
-      if (brand.logo_url) {
-        document.querySelectorAll('svg.lnav-mark').forEach(function (svg) {
-          var img = document.createElement('img');
-          img.src = brand.logo_url;
-          img.alt = brand.name || 'Brand';
-          img.className = 'lnav-mark';
-          img.style.cssText = 'width:28px;height:28px;object-fit:contain;border-radius:7px;display:block';
-          if (svg.parentNode) svg.parentNode.replaceChild(img, svg);
-        });
-      }
+      // The TAB ICON and the RAIL MARK are the PLATFORM's (2026-09-29). This
+      // used to write brand.favicon_url || brand.logo_url onto <link rel=icon>
+      // and replace every svg.lnav-mark with an <img> of the brand's logo, so
+      // the product had no mark of its own anywhere a person looks first, and
+      // with tenant zero active the tab wore that tenant's logo. The app IS the
+      // brand in its palette, fonts, name and copy; it is not the brand in the
+      // browser tab, which identifies the tool. The brand's logo goes in the
+      // brand slot beside its name instead, from ITS record, or a monogram.
+      fillBrandSlot(brand);
     } catch (e) { log(e); }
+  }
+
+  /**
+   * The ACTIVE brand's logo, in the one place the shell shows the brand as a
+   * brand: the slot beneath the platform wordmark (.lnav-brandlogo). From the
+   * record's logo_url when it has one, else a monogram of the name on the
+   * neutral chip. Never a file shipped for another tenant, never the tab icon.
+   */
+  function fillBrandSlot(brand) {
+    var slots;
+    try { slots = document.querySelectorAll('.lnav-brandlogo'); } catch (_) { return; }
+    var url = httpUrl(brand && brand.logo_url);
+    var name = String((brand && brand.name) || '').trim();
+    slots.forEach(function (slot) {
+      while (slot.firstChild) slot.removeChild(slot.firstChild);
+      if (url) {
+        var img = document.createElement('img');
+        img.src = url;
+        img.alt = '';
+        img.decoding = 'async';
+        // A logo the record names but the host does not serve falls back to
+        // the monogram rather than a broken-image glyph - and says which URL
+        // failed, so the gap is visible to whoever owns the record instead of
+        // being quietly papered over.
+        img.onerror = function () {
+          try {
+            slot.removeChild(img);
+            slot.textContent = name.charAt(0).toUpperCase();
+            slot.setAttribute('data-brand-slot', 'monogram');
+            slot.setAttribute('data-brand-logo-failed', url);
+            slot.title = name + ' (logo did not load: ' + url + ')';
+          } catch (_) {}
+        };
+        slot.appendChild(img);
+        slot.setAttribute('data-brand-slot', 'logo');
+        slot.title = name;
+        slot.hidden = false;
+      } else if (name) {
+        slot.textContent = name.charAt(0).toUpperCase();
+        slot.setAttribute('data-brand-slot', 'monogram');
+        slot.title = name;
+        slot.hidden = false;
+      } else {
+        slot.hidden = true;
+      }
+    });
   }
 
   /* ── re-labelling shipped copy ─────────────────────────────────────────── */
