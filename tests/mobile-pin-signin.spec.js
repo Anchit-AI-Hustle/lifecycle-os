@@ -8,12 +8,12 @@
  * WHAT IS ASSERTED, AND HOW. Every claim here is about what the code DOES:
  *
  *   A. api/_shared/mobile-auth-core.js is REQUIRED and DRIVEN against an
- *      in-memory `sql` tagged template (the three tables as arrays), so the
+ *      in-memory `store` tagged template (the three tables as arrays), so the
  *      state machine, the lockout, the hashing, the session lifetime and the
  *      per-IP budget are all exercised without a database anywhere.
  *   B. api/public-config.js - the shipped entry point, with its request-scope
  *      wrapper - is executed with stubbed req/res, both with no DATABASE_URL
- *      (device mode) and with the fake sql injected through require.cache.
+ *      (device mode) and with the fake store injected through require.cache.
  *   C. The gates: brand-workspace-core.requireUser() accepts a server-mode
  *      token and refuses a device-shaped one EXACTLY like an anonymous call;
  *      restAs() refuses a phone account with a sentence instead of PostgREST's
@@ -50,7 +50,7 @@ test.beforeEach(() => { for (const k of ENV_KEYS) { saved[k] = process.env[k]; d
 test.afterEach(() => { for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; } });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   The in-memory database: a `sql` tagged template over three arrays.
+   The in-memory database: a `store` tagged template over three arrays.
    It answers exactly the statement shapes the core emits, and throws on any
    other, so a query the core adds later cannot pass by accident.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -60,7 +60,7 @@ function fakeSql(opts) {
   let seq = 0;
   const uuid = () => 'aaaaaaaa-0000-4000-8000-' + String(++seq).padStart(12, '0');
   const copy = (r) => Object.assign({}, r);
-  const sql = async (strings, ...vals) => {
+  const store = async (strings, ...vals) => {
     const text = strings.join(' $ ').replace(/\s+/g, ' ').trim().toLowerCase();
     db.log.push(text);
     if (db.down) throw new Error('connect ECONNREFUSED ' + (o.host || 'db'));
@@ -127,8 +127,8 @@ function fakeSql(opts) {
     if (text.startsWith('delete from app_sessions where user_id')) { db.app_sessions = db.app_sessions.filter((s) => s.user_id !== vals[0]); return []; }
     throw new Error('fake sql: unhandled statement: ' + text);
   };
-  sql.db = db;
-  return sql;
+  store.db = db;
+  return store;
 }
 
 function freshCore() {
@@ -147,89 +147,89 @@ const sha = (t) => createHash('sha256').update(t).digest('hex');
 
 test('sign-up is one step: an unknown number asks for a name, then name + PIN creates the account and signs in', async () => {
   const core = freshCore();
-  const sql = fakeSql();
-  const first = await core.enter(sql, IN, '203.0.113.9');
+  const store = fakeSql();
+  const first = await core.enter(store, IN, '203.0.113.9');
   expect(first.status).toBe(200);
   expect(first.body).toMatchObject({ ok: true, exists: false });
   expect(first.body.token).toBeUndefined();
-  expect(sql.db.app_users.length, 'an account was created before a name and PIN were given').toBe(0);
+  expect(store.db.app_users.length, 'an account was created before a name and PIN were given').toBe(0);
 
-  const made = await core.enter(sql, Object.assign({ name: 'Asha', pin: PIN }, IN), '203.0.113.9');
+  const made = await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), '203.0.113.9');
   expect(made.status).toBe(200);
   expect(made.body).toMatchObject({ ok: true, exists: true, created: true, mode: 'server' });
-  expect(made.body.user).toEqual({ id: sql.db.app_users[0].id, name: 'Asha', phone: '+919876543210' });
+  expect(made.body.user).toEqual({ id: store.db.app_users[0].id, name: 'Asha', phone: '+919876543210' });
   expect(made.body.token).toMatch(/^[A-Za-z0-9_-]{40,90}$/);
   expect(new Date(made.body.expires) - Date.now()).toBeGreaterThan(89 * 86400000);
   // The PIN is never stored: a salted scrypt hash is, and it verifies.
-  const u = sql.db.app_users[0];
+  const u = store.db.app_users[0];
   expect(u.pin_hash).not.toContain(PIN);
   expect(u.pin_hash).toMatch(/^[0-9a-f]{64}$/);
   expect(u.pin_salt).toMatch(/^[0-9a-f]{32}$/);
   expect(core.verifyPin(PIN, u.pin_salt, u.pin_hash)).toBe(true);
   expect(core.verifyPin('7392', u.pin_salt, u.pin_hash)).toBe(false);
   // Only the sha256 of the token is stored - a copy of the table is not a login.
-  expect(sql.db.app_sessions.length).toBe(1);
-  expect(sql.db.app_sessions[0].token_hash).not.toBe(made.body.token);
-  expect(sql.db.app_sessions[0].token_hash).toBe(sha(made.body.token));
-  expect(JSON.stringify(sql.db)).not.toContain(made.body.token);
+  expect(store.db.app_sessions.length).toBe(1);
+  expect(store.db.app_sessions[0].token_hash).not.toBe(made.body.token);
+  expect(store.db.app_sessions[0].token_hash).toBe(sha(made.body.token));
+  expect(JSON.stringify(store.db)).not.toContain(made.body.token);
 });
 
 test('sign-in asks for the PIN, refuses a wrong one with the tries left, and signs in on the right one', async () => {
   const core = freshCore();
-  const sql = fakeSql();
-  await core.enter(sql, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
-  const ask = await core.enter(sql, IN, 'ip');
+  const store = fakeSql();
+  await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
+  const ask = await core.enter(store, IN, 'ip');
   expect(ask.body).toMatchObject({ ok: true, exists: true, needPin: true, name: 'Asha' });
   expect(ask.body.token).toBeUndefined();
-  const wrong = await core.enter(sql, Object.assign({ pin: '1357' }, IN), 'ip');
+  const wrong = await core.enter(store, Object.assign({ pin: '1357' }, IN), 'ip');
   expect(wrong.status).toBe(401);
   expect(wrong.body).toMatchObject({ ok: false, wrongPin: true, left: 4, error: 'pin_wrong' });
   expect(wrong.body.message).toMatch(/4 tries left/);
-  const right = await core.enter(sql, Object.assign({ pin: PIN }, IN), 'ip');
+  const right = await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip');
   expect(right.status).toBe(200);
   expect(right.body.token).toBeTruthy();
   expect(right.body.created).toBe(false);
-  expect(sql.db.app_users[0].pin_tries, 'a successful sign-in did not reset the try counter').toBe(0);
+  expect(store.db.app_users[0].pin_tries, 'a successful sign-in did not reset the try counter').toBe(0);
   // The same number typed with spaces, or in full E.164, is the same account.
-  const spaced = await core.enter(sql, { phone: '98765 43210', cc: '+91', pin: PIN }, 'ip');
+  const spaced = await core.enter(store, { phone: '98765 43210', cc: '+91', pin: PIN }, 'ip');
   expect(spaced.body.user.id).toBe(right.body.user.id);
-  const e164 = await core.enter(sql, { phone: '+919876543210', pin: PIN }, 'ip');
+  const e164 = await core.enter(store, { phone: '+919876543210', pin: PIN }, 'ip');
   expect(e164.body.user.id).toBe(right.body.user.id);
 });
 
 test('five wrong PINs lock the account for fifteen minutes, and the right PIN does not open it while locked', async () => {
   const core = freshCore();
-  const sql = fakeSql();
-  await core.enter(sql, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
+  const store = fakeSql();
+  await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
   const lefts = [];
   let last;
   for (let i = 0; i < 5; i++) {
-    last = await core.enter(sql, Object.assign({ pin: '1357' }, IN), 'ip');
+    last = await core.enter(store, Object.assign({ pin: '1357' }, IN), 'ip');
     lefts.push(last.body.left);
   }
   expect(lefts.slice(0, 4)).toEqual([4, 3, 2, 1]);
   expect(last.status).toBe(429);
   expect(last.body).toMatchObject({ ok: false, locked: true, error: 'pin_locked' });
   expect(last.body.message).toMatch(/Too many wrong PINs\. Try again in 15 minutes\./);
-  const until = new Date(sql.db.app_users[0].locked_until) - Date.now();
+  const until = new Date(store.db.app_users[0].locked_until) - Date.now();
   expect(until).toBeGreaterThan(14 * 60000);
   expect(until).toBeLessThanOrEqual(15 * 60000);
-  const still = await core.enter(sql, Object.assign({ pin: PIN }, IN), 'ip');
+  const still = await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip');
   expect(still.status, 'the right PIN opened a locked account').toBe(429);
   expect(still.body.locked).toBe(true);
   expect(still.body.token).toBeUndefined();
   // The lock expires: the right PIN then signs in and clears it.
-  sql.db.app_users[0].locked_until = new Date(Date.now() - 1000).toISOString();
-  const after = await core.enter(sql, Object.assign({ pin: PIN }, IN), 'ip');
+  store.db.app_users[0].locked_until = new Date(Date.now() - 1000).toISOString();
+  const after = await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip');
   expect(after.status).toBe(200);
-  expect(sql.db.app_users[0].locked_until).toBeNull();
+  expect(store.db.app_users[0].locked_until).toBeNull();
 });
 
 test('a weak PIN, a straight run, a wrong length and non-digits are all refused with a sentence', async () => {
   const core = freshCore();
-  const sql = fakeSql();
+  const store = fakeSql();
   for (const weak of ['1234', '4321', '0000', '9999', '2580', '1122', '2020', '6969', '0007', '4200']) {
-    const r = await core.enter(sql, Object.assign({ name: 'Asha', pin: weak }, IN), 'ip');
+    const r = await core.enter(store, Object.assign({ name: 'Asha', pin: weak }, IN), 'ip');
     expect(r.body, weak).toMatchObject({ ok: true, exists: false, needPin: true, error: 'pin_invalid' });
     expect(r.body.message, weak).toMatch(/first anyone would try/);
   }
@@ -243,7 +243,7 @@ test('a weak PIN, a straight run, a wrong length and non-digits are all refused 
   expect(core.pinError(null)).toMatch(/numbers only/);
   expect(core.pinError(PIN)).toBeNull();
   expect(core.pinError('2468')).toBeNull();
-  expect(sql.db.app_users.length, 'an account was created with a refused PIN').toBe(0);
+  expect(store.db.app_users.length, 'an account was created with a refused PIN').toBe(0);
   // The list is the operator's, in full.
   expect(core.WEAK_PINS).toEqual(expect.arrayContaining(['0000', '1111', '9999', '1234', '4321', '2580', '0852', '1212', '2121', '1122', '2211', '1010', '0101', '2020', '2000', '2001', '1004', '6969', '0007', '4200']));
 });
@@ -266,8 +266,8 @@ test('phone numbers are validated per country: +91, +1 and +44 shapes', async ()
   expect(p.phoneError('+1')).toMatch(/USA \/ Canada number has 10 digits/);
   expect(p.phoneError('+44')).toMatch(/UK number has 9-10 digits/);
   expect(p.phoneError('nonsense')).toMatch(/India/);
-  const sql = fakeSql();
-  const bad = await core.enter(sql, { phone: '5876543210', cc: '+91', name: 'X', pin: PIN }, 'ip');
+  const store = fakeSql();
+  const bad = await core.enter(store, { phone: '5876543210', cc: '+91', name: 'X', pin: PIN }, 'ip');
   expect(bad.status).toBe(400);
   expect(bad.body).toMatchObject({ ok: false, error: 'phone_invalid' });
   expect(bad.body.message).toMatch(/India number/);
@@ -275,75 +275,75 @@ test('phone numbers are validated per country: +91, +1 and +44 shapes', async ()
 
 test('sign-out kills that session only; sign-out-everywhere kills all; an expired session is refused', async () => {
   const core = freshCore();
-  const sql = fakeSql();
-  const a = (await core.enter(sql, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip')).body.token;
-  const b = (await core.enter(sql, Object.assign({ pin: PIN }, IN), 'ip')).body.token;
+  const store = fakeSql();
+  const a = (await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip')).body.token;
+  const b = (await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip')).body.token;
   expect(a).not.toBe(b);
-  expect(sql.db.app_sessions.length).toBe(2);
-  expect(await core.sessionUser(sql, a)).toMatchObject({ name: 'Asha', phone: '+919876543210' });
+  expect(store.db.app_sessions.length).toBe(2);
+  expect(await core.sessionUser(store, a)).toMatchObject({ name: 'Asha', phone: '+919876543210' });
 
   const res = mockRes();
-  await core.handle({ method: 'POST', query: { action: 'auth', op: 'signout' }, headers: { 'x-lifecycle-token': a }, body: {} }, res.res, { sql });
+  await core.handle({ method: 'POST', query: { action: 'auth', op: 'signout' }, headers: { 'x-lifecycle-token': a }, body: {} }, res.res, { sql: store });
   expect(res.out.code).toBe(200);
   expect(res.out.body).toMatchObject({ ok: true, signed_out: true });
-  expect(await core.sessionUser(sql, a), 'the signed-out session still works').toBeNull();
-  expect(await core.sessionUser(sql, b), 'signing out one session killed another').not.toBeNull();
+  expect(await core.sessionUser(store, a), 'the signed-out session still works').toBeNull();
+  expect(await core.sessionUser(store, b), 'signing out one session killed another').not.toBeNull();
 
-  const c = (await core.enter(sql, Object.assign({ pin: PIN }, IN), 'ip')).body.token;
+  const c = (await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip')).body.token;
   const all = mockRes();
-  await core.handle({ method: 'POST', query: { action: 'auth', op: 'signout_all' }, headers: { 'x-lifecycle-token': b }, body: {} }, all.res, { sql });
+  await core.handle({ method: 'POST', query: { action: 'auth', op: 'signout_all' }, headers: { 'x-lifecycle-token': b }, body: {} }, all.res, { sql: store });
   expect(all.out.code).toBe(200);
-  expect(await core.sessionUser(sql, b)).toBeNull();
-  expect(await core.sessionUser(sql, c)).toBeNull();
-  expect(sql.db.app_sessions.length).toBe(0);
+  expect(await core.sessionUser(store, b)).toBeNull();
+  expect(await core.sessionUser(store, c)).toBeNull();
+  expect(store.db.app_sessions.length).toBe(0);
 
-  const d = (await core.enter(sql, Object.assign({ pin: PIN }, IN), 'ip')).body.token;
-  sql.db.app_sessions[0].expires_at = new Date(Date.now() - 1000).toISOString();
-  expect(await core.sessionUser(sql, d), 'an expired session was accepted').toBeNull();
+  const d = (await core.enter(store, Object.assign({ pin: PIN }, IN), 'ip')).body.token;
+  store.db.app_sessions[0].expires_at = new Date(Date.now() - 1000).toISOString();
+  expect(await core.sessionUser(store, d), 'an expired session was accepted').toBeNull();
   const me = mockRes();
-  await core.handle({ method: 'GET', query: { action: 'auth', op: 'me' }, headers: { authorization: 'Bearer ' + d } }, me.res, { sql });
+  await core.handle({ method: 'GET', query: { action: 'auth', op: 'me' }, headers: { authorization: 'Bearer ' + d } }, me.res, { sql: store });
   expect(me.out.code).toBe(401);
   expect(me.out.body).toMatchObject({ ok: false, error: 'invalid_session' });
   expect(me.out.body.message).toMatch(/expired/i);
   // signout_all without a session is refused, not silently a no-op.
   const anon = mockRes();
-  await core.handle({ method: 'POST', query: { action: 'auth', op: 'signout_all' }, headers: {}, body: {} }, anon.res, { sql });
+  await core.handle({ method: 'POST', query: { action: 'auth', op: 'signout_all' }, headers: {}, body: {} }, anon.res, { sql: store });
   expect(anon.out.code).toBe(401);
 });
 
 test('the per-IP budget on enter trips at the 26th attempt in ten minutes, and another address is unaffected', async () => {
   const core = freshCore();
-  const sql = fakeSql();
+  const store = fakeSql();
   let last;
-  for (let i = 0; i < 25; i++) last = await core.enter(sql, IN, '198.51.100.7');
+  for (let i = 0; i < 25; i++) last = await core.enter(store, IN, '198.51.100.7');
   expect(last.status, 'the 25th attempt was refused').toBe(200);
-  const tripped = await core.enter(sql, IN, '198.51.100.7');
+  const tripped = await core.enter(store, IN, '198.51.100.7');
   expect(tripped.status).toBe(429);
   expect(tripped.body).toMatchObject({ ok: false, error: 'rate_limited' });
   expect(tripped.body.message).toMatch(/Too many sign-in attempts/);
-  const other = await core.enter(sql, IN, '198.51.100.8');
+  const other = await core.enter(store, IN, '198.51.100.8');
   expect(other.status).toBe(200);
   expect(core.ENTER_LIMIT).toBe(25);
   expect(core.ENTER_WINDOW_SEC).toBe(600);
   // The window resets.
-  sql.db.app_rate_limits.find((r) => r.k === '198.51.100.7').window_start = Date.now() - 601000;
-  expect((await core.enter(sql, IN, '198.51.100.7')).status).toBe(200);
+  store.db.app_rate_limits.find((r) => r.k === '198.51.100.7').window_start = Date.now() - 601000;
+  expect((await core.enter(store, IN, '198.51.100.7')).status).toBe(200);
 });
 
 test('an account whose PIN an operator cleared asks for a new one (the reset path), and never signs in on the number alone', async () => {
   const core = freshCore();
-  const sql = fakeSql();
-  await core.enter(sql, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
-  sql.db.app_users[0].pin_hash = null; sql.db.app_users[0].pin_salt = null;
-  const ask = await core.enter(sql, IN, 'ip');
+  const store = fakeSql();
+  await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
+  store.db.app_users[0].pin_hash = null; store.db.app_users[0].pin_salt = null;
+  const ask = await core.enter(store, IN, 'ip');
   expect(ask.body).toMatchObject({ ok: true, exists: true, setPin: true, name: 'Asha', error: null });
   expect(ask.body.token).toBeUndefined();
-  const weak = await core.enter(sql, Object.assign({ pin: '1234' }, IN), 'ip');
+  const weak = await core.enter(store, Object.assign({ pin: '1234' }, IN), 'ip');
   expect(weak.body).toMatchObject({ setPin: true, error: 'pin_invalid' });
-  const set = await core.enter(sql, Object.assign({ pin: '8052' }, IN), 'ip');
+  const set = await core.enter(store, Object.assign({ pin: '8052' }, IN), 'ip');
   expect(set.status).toBe(200);
   expect(set.body.token).toBeTruthy();
-  expect(core.verifyPin('8052', sql.db.app_users[0].pin_salt, sql.db.app_users[0].pin_hash)).toBe(true);
+  expect(core.verifyPin('8052', store.db.app_users[0].pin_salt, store.db.app_users[0].pin_hash)).toBe(true);
 });
 
 test('status is honest about where accounts are saved: no URL, an unreachable database, a live one', async () => {
@@ -398,13 +398,13 @@ function mockRes() {
   return { res, out };
 }
 
-/** The shipped router, with the core's `handle` given the fake sql through require.cache. */
-function publicConfigWith(sql) {
+/** The shipped router, with the core's `handle` given the fake store through require.cache. */
+function publicConfigWith(store) {
   delete require.cache[PUBLIC_CONFIG];
   delete require.cache[CORE];
   const real = require(CORE);
-  if (sql) {
-    const proxy = Object.assign({}, real, { handle: (req, res) => real.handle(req, res, { sql }), verifyToken: (t) => real.verifyToken(t, { sql }) });
+  if (store) {
+    const proxy = Object.assign({}, real, { handle: (req, res) => real.handle(req, res, { sql: store }), verifyToken: (t) => real.verifyToken(t, { sql: store }) });
     require.cache[CORE] = { id: CORE, filename: CORE, loaded: true, exports: proxy };
   }
   return require(PUBLIC_CONFIG);
@@ -435,8 +435,8 @@ test('public-config?action=auth&op=status answers device mode when there is no D
 
 test('public-config?action=auth signs up, answers me, and signs out through the shipped handler', async () => {
   process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
-  const sql = fakeSql();
-  const handler = publicConfigWith(sql);
+  const store = fakeSql();
+  const handler = publicConfigWith(store);
   const st = mockRes();
   await handler({ method: 'GET', query: { action: 'auth', op: 'status' }, headers: {} }, st.res);
   expect(st.out.body).toMatchObject({ mode: 'server', host: 'ep-fixture.neon.tech' });
@@ -472,12 +472,12 @@ test('requireUser accepts a server-mode token, and refuses an unverifiable one e
   process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
   process.env.SUPABASE_URL = 'https://live.supabase.co';
   process.env.SUPABASE_ANON_KEY = 'anon';
-  const sql = fakeSql();
-  publicConfigWith(sql);                       // installs the fake-sql core in require.cache
+  const store = fakeSql();
+  publicConfigWith(store);                       // installs the fake-store core in require.cache
   delete require.cache[BRAND_CORE];
   const brand = require(BRAND_CORE);
   const core = require(CORE);
-  const token = (await core.enter(sql, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip')).body.token;
+  const token = (await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip')).body.token;
 
   const realFetch = global.fetch;
   const fetches = [];
@@ -485,7 +485,7 @@ test('requireUser accepts a server-mode token, and refuses an unverifiable one e
   try {
     const ok = await brand.requireUser({ headers: { 'x-lifecycle-token': token } });
     expect(ok).toMatchObject({ ok: true, provider: 'mobile-pin', phone: '+919876543210', name: 'Asha', email: '' });
-    expect(ok.user_id).toBe(sql.db.app_users[0].id);
+    expect(ok.user_id).toBe(store.db.app_users[0].id);
     expect(fetches, 'a mobile token was sent to Supabase for verification').toEqual([]);
 
     const anon = await brand.requireUser({ headers: {} });
@@ -497,9 +497,9 @@ test('requireUser accepts a server-mode token, and refuses an unverifiable one e
     expect(device.error).toBe('sign_in_required');
     expect(device.message).toMatch(/not signed in/i);
     // ...and nothing about it is trusted from the body.
-    const body = await brand.requireUser({ headers: {}, body: { token: core.newToken(), user: { id: 'forged' } } });
-    expect(body.ok).toBe(false);
-    expect(body.error).toBe('sign_in_required');
+    const forged = await brand.requireUser({ headers: {}, body: { token: core.newToken(), user: { id: 'forged' } } });
+    expect(forged.ok).toBe(false);
+    expect(forged.error).toBe('sign_in_required');
     expect(fetches).toEqual([]);
   } finally { global.fetch = realFetch; }
 

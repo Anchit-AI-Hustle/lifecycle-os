@@ -4,6 +4,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The one sign-in is a mobile number and a 4-digit PIN (2026-09-28) — read `docs/mobile-pin-signin.md`
+`api/_shared/mobile-auth-core.js` + `phone-rules.js` on `public-config.js?action=auth&op=status|enter|me|
+signout|signout_all` (still 12/12), the `MAUTH` block in `auth.js`, gated by `tests/mobile-pin-signin.spec.js`
+(19 tests, executed). The operator's words: "signin/signup with mobile number and a 4 digit password - save in
+db (neon) or local browser cache whichever can be used - just like in parwah-hq", and "comment out all other
+signin and signup". Mirrors parwah-hq's shape: ONE `enter` does sign-up and sign-in (number → PIN row → name
+row for a new number → one Continue button whose label changes), inline in the rail, on the current page.
+- **Commented out, not deleted, each under a dated banner**: `signInWithOAuth` and the whole Supabase session
+  flow in `auth.js` (`getSession`, `onAuthStateChange`, the OAuth callback helpers, the profile modal), the
+  brand gate's Google button in `brand-context.js`, the Studio's `vhd_users`/`vhd_session` overlay, and the
+  `sb-*-auth-token` localStorage scans. The Supabase client `auth.js` builds is ANONYMOUS
+  (`persistSession:false`, `detectSessionInUrl:false`): nothing can produce a Supabase session any more, so
+  the mobile+PIN session is the one session source.
+- **Four digits is the spec, so the lockout matters MORE**: the first-guessed PINs and any straight run are
+  refused, scrypt + per-user salt + `timingSafeEqual`, 5 tries → 15-minute lock counted on the row, a per-IP
+  budget of 25 `enter`/10 min counted in the database, sessions store ONLY the sha256 of a 32-byte token,
+  90 days, `X-Lifecycle-Token` (the bearer is sent too so the gates that read one see it; a JWT has two dots,
+  ours has none, so `looksLikeToken()` cannot confuse them).
+- **Two stores, chosen honestly.** `op=status` answers `server` only when a URL is set AND `select 1` answers;
+  else `device` with the REASON (no URL / unreachable + host). In device mode the browser runs the same state
+  machine against localStorage (`lifecycle.auth.device.users`, PBKDF2-SHA256 via WebCrypto, 120k iterations)
+  and a parity test holds its copy of the rules to the server's. A server session is validated with `op=me`
+  on every boot: 401 clears it; a database that is not answering KEEPS it, marks it unverified, and the mode
+  line says so - a person whose account is in the database is never shown a device sign-up as the same account.
+- **A device token proves nothing to anyone but that browser, so it is never sent** (`LifecycleAuth.apiToken()`
+  is the one source every same-origin request uses), and the server refuses one EXACTLY like an anonymous
+  call. `requireUser()` accepts a server-mode token as `{provider:'mobile-pin'}`; `restAs()` - the one door
+  every as-the-caller Supabase read goes through - refuses a phone account with a sentence instead of
+  PostgREST's 401; the credit meter refuses it BEFORE a wallet exists (a phone sign-up is free and unverified,
+  so a welcome grant per number would be an unlimited faucet). `internal` stays false: keyed on an email domain.
+- **A phone account has no Supabase identity, so its workspaces live on the device in BOTH modes**, and the
+  wizard says both halves in one accent-rule sentence: "Signed in as <name> · workspaces are saved on this
+  device" (+ "· account in the database" in server mode). Never "sign in" to a person who just did.
+- **Tests that signed in through a `getSession` stub were re-targeted, and two changed meaning on purpose**:
+  `onboarding-without-backend`'s signed-in cases no longer assert a server brand path (no browser session can
+  take it), and `error-presentation`'s "Your brands" cases drive the LOCALHOST PREVIEW, the one state left in
+  which the wizard asks the server and can be refused. Their headers say why. `WebCrypto.subtle` exists only
+  in a secure context, so the device flow is driven from `127.0.0.1`, not the `app.example.test` fixture.
+- **Found by running it**: an expired lock left `locked_until` set after a correct sign-in (locking zeroes
+  `pin_tries`, and only `pin_tries` triggered the reset); and the onboarding activation test read
+  `BrandContext.mode` ~200 ms before it is decided, which failed identically against main's own tree here.
+
 ## ⭐ Five functions nobody had ever called (2026-09-28)
 `api/_shared/pipeline-core.js` + `api/ai/pipeline/{strategy,variant,images,html,score}.js`, gated by
 `tests/pipeline-executed.spec.js` (15 tests, executed). `coverage/UNTESTED.md` listed the five
