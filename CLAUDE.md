@@ -4,6 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ An agent branch does not spend the team's deploy budget (2026-09-29)
+`vercel.json` → `"git": { "deploymentEnabled": { "claude/**": false } }`, gated by
+`tests/vercel-deploy-quota.spec.js` (4 tests, executed with the real `minimatch`). Vercel refused the
+last two pushes to main, `d9ac6a7` (07:24 UTC) and `61e34fc` (09:05 UTC): *"Deployment rate limited -
+retry in 24 hours"*. Nothing was wrong with either commit.
+- **The cap is the TEAM's, not this project's.** Hobby allows 100 deployments per rolling day across
+  every project in the team. Measured at 09:10 UTC: 95 READY in the previous 24 hours - lifecycle-os
+  38, anchit-work-portfolio 22, parwah 17, airpane-ar-browser 6, anchor-autopilot 4, parwah-hq 4,
+  predict-natural-disasters 4. Of this project's 38, 17 were production (main) and **21 were PREVIEWS,
+  every one of a `claude/<something>` branch**. Once the cap is reached, production is refused for
+  EVERY project in the team, not only for the one that spent it.
+- **A preview spends exactly what production needs.** An agent branch is pushed many times (merges of
+  main, fix-ups, review rounds) and each push was one of the 100. Nobody opened those previews: review
+  happens on the diff and on CI.
+- **The same cause blocked merges.** A rate-limited preview posts a FAILED Vercel status on the PR
+  head, and `auto-merge.yml` refuses any PR with a failed commit status. A MISSING status blocks
+  nothing - the script refuses only `failure`/`error` statuses and failed or pending check runs, and
+  the happy-path case in `workflows-guarantees.spec.js` already merges a head that carries no Vercel
+  status at all.
+- **CI is the build check for a PR, not a preview.** `ci.yml` runs `npm run build` and the full
+  Playwright suite on every PR. A preview proved only that Vercel could build the branch, which the
+  production build of main proves again on merge.
+- **Vercel reads `vercel.json` from the commit being deployed**, so an EXISTING agent branch keeps
+  spending previews until its head carries this change (merge main into it). `main`, `final-product`,
+  `snowflake-streamlit-app` and every human branch are untouched: a branch no key matches deploys.
+- **A human who wants a preview of one agent branch** runs `vercel deploy` from that checkout (`/ship`
+  without `prod`) or creates a deployment from the dashboard: `git.deploymentEnabled` governs only
+  Git-triggered deployments. That spends one of the same 100, so it is a choice, not a default - as is
+  the deploy hook `deploy-guarantee.yml` fires after an auto-merge once `VERCEL_DEPLOY_HOOK_URL` is set
+  (no two of the window's 17 production deploys share a commit, so it added none then).
+- **The test models Vercel, then checks the model.** It evaluates the rule under the documented
+  semantics (exact names and minimatch globs; a branch several rules match deploys when at least one
+  is true; an unmatched branch deploys), and first runs that evaluator over the docs' own examples, so
+  a wrong model of Vercel cannot make the config look right. `claude/*` passes a text check and still
+  deploys `claude/a/b`; the spec fails on it. It also asserts every other top-level key equals main's
+  (the merge-base with `origin/main`), skipping when there is no `origin/main` (CI's shallow checkout)
+  and retiring once main carries the rule, so a later rewrite is never pinned by it. Mutation-verified:
+  removing the rule, narrowing it to `claude/*`, widening it to `**` and changing `buildCommand` each
+  fail it. `minimatch` is a declared devDependency now; it was only present through `c8` and
+  `@capacitor/cli`.
+
 ## ⭐ Every action works signed out, or says what needs sign-in, in ONE sentence (2026-09-29)
 `tests/signed-out-actions.spec.js` + `auth.js` → `window.LifecycleStatus` (`refusal` / `decide` / `show`).
 2026-08-30 proved every page OPENS signed out and 2026-09-15 proved the wizard's commands work on the
