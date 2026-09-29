@@ -57,6 +57,39 @@ state, a raw code, a 401 rendered as an error, a silent 401 or a dead click is a
   2026-09-28 precedent). Mutation-verified: restoring the server-first calendar handler, the silent
   Ask, or a native `alert` each fails the sweep on that row.
 
+## ⭐ The app chrome is Lifecycle OS's mark, never a tenant's - even in the tab (2026-09-29) — read `docs/platform-identity.md`
+`assets/lifecycle-os-mark.svg` + `scripts/build-platform-mark.js`, gated by `tests/platform-identity.spec.js`
+(8 tests, executed: 45 app pages rendered in Chromium under TWO brands, the manifest fetched, `sw.js` run
+in a vm, every raster's pixels read). A screenshot of the browser tab showed tenant zero's logo. The app IS
+the active brand in its palette, fonts, name and copy; it is NOT the brand in the tab, the touch icon, the
+manifest, the share card, the rail wordmark or the launcher - those identify the TOOL, and every one of
+them was `favicon.png` (tenant zero's mark). `brand-context.js` then wrote the active brand's
+`favicon_url || logo_url` onto `<link rel=icon>` and REPLACED the rail mark with the brand's logo, so the
+product had no mark of its own anywhere a person looks first.
+- **Three kinds of mark, three sources.** PLATFORM chrome = the mark, always. The ACTIVE brand's logo =
+  ITS record (`brand.logo_url`) in the brand slot beneath the wordmark (`.lnav-brandlogo`, written only by
+  `brand-context.fillBrandSlot()`), else a monogram of its name - never another tenant's file. Tenant
+  zero's OWN artefacts = the frozen `diff-version` snapshot, the only remaining referrer of `favicon.png`.
+- **One SVG, every raster rendered from it** (no pure-Node rasteriser is installed; Chromium is, so the
+  PNGs are committed - Vercel's build has no browser). Three shapes because three consumers crop
+  differently: `any` (rounded, transparent corners), `fullbleed` (iOS paints transparent touch-icon
+  pixels BLACK; a maskable icon is cropped to a circle), `glyph` (the Android adaptive foreground, inside
+  the centre 66/108). The mark's three colours are neutral by the audit's OWN `lowSat` rule, now exported
+  from `scripts/audit-pages.js` together with `BRAND_ASSET`, whose body became `main()` so a spec can
+  import the classification instead of copying it.
+- **The inline rail mark carries NO hex**: glyph in `currentColor`, tile in `--vh-panel-2`. The gate
+  asserts its rendered stroke equals the wordmark's ink and is neither the brand's primary nor its accent,
+  so a mark that re-colours itself per tenant fails.
+- **Found by RUNNING it, not by reading it**: the SVG's comment said `--brand-*`, and `--` inside an XML
+  comment makes the file malformed - every consumer decodes it as nothing, silently; only `img.decode()`
+  in Chromium reported it. Two app pages are `meta refresh` stubs, and a harness with no rewrites measured
+  a 404 body as "no icon at all" - it reads the deployment's exact rewrites from `vercel.json` now. And the
+  harness's aborted cross-origin image loads tripped the slot's own broken-logo fallback (monogram +
+  `data-brand-logo-failed`), hiding the URL under test: images are answered with a 1x1 PNG.
+- **`sw.js` is asserted by executing its install handler** and reading the array it hands to
+  `caches.addAll()`, not by a regex over the file. 59 root pages + 37 generated `reports/growth-book/
+  playbook` pages carry the same identity block; 16 pages had no icon at all and got the browser default.
+
 ## ⭐ The money and send paths are EXECUTED, and four of them were wrong (2026-09-28)
 `tests/lib/fake-supabase.js` + `credits-meter-executed`, `dispatch-queue-executed`,
 `oauth-handshake-executed`, `deliverability-gate-executed` (57 tests). `coverage/UNTESTED.md` ranked

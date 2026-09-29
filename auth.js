@@ -633,26 +633,28 @@
     });
   }
 
-  // ─── Brand mark (logo mark for the active brand; falls back to a monogram) ──
-  // Two layered ideas fuse: a symmetric panel silhouette (the mark)
-  // and a subtle V (the monogram) read through the panel's central vein.
-  // Topped with a chalk steam curl — fresh craft, lifecycle. Both tile
-  // and panel use linear gradients for depth so the mark reads as crafted
-  // rather than flat at any size. Renders cleanly at 22px (mobile bar)
-  // and 30px (desktop sidebar).
-  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 32 32" aria-label="Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
-    <!-- Lifecycle OS product mark: a closed loop with an advancing arrowhead -
-         the lifecycle that keeps running. Brand-NEUTRAL by construction: every
-         colour resolves through the active brand's design tokens, so the mark
-         re-skins with the workspace instead of carrying one tenant's palette.
-         When the active brand supplies a logo_url, brand-context.js swaps this
-         out for that image entirely. -->
-    <rect width="32" height="32" rx="8" fill="var(--brand-primary, #D0473E)"/>
-    <circle cx="16" cy="16" r="7.6" fill="none"
-            stroke="var(--brand-on-primary, #FFFFFF)" stroke-width="2.1"
-            stroke-linecap="round" stroke-dasharray="35 12" transform="rotate(-38 16 16)"/>
-    <path d="M 22.6 9.6 L 23.9 13.3 L 20.1 12.4 Z" fill="var(--brand-on-primary, #FFFFFF)"/>
-    <circle cx="16" cy="16" r="2.4" fill="var(--brand-accent, #6A33D8)"/>
+  // ─── The PLATFORM mark (2026-09-29) ─────────────────────────────────────
+  // Lifecycle OS's own mark: a closed loop with an advancing arrowhead (the
+  // lifecycle that keeps running) around a still core (the OS). It is the SAME
+  // geometry as assets/lifecycle-os-mark.svg, which is the browser-tab icon,
+  // the touch icon and every PWA / launcher raster (scripts/build-platform-mark.js),
+  // so the rail and the tab show one object.
+  //
+  // It is PLATFORM chrome, not tenant chrome, and that is the point of it. The
+  // previous mark painted its tile with --brand-primary and its centre with
+  // --brand-accent, and brand-context.js then REPLACED it outright with the
+  // active brand's logo_url - so the product had no mark of its own anywhere,
+  // and with tenant zero active the shell and the tab both wore that tenant's
+  // logo. Now: the glyph is currentColor (the rail's ink), the tile is the
+  // neutral panel token with a hairline, and the ACTIVE brand's logo renders
+  // beside its name in the brand slot (.lnav-brandlogo), never in place of
+  // this. No colour literal here: a hex would be a colour this file decided
+  // for itself (the futuristic-layer rule).
+  const LOGO_SVG = `<svg class="lnav-mark" viewBox="0 0 64 64" role="img" aria-label="Lifecycle OS" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="62" height="62" rx="15" fill="var(--vh-panel-2, transparent)" stroke="var(--vh-line, currentColor)" stroke-width="2"/>
+    <path d="M 36.4 15.58 A 17 17 0 1 1 18.07 22.25" fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M 22.09 16.52 L 22.82 26.8 L 12.18 19.34 Z" fill="currentColor"/>
+    <circle cx="32" cy="32" r="4.5" fill="currentColor"/>
   </svg>`;
 
   // ─── Information architecture (left-hand sidebar) ───────────────────
@@ -1581,7 +1583,7 @@
           font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
-          font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #6A33D8;
+          font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--vh-ink, inherit);
           text-transform: uppercase; text-decoration: none; }
         #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
@@ -1606,19 +1608,35 @@
           background: var(--brand-surface, #f4f2ec); border-right: 1px solid var(--brand-line, rgba(171,135,67,0.18));
           padding: 16px 12px 12px;
         }
+        /* The wordmark is the PLATFORM's: mark + name in the rail's own ink,
+           never a tenant colour. The active brand appears beneath it in the
+           brand slot (its logo from its record, or a monogram, beside its
+           name). --vh-ink resolves through --brand-ink, which validatePalette
+           has already held to AA against the rail surface. */
         #lifecycle-nav .lnav-brand {
           display: flex; align-items: center; gap: 10px; text-decoration: none;
-          padding: 4px 8px 16px; color: #6A33D8;
+          padding: 4px 8px 16px; color: var(--vh-ink, inherit);
         }
-        /* Brand mark — refreshed panel + steam SVG with gradient depth.
-           Hover uses filter brightness so it works with the gradients
-           (overriding fill would lose the gradient). */
-        #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; transition: filter .2s, transform .2s; }
+        #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; transition: transform .2s; }
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
-        #lifecycle-nav .lnav-mbrand:hover .lnav-mark { filter: brightness(1.15) saturate(1.05); transform: translateY(-1px); }
-        #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; }
-        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: var(--brand-primary-text, #c6433b); font-weight: 600; }
-        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #6A33D8; }
+        #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
+        #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: var(--vh-ink, inherit); font-weight: 600; }
+        #lifecycle-nav .lnav-brand .lnav-brandrow { display: flex; align-items: center; gap: 5px; min-width: 0; }
+        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* The brand slot: the ACTIVE brand's own logo (brand.logo_url) or, with
+           none on the record, a monogram of its name on a neutral chip. It is
+           never any other tenant's file - brand-context.fillBrandSlot() is the
+           only writer. */
+        #lifecycle-nav .lnav-brandlogo {
+          width: 14px; height: 14px; flex-shrink: 0; border-radius: 4px; overflow: hidden;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 8px; font-weight: 700; letter-spacing: 0; line-height: 1;
+          background: var(--vh-panel-2, transparent); border: 1px solid var(--vh-line, currentColor);
+          color: var(--vh-ink, inherit);
+        }
+        #lifecycle-nav .lnav-brandlogo[hidden] { display: none; }
+        #lifecycle-nav .lnav-brandlogo img { width: 100%; height: 100%; object-fit: contain; display: block; }
         #lifecycle-nav .lnav-head { display: flex; align-items: center; gap: 6px; }
         #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
         #lifecycle-nav .lnav-collapse {
@@ -1938,7 +1956,7 @@
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
             ${LOGO_SVG}
-            <span class="lnav-bt"><b>Lifecycle OS</b><small class="lnav-brandname"></small></span>
+            <span class="lnav-bt"><b>Lifecycle OS</b><span class="lnav-brandrow"><span class="lnav-brandlogo" data-brand-slot="logo" hidden></span><small class="lnav-brandname"></small></span></span>
           </a>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
         </div>
