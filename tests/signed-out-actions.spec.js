@@ -414,7 +414,7 @@ function setup(page, stateName, log) {
   page.on('download', () => { log.downloads++; });
 
   return (async () => {
-    await page.addInitScript(instrument, { seed: DEVICE_SEED, deviceKey: 'lifecycle.brand.device.workspaces', session: !!state.session, user: DEVICE_USER });
+    await page.addInitScript(instrument, { seed: DEVICE_SEED, deviceKey: state.session ? 'lifecycle.brand.device.workspaces.' + DEVICE_USER.id : 'lifecycle.brand.device.workspaces', session: !!state.session, user: DEVICE_USER });
     await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
       const u = route.request().url();
       if (/\/auth\/v1\/health/.test(u)) {
