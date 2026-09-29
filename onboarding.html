@@ -796,6 +796,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* WHEN THE SIGN-IN'S STANDING CHANGES, THE STEP IS PAINTED AGAIN (2026-09-28).
+     A server-mode mobile+PIN session is seated at boot and CHECKED with the
+     database a moment later (auth.js re-publishes its backend state when op=me
+     answers). "Read my brand from my website" is on only for a session the
+     server can check, so a step painted while that answer was in flight showed
+     the control disabled and, with nothing re-rendering, left it so. Every
+     input here is bound to the model on `input`, so painting again loses no
+     typing. Guarded so a page whose card is not up yet is left alone. */
+  window.addEventListener('lifecycleauth:backend', function () {
+    try { if ($('stepCard') && $('stepCard').children.length) render(); } catch (_) { /* the next render paints it */ }
+  });
+
   function render() {
     renderSteps();
     var c = $('stepCard');
