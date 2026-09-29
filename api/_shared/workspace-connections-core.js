@@ -273,6 +273,9 @@ function encryptionKey() {
 
 function cryptoConfigured() { return encryptionKey().ok === true; }
 
+/** Why a secret cannot be stored right now, as a sentence, or '' when it can. */
+function secretsStorageError() { const k = encryptionKey(); return k.ok ? '' : String(k.error || ''); }
+
 function encryptSecrets(obj) {
   const k = encryptionKey();
   if (!k.ok) { const e = new Error(k.error); e.status = 503; e.code = 'connection_secrets_unavailable'; throw e; }
@@ -1027,7 +1030,15 @@ async function handle(req, res) {
   // carries no Authorization header, so it MUST be reachable unauthenticated.
   // Its authority is the single-use `state` row instead; see oauth-core.js.
   if (op === 'oauth-callback') {
-    const out = await require('./oauth-core.js').handleCallback(req);
+    let out;
+    try {
+      out = await require('./oauth-core.js').handleCallback(req);
+    } catch (err) {
+      // A browser navigation, so the answer is a redirect with a reason, not
+      // the JSON 500 the outer router would write. Nothing from the failure
+      // is echoed: a throw from the state store can carry row detail.
+      out = { ok: false, redirect: `/connections?oauth=error&reason=${encodeURIComponent(String((err && err.code) || 'callback_failed'))}` };
+    }
     res.setHeader('Cache-Control', 'no-store');
     res.writeHead(302, { Location: out.redirect });
     return res.end();
@@ -1135,7 +1146,7 @@ module.exports = {
   buildOverrides, llmOverridesFor, llmOverridesForCurrentRequest,
   credentialsFor, credentialsForCurrentRequest,
   // crypto
-  encryptSecrets, decryptSecrets, cryptoConfigured, sanitize,
+  encryptSecrets, decryptSecrets, cryptoConfigured, secretsStorageError, sanitize,
   // test seam
   _resolvedCache: RESOLVED,
 };
