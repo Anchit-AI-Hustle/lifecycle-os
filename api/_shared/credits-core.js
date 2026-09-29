@@ -669,6 +669,19 @@ async function fulfilOrder(orderId, { provider, provider_ref } = {}) {
 
 /* ── router (mounted at /api/public-config?action=credits) ────────────────── */
 
+/**
+ * Is the bearer the deployment's CRON_SECRET? Compared in constant time on
+ * equal lengths, the same way the webhook receiver compares a signature: a
+ * `!==` leaks where the first wrong byte is.
+ */
+function operatorSecretPresented(req) {
+  const secret = String(process.env.CRON_SECRET || '');
+  const sent = String((req && req.headers && (req.headers.authorization || req.headers.Authorization)) || '').replace(/^Bearer\s+/i, '').trim();
+  if (!secret || !sent) return false;
+  const a = Buffer.from(sent); const b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 async function handle(req, res) {
   const q = (req && req.query) || {};
   const body = req && req.body && typeof req.body === 'object' ? req.body : {};
@@ -684,6 +697,31 @@ async function handle(req, res) {
       welcome_grant: catalog.welcomeGrant(),
       configured: configured(),
     });
+  }
+
+  // Operator-only: confirms a payment taken OUTSIDE this app. The operator
+  // presents CRON_SECRET, which is not a Supabase session, so this is decided
+  // BEFORE the session check below. Until 2026-09-28 it sat behind that check
+  // and was unreachable: a bearer that satisfied requireUser could never equal
+  // CRON_SECRET, and one that equalled CRON_SECRET could never satisfy
+  // requireUser (it is verified against /auth/v1/user), so every order that
+  // was neither complimentary nor self-serve stayed `pending` for good. Found
+  // by executing the router, not by reading it - the case read as correct.
+  if (op === 'fulfil' || op === 'fulfill') {
+    if (!operatorSecretPresented(req)) {
+      return res.status(403).json({
+        ok: false, error: 'operator_only',
+        message: 'Confirming an order takes the deployment\'s CRON_SECRET as the bearer token. A signed-in session is not enough, and a session cannot be combined with it.',
+      });
+    }
+    if (!configured()) {
+      return res.status(503).json({ ok: false, error: 'credits_unavailable', message: 'The credit meter needs SUPABASE_SERVICE_ROLE_KEY on this deployment.' });
+    }
+    try {
+      return res.status(200).json(await fulfilOrder(body.order_id || q.order_id, { provider: body.provider, provider_ref: body.provider_ref }));
+    } catch (err) {
+      return res.status(err.status || 500).json({ ok: false, error: err.message || 'credits_operation_failed' });
+    }
   }
 
   const auth = await brandCore.requireUser(req);
@@ -741,14 +779,6 @@ async function handle(req, res) {
       case 'orders': {
         const rows = await serviceRest(`credit_orders?select=*&user_id=eq.${encodeURIComponent(auth.user_id)}&order=created_at.desc&limit=25`);
         return res.status(200).json({ ok: true, orders: Array.isArray(rows) ? rows : [] });
-      }
-      case 'fulfil':
-      case 'fulfill': {
-        // Operator-only: confirms a payment taken outside this app.
-        const secret = String(process.env.CRON_SECRET || '');
-        const sent = String((req.headers && (req.headers.authorization || '')) || '').replace(/^Bearer\s+/i, '');
-        if (!secret || sent !== secret) return res.status(403).json({ ok: false, error: 'operator_only' });
-        return res.status(200).json(await fulfilOrder(body.order_id || q.order_id, { provider: body.provider, provider_ref: body.provider_ref }));
       }
       default:
         return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders'] });
