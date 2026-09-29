@@ -193,14 +193,27 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ' border:1px solid var(--line,#e3e3e3)}',
       '.lc-credit-pill.is-pulse{animation:lcCreditPulse .6s ease}',
       '@keyframes lcCreditPulse{0%{transform:scale(1)}35%{transform:scale(1.13)}100%{transform:scale(1)}}',
+      // The chip sits INSIDE somebody else's control - usually a primary
+      // button - so it cannot know what is behind it. It used to be a 12%
+      // tint of the primary over whatever that was, with its text in
+      // --brand-primary-dark: a shade for hover states, never adjusted for
+      // text. Under a light brand primary that read "— cr" at 1.76:1 on the
+      // wizard's own "Read my site" button (2026-09-29). So the chip paints its
+      // OWN opaque ground - the surface every text token is adjusted against -
+      // and its text is --brand-primary-text (the AA-adjusted primary) or the
+      // ink; the free/short states say so with a dot and a border, never with
+      // a text colour nobody adjusted. No color-mix(): an engine without it
+      // drops the declaration whole, which left the text on the button's ground.
       '.lc-credit-chip{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:2px 7px;border-radius:999px;',
       ' font:600 10.5px/1.5 var(--vh-font-body,system-ui,sans-serif);vertical-align:middle;white-space:nowrap;',
-      ' background:color-mix(in srgb,var(--brand-primary,#6A33D8) 12%,transparent);color:var(--brand-primary-dark,#4a1fa0);',
-      ' border:1px solid color-mix(in srgb,var(--brand-primary,#6A33D8) 26%,transparent);cursor:help}',
-      '.lc-credit-chip.is-free{background:color-mix(in srgb,var(--brand-ok,#1a7f37) 12%,transparent);',
-      ' color:var(--brand-ok,#1a7f37);border-color:color-mix(in srgb,var(--brand-ok,#1a7f37) 28%,transparent)}',
-      '.lc-credit-chip.is-short{background:color-mix(in srgb,var(--brand-err,#c0392b) 12%,transparent);',
-      ' color:var(--brand-err,#c0392b);border-color:color-mix(in srgb,var(--brand-err,#c0392b) 30%,transparent)}',
+      ' background:var(--brand-surface-alt,#fff);color:var(--brand-primary-text,#4a1fa0);',
+      ' border:1px solid var(--brand-line-strong,#b6b6b6);cursor:help}',
+      '.lc-credit-chip.is-free,.lc-credit-chip.is-short{color:var(--brand-ink,#111)}',
+      '.lc-credit-chip.is-free{border-color:var(--brand-ok,#1a7f37)}',
+      '.lc-credit-chip.is-short{border-color:var(--brand-err,#c0392b)}',
+      '.lc-credit-chip.is-free::before,.lc-credit-chip.is-short::before{content:"";width:6px;height:6px;border-radius:50%;flex:none}',
+      '.lc-credit-chip.is-free::before{background:var(--brand-ok,#1a7f37)}',
+      '.lc-credit-chip.is-short::before{background:var(--brand-err,#c0392b)}',
       '.lc-credit-sheet{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;',
       ' background:rgba(17,17,17,.45);padding:20px}',
       '.lc-credit-card{background:var(--brand-surface-alt,#fff);color:var(--brand-ink,#111);border-radius:16px;',
@@ -262,7 +275,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     pillEl.classList.toggle('is-empty', state.balance <= 0);
     pillEl.innerHTML =
       '<span class="lc-dot"></span><span>' + fmt(state.balance) + ' credits</span>' +
-      (state.held ? '<span style="opacity:.6;font-weight:400">' + fmt(state.held) + ' held</span>' : '') +
+      // The muted TEXT token, not ink at 60% opacity: faded text is a
+      // contrast defect wearing a different hat (the 2026-08-21 finding).
+      (state.held ? '<span style="color:var(--brand-ink-muted,#556);font-weight:400">' + fmt(state.held) + ' held</span>' : '') +
       '<span class="lc-add">' + (state.balance <= 0 ? 'Recharge' : '+') + '</span>';
   }
 
