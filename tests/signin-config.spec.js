@@ -18,6 +18,16 @@
  * that has to track an external resource drifts; on a multi-tenant platform, one
  * project ref is the same defect class as one brand's colour.
  *
+ * ── SINCE 2026-09-28 ────────────────────────────────────────────────────────
+ * Sign-in is a mobile number and a 4-digit PIN in the rail's own panel
+ * (tests/mobile-pin-signin.spec.js); the Google redirect is commented out.
+ * The guard this file drove (`__startGoogleSignIn__`) is gone WITH the
+ * redirect, so the claim moves one level up: pressing Sign in opens the panel
+ * on the current page and hands the browser to NO host - reachable, dead or
+ * unconfigured alike. The stub still records any signInWithOAuth call, and
+ * every navigation is still captured, so a redirect sneaking back shows up as
+ * evidence. The "no baked-in project ref" file check stays as it was.
+ *
  * Run: npx playwright test tests/signin-config.spec.js
  */
 const { test, expect } = require('@playwright/test');
@@ -116,48 +126,67 @@ async function boot(page, { authHost, reachable }) {
 
   page.on('framenavigated', (f) => { if (f === page.mainFrame()) navigations.push(f.url()); });
   await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.client), null, { timeout: 15000 })
+  await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending'), null, { timeout: 15000 })
     .catch(() => {});
   return navigations;
 }
 
-test('an unreachable auth host is refused before the browser is sent there', async ({ page }) => {
+/** Press the rail's Sign in and read what happened: the panel, the OAuth stub, where the page is. */
+async function pressAndRead(page) {
+  const btn = page.locator('#lnav-signin');
+  await btn.waitFor({ state: 'attached', timeout: 15000 });
+  try { await btn.click({ timeout: 4000 }); } catch (e) {
+    if (!/intercepts pointer events|Timeout/.test(String(e.message))) throw e;
+    await btn.evaluate((el) => el.click());
+  }
+  await page.waitForTimeout(400);
+  return page.evaluate(() => ({
+    panel: !!document.getElementById('lnav-mauth'),
+    panelOnPage: !!(document.getElementById('lnav-mauth') && document.getElementById('lifecycle-nav').contains(document.getElementById('lnav-mauth'))),
+    oauth: (window.__OAUTH_CALLS__ || []).length,
+    path: location.pathname,
+    startGoogle: typeof window.__startGoogleSignIn__,
+    google: /Sign in with Google/i.test(document.body.innerText || ''),
+  }));
+}
+
+test('an unreachable auth host: Sign in opens the mobile panel here and the browser is sent nowhere', async ({ page }) => {
   const navs = await boot(page, { authHost: 'https://deleted-project.supabase.co', reachable: false });
-
-  const result = await page.evaluate(async () => {
-    // Drive the real guard the sign-in buttons call.
-    const msg = await window.__startGoogleSignIn__();
-    return { msg, oauth: (window.__OAUTH_CALLS__ || []).length };
-  });
-
-  expect(result.oauth, 'signInWithOAuth was called for a host that does not resolve').toBe(0);
-  expect(result.msg, 'the refusal was silent').toBeTruthy();
-  expect(result.msg).toMatch(/cannot be reached|does not resolve/i);
-  // It has to say what to DO. "Sign-in failed" is what the browser already said.
-  expect(result.msg).toMatch(/SUPABASE_URL/);
-  expect(result.msg).toMatch(/deleted-project\.supabase\.co/);
+  const got = await pressAndRead(page);
+  expect(got.oauth, 'signInWithOAuth was called for a host that does not resolve').toBe(0);
+  expect(got.panel, 'no inline sign-in panel opened').toBe(true);
+  expect(got.panelOnPage).toBe(true);
+  expect(got.path).toBe('/index.html');
+  expect(got.startGoogle, 'the Google guard is still exposed').toBe('undefined');
+  expect(got.google).toBe(false);
   expect(navs.filter((u) => /authorize/.test(u)), 'the browser was navigated to the dead host anyway').toEqual([]);
 });
 
-test('a reachable auth host signs in normally', async ({ page }) => {
-  // The guard must not become the new outage: a working project still works.
+test('a reachable auth host: the same panel, and still no redirect', async ({ page }) => {
+  // A working Supabase project changes nothing about sign-in any more: the
+  // account lives in the Neon database (or on this device), never with Google.
   await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true });
-  const result = await page.evaluate(async () => {
-    const msg = await window.__startGoogleSignIn__();
-    return { msg, oauth: (window.__OAUTH_CALLS__ || []).length };
-  });
-  expect(result.msg, `sign-in was blocked on a reachable host: ${result.msg}`).toBe('');
-  expect(result.oauth).toBe(1);
+  const got = await pressAndRead(page);
+  expect(got.oauth, 'signInWithOAuth was called on a reachable host').toBe(0);
+  expect(got.panel).toBe(true);
+  expect(got.path).toBe('/index.html');
 });
 
-test('a deployment with no Supabase configuration says so, and does not redirect', async ({ page }) => {
+test('a deployment with no Supabase configuration: the same panel, and no redirect', async ({ page }) => {
   const navs = await boot(page, { authHost: '', reachable: false });
-  const result = await page.evaluate(async () => {
-    const msg = await window.__startGoogleSignIn__();
-    return { msg, oauth: (window.__OAUTH_CALLS__ || []).length };
-  });
-  expect(result.oauth).toBe(0);
-  expect(result.msg).toMatch(/no Supabase configuration|SUPABASE_URL/i);
+  // This harness serves from 127.0.0.1, and with no config auth.js seats its
+  // "Local preview" stub in place of the Sign in chip - so the panel is
+  // opened through the same entry point the chip and the brand gate call.
+  await page.evaluate(() => window.LifecycleAuth.openSignIn());
+  await page.waitForTimeout(400);
+  const got = await page.evaluate(() => ({
+    panel: !!document.getElementById('lnav-mauth'),
+    oauth: (window.__OAUTH_CALLS__ || []).length,
+    path: location.pathname,
+  }));
+  expect(got.oauth).toBe(0);
+  expect(got.panel).toBe(true);
+  expect(got.path).toBe('/index.html');
   expect(navs.filter((u) => /authorize/.test(u))).toEqual([]);
 });
 

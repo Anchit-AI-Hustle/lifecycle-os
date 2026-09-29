@@ -77,12 +77,41 @@ function bearer(req) {
  * response and a thrown fetch - and it was being flattened into one 503.
  */
 async function requireUser(req) {
+  // ── A MOBILE + PIN SESSION (2026-09-28) ───────────────────────────────────
+  // The one sign-in the browser has now. Its token is 43 base64url characters
+  // with no dots (a Supabase JWT has two), so the two cannot be confused. It is
+  // verified against app_sessions in the Neon database - a SERVER-mode session.
+  // A DEVICE-mode token (the browser kept the account in localStorage because
+  // there was no database, or it was not answering) cannot be verified by
+  // anyone, so it is refused exactly like an anonymous call: the same status,
+  // the same code, and nothing about it is trusted from the body.
+  const mobile = require('./mobile-auth-core.js');
+  const own = mobile.tokenOf(req);
+  if (own && mobile.looksLikeToken(own)) {
+    const v = await mobile.verifyToken(own);
+    if (v.ok) {
+      return {
+        ok: true, token: own, user_id: v.user.id, email: '',
+        phone: v.user.phone, name: v.user.name, provider: 'mobile-pin',
+      };
+    }
+    return {
+      ok: false, status: 401, error: 'sign_in_required',
+      message: 'You are not signed in, so this could not be saved to your account. '
+        + (v.reason === 'no_database' || v.reason === 'unreachable'
+          ? 'A sign-in kept on this device only cannot be checked by the server.'
+          : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
+      hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
+      mobile_reason: v.reason,
+    };
+  }
+
   const token = bearer(req);
   if (!token) {
     return {
       ok: false, status: 401, error: 'sign_in_required',
       message: 'You are not signed in, so this could not be saved to your account.',
-      hint: 'Send Authorization: Bearer <Supabase access token>.',
+      hint: 'Send X-Lifecycle-Token: <session token> from a mobile-number sign-in (Authorization: Bearer <token> is accepted too).',
     };
   }
   let e;
@@ -129,6 +158,18 @@ function hostOfUrl(u) {
 
 /** PostgREST call made AS THE CALLER, so RLS decides what they can touch. */
 async function restAs(token, pathAndQuery, { method = 'GET', body, prefer } = {}) {
+  // ONE DOOR. Every read or write made "as the caller" comes through here, so
+  // this is where a mobile+PIN account (2026-09-28) learns it has no Supabase
+  // identity: RLS is keyed on auth.uid(), and a Neon account has none. Without
+  // this, every such call answered with PostgREST's bare 401 - a sentence about
+  // an expired sign-in for a person who signed in a moment ago.
+  if (require('./mobile-auth-core.js').looksLikeToken(String(token || ''))) {
+    const err = new Error('This is kept in the database beside an email account, and a mobile-number account has no record there. '
+      + 'Brands, catalogues and connections for a mobile-number sign-in are saved on the device it signed in on.');
+    err.status = 403;
+    err.code = 'account_type_unsupported';
+    throw err;
+  }
   const e = env();
   const headers = { apikey: e.anon, authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   if (prefer) headers.Prefer = prefer;

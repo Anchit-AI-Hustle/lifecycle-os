@@ -185,6 +185,14 @@ async function usage(userId, workspaceId, days = 30) {
 
 /* ── the meter ────────────────────────────────────────────────────────────── */
 
+const MOBILE_ACCOUNT_MESSAGE = 'Paid features are metered against a credit wallet, and a wallet belongs to an email '
+  + 'account in the database. A mobile-number sign-in has no wallet, so this feature is not available on it yet.';
+
+/** The refusal a mobile+PIN account gets from anything that would touch a wallet. */
+function mobileAccountRefusal(quote) {
+  return { ok: false, status: 403, error: 'credits_require_account', message: MOBILE_ACCOUNT_MESSAGE, quote: quote || null };
+}
+
 /**
  * Reserve credits for one run of `featureKey`.
  *
@@ -228,6 +236,13 @@ async function meter(req, featureKey, opts) {
 
   const auth = o.auth || await brandCore.requireUser(req);
   if (!auth.ok) return Object.assign({ ok: false }, auth);
+
+  // A MOBILE-NUMBER ACCOUNT HAS NO WALLET (2026-09-28). Wallets are keyed to
+  // Supabase identities; a Neon account id would create a ghost wallet AND
+  // draw the welcome grant - and a phone sign-up is free, unverified and
+  // unlimited, so that grant would be an unlimited faucet on this deployment's
+  // provider budget. Refused BEFORE the wallet is touched, with a sentence.
+  if (auth.provider === 'mobile-pin') return mobileAccountRefusal(q);
 
   if (!workspaceId) {
     try { workspaceId = await brandCore.activeWorkspaceId(auth); } catch (_) { workspaceId = null; }
@@ -673,6 +688,20 @@ async function handle(req, res) {
 
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
+
+  // A mobile-number account (2026-09-28): no wallet, see meter(). The balance
+  // read answers 200 with `wallet:null` and the reason, because "this account
+  // has no wallet" is an ordinary state for the header pill to show quietly,
+  // not a failure; anything that would MOVE credits is refused with the sentence.
+  if (auth.provider === 'mobile-pin') {
+    if (op === 'balance') {
+      return res.status(200).json({
+        ok: true, wallet: null, low: false, comp: false, unavailable: 'mobile_account', message: MOBILE_ACCOUNT_MESSAGE,
+        features: await priceList().catch(() => catalog.list()), packs: await packList().catch(() => catalog.packList(null)),
+      });
+    }
+    return res.status(403).json(mobileAccountRefusal(null));
+  }
 
   if (!configured()) {
     return res.status(503).json({
