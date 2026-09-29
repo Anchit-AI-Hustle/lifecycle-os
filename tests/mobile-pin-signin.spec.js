@@ -367,6 +367,62 @@ test('status is honest about where accounts are saved: no URL, an unreachable da
   expect(slow.reason).toBe('database_unreachable');
 });
 
+test('the driver is built ONCE per URL and the schema ensured ONCE per warm instance, across gated requests; status is answered from cache', async () => {
+  // The real driver path, with @neondatabase/serverless stubbed through
+  // require.cache: `neon(url)` hands back the in-memory store, and every
+  // construction is counted. verifyToken() is what requireUser() calls on
+  // every gated request, so two of them in a row are the shape of two
+  // requests to one warm instance.
+  process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
+  const NEON = require.resolve('@neondatabase/serverless');
+  const realNeon = require.cache[NEON];
+  const built = [];
+  const store = fakeSql();
+  require.cache[NEON] = { id: NEON, filename: NEON, loaded: true, exports: { neon: (url) => { built.push(url); return store; } } };
+  try {
+    const core = freshCore();
+    const token = (await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip')).body.token;
+    store.db.log.length = 0;
+    const a = await core.verifyToken(token);
+    const b = await core.verifyToken(token);
+    expect(a.ok && b.ok, 'the real driver path did not verify the session').toBe(true);
+    expect(built, 'neon() was constructed more than once for one URL').toEqual(['postgres://u:p@ep-fixture.neon.tech/db']);
+    const ddl = store.db.log.filter((t) => /^create (table|index)/.test(t));
+    expect(ddl.length, 'the schema was ensured more than once (4 statements per run)').toBe(4);
+    // A different URL gets its own client.
+    process.env.DATABASE_URL = 'postgres://u:p@ep-other.neon.tech/db';
+    await core.verifyToken(token);
+    expect(built.length).toBe(2);
+    // status: one probe answers two asks on a warm instance...
+    process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
+    store.db.log.length = 0;
+    expect((await core.status()).mode).toBe('server');
+    expect((await core.status()).mode).toBe('server');
+    expect(store.db.log.filter((t) => t === 'select 1').length, 'status probed the database on every ask').toBe(1);
+    // ...and an op on a warm instance costs neither DDL nor a probe of its own.
+    store.db.log.length = 0;
+    const me = mockRes();
+    await core.handle({ method: 'GET', query: { action: 'auth', op: 'me' }, headers: { 'x-lifecycle-token': token } }, me.res);
+    expect(me.out.code).toBe(200);
+    expect(store.db.log.filter((t) => /^create /.test(t) || t === 'select 1'), 'a warm op re-ran setup work').toEqual([]);
+    // A "device" answer is cached too, briefly: two asks while the database is
+    // down cost one probe (a stream of requests must not each wait out the
+    // probe's timeout), and its TTL is short so a database that comes back is
+    // noticed within seconds, not thirty.
+    core._reset();
+    store.db.down = true;
+    store.db.log.length = 0;
+    expect((await core.status()).mode).toBe('device');
+    expect((await core.status()).mode).toBe('device');
+    expect(store.db.log.filter((t) => t === 'select 1').length, 'a down database was probed on every ask').toBe(1);
+    store.db.down = false;
+    expect(core.STATUS_TTL_MS.device).toBeLessThanOrEqual(5000);
+    expect(core.STATUS_TTL_MS.server).toBeGreaterThanOrEqual(30000);
+    // An injected sql bypasses the cache: a test always drives the real probe.
+    expect((await core.status({ sql: store })).mode).toBe('server');
+  } finally { if (realNeon) require.cache[NEON] = realNeon; else delete require.cache[NEON]; }
+});
+
 test('the token travels in X-Lifecycle-Token, then a bearer of our shape, then the body; a JWT is never mistaken for ours', () => {
   const core = freshCore();
   const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH';

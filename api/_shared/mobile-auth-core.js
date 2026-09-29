@@ -170,13 +170,26 @@ function hostOf(url) {
  * The tagged-template query function. `deps.sql` (a test's in-memory fake)
  * wins; otherwise the neon driver over DATABASE_URL; null when there is no URL.
  * The driver is required HERE, lazily, so the rules above load anywhere.
+ *
+ * ONE DRIVER PER URL, for the life of the warm instance. `neon(url)` used to be
+ * constructed on every call, and ensureSchema's guard is keyed by that
+ * function - so every gated request (requireUser -> verifyToken -> connect +
+ * ensureSchema) re-ran the four DDL statements. Keyed by the URL STRING: a
+ * test's `deps.sql` never touches this map, and a URL change still gets a
+ * fresh client.
  */
+const DRIVERS = new Map();
 function connect(deps) {
   if (deps && typeof deps.sql === 'function') return deps.sql;
   const url = databaseUrl();
   if (!url) return null;
-  const { neon } = require('@neondatabase/serverless');
-  return neon(url);
+  let sql = DRIVERS.get(url);
+  if (!sql) {
+    const { neon } = require('@neondatabase/serverless');
+    sql = neon(url);
+    DRIVERS.set(url, sql);
+  }
+  return sql;
 }
 
 const schemaReady = new WeakSet();
@@ -266,27 +279,45 @@ async function sessionUser(sql, token) {
  * else is `mode:'device'` with the reason - "no database" and "a database that
  * is not answering" are different things to be told, and the host is printed
  * because that is the value an operator has to change.
+ *
+ * The answer is CACHED per URL on the real driver path: `handle()` asks it
+ * before every op and the panel asks it once per page load, and each ask was
+ * a `select 1` round trip. A "server" answer holds for 30 s; a "device" answer
+ * (the database not answering) for 5 s, so a database that comes back is seen
+ * within seconds while a stream of requests against one that is down does not
+ * each wait out the probe's timeout. An injected `deps.sql` bypasses the cache,
+ * so a test drives the real probe every time.
  */
+const STATUS_TTL_MS = { server: 30000, device: 5000 };
+let statusCache = null;   // { url, at, answer }
 async function status(deps) {
   const url = databaseUrl();
+  const injected = !!(deps && typeof deps.sql === 'function');
+  if (!injected && statusCache && statusCache.url === url && Date.now() - statusCache.at < STATUS_TTL_MS[statusCache.answer.mode]) {
+    return statusCache.answer;
+  }
   const sql = connect(deps);
+  let answer;
   if (!sql) {
-    return {
+    answer = {
       ok: true, mode: 'device', reason: 'no_database_url', host: '',
       message: 'Saved on this device only: no database is configured. Set DATABASE_URL to keep accounts in a database.',
     };
+  } else {
+    const host = hostOf(url) || 'the configured database';
+    try {
+      await withTimeout(sql`select 1`, (deps && deps.timeoutMs) || 4000, 'select 1 timed out');
+      answer = { ok: true, mode: 'server', host, message: 'Account saved in the database.' };
+    } catch (err) {
+      answer = {
+        ok: true, mode: 'device', reason: 'database_unreachable', host,
+        message: 'Saved on this device only: the database (' + host + ') is not answering.',
+        detail: String(err && err.message || err),
+      };
+    }
   }
-  const host = hostOf(url) || 'the configured database';
-  try {
-    await withTimeout(sql`select 1`, (deps && deps.timeoutMs) || 4000, 'select 1 timed out');
-    return { ok: true, mode: 'server', host, message: 'Account saved in the database.' };
-  } catch (err) {
-    return {
-      ok: true, mode: 'device', reason: 'database_unreachable', host,
-      message: 'Saved on this device only: the database (' + host + ') is not answering.',
-      detail: String(err && err.message || err),
-    };
-  }
+  if (!injected && url) statusCache = { url, at: Date.now(), answer };
+  return answer;
 }
 
 /**
@@ -469,10 +500,12 @@ async function handle(req, res, deps) {
 }
 
 module.exports = {
-  PIN_LEN, WEAK_PINS, MAX_TRIES, LOCK_MINUTES, SESSION_DAYS, TOKEN_HEADER, ENTER_LIMIT, ENTER_WINDOW_SEC, OPS,
+  PIN_LEN, WEAK_PINS, MAX_TRIES, LOCK_MINUTES, SESSION_DAYS, TOKEN_HEADER, ENTER_LIMIT, ENTER_WINDOW_SEC, OPS, STATUS_TTL_MS,
   pinError, hashPin, verifyPin, lockMessage, triesMessage,
   newToken, tokenHash, looksLikeToken, tokenOf, clientIp,
   databaseUrl, hostOf, connect, ensureSchema, rateLimit, sessionUser,
   status, verifyToken, enter, handle,
   phone,
+  /** Drop the memoised drivers and the status answer (tests; a rotated URL needs neither). */
+  _reset() { DRIVERS.clear(); statusCache = null; },
 };
