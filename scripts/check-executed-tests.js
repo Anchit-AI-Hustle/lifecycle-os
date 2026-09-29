@@ -84,7 +84,9 @@ const BASELINE = {
   'reference-intel.spec.js': 4,
   'workspace-connections.spec.js': 4,
   'asset-vs-element-prompts.spec.js': 3,
-  'credits-comp-accounts.spec.js': 3,
+  // 2026-09-29: two of the three became executed (isCompAuth is called with a
+  // forged record; the router's balance answer is read off a fake project).
+  'credits-comp-accounts.spec.js': 2,
   'onboarding-review-loop.spec.js': 3,
   'preset-gallery-no-swap.spec.js': 3,
   'shopify-scope.spec.js': 3,
