@@ -338,7 +338,12 @@ the fix, and mutation-verified):
   drawer test hung on exactly that press: `#lc-authnotice intercepts pointer events`). The bar now
   sticks at `top: var(--ltb-h, 0px)` (the rail's own published mobile-bar height, 0 on a desktop) and
   is inserted after `#lifecycle-nav`, whose spacer reserves that height in flow. Nothing changes on a
-  desktop, and the notice is still shown, below the bar.
+  desktop, and the notice is still shown, below the bar. The two halves do different jobs: the
+  sticky offset alone keeps the burger clear at rest but leaves the bar painted over the first
+  50px of what follows it (it still occupies its old place in flow), and the insertion alone keeps
+  it clear at rest but lets it slide over the top bar on scroll; the mutation that fails the test
+  is the deployed state, both reverted together (`Received: "lc-authnotice"` at the burger's
+  centre), and either half alone passes the at-rest check.
 
 **Coverage added** (`tests/mobile-pin-signin.spec.js`, 29 tests, all executed): a device session
 signed in on one page is the session on `/onboarding`, `/index` and `/dashboard` after navigation,
