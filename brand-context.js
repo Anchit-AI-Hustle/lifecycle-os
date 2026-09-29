@@ -142,7 +142,7 @@
 
   // `mode` is where brand records live for this visitor right now: 'server'
   // (the account) or 'device' (this browser). See "Where a brand is stored".
-  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false, mode: '' };
+  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false, mode: '', deviceKey: '', refreshAgain: false };
   var listeners = [];
   var readyResolve;
   var readyPromise = new Promise(function (r) { readyResolve = r; });
@@ -237,6 +237,44 @@
 
   var DEVICE_KEY = 'lifecycle.brand.device.workspaces';
   var DEVICE_PREFIX = 'local-';
+  /* THE DEVICE STORE IS PER ACCOUNT (review finding, 2026-09-29). A browser is
+     shared: a family laptop, a shop's till, an agency's meeting-room machine.
+     With ONE key for every mobile+PIN session, person B signing in saw person
+     A's brands - name, voice rules, store URLs, legal entity - because "on this
+     device" was read as "for whoever is at this device". The namespace is now
+     the signed-in account's id: `<DEVICE_KEY>.<user id>`. The UNSCOPED key is
+     kept for the no-session states only (no database, a database that does
+     not answer, signed out), so onboarding without a backend keeps working
+     exactly as before; a sign-in never silently adopts those anonymous rows
+     (they were typed by nobody in particular, and adopting them would hand
+     A's draft to whoever signs in next), and a sign-out never deletes them.
+     The id comes from auth.js's session when it has booted, else from the
+     stored session - this file paints the first frame BEFORE auth.js runs,
+     and that frame must already be the right person's brand. */
+  var MAUTH_SESSION_KEY = 'lifecycle.auth.session';
+  function deviceUserId() {
+    try {
+      var a = window.LifecycleAuth;
+      var s = a && a.session;
+      if (s && s.provider === 'mobile-pin' && s.user && s.user.id) return String(s.user.id);
+      // auth.js has decided and holds no session: a stored one it rejected
+      // (expired, signed out elsewhere) must not open a namespace.
+      var k = a && a.backend && a.backend.kind;
+      if (k && k !== 'pending') return '';
+    } catch (_) {}
+    try {
+      var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
+      if (!raw || typeof raw !== 'object' || !raw.token || !raw.user || !raw.user.id) return '';
+      if (raw.mode !== 'server' && raw.mode !== 'device') return '';
+      if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
+      return String(raw.user.id);
+    } catch (_) { return ''; }
+  }
+  /** The localStorage key brands live under RIGHT NOW: the account's, or the unscoped one. */
+  function deviceKey() {
+    var uid = deviceUserId();
+    return uid ? DEVICE_KEY + '.' + uid : DEVICE_KEY;
+  }
   // The brand ops that have a device implementation. Everything else (extract,
   // suggest, catalog-import, context-*) is the server's, and each of those is
   // rendered as a DISABLED control with its reason by the wizard when it cannot
@@ -630,7 +668,7 @@
   function readDevice() {
     var empty = { version: 1, active_id: '', workspaces: [] };
     try {
-      var d = JSON.parse(localStorage.getItem(DEVICE_KEY) || 'null');
+      var d = JSON.parse(localStorage.getItem(deviceKey()) || 'null');
       if (!d || typeof d !== 'object' || !Array.isArray(d.workspaces)) return empty;
       return {
         version: 1,
@@ -641,9 +679,10 @@
   }
   function writeDevice(d) {
     try {
+      var key = deviceKey();
       var ws = d.workspaces || [];
-      if (!ws.length && !d.active_id) { localStorage.removeItem(DEVICE_KEY); return true; }
-      localStorage.setItem(DEVICE_KEY, JSON.stringify({ version: 1, active_id: d.active_id || '', workspaces: ws }));
+      if (!ws.length && !d.active_id) { localStorage.removeItem(key); return true; }
+      localStorage.setItem(key, JSON.stringify({ version: 1, active_id: d.active_id || '', workspaces: ws }));
       return true;
     } catch (_) { return false; }
   }
@@ -1297,6 +1336,10 @@
   async function refresh() {
     try {
       var mode = await resolveMode();
+      // The namespace this read is answered from, so the backend listener can
+      // tell a sign-in or sign-out apart from a mode that did not change.
+      state.deviceKey = deviceKey();
+      state.refreshAgain = false;
       var r = await api('active');
       var fromDevice = r.storage === 'device';
       if (r.brand) state.brand = r.brand;
@@ -1337,6 +1380,10 @@
       return state.brand;
     } finally {
       readyResolve(state.brand);
+      // auth.js changed the session while this read was in flight (a server
+      // session answered 401 during boot, say): what was just painted may be
+      // another namespace's. Read again, once, from where brands live now.
+      if (state.refreshAgain) { state.refreshAgain = false; refresh(); }
     }
   }
 
@@ -1398,11 +1445,16 @@
   else start();
 
   // 3. If auth.js changes its mind after the first read - a sign-in completing
-  //    on the OAuth callback page, a session ending mid-visit - re-read from
-  //    wherever brands now live.
+  //    in the rail's panel, a session ending mid-visit - re-read from wherever
+  //    brands now live. "Wherever" is the MODE and the NAMESPACE: on a device
+  //    with no database, signing in leaves the mode at 'device' and moves the
+  //    store from the unscoped key to the account's, so a listener that only
+  //    compared modes left the previous person's brand on screen.
   window.addEventListener('lifecycleauth:backend', function () {
     var m = knownMode();
-    if (m && state.loaded && m !== state.mode) refresh();
+    if (!m) return;
+    if (!state.loaded) { state.refreshAgain = true; return; }
+    if (m !== state.mode || deviceKey() !== state.deviceKey) refresh();
   });
 
   // ── Workspace-scope every API call ─────────────────────────────────────
@@ -1557,6 +1609,9 @@
     syncDeviceToAccount: syncDeviceToAccount,
     device: {
       KEY: DEVICE_KEY,
+      // The key in use right now: the signed-in account's namespace, or the
+      // unscoped key when nobody is signed in.
+      key: deviceKey,
       isDeviceId: isDeviceId,
       list: function () { return readDevice().workspaces.map(function (w) { return shellPayloadFor(w); }); },
       active: function () { return readDevice().active_id || ''; },
