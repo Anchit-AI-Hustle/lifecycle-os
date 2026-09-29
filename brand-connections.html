@@ -222,7 +222,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // server can act for, this page opened on a red "Connections could not be
     // loaded" for every visitor. The registry stays public.
     if (!/^(registry|publish-registry)$/.test(op) && window.LifecycleStatus) {
-      var stop = window.LifecycleStatus.refusal(op === 'list' ? 'Loading your connections and model routing' : 'Changing a connection');
+      var stop = await window.LifecycleStatus.decide(op === 'list' ? 'Loading your connections and model routing' : 'Changing a connection');
       if (stop) throw stop;
     }
     var headers = { 'Content-Type': 'application/json' };

@@ -447,7 +447,7 @@ async function generatePlan() {
   // generate the plan {"ok":false,"error":"sign_in_required"...}" - a fault
   // frame for the most ordinary state there is. The one sentence for the
   // state goes in the accent rule instead, and nothing leaves the page.
-  const stop = window.LifecycleStatus && window.LifecycleStatus.refusal('Generating the plan', { metered: true });
+  const stop = window.LifecycleStatus && await window.LifecycleStatus.decide('Generating the plan', { metered: true });
   if (stop) { window.LifecycleStatus.show($('planMeta'), stop); return; }
 
   $('btnGenerate').disabled = true;
