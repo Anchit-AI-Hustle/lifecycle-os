@@ -514,6 +514,14 @@ async function chat(opts = {}) {
       }, wsId);
     } catch (_) { brandRecord = null; }
   }
+  // A caller with no workspace row can still name the brand it is for: the
+  // router resolves one per request (a device record carried by a mobile+PIN
+  // account, or the unresolved placeholder) and hands it here. Without this
+  // a phone account's turn was answered as KicksGPT, tenant zero's assistant,
+  // over tenant zero's shipped catalogue (2026-09-29).
+  if (!brandRecord && opts.brand && typeof opts.brand === 'object' && (opts.brand.id || opts.brand.slug || opts.brand.unresolved)) {
+    brandRecord = opts.brand;
+  }
   return catalogServer.withCatalog({ brand: brandRecord, workspaceId: wsId }, () => _chat(opts, brandRecord));
 }
 
@@ -530,7 +538,7 @@ async function _chat({ message, history = [], market: marketIn = '', maxSteps = 
   const market = marketIn || (() => {
     try { const rt = require('./brand-runtime.js'); return rt.homeRegion(brandRecord && brandRecord.id ? brandRecord : rt.defaultBrand()); } catch (_) { return ''; }
   })();
-  const brand = brandRecord && brandRecord.id
+  const brand = brandRecord && (brandRecord.id || brandRecord.unresolved)
     ? Object.assign({}, brandRecord, { tagline: brandRecord.tagline || BRAND_LLM_TAGLINE })
     : { name: BRAND_LLM_NAME, tagline: BRAND_LLM_TAGLINE };
   if (!message || !String(message).trim()) return { ok: false, error: 'message required', brand };

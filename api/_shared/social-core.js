@@ -861,15 +861,19 @@ async function listPosts({ date, from, to } = {}) {
 /** setStatus(id, 'approved'|'skipped'|'draft'|'posted') */
 async function setStatus(id, status) {
   const allowed = ['draft', 'approved', 'posted', 'skipped'];
-  if (allowed.indexOf(status) < 0) return { ok: false, error: 'status must be one of ' + allowed.join('|') };
-  if (!id) return { ok: false, error: 'id required' };
-  if (!supa) return { ok: false, error: 'Supabase not configured — cannot update post status' };
+  // Every refusal carries `message` as well as `error` (2026-09-29): the
+  // console prints `message` and the older `error` strings stay for callers
+  // that read them.
+  if (allowed.indexOf(status) < 0) return { ok: false, error: 'status must be one of ' + allowed.join('|'), message: 'A post can only be marked ' + allowed.join(', ') + '; nothing was changed.' };
+  if (!id) return { ok: false, error: 'id required', message: 'This post has no saved id, so its status cannot be changed. Run the pipeline without dry run to save posts first.' };
+  if (!supa) return { ok: false, error: 'Supabase not configured — cannot update post status', message: 'No workspace database is configured on this deployment, so a post status cannot be saved.' };
   try {
     const rows = await supa.update(TABLE, { status }, { id: 'eq.' + id });
-    if (!rows || !rows.length) return { ok: false, error: 'post not found' };
+    if (!rows || !rows.length) return { ok: false, error: 'post not found', message: 'No saved post carries that id in this brand workspace, so nothing was changed.' };
     return { ok: true, post: rows[0] };
   } catch (e) {
-    return { ok: false, error: String(e.message || e).slice(0, 200) };
+    const msg = String(e.message || e).slice(0, 200);
+    return { ok: false, error: msg, message: 'The post status could not be saved: ' + msg };
   }
 }
 

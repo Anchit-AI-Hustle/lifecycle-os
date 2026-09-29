@@ -403,6 +403,13 @@ function agenticMarket(){
 }
 async function runAgentic(){
   const out = $('agenticOut'), market = agenticMarket();
+  // Decided BEFORE anything is sent (2026-09-29): a sign-in kept only in this
+  // browser cannot be verified by the server, and the run writes for a brand
+  // the server has no row for, so the sentence is shown and nothing leaves.
+  if (window.LifecycleStatus) {
+    const stop = await window.LifecycleStatus.decide('The agentic run');
+    if (stop) { window.LifecycleStatus.show(out, stop); return; }
+  }
   out.innerHTML = `<p>🤖 Running agentic flow — Premium, ${esc(market)} — 8 stages, please wait…</p>`;
   try{
     // Return the plan fast; creatives (images/mailers/ads/LPs) prebuild in the

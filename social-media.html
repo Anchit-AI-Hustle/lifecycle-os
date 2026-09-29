@@ -347,14 +347,34 @@
     }).join('');
   }
 
+  // The server's sentence, never its code (2026-09-29): every refusal carries
+  // `message`; several older answers carry a sentence in `error` and no
+  // `message`, and only an identifier-shaped `error` is withheld.
+  function said(j, r) {
+    var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+    var m = j && (j.message || j.note || (j.error && !IDENT.test(String(j.error)) ? j.error : ''));
+    return m || (j && j.error ? 'The server refused this request (' + j.error + ') and did not explain why.' : ('HTTP ' + r.status));
+  }
+  // A refusal decided BEFORE the request leaves: a sign-in kept only in this
+  // browser, a signed-out visitor, an unreachable database. Rendered in the
+  // accent rule through the shared treatment, never as a red banner.
+  async function stopped(what, opts) {
+    if (!window.LifecycleStatus) return false;
+    var stop = await window.LifecycleStatus.decide(what, opts || {});
+    if (!stop) return false;
+    var el = $('banner'); el.className = 'banner info'; el.style.display = 'block';
+    el.innerHTML = window.LifecycleStatus.htmlFor(stop);
+    return true;
+  }
   async function decide(btn, cardEl, id, action) {
     banner('');
     if (id == null) { banner('This post was not persisted (dry run / no Supabase) — approve/skip needs a saved post.', true); return; }
+    if (await stopped('Updating this post')) return;
     btn.disabled = true;
     try {
       var r = await fetch(API + '?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
-      var j = await r.json();
-      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      var j = await r.json().catch(function () { return {}; });
+      if (!j.ok) throw new Error(said(j, r));
       var st = cardEl.querySelector('.st');
       var s = (j.post && j.post.status) || (action === 'social-approve' ? 'approved' : 'skipped');
       st.textContent = s; st.className = 'st ' + s;
@@ -365,17 +385,21 @@
 
   async function run() {
     banner('');
+    if (await stopped('Running the social pipeline')) return;
     var btn = $('runBtn');
     btn.disabled = true;
     $('runState').innerHTML = '<span class="spinner"></span>Running the 7-agent pipeline (up to ~80s)…';
     try {
-      var body = { date: $('datePick').value || todayIso(), dry_run: $('dryRun').checked };
+      // The brand this run is FOR travels with the request when it lives only
+      // on this device; a server brand is already stamped by workspace_id.
+      var carried = null; try { carried = window.BrandContext && window.BrandContext.carry ? window.BrandContext.carry() : null; } catch (_) {}
+      var body = { date: $('datePick').value || todayIso(), dry_run: $('dryRun').checked, brand: carried };
       var r = await fetch(API + '?action=social-run-daily', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      var j = await r.json();
-      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      var j = await r.json().catch(function () { return {}; });
+      if (!j.ok) throw new Error(said(j, r));
       // ok:true with an error code is a refusal (no resolvable workspace), not a
       // successful run that happened to produce nothing.
-      if (j.error) throw new Error(j.note || j.error);
+      if (j.error) throw new Error(said(j, r));
       lastRun = j;
       renderPosts(j.posts, false, 'The pipeline ran and produced no drafts for this date. '
         + ((j.persistence && j.persistence.reason) || j.note || 'Check the agent trace below for the step that returned nothing.'));
@@ -385,12 +409,13 @@
       if (!persisted) banner('Run complete but not persisted: ' + ((j.persistence && j.persistence.reason) || 'unknown') + '. Approve/skip needs Supabase.', true);
     } catch (e) {
       $('runState').textContent = '';
-      banner('Pipeline call failed: ' + e.message + ' — is the API deployed/reachable?');
+      banner('The pipeline did not run. ' + window.LifecycleFailure.sentence(e));
     } finally { btn.disabled = false; }
   }
 
   async function load() {
     banner('');
+    if (await stopped('Reading the saved posts')) return;
     var btn = $('loadBtn');
     btn.disabled = true;
     $('runState').textContent = 'Loading…';
@@ -403,9 +428,9 @@
       var r;
       try { r = await fetch(API + '?action=social-list&date=' + encodeURIComponent(d), { signal: ctrl.signal }); }
       finally { clearTimeout(to); }
-      var j = await r.json();
-      if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
-      if (j.error) throw new Error(j.note || j.error);
+      var j = await r.json().catch(function () { return {}; });
+      if (!j.ok) throw new Error(said(j, r));
+      if (j.error) throw new Error(said(j, r));
       renderPosts(j.posts, true, 'No saved posts for ' + d + '. '
         + (j.persistence ? 'Run the pipeline to generate drafts for this date.' : (j.note || 'Supabase is not configured, so nothing can be saved or read back.')));
       renderTrace(null);
@@ -413,7 +438,7 @@
       if (!j.persistence && j.note) banner(j.note, true);
     } catch (e) {
       $('runState').textContent = '';
-      banner('Could not load posts: ' + e.message + ' — is the API deployed/reachable?');
+      banner('The saved posts could not be loaded. ' + window.LifecycleFailure.sentence(e));
     } finally { btn.disabled = false; }
   }
 

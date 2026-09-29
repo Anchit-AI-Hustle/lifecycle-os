@@ -306,23 +306,23 @@ add('agent-sync', { gate: 'none', browser: 'refuse', run: { json: { agent_id: 'a
   stubs: () => S.on(M.agents, 'syncKnowledge', async () => ({ synced: 1 })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, synced: 1 }); expect(last(M.agents, 'syncKnowledge')).toEqual(['agent_x']); },
 });
-add('agent-chat', { gate: 'none', browser: 'demo', run: { json: { message: 'hi', agent_id: 'agent_x', session_id: 's1' } },
+add('agent-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'hi', agent_id: 'agent_x', session_id: 's1' } },
   stubs: () => S.on(M.agents, 'chat', async () => ({ ok: true, reply: 'r' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, reply: 'r' }); expect(last(M.agents, 'chat')[0]).toEqual({ agentId: 'agent_x', sessionId: 's1', message: 'hi', context: {}, history: [] }); },
   cases: [{ name: 'no message is a 400 before the agent runs', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.agents, 'chat')).toEqual([]); } }],
 });
-add('agent-analyze', { gate: 'none', browser: 'demo', run: { json: { message: 'how many orders' } },
+add('agent-analyze', { gate: 'none', browser: 'refuse', run: { json: { message: 'how many orders' } },
   stubs: () => S.on(M.agents, 'analyze', async () => ({ ok: true, figures: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, figures: [] }); expect(last(M.agents, 'analyze')[0]).toEqual({ message: 'how many orders' }); },
 });
-add('team-chat', { gate: 'none', browser: 'demo', run: { json: { message: 'plan?', session_id: 't1', history: [{ role: 'user' }] } },
+add('team-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'plan?', session_id: 't1', history: [{ role: 'user' }] } },
   stubs: () => S.on(M.agents, 'teamChat', async () => ({ ok: true, reply: 'r' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, reply: 'r' }); expect(last(M.agents, 'teamChat')[0]).toEqual({ sessionId: 't1', message: 'plan?', context: {}, history: [{ role: 'user' }] }); },
 });
 add('agent-sessions', { gate: 'none', browser: 'demo', run: { method: 'GET', query: { agent: 'agent_x' } },
   expect: (r) => { expect(r.out).toEqual({ ok: true, sessions: [] }); expect(last('db', 'select')).toEqual(['smart_agent_sessions', { limit: 200, order: 'started_at.desc', filters: { agent_id: 'eq.agent_x' } }]); },
 });
-add('jarvis', { gate: 'none', browser: 'demo', run: { json: { userText: 'open the shoes', assistantText: 'sure' } },
+add('jarvis', { gate: 'none', browser: 'public', run: { json: { userText: 'open the shoes', assistantText: 'sure' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.jarvis, 'detectNavActions', () => [{ type: 'route', href: '/x' }]); },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, actions: [{ type: 'route', href: '/x' }] });
@@ -353,12 +353,19 @@ add('calendar-scenarios', { gate: 'none', browser: 'demo', run: { method: 'GET',
     expect(a.baseCalendar.got.feedback).toEqual(['f']); expect(a.analysis).toEqual({ analysed: [{ kb: { feedback: ['f'] } }, { feedback: ['f'] }] });
   },
 });
-add('brand-chat', { gate: 'none', browser: 'demo', run: { json: { message: 'what sells?', history: [{ role: 'user', content: 'x' }] } },
+add('brand-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'what sells?', history: [{ role: 'user', content: 'x' }] } },
   stubs: () => S.on(M.brandLlm, 'chat', async () => ({ ok: true, reply: 'r', trace: [] })),
-  expect: (r) => { expect(r.out).toEqual({ ok: true, reply: 'r', trace: [] }); expect(last(M.brandLlm, 'chat')[0]).toEqual({ message: 'what sells?', history: [{ role: 'user', content: 'x' }], market: 'UK', workspaceId: H.WS }); },
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, reply: 'r', trace: [] });
+    const a = last(M.brandLlm, 'chat')[0];
+    expect(a).toMatchObject({ message: 'what sells?', history: [{ role: 'user', content: 'x' }], market: 'UK', workspaceId: H.WS });
+    // The brand the router resolved rides along (2026-09-29), so a caller
+    // with no workspace row is answered as ITS brand, never as tenant zero's.
+    expect(a.brand).toMatchObject({ name: 'Harness Brand' });
+  },
   cases: [{ name: 'no message is a 400 before the model runs', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.brandLlm, 'chat')).toEqual([]); } }],
 });
-add('brand-tools', { gate: 'none', browser: 'demo', run: { method: 'GET' },
+add('brand-tools', { gate: 'none', browser: 'public', run: { method: 'GET' },
   stubs: () => S.on(M.brandLlm, 'toolManifest', () => [{ name: 'ask_analytics' }]),
   expect: (r) => { expect(r.out).toMatchObject({ ok: true, tools: [{ name: 'ask_analytics' }], klaviyo_connected: false }); expect(typeof r.out.brand.name).toBe('string'); },
 });
@@ -543,11 +550,11 @@ add('social-list', { gate: 'none', browser: 'demo', run: { method: 'GET', query:
   stubs: () => S.on(M.social, 'listPosts', async () => ({ ok: true, posts: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, posts: [] }); expect(last(M.social, 'listPosts')[0]).toEqual({ date: '2026-10-01', from: undefined, to: undefined }); },
 });
-add('social-approve', { gate: 'none', browser: 'demo', run: { json: { id: 'p1' } },
+add('social-approve', { gate: 'none', browser: 'refuse', run: { json: { id: 'p1' } },
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: true })),
   expect: (r) => { expect(r.status).toBe(200); expect(last(M.social, 'setStatus')).toEqual(['p1', 'approved']); },
 });
-add('social-skip', { gate: 'none', browser: 'demo', run: { json: { id: 'p2' } },
+add('social-skip', { gate: 'none', browser: 'refuse', run: { json: { id: 'p2' } },
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: false, error: 'not found' })),
   expect: (r) => { expect(r.status).toBe(400); expect(last(M.social, 'setStatus')).toEqual(['p2', 'skipped']); },
 });
@@ -563,7 +570,7 @@ add('tts', { gate: 'none', browser: 'refuse', run: { json: { text: 'hello there'
   cases: [{ name: 'with no key the client is told to fall back, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined },
     expect: (r) => { expect(r.status).toBe(501); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } }],
 });
-add('console-chat', { gate: 'none', browser: 'demo', run: { json: { message: 'what should ship next?' } },
+add('console-chat', { gate: 'none', browser: 'refuse', run: { json: { message: 'what should ship next?' } },
   stubs: () => { S.on(M.analysis, 'runDaily', async () => ({ summary: { s: 1 }, patterns: { angle: ['a1'] } })); S.on(M.review, 'recalibrationStatus', async () => ({ overdue: false })); db.rows.smart_calendar = [{ slot_date: '2026-10-01', theme: 't' }]; },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, reply: 'stubbed reply' });
@@ -649,7 +656,7 @@ add('revenue-analysis', { gate: 'user', browser: 'demo', run: { method: 'GET', q
   stubs: () => S.on(M.revenue, 'revenue', async () => ({ ok: true, cuts: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, cuts: [] }); expect(last(M.revenue, 'revenue')[0]).toEqual({ market: 'UK', days: 7, since: undefined, until: undefined }); },
 });
-add('agent-builder', { gate: 'agent-key', browser: 'demo', run: { method: 'GET', query: { op: 'spec' } },
+add('agent-builder', { gate: 'agent-key', browser: 'public', run: { method: 'GET', query: { op: 'spec' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.agentBuilder, 'openApiSpec', () => ({ ok: true, openapi: '3.0.0' })); S.on(M.agentBuilder, 'status', () => ({ ok: true, tools: 3 })); S.on(M.agentBuilder, 'runTool', async () => ({ ok: true, ran: true })); },
   expect: (r) => { expect(r.out).toEqual({ ok: true, openapi: '3.0.0' }); const a = last(M.agentBuilder, 'openApiSpec')[0]; expect(a.brand).toBe(BRAND); expect(a.origin).toBe(hostOrigin()); },
   cases: [
@@ -658,7 +665,7 @@ add('agent-builder', { gate: 'agent-key', browser: 'demo', run: { method: 'GET',
     { name: 'the right key reaches the tool runtime', env: { AGENT_BUILDER_API_KEY: 'agent-key-harness' }, run: { json: { op: 'run', tool: 'list_cohorts', days: 7 }, query: {}, auth: 'none', origin: false, headers: { 'x-agent-key': 'agent-key-harness' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, ran: true }); expect(last(M.agentBuilder, 'runTool')).toEqual(['list_cohorts', { op: 'run', tool: 'list_cohorts', days: 7 }]); } },
   ],
 });
-add('platform-agents', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { days: '14', question: 'why?' } },
+add('platform-agents', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { days: '14', question: 'why?' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.platformAgents, 'runAll', async () => ({ ok: true, agents: [] })); S.on(M.platformAgents, 'runAgent', async () => ({ ok: true, agent: 'meta' })); },
   expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: BRAND }); },
   cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toBe(BRAND); } }],
@@ -785,6 +792,23 @@ for (const e of T) {
         expect(guard.escaped).toEqual([]);
       });
     }
+    if (e.browser === 'public') {
+      // A description of the product, not anybody's data (2026-09-29): the
+      // attribution rule steps aside, the core is reached, and the answer is
+      // neither the demo envelope nor a refusal. The TeleSuite registry, the
+      // tool manifest, the Agent Builder document and the navigation detector
+      // used to get the demo overview here, and the TeleSuite hub could not
+      // start for a signed-out visitor.
+      test('an unattributed browser request gets the public answer, not demo data and not a refusal', async () => {
+        if (e.stubs) e.stubs();
+        const r = await call(e.action, Object.assign({}, base, { auth: 'none', origin: true, query: Object.assign({}, base.query || {}, { workspace_id: undefined }) }));
+        expect(r.status).toBeLessThan(400);
+        expect(r.out.mode).not.toBe('demo');
+        expect(r.out.error).not.toBe('workspace_unresolved');
+        expect(actionHits().length).toBeGreaterThan(0);
+        expect(guard.escaped).toEqual([]);
+      });
+    }
     if (e.browser === 'refuse' || e.browser === 'demo') {
       test(`an unattributed browser request is ${e.browser === 'refuse' ? 'refused (409)' : 'served demo data'} before the switch`, async () => {
         if (e.stubs) e.stubs();
@@ -845,7 +869,10 @@ test.describe('the router', () => {
     S.on(M.osb, 'dashboard', async () => { throw new Error('backbone exploded'); });
     const r = await call('os-dashboard', { method: 'GET', auth: 'session', origin: true });
     expect(r.status).toBe(500);
-    expect(r.out).toEqual({ ok: false, action: 'os-dashboard', error: 'backbone exploded' });
+    // `error` is still the raw message an existing reader depends on; the
+    // sentence for a person rides beside it (2026-09-29).
+    expect(r.out).toMatchObject({ ok: false, action: 'os-dashboard', error: 'backbone exploded' });
+    expect(r.out.message).toMatch(/failed on the server before it could answer, and nothing was saved/);
   });
 
   test('every case label in the switch has an entry here, and the enumeration is not trivial', () => {

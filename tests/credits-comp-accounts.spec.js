@@ -70,11 +70,16 @@ test('a colleague on the same domain is NOT complimentary', () => {
 /* ═══ identity comes from the verified session, never the request ═════════ */
 
 test('the email is the one the auth check returned, not one the caller sent', () => {
-  const s = codeOnly(src);
-  // createOrder reads auth.email. If it ever read body/query, anybody could
-  // type an address and recharge free.
-  expect(s).toMatch(/isCompAccount\(auth && auth\.email\)/);
-  expect(s).not.toMatch(/isCompAccount\((?:body|q|req)\./);
+  // Executed (2026-09-29; this used to read the source for the call shape):
+  // the verdict is taken from the VERIFIED session record and nothing else.
+  // A comp address anywhere else on that record - a body field, a query
+  // value, a phone account claiming an email - buys nothing.
+  expect(credits.isCompAuth({ ok: true, user_id: 'u', email: 'anchit.tandon@gmail.com' })).toBe(true);
+  expect(credits.isCompAuth({ ok: true, user_id: 'u', email: 'attacker@example.com', body: { email: 'anchit.tandon@gmail.com' } })).toBe(false);
+  expect(credits.isCompAuth({ ok: true, user_id: 'u', email: 'attacker@example.com', query: { email: 'anchit.tandon@gmail.com' } })).toBe(false);
+  expect(credits.isCompAuth({ ok: true, user_id: 'u', provider: 'mobile-pin', phone: '+919999999999', email: 'anchit.tandon@gmail.com' })).toBe(false);
+  expect(credits.isCompAuth({ ok: false, email: 'anchit.tandon@gmail.com' })).toBe(false);
+  expect(credits.isCompAuth(null)).toBe(false);
 
   // And auth.email itself comes from Supabase's own user endpoint.
   const core = fs.readFileSync(path.join(ROOT, 'api/_shared/brand-workspace-core.js'), 'utf8');
@@ -96,7 +101,9 @@ function compBranch() {
   // branch DOES, so it follows the marker rather than pinning the old shape —
   // but the hoisted call is checked too, so the branch cannot become `if
   // (comp)` against some other variable named comp.
-  expect(src, 'the comp check is gone').toMatch(/const comp = isCompAccount\(auth && auth\.email\);/);
+  // 2026-09-29: the check reads the whole verified record (an email account's
+  // address, or a phone account's listed number) through isCompAuth(auth).
+  expect(src, 'the comp check is gone').toMatch(/const comp = isCompAuth\(auth\);/);
   const start = src.indexOf('if (comp) {');
   expect(start, 'the comp branch is gone').toBeGreaterThan(-1);
   expect(src.split('if (comp) {').length - 1, 'ambiguous comp branch').toBe(1);
@@ -165,8 +172,181 @@ test('the client renders the server\'s conclusion, it does not decide', () => {
 
 });
 
-test('the balance response carries the flag', () => {
-  expect(src).toMatch(/comp: isCompAccount\(auth\.email\)/);
+test('the balance response carries the flag', async () => {
+  // Executed (2026-09-29; this used to read the source for the field): the
+  // router's balance answer says whether THIS verified account recharges
+  // free, for a comp email and for everyone else.
+  const { FakeSupabase, installCreditsRpc, makeReq, makeRes, envScope, BASE, ANON_KEY, SERVICE_KEY } = require('./lib/fake-supabase.js');
+  const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_KEY']);
+  ENV.save();
+  process.env.SUPABASE_URL = BASE; process.env.SUPABASE_ANON_KEY = ANON_KEY; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const db = new FakeSupabase();
+  db.addUser('tok-comp', 'user-comp', 'anchit.tandon@gmail.com').addUser('tok-b', 'user-b', 'b@example.test')
+    .addWorkspace('ws-c', 'user-comp').addWorkspace('ws-b', 'user-b').setActive('user-comp', 'ws-c').setActive('user-b', 'ws-b').syncIdentityTables();
+  installCreditsRpc(db);
+  db.install();
+  try {
+    const a = makeRes();
+    await credits.handle(makeReq({ token: 'tok-comp', query: { op: 'balance' } }), a);
+    expect(a.code).toBe(200);
+    expect(a.payload.comp).toBe(true);
+    expect(a.payload.account).toBe('email');
+    const b = makeRes();
+    await credits.handle(makeReq({ token: 'tok-b', query: { op: 'balance' } }), b);
+    expect(b.code).toBe(200);
+    expect(b.payload.comp).toBe(false);
+  } finally { db.restore(); ENV.restore(); }
+});
+
+/* ═══ a MOBILE NUMBER may hold a wallet only when the operator lists it ═══ */
+// The one sign-in is a mobile number and a PIN. A phone sign-up is free and
+// unverified, so a wallet per number would be an unlimited faucet; the number
+// on the VERIFIED session must be on the operator's list, and the list is
+// EMPTY in the repo (the operator's number is not known to a public repo).
+// Everything here runs the real meter and router against the in-memory
+// Supabase; nothing reads the source.
+
+const PHONE_LISTED = '+919876543210';
+const PHONE_OTHER = '+919123456780';
+function withPhones(value, fn) {
+  const before = process.env.CREDITS_COMP_PHONES;
+  if (value === undefined) delete process.env.CREDITS_COMP_PHONES; else process.env.CREDITS_COMP_PHONES = value;
+  return Promise.resolve().then(fn).finally(() => {
+    if (before === undefined) delete process.env.CREDITS_COMP_PHONES; else process.env.CREDITS_COMP_PHONES = before;
+  });
+}
+
+test('the shipped list of phone numbers is EMPTY, and the environment is the only door', async () => {
+  expect(credits.COMP_PHONE_HASHES).toEqual([]);
+  await withPhones(undefined, () => {
+    expect(credits.compPhones()).toEqual([]);
+    expect(credits.isCompPhone(PHONE_LISTED)).toBe(false);
+  });
+  await withPhones(' +91 98765-43210 , not a number, +1 (415) 555-0100 ', () => {
+    // Normalised to E.164 before hashing: the spellings an operator types
+    // are one entry, and an unparseable entry is dropped, not matched loosely.
+    expect(credits.compPhones().length).toBe(2);
+    expect(credits.isCompPhone(PHONE_LISTED)).toBe(true);
+    expect(credits.isCompPhone('98765 43210')).toBe(true);       // bare number, home country code
+    expect(credits.isCompPhone('+14155550100')).toBe(true);
+    expect(credits.isCompPhone(PHONE_OTHER)).toBe(false);
+    expect(credits.isCompAuth({ ok: true, provider: 'mobile-pin', phone: PHONE_LISTED, email: '' })).toBe(true);
+    expect(credits.isCompAuth({ ok: true, provider: 'mobile-pin', phone: PHONE_OTHER, email: '' })).toBe(false);
+  });
+});
+
+test('a hash matches only the WHOLE normalised number: a prefix, a suffix, a digit more or less, or another country code is not it', async () => {
+  await withPhones(PHONE_LISTED, () => {
+    for (const v of ['+91987654321', '+9198765432101', '987654321', '98765432100', '+19876543210', '+919876543211', '+44 9876543210', '', null, undefined, 'anchit.tandon@gmail.com']) {
+      expect(credits.isCompPhone(v), `${JSON.stringify(v)} was treated as listed`).toBe(false);
+    }
+    expect(credits.isCompPhone(PHONE_LISTED)).toBe(true);
+  });
+});
+
+test('the meter: an unlisted number is refused BEFORE any wallet exists; a listed one holds a personal wallet and is still metered', async () => {
+  const { FakeSupabase, installCreditsRpc, makeReq, envScope, BASE, ANON_KEY, SERVICE_KEY } = require('./lib/fake-supabase.js');
+  const catalog = require(path.join(ROOT, 'api', '_shared', 'credit-catalog.js'));
+  const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_KEY']);
+  ENV.save();
+  process.env.SUPABASE_URL = BASE; process.env.SUPABASE_ANON_KEY = ANON_KEY; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY;
+  const db = new FakeSupabase();
+  installCreditsRpc(db);
+  db.install();
+  const listed = { ok: true, user_id: 'aaaaaaaa-0000-4000-8000-000000000001', provider: 'mobile-pin', phone: PHONE_LISTED, email: '' };
+  const other = { ok: true, user_id: 'aaaaaaaa-0000-4000-8000-000000000002', provider: 'mobile-pin', phone: PHONE_OTHER, email: '' };
+  try {
+    await withPhones(PHONE_LISTED, async () => {
+      // Unlisted: refused with the sentence, and the store was never touched
+      // for a wallet - no row, no grant, no hold.
+      const no = await credits.meter(makeReq({ query: { workspace_id: 'local-toi000000000001' }, body: {} }), 'analytics.run', { auth: other });
+      expect(no).toMatchObject({ ok: false, status: 403, error: 'credits_require_account' });
+      expect(no.message).toMatch(/not listed/);
+      expect(db.table('credit_wallets')).toEqual([]);
+      expect(db.calls.filter((c) => /credit_wallets|credit_ledger|rpc\/credit_/.test(c.url))).toEqual([]);
+
+      // Listed: a wallet is created ONCE, personal (the device workspace id
+      // on the request is ignored - it is not a brand_workspaces row), the
+      // welcome grant lands, and the run HOLDS and SETTLES like anyone's.
+      const m = await credits.meter(makeReq({ query: { workspace_id: 'local-toi000000000001' }, body: {} }), 'analytics.run', { auth: listed });
+      expect(m.ok, JSON.stringify(m)).toBe(true);
+      expect(m.workspace_id).toBeNull();
+      const wallets = db.table('credit_wallets');
+      expect(wallets.length).toBe(1);
+      expect(wallets[0].user_id).toBe(listed.user_id);
+      expect(wallets[0].workspace_id).toBeNull();
+      const q = catalog.quote('analytics.run', 1, {});
+      expect(wallets[0].balance).toBe(catalog.welcomeGrant() - q.total);
+      await m.settle();
+      expect(wallets[0].balance).toBe(catalog.welcomeGrant() - q.total);
+      expect(db.table('credit_ledger').map((l) => l.kind)).toEqual(['grant', 'hold', 'spend']);
+    });
+    // With the list cleared the same account is refused again: the door is the environment, not a row.
+    await withPhones(undefined, async () => {
+      const again = await credits.meter(makeReq({ query: {}, body: {} }), 'analytics.run', { auth: listed });
+      expect(again).toMatchObject({ ok: false, error: 'credits_require_account' });
+    });
+  } finally { db.restore(); ENV.restore(); }
+});
+
+test('the router: balance for a listed number answers a real wallet, recharge is complimentary and recorded as such; an unlisted number keeps the quiet no-wallet answer', async () => {
+  const { FakeSupabase, installCreditsRpc, makeReq, makeRes, envScope, BASE, ANON_KEY, SERVICE_KEY } = require('./lib/fake-supabase.js');
+  const catalog = require(path.join(ROOT, 'api', '_shared', 'credit-catalog.js'));
+  const H = require('./router-harness');
+  const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'CREDIT_PACK_PRICES', 'CREDITS_ALLOW_SELF_SERVE']);
+  ENV.save();
+  process.env.SUPABASE_URL = BASE; process.env.SUPABASE_ANON_KEY = ANON_KEY; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL; delete process.env.SUPABASE_SERVICE_KEY; delete process.env.CREDIT_PACK_PRICES; delete process.env.CREDITS_ALLOW_SELF_SERVE;
+  const db = new FakeSupabase();
+  installCreditsRpc(db);
+  db.install();
+  // The session check is the real one's shape, answering a verified phone
+  // account: the router reads provider/phone off it and nothing off the request.
+  const S = new H.Stubs();
+  const who = { current: null };
+  S.on('api/_shared/brand-workspace-core.js', 'requireUser', async () => who.current);
+  const listed = { ok: true, user_id: 'aaaaaaaa-0000-4000-8000-000000000011', provider: 'mobile-pin', phone: PHONE_LISTED, email: '', name: 'Asha' };
+  const other = { ok: true, user_id: 'aaaaaaaa-0000-4000-8000-000000000012', provider: 'mobile-pin', phone: PHONE_OTHER, email: '', name: 'Bala' };
+  try {
+    await withPhones(PHONE_LISTED, async () => {
+      who.current = other;
+      const quiet = makeRes();
+      await credits.handle(makeReq({ query: { op: 'balance', workspace_id: 'local-x' } }), quiet);
+      expect(quiet.code).toBe(200);
+      expect(quiet.payload).toMatchObject({ ok: true, wallet: null, comp: false, unavailable: 'mobile_account' });
+      expect(quiet.payload.message).toMatch(/not listed/);
+      const refused = makeRes();
+      await credits.handle(makeReq({ body: { op: 'recharge', pack_key: catalog.PACKS[0].key } }), refused);
+      expect(refused.code).toBe(403);
+      expect(refused.payload.error).toBe('credits_require_account');
+      expect(db.table('credit_orders')).toEqual([]);
+
+      who.current = listed;
+      const bal = makeRes();
+      await credits.handle(makeReq({ query: { op: 'balance', workspace_id: 'local-x' } }), bal);
+      expect(bal.code).toBe(200);
+      expect(bal.payload.wallet).toBeTruthy();
+      expect(bal.payload.wallet.workspace_id).toBeNull();
+      expect(Number(bal.payload.wallet.balance)).toBe(catalog.welcomeGrant());
+      expect(bal.payload.comp).toBe(true);
+      expect(bal.payload.account).toBe('mobile-pin');
+      const re = makeRes();
+      await credits.handle(makeReq({ body: { op: 'recharge', pack_key: catalog.PACKS[0].key, workspace_id: 'local-x' } }), re);
+      expect(re.code, JSON.stringify(re.payload)).toBe(200);
+      expect(re.payload).toMatchObject({ ok: true, comp: true, credited: true });
+      const order = db.table('credit_orders')[0];
+      expect(order.user_id).toBe(listed.user_id);
+      expect(order.workspace_id).toBeNull();
+      expect(order.provider).toBe('comp_account');
+      expect(order.provider_ref).toBe('comp:' + PHONE_LISTED);
+      expect(order.amount_minor).toBe(0);
+      const after = makeRes();
+      await credits.handle(makeReq({ query: { op: 'balance' } }), after);
+      expect(Number(after.payload.wallet.balance)).toBe(catalog.welcomeGrant() + catalog.PACKS[0].credits + (catalog.PACKS[0].bonus || 0));
+    });
+  } finally { S.restore(); db.restore(); ENV.restore(); }
 });
 
 /* ═══ executed, not read: the order path actually runs ════════════════════ */
