@@ -1137,6 +1137,286 @@ test('REVIEW P1: on a shared browser the device store is the signed-in account\'
   expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
 });
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   E. FOUND BY DRIVING PRODUCTION'S DEPLOYED BYTES (2026-09-29)
+   The live host cannot be opened from the CI container, so the files Vercel
+   serves for the production deployment (commit 2b2a992, verified byte for
+   byte) were served from 127.0.0.1 and the whole flow was driven in Chromium.
+   Each test below reproduces a defect that drive found BEFORE the fix, or
+   closes a gap it showed in this suite's coverage.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Is the rail drawer's backdrop over the page right now, and is the rail a drawer at all? */
+const coverOf = (p) => p.evaluate(() => {
+  const nav = document.getElementById('lifecycle-nav');
+  const bd = document.getElementById('lnav-backdrop');
+  const burger = document.getElementById('lnav-burger');
+  const el = document.elementFromPoint(Math.round(innerWidth * 0.6), Math.round(innerHeight * 0.5));
+  return {
+    navOpen: !!(nav && nav.classList.contains('open')),
+    blocks: !!(el && el.id === 'lnav-backdrop'),
+    pointer: bd ? getComputedStyle(bd).pointerEvents : null,
+    opacity: bd ? Number(getComputedStyle(bd).opacity) : null,
+    // Rendered, not `display`: the burger's own computed display is `flex` on
+    // a desktop too, because it is its parent bar the media query hides.
+    burger: burger && burger.getClientRects().length > 0 ? 'rendered' : 'none',
+  };
+});
+
+test('PROD DRIVE: the panel opens the rail drawer only where the rail IS a drawer, and closes what it opened - a desktop page is never dimmed or blocked after Sign in, sign-in or Cancel; on a phone the drawer the panel opened closes on sign-in and one the person opened stays', async ({ page, browser }) => {
+  test.setTimeout(150_000);
+  // The finding: mauthOpenPanel() added `open` to #lifecycle-nav
+  // unconditionally ("the rail is a drawer on a phone"), and the drawer's
+  // backdrop - a 55% black, pointer-catching sheet - is not scoped to the
+  // phone breakpoint. On a 1280px desktop, where the rail is always visible,
+  // pressing Sign in dimmed the whole page, and it STAYED dim and unclickable
+  // after the person had signed in or pressed Cancel: the wizard's own Next
+  // button could not be pressed (Playwright: "#lnav-backdrop intercepts
+  // pointer events"). The only ways out were clicking the dark area or
+  // pressing Escape, and nothing said so.
+  const log = await open(page, 'smart-brain.html');
+  let c = await coverOf(page);
+  expect(c.burger, 'at 1280px the rail is not a drawer, so there is nothing to open').toBe('none');
+  await pressSignIn(page);
+  c = await coverOf(page);
+  expect(c.navOpen, 'pressing Sign in on a desktop switched the phone drawer on').toBe(false);
+  expect(c.blocks, 'the backdrop sits over the page content while the panel is open').toBe(false);
+  await page.click('#lnav-mauth-cancel');
+  c = await coverOf(page);
+  expect(c.navOpen || c.blocks, 'Cancel left the page dimmed').toBe(false);
+  await signUp(page, '9876543210', 'Asha', PIN);
+  c = await coverOf(page);
+  expect(c.navOpen, 'the drawer class was left on after signing in').toBe(false);
+  expect(c.blocks, 'the page is dimmed and unclickable after signing in').toBe(false);
+  expect(c.pointer).toBe('none');
+  expect(c.opacity).toBe(0);
+  // A real click on the page's own content is not intercepted. `trial` runs
+  // Playwright's actionability checks - the same ones that reported the
+  // defect - without dispatching the click.
+  await page.locator('h1').first().click({ trial: true, timeout: 5000 });
+  expect(log.dialogs).toEqual([]);
+
+  // On a phone the rail IS a drawer: the panel opens it (the chip lives in
+  // it), and closes it again on sign-in, because it was the panel that opened
+  // it. A drawer the person opened with the burger is theirs and stays.
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const phone = await ctx.newPage();
+  try {
+    await open(phone, 'smart-brain.html');
+    let m = await coverOf(phone);
+    expect(m.burger, 'at 390px the rail is a drawer').not.toBe('none');
+    expect(m.navOpen).toBe(false);
+    await pressSignIn(phone);
+    m = await coverOf(phone);
+    expect(m.navOpen, 'on a phone the panel must open the drawer it lives in').toBe(true);
+    await expect(phone.locator('#lnav-mauth')).toBeVisible();
+    await typeAndContinue(phone, { cc: '+91', phone: '9123456780' });
+    await phone.waitForSelector('#lnav-mauth[data-state="new"]');
+    await typeAndContinue(phone, { name: 'Bala', pin: '8052' });
+    await phone.waitForSelector('#lifecycle-nav .lnav-uname', { timeout: 8000 });
+    m = await coverOf(phone);
+    expect(m.navOpen, 'the drawer the panel opened stayed over the page after sign-in').toBe(false);
+    expect(m.blocks).toBe(false);
+    await signOut(phone);
+    // Signed out on a phone, the standing bar ("Sign in with your mobile
+    // number ... the Sign in chip in the menu") must not sit on top of the
+    // burger that opens that menu. It did on production's bytes: sticky at
+    // top:0 with a z-index above the fixed top bar's, so the first press on
+    // the menu button landed on the notice, and the way to Sign in was to find
+    // Dismiss first. The notice is still there, below the bar.
+    await expect(phone.locator('#lc-authnotice')).toBeVisible();
+    const over = await phone.evaluate(() => {
+      const b = document.getElementById('lnav-burger').getBoundingClientRect();
+      const bar = document.getElementById('lc-authnotice').getBoundingClientRect();
+      const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return { hit: hit ? (hit.id || hit.className) : null, barTop: Math.round(bar.top), burgerBottom: Math.round(b.bottom) };
+    });
+    expect(over.hit, 'the signed-out notice covers the menu button on a phone').toBe('lnav-burger');
+    expect(over.barTop, 'the notice starts above the bottom of the top bar').toBeGreaterThanOrEqual(over.burgerBottom - 1);
+    await phone.locator('#lnav-burger').click({ trial: true, timeout: 5000 });
+    await phone.click('#lnav-burger', { timeout: 5000 });
+    m = await coverOf(phone);
+    expect(m.navOpen, 'the burger opens the drawer').toBe(true);
+    await pressSignIn(phone);
+    await typeAndContinue(phone, { cc: '+91', phone: '9123456780' });
+    await phone.waitForSelector('#lnav-mauth[data-state="need-pin"]');
+    await typeAndContinue(phone, { pin: '8052' });
+    await phone.waitForSelector('#lifecycle-nav .lnav-uname', { timeout: 8000 });
+    m = await coverOf(phone);
+    expect(m.navOpen, 'a drawer the person opened themselves was closed behind them').toBe(true);
+    // ...and Cancel on a panel that opened the drawer closes the drawer too.
+    await signOut(phone);
+    await pressSignIn(phone);
+    expect((await coverOf(phone)).navOpen).toBe(true);
+    await phone.click('#lnav-mauth-cancel');
+    expect((await coverOf(phone)).navOpen, 'Cancel left the drawer the panel opened').toBe(false);
+  } finally { await ctx.close(); }
+});
+
+test('PROD DRIVE: a device-mode session signed in on one page is the session on every other page of the origin, from the first frame, without asking the server', async ({ page }) => {
+  test.setTimeout(120_000);
+  const log = await open(page, 'smart-brain.html');
+  await signUp(page, '9876543210', 'Asha', PIN);
+  const uid = await page.evaluate(() => window.LifecycleAuth.session.user.id);
+  for (const next of ['onboarding.html', 'index.html', 'dashboard.html']) {
+    await page.goto(base + '/' + next, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#lifecycle-nav .lnav-uname', { timeout: 10000 });
+    await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending'), null, { timeout: 15000 });
+    const a = await readAuth(page);
+    expect(a.name, next).toBe('Asha');
+    expect(a.session, next).toMatchObject({ provider: 'mobile-pin', mode: 'device', hasToken: true, user: { id: uid, phone: '+919876543210' } });
+    expect(a.backend.kind, next).toBe('signed-in');
+    expect(a.umode, next).toMatch(/Saved on this device only: no database is configured/);
+    expect(a.storage && a.storage.sentence, next).toBe('Signed in as Asha · workspaces are saved on this device');
+    expect(await page.evaluate(() => window.BrandContext.device.key()), next).toBe(DEVICE_STORE + '.' + uid);
+    expect(a.internal, next).toBe(false);
+  }
+  expect(log.apiHeaders.filter((h) => /op=me|op=enter/.test(h.url)), 'a device session asked the server on navigation').toEqual([]);
+  expect(log.apiHeaders.filter((h) => h.authorization || h.token), 'a device token left the browser').toEqual([]);
+  expect(log.dialogs).toEqual([]);
+});
+
+test('PROD DRIVE: op=me refuses a forged, a malformed and a signed-out token with 401 through the shipped handler, and a page booting with a forged stored session clears it and says so', async ({ page }) => {
+  test.setTimeout(90_000);
+  process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
+  const store = fakeSql();
+  const handler = publicConfigWith(store);
+  const core = require(CORE);
+  const en = mockRes();
+  await handler({ method: 'POST', query: { action: 'auth', op: 'enter' }, headers: {}, body: Object.assign({ name: 'Asha', pin: PIN }, IN) }, en.res);
+  const real = en.out.body.token;
+  expect(real).toBeTruthy();
+  const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH';
+  for (const [label, headers] of [['forged', { 'x-lifecycle-token': core.newToken() }], ['malformed', { 'x-lifecycle-token': 'nonsense' }], ['jwt-shaped bearer', { authorization: 'Bearer ' + jwt }], ['no token', {}]]) {
+    const me = mockRes();
+    await handler({ method: 'GET', query: { action: 'auth', op: 'me' }, headers }, me.res);
+    expect(me.out.code, label).toBe(401);
+    expect(me.out.body, label).toMatchObject({ ok: false, error: 'invalid_session' });
+    expect(me.out.body.message, label).toMatch(/expired or was signed out/);
+    expect(me.out.body.user, label).toBeUndefined();
+  }
+  const ok = mockRes();
+  await handler({ method: 'GET', query: { action: 'auth', op: 'me' }, headers: { 'x-lifecycle-token': real } }, ok.res);
+  expect(ok.out.code).toBe(200);
+  const all = mockRes();
+  await handler({ method: 'POST', query: { action: 'auth', op: 'signout_all' }, headers: { 'x-lifecycle-token': real }, body: {} }, all.res);
+  expect(all.out.body).toMatchObject({ ok: true, signed_out_all: true });
+  const after = mockRes();
+  await handler({ method: 'GET', query: { action: 'auth', op: 'me' }, headers: { 'x-lifecycle-token': real } }, after.res);
+  expect(after.out.code, 'a session survived signout_all').toBe(401);
+
+  // THE PAGE: a server-mode session somebody wrote into localStorage with a
+  // token the database has never issued. It is seated provisionally (the rail
+  // must not wait ~25 s for the network), checked with op=me, and taken back
+  // with the reason under the chip - never left as a signed-in state.
+  const forged = 'srvtok_forged0forged0forged0forged0forged0f';
+  const auth = authServer();
+  await page.addInitScript((tok) => {
+    localStorage.setItem('lifecycle.auth.session', JSON.stringify({ token: tok, user: { id: 'srv-forged', phone: '+919876543210', name: 'Mallory' }, mode: 'server', expires: new Date(Date.now() + 86400000).toISOString(), provider: 'mobile-pin', storage: { mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' } }));
+  }, forged);
+  const log = await open(page, 'smart-brain.html', { auth });
+  await page.waitForFunction(() => !!document.querySelector('#lnav-signin'), null, { timeout: 10000 });
+  const a = await readAuth(page);
+  expect(a.session).toBeNull();
+  expect(a.stored, 'the forged session is still in localStorage').toBeNull();
+  expect(a.name).toBeNull();
+  expect(a.noteKind).toBe('expired');
+  expect(await page.locator('#lnav-signin-note').textContent()).toMatch(/expired or was signed out elsewhere/);
+  expect(a.backend.kind).toBe('signed-out');
+  const me = auth.calls.filter((c) => c.op === 'me');
+  expect(me.length).toBe(1);
+  expect(me[0].headers['x-lifecycle-token']).toBe(forged);
+  // Until op=me answers, the stored token IS sent on the page's own early
+  // requests (the server is the judge, and a database that is slow to answer
+  // must not log a real person out) - so what must hold is that once the 401
+  // has cleared it, nothing carries it any more.
+  const before = log.apiHeaders.length;
+  await page.evaluate(() => fetch('/api/public-config?action=brand&op=active', { cache: 'no-store' }).then((r) => r.json()));
+  const later = log.apiHeaders.slice(before);
+  expect(later.length).toBeGreaterThan(0);
+  expect(later.filter((h) => h.token || h.authorization), 'a cleared session was still sent as a token').toEqual([]);
+  expect(await page.evaluate(() => window.LifecycleAuth.apiToken())).toBe('');
+  expect(await page.evaluate(() => window.BrandContext.device.key()), 'a rejected stored session opened a device namespace').toBe(DEVICE_STORE);
+  expect(log.dialogs).toEqual([]);
+});
+
+test('PROD DRIVE: requireUser answers a server-mode token whose database is not answering as UNREACHABLE (503, the host named), never as a sign-in kept on this device', async () => {
+  // The finding: verifyToken() already separates `unreachable` (a URL is set,
+  // the lookup threw) from `no_database` and `invalid`, and requireUser()
+  // flattened the first two into one 401 reading "a sign-in kept on this
+  // device only cannot be checked by the server". A token of our shape reaches
+  // the server ONLY from a server-mode sign-in (auth.js never sends a device
+  // token), so that sentence told a person whose account is in the database
+  // that they were signed in on a device - while the rail's own mode line said
+  // the opposite - and the 401 is the code every catch reads as "sign in
+  // again", which cannot help when the database is down.
+  process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
+  process.env.SUPABASE_URL = 'https://live.supabase.co';
+  process.env.SUPABASE_ANON_KEY = 'anon';
+  const store = fakeSql({ host: 'ep-fixture.neon.tech' });
+  publicConfigWith(store);
+  delete require.cache[BRAND_CORE];
+  const brand = require(BRAND_CORE);
+  const core = require(CORE);
+  const RC = require.resolve('../api/_shared/require-caller.js');
+  delete require.cache[RC];
+  const { requireCaller } = require(RC);
+  const token = (await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip')).body.token;
+  const realFetch = global.fetch;
+  global.fetch = async () => { throw new Error('no network in this test'); };
+  try {
+    expect((await brand.requireUser({ headers: { 'x-lifecycle-token': token } })).ok).toBe(true);
+    store.db.down = true;
+    const r = await brand.requireUser({ headers: { 'x-lifecycle-token': token } });
+    expect(r.ok).toBe(false);
+    expect(r.status, 'a database that is down was reported as the caller being signed out').toBe(503);
+    expect(r.error).toBe('backend_unreachable');
+    expect(r.backend_unreachable).toBe(true);
+    expect(r.message).toContain('ep-fixture.neon.tech');
+    expect(r.message).not.toMatch(/kept on this device only/);
+    expect(r.message).not.toMatch(/not signed in/i);
+    expect(r.mobile_reason).toBe('unreachable');
+    // The AI routes' gate passes that status and sentence through as a 503.
+    const res = mockRes();
+    const admitted = await requireCaller({ method: 'POST', headers: { 'x-lifecycle-token': token, origin: 'http://127.0.0.1' }, query: {}, body: {} }, res.res);
+    expect(admitted).toBe(false);
+    expect(res.out.code).toBe(503);
+    expect(res.out.body.error).toBe('backend_unreachable');
+    expect(res.out.body.message).toContain('ep-fixture.neon.tech');
+    // The database comes back: the same token is accepted again, and nothing
+    // about the account changed while it was down.
+    store.db.down = false;
+    expect((await brand.requireUser({ headers: { 'x-lifecycle-token': token } })).ok).toBe(true);
+    expect(store.db.app_sessions.length).toBe(1);
+    // Still refused as ANONYMOUS, with the device sentence, when there is no
+    // database URL at all: nothing here widened that.
+    delete process.env.DATABASE_URL;
+    delete require.cache[BRAND_CORE]; delete require.cache[CORE];
+    const brand2 = require(BRAND_CORE);
+    const noDb = await brand2.requireUser({ headers: { 'x-lifecycle-token': token } });
+    expect(noDb).toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
+  } finally { global.fetch = realFetch; }
+});
+
+test('PROD DRIVE: five wrong PINs arriving at once THROUGH THE SHIPPED HANDLER each count, and the row locks', async () => {
+  process.env.DATABASE_URL = 'postgres://u:p@ep-fixture.neon.tech/db';
+  const store = fakeSql();
+  const handler = publicConfigWith(store);
+  const post = async (body) => { const r = mockRes(); await handler({ method: 'POST', query: { action: 'auth', op: 'enter' }, headers: { 'x-forwarded-for': '203.0.113.9' }, body }, r.res); return r.out; };
+  expect((await post(Object.assign({ name: 'Asha', pin: PIN }, IN))).code).toBe(200);
+  const burst = await Promise.all([1, 2, 3, 4, 5].map(() => post(Object.assign({ pin: '1357' }, IN))));
+  expect(burst.map((r) => r.code).sort()).toEqual([401, 401, 401, 401, 429]);
+  expect(burst.filter((r) => r.body.locked).length).toBe(1);
+  expect(burst.filter((r) => r.body.wrongPin).map((r) => r.body.left).sort()).toEqual([1, 2, 3, 4]);
+  expect(burst.every((r) => !r.body.token)).toBe(true);
+  expect(store.db.app_users[0].locked_until).toBeTruthy();
+  expect(new Date(store.db.app_users[0].locked_until) - Date.now()).toBeGreaterThan(14 * 60000);
+  const still = await post(Object.assign({ pin: PIN }, IN));
+  expect(still.code, 'the right PIN opened a locked account through the handler').toBe(429);
+  expect(still.body.token).toBeUndefined();
+  expect(still.body.message).toMatch(/Too many wrong PINs\. Try again in 15 minutes\./);
+});
+
 test('REVIEW P2: the privacy policy describes the sign-in that exists (a mobile number, a PIN hash, where each is kept) and no longer says a Google profile authenticates or Supabase Auth holds the session', async ({ page }) => {
   await page.goto(base + '/privacy.html', { waitUntil: 'domcontentloaded' });
   const policy = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
