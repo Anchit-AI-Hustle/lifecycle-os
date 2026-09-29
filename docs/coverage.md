@@ -159,6 +159,39 @@ without re-deriving the map.
 
 ## Current numbers
 
+**2026-09-28, the four `?action=` routers executed.** Two full runs of the same
+command on the same machine, before and after `tests/router-{brain,calendar,
+competitor,kb}.spec.js` over `tests/router-harness.js` and the four fixes they
+gate (commit `bcf328f`; before = clean `origin/main` at `3f1de02`):
+
+| scope | before | after |
+|---|---:|---:|
+| Node-side modules — c8 | 43,071 / 73,006 (59.0%) | 46,327 / 73,025 (63.4%) |
+| Inline `<script>` in pages | 14,560 / 29,453 (49.4%) | 14,372 / 29,453 (48.8%) |
+| **Combined** | 57,631 / 102,459 (**56.2%**) | 60,699 / 102,478 (**59.2%**) |
+
+Per router (brain.js was reached before only through its webhook path, by
+`meta-webhook-raw-body.spec.js`):
+
+| file | before | after |
+|---|---:|---:|
+| `api/brain.js` | 310 / 1226 (25.3%) | 1220 / 1228 (99.3%) |
+| `api/calendar.js` | 0 / 458 (0%) | 462 / 468 (98.7%) |
+| `api/competitor.js` | 0 / 560 (0%) | 567 / 567 (100%) |
+| `api/kb.js` | 431 / 862 (50%) | 850 / 862 (98.6%) |
+
+The before run finished 1213 passed / 11 failed under a load average near 28
+(three agent sessions were running suites on the same 4-core machine); every
+one of the 11 is a page-rendering or timing spec that passes alone, and none
+touches a router. The after run finished 1738 passed / 0 failed (987s). The
+inline-script drop of 188 lines between the two runs is the same run-to-run
+noise: no page changed between them.
+
+A copied tree cannot be measured: `scripts/coverage/browser.js` derives the
+tracked-file index from `git ls-files`, so the baseline has to be taken in a
+checkout (here: the worktree with the changed files reverted and the new specs
+moved out until Playwright had collected the test list).
+
 **2026-09-28, the pipeline executed.** Two full runs of the same command on the
 same machine, before and after `tests/pipeline-executed.spec.js` and the fix it
 gates (commit `a8f3f1e`; before = clean `origin/main` at `3f1de02`):

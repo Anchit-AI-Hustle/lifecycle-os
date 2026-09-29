@@ -321,6 +321,11 @@ async function lifecycle(req, res, action) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const body = readBody(req);
+  // Declared for the whole function. It used to be declared INSIDE the
+  // lifecycle-list branch, so lifecycle-build-mailer's `(q && q.force)` was a
+  // ReferenceError on every request that did not already carry force:true —
+  // caught by the try below and answered as a 500 reading "q is not defined".
+  const q = req.query || {};
   try {
     if (action === 'lifecycle-generate') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
@@ -335,7 +340,6 @@ async function lifecycle(req, res, action) {
     }
 
     if (action === 'lifecycle-list') {
-      const q = req.query || {};
       const result = await lifecycleGen.listEntries({
         market: q.market || body.market || 'UK',
         from: q.from || body.from || null,
@@ -395,11 +399,17 @@ module.exports = async function handler(req, res) {
         // resolves to a real page. ?debug=1 above still exposes the diag.
         const region = String(req.query?.region || req.query?.r || 'us').toLowerCase();
         const { buildFallbackLanding } = require('./_shared/landing-fallback.js');
+        // The workspace comes off the request: ?workspace_id= or the id the
+        // scoping resolved. This used to read `body.config.workspace_id`, and
+        // `body` is not declared in this handler (only inside smartBrain() and
+        // lifecycle()), so the ReferenceError was swallowed by the catch below
+        // and the fallback page ALWAYS rendered with no brand.
         const fbBrand = await (async () => {
           try {
             const ws = require('./_shared/workspace-scope.js');
             const env = { url: (process.env.SUPABASE_URL || '').replace(/\/$/, ''), key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '' };
-            return await ws.brandForWorkspace(env, body.config && body.config.workspace_id);
+            const wsId = (req.query && req.query.workspace_id) || req.__workspaceId || '';
+            return wsId ? await ws.brandForWorkspace(env, wsId) : null;
           } catch (_) { return null; }
         })();
         const fb = buildFallbackLanding({ id, region, hint: String(req.query?.hint || ''), brand: fbBrand });

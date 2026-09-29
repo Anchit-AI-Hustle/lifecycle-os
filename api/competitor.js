@@ -98,6 +98,13 @@ module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-ingest-token');
+  // A preflight is not a request for the action. This router had no OPTIONS
+  // branch, so a cross-origin preflight for ?action=poll RAN the poll (an
+  // IMAP sync) and one for ?action=sync reached the cron gate — every other
+  // router answers 204 here.
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   const url = new URL(req.url, 'http://x');
   const action = url.searchParams.get('action') || 'list';
