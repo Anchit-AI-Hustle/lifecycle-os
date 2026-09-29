@@ -321,8 +321,11 @@ function surfaces() {
     ['email (built)', built.assets.email && built.assets.email.html, 2, 6],
     ['video creative', motion.renderMotionAd(MOTION_SPEC), 2, 3],
     // Also served to real traffic: the page /lp/:id falls back to when a
-    // campaign cannot be resolved.
-    ['landing (fallback)', lpFallback.buildFallbackLanding({ id: 'cid-1', region: 'us' }), 2, 6],
+    // campaign has no page. The brand is passed EXPLICITLY - with none the
+    // renderer no longer reaches for tenant zero, it renders the neutral page,
+    // which is served too and is measured on its own line below.
+    ['landing (fallback)', lpFallback.buildFallbackLanding({ id: 'cid-1', region: 'us', brand: require(path.join(ROOT, 'api', '_shared', 'brand-runtime.js')).defaultBrand() }), 2, 6],
+    ['landing (fallback, no brand)', lpFallback.buildFallbackLanding({ id: 'cid-1', region: 'us' }), 1, 3],
     // The shared variant renderer, which the Mailer Calendar and the trigger
     // path both use. All three render styles, and with an offer bar — the bar
     // is optional, so a run without an offer never renders the row where the
