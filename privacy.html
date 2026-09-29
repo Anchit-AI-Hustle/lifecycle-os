@@ -22,7 +22,8 @@
 <p>Each brand workspace is private to its owner. Data and content created in one workspace are not visible to any other workspace.</p>
 
 <h2>Google user data we access</h2>
-<p>When you sign in with Google, the App requests only your basic profile: your <strong>name, email address, and profile picture</strong> (the <code>openid</code>, <code>email</code>, and <code>profile</code> scopes). We do not request access to Gmail, Google Drive, Google Ads, or any other Google service data through Google sign-in.</p>
+<p>Sign-in is by <strong>mobile number and a 4-digit PIN</strong> (since 28 September 2026). The App stores your <strong>mobile number, the name you type, and a salted hash of your PIN</strong>, never the PIN itself, together with the sign-in sessions you create. When the deployment has a database configured, these are kept in it; otherwise they stay in your own browser and never reach a server. Your number is not verified by SMS and is used only to identify your account.</p>
+<p>Google sign-in is no longer offered. (Earlier text, kept for the record: when you signed in with Google, the App requested only your basic profile, your name, email address and profile picture, under the <code>openid</code>, <code>email</code> and <code>profile</code> scopes, and never Gmail, Google Drive, Google Ads or any other Google service data.)</p>
 
 <h2>How we use it</h2>
 <p>Your Google profile is used <strong>solely to authenticate you</strong> and to display your name and picture within the App. We do not use it for advertising, profiling, or any purpose other than authentication and access control.</p>

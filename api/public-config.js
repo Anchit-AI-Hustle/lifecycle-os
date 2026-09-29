@@ -48,9 +48,25 @@ function lockCors(req, res) {
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Lifecycle-Token');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(204).end();
+
+  // ── Sign in / sign up with a mobile number and a 4-digit PIN (2026-09-28) ─
+  // The ONE sign-in: Google/Supabase OAuth and the Studio's overlay login are
+  // commented out. `op=status|enter|me|signout|signout_all`, all logic in
+  // _shared/mobile-auth-core.js, accounts in the Neon database named by
+  // DATABASE_URL - or, when there is none / it does not answer, `status` says
+  // so and the browser keeps the account on the device. Mounted here rather
+  // than as a thirteenth function: the Hobby cap is 12 and it is at the cap.
+  if (req.query && req.query.action === 'auth') {
+    res.setHeader('Cache-Control', 'no-store');
+    try { return await require('./_shared/mobile-auth-core.js').handle(req, res); }
+    // No message from the throw: this path handles PIN hashes and tokens, and
+    // a stack trace here is worth nothing to the person and something to an
+    // attacker. The refusal still carries a sentence.
+    catch (_) { return res.status(500).json({ ok: false, error: 'auth_router_failed', message: 'Sign-in could not be processed. Nothing was saved; please try again.' }); }
+  }
 
   // ── Brand workspaces (the multi-tenant layer) ────────────────────────────
   // Every logged-in user onboards their own brands here and picks the ACTIVE

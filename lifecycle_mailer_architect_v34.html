@@ -762,6 +762,11 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
     <div id="dashRecordBody" style="display:flex;flex-direction:column"></div>
   </div>
 </div>
+<!-- DISABLED 2026-09-28: the Studio's own overlay login (name + email into
+     localStorage `vhd_users` / `vhd_session`). Sign-in is now the mobile number
+     + 4-digit PIN panel in the shared rail (auth.js), and the Studio reads
+     LifecycleAuth's session (see showAppForLifecycle). Kept for the record, not
+     deleted; showApp() and logout() guard for its absence.
 <div id="authOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,var(--vh-panel-tan) 0%,var(--vh-panel-tan) 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:20px;padding:clamp(24px,4vw,44px);max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,74,43,0.14);border:1px solid var(--vh-panel-tan)">
     <div style="text-align:center;margin-bottom:18px">
@@ -770,34 +775,35 @@ html[data-theme="green"] .btn-primary:hover{box-shadow:0 0 0 1px rgba(171,135,67
       <div style="font-size:17px;font-weight:700;color:#111111" id="authTitle">Welcome back</div>
       <div style="font-size:12px;color:#999;margin-top:3px" id="authSub">Enter your name and email to sign in</div>
     </div>
-    <!-- Sign In / Sign Up tab toggle -->
+    (Sign In / Sign Up tab toggle)
     <div style="display:flex;background:var(--vh-panel-tan);border-radius:10px;padding:4px;margin-bottom:18px;gap:4px">
-      <button type="button" id="authModeSignIn" onclick="setAuthMode('signin')" style="flex:1;padding:9px 8px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign In</button>
-      <button type="button" id="authModeSignUp" onclick="setAuthMode('signup')" style="flex:1;padding:9px 8px;background:transparent;color:#888;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign Up</button>
+      <button type="button" id="authModeSignIn" onclick-disabled="setAuthMode('signin')" style="flex:1;padding:9px 8px;background:#D0473E;color:#FFFFFF;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign In</button>
+      <button type="button" id="authModeSignUp" onclick-disabled="setAuthMode('signup')" style="flex:1;padding:9px 8px;background:transparent;color:#888;border:none;border-radius:7px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.04em">Sign Up</button>
     </div>
     <div id="authErrMsg" style="display:none;background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;padding:9px 13px;font-size:12px;color:#b91c1c;margin-bottom:12px"></div>
     <div style="margin-bottom:12px">
       <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#888;display:block;margin-bottom:5px">Full Name</label>
-      <input type="text" id="authName" placeholder="e.g. Priya Sharma" autocomplete="name" style="width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown="if(event.key==='Enter')document.getElementById('authEmail').focus()">
+      <input type="text" id="authName" placeholder="e.g. Priya Sharma" autocomplete="name" style="width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown-disabled="if(event.key==='Enter')document.getElementById('authEmail').focus()">
     </div>
     <div style="margin-bottom:12px">
       <label style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#888;display:block;margin-bottom:5px">Email Address</label>
-      <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" style="width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown="if(event.key==='Enter')authSubmit()">
+      <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" style="width:100%;padding:11px 13px;border:1.5px solid var(--vh-panel-tan);border-radius:9px;font-size:14px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'" onkeydown-disabled="if(event.key==='Enter')authSubmit()">
     </div>
     <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer;user-select:none">
       <input type="checkbox" id="authRemember" checked style="width:14px;height:14px;accent-color:#D0473E">
       <span style="font-size:12px;color:#666">Remember me on this device</span>
     </label>
-    <button type="button" onclick="authSubmit()" style="width:100%;padding:12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;cursor:pointer;transition:opacity .2s;letter-spacing:0.04em" id="authBtn" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In &rarr;</button>
+    <button type="button" onclick-disabled="authSubmit()" style="width:100%;padding:12px;background:#D0473E;color:#FFFFFF;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;cursor:pointer;transition:opacity .2s;letter-spacing:0.04em" id="authBtn" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In &rarr;</button>
     <div style="text-align:center;margin-top:14px">
       <span style="font-size:11px;color:#888" id="authSwitch">No password needed, passwordless secure sign in</span><br>
-      <span id="authToggleHint" style="font-size:11px;color:#aaa;margin-top:4px;display:inline-block">Don't have an account? <a href="#" onclick="setAuthMode('signup');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a></span>
+      <span id="authToggleHint" style="font-size:11px;color:#aaa;margin-top:4px;display:inline-block">Don't have an account? <a href="#" onclick-disabled="setAuthMode('signup');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a></span>
     </div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--vh-panel-tan);text-align:center">
       <span style="font-size:9px;color:#ccc;letter-spacing:0.09em">DATA STORED LOCALLY &#183; NO SERVER &#183; NO TRACKING</span>
     </div>
   </div>
 </div>
+end of the disabled overlay login -->
 <!-- App Header -->
 <header class="app-hdr">
   <div class="app-hdr-brand">
@@ -8243,11 +8249,12 @@ function hideAuthError(){
 }
 function initAuth(){
   // ── Single sign-in for the whole Lifecycle OS ──────────────────────────
-  // auth.js (LifecycleAuth) owns authentication via Google for every feature.
-  // When it's present, the Studio must NOT show its own sign-in overlay — one
-  // Google sign-in already covers Dashboard, Calendar and this Studio. The
-  // Lifecycle login wall sits on top until the user is signed in, then removes
-  // itself, revealing the app we show here.
+  // auth.js (LifecycleAuth) owns sign-in for every feature: since 2026-09-28
+  // a mobile number + 4-digit PIN in the shared rail (Google is commented out
+  // there). When it's present, the Studio must NOT show its own sign-in
+  // overlay (itself commented out, see #authOverlay above) - one sign-in
+  // covers Dashboard, Calendar and this Studio. The Studio reads the session
+  // as it resolves (showAppForLifecycle).
   var lifecycleGoverns = !!document.querySelector('script[src^="/auth.js"]') || !!window.LifecycleAuth;
   if(lifecycleGoverns){
     var ov=document.getElementById('authOverlay');
@@ -8272,10 +8279,12 @@ function showAppForLifecycle(){
   function resolve(){
     var lu=window.LifecycleAuth&&window.LifecycleAuth.user;
     if(lu){
-      // Signed in → attribute every mailer to this Google user.
+      // Signed in → attribute every mailer to this user. Since 2026-09-28 the
+      // user is a mobile+PIN account {id, phone, name}; the older Supabase
+      // shape {email, user_metadata} is still read for the localhost preview stub.
       window._anonStudio=false;
-      var name=(lu.user_metadata&&lu.user_metadata.name)||lu.email||'';
-      showApp({name:String(name),email:lu.email||''});
+      var name=lu.name||(lu.user_metadata&&lu.user_metadata.name)||lu.email||lu.phone||'';
+      showApp({name:String(name),email:lu.email||'',phone:lu.phone||''});
     }else{
       // Open page, not signed in → fully anonymous (no user attribution,
       // dashboard shows all mailers without user details).
@@ -8293,79 +8302,85 @@ function showAppForLifecycle(){
 }
 // ── Auth mode toggle (Sign In / Sign Up) ──────────────────────────────────────
 window._authMode='signin';
-function setAuthMode(mode){
-  window._authMode=mode;
-  hideAuthError();
-  var inBtn=document.getElementById('authModeSignIn');
-  var upBtn=document.getElementById('authModeSignUp');
-  var title=document.getElementById('authTitle');
-  var sub=document.getElementById('authSub');
-  var btn=document.getElementById('authBtn');
-  var hint=document.getElementById('authToggleHint');
-  if(mode==='signup'){
-    if(inBtn){inBtn.style.background='transparent';inBtn.style.color='#888';}
-    if(upBtn){upBtn.style.background='#6A33D8';upBtn.style.color='#fff';}
-    if(title)title.textContent='Create your account';
-    if(sub)sub.textContent='Enter your name and email — no password needed';
-    if(btn)btn.innerHTML='Sign Up &rarr;';
-    if(hint)hint.innerHTML='Already have an account? <a href="#" onclick="setAuthMode(\'signin\');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign in here</a>';
-  }else{
-    if(inBtn){inBtn.style.background='#D0473E';inBtn.style.color='#FFFFFF';}
-    if(upBtn){upBtn.style.background='transparent';upBtn.style.color='#888';}
-    if(title)title.textContent='Welcome back';
-    if(sub)sub.textContent='Enter your name and email to sign in';
-    if(btn)btn.innerHTML='Sign In &rarr;';
-    if(hint)hint.innerHTML='Don\'t have an account? <a href="#" onclick="setAuthMode(\'signup\');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a>';
-  }
-}
-function authSubmit(){
-  hideAuthError();
-  var name=(document.getElementById('authName').value||'').trim();
-  var email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
-  var remember=document.getElementById('authRemember').checked;
-  var mode=window._authMode||'signin';
-  if(!name){showAuthError('Please enter your full name.');document.getElementById('authName').focus();return;}
-  if(!email||!email.includes('@')||!email.includes('.')){showAuthError('Please enter a valid email address.');document.getElementById('authEmail').focus();return;}
-  var users=[];
-  try{users=JSON.parse(localStorage.getItem('vhd_users')||'[]');}catch(e){}
-  // Find existing user matching BOTH name (case-insensitive) + email
-  var existing=users.find(function(u){return u.email===email&&u.name.toLowerCase()===name.toLowerCase();});
-  if(existing){
-    if(mode==='signup'){
-      showAuthError('This account already exists — switching you to Sign In…');
-      setTimeout(function(){setAuthMode('signin');},900);
-      return;
-    }
-    // Sign in — always save to sessionStorage; only save to localStorage if remember is checked
-    sessionStorage.setItem('vhd_session',JSON.stringify(existing));
-    if(remember)localStorage.setItem('vhd_session',JSON.stringify(existing));
-    showApp(existing);
-    return;
-  }
-  // Check if email is taken by different name
-  var emailUser=users.find(function(u){return u.email===email;});
-  if(emailUser){
-    showAuthError('This email is registered to "'+emailUser.name+'". Please enter the correct name to sign in.');
-    document.getElementById('authName').focus();
-    return;
-  }
-  // No existing user
-  if(mode==='signin'){
-    showAuthError('No account found for this name + email. Switching you to Sign Up…');
-    setTimeout(function(){setAuthMode('signup');},900);
-    return;
-  }
-  // Sign-up flow
-  var user={name:name,email:email,joined:new Date().toISOString()};
-  users.push(user);
-  localStorage.setItem('vhd_users',JSON.stringify(users));
-  // Always save to sessionStorage so refresh never logs out; localStorage if remember is checked
-  sessionStorage.setItem('vhd_session',JSON.stringify(user));
-  if(remember)localStorage.setItem('vhd_session',JSON.stringify(user));
-  showApp(user);
-}
+  // ── DISABLED 2026-09-28: setAuthMode() - the Studio's own overlay login (name + email into localStorage vhd_users / vhd_session). Mobile+PIN sign-in in the shared rail (auth.js) replaced it. Kept for the record, not deleted.
+  // function setAuthMode(mode){
+  //   window._authMode=mode;
+  //   hideAuthError();
+  //   var inBtn=document.getElementById('authModeSignIn');
+  //   var upBtn=document.getElementById('authModeSignUp');
+  //   var title=document.getElementById('authTitle');
+  //   var sub=document.getElementById('authSub');
+  //   var btn=document.getElementById('authBtn');
+  //   var hint=document.getElementById('authToggleHint');
+  //   if(mode==='signup'){
+  //     if(inBtn){inBtn.style.background='transparent';inBtn.style.color='#888';}
+  //     if(upBtn){upBtn.style.background='#6A33D8';upBtn.style.color='#fff';}
+  //     if(title)title.textContent='Create your account';
+  //     if(sub)sub.textContent='Enter your name and email — no password needed';
+  //     if(btn)btn.innerHTML='Sign Up &rarr;';
+  //     if(hint)hint.innerHTML='Already have an account? <a href="#" onclick="setAuthMode(\'signin\');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign in here</a>';
+  //   }else{
+  //     if(inBtn){inBtn.style.background='#D0473E';inBtn.style.color='#FFFFFF';}
+  //     if(upBtn){upBtn.style.background='transparent';upBtn.style.color='#888';}
+  //     if(title)title.textContent='Welcome back';
+  //     if(sub)sub.textContent='Enter your name and email to sign in';
+  //     if(btn)btn.innerHTML='Sign In &rarr;';
+  //     if(hint)hint.innerHTML='Don\'t have an account? <a href="#" onclick="setAuthMode(\'signup\');return false" style="color:#D0473E;font-weight:700;text-decoration:underline">Sign up here</a>';
+  //   }
+  // }
+  // ── end of disabled setAuthMode()
+  // ── DISABLED 2026-09-28: authSubmit() - the Studio's own overlay login (name + email into localStorage vhd_users / vhd_session). Mobile+PIN sign-in in the shared rail (auth.js) replaced it. Kept for the record, not deleted.
+  // function authSubmit(){
+  //   hideAuthError();
+  //   var name=(document.getElementById('authName').value||'').trim();
+  //   var email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
+  //   var remember=document.getElementById('authRemember').checked;
+  //   var mode=window._authMode||'signin';
+  //   if(!name){showAuthError('Please enter your full name.');document.getElementById('authName').focus();return;}
+  //   if(!email||!email.includes('@')||!email.includes('.')){showAuthError('Please enter a valid email address.');document.getElementById('authEmail').focus();return;}
+  //   var users=[];
+  //   try{users=JSON.parse(localStorage.getItem('vhd_users')||'[]');}catch(e){}
+  //   // Find existing user matching BOTH name (case-insensitive) + email
+  //   var existing=users.find(function(u){return u.email===email&&u.name.toLowerCase()===name.toLowerCase();});
+  //   if(existing){
+  //     if(mode==='signup'){
+  //       showAuthError('This account already exists — switching you to Sign In…');
+  //       setTimeout(function(){setAuthMode('signin');},900);
+  //       return;
+  //     }
+  //     // Sign in — always save to sessionStorage; only save to localStorage if remember is checked
+  //     sessionStorage.setItem('vhd_session',JSON.stringify(existing));
+  //     if(remember)localStorage.setItem('vhd_session',JSON.stringify(existing));
+  //     showApp(existing);
+  //     return;
+  //   }
+  //   // Check if email is taken by different name
+  //   var emailUser=users.find(function(u){return u.email===email;});
+  //   if(emailUser){
+  //     showAuthError('This email is registered to "'+emailUser.name+'". Please enter the correct name to sign in.');
+  //     document.getElementById('authName').focus();
+  //     return;
+  //   }
+  //   // No existing user
+  //   if(mode==='signin'){
+  //     showAuthError('No account found for this name + email. Switching you to Sign Up…');
+  //     setTimeout(function(){setAuthMode('signup');},900);
+  //     return;
+  //   }
+  //   // Sign-up flow
+  //   var user={name:name,email:email,joined:new Date().toISOString()};
+  //   users.push(user);
+  //   localStorage.setItem('vhd_users',JSON.stringify(users));
+  //   // Always save to sessionStorage so refresh never logs out; localStorage if remember is checked
+  //   sessionStorage.setItem('vhd_session',JSON.stringify(user));
+  //   if(remember)localStorage.setItem('vhd_session',JSON.stringify(user));
+  //   showApp(user);
+  // }
+  // ── end of disabled authSubmit()
 function showApp(user){
-  document.getElementById('authOverlay').style.display='none';
+  // The overlay is commented out (2026-09-28); a cached page may still carry it.
+  var ovEl=document.getElementById('authOverlay');
+  if(ovEl)ovEl.style.display='none';
   var anon=!!window._anonStudio || !(user&&user.name);
   var greet=document.getElementById('userGreet');
   if(greet)greet.textContent=anon?'KNICKGASM Mailer Studio':('Hi, '+String(user.name).split(' ')[0]+' 👋');
@@ -8376,18 +8391,21 @@ function showApp(user){
   window._currentUser=anon?{name:'',email:''}:user;
 }
 function logout(){
-  // When Lifecycle OS owns auth, sign out of the shared Google session so it
-  // takes effect across every feature (Dashboard / Calendar / Studio).
+  // When Lifecycle OS owns auth, sign out of the shared session (mobile+PIN
+  // since 2026-09-28) so it takes effect across every feature.
   if(window.LifecycleAuth&&typeof window.LifecycleAuth.signOut==='function'){
     window.LifecycleAuth.signOut();
     return;
   }
-  localStorage.removeItem('vhd_session');
-  sessionStorage.removeItem('vhd_session');
+  // DISABLED 2026-09-28: the overlay login's own session keys.
+  // localStorage.removeItem('vhd_session');
+  // sessionStorage.removeItem('vhd_session');
   window._currentUser=null;
   location.reload();
 }
-function toggleAuthMode(){}
+  // ── DISABLED 2026-09-28: toggleAuthMode() - the Studio's own overlay login (name + email into localStorage vhd_users / vhd_session). Mobile+PIN sign-in in the shared rail (auth.js) replaced it. Kept for the record, not deleted.
+  // function toggleAuthMode(){}
+  // ── end of disabled toggleAuthMode()
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
 function saveMailerToDashboard(){

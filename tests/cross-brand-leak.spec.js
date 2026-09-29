@@ -172,9 +172,11 @@ function payloadFor(preset, id) {
 
 /* ── the harness ───────────────────────────────────────────────────────────── */
 
-// The signed-in operator whose active workspace is the brand under test.
-const SESSION = { access_token: 'sweep-access-token', user: { id: 'u-sweep', email: 'sweep@example.test' } };
-
+// "With The Times of India active" is an operator SIGNED IN whose active
+// workspace is that brand. The first version of this harness signed nobody in,
+// and once brand ops started routing by auth.js's backend decision the sweep
+// measured the shipped default (tenant zero) under the other brand's name. The
+// sign-in is seeded below the way the app signs in since 2026-09-28.
 async function install(page, brand) {
   const shell = core.shellPayload(brand);
   const api = {
@@ -189,7 +191,7 @@ async function install(page, brand) {
     entries: [], items: [], rows: [], campaigns: [], connections: [], providers: [], runs: [],
   };
 
-  await page.addInitScript((session) => {
+  await page.addInitScript((seed) => {
     // Every canvas string, from every frame, before any page script runs.
     window.__canvasText = [];
     try {
@@ -199,37 +201,38 @@ async function install(page, brand) {
         P[m] = function (text) { try { window.__canvasText.push(String(text)); } catch (_) {} return orig.apply(this, arguments); };
       });
     } catch (_) {}
-    // A stand-in for supabase-js holding a SIGNED-IN session. "With The Times
-    // of India active" is an operator signed in to an account whose active
-    // workspace is that brand. brand-context.js routes the brand ops by
-    // auth.js's backend decision (LifecycleAuth.backend.kind): signed-in goes
-    // to the server (the /api/ stub below, which answers this brand), while a
-    // reachable-but-signed-out session goes to the DEVICE store - empty here -
-    // and the page then shows the shipped default, tenant zero, which is the
-    // correct answer for "no brand" and the wrong fixture for this sweep. The
-    // first version of this harness signed nobody in, and once that routing
-    // landed the sweep measured tenant zero under the other brand's name.
+    // The anonymous stand-in for supabase-js; it never holds a session.
     window.supabase = {
       createClient: () => ({
         auth: {
-          getSession: async () => ({ data: { session } }),
+          getSession: async () => ({ data: { session: null } }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
           signInWithOAuth: async () => ({ error: null }),
           signOut: async () => ({}),
         },
-        from: () => ({
-          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { profile_prompted: true }, error: null }) }) }),
-          update: () => ({ eq: () => Promise.resolve({ error: null }) }),
-        }),
       }),
     };
-    // The Studio's own overlay login.
+    // SIGNED IN, the way the app signs in since 2026-09-28: a mobile+PIN
+    // session kept on this device (the Studio's own overlay login, which this
+    // harness used to seed through vhd_users/vhd_session, is commented out).
+    // The brand under sweep is ACTIVE in the device store - a phone account
+    // keeps its workspaces there - so every page paints as that brand, which
+    // is the state the sweep is about; before this, brand ops routed to an
+    // empty device store and the pages were swept unpainted.
     try {
-      const u = { name: 'Sweep', email: 'sweep@example.test', signedInAt: Date.now() };
-      localStorage.setItem('vhd_users', JSON.stringify([u]));
-      localStorage.setItem('vhd_session', JSON.stringify(u));
+      const expires = new Date(Date.now() + 80 * 86400000).toISOString();
+      localStorage.setItem('lifecycle.auth.device.users', JSON.stringify({ '+919876543210': {
+        id: 'dev-sweep0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Sweep',
+        salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: expires, pinSetAt: expires,
+      } }));
+      localStorage.setItem('lifecycle.auth.session', JSON.stringify({
+        token: 'DEVICEtokenFIXTURE0123456789abcdefghijklmnopq', mode: 'device', provider: 'mobile-pin',
+        user: { id: 'dev-sweep0001', name: 'Sweep', phone: '+919876543210' }, expires,
+        storage: { mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' },
+      }));
+      localStorage.setItem('lifecycle.brand.device.workspaces', JSON.stringify({ version: 1, active_id: seed.id, workspaces: [seed] }));
     } catch (_) {}
-  }, SESSION);
+  }, Object.assign({}, brand, { id: 'local-sweep0001', status: 'active', storage: 'device', owner_id: null }));
   page.on('dialog', (d) => d.dismiss().catch(() => {}));
 
   await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
