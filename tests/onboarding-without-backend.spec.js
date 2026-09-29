@@ -26,16 +26,19 @@
  *
  *   unreachable   the config names a host that does not answer, no session
  *   signed-out    a live host, the probe answers, no session
- *   signed-in     a live host, the probe answers, a session
+ *   signed-in     a live host, the probe answers, a SERVER-MODE MOBILE+PIN
+ *                 session (2026-09-28: the one sign-in; auth.js validates it
+ *                 with op=me, which the harness answers)
  *
  * The first two must use the DEVICE store: the wizard walks steps 1-6, saves,
  * reloads, activates, switches - and NOT ONE brand write reaches the server
  * (the request log is asserted, because a save that "worked" by falling
  * through to a 503 would still have rendered the failure it exists to
- * prevent). The third must go to the SERVER, with the request body asserted
- * and no device row written: a signed-in operator's brand belongs to their
- * account, and a device store that quietly took it would be a data-loss bug
- * wearing a convenience feature.
+ * prevent). The third uses the device store TOO, and says so in one sentence
+ * beside the account's: a mobile-number account has no Supabase identity and
+ * so no workspace record, and the wizard must send nothing to the server for
+ * a brand it cannot keep there (section 2 explains; the Supabase-session
+ * "server path" this case used to assert is commented out in auth.js).
  *
  * `page.on('dialog')` is registered before anything else: any dialog fails.
  * Every list assertion counts a non-trivial number of things first - a check
@@ -67,7 +70,15 @@ const BRAND_WRITE_RX = /action=brand&op=(save|activate|list|active|get|delete)\b
 // here - CLAUDE.md's 2026-09-12 correction).
 const DEAD = { supabase: { url: 'https://paused-project.supabase.co', anonKey: 'anon' } };
 const LIVE = { supabase: { url: 'https://live.supabase.co', anonKey: 'anon' } };
-const SESSION = { access_token: 'test-access-token', user: { id: 'user-1', email: 'operator@example.test' } };
+// A server-mode mobile+PIN session (2026-09-28): the token is 43 base64url
+// characters as the server mints them, the account in the Neon database.
+const SESSION_TOKEN = 'MPINtokenFIXTURE0123456789abcdefghijklmnopqrs';
+const SESSION = {
+  token: SESSION_TOKEN, mode: 'server', provider: 'mobile-pin',
+  user: { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Operator', phone: '+919876543210' },
+  expires: new Date(Date.now() + 80 * 86400000).toISOString(),
+  storage: { mode: 'server', reason: '', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' },
+};
 
 /** A fictional brand, typed the way the operator typed theirs. */
 const BRAND = { name: 'Harbourlight Goods', primary: '#1a6b3c', accent: '#b8531f', heading: 'Fraunces', body: 'Inter' };
@@ -86,11 +97,13 @@ async function harness(page, state) {
   page.on('pageerror', (e) => log.errors.push(String(e.message || e)));
   page.on('request', (r) => { const u = r.url(); if (u.includes('/api/')) log.requests.push(u); });
 
-  await page.addInitScript((session) => {
+  await page.addInitScript((seed) => {
+    // The anonymous supabase-js stand-in. It never holds a session (2026-09-28):
+    // the mobile+PIN session below is the one sign-in.
     window.supabase = {
       createClient: () => ({
         auth: {
-          getSession: async () => ({ data: { session } }),
+          getSession: async () => ({ data: { session: null } }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
           signInWithOAuth: async () => ({ error: null }),
           signOut: async () => ({}),
@@ -101,6 +114,9 @@ async function harness(page, state) {
         }),
       }),
     };
+    // Signed in = a SERVER-mode mobile+PIN session in localStorage, which
+    // auth.js validates with op=me on every boot (answered by the harness).
+    if (seed) { try { localStorage.setItem('lifecycle.auth.session', JSON.stringify(seed)); } catch (_) {} }
   }, state === 'signed-in' ? SESSION : null);
 
   // Broadest first, most specific last: Playwright's last matching route wins.
@@ -133,6 +149,22 @@ async function harness(page, state) {
     const op = u.searchParams.get('op');
     const json = (body, status) => route.fulfill({ status: status || 200, contentType: 'application/json', body: JSON.stringify(body) });
     if (!action && !u.searchParams.has('health')) return json(state === 'unreachable' ? DEAD : LIVE);
+    // The mobile+PIN endpoint: a database for the signed-in state, none otherwise.
+    if (action === 'auth') {
+      const aop = u.searchParams.get('op');
+      if (aop === 'status') {
+        return json(state === 'signed-in'
+          ? { ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' }
+          : { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' });
+      }
+      if (aop === 'me') {
+        const tok = route.request().headers()['x-lifecycle-token'] || '';
+        return state === 'signed-in' && tok === SESSION_TOKEN
+          ? json({ ok: true, mode: 'server', user: SESSION.user, message: 'Account saved in the database.' })
+          : json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out.' }, 401);
+      }
+      return json({ ok: true });
+    }
     if (action !== 'brand') return json({ ok: true });
     if (op === 'presets') return json({ ok: true, presets: [] });
     if (op === 'defaults') return json({ ok: true, brand: {} });
@@ -323,6 +355,11 @@ test('with the database unreachable, a brand is built, saved, reloaded, activate
   await page.waitForURL(HOST + '/', { timeout: 15000 });
   await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--brand-primary').trim() !== '', null, { timeout: 15000 });
   await page.waitForFunction((n) => (document.querySelector('.lnav-brandname') || {}).textContent === n, BRAND.name, { timeout: 15000 });
+  // The paint above comes from the device store at load; the MODE is decided
+  // ~200 ms later, once auth.js has published its state and brand-context has
+  // revalidated. Reading it before then measured a race, not the app (this
+  // failed identically against main's own tree on a busy machine).
+  await page.waitForFunction(() => !!(window.BrandContext && window.BrandContext.mode), null, { timeout: 15000 });
   let h = await html(page);
   expect(h.primary).toBe(BRAND.primary);
   expect(h.rail).toBe(BRAND.name);
@@ -361,46 +398,76 @@ test('with the database unreachable, a brand is built, saved, reloaded, activate
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   2. SIGNED IN AND REACHABLE: the server, exactly as before
+   2. SIGNED IN AND REACHABLE: a mobile-number account, its brands on the device
+   ─────────────────────────────────────────────────────────────────────────────
+   SINCE 2026-09-28 sign-in is a mobile number and a PIN (auth.js, tests/
+   mobile-pin-signin.spec.js), and a phone account has NO Supabase identity:
+   brand_workspaces is gated by auth.uid(), which it does not have. So its
+   brands live on the device whichever mode the ACCOUNT is in - here the server
+   (the Neon database, reachable). What this case used to assert - "the brand
+   goes to the SERVER and nothing is written to the device" - describes a path
+   no browser session can take any more; the Supabase session flow is commented
+   out in auth.js. What it asserts now is the one sentence for the new state,
+   in the accent rule, and that the wizard sends NOTHING to the server for a
+   brand it cannot keep there.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('signed in with a reachable database, the brand goes to the SERVER and nothing is written to the device', async ({ page }) => {
+test('signed in with a mobile-number account and a reachable database, the brand goes to the DEVICE, nothing reaches the server, and the sentence says both', async ({ page }) => {
   test.setTimeout(120_000);
   const log = await harness(page, 'signed-in');
   await openWizard(page);
-  expect(await page.evaluate(() => (window.LifecycleAuth.backend || {}).kind), 'the fixture never reached the signed-in state').toBe('signed-in');
+  const auth = await page.evaluate(() => ({
+    kind: (window.LifecycleAuth.backend || {}).kind,
+    session: (window.LifecycleAuth.backend || {}).session,
+    name: (document.querySelector('#lifecycle-nav .lnav-uname') || {}).textContent || '',
+    mode: (document.querySelector('#lnav-umode') || {}).textContent || '',
+    internal: window.LifecycleAuth.internal,
+  }));
+  expect(auth.kind, 'the fixture never reached the signed-in state').toBe('signed-in');
+  expect(auth.session).toMatchObject({ provider: 'mobile-pin', mode: 'server', name: 'Operator', verified: true });
+  expect(auth.name).toBe('Operator');
+  expect(auth.mode).toBe('Account saved in the database.');
+  expect(auth.internal, 'a phone account was granted internal access').toBe(false);
+  expect(log.requests.filter((u) => /action=auth&op=me/.test(u)).length, 'the stored session was not validated with the server').toBe(1);
+
+  // Reading a site is ON: the server can check a server-mode session.
+  await expect(page.locator('#xRun')).toBeEnabled();
+  await expect(page.locator('p[data-needs-account="extract"]')).toHaveCount(0);
 
   await walkToReview(page, BRAND);
   await page.click('#saveDraft');
-  await expect(page.locator('#toast')).toContainText(/^Saved as a draft\.$/, { timeout: 8000 });
+  await expect(page.locator('#toast')).toContainText(/saved as a draft on this device/i, { timeout: 8000 });
   await listSettled(page);
 
-  // The request BODY, not the URL: what the account received is the brand.
-  expect(log.saves.length, 'no save reached the server').toBeGreaterThanOrEqual(2);
-  const last = log.saves[log.saves.length - 1];
-  expect((last.brand || {}).name).toBe(BRAND.name);
-  expect(((last.brand || {}).palette || {}).primary).toBe(BRAND.primary);
-  expect(((last.brand || {}).typography || {}).heading.family).toBe(BRAND.heading);
+  // NOTHING reached the server for the brand: no save body, no brand op at all.
+  expect(log.saves).toEqual([]);
+  const writes = log.requests.filter((u) => BRAND_WRITE_RX.test(u));
+  expect(writes, `brand ops were sent for an account that has no workspace record:\n  ${writes.join('\n  ')}`).toEqual([]);
 
   const h = await html(page);
-  expect(h.device, 'a device row was written for a signed-in operator').toBeNull();
-  expect(h.mode).toBe('server');
+  expect(h.device, 'nothing was stored on the device').not.toBeNull();
+  expect(JSON.parse(h.device).workspaces.map((w) => w.name)).toContain(BRAND.name);
+  expect(h.mode).toBe('device');
+  expect(h.internal).toBe(false);
   const seen = await readPanel(page, '#wsList');
+  expect(seen.failures).toBe(0);
   expect(seen.rows).toBeGreaterThanOrEqual(1);
-  expect(seen.chips, 'a server row carries the device chip').toBe(0);
-  expect(seen.note, 'the device sentence shows for an account save').toBe('');
-  expect(seen.syncOffers, 'a sync offer with nothing to sync').toBe(0);
-  // Server-only controls are live as far as the ACCOUNT is concerned. The
-  // catalogue import is still off here, for the other reason it can be off:
-  // this brand was typed without a market, and since the home-market change a
-  // new brand starts with no regions, so there is nowhere to file its rows.
-  // That reason is the home-market gate, never the "needs your account" note.
-  await expect(page.locator('#packBuild')).toBeEnabled();
+  expect(seen.chips).toBe(seen.rows);
+  // THE sentence: signed in AND on this device AND the account in the database,
+  // in one line, in the accent rule - never "sign in" to a person who just did.
+  expect(seen.note).toBe('Signed in as Operator · workspaces are saved on this device · account in the database.');
+  expect(seen.note).not.toMatch(/sign in and/i);
+  expect(seen.noteRule).toBe(seen.accentRgb);
+  expect(seen.noteIsFailure).toBe(false);
+  expect(seen.syncOffers, 'a sync offer for an account with no workspace record to sync to').toBe(0);
+  // Controls that need a brand IN THE DATABASE are off with THAT reason.
+  await expect(page.locator('#packBuild')).toBeDisabled();
+  await expect(page.locator('p[data-needs-account="context-pack"]')).toContainText(/not available on a mobile-number account/i);
+  await expect(page.locator('p[data-needs-account="context-pack"]')).not.toContainText(/needs your account|sign in/i);
+  expect(await page.locator('#stepCard .vh-failure').count(), 'a disabled control was rendered as a failure').toBe(0);
   await page.click('.step-pip[data-step="5"]');
   await expect(page.locator('#doImport')).toBeDisabled();
-  await expect(page.locator('#impGate')).toBeVisible();
-  await expect(page.locator('#impGate')).toContainText('home market');
-  await expect(page.locator('[data-needs-account="catalog-import"]')).toHaveCount(0);
+  await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/not available on a mobile-number account/i);
   expect(log.dialogs).toEqual([]);
 });
 
@@ -450,10 +517,15 @@ test('signed out of a reachable database, the brand is saved on this device and 
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   4. THE SYNC OFFER: only signed in + reachable + device rows, and never silent
+   4. THE SYNC OFFER: never for a mobile-number account, and never silent
+   ─────────────────────────────────────────────────────────────────────────────
+   The offer uploaded device rows to the ACCOUNT's workspace records. A phone
+   account has none (see section 2), so it is never offered one and
+   syncDeviceToAccount() refuses with a sentence naming why. The sync path
+   itself stays in brand-context.js, for a session with a workspace record.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('a signed-in session that still holds device brands is offered a sync, once, and the device copy goes only after the account has the row', async ({ page }) => {
+test('a mobile-number account holding device brands is never offered a sync, and nothing is uploaded', async ({ page }) => {
   test.setTimeout(120_000);
   const log = await harness(page, 'signed-in');
   // Seed a device brand the way the two device states leave one behind.
@@ -477,32 +549,21 @@ test('a signed-in session that still holds device brands is offered a sync, once
   await openWizard(page);
   await page.click('.step-pip[data-step="6"]');
   await listSettled(page);
-  let seen = await readPanel(page, '#wsList');
-  expect(seen.syncOffers, 'no sync offer for a device brand under a signed-in session').toBe(1);
-  await expect(page.locator('[data-sync-offer]')).toHaveAttribute('data-sync-offer', '1');
-  await expect(page.locator('#syncDevice')).toHaveText(/sync 1 brand to your account/i);
-  expect(seen.chips, 'the offer does not show the device brand it would upload').toBe(1);
-  // Nothing was uploaded by merely opening the page.
+  const seen = await readPanel(page, '#wsList');
+  expect(seen.rows, 'the device brand is not listed').toBe(1);
+  expect(seen.chips, 'the device brand does not wear its chip').toBe(1);
+  expect(seen.syncOffers, 'a sync offer was rendered for an account with no workspace record').toBe(0);
+  expect(await page.locator('#syncDevice').count()).toBe(0);
+  expect(seen.note).toMatch(/^Signed in as Operator/);
+  expect(seen.note).toMatch(/account in the database/);
+  // Nothing was uploaded by opening the page, and asking directly is refused
+  // with the reason - not attempted and failed.
   expect(log.saves.length, 'a device brand was uploaded WITHOUT being asked').toBe(0);
-
-  await page.click('#syncDevice');
-  await page.waitForFunction(() => localStorage.getItem('lifecycle.brand.device.workspaces') === null, null, { timeout: 15000 });
-  await expect(page.locator('#toast')).toContainText(/1 brand synced to your account/i, { timeout: 8000 });
-  expect(log.saves.length).toBe(1);
-  expect(log.saves[0].brand.name).toBe(BRAND.name);
-  // The upload is the ordinary save: no device id, no device stamp, and the
-  // typography and palette went with it.
-  expect(log.saves[0].brand.id).toBeUndefined();
-  expect(log.saves[0].brand.storage).toBeUndefined();
-  expect(log.saves[0].brand.palette.primary).toBe(BRAND.primary);
-  expect(log.saves[0].brand.typography.heading.family).toBe(BRAND.heading);
-
-  await listSettled(page);
-  seen = await readPanel(page, '#wsList');
-  expect(seen.syncOffers, 'the offer is still up after the sync').toBe(0);
-  expect(seen.rows).toBe(1);
-  expect(seen.chips, 'the synced row still wears the device chip').toBe(0);
-  expect(seen.text).toContain(BRAND.name);
+  const refused = await page.evaluate(() => window.BrandContext.syncDeviceToAccount().then(() => null, (e) => ({ code: e.code, message: e.message })));
+  expect(refused).toMatchObject({ code: 'account_type_unsupported' });
+  expect(refused.message).toMatch(/no record of it in the workspace database/);
+  expect(log.saves.length).toBe(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('lifecycle.brand.device.workspaces')).workspaces.length), 'the device copy was removed').toBe(1);
   expect(log.dialogs).toEqual([]);
 });
 
