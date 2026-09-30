@@ -1125,13 +1125,13 @@
   /* ── data ──────────────────────────────────────────────────────────────── */
 
   function token() {
-    // ONLY a token the server can check (2026-09-28): auth.js answers with the
-    // server-mode mobile+PIN token and '' for a device-mode one, which proves
-    // nothing to anyone but this browser and is never sent.
+    // A token the server can act on (2026-09-30): auth.js answers with the
+    // server-mode token, and with the device-mode token on a standalone
+    // deployment so features run. apiToken() is the one source.
     try {
       var a = window.LifecycleAuth;
       if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
-      if (a && a.session && a.session.access_token && a.session.mode === 'server') return a.session.access_token;
+      if (a && a.session && a.session.access_token && a.session.provider === 'mobile-pin') return a.session.access_token;
     } catch (_) {}
     // 2026-09-28: DISABLED - Supabase's project-scoped session keys. Nothing
     // can produce a Supabase session any more; see currentUserId().

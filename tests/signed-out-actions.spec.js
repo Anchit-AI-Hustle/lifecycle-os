@@ -107,8 +107,8 @@ const STATES = {
   unreachable: { config: { supabase: { url: 'https://deleted-project.supabase.co', anonKey: 'anon' } }, reachable: false, session: false, kind: 'unreachable' },
   // (c) signed in the way the app signs in since 2026-09-28: a mobile+PIN
   // session kept on THIS DEVICE (no DATABASE_URL on the deployment). Its
-  // workspaces live in the device store, its token is never sent, and it has
-  // no credit wallet - so every metered feature has to SAY so.
+  // workspaces live in the device store. Features run: the token is sent and
+  // the server admits it as a device principal (2026-09-30).
   'device-session': { config: LIVE, reachable: true, session: true, kind: 'signed-in' },
 };
 const DEVICE_USER = { id: 'dev-sweep0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Sweep' };
@@ -445,9 +445,20 @@ function setup(page, stateName, log) {
           return json({ ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment, so "' + op + '" cannot run on the server.' }, 503);
         }
         if (g === 'lp') return route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>lp</title><p>landing page</p>' });
-        // A device-mode token is never sent (docs/mobile-pin-signin.md), so the
-        // server sees state (c) exactly as it sees (a): an anonymous caller.
-        if (g === 'gated') return json(REFUSALS[state.reachable ? 'signed-out' : 'unreachable'].body, REFUSALS[state.reachable ? 'signed-out' : 'unreachable'].status);
+        // Device-session (2026-09-30): the server admits the token as a device
+        // principal and features run unmetered. The harness answers the shape
+        // those pages read (ok + reply), not a 401.
+        if (g === 'gated') {
+          if (stateName === 'device-session') {
+            return json(Object.assign({}, GENERIC_OK, {
+              ok: true, reply: 'Local demo reply.', answer: 'Local demo reply.',
+              unmetered: true, mode: 'device',
+              message: 'Local / Demo Mode: features run without a database.',
+              credits: { charged: 0 },
+            }));
+          }
+          return json(REFUSALS[state.reachable ? 'signed-out' : 'unreachable'].body, REFUSALS[state.reachable ? 'signed-out' : 'unreachable'].status);
+        }
         if (u.searchParams.get('action') === 'brand' && u.searchParams.get('op') === 'presets') {
           return json(JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'brands', 'presets', 'index.json'), 'utf8')));
         }
@@ -701,7 +712,9 @@ for (const stateName of Object.keys(STATES)) {
       expect(rows.some((r) => r.control === '(load)' && r.cls === 'fixture'), 'the fixture never reached the page').toBe(false);
       // Each outcome class the contract allows was seen at least once.
       expect(rows.filter((r) => r.cls === 'changed').length, 'no control worked locally').toBeGreaterThan(30);
-      expect(rows.filter((r) => r.cls === 'needs-signin').length, 'no control said what needs sign-in').toBeGreaterThan(0);
+      if (stateName !== 'device-session') {
+        expect(rows.filter((r) => r.cls === 'needs-signin').length, 'no control said what needs sign-in').toBeGreaterThan(0);
+      }
       expect(rows.filter((r) => r.cls === 'disabled-with-reason').length, 'no disabled control carried its reason').toBeGreaterThan(0);
 
       const defects = rows.filter((r) => r.defect).map((r) => `${r.page} · ${r.control} · ${r.cls}${r.text ? ' · ' + r.text.slice(0, 120) : ''}`);
