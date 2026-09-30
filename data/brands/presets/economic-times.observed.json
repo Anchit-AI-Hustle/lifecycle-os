@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "economic-times",
+  "start": "https://economictimes.indiatimes.com",
+  "landed": "https://economictimes.indiatimes.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Business News Live, Share Market News - Read Latest Finance News, IPO, Mutual Funds News - The Economic Times",
+  "source": "Read from https://economictimes.indiatimes.com/ on 2026-09-30. Primary #ed193b from computed background of LiveStreamPlay_ctaButton__t4rEU (12 elements).",
+  "palette": {
+    "primary": "#ed193b",
+    "accent": "#cc0000",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#fff8f6",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "light page surface; the page ground was not a light colour",
+      "source_url": "https://economictimes.indiatimes.com/"
+    },
+    "ink": {
+      "value": "#000000",
+      "signal": "computed color of body",
+      "source_url": "https://economictimes.indiatimes.com/"
+    },
+    "surface_alt": {
+      "value": "#fff8f6",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://economictimes.indiatimes.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://economictimes.indiatimes.com/"
+    },
+    "primary": {
+      "value": "#ed193b",
+      "signal": "computed background of LiveStreamPlay_ctaButton__t4rEU (12 elements)",
+      "source_url": "https://economictimes.indiatimes.com/"
+    },
+    "accent": {
+      "value": "#cc0000",
+      "signal": "computed background of jsx-48c379259a10063f latestNewsNumber",
+      "source_url": "https://economictimes.indiatimes.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Faustina",
+      "stack": "'Faustina', Georgia, serif",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "Montserrat",
+      "stack": "'Montserrat', sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://img.etimg.com/photo/msid-100067830/et-logo.jpg",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://img.etimg.com/photo/msid-100067830/et-logo.jpg",
+      "role": "logo",
+      "alt": "More",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://economictimes.indiatimes.com/photo/65498029.cms",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://img.etimg.com/thumb/width-640,height-480,imgsize-547643,resizemode-75,msid-134284001/et-msme-awards-26.jpg",
+      "role": "photograph",
+      "alt": "spotlight menu image 0",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-60826,resizemode-75,msid-133702117/et-sme-business-growth-summit.jpg",
+      "role": "photograph",
+      "alt": "spotlight menu image 0",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-90538,resizemode-75,msid-133708611/et-ai-hackathon-agentic-edition-presented-by-accenture.jpg",
+      "role": "photograph",
+      "alt": "spotlight menu image 0",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-82433,resizemode-75,msid-131766596/payoneer.jpg",
+      "role": "photograph",
+      "alt": "spotlight menu image 0",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-51932,resizemode-75,msid-133540877/visa-payments-in-motion-2026-commercial-payments-event.jpg",
+      "role": "photograph",
+      "alt": "spotlight menu image 0",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-10098,resizemode-75,msid-133562562/the-founders-behind-the-formula-insights-on-innovation-leadership-industry.jpg",
+      "role": "photograph",
+      "alt": "spotlight menu image 0",
+      "found_on": "https://economictimes.indiatimes.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

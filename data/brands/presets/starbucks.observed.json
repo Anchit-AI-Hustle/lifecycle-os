@@ -1,0 +1,143 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "starbucks",
+  "start": "https://www.starbucks.com",
+  "landed": "https://www.starbucks.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Starbucks Coffee Company",
+  "source": "Read from https://www.starbucks.com/ on 2026-09-30. Primary #006341 from meta theme-color.",
+  "palette": {
+    "primary": "#006341",
+    "accent": "#00754a",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f9f9f9",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://www.starbucks.com/"
+    },
+    "ink": {
+      "value": "#000000",
+      "signal": "computed color of body",
+      "source_url": "https://www.starbucks.com/"
+    },
+    "surface_alt": {
+      "value": "#f9f9f9",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://www.starbucks.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://www.starbucks.com/"
+    },
+    "primary": {
+      "value": "#006341",
+      "signal": "meta theme-color",
+      "source_url": "https://www.starbucks.com/"
+    },
+    "accent": {
+      "value": "#00754a",
+      "signal": "css custom property --colorGreenAccent",
+      "source_url": "https://www.starbucks.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "SoDoSans",
+      "stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "SoDoSans",
+      "stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://www.starbucks.com/pwa-icon-192.png",
+  "logo_signal": "touch icon or favicon the page links",
+  "assets": [
+    {
+      "url": "https://www.starbucks.com/pwa-icon-192.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "touch icon or favicon the page links"
+    },
+    {
+      "url": "https://www.starbucks.com/next_static/icons/summary_square.png",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112745.jpg",
+      "role": "photograph",
+      "alt": "A Starbucks gift card that reads “Coffee is always a good idea.”",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112760.jpg",
+      "role": "photograph",
+      "alt": "A freshly-poured Aerocano. Light foam at the top deepens gradually down the glass into dark espresso.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112632.jpg",
+      "role": "photograph",
+      "alt": "A variety of mini pies grouped together on a wood table.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112634.jpg",
+      "role": "photograph",
+      "alt": "Four fall drinks on a table with hints of people gathered around them.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112942.jpg",
+      "role": "photograph",
+      "alt": "Close-up of someone holding a mug filled with coffee.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

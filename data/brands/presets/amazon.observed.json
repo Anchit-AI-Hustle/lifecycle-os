@@ -1,0 +1,63 @@
+{
+  "ok": false,
+  "slug": "amazon",
+  "start": "https://www.amazon.com",
+  "landed": "https://www.amazon.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Amazon.com. Spend less. Smile more.",
+  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
+  "snapshot_summary": {
+    "theme": "",
+    "logoColor": "",
+    "paints": [
+      {
+        "hex": "#cc0c39",
+        "n": 36,
+        "sample": "_badgeLabel_1eik7_1"
+      },
+      {
+        "hex": "#2b333f",
+        "n": 4,
+        "sample": "vjs-modal-dialog vjs-hidden  vjs-text-track-settings"
+      },
+      {
+        "hex": "#ffd814",
+        "n": 2,
+        "sample": "nav-action-signin-button"
+      },
+      {
+        "hex": "#febd69",
+        "n": 1,
+        "sample": "nav-search-submit nav-sprite"
+      },
+      {
+        "hex": "#232f3e",
+        "n": 1,
+        "sample": "nav-sprite"
+      },
+      {
+        "hex": "#0064f9",
+        "n": 1,
+        "sample": "dcl-container-inner"
+      },
+      {
+        "hex": "#0578ff",
+        "n": 1,
+        "sample": "theming-card-background"
+      }
+    ],
+    "vars": [
+      {
+        "name": "--primary-text-color",
+        "hex": "#0f1111",
+        "selector": ".dcl-container"
+      },
+      {
+        "name": "--primary-text-color",
+        "hex": "#0f1111",
+        "selector": ".dcl-container"
+      }
+    ]
+  }
+}

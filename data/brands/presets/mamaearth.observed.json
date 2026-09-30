@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "mamaearth",
+  "start": "https://mamaearth.in",
+  "landed": "https://mamaearth.in/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Mamaearth Natural Skin & Hair Care Products- Get 25% Off Now",
+  "source": "Read from https://mamaearth.in/ on 2026-09-30. Primary #00aeef from computed background of hdt-announcement-bar hdt-s-gradient  hdt-announcement_bar_hide_on_mobl (11 elements).",
+  "palette": {
+    "primary": "#00aeef",
+    "accent": "#1d1d1d",
+    "ink": "#1d1d1d",
+    "surface": "#ffffff",
+    "surface_alt": "#f4f6f8",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://mamaearth.in/"
+    },
+    "ink": {
+      "value": "#1d1d1d",
+      "signal": "computed color of body",
+      "source_url": "https://mamaearth.in/"
+    },
+    "surface_alt": {
+      "value": "#f4f6f8",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://mamaearth.in/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://mamaearth.in/"
+    },
+    "primary": {
+      "value": "#00aeef",
+      "signal": "computed background of hdt-announcement-bar hdt-s-gradient  hdt-announcement_bar_hide_on_mobl (11 elements)",
+      "source_url": "https://mamaearth.in/"
+    },
+    "accent": {
+      "value": "#1d1d1d",
+      "signal": "text colour, used where the brand publishes no second colour",
+      "source_url": "https://mamaearth.in/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Open Sans",
+      "stack": "'Open Sans', sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "Open Sans",
+      "stack": "'Open Sans', sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
+      "role": "logo",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/mamaearth-og-image.jpg?v=1787645067",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=110",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/b2g2_genric_desktop.jpg?v=1790654097&width=1400",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/REDEEM35_new_buy2_desktop_generic.jpg?v=1790654676&width=1400",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/flaxseed-desktop-new.jpg?v=1783748411&width=1600",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Tea-tree-face-wash-desktop.jpg?v=1780754685&width=1600",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/rice_fw_150ml.jpg?v=1777974776&width=300",
+      "role": "photograph",
+      "alt": "Rice Dewy Bright Face Wash for glass skin",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    }
+  ]
+}

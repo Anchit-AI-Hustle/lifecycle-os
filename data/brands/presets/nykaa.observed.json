@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "nykaa",
+  "start": "https://www.nykaa.com",
+  "landed": "https://www.nykaa.com",
+  "observed_at": "2026-09-30",
+  "status": 0,
+  "title": "",
+  "note": "page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.nykaa.com/"
+}
