@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "times-of-india",
+  "start": "https://timesofindia.indiatimes.com",
+  "landed": "https://timesofindia.indiatimes.com/us",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "US News: US News, Top News in India, US election news, Business news, Sports & International News | Times of India",
+  "source": "Read from https://timesofindia.indiatimes.com/us on 2026-09-30. Primary #af2c2c from meta theme-color.",
+  "palette": {
+    "primary": "#af2c2c",
+    "accent": "#e21b22",
+    "ink": "#1a1a1a",
+    "surface": "#ffffff",
+    "surface_alt": "#f6f6f6",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "light page surface; the page ground was not a light colour",
+      "source_url": "https://timesofindia.indiatimes.com/us"
+    },
+    "ink": {
+      "value": "#1a1a1a",
+      "signal": "computed color of body",
+      "source_url": "https://timesofindia.indiatimes.com/us"
+    },
+    "surface_alt": {
+      "value": "#f6f6f6",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://timesofindia.indiatimes.com/us"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://timesofindia.indiatimes.com/us"
+    },
+    "primary": {
+      "value": "#af2c2c",
+      "signal": "meta theme-color",
+      "source_url": "https://timesofindia.indiatimes.com/us"
+    },
+    "accent": {
+      "value": "#e21b22",
+      "signal": "computed background of smmjr",
+      "source_url": "https://timesofindia.indiatimes.com/us"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans', -apple-system, BlinkMacSystemFont, \"Helvetica Neue\", \"Segoe UI\"",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "Rethink Sans",
+      "stack": "'Rethink Sans', -apple-system, BlinkMacSystemFont, \"Helvetica Neue\", \"Segoe UI\"",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "",
+  "logo_signal": "",
+  "assets": [
+    {
+      "url": "https://static.toiimg.com/photo/47529300.cms",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/photo/79638690.cms",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134584388.jpg?photoid=134584388&imgsize=49296&width=220&resizemode=4",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134586848.jpg?photoid=134586848&imgsize=138930&width=600&resizemode=4",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134588801.jpg?photoid=134588801&imgsize=62612&width=220&resizemode=4",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/photo/87458172.cms",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-132676654,imgsize-638114,width-800,resizemode-4/132676654.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134587452.jpg?photoid=134587452&imgsize=322568&width=300&resizemode=4",
+      "role": "photograph",
+      "alt": "OMG! Vance Torches Trump's New America.gov On Debut | ‘Don’t Let It Be A Clusterf*ck!’ | Watch Why",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    }
+  ]
+}

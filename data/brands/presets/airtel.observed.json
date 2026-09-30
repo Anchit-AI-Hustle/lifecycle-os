@@ -1,0 +1,143 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "airtel",
+  "start": "https://www.airtel.in",
+  "landed": "https://www.airtel.in/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Airtel: Wi-Fi, Postpaid, Prepaid, DTH, Bank & Business",
+  "source": "Read from https://www.airtel.in/ on 2026-09-30. Primary #000000 from meta theme-color.",
+  "palette": {
+    "primary": "#000000",
+    "accent": "#696b6f",
+    "ink": "#696b6f",
+    "surface": "#ffffff",
+    "surface_alt": "#f7f7fa",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "light page surface; the page ground was not a light colour",
+      "source_url": "https://www.airtel.in/"
+    },
+    "ink": {
+      "value": "#696b6f",
+      "signal": "computed color of body",
+      "source_url": "https://www.airtel.in/"
+    },
+    "surface_alt": {
+      "value": "#f7f7fa",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://www.airtel.in/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://www.airtel.in/"
+    },
+    "primary": {
+      "value": "#000000",
+      "signal": "meta theme-color",
+      "source_url": "https://www.airtel.in/"
+    },
+    "accent": {
+      "value": "#696b6f",
+      "signal": "text colour, used where the brand publishes no second colour",
+      "source_url": "https://www.airtel.in/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "body": {
+      "family": "Times New Roman",
+      "stack": "'Times New Roman', Arial, sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://assets.airtel.in/static-assets/new-home/img/favicon-32x32.png",
+  "logo_signal": "touch icon or favicon the page links",
+  "assets": [
+    {
+      "url": "https://assets.airtel.in/static-assets/new-home/img/favicon-32x32.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.airtel.in/",
+      "signal": "touch icon or favicon the page links"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/wifi.gif",
+      "role": "photograph",
+      "alt": "Expert Wi-Fi",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/switch-to-airtel-web.png",
+      "role": "photograph",
+      "alt": "switch to airtel image",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-1.png",
+      "role": "photograph",
+      "alt": "recommendations slide icon image",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/recomended-priority-postpaid.jpg",
+      "role": "photograph",
+      "alt": "recommendations slide icon image",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-3.png",
+      "role": "photograph",
+      "alt": "recommendations slide icon image",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-4.png",
+      "role": "photograph",
+      "alt": "recommendations slide icon image",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/misc/img/b2b-airtel-office-internet.svg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.airtel.in/",
+      "signal": "img on the page"
+    }
+  ]
+}

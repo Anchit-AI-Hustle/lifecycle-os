@@ -8,34 +8,90 @@
     "label": "Stripe",
     "sector": "Fintech",
     "blurb": "Payments infrastructure. Template for a developer-led B2B activation lifecycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://stripe.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-09-30",
+    "source": "Read from https://stripe.com/ on 2026-09-30. Primary #533afd from computed background of hds-button hds-button--primary (8 elements).",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "img on the page whose address or alt says logo",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "signal": "light page surface; the page ground was not a light colour",
+        "source_url": "https://stripe.com/"
+      },
+      "ink": {
+        "value": "#000000",
+        "signal": "computed color of body",
+        "source_url": "https://stripe.com/"
+      },
+      "surface_alt": {
+        "value": "#f8fafd",
+        "signal": "computed light background repeated on the page",
+        "source_url": "https://stripe.com/"
+      },
+      "muted": {
+        "value": "#666666",
+        "signal": "secondary text token that clears AA; the page did not declare one",
+        "source_url": "https://stripe.com/"
+      },
+      "primary": {
+        "value": "#533afd",
+        "signal": "computed background of hds-button hds-button--primary (8 elements)",
+        "source_url": "https://stripe.com/"
+      },
+      "accent": {
+        "value": "#000000",
+        "signal": "text colour, used where the brand publishes no second colour",
+        "source_url": "https://stripe.com/"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "warn": {
+        "value": "#c9a227",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "err": {
+        "value": "#c0392b",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      }
+    },
+    "typography_evidence": {
+      "heading": "computed font-family of h1",
+      "body": "computed font-family of body"
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#533afd",
+    "accent": "#000000",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f8fafd",
+    "muted": "#666666",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "sohne-var",
+      "stack": "'sohne-var', \"SF Pro Display\", sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "sohne-var",
+      "stack": "'sohne-var', \"SF Pro Display\", sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -52,7 +108,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "stripe.com"
+    "stripe.com",
+    "images.stripeassets.com",
+    "b.stripecdn.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -60,7 +118,7 @@
       "plan",
       "service"
     ],
-    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
+    "note": "Line names are placeholders. The image on each row is a photograph Stripe publishes on its own site (https://stripe.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
   },
   "catalog_placeholder": [
     {
@@ -70,9 +128,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/stripe.37119086.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://stripe.com/"
     },
     {
       "title": "Payouts Plan 01",
@@ -81,9 +140,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/wave-fallback-desktop-1x.fba6fa88.webp",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://stripe.com/"
     },
     {
       "title": "Checkout Product 01",
@@ -92,9 +152,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.stripeassets.com/fzn2n1nzq965/1Vf8oT9Fm6dEwpnEx5PgK1/055956f38d7fd8b0cc7419692ef29778/bento-terminal.png?w=308&fm=webp&q=90",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://stripe.com/"
     },
     {
       "title": "Reporting Add-on 01",
@@ -103,19 +164,77 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.stripeassets.com/fzn2n1nzq965/5Dr3Oc550drIrxyzzXgFbq/f6e4fb0b8b4b40d73e94fdf7c9bc7028/payments-hoodie.jpg?w=80&q=90",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://stripe.com/"
     }
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Stripe]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Stripe]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Stripe]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Stripe]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Stripe]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/1hgcBNd12BfT9VLgbId7By/01d91920114b124fb4cf6d448f9f06eb/favicon.svg",
+      "role": "logo",
+      "alt": "Aerial view of a street intersection where the crosswalks form a slanted parallelogram, imitating the Stripe logo.",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/stripe.37119086.jpg",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/wave-fallback-desktop-1x.fba6fa88.webp",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/1Vf8oT9Fm6dEwpnEx5PgK1/055956f38d7fd8b0cc7419692ef29778/bento-terminal.png?w=308&fm=webp&q=90",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/5Dr3Oc550drIrxyzzXgFbq/f6e4fb0b8b4b40d73e94fdf7c9bc7028/payments-hoodie.jpg?w=80&q=90",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/1UE1lPgwbfQRH586XfTWKM/f90bfc79f87b3e60a4189cc0f5a03228/showflix-streaming.jpg?w=80&q=90",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/vYmk6v8n7oDAwbDpwhjV6/846f9b3e214549b8f14e2b8c8cfe9343/payment-bento-background.jpg?w=860&fm=webp&q=80",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/m9HBEK464p46FeNIhs2PV/f5054a93c8a0a6aabdd1c47675d610ae/wave_crop.jpg?w=296&q=80",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "img on the page"
+    }
+  ],
+  "logo_url": "https://images.stripeassets.com/fzn2n1nzq965/1hgcBNd12BfT9VLgbId7By/01d91920114b124fb4cf6d448f9f06eb/favicon.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

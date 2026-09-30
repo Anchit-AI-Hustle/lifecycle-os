@@ -1,0 +1,68 @@
+{
+  "ok": false,
+  "slug": "coca-cola",
+  "start": "https://www.coca-cola.com",
+  "landed": "https://www.coca-cola.com/us/en",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Explore the Coca‑Cola® Official Site | Coca-Cola US",
+  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
+  "snapshot_summary": {
+    "theme": "",
+    "logoColor": "",
+    "paints": [
+      {
+        "hex": "#3860be",
+        "n": 1,
+        "sample": "BUTTON"
+      },
+      {
+        "hex": "#6aaae4",
+        "n": 1,
+        "sample": "ot-floating-button__front"
+      }
+    ],
+    "vars": [
+      {
+        "name": "--color-text-neutral-on_brand-primary-default",
+        "hex": "#ffffff",
+        "selector": ".footer-wrapper, .notify-me-footer"
+      },
+      {
+        "name": "--color-surface-action-opaque-on_brand-primary-default",
+        "hex": "#ffffff",
+        "selector": ".header__user-account > button, .profile-popup"
+      },
+      {
+        "name": "--color-icon-action-on_brand-primary-pressed",
+        "hex": "#d5d5d5",
+        "selector": ".header__user-account > button, .profile-popup"
+      },
+      {
+        "name": "--color-icon-neutral-on_brand-primary-disabled",
+        "hex": "#bdbdbd",
+        "selector": ".header__user-account > button, .profile-popup"
+      },
+      {
+        "name": "--color-icon-brand-primary-regular",
+        "hex": "#ea0000",
+        "selector": ".profile-progress__bar-segment--filled"
+      },
+      {
+        "name": "--color-icon-action-on_brand-primary-default",
+        "hex": "#ffffff",
+        "selector": ":root, .brand-colors"
+      },
+      {
+        "name": "--color-icon-action-on_brand-primary-disabled",
+        "hex": "#bdbdbd",
+        "selector": ":root, .brand-colors"
+      },
+      {
+        "name": "--color-icon-action-on_brand-primary-hover",
+        "hex": "#eeeeee",
+        "selector": ":root, .brand-colors"
+      }
+    ]
+  }
+}
