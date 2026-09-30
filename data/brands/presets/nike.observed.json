@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "nike",
+  "start": "https://www.nike.com",
+  "landed": "https://www.nike.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Nike. Just Do It. Nike.com",
+  "source": "Read from https://www.nike.com/ on 2026-09-30. Primary #111111 from computed color of the home logo.",
+  "palette": {
+    "primary": "#111111",
+    "accent": "#111111",
+    "ink": "#111111",
+    "surface": "#ffffff",
+    "surface_alt": "#f5f5f5",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://www.nike.com/"
+    },
+    "ink": {
+      "value": "#111111",
+      "signal": "computed color of body",
+      "source_url": "https://www.nike.com/"
+    },
+    "surface_alt": {
+      "value": "#f5f5f5",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://www.nike.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://www.nike.com/"
+    },
+    "primary": {
+      "value": "#111111",
+      "signal": "computed color of the home logo",
+      "source_url": "https://www.nike.com/"
+    },
+    "accent": {
+      "value": "#111111",
+      "signal": "the brand publishes one colour",
+      "source_url": "https://www.nike.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Nike Futura ND",
+      "stack": "'Nike Futura ND', \"Helvetica Now Text Medium\", Helvetica, Arial, sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "Helvetica Now Text",
+      "stack": "'Helvetica Now Text', Helvetica, Arial, sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://www.nike.com/favicon.ico?v=1",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://www.nike.com/favicon.ico?v=1",
+      "role": "logo",
+      "alt": "ACG Logo",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://c.static-nike.com/a/images/w_1920,c_limit/bzl2wmsfh7kgdkufrrjq/image.jpg",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1280,c_limit/7d747f27-6553-4fb5-9016-9520b54400f6/nike-just-do-it.jpg",
+      "role": "photograph",
+      "alt": "EVERYTHING<br>LED HERE",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/h_387,c_limit/dfc4ac72-3a60-46ae-a2f3-40ed2b9adcfd/nike-just-do-it.jpg",
+      "role": "photograph",
+      "alt": "Nike. Just Do It, slide 1 of 3",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/h_387,c_limit/9c14410e-ceff-436f-9a12-a07731958175/nike-just-do-it.jpg",
+      "role": "photograph",
+      "alt": "Nike. Just Do It, slide 2 of 3",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/h_387,c_limit/83f076f3-130f-4970-95cb-69dcc7a3f95f/nike-just-do-it.jpg",
+      "role": "photograph",
+      "alt": "Nike. Just Do It, slide 3 of 3",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1280,c_limit/1ba62614-17e1-463d-985e-d21a6ecba398/nike-just-do-it.jpg",
+      "role": "photograph",
+      "alt": "Nike. Just Do It",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1184,c_limit/996b2785-2c6f-4ce1-9726-55d12008d8ae/nike-just-do-it.png",
+      "role": "photograph",
+      "alt": "Nike. Just Do It",
+      "found_on": "https://www.nike.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

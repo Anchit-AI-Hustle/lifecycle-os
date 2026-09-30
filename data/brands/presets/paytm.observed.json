@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "paytm",
+  "start": "https://paytm.com",
+  "landed": "https://paytm.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills",
+  "source": "Read from https://paytm.com/ on 2026-09-30. Primary #002970 from computed background of _2iOZj (4 elements).",
+  "palette": {
+    "primary": "#002970",
+    "accent": "#000000",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f7f9fc",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://paytm.com/"
+    },
+    "ink": {
+      "value": "#000000",
+      "signal": "computed color of body",
+      "source_url": "https://paytm.com/"
+    },
+    "surface_alt": {
+      "value": "#f7f9fc",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://paytm.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://paytm.com/"
+    },
+    "primary": {
+      "value": "#002970",
+      "signal": "computed background of _2iOZj (4 elements)",
+      "source_url": "https://paytm.com/"
+    },
+    "accent": {
+      "value": "#000000",
+      "signal": "text colour, used where the brand publishes no second colour",
+      "source_url": "https://paytm.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Inter",
+      "stack": "'Inter', sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "Inter",
+      "stack": "'Inter', sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/header/images/logo_new.svg",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/header/images/logo_new.svg",
+      "role": "logo",
+      "alt": "Paytm Logo",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179318/36886801089433092.png",
+      "role": "photograph",
+      "alt": "Mobile Recharge/Bill",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179321/4291158023212300.png",
+      "role": "photograph",
+      "alt": "Electricity Bill",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179320/67050918934984.png",
+      "role": "photograph",
+      "alt": "FASTag Recharge",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179317/36886820392724710.png",
+      "role": "photograph",
+      "alt": "DTH Recharge",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3238780/1792648419066137.png",
+      "role": "photograph",
+      "alt": "Insurance Premium",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179323/17103808700486.png",
+      "role": "photograph",
+      "alt": "Metro Recharge",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179324/17120113824819.png",
+      "role": "photograph",
+      "alt": "Toll Gate Recharge",
+      "found_on": "https://paytm.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "makemytrip",
+  "start": "https://www.makemytrip.com",
+  "landed": "https://www.makemytrip.com",
+  "observed_at": "2026-09-30",
+  "status": 0,
+  "title": "",
+  "note": "page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.makemytrip.com/"
+}
