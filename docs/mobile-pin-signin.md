@@ -68,9 +68,20 @@ session is `{token, user:{id,name,phone}, mode:'server', expires}` in
 the PIN via WebCrypto (120,000 iterations, a random 16-byte salt), `tries`, `lockedUntil`.
 The same weak-PIN list, the same five tries and fifteen minutes. WebCrypto's `subtle` API
 exists only in a secure context (https, or localhost); on plain http the browser refuses to
-hash a PIN and says so rather than storing one in the clear. A device token is meaningful
-only in that browser and is **never sent**: `LifecycleAuth.apiToken()` answers `''` for it,
-and the fetch wrapper, `brand-context.js` and `credits.js` all go through that.
+hash a PIN and says so rather than storing one in the clear.
+
+**Standalone device mode (2026-09-30).** A device token used to be **never sent**:
+`LifecycleAuth.apiToken()` answered `''` for it, so every agent and every metered button
+said *"this sign-in is saved on this device only"* and nothing ran — production's state,
+with model keys set and no `DATABASE_URL`. The page now **sends** the token on same-origin
+`/api/` calls. With no database URL, `verifyToken()` admits a well-shaped token as
+`mode:'device'`, `user.id` = `device:<sha256 of the token>`, no phone invented from the
+body. `requireUser()` still refuses that token without an `Origin`/`Referer` (a well-shaped
+token is not a secret; a raw server-to-server call stays anonymous). Features run
+unmetered (`credits.meter` short-circuits; the pill says *Local / Demo Mode*). A
+deployment that **has** a database still refuses a token that is not in `app_sessions`.
+An anonymous caller still cannot reach a model. TeleSuite still refuses a phone account
+(no email identity there). Gated by `tests/standalone-no-database.spec.js`.
 
 The browser's copy of the phone table, the weak-PIN list and `pinError()` is held to the
 server's by the parity test, over the same inputs, so the copies cannot drift unnoticed.
