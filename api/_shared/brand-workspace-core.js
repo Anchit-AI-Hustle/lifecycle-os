@@ -95,22 +95,38 @@ function requireUser(req) {
 }
 
 async function verifyCaller(req) {
-  // ── A MOBILE + PIN SESSION (2026-09-28) ───────────────────────────────────
+  // ── A MOBILE + PIN SESSION (2026-09-28, standalone 2026-09-30) ─────────────
   // The one sign-in the browser has now. Its token is 43 base64url characters
-  // with no dots (a Supabase JWT has two), so the two cannot be confused. It is
-  // verified against app_sessions in the Neon database - a SERVER-mode session.
-  // A DEVICE-mode token (the browser kept the account in localStorage because
-  // there was no database, or it was not answering) cannot be verified by
-  // anyone, so it is refused exactly like an anonymous call: the same status,
-  // the same code, and nothing about it is trusted from the body.
+  // with no dots (a Supabase JWT has two), so the two cannot be confused. A
+  // SERVER-mode session is verified against app_sessions in the Neon database.
+  // A DEVICE-mode token (no DATABASE_URL on this deployment) is admitted as
+  // `mode:'device'` so features that do not need a ledger can run; its id is
+  // `device:<hash>` of the token, never a phone number from the body. A raw
+  // server-to-server call with only that token and no page Origin is still
+  // anonymous: a well-shaped token is not a secret, and the 2026-09-29 review
+  // closed "any token at all reaches a model". The page the person is on is
+  // the attribution.
   const mobile = require('./mobile-auth-core.js');
   const own = mobile.tokenOf(req);
   if (own && mobile.looksLikeToken(own)) {
     const v = await mobile.verifyToken(own);
     if (v.ok) {
+      const mode = v.mode === 'device' ? 'device' : 'server';
+      if (mode === 'device') {
+        const h = (req && req.headers) || {};
+        if (!(h.origin || h.Origin || h.referer || h.Referer)) {
+          return {
+            ok: false, status: 401, error: 'sign_in_required',
+            message: 'A sign-in kept on this device only can run features from this app\'s pages. This request did not come from a page, so it did not run.',
+            hint: 'Send the device session as X-Lifecycle-Token from a same-origin page (Origin or Referer).',
+            mobile_reason: 'device_unattributed',
+          };
+        }
+      }
       return {
         ok: true, token: own, user_id: v.user.id, email: '',
         phone: v.user.phone, name: v.user.name, provider: 'mobile-pin',
+        mode,
       };
     }
     if (v.reason === 'unreachable') {

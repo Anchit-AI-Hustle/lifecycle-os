@@ -4,6 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Features run without DATABASE_URL (2026-09-30) — read `docs/mobile-pin-signin.md`, `docs/agents-status.md`
+Production is device mode (`no_database_url`) with model keys and no Neon. Until this date
+`LifecycleStatus.refusal()` blocked every server action for a device-mode sign-in, `apiToken()`
+never sent the token, `verifyToken()` returned `no_database`, and the credit meter 503'd against
+the paused ledger — so no feature ran. A well-shaped device token **from a page** (Origin/Referer)
+is now a `mode:'device'` principal (`user.id` = `device:<hash>`, no phone from the body); features
+run unmetered (*Local / Demo Mode*). Anonymous (no token), a forged JWT, and a token with no
+Origin still do not reach a model. A deployment that HAS a database still refuses a token that
+is not in `app_sessions`. TeleSuite still refuses a phone account. Gated by
+`tests/standalone-no-database.spec.js`.
+
 ## ⭐ Every agent answers a phone account, and only a listed number spends (2026-09-29) — read `docs/agents-status.md`
 PR #112 (`48dfa26`, `3425ff7`) executed every agent action in three states and fixed what running them
 found: a phone token fell through `workspace-scope.resolve()` as USERLESS and was scoped to the oldest

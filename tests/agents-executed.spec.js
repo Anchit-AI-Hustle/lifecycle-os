@@ -3,8 +3,10 @@
 // "Ensure all agents are working" (the operator, 2026-09-29). The only sign-in
 // is a mobile number and a 4-digit PIN, so the states that matter are: no
 // session at all; a SERVER-mode phone session the server can verify; and a
-// DEVICE-mode phone session, whose token is never sent and which the server
-// therefore sees exactly as an anonymous caller. Each action below is driven
+// DEVICE-mode phone session. With a database the device token is not in
+// app_sessions and is anonymous on the wire; without DATABASE_URL the page
+// sends the token and the server admits it as a device principal (2026-09-30).
+// Each action below is driven
 // through the SHIPPED router (api/brain.js, api/calendar.js, api/public-config.js
 // and api/ai/generate.js, request-scope and credits.metered wrappers included)
 // over a real socket, against an in-memory Neon store handed to the real
