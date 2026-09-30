@@ -12,7 +12,7 @@ status document is not worth that spend.
 |---|---|
 | Deployment serving `lifecycle-os.anchit-tandon.com` | `dpl_8AEwJP1NWLjyvxvSB7yuLmZzSiB9`, commit `2b2a992` (PR #105), created 2026-09-29 07:09 UTC, state READY |
 | Main commits with no production deployment | #108, #111, #112 (`5d2ad8c`), #113 (`9e92f68`) and this branch. The six newest production-target deployments listed by the Vercel API end at `2b2a992`; #113's own commit message records Vercel refusing main pushes with "Deployment rate limited - retry in 24 hours" |
-| Sign-in store (`/api/public-config?action=auth&op=status`) | `200 {"mode":"device","reason":"no_database_url"}`: every mobile+PIN account lives only in the browser that made it, and its token is never sent |
+| Sign-in store (`/api/public-config?action=auth&op=status`) | `200 {"mode":"device","reason":"no_database_url"}`: every mobile+PIN account lives in the browser that made it. Since 2026-09-30 the page **sends** that token; the server admits it as a device principal from a page and features run unmetered. A raw server-to-server token with no Origin is still anonymous. |
 | Liveness (`/api/health`) | `200 {"ok":true,"build":"lifecycle-os"}` |
 | Workspace database | Supabase project `fswdwmkgggzyxrdzabnh` is PAUSED for unpaid invoices on the Vercel-provisioned org (recorded 2026-09-12: `status: INACTIVE`, `restore_project` answers `PaymentRequiredException`). Not re-measured today |
 | Project-level environment variable NAMES on Vercel (values not read) | `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `OpenRouter_API_KEY`, `GITHUB_MODELS_TOKEN`, `INGEST_TOKEN`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Absent: `DATABASE_URL`, `CREDITS_COMP_PHONES`, `CREDITS_COMP_ACCOUNTS`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `AGENT_BUILDER_API_KEY`, `CONNECTION_SECRET_KEY`, `KLAVIYO_API_KEY`. Team-shared variables, if any, are not in this list |
@@ -25,7 +25,7 @@ was not measured. "After this branch deploys" is what the executed specs (`tests
 
 | Agent | Page | Route | Needs | Production today (`2b2a992`) | After this branch deploys, with production's env as listed | Unblocks it |
 |---|---|---|---|---|---|---|
-| KicksGPT (brand assistant) | `kicksgpt.html` | `POST /api/brain?action=brand-chat` | verified caller; wallet (`assistant.chat`, 2/turn); model key | Not probed (POST). The page, in device mode, refuses before sending. Per its code, an anonymous server-to-server POST reaches the model | Page: the device-session sentence, nothing sent. Server: anonymous 401, device/forged token 401, unlisted number 403, listed number metered | `DATABASE_URL`, `CREDITS_COMP_PHONES`, the Supabase invoice (the ledger is a Supabase table) |
+| KicksGPT (brand assistant) | `kicksgpt.html` | `POST /api/brain?action=brand-chat` | verified caller; wallet (`assistant.chat`, 2/turn); model key | Not probed (POST). The page, in device mode, used to refuse before sending. | Page: the turn runs against the carried brand, unmetered. Server: anonymous 401, token without Origin 401, forged JWT 401, device token from a page 200 (scripted / live model). | Model keys. `DATABASE_URL` is no longer required for the turn. |
 | KicksGPT tool manifest | `kicksgpt.html` | `GET /api/brain?action=brand-tools` | nothing (public) | `200`, 19 tools, `klaviyo_connected:false`, assistant name `KicksGPT` | Same; a signed-out page gets it with no workspace | — |
 | Brand / buyer agents | `agent.html`, `agent-widget.js` | `GET agents`, `POST agent-chat` (`assistant.chat`), `agent-sessions`, `agent-upsert`, `agent-sync`, `POST tts` (`audio.tts`) | agents live in `smart_agents` (Supabase, per workspace); chat needs a verified caller + wallet + key; tts needs `ELEVENLABS_API_KEY` | `GET agents` (no Origin, no token): `200 {"ok":true,"agents":[]}` | A phone account has no workspace, so no agents: chat `404 agent_not_found` with a sentence; writes `409 no_workspace`; tts `501` without the key | The Supabase invoice (a workspace with agents), `ELEVENLABS_API_KEY` for voice |
 | Team copilot | `team.html` | `POST team-chat` (`assistant.chat`) | verified caller; wallet; key | Not probed (POST) | Listed number: answers over NOTHING of another workspace (before the review fix it read tenant zero's rows) | `DATABASE_URL`, `CREDITS_COMP_PHONES`, Supabase |
@@ -59,8 +59,11 @@ does, and what the executed specs on this branch prove the new code refuses.
 2. **Settle the Supabase invoice** for the Vercel-provisioned org, so project `fswdwmkgggzyxrdzabnh`
    restores. Every workspace table, the credit ledger (so every metered turn) and TeleSuite live there.
    Until then a listed number's metered turn answers `503 backend_unreachable` naming the host.
-3. **Set `DATABASE_URL`** (Neon). Without it every sign-in is device-only, the token is never sent, and
-   every agent that needs a caller refuses in the page before anything is sent.
-4. **Set `CREDITS_COMP_PHONES`** with the operator's own number. A phone number holds a wallet only
-   when it is on that list; an unlisted number is refused before any wallet row exists.
+3. **`DATABASE_URL` (Neon) is optional for the product to run.** Without it every sign-in is
+   device-only. Since 2026-09-30 the page sends that token, the server admits it as a device
+   principal from a page, and model features run unmetered (*Local / Demo Mode*). A listed
+   number and a ledger still need the database; TeleSuite still needs an email identity.
+4. **Set `CREDITS_COMP_PHONES`** with the operator's own number once a database exists. A phone
+   number holds a wallet only when it is on that list; an unlisted number is refused before any
+   wallet row exists.
 5. Optional: `ELEVENLABS_API_KEY` (agent voice), `AGENT_BUILDER_API_KEY` (the Agent Builder bridge).

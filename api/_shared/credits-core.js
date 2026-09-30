@@ -261,6 +261,24 @@ function isCompPhone(phone) {
   return compPhones().includes(phoneHash(np.e164));
 }
 
+/** No Neon URL: there is no session store and no ledger. Not the same as a URL that does not answer. */
+function standaloneMode() {
+  try { return require('./mobile-auth-core.js').standaloneMode(); } catch (_) { return false; }
+}
+
+/**
+ * A device-mode principal (2026-09-30): the deployment has no DATABASE_URL,
+ * so the session lives only in the browser that minted it. It has no phone
+ * the list can match and no wallet row to hold. Features run unmetered
+ * rather than 401/403/503 on every press. A server-mode phone account is
+ * never this: verifyToken only answers `mode:'device'` when there is no URL.
+ */
+function isDeviceAuth(auth) {
+  return !!(auth && typeof auth === 'object' && auth.ok !== false && auth.mode === 'device');
+}
+
+const STANDALONE_MESSAGE = 'Local / Demo Mode: no database is configured, so features run on this device without a credit wallet.';
+
 /**
  * May this VERIFIED caller reach a model or a paid provider at all? Null when
  * it may; otherwise the refusal to send (2026-09-29, review).
@@ -273,9 +291,15 @@ function isCompPhone(phone) {
  * which is free, unverified and unlimited, spent the provider keys with no
  * wallet at all. That is the faucet the list exists to shut, reopened by a
  * missing environment variable. The list decides in both configurations now.
+ *
+ * A DEVICE-mode principal is the other half of that faucet (2026-09-30):
+ * there is no number to list and no ledger to meter, so refusing it is
+ * "no feature works without DATABASE_URL". It is admitted, unmetered. An
+ * anonymous caller is still refused by requireUser before this runs.
  */
 function spenderRefusal(auth) {
   if (!auth || auth.ok === false) return null;
+  if (isDeviceAuth(auth)) return null;
   if (auth.provider === 'mobile-pin' && !isCompPhone(auth.phone)) return mobileAccountRefusal(null);
   return null;
 }
@@ -330,6 +354,23 @@ async function meter(req, featureKey, opts) {
 
   const auth = o.auth || await brandCore.requireUser(req);
   if (!auth.ok) return Object.assign({ ok: false }, auth);
+
+  // STANDALONE / DEVICE MODE (2026-09-30). There is no ledger to hold against:
+  // production's DATABASE_URL is unset, the credit tables live on a paused
+  // Supabase project, and a device principal has no phone the list can match.
+  // Running unmetered here is what makes KicksGPT, the copilot and generate
+  // answer; hitting the paused host used to 503 every listed turn as
+  // backend_unreachable, and refusing the device principal used to 401 every
+  // unsigned-out press. Anonymous callers never reach this (requireUser 401).
+  if (isDeviceAuth(auth) || standaloneMode()) {
+    return {
+      ok: true, free: true, unmetered: true, hold_id: null, quote: q, charged: 0,
+      workspace_id: null, auth, mode: 'device',
+      receipt: { feature: q.key, label: q.label, cost: 0, unit: q.unit, charged: 0, unmetered: true },
+      settle: async () => ({ ok: true, charged: 0 }),
+      release: async () => ({ ok: true, released: 0 }),
+    };
+  }
 
   // A MOBILE-NUMBER ACCOUNT HAS NO WALLET UNLESS ITS NUMBER IS LISTED
   // (2026-09-28, widened 2026-09-29). A phone sign-up is free, unverified and
@@ -851,6 +892,29 @@ async function handle(req, res) {
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
 
+  // STANDALONE / DEVICE MODE (2026-09-30): no ledger, no wallet, features still
+  // run. The pill says so; usage and the ledger are empty rather than 503.
+  if (isDeviceAuth(auth) || standaloneMode()) {
+    const prices = await priceList().catch(() => catalog.list());
+    const packs = await packList().catch(() => catalog.packList(null));
+    if (op === 'balance') {
+      return res.status(200).json({
+        ok: true, wallet: null, low: false, comp: false, unmetered: true, mode: 'device',
+        unavailable: 'standalone', message: STANDALONE_MESSAGE, features: prices, packs,
+      });
+    }
+    if (op === 'usage' || op === 'ledger' || op === 'orders') {
+      return res.status(200).json({
+        ok: true, rows: [], entries: [], ledger: [], orders: [], unmetered: true, mode: 'device',
+        message: STANDALONE_MESSAGE,
+      });
+    }
+    return res.status(409).json({
+      ok: false, error: 'standalone_unmetered', mode: 'device',
+      message: 'Local / Demo Mode has no credit wallet, so this could not be charged or recharged. Features still run.',
+    });
+  }
+
   // A mobile-number account (2026-09-28): no wallet unless its number is
   // listed, see meter(). For an UNLISTED number the balance read answers 200
   // with `wallet:null` and the reason, because "this account has no wallet" is
@@ -923,5 +987,5 @@ module.exports = {
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
   isCompPhone, isCompAuth, compPhones, phoneHash, COMP_PHONE_HASHES, MOBILE_ACCOUNT_MESSAGE,
-  spenderRefusal,
+  spenderRefusal, isDeviceAuth, standaloneMode, STANDALONE_MESSAGE,
 };

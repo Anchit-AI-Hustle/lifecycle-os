@@ -9,10 +9,10 @@
 // models a server. Two sessions, both seeded the way auth.js stores them:
 //
 //   device   a mobile+PIN session kept only in this browser, on a deployment
-//            with no DATABASE_URL - the state production is in today. Its
-//            token is never sent, so every agent has to SAY, before sending,
-//            that the server cannot verify this sign-in; the sentence must be
-//            visible where the answer would have been.
+//            with no DATABASE_URL - the state production is in today. The
+//            token is sent from the page; the server admits it as a device
+//            principal and features run unmetered (2026-09-30). TeleSuite
+//            still refuses a phone account (no email identity there).
 //   server   a server-mode phone session whose number the operator listed.
 //            The assistant answers as the brand kept on the device, the
 //            metered copilot turn takes a hold on the wallet and settles it,
@@ -39,6 +39,7 @@ const HOST = 'http://app.agents.test';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const RAW = /\b(sign_in_required|not_authenticated|session_verification_unavailable|invalid_session|credits_require_account|no_active_brand|account_type_unsupported|workspace_unresolved|unauthori[sz]ed|http 401|http 403|http 409)\b/i;
 const DEVICE_SENTENCE = /saved on this device only|exists only in this browser/i;
+const PHONE_TELESUITE = /mobile-number sign-in has no record there/i;
 
 /** Seed the session and the device brand the way auth.js and brand-context.js store them. */
 function seed(args) {
@@ -135,84 +136,74 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
   test.afterAll(async () => { await w.close(); });
   test.beforeEach(() => { w.reset(); });
 
-  test('KicksGPT: the turn does not leave, and the transcript says why in the accent rule', async ({ page }) => {
+  test('KicksGPT: the turn runs, and the transcript shows the scripted reply', async ({ page }) => {
     const log = await open(page, w, 'kicksgpt.html', 'device');
     await page.fill('#q', 'What is our best cohort?');
     await page.click('#send');
-    const status = page.locator('#chat .msg.status .vh-status');
-    await expect(status).toBeVisible({ timeout: 10000 });
-    await expect(status).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /action=brand-chat/.test(r.url))).toEqual([]);
+    const bot = page.locator('#chat .msg.bot:not(.status)').last();
+    await expect(bot).toHaveText(/Scripted reply for this turn/, { timeout: 15000 });
+    const turn = log.api.filter((r) => /action=brand-chat/.test(r.url));
+    expect(turn.map((r) => r.status)).toEqual([200]);
+    expect(await bodyText(page)).not.toMatch(DEVICE_SENTENCE);
     clean(log, await bodyText(page), 'kicksgpt');
   });
 
-  test('the concierge agent: same contract, and the empty box is told what to do', async ({ page }) => {
+  test('the concierge agent: the empty box is told what to do, then a turn leaves', async ({ page }) => {
     const log = await open(page, w, 'agent.html', 'device');
     await page.waitForSelector('#send');
     await page.click('#send');
     await expect(page.locator('#askNote')).toHaveText(/Type a question first/);
     await page.fill('#q', 'Which pair should I start with?');
     await page.click('#send');
-    const status = page.locator('#chat .msg.status .vh-status');
-    await expect(status).toBeVisible({ timeout: 10000 });
-    await expect(status).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /action=agent-chat/.test(r.url))).toEqual([]);
-    clean(log, await bodyText(page), 'agent');
+    await expect.poll(() => log.api.filter((r) => /action=agent-chat/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
+    const shown = await bodyText(page);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    clean(log, shown, 'agent');
   });
 
-  test('the social pipeline console: Run and Load both say what needs sign-in, never a red banner with a code', async ({ page }) => {
+  test('the social pipeline console: Run and Load reach the server, never a red banner with a code', async ({ page }) => {
     const log = await open(page, w, 'social-media.html', 'device');
     await page.click('#runBtn');
-    const banner = page.locator('#banner .vh-status');
-    await expect(banner).toBeVisible({ timeout: 10000 });
-    await expect(banner).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /action=social-run-daily/.test(r.url))).toEqual([]);
+    await expect.poll(() => log.api.filter((r) => /action=social-run-daily/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
     await page.click('#loadBtn');
-    await expect(page.locator('#banner .vh-status')).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /action=social-list/.test(r.url))).toEqual([]);
-    clean(log, await bodyText(page), 'social');
+    await expect.poll(() => log.api.filter((r) => /action=social-list/.test(r.url)).length, { timeout: 10000 }).toBeGreaterThan(0);
+    const shown = await bodyText(page);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    clean(log, shown, 'social');
   });
 
-  test('the TeleSuite hub starts (its registry is public), and the tool form says why the library is not there', async ({ page }) => {
+  test('the TeleSuite hub starts (its registry is public), and the tool form says a phone account has no library there', async ({ page }) => {
     const tool = TELESUITE.SUBFEATURES.find((s) => s.kind === 'tool' && s.key === 'pitch-generator');
     const log = await open(page, w, 'telesuite.html#' + tool.key, 'device');
     await page.waitForSelector('#run', { timeout: 20000 });
     expect(log.api.filter((r) => /op=registry/.test(r.url)).map((r) => r.status)).toEqual([200]);
-    // The Products select cannot be filled: the library is read through the
-    // server, and the form says so in the accent rule where it used to say
-    // "No products yet". Nothing was sent for it.
     const why = page.locator('#form .vh-status').first();
-    await expect(why).toBeVisible({ timeout: 10000 });
-    await expect(why).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /action=telesuite&op=(?!registry)/.test(r.url))).toEqual([]);
-    // Pressing Run with the required product unfilled is the page's own
-    // precondition, said in its toast; no request leaves.
-    await page.click('#run');
-    await expect(page.locator('#toast')).toHaveText(/is required/, { timeout: 5000 });
-    expect(log.api.filter((r) => /action=telesuite&op=(?!registry)/.test(r.url))).toEqual([]);
+    await expect(why).toBeVisible({ timeout: 15000 });
+    await expect(why).toHaveText(PHONE_TELESUITE);
+    const items = log.api.filter((r) => /action=telesuite&op=items/.test(r.url));
+    expect(items.length).toBeGreaterThan(0);
+    for (const r of items) expect(r.status).toBe(403);
     clean(log, await bodyText(page), 'telesuite');
   });
 
-  test('the Smart Brain console: the agentic run says what needs sign-in instead of asking the server', async ({ page }) => {
+  test('the Smart Brain console: the agentic run reaches the server', async ({ page }) => {
     const log = await open(page, w, 'smart-brain.html', 'device');
     await page.waitForSelector('#runAgentic');
     await page.click('#runAgentic');
-    const status = page.locator('#agenticOut .vh-status');
-    await expect(status).toBeVisible({ timeout: 10000 });
-    await expect(status).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /action=agentic-run/.test(r.url))).toEqual([]);
-    clean(log, await bodyText(page), 'smart-brain');
+    await expect.poll(() => log.api.filter((r) => /action=agentic-run/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
+    const shown = await bodyText(page);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    clean(log, shown, 'smart-brain');
   });
 
-  test('the landing-page agent: Generate says what needs sign-in in the status rule', async ({ page }) => {
+  test('the landing-page agent: Generate reaches /api/ai/', async ({ page }) => {
     const log = await open(page, w, 'landing-page-agent.html', 'device');
     await page.fill('#prompt', 'A complete brief for a launch page: product, audience, offer, proof, visuals, CTA.');
     await page.click('#generate');
-    const status = page.locator('#status .vh-status');
-    await expect(status).toBeVisible({ timeout: 10000 });
-    await expect(status).toHaveText(DEVICE_SENTENCE);
-    expect(log.api.filter((r) => /\/api\/ai\//.test(r.url))).toEqual([]);
-    clean(log, await bodyText(page), 'landing-page-agent');
+    await expect.poll(() => log.api.filter((r) => /\/api\/ai\//.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
+    const shown = await bodyText(page);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    clean(log, shown, 'landing-page-agent');
   });
 
 });
