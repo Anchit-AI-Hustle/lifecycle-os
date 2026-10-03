@@ -368,6 +368,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      CANDIDATES, and a candidate becomes part of the brand exactly when the
      operator presses Use, never before. */
   var extraction = null, extractBusy = false, extractError = null;
+  /* What is typed in "Read my site", kept across a re-render. The step is
+     painted again whenever auth.js or brand-context.js decides something
+     (a backend state, where accounts are kept), and the input is not bound to
+     the brand model - so a decision that landed after the operator started
+     typing wiped the address they had typed. */
+  var xUrlDraft = null;
 
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -395,25 +401,37 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return (window.BrandContext && typeof window.BrandContext.storage === 'function') ? window.BrandContext.storage() : null;
     } catch (_) { return null; }
   }
-  function onDevice() { var s = storageInfo(); return !!(s && s.mode === 'device'); }
-  /* The clause that names what has to change, in the words auth.js's bar uses
-     for the same state. */
-  function accountClause() {
-    var s = storageInfo() || {};
-    return s.kind === 'signed-out' ? 'you sign in' : 'a database is reachable and you sign in';
-  }
-  /* The mobile+PIN session (2026-09-28), if that is who is here. Its brands are
-     on this device whichever mode the ACCOUNT is in, so a control that needs a
-     brand IN THE DATABASE says so in those words - never "sign in" to a person
-     who just did. */
+  /* A brand kept on this device (its id is `local-…`, brand-context.js). */
+  function isLocalId(id) { return typeof id === 'string' && id.indexOf('local-') === 0; }
+  /* The clause that names what has to change. Signing in with a mobile number
+     and PIN is the remedy on every deployment now (2026-10-03): a phone
+     sign-in's token is sent, and the server acts for it whether the account is
+     in a database or kept on this device. */
+  function accountClause() { return 'you sign in with your mobile number and PIN'; }
+  /* The mobile+PIN session, if that is who is here. */
   function phoneSession() { var s = storageInfo(); return (s && s.session) || null; }
+  /* SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). The
+     operator's words: "All features must work even with signin by number and
+     pin". Suggest options, Import catalog and Build context pack were each OFF
+     for a phone sign-in ("Not available on a mobile-number account") - the
+     catalogue and the pack because they were FILED in the workspace database,
+     Suggest because the device token was never sent. The token is sent now
+     (2026-09-30) and the server acts for it; the catalogue and the pack are
+     read by the server and kept on this device beside the brand
+     (brand-context.js deviceServerApi). So these are ON for anyone signed in,
+     and what the server answers is the judge. OFF only for a visitor with no
+     session (sign in), and for a sign-in kept on this device on a deployment
+     that now keeps accounts in a database (sign in again). */
+  function actionsOff() {
+    var s = storageInfo();
+    return !!(s && s.server_actions && !s.server_actions.on);
+  }
   function needsAccountNote(what, why) {
-    var ps = phoneSession();
-    if (ps) {
-      return '<p class="ws-note" data-needs-account="' + esc(what) + '" data-account="mobile-pin"><b>Not available on a mobile-number account.</b> '
-        + esc(what === 'extract'
-          ? 'Reading a site is done by the server, which needs a sign-in it can check. This account is saved on this device only, so the server cannot check it; every field below can be typed in, and the brand is saved on this device.'
-          : 'This is kept in the database beside a brand saved there, and a mobile-number account keeps its brands on this device. Everything else on this brand works exactly the same.') + '</p>';
+    var s = storageInfo() || {};
+    var sa = s.server_actions || {};
+    if (sa.state === 'stale-device-session') {
+      var st = (s.read_site && s.read_site.store) || {};
+      return '<p class="ws-note" data-needs-account="' + esc(what) + '" data-account="mobile-pin"><b>Not available on this sign-in.</b> ' + esc(staleSessionSentence(st)) + '</p>';
     }
     return '<p class="ws-note" data-needs-account="' + esc(what) + '"><b>Needs your account.</b> ' + esc(why) + '</p>';
   }
@@ -715,12 +733,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function suggestBlock(field) {
     var s = SUGGEST[field];
     // Options are written by a language model, which the server runs only for
-    // a signed-in account (an unreachable database must never become a way to
-    // spend model credits without one). Off, with the reason said once - under
-    // the first field on the step, not four times.
-    if (onDevice()) {
+    // a signed-in person (an unreachable database must never become a way to
+    // spend model credits without one). A phone sign-in IS one, in either mode
+    // (2026-10-03). Off for a visitor, with the reason said once - under the
+    // first field on the step, not four times.
+    if (actionsOff()) {
       return '<div class="sug"><button type="button" class="sug-btn" disabled aria-disabled="true" data-needs-account="suggest" data-suggest-off="' + esc(field) + '">Suggest options</button>' +
-        (field === 'voice.tone' ? needsAccountNote('suggest', 'Suggested options are written by a language model, which only runs for a signed-in account. They come back once ' + accountClause() + '. Typing your own values works exactly the same.') : '') +
+        (field === 'voice.tone' ? needsAccountNote('suggest', 'Suggested options are written by a language model, which only runs for a signed-in person. They come back once ' + accountClause() + '. Typing your own values works exactly the same.') : '') +
         '</div>';
     }
     var btn = '<button type="button" class="sug-btn" data-suggest="' + esc(field) + '" data-credit-feature="brand.suggest">' +
@@ -813,6 +832,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      input here is bound to the model on `input`, so painting again loses no
      typing. Guarded so a page whose card is not up yet is left alone. */
   window.addEventListener('lifecycleauth:backend', function () {
+    try { if ($('stepCard') && $('stepCard').children.length) render(); } catch (_) { /* the next render paints it */ }
+  });
+  // And when brand-context.js learns where accounts are kept (auth.js's
+  // status(), asked once): that decides "Read my site" and its sentence.
+  window.addEventListener('brandcontext:storage', function () {
     try { if ($('stepCard') && $('stepCard').children.length) render(); } catch (_) { /* the next render paints it */ }
   });
 
@@ -920,13 +944,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             '<p class="muted" style="margin-top:6px">A CSV or a JSON array of products.</p>' +
           '</div>' +
           '<div style="display:flex;gap:9px;align-items:center;margin-top:12px;flex-wrap:wrap">' +
-            // The catalogue lives in the database (brand_catalog_products), so
-            // with no account to write to the import is off, with its reason -
-            // not a button that fails after the operator has pasted 5,000 rows.
-            (onDevice()
+            // The server reads the catalogue for any signed-in person; for a
+            // brand on this device the rows are kept here beside it
+            // (2026-10-03). Off only for a visitor with no session, with its
+            // reason - not a button that fails after 5,000 rows are pasted.
+            (actionsOff()
               ? '<button type="button" class="btn primary" id="doImport" disabled aria-disabled="true" data-needs-account="catalog-import">Import catalog</button>'
               : '<button type="button" class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>') +
-            '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + ' products in this workspace.') + '</span>' +
+            '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + (isLocalId(brand.id) ? ' products kept on this device.' : ' products in this workspace.')) + '</span>' +
           '</div>' +
           // Two reasons an import can be off, each stated where it applies.
           // No HOME market: the catalogue is partitioned by market, so with no
@@ -936,8 +961,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // take the accent rule, not the warn rule - an incomplete record is
           // an ordinary state, not a failure.
           '<p class="imp-gate" id="impGate" hidden></p>' +
-          (onDevice()
-            ? '<div style="margin-top:10px">' + needsAccountNote('catalog-import', 'The catalogue is kept in the database beside the brand, so it can be imported once ' + accountClause() + '. Everything else on this brand is saved on this device now, and the review step reports the catalogue as still required rather than inventing one.') + '</div>'
+          (actionsOff()
+            ? '<div style="margin-top:10px">' + needsAccountNote('catalog-import', 'The server reads your store for a signed-in person, so the catalogue can be imported once ' + accountClause() + '; it is then kept on this device beside the brand. Everything else on this brand is saved on this device now, and the review step reports the catalogue as still required rather than inventing one.') + '</div>'
             : '') +
         '</div>' +
         actions('Voice', 'Review');
@@ -1061,6 +1086,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         });
         brand.id = keepId;
         presetPicked = slug;
+        // The preset's website replaces whatever was being typed.
+        xUrlDraft = null;
         render();
         // A template preset has just filled the form with a neutral placeholder
         // design. Saying so at the moment of the click is the difference between
@@ -1441,14 +1468,52 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '</div>';
   }
 
-  /* Reading a site runs on the server. With the database unreachable the server
-     opens this one op (it reads a public page, writes nothing, calls no model);
-     with the database REACHABLE and no session it refuses, because a session
-     exists to be had - so the control is off with its reason instead of sending
-     a request the server is known to refuse. */
+  /* Reading a site runs on the server, and this control is ON exactly when the
+     server would read the site for the request THIS browser sends
+     (brand-context.js readSite()). It used to be decided by account type: a
+     person signed in with a mobile number saw it OFF while a visitor in the
+     same backend state saw it ON. The operator's words were "not working after
+     signin", and then "All features must work even with signin by number and
+     pin". A phone sign-in sends its token and the server reads the site for it
+     (2026-10-03); a visitor with no token is read for only while nothing could
+     check a session, and otherwise the control is off with a remedy that works. */
   function extractOff() {
     var s = storageInfo();
-    return !!(s && s.mode === 'device' && !s.server_open);
+    return !!(s && s.read_site && !s.read_site.on);
+  }
+  /* The sentence beside a "Read my site" the server would refuse. Its remedy
+     has to be one that WORKS, and never "sign in" to a person who is. */
+  function extractNote(s) {
+    var rs = (s && s.read_site) || {};
+    var ps = s && s.session;
+    var st = rs.store || {};
+    var at = function (h) { return h ? ' (' + h + ')' : ''; };
+    var lead, body;
+    if (rs.state === 'stale-device-session') {
+      lead = 'Not available on this sign-in.';
+      body = staleSessionSentence(st);
+    } else if (rs.state === 'accounts-in-database' || rs.state === 'backend-answers') {
+      // No token, and a session could be checked: signing in is the remedy on
+      // every deployment now - a server-mode sign-in is verified, and a
+      // device-mode one is admitted as the person on this page.
+      lead = 'Needs your sign-in.';
+      body = 'Sign in with your mobile number and PIN (the Sign in chip in the menu) and it reads your site'
+        + (rs.state === 'backend-answers' ? ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.' : '.');
+    } else {
+      // supabase-js did not load, so this page cannot tell whether the server
+      // would read the site; the standing bar names what blocked it.
+      lead = 'Not available right now.';
+      body = 'This page could not load the library that tells it whether the workspace database answers, so it does not send a request the server may refuse. The bar at the top says what blocked it.';
+    }
+    return '<p class="ws-note" data-needs-account="extract" data-read-site="' + esc(rs.state || '') + '"' + (ps ? ' data-account="mobile-pin"' : '') + '><b>' + esc(lead) + '</b> '
+      + esc(body + ' Every field below can be typed in meanwhile, and the brand is saved on this device.') + '</p>';
+  }
+  /* A sign-in kept on this device from before this deployment kept accounts
+     in a database: its token is not in that database, so the server refuses
+     it. The remedy that works is to sign in again. */
+  function staleSessionSentence(st) {
+    var host = st && st.host ? ' (' + st.host + ')' : '';
+    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Signing out and entering your number again creates the account there, and then this works.';
   }
 
   function extractBlock() {
@@ -1456,15 +1521,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
       '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
       '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
-        '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(brand.website || '') + '">' +
+        '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
           ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
           : '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +
             (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>') +
       '</div>' +
-      (off
-        ? '<div style="margin-top:10px">' + needsAccountNote('extract', 'Reading a site is done by the server, which does it for a signed-in account while its database is reachable. Sign in and it reads your site; meanwhile every field below can be typed in and the brand is saved on this device.') + '</div>'
-        : '') +
+      (off ? '<div style="margin-top:10px">' + extractNote(storageInfo()) + '</div>' : '') +
       '<p class="xmeta" style="margin-top:8px">Same rules as the catalog importer: your own domain only, robots.txt respected, read only, and no page is fetched from a private or internal address.</p>' +
       '</div>';
   }
@@ -1484,8 +1547,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // one, and saying so is the whole point: nothing was saved, and the voice
       // step did not run. Reporting it as an ordinary success would leave the
       // operator to discover both by noticing an empty Voice step later.
+      // `signed_out` is the server's word for "read without an account it
+      // could check" - which is also true of a person signed in on this
+      // device, whose token is never sent. Never "without signing in" to them.
       toast(r.signed_out
-        ? 'Read ' + r.pages_visited + ' page(s) without signing in. Nothing was saved.'
+        ? 'Read ' + r.pages_visited + ' page(s) ' + (phoneSession() ? 'without an account the server could check' : 'without signing in') + '. Nothing was saved.'
         : 'Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.', r.signed_out ? 5200 : 2600);
     } catch (e) {
       extraction = null;
@@ -1644,6 +1710,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (run) runExtract();
   });
 
+  document.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'xUrl') xUrlDraft = e.target.value;
+  });
+
   document.addEventListener('change', function (e) {
     var sel = e.target;
     if (!sel || !sel.getAttribute || !sel.getAttribute('data-xrole')) return;
@@ -1727,11 +1797,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var btn = $('doImport'), gate = $('impGate');
     if (!btn) return;
     var region = importRegion();
-    // Off with no HOME market (nowhere to file the rows) and off on the DEVICE
-    // path (no database to file them in - that reason is the control's own
-    // needsAccountNote). Re-evaluating the first must never re-enable a
-    // control the second disabled.
-    var off = !region || onDevice();
+    // Off with no HOME market (nowhere to file the rows) and off for a visitor
+    // with no session (that reason is the control's own needsAccountNote).
+    // Re-evaluating the first must never re-enable a control the second
+    // disabled.
+    var off = !region || actionsOff();
     btn.disabled = off;
     btn.setAttribute('aria-disabled', off ? 'true' : 'false');
     if (gate) {
@@ -1971,11 +2041,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var __packLoadedFor = null;
 
   function contextBlock() {
-    // The pack is a durable record in the database (brand_context_packs), built
-    // by a server queue. With no account to hold it the control is off, with
-    // its reason, rather than a dead end reading "save this brand first" on a
-    // brand that IS saved - on this device.
-    if (onDevice()) {
+    // The pack is built by the server from the brand's own site. For an
+    // account it is filed in brand_context_packs; for a brand on this device it
+    // is kept here beside the brand (2026-10-03), and this page drives its
+    // queue. Off only for a visitor with no session, with its reason.
+    if (actionsOff()) {
       return '<div class="xtract" style="margin-top:26px"><h3>Brand context pack</h3>' +
         '<p class="xmeta">Reads your brand from its own site and keeps the result: a DESIGN.md in the open ' +
           'google-labs-code/design.md format, a knowledge base built from your domain only, your catalogue, and ' +
@@ -1983,7 +2053,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
           '<button type="button" class="btn" id="packBuild" disabled aria-disabled="true" data-needs-account="context-pack">Build context pack</button>' +
         '</div>' +
-        '<div style="margin-top:10px">' + needsAccountNote('context-pack', 'The context pack is kept in the database with your brand, so it can be built once ' + accountClause() + '. Nothing else on this page waits for it.') + '</div>' +
+        '<div style="margin-top:10px">' + needsAccountNote('context-pack', 'The server builds the context pack from your site for a signed-in person, so it can be built once ' + accountClause() + '. Nothing else on this page waits for it.') + '</div>' +
         '</div>';
     }
     if (!brand.id) {
@@ -1992,7 +2062,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     var p = packState;
     var line;
-    if (packBusy) line = 'Building. This runs as a queue, so it keeps going after you leave this page.';
+    if (packBusy) line = isLocalId(brand.id)
+      ? 'Building. This brand is kept on this device, so this page runs the queue: stay on it until it finishes.'
+      : 'Building. This runs as a queue, so it keeps going after you leave this page.';
     else if (!p) line = 'Not built yet.';
     else if (p.status === 'complete') {
       line = 'Built ' + (p.completed_at || '').slice(0, 10) + ' — ' +
@@ -2081,9 +2153,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
        "only write on change" rule brand-context.js uses to keep its mutation
        observer from re-triggering itself - and the fetch itself is bounded to
        once per brand per visit, so even a changing pack cannot cycle. */
-    // A device brand has no pack to read: the control is rendered off, and no
-    // request is sent for a record the server could not hold.
-    if (!onDevice() && __packLoadedFor !== (brand.id || '')) {
+    // A device brand's pack is read from this device (no request); a visitor
+    // with no session has none to read, and the control is rendered off.
+    if (!actionsOff() && __packLoadedFor !== (brand.id || '')) {
       __packLoadedFor = brand.id || '';
       var __before = JSON.stringify(packState || null);
       loadPack(true).then(function () {

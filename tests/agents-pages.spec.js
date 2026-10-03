@@ -12,11 +12,12 @@
 //            with no DATABASE_URL - the state production is in today. The
 //            token is sent from the page; the server admits it as a device
 //            principal and features run unmetered (2026-09-30). TeleSuite
-//            still refuses a phone account (no email identity there).
+//            runs too (2026-10-03): its library and history are kept on the
+//            device and a tool request carries what it reads.
 //   server   a server-mode phone session whose number the operator listed.
 //            The assistant answers as the brand kept on the device, the
 //            metered copilot turn takes a hold on the wallet and settles it,
-//            and TeleSuite refuses with the sentence for a phone account.
+//            and a TeleSuite run is metered on that wallet like any other.
 //
 // A native dialog, a page error, "undefined" or "[object Object]" in the
 // transcript, a raw code where a sentence should be, or a blank answer is a
@@ -63,7 +64,6 @@ async function outsideRailMode(page) {
   const i = r.body.indexOf(r.mode);
   return i < 0 ? r.body : r.body.slice(0, i) + r.body.slice(i + r.mode.length);
 }
-const PHONE_TELESUITE = /mobile-number sign-in has no record there/i;
 
 /** Seed the session and the device brand the way auth.js and brand-context.js store them. */
 function seed(args) {
@@ -140,6 +140,32 @@ async function open(page, w, file, mode, anonymous) {
   return log;
 }
 
+/** Seed this device's TeleSuite library for the phone account and its device brand. */
+async function seedTelesuite(page, w) {
+  const key = 'lifecycle.telesuite.device.' + w.tokens.phoneUserId + '.' + A.deviceBrand().id;
+  await page.addInitScript((k) => {
+    try {
+      if (localStorage.getItem(k)) return;
+      localStorage.setItem(k, JSON.stringify({ runs: [], items: [{ id: 'dev-item-1', kind: 'product', name: 'Harbour Lamp', category: 'Lamp',
+        content: 'Table lamp, recycled glass.', attributes: {}, source: 'typed', created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' }] }));
+    } catch (_) {}
+  }, key);
+  return key;
+}
+
+/** Run the pitch tool on the device library and read back what was kept. */
+async function runPitch(page, log, key) {
+  await page.waitForSelector('#run', { timeout: 20000 });
+  await page.selectOption('#form select[data-f="product"]', 'Harbour Lamp');
+  await page.click('#run');
+  await expect.poll(() => log.api.filter((r) => /action=telesuite&op=pitch/.test(r.url)).map((r) => r.status), { timeout: 20000 }).toEqual([200]);
+  await expect(page.locator('#out')).toContainText(/scripted/i, { timeout: 15000 });
+  // The library and the history are this device's: no library or dashboard
+  // request reached the server, and the run is kept here.
+  expect(log.api.filter((r) => /action=telesuite&op=(items|item-save|runs|summary)\b/.test(r.url))).toEqual([]);
+  return page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
+}
+
 async function bodyText(page) { return page.evaluate(() => (document.body && document.body.innerText) || ''); }
 
 function clean(log, shown, label) {
@@ -196,17 +222,16 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     clean(log, shown, 'social');
   });
 
-  test('the TeleSuite hub starts (its registry is public), and the tool form says a phone account has no library there', async ({ page }) => {
+  test('the TeleSuite hub starts, its library is on this device, and a tool run returns its result and is kept in this device\'s history', async ({ page }) => {
     const tool = TELESUITE.SUBFEATURES.find((s) => s.kind === 'tool' && s.key === 'pitch-generator');
+    const key = await seedTelesuite(page, w);
     const log = await open(page, w, 'telesuite.html#' + tool.key, 'device');
     await page.waitForSelector('#run', { timeout: 20000 });
     expect(log.api.filter((r) => /op=registry/.test(r.url)).map((r) => r.status)).toEqual([200]);
-    const why = page.locator('#form .vh-status').first();
-    await expect(why).toBeVisible({ timeout: 15000 });
-    await expect(why).toHaveText(PHONE_TELESUITE);
-    const items = log.api.filter((r) => /action=telesuite&op=items/.test(r.url));
-    expect(items.length).toBeGreaterThan(0);
-    for (const r of items) expect(r.status).toBe(403);
+    expect(await page.locator('#form .vh-status').count(), 'the tool form still carries a refusal').toBe(0);
+    const kept = await runPitch(page, log, key);
+    expect(kept.runs.map((r) => r.feature)).toEqual(['pitch']);
+    expect(w.llm.calls.map((c) => c.stage)).toContain('telesuite-pitch');
     clean(log, await bodyText(page), 'telesuite');
   });
 
@@ -291,17 +316,14 @@ test.describe('server-mode mobile+PIN session, number listed', () => {
     clean(log, await bodyText(page), 'kicksgpt server');
   });
 
-  test('TeleSuite: the tool form tells a phone account the library does not exist for it, and nothing is charged', async ({ page }) => {
+  test('TeleSuite: a listed number runs a tool on its device library, metered on its wallet', async ({ page }) => {
     const tool = TELESUITE.SUBFEATURES.find((s) => s.kind === 'tool' && s.key === 'pitch-generator');
+    const key = await seedTelesuite(page, w);
     const log = await open(page, w, 'telesuite.html#' + tool.key, 'server');
-    await page.waitForSelector('#run', { timeout: 20000 });
-    const why = page.locator('#form .vh-status').first();
-    await expect(why).toBeVisible({ timeout: 15000 });
-    await expect(why).toHaveText(/mobile-number sign-in has no record there/i);
-    const items = log.api.filter((r) => /action=telesuite&op=items/.test(r.url));
-    expect(items.length).toBeGreaterThan(0);
-    for (const r of items) expect(r.status).toBe(403);
-    expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url))).toEqual([]);
+    const kept = await runPitch(page, log, key);
+    expect(kept.runs.map((r) => r.feature)).toEqual(['pitch']);
+    expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the run was not metered').toBe(1);
+    expect(w.db.calls.filter((c) => /telesuite_/.test(c.url)), 'a phone account\'s run was filed in a workspace table').toEqual([]);
     clean(log, await bodyText(page), 'telesuite server');
   });
 });

@@ -208,6 +208,163 @@ async function serviceRest(pathAndQuery, { method = 'GET', body, prefer } = {}) 
   return json;
 }
 
+/* ── A TELESUITE KEPT ON THE DEVICE (2026-10-03) ─────────────────────────────
+   The operator's words: "All features must work even with signin by number
+   and pin". TeleSuite answered every phone sign-in 403 account_type_unsupported
+   - its products, knowledge base and runs live in tables keyed to a workspace
+   row, and a phone account's brands are on its device. But no TeleSuite TOOL
+   needs a database: each one is a model call over the brand, the selected
+   product and the selected knowledge. Only the FILING did.
+
+   So for a phone sign-in the request carries what the tool reads - the brand
+   (BrandContext.carry()), the library rows it selected, the runs it refers to,
+   the catalogue row it names - and every read and write the ops make goes
+   through `restOf(ctx)`, which for this caller is a store that lives for one
+   request and answers the PostgREST shapes those ops use. What it wrote comes
+   back on the response (`device.runs` / `device.items`) for the page to keep on
+   the device. The ops, prompts, voice billing CAS and logging are the SAME
+   code: nothing about a tool forks by account type. Credits: a device
+   principal runs unmetered (#115); a server-mode phone number spends only if
+   the operator listed it, exactly as before. */
+const DEVICE_WS = 'device';
+const DEVICE_TABLES = { telesuite_items: 300, telesuite_runs: 80, brand_catalog_products: 50 };
+
+function restOf(ctx) { return (ctx && ctx.rest) || serviceRest; }
+
+function deviceRows(list, max) {
+  return (Array.isArray(list) ? list : [])
+    .filter((r) => r && typeof r === 'object' && !Array.isArray(r))
+    .slice(0, max)
+    .map((r) => Object.assign({}, r, { workspace_id: DEVICE_WS, id: str(r.id, 80) || require('crypto').randomUUID() }));
+}
+
+/** Filters, order and limit in the subset of PostgREST these ops write. */
+function pgFilter(qs) {
+  const out = { where: [], order: null, limit: 0 };
+  for (const part of String(qs || '').split('&')) {
+    if (!part) continue;
+    const eq = part.indexOf('=');
+    const key = decodeURIComponent(part.slice(0, eq));
+    const val = decodeURIComponent(part.slice(eq + 1));
+    if (key === 'select' || key === 'on_conflict') continue;
+    if (key === 'order') { out.order = val; continue; }
+    if (key === 'limit') { out.limit = +val || 0; continue; }
+    const get = key.includes('->>')
+      ? (row) => { const [col, sub] = key.split('->>'); const o = row[col]; return o && typeof o === 'object' ? o[sub] : undefined; }
+      : (row) => row[key];
+    if (val.startsWith('eq.')) { const v = val.slice(3); out.where.push((row) => String(get(row)) === v); }
+    else if (val.startsWith('in.(')) {
+      const set = new Set(val.slice(4, -1).split(',').map((x) => x.trim().replace(/^"|"$/g, '')));
+      out.where.push((row) => set.has(String(get(row))));
+    }
+  }
+  return out;
+}
+
+/* BILLING STATE NEVER COMES FROM THE CLIENT (2026-10-03, review). A voice
+   call is billed incrementally against a `voice_session` row, and for a phone
+   sign-in that row travels with the request - so a fabricated one with a large
+   `billed_minutes` made billElapsed() skip the meter while voice_turn still
+   reached the model. Every run row the server writes for a device caller is
+   signed (HMAC over the fields billing reads), and a carried row of a
+   billing-bearing feature is honoured ONLY with a valid signature; anything
+   else is dropped, so the server opens a fresh session and meters from now.
+   With no server secret to sign with, a metered phone caller cannot hold a
+   voice session on the device at all (requireVoiceSigning). */
+const BILLING_FEATURES = new Set(['voice_session', 'voice_sales', 'voice_support']);
+/** A key for THIS use only, derived from whichever server secret is set, so a
+ *  signature made here can never be valid for, or say anything about, another
+ *  use of the same secret (review, 2026-10-03). */
+function signingKey() {
+  const secret = String(process.env.TELESUITE_DEVICE_SECRET || process.env.CRON_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+  if (!secret) return '';
+  return require('crypto').createHmac('sha256', secret).update('lifecycle-os/telesuite-device-run/v1').digest('hex');
+}
+function runSignature(row) {
+  const key = signingKey();
+  if (!key || !row) return '';
+  const o = row.output && typeof row.output === 'object' ? row.output : {};
+  const i = row.input && typeof row.input === 'object' ? row.input : {};
+  const payload = JSON.stringify([row.id, row.feature, row.created_at, row.units == null ? null : Number(row.units), o.billed_minutes == null ? null : Number(o.billed_minutes), row.credits == null ? null : Number(row.credits), i.call_id || null, row.status || null]);
+  return require('crypto').createHmac('sha256', key).update(payload).digest('hex');
+}
+function signatureOk(row) {
+  // Exactly 64 lowercase hex characters, compared as decoded bytes of equal
+  // length; anything else (a multi-byte character made the UTF-8 buffers
+  // differ in length and timingSafeEqual THREW - a 500 for the whole op) is
+  // simply not a valid signature, and the row is dropped (Bugbot, 2026-10-03).
+  try {
+    const got = String((row && row.signature) || '');
+    if (!/^[0-9a-f]{64}$/.test(got)) return false;
+    const want = runSignature(row);
+    if (!/^[0-9a-f]{64}$/.test(want)) return false;
+    return require('crypto').timingSafeEqual(Buffer.from(got, 'hex'), Buffer.from(want, 'hex'));
+  } catch (_) { return false; }
+}
+function trustedRuns(list) {
+  return (Array.isArray(list) ? list : []).filter((r) => r && typeof r === 'object' && (!BILLING_FEATURES.has(String(r.feature)) || signatureOk(r)));
+}
+
+function deviceStore(carried) {
+  const c = carried && typeof carried === 'object' ? carried : {};
+  const tables = {
+    telesuite_items: deviceRows(c.items, DEVICE_TABLES.telesuite_items),
+    // Rows keep their own id; a billing row only if the server signed it.
+    telesuite_runs: (Array.isArray(c.runs) ? trustedRuns(c.runs) : []).slice(0, DEVICE_TABLES.telesuite_runs)
+      .map((r) => Object.assign({}, r, { workspace_id: DEVICE_WS, id: str(r.id, 80) || require('crypto').randomUUID() })),
+    brand_catalog_products: deviceRows(c.catalog, DEVICE_TABLES.brand_catalog_products),
+  };
+  const touched = { telesuite_items: new Map(), telesuite_runs: new Map() };
+  const deleted = { telesuite_items: [], telesuite_runs: [] };
+  async function rest(pathAndQuery, { method = 'GET', body } = {}) {
+    const [table, qs] = String(pathAndQuery).split('?');
+    if (!tables[table]) { const e = new Error(`TeleSuite on this device has no "${table}".`); e.status = 400; throw e; }
+    const f = pgFilter(qs);
+    const match = (row) => f.where.every((w) => w(row));
+    const rows = tables[table];
+    if (method === 'GET') {
+      let out = rows.filter(match);
+      if (f.order) {
+        const [col, dir] = f.order.split('.');
+        out = out.slice().sort((a, b) => (String(a[col] || '') < String(b[col] || '') ? -1 : 1) * (dir === 'desc' ? -1 : 1));
+      }
+      return (f.limit ? out.slice(0, f.limit) : out).map((r) => Object.assign({}, r));
+    }
+    if (table === 'brand_catalog_products') { const e = new Error('The catalogue is read-only here.'); e.status = 400; throw e; }
+    if (method === 'POST') {
+      const now = new Date().toISOString();
+      const made = (Array.isArray(body) ? body : [body]).map((r) => Object.assign({ created_at: now, updated_at: now }, r, {
+        id: require('crypto').randomUUID(), workspace_id: DEVICE_WS,
+      }));
+      for (const r of made) { rows.unshift(r); touched[table].set(r.id, r); }
+      return made.map((r) => Object.assign({}, r));
+    }
+    if (method === 'PATCH') {
+      const hit = rows.filter(match);
+      for (const r of hit) { Object.assign(r, body || {}, { id: r.id, workspace_id: DEVICE_WS }); touched[table].set(r.id, r); }
+      return hit.map((r) => Object.assign({}, r));
+    }
+    if (method === 'DELETE') {
+      const keep = rows.filter((r) => !match(r));
+      for (const r of rows) if (match(r)) deleted[table].push(r.id);
+      tables[table] = keep;
+      return null;
+    }
+    return null;
+  }
+  /** What this request changed, for the page to keep on the device. */
+  function changes() {
+    return {
+      storage: 'device',
+      runs: [...touched.telesuite_runs.values()].map((r) => Object.assign({}, r, { signature: runSignature(r) })),
+      items: [...touched.telesuite_items.values()],
+      deleted_runs: deleted.telesuite_runs,
+      deleted_items: deleted.telesuite_items,
+    };
+  }
+  return { rest, changes };
+}
+
 /**
  * Resolve the caller's active brand workspace — TeleSuite is always per-brand.
  *
@@ -228,14 +385,21 @@ async function context(req) {
   // account_type_unsupported. That refusal used to be THROWN out of this
   // function, past handle()'s try/catch, and reach the router as a 500 with
   // the sentence in the wrong field. It is answered here, as the state it is.
-  // A phone account IN SUPABASE AUTH (mode 'supabase', 2026-10-03) has that
-  // identity, and runs TeleSuite like any account.
+  // A phone account IN SUPABASE AUTH (mode 'supabase', #119) has that
+  // identity and runs TeleSuite like any account. A Neon or device phone
+  // sign-in (no workspace row) runs over what the page carries (2026-10-03).
   if (auth.provider === 'mobile-pin' && auth.mode !== 'supabase') {
-    return {
-      ok: false, status: 403, error: 'account_type_unsupported',
-      message: 'TeleSuite keeps its products, knowledge base and every run in the workspace database beside an email account, '
-        + 'and a mobile-number sign-in has no record there, so it cannot run TeleSuite yet. Nothing was run and nothing was saved.',
-    };
+    // 2026-10-03: TeleSuite runs for a phone sign-in over what the page
+    // carries, and what it writes goes back to the device (deviceStore above).
+    const brand = require('./brand-runtime.js').carriedBrand(body, auth);
+    if (!brand) {
+      return {
+        ok: false, status: 409, error: 'no_brand_carried',
+        message: 'TeleSuite runs against your active brand, and this request did not carry it. Pick or create a brand on the Brand screen, then try again. Nothing was run.',
+      };
+    }
+    const dev = deviceStore(body.device);
+    return { ok: true, auth, workspace_id: DEVICE_WS, brand, role: 'owner', canWrite: true, rest: dev.rest, device: dev };
   }
   let wsId = str(body.workspace_id || q.workspace_id);
   let brand = null;
@@ -296,13 +460,13 @@ async function groundingFor(ctx, { product, kbIds }) {
   const wid = encodeURIComponent(ctx.workspace_id);
 
   if (product) {
-    const rows = await serviceRest(`telesuite_items?select=name,category,content,attributes&workspace_id=eq.${wid}&kind=eq.product&name=eq.${encodeURIComponent(product)}&limit=1`);
+    const rows = await restOf(ctx)(`telesuite_items?select=name,category,content,attributes&workspace_id=eq.${wid}&kind=eq.product&name=eq.${encodeURIComponent(product)}&limit=1`);
     if (Array.isArray(rows) && rows[0]) {
       const p = rows[0];
       parts.push(`PRODUCT: ${p.name}\n${p.category ? `Category: ${p.category}\n` : ''}${p.content || ''}\n${Object.keys(p.attributes || {}).length ? `Attributes: ${JSON.stringify(p.attributes)}` : ''}`);
     } else {
       // Fall back to the brand's imported catalog rather than inventing one.
-      const cat = await serviceRest(`brand_catalog_products?select=title,description,product_type,price,currency,product_url&workspace_id=eq.${wid}&title=eq.${encodeURIComponent(product)}&limit=1`);
+      const cat = await restOf(ctx)(`brand_catalog_products?select=title,description,product_type,price,currency,product_url&workspace_id=eq.${wid}&title=eq.${encodeURIComponent(product)}&limit=1`);
       if (Array.isArray(cat) && cat[0]) parts.push(`PRODUCT (from brand catalog): ${JSON.stringify(cat[0])}`);
       else parts.push(`PRODUCT: ${product}\n[DATA REQUIRED BEFORE LAUNCH: product details, ${product}, all] — no catalog or TeleSuite entry exists for this product.`);
     }
@@ -311,7 +475,7 @@ async function groundingFor(ctx, { product, kbIds }) {
   const ids = Array.isArray(kbIds) ? kbIds.filter(Boolean).slice(0, 20) : [];
   if (ids.length) {
     const list = ids.map((i) => `"${i}"`).join(',');
-    const rows = await serviceRest(`telesuite_items?select=name,category,content&workspace_id=eq.${wid}&kind=eq.knowledge&id=in.(${encodeURIComponent(list)})&limit=20`);
+    const rows = await restOf(ctx)(`telesuite_items?select=name,category,content&workspace_id=eq.${wid}&kind=eq.knowledge&id=in.(${encodeURIComponent(list)})&limit=20`);
     for (const k of Array.isArray(rows) ? rows : []) {
       parts.push(`KNOWLEDGE [${k.category || 'general'}] ${k.name}:\n${str(k.content, 4000)}`);
     }
@@ -336,7 +500,7 @@ async function ask(ctx, { system, user, maxTokens = 2600, temperature = 0.6, sta
 
 async function logRun(ctx, row) {
   try {
-    const saved = await serviceRest('telesuite_runs?select=id,created_at', {
+    const saved = await restOf(ctx)('telesuite_runs?select=id,created_at', {
       method: 'POST',
       body: [Object.assign({ workspace_id: ctx.workspace_id, user_id: ctx.auth.user_id }, row)],
       prefer: 'return=representation',
@@ -542,7 +706,7 @@ OPS.combined_analysis = async (ctx, input) => {
   const ids = (Array.isArray(input.run_ids) ? input.run_ids : []).filter(Boolean).slice(0, 40);
   if (!ids.length) { const e = new Error('Select at least one scored call.'); e.status = 400; throw e; }
   const list = ids.map((i) => `"${i}"`).join(',');
-  const rows = await serviceRest(`telesuite_runs?select=id,title,score,product,output,created_at&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&id=in.(${encodeURIComponent(list)})&limit=40`);
+  const rows = await restOf(ctx)(`telesuite_runs?select=id,title,score,product,output,created_at&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&id=in.(${encodeURIComponent(list)})&limit=40`);
   const reports = Array.isArray(rows) ? rows : [];
   if (!reports.length) { const e = new Error('None of those runs were found in this workspace.'); e.status = 404; throw e; }
 
@@ -579,7 +743,7 @@ OPS.optimized_pitches = async (ctx, input) => {
   const analysisId = str(input.analysis_id);
   let analysis = input.analysis;
   if (!analysis && analysisId) {
-    const rows = await serviceRest(`telesuite_runs?select=output,title&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&id=eq.${encodeURIComponent(analysisId)}&limit=1`);
+    const rows = await restOf(ctx)(`telesuite_runs?select=output,title&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&id=eq.${encodeURIComponent(analysisId)}&limit=1`);
     analysis = Array.isArray(rows) && rows[0] ? rows[0].output : null;
   }
   if (!analysis) { const e = new Error('Run a combined analysis first, then generate pitches from it.'); e.status = 400; throw e; }
@@ -663,7 +827,7 @@ OPS.data_analysis = async (ctx, input) => {
  */
 async function voiceSession(ctx, callId, mode) {
   const wid = encodeURIComponent(ctx.workspace_id);
-  const rows = await serviceRest(`telesuite_runs?select=id,created_at,units,output&workspace_id=eq.${wid}&feature=eq.voice_session&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+  const rows = await restOf(ctx)(`telesuite_runs?select=id,created_at,units,output&workspace_id=eq.${wid}&feature=eq.voice_session&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
   if (Array.isArray(rows) && rows[0]) return rows[0];
   const made = await logRun(ctx, {
     feature: 'voice_session', status: 'in_progress',
@@ -695,7 +859,7 @@ async function billElapsed(ctx, session, mode, req) {
   const total = billed + due;
   // CAS: `units` holds the billed total, so filtering on it makes the claim
   // atomic. A loser gets zero rows back and bills nothing.
-  const claimed = await serviceRest(
+  const claimed = await restOf(ctx)(
     `telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&units=eq.${billed}&select=id`,
     { method: 'PATCH', body: { output: { billed_minutes: total }, units: total }, prefer: 'return=representation' }
   );
@@ -713,20 +877,20 @@ async function billElapsed(ctx, session, mode, req) {
     });
   } catch (err) {
     // Give the claim back so the interval can be billed on a later turn.
-    await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+    await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
       method: 'PATCH', body: { output: { billed_minutes: billed }, units: billed }, prefer: 'return=minimal',
     }).catch(() => {});
     throw err;
   }
   if (!m.ok) {
-    await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+    await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
       method: 'PATCH', body: { output: { billed_minutes: billed }, units: billed }, prefer: 'return=minimal',
     }).catch(() => {});
     const e = new Error(m.message || 'insufficient_credits'); e.status = m.status || 402; e.payload = m; throw e;
   }
   await m.settle(due);
 
-  await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+  await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
     method: 'PATCH',
     body: { credits: (Number(session.credits) || 0) + ((m.receipt && m.receipt.charged) || 0) },
     prefer: 'return=minimal',
@@ -734,7 +898,16 @@ async function billElapsed(ctx, session, mode, req) {
   return { charged: (m.receipt && m.receipt.charged) || 0, billed: total, balance: m.balance };
 }
 
+function requireVoiceSigning(ctx) {
+  if (ctx && ctx.device && !signingKey() && !credits.isDeviceAuth(ctx.auth)) {
+    const e = new Error('A voice call is billed by the minute, and this deployment has no server secret to sign the call\'s billing state with, so it cannot be kept on this device. Nothing was run and nothing was charged.');
+    e.status = 503; e.code = 'voice_signing_unavailable';
+    throw e;
+  }
+}
+
 OPS.voice_turn = async (ctx, input, req) => {
+  requireVoiceSigning(ctx);
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
   const callId = str(input.call_id, 64);
   if (!callId) { const e = new Error('call_id is required — it is how the call is metered.'); e.status = 400; throw e; }
@@ -780,6 +953,7 @@ OPS.voice_turn = async (ctx, input, req) => {
  * the start of the call, and an existing run with that id short-circuits.
  */
 OPS.voice_finish = async (ctx, input, req) => {
+  requireVoiceSigning(ctx);
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
   const turns = Array.isArray(input.history) ? input.history : [];
   if (!turns.length) { const e = new Error('No conversation to save.'); e.status = 400; throw e; }
@@ -791,7 +965,7 @@ OPS.voice_finish = async (ctx, input, req) => {
     // Must match only a COMPLETED call, never the billing session row — that
     // row carries the same call_id, so an unfiltered lookup would always find
     // it and short-circuit before the transcript was saved, scored or billed.
-    const dupe = await serviceRest(`telesuite_runs?select=id,output&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&feature=in.(voice_sales,voice_support)&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+    const dupe = await restOf(ctx)(`telesuite_runs?select=id,output&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&feature=in.(voice_sales,voice_support)&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
     if (Array.isArray(dupe) && dupe[0]) {
       // Already saved and already paid for. Return it, bill nothing.
       return { result: { call_id: dupe[0].id, transcript, turns: turns.length, minutes, already_saved: true, score: null }, units: 0, skip_log: true };
@@ -832,7 +1006,7 @@ OPS.voice_finish = async (ctx, input, req) => {
     const session = await voiceSession(ctx, callId, mode);
     finalBill = await billElapsed(ctx, session, mode, req);
     if (session) {
-      await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+      await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(session.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
         method: 'PATCH', body: { status: 'complete' }, prefer: 'return=minimal',
       });
     }
@@ -847,10 +1021,10 @@ OPS.voice_finish = async (ctx, input, req) => {
   // the wallet was charged.
   let callCredits = 0;
   try {
-    const sess = await serviceRest(`telesuite_runs?select=credits,units&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&feature=eq.voice_session&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
+    const sess = await restOf(ctx)(`telesuite_runs?select=credits,units&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&feature=eq.voice_session&input->>call_id=eq.${encodeURIComponent(callId)}&limit=1`);
     callCredits = (Array.isArray(sess) && sess[0] && Number(sess[0].credits)) || 0;
     if (call && call.id) {
-      await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(call.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+      await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(call.id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
         method: 'PATCH',
         body: { credits: callCredits, units: finalBill.billed || minutes || null },
         prefer: 'return=minimal',
@@ -1007,7 +1181,7 @@ async function handle(req, res) {
     /* ── library CRUD (Products / Knowledge Base) ────────────────────────── */
     if (op === 'items') {
       const kind = str(q.kind || body.kind) || 'product';
-      const rows = await serviceRest(`telesuite_items?select=*&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&kind=eq.${encodeURIComponent(kind)}&order=updated_at.desc&limit=300`);
+      const rows = await restOf(ctx)(`telesuite_items?select=*&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&kind=eq.${encodeURIComponent(kind)}&order=updated_at.desc&limit=300`);
       return res.status(200).json({ ok: true, items: Array.isArray(rows) ? rows : [] });
     }
     if (op === 'item-save') {
@@ -1023,17 +1197,17 @@ async function handle(req, res) {
       if (!row.name) { const e = new Error('Name is required.'); e.status = 400; throw e; }
       const id = str(it.id);
       const saved = id
-        ? await serviceRest(`telesuite_items?id=eq.${encodeURIComponent(id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&select=*`, { method: 'PATCH', body: row, prefer: 'return=representation' })
-        : await serviceRest('telesuite_items?select=*', { method: 'POST', body: [row], prefer: 'return=representation' });
+        ? await restOf(ctx)(`telesuite_items?id=eq.${encodeURIComponent(id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&select=*`, { method: 'PATCH', body: row, prefer: 'return=representation' })
+        : await restOf(ctx)('telesuite_items?select=*', { method: 'POST', body: [row], prefer: 'return=representation' });
       return res.status(200).json({ ok: true, item: Array.isArray(saved) ? saved[0] : saved });
     }
     if (op === 'item-delete') {
-      await serviceRest(`telesuite_items?id=eq.${encodeURIComponent(str(body.id || q.id))}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, { method: 'DELETE', prefer: 'return=minimal' });
+      await restOf(ctx)(`telesuite_items?id=eq.${encodeURIComponent(str(body.id || q.id))}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, { method: 'DELETE', prefer: 'return=minimal' });
       return res.status(200).json({ ok: true });
     }
     /** Seed Products from the brand catalog rather than making products up. */
     if (op === 'items-seed') {
-      const cat = await serviceRest(`brand_catalog_products?select=title,description,product_type,price,currency,product_url,image_url,sku&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&limit=100`);
+      const cat = await restOf(ctx)(`brand_catalog_products?select=title,description,product_type,price,currency,product_url,image_url,sku&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&limit=100`);
       const rows = (Array.isArray(cat) ? cat : []).map((p) => ({
         workspace_id: ctx.workspace_id, user_id: ctx.auth.user_id, kind: 'product',
         name: p.title, category: p.product_type || null, content: p.description || null,
@@ -1041,7 +1215,7 @@ async function handle(req, res) {
         source: 'catalog',
       }));
       if (!rows.length) return res.status(200).json({ ok: true, seeded: 0, message: 'Your brand catalog is empty — import it in brand settings first.' });
-      await serviceRest('telesuite_items?select=id', { method: 'POST', body: rows, prefer: 'return=minimal' });
+      await restOf(ctx)('telesuite_items?select=id', { method: 'POST', body: rows, prefer: 'return=minimal' });
       return res.status(200).json({ ok: true, seeded: rows.length });
     }
 
@@ -1054,15 +1228,15 @@ async function handle(req, res) {
         const list = (Array.isArray(feature) ? feature : String(feature).split(',')).map((f) => `"${str(f)}"`).join(',');
         path += `&feature=in.(${encodeURIComponent(list)})`;
       }
-      const rows = await serviceRest(path);
+      const rows = await restOf(ctx)(path);
       return res.status(200).json({ ok: true, runs: Array.isArray(rows) ? rows : [] });
     }
     if (op === 'run-delete') {
-      await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(str(body.id || q.id))}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, { method: 'DELETE', prefer: 'return=minimal' });
+      await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(str(body.id || q.id))}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, { method: 'DELETE', prefer: 'return=minimal' });
       return res.status(200).json({ ok: true });
     }
     if (op === 'summary') {
-      const rows = await serviceRest(`telesuite_runs?select=feature,credits,score,created_at&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&order=created_at.desc&limit=1000`);
+      const rows = await restOf(ctx)(`telesuite_runs?select=feature,credits,score,created_at&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}&order=created_at.desc&limit=1000`);
       const by = {};
       for (const r of Array.isArray(rows) ? rows : []) {
         const b = by[r.feature] = by[r.feature] || { feature: r.feature, runs: 0, credits: 0, last: null, scores: [] };
@@ -1091,7 +1265,7 @@ async function handle(req, res) {
     // Free op (no credit key) — run it straight.
     if (!creditKey) {
       const out = await fn(ctx, input, req);
-      return res.status(200).json({ ok: true, ...out });
+      return res.status(200).json(Object.assign({ ok: true }, out, ctx.device ? { device: ctx.device.changes() } : {}));
     }
 
     const m = await credits.meter(req, creditKey, {
@@ -1118,7 +1292,7 @@ async function handle(req, res) {
     // on it now that settle knows what it actually cost.
     if (out.run_row_id) {
       try {
-        await serviceRest(`telesuite_runs?id=eq.${encodeURIComponent(out.run_row_id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
+        await restOf(ctx)(`telesuite_runs?id=eq.${encodeURIComponent(out.run_row_id)}&workspace_id=eq.${encodeURIComponent(ctx.workspace_id)}`, {
           method: 'PATCH', body: { credits: charged, credit_ref: m.hold_id || null }, prefer: 'return=minimal',
         });
       } catch (_) { /* the ledger is the billing truth; this row is a convenience */ }
@@ -1137,7 +1311,7 @@ async function handle(req, res) {
       });
     }
 
-    return res.status(200).json({
+    return res.status(200).json(Object.assign({
       ok: true,
       run_id: run && run.id,
       result: out.result,
@@ -1146,10 +1320,10 @@ async function handle(req, res) {
       degraded: out.degraded,
       credits: m.receipt,
       balance: m.balance,
-    });
+    }, ctx.device ? { device: ctx.device.changes() } : {}));
   } catch (err) {
     return res.status(err.status || 500).json({ ok: false, error: err.message || 'telesuite_failed' });
   }
 }
 
-module.exports = { handle, SUBFEATURES, subfeature, OPS, cloneManifest, n8nWorkflow };
+module.exports = { handle, SUBFEATURES, subfeature, OPS, cloneManifest, n8nWorkflow, deviceStore, pgFilter, DEVICE_WS, runSignature, trustedRuns };

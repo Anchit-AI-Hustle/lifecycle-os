@@ -465,15 +465,18 @@ test.describe('9. calendar.js generation and persistence', () => {
     expect(restWrites()).toEqual([]);
   });
 
-  test('a phone account\'s approval, feedback and sync write nothing: approve and feedback are refused with a sentence, sync computes without storing', async () => {
+  test('a phone account\'s approval, feedback and sync write nothing: approve builds as a preview and the decisions are kept on its device, sync computes without storing', async () => {
     test.setTimeout(120000);
     const ok = await cal('approve', 'phone', { entry: ENTRY, brand: BRAND });
-    expect(ok.status, ok.text.slice(0, 200)).toBe(409);
-    expect(ok.out.error).toBe('no_workspace');
-    expect(w.llm.calls).toEqual([]);
+    expect(ok.status, ok.text.slice(0, 200)).toBe(200);
+    expect(ok.out).toMatchObject({ approved: true, persisted: false, storage: 'device' });
+    expect(ok.text).not.toMatch(/Oldest Brand/);
+    expect(restWrites()).toEqual([]);
     w.reset();
     const fb = await cal('feedback', 'phone', { target_id: 'x', verdict: 'approve' });
-    expect(fb.status).toBe(409);
+    expect(fb.status).toBe(200);
+    expect(fb.out).toMatchObject({ ok: true, storage: 'device' });
+    expect(restWrites()).toEqual([]);
     w.reset();
     const sync = await cal('sync-daily', 'phone', { days: 3, brand: BRAND });
     expect(sync.status, sync.text.slice(0, 200)).toBe(200);
