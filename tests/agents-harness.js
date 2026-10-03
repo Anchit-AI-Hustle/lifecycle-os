@@ -233,6 +233,17 @@ async function world(opts) {
   // OTHER host still throws.
   db.route((u) => u.startsWith(BRAND_SITE), () => response(404, 'not found'));
   db.install();
+  // PRODUCTION'S MEASURED STATE has no credit ledger answering either: the
+  // workspace project is paused, so the ledger's own table does not answer.
+  // A device principal runs UNMETERED, and since 2026-10-03 it exists only
+  // when NO ledger answers (mobile-auth-core.ledgerReachable): a device-mode
+  // world models that, unless a spec asks for a live ledger beside it.
+  if (o.serverMode === false && o.ledger !== true) {
+    const inner = db.fetch.bind(db);
+    db.fetch = (url, init) => (/\/rest\/v1\/credit_prices\b/.test(String(url))
+      ? Promise.reject(new TypeError('fetch failed (the credit ledger is not answering)'))
+      : inner(url, init));
+  }
 
   // The model, swapped in BEFORE the tree loads.
   dropTree();

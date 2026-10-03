@@ -888,7 +888,9 @@ test('REVIEW P2 (public key): the browser is handed the same public key the brok
   expect((await cfgOf()).supabase.anonKey).toBe('');
   let st = (await auth('status')).body;
   expect(st.mode).not.toBe('supabase');
-  expect(st.supabase).toMatchObject({ configured: true, reachable: false, reason: 'no_public_key' });
+  // The project ANSWERS (reachable is about the project, not the key - see the
+  // fourth-round test); it is simply not offered without a key.
+  expect(st.supabase).toMatchObject({ configured: true, reachable: true, reason: 'no_public_key' });
   expect(st.message).toMatch(/SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY/);
   // 3. A "public" variable that holds a server key is never published.
   const jwtRole = 'x.' + Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url') + '.y';
@@ -1134,4 +1136,83 @@ test('REVIEW (device -> Supabase): a device account made while the project was d
   } finally {
     await new Promise((r) => srv.close(r));
   }
+});
+
+/* ── review findings, fourth round (2026-10-03) ── */
+
+test('REVIEW SECURITY (no public key): a LIVE project with no browser-visible key is not offered as supabase mode, but a device token is still REFUSED - never admitted unmetered beside a working ledger', async () => {
+  const f = project({ SUPABASE_ANON_KEY: undefined, SUPABASE_PUBLISHABLE_KEY: undefined });
+  const st = (await auth('status')).body;
+  expect(st.mode).not.toBe('supabase');
+  expect(st.supabase).toMatchObject({ configured: true, reachable: true, reason: 'no_public_key' });
+  expect(f.calls.some((c) => c.path === '/auth/v1/health'), 'reachability was answered without asking the project').toBe(true);
+  const deviceToken = 'e'.repeat(43);
+  const headers = { 'x-lifecycle-token': deviceToken, authorization: 'Bearer ' + deviceToken, origin: 'http://127.0.0.1' };
+  const a = await require('../api/_shared/brand-workspace-core.js').requireUser({ headers });
+  expect(a, 'a device token was admitted beside a live project').toMatchObject({ ok: false, status: 401, mobile_reason: 'supabase_mode' });
+  const m = await require('../api/_shared/credits-core.js').meter({ headers, query: {}, body: {} }, 'calendar.generate');
+  expect(m.ok).toBe(false);
+  expect(m.unmetered).toBeUndefined();
+});
+
+test('REVIEW SECURITY (ledger): the auth health check failing while the LEDGER answers still refuses a device token; only when nothing answers is it the #115 device principal', async () => {
+  const f = project();
+  f.healthy = false;   // /auth/v1/health answers 503; PostgREST (the ledger) answers
+  const deviceToken = 'g'.repeat(43);
+  const headers = { 'x-lifecycle-token': deviceToken, authorization: 'Bearer ' + deviceToken, origin: 'http://127.0.0.1' };
+  let a = await require('../api/_shared/brand-workspace-core.js').requireUser({ headers });
+  expect(a, 'a device token ran unmetered beside a ledger that answers').toMatchObject({ ok: false, status: 401, mobile_reason: 'ledger_reachable' });
+  expect(f.calls.some((c) => c.path === '/rest/v1/credit_prices')).toBe(true);
+  for (const m of MODS) delete require.cache[m];
+  f.down = true;
+  a = await require('../api/_shared/brand-workspace-core.js').requireUser({ headers });
+  expect(a).toMatchObject({ ok: true, mode: 'device' });
+});
+
+test('REVIEW (device wait): with op=status answering after EIGHT seconds, the stored device token is never sent - not at the old 6-second release, not by a caller that set the header itself - and the move is offered when the answer arrives', async ({ page }) => {
+  test.setTimeout(150_000);
+  const f = project();
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  try {
+    await wire(page, f, log);
+    const deviceToken = 'h'.repeat(43);
+    await page.addInitScript((tok) => {
+      if (sessionStorage.getItem('__seeded')) return;
+      sessionStorage.setItem('__seeded', '1');
+      localStorage.setItem('lifecycle.auth.device.users', JSON.stringify({ '+919876543210': { id: 'dev-0011223344556677', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Ravi', salt: '00', hash: '00', iterations: 1, tries: 0, lockedUntil: null } }));
+      localStorage.setItem('lifecycle.auth.session', JSON.stringify({ token: tok, user: { id: 'dev-0011223344556677', name: 'Ravi', phone: '+919876543210' }, mode: 'device', expires: new Date(Date.now() + 86400000).toISOString(), provider: 'mobile-pin', storage: { mode: 'device' } }));
+    }, deviceToken);
+    // The auth status answers late.
+    await page.route(/\/api\/public-config\?action=auth&op=status/, async (route) => { await new Promise((r) => setTimeout(r, 8000)); return route.fallback(); });
+    await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(6500);
+    // Past the old release point, before the answer: still nothing sent with it.
+    expect(log.filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token went out at the 6-second release').toEqual([]);
+    expect(await page.evaluate(() => window.LifecycleAuth.apiToken()), 'apiToken() offered the device token before the decision').toBe('');
+    await page.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.transition === 'supabase', null, { timeout: 15000 });
+    await page.waitForTimeout(1500);
+    expect(log.filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token was sent').toEqual([]);
+    expect((await readState(page)).umode).toMatch(/same number and PIN/);
+  } finally {
+    await new Promise((r) => srv.close(r));
+  }
+});
+
+test('REVIEW (no public key, Neon on): supabase mode is not offered, so a Neon session is still checked and admitted as SERVER mode (metered) - only the device path is refused', async () => {
+  project({ SUPABASE_ANON_KEY: undefined, SUPABASE_PUBLISHABLE_KEY: undefined, DATABASE_URL: 'postgres://u:p@ep-fixture.neon.tech/db' });
+  const core = require('../api/_shared/mobile-auth-core.js');
+  const neon = async (strings) => {
+    const t = strings.join('$').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (t.startsWith('select s.user_id')) return [{ user_id: 'neon-user-1', expires_at: new Date(Date.now() + 86400000).toISOString(), name: 'Ravi', phone: E164 }];
+    return [];
+  };
+  const v = await core.verifyToken('n'.repeat(43), { sql: neon });
+  expect(v).toMatchObject({ ok: true, mode: 'server', user: { id: 'neon-user-1', phone: E164 } });
+  // The same deployment without Neon: that token could only be a device one.
+  delete process.env.DATABASE_URL;
+  const d = await core.verifyToken('n'.repeat(43), { fresh: true });
+  expect(d, 'the device path admitted a token beside a live project').toMatchObject({ ok: false, reason: 'supabase_mode' });
 });
