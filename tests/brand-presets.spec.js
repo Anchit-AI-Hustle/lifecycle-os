@@ -290,7 +290,7 @@ test('the five hand-verified palettes stay the colours that were read for them',
 test('an observed template carries that observation and nothing else', () => {
   for (const row of index.presets) {
     if (HAND_PRIMARY[row.slug]) continue;
-    const obsPath = path.join(DIR, `${row.slug}.observed.json`);
+    const obsPath = path.join(ROOT, 'data', 'brands', 'observed', `${row.slug}.observed.json`);
     if (!fs.existsSync(obsPath)) continue;
     const obs = JSON.parse(fs.readFileSync(obsPath, 'utf8'));
     const preset = load(row.slug);
@@ -319,4 +319,28 @@ test('the rights note is on every preset, template or not', () => {
   for (const row of index.presets) {
     expect(load(row.slug).rights_note, `${row.slug} ships with no rights note`).toMatch(/not a licence/i);
   }
+});
+
+/* ═══ a real photograph is not the picture of a placeholder line ═════════ */
+// 2026-10-03. The build used to deal the photographs a brand's home page
+// published out to its placeholder rows in order, so "Signature Blend 01"
+// carried a touch icon and "Seasonal Drink 01" a gift card. Each URL was
+// real; each pairing was invented, and a mailer renders a row's image as that
+// product's picture. The photographs belong in `brand_assets` with the page
+// they were found on; a placeholder row stays image-free.
+test('no placeholder catalogue row carries an image, and the observed photographs stay in brand_assets', () => {
+  let rows = 0;
+  let withAssets = 0;
+  for (const row of index.presets) {
+    const preset = load(row.slug);
+    for (const line of preset.catalog_placeholder || []) {
+      if (!line.placeholder) continue;
+      rows += 1;
+      expect(line.image_url || '', `${row.slug} · ${line.title} was given a photograph it was never published with`).toBe('');
+    }
+    if ((preset.brand_assets || []).length) withAssets += 1;
+  }
+  // A check that inspects nothing passes everything.
+  expect(rows).toBeGreaterThan(50);
+  expect(withAssets).toBeGreaterThan(5);
 });

@@ -117,7 +117,7 @@
     "offering_kinds": [
       "product"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Puma publishes on its own site (https://us.puma.com/us/en). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -127,10 +127,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1280/cms/images/b97a17a7344b9d82fbeb825945f0114be794d3de?_a=BAMAPqiu0",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Running Shoe 02",
@@ -139,10 +138,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313904/13/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Men's-Running-Shoes",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Running Shoe 03",
@@ -151,10 +149,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313905/11/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Women's-Running-Shoes",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Training Shoe 01",
@@ -163,10 +160,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312126/21/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Women's-Road-Running-Shoes",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Training Shoe 02",
@@ -175,10 +171,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312125/20/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Men's-Road-Running-Shoes",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Training Shoe 03",
@@ -187,10 +182,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311141/13/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Women's-Road-Running-Shoes",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Lifestyle Sneaker 01",
@@ -199,10 +193,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311140/16/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Men's-Road-Running-Shoes",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://us.puma.com/us/en"
+      "placeholder": true
     },
     {
       "title": "Lifestyle Sneaker 02",

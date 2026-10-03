@@ -115,7 +115,7 @@
       "product",
       "service"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Toyota publishes on its own site (https://www.toyota.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -125,10 +125,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://tmna.aemassets.toyota.com/is/image/toyota/toyota/homepage/tdr-marquee/2027/LND_MY24_0018_V002_desktop.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.toyota.com/"
+      "placeholder": true
     },
     {
       "title": "Saloon Model 01",
@@ -137,10 +136,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://www.toyota.com/",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.toyota.com/"
+      "placeholder": true
     },
     {
       "title": "SUV Model 01",
@@ -149,10 +147,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:ab59bdfa-8b62-47c1-bd1f-05e7f260d120/as/base.png?format=webp&quality=90",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.toyota.com/"
+      "placeholder": true
     },
     {
       "title": "Electric Model 01",
@@ -161,10 +158,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:8abfd804-08d1-4f7d-bb42-f35d90b98c13/as/base.png?format=webp&quality=90",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.toyota.com/"
+      "placeholder": true
     }
   ],
   "offerings": [],

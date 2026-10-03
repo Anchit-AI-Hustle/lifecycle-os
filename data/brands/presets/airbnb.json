@@ -116,7 +116,7 @@
     "offering_kinds": [
       "service"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Airbnb publishes on its own site (https://www.airbnb.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -126,10 +126,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://a0.muscache.com/im/pictures/fe7217ff-0b24-438d-880d-b94722c75bf5.jpg?im_w=1200",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.airbnb.com/"
+      "placeholder": true
     },
     {
       "title": "City Break 02",
