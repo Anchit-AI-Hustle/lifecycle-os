@@ -1743,14 +1743,39 @@
       } catch (_) { /* header attach is best-effort */ }
       return { input: (typeof input === 'string') ? glued : new Request(glued, input), init: init };
     }
+    /* THE DEVICE BRAND TRAVELS WITH THE REQUEST (2026-10-03). A server brand
+       is stamped above by workspace_id and the server reads the row. A phone
+       sign-in's brand has no row: brand-runtime.resolve() takes the record
+       from the request (only from a verified mobile+PIN session, for that
+       request alone), and a page that did not send it was answered for an
+       UNRESOLVED brand - Smart Brain's Daily Sync planned nothing, every
+       generator printed DATA REQUIRED where the brand's own name belonged.
+       Pages carried it one call site at a time (KicksGPT, the concierge); this
+       carries it for every JSON POST to the routers that resolve a brand, so
+       no page has to remember. Never overwrites a `brand` the page sent, and
+       only for a phone sign-in: nobody else's request is touched. */
+    var CARRY_ROUTERS = /^(?:https?:\/\/[^/]+)?\/api\/(?:brain|calendar|ai\/)/;
+    function carryInto(url, init) {
+      try {
+        if (!init || !CARRY_ROUTERS.test(url) || String(init.method || 'GET').toUpperCase() !== 'POST' || typeof init.body !== 'string') return init;
+        if (!mobileSession()) return init;
+        var body = JSON.parse(init.body);
+        if (!body || typeof body !== 'object' || Array.isArray(body) || body.brand !== undefined) return init;
+        var rec = carry();
+        if (!rec) return init;
+        body.brand = rec;
+        return Object.assign({}, init, { body: JSON.stringify(body) });
+      } catch (_) { return init; }
+    }
     function stamped(input, init) {
       try {
         var url = (typeof input === 'string') ? input : (input && input.url) || '';
         var isApi = /^\/api\//.test(url) || url.indexOf(location.origin + '/api/') === 0;
         if (!isApi || UNSCOPED.test(url)) return origFetch.call(window, input, init);
         // A device brand has no server workspace: stamping its `local-` id
-        // would turn "you are signed out" into "workspace not found".
-        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) return origFetch.call(window, input, init);
+        // would turn "you are signed out" into "workspace not found". For a
+        // phone sign-in it CARRIES the record instead (carryInto below).
+        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) return origFetch.call(window, input, carryInto(url, init));
         if (state.brand && state.brand.id) { var g = glue(input, state.brand.id, init); return origFetch.call(window, g.input, g.init); }
         // The active brand is not resolved yet. An unstamped content request
         // would fall back to the server's DEFAULT workspace and return another
@@ -1763,7 +1788,7 @@
           return new Promise(function (resolve, reject) {
             var waited = 0;
             (function poll() {
-              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { resolve(origFetch.call(self || window, input, init)); return; }
+              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { resolve(origFetch.call(self || window, input, carryInto(url, init))); return; }
               if (state.brand && state.brand.id) { var g2 = glue(input, state.brand.id, init); resolve(origFetch.call(self || window, g2.input, g2.init)); return; }
               if (state.loaded || waited >= 8000) { resolve(origFetch.call(self || window, input, init)); return; }
               waited += 120;
