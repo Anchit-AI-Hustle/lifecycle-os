@@ -494,8 +494,12 @@ for (const state of MATRIX) {
 
       // Nothing the server did not act FOR reaches a model, in any state: a
       // server-mode account, or a device principal from a page (#115).
-      const actedFor = state.session === 'server' || (state.session === 'device' && served);
-      expect(world.llm.calls - before, actedFor ? 'a signed-in person\'s voice step did not run' : 'a model was called for a caller the server could not check').toBe(actedFor ? 1 : 0);
+      // A device principal is unmetered (#115) and its voice step runs. A
+      // server-mode number the operator has NOT listed has no wallet, so its
+      // voice step is skipped and said so (2026-10-03, review): an unlisted
+      // number never reaches a provider.
+      const actedFor = state.session === 'device' && served;
+      expect(world.llm.calls - before, actedFor ? 'a signed-in person\'s voice step did not run' : 'a model was called for a caller that may not spend').toBe(actedFor ? 1 : 0);
       if (served && !actedFor) expect(out.body.voice_skipped).toBe(true);
 
       if (!seen.enabled) {
