@@ -730,6 +730,18 @@ for (const stateName of Object.keys(STATES)) {
       }
       expect(rows.filter((r) => r.cls === 'disabled-with-reason').length, 'no disabled control carried its reason').toBeGreaterThan(0);
 
+      // SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). For a
+      // visitor, "says what needs sign-in" and "disabled with its reason" are
+      // the contract. For a person who IS signed in they are the defect the
+      // operator reported: a control that is off, or a sentence refusing it,
+      // because of the account they signed in with. An informational line
+      // ("Signed in as ... saved on this device") is not a refusal.
+      if (stateName === 'device-session') {
+        const PHONE_REFUSAL = /not available|needs your (account|sign-?in)|sign in with|you are signed out|cannot (be )?(check|verif)|has no (wallet|record|workspace)|not offered/i;
+        for (const r of rows) {
+          if ((r.cls === 'needs-signin' || /^disabled/.test(r.cls)) && PHONE_REFUSAL.test(r.text)) { r.defect = true; r.cls = 'off-for-phone'; }
+        }
+      }
       const defects = rows.filter((r) => r.defect).map((r) => `${r.page} · ${r.control} · ${r.cls}${r.text ? ' · ' + r.text.slice(0, 120) : ''}`);
       expect(defects, `\n  ${defects.join('\n  ')}\n`).toEqual([]);
     });
