@@ -261,11 +261,45 @@ function pgFilter(qs) {
   return out;
 }
 
+/* BILLING STATE NEVER COMES FROM THE CLIENT (2026-10-03, review). A voice
+   call is billed incrementally against a `voice_session` row, and for a phone
+   sign-in that row travels with the request - so a fabricated one with a large
+   `billed_minutes` made billElapsed() skip the meter while voice_turn still
+   reached the model. Every run row the server writes for a device caller is
+   signed (HMAC over the fields billing reads), and a carried row of a
+   billing-bearing feature is honoured ONLY with a valid signature; anything
+   else is dropped, so the server opens a fresh session and meters from now.
+   With no server secret to sign with, a metered phone caller cannot hold a
+   voice session on the device at all (requireVoiceSigning). */
+const BILLING_FEATURES = new Set(['voice_session', 'voice_sales', 'voice_support']);
+function signingKey() {
+  return String(process.env.TELESUITE_DEVICE_SECRET || process.env.CRON_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+}
+function runSignature(row) {
+  const key = signingKey();
+  if (!key || !row) return '';
+  const o = row.output && typeof row.output === 'object' ? row.output : {};
+  const i = row.input && typeof row.input === 'object' ? row.input : {};
+  const payload = JSON.stringify([row.id, row.feature, row.created_at, row.units == null ? null : Number(row.units), o.billed_minutes == null ? null : Number(o.billed_minutes), row.credits == null ? null : Number(row.credits), i.call_id || null, row.status || null]);
+  return require('crypto').createHmac('sha256', key).update(payload).digest('hex');
+}
+function signatureOk(row) {
+  const want = runSignature(row);
+  const got = String((row && row.signature) || '');
+  if (!want || got.length !== want.length) return false;
+  return require('crypto').timingSafeEqual(Buffer.from(got), Buffer.from(want));
+}
+function trustedRuns(list) {
+  return (Array.isArray(list) ? list : []).filter((r) => r && typeof r === 'object' && (!BILLING_FEATURES.has(String(r.feature)) || signatureOk(r)));
+}
+
 function deviceStore(carried) {
   const c = carried && typeof carried === 'object' ? carried : {};
   const tables = {
     telesuite_items: deviceRows(c.items, DEVICE_TABLES.telesuite_items),
-    telesuite_runs: deviceRows(c.runs, DEVICE_TABLES.telesuite_runs),
+    // Rows keep their own id; a billing row only if the server signed it.
+    telesuite_runs: (Array.isArray(c.runs) ? trustedRuns(c.runs) : []).slice(0, DEVICE_TABLES.telesuite_runs)
+      .map((r) => Object.assign({}, r, { workspace_id: DEVICE_WS, id: str(r.id, 80) || require('crypto').randomUUID() })),
     brand_catalog_products: deviceRows(c.catalog, DEVICE_TABLES.brand_catalog_products),
   };
   const touched = { telesuite_items: new Map(), telesuite_runs: new Map() };
@@ -310,7 +344,7 @@ function deviceStore(carried) {
   function changes() {
     return {
       storage: 'device',
-      runs: [...touched.telesuite_runs.values()],
+      runs: [...touched.telesuite_runs.values()].map((r) => Object.assign({}, r, { signature: runSignature(r) })),
       items: [...touched.telesuite_items.values()],
       deleted_runs: deleted.telesuite_runs,
       deleted_items: deleted.telesuite_items,
@@ -849,7 +883,16 @@ async function billElapsed(ctx, session, mode, req) {
   return { charged: (m.receipt && m.receipt.charged) || 0, billed: total, balance: m.balance };
 }
 
+function requireVoiceSigning(ctx) {
+  if (ctx && ctx.device && !signingKey() && !credits.isDeviceAuth(ctx.auth)) {
+    const e = new Error('A voice call is billed by the minute, and this deployment has no server secret to sign the call\'s billing state with, so it cannot be kept on this device. Nothing was run and nothing was charged.');
+    e.status = 503; e.code = 'voice_signing_unavailable';
+    throw e;
+  }
+}
+
 OPS.voice_turn = async (ctx, input, req) => {
+  requireVoiceSigning(ctx);
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
   const callId = str(input.call_id, 64);
   if (!callId) { const e = new Error('call_id is required — it is how the call is metered.'); e.status = 400; throw e; }
@@ -895,6 +938,7 @@ OPS.voice_turn = async (ctx, input, req) => {
  * the start of the call, and an existing run with that id short-circuits.
  */
 OPS.voice_finish = async (ctx, input, req) => {
+  requireVoiceSigning(ctx);
   const mode = str(input.mode) === 'support' ? 'support' : 'sales';
   const turns = Array.isArray(input.history) ? input.history : [];
   if (!turns.length) { const e = new Error('No conversation to save.'); e.status = 400; throw e; }
@@ -1267,4 +1311,4 @@ async function handle(req, res) {
   }
 }
 
-module.exports = { handle, SUBFEATURES, subfeature, OPS, cloneManifest, n8nWorkflow, deviceStore, pgFilter, DEVICE_WS };
+module.exports = { handle, SUBFEATURES, subfeature, OPS, cloneManifest, n8nWorkflow, deviceStore, pgFilter, DEVICE_WS, runSignature, trustedRuns };

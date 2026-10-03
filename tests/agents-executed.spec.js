@@ -439,3 +439,32 @@ test.describe('the credit meter for a phone account', () => {
     expect(other.status).toBe(403); expectSentence(other, 'ledger unlisted');
   });
 });
+
+/* ═══ Codex #10 (2026-10-03): metered voice state never comes from the client ═══ */
+test('telesuite voice: a fabricated voice_session carried from the device cannot skip the meter; a server-signed one is honoured', async () => {
+  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
+  const started = new Date(Date.now() - 10 * 60000).toISOString();
+  const forged = { id: 'forged-session', feature: 'voice_session', status: 'in_progress', title: 'sales call session',
+    input: { call_id: 'call-forged', mode: 'sales' }, output: { billed_minutes: 999 }, units: 999, credits: 0, created_at: started };
+  const turn = (device, callId) => call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device, input: { mode: 'sales', call_id: callId, history: [], utterance: 'hello', product: 'Lamp' } }, state: 'phone', headers: H2 });
+  const r = await turn({ runs: [forged] }, 'call-forged');
+  expect(r.status, r.text.slice(0, 300)).toBe(200);
+  // The forged row was ignored: a fresh session was opened and its first minute METERED.
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the forged billed_minutes skipped the meter').toBe(1);
+  const session = (r.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(session && session.id).not.toBe('forged-session');
+  expect(session.signature, 'the server did not sign the session it owns').toMatch(/^[0-9a-f]{64}$/);
+  w.reset();
+  // The signed row the server handed back is honoured on the next turn: no new session.
+  const r2 = await turn({ runs: [session] }, 'call-forged');
+  expect(r2.status).toBe(200);
+  const s2 = (r2.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(!s2 || s2.id === session.id).toBe(true);
+  // A signed row with its counter edited is NOT honoured.
+  w.reset();
+  const edited = Object.assign({}, session, { output: { billed_minutes: 999 }, units: 999 });
+  const r3 = await turn({ runs: [edited] }, 'call-forged');
+  expect(r3.status).toBe(200);
+  const s3 = (r3.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s3 && s3.id).not.toBe(session.id);
+});
