@@ -309,6 +309,7 @@ test.describe('calendar.js smart-brain actions', () => {
     S.on(PLAN, 'getPlan', async () => ({ ok: true, entries: [] }));
     S.on(PLAN, 'syncDaily', async () => ({ ok: true, mode: 'stubbed', changes: [] }));
     S.on(PLAN, 'approveEntry', async () => ({ ok: true, approved: true }));
+    S.on(PLAN, 'previewEntry', async () => ({ ok: true, preview: true, campaign: { campaign_id: 'c1' } }));
     S.on(PLAN, 'rejectEntry', async () => ({ ok: true }));
     const plan = await cal('plan', { method: 'GET', state: 'phone' });
     expect(plan.status).toBe(200); expect(plan.out.ok).toBe(true);
@@ -321,14 +322,18 @@ test.describe('calendar.js smart-brain actions', () => {
     // for a caller who owns nothing to prebuild (2026-09-29, review).
     expect(syncArgs.persist).toBe(false);
     expect(sync.out.prebuild_kicked).toBeUndefined();
-    // Approving and rejecting SAVE to a brand workspace, and a phone account
-    // has none: a 409 with a sentence, before anything is built (the stub
-    // stood in for the core, and was never reached).
+    // Approving and rejecting are the reviewer's decisions, which a phone
+    // account keeps on its device (2026-10-03): approve builds exactly as a
+    // preview (never approveEntry, which persists), reject records nothing
+    // here; both answer storage:'device' with the decision to keep.
     const ok = await cal('approve', { json: { entry: { id: 'e1' }, reviewer: 'op' }, state: 'phone' });
-    expect(ok.status).toBe(409); expect(ok.out.error).toBe('no_workspace'); expectSentence(ok, 'approve phone');
+    expect(ok.status, ok.text.slice(0, 200)).toBe(200);
+    expect(ok.out).toMatchObject({ ok: true, approved: true, persisted: false, storage: 'device', decision: { id: 'e1', status: 'final', campaign_id: 'c1' } });
     expect(S.hits(PLAN, 'approveEntry')).toEqual([]);
+    expect(S.hits(PLAN, 'previewEntry').length).toBe(1);
     const no = await cal('reject', { json: { id: 'e1', notes: 'off-brand' }, state: 'phone' });
-    expect(no.status).toBe(409); expect(S.hits(PLAN, 'rejectEntry')).toEqual([]);
+    expect(no.status).toBe(200); expect(no.out).toMatchObject({ storage: 'device', decision: { id: 'e1', status: 'rejected' } });
+    expect(S.hits(PLAN, 'rejectEntry')).toEqual([]);
     for (const h of S.reached) expect(h.args[0].config.workspace_id).not.toBe('ws-oldest');
     expect(w.llm.calls).toEqual([]);
     expect(w.escaped()).toEqual([]);
