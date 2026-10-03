@@ -169,6 +169,12 @@ module.exports = async function handler(req, res) {
       // A phone sign-in gets an answer BUILT for it (core.phoneView): never
       // the operator's sender, recipients, connector wiring, runs or telemetry.
       if (auth.kind === 'phone') return res.status(200).json(core.phoneView(req.query.view || 'status', params));
+      // Any other person with no active brand gets the same built answer: the
+      // views below read deployment wiring and unscoped telemetry. Only the
+      // scheduler (cron) reads the deployment as a whole.
+      if (auth.kind !== 'cron' && !(await core.activeWorkspace())) {
+        return res.status(200).json(core.phoneView(req.query.view || 'status', params, { note: core.NO_WORKSPACE_NOTE, storage: 'none' }));
+      }
       const out = await core.view(req.query.view || 'status', params);
       return res.status(200).json(out);
     } catch (e) {

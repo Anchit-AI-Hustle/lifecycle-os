@@ -301,6 +301,8 @@ test.describe('the rest of the app, phone sign-in kept on this device, no DATABA
 /* ═══ Bugbot #1 (2026-10-03): a phone sign-in sees none of the operator's identity or wiring ═══ */
 test.describe('data analysis for a phone sign-in carries nothing of the operator', () => {
   let w;
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const NO_BRAND_JWT = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ sub: 'user-no-brand', email: 'nobrand@example.test' }) + '.sig';
   const SET = {
     ALERT_EMAIL: 'alerts@operator-mark.example', SENDER_EMAIL: 'sender@operator-mark.example',
     GMAIL_CLIENT_ID: 'gmail-id', GMAIL_CLIENT_SECRET: 'gmail-secret', GMAIL_REFRESH_TOKEN: 'gmail-refresh',
@@ -316,7 +318,10 @@ test.describe('data analysis for a phone sign-in carries nothing of the operator
     // The operator's own rows: alert recipients, the latest hourly run, deployment telemetry.
     w.db.insert('analytics_alert_settings', { id: 'ws-oldest', workspace_id: 'ws-oldest', recipients: { email: ['owner@operator-mark.example'], sms: ['+15551112222'] }, sender_email: 'alerts@operator-mark.example', updated_at: '2026-10-02T00:00:00Z' });
     w.db.insert('analytics_hourly_runs', { id: 'run-operator-mark', workspace_id: 'ws-oldest', started_at: '2026-10-03T00:00:00Z', status: 'complete', anomalies: [{ id: 'operator-mark' }] });
-    for (const t of ['activity_logs', 'agent_runs', 'connector_runs', 'analytics_action_outcomes']) w.db.insert(t, { workspace_id: 'ws-oldest', status: 'failed', note: 'operator-mark ' + t, started_at: '2026-10-03T00:00:00Z' });
+    for (const t of ['activity_logs', 'agent_runs', 'connector_runs', 'connector_sync_runs', 'analytics_action_outcomes']) w.db.insert(t, { workspace_id: 'ws-oldest', status: 'failed', note: 'operator-mark ' + t, started_at: '2026-10-03T00:00:00Z' });
+    // An account that signed in and has no brand workspace yet (Codex #5).
+    // JWT-shaped, so workspace-scope reads its `sub` as a real user would be read.
+    w.db.addUser(NO_BRAND_JWT, 'user-no-brand', 'nobrand@example.test').syncIdentityTables();
   });
   test.afterAll(async () => {
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
@@ -331,6 +336,16 @@ test.describe('data analysis for a phone sign-in carries nothing of the operator
     expect(r.out).toMatchObject({ ok: true, storage: 'device', settings: { sender_email: '', cadence_hours: 4, recipients: { email: ['me@mine.example'], sms: [] } } });
     expect(r.text).not.toMatch(/operator-mark/);
   });
+
+  for (const view of ['status', 'alerts', 'actions']) {
+    test(`view=${view}: an account with NO brand workspace gets the same built answer, not the deployment's`, async () => {
+      const r = await w.request('/api/public-config', { query: { action: 'data-analysis', view }, state: 'anonymous', headers: { authorization: 'Bearer ' + NO_BRAND_JWT } });
+      expect(r.status, r.text.slice(0, 300)).toBe(200);
+      expect(r.out.ok).toBe(true);
+      expect(r.text, 'operator identity or telemetry reached an account with no brand').not.toMatch(/operator-mark|\+1555|act_operator/i);
+      expect(r.text).not.toMatch(/"connected":\s*true/);
+    });
+  }
 
   for (const view of ['status', 'alerts', 'ads', 'mailer', 'landing', 'actions']) {
     test(`view=${view}: an answer for this person, with no operator sender, recipient, connector flag, run or telemetry`, async () => {
