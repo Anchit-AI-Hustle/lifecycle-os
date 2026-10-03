@@ -1046,7 +1046,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   let calDate = new Date(); calDate.setDate(1);
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const dkey = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const BRAIN = '/api/brain';
+  // The Smart Brain plan and its previews are served by /api/calendar (see
+  // api/calendar.js). This read /api/brain, which has no smart-brain-* action
+  // and answered every caller 400 "Unknown action" - found 2026-10-03 by
+  // driving this page against the shipped routers.
+  const BRAIN = '/api/calendar';
+  /* A phone sign-in's plan is computed by Smart Brain's Daily Sync and kept on
+     its device with the reviewer's decisions (smart-brain.html, 2026-10-03):
+     read the same record here when the server has no stored plan. */
+  function deviceSmartBrainPlan() {
+    try {
+      const s = window.LifecycleAuth && window.LifecycleAuth.session;
+      if (!s || s.provider !== 'mobile-pin' || !s.user || !s.user.id) return null;
+      const b = window.BrandContext && window.BrandContext.brand;
+      const base = 'lifecycle.smartbrain.%.' + s.user.id + '.' + ((b && b.id) || 'none');
+      const plan = JSON.parse(localStorage.getItem(base.replace('%', 'plan')) || 'null');
+      if (!plan || !Array.isArray(plan.entries) || !plan.entries.length) return null;
+      const dec = JSON.parse(localStorage.getItem(base.replace('%', 'decisions')) || 'null') || {};
+      return plan.entries.map((e) => (dec[e.id] ? Object.assign({}, e, { status: dec[e.id].status, generated_campaign_id: null }) : e));
+    } catch (_) { return null; }
+  }
   const intf = (n) => (+n || 0).toLocaleString();
   let AD_PLAN = [], AD_MKT = 'US';
   const AD_PREVIEW = {};
@@ -1070,6 +1089,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!d || d.ok === false) throw new Error((d && d.error) || ('HTTP ' + r.status));
       if (d.error) throw new Error(d.note || d.error);
       AD_PLAN = d.entries || d.plan || [];
+      if (!AD_PLAN.length) AD_PLAN = deviceSmartBrainPlan() || [];
     } catch (e) { AD_PLAN = []; AD_PLAN_ERROR = (e && e.message) || String(e); }
     renderAdPlan();
   }
@@ -1144,7 +1164,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       const r = await fetch(BRAIN + '?action=smart-brain-preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: e.id, entry: e }) });
       const d = await r.json();
-      if (!d.ok) throw new Error(d.error || 'Preview failed');
+      if (!d.ok) throw new Error(d.message || d.error || 'Preview failed');
       AD_PREVIEW[e.id] = d;
       body.innerHTML = renderAdSet(d);
     } catch (err) { window.LifecycleFailure.show(body, err, { title: 'Ad preview failed' }); }

@@ -83,6 +83,20 @@ async function authorize(req, { cron = false } = {}) {
   if (secret && token === secret) return { ok: true, kind: 'cron' };
   if (cron) return { ok: false, status: 401, error: 'cron_secret_required' };
   if (!token) return { ok: false, status: 401, error: 'operator_session_required' };
+  // A MOBILE+PIN SIGN-IN (2026-10-03). Every tab answered it 401
+  // invalid_operator_session: this gate only knew a Supabase JWT, and a phone
+  // token is not one. The operator's words: "All features must work even with
+  // signin by number and pin". It is verified the way every other gate
+  // verifies it (requireUser: a server-mode session in the account database,
+  // or a device principal from a page on a deployment with none). WHAT it then
+  // sees is decided per view by the active workspace exactly as for anyone: a
+  // phone account names none, so every view is its honest "not connected"
+  // answer - never the deployment's connectors, never another brand's rows.
+  if (require('./mobile-auth-core.js').looksLikeToken(token)) {
+    const a = await require('./brand-workspace-core.js').requireUser(req);
+    if (!a || !a.ok) return { ok: false, status: (a && a.status) || 401, error: (a && a.error) || 'sign_in_required', message: (a && a.message) || 'You are not signed in, so this could not be loaded.' };
+    return { ok: true, kind: 'phone', email: '', user_id: a.user_id, scope: 'device' };
+  }
   try {
     const { url, key } = supa.env();
     const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: `Bearer ${token}` }, cache: 'no-store' });
@@ -407,4 +421,4 @@ async function testAlert(override){const settings=mergeSettings({...await loadSe
 async function status(){const settings=await loadSettings(),last=await latestRun();return{ok:true,generated_at:iso(),settings,last_run:last?{started_at:last.started_at,finished_at:last.finished_at,status:last.status,anomalies:Array.isArray(last.anomalies)?last.anomalies.length:null}:null,connectors:{ads:['US','UK','IN'].map((market)=>adsCore.status(market)),klaviyo:{connected:klaviyo.isConnected()},webengage:{connected:webengage.connected()},pagedeck:{connected:Boolean(text(process.env.PAGEDECK_ANALYTICS_EXPORT_URL)||text(process.env.PAGEDECK_EXPERIMENTS_EXPORT_URL)||text(process.env.PAGEDECK_COMPETITOR_EXPORT_URL)||text(process.env.PAGEDECK_API_KEY))},gmail:{connected:Boolean(text(process.env.GMAIL_CLIENT_ID)&&text(process.env.GMAIL_CLIENT_SECRET)&&text(process.env.GMAIL_REFRESH_TOKEN)),sender:alerts.senderEmail()},google_chat:{connected:Boolean(text(process.env.GOOGLE_CHAT_WEBHOOK_URL))},sms:{connected:Boolean(text(process.env.TWILIO_ACCOUNT_SID)&&text(process.env.TWILIO_AUTH_TOKEN)&&text(process.env.TWILIO_FROM_NUMBER))}}};}
 async function view(name,params){switch(String(name||'status').toLowerCase()){case'ads':return ads(params);case'mailer':return mailer(params);case'landing':case'pagedeck':return landing(params);case'actions':return actions(params);case'alerts':return{ok:true,settings:await loadSettings(),status:await status()};default:return status();}}
 
-module.exports={DEFAULT_SETTINGS,authorize,loadSettings,saveSettings,view,status,ads,mailer,landing,actions,runHourly,testAlert,detectHourly};
+module.exports={DEFAULT_SETTINGS,mergeSettings,authorize,loadSettings,saveSettings,view,status,ads,mailer,landing,actions,runHourly,testAlert,detectHourly};

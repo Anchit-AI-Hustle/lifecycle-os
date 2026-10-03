@@ -126,7 +126,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var headers = { 'Content-Type': 'application/json' };
     if (t) headers.Authorization = 'Bearer ' + t;
     var ws = workspaceId();
-    var url = API + '&op=' + encodeURIComponent(op) + (ws ? '&workspace_id=' + encodeURIComponent(ws) : '');
+    // `op` may carry its own query ('usage&days=30', 'ledger&limit=80').
+    // Encoding the whole string sent op=usage%26days%3D30, which the server
+    // read as an operation named "usage&days=30" - so the usage and ledger
+    // panels were refused for every caller (found 2026-10-03 by driving
+    // credits.html against the shipped router). Only the NAME is encoded.
+    var amp = String(op).indexOf('&');
+    var opName = amp >= 0 ? String(op).slice(0, amp) : String(op);
+    var opQuery = amp >= 0 ? String(op).slice(amp) : '';
+    var url = API + '&op=' + encodeURIComponent(opName) + opQuery + (ws ? '&workspace_id=' + encodeURIComponent(ws) : '');
     var res = await fetch(url, {
       method: body ? 'POST' : 'GET', headers: headers,
       body: body ? JSON.stringify(Object.assign({ workspace_id: ws || undefined }, body)) : undefined,

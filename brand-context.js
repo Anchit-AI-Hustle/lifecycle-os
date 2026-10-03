@@ -1758,7 +1758,7 @@
     function carryInto(url, init) {
       try {
         if (!init || !CARRY_ROUTERS.test(url) || String(init.method || 'GET').toUpperCase() !== 'POST' || typeof init.body !== 'string') return init;
-        if (!mobileSession()) return init;
+        if (!phoneToken()) return init;
         var body = JSON.parse(init.body);
         if (!body || typeof body !== 'object' || Array.isArray(body) || body.brand !== undefined) return init;
         var rec = carry();
@@ -1766,6 +1766,47 @@
         body.brand = rec;
         return Object.assign({}, init, { body: JSON.stringify(body) });
       } catch (_) { return init; }
+    }
+    /* A request for a device brand goes out through THIS wrapper's captured
+       fetch, which is the browser's own: auth.js loads deferred and wraps
+       window.fetch later, so a page's first request (its plan, its list) left
+       with no token at all - the server answered a signed-in phone sign-in as
+       an anonymous visitor ("arrived without an active workspace"). Found
+       2026-10-03 driving ad-campaigns.html against the shipped routers. The
+       token is attached here, as glue() already does for a server brand. */
+    /** The phone sign-in's token: auth.js's once it has booted, else the stored session (the first frame runs before it). */
+    function phoneToken() {
+      try {
+        var a = window.LifecycleAuth;
+        if (a && a.backend && a.backend.kind && a.backend.kind !== 'pending') {
+          return (mobileSession() && typeof a.apiToken === 'function') ? (a.apiToken() || '') : '';
+        }
+        var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
+        if (!raw || raw.provider !== 'mobile-pin' || typeof raw.token !== 'string' || !/^[A-Za-z0-9_-]{40,90}$/.test(raw.token)) return '';
+        if (raw.mode !== 'server' && raw.mode !== 'device') return '';
+        if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
+        return raw.token;
+      } catch (_) { return ''; }
+    }
+    function deviceSend(input, url, init) {
+      var i2 = carryInto(url, init);
+      try {
+        var t = phoneToken();
+        if (!t) return { input: input, init: i2 };
+        if (typeof input !== 'string') {
+          if (input && input.headers && input.headers.get && input.headers.get('Authorization')) return { input: input, init: i2 };
+          var rq = new Request(input, i2 || undefined);
+          rq.headers.set('Authorization', 'Bearer ' + t);
+          if (!rq.headers.get('X-Lifecycle-Token')) rq.headers.set('X-Lifecycle-Token', t);
+          return { input: rq, init: undefined };
+        }
+        var o = Object.assign({}, i2 || {});
+        var h = new Headers(o.headers || {});
+        if (!h.get('Authorization')) h.set('Authorization', 'Bearer ' + t);
+        if (!h.get('X-Lifecycle-Token')) h.set('X-Lifecycle-Token', t);
+        o.headers = h;
+        return { input: input, init: o };
+      } catch (_) { return { input: input, init: i2 }; }
     }
     function stamped(input, init) {
       try {
@@ -1775,7 +1816,7 @@
         // A device brand has no server workspace: stamping its `local-` id
         // would turn "you are signed out" into "workspace not found". For a
         // phone sign-in it CARRIES the record instead (carryInto below).
-        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) return origFetch.call(window, input, carryInto(url, init));
+        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { var d0 = deviceSend(input, url, init); return origFetch.call(window, d0.input, d0.init); }
         if (state.brand && state.brand.id) { var g = glue(input, state.brand.id, init); return origFetch.call(window, g.input, g.init); }
         // The active brand is not resolved yet. An unstamped content request
         // would fall back to the server's DEFAULT workspace and return another
@@ -1788,7 +1829,7 @@
           return new Promise(function (resolve, reject) {
             var waited = 0;
             (function poll() {
-              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { resolve(origFetch.call(self || window, input, carryInto(url, init))); return; }
+              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { var d1 = deviceSend(input, url, init); resolve(origFetch.call(self || window, d1.input, d1.init)); return; }
               if (state.brand && state.brand.id) { var g2 = glue(input, state.brand.id, init); resolve(origFetch.call(self || window, g2.input, g2.init)); return; }
               if (state.loaded || waited >= 8000) { resolve(origFetch.call(self || window, input, init)); return; }
               waited += 120;

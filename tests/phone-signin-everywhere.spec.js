@@ -63,7 +63,9 @@ async function open(page, w, file) {
     if (!u.includes('/api/')) return;
     let body = null;
     try { body = await r.json(); } catch (_) {}
-    log.api.push({ url: u.replace(HOST, ''), status: r.status(), body });
+    let headers = {};
+    try { headers = await r.request().allHeaders(); } catch (_) {}
+    log.api.push({ url: u.replace(HOST, ''), status: r.status(), body, headers });
   });
   const user = { id: w.tokens.phoneUserId, phone: A.PHONE.e164, cc: A.PHONE.cc, local: A.PHONE.phone, name: A.PHONE.name };
   await page.addInitScript(seed, { user, session: w.session('device'), brand: A.deviceBrand() });
@@ -232,5 +234,60 @@ test.describe('the concierge agent, phone sign-in kept on this device, no DATABA
     expect(log.errors).toEqual([]);
     expect(log.dialogs).toEqual([]);
     expect(w.escaped()).toEqual([]);
+  });
+});
+
+/* ═══ Pages the real-router sweep found refusing a phone sign-in ════════════ */
+test.describe('the rest of the app, phone sign-in kept on this device, no DATABASE_URL', () => {
+  let w;
+  test.beforeAll(async () => { w = await A.world({ serverMode: false }); });
+  test.afterAll(async () => { await w.close(); });
+  test.beforeEach(() => { w.reset(); });
+
+  const failures = (page) => page.evaluate(() => Array.from(document.querySelectorAll('.vh-failure')).filter((n) => n.offsetParent).map((n) => n.textContent.replace(/\s+/g, ' ').trim()));
+
+  test('credits: usage and the ledger load (the op name was URL-encoded into "usage&days=30")', async ({ page }) => {
+    const log = await open(page, w, 'credits.html');
+    await page.click('[data-days="30"]');
+    await expect.poll(() => log.api.filter((r) => /action=credits&op=usage/.test(r.url)).map((r) => r.status).slice(-1)[0], { timeout: 15_000 }).toBe(200);
+    expect(log.api.filter((r) => /op=usage%26|op=ledger%26/.test(r.url)), 'an op name still carries its own query, encoded').toEqual([]);
+    expect(log.api.filter((r) => /action=credits&op=ledger/.test(r.url)).map((r) => r.status)).toContain(200);
+    expect(await failures(page)).toEqual([]);
+    expect(log.errors).toEqual([]);
+  });
+
+  test('data analysis: every tab answers this person with its honest empty state, never a refusal', async ({ page }) => {
+    const log = await open(page, w, 'data-analysis.html');
+    for (const tab of ['Paid Media', 'Owned Channels', 'Landing & Experiments', 'Actions & Outcomes', 'Alert Settings']) {
+      await page.getByRole('button', { name: tab, exact: true }).first().click();
+      await page.waitForTimeout(400);
+    }
+    await expect.poll(() => log.api.filter((r) => /action=data-analysis/.test(r.url)).length, { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
+    const da = log.api.filter((r) => /action=data-analysis/.test(r.url));
+    expect(da.filter((r) => r.status !== 200).map((r) => r.status + ' ' + r.url)).toEqual([]);
+    const ads = da.find((r) => /view=ads/.test(r.url));
+    expect(ads && ads.body.note).toMatch(/kept on this device/);
+    expect(JSON.stringify(da.map((r) => r.body))).not.toMatch(/Oldest Brand|invalid_operator_session/);
+    expect(await failures(page)).toEqual([]);
+  });
+
+  test('publishing: the dispatch log is empty for this brand, not "could not be loaded"', async ({ page }) => {
+    const log = await open(page, w, 'publishing.html');
+    await page.click('[data-panel="jobs"]');
+    await expect.poll(() => log.api.filter((r) => /action=dispatch-list/.test(r.url)).map((r) => r.status)[0], { timeout: 15_000 }).toBe(200);
+    expect(log.api.find((r) => /action=dispatch-list/.test(r.url)).body).toMatchObject({ ok: true, jobs: [], storage: 'device' });
+    expect(await failures(page)).toEqual([]);
+  });
+
+  test('ad campaigns: its first request reads the plan from the right router, signed in', async ({ page }) => {
+    const log = await open(page, w, 'ad-campaigns.html');
+    await expect.poll(() => log.api.filter((r) => /smart-brain-plan/.test(r.url)).length, { timeout: 20_000 }).toBeGreaterThan(0);
+    const plan = log.api.find((r) => /smart-brain-plan/.test(r.url));
+    expect(plan.url).toMatch(/^\/api\/calendar\?/);
+    expect(plan.status).toBe(200);
+    // Sent before auth.js wraps fetch (it loads deferred): the token travels anyway.
+    expect(plan.headers['x-lifecycle-token'], 'the page\'s first request left without the sign-in').toBe(w.tokens.phone);
+    expect(plan.body.error).toBeUndefined();
+    expect(await failures(page)).toEqual([]);
   });
 });
