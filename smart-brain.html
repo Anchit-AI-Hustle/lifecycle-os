@@ -311,6 +311,75 @@ const API = '/api/calendar';
 let PLAN = [];
 
 function reviewerEmail(){ try { return window.LifecycleAuth?.session?.user?.email || null; } catch(_) { return null; } }
+
+/* ── A PHONE SIGN-IN'S DECISIONS ARE KEPT ON ITS DEVICE (2026-10-03) ───────
+   The operator's words: "All features must work even with signin by number
+   and pin". Approve, reject and clear-rejection answered a phone sign-in 409
+   "approving needs a brand workspace", so the review flow could be looked at
+   and never acted on. The server now builds an approved slot exactly as a
+   preview and records nothing (calendar.js DEVICE_DECISIONS); the DECISION is
+   kept here, per account and per brand, and laid back over the plan every
+   time it is read, because a phone sign-in's plan is computed per request. */
+function deviceDecisionKey(){
+  try {
+    const s = window.LifecycleAuth && window.LifecycleAuth.session;
+    if(!s || s.provider !== 'mobile-pin' || s.mode === 'supabase' || !s.user || !s.user.id) return '';
+    const b = window.BrandContext && window.BrandContext.brand;
+    return 'lifecycle.smartbrain.decisions.' + s.user.id + '.' + ((b && b.id) || 'none');
+  } catch(_) { return ''; }
+}
+function readDecisions(){ try { const k = deviceDecisionKey(); return k ? (JSON.parse(localStorage.getItem(k) || 'null') || {}) : {}; } catch(_) { return {}; } }
+/** Keep the server's device decision; true when it was one. */
+function keepDecision(data){
+  if(!data || data.storage !== 'device' || !data.decision || !data.decision.id) return false;
+  const k = deviceDecisionKey(); if(!k) return false;
+  const all = readDecisions();
+  all[data.decision.id] = { status: data.decision.status, campaign_id: data.decision.campaign_id || null, at: data.decision.at, notes: data.decision.notes || '' };
+  try { localStorage.setItem(k, JSON.stringify(all)); } catch(_) { throw new Error('This browser refused to store the decision (storage is full or blocked), so it was not kept.'); }
+  return true;
+}
+/* The PLAN itself, for the same sign-in: computed by Daily Sync and never
+   stored on the server, so it is kept here and read back when the server has
+   no stored plan to give this person. */
+function devicePlanKey(){ const k = deviceDecisionKey(); return k ? k.replace('.decisions.', '.plan.') : ''; }
+function keepDevicePlan(list){
+  const k = devicePlanKey(); if(!k || !Array.isArray(list)) return;
+  // An accepted sync that planned NOTHING replaces the kept plan too: leaving
+  // it would resurrect campaigns the latest sync removed (Codex, 2026-10-03).
+  try {
+    if(!list.length) localStorage.removeItem(k);
+    else localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), entries: list }));
+  } catch(_) {}
+}
+/* The page's first plan read runs before auth.js (deferred) has seated the
+   session, so the device key is not knowable yet: wait for it (bounded). */
+async function deviceSessionReady(){
+  try { if(window.BrandContext && window.BrandContext.ready) await window.BrandContext.ready(); } catch(_) {}
+  for(let i = 0; i < 80; i++){
+    const b = window.LifecycleAuth && window.LifecycleAuth.backend;
+    if(b && b.kind && b.kind !== 'pending') return;
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
+function readDevicePlan(){
+  const k = devicePlanKey(); if(!k) return null;
+  try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && Array.isArray(v.entries) && v.entries.length ? v : null; } catch(_) { return null; }
+}
+/** Lay this device's decisions over a freshly read plan. */
+function applyDecisions(list){
+  const all = readDecisions();
+  (list || []).forEach(e => {
+    const d = e && all[e.id]; if(!d) return;
+    e.status = d.status;
+    // Nothing was published for a device decision, so there is no hosted
+    // /lp/ page to link to: the assets are rebuilt on View, as a preview is.
+    // The marker travels with the row so renderPreview never falls back to a
+    // freshly built campaign_id as if it had been persisted (Codex, 2026-10-03).
+    e.generated_campaign_id = null;
+    e.__device = true;
+  });
+  return list;
+}
 // Parse a fetch Response safely: a serverless timeout/500 returns a plaintext
 // page (not JSON), which used to blow up as "Unexpected token 'A' ... is not
 // valid JSON". Read the body as text first, then parse, with a clean message.
@@ -863,7 +932,7 @@ function renderPreview(payload, e, i, opts){
   const lpHtml    = (payload.landing_html || campaign.assets?.landing_pages?.[0]?.html || '');
   const ads       = payload.ads || campaign.assets?.ads || [];
   const cw        = payload.copywriter || campaign.copywriter || {};
-  const liveLpId  = e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null;
+  const liveLpId  = e.__device ? null : (e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null);
 
   /* EVERY RECORD AND ASSET INSIDE THE EXPANDED ROW, ALL AT ONCE.
    *
@@ -1308,13 +1377,21 @@ async function loadPlan(){
     if(!data.ok) throw new Error(data.error || 'Failed to load plan');
     if(!stillCurrent(ticket)) return data;   // a newer action already owns the screen
     $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
-    PLAN = data.entries || data.plan || [];
+    let rows = data.entries || data.plan || [];
+    // A phone sign-in has no stored plan on the server; the one its last
+    // Daily Sync computed is kept on this device.
+    if(!rows.length) await deviceSessionReady();
+    const kept = rows.length ? null : readDevicePlan();
+    if(kept){ rows = kept.entries; data.entries = rows; data.device_plan_at = kept.at; }
+    PLAN = applyDecisions(rows);
     const refusal = refusalOf(data);
     buildMktChips();
     buildCatChips();
     if(PLAN.length){
       PLAN_STATE = { kind: 'rows', message: '' };
-      sbState('ok', `Loaded ${PLAN.length} planned send(s).`);
+      sbState('ok', kept
+        ? `Loaded ${PLAN.length} planned send(s) kept on this device from the Daily Sync of ${new Date(kept.at).toLocaleString()}.`
+        : `Loaded ${PLAN.length} planned send(s).`);
     }else{
       // An empty read is stated as empty, with the server's own reason when it
       // gave one. It is never left looking like the pre-sync starting screen.
@@ -1322,7 +1399,8 @@ async function loadPlan(){
       sbState('empty', PLAN_STATE.message);
     }
     renderPlan();
-    if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
+    if(data.device_plan_at) $('changes').innerHTML = '<p>This plan and your approvals are kept on this device for this sign-in. Run Daily Sync to rebuild it from the latest data.</p>';
+    else if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
     return data;
   }catch(e){
     if(!stillCurrent(ticket)) return null;
@@ -1380,7 +1458,8 @@ async function runSync(){
     // Accept either key. `plan` is the success shape; the refusal and
     // empty-brand shapes carry `entries`, and reading only `plan` is what left
     // the table untouched after a click.
-    PLAN = data.plan || data.entries || [];
+    PLAN = applyDecisions(data.plan || data.entries || []);
+    keepDevicePlan(data.plan || data.entries || []);
     const changed = (data.changes||[]).filter(c=>c.kind!=='kept_locked');
     $('changes').innerHTML = changed.length
       ? changed.map(c=>`<p><b>${esc(c.kind)}</b> — ${esc(c.detail)}</p>`).join('')
@@ -1429,15 +1508,17 @@ async function generateEntry(i, { silent = false } = {}){
   }
   const r = await fetch(`${API}?action=smart-brain-approve`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: e, reviewer: reviewerEmail() })});
   const data = await safeJson(r);
-  if(!data.ok) throw new Error(data.error || 'Generation failed');
-  e.status = 'final'; e.generated_campaign_id = data.campaign.campaign_id;
+  if(!data.ok) throw new Error(data.message || data.error || 'Generation failed');
+  const onDevice = keepDecision(data);
+  e.status = 'final'; e.generated_campaign_id = onDevice ? null : data.campaign.campaign_id;
+  if(onDevice) e.__device = true;
   e.__built_at = Date.now();    // versions the hosted /lp/ link past its CDN cache
   PREVIEW_CACHE[e.id] = data;   // cache the FINAL so re-opening always shows it
   if(!silent){
     renderPlan();
     row = $('exprow-'+i); body = $('expbody-'+i);
     if(row) row.style.display='';
-    renderPreview(data, e, i, { persisted: true, target: body });
+    renderPreview(data, e, i, { persisted: !onDevice, target: body });
     if(body) body.setAttribute('data-loaded','1');
   }
   return data;
@@ -1621,7 +1702,8 @@ async function rejectRow(i){
   try{
     const r = await fetch(`${API}?action=smart-brain-reject`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, reviewer: reviewerEmail(), notes })});
     const data = await safeJson(r);
-    if(!data.ok) throw new Error(data.error || 'reject failed');
+    if(!data.ok) throw new Error(data.message || data.error || 'reject failed');
+    keepDecision(data);
     e.status = 'rejected'; e.generated_campaign_id = null;
     renderPlan();
     sbState('ok', `Rejected ${e.date || ''} ${e.market || ''}. The row now shows the rejected status and its recovery controls.`);
@@ -1639,7 +1721,8 @@ async function resetRow(i){
   try{
     const r = await fetch(`${API}?action=smart-brain-unreject`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, reviewer: reviewerEmail() })});
     const data = await safeJson(r);
-    if(!data.ok) throw new Error(data.error || 'reset failed');
+    if(!data.ok) throw new Error(data.message || data.error || 'reset failed');
+    keepDecision(data);
     e.status = 'tentative'; e.generated_campaign_id = null;
     renderPlan();
     sbState('ok', `Cleared the rejected status on ${e.date || ''} ${e.market || ''}. The row is back to draft.`);

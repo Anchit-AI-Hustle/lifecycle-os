@@ -1480,11 +1480,13 @@ async function assertCanWrite(auth, workspaceId, what) {
   return ws;
 }
 
-async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true }) {
-  // A replacement import can destroy the whole catalog, so membership is not
-  // enough — this needs write permission. The RLS policy enforces it too
-  // (20260809150000), but failing here gives the user a real message.
-  const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
+/**
+ * Read a catalogue SOURCE into rows: the store URL (feed first, then the site
+ * crawl), a pasted CSV, or a JSON export. Writes nothing. Shared by the
+ * account import below and the device import (2026-10-03), so the two read a
+ * catalogue identically and differ only in where the rows are kept.
+ */
+async function readCatalogSource({ region, kind, text, url, scope }) {
   const reg = str(region, 12).toLowerCase() || 'us';
   const k = str(kind).toLowerCase();
 
@@ -1514,10 +1516,10 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     }
     if (!parsed.rows.length) {
       const viaFeed = parsed.note || 'no rows in the product feed';
-      parsed = await rowsFromSite(url, reg, ws);
+      parsed = await rowsFromSite(url, reg, scope);
       if (parsed && parsed.rows) parsed.fallback_from = viaFeed;
     }
-  } else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, ws);
+  } else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, scope);
   else if (k === 'json') parsed = rowsFromJson(text, reg);
   else if (k === 'csv') parsed = rowsFromCsv(text, reg);
   else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
@@ -1544,6 +1546,94 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     const e = new Error('No usable product rows were found in that source.' + tried);
     e.status = 400; throw e;
   }
+  return { parsed, reg, k };
+}
+
+/** Where a catalogue came from, as recorded beside the brand. */
+function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
+  const sf = parsed && parsed.storefront;
+  return {
+    kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
+    url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
+    imported_at: new Date().toISOString(),
+    row_count: rowCount,
+    batch,
+    region: reg,
+    columns: parsed.columns || {},
+    // WHICH STORE THIS CAME FROM. Recorded on the workspace row the generators
+    // read, so the answer is established once instead of re-derived by a failed
+    // request on every import. Null when the crawl route was not taken or the
+    // site published no platform signal — which is not the same as "no store".
+    platform: sf && sf.detected
+      ? { id: sf.platform.id, name: sf.platform.name, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind }
+      : null,
+    sitemap: (parsed.crawl && parsed.crawl.sitemap) || null,
+    coverage_note: (parsed.crawl && parsed.crawl.coverage_note) || '',
+  };
+}
+
+/* ── A CATALOGUE KEPT ON THE DEVICE (2026-10-03) ─────────────────────────────
+   A mobile-number sign-in keeps its brands on the device it signed in on, so
+   "Import catalog" was refused to it ("Not available on a mobile-number
+   account"): the rows were filed under a brand in the workspace database, and
+   restAs() refuses a phone token in every mode. But reading a store, a CSV or
+   a JSON export needs no database at all - only FILING the rows did. So for
+   that caller the same reader runs and the rows come back in the response, for
+   the browser to keep beside the brand on the device (brand-context.js). The
+   scope of a crawl is the brand the request carried, exactly as a workspace
+   row would have supplied it; the SSRF guard and the site's own scope rules
+   run unchanged. Nothing is written here. */
+const DEVICE_CATALOG_ROWS = 2000;
+const DEVICE_ROW_FIELDS = ['region', 'sku', 'handle', 'title', 'description', 'product_type', 'collections', 'price',
+  'compare_at', 'currency', 'image_url', 'product_url', 'in_stock', 'tags', 'source', 'source_url'];
+
+/** A phone sign-in whose brands are on its DEVICE: Neon or device mode. A phone
+ *  account in Supabase Auth (mode 'supabase', #119) has workspaces like any account. */
+function isPhoneAuth(auth) { return !!(auth && auth.ok !== false && auth.provider === 'mobile-pin' && auth.mode !== 'supabase'); }
+
+async function deviceCatalogImport(auth, { region = 'us', kind, text, url, brand }) {
+  const b = brand && typeof brand === 'object' && !Array.isArray(brand) ? brand : {};
+  const scope = {
+    website: httpUrl(b.website) || httpUrl(url) || '',
+    regions: Array.isArray(b.regions) ? b.regions.slice(0, 20) : [],
+    asset_hosts: Array.isArray(b.asset_hosts) ? b.asset_hosts.filter((h) => typeof h === 'string').slice(0, 20) : [],
+  };
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope });
+  const seen = new Set();
+  const products = [];
+  for (const r of parsed.rows) {
+    const key = `${r.region}|${r.handle || ''}|${r.sku || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const row = {};
+    for (const f of DEVICE_ROW_FIELDS) if (r[f] !== undefined) row[f] = r[f];
+    products.push(row);
+  }
+  const kept = products.slice(0, DEVICE_CATALOG_ROWS);
+  const batch = require('crypto').randomUUID();
+  return {
+    ok: true,
+    imported: kept.length,
+    skipped: (parsed.skipped || 0) + (products.length - kept.length),
+    region: reg,
+    storage: 'device',
+    products: kept,
+    source: catalogSourceRecord(parsed, k, url, kept.length, batch, reg),
+    note: products.length > kept.length
+      ? `Kept the first ${kept.length} of ${products.length} products on this device; a browser holds a bounded amount. Nothing was invented for the rest.`
+      : 'Kept on this device, beside the brand. Nothing was written to a database.',
+  };
+}
+
+async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true, brand }) {
+  // A mobile-number sign-in has no workspace row to file under: the rows go
+  // back to its device instead (see deviceCatalogImport above).
+  if (isPhoneAuth(auth)) return deviceCatalogImport(auth, { region, kind, text, url, brand });
+  // A replacement import can destroy the whole catalog, so membership is not
+  // enough — this needs write permission. The RLS policy enforces it too
+  // (20260809150000), but failing here gives the user a real message.
+  const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws });
 
   // De-dupe on the table's unique key before insert so one bad source row can't
   // abort the whole import.
@@ -1586,25 +1676,7 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     }
   }
 
-  const sf = parsed && parsed.storefront;
-  const source = {
-    kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
-    url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
-    imported_at: new Date().toISOString(),
-    row_count: inserted,
-    batch,
-    region: reg,
-    columns: parsed.columns || {},
-    // WHICH STORE THIS CAME FROM. Recorded on the workspace row the generators
-    // read, so the answer is established once instead of re-derived by a failed
-    // request on every import. Null when the crawl route was not taken or the
-    // site published no platform signal — which is not the same as "no store".
-    platform: sf && sf.detected
-      ? { id: sf.platform.id, name: sf.platform.name, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind }
-      : null,
-    sitemap: (parsed.crawl && parsed.crawl.sitemap) || null,
-    coverage_note: (parsed.crawl && parsed.crawl.coverage_note) || '',
-  };
+  const source = catalogSourceRecord(parsed, k, url, inserted, batch, reg);
   await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(workspace_id)}`, {
     method: 'PATCH', body: { catalog_source: source }, prefer: 'return=minimal',
   });
@@ -1701,6 +1773,67 @@ function packSummary(p) {
   };
 }
 
+/* ── A REQUEST WITH NO TOKEN: could anyone have sent one? (2026-09-29) ───────
+   requireUser() answers a request that carries no token `sign_in_required`
+   BEFORE it looks at any backend - it has nothing to verify - so the
+   `backend_unreachable` flag the extract open path waits for is never set for
+   it. The open path could therefore only ever open for a caller who PRESENTED
+   a token that could not be checked, and nobody presents one any more: Google
+   sign-in is commented out, so no browser holds a Supabase JWT, and a
+   device-mode mobile+PIN token is never sent (LifecycleAuth.apiToken()). A
+   visitor and a person signed in on the device send the SAME request - no
+   token - and on production (Supabase paused, no DATABASE_URL) both were
+   answered 401. The 2026-09-15 tests sent 'a-stale-token' in every case, so
+   the one request a browser actually makes was never driven.
+
+   "A session exists to be had" is decided here for that request, from the two
+   places this server can check a session:
+     - the ACCOUNT store (mobile-auth-core status()): `server` means a mobile
+       number and PIN signed in on this deployment get a token this server
+       verifies - the gate is real, refuse. Unknown fails closed.
+     - the Supabase auth host: requireUser() still verifies a Supabase JWT, so
+       while that host ANSWERS a session exists to be had - refuse. Only an
+       outright network refusal counts as down; a slow answer counts as an
+       answer (fail closed on doubt, the rule auth.js applies to the same
+       /auth/v1/health probe in the browser).
+   Neither able to check anything -> nobody could present a session this
+   server verifies -> the open path applies, voice OFF, exactly as it already
+   did for an unverifiable token. */
+const SESSION_PROBE_MS = 3000;
+
+async function authHostAnswers(e) {
+  let timer;
+  const late = new Promise((resolve) => { timer = setTimeout(() => resolve('late'), SESSION_PROBE_MS); });
+  const probe = fetch(`${e.url}/auth/v1/health`, { headers: { apikey: e.anon }, cache: 'no-store' })
+    .then(() => 'answered', () => 'refused');
+  try { return (await Promise.race([probe, late])) !== 'refused'; }
+  finally { clearTimeout(timer); }
+}
+
+/**
+ * Could a session be checked here right now, for a caller that sent none?
+ * `{ checkable: true }` keeps the gate; `{ checkable: false, message }` says,
+ * in a sentence naming what an operator would change, why nobody could.
+ */
+async function sessionCheckable() {
+  let store = null;
+  try { store = await require('./mobile-auth-core.js').status(); } catch (_) { store = null; }
+  if (!store || store.mode !== 'device') return { checkable: true };
+  const accounts = store.reason === 'no_database_url'
+    ? 'Accounts are kept on each device, because no DATABASE_URL is set.'
+    : `Accounts are not in a database that answers (${store.host || 'the configured database'}).`;
+  let e;
+  try { e = env(); } catch (_) {
+    return { checkable: false, message: `This deployment has no workspace database configured (SUPABASE_URL). ${accounts}` };
+  }
+  if (await authHostAnswers(e)) return { checkable: true };
+  return {
+    checkable: false,
+    message: `The database this deployment points at (${hostOfUrl(e.url)}) is not answering, so no sign-in can be checked. `
+      + `Its Supabase project has most likely been deleted, renamed or paused. ${accounts}`,
+  };
+}
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1771,9 +1904,30 @@ async function handle(req, res) {
   //
   // assertPublicUrl() still runs inside runExtract, so an internal or private
   // host cannot be reached through this either way.
-  const openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+  //
+  // A caller that sent NO token (2026-09-29) is `sign_in_required` whatever
+  // the backend is doing, so for it the same question is asked of both places
+  // a session could be checked - see sessionCheckable() above. That caller is
+  // every browser there is now: signed out, or signed in on the device (whose
+  // token is never sent).
+  let openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+  let noSession = null;
+  if (!auth.ok && !openWithoutBackend && op === 'extract' && auth.error === 'sign_in_required') {
+    noSession = await sessionCheckable();
+    openWithoutBackend = !noSession.checkable;
+  }
 
   if (!auth.ok && !openWithoutBackend) return res.status(auth.status || 401).json(auth);
+
+  // WHO MAY SPEND ON A MODEL HERE (2026-10-03, review). A server-mode phone
+  // number the operator has not listed (CREDITS_COMP_PHONES) has no wallet, so
+  // it must never reach a provider - the faucet the list exists to shut. The
+  // brand ops have three model steps: the voice observation inside extract and
+  // inside the context pack's extract stage (each runs WITHOUT it, and says
+  // so), and Suggest options (nothing but a model call, so refused). A device
+  // principal and an email account are unaffected (spenderRefusal → null).
+  const spend = auth.ok ? require('./credits-core.js').spenderRefusal(auth) : null;
+  const VOICE_SKIPPED_NOTE = 'The tone of voice was not observed: that step is the only one that needs a language model, and this mobile-number sign-in has no credit wallet because its number is not on the operator\'s list. Everything else was read from the site exactly as always.';
 
   if (openWithoutBackend) {
     try {
@@ -1787,9 +1941,13 @@ async function handle(req, res) {
           max_pages: body.max_pages || q.max_pages,
         },
       );
-      const note = 'Read without signing in, because this deployment\'s database is not answering. '
+      // Neutral about WHO is here: the server cannot tell a visitor from a
+      // person signed in on the device (neither sends a token), and "read
+      // without signing in" told the second one they were not signed in.
+      const note = 'Read without an account the server could check, because '
+        + (noSession ? 'nothing on this deployment can check a sign-in right now. ' : 'this deployment\'s database is not answering. ')
         + 'Nothing was saved, and the tone of voice was NOT observed: that step is the only one that needs a '
-        + 'language model, and an unreachable database must not become a way to spend model credits without an account. '
+        + 'language model, and a deployment that cannot check a sign-in must not become a way to spend model credits without an account. '
         + 'Everything else below was read from your site exactly as it always is.';
       return res.status(out && out.ok === false && out.error ? 400 : 200).json(
         Object.assign({}, out, {
@@ -1797,7 +1955,7 @@ async function handle(req, res) {
           backend_unreachable: true,
           voice_skipped: true,
           note,
-          backend_message: auth.message || '',
+          backend_message: noSession ? noSession.message : (auth.message || ''),
         }),
       );
     } catch (err) {
@@ -1861,6 +2019,9 @@ async function handle(req, res) {
           text: body.text,
           url: body.url || q.url,
           replace: body.replace !== false,
+          // Read only for a caller whose brands are on its device (a phone
+          // sign-in): the scope a workspace row would otherwise supply.
+          brand: body.brand,
         }));
       }
       case 'catalog': {
@@ -1905,6 +2066,37 @@ async function handle(req, res) {
         const pack = require('./brand-context-pack.js');
         const wsId = str(body.workspace_id || q.workspace_id);
         if (!wsId) return res.status(400).json({ ok: false, error: 'workspace_id is required.' });
+        // A PHONE SIGN-IN keeps its brands, and so its pack, on its device
+        // (2026-10-03). The same stages run over a one-request store seeded
+        // with what the browser carried, and the whole row goes back to be
+        // kept there; the browser is the queue. See devicePackStep().
+        if (isPhoneAuth(auth)) {
+          const out = await pack.devicePackStep({
+            workspaceId: wsId,
+            brand: body.brand && typeof body.brand === 'object' && !Array.isArray(body.brand) ? body.brand : null,
+            pack: body.device_pack,
+            refresh: body.refresh === true,
+            catalogOwned: body.catalog_owned === true,
+            auth,
+            // The extract stage's voice observation is a model call.
+            ctx: spend ? { voice: false } : {},
+          });
+          const step = out.step;
+          return res.status(200).json({
+            ok: true, storage: 'device', stage: step.stage, done: !!step.done, remaining: step.remaining,
+            chained: false,
+            next_step_required: step.remaining > 0,
+            failed_stage: step.failed_stage, error: step.error,
+            pack: packSummary(step.pack),
+            device_pack: out.row,
+            context: out.context,
+            // Rows the catalogue stage read, for the device catalogue; null when
+            // this step did not import (another stage, or a catalogue the
+            // operator imported by hand and the run left alone).
+            catalog_products: out.products,
+            ...(spend ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {}),
+          });
+        }
         await assertCanWrite(auth, wsId, 'build its context pack');
         const store = pack.userStore(auth.token);
         const step = await pack.startPack(store, wsId, {
@@ -1995,18 +2187,23 @@ async function handle(req, res) {
         }));
       }
       case 'extract': {
+        const wantsVoice = (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false';
         const out = await require('./brand-extract.js').runExtract(auth, {
           url: str(body.url || q.url, 500),
           workspace_id: str(body.workspace_id || q.workspace_id),
-          voice: (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false',
+          voice: wantsVoice && !spend,
           max_pages: body.max_pages || q.max_pages,
         });
-        return res.status(out && out.ok === false && out.error ? 400 : 200).json(out);
+        const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
+        return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
       }
       case 'suggest': {
         // Options for ONE field, written from this brand's own record. Nothing
         // is written here: the response is candidates, and the operator's click
         // is what puts a value in the record (as their own, not the model's).
+        // It is nothing BUT a model call, so a caller who may not spend is
+        // refused with the sentence, before any provider is reached.
+        if (spend) return res.status(spend.status || 403).json(spend);
         const ws = str(body.workspace_id || q.workspace_id);
         let brand = body.brand && typeof body.brand === 'object' ? body.brand : null;
         if (!brand && ws) {
@@ -2046,7 +2243,7 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
+  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
 };

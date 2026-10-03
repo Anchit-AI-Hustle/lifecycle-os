@@ -918,7 +918,10 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   // Brand ops route to the device store, and the sentence says both halves.
   expect(a.storage.mode).toBe('device');
   expect(a.storage.sentence).toBe('Signed in as Asha · workspaces are saved on this device');
-  expect(a.storage.serverOpen, 'a device session cannot be checked by the server, so extract is not open').toBe(false);
+  // A device sign-in's token is sent and, with no database, the server admits
+  // it as a device principal from a page (#115) - so "Read my site" is ON for
+  // it (2026-10-03: signing in with a phone never turns a feature off).
+  expect(a.storage.serverOpen, 'a device sign-in turned "Read my site" off, though the server reads the site for it').toBe(true);
   // Sign-in itself stays local: no enter, no me. The device token IS sent on
   // API calls so features can run (2026-09-30).
   expect(log.apiHeaders.filter((h) => /op=enter|op=me/.test(h.url))).toEqual([]);
@@ -1027,7 +1030,10 @@ test('SERVER MODE: the account goes to the database, the token travels in the he
   expect(a.name).toBe('Ravi');
   expect(a.session.verified).toBe(false);
   expect(a.umode).toMatch(/Account in the database \(ep-fixture\.neon\.tech\), which is not answering right now/);
-  expect(a.storage.serverOpen, 'an unverifiable server session was reported as checkable').toBe(false);
+  // Its database is not answering, so the server cannot verify it - and for
+  // exactly that request (backend_unreachable) it opens extract's own path and
+  // reads the public site with the model off. ON is what the server does.
+  expect(a.storage.serverOpen, 'the wizard says OFF where the server reads the site').toBe(true);
   // Opening the panel in this state warns that a sign-up here is a SEPARATE account.
   await page.evaluate(() => window.LifecycleAuth.openSignIn());
   await expect(page.locator('#lnav-mauth-mode')).toContainText(/separate account on this device only/, { timeout: 8000 });

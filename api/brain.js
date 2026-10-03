@@ -588,21 +588,40 @@ module.exports = async function handler(req, res) {
 
       // ── AGENTS ───────────────────────────────────────────────────────────
       case 'agents': {
+        // A phone sign-in's agents live on its device (agent.html); the agent
+        // table belongs to workspaces, so it lists none of them - structurally,
+        // not by relying on the table's workspace scope (Bugbot, 2026-10-03).
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin' && __auth.mode !== 'supabase') return res.json({ ok: true, agents: [], storage: 'device' });
         return res.json({ ok: true, agents: await agents.listAgents() });
       }
+      // A PHONE SIGN-IN'S AGENTS ARE KEPT ON ITS DEVICE (2026-10-03): it has
+      // no workspace for smart_agents rows, so the definition is built and
+      // handed back (agent.html keeps it), and a turn carries the agent, the
+      // brand and the catalogue it may recommend (brain-agent deviceChat).
       case 'agent-upsert': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin' && __auth.mode !== 'supabase') {
+          if (!String(b.name || '').trim()) return res.status(400).json({ ok: false, error: 'name_required', message: 'Give the agent a name, then save it.' });
+          return res.json({ ok: true, storage: 'device', agent: agents.agentRow(Object.assign({}, b, { name: String(b.name).trim().slice(0, 80) })), note: 'Kept on this device: this sign-in has no workspace in a database to file the agent in.' });
+        }
         const a = await agents.upsertAgent(b);
         return res.json({ ok: true, agent: a });
       }
       case 'agent-sync': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin' && __auth.mode !== 'supabase') {
+          return res.json({ ok: true, storage: 'device', agent: String(b.agent_id || ''), knowledge_items: 0,
+            note: 'An agent kept on this device answers from the brand record and the catalogue carried with each turn, so there is no knowledge table to fill for it.' });
+        }
         const out = await agents.syncKnowledge(b.agent_id || 'agent_knickgasm');
         return res.json({ ok: true, ...out });
       }
       case 'agent-chat': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         if (!b.message) return res.status(400).json({ ok: false, error: 'message required' });
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin' && __auth.mode !== 'supabase') {
+          return res.json(await agents.deviceChat({ agent: b.agent, agentId: b.agent_id, brand: req.__brand, catalog: b.catalog, message: b.message, history: b.history || [], sessionId: b.session_id }));
+        }
         const out = await agents.chat({ agentId: b.agent_id || 'agent_knickgasm', sessionId: b.session_id, message: b.message, context: b.context || {}, history: b.history || [] });
         return res.json(out);
       }
@@ -872,7 +891,13 @@ module.exports = async function handler(req, res) {
       case 'dispatch-cancel': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
-        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand' });
+        // A phone sign-in's brand is on its device and has no dispatch queue on
+        // the server: its log is EMPTY, which is the true answer, not a refusal
+        // painted as "Dispatch jobs could not be loaded" (2026-10-03).
+        if (!__wsId && auth.provider === 'mobile-pin' && auth.mode !== 'supabase' && action === 'dispatch-list') {
+          return res.json({ ok: true, jobs: [], storage: 'device', note: 'Nothing has been queued for this brand: it is kept on this device, and sending goes through platform accounts connected to a brand workspace on the server.' });
+        }
+        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand', message: 'There is no dispatch queue for this brand on the server, so there was nothing to read or cancel.' });
         const dispatch = require('./_shared/dispatch-core.js');
         if (action === 'dispatch-list') return res.json({ ok: true, jobs: await dispatch.listJobs(auth, __wsId, { status: req.query.status, limit: req.query.limit }) });
         if (action === 'dispatch-detail') return res.json({ ok: true, detail: await dispatch.jobDetail(auth, __wsId, String(req.query.id || b.id || '')) });

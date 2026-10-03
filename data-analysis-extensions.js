@@ -181,9 +181,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (_) {}
     return '';
   }
+  /** Where a phone sign-in's alert settings are kept: per account, per brand. '' otherwise. */
+  function deviceAlertKey() {
+    try {
+      var ses = window.LifecycleAuth && window.LifecycleAuth.session;
+      if (!ses || ses.provider !== 'mobile-pin' || ses.mode === 'supabase' || !ses.user || !ses.user.id) return '';
+      var b = window.BrandContext && window.BrandContext.brand;
+      return 'lifecycle.analysis.alerts.' + ses.user.id + '.' + ((b && b.id) || 'none');
+    } catch (_) { return ''; }
+  }
   async function postJson(op, payload) {
     var token = await userToken();
-    if (!token) throw new Error('Sign in with an authorised KNICKGASM account to change or test alert settings.');
+    if (!token) throw new Error('Sign in with your mobile number and PIN to change or test alert settings.');
     var r = await fetch(API, {
       method: 'POST', credentials: 'same-origin', cache: 'no-store',
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
@@ -534,7 +543,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function renderAlerts(panel) {
     panel.innerHTML = panelTitle('Alert Settings', 'Configure hourly analysis, anomaly thresholds and delivery by Gmail, Google Chat and SMS. Live connectors are OFF by default — set LIVE_CONNECTORS=on to send for real. The sender identity is env-driven (ALERT_EMAIL); no mailbox is hardcoded.', '<div class="xcontrols"><button class="xbtn secondary" id="xAlertTest">Send test</button><button class="xbtn" id="xAlertSave">Save settings</button></div>') + '<div id="xAlertsBody">' + loader('Loading alert settings') + '</div>';
     try {
-      var d = await getJson('alerts'), s = d.settings || {}, st = d.status || {}, c = st.connectors || {}, t = s.thresholds || {}, q = s.quiet_hours || {};
+      var d = await getJson('alerts');
+      try { var kept = deviceAlertKey() ? JSON.parse(localStorage.getItem(deviceAlertKey()) || 'null') : null; if (kept && typeof kept === 'object') d.settings = kept; } catch (_) {}
+      var s = d.settings || {}, st = d.status || {}, c = st.connectors || {}, t = s.thresholds || {}, q = s.quiet_hours || {};
       var body = document.getElementById('xAlertsBody');
       body.innerHTML = '<div class="xgrid"><div class="xcard"><h3>Schedule & channels</h3>' +
         '<div class="xform-row"><span>Hourly data analysis enabled</span><label class="xswitch"><input type="checkbox" id="xEnabled" ' + (s.enabled ? 'checked' : '') + '>Enabled</label></div>' +
@@ -564,12 +575,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       }
       document.getElementById('xAlertSave').addEventListener('click', async function () {
         var b = this; b.disabled = true; statusLine('xAlertStatus', 'Saving…');
-        try { var r = await postJson('save-alert-settings', collect()); statusLine('xAlertStatus', r.note || 'Alert settings saved.', 'good'); }
+        try {
+          var r = await postJson('save-alert-settings', collect());
+          // A phone sign-in's settings are kept on this device (2026-10-03).
+          if (r.storage === 'device') { try { localStorage.setItem(deviceAlertKey(), JSON.stringify(r.settings || {})); } catch (_) {} }
+          statusLine('xAlertStatus', r.note || 'Alert settings saved.', 'good');
+        }
         catch (e) { statusLine('xAlertStatus', e.message, 'bad'); } finally { b.disabled = false; }
       });
       document.getElementById('xAlertTest').addEventListener('click', async function () {
         var b = this; b.disabled = true; statusLine('xAlertStatus', 'Sending delivery test…');
-        try { var r = await postJson('test-alert', collect()); var result = r.result || r; statusLine('xAlertStatus', result.sent_any ? 'Test sent through at least one configured channel.' : 'No channel sent. Review connection status and the delivery result.', result.sent_any ? 'good' : 'bad'); }
+        try {
+          var r = await postJson('test-alert', collect()); var result = r.result || r;
+          // A phone sign-in's answer says WHY nothing was sent (the channels
+          // are the operator's): an ordinary state, said in the server's own
+          // words - not a channel failure (Bugbot, 2026-10-03).
+          if (r.storage === 'device' && result.note) statusLine('xAlertStatus', result.note, '');
+          else statusLine('xAlertStatus', result.sent_any ? 'Test sent through at least one configured channel.' : 'No channel sent. Review connection status and the delivery result.', result.sent_any ? 'good' : 'bad');
+        }
         catch (e) { statusLine('xAlertStatus', e.message, 'bad'); } finally { b.disabled = false; }
       });
     } catch (e) { document.getElementById('xAlertsBody').innerHTML = failure('Alert Settings', e); }
