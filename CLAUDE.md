@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Lifecycle OS — Project Memory
 
 ## ⭐ Phone accounts live in Supabase Auth (2026-10-03) — read `docs/mobile-pin-signin.md` ("Supabase mode")
-The operator's words: "use supabase cli and remote host for supabase account creation", "use supabase cli -
-dont use the name KNICKGASM", "All features must work even with signin by number and pin". A phone account in
+The operator's words: "use supabase cli and remote host for supabase account creation", "All features must
+work even with signin by number and pin" (and: the new project is `lifecycle-os`, never named after a tenant). A phone account in
 Neon or the browser has no Supabase identity, so every RLS-gated feature refused it after a sign-in that had
 visibly worked. Now `op=status` answers **`supabase` first** (SUPABASE_URL + a server key set AND
 `GET /auth/v1/health` answers) > `server` (Neon) > `device` (unchanged, incl. #115's device principal); a
