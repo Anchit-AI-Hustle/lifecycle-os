@@ -93,6 +93,12 @@ configured project that does not answer falls through and says so (`supabase:{re
   the security checks each fail it. The ten tests that were red on main at the time are fixed by #118's
   `claude/main-ci-green`, merged here; with it the meter is keyed on the principal (only a device principal is
   unmetered), which a Supabase-verified user never is.
+- **Follow-up after #119 (fourth round):** `reachable` (the project answers - always probed) is kept apart
+  from `offerable` (also has a browser-visible key); a device principal exists ONLY when no ledger answers at
+  all (auth health OR the ledger's own `credit_prices` read), so a live project with no public key can no longer
+  run leftover device tokens unmetered; a Neon session is still admitted (metered) when supabase mode is not
+  offered. The boot gate withholds a stored device token (also from `apiToken()`) until `init()` DECIDES - no
+  6-second release. Agents harness device worlds model the paused ledger. 36 tests.
 - **Second and third review rounds (32 tests): ONE session state shared by every tab.** The stored record carries
   `state` (`verified`/`unverified`) and every transition is written there first and applied from it: another
   tab signing out ends the session here; another person signing in replaces it whole; an adopted renewal carries
