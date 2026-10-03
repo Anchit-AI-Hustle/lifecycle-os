@@ -4,6 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Phone accounts live in Supabase Auth (2026-10-03) — read `docs/mobile-pin-signin.md` ("Supabase mode")
+The operator's words: "use supabase cli and remote host for supabase account creation", "use supabase cli -
+dont use the name KNICKGASM", "All features must work even with signin by number and pin". A phone account in
+Neon or the browser has no Supabase identity, so every RLS-gated feature refused it after a sign-in that had
+visibly worked. Now `op=status` answers **`supabase` first** (SUPABASE_URL + a server key set AND
+`GET /auth/v1/health` answers) > `server` (Neon) > `device` (unchanged, incl. #115's device principal); a
+configured project that does not answer falls through and says so (`supabase:{reachable:false, host}`).
+`api/_shared/mobile-auth-supabase.js` brokers every op in that mode (still 12/12 functions).
+- **The PIN is never the GoTrue password.** GoTrue's minimum is 6, and 4 digits on the public password grant
+  is 10,000 guesses for anyone with the anon key. Password = `"Pn1." + base64url(HMAC-SHA256(MOBILE_PIN_PEPPER,
+  "lifecycle-os/mobile-pin/v1|" + E.164 + "|" + PIN))`, derived only on the server. No pepper (or < 32 chars):
+  `enter` is refused 503 `pin_pepper_missing` before ANY request. Rotation via `MOBILE_PIN_PEPPER_PREVIOUS`.
+- **Lockout before GoTrue, in one statement**: `mobile_pin_attempt()` reserves the try (and sets the lock) under
+  the row lock, so 20 concurrent wrong PINs evaluate at most 5. **A grant refusal counts as a wrong PIN unless it
+  is 429, 5xx/no answer or `phone_provider_disabled`** - whitelisting `invalid_credentials` instead would refund
+  any code the service adds later (fail closed). Per-address budget: `mobile_pin_rate_hit()`, hashed address.
+- **Trusted marker in `app_metadata`** (`lifecycle_account:'mobile-pin', phone_e164`), which only the service
+  role writes; a marker in `user_metadata` is ignored (tested with a forger). `requireUser()` answers
+  `{provider:'mobile-pin', mode:'supabase', phone}`, so credits keep the phone rules (unlisted: no wallet, no
+  welcome grant; `CREDITS_COMP_PHONES`: one personal wallet keyed to the Supabase uid, free recharge; the
+  operator emails unaffected), while `brand-runtime`/TeleSuite read its workspaces through RLS like any account.
+  **Every GoTrue-verified principal is `mode:'supabase'` and never takes the meter's standalone bypass**, and a
+  device-shaped token is refused while the project answers - otherwise "no DATABASE_URL" would run every phone
+  account unmetered beside a live ledger.
+- **Browser**: `lifecycle.auth.session` holds `{token, refresh_token, expires_at, mode:'supabase'}`;
+  `apiToken()` = the access token; renewed a minute before expiry straight against
+  `/auth/v1/token?grant_type=refresh_token` with the ANON key (per-IP limit = the person's address, not
+  Vercel's), one renewal at a time across tabs; handed to supabase-js via `setSession()`; sign-out revokes via
+  `POST /auth/v1/logout`. brand-context sends a VERIFIED Supabase phone session down the server path (brands
+  saved to the account); unverified stays on the device; device rows are offered for sync, never uploaded.
+- **Every endpoint is cited** (docs page + the Auth server's OpenAPI; `adminUserCreate` read in its source to
+  confirm it ignores the sign-up switch). **Schema is CLI migrations**: `20260929173555_mobile_pin_supabase_accounts.sql`;
+  duplicate/future version prefixes renamed so `supabase db push` accepts the set (measured from zero on a local
+  Postgres 16). `supabase/config.toml`: `project_id = "lifecycle-os"`, public sign-ups off, Phone provider on.
+  Runbook targets a NEW project `lifecycle-os` (`<project-ref>`); no remote was touched (no access token, egress
+  blocks supabase hosts, the org has unpaid invoices).
+- Gated by `tests/supabase-phone-accounts.spec.js` (18 executed, incl. Chromium against the shipped handler)
+  over `tests/supabase-auth-fake.js` (exactly the endpoints called; throws on anything else). 19 mutations of
+  the security checks each fail it. Pre-existing failures on main (credits-comp-accounts x2, mobile-pin-signin
+  credit meter, standalone KicksGPT, agents-pages device-mode x5, signed-out-actions kicksgpt) are unchanged.
+
 ## ⭐ Features run without DATABASE_URL (2026-09-30) — read `docs/mobile-pin-signin.md`, `docs/agents-status.md`
 Production is device mode (`no_database_url`) with model keys and no Neon. Until this date
 `LifecycleStatus.refusal()` blocked every server action for a device-mode sign-in, `apiToken()`

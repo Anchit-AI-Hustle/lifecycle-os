@@ -293,10 +293,11 @@
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
   /**
-   * The mobile+PIN session (2026-09-28), if that is who is signed in. It has
-   * NO Supabase JWT: brand_workspaces is gated by auth.uid() and a phone
-   * account has none, so its brands live in the device store whichever mode
-   * the ACCOUNT is in - server (the Neon database) or device.
+   * The mobile+PIN session (2026-09-28), if that is who is signed in. In
+   * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
+   * gated by auth.uid() and such an account has none, so its brands live in
+   * the device store. In supabase mode (2026-10-03) it IS a Supabase user
+   * with a real JWT, and modeFor() sends its brands to the account.
    */
   function mobileSession() {
     try {

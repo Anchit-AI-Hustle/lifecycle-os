@@ -2899,6 +2899,14 @@
      SAYS so). A device-mode token is meaningful only in this browser and is
      never sent to the server - see apiToken().
 
+     SUPABASE MODE (2026-10-03) comes FIRST when op=status answers it: the
+     server brokers sign-up and sign-in against the project's auth service
+     (the PIN is turned into a password only there, under a pepper) and
+     returns a real Supabase session, kept here as {token: access_token,
+     refresh_token, expires_at, ...} with mode 'supabase', renewed before it
+     expires (mauthRefresh) and revoked on sign-out. See
+     api/_shared/mobile-auth-supabase.js and docs/mobile-pin-signin.md.
+
      WHAT THIS IS NOT: a phone number typed here is not verified (no SMS), so
      an account is self-asserted. The PIN and the lockout are what make the
      number not the whole key. LifecycleAuth.internal stays false.
