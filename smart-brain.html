@@ -346,6 +346,16 @@ function keepDevicePlan(list){
   const k = devicePlanKey(); if(!k || !Array.isArray(list) || !list.length) return;
   try { localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), entries: list })); } catch(_) {}
 }
+/* The page's first plan read runs before auth.js (deferred) has seated the
+   session, so the device key is not knowable yet: wait for it (bounded). */
+async function deviceSessionReady(){
+  try { if(window.BrandContext && window.BrandContext.ready) await window.BrandContext.ready(); } catch(_) {}
+  for(let i = 0; i < 80; i++){
+    const b = window.LifecycleAuth && window.LifecycleAuth.backend;
+    if(b && b.kind && b.kind !== 'pending') return;
+    await new Promise(r => setTimeout(r, 100));
+  }
+}
 function readDevicePlan(){
   const k = devicePlanKey(); if(!k) return null;
   try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && Array.isArray(v.entries) && v.entries.length ? v : null; } catch(_) { return null; }
@@ -1362,6 +1372,7 @@ async function loadPlan(){
     let rows = data.entries || data.plan || [];
     // A phone sign-in has no stored plan on the server; the one its last
     // Daily Sync computed is kept on this device.
+    if(!rows.length) await deviceSessionReady();
     const kept = rows.length ? null : readDevicePlan();
     if(kept){ rows = kept.entries; data.entries = rows; data.device_plan_at = kept.at; }
     PLAN = applyDecisions(rows);

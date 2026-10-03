@@ -100,10 +100,16 @@ test.describe('Smart Brain review flow, phone sign-in kept on this device, no DA
     test.setTimeout(240_000);
     const log = await open(page, w, 'smart-brain.html');
     await page.waitForSelector('#sync');
-    await page.click('#sync');
+    // The console builds the calendar on first open (autoGenerateOnLoad runs
+    // Daily Sync once per session when nothing is stored); press it only if
+    // that has not happened, so the two never race.
+    await page.waitForTimeout(1500);
+    if (!log.api.some((r) => /smart-brain-sync-daily/.test(r.url))) await page.click('#sync');
     await expect.poll(() => page.evaluate(() => PLAN.length), { timeout: 120_000 }).toBeGreaterThan(1);   // eslint-disable-line no-undef
     const sync = log.api.filter((r) => /smart-brain-sync-daily/.test(r.url));
-    expect(sync.map((r) => r.status)).toEqual([200]);
+    expect(sync.length).toBeGreaterThanOrEqual(1);
+    expect(sync.filter((r) => r.status !== 200)).toEqual([]);
+    expect(sync[0].body.plan.length, 'Daily Sync planned nothing for the carried brand').toBeGreaterThan(1);
 
     // Approve the first slot: built exactly as a preview, decision kept here.
     await page.evaluate(() => approveRow(0));   // eslint-disable-line no-undef
