@@ -75,7 +75,7 @@ function createFake(opts) {
     url: o.url || 'https://lifecycle-os-fake.supabase.test',
     anonKey: o.anonKey || 'anon-fake-' + crypto.randomBytes(6).toString('hex'),
     serviceKey: o.serviceKey || 'service-fake-' + crypto.randomBytes(6).toString('hex'),
-    config: { phoneEnabled: true, minPasswordLength: 6, jwtExpiry: 3600 },
+    config: { phoneEnabled: true, minPasswordLength: 6, jwtExpiry: 3600, wrongPasswordCode: 'invalid_credentials' },
     healthy: true,     // GET /auth/v1/health answers 200
     down: false,       // nothing answers at all (a network failure)
     users: new Map(),            // id -> auth.users row
@@ -187,7 +187,7 @@ function createFake(opts) {
       if (body.phone != null && !f.config.phoneEnabled) return authError(400, 'phone_provider_disabled', 'Phone logins are disabled');
       const phone = storedPhone(body.phone);
       const u = [...f.users.values()].find((x) => phone && x.phone === phone);
-      if (!u || !u.password_hash || u.password_hash !== sha(body.password)) return authError(400, 'invalid_credentials', 'Invalid login credentials');
+      if (!u || !u.password_hash || u.password_hash !== sha(body.password)) return authError(400, f.config.wrongPasswordCode, 'Invalid login credentials');
       if (!u.phone_confirmed_at) return authError(400, 'phone_not_confirmed', 'Phone not confirmed');
       const sid = uuid();
       f.sessions.set(sid, { user_id: u.id, revoked: false });

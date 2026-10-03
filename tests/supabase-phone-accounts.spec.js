@@ -222,6 +222,27 @@ test('wrong PINs count down 4, 3, 2, 1, then lock for fifteen minutes; while loc
   expect(f.tables.mobile_pin_accounts.get(E164)).toMatchObject({ pin_tries: 0, locked_until: null });
 });
 
+test('a refusal the auth service words differently still COUNTS against the PIN; only busy, down or misconfigured hands the try back', async () => {
+  const f = project();
+  await signUp(f);
+  // A code this module has never heard of (the service adds or renames one):
+  // refunding it would hand a guesser unlimited tries.
+  f.config.wrongPasswordCode = 'some_future_code';
+  const r = await auth('enter', { phone: PHONE, cc: '+91', pin: '5926' });
+  expect(r.status).toBe(401);
+  expect(r.body.left).toBe(4);
+  expect(f.tables.mobile_pin_accounts.get(E164).pin_tries).toBe(1);
+  // The service asking us to slow down is NOT a wrong PIN: the try comes back.
+  f.config.wrongPasswordCode = 'invalid_credentials';
+  const real = f.handle;
+  f.handle = (m, u, h, b) => (/grant_type=password/.test(u) ? { status: 429, body: { code: 429, error_code: 'over_request_rate_limit', msg: 'Request rate limit reached' } } : real(m, u, h, b));
+  const busy = await auth('enter', { phone: PHONE, cc: '+91', pin: '5926' });
+  expect(busy.status).toBe(429);
+  expect(busy.body.error).toBe('auth_service_busy');
+  expect(f.tables.mobile_pin_accounts.get(E164).pin_tries, 'a 429 from the auth service was counted as a wrong PIN').toBe(1);
+  f.handle = real;
+});
+
 test('twenty wrong PINs sent AT ONCE: at most five reach the password grant, and the account locks', async () => {
   const f = project();
   await signUp(f);
