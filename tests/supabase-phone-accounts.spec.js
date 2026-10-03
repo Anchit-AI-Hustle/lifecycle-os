@@ -499,6 +499,18 @@ async function wire(page, f, log) {
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
     log.push({ browser: true, url: req.url(), method: req.method(), headers: req.headers(), body: req.postData() || '' });
+    // Knobs for the renewal: `browserRefreshFault` makes it unreachable (a
+    // network failure, or a status such as 503 / 429), `browserRefreshDelayMs`
+    // holds the ANSWER back (the request is handled on arrival, as a server
+    // would) so two tabs can be made to spend one refresh token at once.
+    if (/grant_type=refresh_token/.test(req.url())) {
+      const fault = f.browserRefreshFault;
+      if (fault === 'abort') return route.abort('failed');
+      if (typeof fault === 'number') return route.fulfill({ status: fault, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ code: fault, error_code: fault === 429 ? 'over_request_rate_limit' : 'unexpected_failure', msg: 'unavailable' }) });
+      const r0 = f.handle(req.method(), req.url(), req.headers(), req.postData() || '');
+      if (f.browserRefreshDelayMs) await new Promise((res) => setTimeout(res, f.browserRefreshDelayMs));
+      return route.fulfill({ status: r0.status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: r0.body == null ? '' : JSON.stringify(r0.body) });
+    }
     const r = f.handle(req.method(), req.url(), req.headers(), req.postData() || '');
     return route.fulfill({ status: r.status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: r.body == null ? '' : JSON.stringify(r.body) });
   });
@@ -676,3 +688,147 @@ test('a Supabase phone session whose project went away is KEPT and said, never s
     await new Promise((r) => srv.close(r));
   }
 });
+
+/* ── review findings (2026-10-03): a renewal that could not be made is not a session that ended ── */
+
+/** A page whose stored Supabase session is the one `s` (from signUp), with the app served by the shipped handler. */
+async function openWithSession(page, f, log, base, s, extra) {
+  await wire(page, f, log);
+  await page.addInitScript((sess) => {
+    if (!sessionStorage.getItem('__seeded')) { localStorage.setItem('lifecycle.auth.session', JSON.stringify(sess)); sessionStorage.setItem('__seeded', '1'); }
+  }, Object.assign({
+    token: s.token, refresh_token: s.refresh_token, expires_at: s.expires_at, user: s.user, mode: 'supabase', expires: null, provider: 'mobile-pin',
+    storage: { mode: 'supabase', host: new URL(f.url).hostname, message: '' },
+  }, extra || {}));
+}
+const settled = async (page) => {
+  try {
+    await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending' && (window.LifecycleAuth.backend.supabase !== 'pending' || window.LifecycleAuth.backend.kind === 'signed-out'), null, { timeout: 20000 });
+  } catch (e) {
+    throw new Error(e.message + ' :: ' + JSON.stringify(await page.evaluate(() => ({ backend: window.LifecycleAuth && window.LifecycleAuth.backend, session: window.LifecycleAuth && window.LifecycleAuth.session, stored: localStorage.getItem('lifecycle.auth.session') }))));
+  }
+};
+
+for (const fault of ['abort', 503, 429, 400]) {
+  test('REVIEW P1 (' + fault + '): an access token that ran out while the renewal is UNREACHABLE keeps the session, says so, and renews it when the service is back - before and after op=me answers 401', async ({ page }) => {
+    test.setTimeout(120_000);
+    const f = project();
+    const s = await signUp(f);
+    const log = [];
+    const srv = appServer(log);
+    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+    const base = 'http://127.0.0.1:' + srv.address().port;
+    try {
+      // BEFORE: this browser's clock says the token has run out, and so does the service.
+      f.access.get(s.token).exp = Math.floor(Date.now() / 1000) - 30;
+      f.browserRefreshFault = fault;
+      await page.clock.install();
+      await openWithSession(page, f, log, base, s, { expires_at: Math.floor(Date.now() / 1000) - 30 });
+      await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+      await settled(page);
+      let st = await readState(page);
+      expect(st.stored, 'the session was thrown away because the renewal could not be MADE').not.toBeNull();
+      expect(st.stored.refresh_token).toBe(s.refresh_token);
+      expect(st.session).toMatchObject({ mode: 'supabase', verified: false });
+      expect(st.name).toBe('Ravi');
+      expect(st.umode).toMatch(/not answering right now/);
+      expect(log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url)).length, 'no renewal was attempted').toBeGreaterThan(0);
+
+      // The service comes back: the scheduled retry renews it and the page says so.
+      f.browserRefreshFault = null;
+      await page.clock.fastForward('03:00');
+      await page.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 15000 });
+      st = await readState(page);
+      expect(st.stored.refresh_token).not.toBe(s.refresh_token);
+      expect(st.umode).toMatch(/brands are saved to your account/);
+
+      // AFTER: our clock thinks the token is fine, op=me answers 401 (the service
+      // expired it), and the renewal is unreachable again: still kept.
+      const cur = st.stored;
+      f.access.get(cur.token).exp = Math.floor(Date.now() / 1000) - 5;
+      f.browserRefreshFault = fault;
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await settled(page);
+      const me = log.filter((l) => l.query && l.query.op === 'me').pop();
+      expect(me.status).toBe(401);
+      st = await readState(page);
+      expect(st.stored, 'a 401 from op=me plus an unreachable renewal cleared the session').not.toBeNull();
+      expect(st.stored.refresh_token).toBe(cur.refresh_token);
+      expect(st.session).toMatchObject({ mode: 'supabase', verified: false });
+    } finally {
+      await new Promise((r) => srv.close(r));
+    }
+  });
+}
+
+test('REVIEW P1: a renewal the service REFUSES (refresh token revoked) still ends the session, with the note', async ({ page }) => {
+  test.setTimeout(90_000);
+  const f = project();
+  const s = await signUp(f);
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  try {
+    for (const row of f.sessions.values()) row.revoked = true;   // signed out everywhere, elsewhere
+    await openWithSession(page, f, log, base, s, { expires_at: Math.floor(Date.now() / 1000) - 30 });
+    await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!document.querySelector('#lnav-signin'), null, { timeout: 20000 });
+    const st = await readState(page);
+    expect(st.stored).toBeNull();
+    expect(st.session).toBeNull();
+    expect(await page.evaluate(() => (document.getElementById('lnav-signin-note') || {}).textContent || '')).toMatch(/expired or was signed out/);
+  } finally {
+    await new Promise((r) => srv.close(r));
+  }
+});
+
+for (const locks of [true, false]) {
+  test('REVIEW P2 (' + (locks ? 'Web Locks' : 'no Web Locks') + '): two tabs renewing one single-use refresh token at once never wipe the session - both end signed in on the newest pair', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const f = project();
+    const s = await signUp(f);
+    const log = [];
+    const srv = appServer(log);
+    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+    const base = 'http://127.0.0.1:' + srv.address().port;
+    const context = await browser.newContext();
+    try {
+      if (!locks) await context.addInitScript(() => { try { Object.defineProperty(navigator, 'locks', { value: undefined, configurable: true }); } catch (_) {} });
+      f.browserRefreshDelayMs = 700;
+      const a = await context.newPage();
+      const b = await context.newPage();
+      await wire(a, f, log); await wire(b, f, log);
+      // ONE seed for the whole context (localStorage is shared): the token has
+      // run out. Written from a bare page BEFORE either tab boots, so no tab
+      // can re-seed the old pair after another has renewed it.
+      const seed = await context.newPage();
+      await seed.route(base + '/__seed', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>seed</title>' }));
+      await seed.goto(base + '/__seed');
+      await seed.evaluate((sess) => localStorage.setItem('lifecycle.auth.session', JSON.stringify(sess)), {
+        token: s.token, refresh_token: s.refresh_token, expires_at: Math.floor(Date.now() / 1000) - 30, user: s.user, mode: 'supabase', expires: null, provider: 'mobile-pin',
+        storage: { mode: 'supabase', host: new URL(f.url).hostname, message: '' },
+      });
+      await seed.close();
+      await Promise.all([a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' }), b.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' })]);
+      await Promise.all([settled(a), settled(b)]);
+      await a.waitForTimeout(1500);
+      const sa = await readState(a);
+      const sb = await readState(b);
+      const stored = sa.stored;
+      expect(stored, 'the race wiped the stored session').not.toBeNull();
+      expect(stored.refresh_token).not.toBe(s.refresh_token);
+      for (const st of [sa, sb]) {
+        expect(st.session, 'a tab lost its session in the race').not.toBeNull();
+        expect(st.session.token).toBe(stored.token);
+      }
+      // The pair in storage is a LIVE one.
+      const check = f.handle('GET', f.url + '/auth/v1/user', { apikey: f.anonKey, authorization: 'Bearer ' + stored.token }, '');
+      expect(check.status).toBe(200);
+      if (locks) expect(log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url)).length, 'with Web Locks only ONE tab spends the refresh token').toBe(1);
+    } finally {
+      await context.close();
+      await new Promise((r) => srv.close(r));
+    }
+  });
+}
