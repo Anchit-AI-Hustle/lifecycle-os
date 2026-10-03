@@ -467,4 +467,46 @@ test('telesuite voice: a fabricated voice_session carried from the device cannot
   expect(r3.status).toBe(200);
   const s3 = (r3.out.device.runs || []).find((x) => x.feature === 'voice_session');
   expect(s3 && s3.id).not.toBe(session.id);
+  // A validly-signed row moved to ANOTHER call, or relabelled as another
+  // feature, is not honoured either: both are inside the signature.
+  w.reset();
+  const moved = Object.assign({}, session, { input: Object.assign({}, session.input, { call_id: 'call-other' }) });
+  const r4 = await turn({ runs: [moved] }, 'call-other');
+  const s4 = (r4.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s4 && s4.id, 'a signed row from another call was honoured').not.toBe(session.id);
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length).toBe(1);
+  w.reset();
+  const relabelled = Object.assign({}, session, { feature: 'voice_sales' });
+  const r5 = await turn({ runs: [relabelled] }, 'call-forged');
+  expect(r5.status).toBe(200);
+  const s5 = (r5.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s5 && s5.id).not.toBe(session.id);
+  // The signature is derived for THIS use: it is not an HMAC under the raw secret.
+  const crypto = require('crypto');
+  const o = session.output || {}; const i = session.input || {};
+  const raw = crypto.createHmac('sha256', String(process.env.CRON_SECRET || '')).update(JSON.stringify([session.id, session.feature, session.created_at, session.units == null ? null : Number(session.units), o.billed_minutes == null ? null : Number(o.billed_minutes), session.credits == null ? null : Number(session.credits), i.call_id || null, session.status || null])).digest('hex');
+  expect(session.signature).not.toBe(raw);
+});
+
+test('telesuite voice: replaying an OLDER validly-signed session for the same call cannot lower what is due', async () => {
+  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
+  const turn = (device) => call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device, input: { mode: 'sales', call_id: 'call-replay', history: [], utterance: 'hi', product: 'Lamp' } }, state: 'phone', headers: H2 });
+  const t1 = await turn({ runs: [] });
+  const older = (t1.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(older.output.billed_minutes).toBe(1);
+  // The billed counter can only be what the server signed for THIS created_at:
+  // the older row says 1 minute billed against the same start time, so what is
+  // due is computed from the server's clock as elapsed - 1, never less.
+  w.reset();
+  const t2 = await turn({ runs: [older] });
+  expect(t2.status).toBe(200);
+  const s2 = (t2.out.device.runs || []).find((x) => x.feature === 'voice_session') || older;
+  expect(Number((s2.output || {}).billed_minutes)).toBeGreaterThanOrEqual(1);
+  // And a signed row can never claim MORE billed minutes than it was signed with.
+  w.reset();
+  const inflated = Object.assign({}, older, { output: { billed_minutes: 60 }, units: 60 });
+  const t3 = await turn({ runs: [inflated] });
+  const s3 = (t3.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s3 && s3.id).not.toBe(older.id);
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'an inflated counter skipped the meter').toBe(1);
 });
