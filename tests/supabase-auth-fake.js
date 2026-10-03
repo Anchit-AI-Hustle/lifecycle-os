@@ -184,7 +184,7 @@ function createFake(opts) {
       return { status: 200, body: publicUser(u) };
     }
     if (path === '/auth/v1/token' && method === 'POST' && q.get('grant_type') === 'password') {
-      if (body.phone != null && !f.config.phoneEnabled) return authError(400, 'phone_provider_disabled', 'Phone logins are disabled');
+      if (body.phone != null && !f.config.phoneEnabled) return authError(422, 'phone_provider_disabled', 'Phone logins are disabled');
       const phone = storedPhone(body.phone);
       const u = [...f.users.values()].find((x) => phone && x.phone === phone);
       if (!u || !u.password_hash || u.password_hash !== sha(body.password)) return authError(400, f.config.wrongPasswordCode, 'Invalid login credentials');
