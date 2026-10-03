@@ -83,6 +83,55 @@ a PIN can be guessed is `api/_shared/mobile-auth-supabase.js`, behind the lockou
   `MOBILE_PIN_PEPPER_PREVIOUS`; a sign-in the new one does not open is retried with the old
   one and re-keyed on the spot (one reserved try for both). Remove the old value later.
 
+### The session in the browser: one state, shared by every tab (review, 2026-10-03)
+
+Nine review findings were one defect seen from nine paths: a tab deciding the session's state
+from what IT had last seen. Now the stored record `lifecycle.auth.session` IS the session for
+every tab, and every transition is written there first and applied from it (`storage` events
+carry it to the other tabs):
+
+| record | meaning | what the tab does |
+|---|---|---|
+| absent | signed out | drops its copy, signs supabase-js out locally, sends no token, shows Sign in |
+| `state:'verified'` | checked with `op=me` since the last change | brands on the account, token sent |
+| `state:'unverified'` | kept, but could not be checked or renewed | says so under the chip, brands on the device, no expired token sent, retried every minute |
+
+- **Only a refusal ends a session.** A renewal that could not be made (no answer, 429, 5xx, no
+  public config, an unrecognised refusal) keeps it, unverified; only `refresh_token_not_found`,
+  `refresh_token_already_used`, `session_not_found`, `session_expired`, `user_not_found` and
+  `user_banned` end it. That holds before and after `op=me` answers 401.
+- **One renewal across tabs.** The refresh token is single-use: the renewal runs under a Web Lock
+  (`navigator.locks`), re-reads the record inside it, and holds the lock 300 ms after writing
+  (another tab's process sees localStorage a moment later). A refusal is checked against the
+  record twice before it is believed, which is also the path without Web Locks. A tab that adopts
+  a pair renewed elsewhere adopts its verified state and does not check again itself.
+- **Another person signing in in another tab** replaces the whole session here (user, token,
+  brand namespace), not just the token.
+- **A device account when the project comes back.** A device session's token is refused while
+  the project answers, so: same-origin calls made before the boot decides wait for it (the auth
+  endpoint and the public config, which decide, never wait and carry no token meanwhile); the
+  account keeps working on the device; its token is not sent; the mode line, a "Move this account
+  to the database" button and the refusal sentence say to sign in again with the same number and
+  PIN; doing so copies its device brands into the new account's device namespace, where onboarding
+  offers them for sync. Nothing is uploaded unasked.
+
+### The server: by the token, and only with a key the browser can hold
+
+- **A Supabase JWT goes to the Supabase path whatever the moment's health probe said.** With Neon
+  also configured, one failed probe used to send `op=me` to Neon's session table (401, session
+  cleared); it now answers 503 `backend_unreachable` (kept).
+- **The browser-visible key** is chosen in ONE place (`mobile-auth-supabase.publicKey()`: anon, else
+  publishable; never `sb_secret_`, the service key itself, or a `service_role` JWT) and
+  `/api/public-config` publishes exactly that. With none, `op=status` does not answer `supabase`
+  (`supabase.reason: 'no_public_key'`): a session the browser cannot renew would go unverified
+  after an hour.
+- **The lockout covers adoption.** When the admin create answers `phone_exists`, the PIN is checked
+  against an auth user this table never bound - and that check now reserves a try first, keyed by
+  the phone, on a row a failure does not delete (`20261003142200_mobile_pin_lockout_covers_adoption.sql`:
+  `mobile_pin_attempt(..., p_pending)`, `mobile_pin_unclaim` keeps a row carrying tries or a lock,
+  `mobile_pin_claim` keeps the count on takeover and refuses while locked). Measured on a local
+  Postgres 16: 30 concurrent pending attempts allow exactly 5.
+
 ### Every endpoint called, and where it is documented
 
 Shapes were read from the Auth server's own OpenAPI description (`github.com/supabase/auth`,
@@ -167,9 +216,9 @@ fails with `CliConfigParseError`). It could not reach a remote: there was no
 `SUPABASE_ACCESS_TOKEN`, the egress policy blocks `api.supabase.com` and `*.supabase.co`, and
 the only organisation has unpaid invoices, so no project was created, restored or modified.
 
-Gated by `tests/supabase-phone-accounts.spec.js` (18 tests, executed against
+Gated by `tests/supabase-phone-accounts.spec.js` (32 tests, executed against
 `tests/supabase-auth-fake.js`, a fake of exactly the endpoints above that throws on anything
-else). 19 mutations of the security checks each fail it.
+else). Every security and session check is mutation-verified (19 + 7 + 9 + 10 mutations).
 
 ## The pieces
 
