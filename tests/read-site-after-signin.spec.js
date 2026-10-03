@@ -125,7 +125,7 @@ function response(status, ct, body, url) {
              a database that answers; the account module's status and token
              check are answered here, the rest of it runs untouched). */
 const ENV_KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'DATABASE_URL', 'NEON_DATABASE_URL', 'POSTGRES_URL'];
+  'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'DATABASE_URL', 'NEON_DATABASE_URL', 'POSTGRES_URL', 'CREDITS_COMP_PHONES'];
 
 function serverWorld(state) {
   const savedEnv = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
@@ -134,6 +134,8 @@ function serverWorld(state) {
     process.env.SUPABASE_URL = 'https://' + (state.supabase === 'reachable' ? LIVE : PAUSED);
     process.env.SUPABASE_ANON_KEY = 'anon-key-for-test';
   }
+  // A server-mode number the operator LISTED may spend; an unlisted one may not.
+  if (state.listed) process.env.CREDITS_COMP_PHONES = SERVER_USER.phone;
   for (const m of [ENTRY, CORE, EXTRACT, LLM, MOBILE]) delete require.cache[m];
 
   // The model: counted, and answered, so a verified caller's voice step has
@@ -470,13 +472,15 @@ const MATRIX = [
   { supabase: 'unreachable', store: 'server', session: 'none', on: false },
   { supabase: 'unreachable', store: 'server', session: 'device', on: false },
   { supabase: 'unreachable', store: 'server', session: 'server', on: true },
+  { supabase: 'unreachable', store: 'server', session: 'server', listed: true, on: true },
   // accounts in a database, Supabase restored
   { supabase: 'reachable', store: 'server', session: 'none', on: false },
   { supabase: 'reachable', store: 'server', session: 'server', on: true },
+  { supabase: 'reachable', store: 'server', session: 'server', listed: true, on: true },
 ];
 
 for (const state of MATRIX) {
-  const name = `supabase ${state.supabase}, accounts on the ${state.store}, ${state.session === 'none' ? 'signed out' : state.session + '-mode sign-in'}`;
+  const name = `supabase ${state.supabase}, accounts on the ${state.store}, ${state.session === 'none' ? 'signed out' : state.session + '-mode sign-in'}${state.session === 'server' ? (state.listed ? ' (number listed)' : ' (number NOT listed)') : ''}`;
   test(`the wizard's decision equals the server's answer: ${name}`, async ({ page }) => {
     test.setTimeout(60_000);
     const world = serverWorld(state);
@@ -498,9 +502,10 @@ for (const state of MATRIX) {
       // server-mode number the operator has NOT listed has no wallet, so its
       // voice step is skipped and said so (2026-10-03, review): an unlisted
       // number never reaches a provider.
-      const actedFor = state.session === 'device' && served;
-      expect(world.llm.calls - before, actedFor ? 'a signed-in person\'s voice step did not run' : 'a model was called for a caller that may not spend').toBe(actedFor ? 1 : 0);
+      const actedFor = (state.session === 'device' && served) || (state.session === 'server' && state.listed === true && served);
+      expect(world.llm.calls - before, actedFor ? 'a person who may spend did not get the voice step' : 'a model was called for a caller that may not spend').toBe(actedFor ? 1 : 0);
       if (served && !actedFor) expect(out.body.voice_skipped).toBe(true);
+      if (served && state.session === 'server' && !state.listed) expect(String(out.body.voice_note || '')).toMatch(/not on the operator's list/);
 
       if (!seen.enabled) {
         expect(seen.note, 'a disabled control with no reason').not.toBe('');
