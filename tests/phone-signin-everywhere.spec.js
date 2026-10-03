@@ -180,3 +180,57 @@ test.describe('calendar.js decisions for a phone sign-in, over the socket', () =
     expect(w.llm.calls).toEqual([]);
   });
 });
+
+/* ═══ The concierge (agent.html): its agents kept on this device ═══════════ */
+test.describe('the concierge agent, phone sign-in kept on this device, no DATABASE_URL', () => {
+  let w;
+  test.beforeAll(async () => { w = await A.world({ serverMode: false }); });
+  test.afterAll(async () => { await w.close(); });
+  test.beforeEach(() => { w.reset(); });
+
+  test('the built-in agent answers as the brand, a created agent is kept on this device and answers too', async ({ page }) => {
+    test.setTimeout(120_000);
+    const log = await open(page, w, 'agent.html');
+    await page.waitForSelector('#send');
+    // The built-in Brand Agent: it used to be 404 "agent not found".
+    await page.fill('#q', 'What should I start with?');
+    await page.click('#send');
+    await expect.poll(() => log.api.filter((r) => /action=agent-chat/.test(r.url)).map((r) => r.status), { timeout: 20_000 }).toEqual([200]);
+    await expect(page.locator('#chat .msg.agent:not(.status)').last()).toHaveText(/Scripted reply for this turn/, { timeout: 10_000 });
+    const first = log.api.filter((r) => /action=agent-chat/.test(r.url))[0].body;
+    expect(first.storage).toBe('device');
+
+    // Create an agent: built by the server, kept here.
+    await page.click('#agentAdminToggle');
+    await page.fill('#afName', 'Front Page Editor');
+    await page.click('#afSave');
+    await expect.poll(() => log.api.filter((r) => /action=agent-upsert/.test(r.url)).map((r) => r.status), { timeout: 10_000 }).toEqual([200]);
+    const kept = await page.evaluate((uid) => {
+      const k = Object.keys(localStorage).find((x) => x.indexOf('lifecycle.agents.device.' + uid + '.') === 0);
+      return k ? JSON.parse(localStorage.getItem(k)) : null;
+    }, w.tokens.phoneUserId);
+    expect(kept && kept.map((a) => a.name)).toEqual(['Front Page Editor']);
+    // No server-side agent knowledge sync for a device agent.
+    expect(log.api.filter((r) => /action=agent-sync/.test(r.url))).toEqual([]);
+
+    // It is now the selected agent and a turn carries its definition.
+    await page.fill('#q', 'Which section is best this week?');
+    await page.click('#send');
+    await expect.poll(() => log.api.filter((r) => /action=agent-chat/.test(r.url)).length, { timeout: 20_000 }).toBe(2);
+    const second = log.api.filter((r) => /action=agent-chat/.test(r.url))[1];
+    expect(second.status).toBe(200);
+    expect(second.body.agent.name).toBe('Front Page Editor');
+
+    // A reload lists it again, from this device.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(() => document.body.innerText.includes('Front Page Editor')), { timeout: 15_000 }).toBe(true);
+
+    expect(w.llm.calls.map((c) => c.stage)).toEqual(['agent-chat', 'agent-chat']);
+    expect(w.db.calls.filter((c) => /smart_agent/.test(c.url) && c.method !== 'GET')).toEqual([]);
+    const shown = await page.evaluate(() => document.body.innerText);
+    expect(shown).not.toMatch(/agent_not_found|does not exist in this brand's workspace|KNICKGASM/);
+    expect(log.errors).toEqual([]);
+    expect(log.dialogs).toEqual([]);
+    expect(w.escaped()).toEqual([]);
+  });
+});
