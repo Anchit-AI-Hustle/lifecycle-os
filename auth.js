@@ -3187,7 +3187,24 @@
     const at = Number(sess.expires_at) || 0;
     const inMs = Math.max(5000, (at - 60) * 1000 - Date.now());
     mauthRefreshTimer = setTimeout(() => {
-      mauthRefresh().then((r) => {
+      const live0 = window.LifecycleAuth && window.LifecycleAuth.session;
+      mauthRefresh(live0 && live0.access_token).then((r) => {
+        if (r && r.ok) {
+          // A session kept UNVERIFIED because a renewal could not be made:
+          // now that one has been, ask op=me again and say so.
+          const live = window.LifecycleAuth && window.LifecycleAuth.session;
+          if (live && live.mode === 'supabase' && live.verified === false) {
+            const cur = mauthReadSession();
+            if (cur) mauthValidate(cur).then((v) => {
+              if (!v.ok) return;
+              const now = mauthReadSession() || cur;
+              now.user = Object.assign({}, now.user, v.user);
+              mauthWriteSession(now);
+              mauthApply(now, { verified: true, status: v.status, supabase: 'reachable' });
+            }).catch(() => {});
+          }
+          return;
+        }
         if (!r || !r.expired) return;
         // Signed out elsewhere, or the refresh token was revoked: the
         // session ended while this page was open. Said under the chip, like
@@ -3222,14 +3239,44 @@
    * refused the refresh token: the session ended), or `{unreachable}` (no
    * answer, or no config to ask with - the session is kept and tried again).
    */
-  function mauthRefresh() {
+  /* Only these refusals END a session: the refresh token or its session is
+     gone (https://supabase.com/docs/guides/auth/debugging/error-codes).
+     Anything else - no answer, a 429, a 5xx, no public config to ask with, or
+     a refusal this file does not recognise - is a renewal that could not be
+     MADE, and the session is kept, marked unverified, and tried again.
+     Review finding (2026-10-03): every non-success used to end the session,
+     so an auth host that was down for a minute signed everybody out. */
+  const MAUTH_REFRESH_ENDED = {
+    refresh_token_not_found: 1, refresh_token_already_used: 1, session_not_found: 1,
+    session_expired: 1, user_not_found: 1, user_banned: 1,
+  };
+  const mauthSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  /**
+   * Renew the stored Supabase session. `{ok}`, `{expired}` (the service
+   * refused the refresh token: the session ended), or `{unreachable}` (no
+   * answer, or no config to ask with - the session is kept and tried again).
+   *
+   * `basis` is the access token the caller holds. ACROSS TABS (review finding,
+   * 2026-10-03): the refresh token is single-use, and an in-tab promise does
+   * not stop another tab spending it too - the loser read
+   * `refresh_token_already_used` as "signed out" and cleared the session every
+   * tab shares. So the whole renewal runs under a Web Lock where the browser
+   * has one, and re-reads the stored session INSIDE it: a pair another tab
+   * already renewed is adopted without a request. Either way, a refusal is
+   * checked against storage twice (now, and after the other tab's write has
+   * had time to land) before it is believed.
+   */
+  function mauthRefresh(basis) {
     if (mauthRefreshing) return mauthRefreshing;
-    mauthRefreshing = (async () => {
+    const run = async () => {
       const s = mauthReadSession();
       if (!s || s.mode !== 'supabase' || !s.refresh_token) return { ok: false, expired: true };
+      // Another tab renewed while this one waited for the lock: adopt it.
+      if (basis && s.token !== basis && !mauthNeedsRefresh(s, 60)) { mauthAdopt(s); return { ok: true, adopted: true }; }
+      const retry = () => { mauthScheduleRefresh({ mode: 'supabase', expires_at: Math.floor(Date.now() / 1000) + 120 }); return { ok: false, unreachable: true }; };
       let cfg = null;
       try { cfg = await getConfig(); } catch (_) { cfg = null; }
-      if (!cfg || !cfg.url || !cfg.anonKey) { mauthScheduleRefresh({ mode: 'supabase', expires_at: Math.floor(Date.now() / 1000) + 120 }); return { ok: false, unreachable: true }; }
+      if (!cfg || !cfg.url || !cfg.anonKey) return retry();
       const used = s.refresh_token;
       let res = null, j = {};
       try {
@@ -3247,19 +3294,30 @@
         cur.expires_at = Number(j.expires_at) || (Math.floor(Date.now() / 1000) + (Number(j.expires_in) || 3600));
         mauthWriteSession(cur);
         mauthAdopt(cur);
+        // localStorage reaches another tab's process a moment AFTER this
+        // write, and a tab waiting on the lock reads it as soon as the lock
+        // is released: holding the lock briefly is what lets it see the new
+        // pair instead of spending the old one.
+        if (mauthHasLocks()) await mauthSleep(300);
         return { ok: true };
       }
-      if (!res || res.status === 429 || res.status >= 500) {
-        mauthScheduleRefresh({ mode: 'supabase', expires_at: Math.floor(Date.now() / 1000) + 120 });
-        return { ok: false, unreachable: true };
-      }
-      // Refused. If another tab renewed in the meantime, its token is the
-      // session now - not an ended one.
-      const now = mauthReadSession();
-      if (now && now.mode === 'supabase' && now.refresh_token && now.refresh_token !== used) { mauthAdopt(now); return { ok: true, adopted: true }; }
+      const code = String((j && (j.error_code || (typeof j.code === 'string' ? j.code : '') || j.error)) || '');
+      if (!res || res.status === 429 || res.status >= 500 || !MAUTH_REFRESH_ENDED[code]) return retry();
+      // Refused for good - unless another tab renewed in the meantime, in
+      // which case its pair is the session now. Checked twice without a lock.
+      const newer = () => { const n = mauthReadSession(); return n && n.mode === 'supabase' && n.refresh_token && n.refresh_token !== used ? n : null; };
+      let n = newer();
+      if (!n) { await mauthSleep(1200); n = newer(); }
+      if (n) { mauthAdopt(n); return { ok: true, adopted: true }; }
       return { ok: false, expired: true };
-    })().finally(() => { mauthRefreshing = null; });
+    };
+    mauthRefreshing = (mauthHasLocks()
+      ? navigator.locks.request('lifecycle.auth.refresh', run)
+      : run()).finally(() => { mauthRefreshing = null; });
     return mauthRefreshing;
+  }
+  function mauthHasLocks() {
+    try { return !!(navigator.locks && typeof navigator.locks.request === 'function'); } catch (_) { return false; }
   }
   try {
     window.addEventListener('storage', (ev) => {
@@ -3343,21 +3401,30 @@
   /** Boot: is the stored server-mode session still good? */
   async function mauthValidate(sess) {
     let r;
+    // A Supabase session that cannot be checked right now: KEPT, unverified,
+    // with the host, so the mode line says so and the renewal is retried.
+    const keep = () => ({ ok: false, unreachable: true, host: (sess.storage && sess.storage.host) || '', status: { mode: 'supabase', host: (sess.storage && sess.storage.host) || '' } });
     // A Supabase access token lives an hour. One that has run out (a tab
     // reopened tomorrow) is renewed FIRST, so op=me is asked with a token
-    // that can answer; a refresh the service refuses is a session that ended.
+    // that can answer. Only a renewal the service REFUSES is a session that
+    // ended; one that could not be made (review finding, 2026-10-03) keeps it.
     if (sess.mode === 'supabase' && mauthNeedsRefresh(sess, 60)) {
-      const rf = await mauthRefresh();
+      const rf = await mauthRefresh(sess.token);
       if (rf.expired) return { ok: false, expired: true };
       if (rf.ok) sess = mauthReadSession() || sess;
+      // Not renewed: op=me is still asked. If it answers 401, the branch
+      // below decides - and a renewal that cannot be made keeps the session.
     }
     try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; }
     if (r.status === 401 && sess.mode === 'supabase') {
       // Revoked, or expired between the check above and the call: one
-      // refresh, one more ask. A second 401 is a session that ended.
-      const rf = await mauthRefresh();
+      // renewal, one more ask. A renewal that could not be MADE keeps the
+      // session (the 401 alone cannot tell "ended" from "needs renewing").
+      const rf = await mauthRefresh(sess.token);
       if (rf.expired) return { ok: false, expired: true };
-      if (rf.ok) { sess = mauthReadSession() || sess; try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; } }
+      if (!rf.ok) return keep();
+      sess = mauthReadSession() || sess;
+      try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; }
     }
     if (r.status === 200 && r.body && r.body.ok && r.body.user && sess.mode === 'supabase') {
       return { ok: true, user: r.body.user, status: { mode: 'supabase', host: r.body.host || (sess.storage && sess.storage.host) || '', message: r.body.message || 'Account saved in the database.' } };
