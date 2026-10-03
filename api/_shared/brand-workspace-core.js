@@ -1462,11 +1462,13 @@ async function assertCanWrite(auth, workspaceId, what) {
   return ws;
 }
 
-async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true }) {
-  // A replacement import can destroy the whole catalog, so membership is not
-  // enough — this needs write permission. The RLS policy enforces it too
-  // (20260809150000), but failing here gives the user a real message.
-  const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
+/**
+ * Read a catalogue SOURCE into rows: the store URL (feed first, then the site
+ * crawl), a pasted CSV, or a JSON export. Writes nothing. Shared by the
+ * account import below and the device import (2026-10-03), so the two read a
+ * catalogue identically and differ only in where the rows are kept.
+ */
+async function readCatalogSource({ region, kind, text, url, scope }) {
   const reg = str(region, 12).toLowerCase() || 'us';
   const k = str(kind).toLowerCase();
 
@@ -1496,10 +1498,10 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     }
     if (!parsed.rows.length) {
       const viaFeed = parsed.note || 'no rows in the product feed';
-      parsed = await rowsFromSite(url, reg, ws);
+      parsed = await rowsFromSite(url, reg, scope);
       if (parsed && parsed.rows) parsed.fallback_from = viaFeed;
     }
-  } else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, ws);
+  } else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, scope);
   else if (k === 'json') parsed = rowsFromJson(text, reg);
   else if (k === 'csv') parsed = rowsFromCsv(text, reg);
   else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
@@ -1526,6 +1528,92 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     const e = new Error('No usable product rows were found in that source.' + tried);
     e.status = 400; throw e;
   }
+  return { parsed, reg, k };
+}
+
+/** Where a catalogue came from, as recorded beside the brand. */
+function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
+  const sf = parsed && parsed.storefront;
+  return {
+    kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
+    url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
+    imported_at: new Date().toISOString(),
+    row_count: rowCount,
+    batch,
+    region: reg,
+    columns: parsed.columns || {},
+    // WHICH STORE THIS CAME FROM. Recorded on the workspace row the generators
+    // read, so the answer is established once instead of re-derived by a failed
+    // request on every import. Null when the crawl route was not taken or the
+    // site published no platform signal — which is not the same as "no store".
+    platform: sf && sf.detected
+      ? { id: sf.platform.id, name: sf.platform.name, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind }
+      : null,
+    sitemap: (parsed.crawl && parsed.crawl.sitemap) || null,
+    coverage_note: (parsed.crawl && parsed.crawl.coverage_note) || '',
+  };
+}
+
+/* ── A CATALOGUE KEPT ON THE DEVICE (2026-10-03) ─────────────────────────────
+   A mobile-number sign-in keeps its brands on the device it signed in on, so
+   "Import catalog" was refused to it ("Not available on a mobile-number
+   account"): the rows were filed under a brand in the workspace database, and
+   restAs() refuses a phone token in every mode. But reading a store, a CSV or
+   a JSON export needs no database at all - only FILING the rows did. So for
+   that caller the same reader runs and the rows come back in the response, for
+   the browser to keep beside the brand on the device (brand-context.js). The
+   scope of a crawl is the brand the request carried, exactly as a workspace
+   row would have supplied it; the SSRF guard and the site's own scope rules
+   run unchanged. Nothing is written here. */
+const DEVICE_CATALOG_ROWS = 2000;
+const DEVICE_ROW_FIELDS = ['region', 'sku', 'handle', 'title', 'description', 'product_type', 'collections', 'price',
+  'compare_at', 'currency', 'image_url', 'product_url', 'in_stock', 'tags', 'source', 'source_url'];
+
+function isPhoneAuth(auth) { return !!(auth && auth.ok !== false && auth.provider === 'mobile-pin'); }
+
+async function importCatalogToDevice(auth, { region = 'us', kind, text, url, brand }) {
+  const b = brand && typeof brand === 'object' && !Array.isArray(brand) ? brand : {};
+  const scope = {
+    website: httpUrl(b.website) || httpUrl(url) || '',
+    regions: Array.isArray(b.regions) ? b.regions.slice(0, 20) : [],
+    asset_hosts: Array.isArray(b.asset_hosts) ? b.asset_hosts.filter((h) => typeof h === 'string').slice(0, 20) : [],
+  };
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope });
+  const seen = new Set();
+  const products = [];
+  for (const r of parsed.rows) {
+    const key = `${r.region}|${r.handle || ''}|${r.sku || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const row = {};
+    for (const f of DEVICE_ROW_FIELDS) if (r[f] !== undefined) row[f] = r[f];
+    products.push(row);
+  }
+  const kept = products.slice(0, DEVICE_CATALOG_ROWS);
+  const batch = require('crypto').randomUUID();
+  return {
+    ok: true,
+    imported: kept.length,
+    skipped: (parsed.skipped || 0) + (products.length - kept.length),
+    region: reg,
+    storage: 'device',
+    products: kept,
+    source: catalogSourceRecord(parsed, k, url, kept.length, batch, reg),
+    note: products.length > kept.length
+      ? `Kept the first ${kept.length} of ${products.length} products on this device; a browser holds a bounded amount. Nothing was invented for the rest.`
+      : 'Kept on this device, beside the brand. Nothing was written to a database.',
+  };
+}
+
+async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true, brand }) {
+  // A mobile-number sign-in has no workspace row to file under: the rows go
+  // back to its device instead (see importCatalogToDevice above).
+  if (isPhoneAuth(auth)) return importCatalogToDevice(auth, { region, kind, text, url, brand });
+  // A replacement import can destroy the whole catalog, so membership is not
+  // enough — this needs write permission. The RLS policy enforces it too
+  // (20260809150000), but failing here gives the user a real message.
+  const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws });
 
   // De-dupe on the table's unique key before insert so one bad source row can't
   // abort the whole import.
@@ -1568,25 +1656,7 @@ async function importCatalog(auth, { workspace_id, region = 'us', kind, text, ur
     }
   }
 
-  const sf = parsed && parsed.storefront;
-  const source = {
-    kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
-    url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
-    imported_at: new Date().toISOString(),
-    row_count: inserted,
-    batch,
-    region: reg,
-    columns: parsed.columns || {},
-    // WHICH STORE THIS CAME FROM. Recorded on the workspace row the generators
-    // read, so the answer is established once instead of re-derived by a failed
-    // request on every import. Null when the crawl route was not taken or the
-    // site published no platform signal — which is not the same as "no store".
-    platform: sf && sf.detected
-      ? { id: sf.platform.id, name: sf.platform.name, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind }
-      : null,
-    sitemap: (parsed.crawl && parsed.crawl.sitemap) || null,
-    coverage_note: (parsed.crawl && parsed.crawl.coverage_note) || '',
-  };
+  const source = catalogSourceRecord(parsed, k, url, inserted, batch, reg);
   await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(workspace_id)}`, {
     method: 'PATCH', body: { catalog_source: source }, prefer: 'return=minimal',
   });
@@ -1919,6 +1989,9 @@ async function handle(req, res) {
           text: body.text,
           url: body.url || q.url,
           replace: body.replace !== false,
+          // Read only for a caller whose brands are on its device (a phone
+          // sign-in): the scope a workspace row would otherwise supply.
+          brand: body.brand,
         }));
       }
       case 'catalog': {
@@ -1963,6 +2036,34 @@ async function handle(req, res) {
         const pack = require('./brand-context-pack.js');
         const wsId = str(body.workspace_id || q.workspace_id);
         if (!wsId) return res.status(400).json({ ok: false, error: 'workspace_id is required.' });
+        // A PHONE SIGN-IN keeps its brands, and so its pack, on its device
+        // (2026-10-03). The same stages run over a one-request store seeded
+        // with what the browser carried, and the whole row goes back to be
+        // kept there; the browser is the queue. See devicePackStep().
+        if (isPhoneAuth(auth)) {
+          const out = await pack.devicePackStep({
+            workspaceId: wsId,
+            brand: body.brand && typeof body.brand === 'object' && !Array.isArray(body.brand) ? body.brand : null,
+            pack: body.device_pack,
+            refresh: body.refresh === true,
+            catalogOwned: body.catalog_owned === true,
+            auth,
+          });
+          const step = out.step;
+          return res.status(200).json({
+            ok: true, storage: 'device', stage: step.stage, done: !!step.done, remaining: step.remaining,
+            chained: false,
+            next_step_required: step.remaining > 0,
+            failed_stage: step.failed_stage, error: step.error,
+            pack: packSummary(step.pack),
+            device_pack: out.row,
+            context: out.context,
+            // Rows the catalogue stage read, for the device catalogue; null when
+            // this step did not import (another stage, or a catalogue the
+            // operator imported by hand and the run left alone).
+            catalog_products: out.products,
+          });
+        }
         await assertCanWrite(auth, wsId, 'build its context pack');
         const store = pack.userStore(auth.token);
         const step = await pack.startPack(store, wsId, {
@@ -2104,7 +2205,7 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
+  importCatalog, importCatalogToDevice, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
 };

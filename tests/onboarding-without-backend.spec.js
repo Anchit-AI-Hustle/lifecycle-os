@@ -466,14 +466,20 @@ test('signed in with a mobile-number account and a reachable database, the brand
   expect(seen.noteRule).toBe(seen.accentRgb);
   expect(seen.noteIsFailure).toBe(false);
   expect(seen.syncOffers, 'a sync offer for an account with no workspace record to sync to').toBe(0);
-  // Controls that need a brand IN THE DATABASE are off with THAT reason.
-  await expect(page.locator('#packBuild')).toBeDisabled();
-  await expect(page.locator('p[data-needs-account="context-pack"]')).toContainText(/not available on a mobile-number account/i);
-  await expect(page.locator('p[data-needs-account="context-pack"]')).not.toContainText(/needs your account|sign in/i);
-  expect(await page.locator('#stepCard .vh-failure').count(), 'a disabled control was rendered as a failure').toBe(0);
+  // Signing in with a phone never turns a feature off (2026-10-03): the server
+  // reads the store and the site for this person, and the catalogue and the
+  // context pack are kept on this device beside the brand. Both controls are ON
+  // with no "needs an account" note (tests/phone-signin-features.spec.js drives
+  // them against the shipped handlers).
+  await expect(page.locator('#packBuild')).toBeEnabled();
+  await expect(page.locator('p[data-needs-account]')).toHaveCount(0);
+  expect(await page.locator('#stepCard .vh-failure').count(), 'a control was rendered as a failure').toBe(0);
   await page.click('.step-pip[data-step="5"]');
+  // The import is off for ONE reason only: this walk declared no home market,
+  // so there is nowhere to file the rows. Never because of the account.
   await expect(page.locator('#doImport')).toBeDisabled();
-  await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/not available on a mobile-number account/i);
+  await expect(page.locator('#impGate')).toContainText(/home market/i);
+  await expect(page.locator('p[data-needs-account]')).toHaveCount(0);
   expect(log.dialogs).toEqual([]);
 });
 
