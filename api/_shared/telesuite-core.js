@@ -289,10 +289,17 @@ function runSignature(row) {
   return require('crypto').createHmac('sha256', key).update(payload).digest('hex');
 }
 function signatureOk(row) {
-  const want = runSignature(row);
-  const got = String((row && row.signature) || '');
-  if (!want || got.length !== want.length) return false;
-  return require('crypto').timingSafeEqual(Buffer.from(got), Buffer.from(want));
+  // Exactly 64 lowercase hex characters, compared as decoded bytes of equal
+  // length; anything else (a multi-byte character made the UTF-8 buffers
+  // differ in length and timingSafeEqual THREW - a 500 for the whole op) is
+  // simply not a valid signature, and the row is dropped (Bugbot, 2026-10-03).
+  try {
+    const got = String((row && row.signature) || '');
+    if (!/^[0-9a-f]{64}$/.test(got)) return false;
+    const want = runSignature(row);
+    if (!/^[0-9a-f]{64}$/.test(want)) return false;
+    return require('crypto').timingSafeEqual(Buffer.from(got, 'hex'), Buffer.from(want, 'hex'));
+  } catch (_) { return false; }
 }
 function trustedRuns(list) {
   return (Array.isArray(list) ? list : []).filter((r) => r && typeof r === 'object' && (!BILLING_FEATURES.has(String(r.feature)) || signatureOk(r)));
