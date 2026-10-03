@@ -106,10 +106,14 @@ add('agent-sessions', { run: { method: 'GET' }, anonymous: 'demo',
   phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, sessions: [] }); } });
 add('agent-chat', { run: { json: { message: 'hi there', agent_id: 'agent_x', brand: BRAND } }, anonymous: 'refuse',
   phone: (r) => {
-    // No workspace row, so no agents: a 404 with a sentence, not a 500 with
-    // "agent agent_x not found" as its whole explanation.
-    expect(r.status).toBe(404); expect(r.out.error).toBe('agent_not_found'); expectSentence(r, 'agent-chat phone');
-    expect(w.llm.calls).toEqual([]);
+    // No workspace row, so the agent is the one the page keeps on the device
+    // (none carried here: the brand's default assistant), answering as the
+    // brand the turn carried (2026-10-03). It used to be a 404.
+    expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(r.out.storage).toBe('device');
+    expect(r.out.reply).toBe('Scripted reply for this turn, with no figure invented.');
+    expect(r.out.agent.name).toBe(BRAND.name + ' assistant');
+    expect(w.llm.calls.map((c) => c.stage)).toEqual(['agent-chat']);
+    expect(JSON.stringify(r.out)).not.toMatch(/KNICKGASM|knickgasm|Oldest Brand/);
   } });
 add('agent-analyze', { run: { json: { message: 'how many orders last month?' } }, anonymous: 'refuse',
   phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(typeof r.out.answer).toBe('string'); expect(r.out.answer.length).toBeGreaterThan(20); } });
@@ -164,9 +168,13 @@ add('social-approve', { run: { json: { id: 'p1' } }, anonymous: 'refuse',
 add('social-skip', { run: { json: {} }, anonymous: 'refuse',
   phone: (r) => { expect(r.status).toBe(400); expectSentence(r, 'social-skip phone'); } });
 add('agent-upsert', { run: { json: { name: 'Concierge', level: 'brand' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(409); expect(r.out.error).toBe('no_workspace'); expectSentence(r, 'agent-upsert phone'); } });
+  phone: (r) => {
+    // Built and handed back for the device to keep; nothing written (2026-10-03).
+    expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, storage: 'device', agent: { name: 'Concierge', level: 'brand' } });
+    expect(w.db.calls.filter((c) => /smart_agents/.test(c.url) && c.method !== 'GET')).toEqual([]);
+  } });
 add('agent-sync', { run: { json: { agent_id: 'agent_x' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(404); expect(r.out.error).toBe('agent_not_found'); expectSentence(r, 'agent-sync phone'); } });
+  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, storage: 'device', knowledge_items: 0 }); expectSentence({ out: { message: r.out.note }, text: '' }, 'agent-sync phone'); } });
 add('telesuite', { run: { method: 'GET', query: { op: 'registry' } }, anonymous: 'public',
   phone: (r) => { expect(r.status).toBe(200); expect(Array.isArray(r.out.subfeatures)).toBe(true); expect(r.out.subfeatures.length).toBeGreaterThan(10); } });
 

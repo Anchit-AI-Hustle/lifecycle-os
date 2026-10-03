@@ -390,6 +390,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     chatEl.appendChild(d); chatEl.scrollTop=chatEl.scrollHeight; return d;
   }
   function carriedBrand(){ try { return window.BrandContext && window.BrandContext.carry ? window.BrandContext.carry() : null; } catch(e){ return null; } }
+  /* A PHONE SIGN-IN'S AGENTS ARE KEPT ON THIS DEVICE (2026-10-03). It has no
+     workspace for the server's agent table, so the concierge answered it 404
+     "agent not found" - including for the built-in Brand Agent. Its agents
+     live here (per account, per brand), and a turn carries the agent and the
+     brand's own device catalogue so the server answers from those alone. */
+  function phoneUid(){ try { var s=window.LifecycleAuth&&window.LifecycleAuth.session; return s&&s.provider==='mobile-pin'&&s.user&&s.user.id ? String(s.user.id) : ''; } catch(e){ return ''; } }
+  function brandId(){ try { return (window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.id)||'none'; } catch(e){ return 'none'; } }
+  function devAgentsKey(){ var u=phoneUid(); return u ? 'lifecycle.agents.device.'+u+'.'+brandId() : ''; }
+  function devAgents(){ var k=devAgentsKey(); if(!k) return []; try { var v=JSON.parse(localStorage.getItem(k)||'[]'); return Array.isArray(v)?v:[]; } catch(e){ return []; } }
+  function keepDevAgent(a){
+    var k=devAgentsKey(); if(!k||!a||!a.id) return false;
+    var list=devAgents().filter(function(x){ return x.id!==a.id; }); list.push(a);
+    try { localStorage.setItem(k, JSON.stringify(list)); return true; } catch(e){ throw new Error('This browser refused to store the agent (storage is full or blocked), so it was not kept.'); }
+  }
+  function deviceCatalogRows(){
+    try { var c=window.BrandContext&&window.BrandContext.deviceCatalog ? window.BrandContext.deviceCatalog(brandId()) : null; return (c&&c.products||[]).slice(0,200); } catch(e){ return []; }
+  }
   async function ask(){
     var msg=qEl.value.trim();
     if(!msg){ askNote('Type a question first.'); qEl.focus(); return; }
@@ -404,7 +421,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var t=document.createElement('div'); t.className='typing'; t.textContent=current.name+' is thinking…'; chatEl.appendChild(t); chatEl.scrollTop=chatEl.scrollHeight;
     try{
       var r=await fetch(API+'?action=agent-chat',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({agent_id:current.id, session_id:sessionId, message:msg, history:history.slice(-10), brand:carriedBrand(), context:{page:location.href, ctx:new URLSearchParams(location.search).get('ctx')}})});
+        body:JSON.stringify(Object.assign({agent_id:current.id, session_id:sessionId, message:msg, history:history.slice(-10), brand:carriedBrand(), context:{page:location.href, ctx:new URLSearchParams(location.search).get('ctx')}},
+          phoneUid() ? { agent: current, catalog: deviceCatalogRows() } : {}))});
       var j=await r.json().catch(function(){ return {}; });
       t.remove();
       if(j.ok && typeof j.reply==='string' && j.reply.trim()){ sessionId=j.session_id; history.push({role:'agent',content:j.reply}); var m=el('agent', j.reply); m.classList.add('speaking'); setTimeout(function(){m.classList.remove('speaking');},1200); maybeSpeak(j.speak||j.reply); if(CH) CH.append('agent', j.reply, current?{agentId:current.id}:null); }
@@ -442,11 +460,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var FALLBACK=[{id:'agent_brand',name:'Brand Agent',level:'brand',greeting:'Ask me anything.',voice:{}}];
   function loadAgents(selectId){
     return fetch(API+'?action=agents').then(function(r){return r.json();}).then(function(j){
-      agents=(j.agents&&j.agents.length)?j.agents:FALLBACK;
+      var mine=devAgents();
+      agents=(j.agents&&j.agents.length)?j.agents.concat(mine):(mine.length?FALLBACK.concat(mine):FALLBACK);
       var want=selectId||new URLSearchParams(location.search).get('agent');
       current=agents.find(function(a){return a.id===want;})||current||agents[0];
       renderAgents();
-    }).catch(function(){ if(!agents.length){ agents=FALLBACK; current=agents[0]; renderAgents(); } });
+    }).catch(function(){ if(!agents.length){ agents=FALLBACK.concat(devAgents()); current=agents[0]; renderAgents(); } });
   }
 
   // ── Agent creation + type selection (POST agent-upsert) ──
@@ -469,8 +488,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var r=await fetch(API+'?action=agent-upsert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         var j=await r.json();
         if(j.ok && j.agent){
-          note.textContent='Created “'+j.agent.name+'”. Building its knowledge…';
-          fetch(API+'?action=agent-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:j.agent.id})}).catch(function(){});
+          if(j.storage==='device'){ keepDevAgent(j.agent); note.textContent='Created “'+j.agent.name+'” on this device.'; }
+          else {
+            note.textContent='Created “'+j.agent.name+'”. Building its knowledge…';
+            fetch(API+'?action=agent-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:j.agent.id})}).catch(function(){});
+          }
           await loadAgents(j.agent.id);
           agentForm.reset(); agentForm.classList.remove('open');
           chatEl.innerHTML=''; sessionId=null; history=[]; greet();

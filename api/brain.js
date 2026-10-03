@@ -590,19 +590,34 @@ module.exports = async function handler(req, res) {
       case 'agents': {
         return res.json({ ok: true, agents: await agents.listAgents() });
       }
+      // A PHONE SIGN-IN'S AGENTS ARE KEPT ON ITS DEVICE (2026-10-03): it has
+      // no workspace for smart_agents rows, so the definition is built and
+      // handed back (agent.html keeps it), and a turn carries the agent, the
+      // brand and the catalogue it may recommend (brain-agent deviceChat).
       case 'agent-upsert': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin') {
+          if (!String(b.name || '').trim()) return res.status(400).json({ ok: false, error: 'name_required', message: 'Give the agent a name, then save it.' });
+          return res.json({ ok: true, storage: 'device', agent: agents.agentRow(Object.assign({}, b, { name: String(b.name).trim().slice(0, 80) })), note: 'Kept on this device: this sign-in has no workspace in a database to file the agent in.' });
+        }
         const a = await agents.upsertAgent(b);
         return res.json({ ok: true, agent: a });
       }
       case 'agent-sync': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin') {
+          return res.json({ ok: true, storage: 'device', agent: String(b.agent_id || ''), knowledge_items: 0,
+            note: 'An agent kept on this device answers from the brand record and the catalogue carried with each turn, so there is no knowledge table to fill for it.' });
+        }
         const out = await agents.syncKnowledge(b.agent_id || 'agent_knickgasm');
         return res.json({ ok: true, ...out });
       }
       case 'agent-chat': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         if (!b.message) return res.status(400).json({ ok: false, error: 'message required' });
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin') {
+          return res.json(await agents.deviceChat({ agent: b.agent, agentId: b.agent_id, brand: req.__brand, catalog: b.catalog, message: b.message, history: b.history || [], sessionId: b.session_id }));
+        }
         const out = await agents.chat({ agentId: b.agent_id || 'agent_knickgasm', sessionId: b.session_id, message: b.message, context: b.context || {}, history: b.history || [] });
         return res.json(out);
       }
