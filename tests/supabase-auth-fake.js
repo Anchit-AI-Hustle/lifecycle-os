@@ -28,7 +28,8 @@
  * msg }`, with the codes listed on docs/guides/auth/debugging/error-codes.
  *
  * THE PIN FUNCTIONS mirror supabase/migrations/20260929173555_mobile_pin_
- * supabase_accounts.sql statement for statement, and are reachable ONLY as
+ * supabase_accounts.sql and 20261003142200_mobile_pin_lockout_covers_adoption.sql
+ * statement for statement, and are reachable ONLY as
  * service_role, as the migration's REVOKE/GRANT makes them. Each RPC runs to
  * completion before the next starts - one statement under its row lock - but
  * every call first yields to the event loop, so two requests in flight
@@ -254,11 +255,14 @@ function createFake(opts) {
       if (!/^\+[1-9][0-9]{6,14}$/.test(p_phone)) throw Object.assign(new Error('violates check constraint "mobile_pin_accounts_phone_e164"'), { pg: '23514' });
       const a = ACC.get(p_phone);
       if (!a) { ACC.set(p_phone, { phone: p_phone, user_id: null, name: p_name, pin_tries: 0, locked_until: null, pin_set_at: null, claimed_at: Date.now() }); return { claimed: true }; }
-      if (a.user_id == null && a.claimed_at < Date.now() - (p_stale_seconds == null ? 120 : p_stale_seconds) * 1000) {
-        Object.assign(a, { name: p_name, claimed_at: Date.now(), pin_tries: 0, locked_until: null });
+      // 20261003142200: a stale claim is taken over KEEPING its count, and
+      // never while it is locked.
+      if (a.user_id == null && a.claimed_at < Date.now() - (p_stale_seconds == null ? 120 : p_stale_seconds) * 1000
+          && (!a.locked_until || a.locked_until <= Date.now())) {
+        Object.assign(a, { name: p_name, claimed_at: Date.now() });
         return { claimed: true };
       }
-      return { claimed: false };
+      return { claimed: false, locked: !!(a.locked_until && a.locked_until > Date.now()), locked_until: a.locked_until ? new Date(a.locked_until).toISOString() : null };
     },
     mobile_pin_bind({ p_phone, p_user_id }) {
       const a = ACC.get(p_phone);
@@ -268,20 +272,21 @@ function createFake(opts) {
     },
     mobile_pin_unclaim({ p_phone }) {
       const a = ACC.get(p_phone);
-      if (a && a.user_id == null) { ACC.delete(p_phone); return true; }
+      if (a && a.user_id == null && a.pin_tries === 0 && (!a.locked_until || a.locked_until <= Date.now())) { ACC.delete(p_phone); return true; }
+      if (a && a.user_id == null) a.claimed_at = Date.now() - 86400000;   // keep the count, make the claim stale
       return false;
     },
-    mobile_pin_attempt({ p_phone, p_max, p_lock_seconds }) {
+    mobile_pin_attempt({ p_phone, p_max, p_lock_seconds, p_pending }) {
       const a = ACC.get(p_phone);
       const expired = !!(a && a.locked_until && a.locked_until <= Date.now());
-      if (a && a.user_id != null && (!a.locked_until || a.locked_until <= Date.now())) {
+      if (a && (a.user_id != null || p_pending === true) && (!a.locked_until || a.locked_until <= Date.now())) {
         const tries = expired ? 1 : a.pin_tries + 1;
         a.locked_until = tries >= p_max ? Date.now() + p_lock_seconds * 1000 : (expired ? null : a.locked_until);
         a.pin_tries = tries;
         return { allowed: true, tries, locked_until: a.locked_until ? new Date(a.locked_until).toISOString() : null, user_id: a.user_id, last: tries >= p_max };
       }
       if (!a) return { allowed: false, error: 'no_account' };
-      return { allowed: false, tries: a.pin_tries, locked_until: a.locked_until ? new Date(a.locked_until).toISOString() : null, user_id: a.user_id, error: a.user_id == null ? 'pending' : 'locked' };
+      return { allowed: false, tries: a.pin_tries, locked_until: a.locked_until ? new Date(a.locked_until).toISOString() : null, user_id: a.user_id, error: (a.locked_until && a.locked_until > Date.now()) ? 'locked' : (a.user_id == null ? 'pending' : 'locked') };
     },
     mobile_pin_settle({ p_phone, p_outcome, p_max }) {
       const a = ACC.get(p_phone);
@@ -452,6 +457,9 @@ function createFake(opts) {
       }
       // Yield first, so requests in flight interleave at every await.
       await new Promise((r) => setImmediate(r));
+      // `slow` ({ match: RegExp, ms }) holds matching requests back, the way a
+      // loaded CI runner does, so a test cannot depend on a fast tail.
+      if (f.slow && f.slow.match.test(url)) await new Promise((r) => setTimeout(r, f.slow.ms));
       if (f.down) throw new TypeError('fetch failed (getaddrinfo ENOTFOUND ' + new URL(f.url).hostname + ')');
       const r = f.handle(String(i.method || 'GET').toUpperCase(), url, i.headers, typeof i.body === 'string' ? i.body : (i.body ? String(i.body) : ''));
       return response(r.status, r.body);

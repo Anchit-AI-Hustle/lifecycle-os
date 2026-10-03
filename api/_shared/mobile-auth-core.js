@@ -327,6 +327,12 @@ async function supabaseStatus(deps) {
   const supa = require('./mobile-auth-supabase.js');
   const cfg = supa.config();
   if (!cfg) return null;
+  // No key a browser may hold: the session could be issued but never renewed
+  // in the browser, so this is NOT supabase mode, and the answer says why.
+  if (!cfg.publicKey) {
+    return { configured: true, reachable: false, host: cfg.host, pin_ready: !!supa.pepper(), reason: 'no_public_key',
+      detail: 'no browser-visible key: set SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY)' };
+  }
   const fresh = !!(deps && (deps.fresh || typeof deps.sql === 'function'));
   if (!fresh && supaCache && supaCache.url === cfg.url && Date.now() - supaCache.at < (supaCache.answer.reachable ? 30000 : 5000)) return supaCache.answer;
   const h = await supa.health(cfg, (deps && deps.timeoutMs) || 4000);
@@ -348,8 +354,10 @@ async function status(deps) {
   if (sb) {
     // Configured, not answering: said, and the mode below it is used.
     return Object.assign({}, below, {
-      supabase: { configured: true, reachable: false, host: sb.host, detail: sb.detail },
-      message: below.message + ' The account service (' + sb.host + ') is not answering, so accounts there cannot be used until it does.',
+      supabase: { configured: true, reachable: false, host: sb.host, detail: sb.detail, reason: sb.reason || 'unreachable' },
+      message: below.message + (sb.reason === 'no_public_key'
+        ? ' The account service (' + sb.host + ') is configured without a browser-visible key (SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY), so accounts there cannot be used yet.'
+        : ' The account service (' + sb.host + ') is not answering, so accounts there cannot be used until it does.'),
     });
   }
   return below;
@@ -566,6 +574,22 @@ async function handle(req, res, deps) {
   if (st.mode === 'supabase') {
     const supa = require('./mobile-auth-supabase.js');
     return supa.handle(module.exports, supa.config(), req, res, op, method, body);
+  }
+  // ROUTE BY THE TOKEN, NOT ONLY BY THE MODE (review finding, 2026-10-03).
+  // A Supabase JWT belongs to the Supabase project whatever this moment's
+  // health probe said. With Neon also configured, a single failed probe (and
+  // its 5-second negative cache) used to send op=me with a Supabase JWT to
+  // Neon's sessionUser(), which answered 401 - and the browser cleared a
+  // valid session. The project not answering is "cannot be checked right
+  // now" (503, the session is kept), never "signed out".
+  const supaCfg = require('./mobile-auth-supabase.js').config();
+  const jwt = supaCfg ? require('./mobile-auth-supabase.js').jwtOf(req) : '';
+  if (jwt && (op === 'me' || op === 'signout' || op === 'signout_all')) {
+    if (op === 'signout') return res.status(200).json({ ok: true, mode: 'supabase', signed_out: false, host: supaCfg.host, message: 'The account service (' + supaCfg.host + ') is not answering, so this session could not be revoked there; it has been removed from this browser.' });
+    return res.status(503).json({
+      ok: false, error: 'backend_unreachable', backend_unreachable: true, mode: 'supabase', host: supaCfg.host,
+      message: 'The account service (' + supaCfg.host + ') is not answering, so your sign-in cannot be checked right now. Nothing about your account has changed.',
+    });
   }
   if (st.mode !== 'server') {
     // signout with nothing to sign out of on the server is not a failure: the
