@@ -4,6 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Main was red for three days, and every cause was real (2026-10-03)
+PR #115 (`e67304a`) and PR #116 (`05d0e42`) were merged with failing CI; production deployed anyway.
+52 Playwright tests and the brand-isolation build step were red. None was flaky:
+- **The meter keyed on the PROCESS, not the principal.** `credits-core.meter()`/`handle()` skipped
+  metering when `standaloneMode()` - DATABASE_URL, the Neon phone-SESSION store, is unset. The
+  credit ledger is the workspace Supabase project, so a caller whose Supabase JWT had just verified
+  against a live project ran every paid feature free, and a server-mode phone account skipped the
+  listed-number refusal. 45 credit tests failed because CI has no DATABASE_URL either. Only a
+  device principal (which exists only when there is no DATABASE_URL) is unmetered now. `metered()`
+  also returned early for any unmetered gate, dropping the device receipt (`charged: 0`) the
+  standalone spec asserts.
+- **Running a thing finds what blocking it hid.** Once a device session could complete the agentic
+  run, every row of Smart Brain's "Assets by day" read `[object Object]` - the orchestrator put the
+  cohort RECORD in a summary cell. `agentic-orchestrator.js` now emits its name.
+- **A test aimed at the whole page caught the feature's own status line.** agents-pages looked for
+  "saved on this device only" anywhere in the body; PR #115 made the rail SAY that
+  (`#lnav-umode`, "Local / Demo Mode. ..."). The rail line is asserted on its own and excluded from
+  the refusal check. A poll on the RESPONSE of a run with its own 15 s asset budget used a 15 s
+  timeout; it now waits for the request to leave, then for the answer.
+- **A harness that is not the server.** signed-out-actions answered brand-chat with a generic
+  `{ok:true}` for a device session, and KicksGPT rightly said "answered without a reply". The
+  harness reads `MODEL_FEATURE` from `api/brain.js` now instead of a hand-kept list.
+- **A presets directory holds presets.** PR #116 wrote 40 `<slug>.observed.json` sidecars into
+  `data/brands/presets/`; every reader there treats each `*.json` but `index.json` as a brand, so
+  the isolation gate rendered 39 nameless brands from tenant zero's defaults (`assets · undefined`).
+  They live in `data/brands/observed/`, and the gate refuses a non-brand file by name.
+- **A real photograph is not a placeholder line's picture.** The same build dealt each home page's
+  images out to placeholder catalogue rows in order ("Signature Blend 01" got a touch icon). The
+  photographs stay in `brand_assets` with their page; placeholder rows stay image-free (tested).
+- Local runs cannot download WebKit, so the 24 `studio.spec.js` tests on iphone-se/iphone-12/ipad
+  run only in CI. Do not merge on red: the rule is every push and deployment green.
+
 ## ⭐ Features run without DATABASE_URL (2026-09-30) — read `docs/mobile-pin-signin.md`, `docs/agents-status.md`
 Production is device mode (`no_database_url`) with model keys and no Neon. Until this date
 `LifecycleStatus.refusal()` blocked every server action for a device-mode sign-in, `apiToken()`
