@@ -1216,3 +1216,30 @@ test('REVIEW (no public key, Neon on): supabase mode is not offered, so a Neon s
   const d = await core.verifyToken('n'.repeat(43), { fresh: true });
   expect(d, 'the device path admitted a token beside a live project').toMatchObject({ ok: false, reason: 'supabase_mode' });
 });
+
+test('REVIEW (device wait, no SDK): when the supabase-js CDN does not load, the device decision is still made - a device session on a deployment whose project is down keeps sending its token', async ({ page }) => {
+  test.setTimeout(90_000);
+  const f = project();
+  f.down = true; f.healthy = false;   // production's measured state: the project does not answer
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  try {
+    await wire(page, f, log);
+    const deviceToken = 'k'.repeat(43);
+    await page.addInitScript((tok) => {
+      try { delete window.supabase; } catch (_) { window.supabase = undefined; }   // the CDN did not load
+      if (sessionStorage.getItem('__seeded')) return;
+      sessionStorage.setItem('__seeded', '1');
+      localStorage.setItem('lifecycle.auth.device.users', JSON.stringify({ '+919876543210': { id: 'dev-0011223344556677', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Ravi', salt: '00', hash: '00', iterations: 1, tries: 0, lockedUntil: null } }));
+      localStorage.setItem('lifecycle.auth.session', JSON.stringify({ token: tok, user: { id: 'dev-0011223344556677', name: 'Ravi', phone: '+919876543210' }, mode: 'device', expires: new Date(Date.now() + 86400000).toISOString(), provider: 'mobile-pin', storage: { mode: 'device' } }));
+    }, deviceToken);
+    await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(() => !!(window.__lcDeviceDecided && window.__lcDeviceDecided.decided)), { timeout: 15000 }).toBe(true);
+    expect(await page.evaluate(() => window.LifecycleAuth.apiToken())).toBe(deviceToken);
+    await expect.poll(() => log.filter((l) => l.token === deviceToken).length, { timeout: 15000 }).toBeGreaterThan(0);
+  } finally {
+    await new Promise((r) => srv.close(r));
+  }
+});

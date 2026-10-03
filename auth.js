@@ -3882,6 +3882,22 @@
 
     const config = await getConfig();
     let supabaseState = 'unconfigured';
+    // A DEVICE account, and the account database now answers (review finding,
+    // 2026-10-03): the server refuses a device token while it does, so every
+    // gated action used to end in a bare 401. The account keeps working on
+    // this device; its token is no longer sent; the mode line, the refusal
+    // sentence and a button say how to move it (same number, same PIN).
+    // Decided BEFORE the SDK loads (found by phone-signin-everywhere): a
+    // supabase-js CDN that does not load throws out of init() below, and the
+    // decision was never made - so the token stayed withheld for every call.
+    if (config) {
+      if (stored && stored.mode === 'device') {
+        let st = null;
+        try { st = await mauthStatus(); } catch (_) { st = null; }
+        if (st && st.mode === 'supabase') mauthApply(stored, { verified: true, status: st, transition: 'supabase', supabase: 'pending' });
+      }
+      decideDevice();
+    }
     if (!config) {
       decideDevice();   // no project configured: a device token is what the server takes
       authReady.settle();   // no config means no SDK to wait for
@@ -3926,17 +3942,6 @@
     // answering (kept, marked unverified, and the mode line says exactly that
     // rather than showing a device sign-up as if it were the same account).
     let expired = false;
-    // A DEVICE account, and the account database now answers (review finding,
-    // 2026-10-03): the server refuses a device token while it does, so every
-    // gated action used to end in a bare 401. The account keeps working on
-    // this device; its token is no longer sent; the mode line, the refusal
-    // sentence and a button say how to move it (same number, same PIN).
-    if (stored && stored.mode === 'device') {
-      let st = null;
-      try { st = await mauthStatus(); } catch (_) { st = null; }
-      if (st && st.mode === 'supabase') mauthApply(stored, { verified: true, status: st, transition: 'supabase', supabase: supabaseState });
-    }
-    decideDevice();
     if (stored && (stored.mode === 'server' || stored.mode === 'supabase')) {
       const v = await mauthValidate(stored);
       if (v.expired) {
