@@ -202,7 +202,7 @@ const PRESETS = [
    colour - the same reasoning logo-brief.js uses when it refuses to invent one.
 
    HOW THE REAL VALUES ARRIVE. `scripts/observe-preset-brands.js` loads the
-   brand's own site and writes `<slug>.observed.json` — the theme colour, the
+   brand's own site and writes `data/brands/observed/<slug>.observed.json` — the theme colour, the
    logo's colour, the fonts in use, the logo URL and the image URLs the page
    requested. This file copies those across when the palette still passes
    validatePalette. A site that did not load leaves the neutral default in
@@ -380,7 +380,9 @@ const HAND_VERIFIED = new Set(['knickgasm', 'economic-times', 'times-of-india', 
  * only when chooseSchema already passed the palette gate (`palette_ok`).
  */
 function absorbObservation(rec) {
-  const file = path.join(OUT, `${rec.slug}.observed.json`);
+  // Kept OUT of the presets directory: every reader of it treats each
+  // *.json there as a brand record (see observe-preset-brands.js).
+  const file = path.join(ROOT, 'data', 'brands', 'observed', `${rec.slug}.observed.json`);
   if (!fs.existsSync(file)) return;
   let obs;
   try { obs = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return; }
@@ -425,16 +427,14 @@ function absorbObservation(rec) {
     };
   }
 
-  const photos = (rec.brand_assets || []).filter((a) => a.role !== 'logo');
-  if (photos.length && Array.isArray(rec.catalog_placeholder)) {
-    rec.catalog_placeholder.forEach((row, i) => {
-      const photo = photos[i];
-      if (!photo) return;
-      row.image_url = photo.url;
-      row.image_found_on = photo.found_on || '';
-    });
-    rec.catalog_source.note = 'Line names are placeholders. The image on each row is a photograph ' + rec.name + ' publishes on its own site (' + (obs.landed || rec.website) + '). Prices and product URLs were not on that page as a catalogue, so they are empty.';
-  }
+  // A photograph the site published is NOT the photograph of a placeholder
+  // line (2026-10-03). This block used to hand the page's images out to the
+  // placeholder rows in order, so "Signature Blend 01" carried whatever the
+  // home page showed first - a touch icon, a gift card - and a mailer would
+  // render it as that product's picture. The image was real; the pairing was
+  // invented, which is the zero-fabrication rule broken one field over. The
+  // photographs stay in `brand_assets`, each with the page it was found on,
+  // and a placeholder row stays image-free until a real catalogue arrives.
   rec.data_gaps = (rec.data_gaps || []).filter((g) => !/brand palette|typography/.test(g));
 }
 

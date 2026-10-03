@@ -12,7 +12,14 @@
  * the logo's own colour, comes back grey. This script loads the page, reads
  * the declared theme colour, the logo's computed colour, the fonts in use
  * and the image URLs the page itself requests, and writes
- * `data/brands/presets/<slug>.observed.json`.
+ * `data/brands/observed/<slug>.observed.json`.
+ *
+ * NOT in data/brands/presets (moved 2026-10-03). Every reader of that directory
+ * treats each *.json except index.json as a brand record: the brand-isolation
+ * gate, smart-brain-plan's preset match and brand-sync's --brand list. With the
+ * observations beside the presets the isolation gate rendered 39 nameless
+ * "brands" (`assets · undefined`) out of tenant zero's defaults and failed CI.
+ * A directory of presets holds presets.
  *
  * It does not edit the preset. `build-brand-presets.js` copies a value across
  * only when this file recorded it and the palette still passes the same gate
@@ -30,6 +37,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const DIR = path.join(ROOT, 'data', 'brands', 'presets');
+const OBS_DIR = path.join(ROOT, 'data', 'brands', 'observed');
 const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'));
 
 const WIDGET = /jdgm|judge\.me|spr-|shopify-product-reviews|cookie|consent|grecaptcha|framer-link|nector-|swiper|podium-cds-color-scrim/i;
@@ -576,7 +584,8 @@ async function main() {
       const preset = queue.shift();
       process.stdout.write('  ' + preset.slug.padEnd(18) + ' ' + preset.website + ' ... ');
       const out = await observeOne(page, preset, observedAt);
-      const file = path.join(DIR, preset.slug + '.observed.json');
+      fs.mkdirSync(OBS_DIR, { recursive: true });
+      const file = path.join(OBS_DIR, preset.slug + '.observed.json');
       fs.writeFileSync(file, JSON.stringify(out, null, 2) + '\n');
       if (out.ok) {
         ok += 1;

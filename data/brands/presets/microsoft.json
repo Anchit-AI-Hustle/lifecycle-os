@@ -119,7 +119,7 @@
       "plan",
       "product"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Microsoft publishes on its own site (https://www.microsoft.com/en-us). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -129,10 +129,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.microsoft.com/en-us"
+      "placeholder": true
     },
     {
       "title": "Team Plan 01",
@@ -141,10 +140,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/MSCOM-FY26-Evergreen-Hero-Light-Background-Desktop?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=1920&hei=2150&qlt=80&fit=constrain",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.microsoft.com/en-us"
+      "placeholder": true
     },
     {
       "title": "Business Plan 01",
@@ -153,10 +151,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Laptop-SnapdragonX2-13-2Ed-Violet-Attract-1?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.microsoft.com/en-us"
+      "placeholder": true
     },
     {
       "title": "Enterprise Plan 01",
@@ -165,10 +162,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Pro-SnapdragonX2-12-2Ed-Violet-Attract?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.microsoft.com/en-us"
+      "placeholder": true
     }
   ],
   "offerings": [],

@@ -118,7 +118,7 @@
       "product",
       "plan"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Starbucks publishes on its own site (https://www.starbucks.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -128,10 +128,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://www.starbucks.com/next_static/icons/summary_square.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.starbucks.com/"
+      "placeholder": true
     },
     {
       "title": "Signature Blend 02",
@@ -140,10 +139,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112745.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.starbucks.com/"
+      "placeholder": true
     },
     {
       "title": "Signature Blend 03",
@@ -152,10 +150,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112760.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.starbucks.com/"
+      "placeholder": true
     },
     {
       "title": "Seasonal Drink 01",
@@ -164,10 +161,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112632.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.starbucks.com/"
+      "placeholder": true
     },
     {
       "title": "Seasonal Drink 02",
@@ -176,10 +172,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112634.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.starbucks.com/"
+      "placeholder": true
     },
     {
       "title": "Seasonal Drink 03",
@@ -188,10 +183,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112942.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.starbucks.com/"
+      "placeholder": true
     },
     {
       "title": "Bakery Item 01",
