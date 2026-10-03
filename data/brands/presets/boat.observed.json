@@ -1,0 +1,77 @@
+{
+  "ok": false,
+  "slug": "boat",
+  "start": "https://www.boat-lifestyle.com",
+  "landed": "https://www.boat-lifestyle.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Buy Earbuds, Headphones, Earphones at India’s No.1 Earwear Brand: boAt",
+  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
+  "snapshot_summary": {
+    "theme": "#ffffff",
+    "logoColor": "",
+    "paints": [
+      {
+        "hex": "#fcc50b",
+        "n": 36,
+        "sample": "metafeild-label label--highlight custom-label label ui-2"
+      },
+      {
+        "hex": "#354257",
+        "n": 6,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#3f5c6c",
+        "n": 4,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#184aa9",
+        "n": 4,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#2a0a78",
+        "n": 4,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#c02529",
+        "n": 4,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#b5774a",
+        "n": 4,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#624103",
+        "n": 2,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#f9d987",
+        "n": 2,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#455a48",
+        "n": 2,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#12649c",
+        "n": 2,
+        "sample": "swatch-circle"
+      },
+      {
+        "hex": "#657286",
+        "n": 2,
+        "sample": "swatch-circle"
+      }
+    ],
+    "vars": []
+  }
+}

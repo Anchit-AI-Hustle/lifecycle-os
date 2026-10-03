@@ -110,6 +110,64 @@
       "source": "TOI+ appears in TOI site navigation"
     }
   ],
+  "brand_assets": [
+    {
+      "url": "https://static.toiimg.com/photo/47529300.cms",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/photo/79638690.cms",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134584388.jpg?photoid=134584388&imgsize=49296&width=220&resizemode=4",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134586848.jpg?photoid=134586848&imgsize=138930&width=600&resizemode=4",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134588801.jpg?photoid=134588801&imgsize=62612&width=220&resizemode=4",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/photo/87458172.cms",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-132676654,imgsize-638114,width-800,resizemode-4/132676654.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134587452.jpg?photoid=134587452&imgsize=322568&width=300&resizemode=4",
+      "role": "photograph",
+      "alt": "OMG! Vance Torches Trump's New America.gov On Debut | ‘Don’t Let It Be A Clusterf*ck!’ | Watch Why",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "img on the page"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

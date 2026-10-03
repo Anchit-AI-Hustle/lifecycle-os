@@ -16,9 +16,11 @@
  *                   in-memory `sql` tagged template handed to the real core
  *                   through the neon driver's require.cache entry, so
  *                   mobile-auth-core's own connect() path runs unmodified;
- *   device          a mobile+PIN session kept only in the browser: its token
- *                   is never sent, so on the wire it IS the anonymous state,
- *                   and the specs assert exactly that.
+ *   device          a mobile+PIN session kept only in the browser. On a
+ *                   deployment with no DATABASE_URL the page sends the token
+ *                   and the server admits it as a device principal
+ *                   (2026-09-30). On a deployment that HAS a database the
+ *                   token is not in app_sessions and is still anonymous.
  *
  * The workspace database is tests/lib/fake-supabase.js with the credit ledger
  * RPCs re-implemented from the SQL, so a listed phone number's wallet moves

@@ -39,10 +39,20 @@
  * TWO STORAGE MODES, chosen honestly. `op=status` answers `mode:'server'` only
  * when a database URL is set AND `select 1` answers; otherwise `mode:'device'`
  * with the reason (no URL / unreachable, with the host). In device mode the
- * BROWSER runs the same state machine against localStorage (auth.js), and a
- * device token can never be verified here - `verifyToken()` refuses it exactly
- * as it refuses an anonymous call, which is what brand-workspace-core's
- * requireUser() then returns.
+ * BROWSER runs the same state machine against localStorage (auth.js).
+ *
+ * ── STANDALONE / NO DATABASE_URL (2026-09-30) ────────────────────────────
+ * Production often has model keys and no DATABASE_URL. Until this date a
+ * device token was refused exactly like an anonymous call, so every agent and
+ * every metered button said "this sign-in is saved on this device only" and
+ * nothing ran. Features that can run without a ledger (a model turn over the
+ * brand the request CARRIES, a calendar, a mailer) now admit a well-shaped
+ * token as a device principal: `mode:'device'`, `user.id` is `device:<hash>`
+ * of the token (rate-limit key, never a Neon row), no phone, no wallet. The
+ * identity is the token's hash, never a name or number from the body. A
+ * deployment that HAS a database still refuses a token that is not in
+ * app_sessions - a forged or leftover device token is not a server session.
+ * An anonymous call (no token) is still anonymous.
  *
  * NOT A FUNCTION FILE. Mounted on api/public-config.js?action=auth (the Hobby
  * plan caps this project at 12 serverless functions and it is at the cap). The
@@ -160,6 +170,11 @@ function clientIp(req) {
 
 function databaseUrl() {
   return String(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.POSTGRES_URL || '').trim();
+}
+
+/** True when this process has no session store at all. Not the same as a URL that does not answer. */
+function standaloneMode() {
+  return !databaseUrl();
 }
 
 function hostOf(url) {
@@ -324,17 +339,30 @@ async function status(deps) {
  * Verify a token against app_sessions. `ok:false` carries WHY, because the
  * caller decides how to say it; every non-ok reason is treated by the gates as
  * an anonymous call (a token nobody can check proves nothing).
+ *
+ * With no database URL the token cannot be looked up, but it is still a
+ * session this browser minted (2026-09-30). Admitted as `mode:'device'` with
+ * a stable `device:<hash>` id so rate limits and carried-brand seeds have
+ * something to key on. A phone number is NEVER invented from the request: a
+ * listed number is the only thing that spends a wallet, and a standalone
+ * deployment has no wallet. A URL that is SET and does not answer is still
+ * `unreachable` - that is a server-mode account whose store is down.
  */
 async function verifyToken(token, deps) {
   if (!token) return { ok: false, reason: 'no_token' };
   if (!looksLikeToken(token)) return { ok: false, reason: 'not_a_token' };
   const sql = connect(deps);
-  if (!sql) return { ok: false, reason: 'no_database' };
+  if (!sql) {
+    return {
+      ok: true, mode: 'device',
+      user: { id: 'device:' + tokenHash(token).slice(0, 32), name: '', phone: '' },
+    };
+  }
   try {
     await ensureSchema(sql);
     const u = await withTimeout(sessionUser(sql, token), (deps && deps.timeoutMs) || 6000, 'session lookup timed out');
     if (!u) return { ok: false, reason: 'invalid' };
-    return { ok: true, user: { id: u.id, name: u.name, phone: u.phone }, expires_at: u.expires_at };
+    return { ok: true, mode: 'server', user: { id: u.id, name: u.name, phone: u.phone }, expires_at: u.expires_at };
   } catch (err) {
     return { ok: false, reason: 'unreachable', host: hostOf(databaseUrl()), detail: String(err && err.message || err) };
   }
@@ -519,7 +547,7 @@ module.exports = {
   PIN_LEN, WEAK_PINS, MAX_TRIES, LOCK_MINUTES, SESSION_DAYS, TOKEN_HEADER, ENTER_LIMIT, ENTER_WINDOW_SEC, OPS, STATUS_TTL_MS,
   pinError, hashPin, verifyPin, lockMessage, triesMessage,
   newToken, tokenHash, looksLikeToken, tokenOf, clientIp,
-  databaseUrl, hostOf, connect, ensureSchema, rateLimit, sessionUser,
+  databaseUrl, standaloneMode, hostOf, connect, ensureSchema, rateLimit, sessionUser,
   status, verifyToken, enter, handle,
   phone,
   /** Drop the memoised drivers and the status answer (tests; a rotated URL needs neither). */

@@ -1,0 +1,57 @@
+{
+  "ok": false,
+  "slug": "lenskart",
+  "start": "https://www.lenskart.com",
+  "landed": "https://www.lenskart.com/en-us",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Lenskart.com® - Buy Eyeglasses, Sunglasses & Contact Lens",
+  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
+  "snapshot_summary": {
+    "theme": "",
+    "logoColor": "",
+    "paints": [],
+    "vars": [
+      {
+        "name": "--primary-primary",
+        "hex": "#000042",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-main",
+        "hex": "#000042",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-l-1",
+        "hex": "#333368",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-l-2",
+        "hex": "#666691",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-l-3",
+        "hex": "#9999b3",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-l-4",
+        "hex": "#ccccdb",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-l-5",
+        "hex": "#e6e6ee",
+        "selector": ":root"
+      },
+      {
+        "name": "--primary-primary-l-6",
+        "hex": "#f0f0f6",
+        "selector": ":root"
+      }
+    ]
+  }
+}

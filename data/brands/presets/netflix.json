@@ -8,20 +8,72 @@
     "label": "Netflix",
     "sector": "Streaming",
     "blurb": "Streaming. Template for a renewal, win-back and churn-risk lifecycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.netflix.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-09-30",
+    "source": "Read from https://www.netflix.com/ on 2026-09-30. Primary #e50914 from computed background of e136yimv2 default-ltr-iqcdef-cache-1himfx7 (6 elements).",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "default",
+    "logo_signal": "touch icon or favicon the page links",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "signal": "light page surface; the page ground was not a light colour",
+        "source_url": "https://www.netflix.com/"
+      },
+      "ink": {
+        "value": "#000000",
+        "signal": "computed color of body",
+        "source_url": "https://www.netflix.com/"
+      },
+      "surface_alt": {
+        "value": "#f4f4f4",
+        "signal": "computed light background repeated on the page",
+        "source_url": "https://www.netflix.com/"
+      },
+      "muted": {
+        "value": "#666666",
+        "signal": "secondary text token that clears AA; the page did not declare one",
+        "source_url": "https://www.netflix.com/"
+      },
+      "primary": {
+        "value": "#e50914",
+        "signal": "computed background of e136yimv2 default-ltr-iqcdef-cache-1himfx7 (6 elements)",
+        "source_url": "https://www.netflix.com/"
+      },
+      "accent": {
+        "value": "#000000",
+        "signal": "text colour, used where the brand publishes no second colour",
+        "source_url": "https://www.netflix.com/"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "warn": {
+        "value": "#c9a227",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "err": {
+        "value": "#c0392b",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      }
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#e50914",
+    "accent": "#000000",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f4f4f4",
+    "muted": "#666666",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
@@ -52,7 +104,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "netflix.com"
+    "netflix.com",
+    "assets.nflxext.com",
+    "occ.a.nflxso.net"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -60,7 +114,7 @@
       "plan",
       "programme"
     ],
-    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
+    "note": "Line names are placeholders. The image on each row is a photograph Netflix publishes on its own site (https://www.netflix.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
   },
   "catalog_placeholder": [
     {
@@ -70,9 +124,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://occ.a.nflxso.net/dnmt/api/v6/iL4oJVDYZ8KLSrJ6eG2OwtghbfQ/AAAAAQ4TXm1OaapkwYRGseWYrT2HFpAFV7IX9bgV76BxLOD_049HTkgqZ6zq3enQ0gxU1b-868yGZj1I99Ak9oRykNILYsbpT_0d-be9QKbwkD8OfaEdWL-FHZBiORJ9ppzVCM1-mVn63afS.svg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.netflix.com/"
     },
     {
       "title": "Annual Plan 01",
@@ -81,9 +136,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://assets.nflxext.com/ffe/siteui/vlv3/4263c437-c678-4724-ad80-e3ba0dc8761e/web/US-en-20260921-TRIFECTA-perspective_3ba19b37-271f-4bc1-9c2b-1d21fd8ad26d_large.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.netflix.com/"
     },
     {
       "title": "Family Plan 01",
@@ -99,12 +155,34 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Netflix]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Netflix]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Netflix]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Netflix]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Netflix]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.netflix.com/",
+      "signal": "touch icon or favicon the page links"
+    },
+    {
+      "url": "https://occ.a.nflxso.net/dnmt/api/v6/iL4oJVDYZ8KLSrJ6eG2OwtghbfQ/AAAAAQ4TXm1OaapkwYRGseWYrT2HFpAFV7IX9bgV76BxLOD_049HTkgqZ6zq3enQ0gxU1b-868yGZj1I99Ak9oRykNILYsbpT_0d-be9QKbwkD8OfaEdWL-FHZBiORJ9ppzVCM1-mVn63afS.svg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.netflix.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://assets.nflxext.com/ffe/siteui/vlv3/4263c437-c678-4724-ad80-e3ba0dc8761e/web/US-en-20260921-TRIFECTA-perspective_3ba19b37-271f-4bc1-9c2b-1d21fd8ad26d_large.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.netflix.com/",
+      "signal": "img on the page"
+    }
+  ],
+  "logo_url": "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

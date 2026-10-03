@@ -296,13 +296,19 @@
        signed-out          a reachable backend, no session
        unreachable         the configured database is not answering
        unconfigured        no SUPABASE_URL at all
-       device-session      a mobile+PIN sign-in saved only in this browser: the
-                           server cannot verify it (its token is never sent)
        unverified-session  a server-mode phone account whose database is down
        no-wallet           a phone account asked for a METERED feature: the
                            server refuses it before a wallet exists
                            (credits-core's credits_require_account), so the
                            page says so rather than sending
+
+     Device-mode (2026-09-30) is NOT a refusal. A mobile+PIN sign-in saved
+     only in this browser used to block every server action with "this
+     sign-in is saved on this device only" - so on a deployment with no
+     DATABASE_URL (production's state) no feature ran. The server now
+     admits that token as a device principal and runs features unmetered;
+     the page sends the request and the server is the judge. Being signed
+     OUT is still a refusal: sign in on this device, then features run.
 
      `refusal(what, {metered})` answers null when the action may proceed (a
      verified server-mode session, the localhost preview, or a state auth.js
@@ -398,12 +404,11 @@
         // token itself on every request.
         if (verifying(s)) return null;
         if (s.mode === 'device') {
-          var reason = deviceReason().replace(/\.\s*$/, '');
-          state = 'device-session';
-          lead = 'Not run: this sign-in is saved on this device only.';
-          body = subject + ' runs on the server, which cannot verify an account that exists only in this browser'
-            + (reason ? ' (' + reason + ')' : '') + ', so it did not run and nothing was sent.';
-          if (o.metered) body += ' It is also metered in credits, and a mobile-number sign-in has no credit wallet.';
+          // STANDALONE (2026-09-30): the server admits this token as a device
+          // principal and runs features without a ledger. Blocking here is
+          // what made "no feature works without DATABASE_URL". The mode line
+          // already says the account lives on this device; the request goes.
+          return null;
         } else if (s.verified === false) {
           state = 'unverified-session';
           lead = 'Not run: the database your account is in is not answering.';
@@ -541,14 +546,17 @@
       var nativeFetch = window.fetch.bind(window);
 
       function currentToken() {
-        // ONLY a token the server can check (2026-09-28): a server-mode
-        // mobile+PIN session. A device-mode token proves nothing to anyone
-        // but this browser, so it is never sent - sending it would only turn
-        // an honest anonymous call into a refused one.
+        // A token the server can act on (2026-09-30): a server-mode session
+        // (verified against app_sessions) OR a device-mode session on a
+        // deployment with no DATABASE_URL. The server admits the latter as
+        // a device principal so features run; it still refuses a token that
+        // is not our shape, a JWT, or a server-to-server call with no Origin.
+        // Sending nothing used to turn a signed-in device user into an
+        // anonymous caller, which every agent then refused.
         try {
           var a = window.LifecycleAuth;
           if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
-          if (a && a.session && a.session.access_token && a.session.mode === 'server') return a.session.access_token;
+          if (a && a.session && a.session.access_token && a.session.provider === 'mobile-pin') return a.session.access_token;
         } catch (_) {}
         // 2026-09-28: the scan of Supabase's `sb-*-auth-token` localStorage
         // entries is DISABLED. Nothing can produce a Supabase session any
@@ -3142,16 +3150,17 @@
   function mauthUserOf(sess) {
     return { id: sess.user.id, phone: sess.user.phone, name: sess.user.name || '', provider: 'mobile-pin', mode: sess.mode };
   }
-  /** A token the SERVER can check: only a server-mode session has one. */
+  /** A token the SERVER can act on: server-mode, and device-mode on a standalone deployment. */
   function mauthApiToken() {
     const s = window.LifecycleAuth && window.LifecycleAuth.session;
-    return s && s.provider === 'mobile-pin' && s.mode === 'server' && s.access_token ? s.access_token : '';
+    return s && s.provider === 'mobile-pin' && s.access_token ? s.access_token : '';
   }
   /** The one sentence for where this account and its brands live. */
   function mauthModeSentence(sess, st, verified) {
     if (sess.mode === 'device') {
       const m = (st && st.mode === 'device' && st.message) || (sess.storage && sess.storage.message) || 'Saved on this device only.';
-      return m;
+      if (/^Local \/ Demo Mode/i.test(m)) return m;
+      return 'Local / Demo Mode. ' + m;
     }
     if (verified === false) {
       const host = (st && st.host) || (sess.storage && sess.storage.host) || 'the configured host';

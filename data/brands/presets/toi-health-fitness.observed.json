@@ -1,0 +1,57 @@
+{
+  "ok": false,
+  "slug": "toi-health-fitness",
+  "start": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+  "landed": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+  "observed_at": "2026-09-30",
+  "status": 0,
+  "title": "Health and Fitness, Health Tips, Exercises & Workout Tips, Diet & Wellness | Times of India Lifestyle",
+  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
+  "snapshot_summary": {
+    "theme": "",
+    "logoColor": "",
+    "paints": [
+      {
+        "hex": "#f44141",
+        "n": 3,
+        "sample": "active"
+      },
+      {
+        "hex": "#1967d2",
+        "n": 2,
+        "sample": "fc-button-background"
+      },
+      {
+        "hex": "#d92200",
+        "n": 1,
+        "sample": "getapp"
+      },
+      {
+        "hex": "#cf5899",
+        "n": 1,
+        "sample": "pregnancyicon"
+      },
+      {
+        "hex": "#9575b4",
+        "n": 1,
+        "sample": "ovulicon"
+      },
+      {
+        "hex": "#fb9b5b",
+        "n": 1,
+        "sample": "bmiicon"
+      },
+      {
+        "hex": "#fffaef",
+        "n": 1,
+        "sample": "nl_wrap"
+      },
+      {
+        "hex": "#fff3d9",
+        "n": 1,
+        "sample": "head"
+      }
+    ],
+    "vars": []
+  }
+}
