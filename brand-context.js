@@ -705,7 +705,7 @@
      A mobile-number sign-in keeps its brands on this device, and since
      2026-10-03 the catalogue and the context pack it builds are kept beside
      them: the server reads the store / the site and hands the result back
-     (importCatalogToDevice, devicePackStep), because there is no database row
+     (deviceCatalogImport, devicePackStep), because there is no database row
      for it to be filed under. Each lives under the SAME per-account namespace
      as the brand list, so another person signing in on this browser sees none
      of it, and deleting the brand deletes both. */

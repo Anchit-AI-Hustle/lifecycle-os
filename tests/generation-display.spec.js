@@ -406,7 +406,9 @@ test('an unreadable plan on the ads page reads as an error, not as an empty plan
   const errors = [];
   page.on('pageerror', (e) => errors.push(String((e && e.message) || e)));
   await isolate(page);
-  await page.route('**/api/brain**', (route) => route.fulfill({
+  // The plan is served by /api/calendar (2026-10-03: the page used to ask
+  // /api/brain, which has no smart-brain-* action and answered 400 to all).
+  await page.route('**/api/calendar**', (route) => route.fulfill({
     status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'brain unavailable' }),
   }));
   await page.goto(base + '/ad-campaigns.html', { waitUntil: 'domcontentloaded' });
