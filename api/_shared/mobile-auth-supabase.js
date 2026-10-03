@@ -79,26 +79,43 @@
  * is ALSO treated as a phone account - the stricter rules - never as an email
  * account with a welcome grant.
  *
- * EVERY ENDPOINT CALLED, AND WHERE IT IS DOCUMENTED. Paths are the ones the
- * official client (@supabase/auth-js 2.117.2) calls for the named method.
- *   GET  /auth/v1/health                      health check
+ * EVERY ENDPOINT CALLED, AND WHERE IT IS DOCUMENTED. Two sources for each:
+ * the Supabase docs page, and the Auth server's own OpenAPI description
+ * (github.com/supabase/auth, openapi.yaml - "Supabase Auth REST API"), which
+ * is where the request and response SHAPES below were read from.
+ *   GET  /auth/v1/health                      OpenAPI `/health` "Service healthcheck."
  *        https://supabase.com/docs/guides/troubleshooting/how-do-i-check-gotrueapi-version-of-a-supabase-project-lQAnOR
- *   POST /auth/v1/admin/users                 auth.admin.createUser({ phone, password, phone_confirm, app_metadata, user_metadata })
+ *   POST /auth/v1/admin/users                 { phone, password, phone_confirm, user_metadata, app_metadata }
  *        https://supabase.com/docs/reference/javascript/auth-admin-createuser
- *   PUT  /auth/v1/admin/users/<id>            auth.admin.updateUserById(id, { password })   (PIN reset, pepper rotation)
+ *        (app_metadata = raw_app_meta_data, "metadata that the user should not be
+ *        able to update": https://supabase.com/docs/guides/platform/migrating-to-supabase/auth0)
+ *   PUT  /auth/v1/admin/users/{userId}        { password }   (PIN reset, pepper rotation)
+ *        OpenAPI `/admin/users/{userId}` put "Update user's account data."
  *        https://supabase.com/docs/reference/javascript/auth-admin-updateuserbyid
- *   POST /auth/v1/token?grant_type=password   { phone, password } - the HTTP tab of "Signing in with a phone number and password"
+ *   POST /auth/v1/token?grant_type=password   { phone, password } - the HTTP tab of
+ *        "Signing in with a phone number and password":
  *        https://supabase.com/docs/guides/auth/passwords
- *   GET  /auth/v1/user                        auth.getUser(jwt)
- *        https://supabase.com/docs/reference/javascript/auth-getuser
- *   POST /auth/v1/logout?scope=local|global   auth.admin.signOut(jwt, scope); scopes per
+ *        Response: OpenAPI AccessTokenResponseSchema (access_token, refresh_token,
+ *        expires_in, expires_at, user).
+ *   POST /auth/v1/token?grant_type=refresh_token  { refresh_token } - called by the
+ *        BROWSER (auth.js), not here: OpenAPI `/token` example "grant_type=refresh_token";
+ *        https://supabase.com/docs/reference/javascript/auth-refreshsession
+ *   GET  /auth/v1/user                        the person's own token as the bearer
+ *        OpenAPI `/user` get; https://supabase.com/docs/reference/javascript/auth-getuser
+ *   POST /auth/v1/logout?scope=local|global   the person's own token as the bearer;
+ *        OpenAPI `/logout` (scope global | local | others, 204 on success);
  *        https://supabase.com/docs/guides/auth/signout
- *   POST /rest/v1/rpc/<fn>                    a Postgres function over PostgREST (supabase.rpc)
- *        https://supabase.com/docs/reference/javascript/rpc
- *   Error codes (`code`, with X-Supabase-Api-Version: 2024-01-01):
+ *   POST /rest/v1/rpc/<fn>                    a Postgres function over PostgREST
+ *        https://supabase.com/docs/reference/javascript/rpc ,
+ *        https://docs.postgrest.org/en/stable/references/api/functions.html
+ *   Errors: OpenAPI ErrorSchema (`error_code` the string, `code` the HTTP status,
+ *        `msg`); the codes themselves (invalid_credentials, phone_exists,
+ *        over_request_rate_limit, phone_provider_disabled) from
  *        https://supabase.com/docs/guides/auth/debugging/error-codes
  *   Keys (a secret key goes in `apikey` only, never as a bearer):
  *        https://supabase.com/docs/guides/getting-started/api-keys
+ *   Sb-Forwarded-For (secret key only, "IP Address Forwarding" switched on):
+ *        https://supabase.com/docs/guides/auth/rate-limits
  *
  * The plain PIN is never stored, never logged and never sent anywhere: it
  * exists in this process only long enough to be hashed into the password.
@@ -114,7 +131,6 @@ const phoneRules = require('./phone-rules.js');
 const MARK = 'lifecycle_account';
 const MARK_VALUE = 'mobile-pin';
 const PEPPER_MIN = 32;
-const API_VERSION = '2024-01-01';
 const TIMEOUT_MS = 8000;
 const STALE_CLAIM_SECONDS = 120;
 const MIGRATION = 'supabase/migrations/20260929173555_mobile_pin_supabase_accounts.sql';
@@ -160,13 +176,13 @@ function addressKey(ip) {
 
 /** Headers for a call made AS THE SERVER. A secret key rides in `apikey` only. */
 function serverHeaders(cfg, extra) {
-  const h = { apikey: cfg.serverKey, 'Content-Type': 'application/json', 'X-Supabase-Api-Version': API_VERSION };
+  const h = { apikey: cfg.serverKey, 'Content-Type': 'application/json' };
   if (!cfg.secretKey) h.Authorization = 'Bearer ' + cfg.serverKey;
   return Object.assign(h, extra || {});
 }
 /** Headers for a call made WITH THE PERSON'S access token. */
 function userHeaders(cfg, jwt) {
-  return { apikey: cfg.anonKey, Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json', 'X-Supabase-Api-Version': API_VERSION };
+  return { apikey: cfg.anonKey, Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json' };
 }
 
 /**
@@ -191,7 +207,9 @@ async function call(cfg, method, path, opts) {
     const j = json && typeof json === 'object' ? json : {};
     return {
       status: res.status, ok: res.status >= 200 && res.status < 300, json,
-      code: String(j.code || j.error_code || j.error || ''),
+      // OpenAPI ErrorSchema: `error_code` is the string, `code` the HTTP
+      // status (an integer), `error` the older OAuth-style field.
+      code: String(j.error_code || (typeof j.code === 'string' ? j.code : '') || j.error || ''),
       message: String(j.msg || j.message || j.error_description || ''),
       network: false,
     };
@@ -260,17 +278,26 @@ function busyOrDown(cfg, r) {
   return new AuthStepError(503, 'auth_service_unavailable', 'The account service (' + cfg.host + ') did not answer, so you are not signed in. Nothing was counted against your PIN; try again in a moment.');
 }
 
-/** The password grant. `{ ok, session, user }`, or `{ ok:false, wrong:true }`, or throws a busy/down refusal. */
+/**
+ * The password grant. `{ ok, session, user }`, or `{ ok:false, wrong:true }`,
+ * or throws a busy/down/configuration refusal.
+ *
+ * WHICH ANSWERS COUNT AS A WRONG PIN. Only three answers hand the reserved try
+ * back: 429 (the service asked us to slow down), 5xx / no answer (the service
+ * is down), and `phone_provider_disabled` (the project is misconfigured). Every
+ * OTHER refusal counts against the PIN - not only `invalid_credentials`.
+ * Listing the wrong-PIN codes instead would make the lockout depend on the
+ * auth service never adding or renaming one: an unrecognised refusal would be
+ * refunded, and a guesser handed unlimited tries. Fail closed.
+ */
 async function passwordGrant(cfg, e164, password, ip) {
-  const extra = {};
-  if (cfg.secretKey && ip && ip !== 'unknown') extra['Sb-Forwarded-For'] = ip;
-  const r = await call(cfg, 'POST', '/auth/v1/token?grant_type=password', {
-    headers: Object.assign({ apikey: cfg.serverKey, 'Content-Type': 'application/json', 'X-Supabase-Api-Version': API_VERSION }, extra),
-    body: { phone: e164, password },
-  });
+  const headers = { apikey: cfg.serverKey, 'Content-Type': 'application/json' };
+  if (cfg.secretKey && ip && ip !== 'unknown') headers['Sb-Forwarded-For'] = ip;
+  const r = await call(cfg, 'POST', '/auth/v1/token?grant_type=password', { headers, body: { phone: e164, password } });
   if (r.ok && r.json && r.json.access_token && r.json.refresh_token) return { ok: true, session: r.json, user: r.json.user || null };
-  if (r.code === 'invalid_credentials' || r.code === 'invalid_grant') return { ok: false, wrong: true };
-  throw busyOrDown(cfg, r);
+  if (r.network || r.status === 429 || r.status >= 500 || r.code === 'over_request_rate_limit' || r.code === 'phone_provider_disabled') throw busyOrDown(cfg, r);
+  if (r.ok) throw busyOrDown(cfg, { status: 502, code: 'no_session', message: 'answered without a session' });
+  return { ok: false, wrong: true, code: r.code };
 }
 
 async function createUser(cfg, e164, password, name) {
@@ -319,6 +346,11 @@ const ENTER_WINDOW_SEC = 600;
  */
 async function enter(core, cfg, body, ip) {
   const b = body && typeof body === 'object' ? body : {};
+
+  // 0. No pepper, no sign-in, and nothing is sent anywhere: FAIL CLOSED. A
+  //    PIN cannot be turned into a password GoTrue accepts without it, so
+  //    every later step would be a request that can only end in a refusal.
+  if (!pepper()) return pepperRefusal();
 
   // 1. The per-address budget, counted in the database, before anything else.
   const allowed = await rpc(cfg, 'mobile_pin_rate_hit', { p_bucket: 'auth-enter', p_key: addressKey(ip), p_limit: ENTER_LIMIT, p_window_seconds: ENTER_WINDOW_SEC });
