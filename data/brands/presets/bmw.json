@@ -118,7 +118,7 @@
       "product",
       "service"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph BMW publishes on its own site (https://www.bmwusa.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -128,10 +128,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://www.bmwusa.com/",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.bmwusa.com/"
+      "placeholder": true
     },
     {
       "title": "Saloon Model 01",
@@ -140,10 +139,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://bmw.scene7.com/is/image/BMW/GLobal-Nav-photo?wid=1500&hei=823",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.bmwusa.com/"
+      "placeholder": true
     },
     {
       "title": "SUV Model 01",
@@ -152,10 +150,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://bmw.scene7.com/is/image/BMW/MyBMW_App?wid=2185&hei=956",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.bmwusa.com/"
+      "placeholder": true
     },
     {
       "title": "Electric Model 01",
@@ -164,10 +161,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://bmw.scene7.com/is/image/BMW/BMW-SEPTEMBER2026-OFFERS-X5-xDrive40i:16to7?fmt=webp&wid=1504&hei=658",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.bmwusa.com/"
+      "placeholder": true
     }
   ],
   "offerings": [],
