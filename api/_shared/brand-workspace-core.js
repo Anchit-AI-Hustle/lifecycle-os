@@ -1571,7 +1571,7 @@ const DEVICE_ROW_FIELDS = ['region', 'sku', 'handle', 'title', 'description', 'p
 
 function isPhoneAuth(auth) { return !!(auth && auth.ok !== false && auth.provider === 'mobile-pin'); }
 
-async function importCatalogToDevice(auth, { region = 'us', kind, text, url, brand }) {
+async function deviceCatalogImport(auth, { region = 'us', kind, text, url, brand }) {
   const b = brand && typeof brand === 'object' && !Array.isArray(brand) ? brand : {};
   const scope = {
     website: httpUrl(b.website) || httpUrl(url) || '',
@@ -1607,8 +1607,8 @@ async function importCatalogToDevice(auth, { region = 'us', kind, text, url, bra
 
 async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true, brand }) {
   // A mobile-number sign-in has no workspace row to file under: the rows go
-  // back to its device instead (see importCatalogToDevice above).
-  if (isPhoneAuth(auth)) return importCatalogToDevice(auth, { region, kind, text, url, brand });
+  // back to its device instead (see deviceCatalogImport above).
+  if (isPhoneAuth(auth)) return deviceCatalogImport(auth, { region, kind, text, url, brand });
   // A replacement import can destroy the whole catalog, so membership is not
   // enough — this needs write permission. The RLS policy enforces it too
   // (20260809150000), but failing here gives the user a real message.
@@ -2205,7 +2205,7 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, importCatalogToDevice, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
+  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
 };

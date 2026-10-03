@@ -2262,7 +2262,7 @@ async function devicePackStep({ workspaceId, brand, pack, refresh = false, catal
   const step = resume
     ? await advancePack(store, carried, Object.assign({ brand: Object.assign({}, brand, { id: workspaceId }), auth }, ctx))
     : await startPack(store, workspaceId, { brand: Object.assign({}, brand, { id: workspaceId }), auth, refresh: true, ctx });
-  // The catalogue stage hands its rows back (importCatalogToDevice) rather than
+  // The catalogue stage hands its rows back (deviceCatalogImport) rather than
   // filing them. They go to the device's catalogue ONCE, beside the brand, and
   // the pack keeps the count - so a row is never carried back and forth on
   // every later step, nor kept twice.

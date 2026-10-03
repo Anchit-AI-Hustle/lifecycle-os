@@ -19,7 +19,7 @@ shipped routers, every fix mutation-verified.
   remedy: sign in again). `brand-context.js` `readSite()` / `serverActions()`; `onboarding.html`
   `actionsOff()`. Never tell a signed-in person to sign in.
 - **The server READS, the device KEEPS.** Anything that was refused because it was *filed* in a
-  workspace table is read by the server and handed back: `importCatalogToDevice()` (one reader,
+  workspace table is read by the server and handed back: `deviceCatalogImport()` (one reader,
   `readCatalogSource()`, shared with the account import), `devicePackStep()` (the SAME context-pack
   stages over a one-request `memoryStore`, the browser drives the queue and carries its row),
   TeleSuite (`restOf(ctx)` → `deviceStore`: every op is the same code over what the request carries,
