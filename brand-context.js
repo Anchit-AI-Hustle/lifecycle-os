@@ -1856,6 +1856,9 @@
   window.BrandContext = {
     get brand() { return state.brand; },
     carry: carry,
+    // The catalogue a brand on this device keeps beside itself (2026-10-03):
+    // { products, source, owned } or null. Read-only; imports go through api().
+    deviceCatalog: function (id) { var c = deviceCatalog(id); return c ? JSON.parse(JSON.stringify(c)) : null; },
     get needsOnboarding() { return state.needsOnboarding; },
     get workspaces() { return state.workspaces; },
     get loaded() { return state.loaded; },

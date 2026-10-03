@@ -229,6 +229,146 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function wsId() { try { return (window.BrandContext.brand || {}).id || ''; } catch (_) { return ''; } }
 
+  /* ── TELESUITE ON THIS DEVICE (2026-10-03) ────────────────────────────────
+     The operator's words: "All features must work even with signin by number
+     and pin". The server answered every phone sign-in 403 - TeleSuite's
+     products, knowledge base and runs live in tables keyed to a workspace row,
+     and a phone account's brands are on its device. No TeleSuite TOOL needs a
+     database, only the filing did. So for a phone sign-in the library and the
+     run history are kept HERE, per account and per brand; every view reads
+     them here; and a tool request CARRIES what the tool reads (the brand, the
+     product and knowledge rows it selected, the runs it refers to, the
+     catalogue row it names). The server runs the same op over that and hands
+     back what it wrote, which is kept here (telesuite-core.js deviceStore). */
+  var DEVICE_LOCAL = /^(items|item-save|item-delete|items-seed|runs|run-delete|summary)$/;
+  function phoneSession() {
+    try { var s = window.LifecycleAuth && window.LifecycleAuth.session; return s && s.provider === 'mobile-pin' && s.user && s.user.id ? s : null; } catch (_) { return null; }
+  }
+  function devKey() { var s = phoneSession(); return 'lifecycle.telesuite.device.' + (s ? s.user.id : '') + '.' + (wsId() || 'none'); }
+  function devRead() {
+    try {
+      var v = JSON.parse(localStorage.getItem(devKey()) || 'null') || {};
+      return { items: Array.isArray(v.items) ? v.items : [], runs: Array.isArray(v.runs) ? v.runs : [] };
+    } catch (_) { return { items: [], runs: [] }; }
+  }
+  function devWrite(d) {
+    try { localStorage.setItem(devKey(), JSON.stringify({ items: d.items.slice(0, 300), runs: d.runs.slice(0, 300) })); return true; }
+    catch (_) { return false; }
+  }
+  function devFail(status, code, message) { var e = new Error(message); e.status = status; e.code = code; e.payload = { ok: false, error: code, message: message, storage: 'device' }; return e; }
+  function devId() {
+    try { return crypto.randomUUID(); } catch (_) { return 'dev-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+  }
+  function qp(query, k) { try { return new URLSearchParams(String(query || '').replace(/^[&?]/, '')).get(k) || ''; } catch (_) { return ''; } }
+  function byNewest(field) { return function (a, b) { return String(b[field] || '') < String(a[field] || '') ? -1 : 1; }; }
+  function devStore(d) { if (!devWrite(d)) throw devFail(507, 'device_storage_unavailable', 'This browser refused to store it (storage is full or blocked), so nothing was saved.'); }
+
+  /** The library and the dashboards, answered from this device in the server's shapes. */
+  function deviceLocal(op, body, query) {
+    var d = devRead(), b = body || {}, now = new Date().toISOString(), id;
+    if (op === 'items') {
+      var kind = qp(query, 'kind') || 'product';
+      return { ok: true, storage: 'device', items: d.items.filter(function (i) { return i.kind === kind; }).sort(byNewest('updated_at')) };
+    }
+    if (op === 'item-save') {
+      var it = b.item || {};
+      var name = String(it.name || '').trim().slice(0, 300);
+      if (!name) throw devFail(400, 'name_required', 'Name is required.');
+      var row = {
+        kind: it.kind === 'knowledge' ? 'knowledge' : 'product', name: name,
+        category: String(it.category || '').trim().slice(0, 120) || null, content: String(it.content || '').slice(0, 60000) || null,
+        attributes: it.attributes && typeof it.attributes === 'object' ? it.attributes : {},
+        source: String(it.source || 'typed').slice(0, 40), updated_at: now,
+      };
+      var prev = it.id ? d.items.filter(function (x) { return x.id === it.id; })[0] : null;
+      if (prev) Object.assign(prev, row);
+      else { row.id = devId(); row.created_at = now; d.items.unshift(row); prev = row; }
+      devStore(d);
+      return { ok: true, storage: 'device', item: prev };
+    }
+    if (op === 'item-delete') {
+      id = String(b.id || qp(query, 'id'));
+      d.items = d.items.filter(function (x) { return x.id !== id; });
+      devStore(d);
+      return { ok: true, storage: 'device' };
+    }
+    if (op === 'items-seed') {
+      // From THIS brand's catalogue on this device, never a made-up product.
+      var cat = (window.BrandContext && typeof window.BrandContext.deviceCatalog === 'function') ? window.BrandContext.deviceCatalog(wsId()) : null;
+      var prods = (cat && cat.products) || [];
+      if (!prods.length) return { ok: true, storage: 'device', seeded: 0, message: 'Your brand catalog is empty — import it in brand settings first.' };
+      var have = {};
+      d.items.forEach(function (x) { if (x.kind === 'product') have[x.name] = 1; });
+      var seeded = 0;
+      prods.slice(0, 100).forEach(function (p) {
+        if (!p.title || have[p.title]) return;
+        d.items.unshift({ id: devId(), kind: 'product', name: p.title, category: p.product_type || null, content: p.description || null,
+          attributes: { sku: p.sku, price: p.price, currency: p.currency, url: p.product_url, image: p.image_url }, source: 'catalog', created_at: now, updated_at: now });
+        seeded++;
+      });
+      devStore(d);
+      return { ok: true, storage: 'device', seeded: seeded };
+    }
+    if (op === 'runs') {
+      var f = qp(query, 'feature');
+      var lim = Math.max(1, Math.min(300, +qp(query, 'limit') || 100));
+      var want = f && f !== '*' ? f.split(',') : null;
+      return { ok: true, storage: 'device', runs: d.runs.filter(function (r) { return !want || want.indexOf(r.feature) >= 0; }).sort(byNewest('created_at')).slice(0, lim) };
+    }
+    if (op === 'run-delete') {
+      id = String(b.id || qp(query, 'id'));
+      d.runs = d.runs.filter(function (x) { return x.id !== id; });
+      devStore(d);
+      return { ok: true, storage: 'device' };
+    }
+    if (op === 'summary') {
+      var by = {};
+      d.runs.slice().sort(byNewest('created_at')).forEach(function (r) {
+        var x = by[r.feature] = by[r.feature] || { feature: r.feature, runs: 0, credits: 0, last: null, scores: [] };
+        x.runs++; x.credits += Number(r.credits) || 0;
+        if (!x.last) x.last = r.created_at;
+        if (r.score != null) x.scores.push(Number(r.score));
+      });
+      var summary = Object.keys(by).map(function (k) {
+        var x = by[k];
+        return { feature: x.feature, runs: x.runs, credits: x.credits, last: x.last,
+          avg_score: x.scores.length ? Math.round((x.scores.reduce(function (a, c) { return a + c; }, 0) / x.scores.length) * 10) / 10 : null };
+      });
+      return { ok: true, storage: 'device', summary: summary,
+        total_runs: summary.reduce(function (a, c) { return a + c.runs; }, 0), total_credits: summary.reduce(function (a, c) { return a + c.credits; }, 0) };
+    }
+    throw devFail(400, 'unknown_telesuite_operation', 'That TeleSuite view has no device implementation.');
+  }
+  /** What a tool request reads, carried with it for a phone sign-in. */
+  function deviceCarry(body) {
+    var d = devRead();
+    var input = (body && body.input && typeof body.input === 'object') ? body.input : (body || {});
+    var kb = Array.isArray(input.kb) ? input.kb.map(String) : [];
+    var refs = [].concat(Array.isArray(input.run_ids) ? input.run_ids : [], input.analysis_id ? [input.analysis_id] : []).map(String);
+    var items = d.items.filter(function (i) { return (i.kind === 'product' && input.product && i.name === input.product) || (i.kind === 'knowledge' && kb.indexOf(String(i.id)) >= 0); });
+    var runs = d.runs.filter(function (r) { return refs.indexOf(String(r.id)) >= 0 || (input.call_id && r.input && r.input.call_id === input.call_id); });
+    var cat = (window.BrandContext && typeof window.BrandContext.deviceCatalog === 'function') ? window.BrandContext.deviceCatalog(wsId()) : null;
+    var catalog = ((cat && cat.products) || []).filter(function (p) { return input.product && p.title === input.product; }).slice(0, 5);
+    return { items: items, runs: runs, catalog: catalog };
+  }
+  /** Keep what the server wrote for this phone sign-in. */
+  function deviceKeep(changes) {
+    if (!changes || changes.storage !== 'device') return;
+    var d = devRead();
+    function upsert(list, rows) {
+      (rows || []).forEach(function (r) {
+        var i = -1;
+        for (var k = 0; k < list.length; k++) if (list[k].id === r.id) { i = k; break; }
+        if (i >= 0) list[i] = r; else list.unshift(r);
+      });
+    }
+    upsert(d.runs, changes.runs); upsert(d.items, changes.items);
+    var dr = changes.deleted_runs || [], di = changes.deleted_items || [];
+    d.runs = d.runs.filter(function (r) { return dr.indexOf(r.id) < 0; });
+    d.items = d.items.filter(function (r) { return di.indexOf(r.id) < 0; });
+    devStore(d);
+  }
+
   async function ts(op, body, query) {
     // Decided before anything is sent (2026-09-29). The registry, the clone
     // manifest and the n8n export are public; every other op runs for an
@@ -236,6 +376,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!/^(registry|clone|n8n)$/.test(op) && window.LifecycleStatus) {
       var stop = await window.LifecycleStatus.decide(body ? 'This TeleSuite tool' : 'Reading this TeleSuite view', { metered: !!body });
       if (stop) throw stop;
+    }
+    var phone = phoneSession() && !/^(registry|clone|n8n)$/.test(op);
+    if (phone && DEVICE_LOCAL.test(op)) return deviceLocal(op, body, query);
+    if (phone && body) {
+      var carried = (window.BrandContext && window.BrandContext.carry) ? window.BrandContext.carry() : null;
+      body = Object.assign({}, body, { brand: carried, device: deviceCarry(body) });
     }
     var headers = { 'Content-Type': 'application/json' };
     var t = token(); if (t) headers.Authorization = 'Bearer ' + t;
@@ -245,6 +391,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       cache: 'no-store'
     });
     var json = await res.json().catch(function () { return {}; });
+    if (phone && res.ok && json && json.device) deviceKeep(json.device);
     // Any response carrying a balance moves the live pill immediately.
     if (window.Credits) window.Credits.applyReceipt(json);
     if (!res.ok) {
