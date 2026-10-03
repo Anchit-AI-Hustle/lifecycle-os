@@ -385,7 +385,10 @@ async function context(req) {
   // account_type_unsupported. That refusal used to be THROWN out of this
   // function, past handle()'s try/catch, and reach the router as a 500 with
   // the sentence in the wrong field. It is answered here, as the state it is.
-  if (auth.provider === 'mobile-pin') {
+  // A phone account IN SUPABASE AUTH (mode 'supabase', #119) has that
+  // identity and runs TeleSuite like any account. A Neon or device phone
+  // sign-in (no workspace row) runs over what the page carries (2026-10-03).
+  if (auth.provider === 'mobile-pin' && auth.mode !== 'supabase') {
     // 2026-10-03: TeleSuite runs for a phone sign-in over what the page
     // carries, and what it writes goes back to the device (deviceStore above).
     const brand = require('./brand-runtime.js').carriedBrand(body, auth);

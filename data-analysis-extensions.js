@@ -185,7 +185,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function deviceAlertKey() {
     try {
       var ses = window.LifecycleAuth && window.LifecycleAuth.session;
-      if (!ses || ses.provider !== 'mobile-pin' || !ses.user || !ses.user.id) return '';
+      if (!ses || ses.provider !== 'mobile-pin' || ses.mode === 'supabase' || !ses.user || !ses.user.id) return '';
       var b = window.BrandContext && window.BrandContext.brand;
       return 'lifecycle.analysis.alerts.' + ses.user.id + '.' + ((b && b.id) || 'none');
     } catch (_) { return ''; }

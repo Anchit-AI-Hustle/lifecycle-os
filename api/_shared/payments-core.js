@@ -47,7 +47,7 @@
  * sealing key lives only in the serverless environment, the ciphertext columns
  * are revoked from the anon and authenticated Postgres roles, and every
  * would_request body is redacted before it is returned or logged. See
- * supabase/migrations/20261231090000_payment_gateway_connections.sql.
+ * supabase/migrations/20260823180000_payment_gateway_connections.sql.
  * ---------------------------------------------------------------------------
  */
 
