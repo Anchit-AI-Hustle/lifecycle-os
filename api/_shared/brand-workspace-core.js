@@ -1899,6 +1899,16 @@ async function handle(req, res) {
 
   if (!auth.ok && !openWithoutBackend) return res.status(auth.status || 401).json(auth);
 
+  // WHO MAY SPEND ON A MODEL HERE (2026-10-03, review). A server-mode phone
+  // number the operator has not listed (CREDITS_COMP_PHONES) has no wallet, so
+  // it must never reach a provider - the faucet the list exists to shut. The
+  // brand ops have three model steps: the voice observation inside extract and
+  // inside the context pack's extract stage (each runs WITHOUT it, and says
+  // so), and Suggest options (nothing but a model call, so refused). A device
+  // principal and an email account are unaffected (spenderRefusal → null).
+  const spend = auth.ok ? require('./credits-core.js').spenderRefusal(auth) : null;
+  const VOICE_SKIPPED_NOTE = 'The tone of voice was not observed: that step is the only one that needs a language model, and this mobile-number sign-in has no credit wallet because its number is not on the operator\'s list. Everything else was read from the site exactly as always.';
+
   if (openWithoutBackend) {
     try {
       const out = await require('./brand-extract.js').runExtract(
@@ -2048,6 +2058,8 @@ async function handle(req, res) {
             refresh: body.refresh === true,
             catalogOwned: body.catalog_owned === true,
             auth,
+            // The extract stage's voice observation is a model call.
+            ctx: spend ? { voice: false } : {},
           });
           const step = out.step;
           return res.status(200).json({
@@ -2062,6 +2074,7 @@ async function handle(req, res) {
             // this step did not import (another stage, or a catalogue the
             // operator imported by hand and the run left alone).
             catalog_products: out.products,
+            ...(spend ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {}),
           });
         }
         await assertCanWrite(auth, wsId, 'build its context pack');
@@ -2154,18 +2167,23 @@ async function handle(req, res) {
         }));
       }
       case 'extract': {
+        const wantsVoice = (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false';
         const out = await require('./brand-extract.js').runExtract(auth, {
           url: str(body.url || q.url, 500),
           workspace_id: str(body.workspace_id || q.workspace_id),
-          voice: (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false',
+          voice: wantsVoice && !spend,
           max_pages: body.max_pages || q.max_pages,
         });
-        return res.status(out && out.ok === false && out.error ? 400 : 200).json(out);
+        const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
+        return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
       }
       case 'suggest': {
         // Options for ONE field, written from this brand's own record. Nothing
         // is written here: the response is candidates, and the operator's click
         // is what puts a value in the record (as their own, not the model's).
+        // It is nothing BUT a model call, so a caller who may not spend is
+        // refused with the sentence, before any provider is reached.
+        if (spend) return res.status(spend.status || 403).json(spend);
         const ws = str(body.workspace_id || q.workspace_id);
         let brand = body.brand && typeof body.brand === 'object' ? body.brand : null;
         if (!brand && ws) {

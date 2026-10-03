@@ -395,3 +395,74 @@ test.describe('data analysis for a phone sign-in carries nothing of the operator
     });
   }
 });
+
+/* ═══ Codex #9 (2026-10-03): an unlisted number never spends provider quota ═══
+   A SERVER-mode phone account whose number the operator has not listed
+   (CREDITS_COMP_PHONES) has no wallet. Every device path this branch opened
+   must either refuse its model step or run without it - and say which. */
+test.describe('a server-mode phone account that is NOT listed reaches no model through any device path', () => {
+  let w, restoreDns;
+  const SITE = 'https://voice-site.example';
+  const PAGE = '<!doctype html><html><head><title>Voice Site</title><meta name="description" content="Lamps made by hand on the quay."></head><body>'
+    + '<h1>Voice Site</h1><p>We make every lamp by hand on the quay, slowly, and we wrap each one in paper we recycle ourselves.</p>'
+    + '<p>Our workshop opens at dawn and the first kettle goes on before the first lamp is lit, because nothing good is rushed.</p>'
+    + '<p>Each piece is signed underneath by the person who finished it, so you always know whose hands it came from.</p></body></html>';
+  test.beforeAll(async () => {
+    w = await A.world();          // DATABASE_URL set, no number listed: the 'phone' state is unlisted
+    w.db.route((u) => u.startsWith(SITE), (u) => {
+      const p = new URL(u).pathname;
+      if (p === '/robots.txt') return require('./lib/fake-supabase.js').response(200, 'User-agent: *\nAllow: /\n', { 'content-type': 'text/plain' });
+      if (p === '/' || p === '') return require('./lib/fake-supabase.js').response(200, PAGE, { 'content-type': 'text/html' });
+      return require('./lib/fake-supabase.js').response(404, '', { 'content-type': 'text/plain' });
+    });
+    const dns = require('dns').promises;
+    const real = dns.lookup;
+    dns.lookup = async (h, o) => (String(h).endsWith('.example') ? [{ address: '93.184.216.34', family: 4 }] : real(h, o));
+    restoreDns = () => { dns.lookup = real; };
+  });
+  test.afterAll(async () => { restoreDns(); await w.close(); });
+  test.beforeEach(() => { w.reset(); });
+  const brand = () => Object.assign({}, A.deviceBrand(), { website: SITE, name: 'Voice Site', industry: 'hand-made lamps' });
+  const brandOp = (op, json) => w.request('/api/public-config', { query: { action: 'brand', op }, json, state: 'phone' });
+
+  test('Read my site runs, with the voice step skipped and said so', async () => {
+    const r = await brandOp('extract', { url: SITE + '/' });
+    expect(r.status, r.text.slice(0, 300)).toBe(200);
+    expect(r.out.ok).toBe(true);
+    expect(r.out.voice_skipped).toBe(true);
+    expect(String(r.out.voice_note || '')).toMatch(/wallet|listed/i);
+    expect(w.llm.calls, 'an unlisted number reached a model').toEqual([]);
+  });
+
+  test('Suggest options is refused with a sentence before any model call', async () => {
+    const r = await brandOp('suggest', { field: 'voice.tone', brand: brand() });
+    expect([402, 403]).toContain(r.status);
+    expect(r.out.ok).toBe(false);
+    expect(String(r.out.message || '')).toMatch(/wallet|listed/i);
+    expect(w.llm.calls).toEqual([]);
+  });
+
+  test('the device context pack builds to the end with the voice step skipped', async () => {
+    let row = null, out = null;
+    for (let i = 0; i < 8; i++) {
+      out = await brandOp('context-build', { workspace_id: 'local-voice0000000001', refresh: i === 0, brand: brand(), device_pack: row });
+      expect(out.status, out.text.slice(0, 300)).toBe(200);
+      row = out.out.device_pack;
+      if (out.out.done) break;
+    }
+    expect(out.out.done).toBe(true);
+    expect(row.design_md).toBeTruthy();
+    expect(out.out.voice_skipped).toBe(true);
+    expect(w.llm.calls, 'the pack\'s extract stage reached a model for an unlisted number').toEqual([]);
+  });
+
+  test('the concierge, TeleSuite and Smart Brain approve refuse before any model call', async () => {
+    const chat = await w.request('/api/brain', { query: { action: 'agent-chat' }, json: { message: 'hi', agent_id: 'agent_brand', brand: brand() }, state: 'phone' });
+    expect([402, 403]).toContain(chat.status);
+    const ts = await w.request('/api/brain', { query: { action: 'telesuite', op: 'pitch' }, json: { op: 'pitch', brand: brand(), device: { items: [] }, input: { product: 'Lamp' } }, state: 'phone' });
+    expect([402, 403]).toContain(ts.status);
+    const ap = await w.request('/api/calendar', { query: { action: 'smart-brain-approve' }, json: { id: 'cal_x', entry: { id: 'cal_x', date: '2026-10-05', market: 'US' }, brand: brand() }, state: 'phone' });
+    expect([402, 403]).toContain(ap.status);
+    expect(w.llm.calls).toEqual([]);
+  });
+});
