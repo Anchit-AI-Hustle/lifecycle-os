@@ -41,6 +41,30 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 const RAW = /\b(sign_in_required|not_authenticated|session_verification_unavailable|invalid_session|credits_require_account|no_active_brand|account_type_unsupported|workspace_unresolved|unauthori[sz]ed|http 401|http 403|http 409)\b/i;
 const DEVICE_SENTENCE = /saved on this device only|exists only in this browser/i;
 
+// WHERE the device sentence is looked for (2026-10-03). PR #115 deliberately
+// turned the device session from a REFUSAL into a working state, and the same
+// change made the rail's account line say so: auth.js mauthModeSentence()
+// prefixes it "Local / Demo Mode. Saved on this device only: ..." (asserted in
+// mobile-pin-signin.spec.js). These tests then read the WHOLE body for "saved
+// on this device only", so they failed on the very status line the change
+// introduced, and CI was red from the merge onwards. What they guard is the
+// refusal that used to stand where the answer goes ("Not run: this sign-in is
+// saved on this device only ... exists only in this browser"). So the rail's
+// mode line is taken OUT of the text searched, and is asserted on its own to
+// say Local / Demo Mode - the check is not looser, it is aimed: the refusal
+// must be absent from the page, and the mode must be stated in the rail.
+async function outsideRailMode(page) {
+  const r = await page.evaluate(() => {
+    const body = (document.body && document.body.innerText) || '';
+    const el = document.getElementById('lnav-umode');
+    const mode = el ? (el.innerText || el.textContent || '').trim() : '';
+    return { body, mode };
+  });
+  expect(r.mode, 'the rail states where this account lives').toMatch(/^Local \/ Demo Mode\. Saved on this device only/);
+  const i = r.body.indexOf(r.mode);
+  return i < 0 ? r.body : r.body.slice(0, i) + r.body.slice(i + r.mode.length);
+}
+
 /** Seed the session and the device brand the way auth.js and brand-context.js store them. */
 function seed(args) {
   try {
@@ -170,7 +194,7 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     await expect(bot).toHaveText(/Scripted reply for this turn/, { timeout: 15000 });
     const turn = log.api.filter((r) => /action=brand-chat/.test(r.url));
     expect(turn.map((r) => r.status)).toEqual([200]);
-    expect(await bodyText(page)).not.toMatch(DEVICE_SENTENCE);
+    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
     clean(log, await bodyText(page), 'kicksgpt');
   });
 
@@ -183,7 +207,7 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     await page.click('#send');
     await expect.poll(() => log.api.filter((r) => /action=agent-chat/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
     const shown = await bodyText(page);
-    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'agent');
   });
 
@@ -194,7 +218,7 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     await page.click('#loadBtn');
     await expect.poll(() => log.api.filter((r) => /action=social-list/.test(r.url)).length, { timeout: 10000 }).toBeGreaterThan(0);
     const shown = await bodyText(page);
-    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'social');
   });
 
@@ -214,10 +238,24 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
   test('the Smart Brain console: the agentic run reaches the server', async ({ page }) => {
     const log = await open(page, w, 'smart-brain.html', 'device');
     await page.waitForSelector('#runAgentic');
+    // "Reaches the server" is the REQUEST leaving (2026-10-03). log.api is
+    // filled on RESPONSE, and in device mode the run now actually runs: 8
+    // stages, with a 15 s asset budget of its own (agentic-orchestrator.js
+    // assetBudgetMs). A 15 s poll on the response was shorter than the
+    // server's own budget, so the test timed out on a run that was working.
+    // The request must still leave within 15 s; the answer is then awaited
+    // for longer than the server budgets, and the rendered result is checked
+    // - which is what found the "[object Object]" cohort cells.
+    test.setTimeout(150000);
+    const sent = page.waitForRequest((r) => /action=agentic-run/.test(r.url()), { timeout: 15000 });
+    const answered = page.waitForResponse((r) => /action=agentic-run/.test(r.url()), { timeout: 90000 });
     await page.click('#runAgentic');
-    await expect.poll(() => log.api.filter((r) => /action=agentic-run/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
+    await sent;
+    await answered;
+    await expect(page.locator('#agenticOut')).not.toContainText('please wait', { timeout: 10000 });
+    expect(log.api.filter((r) => /action=agentic-run/.test(r.url)).map((r) => r.status)).toEqual([200]);
     const shown = await bodyText(page);
-    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'smart-brain');
   });
 
@@ -227,7 +265,7 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     await page.click('#generate');
     await expect.poll(() => log.api.filter((r) => /\/api\/ai\//.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
     const shown = await bodyText(page);
-    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'landing-page-agent');
   });
 

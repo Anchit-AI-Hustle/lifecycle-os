@@ -114,7 +114,7 @@
       "plan",
       "programme"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Netflix publishes on its own site (https://www.netflix.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -124,10 +124,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://occ.a.nflxso.net/dnmt/api/v6/iL4oJVDYZ8KLSrJ6eG2OwtghbfQ/AAAAAQ4TXm1OaapkwYRGseWYrT2HFpAFV7IX9bgV76BxLOD_049HTkgqZ6zq3enQ0gxU1b-868yGZj1I99Ak9oRykNILYsbpT_0d-be9QKbwkD8OfaEdWL-FHZBiORJ9ppzVCM1-mVn63afS.svg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.netflix.com/"
+      "placeholder": true
     },
     {
       "title": "Annual Plan 01",
@@ -136,10 +135,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://assets.nflxext.com/ffe/siteui/vlv3/4263c437-c678-4724-ad80-e3ba0dc8761e/web/US-en-20260921-TRIFECTA-perspective_3ba19b37-271f-4bc1-9c2b-1d21fd8ad26d_large.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.netflix.com/"
+      "placeholder": true
     },
     {
       "title": "Family Plan 01",

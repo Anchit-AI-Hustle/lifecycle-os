@@ -136,6 +136,21 @@ const BRAIN_GATED = new Set(['dispatch-enqueue', 'dispatch-drain', 'dispatch-lis
   'daily-calendar', 'revenue-analysis', 'platform-agents', 'journey', 'shopify', 'telesuite']);
 // calendar.js features on the credit meter (credits.metered → enforce → 401).
 const CALENDAR_GATED = new Set(['generate', 'lifecycle-generate', 'lifecycle-build-mailer', 'trigger-mailer', 'triggermailer']);
+// The brain's MODEL actions (api/brain.js MODEL_FEATURE): on the credit meter,
+// so a device principal reaches them and is answered unmetered (2026-09-30).
+// Read from the router's own table rather than copied, so a new model action
+// is covered the day it is added; a parse that finds nothing throws, because
+// a harness that models no action passes every page. (2026-10-03: before this
+// the device-session state answered brand-chat with GENERIC_OK - no `reply` -
+// and KicksGPT correctly reported "answered without a reply" on all six
+// suggestion chips. The page was right; the harness was not the server.)
+const BRAIN_MODEL = (() => {
+  const src = fs.readFileSync(path.join(ROOT, 'api', 'brain.js'), 'utf8');
+  const m = src.match(/const MODEL_FEATURE = \{([\s\S]*?)\n\};/);
+  const keys = m ? [...m[1].matchAll(/^\s*'?([a-z][a-z-]*)'?\s*:/gm)].map((x) => x[1]) : [];
+  if (keys.length < 10 || !keys.includes('brand-chat')) throw new Error('could not read MODEL_FEATURE from api/brain.js: ' + JSON.stringify(keys));
+  return new Set(keys);
+})();
 const REWRITES = { '/api/brand': 'brand', '/api/credits': 'credits', '/api/connections': 'connections', '/api/payments': 'payments', '/api/telesuite': 'telesuite', '/api/klaviyo': 'klaviyo' };
 
 /** 'config' | 'open' | 'gated' | 'lp' | 'auth' for a request URL. */
@@ -458,7 +473,8 @@ function setup(page, stateName, log) {
         // principal and features run unmetered. Routers the harness does not
         // run in-process (kb, competitor, ai/image, the pipeline) are answered
         // in the shape those pages read (ok + reply), not a 401.
-        if (g === 'gated') {
+        const modelAction = /\/api\/brain$/.test(u.pathname) && BRAIN_MODEL.has(u.searchParams.get('action') || '');
+        if (g === 'gated' || (modelAction && stateName === 'device-session')) {
           if (stateName === 'device-session') {
             return json(Object.assign({}, GENERIC_OK, {
               ok: true, reply: 'Local demo reply.', answer: 'Local demo reply.',

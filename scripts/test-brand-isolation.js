@@ -111,7 +111,19 @@ function presets() {
   const dir = path.join(ROOT, 'data', 'brands', 'presets');
   const files = fs.readdirSync(dir)
     .filter((f) => f.endsWith('.json') && f !== 'index.json')
-    .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
+    .map((f) => {
+      const rec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      // A file in this directory that is not a brand record is a fixture
+      // defect, not a brand to render (2026-10-03). PR #116 put 40
+      // `<slug>.observed.json` sidecars here; each was rendered as a brand
+      // with no name, fell back to tenant zero's defaults, and reported 39
+      // LEAKs as "assets · undefined" - a gate measuring files it was never
+      // meant to read. Say which file, and stop.
+      if (!rec || typeof rec.name !== 'string' || !rec.name.trim() || rec.slug + '.json' !== f) {
+        throw new Error(`data/brands/presets/${f} is not a brand preset (needs a name and slug "${f.replace(/\.json$/, '')}"); keep other files out of that directory`);
+      }
+      return rec;
+    })
     .filter((b) => String(b.slug).toLowerCase() !== 'knickgasm');   // tenant zero is allowed its own words
 
   // One representative brand is additionally run in the persisted shape. One is

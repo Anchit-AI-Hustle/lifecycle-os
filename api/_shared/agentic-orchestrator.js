@@ -26,6 +26,17 @@ function trim(obj, n = 1400) {
   catch (_) { return null; }
 }
 
+/** A cohort as the words a table cell can print: its name, or null. */
+function cohortLabel(c) {
+  if (c == null) return null;
+  if (typeof c === 'string') return c.trim() || null;
+  if (typeof c === 'object') {
+    const n = c.name || c.label || c.key || c.id;
+    return n == null ? null : String(n);
+  }
+  return String(c);
+}
+
 async function planningStage(analysis, market, tier) {
   if (!callLLM) return { provider: 'fallback', objective: 'Re-engage proven cohorts with bestsellers; protect margin.', cohorts: [], heroAngles: [], northStarMetric: 'revenue' };
   try {
@@ -129,7 +140,13 @@ async function runAgentic(opts = {}) {
     campaigns.push({
       date: entry.date || null,
       market: entry.market || market,
-      cohort: entry.cohort || entry.segment || null,
+      // The NAME, not the record (2026-10-03). A plan entry's cohort is an
+      // object ({ name, size, rules }); this row is the per-day summary the
+      // Smart Brain console prints straight into a table cell, so every row of
+      // "Assets by day" read "[object Object]". Only visible once the run
+      // actually completes in a browser, which device mode made possible on
+      // 2026-09-30. The full record still rides `campaign`.
+      cohort: cohortLabel(entry.cohort || entry.segment),
       theme: entry.theme || null,
       subject: built.subject || (built.copy && built.copy.subject) || null,
       score: entryReview ? entryReview.score : null,
