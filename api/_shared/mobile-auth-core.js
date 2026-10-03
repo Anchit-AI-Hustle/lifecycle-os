@@ -327,24 +327,58 @@ async function supabaseStatus(deps) {
   const supa = require('./mobile-auth-supabase.js');
   const cfg = supa.config();
   if (!cfg) return null;
-  // No key a browser may hold: the session could be issued but never renewed
-  // in the browser, so this is NOT supabase mode, and the answer says why.
-  if (!cfg.publicKey) {
-    return { configured: true, reachable: false, host: cfg.host, pin_ready: !!supa.pepper(), reason: 'no_public_key',
-      detail: 'no browser-visible key: set SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY)' };
-  }
+  // TWO QUESTIONS, kept apart (review finding, 2026-10-03):
+  //   reachable  - does the PROJECT answer? Always probed when a URL and a
+  //                server key are set. This is what decides whether a device
+  //                token may be admitted (verifyToken), so it must never be
+  //                answered "no" without asking.
+  //   offerable  - can supabase mode be OFFERED to browsers? Also needs a key
+  //                the browser may hold, or a session could be issued and
+  //                never renewed.
+  // Folding the second into the first answered "unreachable" for a live
+  // project with no public key, and verifyToken then admitted leftover device
+  // tokens as UNMETERED principals beside a working credit ledger.
   const fresh = !!(deps && (deps.fresh || typeof deps.sql === 'function'));
-  if (!fresh && supaCache && supaCache.url === cfg.url && Date.now() - supaCache.at < (supaCache.answer.reachable ? 30000 : 5000)) return supaCache.answer;
-  const h = await supa.health(cfg, (deps && deps.timeoutMs) || 4000);
-  const answer = { configured: true, reachable: !!h.ok, host: cfg.host, detail: h.ok ? '' : h.detail, pin_ready: !!supa.pepper() };
-  if (!fresh) supaCache = { url: cfg.url, at: Date.now(), answer };
+  let base;
+  if (!fresh && supaCache && supaCache.url === cfg.url && Date.now() - supaCache.at < (supaCache.answer.reachable ? 30000 : 5000)) base = supaCache.answer;
+  else {
+    const h = await supa.health(cfg, (deps && deps.timeoutMs) || 4000);
+    base = { configured: true, reachable: !!h.ok, host: cfg.host, detail: h.ok ? '' : h.detail };
+    if (!fresh) supaCache = { url: cfg.url, at: Date.now(), answer: base };
+  }
+  const answer = Object.assign({}, base, { pin_ready: !!supa.pepper(), offerable: !!(base.reachable && cfg.publicKey) });
+  if (base.reachable && !cfg.publicKey) {
+    answer.reason = 'no_public_key';
+    answer.detail = 'no browser-visible key: set SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY)';
+  }
   return answer;
+}
+
+/**
+ * Is a credit ledger reachable at all? The auth service answering is one
+ * proof; the ledger's own table answering (credit_prices, the read the meter
+ * already makes) is the other, for a project whose auth health check fails
+ * while its database does not. A device principal runs UNMETERED, so it may
+ * exist only when neither answers.
+ */
+async function ledgerReachable(deps, sb) {
+  if (sb && sb.reachable) return true;
+  try {
+    const credits = require('./credits-core.js');
+    if (!credits.configured()) return false;
+    const url = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '');
+    const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '');
+    const r = await withTimeout(fetch(url + '/rest/v1/credit_prices?select=feature_key&limit=1', {
+      headers: { apikey: key, authorization: 'Bearer ' + key }, cache: 'no-store',
+    }), (deps && deps.timeoutMs) || 4000, 'ledger probe timed out');
+    return !!(r && r.status && r.status < 500);
+  } catch (_) { return false; }
 }
 
 async function status(deps) {
   // SUPABASE FIRST (2026-10-03). A project that answers outranks everything.
   const sb = await supabaseStatus(deps);
-  if (sb && sb.reachable) {
+  if (sb && sb.offerable) {
     return {
       ok: true, mode: 'supabase', host: sb.host, pin_ready: sb.pin_ready,
       message: 'Account saved in the database (' + sb.host + '); brands are saved to your account.',
@@ -354,7 +388,7 @@ async function status(deps) {
   if (sb) {
     // Configured, not answering: said, and the mode below it is used.
     return Object.assign({}, below, {
-      supabase: { configured: true, reachable: false, host: sb.host, detail: sb.detail, reason: sb.reason || 'unreachable' },
+      supabase: { configured: true, reachable: !!sb.reachable, host: sb.host, detail: sb.detail, reason: sb.reason || 'unreachable' },
       message: below.message + (sb.reason === 'no_public_key'
         ? ' The account service (' + sb.host + ') is configured without a browser-visible key (SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY), so accounts there cannot be used yet.'
         : ' The account service (' + sb.host + ') is not answering, so accounts there cannot be used until it does.'),
@@ -417,12 +451,23 @@ async function verifyToken(token, deps) {
   // credit ledger - the faucet the phone rules exist to shut. Only a project
   // that ANSWERS counts: a configured one that is down falls back to the
   // modes below, exactly as status() does, so #115's standalone path holds.
-  try {
-    const sb = await supabaseStatus(deps);
-    if (sb && sb.reachable) return { ok: false, reason: 'supabase_mode', host: sb.host };
-  } catch (_) { /* a probe that throws is a project that did not answer */ }
+  // Whether or not supabase mode can be OFFERED (a public key), and whether
+  // the answer came from the auth service or the ledger itself: a device
+  // principal is unmetered, so it exists only when no ledger answers at all.
+  //   - supabase mode is ON (offered): every account is a Supabase user, so
+  //     a token of our shape is refused outright, Neon's included.
+  //   - otherwise a Neon session is checked against app_sessions as before
+  //     (it is metered: it is never a device principal), and only the DEVICE
+  //     path - no DATABASE_URL - is refused while the project or its ledger
+  //     answers (review finding: a live project with no public key used to
+  //     admit device tokens unmetered).
+  let sb = null;
+  try { sb = await supabaseStatus(deps); } catch (_) { sb = null; /* a probe that throws is a project that did not answer */ }
+  if (sb && sb.offerable) return { ok: false, reason: 'supabase_mode', host: sb.host };
   const sql = connect(deps);
   if (!sql) {
+    if (sb && sb.reachable) return { ok: false, reason: 'supabase_mode', host: sb.host };
+    if (sb && await ledgerReachable(deps, sb)) return { ok: false, reason: 'ledger_reachable', host: sb.host };
     return {
       ok: true, mode: 'device',
       user: { id: 'device:' + tokenHash(token).slice(0, 32), name: '', phone: '' },

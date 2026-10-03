@@ -132,6 +132,24 @@ carry it to the other tabs):
   `mobile_pin_claim` keeps the count on takeover and refuses while locked). Measured on a local
   Postgres 16: 30 concurrent pending attempts allow exactly 5.
 
+### Follow-up after #119 (2026-10-03): reachable is not offerable; the device gate fails closed
+
+- **Two questions, kept apart.** `supabaseStatus()` always probes `/auth/v1/health` when a URL and
+  a server key are set (`reachable`), and separately says whether supabase mode can be OFFERED to
+  browsers (`offerable`: reachable AND a browser-visible key). Folding the key into reachability
+  answered "unreachable" for a live project with no public key, and `verifyToken()` then admitted
+  leftover device tokens as UNMETERED principals beside a working ledger.
+- **A device principal exists only when no ledger answers at all.** On the device path (no
+  `DATABASE_URL`) a device token is refused while the project answers, or while its ledger's own
+  `credit_prices` read answers even if the auth health check does not. A Neon session is still
+  checked as before whenever supabase mode is not offered (it is metered, never a device principal).
+- **The boot gate fails closed.** A stored device token is withheld from every same-origin call -
+  including by `apiToken()`, so a caller that sets its own header gets nothing - until `init()` has
+  DECIDED whether the server takes it. Waiting calls are released after 30 s at the latest, still
+  without the token. (It used to release at 6 s while `op=status` was in flight, and send it.)
+- The agents harness's device-mode world now models production's measured state including the
+  ledger: a paused project answers nothing, so its `credit_prices` read fails there.
+
 ### Every endpoint called, and where it is documented
 
 Shapes were read from the Auth server's own OpenAPI description (`github.com/supabase/auth`,

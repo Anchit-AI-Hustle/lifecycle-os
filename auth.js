@@ -554,9 +554,14 @@
       try {
         var raw0 = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null');
         if (raw0 && raw0.mode === 'device' && raw0.token) {
-          var dd0 = { done: false, token: String(raw0.token) };
+          // `decided` is set ONLY by init() once it knows whether the server
+          // takes a device token. Until then the token is withheld (fail
+          // closed): waiting calls are released after 30 s at the latest, but
+          // WITHOUT the device token (review finding, 2026-10-03: a 6-second
+          // release sent it while op=status was still in flight).
+          var dd0 = { done: false, decided: false, token: String(raw0.token) };
           dd0.promise = new Promise(function (r) { dd0.resolve = function () { if (!dd0.done) { dd0.done = true; r(); } }; });
-          setTimeout(function () { dd0.resolve(); }, 6000);
+          setTimeout(function () { dd0.resolve(); }, 30000);
           window.__lcDeviceDecided = dd0;
         }
       } catch (_) { /* no storage: nothing to wait for */ }
@@ -3448,6 +3453,9 @@
   function mauthApiToken() {
     const s = window.LifecycleAuth && window.LifecycleAuth.session;
     if (!(s && s.provider === 'mobile-pin' && s.access_token)) return '';
+    // A device token is withheld until the boot has decided whether the
+    // server still takes it - whatever the time (fail closed).
+    if (s.mode === 'device') { const dd = window.__lcDeviceDecided; if (dd && !dd.decided) return ''; }
     // A device token on a deployment whose account database answers is one
     // the server refuses: none is sent; the refusal sentence says what to do.
     if (s.mode === 'device' && s.transition) return '';
@@ -3869,11 +3877,27 @@
     // Until the boot knows whether a device token is still accepted, same-
     // origin API calls wait (see the fetch wrapper, which made the promise at
     // load). Decided below, or after six seconds at the latest.
-    const decideDevice = () => { const dd = window.__lcDeviceDecided; if (dd && dd.resolve) dd.resolve(); };
+    const decideDevice = () => { const dd = window.__lcDeviceDecided; if (dd && dd.resolve) { dd.decided = true; dd.resolve(); } };
     if (stored) mauthApply(stored, { verified: stored.mode === 'device', status: stored.storage || null });
 
     const config = await getConfig();
     let supabaseState = 'unconfigured';
+    // A DEVICE account, and the account database now answers (review finding,
+    // 2026-10-03): the server refuses a device token while it does, so every
+    // gated action used to end in a bare 401. The account keeps working on
+    // this device; its token is no longer sent; the mode line, the refusal
+    // sentence and a button say how to move it (same number, same PIN).
+    // Decided BEFORE the SDK loads (found by phone-signin-everywhere): a
+    // supabase-js CDN that does not load throws out of init() below, and the
+    // decision was never made - so the token stayed withheld for every call.
+    if (config) {
+      if (stored && stored.mode === 'device') {
+        let st = null;
+        try { st = await mauthStatus(); } catch (_) { st = null; }
+        if (st && st.mode === 'supabase') mauthApply(stored, { verified: true, status: st, transition: 'supabase', supabase: 'pending' });
+      }
+      decideDevice();
+    }
     if (!config) {
       decideDevice();   // no project configured: a device token is what the server takes
       authReady.settle();   // no config means no SDK to wait for
@@ -3918,17 +3942,6 @@
     // answering (kept, marked unverified, and the mode line says exactly that
     // rather than showing a device sign-up as if it were the same account).
     let expired = false;
-    // A DEVICE account, and the account database now answers (review finding,
-    // 2026-10-03): the server refuses a device token while it does, so every
-    // gated action used to end in a bare 401. The account keeps working on
-    // this device; its token is no longer sent; the mode line, the refusal
-    // sentence and a button say how to move it (same number, same PIN).
-    if (stored && stored.mode === 'device') {
-      let st = null;
-      try { st = await mauthStatus(); } catch (_) { st = null; }
-      if (st && st.mode === 'supabase') mauthApply(stored, { verified: true, status: st, transition: 'supabase', supabase: supabaseState });
-    }
-    decideDevice();
     if (stored && (stored.mode === 'server' || stored.mode === 'supabase')) {
       const v = await mauthValidate(stored);
       if (v.expired) {
