@@ -15,6 +15,162 @@ Gated by `tests/mobile-pin-signin.spec.js` (24 tests, all executed: the core is 
 an in-memory `sql` tagged template that runs statements one at a time, `api/public-config.js`
 is executed with stubbed req/res, and the real pages run in Chromium on `127.0.0.1`).
 
+## Supabase mode: phone accounts live in Supabase Auth (2026-10-03)
+
+The operator's words: *"use supabase cli and remote host for supabase account creation"*, then
+*"All features must work even with signin by number and pin"*.
+
+A phone account kept in Neon or in the browser has no Supabase identity, so every feature
+gated by RLS (brand workspaces, credits, connections, the agents' workspace scope) refused it
+after a sign-in that had visibly worked. In **supabase mode** the account is a real
+`auth.users` row and the browser holds a real Supabase session: `auth.uid()` names the person,
+`requireUser()` answers `{provider:'mobile-pin', mode:'supabase', phone}`, `restAs()` reads
+their workspaces through RLS, and onboarding saves brands to the account.
+
+### Mode precedence (`op=status`)
+
+| mode | when | accounts | brands |
+|---|---|---|---|
+| `supabase` | `SUPABASE_URL` + a server key set **and** `GET /auth/v1/health` answers | `auth.users` | the account (RLS) |
+| `server` | a Neon `DATABASE_URL` that answers `select 1` | Neon `app_users` | this device |
+| `device` | anything else (unchanged, including the 2026-09-30 device principal) | this browser | this device |
+
+A configured project that does not answer falls through to the next mode and the answer says
+so: `supabase: {configured:true, reachable:false, host}` beside the mode actually used. While
+the project answers, a device-shaped token is **refused** (a device principal runs unmetered,
+and that beside a working ledger would be a side door past the phone credit rules).
+
+### The design: the server brokers sign-in, the PIN is never the password
+
+Same panel, same state machine: one `enter` (new number -> name + PIN; known -> PIN; wrong ->
+"N tries left"; five -> a 15-minute lock), the same 4-digit rules (weak list, straight runs).
+GoTrue's minimum password length is 6, and a 4-digit password on the public
+`/auth/v1/token?grant_type=password` endpoint would be ten thousand guesses for anyone holding
+the anon key. So the password is **derived on the server**:
+
+    password = "Pn1." + base64url(HMAC-SHA256(MOBILE_PIN_PEPPER, "lifecycle-os/mobile-pin/v1|" + E.164 + "|" + PIN))
+
+Nobody without the pepper can produce a password the auth service accepts, so the only place
+a PIN can be guessed is `api/_shared/mobile-auth-supabase.js`, behind the lockout. No pepper
+(or one shorter than 32 characters) and `enter` refuses with 503 `pin_pepper_missing` before
+**any** request is made. The plain PIN is never stored, logged or sent anywhere.
+
+- **The lockout is decided in the database before any GoTrue call**:
+  `mobile_pin_attempt()` reserves the try and sets the lock in ONE statement, so twenty wrong
+  PINs at once evaluate at most five. A grant refusal counts as a wrong PIN unless it is 429,
+  5xx / no answer, or `phone_provider_disabled` - listing the wrong-PIN codes instead would
+  refund any code the service adds later. A refunded try is handed back with
+  `mobile_pin_settle('void')`. The per-address budget (25 `enter` / 10 min) is
+  `mobile_pin_rate_hit()`, keyed by a SHA-256 of the address.
+- **Who is a phone account, trusted**: creation writes `app_metadata: {lifecycle_account:
+  'mobile-pin', phone_e164}`. app_metadata is the metadata "the user should not be able to
+  update" (raw_app_meta_data); only the service role writes it. A marker in `user_metadata`
+  is ignored. So credits keep the phone rules: an unlisted number has no wallet and no welcome
+  grant; a `CREDITS_COMP_PHONES` number holds one personal wallet, keyed to its Supabase user
+  id, and recharges free; the operator emails in `COMP_ACCOUNT_HASHES` are unaffected.
+- **The browser** stores `{token: access_token, refresh_token, expires_at, user, mode:'supabase'}`
+  in `lifecycle.auth.session`; `LifecycleAuth.apiToken()` returns the access token; it is
+  renewed a minute before expiry straight against the auth service with the anon key (so the
+  per-IP refresh limit is the person's own address, not Vercel's); the supabase-js client gets
+  it through `setSession()`; sign-out posts `op=signout`, which revokes it with
+  `POST /auth/v1/logout?scope=local`. Google/OAuth stays commented out.
+- **Device brands are OFFERED for sync, never uploaded unasked**: the onboarding sync offer
+  appears for rows in this account's device namespace (`lifecycle.brand.device.workspaces.<user id>`),
+  e.g. ones saved while the project was not answering. Anonymous rows are never adopted.
+- **Resetting a PIN**: an operator clears `pin_set_at` on the person's
+  `mobile_pin_accounts` row (SQL editor or `psql`); their next sign-in chooses a new PIN.
+- **Rotating the pepper**: put the new value in `MOBILE_PIN_PEPPER` and the old one in
+  `MOBILE_PIN_PEPPER_PREVIOUS`; a sign-in the new one does not open is retried with the old
+  one and re-keyed on the spot (one reserved try for both). Remove the old value later.
+
+### Every endpoint called, and where it is documented
+
+Shapes were read from the Auth server's own OpenAPI description (`github.com/supabase/auth`,
+`openapi.yaml`) and the Supabase docs page beside each:
+
+| call | made by | doc |
+|---|---|---|
+| `GET /auth/v1/health` | server (status) | OpenAPI `/health`; https://supabase.com/docs/guides/troubleshooting/how-do-i-check-gotrueapi-version-of-a-supabase-project-lQAnOR |
+| `POST /auth/v1/admin/users` `{phone, password, phone_confirm, user_metadata, app_metadata}` | server, service key | https://supabase.com/docs/reference/javascript/auth-admin-createuser ; app_metadata vs user_metadata: https://supabase.com/docs/guides/platform/migrating-to-supabase/auth0 |
+| `PUT /auth/v1/admin/users/{id}` `{password}` | server (reset, pepper rotation) | OpenAPI `/admin/users/{userId}` put; https://supabase.com/docs/reference/javascript/auth-admin-updateuserbyid |
+| `POST /auth/v1/token?grant_type=password` `{phone, password}` | server | https://supabase.com/docs/guides/auth/passwords (HTTP tab, phone) |
+| `POST /auth/v1/token?grant_type=refresh_token` `{refresh_token}` | browser, anon key | OpenAPI `/token` example; https://supabase.com/docs/reference/javascript/auth-refreshsession |
+| `GET /auth/v1/user` | server (`requireUser`, `op=me`) | OpenAPI `/user`; https://supabase.com/docs/reference/javascript/auth-getuser |
+| `POST /auth/v1/logout?scope=local\|global` | server (`op=signout`, `op=signout_all`) | OpenAPI `/logout`; https://supabase.com/docs/guides/auth/signout |
+| `POST /rest/v1/rpc/mobile_pin_*` | server, service role | https://supabase.com/docs/reference/javascript/rpc |
+| error codes (`invalid_credentials`, `phone_exists`, `over_request_rate_limit`, `phone_provider_disabled`) | server | https://supabase.com/docs/guides/auth/debugging/error-codes |
+| `Sb-Forwarded-For` (only with a secret key) | server | https://supabase.com/docs/guides/auth/rate-limits |
+
+### Schema: Supabase CLI migrations
+
+- `supabase/migrations/20260929173555_mobile_pin_supabase_accounts.sql` (made with
+  `supabase migration new`): `mobile_pin_accounts` (phone, user_id, name, pin_tries,
+  locked_until, pin_set_at, claimed_at) and `mobile_pin_rate_limits`; RLS on with **no
+  policy**, every privilege revoked from `anon`/`authenticated`; seven `SECURITY DEFINER`
+  functions with an empty `search_path`, executable by `service_role` only. No PIN and no hash
+  of one is stored: GoTrue holds the password hash.
+- Three duplicate version prefixes (20260609, 20260610, 20260703) were given unique ones and the
+  far-future `20261231090000_payment_gateway_connections.sql` was moved to `20260823180000_`,
+  because `supabase db push` keys a migration by its version and refuses both shapes. Measured
+  on 2026-09-29 with the CLI (2.118.0) against a local Postgres 16: all 59 migrations applied
+  from zero; 10 and 40 concurrent `mobile_pin_attempt` calls each allowed exactly 5.
+- `supabase` is a pinned devDependency, so `npx supabase` works; scripts: `db:link`,
+  `db:migrations`, `db:push:dry`, `db:push`, `db:new`.
+
+### Runbook: a new project named `lifecycle-os`
+
+Every flag below was checked against `npx supabase <command> --help` (CLI 2.118.0).
+
+1. **Log in.** `npx supabase login` (browser), or non-interactively
+   `export SUPABASE_ACCESS_TOKEN=<personal access token>` (Account > Access Tokens), or
+   `npx supabase login --token <token>`.
+2. **An organisation with clean billing.** `npx supabase orgs list`. If the only org has unpaid
+   invoices (restores and new projects are refused with `PaymentRequiredException`), settle
+   them or create another: `npx supabase orgs create "<org name>"`, then note its id from
+   `npx supabase orgs list`.
+3. **Create the project.**
+   `npx supabase projects create lifecycle-os --org-id <org-id> --region ap-south-1 --db-password '<strong password>'`
+   (`--size` is optional). Note the ref from `npx supabase projects list`.
+4. **Link this repo.** `npx supabase link --project-ref <project-ref>` (it asks for the database
+   password, or pass `--password`). `npm run db:link -- <project-ref>` is the same.
+5. **Apply the schema.** `npm run db:push:dry` (prints what would apply), then `npm run db:push`
+   (`supabase db push --linked`). `npm run db:migrations` should then show no unapplied rows.
+6. **Auth settings.** `supabase/config.toml` declares them: `[auth] enable_signup = false`
+   (public sign-ups off; the server's admin calls are unaffected) and `[auth.sms] enable_signup =
+   true`, `enable_confirmations = false` (the Phone provider on, no SMS). Set `[auth] site_url`
+   to the deployment's origin, review with `npx supabase config diff`, then
+   `npx supabase config push`. The same in the dashboard: Authentication > Sign In / Providers >
+   Phone **on** with phone confirmations **off**, and "Allow new users to sign up" **off**.
+   Leave the minimum password length at its default (the derived password is 47 characters).
+   Checked against the Auth server's source (`supabase/auth`, `internal/api/admin.go`
+   `adminUserCreate`: merges `app_metadata`, applies `phone_confirm`, and does not consult the
+   sign-up switch; `internal/api/token.go`: a phone password grant with the Phone provider off
+   is refused `422 phone_provider_disabled`, which this module reports as a configuration
+   fault and never counts against the PIN).
+   Optional: Authentication > Rate Limits > IP Address Forwarding **on**, with
+   `SUPABASE_SECRET_KEY` set below.
+7. **Keys.** `npx supabase projects api-keys --project-ref <project-ref>` (add `--reveal` to see
+   secret keys in full). Use the `anon` key and the `service_role` key: the rest of the server
+   sends the service key as a bearer, which the new secret keys do not support.
+8. **Vercel environment** (Production, then Preview if wanted):
+   `SUPABASE_URL=https://<project-ref>.supabase.co`, `SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `MOBILE_PIN_PEPPER` (`openssl rand -base64 48`), optionally
+   `SUPABASE_SECRET_KEY` and `CREDITS_COMP_PHONES`. `DATABASE_URL` is not needed in this mode.
+9. **Redeploy**, then check `GET /api/public-config?action=auth&op=status`: it should answer
+   `{"mode":"supabase", "pin_ready": true, ...}`. `pin_ready:false` means the pepper is missing.
+
+### What the CLI could and could not do from the session that built this
+
+`npx supabase --version` (2.118.0), `migration new`, every `--help` above, and a config parse
+check (`supabase status` gets past `config.toml` to the missing Docker daemon; a broken value
+fails with `CliConfigParseError`). It could not reach a remote: there was no
+`SUPABASE_ACCESS_TOKEN`, the egress policy blocks `api.supabase.com` and `*.supabase.co`, and
+the only organisation has unpaid invoices, so no project was created, restored or modified.
+
+Gated by `tests/supabase-phone-accounts.spec.js` (18 tests, executed against
+`tests/supabase-auth-fake.js`, a fake of exactly the endpoints above that throws on anything
+else). 19 mutations of the security checks each fail it.
+
 ## The pieces
 
 | Where | What |
