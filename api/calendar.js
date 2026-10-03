@@ -213,11 +213,54 @@ async function smartBrain(req, res, smartAction) {
   // write it into (2026-09-29, review). The adapter now refuses an unstamped
   // row, and these actions are refused before they spend a model call on a
   // result that cannot be kept.
-  const NEEDS_WORKSPACE = new Set(['approve', 'reject', 'unreject', 'feedback', 'heal', 'activate-scenario', 'recalibrate', 'weekly-recalibration']);
+  //
+  // EXCEPT the reviewer's own decisions (2026-10-03). The operator's words:
+  // "All features must work even with signin by number and pin". Approve,
+  // reject, un-reject and feedback on a slot are the review flow itself, and
+  // refusing them left a phone sign-in with a calendar it could look at and
+  // never act on. None of them needs a workspace: approving builds the slot's
+  // assets exactly as preview does, and the DECISION is the reviewer's record,
+  // which this sign-in keeps on its device beside the brand (smart-brain.html).
+  // So the build runs, nothing is written here, and the response says where
+  // the decision lives. The plan-maintenance actions below still refuse: they
+  // rewrite a stored plan, and a phone account's plan is computed per request.
+  const DEVICE_DECISIONS = { approve: 'final', reject: 'rejected', unreject: 'tentative', feedback: null };
+  if (personWithoutWorkspace && Object.prototype.hasOwnProperty.call(DEVICE_DECISIONS, smartAction) && req.method === 'POST') {
+    const at = new Date().toISOString();
+    const where = 'Kept on this device, beside the brand: this sign-in has no workspace in a database to record it in.';
+    if (smartAction === 'feedback') {
+      const feedback = { target_type: body.target_type || 'calendar_entry', target_id: body.target_id || null, verdict: body.verdict || 'comment', notes: String(body.notes || '').slice(0, 2000), reviewer: body.reviewer || null, created_at: at };
+      return res.status(200).json({ ok: true, storage: 'device', feedback, note: where });
+    }
+    if (!body.id && !(body.entry && body.entry.id)) return res.status(400).json({ ok: false, error: 'id_required', message: 'Which calendar slot this decision is for was not sent, so nothing was recorded.' });
+    const id = body.id || body.entry.id;
+    if (smartAction === 'approve') {
+      if (!body.entry) return res.status(400).json({ ok: false, error: 'entry_required', message: 'A phone sign-in\'s calendar is computed per request, so approving needs the slot itself sent with it. Nothing was built.' });
+      // Built exactly as a preview is, and never persisted (body.persist is
+      // already false for this caller): what the reviewer approves is what
+      // they saw.
+      let result;
+      try { result = await plan.previewEntry({ id, entry: body.entry, reviewer: body.reviewer || null, config: body.config || {} }); }
+      catch (err) {
+        return res.status(Number(err && err.status) || 500).json({ ok: false, error: 'build_failed', message: String((err && err.message) || 'The slot\'s assets could not be built, so nothing was approved.') });
+      }
+      return res.status(200).json(Object.assign({}, result, {
+        approved: true, persisted: false, storage: 'device',
+        decision: { id, status: 'final', at, campaign_id: (result && result.campaign && result.campaign.campaign_id) || null },
+        note: where,
+      }));
+    }
+    return res.status(200).json({
+      ok: true, storage: 'device',
+      decision: { id, status: DEVICE_DECISIONS[smartAction], at, notes: smartAction === 'reject' ? String(body.notes || '').slice(0, 2000) : '' },
+      note: where,
+    });
+  }
+  const NEEDS_WORKSPACE = new Set(['heal', 'activate-scenario', 'recalibrate', 'weekly-recalibration']);
   if (personWithoutWorkspace && NEEDS_WORKSPACE.has(smartAction) && req.method === 'POST') {
     return res.status(409).json({
       ok: false, error: 'no_workspace',
-      message: 'This saves to a brand workspace in the database, and this sign-in has none: a mobile-number account keeps its brands on the device, so nothing was built and nothing was saved. Preview works; approving needs a brand workspace.',
+      message: 'This rewrites the stored calendar, and this sign-in has none: a mobile-number account keeps its brands on the device and its calendar is computed each time, so there is no stored plan to change. Preview, approve and reject all work, and the decisions are kept on this device.',
     });
   }
   if (personWithoutWorkspace) {
