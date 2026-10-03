@@ -607,3 +607,24 @@ test('signed out on production, the three are off with a sentence naming the sig
     expect(log.dialogs).toEqual([]);
   } finally { world.restore(); }
 });
+
+/* Codex #8 (2026-10-03): a catalogue the browser refuses to keep stops the build and says so. */
+test('a context pack whose catalogue this browser refuses to keep says so, and keeps no pack that claims it', async ({ page }) => {
+  test.setTimeout(120_000);
+  const world = serverWorld();
+  try {
+    await page.addInitScript(() => {
+      const real = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) { if (/\.catalog\./.test(String(k))) throw new DOMException('quota', 'QuotaExceededError'); return real.call(this, k, v); };
+    });
+    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID_2 + '&step=6' });
+    await page.waitForSelector('#packBuild');
+    await page.click('#packBuild');
+    await expect(page.locator('#toast')).toContainText(/refused to keep them/i, { timeout: 60000 });
+    expect(await deviceSide(page, 'catalog', BRAND_ID_2)).toBeNull();
+    const kept = await deviceSide(page, 'pack', BRAND_ID_2);
+    // No kept step records a catalogue the device does not hold.
+    expect(!kept || !(kept.row.catalog && kept.row.catalog.imported > 0), 'a pack claims catalogue rows the device does not hold').toBe(true);
+    expect(log.dialogs).toEqual([]);
+  } finally { world.restore(); }
+});

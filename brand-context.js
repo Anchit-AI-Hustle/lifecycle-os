@@ -1361,15 +1361,20 @@
       var cat = deviceCatalog(id);
       body.catalog_owned = !!(cat && cat.owned);
       var rb = await serverApi(op, { body: body, query: o.query });
+      // The catalogue FIRST: if this browser will not keep it, the step is not
+      // kept either, and the person is told - never a pack that reports
+      // "N catalogue rows" while holding none (Codex, 2026-10-03).
+      if (rb && Array.isArray(rb.catalog_products) && rb.catalog_products.length && !(cat && cat.owned)) {
+        var src = (rb.device_pack && rb.device_pack.catalog && rb.device_pack.catalog.source) || null;
+        if (!writeSide('catalog', id, { products: rb.catalog_products, source: src, owned: false, imported_at: new Date().toISOString() })) {
+          throw deviceFail(507, 'device_storage_unavailable', 'The context pack read ' + rb.catalog_products.length + ' products from your store, but this browser refused to keep them (storage is full or blocked), so the build stopped here and nothing from this step was kept. Free some browser storage, or import a smaller catalogue (Paste CSV on step 5), then build again.');
+        }
+        saveCatalogSource(id, src);
+      }
       if (rb && rb.device_pack) {
         if (!writeSide('pack', id, { row: rb.device_pack, context: rb.context || null })) {
           throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the context pack (storage is full or blocked), so the step was not kept.');
         }
-      }
-      if (rb && Array.isArray(rb.catalog_products) && rb.catalog_products.length && !(cat && cat.owned)) {
-        var src = (rb.device_pack && rb.device_pack.catalog && rb.device_pack.catalog.source) || null;
-        writeSide('catalog', id, { products: rb.catalog_products, source: src, owned: false, imported_at: new Date().toISOString() });
-        saveCatalogSource(id, src);
       }
       var outb = Object.assign({}, rb || {});
       delete outb.device_pack; delete outb.catalog_products;

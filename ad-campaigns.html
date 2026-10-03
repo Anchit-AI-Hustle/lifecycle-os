@@ -1054,10 +1054,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* A phone sign-in's plan is computed by Smart Brain's Daily Sync and kept on
      its device with the reviewer's decisions (smart-brain.html, 2026-10-03):
      read the same record here when the server has no stored plan. */
-  function deviceSmartBrainPlan() {
+  async function deviceSmartBrainPlan() {
     try {
-      const s = window.LifecycleAuth && window.LifecycleAuth.session;
+      // This runs on the page's FIRST read, before auth.js (deferred) has
+      // seated the session: wait for the brand, and read the stored session
+      // when auth.js has not published one yet (Bugbot, 2026-10-03).
+      try { if (window.BrandContext && window.BrandContext.ready) await window.BrandContext.ready(); } catch (_) {}
+      let s = window.LifecycleAuth && window.LifecycleAuth.session;
+      if (!s) { try { s = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null'); } catch (_) { s = null; } }
       if (!s || s.provider !== 'mobile-pin' || !s.user || !s.user.id) return null;
+      if (s.expires && !(new Date(s.expires) > new Date())) return null;
       const b = window.BrandContext && window.BrandContext.brand;
       const base = 'lifecycle.smartbrain.%.' + s.user.id + '.' + ((b && b.id) || 'none');
       const plan = JSON.parse(localStorage.getItem(base.replace('%', 'plan')) || 'null');
@@ -1089,7 +1095,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!d || d.ok === false) throw new Error((d && d.error) || ('HTTP ' + r.status));
       if (d.error) throw new Error(d.note || d.error);
       AD_PLAN = d.entries || d.plan || [];
-      if (!AD_PLAN.length) AD_PLAN = deviceSmartBrainPlan() || [];
+      if (!AD_PLAN.length) AD_PLAN = (await deviceSmartBrainPlan()) || [];
     } catch (e) { AD_PLAN = []; AD_PLAN_ERROR = (e && e.message) || String(e); }
     renderAdPlan();
   }
