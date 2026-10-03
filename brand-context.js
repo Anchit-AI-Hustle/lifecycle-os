@@ -265,7 +265,7 @@
     try {
       var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
       if (!raw || typeof raw !== 'object' || !raw.token || !raw.user || !raw.user.id) return '';
-      if (raw.mode !== 'server' && raw.mode !== 'device') return '';
+      if (raw.mode !== 'server' && raw.mode !== 'device' && raw.mode !== 'supabase') return '';
       if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
       return String(raw.user.id);
     } catch (_) { return ''; }
@@ -310,7 +310,13 @@
   }
   function modeFor(kind) {
     if (KIND_DEVICE[kind]) return 'device';
-    if (mobileSession()) return 'device';
+    var ms = mobileSession();
+    // A phone account IN SUPABASE AUTH (2026-10-03) has a Supabase identity
+    // and a real JWT, so brand_workspaces answers it through RLS like any
+    // account: its brands are saved to the ACCOUNT. Only while that session
+    // cannot be checked (the project not answering) do they go to the device.
+    if (ms && ms.mode === 'supabase' && ms.verified) return 'server';
+    if (ms) return 'device';
     return 'server';
   }
   /** '' while auth.js has not decided (or is absent). */
@@ -849,14 +855,15 @@
       // checkable session refuses, and that refusal is the gate being real - so
       // the wizard disables the control rather than sending a request it knows
       // will be refused.
-      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && ms.mode === 'server' && ms.verified),
+      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && (ms.mode === 'server' || ms.mode === 'supabase') && ms.verified),
     };
   }
 
   /** "Signed in as <name> · workspaces are saved on this device[ · account in the database]". */
   function accountSentence(ms) {
+    if (ms.mode === 'supabase' && ms.verified) return 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · brands are saved to your account';
     var s = 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · workspaces are saved on this device';
-    if (ms.mode === 'server') s += ' · account in the database';
+    if (ms.mode === 'server' || ms.mode === 'supabase') s += ' · account in the database';
     return s;
   }
 

@@ -361,7 +361,7 @@
      * is not down.
      */
     function verifying(s) {
-      return !!(s && s.provider === 'mobile-pin' && s.mode === 'server' && s.verified === false && backend().supabase === 'pending');
+      return !!(s && s.provider === 'mobile-pin' && (s.mode === 'server' || s.mode === 'supabase') && s.verified === false && backend().supabase === 'pending');
     }
     /** Resolve once the boot check has answered, or after `ms`. */
     function verified(ms) {
@@ -3023,7 +3023,12 @@
     let s;
     try { s = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null'); } catch (_) { return null; }
     if (!s || typeof s !== 'object' || !s.token || !s.user || !s.user.id || !s.user.phone) return null;
-    if (s.mode !== 'server' && s.mode !== 'device') return null;
+    if (s.mode !== 'server' && s.mode !== 'device' && s.mode !== 'supabase') return null;
+    // A Supabase session (2026-10-03) carries no `expires`: its access token
+    // lives an hour and is REFRESHED (mauthRefresh), so an expired access
+    // token is not an ended session. Without a refresh token it cannot be
+    // renewed, and is not a session at all.
+    if (s.mode === 'supabase' && !s.refresh_token) { mauthClearSession(); return null; }
     if (s.expires && !(new Date(s.expires) > new Date())) { mauthClearSession(); return null; }
     if (s.mode === 'device') {
       const u = mauthReadUsers()[s.user.phone];
@@ -3133,11 +3138,128 @@
     if (mauthStatusPromise && !force) return mauthStatusPromise;
     mauthStatusPromise = mauthFetch('status').then((r) => {
       const b = r.body || {};
-      if (r.status === 200 && (b.mode === 'server' || b.mode === 'device')) return b;
+      if (r.status === 200 && (b.mode === 'supabase' || b.mode === 'server' || b.mode === 'device')) return b;
       return { ok: false, mode: 'device', reason: 'status_unavailable', host: '', message: 'Saved on this device only: the server could not say whether a database is configured.' };
     }).catch(() => ({ ok: false, mode: 'device', reason: 'status_unavailable', host: '', message: 'Saved on this device only: the server could not be reached to ask about a database.' }));
     return mauthStatusPromise;
   }
+
+  /* ── a Supabase session: renewed before it runs out (2026-10-03) ─────────
+     In `supabase` mode the server brokers sign-up and sign-in (the PIN is
+     turned into a password only there) and hands back a REAL Supabase
+     session: an access token that lives an hour and a refresh token. This
+     browser keeps both in `lifecycle.auth.session`, renews the access token
+     a minute before it expires, and gives the session to the anonymous
+     supabase-js client through setSession() so anything that reads through
+     that client reads as this person.
+
+     THE RENEWAL GOES STRAIGHT TO THE AUTH SERVICE, not through our server:
+     POST <SUPABASE_URL>/auth/v1/token?grant_type=refresh_token with the
+     public anon key, body {refresh_token} - the call supabase-js makes for
+     auth.refreshSession() (https://supabase.com/docs/reference/javascript/auth-refreshsession;
+     the request shape is the `grant_type=refresh_token` example of `/token`
+     in the Auth server's OpenAPI). Supabase rate-limits that endpoint per IP
+     (https://supabase.com/docs/guides/auth/rate-limits), and through a
+     serverless function every person would share the function's addresses.
+
+     ONE RENEWAL AT A TIME, ACROSS TABS. The refresh token is single-use, so
+     the stored session is re-read before each renewal, a renewal another tab
+     already made is adopted from the `storage` event, and a refusal for a
+     token another tab has since replaced is not an ended session. */
+  let mauthRefreshTimer = null;
+  let mauthRefreshing = null;
+  function mauthNeedsRefresh(sess, marginSec) {
+    const at = Number(sess && sess.expires_at) || 0;
+    return !at || at - Math.floor(Date.now() / 1000) <= (marginSec || 60);
+  }
+  function mauthStopRefresh() { if (mauthRefreshTimer) { clearTimeout(mauthRefreshTimer); mauthRefreshTimer = null; } }
+  function mauthScheduleRefresh(sess) {
+    mauthStopRefresh();
+    if (!sess || sess.mode !== 'supabase') return;
+    const at = Number(sess.expires_at) || 0;
+    const inMs = Math.max(5000, (at - 60) * 1000 - Date.now());
+    mauthRefreshTimer = setTimeout(() => {
+      mauthRefresh().then((r) => {
+        if (!r || !r.expired) return;
+        // Signed out elsewhere, or the refresh token was revoked: the
+        // session ended while this page was open. Said under the chip, like
+        // a boot that finds the same thing.
+        mauthClearSession();
+        mauthUnapply();
+        try { setBackendState('signed-out'); } catch (_) {}
+        mauthExpiredNote(document.getElementById('lifecycle-nav'));
+      }).catch(() => {});
+    }, Math.min(inMs, 2147483000));
+  }
+  /** Hand the session to the anonymous supabase-js client, when there is one and it can take it. */
+  function mauthClientSession(sess) {
+    try {
+      const c = window.LifecycleAuth && window.LifecycleAuth.client;
+      if (!c || !c.auth || typeof c.auth.setSession !== 'function' || !sess || !sess.token || !sess.refresh_token) return;
+      // https://supabase.com/docs/reference/javascript/auth-setsession
+      Promise.resolve(c.auth.setSession({ access_token: sess.token, refresh_token: sess.refresh_token })).catch(() => {});
+    } catch (_) { /* the client is a convenience; the API calls carry the token themselves */ }
+  }
+  function mauthAdopt(sess) {
+    const live = window.LifecycleAuth && window.LifecycleAuth.session;
+    if (live && live.provider === 'mobile-pin' && live.mode === 'supabase') {
+      live.access_token = sess.token;
+      live.expires_at = sess.expires_at || null;
+    }
+    mauthClientSession(sess);
+    mauthScheduleRefresh(sess);
+  }
+  /**
+   * Renew the stored Supabase session. `{ok}`, `{expired}` (the service
+   * refused the refresh token: the session ended), or `{unreachable}` (no
+   * answer, or no config to ask with - the session is kept and tried again).
+   */
+  function mauthRefresh() {
+    if (mauthRefreshing) return mauthRefreshing;
+    mauthRefreshing = (async () => {
+      const s = mauthReadSession();
+      if (!s || s.mode !== 'supabase' || !s.refresh_token) return { ok: false, expired: true };
+      let cfg = null;
+      try { cfg = await getConfig(); } catch (_) { cfg = null; }
+      if (!cfg || !cfg.url || !cfg.anonKey) { mauthScheduleRefresh({ mode: 'supabase', expires_at: Math.floor(Date.now() / 1000) + 120 }); return { ok: false, unreachable: true }; }
+      const used = s.refresh_token;
+      let res = null, j = {};
+      try {
+        res = await fetch(String(cfg.url).replace(/\/+$/, '') + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST', cache: 'no-store',
+          headers: { apikey: cfg.anonKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: used }),
+        });
+        j = await res.json().catch(() => ({}));
+      } catch (_) { res = null; }
+      if (res && res.ok && j && j.access_token && j.refresh_token) {
+        const cur = mauthReadSession() || s;
+        cur.token = j.access_token;
+        cur.refresh_token = j.refresh_token;
+        cur.expires_at = Number(j.expires_at) || (Math.floor(Date.now() / 1000) + (Number(j.expires_in) || 3600));
+        mauthWriteSession(cur);
+        mauthAdopt(cur);
+        return { ok: true };
+      }
+      if (!res || res.status === 429 || res.status >= 500) {
+        mauthScheduleRefresh({ mode: 'supabase', expires_at: Math.floor(Date.now() / 1000) + 120 });
+        return { ok: false, unreachable: true };
+      }
+      // Refused. If another tab renewed in the meantime, its token is the
+      // session now - not an ended one.
+      const now = mauthReadSession();
+      if (now && now.mode === 'supabase' && now.refresh_token && now.refresh_token !== used) { mauthAdopt(now); return { ok: true, adopted: true }; }
+      return { ok: false, expired: true };
+    })().finally(() => { mauthRefreshing = null; });
+    return mauthRefreshing;
+  }
+  try {
+    window.addEventListener('storage', (ev) => {
+      if (ev.key !== MAUTH_SESSION_KEY) return;
+      const s = mauthReadSession();
+      if (s && s.mode === 'supabase') mauthAdopt(s);
+    });
+  } catch (_) { /* no storage events: each tab renews on its own timer */ }
 
   /* ── the session, applied ────────────────────────────────────────────── */
 
@@ -3159,6 +3281,10 @@
     if (verified === false) {
       const host = (st && st.host) || (sess.storage && sess.storage.host) || 'the configured host';
       return 'Account in the database (' + host + '), which is not answering right now: nothing there can be checked or saved until it does.';
+    }
+    if (sess.mode === 'supabase') {
+      const host = (st && st.host) || (sess.storage && sess.storage.host) || '';
+      return 'Account saved in the database' + (host ? ' (' + host + ')' : '') + '; brands are saved to your account.';
     }
     return 'Account saved in the database.';
   }
@@ -3186,8 +3312,9 @@
     const o = opts || {};
     const user = mauthUserOf(sess);
     const verified = o.verified !== false;
-    window.LifecycleAuth.session = { provider: 'mobile-pin', mode: sess.mode, access_token: sess.token, user, expires: sess.expires || null, verified };
+    window.LifecycleAuth.session = { provider: 'mobile-pin', mode: sess.mode, access_token: sess.token, user, expires: sess.expires || null, expires_at: sess.expires_at || null, verified };
     window.LifecycleAuth.user = user;
+    if (sess.mode === 'supabase') { mauthClientSession(sess); mauthScheduleRefresh(sess); }
     setBackendState('signed-in', {
       session: { provider: 'mobile-pin', mode: sess.mode, name: user.name, phone: user.phone, verified },
       supabase: o.supabase || (window.LifecycleAuth.backend && window.LifecycleAuth.backend.supabase) || 'pending',
@@ -3199,6 +3326,7 @@
     mauthSetModeLine(mauthModeSentence(sess, o.status || null, verified));
   }
   function mauthUnapply() {
+    mauthStopRefresh();
     window.LifecycleAuth.session = null;
     window.LifecycleAuth.user = null;
     mauthSetModeLine('');
@@ -3207,14 +3335,36 @@
   /** Boot: is the stored server-mode session still good? */
   async function mauthValidate(sess) {
     let r;
+    // A Supabase access token lives an hour. One that has run out (a tab
+    // reopened tomorrow) is renewed FIRST, so op=me is asked with a token
+    // that can answer; a refresh the service refuses is a session that ended.
+    if (sess.mode === 'supabase' && mauthNeedsRefresh(sess, 60)) {
+      const rf = await mauthRefresh();
+      if (rf.expired) return { ok: false, expired: true };
+      if (rf.ok) sess = mauthReadSession() || sess;
+    }
     try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; }
+    if (r.status === 401 && sess.mode === 'supabase') {
+      // Revoked, or expired between the check above and the call: one
+      // refresh, one more ask. A second 401 is a session that ended.
+      const rf = await mauthRefresh();
+      if (rf.expired) return { ok: false, expired: true };
+      if (rf.ok) { sess = mauthReadSession() || sess; try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; } }
+    }
+    if (r.status === 200 && r.body && r.body.ok && r.body.user && sess.mode === 'supabase') {
+      return { ok: true, user: r.body.user, status: { mode: 'supabase', host: r.body.host || (sess.storage && sess.storage.host) || '', message: r.body.message || 'Account saved in the database.' } };
+    }
     if (r.status === 200 && r.body && r.body.ok && r.body.user) return { ok: true, user: r.body.user, status: { mode: 'server', message: r.body.message || 'Account saved in the database.' } };
     if (r.status === 401) return { ok: false, expired: true };
     return { ok: false, unreachable: true, host: (r.body && r.body.host) || '', status: r.body && r.body.mode ? r.body : null };
   }
   async function mauthSignOut() {
     const s = mauthReadSession();
-    if (s && s.mode === 'server') { try { await mauthFetch('signout', { op: 'signout' }, s.token); } catch (_) { /* the session is gone from this browser either way */ } }
+    // Server AND Supabase sessions are ended on the server: a Supabase one is
+    // revoked through POST /auth/v1/logout (its refresh token stops working),
+    // so a copy of it taken from this browser is worth nothing afterwards.
+    if (s && (s.mode === 'server' || s.mode === 'supabase')) { try { await mauthFetch('signout', { op: 'signout' }, s.token); } catch (_) { /* the session is gone from this browser either way */ } }
+    mauthStopRefresh();
     mauthClearSession();
   }
   /** Tell a returning visitor their sign-in ended, under the Sign in chip. */
@@ -3337,7 +3487,7 @@
     mauthStatus().then((st) => {
       status = st;
       panel.setAttribute('data-mode', st.mode);
-      let line = st.message || (st.mode === 'server' ? 'Account saved in the database.' : 'Saved on this device only.');
+      let line = st.message || ((st.mode === 'server' || st.mode === 'supabase') ? 'Account saved in the database.' : 'Saved on this device only.');
       if (st.mode === 'device' && st.reason === 'database_unreachable') {
         line += ' If you already have an account in the database, it cannot be used until the database answers; signing up here makes a separate account on this device only.';
       }
@@ -3355,7 +3505,7 @@
       const st = status || await mauthStatus();
       const body = { phone: phoneV, cc: ccV, name: name.value.trim(), pin: pin.value.trim() || undefined, device: String(navigator.platform || 'browser').slice(0, 80) };
       let r;
-      try { r = st.mode === 'server' ? await mauthFetch('enter', Object.assign({ op: 'enter' }, body)) : await mauthDeviceEnter(body); }
+      try { r = (st.mode === 'server' || st.mode === 'supabase') ? await mauthFetch('enter', Object.assign({ op: 'enter' }, body)) : await mauthDeviceEnter(body); }
       catch (e) { busy(false); return fail(window.LifecycleFailure.sentence(e)); }
       busy(false);
       const j = r.body || {};
@@ -3400,6 +3550,9 @@
       }
       // Signed in.
       const sess = { token: j.token, user: j.user, mode: j.mode || st.mode, expires: j.expires || null, provider: 'mobile-pin', storage: { mode: st.mode, reason: st.reason || '', host: st.host || '', message: st.message || '' } };
+      // A Supabase session (2026-10-03): the refresh token and the access
+      // token's expiry travel with it, so it can be renewed before it runs out.
+      if (sess.mode === 'supabase') { sess.refresh_token = j.refresh_token || ''; sess.expires_at = Number(j.expires_at) || 0; }
       if (!mauthWriteSession(sess)) { fail('This browser refused to remember the sign-in (storage is full or blocked).'); return; }
       closePanel();
       mauthApply(sess, { verified: true, status: st });
@@ -3512,16 +3665,18 @@
     // answering (kept, marked unverified, and the mode line says exactly that
     // rather than showing a device sign-up as if it were the same account).
     let expired = false;
-    if (stored && stored.mode === 'server') {
+    if (stored && (stored.mode === 'server' || stored.mode === 'supabase')) {
       const v = await mauthValidate(stored);
       if (v.expired) {
         mauthClearSession();
         mauthUnapply();
         expired = true;
       } else if (v.ok) {
-        stored.user = Object.assign({}, stored.user, v.user);
-        mauthWriteSession(stored);
-        mauthApply(stored, { verified: true, status: v.status, supabase: supabaseState });
+        // Re-read: a refresh inside mauthValidate may have rotated the tokens.
+        const cur = mauthReadSession() || stored;
+        cur.user = Object.assign({}, cur.user, v.user);
+        mauthWriteSession(cur);
+        mauthApply(cur, { verified: true, status: v.status, supabase: supabaseState });
       } else {
         mauthApply(stored, { verified: false, status: v.status, supabase: supabaseState });
       }
