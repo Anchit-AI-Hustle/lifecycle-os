@@ -247,13 +247,27 @@ test('a carried brand record is bounded and re-keyed: a brand_workspaces id in i
   expect(r.out.brand.name.length).toBeLessThanOrEqual(120);
 });
 
-test('telesuite ops for a phone account are a 403 with a sentence, before any credit hold and any model call', async () => {
-  const items = await call('telesuite', { method: 'GET', query: { op: 'items' }, state: 'phone' });
-  expect(items.status).toBe(403); expect(items.out.error).toBe('account_type_unsupported'); expectSentence(items, 'telesuite items phone');
-  const pitch = await call('telesuite', { json: { op: 'pitch', input: { product: 'a product' } }, state: 'phone' });
-  expect(pitch.status).toBe(403); expect(pitch.out.error).toBe('account_type_unsupported'); expectSentence(pitch, 'telesuite pitch phone');
+test('telesuite for a phone account runs over what the request carries and files nothing on the server (2026-10-03)', async () => {
+  // No brand carried: refused with a sentence before any credit hold or model call.
+  const bare = await call('telesuite', { json: { op: 'pitch', input: { product: 'Harbour Lamp' } }, state: 'phone' });
+  expect(bare.status).toBe(409); expect(bare.out.error).toBe('no_brand_carried'); expectSentence(bare, 'telesuite pitch phone, no brand');
   expect(w.llm.calls).toEqual([]);
   expect(w.db.calls.filter((c) => /rpc\/credit_/.test(c.url))).toEqual([]);
+  w.reset();
+  // The brand and the selected library row carried, as telesuite.html sends them.
+  const item = { id: 'dev-item-1', kind: 'product', name: 'Harbour Lamp', category: 'Lamp', content: 'Table lamp, recycled glass.', attributes: {} };
+  const pitch = await call('telesuite', { json: { op: 'pitch', brand: BRAND, device: { items: [item] }, input: { product: 'Harbour Lamp' } }, state: 'phone' });
+  expect(pitch.status, pitch.text.slice(0, 300)).toBe(200);
+  expect(pitch.out.ok).toBe(true);
+  expect(pitch.out.result).toBeTruthy();
+  // What it wrote comes back for the device, and nothing was filed server-side.
+  expect(pitch.out.device.storage).toBe('device');
+  expect(pitch.out.device.runs.map((r) => r.feature)).toEqual(['pitch']);
+  expect(w.db.calls.filter((c) => /telesuite_|brand_workspaces/.test(c.url)), 'a phone account\'s TeleSuite reached a workspace table').toEqual([]);
+  expect(w.llm.calls.map((c) => c.stage)).toEqual(['telesuite-pitch']);
+  // The listed number spends on its own wallet, exactly as any metered run.
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length).toBe(1);
+  w.reset();
   // A telesuite generation op from an unattributed browser is the demo READ
   // envelope today (nothing runs, nothing is charged): recorded, not changed.
   const anon = await call('telesuite', { json: { op: 'pitch', input: { product: 'a product' } }, state: 'anonymous' });
