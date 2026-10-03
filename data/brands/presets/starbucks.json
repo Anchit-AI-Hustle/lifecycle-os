@@ -8,34 +8,90 @@
     "label": "Starbucks",
     "sector": "Food and beverage",
     "blurb": "Coffee retail. Template for a rewards programme and a seasonal menu calendar.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.starbucks.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-09-30",
+    "source": "Read from https://www.starbucks.com/ on 2026-09-30. Primary #006341 from meta theme-color.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "touch icon or favicon the page links",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "signal": "computed background of body",
+        "source_url": "https://www.starbucks.com/"
+      },
+      "ink": {
+        "value": "#000000",
+        "signal": "computed color of body",
+        "source_url": "https://www.starbucks.com/"
+      },
+      "surface_alt": {
+        "value": "#f9f9f9",
+        "signal": "computed light background repeated on the page",
+        "source_url": "https://www.starbucks.com/"
+      },
+      "muted": {
+        "value": "#666666",
+        "signal": "secondary text token that clears AA; the page did not declare one",
+        "source_url": "https://www.starbucks.com/"
+      },
+      "primary": {
+        "value": "#006341",
+        "signal": "meta theme-color",
+        "source_url": "https://www.starbucks.com/"
+      },
+      "accent": {
+        "value": "#00754a",
+        "signal": "css custom property --colorGreenAccent",
+        "source_url": "https://www.starbucks.com/"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "warn": {
+        "value": "#c9a227",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "err": {
+        "value": "#c0392b",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      }
+    },
+    "typography_evidence": {
+      "heading": "computed font-family of h1",
+      "body": "computed font-family of body"
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#006341",
+    "accent": "#00754a",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f9f9f9",
+    "muted": "#666666",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "SoDoSans",
+      "stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "SoDoSans",
+      "stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -52,7 +108,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "starbucks.com"
+    "starbucks.com",
+    "www.starbucks.com",
+    "content-prod-live.cert.starbucks.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -60,7 +118,7 @@
       "product",
       "plan"
     ],
-    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
+    "note": "Line names are placeholders. The image on each row is a photograph Starbucks publishes on its own site (https://www.starbucks.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
   },
   "catalog_placeholder": [
     {
@@ -70,9 +128,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://www.starbucks.com/next_static/icons/summary_square.png",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.starbucks.com/"
     },
     {
       "title": "Signature Blend 02",
@@ -81,9 +140,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112745.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.starbucks.com/"
     },
     {
       "title": "Signature Blend 03",
@@ -92,9 +152,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112760.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.starbucks.com/"
     },
     {
       "title": "Seasonal Drink 01",
@@ -103,9 +164,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112632.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.starbucks.com/"
     },
     {
       "title": "Seasonal Drink 02",
@@ -114,9 +176,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112634.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.starbucks.com/"
     },
     {
       "title": "Seasonal Drink 03",
@@ -125,9 +188,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112942.jpg",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://www.starbucks.com/"
     },
     {
       "title": "Bakery Item 01",
@@ -198,12 +262,62 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Starbucks]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Starbucks]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Starbucks]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Starbucks]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Starbucks]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.starbucks.com/pwa-icon-192.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "touch icon or favicon the page links"
+    },
+    {
+      "url": "https://www.starbucks.com/next_static/icons/summary_square.png",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112745.jpg",
+      "role": "photograph",
+      "alt": "A Starbucks gift card that reads “Coffee is always a good idea.”",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112760.jpg",
+      "role": "photograph",
+      "alt": "A freshly-poured Aerocano. Light foam at the top deepens gradually down the glass into dark espresso.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112632.jpg",
+      "role": "photograph",
+      "alt": "A variety of mini pies grouped together on a wood table.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112634.jpg",
+      "role": "photograph",
+      "alt": "Four fall drinks on a table with hints of people gathered around them.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112942.jpg",
+      "role": "photograph",
+      "alt": "Close-up of someone holding a mug filled with coffee.",
+      "found_on": "https://www.starbucks.com/",
+      "signal": "img on the page"
+    }
+  ],
+  "logo_url": "https://www.starbucks.com/pwa-icon-192.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

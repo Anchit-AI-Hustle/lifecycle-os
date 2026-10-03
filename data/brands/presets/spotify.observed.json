@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "spotify",
+  "start": "https://www.spotify.com",
+  "landed": "https://open.spotify.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Spotify - Web Player: Music for everyone",
+  "source": "Read from https://open.spotify.com/ on 2026-09-30. Primary #121212 from manifest theme_color.",
+  "palette": {
+    "primary": "#121212",
+    "accent": "#1ed760",
+    "ink": "#111111",
+    "surface": "#ffffff",
+    "surface_alt": "#f8f8f8",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "light page surface; the page ground was not a light colour",
+      "source_url": "https://open.spotify.com/"
+    },
+    "ink": {
+      "value": "#111111",
+      "signal": "body text that clears AA on the page surface",
+      "source_url": "https://open.spotify.com/"
+    },
+    "surface_alt": {
+      "value": "#f8f8f8",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://open.spotify.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://open.spotify.com/"
+    },
+    "primary": {
+      "value": "#121212",
+      "signal": "manifest theme_color",
+      "source_url": "https://open.spotify.com/"
+    },
+    "accent": {
+      "value": "#1ed760",
+      "signal": "computed background of e-10860-overflow-wrap-anywhere e-10860-button-primary__inner encore-br",
+      "source_url": "https://open.spotify.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "SpotifyMixUI",
+      "stack": "'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "SpotifyMixUI",
+      "stack": "'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png",
+  "logo_signal": "touch icon or favicon the page links",
+  "assets": [
+    {
+      "url": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "touch icon or favicon the page links"
+    },
+    {
+      "url": "https://open.spotifycdn.com/cdn/images/download-page-image-mac.fec937cc.png",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://i.scdn.co/image/ab6742d3000052b76ca413a1f520797f0b1068d1",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://i.scdn.co/image/ab67616d00001e025cf234eeb7a2edf44bf64a46",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://i.scdn.co/image/ab67616d00001e02025dc6c56e95fccbda35dd3f",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://i.scdn.co/image/ab67616d00001e02b09eea420767969b6729962b",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://i.scdn.co/image/ab67616d00001e02ac2975341ab46e756632bba9",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://i.scdn.co/image/ab6742d3000052b7326b9dabe6ac59739d58754c",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://open.spotify.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

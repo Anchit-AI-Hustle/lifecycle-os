@@ -642,7 +642,7 @@ test('requireUser accepts a server-mode token, and refuses an unverifiable one e
 
     const anon = await brand.requireUser({ headers: {} });
     // A device-mode token is 43 base64url characters the server has never
-    // seen. It must get the SAME status and code as no token at all.
+    // seen. With a database it must get the SAME status and code as no token.
     const device = await brand.requireUser({ headers: { 'x-lifecycle-token': core.newToken() } });
     expect(device.ok).toBe(false);
     expect([device.status, device.error]).toEqual([anon.status, anon.error]);
@@ -655,14 +655,20 @@ test('requireUser accepts a server-mode token, and refuses an unverifiable one e
     expect(fetches).toEqual([]);
   } finally { global.fetch = realFetch; }
 
-  // With NO database the same device-shaped token is still an anonymous call,
-  // not a 503 about Supabase.
+  // With NO database a well-shaped token from a page is a device principal;
+  // without Origin it is still anonymous (a well-shaped token is not a secret).
   delete process.env.DATABASE_URL;
   delete require.cache[BRAND_CORE]; delete require.cache[CORE];
   const brand2 = require(BRAND_CORE);
-  const noDb = await brand2.requireUser({ headers: { 'x-lifecycle-token': token } });
-  expect(noDb).toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
-  expect(noDb.message).toMatch(/kept on this device only cannot be checked/);
+  const noOrigin = await brand2.requireUser({ headers: { 'x-lifecycle-token': token } });
+  expect(noOrigin).toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
+  expect(String(noOrigin.message)).toMatch(/did not come from a page/i);
+  const fromPage = await brand2.requireUser({
+    headers: { 'x-lifecycle-token': token, origin: 'https://app.example.test' },
+  });
+  expect(fromPage.ok, JSON.stringify(fromPage)).toBe(true);
+  expect(fromPage.mode).toBe('device');
+  expect(fromPage.phone).toBe('');
 });
 
 test('restAs refuses a phone account with a sentence, before any PostgREST call', async () => {
@@ -896,6 +902,7 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   expect(a.internal, 'a phone account was granted internal access').toBe(false);
   expect(a.backend.kind).toBe('signed-in');
   expect(a.backend.session).toMatchObject({ provider: 'mobile-pin', mode: 'device', name: 'Asha' });
+  expect(a.umode).toMatch(/Local \/ Demo Mode/);
   expect(a.umode).toMatch(/Saved on this device only: no database is configured/);
   expect(a.stored).toMatchObject({ mode: 'device', user: { name: 'Asha', phone: '+919876543210' } });
   // The device store holds a PBKDF2 hash, never the PIN, and the lockout fields.
@@ -912,13 +919,15 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   expect(a.storage.mode).toBe('device');
   expect(a.storage.sentence).toBe('Signed in as Asha · workspaces are saved on this device');
   expect(a.storage.serverOpen, 'a device session cannot be checked by the server, so extract is not open').toBe(false);
-  // Nothing about a device session reaches the server: no enter, no token.
+  // Sign-in itself stays local: no enter, no me. The device token IS sent on
+  // API calls so features can run (2026-09-30).
   expect(log.apiHeaders.filter((h) => /op=enter|op=me/.test(h.url))).toEqual([]);
+  expect(await page.evaluate(() => window.LifecycleAuth.apiToken())).toMatch(/^[A-Za-z0-9_-]{40,90}$/);
   await page.evaluate(() => fetch('/api/public-config?action=brand&op=active', { cache: 'no-store' }).then((r) => r.json()));
   const brandCall = log.apiHeaders.filter((h) => /op=active/.test(h.url)).pop();
   expect(brandCall, 'the probe request was not seen').toBeTruthy();
-  expect(brandCall.authorization, 'a device-mode token was sent as a bearer').toBe('');
-  expect(brandCall.token, 'a device-mode token was sent in X-Lifecycle-Token').toBe('');
+  const sent = (brandCall.token || '').trim() || String(brandCall.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  expect(sent, 'a device-mode token was not sent on an API call').toMatch(/^[A-Za-z0-9_-]{40,90}$/);
 
   // A reload keeps the session, without asking the server anything.
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -1266,13 +1275,13 @@ test('PROD DRIVE: a device-mode session signed in on one page is the session on 
     expect(a.name, next).toBe('Asha');
     expect(a.session, next).toMatchObject({ provider: 'mobile-pin', mode: 'device', hasToken: true, user: { id: uid, phone: '+919876543210' } });
     expect(a.backend.kind, next).toBe('signed-in');
+    expect(a.umode, next).toMatch(/Local \/ Demo Mode/);
     expect(a.umode, next).toMatch(/Saved on this device only: no database is configured/);
     expect(a.storage && a.storage.sentence, next).toBe('Signed in as Asha · workspaces are saved on this device');
     expect(await page.evaluate(() => window.BrandContext.device.key()), next).toBe(DEVICE_STORE + '.' + uid);
     expect(a.internal, next).toBe(false);
   }
   expect(log.apiHeaders.filter((h) => /op=me|op=enter/.test(h.url)), 'a device session asked the server on navigation').toEqual([]);
-  expect(log.apiHeaders.filter((h) => h.authorization || h.token), 'a device token left the browser').toEqual([]);
   expect(log.dialogs).toEqual([]);
 });
 
@@ -1388,13 +1397,21 @@ test('PROD DRIVE: requireUser answers a server-mode token whose database is not 
     store.db.down = false;
     expect((await brand.requireUser({ headers: { 'x-lifecycle-token': token } })).ok).toBe(true);
     expect(store.db.app_sessions.length).toBe(1);
-    // Still refused as ANONYMOUS, with the device sentence, when there is no
-    // database URL at all: nothing here widened that.
+    // Without a database URL the same token is a DEVICE principal from a page,
+    // and still anonymous without Origin (a well-shaped token is not a secret).
     delete process.env.DATABASE_URL;
     delete require.cache[BRAND_CORE]; delete require.cache[CORE];
     const brand2 = require(BRAND_CORE);
-    const noDb = await brand2.requireUser({ headers: { 'x-lifecycle-token': token } });
-    expect(noDb).toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
+    const noOrigin = await brand2.requireUser({ headers: { 'x-lifecycle-token': token } });
+    expect(noOrigin).toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
+    expect(String(noOrigin.message)).toMatch(/did not come from a page/i);
+    const fromPage = await brand2.requireUser({
+      headers: { 'x-lifecycle-token': token, origin: 'https://app.example.test' },
+    });
+    expect(fromPage.ok, JSON.stringify(fromPage)).toBe(true);
+    expect(fromPage.mode).toBe('device');
+    expect(fromPage.user_id).toMatch(/^device:/);
+    expect(fromPage.phone).toBe('');
   } finally { global.fetch = realFetch; }
 });
 

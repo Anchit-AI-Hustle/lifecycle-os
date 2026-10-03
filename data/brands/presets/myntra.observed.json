@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "myntra",
+  "start": "https://www.myntra.com",
+  "landed": "https://www.myntra.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Site Maintenance",
+  "note": "The page did not serve the brand site (status 200, title \"Site Maintenance\"). Nothing was filled in from it."
+}

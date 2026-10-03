@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "adidas",
+  "start": "https://www.adidas.com",
+  "landed": "https://www.adidas.com/",
+  "observed_at": "2026-09-30",
+  "status": 403,
+  "title": "adidas",
+  "note": "The page did not serve the brand site (status 403, title \"adidas\"). Nothing was filled in from it."
+}

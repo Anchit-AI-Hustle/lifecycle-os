@@ -214,6 +214,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .preset .pswatch i{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.14);display:block}
   .preset .pmeta{font-size:10.5px;opacity:.55;line-height:1.4}
   .preset-note{font-size:11.5px;opacity:.6;margin:2px 0 0;line-height:1.5}
+  .asset-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .asset-strip img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#e3e3e3);background:var(--surface,#fff)}
   /* Suggested options. Deliberately NOT styled like an extracted candidate:
      those carry a source URL and real provenance, these carry a model's
      opinion, and making them look alike would launder one into the other. */
@@ -881,6 +883,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           '<div class="field"><label>Website</label><input type="url" data-path="website" value="' + esc(brand.website) + '" placeholder="https://yourbrand.com"></div>' +
           '<div class="field"><label>Logo URL <span class="note">must be a real hosted image</span></label><input type="url" data-path="logo_url" value="' + esc(brand.logo_url) + '" placeholder="https://yourbrand.com/logo.png"></div>' +
         '</div>' +
+        assetStrip() +
         actions(null, 'Colour schema');
       loadPresets();
       paintPresets();
@@ -1058,6 +1061,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     '<p class="preset-note">Profiles are starting points, not licensed brand kits. Replace with your approved guidelines before running a real programme. Cards marked <b>Default palette</b> carry this app\'s neutral placeholder design rather than that brand\'s: nothing about their look was read from their site, so extract it before you judge anything by the colours.</p>';
   }
 
+  function assetStrip() {
+    var assets = (brand.brand_data && brand.brand_data.brand_assets) || [];
+    if (!assets.length) return '';
+    return '<div class="asset-strip" aria-label="Images published on this brand\'s site">' +
+      assets.map(function (a) {
+        return '<img src="' + esc(a.url) + '" alt="' + esc(a.alt || a.role || 'Brand image') + '">';
+      }).join('') +
+      '</div><p class="muted">Images ' + esc(brand.name || 'this brand') + ' publishes on its own site, used as the logo and the brand assets. Nothing here was drawn for the preset.</p>';
+  }
+
   function loadPresets() {
     if (PRESETS) { paintPresets(); return; }
     fetch('/api/public-config?action=brand&op=presets')
@@ -1081,6 +1094,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (p.voice) brand.voice = JSON.parse(JSON.stringify(p.voice));
         if (p.regions) brand.regions = JSON.parse(JSON.stringify(p.regions));
         if (p.asset_hosts) brand.asset_hosts = p.asset_hosts.slice();
+        brand.brand_data = brand.brand_data || {};
+        brand.brand_data.brand_assets = (p.brand_assets || []).filter(function (a) { return a && a.url; }).map(function (a) {
+          return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
+        });
         brand.id = keepId;
         presetPicked = slug;
         // The preset's website replaces whatever was being typed.

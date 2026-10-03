@@ -8,34 +8,90 @@
     "label": "Puma",
     "sector": "Sportswear",
     "blurb": "Sportswear. Template for sponsorship-led and event-led pushes.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.puma.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-09-30",
+    "source": "Read from https://us.puma.com/us/en on 2026-09-30. Primary #27455c from computed background of SPAN (10 elements).",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "img on the page whose address or alt says logo",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "signal": "computed background of body",
+        "source_url": "https://us.puma.com/us/en"
+      },
+      "ink": {
+        "value": "#191919",
+        "signal": "computed color of body",
+        "source_url": "https://us.puma.com/us/en"
+      },
+      "surface_alt": {
+        "value": "#f6f7f8",
+        "signal": "computed light background repeated on the page",
+        "source_url": "https://us.puma.com/us/en"
+      },
+      "muted": {
+        "value": "#666666",
+        "signal": "secondary text token that clears AA; the page did not declare one",
+        "source_url": "https://us.puma.com/us/en"
+      },
+      "primary": {
+        "value": "#27455c",
+        "signal": "computed background of SPAN (10 elements)",
+        "source_url": "https://us.puma.com/us/en"
+      },
+      "accent": {
+        "value": "#191919",
+        "signal": "text colour, used where the brand publishes no second colour",
+        "source_url": "https://us.puma.com/us/en"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "warn": {
+        "value": "#c9a227",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "err": {
+        "value": "#c0392b",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      }
+    },
+    "typography_evidence": {
+      "heading": "computed font-family of h1",
+      "body": "computed font-family of body"
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#27455c",
+    "accent": "#191919",
+    "ink": "#191919",
+    "surface": "#ffffff",
+    "surface_alt": "#f6f7f8",
+    "muted": "#666666",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "FFDINforPuma",
+      "stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "FFDINforPuma",
+      "stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
       "google": false,
       "weights": "400;500;600"
     }
@@ -52,14 +108,16 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "puma.com"
+    "puma.com",
+    "us.puma.com",
+    "images.puma.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
     "offering_kinds": [
       "product"
     ],
-    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
+    "note": "Line names are placeholders. The image on each row is a photograph Puma publishes on its own site (https://us.puma.com/us/en). Prices and product URLs were not on that page as a catalogue, so they are empty."
   },
   "catalog_placeholder": [
     {
@@ -69,9 +127,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1280/cms/images/b97a17a7344b9d82fbeb825945f0114be794d3de?_a=BAMAPqiu0",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Running Shoe 02",
@@ -80,9 +139,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313904/13/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Men's-Running-Shoes",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Running Shoe 03",
@@ -91,9 +151,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313905/11/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Women's-Running-Shoes",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Training Shoe 01",
@@ -102,9 +163,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312126/21/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Women's-Road-Running-Shoes",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Training Shoe 02",
@@ -113,9 +175,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312125/20/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Men's-Road-Running-Shoes",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Training Shoe 03",
@@ -124,9 +187,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311141/13/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Women's-Road-Running-Shoes",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Lifestyle Sneaker 01",
@@ -135,9 +199,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311140/16/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Men's-Road-Running-Shoes",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://us.puma.com/us/en"
     },
     {
       "title": "Lifestyle Sneaker 02",
@@ -230,12 +295,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Puma]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Puma]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Puma]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Puma]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Puma]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://us.puma.com/assets/puma-logo-1200x630.jpg",
+      "role": "logo",
+      "alt": "Four black football boots with iridescent blue/purple soles and light blue logos float against a dark background.",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1280/cms/images/b97a17a7344b9d82fbeb825945f0114be794d3de?_a=BAMAPqiu0",
+      "role": "photograph",
+      "alt": "Close-up rear view of a person moving along a concrete sidewalk while wearing black leggings and bright lime-green Deviate Pure shoes. The o",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313904/13/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Men's-Running-Shoes",
+      "role": "photograph",
+      "alt": "Deviate Pure NITRO™ Men's Running Shoes, Sunny Lime-PUMA Black, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313905/11/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Women's-Running-Shoes",
+      "role": "photograph",
+      "alt": "Deviate Pure NITRO™ Women's Running Shoes, Sunny Lime-Light Lime, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312126/21/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Women's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "MagMax NITRO™ 2 Women's Road Running Shoes, Sunny Lime-Lime Squeeze, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312125/20/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Men's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "MagMax NITRO™ 2 Men's Road Running Shoes, Sunny Lime-PUMA Silver, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311141/13/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Women's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "Velocity NITRO™ 4 Women's Road Running Shoes, Apple Spritz-Deep Plum, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311140/16/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Men's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "Velocity NITRO™ 4 Men's Road Running Shoes, Apple Spritz-Lux Lime, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    }
+  ],
+  "logo_url": "https://us.puma.com/assets/puma-logo-1200x630.jpg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
