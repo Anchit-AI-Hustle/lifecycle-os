@@ -116,7 +116,7 @@
     "offering_kinds": [
       "product"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph L'Oreal publishes on its own site (https://www.loreal.com/en/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -126,10 +126,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/1-home/2026/rif/2025-annual-results-l-oreal-groupe-desk.jpg?rev=f3ea0dd9e08445f68bfa584716867bda",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.loreal.com/en/"
+      "placeholder": true
     },
     {
       "title": "Cleanser 02",
@@ -138,10 +137,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/6-careers/2026/hr-campaign-life-is-too-short-for-a-boring-career/homepage-lits-banner-desk.jpg?rev=7771d64a2f244a79be3f284622f9ec61",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.loreal.com/en/"
+      "placeholder": true
     },
     {
       "title": "Cleanser 03",
@@ -150,10 +148,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/essentiality-of-beauty/2025/kv-eob-hero-banner.jpg?rev=dd55e356b9834341bed1e3d626ac2c35",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.loreal.com/en/"
+      "placeholder": true
     },
     {
       "title": "Cleanser 04",

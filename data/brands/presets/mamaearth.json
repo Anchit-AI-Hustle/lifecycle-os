@@ -115,7 +115,7 @@
     "offering_kinds": [
       "product"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Mamaearth publishes on its own site (https://mamaearth.in/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -125,10 +125,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://mamaearth.in/cdn/shop/files/mamaearth-og-image.jpg?v=1787645067",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://mamaearth.in/"
+      "placeholder": true
     },
     {
       "title": "Cleanser 02",
@@ -137,10 +136,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://mamaearth.in/cdn/shop/files/b2g2_genric_desktop.jpg?v=1790654097&width=1400",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://mamaearth.in/"
+      "placeholder": true
     },
     {
       "title": "Cleanser 03",
@@ -149,10 +147,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://mamaearth.in/cdn/shop/files/REDEEM35_new_buy2_desktop_generic.jpg?v=1790654676&width=1400",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://mamaearth.in/"
+      "placeholder": true
     },
     {
       "title": "Cleanser 04",
@@ -161,10 +158,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://mamaearth.in/cdn/shop/files/flaxseed-desktop-new.jpg?v=1783748411&width=1600",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://mamaearth.in/"
+      "placeholder": true
     },
     {
       "title": "Serum 01",
@@ -173,10 +169,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://mamaearth.in/cdn/shop/files/Tea-tree-face-wash-desktop.jpg?v=1780754685&width=1600",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://mamaearth.in/"
+      "placeholder": true
     },
     {
       "title": "Serum 02",
@@ -185,10 +180,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://mamaearth.in/cdn/shop/files/rice_fw_150ml.jpg?v=1777974776&width=300",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://mamaearth.in/"
+      "placeholder": true
     },
     {
       "title": "Serum 03",
