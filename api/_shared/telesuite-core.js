@@ -272,8 +272,13 @@ function pgFilter(qs) {
    With no server secret to sign with, a metered phone caller cannot hold a
    voice session on the device at all (requireVoiceSigning). */
 const BILLING_FEATURES = new Set(['voice_session', 'voice_sales', 'voice_support']);
+/** A key for THIS use only, derived from whichever server secret is set, so a
+ *  signature made here can never be valid for, or say anything about, another
+ *  use of the same secret (review, 2026-10-03). */
 function signingKey() {
-  return String(process.env.TELESUITE_DEVICE_SECRET || process.env.CRON_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+  const secret = String(process.env.TELESUITE_DEVICE_SECRET || process.env.CRON_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+  if (!secret) return '';
+  return require('crypto').createHmac('sha256', secret).update('lifecycle-os/telesuite-device-run/v1').digest('hex');
 }
 function runSignature(row) {
   const key = signingKey();
