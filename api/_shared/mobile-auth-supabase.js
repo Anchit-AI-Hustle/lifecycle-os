@@ -148,8 +148,37 @@ function config() {
   const url = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/\/+$/, '');
   const serverKey = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '').trim();
   if (!url || !serverKey) return null;
-  const anonKey = String(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
-  return { url, serverKey, anonKey: anonKey || serverKey, secretKey: /^sb_secret_/.test(serverKey), host: hostOf(url) || 'the configured Supabase host' };
+  const pub = publicKey();
+  return { url, serverKey, anonKey: pub || serverKey, publicKey: pub, secretKey: /^sb_secret_/.test(serverKey), host: hostOf(url) || 'the configured Supabase host' };
+}
+
+/**
+ * The key the BROWSER may hold: the anon key or the publishable key, in that
+ * order, and never a server key. Review finding (2026-10-03): the server
+ * accepted SUPABASE_PUBLISHABLE_KEY while /api/public-config published only
+ * the anon variables, so a deployment configured with a publishable key had a
+ * browser that could not renew its session, and every session went
+ * unverified after an hour. public-config now publishes THIS, so the two
+ * cannot disagree; status() does not report supabase mode without it.
+ * A value that is a server key is refused rather than published: an
+ * `sb_secret_` key, the configured service key itself, or a JWT whose `role`
+ * claim is service_role.
+ */
+function publicKey() {
+  const k = String(process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '').trim();
+  if (!k || isServerKey(k)) return '';
+  return k;
+}
+function isServerKey(k) {
+  if (/^sb_secret_/.test(k)) return true;
+  const servers = [process.env.SUPABASE_SECRET_KEY, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_SERVICE_KEY].map((x) => String(x || '').trim()).filter(Boolean);
+  if (servers.includes(k)) return true;
+  const parts = k.split('.');
+  if (parts.length === 3) {
+    try { const c = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')); if (c && c.role === 'service_role') return true; } catch (_) { /* not a JWT */ }
+  }
+  return false;
 }
 
 function pepper() {
@@ -385,6 +414,10 @@ async function signUp(core, cfg, b, e164, ip) {
   if (!pep) return pepperRefusal();
 
   const claim = (await rpc(cfg, 'mobile_pin_claim', { p_phone: e164, p_name: name, p_stale_seconds: STALE_CLAIM_SECONDS })) || {};
+  if (!claim.claimed && claim.locked) {
+    const until = new Date(claim.locked_until || Date.now() + core.LOCK_MINUTES * 60000).toISOString();
+    return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until, message: core.lockMessage(until) } };
+  }
   if (!claim.claimed) {
     // Another sign-up for this number got there first. This request is a
     // SIGN-IN to that account and is held to the PIN check like any other.
@@ -400,16 +433,38 @@ async function signUp(core, cfg, b, e164, ip) {
   if (!userId) {
     if (made.code === 'phone_exists' || made.status === 422) {
       // An auth user with this number exists but was never bound here (a
-      // sign-up whose function died after GoTrue answered). Only this server
-      // can derive its password, so if the same PIN opens it, it is the same
-      // account: adopt it. Otherwise the number is taken by an account this
-      // module did not make, and that is said, not papered over.
-      let g = null;
-      try { g = await passwordGrant(cfg, e164, password, ip); } catch (e) { await rpc(cfg, 'mobile_pin_unclaim', { p_phone: e164 }); throw e; }
-      if (!g.ok) {
+      // sign-up whose function died after the auth service answered, or a
+      // phone user made some other way). Only this server can derive its
+      // password, so if the same PIN opens it, it is the same account: adopt
+      // it. THAT IS A PIN CHECK, so it goes through the lockout first, keyed
+      // by the phone on the claimed row (review finding, 2026-10-03): it used
+      // to run unreserved, and a wrong PIN deleted the row and its count, so
+      // the number could be guessed at the per-address budget alone.
+      const res = (await rpc(cfg, 'mobile_pin_attempt', { p_phone: e164, p_max: core.MAX_TRIES, p_lock_seconds: core.LOCK_MINUTES * 60, p_pending: true })) || {};
+      if (!res.allowed) {
         await rpc(cfg, 'mobile_pin_unclaim', { p_phone: e164 });
-        return { status: 409, body: { ok: false, error: 'phone_taken', message: 'This number already has an account in the account service that was not made here, so it cannot be signed up again. An operator can remove it from Authentication > Users.' } };
+        const until = new Date(res.locked_until || Date.now() + core.LOCK_MINUTES * 60000).toISOString();
+        return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until, message: core.lockMessage(until) } };
       }
+      let g = null;
+      try { g = await passwordGrant(cfg, e164, password, ip); } catch (e) {
+        await rpc(cfg, 'mobile_pin_settle', { p_phone: e164, p_outcome: 'void', p_max: core.MAX_TRIES });
+        await rpc(cfg, 'mobile_pin_unclaim', { p_phone: e164 });
+        throw e;
+      }
+      if (!g.ok) {
+        // Counted. The row is KEPT (unclaim only makes the claim stale while it
+        // carries tries), so the next sign-up takes it over with the count.
+        await rpc(cfg, 'mobile_pin_unclaim', { p_phone: e164 });
+        const tries = Number(res.tries) || 0;
+        if (res.last || tries >= core.MAX_TRIES) {
+          const until = new Date(res.locked_until || Date.now() + core.LOCK_MINUTES * 60000).toISOString();
+          return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until, message: core.lockMessage(until) } };
+        }
+        const left = Math.max(0, core.MAX_TRIES - tries);
+        return { status: 409, body: { ok: false, error: 'phone_taken', left, message: 'This number already has an account in the account service, and that PIN does not open it. ' + left + ' ' + (left === 1 ? 'try' : 'tries') + ' left. If it is not yours, an operator can remove it from Authentication > Users.' } };
+      }
+      await rpc(cfg, 'mobile_pin_settle', { p_phone: e164, p_outcome: 'ok', p_max: core.MAX_TRIES });
       userId = g.user && g.user.id;
       session = g.session;
     } else {
@@ -608,6 +663,6 @@ async function handle(core, cfg, req, res, op, method, body) {
 
 module.exports = {
   MARK, MARK_VALUE, PEPPER_MIN, MIGRATION, ENTER_LIMIT, ENTER_WINDOW_SEC, STALE_CLAIM_SECONDS,
-  config, pepper, previousPepper, derivePassword, addressKey, phoneIdentity, looksLikeJwt, jwtOf,
+  config, publicKey, pepper, previousPepper, derivePassword, addressKey, phoneIdentity, looksLikeJwt, jwtOf,
   health, getUser, enter, me, signout, handle, modeMessage, AuthStepError,
 };

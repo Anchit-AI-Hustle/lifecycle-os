@@ -451,13 +451,14 @@ function appServer(log) {
       const text = Buffer.concat(chunks).toString('utf8');
       let body; try { body = text ? JSON.parse(text) : undefined; } catch (_) { body = undefined; }
       const query = {}; u.searchParams.forEach((v, k) => { query[k] = v; });
-      log.push({ path: u.pathname, query, authorization: req.headers.authorization || '', token: req.headers['x-lifecycle-token'] || '' });
+      const entry = { path: u.pathname, query, authorization: req.headers.authorization || '', token: req.headers['x-lifecycle-token'] || '', referer: req.headers.referer || '' };
+      log.push(entry);
       if (u.pathname !== '/api/public-config') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end('{"ok":true}'); }
       const shim = {
         statusCode: 200,
         setHeader: (k, v) => res.setHeader(k, v), removeHeader: (k) => res.removeHeader(k), getHeader: (k) => res.getHeader(k),
         status(c) { this.statusCode = c; return this; },
-        json(j) { res.statusCode = this.statusCode; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(j)); log[log.length - 1].status = this.statusCode; return this; },
+        json(j) { res.statusCode = this.statusCode; res.setHeader('Content-Type', 'application/json'); entry.status = this.statusCode; res.end(JSON.stringify(j)); return this; },
         end(x) { res.statusCode = this.statusCode; res.end(x); return this; },
         send(x) { res.statusCode = this.statusCode; res.end(typeof x === 'string' ? x : JSON.stringify(x)); return this; },
       };
@@ -480,6 +481,7 @@ async function wire(page, f, log) {
     // The supabase-js CDN is not reachable here: a stand-in that records what
     // the page hands it (setSession) and is otherwise anonymous.
     window.__SET_SESSION__ = [];
+    window.__SIGNOUT__ = [];
     window.__OAUTH_CALLS__ = [];
     window.supabase = {
       createClient: () => ({
@@ -488,7 +490,7 @@ async function wire(page, f, log) {
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
           setSession: async (s) => { window.__SET_SESSION__.push(s); return { data: { session: s }, error: null }; },
           signInWithOAuth: async (x) => { window.__OAUTH_CALLS__.push(x); return { error: null }; },
-          signOut: async () => ({}),
+          signOut: async (o) => { window.__SIGNOUT__.push(o || null); return {}; },
         },
         from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
       }),
@@ -537,6 +539,8 @@ const readState = (page) => page.evaluate(() => {
     stored,
     storage: st ? { mode: st.mode, sentence: st.account_sentence, serverOpen: st.server_open } : null,
     setSession: window.__SET_SESSION__ || [],
+    signOuts: window.__SIGNOUT__ || [],
+    signin: !!document.querySelector('#lnav-signin'),
     oauth: (window.__OAUTH_CALLS__ || []).length,
   };
 });
@@ -587,6 +591,9 @@ test('SUPABASE MODE IN THE BROWSER: sign up in the rail, the session survives a 
     await page.waitForFunction(() => window.BrandContext && window.BrandContext.storage && window.BrandContext.storage().mode === 'server', null, { timeout: 10000 });
     s = await readState(page);
     expect(s.storage).toMatchObject({ mode: 'server', serverOpen: true, sentence: 'Signed in as Ravi · brands are saved to your account' });
+    // The save's tail (making it the active brand) answers slowly here, as it
+    // did on a loaded CI runner: the row exists before the response does.
+    f.slow = { match: /brand_user_prefs|brand_competitors/, ms: 1500 };
     const nameInput = page.locator('input[data-path="name"]');
     await nameInput.waitFor({ timeout: 15000 });
     await nameInput.fill('Ravi Kicks');
@@ -595,7 +602,10 @@ test('SUPABASE MODE IN THE BROWSER: sign up in the rail, the session survives a 
     expect(f.tables.brand_workspaces[0]).toMatchObject({ owner_id: uid, name: 'Ravi Kicks' });
     const save = log.filter((l) => l.query && l.query.action === 'brand' && l.query.op === 'save').pop();
     expect(save.authorization).toBe('Bearer ' + s.session.token);
-    expect(save.status).toBe(200);
+    // The row appears BEFORE the response finishes (CI, 2026-10-03: reading
+    // the status at that moment read `undefined`). Wait for the answer itself.
+    await expect.poll(() => save.status, { timeout: 15000 }).toBe(200);
+    f.slow = null;
     const keys = await page.evaluate(() => Object.keys(localStorage));
     expect(keys.filter((k) => /^lifecycle\.brand\.device\.workspaces/.test(k)), 'the brand was ALSO written to the device').toEqual([]);
 
@@ -643,8 +653,10 @@ test('SUPABASE MODE IN THE BROWSER: sign up in the rail, the session survives a 
     s = await readState(page);
     expect(s.stored.refresh_token).not.toBe(oldRefresh);
     expect(s.apiToken).toBe(s.session.token);
-    const meAfter = log.filter((l) => l.query && l.query.op === 'me').pop();
-    expect(meAfter.authorization, 'op=me was asked with the expiring token').toBe('Bearer ' + s.session.token);
+    // op=me is asked AFTER the renewal, with the renewed token (the renewal
+    // itself already proves the pair, so the page may show it first).
+    await expect.poll(() => { const i = log.indexOf(refreshCall); return log.slice(i + 1).filter((l) => l.query && l.query.op === 'me').map((l) => l.authorization).pop() || ''; }, { timeout: 10000 })
+      .toBe('Bearer ' + s.session.token);
 
     // Sign out: the server is told, the session is REVOKED at the auth service.
     const live = s.session.token;
@@ -832,3 +844,294 @@ for (const locks of [true, false]) {
     }
   });
 }
+
+/* ── review findings, second round (2026-10-03) ── */
+
+test('REVIEW P1 (routing): with Neon ALSO configured, a failed Supabase probe never sends a Supabase JWT to Neon - op=me answers 503 (kept), not 401 (cleared)', async () => {
+  const f = project({ DATABASE_URL: 'postgres://u:p@ep-fixture.neon.tech/db' });
+  const s = await signUp(f);
+  for (const m of MODS) delete require.cache[m];
+  const core = require('../api/_shared/mobile-auth-core.js');
+  // A Neon store that answers (select 1, schema, an empty session table).
+  const neon = async (strings) => { const t = strings.join('$').replace(/\s+/g, ' ').trim().toLowerCase(); if (t === 'select 1') return [{ '?column?': 1 }]; return []; };
+  f.healthy = false;   // one failed health probe
+  const call = (op, body) => new Promise((resolve) => {
+    const res = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(j) { resolve({ status: this.statusCode, body: j }); return this; } };
+    core.handle({ method: body ? 'POST' : 'GET', query: { op }, headers: { authorization: 'Bearer ' + s.token, 'x-lifecycle-token': s.token }, body }, res, { sql: neon });
+  });
+  const me = await call('me');
+  expect(me.status, 'a Supabase JWT was judged by the Neon session store').toBe(503);
+  expect(me.body).toMatchObject({ error: 'backend_unreachable', mode: 'supabase' });
+  const out = await call('signout', { op: 'signout' });
+  expect(out.body).toMatchObject({ ok: true, signed_out: false, mode: 'supabase' });
+  // And a Neon token is still Neon's: the routing is by the token, not a blanket switch.
+  const neonMe = await new Promise((resolve) => {
+    const res = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(j) { resolve({ status: this.statusCode, body: j }); return this; } };
+    core.handle({ method: 'GET', query: { op: 'me' }, headers: { 'x-lifecycle-token': 'n'.repeat(43) }, body: {} }, res, { sql: neon });
+  });
+  expect(neonMe.status).toBe(401);
+});
+
+test('REVIEW P2 (public key): the browser is handed the same public key the broker accepts, never a server key; with none, Supabase mode is not reported', async () => {
+  const cfgOf = () => new Promise((resolve) => {
+    const res = { statusCode: 200, setHeader() {}, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(j) { resolve(j); return this; } };
+    require('../api/public-config.js')({ method: 'GET', query: {}, headers: {} }, res);
+  });
+  // 1. Only a PUBLISHABLE key: published, and the mode is supabase.
+  let f = project({ SUPABASE_ANON_KEY: undefined, SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_fixture123' });
+  f.anonKey = 'sb_publishable_fixture123';
+  expect((await cfgOf()).supabase.anonKey).toBe('sb_publishable_fixture123');
+  expect((await auth('status')).body).toMatchObject({ mode: 'supabase' });
+  // 2. No browser-visible key at all: nothing published, and NOT supabase mode, with the reason.
+  for (const m of MODS) delete require.cache[m];
+  f = project({ SUPABASE_ANON_KEY: undefined, SUPABASE_PUBLISHABLE_KEY: undefined });
+  expect((await cfgOf()).supabase.anonKey).toBe('');
+  let st = (await auth('status')).body;
+  expect(st.mode).not.toBe('supabase');
+  expect(st.supabase).toMatchObject({ configured: true, reachable: false, reason: 'no_public_key' });
+  expect(st.message).toMatch(/SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY/);
+  // 3. A "public" variable that holds a server key is never published.
+  const jwtRole = 'x.' + Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url') + '.y';
+  for (const bad of ['SERVICE', 'sb_secret_abcdef', jwtRole]) {
+    for (const m of MODS) delete require.cache[m];
+    f = project();
+    process.env.SUPABASE_ANON_KEY = bad === 'SERVICE' ? f.serviceKey : bad;
+    expect((await cfgOf()).supabase.anonKey, 'a server key was published to the browser: ' + bad.slice(0, 12)).toBe('');
+  }
+});
+
+/** Two pages of one context, signed in with the same stored Supabase session. */
+async function twoTabs(browser, f, log, base, s, extra) {
+  const context = await browser.newContext();
+  const seed = await context.newPage();
+  await seed.route(base + '/__seed', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>seed</title>' }));
+  await seed.goto(base + '/__seed');
+  await seed.evaluate((sess) => localStorage.setItem('lifecycle.auth.session', JSON.stringify(sess)), Object.assign({
+    token: s.token, refresh_token: s.refresh_token, expires_at: s.expires_at, user: s.user, mode: 'supabase', expires: null, provider: 'mobile-pin',
+    storage: { mode: 'supabase', host: new URL(f.url).hostname, message: '' },
+  }, extra || {}));
+  await seed.close();
+  const a = await context.newPage();
+  const b = await context.newPage();
+  await wire(a, f, log); await wire(b, f, log);
+  return { context, a, b };
+}
+
+test('REVIEW P1 (cross-tab sign-out): signing out in one tab ends the session in every other tab at once - no session, no token, no supabase-js session, the Sign in chip', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const f = project();
+  const s = await signUp(f);
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { context, a, b } = await twoTabs(browser, f, log, base, s, { state: 'verified' });
+  try {
+    await a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await b.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
+    for (const p of [a, b]) await p.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 20000 });
+    await a.locator('#lnav-signout').evaluate((el) => el.click());
+    await b.waitForFunction(() => !window.LifecycleAuth.session, null, { timeout: 5000 }).catch(() => {});
+    const st = await readState(b);
+    expect(st.session, 'the other tab kept the signed-out session').toBeNull();
+    expect(st.apiToken).toBe('');
+    expect(st.signin).toBe(true);
+    expect(st.signOuts, 'the other tab\'s supabase-js client kept the session').toEqual([{ scope: 'local' }]);
+    expect(await b.evaluate(() => window.LifecycleAuth.backend.kind)).toBe('signed-out');
+  } finally {
+    await context.close();
+    await new Promise((r) => srv.close(r));
+  }
+});
+
+test('REVIEW (failed renew): a scheduled renewal that cannot be made marks the session UNVERIFIED - said, brands on the device, no dead token sent - and a sibling tab adopts the VERIFIED state when the other tab recovers', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const f = project();
+  const s = await signUp(f);
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  // Verified, with an access token that runs out in 90 s.
+  const soon = Math.floor(Date.now() / 1000) + 90;
+  f.access.get(s.token).exp = soon;
+  const { context, a, b } = await twoTabs(browser, f, log, base, s, { state: 'verified', expires_at: soon });
+  try {
+    await a.clock.install(); await b.clock.install();
+    await a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await b.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
+    for (const p of [a, b]) await p.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 20000 });
+
+    // The renewal is due and the auth service does not answer.
+    f.browserRefreshFault = 'abort';
+    await a.clock.fastForward('02:00');
+    await a.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === false, null, { timeout: 10000 });
+    let st = await readState(a);
+    expect(st.stored).toMatchObject({ state: 'unverified', refresh_token: s.refresh_token });
+    expect(st.umode).toMatch(/not answering right now/);
+    expect(st.apiToken, 'a dead access token is still sent').toBe('');
+    expect(st.storage.mode, 'brands stayed on the server path with a session nobody can check').toBe('device');
+    // The sibling learns the same state from the record, without its own renewal.
+    await b.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === false, null, { timeout: 5000 });
+
+    // The service is back: tab A's retry renews and re-checks; tab B ADOPTS
+    // the verified state (its own clock is not advanced at all).
+    f.browserRefreshFault = null;
+    const renewalsBefore = log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url)).length;
+    const checksBefore = log.filter((l) => l.query && l.query.op === 'me').length;
+    await a.clock.fastForward('01:30');
+    await a.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 10000 });
+    await b.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 5000 });
+    const sa = await readState(a); const sb = await readState(b);
+    expect(sa.stored.state).toBe('verified');
+    expect(sb.session.token).toBe(sa.stored.token);
+    expect(sb.apiToken).toBe(sa.stored.token);
+    expect(log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url) && l.body.indexOf(s.refresh_token) >= 0).length - 0, 'the sibling spent the refresh token too').toBeGreaterThan(0);
+    expect(log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url)).length - renewalsBefore, 'more than one renewal after recovery').toBe(1);
+    // ONE tab renewed and checked; the other became verified by ADOPTING the
+    // record it wrote, not by checking again itself (the clock is the
+    // context's, so both tabs' retries fall due together).
+    await a.waitForTimeout(500);
+    expect(log.filter((l) => l.query && l.query.op === 'me').length - checksBefore, 'both tabs re-checked instead of one adopting the other\'s verified state').toBe(1);
+  } finally {
+    await context.close();
+    await new Promise((r) => srv.close(r));
+  }
+});
+
+test('REVIEW SECURITY (adoption): twenty wrong PINs against an auth user this table never bound reach at most FIVE password checks, then lock - and a sign-up that died after the create is still recovered with the right PIN', async () => {
+  const f = project();
+  // A phone user the server never bound: made in the dashboard, say, with a password nobody here knows.
+  const made = f.handle('POST', f.url + '/auth/v1/admin/users', { apikey: f.serviceKey, authorization: 'Bearer ' + f.serviceKey },
+    JSON.stringify({ phone: E164, password: 'a-password-from-elsewhere', phone_confirm: true }));
+  expect(made.status).toBe(200);
+  const out = [];
+  for (let i = 0; i < 20; i++) {
+    out.push(await auth('enter', { phone: PHONE, cc: '+91', name: 'Mallory', pin: String(5000 + i * 7).padStart(4, '0') }, { 'x-forwarded-for': '198.51.100.' + i }));
+  }
+  expect(f.grants().length, 'the adoption path checked more PINs than the lockout allows').toBeLessThanOrEqual(5);
+  expect(out.slice(-10).every((r) => r.status === 429 && r.body.locked), JSON.stringify(out.slice(-3).map((r) => r.body))).toBe(true);
+  expect(out.every((r) => !r.body.token)).toBe(true);
+  const row = f.tables.mobile_pin_accounts.get(E164);
+  expect(row, 'a failure deleted the row that carries the count').toBeTruthy();
+  expect(row.locked_until).toBeGreaterThan(Date.now());
+
+  // A sign-up whose function died AFTER the create: the auth user exists with
+  // the derived password, the row was never bound. A wrong PIN counts; the
+  // right one adopts it and clears the count.
+  const g = project();
+  const supa = require('../api/_shared/mobile-auth-supabase.js');
+  const other = '+919812345678';
+  g.handle('POST', g.url + '/auth/v1/admin/users', { apikey: g.serviceKey, authorization: 'Bearer ' + g.serviceKey },
+    JSON.stringify({ phone: other, password: supa.derivePassword(PEPPER, other, PIN), phone_confirm: true, app_metadata: { lifecycle_account: 'mobile-pin', phone_e164: other } }));
+  const wrong = await auth('enter', { phone: '9812345678', cc: '+91', name: 'Ravi', pin: '5926' });
+  expect(wrong.body.token).toBeUndefined();
+  expect(g.tables.mobile_pin_accounts.get(other).pin_tries).toBe(1);
+  const right = await auth('enter', { phone: '9812345678', cc: '+91', name: 'Ravi', pin: PIN });
+  expect(right.status, JSON.stringify(right.body)).toBe(200);
+  expect(right.body.token).toBeTruthy();
+  expect(g.tables.mobile_pin_accounts.get(other)).toMatchObject({ user_id: g.userByPhone(other).id, pin_tries: 0, locked_until: null });
+});
+
+test('REVIEW (cross-tab adopt): another person signing in in another tab replaces the WHOLE session here - name, user, token and brand namespace - never the old name over the new token', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const f = project();
+  const ravi = await signUp(f);
+  // A different person who happens to share the display name: only the
+  // account id tells the two sessions apart.
+  const priya = await signUp(f, '9811111111', 'Ravi', '6082');
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { context, a, b } = await twoTabs(browser, f, log, base, ravi, { state: 'verified' });
+  try {
+    await a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await b.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
+    for (const p of [a, b]) await p.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 20000 });
+    // Tab A now holds Priya's session (she signed in there).
+    await a.evaluate((sess) => localStorage.setItem('lifecycle.auth.session', JSON.stringify(sess)), {
+      token: priya.token, refresh_token: priya.refresh_token, expires_at: priya.expires_at, user: priya.user, mode: 'supabase', expires: null, provider: 'mobile-pin',
+      state: 'verified', storage: { mode: 'supabase', host: new URL(f.url).hostname, message: '' },
+    });
+    await b.waitForFunction((id) => window.LifecycleAuth.session && window.LifecycleAuth.session.user && window.LifecycleAuth.session.user.id === id, priya.user.id, { timeout: 5000 }).catch(() => {});
+    const st = await readState(b);
+    expect(await b.evaluate(() => window.LifecycleAuth.session && window.LifecycleAuth.session.user.id), 'the other tab still holds the previous person').toBe(priya.user.id);
+    expect(await b.evaluate(() => window.LifecycleAuth.session.user.phone)).toBe('+919811111111');
+    expect(st.session.token).toBe(priya.token);
+    expect(st.apiToken).toBe(priya.token);
+    expect(await b.evaluate(() => window.LifecycleAuth.user && window.LifecycleAuth.user.id)).toBe(priya.user.id);
+    expect(await b.evaluate(() => window.BrandContext && window.BrandContext.device && window.BrandContext.device.key ? window.BrandContext.device.key() : '')).toMatch(new RegExp(priya.user.id + '$'));
+  } finally {
+    await context.close();
+    await new Promise((r) => srv.close(r));
+  }
+});
+
+test('REVIEW (device -> Supabase): a device account made while the project was down keeps working on the device when it comes back, sends no token the server refuses, says in ONE sentence how to move, and moving offers its brands for sync', async ({ page }) => {
+  test.setTimeout(150_000);
+  const f = project();
+  const log = [];
+  const srv = appServer(log);
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  try {
+    await wire(page, f, log);
+    // 1. The project is down: the account and a brand are made ON THIS DEVICE.
+    f.down = true; f.healthy = false;
+    await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending'), null, { timeout: 20000 });
+    await page.locator('#lnav-signin').evaluate((el) => el.click());
+    await page.waitForSelector('#lnav-mauth');
+    await expect(page.locator('#lnav-mauth')).toHaveAttribute('data-mode', 'device', { timeout: 8000 });
+    await page.selectOption('#lnav-mauth-cc', '+91');
+    await page.fill('#lnav-mauth-phone', PHONE);
+    await page.click('#lnav-mauth-go');
+    await page.waitForSelector('#lnav-mauth[data-state="new"]');
+    await page.fill('#lnav-mauth-name', 'Ravi');
+    await page.fill('#lnav-mauth-pin', PIN);
+    await page.click('#lnav-mauth-go');
+    await page.waitForSelector('#lifecycle-nav .lnav-uname', { timeout: 10000 });
+    let st = await readState(page);
+    expect(st.session).toMatchObject({ mode: 'device' });
+    const deviceToken = st.session.token;
+    await page.evaluate(() => window.BrandContext.api('save', { body: { brand: { name: 'Ravi Kicks', palette: { primary: '#2f6fdf', accent: '#c2410c', ink: '#1f2937', surface: '#ffffff' } } } }));
+
+    // 2. The project comes back (after this page's own calls have settled, so
+    //    every call counted below belongs to the boot that follows).
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(1500);
+    f.down = false; f.healthy = true;
+    require('../api/_shared/mobile-auth-core.js')._reset();
+    const mark = log.length;
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.transition === 'supabase', null, { timeout: 15000 });
+    st = await readState(page);
+    expect(st.name).toBe('Ravi');
+    expect(st.session.mode, 'the device account stopped working').toBe('device');
+    expect(st.apiToken, 'a device token the server now refuses is still sent').toBe('');
+    expect(st.umode).toMatch(/sign in again with the same number and PIN/i);
+    expect(st.storage.mode, 'the device brands are no longer usable').toBe('device');
+    expect(await page.evaluate(() => (window.BrandContext.device.list() || []).map((w) => w.name))).toEqual(['Ravi Kicks']);
+    const refusal = await page.evaluate(() => window.LifecycleAuth.serverActionRefusal('Generating the plan'));
+    expect(refusal, 'a server action would be sent and refused with a bare 401').toBeTruthy();
+    expect(log.slice(mark).filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token was sent to a server that refuses it').toEqual([]);
+
+    // 3. Moving: the same number and PIN create the account in the project,
+    //    and this device's brands are OFFERED for sync - nothing is uploaded.
+    await page.locator('#lnav-utransition').click();
+    await page.waitForSelector('#lnav-mauth');
+    await expect(page.locator('#lnav-mauth-phone')).toHaveValue(PHONE);
+    await page.click('#lnav-mauth-go');
+    await page.waitForSelector('#lnav-mauth[data-state="new"]');
+    await expect(page.locator('#lnav-mauth-name')).toHaveValue('Ravi');
+    await page.fill('#lnav-mauth-pin', PIN);
+    await page.click('#lnav-mauth-go');
+    await page.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.mode === 'supabase' && window.LifecycleAuth.session.verified === true, null, { timeout: 15000 });
+    expect(f.userByPhone(E164)).toBeTruthy();
+    await page.waitForFunction(() => window.BrandContext.storage().mode === 'server' && window.BrandContext.storage().device_count === 1, null, { timeout: 10000 });
+    expect(f.tables.brand_workspaces, 'a device brand was uploaded unasked').toEqual([]);
+  } finally {
+    await new Promise((r) => srv.close(r));
+  }
+});
