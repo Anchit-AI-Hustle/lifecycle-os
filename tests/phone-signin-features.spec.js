@@ -510,8 +510,11 @@ test('signed in with a phone, "Build context pack" builds the whole pack and DES
 
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#packDesign')]);
     expect(dl.suggestedFilename()).toBe('DESIGN.md');
-    const text = fs.readFileSync(await dl.path(), 'utf8');
-    expect(text).toBe(kept.row.design_md);
+    // The bytes the browser actually downloaded (a runtime artefact, not a source file).
+    const chunks = [];
+    for await (const c of await dl.createReadStream()) chunks.push(c);
+    const downloaded = Buffer.concat(chunks).toString('utf8');
+    expect(downloaded).toBe(kept.row.design_md);
     // Read back from the device on a fresh load, without asking the server.
     const before = log.api.length;
     await page.goto(HOST + '/onboarding.html?id=' + BRAND_ID_2 + '&step=6', { waitUntil: 'domcontentloaded' });

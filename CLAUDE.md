@@ -4,6 +4,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Signing in with a phone never turns a feature off (2026-10-03)
+The operator's words, with a phone screenshot of production `/onboarding` after signing in with a
+mobile number and PIN: *"All features must work even with signin by number and pin"* (earlier: *"not
+working after signin"*). Production is DEVICE mode (no `DATABASE_URL`, Supabase paused). #115 made
+the server admit a device token from a page; the PAGES and several handlers never caught up, so a
+person who had just signed in met "Not available on a mobile-number account", 403/404/409 sentences,
+or an empty plan. Gated by `tests/phone-signin-features.spec.js`, `tests/phone-signin-everywhere.spec.js`
+and the device-session state of `tests/signed-out-actions.spec.js` — every one EXECUTED against the
+shipped routers, every fix mutation-verified.
+- **The rule: what the server would answer, never the account type.** A phone sign-in (either mode)
+  is ON. OFF only for a visitor with no session (remedy: sign in with mobile + PIN) and for a device
+  sign-in on a deployment that NOW keeps accounts in a database (its token is not in `app_sessions`;
+  remedy: sign in again). `brand-context.js` `readSite()` / `serverActions()`; `onboarding.html`
+  `actionsOff()`. Never tell a signed-in person to sign in.
+- **The server READS, the device KEEPS.** Anything that was refused because it was *filed* in a
+  workspace table is read by the server and handed back: `importCatalogToDevice()` (one reader,
+  `readCatalogSource()`, shared with the account import), `devicePackStep()` (the SAME context-pack
+  stages over a one-request `memoryStore`, the browser drives the queue and carries its row),
+  TeleSuite (`restOf(ctx)` → `deviceStore`: every op is the same code over what the request carries,
+  writes come back as `device`), the concierge (`deviceChat`, agents kept on the device), Smart Brain
+  decisions (`calendar.js DEVICE_DECISIONS`: approve builds exactly as preview, nothing persisted).
+  The browser keeps each beside the brand under the per-account namespace, so another person on the
+  same browser sees none of it, and deleting the brand deletes them.
+- **The device brand travels with every request.** `brand-context.js` carries `BrandContext.carry()`
+  on every JSON POST to `/api/brain|calendar|ai/*` for a phone sign-in — the device twin of the
+  `workspace_id` stamp. Without it Daily Sync planned for an UNRESOLVED brand and came back empty, and
+  Generate plan failed `markets_required`. Pages no longer remember it call site by call site.
+- **A page's FIRST request left signed out.** `auth.js` loads deferred and wraps `fetch` later, and a
+  device brand's requests went out through `brand-context.js`'s captured native fetch: the stored
+  phone token is attached there now (`deviceSend()`/`phoneToken()`).
+- **A model of the server cannot find what the server does.** The sweep's device-session state used
+  to answer every gated op "ok", so TeleSuite's 403, the concierge's 404, Smart Brain's 409 and two
+  long-standing bugs for EVERY caller were invisible to it: `Credits.api('usage&days=30')`
+  URL-encoded the whole string (the usage and ledger panels never loaded), and `ad-campaigns.html`
+  read the plan from `/api/brain`, which has no `smart-brain-*` action. Run on the real routers that
+  state reports 13 defects on main and 0 here.
+- **Not opened, on purpose**: no token, a forged JWT, and a device token with no Origin still reach
+  no model and read no store (`phone-signin-features` executes all three for every op it opened).
+  The concierge for a phone sign-in does NOT use `chat()`: that prompt is tenant zero's (craft facts,
+  guardrails), and running another brand's customers through it would put one company's claims in
+  another's assistant. Data-analysis views answer a phone sign-in's honest "not connected" state,
+  never the deployment's connectors, and a delivery test is not sent through the operator's channels.
+- **Known limits, said not hidden**: a device catalogue is not yet carried to the GENERATORS
+  (ads / landing pages / mailers render their DATA REQUIRED marker for product imagery); sending
+  (dispatch) and platform connections need encrypted secrets a device does not hold; Smart Brain's
+  plan-maintenance actions (heal, activate-scenario, recalibrate) still refuse — the console calls none.
+
 ## ⭐ Features run without DATABASE_URL (2026-09-30) — read `docs/mobile-pin-signin.md`, `docs/agents-status.md`
 Production is device mode (`no_database_url`) with model keys and no Neon. Until this date
 `LifecycleStatus.refusal()` blocked every server action for a device-mode sign-in, `apiToken()`
