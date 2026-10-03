@@ -271,7 +271,9 @@ async function resolve(req, opts) {
     // exist: the record the page CARRIED with the request (the device brand,
     // used for this request and stored nowhere), or the unresolved placeholder
     // whose every field is a DATA REQUIRED marker. Tenant zero is neither.
-    if (auth.provider === 'mobile-pin') return carriedBrand(body, auth) || unresolvedBrand('mobile-number account: the brand record is saved on the device, and this request did not carry it');
+    // A phone account IN SUPABASE AUTH (mode 'supabase', 2026-10-03) has a
+    // workspace row like any account, so it is resolved below through RLS.
+    if (auth.provider === 'mobile-pin' && auth.mode !== 'supabase') return carriedBrand(body, auth) || unresolvedBrand('mobile-number account: the brand record is saved on the device, and this request did not carry it');
 
     // Resolve WHICH workspace first, then cache the workspace row against that
     // id. Caching against `<user>|<explicit>` instead would key every implicit

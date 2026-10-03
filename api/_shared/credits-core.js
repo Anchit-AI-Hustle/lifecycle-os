@@ -362,7 +362,11 @@ async function meter(req, featureKey, opts) {
   // answer; hitting the paused host used to 503 every listed turn as
   // backend_unreachable, and refusing the device principal used to 401 every
   // unsigned-out press. Anonymous callers never reach this (requireUser 401).
-  if (isDeviceAuth(auth) || standaloneMode()) {
+  // A principal verified by Supabase Auth (mode 'supabase', 2026-10-03) is
+  // NEVER standalone: the project answered, its ledger is there, and running
+  // it unmetered because DATABASE_URL (Neon) is unset would hand every phone
+  // account - listed or not - the provider budget for free.
+  if (isDeviceAuth(auth) || (standaloneMode() && auth.mode !== 'supabase')) {
     return {
       ok: true, free: true, unmetered: true, hold_id: null, quote: q, charged: 0,
       workspace_id: null, auth, mode: 'device',
@@ -894,7 +898,7 @@ async function handle(req, res) {
 
   // STANDALONE / DEVICE MODE (2026-09-30): no ledger, no wallet, features still
   // run. The pill says so; usage and the ledger are empty rather than 503.
-  if (isDeviceAuth(auth) || standaloneMode()) {
+  if (isDeviceAuth(auth) || (standaloneMode() && auth.mode !== 'supabase')) {
     const prices = await priceList().catch(() => catalog.list());
     const packs = await packList().catch(() => catalog.packList(null));
     if (op === 'balance') {
