@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "new-balance",
+  "start": "https://www.newbalance.com",
+  "landed": "https://www.newbalance.com/",
+  "observed_at": "2026-09-30",
+  "status": 403,
+  "title": "New Balance Shoes & Apparel | Official New BalanceÂ® Site",
+  "note": "The page did not serve the brand site (status 403, title \"New Balance Shoes & Apparel | Official New BalanceÂ® Site\"). Nothing was filled in from it."
+}

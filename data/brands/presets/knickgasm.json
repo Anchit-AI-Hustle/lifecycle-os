@@ -125,6 +125,64 @@
       "source": "knickgasm.com - custom design request flow"
     }
   ],
+  "brand_assets": [
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332&width=165",
+      "role": "photograph",
+      "alt": "Knickgasm",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-Force-1-Cartooned-x-Coffee-Dip-Rope-Laces-Knickgasm-6546.jpg?v=1761395937&width=720",
+      "role": "photograph",
+      "alt": "Nike Air Force 1 Cartooned x Coffee Dip (Rope Laces) Knickgasm",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-Force-1-Cartooned-x-Coffee-Dip-Rope-Laces-Knickgasm-9333.jpg?v=1774092169&width=720",
+      "role": "photograph",
+      "alt": "Nike Air Force 1 Cartooned x Coffee Dip (Rope Laces) Knickgasm",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/54E1720D-A21E-4617-9ACE-B3311BFBFA6A.jpg?v=1734159516&width=720",
+      "role": "photograph",
+      "alt": "BMW Custom x Nike Air Force 1",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/FullSizeRender_5820c636-c177-4a62-ac50-e4c6d40a6a3a.jpg?v=1790368425&width=720",
+      "role": "photograph",
+      "alt": "Barca x Nike Air Force 1",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-force-1-x-Dior-Custom-Knickgasm-6605.jpg?v=1734418208&width=720",
+      "role": "photograph",
+      "alt": "Nike Air force 1 x Dior Custom Knickgasm",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-force-1-x-Dior-Custom-Knickgasm-3893.jpg?v=1734418209&width=720",
+      "role": "photograph",
+      "alt": "Nike Air force 1 x Dior Custom Knickgasm",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/Nike-Court-Vison-x-Cartoon-Knickgasm-2715.jpg?v=1746788152&width=720",
+      "role": "photograph",
+      "alt": "Nike Court Vison x Cartoon Knickgasm",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "img on the page"
+    }
+  ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

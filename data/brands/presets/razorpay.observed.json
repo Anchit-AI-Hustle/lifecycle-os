@@ -1,0 +1,135 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "razorpay",
+  "start": "https://razorpay.com",
+  "landed": "https://razorpay.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Razorpay - Best Payment Solution for Online Payments India",
+  "source": "Read from https://razorpay.com/ on 2026-09-30. Primary #305eff from computed background of framer-1ozmtm0 (45 elements).",
+  "palette": {
+    "primary": "#305eff",
+    "accent": "#ffbfbf",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f8fafc",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://razorpay.com/"
+    },
+    "ink": {
+      "value": "#000000",
+      "signal": "computed color of body",
+      "source_url": "https://razorpay.com/"
+    },
+    "surface_alt": {
+      "value": "#f8fafc",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://razorpay.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://razorpay.com/"
+    },
+    "primary": {
+      "value": "#305eff",
+      "signal": "computed background of framer-1ozmtm0 (45 elements)",
+      "source_url": "https://razorpay.com/"
+    },
+    "accent": {
+      "value": "#ffbfbf",
+      "signal": "computed background of framer-5w61c2",
+      "source_url": "https://razorpay.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {},
+  "logo_url": "",
+  "logo_signal": "",
+  "assets": [
+    {
+      "url": "https://framerusercontent.com/assets/KJ1tqmJ8dStXoXj7xeNbsNv6uQ.png",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/PgsePDHRiCD1q0DVjDWxvFhkQZ0.png?scale-down-to=512&width=2295&height=279",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/2G9eJ6Jm2vAoH14bNQ0SLl8uow.webp?scale-down-to=1024&width=1793&height=2000",
+      "role": "photograph",
+      "alt": "blob_yobfpt.webp",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/nKNFP0ohnaUiL7ukr0zuBsnoU.png?scale-down-to=1024&width=1201&height=2206",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/DLAzb4nnb07TfXrwvOc0UtME8.png?scale-down-to=512&width=1312&height=762",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/YP8jogvJToMEAzQelSO7hKWo8.png?scale-down-to=1024&width=1198&height=1046",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/deoBetaoEdkVH4ZWYRHVp64NPU.png?scale-down-to=1024&width=1221&height=1050",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/96R7VlBEnZsuWetDYK835OeP44.png?scale-down-to=1024&width=1221&height=1046",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

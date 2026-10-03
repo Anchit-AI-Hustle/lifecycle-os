@@ -201,12 +201,13 @@ const PRESETS = [
    absent, so the default is a neutral that cannot be mistaken for a brand
    colour - the same reasoning logo-brief.js uses when it refuses to invent one.
 
-   HOW THE REAL VALUES ARRIVE. Every template carries `needs_extraction` and the
-   site to read. Picking one and pressing Read this site runs the extractor that
-   already exists (brand-extract.js on ?op=extract), from the deployment, which
-   can reach these hosts. Each field then arrives as a CANDIDATE with its source
-   URL for the operator to accept - the same door every other automatic value
-   comes through, and the same one `brand_field_provenance` guards.
+   HOW THE REAL VALUES ARRIVE. `scripts/observe-preset-brands.js` loads the
+   brand's own site and writes `<slug>.observed.json` — the theme colour, the
+   logo's colour, the fonts in use, the logo URL and the image URLs the page
+   requested. This file copies those across when the palette still passes
+   validatePalette. A site that did not load leaves the neutral default in
+   place. Voice, claims and prices are never filled from that file: a colour
+   and a photograph the page published are not a tone of voice or a price.
 
    Voice, claims and offerings stay EMPTY with a marker. voice.banned in
    particular is never machine-filled, by rule.
@@ -370,8 +371,76 @@ const TEMPLATE_BRANDS = [
 
 for (const t of TEMPLATE_BRANDS) PRESETS.push(t);
 
+const HAND_VERIFIED = new Set(['knickgasm', 'economic-times', 'times-of-india', 'toi-health-fitness', 'apple']);
+
+/**
+ * Copy an observation onto a preset. Hand-verified profiles keep the palette
+ * and type that were read when they were written; an observation may only add
+ * the logo and the image URLs. A template takes the observed palette and type
+ * only when chooseSchema already passed the palette gate (`palette_ok`).
+ */
+function absorbObservation(rec) {
+  const file = path.join(OUT, `${rec.slug}.observed.json`);
+  if (!fs.existsSync(file)) return;
+  let obs;
+  try { obs = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return; }
+  if (!obs || !obs.ok) return;
+
+  const assets = (obs.assets || []).filter((a) => a && /^https:\/\//i.test(a.url)).slice(0, 8);
+  if (assets.length) rec.brand_assets = assets.map((a) => ({
+    url: a.url, role: a.role || 'photograph', alt: a.alt || '', found_on: a.found_on || obs.landed || '', signal: a.signal || '',
+  }));
+  if (obs.logo_url && /^https:\/\//i.test(obs.logo_url) && !rec.logo_url) {
+    rec.logo_url = obs.logo_url;
+    rec.preset.logo_signal = obs.logo_signal || '';
+  }
+  const hosts = new Set(rec.asset_hosts || []);
+  for (const a of rec.brand_assets || []) {
+    try { hosts.add(new URL(a.url).host); } catch (_) { /* a URL that does not parse is not a host */ }
+  }
+  if (rec.logo_url) {
+    try { hosts.add(new URL(rec.logo_url).host); } catch (_) { /* same */ }
+  }
+  rec.asset_hosts = [...hosts].filter((h) => h && !/doubleclick|google-analytics|facebook\.com|gstatic/i.test(h)).slice(0, 8);
+
+  if (HAND_VERIFIED.has(rec.slug)) return;
+  if (!obs.palette_ok || !obs.palette || !obs.palette.primary) return;
+
+  rec.palette = Object.assign({}, obs.palette);
+  rec.preset.palette_source = 'verified';
+  rec.preset.palette_evidence = obs.evidence || {};
+  rec.preset.verified_at = obs.observed_at || null;
+  rec.preset.needs_extraction = false;
+  rec.preset.source = obs.source || rec.preset.source;
+
+  const type = obs.typography || {};
+  if (type.heading && type.heading.family && type.body && type.body.family) {
+    rec.typography = {
+      heading: { family: type.heading.family, stack: type.heading.stack, google: !!type.heading.google, weights: type.heading.weights || '600;700' },
+      body: { family: type.body.family, stack: type.body.stack, google: !!type.body.google, weights: type.body.weights || '400;500;600' },
+    };
+    rec.preset.typography_source = 'verified';
+    rec.preset.typography_evidence = {
+      heading: type.heading.signal || '', body: type.body.signal || '',
+    };
+  }
+
+  const photos = (rec.brand_assets || []).filter((a) => a.role !== 'logo');
+  if (photos.length && Array.isArray(rec.catalog_placeholder)) {
+    rec.catalog_placeholder.forEach((row, i) => {
+      const photo = photos[i];
+      if (!photo) return;
+      row.image_url = photo.url;
+      row.image_found_on = photo.found_on || '';
+    });
+    rec.catalog_source.note = 'Line names are placeholders. The image on each row is a photograph ' + rec.name + ' publishes on its own site (' + (obs.landed || rec.website) + '). Prices and product URLs were not on that page as a catalogue, so they are empty.';
+  }
+  rec.data_gaps = (rec.data_gaps || []).filter((g) => !/brand palette|typography/.test(g));
+}
+
 let n = 0;
 for (const p of PRESETS) {
+  absorbObservation(p);
   const rec = { ...p, rights_note: RIGHTS, status: 'preset' };
   fs.writeFileSync(path.join(OUT, `${p.slug}.json`), JSON.stringify(rec, null, 2) + '\n', 'utf8');
   n++;

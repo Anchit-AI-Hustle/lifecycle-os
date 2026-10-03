@@ -1,0 +1,27 @@
+{
+  "ok": false,
+  "slug": "samsung",
+  "start": "https://www.samsung.com",
+  "landed": "https://www.samsung.com/us/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Samsung US | Mobile | TV | Home Electronics | Home Appliances | Samsung US",
+  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
+  "snapshot_summary": {
+    "theme": "",
+    "logoColor": "",
+    "paints": [
+      {
+        "hex": "#ef3434",
+        "n": 2,
+        "sample": "cart-in-number gnb-cart-count"
+      },
+      {
+        "hex": "#1429a0",
+        "n": 2,
+        "sample": "truste-button1"
+      }
+    ],
+    "vars": []
+  }
+}
