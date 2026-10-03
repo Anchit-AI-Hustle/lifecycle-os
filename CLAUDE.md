@@ -45,7 +45,19 @@ configured project that does not answer falls through and says so (`supabase:{re
   the security checks each fail it. The ten tests that were red on main at the time are fixed by #118's
   `claude/main-ci-green`, merged here; with it the meter is keyed on the principal (only a device principal is
   unmetered), which a Supabase-verified user never is.
-- **Review findings, both reproduced first** (25 tests now): a renewal that could not be MADE (host down, 429,
+- **Second and third review rounds (32 tests): ONE session state shared by every tab.** The stored record carries
+  `state` (`verified`/`unverified`) and every transition is written there first and applied from it: another
+  tab signing out ends the session here; another person signing in replaces it whole; an adopted renewal carries
+  its verified state; a scheduled renewal that cannot be made marks it unverified (no dead token sent, brands on
+  the device). A device account made while the project was down keeps working when it returns, sends no token
+  the server refuses (pre-boot calls WAIT for the decision; the config and auth calls, which decide, never wait),
+  and is offered the move (same number + PIN; device brands offered for sync). Server: a Supabase JWT is routed
+  by the TOKEN (never to Neon's session table on one failed probe); `/api/public-config` publishes the one public
+  key the broker accepts (never a server key) and no key means no supabase mode; and **the adoption path
+  (`phone_exists`) reserves a lockout try first** - migration `20261003142200_mobile_pin_lockout_covers_adoption.sql`,
+  measured: 30 concurrent pending attempts allow exactly 5. CI caught a test reading a save's status before
+  the response finished; it now waits for the answer.
+- **Review findings, both reproduced first** (25 tests then): a renewal that could not be MADE (host down, 429,
   5xx, no config, an unrecognised refusal) no longer ends the session - only the documented refusals
   (`refresh_token_not_found`/`_already_used`, `session_not_found`/`_expired`, `user_not_found`, `user_banned`)
   do; the session is kept unverified, said, retried, and re-verified when a retry succeeds. And two tabs no
