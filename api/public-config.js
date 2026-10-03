@@ -307,7 +307,10 @@ module.exports = async function handler(req, res) {
   return res.status(200).json({
     supabase: {
       url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ldb.url || '',
-      anonKey: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ldb.anonKey || '',
+      // The ONE browser-visible key, chosen where the auth broker chooses it
+      // (anon, else publishable; never a server key), so the browser can
+      // renew exactly the sessions the server issues (review, 2026-10-03).
+      anonKey: require('./_shared/mobile-auth-supabase.js').publicKey() || ldb.anonKey || '',
     },
     // The regions are tenant zero's OWN, read off its record, not a list typed
     // here: the active brand's markets come from its workspace (brand-context

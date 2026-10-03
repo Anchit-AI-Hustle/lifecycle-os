@@ -265,7 +265,7 @@
     try {
       var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
       if (!raw || typeof raw !== 'object' || !raw.token || !raw.user || !raw.user.id) return '';
-      if (raw.mode !== 'server' && raw.mode !== 'device') return '';
+      if (raw.mode !== 'server' && raw.mode !== 'device' && raw.mode !== 'supabase') return '';
       if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
       return String(raw.user.id);
     } catch (_) { return ''; }
@@ -293,10 +293,11 @@
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
   /**
-   * The mobile+PIN session (2026-09-28), if that is who is signed in. It has
-   * NO Supabase JWT: brand_workspaces is gated by auth.uid() and a phone
-   * account has none, so its brands live in the device store whichever mode
-   * the ACCOUNT is in - server (the Neon database) or device.
+   * The mobile+PIN session (2026-09-28), if that is who is signed in. In
+   * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
+   * gated by auth.uid() and such an account has none, so its brands live in
+   * the device store. In supabase mode (2026-10-03) it IS a Supabase user
+   * with a real JWT, and modeFor() sends its brands to the account.
    */
   function mobileSession() {
     try {
@@ -310,7 +311,13 @@
   }
   function modeFor(kind) {
     if (KIND_DEVICE[kind]) return 'device';
-    if (mobileSession()) return 'device';
+    var ms = mobileSession();
+    // A phone account IN SUPABASE AUTH (2026-10-03) has a Supabase identity
+    // and a real JWT, so brand_workspaces answers it through RLS like any
+    // account: its brands are saved to the ACCOUNT. Only while that session
+    // cannot be checked (the project not answering) do they go to the device.
+    if (ms && ms.mode === 'supabase' && ms.verified) return 'server';
+    if (ms) return 'device';
     return 'server';
   }
   /** '' while auth.js has not decided (or is absent). */
@@ -849,14 +856,15 @@
       // checkable session refuses, and that refusal is the gate being real - so
       // the wizard disables the control rather than sending a request it knows
       // will be refused.
-      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && ms.mode === 'server' && ms.verified),
+      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && (ms.mode === 'server' || ms.mode === 'supabase') && ms.verified),
     };
   }
 
   /** "Signed in as <name> · workspaces are saved on this device[ · account in the database]". */
   function accountSentence(ms) {
+    if (ms.mode === 'supabase' && ms.verified) return 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · brands are saved to your account';
     var s = 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · workspaces are saved on this device';
-    if (ms.mode === 'server') s += ' · account in the database';
+    if (ms.mode === 'server' || ms.mode === 'supabase') s += ' · account in the database';
     return s;
   }
 

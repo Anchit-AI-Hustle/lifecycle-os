@@ -193,7 +193,25 @@ async function verifyCaller(req) {
         message: 'Your sign-in has expired. Sign in again and retry.',
       };
     }
-    return { ok: true, token, user_id: user.id, email: String(user.email || '').toLowerCase() };
+    // A PHONE ACCOUNT IN SUPABASE AUTH (2026-10-03). The same verified user
+    // record says whether this is a mobile-number account, read from
+    // app_metadata - which only the service role can write - never from
+    // anything the request says about itself. `provider:'mobile-pin'` keeps
+    // the phone rules everywhere they are keyed (credits: an unlisted number
+    // holds no wallet; a listed one holds a personal wallet), and
+    // `mode:'supabase'` says this phone account HAS a Supabase identity, so
+    // the paths that used to answer "your brands are on the device" for a
+    // phone token (brand-runtime, TeleSuite) read its workspaces like any
+    // account's, through RLS. Every principal verified here is mode
+    // 'supabase': the project answered, so its ledger is the one to meter on.
+    const phoneId = require('./mobile-auth-supabase.js').phoneIdentity(user);
+    if (phoneId) {
+      return {
+        ok: true, token, user_id: user.id, email: '',
+        phone: phoneId.e164, name: phoneId.name, provider: 'mobile-pin', mode: 'supabase',
+      };
+    }
+    return { ok: true, token, user_id: user.id, email: String(user.email || '').toLowerCase(), mode: 'supabase' };
   } catch (err) {
     return {
       ok: false, status: 503, error: 'session_verification_unavailable', backend_unreachable: true,

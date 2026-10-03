@@ -228,7 +228,9 @@ async function context(req) {
   // account_type_unsupported. That refusal used to be THROWN out of this
   // function, past handle()'s try/catch, and reach the router as a 500 with
   // the sentence in the wrong field. It is answered here, as the state it is.
-  if (auth.provider === 'mobile-pin') {
+  // A phone account IN SUPABASE AUTH (mode 'supabase', 2026-10-03) has that
+  // identity, and runs TeleSuite like any account.
+  if (auth.provider === 'mobile-pin' && auth.mode !== 'supabase') {
     return {
       ok: false, status: 403, error: 'account_type_unsupported',
       message: 'TeleSuite keeps its products, knowledge base and every run in the workspace database beside an email account, '
