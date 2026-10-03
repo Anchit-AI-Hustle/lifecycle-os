@@ -510,3 +510,14 @@ test('telesuite voice: replaying an OLDER validly-signed session for the same ca
   expect(s3 && s3.id).not.toBe(older.id);
   expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'an inflated counter skipped the meter').toBe(1);
 });
+
+test('telesuite voice: a malformed signature (64 characters, one multi-byte) is dropped, never a 500', async () => {
+  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
+  const bad = { id: 'bad-sig', feature: 'voice_session', status: 'in_progress', input: { call_id: 'call-bad', mode: 'sales' },
+    output: { billed_minutes: 999 }, units: 999, credits: 0, created_at: new Date(Date.now() - 600000).toISOString(), signature: 'é' + 'a'.repeat(63) };
+  const r = await call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device: { runs: [bad] }, input: { mode: 'sales', call_id: 'call-bad', history: [], utterance: 'hi', product: 'Lamp' } }, state: 'phone', headers: H2 });
+  expect(r.status, r.text.slice(0, 300)).toBe(200);
+  const s = (r.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s && s.id).not.toBe('bad-sig');
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the fresh session was not metered').toBe(1);
+});
