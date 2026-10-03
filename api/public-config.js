@@ -137,7 +137,19 @@ module.exports = async function handler(req, res) {
           // accounts, which send for its operator, so none is sent for a phone
           // sign-in, and the answer says so rather than reading as a failure.
           if (op === 'save-alert-settings') {
-            return res.status(200).json({ ok: true, persisted: false, storage: 'device', settings: core.mergeSettings(body.settings || {}), note: 'Alert settings kept on this device: this sign-in has no brand workspace in a database to save them to.' });
+            // Echoes only what this person sent, over the device defaults -
+            // never mergeSettings(), which fills the operator's sender in.
+            const x = body.settings && typeof body.settings === 'object' ? body.settings : {};
+            const d = core.phoneSettings();
+            const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o && o[k] !== undefined).map((k) => [k, o[k]]));
+            const settings = Object.assign(d, pick(x, ['enabled', 'cadence_hours', 'cooldown_minutes']), {
+              channels: Object.assign(d.channels, pick(x.channels, ['gmail', 'google_chat', 'sms'])),
+              recipients: Object.assign(d.recipients, pick(x.recipients, ['email', 'sms'])),
+              thresholds: Object.assign(d.thresholds, pick(x.thresholds, Object.keys(d.thresholds))),
+              quiet_hours: Object.assign(d.quiet_hours, pick(x.quiet_hours, Object.keys(d.quiet_hours))),
+              sender_email: '',
+            });
+            return res.status(200).json({ ok: true, persisted: false, storage: 'device', settings, note: 'Alert settings kept on this device: this sign-in has no brand workspace in a database to save them to.' });
           }
           if (op === 'test-alert') {
             return res.status(200).json({ ok: true, storage: 'device', result: { sent_any: false, note: 'Delivery tests go out through this deployment\'s own mail and SMS accounts, which send for its operator, so no test was sent for this sign-in.' } });
@@ -154,16 +166,10 @@ module.exports = async function handler(req, res) {
         since: req.query.since, until: req.query.until,
         hours: req.query.hours ? Number(req.query.hours) : undefined,
       };
+      // A phone sign-in gets an answer BUILT for it (core.phoneView): never
+      // the operator's sender, recipients, connector wiring, runs or telemetry.
+      if (auth.kind === 'phone') return res.status(200).json(core.phoneView(req.query.view || 'status', params));
       const out = await core.view(req.query.view || 'status', params);
-      // For a phone sign-in the views answer "no workspace" honestly; the
-      // sentence they carry ("reload so the brand context loads") is written
-      // for an account whose page lost its brand, and reload would not help a
-      // brand kept on a device. Said for this person instead.
-      if (auth.kind === 'phone' && out && typeof out === 'object') {
-        const phoneNote = 'This brand is kept on this device, so no data source is connected to it on the server, and nothing measured is shown. No other brand\'s figures are substituted.';
-        for (const k of ['note', 'message']) if (typeof out[k] === 'string' && /No active brand workspace on this request/.test(out[k])) out[k] = out[k].replace(/No active brand workspace on this request[^.]*\./, phoneNote);
-        if (out.data_scope && typeof out.data_scope.connect === 'string' && /No active brand workspace/.test(out.data_scope.connect)) out.data_scope.connect = phoneNote;
-      }
       return res.status(200).json(out);
     } catch (e) {
       return res.status(200).json({ ok: false, error: 'data_analysis_failed', message: String(e && e.message || e) });

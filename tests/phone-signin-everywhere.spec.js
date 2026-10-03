@@ -297,3 +297,56 @@ test.describe('the rest of the app, phone sign-in kept on this device, no DATABA
     expect(await failures(page)).toEqual([]);
   });
 });
+
+/* ═══ Bugbot #1 (2026-10-03): a phone sign-in sees none of the operator's identity or wiring ═══ */
+test.describe('data analysis for a phone sign-in carries nothing of the operator', () => {
+  let w;
+  const SET = {
+    ALERT_EMAIL: 'alerts@operator-mark.example', SENDER_EMAIL: 'sender@operator-mark.example',
+    GMAIL_CLIENT_ID: 'gmail-id', GMAIL_CLIENT_SECRET: 'gmail-secret', GMAIL_REFRESH_TOKEN: 'gmail-refresh',
+    GOOGLE_CHAT_WEBHOOK_URL: 'https://chat.operator-mark.example/hook',
+    TWILIO_ACCOUNT_SID: 'ACoperator', TWILIO_AUTH_TOKEN: 'twilio-token', TWILIO_FROM_NUMBER: '+15550000000',
+    PAGEDECK_API_KEY: 'pagedeck-key', META_ACCESS_TOKEN: 'meta-token', META_AD_ACCOUNT_ID: 'act_operator',
+  };
+  let saved;
+  test.beforeAll(async () => {
+    saved = Object.fromEntries(Object.keys(SET).map((k) => [k, process.env[k]]));
+    w = await A.world({ serverMode: false });
+    Object.assign(process.env, SET);
+    // The operator's own rows: alert recipients, the latest hourly run, deployment telemetry.
+    w.db.insert('analytics_alert_settings', { id: 'ws-oldest', workspace_id: 'ws-oldest', recipients: { email: ['owner@operator-mark.example'], sms: ['+15551112222'] }, sender_email: 'alerts@operator-mark.example', updated_at: '2026-10-02T00:00:00Z' });
+    w.db.insert('analytics_hourly_runs', { id: 'run-operator-mark', workspace_id: 'ws-oldest', started_at: '2026-10-03T00:00:00Z', status: 'complete', anomalies: [{ id: 'operator-mark' }] });
+    for (const t of ['activity_logs', 'agent_runs', 'connector_runs', 'analytics_action_outcomes']) w.db.insert(t, { workspace_id: 'ws-oldest', status: 'failed', note: 'operator-mark ' + t, started_at: '2026-10-03T00:00:00Z' });
+  });
+  test.afterAll(async () => {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    await w.close();
+  });
+  test.beforeEach(() => { w.reset(); });
+  const H = (w) => ({ 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone });
+
+  test('saving alert settings echoes only what this person sent, never the operator sender', async () => {
+    const r = await w.request('/api/public-config', { query: { action: 'data-analysis' }, json: { op: 'save-alert-settings', settings: { recipients: { email: ['me@mine.example'] }, cadence_hours: 4 } }, state: 'device', headers: H(w) });
+    expect(r.status, r.text.slice(0, 300)).toBe(200);
+    expect(r.out).toMatchObject({ ok: true, storage: 'device', settings: { sender_email: '', cadence_hours: 4, recipients: { email: ['me@mine.example'], sms: [] } } });
+    expect(r.text).not.toMatch(/operator-mark/);
+  });
+
+  for (const view of ['status', 'alerts', 'ads', 'mailer', 'landing', 'actions']) {
+    test(`view=${view}: an answer for this person, with no operator sender, recipient, connector flag, run or telemetry`, async () => {
+      const r = await w.request('/api/public-config', { query: { action: 'data-analysis', view }, state: 'device', headers: H(w) });
+      expect(r.status, r.text.slice(0, 300)).toBe(200);
+      expect(r.out.ok).toBe(true);
+      expect(r.text, 'an operator identity or row reached a phone sign-in').not.toMatch(/operator-mark|\+1555|act_operator/i);
+      expect(r.text, 'a deployment connector was reported connected to a phone sign-in').not.toMatch(/"connected":\s*true/);
+      expect(r.text).not.toMatch(/Oldest Brand|ws-oldest/);
+      if (view === 'status' || view === 'alerts') {
+        const st = view === 'alerts' ? r.out.status : r.out;
+        expect(st.last_run).toBeNull();
+        const s = view === 'alerts' ? r.out.settings : r.out.settings;
+        expect(s.sender_email).toBe('');
+        expect(s.recipients).toEqual({ email: [], sms: [] });
+      }
+    });
+  }
+});
