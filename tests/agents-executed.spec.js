@@ -101,7 +101,7 @@ const T = [];
 const add = (action, def) => T.push(Object.assign({ action }, def));
 
 add('agents', { run: { method: 'GET' }, anonymous: 'demo',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, agents: [] }); } });
+  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, agents: [], storage: 'device' }); } });
 add('agent-sessions', { run: { method: 'GET' }, anonymous: 'demo',
   phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, sessions: [] }); } });
 add('agent-chat', { run: { json: { message: 'hi there', agent_id: 'agent_x', brand: BRAND } }, anonymous: 'refuse',

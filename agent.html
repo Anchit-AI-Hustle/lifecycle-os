@@ -461,7 +461,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function loadAgents(selectId){
     return fetch(API+'?action=agents').then(function(r){return r.json();}).then(function(j){
       var mine=devAgents();
-      agents=(j.agents&&j.agents.length)?j.agents.concat(mine):(mine.length?FALLBACK.concat(mine):FALLBACK);
+      // A phone sign-in lists ONLY its own device agents (plus the built-in
+      // Brand Agent, which answers as its own brand): never a server row.
+      if(phoneUid()) agents=FALLBACK.concat(mine);
+      else agents=(j.agents&&j.agents.length)?j.agents:FALLBACK;
       var want=selectId||new URLSearchParams(location.search).get('agent');
       current=agents.find(function(a){return a.id===want;})||current||agents[0];
       renderAgents();

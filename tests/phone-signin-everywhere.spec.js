@@ -243,6 +243,36 @@ test.describe('the concierge agent, phone sign-in kept on this device, no DATABA
   });
 });
 
+/* ═══ Bugbot #2 (2026-10-03): a phone sign-in lists ONLY its own agents ═══ */
+test.describe('the concierge lists only this device\'s agents for a phone sign-in', () => {
+  let w;
+  test.beforeAll(async () => { w = await A.world({ serverMode: false }); });
+  test.afterAll(async () => { await w.close(); });
+  test.beforeEach(() => { w.reset(); });
+
+  test('the server answers an empty, device-scoped list, whatever the agent table holds', async () => {
+    w.db.insert('smart_agents', { id: 'agent_tenant_zero', name: 'Tenant Zero Concierge', level: 'brand', active: true, workspace_id: 'ws-oldest' });
+    const r = await w.request('/api/brain', { query: { action: 'agents' }, state: 'device', headers: { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone } });
+    expect(r.status).toBe(200);
+    expect(r.out).toEqual({ ok: true, agents: [], storage: 'device' });
+  });
+
+  test('the page never mixes server agents into a phone sign-in\'s list', async ({ page }) => {
+    const log = await open(page, w, 'agent.html');
+    // Even if a server ever answered with another brand's agent, the page does
+    // not list it (registered after open()'s routes, so it is the one that answers).
+    await page.route(/\/api\/brain\?action=agents(&|$)/, (route) => route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, agents: [{ id: 'agent_tenant_zero', name: 'Tenant Zero Concierge', level: 'brand', greeting: 'Hi from tenant zero', voice: {} }] }) }));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#send');
+    await page.waitForTimeout(800);
+    const shown = await page.evaluate(() => document.body.innerText);
+    expect(shown).not.toContain('Tenant Zero Concierge');
+    expect(shown).not.toContain('Hi from tenant zero');
+    expect(log.errors).toEqual([]);
+  });
+});
+
 /* ═══ Pages the real-router sweep found refusing a phone sign-in ════════════ */
 test.describe('the rest of the app, phone sign-in kept on this device, no DATABASE_URL', () => {
   let w;

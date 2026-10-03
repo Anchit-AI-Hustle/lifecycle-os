@@ -588,6 +588,10 @@ module.exports = async function handler(req, res) {
 
       // ── AGENTS ───────────────────────────────────────────────────────────
       case 'agents': {
+        // A phone sign-in's agents live on its device (agent.html); the agent
+        // table belongs to workspaces, so it lists none of them - structurally,
+        // not by relying on the table's workspace scope (Bugbot, 2026-10-03).
+        if (__auth && __auth.ok && __auth.provider === 'mobile-pin') return res.json({ ok: true, agents: [], storage: 'device' });
         return res.json({ ok: true, agents: await agents.listAgents() });
       }
       // A PHONE SIGN-IN'S AGENTS ARE KEPT ON ITS DEVICE (2026-10-03): it has
