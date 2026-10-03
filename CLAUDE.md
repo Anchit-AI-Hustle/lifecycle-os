@@ -4,6 +4,66 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Phone accounts live in Supabase Auth (2026-10-03) — read `docs/mobile-pin-signin.md` ("Supabase mode")
+The operator's words: "use supabase cli and remote host for supabase account creation", "All features must
+work even with signin by number and pin" (and: the new project is `lifecycle-os`, never named after a tenant). A phone account in
+Neon or the browser has no Supabase identity, so every RLS-gated feature refused it after a sign-in that had
+visibly worked. Now `op=status` answers **`supabase` first** (SUPABASE_URL + a server key set AND
+`GET /auth/v1/health` answers) > `server` (Neon) > `device` (unchanged, incl. #115's device principal); a
+configured project that does not answer falls through and says so (`supabase:{reachable:false, host}`).
+`api/_shared/mobile-auth-supabase.js` brokers every op in that mode (still 12/12 functions).
+- **The PIN is never the GoTrue password.** GoTrue's minimum is 6, and 4 digits on the public password grant
+  is 10,000 guesses for anyone with the anon key. Password = `"Pn1." + base64url(HMAC-SHA256(MOBILE_PIN_PEPPER,
+  "lifecycle-os/mobile-pin/v1|" + E.164 + "|" + PIN))`, derived only on the server. No pepper (or < 32 chars):
+  `enter` is refused 503 `pin_pepper_missing` before ANY request. Rotation via `MOBILE_PIN_PEPPER_PREVIOUS`.
+- **Lockout before GoTrue, in one statement**: `mobile_pin_attempt()` reserves the try (and sets the lock) under
+  the row lock, so 20 concurrent wrong PINs evaluate at most 5. **A grant refusal counts as a wrong PIN unless it
+  is 429, 5xx/no answer or `phone_provider_disabled`** - whitelisting `invalid_credentials` instead would refund
+  any code the service adds later (fail closed). Per-address budget: `mobile_pin_rate_hit()`, hashed address.
+- **Trusted marker in `app_metadata`** (`lifecycle_account:'mobile-pin', phone_e164`), which only the service
+  role writes; a marker in `user_metadata` is ignored (tested with a forger). `requireUser()` answers
+  `{provider:'mobile-pin', mode:'supabase', phone}`, so credits keep the phone rules (unlisted: no wallet, no
+  welcome grant; `CREDITS_COMP_PHONES`: one personal wallet keyed to the Supabase uid, free recharge; the
+  operator emails unaffected), while `brand-runtime`/TeleSuite read its workspaces through RLS like any account.
+  **Every GoTrue-verified principal is `mode:'supabase'` and never takes the meter's standalone bypass**, and a
+  device-shaped token is refused while the project answers - otherwise "no DATABASE_URL" would run every phone
+  account unmetered beside a live ledger.
+- **Browser**: `lifecycle.auth.session` holds `{token, refresh_token, expires_at, mode:'supabase'}`;
+  `apiToken()` = the access token; renewed a minute before expiry straight against
+  `/auth/v1/token?grant_type=refresh_token` with the ANON key (per-IP limit = the person's address, not
+  Vercel's), one renewal at a time across tabs; handed to supabase-js via `setSession()`; sign-out revokes via
+  `POST /auth/v1/logout`. brand-context sends a VERIFIED Supabase phone session down the server path (brands
+  saved to the account); unverified stays on the device; device rows are offered for sync, never uploaded.
+- **Every endpoint is cited** (docs page + the Auth server's OpenAPI; `adminUserCreate` read in its source to
+  confirm it ignores the sign-up switch). **Schema is CLI migrations**: `20260929173555_mobile_pin_supabase_accounts.sql`;
+  duplicate/future version prefixes renamed so `supabase db push` accepts the set (measured from zero on a local
+  Postgres 16). `supabase/config.toml`: `project_id = "lifecycle-os"`, public sign-ups off, Phone provider on.
+  Runbook targets a NEW project `lifecycle-os` (`<project-ref>`); no remote was touched (no access token, egress
+  blocks supabase hosts, the org has unpaid invoices).
+- Gated by `tests/supabase-phone-accounts.spec.js` (18 executed, incl. Chromium against the shipped handler)
+  over `tests/supabase-auth-fake.js` (exactly the endpoints called; throws on anything else). 19 mutations of
+  the security checks each fail it. The ten tests that were red on main at the time are fixed by #118's
+  `claude/main-ci-green`, merged here; with it the meter is keyed on the principal (only a device principal is
+  unmetered), which a Supabase-verified user never is.
+- **Second and third review rounds (32 tests): ONE session state shared by every tab.** The stored record carries
+  `state` (`verified`/`unverified`) and every transition is written there first and applied from it: another
+  tab signing out ends the session here; another person signing in replaces it whole; an adopted renewal carries
+  its verified state; a scheduled renewal that cannot be made marks it unverified (no dead token sent, brands on
+  the device). A device account made while the project was down keeps working when it returns, sends no token
+  the server refuses (pre-boot calls WAIT for the decision; the config and auth calls, which decide, never wait),
+  and is offered the move (same number + PIN; device brands offered for sync). Server: a Supabase JWT is routed
+  by the TOKEN (never to Neon's session table on one failed probe); `/api/public-config` publishes the one public
+  key the broker accepts (never a server key) and no key means no supabase mode; and **the adoption path
+  (`phone_exists`) reserves a lockout try first** - migration `20261003142200_mobile_pin_lockout_covers_adoption.sql`,
+  measured: 30 concurrent pending attempts allow exactly 5. CI caught a test reading a save's status before
+  the response finished; it now waits for the answer.
+- **Review findings, both reproduced first** (25 tests then): a renewal that could not be MADE (host down, 429,
+  5xx, no config, an unrecognised refusal) no longer ends the session - only the documented refusals
+  (`refresh_token_not_found`/`_already_used`, `session_not_found`/`_expired`, `user_not_found`, `user_banned`)
+  do; the session is kept unverified, said, retried, and re-verified when a retry succeeds. And two tabs no
+  longer spend one single-use refresh token: the renewal runs under a Web Lock, re-reads storage inside it, holds
+  the lock briefly after writing (another tab's process sees localStorage a moment later - measured: without the
+  hold, 1 in 5 races still spent the token twice), and checks storage twice before believing a refusal.
 ## ⭐ Main was red for three days, and every cause was real (2026-10-03)
 PR #115 (`e67304a`) and PR #116 (`05d0e42`) were merged with failing CI; production deployed anyway.
 52 Playwright tests and the brand-isolation build step were red. None was flaky:

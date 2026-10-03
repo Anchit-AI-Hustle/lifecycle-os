@@ -54,6 +54,17 @@
  * app_sessions - a forged or leftover device token is not a server session.
  * An anonymous call (no token) is still anonymous.
  *
+ * ── SUPABASE MODE (2026-10-03) ─────────────────────────────────────────────
+ * A THIRD store, and the first in precedence: `supabase`, when SUPABASE_URL
+ * and a server key are set AND the auth service answers GET /auth/v1/health.
+ * The account is then a real auth.users row and the browser holds a real
+ * Supabase session, so RLS, requireUser(), restAs(), credits and the agents
+ * see a person - see mobile-auth-supabase.js, which this module hands every
+ * op to in that mode. Precedence: supabase > server (Neon) > device. A
+ * configured project that does not answer falls through to the next mode and
+ * the answer SAYS so (`supabase:{host, reachable:false}`), because "no
+ * project" and "a project that is down" are different things to be told.
+ *
  * NOT A FUNCTION FILE. Mounted on api/public-config.js?action=auth (the Hobby
  * plan caps this project at 12 serverless functions and it is at the cap). The
  * driver is required lazily so this file loads - and its rules can be tested -
@@ -303,9 +314,57 @@ async function sessionUser(sql, token) {
  * each wait out the probe's timeout. An injected `deps.sql` bypasses the cache,
  * so a test drives the real probe every time.
  */
-const STATUS_TTL_MS = { server: 30000, device: 5000 };
+const STATUS_TTL_MS = { supabase: 30000, server: 30000, device: 5000 };
 let statusCache = null;   // { url, at, answer }
+
+/**
+ * The Supabase half of the status answer, or null when no project is
+ * configured. Cached per URL like the Neon probe: a project that answers for
+ * 30 s, one that does not for 5 s. `deps.fresh` (a test) bypasses the cache.
+ */
+let supaCache = null;     // { url, at, answer }
+async function supabaseStatus(deps) {
+  const supa = require('./mobile-auth-supabase.js');
+  const cfg = supa.config();
+  if (!cfg) return null;
+  // No key a browser may hold: the session could be issued but never renewed
+  // in the browser, so this is NOT supabase mode, and the answer says why.
+  if (!cfg.publicKey) {
+    return { configured: true, reachable: false, host: cfg.host, pin_ready: !!supa.pepper(), reason: 'no_public_key',
+      detail: 'no browser-visible key: set SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY)' };
+  }
+  const fresh = !!(deps && (deps.fresh || typeof deps.sql === 'function'));
+  if (!fresh && supaCache && supaCache.url === cfg.url && Date.now() - supaCache.at < (supaCache.answer.reachable ? 30000 : 5000)) return supaCache.answer;
+  const h = await supa.health(cfg, (deps && deps.timeoutMs) || 4000);
+  const answer = { configured: true, reachable: !!h.ok, host: cfg.host, detail: h.ok ? '' : h.detail, pin_ready: !!supa.pepper() };
+  if (!fresh) supaCache = { url: cfg.url, at: Date.now(), answer };
+  return answer;
+}
+
 async function status(deps) {
+  // SUPABASE FIRST (2026-10-03). A project that answers outranks everything.
+  const sb = await supabaseStatus(deps);
+  if (sb && sb.reachable) {
+    return {
+      ok: true, mode: 'supabase', host: sb.host, pin_ready: sb.pin_ready,
+      message: 'Account saved in the database (' + sb.host + '); brands are saved to your account.',
+    };
+  }
+  const below = await storeStatus(deps);
+  if (sb) {
+    // Configured, not answering: said, and the mode below it is used.
+    return Object.assign({}, below, {
+      supabase: { configured: true, reachable: false, host: sb.host, detail: sb.detail, reason: sb.reason || 'unreachable' },
+      message: below.message + (sb.reason === 'no_public_key'
+        ? ' The account service (' + sb.host + ') is configured without a browser-visible key (SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY), so accounts there cannot be used yet.'
+        : ' The account service (' + sb.host + ') is not answering, so accounts there cannot be used until it does.'),
+    });
+  }
+  return below;
+}
+
+/** The Neon / device answer, exactly as before Supabase mode existed. */
+async function storeStatus(deps) {
   const url = databaseUrl();
   const injected = !!(deps && typeof deps.sql === 'function');
   if (!injected && statusCache && statusCache.url === url && Date.now() - statusCache.at < STATUS_TTL_MS[statusCache.answer.mode]) {
@@ -351,6 +410,17 @@ async function status(deps) {
 async function verifyToken(token, deps) {
   if (!token) return { ok: false, reason: 'no_token' };
   if (!looksLikeToken(token)) return { ok: false, reason: 'not_a_token' };
+  // SUPABASE MODE (2026-10-03): every account is a Supabase user and the
+  // browser holds a Supabase JWT, which never matches this shape. A token of
+  // OUR shape is then a leftover device session or a forgery, and admitting
+  // it as a device principal would run features UNMETERED beside a working
+  // credit ledger - the faucet the phone rules exist to shut. Only a project
+  // that ANSWERS counts: a configured one that is down falls back to the
+  // modes below, exactly as status() does, so #115's standalone path holds.
+  try {
+    const sb = await supabaseStatus(deps);
+    if (sb && sb.reachable) return { ok: false, reason: 'supabase_mode', host: sb.host };
+  } catch (_) { /* a probe that throws is a project that did not answer */ }
   const sql = connect(deps);
   if (!sql) {
     return {
@@ -501,6 +571,26 @@ async function handle(req, res, deps) {
   if (op === 'status') return res.status(200).json(await status(deps));
 
   const st = await status(deps);
+  if (st.mode === 'supabase') {
+    const supa = require('./mobile-auth-supabase.js');
+    return supa.handle(module.exports, supa.config(), req, res, op, method, body);
+  }
+  // ROUTE BY THE TOKEN, NOT ONLY BY THE MODE (review finding, 2026-10-03).
+  // A Supabase JWT belongs to the Supabase project whatever this moment's
+  // health probe said. With Neon also configured, a single failed probe (and
+  // its 5-second negative cache) used to send op=me with a Supabase JWT to
+  // Neon's sessionUser(), which answered 401 - and the browser cleared a
+  // valid session. The project not answering is "cannot be checked right
+  // now" (503, the session is kept), never "signed out".
+  const supaCfg = require('./mobile-auth-supabase.js').config();
+  const jwt = supaCfg ? require('./mobile-auth-supabase.js').jwtOf(req) : '';
+  if (jwt && (op === 'me' || op === 'signout' || op === 'signout_all')) {
+    if (op === 'signout') return res.status(200).json({ ok: true, mode: 'supabase', signed_out: false, host: supaCfg.host, message: 'The account service (' + supaCfg.host + ') is not answering, so this session could not be revoked there; it has been removed from this browser.' });
+    return res.status(503).json({
+      ok: false, error: 'backend_unreachable', backend_unreachable: true, mode: 'supabase', host: supaCfg.host,
+      message: 'The account service (' + supaCfg.host + ') is not answering, so your sign-in cannot be checked right now. Nothing about your account has changed.',
+    });
+  }
   if (st.mode !== 'server') {
     // signout with nothing to sign out of on the server is not a failure: the
     // browser clears its own device session and says so.
@@ -548,8 +638,8 @@ module.exports = {
   pinError, hashPin, verifyPin, lockMessage, triesMessage,
   newToken, tokenHash, looksLikeToken, tokenOf, clientIp,
   databaseUrl, standaloneMode, hostOf, connect, ensureSchema, rateLimit, sessionUser,
-  status, verifyToken, enter, handle,
+  status, storeStatus, supabaseStatus, verifyToken, enter, handle,
   phone,
   /** Drop the memoised drivers and the status answer (tests; a rotated URL needs neither). */
-  _reset() { DRIVERS.clear(); statusCache = null; },
+  _reset() { DRIVERS.clear(); statusCache = null; supaCache = null; },
 };

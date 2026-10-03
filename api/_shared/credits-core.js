@@ -374,6 +374,9 @@ async function meter(req, featureKey, opts) {
   // device principal only exists when there is no DATABASE_URL
   // (verifyToken answers mode:'device' only then), so this branch alone is
   // what standalone mode needs.
+  // A principal verified by Supabase Auth (mode 'supabase', 2026-10-03) is
+  // never a device principal, so it is ALWAYS metered: the project answered
+  // and its ledger is there, whether or not DATABASE_URL (Neon) is set.
   if (isDeviceAuth(auth)) {
     return {
       ok: true, free: true, unmetered: true, hold_id: null, quote: q, charged: 0,
@@ -913,7 +916,8 @@ async function handle(req, res) {
 
   // STANDALONE / DEVICE MODE (2026-09-30): no ledger, no wallet, features still
   // run. The pill says so; usage and the ledger are empty rather than 503.
-  // Keyed on the principal, not on DATABASE_URL: see meter() (2026-10-03).
+  // Keyed on the principal, not on DATABASE_URL: see meter() (2026-10-03). A Supabase-
+  // verified user (mode 'supabase') is never a device principal, so never here.
   if (isDeviceAuth(auth)) {
     const prices = await priceList().catch(() => catalog.list());
     const packs = await packList().catch(() => catalog.packList(null));
