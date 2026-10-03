@@ -242,7 +242,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      back what it wrote, which is kept here (telesuite-core.js deviceStore). */
   var DEVICE_LOCAL = /^(items|item-save|item-delete|items-seed|runs|run-delete|summary)$/;
   function phoneSession() {
-    try { var s = window.LifecycleAuth && window.LifecycleAuth.session; return s && s.provider === 'mobile-pin' && s.user && s.user.id ? s : null; } catch (_) { return null; }
+    // A phone account in Supabase Auth (#119) has workspaces: it uses the server like any account.
+    try { var s = window.LifecycleAuth && window.LifecycleAuth.session; return s && s.provider === 'mobile-pin' && s.mode !== 'supabase' && s.user && s.user.id ? s : null; } catch (_) { return null; }
   }
   function devKey() { var s = phoneSession(); return 'lifecycle.telesuite.device.' + (s ? s.user.id : '') + '.' + (wsId() || 'none'); }
   function devRead() {

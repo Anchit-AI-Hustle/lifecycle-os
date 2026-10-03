@@ -265,7 +265,7 @@
     try {
       var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
       if (!raw || typeof raw !== 'object' || !raw.token || !raw.user || !raw.user.id) return '';
-      if (raw.mode !== 'server' && raw.mode !== 'device') return '';
+      if (raw.mode !== 'server' && raw.mode !== 'device' && raw.mode !== 'supabase') return '';
       if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
       return String(raw.user.id);
     } catch (_) { return ''; }
@@ -292,10 +292,11 @@
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
   /**
-   * The mobile+PIN session (2026-09-28), if that is who is signed in. It has
-   * NO Supabase JWT: brand_workspaces is gated by auth.uid() and a phone
-   * account has none, so its brands live in the device store whichever mode
-   * the ACCOUNT is in - server (the Neon database) or device.
+   * The mobile+PIN session (2026-09-28), if that is who is signed in. In
+   * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
+   * gated by auth.uid() and such an account has none, so its brands live in
+   * the device store. In supabase mode (2026-10-03) it IS a Supabase user
+   * with a real JWT, and modeFor() sends its brands to the account.
    */
   function mobileSession() {
     try {
@@ -309,7 +310,13 @@
   }
   function modeFor(kind) {
     if (KIND_DEVICE[kind]) return 'device';
-    if (mobileSession()) return 'device';
+    var ms = mobileSession();
+    // A phone account IN SUPABASE AUTH (2026-10-03) has a Supabase identity
+    // and a real JWT, so brand_workspaces answers it through RLS like any
+    // account: its brands are saved to the ACCOUNT. Only while that session
+    // cannot be checked (the project not answering) do they go to the device.
+    if (ms && ms.mode === 'supabase' && ms.verified) return 'server';
+    if (ms) return 'device';
     return 'server';
   }
   /** '' while auth.js has not decided (or is absent). */
@@ -914,9 +921,13 @@
   function serverActions(k, ms) {
     if (!k || k === 'pending') return { on: true, decided: false, state: 'undecided' };
     if (ms) {
-      if (ms.mode === 'device' && accountStore && accountStore.mode === 'server') return { on: false, decided: true, state: 'stale-device-session' };
+      // A device sign-in on a deployment whose accounts now live in a database
+      // that answers (Neon 'server', or Supabase Auth 'supabase' - #119 refuses
+      // a device token while the project answers) is stale: sign in again.
+      if (ms.mode === 'device' && accountStore && (accountStore.mode === 'server' || accountStore.mode === 'supabase')) return { on: false, decided: true, state: 'stale-device-session' };
       if (ms.mode === 'device') askAccountStore();
-      return { on: true, decided: ms.mode === 'server' || !!accountStore, state: ms.mode === 'server' ? 'server-session' : 'device-session' };
+      var acct = ms.mode === 'server' || ms.mode === 'supabase';
+      return { on: true, decided: acct || !!accountStore, state: acct ? 'server-session' : 'device-session' };
     }
     if (KIND_DEVICE[k]) return { on: false, decided: true, state: 'signed-out' };
     // A signed-in account with a database behind it, or the localhost preview.
@@ -965,7 +976,7 @@
   function readSite(k, b, ms) {
     var out = { on: true, decided: false, state: 'undecided', supabase: '', store: accountStore, host: (b && b.host) || '' };
     if (!k || k === 'pending') return out;
-    if (ms && ms.mode === 'server') { out.decided = true; out.state = 'checkable-session'; return out; }
+    if (ms && (ms.mode === 'server' || ms.mode === 'supabase')) { out.decided = true; out.state = 'checkable-session'; return out; }
     // A DEVICE-mode sign-in sends its token since 2026-09-30, and with no
     // database the server admits it as a device principal from a page - so it
     // is ON for the same reason a server-mode session is. The one exception is
@@ -975,7 +986,7 @@
       askAccountStore();
       if (!accountStore) { out.state = 'device-session'; return out; }
       out.decided = true;
-      if (accountStore.mode === 'server') { out.on = false; out.state = 'stale-device-session'; return out; }
+      if (accountStore.mode === 'server' || accountStore.mode === 'supabase') { out.on = false; out.state = 'stale-device-session'; return out; }
       out.state = 'device-session';
       return out;
     }
@@ -1004,8 +1015,9 @@
 
   /** "Signed in as <name> · workspaces are saved on this device[ · account in the database]". */
   function accountSentence(ms) {
+    if (ms.mode === 'supabase' && ms.verified) return 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · brands are saved to your account';
     var s = 'Signed in as ' + (ms.name || ms.phone || 'you') + ' · workspaces are saved on this device';
-    if (ms.mode === 'server') s += ' · account in the database';
+    if (ms.mode === 'server' || ms.mode === 'supabase') s += ' · account in the database';
     return s;
   }
 

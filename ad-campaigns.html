@@ -1062,7 +1062,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       try { if (window.BrandContext && window.BrandContext.ready) await window.BrandContext.ready(); } catch (_) {}
       let s = window.LifecycleAuth && window.LifecycleAuth.session;
       if (!s) { try { s = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null'); } catch (_) { s = null; } }
-      if (!s || s.provider !== 'mobile-pin' || !s.user || !s.user.id) return null;
+      if (!s || s.provider !== 'mobile-pin' || s.mode === 'supabase' || !s.user || !s.user.id) return null;
       if (s.expires && !(new Date(s.expires) > new Date())) return null;
       const b = window.BrandContext && window.BrandContext.brand;
       const base = 'lifecycle.smartbrain.%.' + s.user.id + '.' + ((b && b.id) || 'none');

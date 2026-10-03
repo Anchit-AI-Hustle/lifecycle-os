@@ -323,7 +323,7 @@ function reviewerEmail(){ try { return window.LifecycleAuth?.session?.user?.emai
 function deviceDecisionKey(){
   try {
     const s = window.LifecycleAuth && window.LifecycleAuth.session;
-    if(!s || s.provider !== 'mobile-pin' || !s.user || !s.user.id) return '';
+    if(!s || s.provider !== 'mobile-pin' || s.mode === 'supabase' || !s.user || !s.user.id) return '';
     const b = window.BrandContext && window.BrandContext.brand;
     return 'lifecycle.smartbrain.decisions.' + s.user.id + '.' + ((b && b.id) || 'none');
   } catch(_) { return ''; }

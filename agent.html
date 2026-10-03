@@ -395,7 +395,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      "agent not found" - including for the built-in Brand Agent. Its agents
      live here (per account, per brand), and a turn carries the agent and the
      brand's own device catalogue so the server answers from those alone. */
-  function phoneUid(){ try { var s=window.LifecycleAuth&&window.LifecycleAuth.session; return s&&s.provider==='mobile-pin'&&s.user&&s.user.id ? String(s.user.id) : ''; } catch(e){ return ''; } }
+  function phoneUid(){ try { var s=window.LifecycleAuth&&window.LifecycleAuth.session; return s&&s.provider==='mobile-pin'&&s.mode!=='supabase'&&s.user&&s.user.id ? String(s.user.id) : ''; } catch(e){ return ''; } }
   function brandId(){ try { return (window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.id)||'none'; } catch(e){ return 'none'; } }
   function devAgentsKey(){ var u=phoneUid(); return u ? 'lifecycle.agents.device.'+u+'.'+brandId() : ''; }
   function devAgents(){ var k=devAgentsKey(); if(!k) return []; try { var v=JSON.parse(localStorage.getItem(k)||'[]'); return Array.isArray(v)?v:[]; } catch(e){ return []; } }
