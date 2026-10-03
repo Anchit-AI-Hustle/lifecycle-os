@@ -118,7 +118,7 @@
     "offering_kinds": [
       "product"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Nike publishes on its own site (https://www.nike.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -128,10 +128,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://c.static-nike.com/a/images/w_1920,c_limit/bzl2wmsfh7kgdkufrrjq/image.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Running Shoe 02",
@@ -140,10 +139,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1280,c_limit/7d747f27-6553-4fb5-9016-9520b54400f6/nike-just-do-it.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Running Shoe 03",
@@ -152,10 +150,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/h_387,c_limit/dfc4ac72-3a60-46ae-a2f3-40ed2b9adcfd/nike-just-do-it.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Training Shoe 01",
@@ -164,10 +161,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/h_387,c_limit/9c14410e-ceff-436f-9a12-a07731958175/nike-just-do-it.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Training Shoe 02",
@@ -176,10 +172,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/h_387,c_limit/83f076f3-130f-4970-95cb-69dcc7a3f95f/nike-just-do-it.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Training Shoe 03",
@@ -188,10 +183,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1280,c_limit/1ba62614-17e1-463d-985e-d21a6ecba398/nike-just-do-it.jpg",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Lifestyle Sneaker 01",
@@ -200,10 +194,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://static.nike.com/a/images/f_auto/dpr_1.0,cs_srgb/w_1184,c_limit/996b2785-2c6f-4ce1-9726-55d12008d8ae/nike-just-do-it.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://www.nike.com/"
+      "placeholder": true
     },
     {
       "title": "Lifestyle Sneaker 02",

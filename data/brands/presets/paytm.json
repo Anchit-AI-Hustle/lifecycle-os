@@ -118,7 +118,7 @@
       "service",
       "plan"
     ],
-    "note": "Line names are placeholders. The image on each row is a photograph Paytm publishes on its own site (https://paytm.com/). Prices and product URLs were not on that page as a catalogue, so they are empty."
+    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
   },
   "catalog_placeholder": [
     {
@@ -128,10 +128,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179318/36886801089433092.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://paytm.com/"
+      "placeholder": true
     },
     {
       "title": "Payouts Plan 01",
@@ -140,10 +139,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179321/4291158023212300.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://paytm.com/"
+      "placeholder": true
     },
     {
       "title": "Checkout Product 01",
@@ -152,10 +150,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179320/67050918934984.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://paytm.com/"
+      "placeholder": true
     },
     {
       "title": "Reporting Add-on 01",
@@ -164,10 +161,9 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179317/36886820392724710.png",
+      "image_url": "",
       "product_url": "",
-      "placeholder": true,
-      "image_found_on": "https://paytm.com/"
+      "placeholder": true
     }
   ],
   "offerings": [],
