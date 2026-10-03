@@ -38,6 +38,15 @@
  * `op=status` is production's own JSON, verbatim. `llm.js` is replaced in
  * `require.cache` (the module IS the function) and counted.
  *
+ * SUPERSEDED IN PART BY #115 (2026-09-30) AND 2026-10-03. A device sign-in's
+ * token IS sent now, and with no database the server admits it as a device
+ * principal from a page - so the device session is read FOR the person (voice
+ * included), not on the visitor's path, and it is ON whatever Supabase is
+ * doing. The one device state that stays OFF is a sign-in kept on this device
+ * on a deployment that now keeps accounts in a database: that token is not in
+ * its session table. tests/phone-signin-features.spec.js drives the rest of
+ * the wizard's server-run controls in the same state.
+ *
  * Section 3 is the rule itself: over every state a browser can be in, the
  * wizard's decision must equal what the shipped handler answers to the
  * request that browser would send. A decision copied from somewhere other
@@ -72,6 +81,7 @@ const SERVER_STATUS = { ok: true, mode: 'server', host: 'ep-fixture.neon.tech', 
 const DEVICE_USER = { id: 'dev-readsite0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Asha' };
 const SERVER_TOKEN = 'MPINtokenREADSITE0123456789abcdefghijklmnopqr';
 const SERVER_USER = { id: 'aaaaaaaa-0000-4000-8000-000000000101', phone: '+919876543210', name: 'Ravi' };
+const DEVICE_TOKEN = 'DEVICEtokenREADSITE0123456789abcdefghijklmn';
 
 /* ── the brand's own site, as the server's crawler reads it ─────────────── */
 const PAGES = {
@@ -194,10 +204,12 @@ async function callShipped(handler, { method, url, headers, body }) {
 
 /** The request the wizard sends for "Read my site", as THIS browser would send it. */
 function browserExtractRequest(session, url) {
-  const headers = { 'content-type': 'application/json' };
-  // A server-mode session sends its token in both headers; a device-mode one
-  // never does (LifecycleAuth.apiToken()), and neither does a visitor.
+  // From the page: Origin is what a same-origin POST carries.
+  const headers = { 'content-type': 'application/json', origin: HOST };
+  // Every phone sign-in sends its token (LifecycleAuth.apiToken(), since
+  // 2026-09-30); a visitor sends none.
   if (session === 'server') { headers['x-lifecycle-token'] = SERVER_TOKEN; headers.authorization = 'Bearer ' + SERVER_TOKEN; }
+  if (session === 'device') { headers['x-lifecycle-token'] = DEVICE_TOKEN; headers.authorization = 'Bearer ' + DEVICE_TOKEN; }
   return { method: 'POST', url: '/api/public-config?action=brand&op=extract', headers, body: { url } };
 }
 
@@ -260,7 +272,7 @@ async function openWizard(page, state, world) {
     const u = new URL(req.url());
     const action = u.searchParams.get('action') || '';
     const op = u.searchParams.get('op') || '';
-    const headers = req.headers();
+    const headers = await req.allHeaders();
     log.api.push({ url: u.pathname + u.search, headers });
     const json = (body, status) => route.fulfill({ status: status || 200, contentType: 'application/json', body: JSON.stringify(body) });
     if (action === 'auth') {
@@ -310,7 +322,7 @@ function seedFor(state) {
       users,
       // Exactly how auth.js stores a device-mode sign-in made on production.
       session: {
-        token: 'DEVICEtokenREADSITE0123456789abcdefghijklmn', mode: 'device', provider: 'mobile-pin',
+        token: DEVICE_TOKEN, mode: 'device', provider: 'mobile-pin',
         user: { id: DEVICE_USER.id, name: DEVICE_USER.name, phone: DEVICE_USER.phone }, expires,
         storage: { mode: 'device', reason: PROD_STATUS.reason, host: '', message: PROD_STATUS.message },
       },
@@ -359,7 +371,7 @@ async function readMySite(page, url) {
    1. THE REPORT: signed in on this device, the database paused
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('signed in on this device with the database paused (production), "Read my site" is ON, sends no token, and the report renders', async ({ page }) => {
+test('signed in on this device with the database paused (production), "Read my site" is ON, sends the device token, and the report renders', async ({ page }) => {
   test.setTimeout(90_000);
   const state = { supabase: 'unreachable', store: 'device', session: 'device' };
   const world = serverWorld(state);
@@ -378,27 +390,26 @@ test('signed in on this device with the database paused (production), "Read my s
 
     await readMySite(page, SITE + '/');
 
-    // The request that left: no token of any kind, exactly as signed out.
+    // The request that left carries the device sign-in, from the page (#115):
+    // the server reads the site FOR this person, not on the visitor's path.
     expect(log.extract.length, 'op=extract was not sent').toBe(1);
     const sent = log.extract[0];
-    expect(sent.headers.authorization, 'a device-mode token was sent as a bearer').toBeUndefined();
-    expect(sent.headers['x-lifecycle-token'], 'a device-mode token was sent').toBeUndefined();
+    expect(sent.headers['x-lifecycle-token'] || String(sent.headers.authorization || '').replace(/^Bearer /, '')).toBe(DEVICE_TOKEN);
+    expect(sent.headers.origin || sent.headers.referer).toBeTruthy();
     expect(sent.code, `the server refused: ${JSON.stringify(sent.body)}`).toBe(200);
     expect(sent.body.ok).toBe(true);
-    expect(sent.body.signed_out).toBe(true);
-    expect(sent.body.voice_skipped).toBe(true);
+    expect(sent.body.signed_out).toBeUndefined();
 
     // The report, as the operator reads it.
     const report = await page.locator('.xtract').filter({ hasText: 'Read from' }).innerText();
     expect(report).toContain('Read from ' + SITE);
     expect(report).toContain('Harbourlight Goods');
-    expect(report).toMatch(/Nothing was saved/);
-    expect(report).toMatch(/tone of voice was NOT observed/i);
     // Never "without signing in" to a person who is signed in.
-    expect(report).not.toMatch(/without signing in/i);
+    expect(report).not.toMatch(/without signing in|without an account/i);
     expect((await readStep(page)).failures, 'the report rendered a failure frame').toBe(0);
 
-    expect(world.llm.calls, 'a language model was called for a caller the server could not check').toBe(0);
+    // A device principal from a page may reach a model (#115); the voice step ran.
+    expect(world.llm.calls, 'the voice step did not run for a signed-in person').toBe(1);
     expect(world.net.escaped, 'the server reached a host the test did not claim').toEqual([]);
     expect(log.dialogs).toEqual([]);
     expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
@@ -450,10 +461,12 @@ const MATRIX = [
   // no Supabase configured at all
   { supabase: 'unconfigured', store: 'device', session: 'none', on: true },
   { supabase: 'unconfigured', store: 'device', session: 'device', on: true },
-  // the project restored: a session could be checked, so the gate is real
+  // the project restored: a session could be checked, so the gate is real for
+  // a visitor - and a device sign-in IS one the server acts for (#115)
   { supabase: 'reachable', store: 'device', session: 'none', on: false },
-  { supabase: 'reachable', store: 'device', session: 'device', on: false },
-  // accounts in a database (DATABASE_URL), Supabase still paused
+  { supabase: 'reachable', store: 'device', session: 'device', on: true },
+  // accounts in a database (DATABASE_URL), Supabase still paused: a device
+  // sign-in from before that is not in the session table, and is refused
   { supabase: 'unreachable', store: 'server', session: 'none', on: false },
   { supabase: 'unreachable', store: 'server', session: 'device', on: false },
   { supabase: 'unreachable', store: 'server', session: 'server', on: true },
@@ -479,10 +492,11 @@ for (const state of MATRIX) {
       expect(served, `the server's own answer changed for this state: ${out.code} ${JSON.stringify(out.body).slice(0, 240)}`).toBe(state.on);
       expect(seen.enabled, `the wizard says ${seen.enabled ? 'ON' : 'OFF'} and the server ${served ? 'reads' : 'refuses'} (${seen.note})`).toBe(served);
 
-      // Nothing unverified reaches a model, in any state.
-      const verified = state.session === 'server';
-      expect(world.llm.calls - before, verified ? 'a verified account\'s voice step did not run' : 'a model was called for a caller the server could not check').toBe(verified ? 1 : 0);
-      if (served && !verified) expect(out.body.voice_skipped).toBe(true);
+      // Nothing the server did not act FOR reaches a model, in any state: a
+      // server-mode account, or a device principal from a page (#115).
+      const actedFor = state.session === 'server' || (state.session === 'device' && served);
+      expect(world.llm.calls - before, actedFor ? 'a signed-in person\'s voice step did not run' : 'a model was called for a caller the server could not check').toBe(actedFor ? 1 : 0);
+      if (served && !actedFor) expect(out.body.voice_skipped).toBe(true);
 
       if (!seen.enabled) {
         expect(seen.note, 'a disabled control with no reason').not.toBe('');
@@ -492,14 +506,14 @@ for (const state of MATRIX) {
           // signed-in person to sign in.
           expect(seen.note).not.toMatch(/\bsign in\b|\bsign-in first\b|not signed in/i);
         }
-        if (state.session === 'none' && state.store === 'device') {
-          // Signing in here makes a device-only account, which the server can
-          // no more check than a visitor: promising it would recreate the report.
-          expect(seen.note).not.toMatch(/\bsign in\b/i);
-          expect(seen.note).toMatch(/DATABASE_URL/);
-        }
-        if (state.session === 'none' && state.store === 'server') {
+        if (state.session === 'none') {
+          // Signing in IS the remedy on every deployment now: a server-mode
+          // sign-in is verified, and a device-mode one is admitted (#115).
           expect(seen.note, 'signing in IS the remedy here, and the note does not say so').toMatch(/\bsign in\b/i);
+        }
+        if (state.session === 'device') {
+          // The stale device sign-in: the remedy is to sign in AGAIN.
+          expect(seen.note).toMatch(/entering your number again/i);
         }
       }
       expect(world.net.escaped).toEqual([]);

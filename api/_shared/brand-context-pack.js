@@ -1632,6 +1632,9 @@ async function stageCatalog(store, pack, ctx) {
       kind: 'storefront',            // feed first, then the site crawl — importCatalog's own fallback
       url,
       replace: true,
+      // The brand record, for a caller whose brands are kept on the device
+      // (importCatalog reads its scope from here instead of a workspace row).
+      brand,
     });
     await store.call('rpc/brand_context_apply', {
       method: 'POST',
@@ -2141,7 +2144,143 @@ async function claimUserFields(store, workspaceId, fields) {
   return { ok: true, claimed: n };
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. A PACK KEPT ON THE DEVICE (2026-10-03)
+   ───────────────────────────────────────────────────────────────────────────
+   A mobile-number sign-in keeps its brands on the device it signed in on, and
+   on a deployment with no database (production) that is the only place
+   anything of theirs CAN be kept. The pack used to be refused to them outright
+   ("Not available on a mobile-number account") - but nothing a pack does needs
+   a database: every stage reads the brand's own public site, and the database
+   was only ever where the result was filed.
+
+   So the SAME stages run over a store that lives for one request: seeded with
+   the brand the browser carried and the pack row it is holding, answering the
+   handful of PostgREST shapes the stages use, and handed back whole at the end.
+   The browser is the queue (one step per call, exactly the client-driven
+   fallback a deployment with no service key already used) and the device is
+   where the row is kept between calls. Nothing is copied: the stages, the
+   DESIGN.md renderer, the knowledge record and the GitHub reachability rules
+   are the ones above, so a device pack cannot drift from an account pack.
+
+   What does NOT carry over is said, not implied:
+     - provenance has no table here. A catalogue the operator imported by hand
+       is reported by the browser (`catalog_owned`) and honoured exactly as a
+       `user` origin row would be - the automatic run leaves it alone.
+     - the knowledge base is the pack's own `knowledge.pages` (verbatim, as
+       always); there is no kb_knowledge table on a device to file it in.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Bound what a carried row may be: the stages' own fields, nothing else. */
+const DEVICE_PACK_FIELDS = ['id', 'workspace_id', 'site_url', 'site_host', 'brand_name', 'folded_name', 'brand_key',
+  'status', 'stage', 'queue_state', 'attempts', 'batches', 'last_error', 'design_md', 'design', 'knowledge', 'catalog',
+  'repos', 'sources', 'markers', 'limits', 'log', 'started_at', 'completed_at', 'created_at', 'updated_at'];
+
+function devicePackRow(raw, workspaceId) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const row = {};
+  for (const k of DEVICE_PACK_FIELDS) if (raw[k] !== undefined) row[k] = raw[k];
+  if (!STAGES.includes(row.stage)) return null;
+  row.workspace_id = workspaceId;
+  // The key is computed, never trusted: a carried row whose key does not match
+  // its own URL and name is a report about some other site.
+  const key = packKey(row.site_url, row.brand_name);
+  if (!key.ok) return null;
+  row.brand_key = key.brand_key; row.site_host = key.site_host; row.folded_name = key.folded_name;
+  return row;
+}
+
+/**
+ * A store that answers the PostgREST calls the stages make, from memory.
+ * `kb` collects what the knowledge stage would have filed.
+ */
+function memoryStore({ workspaceId, brand, pack, catalogOwned }) {
+  const state = { pack: pack || null, kb: [] };
+  const filter = (qs, col) => {
+    const m = new RegExp(`(?:^|&)${col}=eq\\.([^&]*)`).exec(qs);
+    return m ? decodeURIComponent(m[1]) : null;
+  };
+  const call = async (pathAndQuery, { method = 'GET', body } = {}) => {
+    const [table, qs = ''] = String(pathAndQuery).split('?');
+    if (table.startsWith('rpc/')) return null;
+    if (table === 'brand_workspaces') {
+      return filter(qs, 'id') === workspaceId && brand ? [Object.assign({}, brand, { id: workspaceId })] : [];
+    }
+    if (table === PROV_TABLE) {
+      if (filter(qs, 'workspace_id') !== workspaceId) return [];
+      return catalogOwned ? [{ field: 'catalog', origin: 'user', source_url: '', signal: 'imported by hand on this device', confidence: '', set_at: null }] : [];
+    }
+    if (table === KB_TABLE) {
+      if (method === 'POST') { for (const r of (Array.isArray(body) ? body : [body])) state.kb.push(r); return null; }
+      return state.kb.slice();
+    }
+    if (table === TABLE) {
+      if (method === 'GET') {
+        const p = state.pack;
+        if (!p || filter(qs, 'workspace_id') !== workspaceId) return [];
+        const bk = filter(qs, 'brand_key');
+        return bk && bk !== p.brand_key ? [] : [Object.assign({}, p)];
+      }
+      if (method === 'POST') {
+        const row = Object.assign({}, Array.isArray(body) ? body[0] : body);
+        const key = packKey(row.site_url, row.brand_name);
+        const now = nowIso();
+        // Upsert on (workspace_id, brand_key), as the table's unique index does.
+        const same = state.pack && state.pack.brand_key === key.brand_key;
+        state.pack = Object.assign({}, same ? state.pack : {}, row, {
+          id: same ? state.pack.id : `device-pack-${require('crypto').randomUUID()}`,
+          workspace_id: workspaceId, brand_key: key.brand_key,
+          created_at: same ? state.pack.created_at : now, updated_at: now,
+        });
+        return [Object.assign({}, state.pack)];
+      }
+      if (method === 'PATCH') {
+        if (!state.pack || filter(qs, 'id') !== state.pack.id || filter(qs, 'workspace_id') !== workspaceId) return [];
+        state.pack = Object.assign({}, state.pack, body || {});
+        return [Object.assign({}, state.pack)];
+      }
+    }
+    const e = new Error(`A pack kept on this device has no "${table}" to read or write.`);
+    e.status = 400;
+    throw e;
+  };
+  return { kind: 'device', call, state };
+}
+
+/**
+ * One step of a pack held by the browser. Starts (or restarts, with
+ * `refresh`) when the carried row is absent, done, or about another site;
+ * otherwise advances exactly one stage. Returns the step, the whole row for
+ * the device to keep, and the read-back `contextFor` shape.
+ */
+async function devicePackStep({ workspaceId, brand, pack, refresh = false, catalogOwned = false, auth, ctx = {} }) {
+  if (!brand || !brand.name) { const e = new Error('The brand this pack is for did not come with the request, so nothing was built.'); e.status = 400; throw e; }
+  const carried = devicePackRow(pack, workspaceId);
+  const key = packKey(brand.website, brand.name);
+  const resume = carried && !refresh && carried.stage !== 'done' && key.ok && carried.brand_key === key.brand_key;
+  const store = memoryStore({ workspaceId, brand, pack: carried, catalogOwned });
+  const step = resume
+    ? await advancePack(store, carried, Object.assign({ brand: Object.assign({}, brand, { id: workspaceId }), auth }, ctx))
+    : await startPack(store, workspaceId, { brand: Object.assign({}, brand, { id: workspaceId }), auth, refresh: true, ctx });
+  // The catalogue stage hands its rows back (importCatalogToDevice) rather than
+  // filing them. They go to the device's catalogue ONCE, beside the brand, and
+  // the pack keeps the count - so a row is never carried back and forth on
+  // every later step, nor kept twice.
+  let products = null;
+  const row = store.state.pack;
+  if (row && row.catalog && Array.isArray(row.catalog.products)) {
+    products = row.catalog.products;
+    const { products: _drop, ...rest } = row.catalog;
+    row.catalog = rest;
+    if (step.pack && step.pack.catalog) step.pack = Object.assign({}, step.pack, { catalog: rest });
+  }
+  const context = await contextFor(store, workspaceId, {});
+  return { step, row, context, products, knowledge_rows: store.state.kb.length };
+}
+
 module.exports = {
+  // device
+  memoryStore, devicePackStep, devicePackRow,
   // key
   packKey, foldName, hostOf,
   // DESIGN.md (google-labs-code/design.md, version alpha)
