@@ -343,8 +343,13 @@ function keepDecision(data){
    no stored plan to give this person. */
 function devicePlanKey(){ const k = deviceDecisionKey(); return k ? k.replace('.decisions.', '.plan.') : ''; }
 function keepDevicePlan(list){
-  const k = devicePlanKey(); if(!k || !Array.isArray(list) || !list.length) return;
-  try { localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), entries: list })); } catch(_) {}
+  const k = devicePlanKey(); if(!k || !Array.isArray(list)) return;
+  // An accepted sync that planned NOTHING replaces the kept plan too: leaving
+  // it would resurrect campaigns the latest sync removed (Codex, 2026-10-03).
+  try {
+    if(!list.length) localStorage.removeItem(k);
+    else localStorage.setItem(k, JSON.stringify({ at: new Date().toISOString(), entries: list }));
+  } catch(_) {}
 }
 /* The page's first plan read runs before auth.js (deferred) has seated the
    session, so the device key is not knowable yet: wait for it (bounded). */
@@ -368,7 +373,10 @@ function applyDecisions(list){
     e.status = d.status;
     // Nothing was published for a device decision, so there is no hosted
     // /lp/ page to link to: the assets are rebuilt on View, as a preview is.
+    // The marker travels with the row so renderPreview never falls back to a
+    // freshly built campaign_id as if it had been persisted (Codex, 2026-10-03).
     e.generated_campaign_id = null;
+    e.__device = true;
   });
   return list;
 }
@@ -924,7 +932,7 @@ function renderPreview(payload, e, i, opts){
   const lpHtml    = (payload.landing_html || campaign.assets?.landing_pages?.[0]?.html || '');
   const ads       = payload.ads || campaign.assets?.ads || [];
   const cw        = payload.copywriter || campaign.copywriter || {};
-  const liveLpId  = e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null;
+  const liveLpId  = e.__device ? null : (e.generated_campaign_id || (opts.persisted && campaign.campaign_id) || null);
 
   /* EVERY RECORD AND ASSET INSIDE THE EXPANDED ROW, ALL AT ONCE.
    *
@@ -1503,6 +1511,7 @@ async function generateEntry(i, { silent = false } = {}){
   if(!data.ok) throw new Error(data.message || data.error || 'Generation failed');
   const onDevice = keepDecision(data);
   e.status = 'final'; e.generated_campaign_id = onDevice ? null : data.campaign.campaign_id;
+  if(onDevice) e.__device = true;
   e.__built_at = Date.now();    // versions the hosted /lp/ link past its CDN cache
   PREVIEW_CACHE[e.id] = data;   // cache the FINAL so re-opening always shows it
   if(!silent){

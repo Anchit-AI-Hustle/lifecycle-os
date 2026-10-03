@@ -585,7 +585,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
       document.getElementById('xAlertTest').addEventListener('click', async function () {
         var b = this; b.disabled = true; statusLine('xAlertStatus', 'Sending delivery test…');
-        try { var r = await postJson('test-alert', collect()); var result = r.result || r; statusLine('xAlertStatus', result.sent_any ? 'Test sent through at least one configured channel.' : 'No channel sent. Review connection status and the delivery result.', result.sent_any ? 'good' : 'bad'); }
+        try {
+          var r = await postJson('test-alert', collect()); var result = r.result || r;
+          // A phone sign-in's answer says WHY nothing was sent (the channels
+          // are the operator's): an ordinary state, said in the server's own
+          // words - not a channel failure (Bugbot, 2026-10-03).
+          if (r.storage === 'device' && result.note) statusLine('xAlertStatus', result.note, '');
+          else statusLine('xAlertStatus', result.sent_any ? 'Test sent through at least one configured channel.' : 'No channel sent. Review connection status and the delivery result.', result.sent_any ? 'good' : 'bad');
+        }
         catch (e) { statusLine('xAlertStatus', e.message, 'bad'); } finally { b.disabled = false; }
       });
     } catch (e) { document.getElementById('xAlertsBody').innerHTML = failure('Alert Settings', e); }

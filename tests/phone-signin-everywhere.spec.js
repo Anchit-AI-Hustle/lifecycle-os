@@ -52,7 +52,7 @@ function seed(args) {
   };
 }
 
-async function open(page, w, file) {
+async function open(page, w, file, opts) {
   const log = { dialogs: [], errors: [], api: [] };
   // smart-brain.html asks for a rejection reason with a native prompt; this
   // spec answers it, and records every dialog so nothing else slips through.
@@ -79,6 +79,7 @@ async function open(page, w, file) {
   await page.route(HOST + '/**', async (route) => {
     const u = new URL(route.request().url());
     if (u.pathname.startsWith('/api/')) return fwd(route);
+    if (opts && opts.delayAuthMs && u.pathname === '/auth.js') await new Promise((r) => setTimeout(r, opts.delayAuthMs));
     const f = path.join(A.ROOT, u.pathname === '/' ? 'index.html' : u.pathname.replace(/^\//, ''));
     if (!f.startsWith(A.ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return route.fulfill({ status: 404, body: 'nf' });
     return route.fulfill({ status: 200, contentType: MIME[path.extname(f)] || 'application/octet-stream', body: fs.readFileSync(f) });
@@ -464,5 +465,84 @@ test.describe('a server-mode phone account that is NOT listed reaches no model t
     const ap = await w.request('/api/calendar', { query: { action: 'smart-brain-approve' }, json: { id: 'cal_x', entry: { id: 'cal_x', date: '2026-10-05', market: 'US' }, brand: brand() }, state: 'phone' });
     expect([402, 403]).toContain(ap.status);
     expect(w.llm.calls).toEqual([]);
+  });
+});
+
+/* ═══ Review round 2 (Bugbot #3/#4, Codex #6/#7/#11), executed ═══════════════ */
+test.describe('review round 2: device state read, kept and said correctly', () => {
+  let w;
+  test.beforeAll(async () => { w = await A.world({ serverMode: false }); });
+  test.afterAll(async () => { await w.close(); });
+  test.beforeEach(() => { w.reset(); });
+  const planKey = (w, kind) => 'lifecycle.smartbrain.' + kind + '.' + w.tokens.phoneUserId + '.' + A.deviceBrand().id;
+
+  test('ads calendar: the FIRST read after a phone sign-in shows the plan kept on the device (Bugbot #3)', async ({ page }) => {
+    const entries = [{ id: 'cal_kept_1', date: '2026-10-05', market: 'US', cohort: 'nurture', status: 'tentative', subject: 'Kept slot one' },
+      { id: 'cal_kept_2', date: '2026-10-06', market: 'US', cohort: 'engaged', status: 'tentative', subject: 'Kept slot two' }];
+    await page.addInitScript(({ k, entries }) => { try { localStorage.setItem(k, JSON.stringify({ at: '2026-10-03T00:00:00Z', entries })); } catch (_) {} }, { k: planKey(w, 'plan'), entries });
+    // auth.js arrives LATE (a slow phone network): the page's first plan read
+    // answers before auth.js has seated the session.
+    const log = await open(page, w, 'ad-campaigns.html', { delayAuthMs: 4000 });
+    await expect(page.locator('#ad-plan')).toContainText('2026-10-05', { timeout: 15_000 });
+    await expect(page.locator('#ad-plan')).toContainText('2026-10-06');
+    expect(log.errors).toEqual([]);
+  });
+
+  test('Daily Sync that plans nothing clears the kept plan, so a reload does not resurrect it (Codex #7)', async ({ page }) => {
+    await page.addInitScript(({ k }) => { try { if (!sessionStorage.getItem('__kept')) { sessionStorage.setItem('__kept', '1'); localStorage.setItem(k, JSON.stringify({ at: '2026-10-01T00:00:00Z', entries: [{ id: 'cal_stale', date: '2026-10-05', market: 'IN', status: 'tentative' }] })); } } catch (_) {} }, { k: planKey(w, 'plan') });
+    const log = await open(page, w, 'smart-brain.html');
+    await page.route(/\/api\/calendar\?action=smart-brain-sync-daily/, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, mode: 'db-linked', plan: [], entries: [], changes: [], insights: [] }) }));
+    await page.waitForSelector('#sync');
+    await page.click('#sync');
+    await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), planKey(w, 'plan')), { timeout: 15_000 }).toBeNull();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2500);
+    expect(await page.evaluate(() => PLAN.map((e) => e.id))).not.toContain('cal_stale');   // eslint-disable-line no-undef
+    expect(log.errors).toEqual([]);
+  });
+
+  test('a device approval renders no hosted /lp/ link, before or after a reload (Codex #6)', async ({ page }) => {
+    const log = await open(page, w, 'smart-brain.html');
+    await expect.poll(() => page.evaluate(() => PLAN.length), { timeout: 120_000 }).toBeGreaterThan(1);   // eslint-disable-line no-undef
+    await page.evaluate(() => approveRow(0));   // eslint-disable-line no-undef
+    await expect.poll(() => page.evaluate(() => PLAN[0].status), { timeout: 120_000 }).toBe('final');   // eslint-disable-line no-undef
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(() => (PLAN[0] || {}).status), { timeout: 60_000 }).toBe('final');   // eslint-disable-line no-undef
+    await page.evaluate(() => viewEntry(0));   // eslint-disable-line no-undef
+    await expect.poll(() => page.evaluate(() => !!document.querySelector('#expbody-0 iframe, #expbody-0 .pvframe')), { timeout: 120_000 }).toBe(true);
+    // The rail's own /lp/best etc. are site pages, not a campaign's hosted page.
+    const lp = await page.evaluate(() => Array.from(document.querySelectorAll('a[href*="/lp/"]')).filter((a) => !a.closest('#lifecycle-nav')).map((a) => a.getAttribute('href')));
+    expect(lp, 'a hosted link was offered for a decision nothing published').toEqual([]);
+    expect(log.errors).toEqual([]);
+  });
+
+  test('Send test on data analysis says why nothing was sent, as an ordinary state (Bugbot #4)', async ({ page }) => {
+    const log = await open(page, w, 'data-analysis.html');
+    await page.getByRole('button', { name: 'Alert Settings', exact: true }).first().click();
+    await page.waitForSelector('#xAlertTest');
+    await expect.poll(() => page.evaluate(() => !!document.getElementById('xAlertStatus')), { timeout: 15_000 }).toBe(true);
+    await page.click('#xAlertTest');
+    await expect(page.locator('#xAlertStatus')).toContainText(/operator/i, { timeout: 10_000 });
+    expect(await page.locator('#xAlertStatus').getAttribute('class')).not.toMatch(/\bbad\b/);
+    expect(log.errors).toEqual([]);
+  });
+
+  test('TeleSuite: a full browser still shows the result and says the history was not saved (Codex #11)', async ({ page }) => {
+    const key = 'lifecycle.telesuite.device.' + w.tokens.phoneUserId + '.' + A.deviceBrand().id;
+    await page.addInitScript((k) => {
+      try {
+        localStorage.setItem(k, JSON.stringify({ runs: [], items: [{ id: 'dev-item-1', kind: 'product', name: 'Harbour Lamp', category: 'Lamp', content: 'Table lamp.', attributes: {}, source: 'typed', created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' }] }));
+        const real = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (name, value) { if (name === k) throw new DOMException('quota', 'QuotaExceededError'); return real.call(this, name, value); };
+      } catch (_) {}
+    }, key);
+    const log = await open(page, w, 'telesuite.html#pitch-generator');
+    await page.waitForSelector('#run', { timeout: 20_000 });
+    await page.selectOption('#form select[data-f="product"]', 'Harbour Lamp');
+    await page.click('#run');
+    await expect(page.locator('#out')).toContainText(/scripted/i, { timeout: 20_000 });
+    await expect(page.locator('#toast')).toContainText(/refused to save it to your TeleSuite history/i, { timeout: 5_000 });
+    expect(await page.locator('#out .vh-failure').count()).toBe(0);
+    expect(log.errors).toEqual([]);
   });
 });

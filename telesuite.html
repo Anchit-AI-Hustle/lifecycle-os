@@ -391,7 +391,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       cache: 'no-store'
     });
     var json = await res.json().catch(function () { return {}; });
-    if (phone && res.ok && json && json.device) deviceKeep(json.device);
+    // A result is never discarded because this browser would not keep its
+    // HISTORY: it is shown (and its receipt applied below), and the person is
+    // told separately that it was not saved here (Codex, 2026-10-03).
+    if (phone && res.ok && json && json.device) {
+      try { deviceKeep(json.device); }
+      catch (keepErr) {
+        json.history_not_saved = true;
+        setTimeout(function () { toast('This result is shown, but this browser refused to save it to your TeleSuite history (storage is full or blocked). Free some browser storage to keep future runs.', 7000); }, 0);
+      }
+    }
     // Any response carrying a balance moves the live pill immediately.
     if (window.Credits) window.Credits.applyReceipt(json);
     if (!res.ok) {
