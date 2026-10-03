@@ -362,11 +362,22 @@ async function meter(req, featureKey, opts) {
   // answer; hitting the paused host used to 503 every listed turn as
   // backend_unreachable, and refusing the device principal used to 401 every
   // unsigned-out press. Anonymous callers never reach this (requireUser 401).
+  //
+  // Keyed on the PRINCIPAL, never on the process (2026-10-03). This used to
+  // read `isDeviceAuth(auth) || standaloneMode()`, and standaloneMode() only
+  // asks whether DATABASE_URL - the Neon phone-SESSION store - is set. The
+  // credit ledger is not in that database; it is the workspace Supabase
+  // project. So a caller whose Supabase JWT had just been verified against a
+  // live project (whose ledger therefore answers) ran every paid feature free,
+  // a server-mode phone account skipped the listed-number refusal, and every
+  // credit test in CI went red, because CI has no DATABASE_URL either. A
+  // device principal only exists when there is no DATABASE_URL
+  // (verifyToken answers mode:'device' only then), so this branch alone is
+  // what standalone mode needs.
   // A principal verified by Supabase Auth (mode 'supabase', 2026-10-03) is
-  // NEVER standalone: the project answered, its ledger is there, and running
-  // it unmetered because DATABASE_URL (Neon) is unset would hand every phone
-  // account - listed or not - the provider budget for free.
-  if (isDeviceAuth(auth) || (standaloneMode() && auth.mode !== 'supabase')) {
+  // never a device principal, so it is ALWAYS metered: the project answered
+  // and its ledger is there, whether or not DATABASE_URL (Neon) is set.
+  if (isDeviceAuth(auth)) {
     return {
       ok: true, free: true, unmetered: true, hold_id: null, quote: q, charged: 0,
       workspace_id: null, auth, mode: 'device',
@@ -569,7 +580,14 @@ function metered(handler, featureFor, unitsFor, opts) {
       optional: true,
     });
     if (!gate.ok) return;                       // 402/401/503 already written
-    if (gate.unmetered) return handler(req, res);
+    // An unconfigured meter has nothing to say, so the handler answers as it
+    // always did. A DEVICE principal's gate is unmetered too, but it carries a
+    // receipt (charged 0, unmetered) - and that receipt is how the page knows
+    // the turn ran in Local / Demo Mode rather than silently free (2026-10-03:
+    // returning early here dropped it, so the standalone spec's "charged: 0"
+    // read undefined). Its settle/release are no-ops, so the path below moves
+    // no balance; it only stamps the receipt.
+    if (gate.unmetered && !gate.receipt) return handler(req, res);
 
     const origStatus = res.status.bind(res);
     const origJson = res.json.bind(res);
@@ -898,7 +916,9 @@ async function handle(req, res) {
 
   // STANDALONE / DEVICE MODE (2026-09-30): no ledger, no wallet, features still
   // run. The pill says so; usage and the ledger are empty rather than 503.
-  if (isDeviceAuth(auth) || (standaloneMode() && auth.mode !== 'supabase')) {
+  // Keyed on the principal, not on DATABASE_URL: see meter() (2026-10-03). A Supabase-
+  // verified user (mode 'supabase') is never a device principal, so never here.
+  if (isDeviceAuth(auth)) {
     const prices = await priceList().catch(() => catalog.list());
     const packs = await packList().catch(() => catalog.packList(null));
     if (op === 'balance') {
