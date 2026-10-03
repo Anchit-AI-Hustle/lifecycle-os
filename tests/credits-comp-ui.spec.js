@@ -74,7 +74,14 @@ test('a complimentary account is told the credits land immediately', async ({ pa
 
 test('every other account is still told an operator confirms it', async ({ page }) => {
   comp = false;
+  // A PRICED pack, and the verdict read only once the catalogue has loaded
+  // (2026-10-03). This ran against the default UNPRICED pack, whose settled
+  // note is "No pack has a price ..."; it passed only when the poll read the
+  // static markup default before credits.js replaced it - a race CI lost.
+  // "An operator confirms the order" is a claim about an orderable pack.
+  packs = [{ key: 'starter', label: 'Starter', blurb: 'x', credits: 500, bonus: 0, total_credits: 500, price: PRICED }];
   await open(page);
+  await page.waitForFunction(() => !!(window.Credits && window.Credits.loaded), null, { timeout: 15000 });
   await expect.poll(() => page.evaluate(() => (document.getElementById('packnote') || {}).textContent || ''),
     { timeout: 15000 }).toMatch(/record a recharge order/i);
   const t = await page.evaluate(() => document.getElementById('packnote').textContent);
