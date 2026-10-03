@@ -101,15 +101,19 @@ const T = [];
 const add = (action, def) => T.push(Object.assign({ action }, def));
 
 add('agents', { run: { method: 'GET' }, anonymous: 'demo',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, agents: [] }); } });
+  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, agents: [], storage: 'device' }); } });
 add('agent-sessions', { run: { method: 'GET' }, anonymous: 'demo',
   phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, sessions: [] }); } });
 add('agent-chat', { run: { json: { message: 'hi there', agent_id: 'agent_x', brand: BRAND } }, anonymous: 'refuse',
   phone: (r) => {
-    // No workspace row, so no agents: a 404 with a sentence, not a 500 with
-    // "agent agent_x not found" as its whole explanation.
-    expect(r.status).toBe(404); expect(r.out.error).toBe('agent_not_found'); expectSentence(r, 'agent-chat phone');
-    expect(w.llm.calls).toEqual([]);
+    // No workspace row, so the agent is the one the page keeps on the device
+    // (none carried here: the brand's default assistant), answering as the
+    // brand the turn carried (2026-10-03). It used to be a 404.
+    expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(r.out.storage).toBe('device');
+    expect(r.out.reply).toBe('Scripted reply for this turn, with no figure invented.');
+    expect(r.out.agent.name).toBe(BRAND.name + ' assistant');
+    expect(w.llm.calls.map((c) => c.stage)).toEqual(['agent-chat']);
+    expect(JSON.stringify(r.out)).not.toMatch(/KNICKGASM|knickgasm|Oldest Brand/);
   } });
 add('agent-analyze', { run: { json: { message: 'how many orders last month?' } }, anonymous: 'refuse',
   phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(typeof r.out.answer).toBe('string'); expect(r.out.answer.length).toBeGreaterThan(20); } });
@@ -164,9 +168,13 @@ add('social-approve', { run: { json: { id: 'p1' } }, anonymous: 'refuse',
 add('social-skip', { run: { json: {} }, anonymous: 'refuse',
   phone: (r) => { expect(r.status).toBe(400); expectSentence(r, 'social-skip phone'); } });
 add('agent-upsert', { run: { json: { name: 'Concierge', level: 'brand' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(409); expect(r.out.error).toBe('no_workspace'); expectSentence(r, 'agent-upsert phone'); } });
+  phone: (r) => {
+    // Built and handed back for the device to keep; nothing written (2026-10-03).
+    expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, storage: 'device', agent: { name: 'Concierge', level: 'brand' } });
+    expect(w.db.calls.filter((c) => /smart_agents/.test(c.url) && c.method !== 'GET')).toEqual([]);
+  } });
 add('agent-sync', { run: { json: { agent_id: 'agent_x' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(404); expect(r.out.error).toBe('agent_not_found'); expectSentence(r, 'agent-sync phone'); } });
+  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, storage: 'device', knowledge_items: 0 }); expectSentence({ out: { message: r.out.note }, text: '' }, 'agent-sync phone'); } });
 add('telesuite', { run: { method: 'GET', query: { op: 'registry' } }, anonymous: 'public',
   phone: (r) => { expect(r.status).toBe(200); expect(Array.isArray(r.out.subfeatures)).toBe(true); expect(r.out.subfeatures.length).toBeGreaterThan(10); } });
 
@@ -247,13 +255,27 @@ test('a carried brand record is bounded and re-keyed: a brand_workspaces id in i
   expect(r.out.brand.name.length).toBeLessThanOrEqual(120);
 });
 
-test('telesuite ops for a phone account are a 403 with a sentence, before any credit hold and any model call', async () => {
-  const items = await call('telesuite', { method: 'GET', query: { op: 'items' }, state: 'phone' });
-  expect(items.status).toBe(403); expect(items.out.error).toBe('account_type_unsupported'); expectSentence(items, 'telesuite items phone');
-  const pitch = await call('telesuite', { json: { op: 'pitch', input: { product: 'a product' } }, state: 'phone' });
-  expect(pitch.status).toBe(403); expect(pitch.out.error).toBe('account_type_unsupported'); expectSentence(pitch, 'telesuite pitch phone');
+test('telesuite for a phone account runs over what the request carries and files nothing on the server (2026-10-03)', async () => {
+  // No brand carried: refused with a sentence before any credit hold or model call.
+  const bare = await call('telesuite', { json: { op: 'pitch', input: { product: 'Harbour Lamp' } }, state: 'phone' });
+  expect(bare.status).toBe(409); expect(bare.out.error).toBe('no_brand_carried'); expectSentence(bare, 'telesuite pitch phone, no brand');
   expect(w.llm.calls).toEqual([]);
   expect(w.db.calls.filter((c) => /rpc\/credit_/.test(c.url))).toEqual([]);
+  w.reset();
+  // The brand and the selected library row carried, as telesuite.html sends them.
+  const item = { id: 'dev-item-1', kind: 'product', name: 'Harbour Lamp', category: 'Lamp', content: 'Table lamp, recycled glass.', attributes: {} };
+  const pitch = await call('telesuite', { json: { op: 'pitch', brand: BRAND, device: { items: [item] }, input: { product: 'Harbour Lamp' } }, state: 'phone' });
+  expect(pitch.status, pitch.text.slice(0, 300)).toBe(200);
+  expect(pitch.out.ok).toBe(true);
+  expect(pitch.out.result).toBeTruthy();
+  // What it wrote comes back for the device, and nothing was filed server-side.
+  expect(pitch.out.device.storage).toBe('device');
+  expect(pitch.out.device.runs.map((r) => r.feature)).toEqual(['pitch']);
+  expect(w.db.calls.filter((c) => /telesuite_|brand_workspaces/.test(c.url)), 'a phone account\'s TeleSuite reached a workspace table').toEqual([]);
+  expect(w.llm.calls.map((c) => c.stage)).toEqual(['telesuite-pitch']);
+  // The listed number spends on its own wallet, exactly as any metered run.
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length).toBe(1);
+  w.reset();
   // A telesuite generation op from an unattributed browser is the demo READ
   // envelope today (nothing runs, nothing is charged): recorded, not changed.
   const anon = await call('telesuite', { json: { op: 'pitch', input: { product: 'a product' } }, state: 'anonymous' });
@@ -287,6 +309,7 @@ test.describe('calendar.js smart-brain actions', () => {
     S.on(PLAN, 'getPlan', async () => ({ ok: true, entries: [] }));
     S.on(PLAN, 'syncDaily', async () => ({ ok: true, mode: 'stubbed', changes: [] }));
     S.on(PLAN, 'approveEntry', async () => ({ ok: true, approved: true }));
+    S.on(PLAN, 'previewEntry', async () => ({ ok: true, preview: true, campaign: { campaign_id: 'c1' } }));
     S.on(PLAN, 'rejectEntry', async () => ({ ok: true }));
     const plan = await cal('plan', { method: 'GET', state: 'phone' });
     expect(plan.status).toBe(200); expect(plan.out.ok).toBe(true);
@@ -299,14 +322,18 @@ test.describe('calendar.js smart-brain actions', () => {
     // for a caller who owns nothing to prebuild (2026-09-29, review).
     expect(syncArgs.persist).toBe(false);
     expect(sync.out.prebuild_kicked).toBeUndefined();
-    // Approving and rejecting SAVE to a brand workspace, and a phone account
-    // has none: a 409 with a sentence, before anything is built (the stub
-    // stood in for the core, and was never reached).
+    // Approving and rejecting are the reviewer's decisions, which a phone
+    // account keeps on its device (2026-10-03): approve builds exactly as a
+    // preview (never approveEntry, which persists), reject records nothing
+    // here; both answer storage:'device' with the decision to keep.
     const ok = await cal('approve', { json: { entry: { id: 'e1' }, reviewer: 'op' }, state: 'phone' });
-    expect(ok.status).toBe(409); expect(ok.out.error).toBe('no_workspace'); expectSentence(ok, 'approve phone');
+    expect(ok.status, ok.text.slice(0, 200)).toBe(200);
+    expect(ok.out).toMatchObject({ ok: true, approved: true, persisted: false, storage: 'device', decision: { id: 'e1', status: 'final', campaign_id: 'c1' } });
     expect(S.hits(PLAN, 'approveEntry')).toEqual([]);
+    expect(S.hits(PLAN, 'previewEntry').length).toBe(1);
     const no = await cal('reject', { json: { id: 'e1', notes: 'off-brand' }, state: 'phone' });
-    expect(no.status).toBe(409); expect(S.hits(PLAN, 'rejectEntry')).toEqual([]);
+    expect(no.status).toBe(200); expect(no.out).toMatchObject({ storage: 'device', decision: { id: 'e1', status: 'rejected' } });
+    expect(S.hits(PLAN, 'rejectEntry')).toEqual([]);
     for (const h of S.reached) expect(h.args[0].config.workspace_id).not.toBe('ws-oldest');
     expect(w.llm.calls).toEqual([]);
     expect(w.escaped()).toEqual([]);
@@ -411,4 +438,86 @@ test.describe('the credit meter for a phone account', () => {
     const other = await credits('ledger', { method: 'GET', state: 'other' });
     expect(other.status).toBe(403); expectSentence(other, 'ledger unlisted');
   });
+});
+
+/* ═══ Codex #10 (2026-10-03): metered voice state never comes from the client ═══ */
+test('telesuite voice: a fabricated voice_session carried from the device cannot skip the meter; a server-signed one is honoured', async () => {
+  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
+  const started = new Date(Date.now() - 10 * 60000).toISOString();
+  const forged = { id: 'forged-session', feature: 'voice_session', status: 'in_progress', title: 'sales call session',
+    input: { call_id: 'call-forged', mode: 'sales' }, output: { billed_minutes: 999 }, units: 999, credits: 0, created_at: started };
+  const turn = (device, callId) => call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device, input: { mode: 'sales', call_id: callId, history: [], utterance: 'hello', product: 'Lamp' } }, state: 'phone', headers: H2 });
+  const r = await turn({ runs: [forged] }, 'call-forged');
+  expect(r.status, r.text.slice(0, 300)).toBe(200);
+  // The forged row was ignored: a fresh session was opened and its first minute METERED.
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the forged billed_minutes skipped the meter').toBe(1);
+  const session = (r.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(session && session.id).not.toBe('forged-session');
+  expect(session.signature, 'the server did not sign the session it owns').toMatch(/^[0-9a-f]{64}$/);
+  w.reset();
+  // The signed row the server handed back is honoured on the next turn: no new session.
+  const r2 = await turn({ runs: [session] }, 'call-forged');
+  expect(r2.status).toBe(200);
+  const s2 = (r2.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(!s2 || s2.id === session.id).toBe(true);
+  // A signed row with its counter edited is NOT honoured.
+  w.reset();
+  const edited = Object.assign({}, session, { output: { billed_minutes: 999 }, units: 999 });
+  const r3 = await turn({ runs: [edited] }, 'call-forged');
+  expect(r3.status).toBe(200);
+  const s3 = (r3.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s3 && s3.id).not.toBe(session.id);
+  // A validly-signed row moved to ANOTHER call, or relabelled as another
+  // feature, is not honoured either: both are inside the signature.
+  w.reset();
+  const moved = Object.assign({}, session, { input: Object.assign({}, session.input, { call_id: 'call-other' }) });
+  const r4 = await turn({ runs: [moved] }, 'call-other');
+  const s4 = (r4.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s4 && s4.id, 'a signed row from another call was honoured').not.toBe(session.id);
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length).toBe(1);
+  w.reset();
+  const relabelled = Object.assign({}, session, { feature: 'voice_sales' });
+  const r5 = await turn({ runs: [relabelled] }, 'call-forged');
+  expect(r5.status).toBe(200);
+  const s5 = (r5.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s5 && s5.id).not.toBe(session.id);
+  // The signature is derived for THIS use: it is not an HMAC under the raw secret.
+  const crypto = require('crypto');
+  const o = session.output || {}; const i = session.input || {};
+  const raw = crypto.createHmac('sha256', String(process.env.CRON_SECRET || '')).update(JSON.stringify([session.id, session.feature, session.created_at, session.units == null ? null : Number(session.units), o.billed_minutes == null ? null : Number(o.billed_minutes), session.credits == null ? null : Number(session.credits), i.call_id || null, session.status || null])).digest('hex');
+  expect(session.signature).not.toBe(raw);
+});
+
+test('telesuite voice: replaying an OLDER validly-signed session for the same call cannot lower what is due', async () => {
+  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
+  const turn = (device) => call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device, input: { mode: 'sales', call_id: 'call-replay', history: [], utterance: 'hi', product: 'Lamp' } }, state: 'phone', headers: H2 });
+  const t1 = await turn({ runs: [] });
+  const older = (t1.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(older.output.billed_minutes).toBe(1);
+  // The billed counter can only be what the server signed for THIS created_at:
+  // the older row says 1 minute billed against the same start time, so what is
+  // due is computed from the server's clock as elapsed - 1, never less.
+  w.reset();
+  const t2 = await turn({ runs: [older] });
+  expect(t2.status).toBe(200);
+  const s2 = (t2.out.device.runs || []).find((x) => x.feature === 'voice_session') || older;
+  expect(Number((s2.output || {}).billed_minutes)).toBeGreaterThanOrEqual(1);
+  // And a signed row can never claim MORE billed minutes than it was signed with.
+  w.reset();
+  const inflated = Object.assign({}, older, { output: { billed_minutes: 60 }, units: 60 });
+  const t3 = await turn({ runs: [inflated] });
+  const s3 = (t3.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s3 && s3.id).not.toBe(older.id);
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'an inflated counter skipped the meter').toBe(1);
+});
+
+test('telesuite voice: a malformed signature (64 characters, one multi-byte) is dropped, never a 500', async () => {
+  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
+  const bad = { id: 'bad-sig', feature: 'voice_session', status: 'in_progress', input: { call_id: 'call-bad', mode: 'sales' },
+    output: { billed_minutes: 999 }, units: 999, credits: 0, created_at: new Date(Date.now() - 600000).toISOString(), signature: 'é' + 'a'.repeat(63) };
+  const r = await call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device: { runs: [bad] }, input: { mode: 'sales', call_id: 'call-bad', history: [], utterance: 'hi', product: 'Lamp' } }, state: 'phone', headers: H2 });
+  expect(r.status, r.text.slice(0, 300)).toBe(200);
+  const s = (r.out.device.runs || []).find((x) => x.feature === 'voice_session');
+  expect(s && s.id).not.toBe('bad-sig');
+  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the fresh session was not metered').toBe(1);
 });

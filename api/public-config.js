@@ -130,6 +130,31 @@ module.exports = async function handler(req, res) {
         }
         const auth = await core.authorize(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (auth.kind === 'phone') {
+          // A phone sign-in has no workspace to file alert settings under: they
+          // are normalised here and kept on its device (data-analysis-extensions).
+          // A delivery test goes out through THIS DEPLOYMENT's own mail and SMS
+          // accounts, which send for its operator, so none is sent for a phone
+          // sign-in, and the answer says so rather than reading as a failure.
+          if (op === 'save-alert-settings') {
+            // Echoes only what this person sent, over the device defaults -
+            // never mergeSettings(), which fills the operator's sender in.
+            const x = body.settings && typeof body.settings === 'object' ? body.settings : {};
+            const d = core.phoneSettings();
+            const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o && o[k] !== undefined).map((k) => [k, o[k]]));
+            const settings = Object.assign(d, pick(x, ['enabled', 'cadence_hours', 'cooldown_minutes']), {
+              channels: Object.assign(d.channels, pick(x.channels, ['gmail', 'google_chat', 'sms'])),
+              recipients: Object.assign(d.recipients, pick(x.recipients, ['email', 'sms'])),
+              thresholds: Object.assign(d.thresholds, pick(x.thresholds, Object.keys(d.thresholds))),
+              quiet_hours: Object.assign(d.quiet_hours, pick(x.quiet_hours, Object.keys(d.quiet_hours))),
+              sender_email: '',
+            });
+            return res.status(200).json({ ok: true, persisted: false, storage: 'device', settings, note: 'Alert settings kept on this device: this sign-in has no brand workspace in a database to save them to.' });
+          }
+          if (op === 'test-alert') {
+            return res.status(200).json({ ok: true, storage: 'device', result: { sent_any: false, note: 'Delivery tests go out through this deployment\'s own mail and SMS accounts, which send for its operator, so no test was sent for this sign-in.' } });
+          }
+        }
         if (op === 'save-alert-settings') return res.status(200).json(await core.saveSettings(body.settings || {}, auth.email));
         if (op === 'test-alert') return res.status(200).json({ ok: true, result: await core.testAlert(body.settings || {}) });
         return res.status(400).json({ ok: false, error: 'unknown_data_analysis_operation', available: ['run-hourly', 'save-alert-settings', 'test-alert'] });
@@ -141,7 +166,17 @@ module.exports = async function handler(req, res) {
         since: req.query.since, until: req.query.until,
         hours: req.query.hours ? Number(req.query.hours) : undefined,
       };
-      return res.status(200).json(await core.view(req.query.view || 'status', params));
+      // A phone sign-in gets an answer BUILT for it (core.phoneView): never
+      // the operator's sender, recipients, connector wiring, runs or telemetry.
+      if (auth.kind === 'phone') return res.status(200).json(core.phoneView(req.query.view || 'status', params));
+      // Any other person with no active brand gets the same built answer: the
+      // views below read deployment wiring and unscoped telemetry. Only the
+      // scheduler (cron) reads the deployment as a whole.
+      if (auth.kind !== 'cron' && !(await core.activeWorkspace())) {
+        return res.status(200).json(core.phoneView(req.query.view || 'status', params, { note: core.NO_WORKSPACE_NOTE, storage: 'none' }));
+      }
+      const out = await core.view(req.query.view || 'status', params);
+      return res.status(200).json(out);
     } catch (e) {
       return res.status(200).json({ ok: false, error: 'data_analysis_failed', message: String(e && e.message || e) });
     }

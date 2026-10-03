@@ -83,6 +83,20 @@ async function authorize(req, { cron = false } = {}) {
   if (secret && token === secret) return { ok: true, kind: 'cron' };
   if (cron) return { ok: false, status: 401, error: 'cron_secret_required' };
   if (!token) return { ok: false, status: 401, error: 'operator_session_required' };
+  // A MOBILE+PIN SIGN-IN (2026-10-03). Every tab answered it 401
+  // invalid_operator_session: this gate only knew a Supabase JWT, and a phone
+  // token is not one. The operator's words: "All features must work even with
+  // signin by number and pin". It is verified the way every other gate
+  // verifies it (requireUser: a server-mode session in the account database,
+  // or a device principal from a page on a deployment with none). WHAT it then
+  // sees is decided per view by the active workspace exactly as for anyone: a
+  // phone account names none, so every view is its honest "not connected"
+  // answer - never the deployment's connectors, never another brand's rows.
+  if (require('./mobile-auth-core.js').looksLikeToken(token)) {
+    const a = await require('./brand-workspace-core.js').requireUser(req);
+    if (!a || !a.ok) return { ok: false, status: (a && a.status) || 401, error: (a && a.error) || 'sign_in_required', message: (a && a.message) || 'You are not signed in, so this could not be loaded.' };
+    return { ok: true, kind: 'phone', email: '', user_id: a.user_id, scope: 'device' };
+  }
   try {
     const { url, key } = supa.env();
     const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: `Bearer ${token}` }, cache: 'no-store' });
@@ -405,6 +419,59 @@ async function runHourly({force=false,trigger='schedule'}={}){
 }
 async function testAlert(override){const settings=mergeSettings({...await loadSettings(),...(override||{})}),brandName=await activeBrandName(),msg=alertMessage([{severity:'info',market:'TEST',source:'Alert Settings',metric:'Delivery test',message:'This is a delivery test. No business anomaly was detected.'}],brandName);msg.subject=`[${brandName||'Lifecycle OS'}] Data Analysis alert delivery test`;return alerts.dispatch({...msg,settings});}
 async function status(){const settings=await loadSettings(),last=await latestRun();return{ok:true,generated_at:iso(),settings,last_run:last?{started_at:last.started_at,finished_at:last.finished_at,status:last.status,anomalies:Array.isArray(last.anomalies)?last.anomalies.length:null}:null,connectors:{ads:['US','UK','IN'].map((market)=>adsCore.status(market)),klaviyo:{connected:klaviyo.isConnected()},webengage:{connected:webengage.connected()},pagedeck:{connected:Boolean(text(process.env.PAGEDECK_ANALYTICS_EXPORT_URL)||text(process.env.PAGEDECK_EXPERIMENTS_EXPORT_URL)||text(process.env.PAGEDECK_COMPETITOR_EXPORT_URL)||text(process.env.PAGEDECK_API_KEY))},gmail:{connected:Boolean(text(process.env.GMAIL_CLIENT_ID)&&text(process.env.GMAIL_CLIENT_SECRET)&&text(process.env.GMAIL_REFRESH_TOKEN)),sender:alerts.senderEmail()},google_chat:{connected:Boolean(text(process.env.GOOGLE_CHAT_WEBHOOK_URL))},sms:{connected:Boolean(text(process.env.TWILIO_ACCOUNT_SID)&&text(process.env.TWILIO_AUTH_TOKEN)&&text(process.env.TWILIO_FROM_NUMBER))}}};}
+/* ── A PHONE SIGN-IN'S ANSWER, BUILT FROM NOTHING OF THE OPERATOR'S (2026-10-03) ──
+   Admitting a mobile-number sign-in to this surface must not hand it the
+   deployment's wiring. status() and loadSettings() carry the OPERATOR's sender
+   address, default alert recipients, which env connectors are configured and
+   the latest hourly run; actions() carries deployment telemetry. None of that
+   is this person's. A phone sign-in names no workspace, so it has nothing
+   measured either - and rather than strip fields from the operator's answer
+   (a deny-list that the next added field walks straight through), its answer
+   is BUILT here from an explicit allowlist, reading no table and no env var. */
+const PHONE_NOTE = 'This brand is kept on this device, so no data source is connected to it on the server, and nothing measured is shown. No other brand\'s figures, accounts, settings or recipients are substituted.';
+function phoneSettings() {
+  const d = DEFAULT_SETTINGS;
+  return {
+    id: 'device', enabled: d.enabled, cadence_hours: d.cadence_hours, sender_email: '',
+    channels: { gmail: false, google_chat: false, sms: false },
+    recipients: { email: [], sms: [] },
+    thresholds: Object.assign({}, d.thresholds), cooldown_minutes: d.cooldown_minutes,
+    quiet_hours: Object.assign({}, d.quiet_hours),
+  };
+}
+function phoneStatus(note) {
+  return {
+    ok: true, generated_at: iso(), storage: 'device', settings: phoneSettings(), last_run: null,
+    connectors: { ads: [], klaviyo: { connected: false }, webengage: { connected: false }, pagedeck: { connected: false },
+      gmail: { connected: false, sender: '' }, google_chat: { connected: false }, sms: { connected: false } },
+    note: note || PHONE_NOTE,
+  };
+}
+/* The same built answer serves ANY caller with no brand workspace (Codex
+   review, 2026-10-03): an account that signed in and has not activated a
+   brand reached status(), alerts and actions() too - env connector flags,
+   the operator's sender, and the UNSCOPED connector_sync_runs telemetry. */
+const NO_WORKSPACE_NOTE = 'No brand is active for this account, so no data source is connected and nothing measured is shown. Activate a brand on the Brand screen; no other brand\'s figures, accounts or settings are substituted.';
+function phoneView(name, params, opts) {
+  const NOTE = (opts && opts.note) || PHONE_NOTE;
+  const storage = (opts && opts.storage) || 'device';
+  const market = (params && params.market) || 'US';
+  const scope = (of) => ({ data_scope: { level: 'unconnected', basis: 'unset', of, connect: NOTE }, storage, note: NOTE });
+  const base = { ok: true, generated_at: iso(), workspace_id: null, rows: [], campaigns: [], segments: [], actions: [] };
+  switch (String(name || 'status').toLowerCase()) {
+    case 'ads': return Object.assign(base, { market, kpis: adRows.rollup([]), platforms: [], connected_platforms: [], pending_platforms: AD_PROVIDERS.slice() }, scope('paid media'));
+    case 'mailer': return Object.assign(base, { kpis: {}, event_mix: [], sources: {} }, scope('lifecycle mailer'));
+    case 'landing': case 'pagedeck': return Object.assign(base, { kpis: {}, pages: [], experiments: [] }, scope('landing page analytics'));
+    case 'actions': return Object.assign(base, {
+      kpis: { actions_tracked: 0, error_observations: 0, completed_actions: 0, completion_rate: 0, failed_or_rolled_back: 0, error_rate: 0, median_time_to_launch_hours: null,
+        measured_actions: 0, realized_incremental_revenue: 0, realized_roi: 0, guardrail_breaches: 0, rollback_rate: 0, experiment_win_rate: 0, pending_reviews: 0 },
+      platform_health: { scope: 'device', recent_activity: [], connector_runs: [] }, recent_activity: [], connector_runs: [],
+    }, scope('action outcomes'));
+    case 'alerts': return { ok: true, storage, settings: phoneSettings(), status: Object.assign(phoneStatus(NOTE), { storage }), note: NOTE };
+    default: return Object.assign(phoneStatus(NOTE), { storage });
+  }
+}
+
 async function view(name,params){switch(String(name||'status').toLowerCase()){case'ads':return ads(params);case'mailer':return mailer(params);case'landing':case'pagedeck':return landing(params);case'actions':return actions(params);case'alerts':return{ok:true,settings:await loadSettings(),status:await status()};default:return status();}}
 
-module.exports={DEFAULT_SETTINGS,authorize,loadSettings,saveSettings,view,status,ads,mailer,landing,actions,runHourly,testAlert,detectHourly};
+module.exports={DEFAULT_SETTINGS,mergeSettings,phoneView,phoneSettings,PHONE_NOTE,NO_WORKSPACE_NOTE,activeWorkspace,authorize,loadSettings,saveSettings,view,status,ads,mailer,landing,actions,runHourly,testAlert,detectHourly};

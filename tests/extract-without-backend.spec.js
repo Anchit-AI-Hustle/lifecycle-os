@@ -144,7 +144,11 @@ const LIVE_AUTH_REJECTS = async () => ({
   text: async () => '{}', json: async () => ({}),
 });
 
-const ENV_KEYS = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
+// The account store's variables too (2026-09-29): with none set, the mobile+PIN
+// accounts are kept on each device, which is production's state - so a test
+// run from a shell that happens to export DATABASE_URL must not change it.
+const ENV_KEYS = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY',
+  'DATABASE_URL', 'NEON_DATABASE_URL', 'POSTGRES_URL'];
 let saved;
 test.beforeEach(() => { saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]])); });
 test.afterEach(() => { for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; } });
@@ -154,6 +158,9 @@ function configure() {
   process.env.SUPABASE_ANON_KEY = 'anon-key-for-test';
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   delete process.env.SUPABASE_SERVICE_KEY;
+  delete process.env.DATABASE_URL;
+  delete process.env.NEON_DATABASE_URL;
+  delete process.env.POSTGRES_URL;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -273,6 +280,151 @@ test('only extract opens; every other operation still requires a session', async
       expect(out.code, `${op} must not open when the backend is unreachable`).toBe(503);
       expect(out.body.ok).toBe(false);
       expect(out.body.error).toBe('session_verification_unavailable');
+    }
+  } finally { restore(); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2b. THE REQUEST A BROWSER ACTUALLY SENDS: NO TOKEN AT ALL (2026-09-29)
+   ─────────────────────────────────────────────────────────────────────────────
+   Every case above sends 'a-stale-token'. No browser sends one any more: Google
+   sign-in is commented out, so none holds a Supabase JWT, and a device-mode
+   mobile+PIN token is never sent (LifecycleAuth.apiToken()). requireUser()
+   answers a request with NO token `sign_in_required` before it looks at any
+   backend, so the open path above - which waits for `backend_unreachable` -
+   never opened for a visitor, nor for a person signed in on the device. On
+   production (Supabase paused, no DATABASE_URL) both were answered 401, and
+   the wizard showed the second one the control disabled ("not working after
+   signin", tests/read-site-after-signin.spec.js).
+
+   The rule for that request: open only while NOTHING could check a session -
+   the Supabase auth host down or unconfigured AND no account database that
+   answers. Either one able to check a session keeps the gate real.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const MOBILE = require.resolve('../api/_shared/mobile-auth-core.js');
+/** The account module with its store answering from a database (DATABASE_URL set and answering). */
+function accountsInDatabase() {
+  delete require.cache[MOBILE];
+  const real = require(MOBILE);
+  require.cache[MOBILE].exports = Object.assign({}, real, {
+    status: async () => ({ ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' }),
+  });
+  return () => { delete require.cache[MOBILE]; };
+}
+/** Supabase's auth host answering /auth/v1/health (and refusing /auth/v1/user). */
+const LIVE_AUTH_ANSWERS = async (u) => ({
+  ok: /\/health/.test(u), status: /\/health/.test(u) ? 200 : 401,
+  headers: { get: () => 'application/json' },
+  text: async () => '{}', json: async () => ({}),
+});
+
+test('a caller with NO token is served while nothing could check a session (production: Supabase paused, accounts on the device)', async () => {
+  configure();
+  delete require.cache[MOBILE];
+  const { core, restore } = loadCore({ authFetch: DEAD_AUTH, site: SITE });
+  let calls = 0;
+  const realLlm = require.cache[LLM];
+  const stub = async function callLLM() { calls += 1; throw new Error('a provider must not be called here'); };
+  stub.parseJSON = (t) => JSON.parse(t);
+  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: stub };
+  try {
+    const { res, out } = mockRes();
+    await core.handle(reqFor('extract', { url: HOST }, ''), res);
+    expect(out.code, `a visitor the server has no way to verify was refused: ${JSON.stringify(out.body)}`).toBe(200);
+    expect(out.body.ok).toBe(true);
+    expect(out.body.fields.name.value).toBe('Northwind Tea');
+    expect(out.body.signed_out).toBe(true);
+    expect(out.body.voice_skipped).toBe(true);
+    // The extractor's own output for voice:false - the handler's flag alone proves nothing.
+    expect(out.body.fields.voice.note).toBe('Voice observation was not requested.');
+    expect(calls, 'a language model was called for a caller nobody could check').toBe(0);
+    // Why, naming what an operator would change - both halves.
+    expect(out.body.backend_message).toMatch(/fswdwmkgggzyxrdzabnh\.supabase\.co/);
+    expect(out.body.backend_message).toMatch(/DATABASE_URL/);
+    // Neutral about who is here: a person signed in on the device sends this too.
+    expect(out.body.note).not.toMatch(/without signing in/i);
+    expect(out.body.note).toMatch(/[Nn]othing was saved/);
+  } finally {
+    if (realLlm) require.cache[LLM] = realLlm; else delete require.cache[LLM];
+    restore();
+  }
+});
+
+test('a caller with NO token is served when this deployment has no database configured at all', async () => {
+  for (const k of ENV_KEYS) delete process.env[k];
+  delete require.cache[MOBILE];
+  let probed = 0;
+  const { core, restore } = loadCore({ authFetch: async () => { probed += 1; throw new Error('no Supabase host exists to call'); }, site: SITE });
+  try {
+    const { res, out } = mockRes();
+    await core.handle(reqFor('extract', { url: HOST }, ''), res);
+    expect(out.code, JSON.stringify(out.body)).toBe(200);
+    expect(out.body.voice_skipped).toBe(true);
+    expect(out.body.backend_message).toMatch(/no workspace database configured/i);
+    expect(probed, 'an unconfigured Supabase was probed').toBe(0);
+  } finally { restore(); }
+});
+
+test('a caller with NO token is still refused while Supabase answers: a session exists to be had', async () => {
+  configure();
+  delete require.cache[MOBILE];
+  const { core, restore } = loadCore({ authFetch: LIVE_AUTH_ANSWERS, site: SITE });
+  try {
+    const { res, out } = mockRes();
+    await core.handle(reqFor('extract', { url: HOST }, ''), res);
+    expect(out.code).toBe(401);
+    expect(out.body.error).toBe('sign_in_required');
+    expect(out.body.pages_visited, 'the site was crawled for a refused caller').toBeUndefined();
+  } finally { restore(); }
+});
+
+test('a caller with NO token is still refused while the ACCOUNT database answers, even with Supabase paused', async () => {
+  // DATABASE_URL set and answering: a mobile number and PIN signed in here get
+  // a token this server verifies, so the gate is real - and Supabase being
+  // down does not change that.
+  configure();
+  const undo = accountsInDatabase();
+  let probed = 0;
+  const { core, restore } = loadCore({ authFetch: async (u, o) => { probed += 1; return DEAD_AUTH(u, o); }, site: SITE });
+  try {
+    const { res, out } = mockRes();
+    await core.handle(reqFor('extract', { url: HOST }, ''), res);
+    expect(out.code).toBe(401);
+    expect(out.body.error).toBe('sign_in_required');
+    expect(out.body.pages_visited).toBeUndefined();
+    expect(probed, 'the account store already decided; Supabase need not be asked').toBe(0);
+  } finally { undo(); restore(); }
+});
+
+test('a Supabase host that does not answer in time counts as ANSWERING: fail closed on doubt', async () => {
+  // The browser's probe gives a timeout the benefit of the doubt (auth.js
+  // authHostReachable); the server's must too, or a slow network would open
+  // the endpoint on a live deployment.
+  configure();
+  delete require.cache[MOBILE];
+  const { core, restore } = loadCore({ authFetch: () => new Promise(() => {}), site: SITE });
+  try {
+    const { res, out } = mockRes();
+    const t0 = Date.now();
+    await core.handle(reqFor('extract', { url: HOST }, ''), res);
+    expect(out.code).toBe(401);
+    expect(out.body.error).toBe('sign_in_required');
+    expect(out.body.pages_visited).toBeUndefined();
+    expect(Date.now() - t0, 'the probe did not give up').toBeLessThan(10000);
+  } finally { restore(); }
+});
+
+test('with NO token and nothing to check a session, still ONLY extract opens', async () => {
+  configure();
+  delete require.cache[MOBILE];
+  const { core, restore } = loadCore({ authFetch: DEAD_AUTH, site: SITE });
+  try {
+    for (const op of ['list', 'active', 'save', 'activate', 'delete', 'catalog-import', 'suggest', 'context-build']) {
+      const { res, out } = mockRes();
+      await core.handle(reqFor(op, { workspace_id: 'w1', field: 'tagline', brand: { name: 'Northwind Tea' } }, ''), res);
+      expect(out.code, `${op} opened for a caller with no token`).toBe(401);
+      expect(out.body.error).toBe('sign_in_required');
     }
   } finally { restore(); }
 });

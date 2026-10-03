@@ -275,11 +275,10 @@
     var uid = deviceUserId();
     return uid ? DEVICE_KEY + '.' + uid : DEVICE_KEY;
   }
-  // The brand ops that have a device implementation. Everything else (extract,
-  // suggest, catalog-import, context-*) is the server's, and each of those is
-  // rendered as a DISABLED control with its reason by the wizard when it cannot
-  // run - not routed here to fail.
-  var DEVICE_OPS = { list: 1, active: 1, get: 1, save: 1, activate: 1, delete: 1 };
+  // The brand ops that have a device implementation. extract and suggest are
+  // the server's; catalog-import and context-* are the server's READ with the
+  // result kept here for a device brand (deviceServerApi, 2026-10-03).
+  var DEVICE_OPS = { list: 1, active: 1, get: 1, save: 1, activate: 1, delete: 1, readiness: 1, catalog: 1 };
   // Which of auth.js's backend kinds means "there is no account to write to".
   var KIND_DEVICE = { unconfigured: 1, unreachable: 1, sdk: 1, 'signed-out': 1 };
   // How long to wait for auth.js to decide before falling back to the server
@@ -708,6 +707,35 @@
     return null;
   }
   function deviceActiveRow() { var d = readDevice(); return d.active_id ? deviceFind(d, d.active_id) : null; }
+
+  /* ── what a device brand keeps beside itself (2026-10-03) ─────────────────
+     A mobile-number sign-in keeps its brands on this device, and since
+     2026-10-03 the catalogue and the context pack it builds are kept beside
+     them: the server reads the store / the site and hands the result back
+     (deviceCatalogImport, devicePackStep), because there is no database row
+     for it to be filed under. Each lives under the SAME per-account namespace
+     as the brand list, so another person signing in on this browser sees none
+     of it, and deleting the brand deletes both. */
+  function deviceSideKey(kind, id) { return deviceKey() + '.' + kind + '.' + id; }
+  function readSide(kind, id) {
+    if (!isDeviceId(id)) return null;
+    try { var v = JSON.parse(localStorage.getItem(deviceSideKey(kind, id)) || 'null'); return v && typeof v === 'object' ? v : null; }
+    catch (_) { return null; }
+  }
+  function writeSide(kind, id, value) {
+    if (!isDeviceId(id)) return false;
+    try {
+      if (value == null) localStorage.removeItem(deviceSideKey(kind, id));
+      else localStorage.setItem(deviceSideKey(kind, id), JSON.stringify(value));
+      return true;
+    } catch (_) { return false; }
+  }
+  /** The device catalogue for a brand: { products: [], source, owned }. */
+  function deviceCatalog(id) {
+    var c = readSide('catalog', id);
+    return c && Array.isArray(c.products) ? c : null;
+  }
+  function deviceProductCount(id) { var c = deviceCatalog(id); return c ? c.products.length : 0; }
   /** A refusal shaped like the server's, so every caller's catch reads it the same way. */
   function deviceFail(status, code, message, details) {
     var e = new Error(message);
@@ -758,7 +786,8 @@
     return row;
   }
   function deviceFull(row) {
-    return Object.assign({}, row, { tokens: tokensFor(row), fonts_href: fontsHrefFor(row), readiness: readinessFor(row, { products: 0 }), products: 0 });
+    var n = deviceProductCount(row.id);
+    return Object.assign({}, row, { tokens: tokensFor(row), fonts_href: fontsHrefFor(row), readiness: readinessFor(row, { products: n }), products: n });
   }
   function queryOf(o) {
     try { return new URLSearchParams(String((o && o.query) || '').replace(/^[&?]/, '')); } catch (_) { return new URLSearchParams(''); }
@@ -766,7 +795,7 @@
   /** The id an op is addressed to, when it is a device id; '' otherwise. */
   function deviceIdIn(o) {
     var b = (o && o.body) || {};
-    var id = (b.brand && b.brand.id) || b.id || queryOf(o).get('id') || '';
+    var id = (b.brand && b.brand.id) || b.id || b.workspace_id || queryOf(o).get('id') || queryOf(o).get('workspace_id') || '';
     return isDeviceId(id) ? id : '';
   }
 
@@ -783,7 +812,7 @@
       case 'active':
         ws = d.active_id ? deviceFind(d, d.active_id) : null;
         if (!ws) return { ok: true, brand: null, needs_onboarding: d.workspaces.length === 0, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
-        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: 0 }), products: 0 }), needs_onboarding: false, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
+        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: deviceProductCount(ws.id) }), products: deviceProductCount(ws.id) }), needs_onboarding: false, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
       case 'get':
         id = str(q.get('id') || body.id);
         ws = id ? deviceFind(d, id) : null;
@@ -809,7 +838,7 @@
         if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not saved on this device, so it could not be activated.');
         d.active_id = id;
         if (!writeDevice(d)) throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the change (storage is full or blocked), so nothing was activated.');
-        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: 0 }), products: 0 }), storage: 'device' };
+        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: deviceProductCount(ws.id) }), products: deviceProductCount(ws.id) }), storage: 'device' };
       case 'delete':
         id = str(body.id || q.get('id'));
         ws = id ? deviceFind(d, id) : null;
@@ -817,7 +846,23 @@
         d.workspaces = d.workspaces.filter(function (w) { return w.id !== id; });
         if (d.active_id === id) d.active_id = '';
         writeDevice(d);
+        writeSide('catalog', id, null);
+        writeSide('pack', id, null);
         return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
+      case 'readiness':
+        id = str(q.get('id') || body.id);
+        ws = id ? deviceFind(d, id) : null;
+        if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not saved on this device.');
+        return { ok: true, readiness: readinessFor(ws, { products: deviceProductCount(id) }), storage: 'device' };
+      case 'catalog': {
+        id = str(q.get('workspace_id') || body.workspace_id);
+        var cat = deviceCatalog(id);
+        var reg = str(q.get('region') || body.region).toLowerCase();
+        var lim = Math.max(1, Math.min(500, +(q.get('limit') || body.limit) || 60));
+        var rows = (cat ? cat.products : []).filter(function (p) { return !reg || String(p.region || '').toLowerCase() === reg; });
+        rows = rows.slice().sort(function (a, b) { return String(a.title || '').localeCompare(String(b.title || '')); }).slice(0, lim);
+        return { ok: true, products: rows, count: rows.length, storage: 'device' };
+      }
       default:
         throw deviceFail(400, 'unknown_brand_operation', 'That operation has no device implementation.');
     }
@@ -834,6 +879,7 @@
     var known = !!(k && k !== 'pending');
     var d = readDevice();
     var ms = known ? mobileSession() : null;
+    var rs = readSite(k, b, ms);
     return {
       mode: known ? modeFor(k) : (window.__LifecycleAuthBooted ? (state.mode || 'server') : 'server'),
       known: known,
@@ -849,15 +895,122 @@
       // in" nor the account's own sentence says it alone.
       session: ms,
       account_sentence: ms ? accountSentence(ms) : '',
-      // The server's own open path (brand-workspace-core.js, op=extract) applies
-      // when the backend is provably unreachable or unconfigured, and - since
-      // 2026-09-28 - for a SERVER-mode mobile+PIN session, which requireUser()
-      // verifies against the Neon database. A reachable backend with no
-      // checkable session refuses, and that refusal is the gate being real - so
-      // the wizard disables the control rather than sending a request it knows
-      // will be refused.
-      server_open: k === 'unreachable' || k === 'unconfigured' || !!(ms && (ms.mode === 'server' || ms.mode === 'supabase') && ms.verified),
+      // "Read my site": what the SERVER will answer to the request this browser
+      // sends. See readSite().
+      read_site: rs,
+      server_open: rs.on,
+      // Everything else on the wizard that the server runs for a person -
+      // Suggest options, Import catalog, Build context pack. See serverActions().
+      server_actions: serverActions(k, ms),
     };
+  }
+
+  /* ── SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03) ───────
+     A mobile-number sign-in's token is sent (auth.js apiToken(), 2026-09-30),
+     and the server acts for it: a server-mode session is verified against the
+     account database, and a device-mode one on a deployment with no database
+     is admitted as a device principal from a page. So for a person signed in
+     with a phone these controls are ON, and what the server answers is the
+     judge. Two states are OFF, each with a remedy that works:
+       - signed out: the server refuses a request with no session, and signing
+         in (on any deployment) is what turns them on;
+       - a sign-in kept on this device on a deployment that NOW keeps accounts
+         in a database (the account store answers 'server'): that token is not
+         in its session table, so the server refuses it, and signing in again
+         is what turns them on. */
+  function serverActions(k, ms) {
+    if (!k || k === 'pending') return { on: true, decided: false, state: 'undecided' };
+    if (ms) {
+      // A device sign-in on a deployment whose accounts now live in a database
+      // that answers (Neon 'server', or Supabase Auth 'supabase' - #119 refuses
+      // a device token while the project answers) is stale: sign in again.
+      if (ms.mode === 'device' && accountStore && (accountStore.mode === 'server' || accountStore.mode === 'supabase')) return { on: false, decided: true, state: 'stale-device-session' };
+      if (ms.mode === 'device') askAccountStore();
+      var acct = ms.mode === 'server' || ms.mode === 'supabase';
+      return { on: true, decided: acct || !!accountStore, state: acct ? 'server-session' : 'device-session' };
+    }
+    if (KIND_DEVICE[k]) return { on: false, decided: true, state: 'signed-out' };
+    // A signed-in account with a database behind it, or the localhost preview.
+    return { on: true, decided: true, state: 'account' };
+  }
+
+  /* ── "READ MY SITE" FOLLOWS THE SERVER'S RULE, NOT THE ACCOUNT TYPE (2026-09-29)
+     The operator's words: "not working after signin". On production (Supabase
+     paused, no DATABASE_URL) a visitor saw the control ON and a person signed in
+     with a mobile number saw it OFF - "Not available on a mobile-number
+     account". This read `kind`, and for a phone session auth.js publishes kind
+     'signed-in' (who is here) with the Supabase state on `backend.supabase` (a
+     separate fact), so EVERY device session read as "not open".
+
+     But the server never sees an account type. It sees a request, and a
+     device-mode token is never sent (auth.js apiToken()), so a person signed in
+     on this device sends EXACTLY the request a visitor sends: no token. The
+     decision is therefore made on the request, the way
+     brand-workspace-core.js handle() makes it:
+       - a server-mode session sends its token: verified, the server reads the
+         site for the account; its database down, the server's own open path
+         reads it without one. ON either way.
+       - no token: ON while nothing could check a session - the workspace
+         database (Supabase) down or unconfigured AND accounts not kept in a
+         database that answers (auth.js's `status()`, one request per page
+         load). Otherwise the server refuses, and so the control is OFF, with
+         the reason for THIS person (onboarding.html extractNote()).
+     Undecided (auth.js still probing, the account store not yet answered) is
+     ON: the server judges, as LifecycleStatus.refusal() does for the same
+     window. `state` names the branch so the page can say the right sentence. */
+  var accountStore = null, accountStoreAsked = false;
+  function askAccountStore() {
+    if (accountStoreAsked) return;
+    var a = window.LifecycleAuth;
+    var ask = a && a.mobile && typeof a.mobile.status === 'function' ? a.mobile.status : null;
+    if (!ask) return;
+    accountStoreAsked = true;
+    Promise.resolve().then(ask).then(function (st) {
+      accountStore = (st && typeof st === 'object') ? st : { mode: 'device', reason: 'status_unavailable', host: '', message: '' };
+    }, function () {
+      accountStore = { mode: 'device', reason: 'status_unavailable', host: '', message: '' };
+    }).then(function () {
+      try { window.dispatchEvent(new CustomEvent('brandcontext:storage', { detail: { account_store: accountStore } })); } catch (_) {}
+    });
+  }
+  function readSite(k, b, ms) {
+    var out = { on: true, decided: false, state: 'undecided', supabase: '', store: accountStore, host: (b && b.host) || '' };
+    if (!k || k === 'pending') return out;
+    if (ms && (ms.mode === 'server' || ms.mode === 'supabase')) { out.decided = true; out.state = 'checkable-session'; return out; }
+    // A DEVICE-mode sign-in sends its token since 2026-09-30, and with no
+    // database the server admits it as a device principal from a page - so it
+    // is ON for the same reason a server-mode session is. The one exception is
+    // a deployment whose accounts are now in a database that answers: this
+    // token is not in it, and the server refuses (sign in again).
+    if (ms && ms.mode === 'device') {
+      askAccountStore();
+      if (!accountStore) { out.state = 'device-session'; return out; }
+      out.decided = true;
+      if (accountStore.mode === 'server' || accountStore.mode === 'supabase') { out.on = false; out.state = 'stale-device-session'; return out; }
+      out.state = 'device-session';
+      return out;
+    }
+    // Everything that follows sends NO token.
+    if (!ms && k !== 'unreachable' && k !== 'unconfigured' && k !== 'signed-out' && k !== 'sdk') {
+      // The localhost preview, or a legacy session: the server judges, as before.
+      out.decided = true; out.state = 'server-judges'; return out;
+    }
+    var supa = ms ? String((b && b.supabase) || 'pending') : (k === 'signed-out' ? 'reachable' : k);
+    out.supabase = supa;
+    if (supa === 'pending') return out;
+    askAccountStore();
+    out.decided = true;
+    if (supa === 'sdk') { out.on = false; out.state = 'sdk'; return out; }
+    if (supa !== 'unreachable' && supa !== 'unconfigured') {
+      // A session could be checked (Supabase answers): the gate is real. The
+      // account store changes only WHAT to say - whether signing in is the
+      // remedy - so the words are not decided until it has answered.
+      out.on = false; out.state = 'backend-answers'; out.decided = !!accountStore; return out;
+    }
+    if (!accountStore) { out.decided = false; return out; }
+    if (accountStore.mode === 'server') { out.on = false; out.state = 'accounts-in-database'; return out; }
+    out.state = 'no-backend';
+    return out;
   }
 
   /** "Signed in as <name> · workspaces are saved on this device[ · account in the database]". */
@@ -1167,7 +1320,106 @@
     if (DEVICE_OPS[op]) {
       if (deviceIdIn(o) || (await resolveMode()) === 'device') return deviceApi(op, o);
     }
+    if (DEVICE_SERVER_OPS[op] && deviceIdIn(o)) return deviceServerApi(op, o);
     return serverApi(op, o);
+  }
+
+  /* ── THE SERVER READS, THE DEVICE KEEPS (2026-10-03) ──────────────────────
+     The operator's words: "All features must work even with signin by number
+     and pin". A mobile-number sign-in's brands are on this device, and the
+     wizard turned two features OFF for it - "Import catalog" and "Build
+     context pack", both "Not available on a mobile-number account" - because
+     each was FILED in the workspace database. Reading a store, a CSV or a site
+     never needed one. So for a brand on this device the server does the
+     reading (it already does all of it) and hands the result back, and it is
+     kept here beside the brand: the catalogue under `.catalog.<id>`, the pack
+     row under `.pack.<id>`, in the same per-account namespace as the brands.
+     The pack is a queue the BROWSER drives, one stage per call - exactly the
+     client-driven fallback a deployment without a service key already used -
+     carrying its own row each time. What the server answers is the judge: a
+     visitor with no session is still refused, and that refusal is shown. */
+  var DEVICE_SERVER_OPS = { 'catalog-import': 1, 'context-build': 1, 'context-pack': 1, 'context-design': 1, 'context-list': 1 };
+
+  function deviceBrandBody(row) {
+    var b = Object.assign({}, row);
+    delete b.storage; delete b.owner_id; delete b.created_at; delete b.updated_at;
+    return b;
+  }
+
+  async function deviceServerApi(op, o) {
+    var id = deviceIdIn(o);
+    var d = readDevice();
+    var row = deviceFind(d, id);
+    if (!row) throw deviceFail(404, 'workspace_not_found', 'That brand is not saved on this device.');
+    var body = Object.assign({}, o.body || {});
+    var stored = readSide('pack', id) || {};
+    if (op === 'catalog-import') {
+      body.brand = deviceBrandBody(row);
+      var r = await serverApi(op, { body: body, query: o.query });
+      if (!r || !Array.isArray(r.products)) throw deviceFail(502, 'catalog_not_returned', 'The server read the catalogue but did not hand the products back, so nothing was kept on this device.');
+      // Imported by hand: the operator owns it, and a context pack run leaves
+      // it alone (catalog_owned) exactly as a `user` provenance row would.
+      if (!writeSide('catalog', id, { products: r.products, source: r.source || null, owned: true, region: r.region || '', imported_at: new Date().toISOString() })) {
+        throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the catalogue (storage is full or blocked), so nothing was kept.');
+      }
+      saveCatalogSource(id, r.source);
+      var out = Object.assign({}, r);
+      delete out.products;
+      return out;
+    }
+    if (op === 'context-build') {
+      body.brand = deviceBrandBody(row);
+      body.device_pack = stored.row || null;
+      var cat = deviceCatalog(id);
+      body.catalog_owned = !!(cat && cat.owned);
+      var rb = await serverApi(op, { body: body, query: o.query });
+      // The catalogue FIRST: if this browser will not keep it, the step is not
+      // kept either, and the person is told - never a pack that reports
+      // "N catalogue rows" while holding none (Codex, 2026-10-03).
+      if (rb && Array.isArray(rb.catalog_products) && rb.catalog_products.length && !(cat && cat.owned)) {
+        var src = (rb.device_pack && rb.device_pack.catalog && rb.device_pack.catalog.source) || null;
+        if (!writeSide('catalog', id, { products: rb.catalog_products, source: src, owned: false, imported_at: new Date().toISOString() })) {
+          throw deviceFail(507, 'device_storage_unavailable', 'The context pack read ' + rb.catalog_products.length + ' products from your store, but this browser refused to keep them (storage is full or blocked), so the build stopped here and nothing from this step was kept. Free some browser storage, or import a smaller catalogue (Paste CSV on step 5), then build again.');
+        }
+        saveCatalogSource(id, src);
+      }
+      if (rb && rb.device_pack) {
+        if (!writeSide('pack', id, { row: rb.device_pack, context: rb.context || null })) {
+          throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the context pack (storage is full or blocked), so the step was not kept.');
+        }
+      }
+      var outb = Object.assign({}, rb || {});
+      delete outb.device_pack; delete outb.catalog_products;
+      return outb;
+    }
+    if (op === 'context-pack') {
+      if (stored.context) return Object.assign({}, stored.context, { storage: 'device' });
+      return {
+        ok: true, workspace_id: id, pack: null, storage: 'device',
+        brand: { name: row.name, website: row.website },
+        note: row.website ? 'No context pack has been built for this brand yet.' : 'This brand has no website on its record, so there is nothing to read a context pack from.',
+        markers: [launchMarker('brand context pack', { brand: row.name })],
+      };
+    }
+    if (op === 'context-design') {
+      var pr = stored.row;
+      if (!pr || !pr.design_md) throw deviceFail(404, 'no_design_md', 'No DESIGN.md has been built for this brand yet.');
+      return { ok: true, design_md: pr.design_md, design: pr.design || {}, brand_key: pr.brand_key, storage: 'device' };
+    }
+    if (op === 'context-list') {
+      return { ok: true, packs: stored.context && stored.context.pack ? [stored.context.pack] : [], storage: 'device' };
+    }
+    throw deviceFail(400, 'unknown_brand_operation', 'That operation has no device implementation.');
+  }
+  /** Record where the device catalogue came from on the brand row itself, as the account path records it on the workspace. */
+  function saveCatalogSource(id, source) {
+    if (!source) return;
+    var d = readDevice();
+    var w = deviceFind(d, id);
+    if (!w) return;
+    w.catalog_source = source;
+    w.updated_at = new Date().toISOString();
+    writeDevice(d);
   }
 
   async function serverApi(op, opts) {
@@ -1508,14 +1760,80 @@
       } catch (_) { /* header attach is best-effort */ }
       return { input: (typeof input === 'string') ? glued : new Request(glued, input), init: init };
     }
+    /* THE DEVICE BRAND TRAVELS WITH THE REQUEST (2026-10-03). A server brand
+       is stamped above by workspace_id and the server reads the row. A phone
+       sign-in's brand has no row: brand-runtime.resolve() takes the record
+       from the request (only from a verified mobile+PIN session, for that
+       request alone), and a page that did not send it was answered for an
+       UNRESOLVED brand - Smart Brain's Daily Sync planned nothing, every
+       generator printed DATA REQUIRED where the brand's own name belonged.
+       Pages carried it one call site at a time (KicksGPT, the concierge); this
+       carries it for every JSON POST to the routers that resolve a brand, so
+       no page has to remember. Never overwrites a `brand` the page sent, and
+       only for a phone sign-in: nobody else's request is touched. */
+    var CARRY_ROUTERS = /^(?:https?:\/\/[^/]+)?\/api\/(?:brain|calendar|ai\/)/;
+    function carryInto(url, init) {
+      try {
+        if (!init || !CARRY_ROUTERS.test(url) || String(init.method || 'GET').toUpperCase() !== 'POST' || typeof init.body !== 'string') return init;
+        if (!phoneToken()) return init;
+        var body = JSON.parse(init.body);
+        if (!body || typeof body !== 'object' || Array.isArray(body) || body.brand !== undefined) return init;
+        var rec = carry();
+        if (!rec) return init;
+        body.brand = rec;
+        return Object.assign({}, init, { body: JSON.stringify(body) });
+      } catch (_) { return init; }
+    }
+    /* A request for a device brand goes out through THIS wrapper's captured
+       fetch, which is the browser's own: auth.js loads deferred and wraps
+       window.fetch later, so a page's first request (its plan, its list) left
+       with no token at all - the server answered a signed-in phone sign-in as
+       an anonymous visitor ("arrived without an active workspace"). Found
+       2026-10-03 driving ad-campaigns.html against the shipped routers. The
+       token is attached here, as glue() already does for a server brand. */
+    /** The phone sign-in's token: auth.js's once it has booted, else the stored session (the first frame runs before it). */
+    function phoneToken() {
+      try {
+        var a = window.LifecycleAuth;
+        if (a && a.backend && a.backend.kind && a.backend.kind !== 'pending') {
+          return (mobileSession() && typeof a.apiToken === 'function') ? (a.apiToken() || '') : '';
+        }
+        var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
+        if (!raw || raw.provider !== 'mobile-pin' || typeof raw.token !== 'string' || !/^[A-Za-z0-9_-]{40,90}$/.test(raw.token)) return '';
+        if (raw.mode !== 'server' && raw.mode !== 'device') return '';
+        if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
+        return raw.token;
+      } catch (_) { return ''; }
+    }
+    function deviceSend(input, url, init) {
+      var i2 = carryInto(url, init);
+      try {
+        var t = phoneToken();
+        if (!t) return { input: input, init: i2 };
+        if (typeof input !== 'string') {
+          if (input && input.headers && input.headers.get && input.headers.get('Authorization')) return { input: input, init: i2 };
+          var rq = new Request(input, i2 || undefined);
+          rq.headers.set('Authorization', 'Bearer ' + t);
+          if (!rq.headers.get('X-Lifecycle-Token')) rq.headers.set('X-Lifecycle-Token', t);
+          return { input: rq, init: undefined };
+        }
+        var o = Object.assign({}, i2 || {});
+        var h = new Headers(o.headers || {});
+        if (!h.get('Authorization')) h.set('Authorization', 'Bearer ' + t);
+        if (!h.get('X-Lifecycle-Token')) h.set('X-Lifecycle-Token', t);
+        o.headers = h;
+        return { input: input, init: o };
+      } catch (_) { return { input: input, init: i2 }; }
+    }
     function stamped(input, init) {
       try {
         var url = (typeof input === 'string') ? input : (input && input.url) || '';
         var isApi = /^\/api\//.test(url) || url.indexOf(location.origin + '/api/') === 0;
         if (!isApi || UNSCOPED.test(url)) return origFetch.call(window, input, init);
         // A device brand has no server workspace: stamping its `local-` id
-        // would turn "you are signed out" into "workspace not found".
-        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) return origFetch.call(window, input, init);
+        // would turn "you are signed out" into "workspace not found". For a
+        // phone sign-in it CARRIES the record instead (carryInto below).
+        if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { var d0 = deviceSend(input, url, init); return origFetch.call(window, d0.input, d0.init); }
         if (state.brand && state.brand.id) { var g = glue(input, state.brand.id, init); return origFetch.call(window, g.input, g.init); }
         // The active brand is not resolved yet. An unstamped content request
         // would fall back to the server's DEFAULT workspace and return another
@@ -1528,7 +1846,7 @@
           return new Promise(function (resolve, reject) {
             var waited = 0;
             (function poll() {
-              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { resolve(origFetch.call(self || window, input, init)); return; }
+              if (state.brand && state.brand.id && isDeviceId(state.brand.id)) { var d1 = deviceSend(input, url, init); resolve(origFetch.call(self || window, d1.input, d1.init)); return; }
               if (state.brand && state.brand.id) { var g2 = glue(input, state.brand.id, init); resolve(origFetch.call(self || window, g2.input, g2.init)); return; }
               if (state.loaded || waited >= 8000) { resolve(origFetch.call(self || window, input, init)); return; }
               waited += 120;
@@ -1621,6 +1939,9 @@
   window.BrandContext = {
     get brand() { return state.brand; },
     carry: carry,
+    // The catalogue a brand on this device keeps beside itself (2026-10-03):
+    // { products, source, owned } or null. Read-only; imports go through api().
+    deviceCatalog: function (id) { var c = deviceCatalog(id); return c ? JSON.parse(JSON.stringify(c)) : null; },
     get needsOnboarding() { return state.needsOnboarding; },
     get workspaces() { return state.workspaces; },
     get loaded() { return state.loaded; },
