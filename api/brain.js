@@ -887,7 +887,13 @@ module.exports = async function handler(req, res) {
       case 'dispatch-cancel': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
-        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand' });
+        // A phone sign-in's brand is on its device and has no dispatch queue on
+        // the server: its log is EMPTY, which is the true answer, not a refusal
+        // painted as "Dispatch jobs could not be loaded" (2026-10-03).
+        if (!__wsId && auth.provider === 'mobile-pin' && action === 'dispatch-list') {
+          return res.json({ ok: true, jobs: [], storage: 'device', note: 'Nothing has been queued for this brand: it is kept on this device, and sending goes through platform accounts connected to a brand workspace on the server.' });
+        }
+        if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand', message: 'There is no dispatch queue for this brand on the server, so there was nothing to read or cancel.' });
         const dispatch = require('./_shared/dispatch-core.js');
         if (action === 'dispatch-list') return res.json({ ok: true, jobs: await dispatch.listJobs(auth, __wsId, { status: req.query.status, limit: req.query.limit }) });
         if (action === 'dispatch-detail') return res.json({ ok: true, detail: await dispatch.jobDetail(auth, __wsId, String(req.query.id || b.id || '')) });

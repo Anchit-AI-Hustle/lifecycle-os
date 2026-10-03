@@ -130,6 +130,19 @@ module.exports = async function handler(req, res) {
         }
         const auth = await core.authorize(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (auth.kind === 'phone') {
+          // A phone sign-in has no workspace to file alert settings under: they
+          // are normalised here and kept on its device (data-analysis-extensions).
+          // A delivery test goes out through THIS DEPLOYMENT's own mail and SMS
+          // accounts, which send for its operator, so none is sent for a phone
+          // sign-in, and the answer says so rather than reading as a failure.
+          if (op === 'save-alert-settings') {
+            return res.status(200).json({ ok: true, persisted: false, storage: 'device', settings: core.mergeSettings(body.settings || {}), note: 'Alert settings kept on this device: this sign-in has no brand workspace in a database to save them to.' });
+          }
+          if (op === 'test-alert') {
+            return res.status(200).json({ ok: true, storage: 'device', result: { sent_any: false, note: 'Delivery tests go out through this deployment\'s own mail and SMS accounts, which send for its operator, so no test was sent for this sign-in.' } });
+          }
+        }
         if (op === 'save-alert-settings') return res.status(200).json(await core.saveSettings(body.settings || {}, auth.email));
         if (op === 'test-alert') return res.status(200).json({ ok: true, result: await core.testAlert(body.settings || {}) });
         return res.status(400).json({ ok: false, error: 'unknown_data_analysis_operation', available: ['run-hourly', 'save-alert-settings', 'test-alert'] });
@@ -141,7 +154,17 @@ module.exports = async function handler(req, res) {
         since: req.query.since, until: req.query.until,
         hours: req.query.hours ? Number(req.query.hours) : undefined,
       };
-      return res.status(200).json(await core.view(req.query.view || 'status', params));
+      const out = await core.view(req.query.view || 'status', params);
+      // For a phone sign-in the views answer "no workspace" honestly; the
+      // sentence they carry ("reload so the brand context loads") is written
+      // for an account whose page lost its brand, and reload would not help a
+      // brand kept on a device. Said for this person instead.
+      if (auth.kind === 'phone' && out && typeof out === 'object') {
+        const phoneNote = 'This brand is kept on this device, so no data source is connected to it on the server, and nothing measured is shown. No other brand\'s figures are substituted.';
+        for (const k of ['note', 'message']) if (typeof out[k] === 'string' && /No active brand workspace on this request/.test(out[k])) out[k] = out[k].replace(/No active brand workspace on this request[^.]*\./, phoneNote);
+        if (out.data_scope && typeof out.data_scope.connect === 'string' && /No active brand workspace/.test(out.data_scope.connect)) out.data_scope.connect = phoneNote;
+      }
+      return res.status(200).json(out);
     } catch (e) {
       return res.status(200).json({ ok: false, error: 'data_analysis_failed', message: String(e && e.message || e) });
     }

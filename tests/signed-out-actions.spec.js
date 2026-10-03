@@ -51,6 +51,14 @@
  * Run: npx playwright test tests/signed-out-actions.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
+// The device-session state's /api/ calls go to the SHIPPED routers
+// (2026-10-03), not a model of them: a model answered every gated op "ok" for
+// a phone sign-in, so it could not see the refusals the real server gave one
+// (TeleSuite 403, the concierge 404, Smart Brain's 409 on approve, a usage
+// panel whose op name was URL-encoded into nonsense). tests/agents-harness.js
+// runs them in this process on production's configuration: no DATABASE_URL.
+const A = require('./agents-harness');
+let REAL = null, REAL_WORLD = null;
 const fs = require('fs');
 const path = require('path');
 
@@ -444,10 +452,12 @@ function setup(page, stateName, log) {
           if (op === 'status') return json(AUTH_STATUS);
           return json({ ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment, so "' + op + '" cannot run on the server.' }, 503);
         }
+        if (stateName === 'device-session' && REAL && Object.prototype.hasOwnProperty.call(A.ROUTERS, u.pathname)) return REAL(route);
         if (g === 'lp') return route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>lp</title><p>landing page</p>' });
         // Device-session (2026-09-30): the server admits the token as a device
-        // principal and features run unmetered. The harness answers the shape
-        // those pages read (ok + reply), not a 401.
+        // principal and features run unmetered. Routers the harness does not
+        // run in-process (kb, competitor, ai/image, the pipeline) are answered
+        // in the shape those pages read (ok + reply), not a 401.
         if (g === 'gated') {
           if (stateName === 'device-session') {
             return json(Object.assign({}, GENERIC_OK, {
@@ -691,6 +701,9 @@ const HALVES = [
   ['a-l', SWEEP.filter((f) => /^[a-l]/i.test(f))],
   ['m-z', SWEEP.filter((f) => !/^[a-l]/i.test(f))],
 ].filter(([, files]) => files.length);
+
+test.beforeAll(async () => { REAL_WORLD = await A.world({ serverMode: false }); REAL = A.forward(REAL_WORLD.port); });
+test.afterAll(async () => { if (REAL_WORLD) await REAL_WORLD.close(); REAL = null; REAL_WORLD = null; });
 
 for (const stateName of Object.keys(STATES)) {
   for (const [half, files] of HALVES) {
