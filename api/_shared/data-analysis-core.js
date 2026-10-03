@@ -439,17 +439,24 @@ function phoneSettings() {
     quiet_hours: Object.assign({}, d.quiet_hours),
   };
 }
-function phoneStatus() {
+function phoneStatus(note) {
   return {
     ok: true, generated_at: iso(), storage: 'device', settings: phoneSettings(), last_run: null,
     connectors: { ads: [], klaviyo: { connected: false }, webengage: { connected: false }, pagedeck: { connected: false },
       gmail: { connected: false, sender: '' }, google_chat: { connected: false }, sms: { connected: false } },
-    note: PHONE_NOTE,
+    note: note || PHONE_NOTE,
   };
 }
-function phoneView(name, params) {
+/* The same built answer serves ANY caller with no brand workspace (Codex
+   review, 2026-10-03): an account that signed in and has not activated a
+   brand reached status(), alerts and actions() too - env connector flags,
+   the operator's sender, and the UNSCOPED connector_sync_runs telemetry. */
+const NO_WORKSPACE_NOTE = 'No brand is active for this account, so no data source is connected and nothing measured is shown. Activate a brand on the Brand screen; no other brand\'s figures, accounts or settings are substituted.';
+function phoneView(name, params, opts) {
+  const NOTE = (opts && opts.note) || PHONE_NOTE;
+  const storage = (opts && opts.storage) || 'device';
   const market = (params && params.market) || 'US';
-  const scope = (of) => ({ data_scope: { level: 'unconnected', basis: 'unset', of, connect: PHONE_NOTE }, storage: 'device', note: PHONE_NOTE });
+  const scope = (of) => ({ data_scope: { level: 'unconnected', basis: 'unset', of, connect: NOTE }, storage, note: NOTE });
   const base = { ok: true, generated_at: iso(), workspace_id: null, rows: [], campaigns: [], segments: [], actions: [] };
   switch (String(name || 'status').toLowerCase()) {
     case 'ads': return Object.assign(base, { market, kpis: adRows.rollup([]), platforms: [], connected_platforms: [], pending_platforms: AD_PROVIDERS.slice() }, scope('paid media'));
@@ -460,11 +467,11 @@ function phoneView(name, params) {
         measured_actions: 0, realized_incremental_revenue: 0, realized_roi: 0, guardrail_breaches: 0, rollback_rate: 0, experiment_win_rate: 0, pending_reviews: 0 },
       platform_health: { scope: 'device', recent_activity: [], connector_runs: [] }, recent_activity: [], connector_runs: [],
     }, scope('action outcomes'));
-    case 'alerts': return { ok: true, storage: 'device', settings: phoneSettings(), status: phoneStatus(), note: PHONE_NOTE };
-    default: return phoneStatus();
+    case 'alerts': return { ok: true, storage, settings: phoneSettings(), status: Object.assign(phoneStatus(NOTE), { storage }), note: NOTE };
+    default: return Object.assign(phoneStatus(NOTE), { storage });
   }
 }
 
 async function view(name,params){switch(String(name||'status').toLowerCase()){case'ads':return ads(params);case'mailer':return mailer(params);case'landing':case'pagedeck':return landing(params);case'actions':return actions(params);case'alerts':return{ok:true,settings:await loadSettings(),status:await status()};default:return status();}}
 
-module.exports={DEFAULT_SETTINGS,mergeSettings,phoneView,phoneSettings,PHONE_NOTE,authorize,loadSettings,saveSettings,view,status,ads,mailer,landing,actions,runHourly,testAlert,detectHourly};
+module.exports={DEFAULT_SETTINGS,mergeSettings,phoneView,phoneSettings,PHONE_NOTE,NO_WORKSPACE_NOTE,activeWorkspace,authorize,loadSettings,saveSettings,view,status,ads,mailer,landing,actions,runHourly,testAlert,detectHourly};
