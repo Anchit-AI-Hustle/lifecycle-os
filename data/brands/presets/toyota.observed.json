@@ -1,0 +1,143 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "toyota",
+  "start": "https://www.toyota.com",
+  "landed": "https://www.toyota.com/",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "New Cars, Trucks, SUVs & Hybrids | Toyota Official Site",
+  "source": "Read from https://www.toyota.com/ on 2026-09-30. Primary #e10a1d from computed color of the home logo.",
+  "palette": {
+    "primary": "#e10a1d",
+    "accent": "#000000",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f5f5f5",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://www.toyota.com/"
+    },
+    "ink": {
+      "value": "#000000",
+      "signal": "computed color of body",
+      "source_url": "https://www.toyota.com/"
+    },
+    "surface_alt": {
+      "value": "#f5f5f5",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://www.toyota.com/"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://www.toyota.com/"
+    },
+    "primary": {
+      "value": "#e10a1d",
+      "signal": "computed color of the home logo",
+      "source_url": "https://www.toyota.com/"
+    },
+    "accent": {
+      "value": "#000000",
+      "signal": "text colour, used where the brand publishes no second colour",
+      "source_url": "https://www.toyota.com/"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "body": {
+      "family": "tcomSans",
+      "stack": "'tcomSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:de5c10a1-86d0-46fb-ba6e-3d1e50ffeb2f/as/GRLogo.svg",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:de5c10a1-86d0-46fb-ba6e-3d1e50ffeb2f/as/GRLogo.svg",
+      "role": "logo",
+      "alt": "Gazoo Racing",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://tmna.aemassets.toyota.com/is/image/toyota/toyota/homepage/tdr-marquee/2027/LND_MY24_0018_V002_desktop.png",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://www.toyota.com/",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:ab59bdfa-8b62-47c1-bd1f-05e7f260d120/as/base.png?format=webp&quality=90",
+      "role": "photograph",
+      "alt": "Corolla Cross",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:8abfd804-08d1-4f7d-bb42-f35d90b98c13/as/base.png?format=webp&quality=90",
+      "role": "photograph",
+      "alt": "RAV4",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:bcd68326-9932-4751-ac84-f1f813c8d4eb/as/MY26_RAV4-PHEV_US_GR-Sport-AWD_4538_02TB_03_6K.png?format=webp&quality=90",
+      "role": "photograph",
+      "alt": "RAV4 Plug-in Hybrid",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:7e1fbc1b-714e-491f-8c12-8e07cb48b525/as/MY27_BZ_US_Limited-AWD_2882_0089_03_6K.png?format=webp&quality=90",
+      "role": "photograph",
+      "alt": "bZ",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://delivery.tcom.assetscs.toyota.com/adobe/assets/urn:aaid:aem:1c0dfb30-4ec6-4e2d-bbf1-a842defa0078/as/my27-bz-woodland-us-premium-awd-2861-0cd-03-6k.png?format=webp&quality=90",
+      "role": "photograph",
+      "alt": "bZ Woodland",
+      "found_on": "https://www.toyota.com/",
+      "signal": "img on the page"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "nestle",
+  "start": "https://www.nestle.com",
+  "landed": "https://www.nestle.com/",
+  "observed_at": "2026-09-30",
+  "status": 403,
+  "title": "Just a moment...",
+  "note": "The page did not serve the brand site (status 403, title \"Just a moment...\"). Nothing was filled in from it."
+}

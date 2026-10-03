@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "slug": "mcdonalds",
+  "start": "https://www.mcdonalds.com",
+  "landed": "https://www.mcdonalds.com/",
+  "observed_at": "2026-09-30",
+  "status": 403,
+  "title": "Access Denied",
+  "note": "The page did not serve the brand site (status 403, title \"Access Denied\"). Nothing was filled in from it."
+}

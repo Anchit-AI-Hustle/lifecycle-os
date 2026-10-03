@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "puma",
+  "start": "https://www.puma.com",
+  "landed": "https://us.puma.com/us/en",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "PUMA.com | Clothing, Shoes, Accessories | PUMA US",
+  "source": "Read from https://us.puma.com/us/en on 2026-09-30. Primary #27455c from computed background of SPAN (10 elements).",
+  "palette": {
+    "primary": "#27455c",
+    "accent": "#191919",
+    "ink": "#191919",
+    "surface": "#ffffff",
+    "surface_alt": "#f6f7f8",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://us.puma.com/us/en"
+    },
+    "ink": {
+      "value": "#191919",
+      "signal": "computed color of body",
+      "source_url": "https://us.puma.com/us/en"
+    },
+    "surface_alt": {
+      "value": "#f6f7f8",
+      "signal": "computed light background repeated on the page",
+      "source_url": "https://us.puma.com/us/en"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://us.puma.com/us/en"
+    },
+    "primary": {
+      "value": "#27455c",
+      "signal": "computed background of SPAN (10 elements)",
+      "source_url": "https://us.puma.com/us/en"
+    },
+    "accent": {
+      "value": "#191919",
+      "signal": "text colour, used where the brand publishes no second colour",
+      "source_url": "https://us.puma.com/us/en"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "FFDINforPuma",
+      "stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "FFDINforPuma",
+      "stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://us.puma.com/assets/puma-logo-1200x630.jpg",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://us.puma.com/assets/puma-logo-1200x630.jpg",
+      "role": "logo",
+      "alt": "Four black football boots with iridescent blue/purple soles and light blue logos float against a dark background.",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1280/cms/images/b97a17a7344b9d82fbeb825945f0114be794d3de?_a=BAMAPqiu0",
+      "role": "photograph",
+      "alt": "Close-up rear view of a person moving along a concrete sidewalk while wearing black leggings and bright lime-green Deviate Pure shoes. The o",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313904/13/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Men's-Running-Shoes",
+      "role": "photograph",
+      "alt": "Deviate Pure NITRO™ Men's Running Shoes, Sunny Lime-PUMA Black, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313905/11/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Women's-Running-Shoes",
+      "role": "photograph",
+      "alt": "Deviate Pure NITRO™ Women's Running Shoes, Sunny Lime-Light Lime, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312126/21/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Women's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "MagMax NITRO™ 2 Women's Road Running Shoes, Sunny Lime-Lime Squeeze, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312125/20/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Men's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "MagMax NITRO™ 2 Men's Road Running Shoes, Sunny Lime-PUMA Silver, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311141/13/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Women's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "Velocity NITRO™ 4 Women's Road Running Shoes, Apple Spritz-Deep Plum, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311140/16/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Men's-Road-Running-Shoes",
+      "role": "photograph",
+      "alt": "Velocity NITRO™ 4 Men's Road Running Shoes, Apple Spritz-Lux Lime, extralarge",
+      "found_on": "https://us.puma.com/us/en",
+      "signal": "img on the page"
+    }
+  ]
+}

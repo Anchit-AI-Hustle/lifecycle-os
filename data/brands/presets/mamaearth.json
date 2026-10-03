@@ -8,34 +8,90 @@
     "label": "Mamaearth",
     "sector": "Beauty",
     "blurb": "D2C personal care. Template for a replenishment cycle with strong claim governance.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://mamaearth.in.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-09-30",
+    "source": "Read from https://mamaearth.in/ on 2026-09-30. Primary #00aeef from computed background of hdt-announcement-bar hdt-s-gradient  hdt-announcement_bar_hide_on_mobl (11 elements).",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "img on the page whose address or alt says logo",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "signal": "computed background of body",
+        "source_url": "https://mamaearth.in/"
+      },
+      "ink": {
+        "value": "#1d1d1d",
+        "signal": "computed color of body",
+        "source_url": "https://mamaearth.in/"
+      },
+      "surface_alt": {
+        "value": "#f4f6f8",
+        "signal": "computed light background repeated on the page",
+        "source_url": "https://mamaearth.in/"
+      },
+      "muted": {
+        "value": "#666666",
+        "signal": "secondary text token that clears AA; the page did not declare one",
+        "source_url": "https://mamaearth.in/"
+      },
+      "primary": {
+        "value": "#00aeef",
+        "signal": "computed background of hdt-announcement-bar hdt-s-gradient  hdt-announcement_bar_hide_on_mobl (11 elements)",
+        "source_url": "https://mamaearth.in/"
+      },
+      "accent": {
+        "value": "#1d1d1d",
+        "signal": "text colour, used where the brand publishes no second colour",
+        "source_url": "https://mamaearth.in/"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "warn": {
+        "value": "#c9a227",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      },
+      "err": {
+        "value": "#c0392b",
+        "signal": "functional token shared by every preset, not a colour read from this brand",
+        "source_url": ""
+      }
+    },
+    "typography_evidence": {
+      "heading": "computed font-family of h1",
+      "body": "computed font-family of body"
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#00aeef",
+    "accent": "#1d1d1d",
+    "ink": "#1d1d1d",
+    "surface": "#ffffff",
+    "surface_alt": "#f4f6f8",
+    "muted": "#666666",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Open Sans",
+      "stack": "'Open Sans', sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Open Sans",
+      "stack": "'Open Sans', sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -59,7 +115,7 @@
     "offering_kinds": [
       "product"
     ],
-    "note": "This catalogue is PLACEHOLDER: generic line names with no prices, no URLs and no images, present so the layouts can be exercised before the brand's own site is harvested. Run `npm run harvest:presets` from an environment with internet access to replace it, or connect a store."
+    "note": "Line names are placeholders. The image on each row is a photograph Mamaearth publishes on its own site (https://mamaearth.in/). Prices and product URLs were not on that page as a catalogue, so they are empty."
   },
   "catalog_placeholder": [
     {
@@ -69,9 +125,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://mamaearth.in/cdn/shop/files/mamaearth-og-image.jpg?v=1787645067",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://mamaearth.in/"
     },
     {
       "title": "Cleanser 02",
@@ -80,9 +137,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://mamaearth.in/cdn/shop/files/b2g2_genric_desktop.jpg?v=1790654097&width=1400",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://mamaearth.in/"
     },
     {
       "title": "Cleanser 03",
@@ -91,9 +149,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://mamaearth.in/cdn/shop/files/REDEEM35_new_buy2_desktop_generic.jpg?v=1790654676&width=1400",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://mamaearth.in/"
     },
     {
       "title": "Cleanser 04",
@@ -102,9 +161,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://mamaearth.in/cdn/shop/files/flaxseed-desktop-new.jpg?v=1783748411&width=1600",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://mamaearth.in/"
     },
     {
       "title": "Serum 01",
@@ -113,9 +173,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://mamaearth.in/cdn/shop/files/Tea-tree-face-wash-desktop.jpg?v=1780754685&width=1600",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://mamaearth.in/"
     },
     {
       "title": "Serum 02",
@@ -124,9 +185,10 @@
       "price": null,
       "compare_at": null,
       "currency": "",
-      "image_url": "",
+      "image_url": "https://mamaearth.in/cdn/shop/files/rice_fw_150ml.jpg?v=1777974776&width=300",
       "product_url": "",
-      "placeholder": true
+      "placeholder": true,
+      "image_found_on": "https://mamaearth.in/"
     },
     {
       "title": "Serum 03",
@@ -285,12 +347,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Mamaearth]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Mamaearth]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Mamaearth]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Mamaearth]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Mamaearth]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
+      "role": "logo",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/mamaearth-og-image.jpg?v=1787645067",
+      "role": "share",
+      "alt": "",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=110",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/b2g2_genric_desktop.jpg?v=1790654097&width=1400",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/REDEEM35_new_buy2_desktop_generic.jpg?v=1790654676&width=1400",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/flaxseed-desktop-new.jpg?v=1783748411&width=1600",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Tea-tree-face-wash-desktop.jpg?v=1780754685&width=1600",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/rice_fw_150ml.jpg?v=1777974776&width=300",
+      "role": "photograph",
+      "alt": "Rice Dewy Bright Face Wash for glass skin",
+      "found_on": "https://mamaearth.in/",
+      "signal": "img on the page"
+    }
+  ],
+  "logo_url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

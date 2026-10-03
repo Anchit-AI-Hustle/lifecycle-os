@@ -1,0 +1,150 @@
+{
+  "ok": true,
+  "palette_ok": true,
+  "slug": "microsoft",
+  "start": "https://www.microsoft.com",
+  "landed": "https://www.microsoft.com/en-us",
+  "observed_at": "2026-09-30",
+  "status": 200,
+  "title": "Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps",
+  "source": "Read from https://www.microsoft.com/en-us on 2026-09-30. Primary #0078d4 from css custom property --sa-primary-blue.",
+  "palette": {
+    "primary": "#0078d4",
+    "accent": "#279ab9",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#f6f6f6",
+    "muted": "#666666",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "signal": "computed background of body",
+      "source_url": "https://www.microsoft.com/en-us"
+    },
+    "ink": {
+      "value": "#000000",
+      "signal": "computed color of body",
+      "source_url": "https://www.microsoft.com/en-us"
+    },
+    "surface_alt": {
+      "value": "#f6f6f6",
+      "signal": "no card colour was declared; a light neutral so the schema is complete",
+      "source_url": "https://www.microsoft.com/en-us"
+    },
+    "muted": {
+      "value": "#666666",
+      "signal": "secondary text token that clears AA; the page did not declare one",
+      "source_url": "https://www.microsoft.com/en-us"
+    },
+    "primary": {
+      "value": "#0078d4",
+      "signal": "css custom property --sa-primary-blue",
+      "source_url": "https://www.microsoft.com/en-us"
+    },
+    "accent": {
+      "value": "#279ab9",
+      "signal": "css custom property --sa-border-accent",
+      "source_url": "https://www.microsoft.com/en-us"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "warn": {
+      "value": "#c9a227",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    },
+    "err": {
+      "value": "#c0392b",
+      "signal": "functional token shared by every preset, not a colour read from this brand",
+      "source_url": ""
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Segoe UI Variable Text",
+      "stack": "'Segoe UI Variable Text', \"Segoe UI\", segoeui, \"Helvetica Neue\", helvetica",
+      "google": false,
+      "weights": "600;700",
+      "signal": "computed font-family of h1"
+    },
+    "body": {
+      "family": "Segoe UI Variable Text",
+      "stack": "'Segoe UI Variable Text', \"Segoe UI\", segoeui, \"Helvetica Neue\", helvetica",
+      "google": false,
+      "weights": "400;500;600",
+      "signal": "computed font-family of body"
+    }
+  },
+  "logo_url": "https://www.microsoft.com/favicon.ico?v2",
+  "logo_signal": "img on the page whose address or alt says logo",
+  "assets": [
+    {
+      "url": "https://www.microsoft.com/favicon.ico?v2",
+      "role": "logo",
+      "alt": "Microsoft",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page whose address or alt says logo"
+    },
+    {
+      "url": "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png",
+      "role": "photograph",
+      "alt": "Microsoft",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/MSCOM-FY26-Evergreen-Hero-Light-Background-Desktop?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=1920&hei=2150&qlt=80&fit=constrain",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Laptop-SnapdragonX2-13-2Ed-Violet-Attract-1?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "role": "photograph",
+      "alt": "A floating Surface Laptop, 13-inch (2nd Edition) in the color Violet.",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Pro-SnapdragonX2-12-2Ed-Violet-Attract?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "role": "photograph",
+      "alt": "A floating Surface Pro, 12-inch (2nd Edition) in the color Violet.",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-M365-Icon-Bounce?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "role": "photograph",
+      "alt": "Word, Power Point, Excel and other apps included in a Microsoft 365 subscription.",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Mouse-2Ed-Platinum-Homepage?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "role": "photograph",
+      "alt": "A top-down view of a Surface Mouse (2nd Edition).",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Front-Xbox-Controllers-Black-Closeup?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "role": "photograph",
+      "alt": "A closeup of the buttons of a black XBOX Wireless Controller.",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "img on the page"
+    }
+  ]
+}

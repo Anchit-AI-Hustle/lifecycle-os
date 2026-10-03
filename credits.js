@@ -94,11 +94,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function token() {
     try { if (window.BrandContext && window.BrandContext.token) return window.BrandContext.token(); } catch (_) {}
     try {
-      // 2026-09-28: only a token the server can check - a SERVER-mode
-      // mobile+PIN session. A device-mode token is never sent.
+      // 2026-09-30: a token the server can act on - server-mode, or device-mode
+      // on a standalone deployment (no DATABASE_URL). LifecycleAuth.apiToken()
+      // is the one source.
       var a = window.LifecycleAuth;
       if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
-      if (a && a.session && a.session.access_token && a.session.mode === 'server') return a.session.access_token;
+      if (a && a.session && a.session.access_token && a.session.provider === 'mobile-pin') return a.session.access_token;
     } catch (_) {}
     return '';
   }
@@ -261,8 +262,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // sentence on hover. It never wears the low/empty colours, because
     // "no wallet" and "wallet at zero" are different things to be told.
     pillEl.classList.remove('is-low', 'is-empty');
-    pillEl.classList.toggle('is-none', state.unavailable === 'mobile_account');
+    pillEl.classList.toggle('is-none', state.unavailable === 'mobile_account' || state.unavailable === 'standalone');
     pillEl.setAttribute('data-credits-state', state.unavailable || (state.balance == null ? 'unknown' : 'wallet'));
+    if (state.unavailable === 'standalone') {
+      pillEl.innerHTML = '<span class="lc-dot"></span><span class="lc-none">Local / Demo Mode</span>';
+      return;
+    }
     if (state.unavailable === 'mobile_account') {
       pillEl.innerHTML = '<span class="lc-dot"></span><span class="lc-none">No credit wallet on this sign-in</span>';
       return;
