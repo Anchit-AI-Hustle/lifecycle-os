@@ -1,150 +1,118 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "economic-times",
   "start": "https://economictimes.indiatimes.com",
-  "landed": "https://economictimes.indiatimes.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Business News Live, Share Market News - Read Latest Finance News, IPO, Mutual Funds News - The Economic Times",
-  "source": "Read from https://economictimes.indiatimes.com/ on 2026-09-30. Primary #ed193b from computed background of LiveStreamPlay_ctaButton__t4rEU (12 elements).",
-  "palette": {
-    "primary": "#ed193b",
-    "accent": "#cc0000",
-    "ink": "#000000",
-    "surface": "#ffffff",
-    "surface_alt": "#fff8f6",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T17:20:54.488Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "light page surface; the page ground was not a light colour",
-      "source_url": "https://economictimes.indiatimes.com/"
+  "pages": [
+    {
+      "url": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
     },
-    "ink": {
-      "value": "#000000",
-      "signal": "computed color of body",
-      "source_url": "https://economictimes.indiatimes.com/"
-    },
-    "surface_alt": {
-      "value": "#fff8f6",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://economictimes.indiatimes.com/"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://economictimes.indiatimes.com/"
-    },
-    "primary": {
-      "value": "#ed193b",
-      "signal": "computed background of LiveStreamPlay_ctaButton__t4rEU (12 elements)",
-      "source_url": "https://economictimes.indiatimes.com/"
-    },
-    "accent": {
-      "value": "#cc0000",
-      "signal": "computed background of jsx-48c379259a10063f latestNewsNumber",
-      "source_url": "https://economictimes.indiatimes.com/"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
+    "mobile": {
+      "w": 1260,
+      "h": 2727
     }
   },
-  "typography": {
-    "heading": {
-      "family": "Faustina",
-      "stack": "'Faustina', Georgia, serif",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 70,
+    "mismatch": 0.3,
+    "surfaces": {
+      "landing page": {
+        "score": 70,
+        "mismatch": 0.3,
+        "done": false,
+        "tokens_off": 0,
+        "regions_off": 2
+      },
+      "mailer": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      }
     },
-    "body": {
-      "family": "Montserrat",
-      "stack": "'Montserrat', sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
   },
-  "logo_url": "https://img.etimg.com/photo/msid-100067830/et-logo.jpg",
-  "logo_signal": "img on the page whose address or alt says logo",
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: favicon, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: header bar, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: footer, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, economictimes.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), economictimes.indiatimes.com]"
+  ],
+  "logo_url": "https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg",
+  "logo_signal": "the logo element as rendered (tr:nth-of-type(1) > td > div.header:nth-of-type(1) > a.et_logo:nth-of-type(1) > img)",
   "assets": [
     {
-      "url": "https://img.etimg.com/photo/msid-100067830/et-logo.jpg",
+      "url": "https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg",
       "role": "logo",
-      "alt": "More",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://economictimes.indiatimes.com/photo/65498029.cms",
-      "role": "share",
       "alt": "",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-640,height-480,imgsize-547643,resizemode-75,msid-134284001/et-msme-awards-26.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-60826,resizemode-75,msid-133702117/et-sme-business-growth-summit.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-90538,resizemode-75,msid-133708611/et-ai-hackathon-agentic-edition-presented-by-accenture.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-82433,resizemode-75,msid-131766596/payoneer.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-51932,resizemode-75,msid-133540877/visa-payments-in-motion-2026-commercial-payments-event.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-10098,resizemode-75,msid-133562562/the-founders-behind-the-formula-insights-on-innovation-leadership-industry.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
+      "found_on": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
+      "signal": "the logo element as rendered (tr:nth-of-type(1) > td > div.header:nth-of-type(1) > a.et_logo:nth-of-type(1) > img)"
     }
-  ]
+  ],
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
+        "role": "page ground",
+        "selector": "canvas (no background declared)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": []
+    }
+  },
+  "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+  "typography": null,
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "economictimes.indiatimes.com",
+    "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+  },
+  "note": "economictimes.indiatimes.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. The preset stays on the neutral default."
 }

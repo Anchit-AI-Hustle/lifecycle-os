@@ -8,76 +8,240 @@
     "label": "Starbucks",
     "sector": "Food and beverage",
     "blurb": "Coffee retail. Template for a rewards programme and a seasonal menu calendar.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://www.starbucks.com/ on 2026-09-30. Primary #006341 from meta theme-color.",
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.starbucks.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #006341 from meta theme-color (meta[name=theme-color]). Headings SoDoSans, body SoDoSans, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "verified",
-    "logo_signal": "touch icon or favicon the page links",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
       "surface": {
         "value": "#ffffff",
-        "signal": "computed background of body",
-        "source_url": "https://www.starbucks.com/"
-      },
-      "ink": {
-        "value": "#000000",
-        "signal": "computed color of body",
-        "source_url": "https://www.starbucks.com/"
-      },
-      "surface_alt": {
-        "value": "#f9f9f9",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://www.starbucks.com/"
-      },
-      "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://www.starbucks.com/"
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.starbucks.com/",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
       },
       "primary": {
         "value": "#006341",
+        "exact": "#006341",
+        "derived": false,
+        "from_role": "identity",
         "signal": "meta theme-color",
-        "source_url": "https://www.starbucks.com/"
+        "source": {
+          "page": "https://www.starbucks.com/",
+          "role": "theme-color",
+          "selector": "meta[name=theme-color]",
+          "viewport": "desktop",
+          "property": "content",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#212121",
+        "exact": "#ffffff",
+        "derived": true,
+        "from_role": "navigation link",
+        "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the navigation link text the site renders (#212121) reads there, so it is the ink.",
+        "source": {
+          "page": "https://www.starbucks.com/",
+          "role": "navigation link",
+          "selector": "div.sb-globalNav__wrapper:nth-of-type(2) > div.flex.flex-shrink-none:nth-of-type(1) > ul.flex > li.sb-globalNav__desktopListItem.flex:nth-of-type(1) > a.sb-globalNav__desktopLink.inline-block",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "muted": {
+        "value": "#006242",
+        "exact": "#006242",
+        "derived": false,
+        "source": {
+          "page": "https://www.starbucks.com/",
+          "role": "secondary text",
+          "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > div.sm.rich-text_text__27o41",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
       },
       "accent": {
-        "value": "#00754a",
-        "signal": "css custom property --colorGreenAccent",
-        "source_url": "https://www.starbucks.com/"
+        "value": "#006341",
+        "exact": "#008248",
+        "derived": true,
+        "note": "The second colour the reader found (#008248) was measured on a consent or cookie banner, so the accent repeats the primary.",
+        "source": {
+          "page": "https://www.starbucks.com/",
+          "role": "theme-color",
+          "selector": "meta[name=theme-color]",
+          "viewport": "desktop",
+          "property": "content",
+          "signal": "computed"
+        }
       },
       "line": {
         "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "ok": {
         "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "warn": {
         "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "err": {
         "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       }
     },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.starbucks.com/",
+        "role": "home"
+      },
+      {
+        "url": "https://www.starbucks.com/menu/product/27616/iced",
+        "role": "product"
+      },
+      {
+        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=fo.QxrHDpzqXue6q4gBzKHB_ZiuQrCB8bIB5EtB5xZ0-1791134606-1.0.1.1-T3GuocCwNmnpBM57KK5ALKtARsnZRdVYOLxGnbbI7oQ",
+        "role": "about"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 62.8,
+      "mismatch": 0.3718,
+      "surfaces": {
+        "landing page": {
+          "score": 63.5,
+          "mismatch": 0.3648,
+          "done": false,
+          "tokens_off": 5,
+          "regions_off": 3
+        },
+        "mailer": {
+          "score": 87.5,
+          "mismatch": 0.125,
+          "done": false,
+          "tokens_off": 2,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 87.5,
+          "mismatch": 0.125,
+          "done": false,
+          "tokens_off": 1,
+          "regions_off": 0
+        }
+      },
+      "iterations": 2,
+      "repairs": 2,
+      "mismatch_limit": 0.05
+    },
+    "conflicts": [
+      {
+        "kind": "brand_colour_vs_action_colour",
+        "message": "The site declares #006341 as its own colour (meta theme-color) but renders its primary call to action in #008248. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
     "typography_evidence": {
-      "heading": "computed font-family of h1",
-      "body": "computed font-family of body"
+      "heading": {
+        "page": "https://www.starbucks.com/",
+        "role": "h1",
+        "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > h1.sb-heading.mb4",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://www.starbucks.com/",
+        "role": "body copy",
+        "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > div.sm.rich-text_text__27o41",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
     }
   },
   "palette": {
     "primary": "#006341",
-    "accent": "#00754a",
-    "ink": "#000000",
+    "accent": "#006341",
+    "ink": "#212121",
     "surface": "#ffffff",
-    "surface_alt": "#f9f9f9",
-    "muted": "#666666",
+    "surface_alt": "#ffffff",
+    "muted": "#006242",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
@@ -85,15 +249,21 @@
   "typography": {
     "heading": {
       "family": "SoDoSans",
-      "stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "stack": "'SoDoSans','Helvetica Neue','Helvetica','Arial',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "SoDoSans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
       "family": "SoDoSans",
-      "stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "stack": "'SoDoSans','Helvetica Neue','Helvetica','Arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "SoDoSans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -110,7 +280,8 @@
   "asset_hosts": [
     "starbucks.com",
     "www.starbucks.com",
-    "content-prod-live.cert.starbucks.com"
+    "content-prod-live.cert.starbucks.com",
+    "cloudassets.starbucks.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -262,56 +433,56 @@
   ],
   "brand_assets": [
     {
-      "url": "https://www.starbucks.com/pwa-icon-192.png",
+      "url": "https://www.starbucks.com/apple-touch-icon.png",
       "role": "logo",
       "alt": "",
       "found_on": "https://www.starbucks.com/",
-      "signal": "touch icon or favicon the page links"
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
     },
     {
-      "url": "https://www.starbucks.com/next_static/icons/summary_square.png",
-      "role": "share",
-      "alt": "",
+      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-113052.jpg",
+      "role": "hero",
+      "alt": "A cold drink topped with cold foam. Two sharpie Stars decorate the image. On top, bolded text reads Free Mod Monday.",
       "found_on": "https://www.starbucks.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112745.jpg",
-      "role": "photograph",
-      "alt": "A Starbucks gift card that reads “Coffee is always a good idea.”",
-      "found_on": "https://www.starbucks.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112760.jpg",
-      "role": "photograph",
+      "role": "hero",
       "alt": "A freshly-poured Aerocano. Light foam at the top deepens gradually down the glass into dark espresso.",
       "found_on": "https://www.starbucks.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112632.jpg",
       "role": "photograph",
       "alt": "A variety of mini pies grouped together on a wood table.",
       "found_on": "https://www.starbucks.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112634.jpg",
       "role": "photograph",
       "alt": "Four fall drinks on a table with hints of people gathered around them.",
       "found_on": "https://www.starbucks.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-112942.jpg",
       "role": "photograph",
       "alt": "Close-up of someone holding a mug filled with coffee.",
       "found_on": "https://www.starbucks.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cloudassets.starbucks.com/is/image/sbuxcorp/IcedAerocanoLaunch?impolicy=1by1_wide_topcrop_630&crop=180,360,1440,1440&wid=630&hei=630&qlt=85",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://www.starbucks.com/menu/product/27616/iced",
+      "signal": "image rendered on the page"
     }
   ],
-  "logo_url": "https://www.starbucks.com/pwa-icon-192.png",
+  "logo_url": "https://www.starbucks.com/apple-touch-icon.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

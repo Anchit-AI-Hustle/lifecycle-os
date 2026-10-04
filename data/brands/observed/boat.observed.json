@@ -1,77 +1,207 @@
 {
-  "ok": false,
+  "format": "preset-observation/2",
+  "ok": true,
   "slug": "boat",
   "start": "https://www.boat-lifestyle.com",
   "landed": "https://www.boat-lifestyle.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Buy Earbuds, Headphones, Earphones at India’s No.1 Earwear Brand: boAt",
-  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
-  "snapshot_summary": {
-    "theme": "#ffffff",
-    "logoColor": "",
-    "paints": [
-      {
-        "hex": "#fcc50b",
-        "n": 36,
-        "sample": "metafeild-label label--highlight custom-label label ui-2"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T17:22:38.933Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://www.boat-lifestyle.com/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": {
+      "w": 390,
+      "h": 844
+    }
+  },
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 56,
+    "mismatch": 0.44,
+    "surfaces": {
+      "landing page": {
+        "score": 56,
+        "mismatch": 0.44,
+        "done": false,
+        "tokens_off": 15,
+        "regions_off": 4
       },
-      {
-        "hex": "#354257",
-        "n": 6,
-        "sample": "swatch-circle"
+      "mailer": {
+        "score": 76.5,
+        "mismatch": 0.2353,
+        "done": false,
+        "tokens_off": 4,
+        "regions_off": 0
       },
-      {
-        "hex": "#3f5c6c",
-        "n": 4,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#184aa9",
-        "n": 4,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#2a0a78",
-        "n": 4,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#c02529",
-        "n": 4,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#b5774a",
-        "n": 4,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#624103",
-        "n": 2,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#f9d987",
-        "n": 2,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#455a48",
-        "n": 2,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#12649c",
-        "n": 2,
-        "sample": "swatch-circle"
-      },
-      {
-        "hex": "#657286",
-        "n": 2,
-        "sample": "swatch-circle"
+      "ad creative": {
+        "score": 87.5,
+        "mismatch": 0.125,
+        "done": false,
+        "tokens_off": 1,
+        "regions_off": 0
       }
-    ],
-    "vars": []
-  }
+    },
+    "iterations": 2,
+    "repairs": 2,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [],
+  "markers": [],
+  "logo_url": "https://www.boat-lifestyle.com/cdn/shop/files/32x32_256x256.png_32x32_2d0995d9-ec86-4c14-b928-71101777194c_96x96.png?v=1647426716",
+  "logo_signal": "the icon the page declares (link rel=shortcut icon)",
+  "assets": [
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/32x32_256x256.png_32x32_2d0995d9-ec86-4c14-b928-71101777194c_96x96.png?v=1647426716",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "the icon the page declares (link rel=shortcut icon)"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/boAt_logo_black_24889e30-925c-4185-a028-9fef497a8e44.svg?v=1732879339",
+      "role": "photograph",
+      "alt": "boAt logo black 24889e30 925c 4185 a028 9fef497a8e44",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Desktop-LIVE_de2f267e-6e75-4adb-91d2-3176fa083b3d.png?v=1790760755",
+      "role": "hero",
+      "alt": "Mobile new 1",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Desktop-LIVE_7ca3481e-90e7-4a5f-bb2f-baf4b2393ada.png?v=1790605286",
+      "role": "hero",
+      "alt": "Mobile LIVE a157b81b 87b0 4d3d a2d0 a70a464f32f4",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Desktop-_crest_ai.png?v=1790239392",
+      "role": "hero",
+      "alt": "Mobile crest ai",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/boAt_Nirvana_751_ANC_Desktop.png?v=1791087381",
+      "role": "hero",
+      "alt": "boAt Nirvana 751 ANC mobile",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Apex_PB400_Desktop_b156391b-97f2-4f02-838c-fd016f54c575.png?v=1791088053",
+      "role": "hero",
+      "alt": "Apex PB400 mobile 24b71997 d1dc 4168 b0d7 3072e8d4f086",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Lunar_Discovery_NEO_Desktop.png?v=1791088105",
+      "role": "hero",
+      "alt": "Lunar Discovery NEO mobile",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "page ground",
+        "selector": "html.js",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#ecf0f4",
+          "from": "the reader's primary",
+          "why": "1.15:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    }
+  },
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "typography": {
+    "heading": {
+      "family": "Metropolis",
+      "stack": "'Metropolis',sans-serif",
+      "google": false,
+      "weights": "400;500;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Metropolis (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "h1",
+        "selector": "div#shopify-section-header > store-header.header.header--bordered > div.container:nth-of-type(1) > div.header__wrapper > h1.header__logo",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "Metropolis",
+      "stack": "'Metropolis',sans-serif",
+      "google": false,
+      "weights": "400;500;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Metropolis (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "body copy",
+        "selector": "div.article-list.article-layout--columns:nth-of-type(2) > div.article:nth-of-type(1) > div.article__inner > div.article--details:nth-of-type(2) > div.user-content:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "www.boat-lifestyle.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

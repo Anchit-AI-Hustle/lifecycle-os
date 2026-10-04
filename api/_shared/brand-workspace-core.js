@@ -2240,7 +2240,7 @@ module.exports = {
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,
   readiness, launchMarker, shellPayload, slugify, DEFAULT_BRAND,
   // catalog
-  parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp,
+  parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
   listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
   importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
