@@ -47,8 +47,22 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
   blocked at the queue; the offer is read server-side from the `smart_generated_campaigns` row the job
   names (`campaign_id`, workspace-scoped; the builder stamps `campaign.offer`), never the body; a
   recorded offer backs only what it says (`deadlineAgainst`/`stockAgainst`, from an injectable `now`:
-  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted,
-  and a disclosure anywhere in the asset (its hashtags) counts.
+  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted.
+- **Three more on #144, fixed after it merged (20 mutations caught)**: ONE matching word classified a
+  whole industry, so "CBD e-commerce", "Alcohol retail", "Financial technology" read as no regulated
+  sector. Regulated words no pack covers (`UNSUPPORTED_SECTORS`: cannabis/CBD, alcohol, gambling,
+  tobacco/vape, firearms, crypto/financial) are read FIRST and named in the WARN; `no-regulated-sector`
+  needs EVERY word of the industry known (`SAFE_SECTOR_WORD` / `QUALIFIER_WORD`). The server-side offer
+  lookup never ran in the product: `/publishing` sends the asset under `asset`, so `dispatchSpec` now
+  names `campaign_id` (from the asset's own, or the `campaign_<hash>_email` id it is minted under),
+  `dispatch-core.campaignRefOf` reads it from `spec.asset` too (two disagreeing campaigns back nothing),
+  and the preflight route reads the same offer as the queue (`selection.offer` shows what the lines were
+  measured against); proven by driving `publishing.html` in Chromium into the shipped `enqueue`. Found
+  in self-review: a schedule already PAST measured "today only" from that past date and went out now;
+  `readAt()` uses the schedule only when it is still ahead. And a disclosure is scoped to the SURFACE it
+  ships on: each email variant, each RSA headline/description, each subject alternative is its own;
+  metadata (`meta_description`, `og_*`, alt text, `first_comment`) never discloses for anything else;
+  companions that ship together (caption + hashtags, subject + preheader + body) still do.
 
 ## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
 `api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in

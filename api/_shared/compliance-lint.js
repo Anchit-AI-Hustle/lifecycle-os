@@ -588,6 +588,52 @@ function fieldsOf(asset) {
   return fields;
 }
 
+/**
+ * Which surface a field ships on, for disclosures. A disclosure has to be
+ * seen WITH the endorsement it discloses, so:
+ *  - each email variant is its own surface (only one of them is sent to a
+ *    person), and so is each RSA headline or description when there are
+ *    several (Google assembles them, so no other one is guaranteed beside it)
+ *    and each subject line when there are alternatives;
+ *  - METADATA never discloses for anything else: a search snippet, a link
+ *    preview card, alt text a screen reader speaks, a comment under the post
+ *    (and a snippet or card, seen on its own, is disclosed only by itself);
+ *  - every other field ships together (a caption and its hashtags, a subject
+ *    and its preheader and body), and an alternative ships with those too.
+ */
+const DETACHED_METADATA = new Set(['meta_description', 'seo_title', 'og_title', 'og_description']);
+const ATTACHED_METADATA = new Set(['alt_text', 'alt', 'image_alt', 'alt_texts', 'first_comment']);
+const ALTERNATIVE_LISTS = new Set(['headlines', 'descriptions']);
+const SUBJECT_ALTERNATIVES = new Set(['subject', 'subject_alt1', 'subject_alt2']);
+
+function surfaceOf(name, fields) {
+  const v = /^variants\[(\d+)\]/.exec(name);
+  if (v) return { group: `variants[${v[1]}]`, alone: false, metadata: false };
+  const base = name.replace(/[[.].*$/, '');
+  // A search snippet or a link card is seen on its own; alt text and a first
+  // comment are seen with the post, so the post's disclosure covers them.
+  if (DETACHED_METADATA.has(base)) return { group: name, alone: true, metadata: true };
+  if (ATTACHED_METADATA.has(base)) return { group: 'main', alone: false, metadata: true };
+  if (ALTERNATIVE_LISTS.has(base) && fields.filter((f) => f.field.startsWith(`${base}[`)).length > 1) return { group: 'main', alone: true, metadata: false };
+  if (SUBJECT_ALTERNATIVES.has(name) && fields.some((f) => f.field === 'subject_alt1' || f.field === 'subject_alt2')) return { group: 'main', alone: true, metadata: false };
+  return { group: 'main', alone: false, metadata: false };
+}
+
+function disclosureBySurface(fields) {
+  const at = fields.map((f) => {
+    RX_DISCLOSURE.lastIndex = 0;
+    return { f, s: surfaceOf(f.field, fields), disclosed: RX_DISCLOSURE.test(f.text) };
+  });
+  return (field) => {
+    const me = at.find((x) => x.f === field);
+    if (!me) return false;
+    if (me.disclosed) return true;
+    // Another field discloses for this one only when it is not metadata, is
+    // on the same surface, and always ships (an alternative does not).
+    return at.some((x) => x !== me && x.disclosed && !x.s.metadata && !x.s.alone && x.s.group === me.s.group);
+  };
+}
+
 /* ── brand reading ───────────────────────────────────────────────────────── */
 
 function fieldOf(brand, key) {
@@ -602,49 +648,99 @@ function brandNameOf(brand) {
 }
 
 /**
- * Industries this gate KNOWS no shipped sector pack covers, so a brand in one
- * is classified rather than guessed at. Anything that matches neither this
- * nor SECTOR_TABLE is UNRECOGNISED and reported as unchecked: "Nootropic
- * gummies" or "CBD oils" must never fall through as if it were a sneaker
- * brand. Regulated sectors with no shipped pack (financial services, alcohol,
- * gambling, tobacco) are deliberately absent, so they are reported too.
+ * Regulated sectors this gate ships NO rule pack for. Read FIRST, and a hit
+ * anywhere in the record's words makes the sector UNCHECKED, named back by the
+ * word, whatever else the industry says: "CBD e-commerce" is a CBD business
+ * that sells online, not an e-commerce business, and "Financial technology"
+ * is financial services however it is spelt. (A pharma or supplement word is
+ * not here: it routes to the health and supplement packs through SECTOR_TABLE.)
  */
-const NO_SECTOR_PACK = /\b(?:sneakers?|footwear|shoes?|apparel|clothing|fashion|sportswear|streetwear|eyewear|jewel(?:le)?ry|accessories|watches|news|publishing|media|magazines?|journalism|streaming|entertainment|music|gaming|games|software|saas|technology|tech|electronics|devices|hardware|automotive|cars?|travel|hospitality|hotels?|airlines?|telecom(?:munications)?|marketplace|e-?commerce|retail|furniture|home\s+(?:goods|decor)|stationery|toys|education|edtech)\b/i;
+const UNSUPPORTED_SECTORS = [
+  { sector: 'cannabis and CBD', rx: /\b(?:cbd|cannabi(?:s|noids?)|hemp|thc|marijuana|kratom|psychedelics?)\b/gi },
+  { sector: 'alcohol', rx: /\b(?:alcohol(?:ic)?|beers?|brewer(?:y|ies)|wines?|winer(?:y|ies)|spirits|liquors?|distiller(?:y|ies)|vodka|whiske?y|gin|rum|tequila|ciders?)\b/gi },
+  { sector: 'gambling', rx: /\b(?:gambling|betting|casinos?|sportsbooks?|lotter(?:y|ies)|poker|bingo|i-?gaming|wagering|bookmakers?)\b/gi },
+  { sector: 'tobacco and nicotine', rx: /\b(?:tobacco|e-?cig(?:arette)?s?|cigarettes?|cigars?|nicotine|vap(?:e|es|ing|ors?)|hookahs?|shisha|snus)\b/gi },
+  { sector: 'firearms and weapons', rx: /\b(?:firearms?|guns?|ammunition|ammo|weapons?)\b/gi },
+  { sector: 'crypto and financial services', rx: /\b(?:crypto(?:currenc(?:y|ies))?|bitcoin|nfts?|web3|defi|blockchain|financ(?:e|ial)|fintech|bank(?:s|ing)?|lend(?:ing|ers?)|loans?|credit|insur(?:ance|ers?|tech)|invest(?:ing|ments?)|trading(?!\s+cards?)|forex|brokerages?|payday|mortgages?|wealth|pensions?|payments?)\b/gi },
+];
 
-function classify(text) {
-  const sectors = [];
+/**
+ * Words an industry may be made of that carry no sector rules here. A brand
+ * is "no regulated sector" only when EVERY word of its industry is one of
+ * these and at least one names a business (SAFE_SECTOR_WORD): one matching
+ * token beside an unknown one ("Sneakers and nootropics") is not a
+ * classification, it is a guess.
+ */
+const SAFE_SECTOR_WORD = /^(?:sneakers?|footwear|shoes?|apparel|clothing|fashion|sports|sporting|sportswear|streetwear|eyewear|jewel(?:le)?ry|accessories|watches|bags|luggage|news|publishing|publishers?|media|magazines?|journalism|streaming|entertainment|music|gaming|games|software|saas|apps?|technology|tech|electronics|devices|hardware|automotive|cars?|travel|hospitality|hotels?|airlines?|telecoms?|telecommunications|marketplaces?|e-?commerce|retail(?:ers?)?|furniture|goods|decor|homewares?|stationery|toys|books|education|edtech)$/i;
+const QUALIFIER_WORD = /^(?:custom|customi[sz]ed|personali[sz]ed|bespoke|d2c|dtc|b2b|b2c|online|digital|consumer|general|business|regional|local|national|global|international|daily|weekly|luxury|premium|independent|sustainable|outdoor|hand-?made|home|lifestyle|content|events|services|products|platform|brands?|company|stores?|shops?|and|or|of|the|for|with|in|plus)$/i;
+
+function sectorWords(text) {
+  const s = String(text || '');
+  const packs = [];
+  const unsupported = [];
+  const taken = [];
   for (const row of SECTOR_TABLE) {
-    const m = row.rx.exec(text);
-    if (m) sectors.push({ id: row.id, matched: m[0] });
+    const g = new RegExp(row.rx.source, 'gi');
+    let m;
+    while ((m = g.exec(s)) !== null) {
+      if (!packs.some((p) => p.id === row.id)) packs.push({ id: row.id, matched: m[0] });
+      taken.push([m.index, m.index + m[0].length]);
+    }
   }
-  return sectors;
+  for (const row of UNSUPPORTED_SECTORS) {
+    row.rx.lastIndex = 0;
+    let m;
+    while ((m = row.rx.exec(s)) !== null) {
+      if (!unsupported.some((u) => u.term.toLowerCase() === m[0].toLowerCase())) unsupported.push({ term: m[0], sector: row.sector });
+      taken.push([m.index, m.index + m[0].length]);
+    }
+  }
+  const safe = [];
+  const unknown = [];
+  const words = /[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu;
+  let w;
+  while ((w = words.exec(s)) !== null) {
+    if (taken.some(([a, b]) => w.index >= a && w.index < b)) continue;
+    if (SAFE_SECTOR_WORD.test(w[0])) safe.push(w[0]);
+    else if (!QUALIFIER_WORD.test(w[0])) unknown.push(w[0]);
+  }
+  return { packs, unsupported, safe, unknown };
 }
 
 function sectorsOf(brand) {
   const declared = fieldOf(brand, 'compliance');
   const explicit = declared && Array.isArray(declared.sectors) ? declared.sectors.map((s) => String(s).trim()).filter(Boolean) : [];
-  if (explicit.length) {
-    // An id, or a word the sector table recognises ("pharmaceutical" is a
-    // health sector); anything else is named back as unrecognised.
-    const sectors = [];
-    const unrecognised = [];
-    for (const v of explicit) {
-      const id = v.toLowerCase();
-      if (SECTORS.includes(id)) { sectors.push({ id, from: 'brand record: compliance.sectors' }); continue; }
-      const hits = classify(v);
-      if (hits.length) for (const h of hits) sectors.push({ id: h.id, from: `brand record: compliance.sectors "${v}" names "${h.matched}"` });
-      else unrecognised.push(v);
+  const stated = explicit.length
+    ? explicit.map((v) => ({ v, where: `compliance.sectors "${v}"` }))
+    : [[brand && brand.industry, fieldOf(brand, 'sector')].filter((x) => typeof x === 'string' && x.trim()).join(' / ')]
+      .filter((v) => v.trim()).map((v) => ({ v, where: `industry "${v}"` }));
+  const industry = explicit.length ? '' : (stated[0] ? stated[0].v : '');
+  if (!stated.length) return { sectors: [], stated: false, unrecognised: [], unsupported: [], basis: 'unstated', industry: '' };
+  // Unsupported regulated words first, then the packs, then every other word:
+  // a value is known-safe only when nothing in it is unknown.
+  const sectors = [];
+  const unsupported = [];
+  const unrecognised = [];
+  const safe = [];
+  for (const { v, where } of stated) {
+    const id = v.toLowerCase();
+    if (explicit.length && SECTORS.includes(id)) { sectors.push({ id, from: 'brand record: compliance.sectors' }); continue; }
+    const r = sectorWords(v);
+    for (const u of r.unsupported) {
+      if (!unsupported.some((x) => x.term.toLowerCase() === u.term.toLowerCase())) unsupported.push(u);
+      if (!unrecognised.includes(u.term)) unrecognised.push(u.term);
     }
-    const unique = sectors.filter((s, i) => sectors.findIndex((x) => x.id === s.id) === i);
-    return { sectors: unique, stated: true, unrecognised, basis: unique.length ? 'regulated' : 'unrecognised', from: 'brand record: compliance.sectors' };
+    for (const p of r.packs) sectors.push({ id: p.id, from: `brand record: ${where} names "${p.matched}"` });
+    if (r.unknown.length || (!r.packs.length && !r.unsupported.length && !r.safe.length)) {
+      if (!unrecognised.includes(v)) unrecognised.push(v);
+    } else if (!r.packs.length && !r.unsupported.length) safe.push({ where, words: r.safe });
   }
-  const industry = [brand && brand.industry, fieldOf(brand, 'sector')].filter((x) => typeof x === 'string' && x.trim()).join(' / ');
-  if (!industry.trim()) return { sectors: [], stated: false, unrecognised: [], basis: 'unstated', industry: '' };
-  const sectors = classify(industry).map((h) => ({ id: h.id, from: `brand record: industry "${industry}" names "${h.matched}"` }));
-  if (sectors.length) return { sectors, stated: true, unrecognised: [], basis: 'regulated', industry };
-  const known = NO_SECTOR_PACK.exec(industry);
-  if (known) return { sectors: [], stated: true, unrecognised: [], basis: 'no-regulated-sector', from: `brand record: industry "${industry}" names "${known[0]}"`, industry };
-  return { sectors: [], stated: true, unrecognised: [industry], basis: 'unrecognised', from: `brand record: industry "${industry}"`, industry };
+  const unique = sectors.filter((s, i) => sectors.findIndex((x) => x.id === s.id) === i);
+  const from = explicit.length ? 'brand record: compliance.sectors' : `brand record: ${stated[0].where}`;
+  if (unique.length) return { sectors: unique, stated: true, unrecognised, unsupported, basis: 'regulated', from: explicit.length ? from : unique[0].from, industry };
+  if (unrecognised.length) return { sectors: [], stated: true, unrecognised, unsupported, basis: 'unrecognised', from, industry };
+  const named = safe.map((x) => x.words.map((t) => `"${t}"`).join(', ')).join(', ');
+  return { sectors: [], stated: true, unrecognised: [], unsupported: [], basis: 'no-regulated-sector', from: `${from} names ${named}`, industry };
 }
 
 function jurisdictionsFor(market) {
@@ -776,7 +872,11 @@ function contextFor(opts) {
     'Detection is by phrase, not by meaning: an implied claim the tables do not list is not found, and a finding is a prompt for a human reading, not a ruling.',
   ];
   if (jur.unsupported) limits.push(`No regulatory pack is shipped for ${jur.unsupported}; only the brand-safety rules ran for this market.`);
-  if (sel.unrecognised && sel.unrecognised.length) limits.push(`The record names ${sel.unrecognised.map((v) => `"${v}"`).join(', ')}, which no sector here recognises, so no sector pack was chosen for it.`);
+  if (sel.unrecognised && sel.unrecognised.length) limits.push(`The record names ${sel.unrecognised.map((v) => `"${v}"`).join(', ')}, which no sector pack here covers or recognises, so its sector's rules were not checked.`);
+  const offerOnRecord = {
+    ends_at: offer.ends_at || offer.expires_at || offer.valid_until || null,
+    stock: offer.stock != null && offer.stock !== '' ? offer.stock : (offer.inventory != null && offer.inventory !== '' ? offer.inventory : null),
+  };
   return {
     __compliance_ctx: true,
     brand,
@@ -789,10 +889,7 @@ function contextFor(opts) {
     packLabels: packs.map((p) => p.label),
     banned,
     approved: approvedClaims(brand, o.approvedClaims || o.approved_claims, market),
-    offer: {
-      ends_at: offer.ends_at || offer.expires_at || offer.valid_until || null,
-      stock: offer.stock != null && offer.stock !== '' ? offer.stock : (offer.inventory != null && offer.inventory !== '' ? offer.inventory : null),
-    },
+    offer: offerOnRecord,
     // When the copy is READ: a slot's send date, a job's scheduled time, a
     // test's clock. Deadline lines are measured from it, not from build time.
     now: o.now != null && o.now !== '' ? o.now : null,
@@ -807,6 +904,12 @@ function contextFor(opts) {
       sector_basis: sel.basis || (sel.stated ? 'regulated' : 'unstated'),
       sector_from: sel.from || (sel.sectors[0] && sel.sectors[0].from) || null,
       sector_unrecognised: sel.unrecognised || [],
+      // A regulated sector named outright that no pack here covers, with the
+      // word that named it: "CBD" in "CBD e-commerce".
+      sector_unsupported: sel.unsupported || [],
+      // The offer deadline and scarcity lines were measured against, as the
+      // server read it (a campaign's record), so a reviewer sees what backed them.
+      offer: offerOnRecord,
       packs: packs.map((p) => ({ id: p.id, label: p.label })),
     },
     unsupportedMarket: jur.unsupported,
@@ -1107,10 +1210,21 @@ function lint(asset, opts) {
   }
   // A sector the record STATES but nothing here recognises is not a
   // classification: "Nootropic gummies" read as "no health pack applies" would
-  // pass "Cures anxiety". It is unchecked, said, and named.
+  // pass "Cures anxiety". Nor is a regulated sector no pack here covers
+  // ("CBD e-commerce", "Financial technology"): both are unchecked, said, and
+  // named by the word that named them.
   if (ctx.brand && ctx.selection.sector_unrecognised.length) {
-    const named = ctx.selection.sector_unrecognised.map((v) => `"${v}"`).join(', ');
-    raw.push(makeFinding(null, { id: 'compliance.sector_unrecognised', pack: 'generic', severity: 'WARN', title: 'Sector not recognised', scope: 'selection', sources: ['spec.1.9'], fix: `${name}'s record names ${named}, which this gate cannot classify, so any sector rules it is bound by (health, food, supplement, beauty) were NOT checked. Set compliance.sectors to one of ${SECTORS.join(', ')} if one applies, and have this asset reviewed against its sector's rules. This is not a pass.` }));
+    const unsup = ctx.selection.sector_unsupported || [];
+    const unknown = ctx.selection.sector_unrecognised.filter((v) => !unsup.some((u) => u.term === v));
+    const said = [];
+    if (unsup.length) said.push(`${unsup.map((u) => (u.term.toLowerCase() === u.sector ? `"${u.term}"` : `"${u.term}" (${u.sector})`)).join(', ')}: regulated, and no rule pack shipped here covers ${unsup.length > 1 ? 'them' : 'it'}`);
+    if (unknown.length) said.push(`${unknown.map((v) => `"${v}"`).join(', ')}: not a sector this gate can classify`);
+    raw.push(makeFinding(null, {
+      id: 'compliance.sector_unrecognised', pack: 'generic', severity: 'WARN',
+      title: unknown.length ? 'Sector not recognised' : 'Regulated sector not covered',
+      scope: 'selection', sources: ['spec.1.9'],
+      fix: `${name}'s record names ${said.join('; ')}. The rules that sector is bound by were NOT checked, so have this asset reviewed against them before it ships. If the record's words are wrong, or a shipped sector applies, state the brand's sectors in compliance.sectors (${SECTORS.join(', ')}, or the industry in plain words). This is not a pass.`,
+    }));
   }
   if (ctx.regulated && ctx.unsupportedMarket) {
     raw.push(makeFinding(null, { id: 'compliance.jurisdiction_unsupported', pack: 'generic', severity: 'WARN', title: 'No regulatory pack for this market', scope: 'selection', sources: ['spec.1.9'], fix: `${name} is in a regulated sector (${ctx.sectors.join(', ')}) and no regulatory rule pack is shipped for ${ctx.unsupportedMarket}. Only the brand-safety rules ran; have this asset reviewed against ${ctx.unsupportedMarket}'s rules before it is published.` }));
@@ -1141,7 +1255,7 @@ function lint(asset, opts) {
   }
 
   const sfClaims = [];
-  const assetDisclosed = fields.some((f) => { RX_DISCLOSURE.lastIndex = 0; return RX_DISCLOSURE.test(f.text); });
+  const disclosedFor = disclosureBySurface(fields);
   const generalBenefit = [];
 
   for (const f of fields) {
@@ -1346,9 +1460,10 @@ function lint(asset, opts) {
 
     /* 7. endorsements */
     if (usFtc || ukCap) {
-      // A disclosure anywhere in the same asset counts: a post's "#ad" is in
-      // its hashtags field, not in the caption beside it.
-      const disclosed = assetDisclosed;
+      // A disclosure counts only on the surface this field ships on: a
+      // post's "#ad" in its hashtags covers its caption, another variant's
+      // "Sponsored" or a search snippet's does not.
+      const disclosed = disclosedFor(f);
       const testimonials = [];
       RX_TESTIMONIAL.lastIndex = 0;
       let m;

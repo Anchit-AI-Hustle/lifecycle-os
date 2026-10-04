@@ -954,11 +954,22 @@ module.exports = async function handler(req, res) {
         // zero when it cannot read one, which would lint a supplement's copy
         // as a sneaker brand's. With no workspace, only a brand the request
         // carried as its own (a device brand) is used.
+        const dispatchCore = require('./_shared/dispatch-core.js');
         const pfBrand = __wsId
-          ? await require('./_shared/dispatch-core.js').trustedBrand(__wsId, req.__brand)
+          ? await dispatchCore.trustedBrand(__wsId, req.__brand)
           : (req.__brand && req.__brand.carried === true ? req.__brand : null);
+        // The offer is the one the queue will read: the named campaign's
+        // record in THIS workspace (the page sends the asset as `payload`),
+        // so preflight and enqueue measure a deadline line against the same
+        // value, and it is never the body's own.
+        const pfOffer = __wsId
+          ? await dispatchCore.campaignOffer(__wsId, { campaign_id: b.campaign_id, asset_ref: b.asset_ref, asset: b.payload })
+          : null;
         return res.json(await require('./_shared/preflight-core.js').run(Object.assign({ workspaceId: __wsId }, b, {
-          brand: pfBrand, approved_claims: undefined, offer: undefined, now: undefined, require_brand: undefined,
+          brand: pfBrand, approved_claims: undefined, offer: pfOffer || undefined,
+          // Deadline lines are read when the mail goes out, as at the queue.
+          now: dispatchCore.readAt(b.mode, b.scheduled_for) || undefined,
+          require_brand: undefined,
         })));
       }
 
