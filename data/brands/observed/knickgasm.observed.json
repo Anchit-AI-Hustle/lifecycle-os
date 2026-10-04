@@ -5,7 +5,7 @@
   "start": "https://knickgasm.com",
   "landed": "https://knickgasm.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:07:37.814Z",
+  "read_at": "2026-10-04T17:21:11.598Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -199,7 +199,7 @@
       "source": {
         "page": "https://knickgasm.com/en-us",
         "role": "secondary text",
-        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(1) > div.px-15",
+        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"

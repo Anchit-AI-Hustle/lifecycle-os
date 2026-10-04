@@ -5,7 +5,7 @@
   "start": "https://www.airtel.in",
   "landed": "https://www.airtel.in/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:11:10.827Z",
+  "read_at": "2026-10-04T17:24:41.671Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",

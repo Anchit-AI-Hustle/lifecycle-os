@@ -5,7 +5,7 @@
   "start": "https://www.samsung.com",
   "landed": "https://www.samsung.com/us/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:09:45.208Z",
+  "read_at": "2026-10-04T17:23:03.277Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -91,6 +91,27 @@
       "signal": "image rendered on the page"
     },
     {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/S26Ultra_SCOM-146440_SCOM_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "Galaxy S26 Ultra",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Feature-Card_Galaxy-Z-Flip8_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Z Flip8",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/HOME_Feature-Card_Galaxy-Watch-U2_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Watch Ultra2",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
       "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$LazyLoad_Home_JPG$",
       "role": "photograph",
       "alt": "amsung Vision AI",
@@ -101,27 +122,6 @@
       "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
       "role": "photograph",
       "alt": "Enabling better living",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/footer/Footer_GetShopApp_082025.png?$ORIGIN_PNG$",
-      "role": "photograph",
-      "alt": "Get Shop Samusng App",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/content/samsung/assets/us/footer/text-banner-2.svg",
-      "role": "photograph",
-      "alt": "Never miss a thing. Sign up for texts to be notified about our best offers",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://consent.trustarc.com/get?name=samsungblack_logo.png",
-      "role": "hero",
-      "alt": "Samsung",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
@@ -148,12 +148,12 @@
         {
           "value": "#1429a0",
           "from": "the reader's primary",
-          "why": "measured on a consent or cookie banner, which is that vendor's design, not the brand's"
+          "why": "measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)"
         }
       ]
     }
   },
-  "palette_reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)",
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))",
   "typography": {
     "heading": {
       "family": "SamsungOne",
@@ -198,7 +198,7 @@
     "renderer": "rendered",
     "at": "2026-10-04",
     "host": "www.samsung.com",
-    "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)"
+    "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
   },
-  "note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's). The preset stays on the neutral default."
+  "note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)). The preset stays on the neutral default."
 }

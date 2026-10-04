@@ -5,7 +5,7 @@
   "start": "https://www.nykaa.com",
   "landed": "https://www.nykaa.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:08:48.378Z",
+  "read_at": "2026-10-04T17:22:10.879Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,12 +33,12 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 58.6,
-    "mismatch": 0.4137,
+    "score": 58.3,
+    "mismatch": 0.4167,
     "surfaces": {
       "landing page": {
-        "score": 59.8,
-        "mismatch": 0.4018,
+        "score": 59.4,
+        "mismatch": 0.4057,
         "done": false,
         "tokens_off": 8,
         "regions_off": 4
@@ -64,6 +64,7 @@
   },
   "conflicts": [],
   "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: footer, www.nykaa.com]",
     "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.nykaa.com]"
   ],
   "logo_url": "https://images-static.naikaa.com/media/wysiwyg/uiTools/2024-3/beauty.png",
@@ -77,16 +78,16 @@
       "signal": "the icon the page declares (link rel=icon)"
     },
     {
-      "url": "https://images-static.nykaa.com/uploads/b4322490-ee1c-410a-97f7-36bd1e3dfd06.gif",
+      "url": "https://images-static.nykaa.com/uploads/735a2ba5-8c3a-4154-8947-03bebd1d2990.gif",
       "role": "photograph",
-      "alt": "L'Oreal CPD _Flash_Sale",
+      "alt": "Site_Flash_Sale",
       "found_on": "https://www.nykaa.com/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images-static.nykaa.com/uploads/735a2ba5-8c3a-4154-8947-03bebd1d2990.gif",
+      "url": "https://images-static.nykaa.com/uploads/b4322490-ee1c-410a-97f7-36bd1e3dfd06.gif",
       "role": "photograph",
-      "alt": "Site_Flash_Sale",
+      "alt": "L'Oreal CPD _Flash_Sale",
       "found_on": "https://www.nykaa.com/",
       "signal": "image rendered on the page"
     },

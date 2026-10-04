@@ -5,7 +5,7 @@
   "start": "https://www.boat-lifestyle.com",
   "landed": "https://www.boat-lifestyle.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:09:10.393Z",
+  "read_at": "2026-10-04T17:22:38.933Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -103,21 +103,21 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://www.boat-lifestyle.com/cdn/shop/files/boAt_Nirvana_751_ANC_mobile.png?v=1791087409",
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/boAt_Nirvana_751_ANC_Desktop.png?v=1791087381",
       "role": "hero",
       "alt": "boAt Nirvana 751 ANC mobile",
       "found_on": "https://www.boat-lifestyle.com/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Apex_PB400_mobile_24b71997-d1dc-4168-b0d7-3072e8d4f086.png?v=1791088052",
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Apex_PB400_Desktop_b156391b-97f2-4f02-838c-fd016f54c575.png?v=1791088053",
       "role": "hero",
       "alt": "Apex PB400 mobile 24b71997 d1dc 4168 b0d7 3072e8d4f086",
       "found_on": "https://www.boat-lifestyle.com/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Lunar_Discovery_NEO_mobile.png?v=1791088105",
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Lunar_Discovery_NEO_Desktop.png?v=1791088105",
       "role": "hero",
       "alt": "Lunar Discovery NEO mobile",
       "found_on": "https://www.boat-lifestyle.com/",

@@ -5,7 +5,7 @@
   "start": "https://www.spotify.com",
   "landed": "https://open.spotify.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:10:13.093Z",
+  "read_at": "2026-10-04T17:23:38.326Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",

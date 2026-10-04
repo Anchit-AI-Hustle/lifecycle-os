@@ -5,7 +5,7 @@
   "start": "https://www.puma.com",
   "landed": "https://us.puma.com/us/en",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:08:22.242Z",
+  "read_at": "2026-10-04T17:21:45.916Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -180,12 +180,12 @@
       "value": "#191919",
       "exact": "",
       "derived": true,
-      "from_role": "display heading",
-      "note": "The read found no body copy; the display heading text the site renders (#191919) is the ink.",
+      "from_role": "navigation link",
+      "note": "The read found no body copy; the navigation link text the site renders (#191919) is the ink.",
       "source": {
         "page": "https://us.puma.com/us/en",
-        "role": "display heading",
-        "selector": "div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > span.heading-base.tw-ou8532 > h1.text-3xl.md\\:text-4xl",
+        "role": "navigation link",
+        "selector": "section.flex.h-11 > div.transition-opacity.duration-300 > div.flex.flex-wrap > div.flex > a.tw-nidw4g.tw-hlsw0v",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"

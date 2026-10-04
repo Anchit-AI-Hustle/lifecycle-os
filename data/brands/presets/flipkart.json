@@ -44,15 +44,15 @@
         }
       },
       "ink": {
-        "value": "#000000",
+        "value": "#333333",
         "exact": "#ffffff",
         "derived": true,
-        "from_role": "h1",
-        "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the h1 text the site renders (#000000) reads there, so it is the ink.",
+        "from_role": "navigation link",
+        "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the navigation link text the site renders (#333333) reads there, so it is the ink.",
         "source": {
           "page": "https://www.flipkart.com/",
-          "role": "h1",
-          "selector": "div > a > div.css-g5y9jx > div.css-g5y9jx.r-1awozwy > h1.css-146c3p1.r-dnmrzs",
+          "role": "navigation link",
+          "selector": "div.H5bs2Y > div.CXZSEo > div.LhEIN3:nth-of-type(1) > div.wszdrO > a.K05FV0",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -60,20 +60,19 @@
       },
       "surface_alt": {
         "value": "#ffffff",
-        "exact": "",
-        "derived": true,
-        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "exact": "#ffffff",
+        "derived": false,
         "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": ""
+          "page": "https://www.flipkart.com/",
+          "role": "product card",
+          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
         }
       },
       "muted": {
-        "value": "#000000",
+        "value": "#333333",
         "exact": "",
         "derived": true,
         "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
@@ -173,28 +172,28 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 60.7,
-      "mismatch": 0.3933,
+      "score": 51.5,
+      "mismatch": 0.4853,
       "surfaces": {
         "landing page": {
-          "score": 60.7,
-          "mismatch": 0.3933,
+          "score": 54.3,
+          "mismatch": 0.4569,
           "done": false,
-          "tokens_off": 4,
-          "regions_off": 1
+          "tokens_off": 13,
+          "regions_off": 2
         },
         "mailer": {
-          "score": 100,
-          "mismatch": 0,
-          "done": true,
-          "tokens_off": 0,
+          "score": 57.1,
+          "mismatch": 0.4286,
+          "done": false,
+          "tokens_off": 3,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 100,
-          "mismatch": 0,
-          "done": true,
-          "tokens_off": 0,
+          "score": 33.3,
+          "mismatch": 0.6667,
+          "done": false,
+          "tokens_off": 2,
           "regions_off": 0
         }
       },
@@ -230,10 +229,10 @@
   "palette": {
     "primary": "#56adff",
     "accent": "#2a55e5",
-    "ink": "#000000",
+    "ink": "#333333",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#000000",
+    "muted": "#333333",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -562,7 +561,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://rukminim2.flixcart.com/fk-p-flap/1600/780/image/84f268d004c490c5.png?q=80",
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/920/448/image/93526a5a4881e8b7.jpg?q=80",
       "role": "hero",
       "alt": "Image",
       "found_on": "https://www.flipkart.com/",
