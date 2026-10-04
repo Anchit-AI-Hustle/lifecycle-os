@@ -50,7 +50,7 @@
         "source": {
           "page": "https://www.nykaa.com/",
           "role": "body copy",
-          "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text",
+          "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1rh6i8v > ul.titles-description > li.titles-wrap > span.title-text",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -71,13 +71,14 @@
         }
       },
       "muted": {
-        "value": "#3a4047",
-        "exact": "#3a4047",
-        "derived": false,
+        "value": "#666666",
+        "exact": "#ffffff",
+        "derived": true,
+        "note": "DERIVED from #ffffff: secondary text as rendered measures 1.11:1, adjusted to AA.",
         "source": {
           "page": "https://www.nykaa.com/",
           "role": "secondary text",
-          "selector": "div.css-1axfht6 > div.css-15u830z:nth-of-type(1) > div.css-fd2g8d:nth-of-type(1) > div > div.css-z7ry7e:nth-of-type(1)",
+          "selector": "div.image-tag-wrapper > div.1791156600.tag-text-wrapper:nth-of-type(2) > div.tag-type-text > span.tag-timer-text:nth-of-type(2) > span",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -170,21 +171,21 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 47.3,
-      "mismatch": 0.5269,
+      "score": 72.8,
+      "mismatch": 0.2722,
       "surfaces": {
         "landing page": {
-          "score": 51.6,
-          "mismatch": 0.4836,
+          "score": 75.3,
+          "mismatch": 0.2473,
           "done": false,
           "tokens_off": 16,
-          "regions_off": 4
+          "regions_off": 1
         },
         "mailer": {
-          "score": 63.5,
-          "mismatch": 0.3649,
+          "score": 70.1,
+          "mismatch": 0.2985,
           "done": false,
-          "tokens_off": 27,
+          "tokens_off": 20,
           "regions_off": 0
         },
         "ad creative": {
@@ -196,7 +197,7 @@
         }
       },
       "iterations": 2,
-      "repairs": 4,
+      "repairs": 0,
       "mismatch_limit": 0.05
     },
     "typography_evidence": {
@@ -211,7 +212,7 @@
       "body": {
         "page": "https://www.nykaa.com/",
         "role": "body copy",
-        "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text",
+        "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1rh6i8v > ul.titles-description > li.titles-wrap > span.title-text",
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"
@@ -224,7 +225,7 @@
     "ink": "#001325",
     "surface": "#f3f3f3",
     "surface_alt": "#f3f3f3",
-    "muted": "#3a4047",
+    "muted": "#666666",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -510,16 +511,16 @@
       "signal": "the icon the page declares (link rel=icon)"
     },
     {
-      "url": "https://images-static.nykaa.com/uploads/b4322490-ee1c-410a-97f7-36bd1e3dfd06.gif",
+      "url": "https://images-static.nykaa.com/uploads/735a2ba5-8c3a-4154-8947-03bebd1d2990.gif",
       "role": "photograph",
-      "alt": "L'Oreal CPD _Flash_Sale",
+      "alt": "Site_Flash_Sale",
       "found_on": "https://www.nykaa.com/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images-static.nykaa.com/uploads/735a2ba5-8c3a-4154-8947-03bebd1d2990.gif",
+      "url": "https://images-static.nykaa.com/uploads/b4322490-ee1c-410a-97f7-36bd1e3dfd06.gif",
       "role": "photograph",
-      "alt": "Site_Flash_Sale",
+      "alt": "L'Oreal CPD _Flash_Sale",
       "found_on": "https://www.nykaa.com/",
       "signal": "image rendered on the page"
     },

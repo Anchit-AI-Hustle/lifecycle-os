@@ -60,15 +60,16 @@
       },
       "surface_alt": {
         "value": "#ffffff",
-        "exact": "#ffffff",
-        "derived": false,
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
         "source": {
-          "page": "https://www.flipkart.com/",
-          "role": "product card",
-          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
         }
       },
       "muted": {
@@ -172,32 +173,32 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 41.6,
-      "mismatch": 0.584,
+      "score": 64.4,
+      "mismatch": 0.3556,
       "surfaces": {
         "landing page": {
-          "score": 48.5,
-          "mismatch": 0.5154,
+          "score": 64.3,
+          "mismatch": 0.3569,
           "done": false,
-          "tokens_off": 20,
+          "tokens_off": 13,
           "regions_off": 2
         },
         "mailer": {
-          "score": 45.9,
-          "mismatch": 0.5405,
+          "score": 79.3,
+          "mismatch": 0.2069,
           "done": false,
-          "tokens_off": 20,
+          "tokens_off": 12,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 25,
-          "mismatch": 0.75,
+          "score": 70,
+          "mismatch": 0.3,
           "done": false,
           "tokens_off": 3,
           "regions_off": 0
         }
       },
-      "iterations": 1,
+      "iterations": 3,
       "repairs": 0,
       "mismatch_limit": 0.05
     },
@@ -561,7 +562,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://rukminim2.flixcart.com/fk-p-flap/1600/780/image/84f268d004c490c5.png?q=80",
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/920/448/image/c0b65ca665be6ebe.jpg?q=80",
       "role": "hero",
       "alt": "Image",
       "found_on": "https://www.flipkart.com/",

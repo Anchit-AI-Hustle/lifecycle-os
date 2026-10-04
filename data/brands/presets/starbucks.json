@@ -86,18 +86,18 @@
         }
       },
       "accent": {
-        "value": "#006341",
-        "exact": "#008248",
-        "derived": true,
-        "note": "The second colour the reader found (#008248) was measured on a consent or cookie banner, so the accent repeats the primary.",
+        "value": "#000000",
+        "exact": "#000000",
+        "derived": false,
         "source": {
           "page": "https://www.starbucks.com/",
-          "role": "theme-color",
-          "selector": "meta[name=theme-color]",
+          "role": "primary call to action",
+          "selector": "div.flex > div.sb-globalNav__wrapper:nth-of-type(2) > div.ml-auto.flex:nth-of-type(2) > div.ml6.flex > a.sb-button.sb-button--positive:nth-of-type(2)",
           "viewport": "desktop",
-          "property": "content",
+          "property": "background-color",
           "signal": "computed"
-        }
+        },
+        "from_role": "action"
       },
       "line": {
         "value": "#e4e4e4",
@@ -173,48 +173,42 @@
         "role": "product"
       },
       {
-        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=uZW6aYyVW5o6WycdpEb8Lg2csmCRTJDIJcgGMIj6MFU-1791139897-1.0.1.1-XZL3alq3Dc_J49OdS6yWsVODzugBeDOUvIjyu1358u8",
+        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=d1BptNqRdU5bvWGZqJnLCoLvDqQ1HhxJHT82K5fSdcM-1791149132-1.0.1.1-yZaAo.VSFtEpedgwXh1K52YlS7Ij4_GKMEojLT4PrpI",
         "role": "about"
       }
     ],
     "regression": {
       "ok": true,
       "done": false,
-      "score": 54.6,
-      "mismatch": 0.4539,
+      "score": 90.9,
+      "mismatch": 0.0912,
       "surfaces": {
         "landing page": {
-          "score": 57.6,
-          "mismatch": 0.4242,
+          "score": 89.1,
+          "mismatch": 0.1089,
           "done": false,
-          "tokens_off": 11,
-          "regions_off": 3
+          "tokens_off": 3,
+          "regions_off": 1
         },
         "mailer": {
-          "score": 75.4,
-          "mismatch": 0.2464,
-          "done": false,
-          "tokens_off": 17,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 70,
-          "mismatch": 0.3,
-          "done": false,
-          "tokens_off": 3,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         }
       },
-      "iterations": 3,
-      "repairs": 4,
+      "iterations": 2,
+      "repairs": 0,
       "mismatch_limit": 0.05
     },
-    "conflicts": [
-      {
-        "kind": "brand_colour_vs_action_colour",
-        "message": "The site declares #006341 as its own colour (meta theme-color) but renders its primary call to action in #008248. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
-      }
-    ],
     "typography_evidence": {
       "heading": {
         "page": "https://www.starbucks.com/",
@@ -236,7 +230,7 @@
   },
   "palette": {
     "primary": "#006341",
-    "accent": "#006341",
+    "accent": "#000000",
     "ink": "#212121",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",

@@ -5,7 +5,7 @@
   "start": "https://www.apple.com",
   "landed": "https://www.apple.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:49:13.988Z",
+  "read_at": "2026-10-04T21:22:39.563Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -192,7 +192,7 @@
       "source": {
         "page": "https://www.apple.com/",
         "role": "product card",
-        "selector": "div#_r_s_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
+        "selector": "div#_r_p_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"

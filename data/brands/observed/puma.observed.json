@@ -5,7 +5,7 @@
   "start": "https://www.puma.com",
   "landed": "https://us.puma.com/us/en",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:49:39.773Z",
+  "read_at": "2026-10-04T21:23:08.581Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -37,33 +37,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 66,
-    "mismatch": 0.3404,
+    "score": 85,
+    "mismatch": 0.15,
     "surfaces": {
       "landing page": {
-        "score": 66.9,
-        "mismatch": 0.3311,
+        "score": 85,
+        "mismatch": 0.15,
         "done": false,
-        "tokens_off": 2,
-        "regions_off": 4
+        "tokens_off": 0,
+        "regions_off": 2
       },
       "mailer": {
-        "score": 94.1,
-        "mismatch": 0.0588,
-        "done": false,
-        "tokens_off": 3,
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 87.5,
-        "mismatch": 0.125,
-        "done": false,
-        "tokens_off": 1,
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
         "regions_off": 0
       }
     },
     "iterations": 2,
-    "repairs": 4,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],

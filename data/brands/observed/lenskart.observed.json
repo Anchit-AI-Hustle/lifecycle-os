@@ -5,7 +5,7 @@
   "start": "https://www.lenskart.com",
   "landed": "https://www.lenskart.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:50:43.793Z",
+  "read_at": "2026-10-04T21:24:17.553Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -36,29 +36,29 @@
   "partial": true,
   "regression": {
     "ok": true,
-    "done": true,
-    "score": 98.8,
-    "mismatch": 0.0125,
+    "done": false,
+    "score": 94.6,
+    "mismatch": 0.0538,
     "surfaces": {
       "landing page": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 94.2,
+        "mismatch": 0.0583,
+        "done": false,
+        "tokens_off": 2,
         "regions_off": 0
       },
       "mailer": {
-        "score": 96.4,
-        "mismatch": 0.0357,
+        "score": 95.8,
+        "mismatch": 0.0417,
         "done": true,
         "tokens_off": 1,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 75,
+        "mismatch": 0.25,
+        "done": false,
+        "tokens_off": 1,
         "regions_off": 0
       }
     },

@@ -5,7 +5,7 @@
   "start": "https://stripe.com",
   "landed": "https://stripe.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:53:18.888Z",
+  "read_at": "2026-10-04T21:27:06.021Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,33 +33,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 63.4,
-    "mismatch": 0.3658,
+    "score": 75.5,
+    "mismatch": 0.2453,
     "surfaces": {
       "landing page": {
-        "score": 64.6,
-        "mismatch": 0.3538,
+        "score": 74.3,
+        "mismatch": 0.2573,
         "done": false,
-        "tokens_off": 5,
-        "regions_off": 4
+        "tokens_off": 3,
+        "regions_off": 3
       },
       "mailer": {
-        "score": 89.2,
-        "mismatch": 0.1081,
-        "done": false,
-        "tokens_off": 8,
+        "score": 98.4,
+        "mismatch": 0.0159,
+        "done": true,
+        "tokens_off": 1,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 90,
-        "mismatch": 0.1,
-        "done": false,
-        "tokens_off": 1,
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
         "regions_off": 0
       }
     },
     "iterations": 3,
-    "repairs": 8,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [
@@ -96,7 +96,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.stripeassets.com/fzn2n1nzq965/5Dr3Oc550drIrxyzzXgFbq/f6e4fb0b8b4b40d73e94fdf7c9bc7028/payments-hoodie.jpg?w=80&q=90",
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/5Dr3Oc550drIrxyzzXgFbq/f6e4fb0b8b4b40d73e94fdf7c9bc7028/payments-hoodie.jpg?w=80&fm=webp&q=90",
       "role": "photograph",
       "alt": "",
       "found_on": "https://stripe.com/",
@@ -138,7 +138,7 @@
     "ink": "#64748d",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#6a768b",
+    "muted": "#5a73a0",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -208,10 +208,10 @@
       }
     },
     "muted": {
-      "value": "#6a768b",
-      "exact": "#7d8ba4",
+      "value": "#5a73a0",
+      "exact": "#6480b2",
       "derived": true,
-      "note": "DERIVED from #7d8ba4: secondary text as rendered measures 3.44:1, adjusted to AA.",
+      "note": "DERIVED from #6480b2: secondary text as rendered measures 3.98:1, adjusted to AA.",
       "source": {
         "page": "https://stripe.com/",
         "role": "secondary text",
