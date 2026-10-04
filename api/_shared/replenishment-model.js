@@ -881,7 +881,7 @@ function analyseCore(h, holdoutWeeks, minN) {
     history_start: h.history_start, history_end: h.history_end,
     lines: (h.lines || []).length, customers: h.customers || 0,
     dropped: h.dropped || {}, excluded_orders: h.excluded_orders || null,
-    truncated: !!h.truncated, complete_from: h.complete_from || null,
+    truncated: !!h.truncated, complete_from: h.complete_from || null, read_error: h.read_error || null,
   };
   let out;
   if (!h.lines || !h.lines.length) {
@@ -932,7 +932,8 @@ function analyseCore(h, holdoutWeeks, minN) {
     hidden(out, 'predictions', predictions);
   }
   if (source.truncated) {
-    out.note += ` Only the newest ${source.lines} order lines fit under the read ceiling: orders before ${source.complete_from} were not read, so a customer's earlier purchases can be missing and some repeat buyers read as first-time.`;
+    const why = source.read_error ? `the order read failed part-way (${source.read_error})` : 'the read ceiling was reached';
+    out.note += ` Only the newest ${source.lines} order lines were read because ${why}: orders before ${source.complete_from || 'the newest page'} were not read, so a customer's earlier purchases can be missing and some repeat buyers read as first-time.`;
   }
   return out;
 }
