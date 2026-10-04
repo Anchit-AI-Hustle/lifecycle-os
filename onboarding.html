@@ -1607,6 +1607,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '</div>';
   }
 
+  /* The brand as it stands, with who set each field, so the server scores the
+     read as it will be APPLIED (a person's own values kept). Only what the
+     scorer reads; the server bounds it again. */
+  function scoringDraft() {
+    var t = brand.typography || {};
+    var f = function (x) { return x && x.family ? { family: x.family, stack: x.stack || '', google: x.google === true } : null; };
+    return {
+      name: brand.name || '', tagline: brand.tagline || '', website: brand.website || '', logo_url: brand.logo_url || '', favicon_url: brand.favicon_url || '',
+      palette: brand.palette || {}, typography: { heading: f(t.heading), body: f(t.body) },
+      field_origin: (brand.brand_data && brand.brand_data.field_origin) || {}
+    };
+  }
   async function runExtract() {
     if (extractBusy || extractOff()) return;
     var input = $('xUrl');
@@ -1615,7 +1627,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     extractBusy = true; extractError = null; render();
     try {
       if (!brand.website) { brand.website = url; }
-      var r = await api('extract', { url: url, workspace_id: brand.id || undefined });
+      var r = await api('extract', { url: url, workspace_id: brand.id || undefined, brand: scoringDraft() });
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
       if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);

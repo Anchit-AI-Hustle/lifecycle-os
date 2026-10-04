@@ -51,7 +51,7 @@
 const DS_VERSION = 1;
 const ORIGIN = 'site-render';
 /** Higher wins. A machine value may replace only a LOWER origin. */
-const ORIGIN_RANK = { user: 5, document: 4, 'site-render': 3, 'site-parse': 2, preset: 1 };
+const ORIGIN_RANK = { user: 5, document: 4, 'site-render': 3, 'site-parse': 2, preset: 1, default: 0 };
 
 function core() { return require('./brand-workspace-core.js'); }
 
@@ -240,6 +240,13 @@ function applyFields(m) {
   return fields;
 }
 
+function hasValue(v) {
+  if (v == null) return false;
+  if (typeof v === 'string') return v.trim() !== '';
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return v.family ? true : Object.keys(v).length > 0;
+  return true;
+}
 function getPath(o, p) { return p.split('.').reduce((a, k) => (a && typeof a === 'object' ? a[k] : undefined), o); }
 function setPath(o, p, v) {
   const ks = p.split('.');
@@ -279,7 +286,11 @@ function applyToBrand(brand, fields, opts) {
   const applied = [], kept = [];
   for (const [field, f] of Object.entries(fields || {})) {
     const origin = owned.has(field) ? 'user' : originOf(out, field);
-    if ((ORIGIN_RANK[origin] || 0) > ORIGIN_RANK[ORIGIN]) { kept.push({ field, origin, kept_value: getPath(out, field) }); continue; }
+    // A non-empty value with NO recorded origin was saved before origins
+    // existed: it is the person's (review, 2026-10-04 - the wizard applies the
+    // same rule, so what is scored is what will be applied).
+    const legacy = !origin && hasValue(getPath(out, field));
+    if (legacy || (ORIGIN_RANK[origin] || 0) > ORIGIN_RANK[ORIGIN]) { kept.push({ field, origin: legacy ? 'unrecorded' : origin, kept_value: getPath(out, field) }); continue; }
     setPath(out, field, JSON.parse(JSON.stringify(f.value)));
     out.brand_data.field_origin[field] = ORIGIN;
     applied.push(field);
@@ -301,6 +312,8 @@ function withFallback(stack, generic) {
   return /(?:^|,)\s*(?:serif|sans-serif|monospace|system-ui|cursive)\s*$/i.test(s) ? s : `${s},${generic}`;
 }
 const cssStr = (s) => String(s || '').replace(/[<>"\\]/g, '');
+/** A font stack safe inside a double-quoted HTML attribute or a <style> rule. */
+const attrStack = (s) => String(s || '').replace(/"/g, "'").replace(/[<>;{}\\]/g, '').trim();
 const fontName = (s) => String(s || '').replace(/['"\\<>;{}]/g, '').trim();
 
 /**
@@ -603,7 +616,12 @@ function emailTokens(r, pal) {
       background: ground, color: tx.value, radius: b.radius, padding: b.padding,
       size: b.size, weight: b.weight, transform: b.transform, letter_spacing: b.letter_spacing,
       border: b.border_width ? `${pxs(b.border_width)} ${b.border_style || 'solid'} ${b.border_color || ground}` : '',
-      stack: withFallback(b.stack, 'Arial,sans-serif') || r.body,
+      // SINGLE quotes: this stack is written into a double-quoted style=""
+      // attribute, and the computed value quotes family names with double
+      // quotes - which closed the attribute at `font-family:` and dropped the
+      // button's family, size, weight and radius in every mailer (found by the
+      // drawn-face comparison, 2026-10-04).
+      stack: attrStack(withFallback(b.stack, 'Arial,sans-serif') || r.body),
     };
   }
   out.derived = derived;
@@ -623,7 +641,9 @@ function adTokens(r) {
   const h = tm.h1 || tm.display || null;
   return {
     head: r.head, body: r.body, faces: r.fonts.faces, googleHref: r.fonts.googleHref,
-    cta: b ? { background: b.background, color: b.color, radius: b.radius, weight: b.weight, transform: b.transform, letter_spacing: b.letter_spacing, padding: b.padding, size: b.size, border_width: b.border_width, border_color: b.border_color } : null,
+    // The CTA's own family too: the ad set its label in the body face while
+    // the site's button draws its own (found by the drawn-face comparison).
+    cta: b ? { background: b.background, color: b.color, radius: b.radius, weight: b.weight, transform: b.transform, letter_spacing: b.letter_spacing, padding: b.padding, size: b.size, border_width: b.border_width, border_color: b.border_color, stack: attrStack(withFallback(b.stack, 'Arial,sans-serif')) } : null,
     headline: h ? { weight: h.weight, transform: h.transform, letter_spacing: h.letter_spacing } : null,
   };
 }

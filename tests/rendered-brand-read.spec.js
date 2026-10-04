@@ -270,3 +270,162 @@ test('a rendered extract carries its DESIGN.md, through the context pack\'s own 
   expect(doc).not.toContain('It is **not** a browser');
   expect(Buffer.byteLength(JSON.stringify(out))).toBeLessThan(3800000);
 });
+
+/* ── REVIEW FINDINGS ON #128 (2026-10-04), each executed ─────────────────── */
+
+/** Width and height from a JPEG's SOF marker. */
+function jpegSize(b) {
+  let i = 2;
+  while (i + 9 < b.length) {
+    if (b[i] !== 0xff) { i += 1; continue; }
+    const m = b[i + 1];
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7) };
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  return null;
+}
+
+test('a successful read keeps BOTH full-page screenshots, each the height of the page (to the cap), not the fold', async () => {
+  // Review: `fullPage:true` together with `clip` was said to be refused and
+  // the full shot silently null. Measured: Playwright 1.63 trims the clip to
+  // the full-page rect, so the pair is valid - and this pins it, because the
+  // shot is the visual reference the wizard and the harvest both show.
+  const { out } = await read('a');
+  for (const [vp, w, h] of [['desktop', 1440, 900], ['mobile', 390, 844]]) {
+    const full = out.screenshots[vp] && out.screenshots[vp].full;
+    expect(full, `${vp}: no full-page screenshot`).toBeTruthy();
+    const size = jpegSize(Buffer.from(full.data, 'base64'));
+    const pageH = Math.round(out.manifest.read[vp].page_height);
+    expect(pageH, `${vp}: the fixture must be taller than the viewport for this to mean anything`).toBeGreaterThan(h);
+    expect(size.w).toBe(w);
+    expect(Math.abs(size.h - Math.min(pageH, 5200))).toBeLessThanOrEqual(1);
+    const fold = jpegSize(Buffer.from(out.screenshots[vp].fold.data, 'base64'));
+    expect(fold.h).toBe(h);
+  }
+});
+
+test('a Google family is LOADED by every surface we generate, and the regression compares the face each one DREW', async () => {
+  // Review: the motion ad named the brand's Google family and never loaded it,
+  // and the regression compared the DECLARED stack, so the ad drew its
+  // fallback and scored as a match. Now the face the engine drew is read off
+  // each surface (CDP platform fonts) and compared to the face the site drew.
+  const srv = await sites.serve(sites.siteRoutes('h'));
+  let out;
+  try {
+    const net = require(NET);
+    out = await require(RENDER).readSite(srv.origin + '/', {
+      policy: { allowOrigins: new Set([srv.origin].concat(sites.GOOGLE_ORIGINS)) }, deadlineMs: 110000,
+      transport: sites.googleFontsTransport(net.transport),
+    });
+  } finally { await srv.close(); }
+  expect(out.ok).toBe(true);
+  expect(out.manifest.fonts.heading).toMatchObject({ family: 'Erica One', google: true });
+  const drawn = out.manifest.read.desktop.drawn;
+  expect((drawn.display || drawn.h1).family).toBe('Erica One');
+  expect(drawn['button-primary'].family).toBe('Erica One');
+  const g = out.regression;
+  const faces = g.tokens.filter((t) => t.token === 'drawn face');
+  const on = (surface, comp) => faces.find((t) => t.surface === surface && comp.test(t.component));
+  const lp = on('landing page', /hero heading/);
+  const ad = on('ad creative', /headline/);
+  const mails = ['editorial', 'visual', 'pure', 'founder'].map((st) => on('mailer', new RegExp(`^${st}: heading`)));
+  // The call to action draws the button's own face on every surface that has one.
+  const ctas = [['landing page button', on('landing page', /primary button/)], ['ad call to action', on('ad creative', /call to action/)]]
+    .concat(['editorial', 'visual', 'founder'].map((st) => [`mailer ${st} button`, on('mailer', new RegExp(`^${st}: button`))]));
+  for (const [what, row] of [['landing page', lp], ['ad', ad]].concat(mails.map((r, i) => [`mailer ${['editorial', 'visual', 'pure', 'founder'][i]}`, r]), ctas)) {
+    expect(row, `${what}: no drawn-face comparison`).toBeTruthy();
+    expect(row.site).toBe('Erica One');
+    expect(row.ours, `${what} drew ${row.ours}, not the family it names`).toBe('Erica One');
+    expect(row.status).toBe('match');
+  }
+});
+
+test('the comparison FAILS a surface that names the family but draws a fallback', async () => {
+  const rr = require('../api/_shared/render-regression.js');
+  const site = { roles: { headings: { h1: { type: { size: 56 } } } }, drawn: { h1: { family: 'Erica One', custom: true } } };
+  const ours = { __drawn: { headline: { family: 'DejaVu Sans', custom: false }, h1: { family: 'DejaVu Sans', custom: false } } };
+  const rows = rr.judge(rr.adPairs(site, ours));
+  const row = rows.find((r) => r.token === 'drawn face');
+  expect(row).toBeTruthy();
+  expect(row).toMatchObject({ site: 'Erica One', ours: 'DejaVu Sans', status: 'mismatch' });
+});
+
+test('all FOUR mailer styles read the design system, and the regression scores each one', async () => {
+  // Review: only the default (editorial) style read the measured tokens; the
+  // visual, pure and founder styles kept a hard-coded type, and the regression
+  // rendered one style, so three of four mailers were never measured.
+  const { out } = await read('c');
+  const g = out.regression;
+  const mail = g.tokens.filter((t) => t.surface === 'mailer');
+  for (const style of ['editorial', 'visual', 'pure', 'founder']) {
+    const rows = mail.filter((t) => t.component.startsWith(`${style}: `));
+    expect(rows.length, `${style}: not scored`).toBeGreaterThan(4);
+    const size = rows.find((t) => t.component === `${style}: heading` && t.token === 'font size');
+    expect(size, `${style}: no heading size compared`).toBeTruthy();
+    expect(size.status).toBe('match');
+    expect(rows.filter((t) => t.status === 'mismatch'), `${style}: ${JSON.stringify(rows.filter((t) => t.status === 'mismatch'))}`).toEqual([]);
+  }
+});
+
+test('the read is SCORED as it will be APPLIED: the brand as it stands, with a person\'s own values kept', async () => {
+  // Review: the extract never passed the brand into the regression, so it
+  // scored a fresh preview brand - a person's own logo or colour, which the
+  // wizard keeps, was scored as replaced. The draft the request carries (and
+  // on the server path the workspace) is applied under the same rule now.
+  const srv = await sites.serve(sites.siteRoutes('a'));
+  const br = require(RENDER);
+  const bx = require('../api/_shared/brand-extract.js');
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const realRun = bx.runExtract, realGuard = core.assertPublicUrl;
+  bx.runExtract = async () => ({ ok: true, start: srv.origin + '/', pages: [srv.origin + '/'], pages_visited: 1, stylesheets: [], limits: [], notes: [], markers: [], fields: { name: { value: 'Verdant Supply', candidates: [] } } });
+  core.assertPublicUrl = async (u) => { if (!String(u).startsWith(srv.origin)) throw new Error('outside the fixture'); return String(u).replace(/\/$/, ''); };
+  const draft = br.scoringBrand({
+    name: 'My Plant Shop', logo_url: srv.origin + '/icon.svg',
+    palette: { primary: '#AA3300', surface: '#FFFFFF' },
+    // logo typed by the person; the palette was saved before origins existed.
+    field_origin: { logo_url: 'user', 'palette.surface': 'default', 'not.a.field': 'user', name: 'nonsense-origin' },
+    brand_data: { design_system: { huge: 'x'.repeat(5000) } },
+  });
+  let out;
+  try {
+    out = await br.extractWithRender({ ok: true }, { url: srv.origin + '/' }, {
+      brand: draft,
+      readSite: (u, o) => br.readSite(u + '/', Object.assign({}, o, { policy: { allowOrigins: new Set([srv.origin]) } })),
+    });
+  } finally { bx.runExtract = realRun; core.assertPublicUrl = realGuard; await srv.close(); }
+  // The carried record is bounded: unknown fields and origins never pass.
+  expect(draft.brand_data).toEqual({ field_origin: { logo_url: 'user', 'palette.surface': 'default' } });
+  const g = out.rendered.regression;
+  expect(g.applied_as.scored_with_caller_brand).toBe(true);
+  const kept = Object.fromEntries(g.applied_as.kept.map((k) => [k.field, k.origin]));
+  expect(kept).toMatchObject({ logo_url: 'user', 'palette.primary': 'unrecorded' });
+  // A placeholder ('default') is replaced; what the brand lacked is filled.
+  expect(kept['palette.surface']).toBeUndefined();
+  expect(g.applied_as.applied).toEqual(expect.arrayContaining(['palette.surface', 'brand_data.design_system']));
+  // A row the kept value explains is said to be, and is not "repaired".
+  for (const t of g.tokens.filter((x) => x.kept_field)) expect(t.reason).toMatch(/^you kept /);
+  expect(g.repairs.filter((r) => /logo|wordmark/.test(r.token))).toEqual([]);
+});
+
+test('the server path scores the WORKSPACE as it stands; a device or anonymous caller scores the draft it carries', async () => {
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const real = core.getWorkspace;
+  const asked = [];
+  core.getWorkspace = async (auth, id) => { asked.push(id); return { id, name: 'On The Server', logo_url: 'https://cdn.example/server-logo.png', palette: { primary: '#123456' }, brand_data: { field_origin: { logo_url: 'user' } } }; };
+  try {
+    const body = { workspace_id: 'ws-1', brand: { name: 'Carried Draft', palette: { primary: '#654321' }, field_origin: { 'palette.primary': 'user' } } };
+    const server = await core.scoringBrandFor({ ok: true, token: 'jwt', mode: 'supabase' }, body, {});
+    expect(server).toMatchObject({ name: 'On The Server', logo_url: 'https://cdn.example/server-logo.png', palette: { primary: '#123456' }, brand_data: { field_origin: { logo_url: 'user' } } });
+    expect(asked).toEqual(['ws-1']);
+    // A device principal has no server workspace; a device id is never looked up.
+    const device = await core.scoringBrandFor({ ok: true, token: 'dev', mode: 'device' }, body, {});
+    expect(device).toMatchObject({ name: 'Carried Draft', palette: { primary: '#654321' }, brand_data: { field_origin: { 'palette.primary': 'user' } } });
+    const local = await core.scoringBrandFor({ ok: true, token: 'jwt', mode: 'supabase' }, Object.assign({}, body, { workspace_id: 'local-abc' }), {});
+    expect(local.name).toBe('Carried Draft');
+    expect(asked).toEqual(['ws-1']);
+    // Nothing carried, nothing scored as a brand: the preview brand stands in.
+    expect(await core.scoringBrandFor({ ok: false }, {}, {})).toBeNull();
+    // A logo that is not http(s) is not a logo.
+    expect((await core.scoringBrandFor({ ok: false }, { brand: { name: 'x', logo_url: 'javascript:alert(1)' } }, {})).logo_url).toBe('');
+  } finally { core.getWorkspace = real; }
+});
