@@ -486,12 +486,21 @@ function normalizeFont(f, fallback) {
   // A stack is only ever built from the operator's own family + a generic
   // fallback; we never substitute a different brand's typeface.
   const stack = str(src.stack, 200) || `'${family}',${fallback}`;
-  return {
+  const out = {
     family,
     stack,
     google: src.google !== false,
     weights: str(src.weights, 40) || '400;600;700',
   };
+  // A self-hosted family's FILE (2026-10-04): an https URL only, so a
+  // generated page can declare @font-face for it (brand-runtime.fontImport).
+  const file = str(src.src, 300);
+  if (out.google === false && /^https:\/\/[^\s"'()<>]+$/i.test(file)) {
+    out.src = file;
+    const fmt = str(src.format, 12).toLowerCase();
+    if (/^(woff2|woff|truetype|opentype|ttf|otf)$/.test(fmt)) out.format = fmt;
+  }
+  return out;
 }
 
 function normalizeTypography(input) {
