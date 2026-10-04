@@ -1011,14 +1011,14 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 40.6,
-        "mismatch": 0.5943,
+        "score": 41.6,
+        "mismatch": 0.584,
         "surfaces": {
           "landing page": {
-            "score": 49.1,
-            "mismatch": 0.5085,
+            "score": 48.5,
+            "mismatch": 0.5154,
             "done": false,
-            "tokens_off": 14,
+            "tokens_off": 20,
             "regions_off": 2
           },
           "mailer": {
@@ -1173,12 +1173,12 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 47.6,
-        "mismatch": 0.5238,
+        "score": 47.3,
+        "mismatch": 0.5269,
         "surfaces": {
           "landing page": {
-            "score": 52.2,
-            "mismatch": 0.4778,
+            "score": 51.6,
+            "mismatch": 0.4836,
             "done": false,
             "tokens_off": 16,
             "regions_off": 4
@@ -1523,7 +1523,7 @@
       "swatch": [
         "#4d4d4d",
         "#4d4d4d",
-        "#363636",
+        "#000042",
         "#ffffff"
       ],
       "swatches": [
@@ -1545,7 +1545,7 @@
         },
         {
           "role": "ink",
-          "value": "#363636",
+          "value": "#000042",
           "derived": true,
           "exact": ""
         }
@@ -1563,34 +1563,34 @@
       "renderer": "rendered",
       "regression": {
         "ok": true,
-        "done": false,
-        "score": 53.8,
-        "mismatch": 0.4625,
+        "done": true,
+        "score": 98.8,
+        "mismatch": 0.0125,
         "surfaces": {
           "landing page": {
-            "score": 58.3,
-            "mismatch": 0.4167,
-            "done": false,
-            "tokens_off": 4,
-            "regions_off": 2
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
+            "regions_off": 0
           },
           "mailer": {
-            "score": 71.4,
-            "mismatch": 0.2857,
-            "done": false,
-            "tokens_off": 8,
+            "score": 96.4,
+            "mismatch": 0.0357,
+            "done": true,
+            "tokens_off": 1,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 75,
-            "mismatch": 0.25,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
-        "iterations": 3,
-        "repairs": 4,
+        "iterations": 1,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2411,12 +2411,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "blocked",
+        "renderer": "timeout",
         "at": "2026-10-04",
         "host": "www.netflix.com",
-        "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+        "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.netflix.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2537,7 +2537,7 @@
           "role": "ink",
           "value": "#202020",
           "derived": true,
-          "exact": "#c1c1c1"
+          "exact": "#ffffff"
         }
       ],
       "heading_font": "Airbnb Cereal VF",
@@ -2554,15 +2554,15 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 49.8,
-        "mismatch": 0.5019,
+        "score": 51.2,
+        "mismatch": 0.4885,
         "surfaces": {
           "landing page": {
-            "score": 52.9,
-            "mismatch": 0.4707,
+            "score": 56.3,
+            "mismatch": 0.4366,
             "done": false,
-            "tokens_off": 10,
-            "regions_off": 3
+            "tokens_off": 8,
+            "regions_off": 2
           },
           "mailer": {
             "score": 69.1,
@@ -2580,7 +2580,7 @@
           }
         },
         "iterations": 2,
-        "repairs": 4,
+        "repairs": 3,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
