@@ -570,12 +570,16 @@ async function readSite(url, opts) {
         }
       }
       const shots = live && live.shots ? live.shots : {};
+      // The repaired manifest is the manifest (the loop corrects it in place);
+      // the copy on the regression report is dropped so it is sent once.
+      const finalManifest = regression && regression.manifest ? regression.manifest : manifest;
+      if (regression) delete regression.manifest;
       const out = {
         ok: true,
         renderer: 'chromium',
         renderer_info: info,
-        manifest,
-        apply: require('./design-system.js').applyFields(regression && regression.manifest ? regression.manifest : manifest),
+        manifest: finalManifest,
+        apply: require('./design-system.js').applyFields(finalManifest),
         regression,
         screenshots: {
           desktop: shots.desktop ? { fold: b64(shots.desktop.fold, 'image/jpeg'), full: b64(shots.desktop.full, 'image/jpeg') } : null,
@@ -593,7 +597,221 @@ async function readSite(url, opts) {
   }
 }
 
+/* ═══ the router's side: rate limits, the probe, merging with the parser ═══ */
+
+/**
+ * In-memory limits for the OPEN path (no account the server can check). A
+ * browser read is the most expensive thing this endpoint does, and on that
+ * path anyone can ask for one. Per instance: a serverless instance is the unit
+ * that pays for the CPU, and a limit that needs a database would be a limit
+ * that does not exist while the database is paused - which is exactly when
+ * this path is open.
+ */
+const RATE = { perIp: 4, global: 24, windowMs: 10 * 60 * 1000 };
+const rateLog = { ip: new Map(), all: [] };
+function clientIp(req) {
+  const h = (req && req.headers) || {};
+  const fwd = String(h['x-forwarded-for'] || h['x-real-ip'] || '').split(',')[0].trim();
+  return fwd || (req && req.socket && req.socket.remoteAddress) || 'unknown';
+}
+/** null when allowed (and counted); a sentence when refused. */
+function rateCheck(req, now) {
+  const t = now || Date.now();
+  const cut = t - RATE.windowMs;
+  rateLog.all = rateLog.all.filter((x) => x > cut);
+  const ip = clientIp(req);
+  const mine = (rateLog.ip.get(ip) || []).filter((x) => x > cut);
+  if (mine.length >= RATE.perIp) {
+    return `This address has asked for ${mine.length} rendered reads in the last ${RATE.windowMs / 60000} minutes, the most this server renders for one visitor without an account it can check. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`;
+  }
+  if (rateLog.all.length >= RATE.global) {
+    return `This server has rendered ${rateLog.all.length} sites for visitors without a checkable account in the last ${RATE.windowMs / 60000} minutes, its limit. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`;
+  }
+  mine.push(t); rateLog.ip.set(ip, mine); rateLog.all.push(t);
+  return null;
+}
+function resetRateLimits() { rateLog.ip.clear(); rateLog.all = []; }
+
+/**
+ * The render probe: proves the browser launches HERE, on a FIXED page shipped
+ * with the deployment (served from memory - no external fetch, so it is neither
+ * an SSRF vector nor a free crawler), and is cached per instance so it cannot
+ * be used to burn CPU.
+ */
+const PROBE_HTML = '<!doctype html><html><head><meta charset="utf-8"><title>render probe</title>'
+  + '<style>body{margin:0;background:#f4f1ea;font:16px/1.5 sans-serif;color:#1d2a24}'
+  + '.c{margin:40px;padding:24px 28px;border-radius:12px;background:#1f5f4a;color:#fff;display:inline-block}'
+  + 'h1{margin:0 0 6px;font-size:28px}</style></head><body><div class="c"><h1>Lifecycle OS render probe</h1>'
+  + '<p>A fixed page, rendered by the deployment\'s own browser.</p></div></body></html>';
+const PROBE_TTL_MS = 5 * 60 * 1000;
+let probeCache = null;
+async function renderProbe(opts) {
+  const o = opts || {};
+  if (probeCache && Date.now() - probeCache.at < PROBE_TTL_MS && !o.fresh) {
+    return Object.assign({}, probeCache.out, { cached: true, cached_for_ms: PROBE_TTL_MS - (Date.now() - probeCache.at) });
+  }
+  const launcher = require('./render-browser.js');
+  const t0 = Date.now();
+  try {
+    const out = await launcher.withBrowser(async (browser, info) => {
+      const ctx = { policy: {}, deadline: Date.now() + 20000, inScope: () => false, robots: () => [], local: new Map(), closed: false };
+      const url = 'https://render-probe.invalid/';
+      ctx.local.set(url, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body: Buffer.from(PROBE_HTML, 'utf8') });
+      const c = await browser.newContext({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 1, serviceWorkers: 'block' });
+      await net.attach(c, ctx);
+      const p = await c.newPage();
+      const t1 = Date.now();
+      await p.goto(url, { waitUntil: 'load', timeout: 15000 });
+      const shot = await p.screenshot({ type: 'png' });
+      const bg = await p.evaluate(() => getComputedStyle(document.querySelector('.c')).backgroundColor);
+      await p.close().catch(() => {});
+      return {
+        ok: true, renderer: 'chromium', binary: info.source, chromium: info.version,
+        single_process: info.single_process, unpack_ms: info.unpack_ms, launch_ms: info.launch_ms,
+        render_ms: Date.now() - t1, total_ms: Date.now() - t0,
+        screenshot_sha256: require('crypto').createHash('sha256').update(shot).digest('hex'), screenshot_bytes: shot.length,
+        computed_probe: bg, network_requests: ctx.ledger ? ctx.ledger.requests : 0,
+        page: 'a fixed page shipped with this deployment; nothing was fetched from the network',
+      };
+    }, { prefer: o.prefer });
+    probeCache = { at: Date.now(), out };
+    return Object.assign({}, out, { cached: false });
+  } catch (e) {
+    const out = { ok: false, renderer: 'unavailable', reason: (e && e.message) || 'The browser could not start.', code: (e && e.code) || '', total_ms: Date.now() - t0 };
+    probeCache = { at: Date.now(), out };
+    return Object.assign({}, out, { cached: false });
+  }
+}
+
+/**
+ * The parser's `fields` shape, built from a manifest - for a report whose
+ * parser read failed, and for the DESIGN.md renderer, which reads that shape.
+ * Every candidate carries confidence 'computed' and its source.
+ */
+function fieldsFromManifest(m, parsed) {
+  const pf = (parsed && parsed.fields) || {};
+  const cand = (value, source, extra) => Object.assign({ value, signal: `computed: ${(source && source.role) || ''}${source && source.selector ? ` (${source.selector})` : ''}${source && source.viewport ? ` @ ${source.viewport}` : ''}`, source_url: (source && source.page) || m.url, confidence: 'computed', source }, extra || {});
+  const proposed = {}, sources = {};
+  for (const [k, v] of Object.entries(m.colors || {})) {
+    if (!v || !v.value) continue;
+    proposed[k] = v.value;
+    sources[k] = { signal: (v.signal || `computed: ${(v.source && v.source.role) || k}`), source_url: (v.source && v.source.page) || m.url, confidence: 'computed', from_role: v.from_role || (k === 'primary' ? 'identity' : k), ranked_not_declared: false };
+  }
+  const font = (slot) => {
+    const f = (m.fonts || {})[slot];
+    return f && f.family ? [cand(f.family, f.source, { stack: f.stack, google: !!f.google, weights: (f.weights || []).join(';') })] : [];
+  };
+  const typeRow = (slot, t, vp, role) => (t ? { slot, size: t.size != null ? `${t.size}px` : '', px: t.size, weight: String(t.weight || ''), line_height: t.line_height === 'normal' ? 'normal' : (t.line_height != null ? `${t.line_height}px` : ''), letter_spacing: t.letter_spacing != null ? `${t.letter_spacing}px` : '', color: t.color || '', confidence: 'computed', source_url: m.url, viewport: vp, role } : null);
+  const rd = (m.read && m.read.desktop && m.read.desktop.roles) || {};
+  const h = rd.headings || {};
+  const scale = [
+    typeRow('h1', (h.h1 || rd.display || {}).type, 'desktop', 'h1'), typeRow('h2', (h.h2 || {}).type, 'desktop', 'h2'), typeRow('h3', (h.h3 || {}).type, 'desktop', 'h3'),
+    typeRow('body', (rd.body || {}).type, 'desktop', 'body copy'), typeRow('link', (rd.link || {}).type, 'desktop', 'link'),
+    typeRow('button', (rd.button_primary || {}).type, 'desktop', 'primary button'),
+  ].filter(Boolean);
+  const vtok = (row, key) => (row && row[key] ? { value: row[key], confidence: 'computed', signal: `computed: ${row.role} @ ${row.viewport}`, source_url: m.url } : null);
+  const slots = {};
+  for (const row of scale) slots[row.slot] = { size: vtok(row, 'size'), weight: vtok(row, 'weight'), line_height: vtok(row, 'line_height'), letter_spacing: vtok(row, 'letter_spacing'), color: row.color ? { value: row.color, hex: row.color, confidence: 'computed', signal: `computed: ${row.role} colour`, source_url: m.url } : null };
+  const logo = m.assets && m.assets.logo;
+  const radii = [];
+  const bp = rd.button_primary && rd.button_primary.style;
+  if (bp && bp.radius != null) radii.push({ token: '--button-radius', value: `${bp.radius}px`, signal: 'computed: primary button corner radius', source_url: m.url });
+  const card = rd.card && rd.card.style;
+  if (card && card.radius != null) radii.push({ token: '--card-radius', value: `${card.radius}px`, signal: 'computed: product card corner radius', source_url: m.url });
+  return Object.assign({}, pf, {
+    name: pf.name || { value: (m.read && m.read.desktop && m.read.desktop.title) || null, candidates: [], marker: MARKER('brand name') },
+    palette: {
+      proposed, sources, conflicts: m.conflicts || [], notes: [], roles: pf.palette ? pf.palette.roles : {},
+      markers: ['primary', 'ink', 'surface'].filter((k) => !proposed[k]).map((k) => MARKER(`palette.${k}`)),
+      validation: (() => { try { return core().validatePalette(proposed); } catch (_) { return null; } })(),
+    },
+    typography: {
+      heading: font('heading'), body: font('body'), mono: [], font_faces: (m.assets && m.assets.fonts) || [], google_font_links: [],
+      scale, slots, tokens: { size: [], weight: [], leading: [], tracking: [] }, root_font_size: null,
+      markers: [].concat(font('heading').length ? [] : [MARKER('typography.heading')], font('body').length ? [] : [MARKER('typography.body')]),
+    },
+    logo: logo && (logo.url || logo.inline_svg)
+      ? Object.assign(cand(logo.url || '(inline SVG in the header)', logo.source), { candidates: [cand(logo.url || '(inline SVG in the header)', logo.source)], inline_svg: logo.inline_svg ? { markup: logo.inline_svg, note: 'Your logo is an inline SVG in the header. It is kept in the design system and our renderers draw it as an image.' } : null })
+      : (pf.logo || { value: null, candidates: [], marker: MARKER('logo') }),
+    design_tokens: { groups: { radius: radii, spacing: [], shadow: [], motion: [] }, note: 'Measured from the rendered components.', markers: [] },
+  });
+}
+
+/**
+ * Keep a JSON response under the platform's body limit: screenshots go first,
+ * largest first, each removal said.
+ */
+function fitResponse(out, maxBytes) {
+  const limit = maxBytes || 3800000;
+  const dropped = [];
+  const size = () => Buffer.byteLength(JSON.stringify(out));
+  const drops = [
+    ['rendered.screenshots.desktop.full', (o) => { if (o.rendered && o.rendered.screenshots && o.rendered.screenshots.desktop) o.rendered.screenshots.desktop.full = null; }],
+    ['rendered.screenshots.mobile.full', (o) => { if (o.rendered && o.rendered.screenshots && o.rendered.screenshots.mobile) o.rendered.screenshots.mobile.full = null; }],
+    ['rendered.regression.screenshots.mailer', (o) => { if (o.rendered && o.rendered.regression && o.rendered.regression.screenshots) o.rendered.regression.screenshots.mailer = null; }],
+    ['rendered.regression.screenshots.ad', (o) => { if (o.rendered && o.rendered.regression && o.rendered.regression.screenshots) o.rendered.regression.screenshots.ad = null; }],
+    ['rendered.manifest.read (raw captures)', (o) => { if (o.rendered && o.rendered.manifest) o.rendered.manifest.read = { trimmed: true }; }],
+  ];
+  for (const [name, fn] of drops) {
+    if (size() <= limit) break;
+    fn(out); dropped.push(name);
+  }
+  if (dropped.length && out.rendered) out.rendered.trimmed = { dropped, note: 'Removed to keep the response under the platform\'s size limit; the values above are complete.' };
+  return out;
+}
+
+/**
+ * `op=extract`, rendered first. The parser (brand-extract.js) still runs, in
+ * parallel: it reads what the browser does not (name, tagline, claims, legal
+ * entity, regions, storefront, sitemap, voice), and it is the labelled
+ * FALLBACK when the browser cannot read the site. A parser read is never
+ * presented as a rendered one: `read.method` says which, and
+ * `read.renderer` is 'chromium' or why not ('unavailable' | 'blocked' |
+ * 'timeout').
+ */
+async function extractWithRender(auth, args, opts) {
+  const o = opts || {};
+  const bx = require('./brand-extract.js');
+  const t0 = Date.now();
+  let refusal = null;
+  if (o.open && o.req) refusal = rateCheck(o.req);
+  const parserP = bx.runExtract(auth, args).then((r) => ({ ok: true, r }), (e) => ({ ok: false, e }));
+  const renderP = refusal || o.render === false
+    ? Promise.resolve({ ok: false, renderer: 'unavailable', reason: refusal || 'The rendered read was not requested.' })
+    : (async () => {
+      // The URL goes through the SAME guard first, so an internal address
+      // never reaches the browser launcher.
+      let url;
+      try { url = await core().assertPublicUrl(/^https?:\/\//i.test(String(args.url || '')) ? args.url : `https://${args.url}`); }
+      catch (e) { return { ok: false, renderer: 'unavailable', reason: e.message }; }
+      return (o.readSite || readSite)(url, { deadlineMs: o.deadlineMs || 100000, brand: o.brand || null });
+    })();
+  const [p, r] = await Promise.all([parserP, renderP]);
+  if (!p.ok && !(r && r.ok)) throw p.e;
+  const parsed = p.ok ? p.r : null;
+  const rendered = r && r.ok ? r : null;
+  const base = parsed && parsed.ok !== false ? parsed : { ok: true, start: rendered ? rendered.manifest.url : args.url, pages: [], pages_visited: 0, stylesheets: [], limits: [], notes: [], markers: [], fields: {}, coverage_note: '' };
+  const out = Object.assign({}, base);
+  out.read = rendered
+    ? { method: 'rendered', renderer: 'chromium', chromium: rendered.renderer_info && rendered.renderer_info.version, binary: rendered.renderer_info && rendered.renderer_info.source, wall_ms: rendered.wall_ms, parser: parsed ? 'ran alongside, for the fields a browser does not read' : 'failed; every visual field below is the browser\'s' }
+    : { method: 'parsed', renderer: (r && r.renderer) || 'unavailable', reason: (r && r.reason) || 'The browser could not read the site.', note: 'Everything below was read from the site\'s published HTML and CSS, NOT rendered. Colours a script applies, a utility-first type scale and fonts a page loads but does not use are not visible to this method.' };
+  if (rendered) {
+    out.fields = fieldsFromManifest(rendered.manifest, parsed);
+    out.limits = (out.limits || []).filter((l) => !/^No browser:/.test(l)).concat([
+      'Rendered in a headless Chromium at 1440px and 390px. A page behind a login, a region gate or a consent wall is read as it renders for a first-time visitor in the browser\'s region.',
+    ]);
+    out.rendered = {
+      manifest: rendered.manifest, apply: rendered.apply, regression: rendered.regression,
+      screenshots: rendered.screenshots, renderer_info: rendered.renderer_info,
+    };
+    out.parsed_fields = parsed && parsed.fields ? { palette: parsed.fields.palette && parsed.fields.palette.proposed, heading: (parsed.fields.typography && parsed.fields.typography.heading || []).slice(0, 1), body: (parsed.fields.typography && parsed.fields.typography.body || []).slice(0, 1), scale_rows: (parsed.fields.typography && parsed.fields.typography.scale || []).length } : null;
+  }
+  out.wall_ms = Date.now() - t0;
+  return fitResponse(out);
+}
+
 module.exports = {
   readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom,
+  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };
