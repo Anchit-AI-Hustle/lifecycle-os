@@ -60,6 +60,7 @@ const DEFAULTS = {
 function MARKER(field, host) { return `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${host || 'this brand'}]`; }
 
 function siteCrawl() { return require('./site-crawl.js'); }
+function stab() { return require('./render-stabilise.js'); }
 function extract() { return require('./brand-extract.js'); }
 function core() { return require('./brand-workspace-core.js'); }
 
@@ -111,8 +112,10 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     page.setDefaultTimeout(Math.max(2000, Math.min(DEFAULTS.navMs, left())));
     const resp = await withTimeout(page.goto(url, { waitUntil: 'domcontentloaded' }), Math.min(DEFAULTS.navMs, left()), `opening ${url}`);
     await page.waitForLoadState('load', { timeout: Math.max(500, Math.min(8000, left() - 2000)) }).catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: Math.max(300, Math.min(DEFAULTS.settleMs, left() - 2000)) }).catch(() => {});
-    await withTimeout(page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true)), Math.min(DEFAULTS.fontsMs, Math.max(200, left() - 2000)), 'web fonts').catch(() => {});
+    // The ONE frozen state (render-stabilise.js), the same one our clone is
+    // measured in: network idle and fonts (bounded), motion zeroed, consent
+    // overlays hidden - never accepted.
+    const firstFreeze = await stab().stabilise(page, { deadline: ctx.deadline, idleMs: DEFAULTS.settleMs, fontsMs: DEFAULTS.fontsMs });
     // Lazy images and below-the-fold components only exist once scrolled to.
     await page.evaluate(async () => {
       const step = window.innerHeight;
@@ -123,10 +126,18 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
       window.scrollTo(0, 0);
       await new Promise((r) => setTimeout(r, 120));
     }).catch(() => {});
+    // Lazy content the scroll brought in may have started its own motion.
+    const again = await stab().stabilise(page, { deadline: ctx.deadline, idleMs: 800, fontsMs: 800 });
+    const stabilised = Object.assign({}, again, {
+      consent_hidden: [].concat(firstFreeze.consent_hidden || [], again.consent_hidden || []),
+      animations_finished: (firstFreeze.animations_finished || 0) + (again.animations_finished || 0),
+      animations_cancelled: (firstFreeze.animations_cancelled || 0) + (again.animations_cancelled || 0),
+    });
     const html = await page.content().catch(() => '');
     const shot = {};
     const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40 }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
     data.__viewport = label;
+    data.stabilised = stabilised;
     // The face the engine actually drew each role in (not the declared stack).
     data.drawn = await drawnFaces(page, {
       display: '[data-lcos-role="display"]', h1: '[data-lcos-role="h1"]', body: '[data-lcos-role="body"]',
@@ -171,6 +182,17 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
         const b = await loc.boundingBox().catch(() => null);
         if (!b || b.width < 2 || b.height < 2 || b.height > 1600) continue;
         shot.parts[role] = await loc.screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
+      }
+      // The same parts again ~500 ms later: whatever differs between the two
+      // is LIVE content (a carousel, a ticker, a countdown) and is masked out
+      // of the perceptual comparison. The text boxes are masked too.
+      shot.text = {};
+      for (const role of Object.keys(shot.parts)) shot.text[role] = await page.evaluate(capture.textRects, `[data-lcos-role="${role}"]`).catch(() => []);
+      await page.waitForTimeout(500);
+      shot.parts2 = {};
+      for (const role of Object.keys(shot.parts)) {
+        if (!shot.parts[role]) continue;
+        shot.parts2[role] = await page.locator(`[data-lcos-role="${role}"]`).first().screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
       }
     }
     return { data, html, shots: shot, states: st, page };
@@ -318,8 +340,19 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     const keep = (used.length ? used : files).slice(0, 6).map((f) => ({ url: f.url, weight: f.weight, style: f.style, format: f.format }));
     const google = keep.some((f) => /fonts\.gstatic\.com/.test(f.url)) || files.some((f) => /fonts\.googleapis\.com/.test(f.sheet));
     const weights = [...new Set(((desk.fonts && desk.fonts.faces) || []).filter((f) => f.family.toLowerCase() === String(fam).toLowerCase() && f.status === 'loaded').map((f) => String(f.weight)))].slice(0, 6);
+    // THE FONT LEGAL GATE (2026-10-04): a family and the URLs its files are
+    // served from are RECORDED; the files are loaded BY REFERENCE to measure
+    // the site and preview our clone, and are never copied or re-hosted into
+    // our storage or into a generated email. A family that is not openly
+    // licensed (not served by Google Fonts) is the brand's own font: shown as
+    // "<family> (brand font)" with the stack the site itself falls back to.
+    const brandFont = t.family_kind === 'webfont' && !google;
     fonts[slot] = {
       family: fam, kind: t.family_kind, stack, google, files: keep, weights,
+      licence: google ? 'open (Google Fonts)' : (brandFont ? 'brand font' : 'system'),
+      display_name: brandFont ? `${fam} (brand font)` : fam,
+      fallback_stack: rest.slice(1).map((f) => (/^(serif|sans-serif|monospace|system-ui|cursive|fantasy|ui-[a-z-]+|-apple-system|blinkmacsystemfont)$/i.test(f) ? f : `'${f.replace(/'/g, '')}'`)).join(',') || 'sans-serif',
+      files_by_reference: true,
       declared_stack: t.stack,
       source: src(desk, roleName, 'desktop', 'font-family', role.selector),
       note: t.family_kind === 'webfont' ? 'Loaded web font, rendering this role.'
@@ -507,9 +540,11 @@ async function readRendered(url, opts) {
     javaScriptEnabled: true, bypassCSP: false, permissions: [], locale: 'en-US', colorScheme: 'light',
   });
   const desktopCtx = await browser.newContext(ctxOpts(vps.desktop, false));
+  await stab().install(desktopCtx);
   ctx.ledger = await net.attach(desktopCtx, ctx);
   ctx.ledger.prefetched.set(home, first);
   const mobileCtx = await browser.newContext(ctxOpts(vps.mobile, true));
+  await stab().install(mobileCtx);
   await net.attach(mobileCtx, ctx);
 
   let partial = false;
@@ -582,6 +617,9 @@ async function readRendered(url, opts) {
     partial = true;
     notes.push(`The byte budget for one read (${Math.round(ctx.budget.max / 1048576)} MB) was spent; ${ctx.budget.aborted} download(s) in flight were stopped. What was measured before that is below.`);
   }
+  // A consent overlay is HIDDEN in this throwaway browser, never accepted.
+  const hidden = [].concat((deskCap.data.stabilised && deskCap.data.stabilised.consent_hidden) || [], (mobCap && mobCap.data.stabilised && mobCap.data.stabilised.consent_hidden) || []);
+  if (hidden.length) notes.push(`${hidden.length} consent overlay(s) were HIDDEN in the reader's throwaway browser, not accepted: nothing was consented to on anyone's behalf, and an overlay's colours are not read as the brand's.`);
   // Every hop counted, including the ones made outside a browser request.
   ctx.ledger.requests = ctx.budget.requests;
   ctx.ledger.bytes = ctx.budget.used;
@@ -888,7 +926,11 @@ function scoringBrand(src) {
   const typography = {};
   for (const k of ['heading', 'body']) {
     const f = src.typography && src.typography[k];
-    if (f && typeof f === 'object' && s(f.family, 80)) typography[k] = { family: s(f.family, 80), stack: s(f.stack, 240), google: f.google === true };
+    if (f && typeof f === 'object' && s(f.family, 80)) {
+      typography[k] = { family: s(f.family, 80), stack: s(f.stack, 240), google: f.google === true };
+      // A font FILE the operator supplied (https only), so the score sees it.
+      if (/^https:\/\/[^\s"'()<>\\]+$/i.test(s(f.src, 600))) Object.assign(typography[k], { src: s(f.src, 600), format: s(f.format, 12) });
+    }
   }
   const raw = (src.field_origin && typeof src.field_origin === 'object' && src.field_origin)
     || (src.brand_data && typeof src.brand_data === 'object' && src.brand_data.field_origin && typeof src.brand_data.field_origin === 'object' && src.brand_data.field_origin) || {};
@@ -901,13 +943,42 @@ function scoringBrand(src) {
   };
 }
 
+/**
+ * The response waits this long for the browser and no longer (2026-10-04).
+ * The function has 120 s (vercel.json, api/public-config.js). readSite()'s own
+ * 100 s deadline covers the manifest and the regression, but not everything
+ * around them - waiting for another read on the instance, the launch itself,
+ * the parser running alongside - so a starved machine could run past the
+ * platform's limit and the person got no answer at all. Now the response is
+ * made at this cap whatever is still running: the browser read as the timeout
+ * it is, with the parser's fields, labelled. The browser's own deadline sits
+ * BROWSER_MARGIN_MS inside the cap, so a read normally ends PARTIAL (with what
+ * it measured) rather than being cut off. Same cap on both paths: the open
+ * path is already bounded by the per-address limiter, and a shorter read there
+ * would only make the visitor's result worse.
+ */
+const READ_HARD_MS = { open: 108000, account: 108000 };
+const BROWSER_MARGIN_MS = 8000;
+
+/** `p`, or `late()` if `p` has not settled `ms` after `t0`. */
+function capped(p, t0, ms, late) {
+  let timer = null;
+  return Promise.race([
+    p.finally(() => clearTimeout(timer)),
+    new Promise((resolve) => { timer = setTimeout(() => resolve(late()), Math.max(1, ms - (Date.now() - t0))); }),
+  ]);
+}
+
 async function extractWithRender(auth, args, opts) {
   const o = opts || {};
   const bx = require('./brand-extract.js');
   const t0 = Date.now();
+  const hardMs = o.hardMs || (o.open ? READ_HARD_MS.open : READ_HARD_MS.account);
+  const secs = Math.round(hardMs / 1000);
   let refusal = null;
   if (o.open && o.req) refusal = rateCheck(o.req);
-  const parserP = bx.runExtract(auth, args).then((r) => ({ ok: true, r }), (e) => ({ ok: false, e }));
+  const parserP = capped(bx.runExtract(auth, args).then((r) => ({ ok: true, r }), (e) => ({ ok: false, e })), t0, hardMs,
+    () => ({ ok: false, e: Object.assign(new Error(`The site's published HTML and CSS were not read within ${secs} s.`), { status: 504 }) }));
   const renderP = refusal || o.render === false
     ? Promise.resolve({ ok: false, renderer: 'unavailable', reason: refusal || 'The rendered read was not requested.' })
     : (async () => {
@@ -916,9 +987,12 @@ async function extractWithRender(auth, args, opts) {
       let url;
       try { url = await core().assertPublicUrl(/^https?:\/\//i.test(String(args.url || '')) ? args.url : `https://${args.url}`); }
       catch (e) { return { ok: false, renderer: 'unavailable', reason: e.message }; }
-      return (o.readSite || readSite)(url, { deadlineMs: o.deadlineMs || 100000, brand: o.brand || null });
+      return (o.readSite || readSite)(url, { deadlineMs: Math.max(1000, Math.min(o.deadlineMs || 100000, hardMs - BROWSER_MARGIN_MS)), brand: o.brand || null });
     })();
-  const [p, r] = await Promise.all([parserP, renderP]);
+  const [p, r] = await Promise.all([parserP, capped(renderP, t0, hardMs, () => ({
+    ok: false, renderer: 'timeout',
+    reason: `The browser read did not finish within ${secs} s on this server, so it was stopped waiting for; everything below was read from the site's published HTML and CSS.`,
+  }))]);
   if (!p.ok && !(r && r.ok)) throw p.e;
   const parsed = p.ok ? p.r : null;
   const rendered = r && r.ok ? r : null;
@@ -952,6 +1026,6 @@ async function extractWithRender(auth, args, opts) {
 
 module.exports = {
   readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
-  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, PROBE_HTML,
+  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, READ_HARD_MS, BROWSER_MARGIN_MS, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };

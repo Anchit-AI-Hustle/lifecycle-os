@@ -78,6 +78,7 @@ const M = {
   logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
   agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
+  gateway: 'api/_shared/social-gateway-core.js',
 };
 
 /** The active brand as brain.js resolves it onto req.__brand (home market UK). */
@@ -645,6 +646,7 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
     S.on(M.sbplan, 'syncDaily', async () => ({ mode: 'db-linked', changes: [1] }));
     S.on(M.universe, 'refreshDueWorkspaces', async () => ({ due: 1, refreshed: 1, added: 0, note: 'n' }));
     S.on(M.snowflake, 'runSync', async () => ({ ok: true, connected: false }));
+    S.on(M.gateway, 'refreshDueTokens', async () => ({ ok: true, due: 2, refreshed: 1, needs_reauth: 1, retry: 0 }));
     S.on(CORE, 'logRun', async () => 'run_cron');
     db.rows.smart_calendar = [{ id: 'slot_due' }];
   },
@@ -656,6 +658,9 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
     expect(last(M.generate, 'generateForSlot')).toEqual(['slot_due', { persist: true }]);
     expect(last(M.sbplan, 'syncDaily')[0]).toEqual({ persist: true });
     expect(last(M.universe, 'refreshDueWorkspaces')[0]).toEqual({ maxWorkspaces: 3 });
+    // The social gateway's token refresh rides this cron (both Hobby crons are taken): due within 7 days.
+    expect(last(M.gateway, 'refreshDueTokens')[0]).toEqual({ withinDays: 7 });
+    expect(r.out.steps.social_tokens).toEqual({ ok: true, due: 2, refreshed: 1, needs_reauth: 1, retry: 0 });
     expect(last(CORE, 'logRun')[0]).toBe('cron');
     // The prebuild chain is kicked at the deployment's own URL, with the scheduler secret.
     const kick = guard.calls.find((c) => c.url.startsWith(H.SELF_BASE_URL));
@@ -725,6 +730,19 @@ add('os-run-daily-job', { gate: 'cron-flag', browser: 'refuse', run: { method: '
 add('os-dashboard', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   stubs: () => S.on(M.osb, 'dashboard', async () => ({ kpis: {} })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, kpis: {} }); },
+});
+add('social-gateway', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
+  stubs: () => S.on(M.gateway, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
+  expect: (r) => {
+    // The verified caller and the workspace SCOPING resolved are handed over;
+    // the core never re-reads a workspace from the request.
+    expect(r.out).toEqual({ ok: true, op: 'status', ws: H.WS, user: H.USER_ID });
+    const a = last(M.gateway, 'handle');
+    expect(a[2].auth).toMatchObject({ ok: true, user_id: H.USER_ID });
+    expect(a[2].auth.token).toBe(H.SESSION);
+  },
+  cases: [{ name: 'a POST hands the parsed body through for a write op', run: { json: { job_id: 'j9' }, query: { op: 'live-approve' } },
+    expect: (r) => { expect(r.out.op).toBe('live-approve'); const a = last(M.gateway, 'handle'); expect(a[2].body).toMatchObject({ job_id: 'j9' }); } }],
 });
 add('dispatch-webhook', { gate: 'signature', browser: 'n/a',
   run: { raw: 'not json at all', contentType: 'application/json', auth: 'none', origin: false, query: { provider: 'meta' } },

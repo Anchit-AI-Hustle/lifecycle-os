@@ -98,6 +98,13 @@ function inTeaScope(productType) {
 // that slot the offer ships without one and says so. Ten literal codes used to
 // live in this function - one brand's real codes, handed to every brand.
 const SLOT_RULES = [
+  // A replenishment TRIGGER cohort (replenishment-model.js) is matched by its
+  // own name, first and narrowly: its objective for a one-order customer is
+  // "second-order activation", which the activation rule below would read as a
+  // 0-order subscriber's first purchase. Anchored to the cohort name so no
+  // other cohort's offer moves.
+  { slot: 'replenishment', depth: 'fif', pct: 0.15, match: (s) => /^replenishment due\b/.test(s),
+    why: 'Replenishment trigger: this customer\'s own purchase history says the next order is due. At-cap to win it before they buy elsewhere.' },
   { slot: 'post_purchase', depth: 'none', pct: 0,
     match: (s) => /post.?purchase|nurture|thank|onboarding|welcome ritual/.test(s) && !/new sub|non.?buyer|activation/.test(s),
     why: 'No discount right after purchase: protect margin, deepen the relationship before the next window.' },

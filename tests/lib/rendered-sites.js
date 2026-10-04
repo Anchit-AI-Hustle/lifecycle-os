@@ -142,6 +142,44 @@ function googleFontsTransport(real) {
 }
 const GOOGLE_ORIGINS = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
 
+/* ── i: a page IN MOTION ─────────────────────────────────────────────────────
+   The CTA's background runs an infinite keyframe animation (its declared
+   colour is #245c3a), a badge laid over its right padding changes colour
+   every 50 ms from a script (live content: it moves no other pixel), and the
+   hero prints the page's clock. */
+const I_HOME = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fieldhouse</title>
+<style>body{margin:0;font-family:Verdana,sans-serif;font-size:16px;line-height:1.6;color:#222222;background:#ffffff}
+h1{font-family:Georgia,serif;font-size:48px;line-height:1.1;font-weight:700;color:#1d3b2a;margin:40px 48px 16px}
+p{margin:0 48px 16px;max-width:640px}
+@keyframes pulse{0%{background-color:#ff0000}50%{background-color:#0000ff}100%{background-color:#ff00ff}}
+.cta{position:relative;display:inline-block;margin:8px 48px;background:#245c3a;color:#ffffff;padding:14px 30px;border-radius:6px;text-decoration:none;font-size:18px;font-weight:700;animation:pulse 1.3s linear infinite}
+.cta .dot{position:absolute;right:2px;top:50%;margin-top:-13px;width:26px;height:26px;border-radius:4px;background:#ffffff}
+footer{padding:32px 48px;background:#eef3ef;color:#222222}</style></head><body>
+<h1>Kit for the long season</h1>
+<p id="clock">Updated </p>
+<p>Everything we sell has been worn through at least one winter by someone on the team before it goes on the shelf.</p>
+<a class="cta" href="/shop">Shop the season<i class="dot"></i></a>
+<footer>Fieldhouse, 12 Quay Street.</footer>
+<script>document.getElementById('clock').textContent += new Date().toISOString();
+var t = 0; setInterval(function () { t += 1; document.querySelector('.cta .dot').style.background = 'hsl(' + ((t * 37) % 360) + ',90%,50%)'; }, 50);</script></body></html>`;
+
+/* ── j: a cookie-consent banner over the page ──────────────────────────────
+   Fixed to the bottom, black with a large orange ACCEPT: the vendor's
+   colours, not the brand's (#2f4f8f). Accepting is a link the reader must
+   never follow. */
+const J_HOME = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bluewater Supply</title>
+<style>body{margin:0;font-family:Verdana,sans-serif;font-size:16px;line-height:1.6;color:#222222;background:#ffffff}
+h1{font-family:Georgia,serif;font-size:44px;line-height:1.15;font-weight:700;color:#1b2a44;margin:40px 48px 16px}
+p{margin:0 48px 16px;max-width:640px}
+.cta{display:inline-block;margin:8px 48px;background:#2f4f8f;color:#ffffff;padding:12px 24px;border-radius:4px;text-decoration:none;font-size:16px;font-weight:700}
+#cookie-banner{position:fixed;left:0;right:0;bottom:0;background:#000000;color:#ffffff;padding:28px 48px;z-index:99;font-size:18px}
+#cookie-banner a{display:inline-block;margin-left:24px;background:#ff6a00;color:#000000;padding:20px 64px;border-radius:30px;font-size:22px;font-weight:800;text-decoration:none}</style></head><body>
+<h1>Gear for open water</h1>
+<p>We test every jacket on the crossing to the island and back, in the weather it was made for.</p>
+<a class="cta" href="/shop">Shop jackets</a>
+<div id="cookie-banner" role="dialog" aria-label="Cookie consent">We use cookies to measure how this site is used.<a href="/consent/accept">Accept all cookies</a></div>
+</body></html>`;
+
 /* ── d: CTA only through a compound :not() selector, with :hover ─────────── */
 const D_CSS = `body{margin:0;font-family:Verdana,sans-serif;background:#ffffff;color:#222;font-size:16px;line-height:1.6}
 header{display:flex;justify-content:space-between;padding:16px 32px;background:#ffffff}
@@ -205,6 +243,8 @@ function siteRoutes(name) {
   }
   if (name === 'd') return Object.assign(base, { '/': page(D_HOME), '/d.css': css(D_CSS) });
   if (name === 'h') return Object.assign(base, { '/': page(H_HOME) });
+  if (name === 'i') return Object.assign(base, { '/': page(I_HOME) });
+  if (name === 'j') return Object.assign(base, { '/': page(J_HOME), '/consent/accept': page('<!doctype html><title>ok</title>') });
   if (name === 'e') return Object.assign(base, { '/': page(E_HOME) });
   if (name === 'f') return Object.assign(base, { '/': page(F_HOME) });
   if (name === 'g403') return Object.assign(base, { '/': { status: 403, type: 'text/html', body: '<h1>Forbidden</h1>' } });
