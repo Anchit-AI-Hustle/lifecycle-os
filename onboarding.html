@@ -305,6 +305,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xdiag ul{margin:7px 0 0 16px}
   .xdiag li{margin-top:3px}
   .xlimits{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6}
+  /* The RENDERED read: applied, scored, reversible. Tokens only, no literal
+     colour: this panel is painted in whichever brand was just applied. */
+  .xtag.computed{border-color:color-mix(in srgb,var(--primary) 45%,transparent);color:var(--brand-primary-text)}
+  .xr{border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:18px;background:var(--card)}
+  .xr h3{font-family:var(--head);font-size:15px;font-weight:600;margin:0 0 4px}
+  .xr .xr-score{display:inline-block;font:700 22px/1 var(--head);margin-right:8px;color:var(--brand-primary-text)}
+  .xr .xr-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
+  .xr .xr-pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+  .xr figure{margin:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+  .xr figure img{display:block;width:100%;height:auto}
+  .xr figcaption{font-size:10.5px;padding:6px 8px;color:var(--muted)}
+  .xr .xr-list{font-size:11.5px;line-height:1.6;margin:6px 0 0 16px}
+  .xr .xr-side{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:3px 0 6px}
+  .xr .xr-side .btn{padding:3px 9px;font-size:11px}
+  .xr .xr-note{font-size:11.5px;line-height:1.6;margin-top:9px;color:var(--muted)}
+  .xr .xr-rule{margin-top:9px;padding:9px 11px;border-radius:9px;font-size:11.5px;line-height:1.55;border:1px solid var(--line);border-left:3px solid var(--accent)}
+  .xr-fallback{border-left:3px solid var(--accent)}
+  @media (max-width:640px){.xr .xr-pairs{grid-template-columns:minmax(0,1fr)}}
   .xlimits li{margin-left:16px}
 
   /* Brand guideline document + file-or-URL asset controls (2026-10-04).
@@ -384,6 +402,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     regions: [],
     brand_data: {}, status: 'draft', onboarding_step: 1
   };
+  /* The starting palette and type above are this wizard's PLACEHOLDERS, not a
+     person's choice, and the record says so (origin 'default'): a read may
+     replace them. A value with NO recorded origin is treated the other way -
+     as the person's own (see ownedByPerson) - because every brand saved before
+     origins existed carries exactly that shape. */
+  var DEFAULT_FIELDS = ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body'];
+  DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
 
   var STEPS = [
     { n: 1, key: 'brand',   label: 'Brand' },
@@ -655,6 +680,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var path = el.dataset.path;
       el.addEventListener(el.type === 'color' || el.tagName === 'SELECT' ? 'input' : 'input', function () {
         var v = el.type === 'checkbox' ? el.checked : el.value;
+        markOrigin(path, 'user');
         var parts = path.split('.'), o = brand;
         for (var i = 0; i < parts.length - 1; i++) o = o[parts[i]];
         o[parts[parts.length - 1]] = v;
@@ -721,6 +747,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         custom.style.display = 'none';
         var generic = slot === 'heading' ? "Georgia,serif" : "system-ui,-apple-system,Segoe UI,sans-serif";
         brand.typography[slot] = { family: v, stack: "'" + v + "'," + generic, google: true, weights: slot === 'heading' ? '500;600;700' : '400;500;600;700' };
+        markOrigin('typography.' + slot, 'user');
         loadPreviewFont(v);
         paintPreview();
       });
@@ -733,6 +760,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           var stack = root.querySelector('[data-custom-stack="' + slot + '"]').value.trim();
           if (!fam) return;
           brand.typography[slot] = { family: fam, stack: stack || ("'" + fam + "',sans-serif"), google: false, weights: '400;600;700' };
+          markOrigin('typography.' + slot, 'user');
           paintPreview();
         });
       });
@@ -852,6 +880,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (!v) return;
         var k = inp.dataset.add;
         if (brand.voice[k].indexOf(v) < 0) brand.voice[k].push(v);
+        markOrigin('voice.' + k, 'user');
         inp.value = '';
         render();
         var again = document.querySelector('[data-add="' + k + '"]');
@@ -886,7 +915,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">Start from your own website, from your brand guidelines, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
-        extractBlock() + xPanel('brand') +
+        extractBlock() + xRenderedPanel() + xPanel('brand') +
         docBlock() +
         // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
         // shipped brand name into the active brand's throughout the page, which
@@ -1153,6 +1182,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
         });
         brand.id = keepId;
+        // What the template filled is the TEMPLATE's (origin 'preset'), so a
+        // read of the brand's own site may replace it; a value the template
+        // did not carry keeps whatever origin it had.
+        ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) markOrigin(k, 'preset'); });
+        if (p.palette) Object.keys(p.palette).forEach(function (k) { markOrigin('palette.' + k, 'preset'); });
+        if (p.typography) ['heading', 'body'].forEach(function (k) { if (p.typography[k]) markOrigin('typography.' + k, 'preset'); });
+        if (p.voice && p.voice.tone) markOrigin('voice.tone', 'preset');
+        if (p.regions) markOrigin('regions', 'preset');
         presetPicked = slug;
         markOrigins(['name', 'tagline', 'website', 'logo_url', 'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body', 'voice.tone', 'voice.preferred', 'voice.banned'], 'preset', { source: 'preset ' + slug });
         // The preset's website replaces whatever was being typed.
@@ -1187,7 +1224,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      Applied values record their source into brand_data.brand_extraction, so a
      fact stays traceable after onboarding closes. */
 
-  var XLABEL = { declared: 'declared', strong: 'strong', weak: 'weak' };
+  var XLABEL = { computed: 'computed', declared: 'declared', strong: 'strong', weak: 'weak' };
 
   function xTag(conf) {
     var c = XLABEL[conf] || 'weak';
@@ -1527,7 +1564,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
       '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
         ' stylesheet(s) read. ' + esc(extraction.coverage_note) + xCoverageLine() +
-        ' Nothing below is applied until you press Use.' +
+        (extraction.read && extraction.read.method === 'rendered'
+          ? ' The rendered read above was applied; the candidates below are for changing any value.'
+          : ' Nothing below is applied until you press Use.') +
         // Said on the panel, not only in a toast that has already gone.
         (extraction.note ? ' ' + esc(extraction.note) : '') + '</div>' +
       diag +
@@ -1588,7 +1627,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function extractBlock() {
     var off = extractOff();
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
-      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
+      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. It opens your site in a real browser at desktop and phone width, measures what it renders - colours, type, buttons, header, cards, footer - and applies all of it to this brand, keeping anything you typed yourself. You can revert in one click. If the browser cannot read your site, what its HTML and CSS publish is offered instead, and then nothing is applied until you press Use.</p>' +
       '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
         '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
@@ -1612,6 +1651,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var r = await api('extract', { url: url, workspace_id: brand.id || undefined });
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
+      if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);
+      // Saved through the path this brand already uses (the device store or the
+      // account), so a reload keeps it. A brand with no name yet stays in the form.
+      if (rendered && rendered.report === r && brand.name) await save(true);
       // A read that ran without a backend is a DIFFERENT result from a normal
       // one, and saying so is the whole point: nothing was saved, and the voice
       // step did not run. Reporting it as an ordinary success would leave the
@@ -1619,7 +1662,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // `signed_out` is the server's word for "read without an account it
       // could check" - which is also true of a person signed in on this
       // device, whose token is never sent. Never "without signing in" to them.
-      toast(r.signed_out
+      if (rendered && rendered.report === r) {
+        toast('Rendered your site and applied ' + rendered.applied.length + ' value(s)' + (rendered.kept.length ? ', kept ' + rendered.kept.length + ' you set yourself' : '') + '. Your generated assets score ' + (r.rendered.regression && r.rendered.regression.score != null ? r.rendered.regression.score + '%' : 'n/a') + ' against your site.', 5200);
+      } else toast(r.signed_out
         ? 'Read ' + r.pages_visited + ' page(s) ' + (phoneSession() ? 'without an account the server could check' : 'without signing in') + '. Nothing was saved.'
         : 'Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.', r.signed_out ? 5200 : 2600);
     } catch (e) {
@@ -1644,11 +1689,304 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (c.origin) rec.origin = c.origin;
     if (c.replaced) rec.replaced = c.replaced;
     x.applied[field] = rec;
+    // A candidate taken with Use is a site read; the operator's own pick of
+    // one side of a conflict, or an assignment, says origin 'user'.
+    markOrigin(field, c.origin || 'site-parse');
+  }
+
+  /* ── WHO SET EACH FIELD (2026-10-04) ───────────────────────────────────
+     brand_data.field_origin[field] is one of: user (typed here), document (a
+     brand guideline file), site-render (the rendered read), site-parse (a
+     parsed candidate taken with Use), preset (a template). Precedence is in
+     that order; an automatic read never overwrites `user` or `document`.
+     Kept on the record, so it survives a reload and the server honours it. */
+  function fieldOrigin(field) {
+    var bd = brand.brand_data || {};
+    return (bd.field_origin && bd.field_origin[field]) || '';
+  }
+  function markOrigin(field, origin) {
+    if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {};
+    if (!brand.brand_data.field_origin) brand.brand_data.field_origin = {};
+    brand.brand_data.field_origin[field] = origin;
+    // The guideline reader keeps a richer record per field (field_origins);
+    // a different origin set here replaces it, so the two never disagree -
+    // except over a value the brand's guidelines stated: an automatic source
+    // (a template, a site read) does not quietly demote it. docGuard() puts
+    // the guideline's value back and shows the other one beside it; only the
+    // person's own choice ('user') takes the field.
+    var fos = brand.brand_data.field_origins;
+    if (fos && typeof fos === 'object' && !Array.isArray(fos) && (!fos[field] || fos[field].origin !== origin)) {
+      if (fos[field] && fos[field].origin === 'document' && origin !== 'user') return;
+      fos[field] = { origin: origin, at: new Date().toISOString() };
+    }
+  }
+  function hasValue(v) {
+    if (v == null) return false;
+    if (typeof v === 'string') return v.trim() !== '';
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return v.family ? true : Object.keys(v).length > 0;
+    return true;
+  }
+  /* Review finding (2026-10-04, data loss): a brand saved before field
+     origins existed has NONE recorded, and the first version of this read its
+     typed palette, logo and name as "no owner" and overwrote them. A non-empty
+     value with no recorded origin is now the person's: kept, and offered as a
+     side-by-side choice they can accept (acceptRendered). Only an EMPTY field,
+     or one a machine or the wizard's placeholder set, is filled automatically. */
+  function ownedByPerson(field) {
+    var o = fieldOrigin(field);
+    if (o === 'user' || o === 'document') return true;
+    if (!o && hasValue(getAt(brand, field))) return true;
+    return false;
+  }
+  function getAt(o, path) { return path.split('.').reduce(function (a, k) { return a && typeof a === 'object' ? a[k] : undefined; }, o); }
+  function setAt(o, path, v) {
+    var ks = path.split('.'), n = o;
+    for (var i = 0; i < ks.length - 1; i++) { if (!n[ks[i]] || typeof n[ks[i]] !== 'object') n[ks[i]] = {}; n = n[ks[i]]; }
+    n[ks[ks.length - 1]] = v;
+  }
+
+  /* ── the RENDERED read, APPLIED (2026-10-04) ─────────────────────────────
+     The operator's words: "apply that complete accurately". A rendered read
+     is applied in one go - colours, typography and its scale, radii, logo,
+     favicon, imagery and the measured design system the generators consume -
+     with three things visible, never silent: the fields KEPT because a person
+     set them, the hard-rule decisions (dark sections, AA-derived text with
+     both ratios), and a one-click revert to exactly what was there before. */
+  var rendered = null;
+  function applyRendered(r) {
+    var fields = (r.rendered && r.rendered.apply) || {};
+    var snapshot = JSON.stringify(brand);
+    var applied = [], kept = [];
+    var visual = function (f) {
+      setAt(brand, f, JSON.parse(JSON.stringify(fields[f].value)));
+      var src = fields[f].source || {};
+      noteSource(f, {
+        value: typeof fields[f].value === 'string' ? fields[f].value : '',
+        signal: 'computed: ' + (src.role || f) + (src.selector ? ' (' + src.selector + ')' : '') + (src.viewport ? ' @ ' + src.viewport : ''),
+        source_url: src.page || r.start, confidence: 'computed', origin: 'site-render'
+      });
+    };
+    Object.keys(fields).forEach(function (f) {
+      if (ownedByPerson(f)) { kept.push({ field: f, origin: fieldOrigin(f), theirs: fields[f].value, take: function () { visual(f); } }); return; }
+      visual(f);
+      applied.push(f);
+    });
+    if (!brand.website) brand.website = r.start;
+    // The non-visual fields the same read found (the parser runs beside the
+    // browser): name, tagline, legal entity, social profiles, regions and the
+    // observed voice - under the same rule, so a person's own value is kept.
+    // CLAIMS are not applied: a sentence becomes a claim only when someone
+    // approves it, and that stays a tick-box.
+    var pf = r.fields || {};
+    var nonVisual = [
+      ['name', pf.name && pf.name.value, function (v) { brand.name = v; if (!brand.id) brand.slug = slugify(v); }],
+      ['tagline', pf.tagline && pf.tagline.value, function (v) { brand.tagline = v; }],
+      ['brand_data.legal_entity', pf.legal && pf.legal.candidates && pf.legal.candidates[0] && pf.legal.candidates[0].value, function (v) { brand.brand_data.legal_entity = v; }],
+    ];
+    nonVisual.forEach(function (row) {
+      var field = row[0], v = row[1];
+      if (!v) return;
+      var take = function () {
+        row[2](v);
+        var c = field === 'name' ? pf.name : field === 'tagline' ? pf.tagline : pf.legal.candidates[0];
+        noteSource(field, { value: v, signal: c.signal || '', source_url: c.source_url || '', confidence: c.confidence || '', origin: 'site-parse' });
+      };
+      if (ownedByPerson(field)) { kept.push({ field: field, origin: fieldOrigin(field), theirs: v, take: take }); return; }
+      take();
+      applied.push(field);
+    });
+    if (pf.social && (pf.social.candidates || []).length) {
+      var takeSocial = function () {
+        brand.brand_data.social = pf.social.candidates.map(function (x) { return { platform: x.platform, url: x.value, source_url: x.source_url, signal: x.signal }; });
+        markOrigin('brand_data.social', 'site-parse');
+      };
+      if (ownedByPerson('brand_data.social')) kept.push({ field: 'brand_data.social', origin: fieldOrigin('brand_data.social'), theirs: pf.social.candidates.map(function (x) { return x.value; }), take: takeSocial });
+      else { takeSocial(); applied.push('brand_data.social'); }
+    }
+    if (pf.regions && (pf.regions.candidates || []).length) {
+      if (ownedByPerson('regions')) kept.push({ field: 'regions', origin: fieldOrigin('regions'), theirs: pf.regions.candidates.map(function (x) { return x.value && (x.value.code || x.value.name) || x.value; }), take: function () { applyRegionsFrom(pf); } });
+      else { applyRegionsFrom(pf); applied.push('regions'); }
+    }
+    if (pf.voice && pf.voice.value && pf.voice.value.tone) {
+      var takeVoice = function () {
+        brand.voice.tone = pf.voice.value.tone;
+        (pf.voice.value.preferred || []).forEach(function (w) { if (brand.voice.preferred.indexOf(w) < 0) brand.voice.preferred.push(w); });
+        noteSource('voice.tone', { value: pf.voice.value.tone, signal: 'observed from public copy', source_url: (pf.voice.sources || []).join(' '), confidence: 'weak', origin: 'site-parse' });
+      };
+      if (ownedByPerson('voice.tone')) kept.push({ field: 'voice.tone', origin: fieldOrigin('voice.tone'), theirs: pf.voice.value.tone, take: takeVoice });
+      else { takeVoice(); applied.push('voice.tone'); }
+    }
+    rendered = { report: r, applied: applied, kept: kept, snapshot: snapshot, at: new Date().toISOString(), reverted: false };
+    loadRenderedFonts();
+    paintShell();
+  }
+  /* The operator takes the site's value for ONE kept field. That is their
+     decision, so the field is recorded as theirs ('user') with what it
+     replaced - the same rule as picking a side of a colour conflict. */
+  function acceptRendered(field) {
+    if (!rendered || rendered.reverted) return;
+    var i = -1;
+    rendered.kept.forEach(function (k, j) { if (k.field === field) i = j; });
+    if (i < 0) return;
+    var k = rendered.kept[i];
+    var before = getAt(brand, field);
+    k.take();
+    markOrigin(field, 'user');
+    var x = brand.brand_data.brand_extraction;
+    if (x && x.applied && x.applied[field]) x.applied[field].replaced = typeof before === 'string' ? before : JSON.stringify(before || null).slice(0, 200);
+    rendered.kept.splice(i, 1);
+    rendered.applied.push(field);
+    if (field.indexOf('typography.') === 0 || field === 'brand_data.design_system') loadRenderedFonts();
+    paintShell();
+    render();
+    toast((RFIELD[field] || field) + ' now uses the value read from your site.');
+    save(true);
+  }
+  function revertRendered() {
+    if (!rendered || rendered.reverted) return;
+    brand = JSON.parse(rendered.snapshot);
+    rendered.reverted = true;
+    paintShell();
+    render();
+    toast('Reverted. Every field is back to what it was before the read.');
+    save(true);
+  }
+  /* The brand's own font files, as the browser loaded them on its site. */
+  function loadRenderedFonts() {
+    var ds = brand.brand_data && brand.brand_data.design_system;
+    if (!ds || !ds.fonts) return;
+    var css = '';
+    ['heading', 'body'].forEach(function (slot) {
+      var f = ds.fonts[slot];
+      if (!f || !f.family) return;
+      if (f.google) { loadPreviewFont(f.family); return; }
+      (f.files || []).forEach(function (file) {
+        if (!/^https?:\/\//.test(file.url || '')) return;
+        css += '@font-face{font-family:"' + String(f.family).replace(/["\\<>;{}]/g, '') + '";src:url("' + String(file.url).replace(/["\\<>]/g, '') + '");font-weight:' + String(file.weight || '400').replace(/[^0-9a-z ]/gi, '') + ';font-style:' + String(file.style || 'normal').replace(/[^a-z]/gi, '') + ';font-display:swap}';
+      });
+    });
+    var el = document.getElementById('renderedFaces');
+    if (!el) { el = document.createElement('style'); el.id = 'renderedFaces'; document.head.appendChild(el); }
+    el.textContent = css;
+  }
+  /* The app itself re-skins to the brand being set up, through the SAME token
+     maths the shell paints with (brand-context.js tokensFor). */
+  function paintShell() {
+    try {
+      var bc = window.BrandContext;
+      if (!bc || typeof bc.paint !== 'function' || typeof bc.tokensFor !== 'function') return;
+      bc.paint({ tokens: bc.tokensFor(brand), fonts_href: bc.fontsHrefFor ? bc.fontsHrefFor(brand) : '', name: brand.name, slug: brand.slug, logo_url: brand.logo_url, palette: brand.palette, typography: brand.typography });
+    } catch (_) { /* the preview card still shows it */ }
+    paintPreview();
+  }
+  var RFIELD = {
+    'palette.primary': 'Primary colour', 'palette.accent': 'Accent colour', 'palette.ink': 'Text colour', 'palette.surface': 'Page surface',
+    'palette.surface_alt': 'Card surface', 'palette.muted': 'Secondary text', 'typography.heading': 'Heading font', 'typography.body': 'Body font',
+    'logo_url': 'Logo', 'favicon_url': 'Favicon', 'brand_data.design_system': 'Design system (components, type scale, radii, spacing)', 'brand_data.imagery': 'Imagery',
+    'name': 'Brand name', 'tagline': 'Tagline', 'brand_data.legal_entity': 'Legal entity', 'brand_data.social': 'Social profiles', 'regions': 'Regions and home market', 'voice.tone': 'Tone of voice (observed)'
+  };
+  function rShow(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') return v.length > 80 ? v.slice(0, 77) + '...' : v;
+    if (v.family) return v.family;
+    if (Array.isArray(v)) return v.length + ' item(s)';
+    return 'measured';
+  }
+  function xRenderedPanel() {
+    if (!extraction || !extraction.read) return '';
+    var rd = extraction.read;
+    if (rd.method !== 'rendered') {
+      return '<div class="xr xr-fallback" data-read-method="parsed" data-renderer="' + esc(rd.renderer || '') + '"><h3>Read from published HTML and CSS, not rendered</h3>' +
+        '<p class="xr-note"><b>Browser read: ' + esc(rd.renderer || 'unavailable') + '.</b> ' + esc(rd.reason || '') + '</p>' +
+        '<p class="xr-note">' + esc(rd.note || '') + ' Nothing below is applied until you press Use.</p></div>';
+    }
+    var g = (extraction.rendered && extraction.rendered.regression) || {};
+    var m = (extraction.rendered && extraction.rendered.manifest) || {};
+    var shots = (extraction.rendered && extraction.rendered.screenshots) || {};
+    var img = function (b64, mime) { return b64 ? '<img alt="" src="data:' + (mime || 'image/jpeg') + ';base64,' + b64 + '">' : '<div class="xr-note" style="padding:12px">Not captured.</div>'; };
+    var fig = function (b64, cap, mime) { return '<figure>' + img(b64, mime) + '<figcaption>' + esc(cap) + '</figcaption></figure>'; };
+    var surf = g.surfaces || {};
+    var surfRow = Object.keys(surf).map(function (k) {
+      var x = surf[k];
+      return '<span class="xtag computed" data-surface="' + esc(k) + '" data-surface-score="' + esc(String(x.score)) + '">' + esc(k) + ' ' + esc(String(x.score)) + '%</span>';
+    }).join('');
+    var comps = (g.components || []).map(function (c) {
+      return '<tr><td>' + esc(c.surface) + '</td><td>' + esc(c.component) + '</td><td>' + (c.score == null ? '&mdash;' : esc(String(c.score)) + '%') + '</td><td>' + c.match + ' / ' + (c.match + c.mismatch) + (c.exempt ? ' (' + c.exempt + ' by rule)' : '') + '</td><td>' +
+        (c.pixels || []).map(function (p) { return esc(p.component) + ': ' + esc((p.ratio * 100).toFixed(2)) + '%'; }).join('<br>') + '</td></tr>';
+    }).join('');
+    var appliedL = rendered && !rendered.reverted ? rendered.applied.map(function (f) { return '<li>' + esc(RFIELD[f] || f) + ': <b>' + esc(rShow(getAt(brand, f))) + '</b></li>'; }).join('') : '';
+    var who = function (o) { return o === 'document' ? 'from your brand document' : o === 'user' ? 'you typed it' : 'saved before this read, with no record of who set it'; };
+    var keptL = rendered ? rendered.kept.map(function (k) {
+      return '<li data-kept="' + esc(k.field) + '" data-kept-origin="' + esc(k.origin || 'unrecorded') + '">' + esc(RFIELD[k.field] || k.field) + ' kept as you set it (' + esc(who(k.origin)) + ').' +
+        '<span class="xr-side"><span data-yours>Yours: <b>' + esc(rShow(getAt(brand, k.field))) + '</b></span><span data-theirs>Your site: <b>' + esc(rShow(k.theirs)) + '</b></span>' +
+        (rendered.reverted ? '' : '<button type="button" class="btn" data-xaccept="' + esc(k.field) + '">Use your site\'s</button>') + '</span></li>';
+    }).join('') : '';
+    var rules = (m.hard_rules || []).map(function (h) {
+      if (h.kind === 'aa') return '<div class="xr-rule" data-rule="aa"><b>' + esc(h.label) + '</b> for ' + esc(h.token) + ': your ' + esc(h.exact) + ' is ' + esc(String(h.ratio_exact)) + ':1 on ' + esc(h.against) + '; generated assets use ' + esc(h.derived) + ' at ' + esc(String(h.ratio_derived)) + ':1 (WCAG AA ' + esc(String(h.target)) + ':1).</div>';
+      return '<div class="xr-rule" data-rule="' + esc(h.kind) + '"><b>' + (h.kind === 'dark-surface' ? 'Dark page surface' : 'Dark section') + ' ' + esc(h.value) + '.</b> ' + esc(h.rule) + '</div>';
+    }).join('') + ((g.hard_rules && g.hard_rules.derived) || []).map(function (d) {
+      return '<div class="xr-rule" data-rule="derived"><b>DERIVED from ' + esc(d.site || '(none)') + '</b> for ' + esc(d.token) + ': yours is ' + esc(String(d.ratio_site)) + ':1 on ' + esc(d.against) + ', ours ' + esc(d.ours) + ' is ' + esc(String(d.ratio_ours)) + ':1.</div>';
+    }).join('');
+    var conf = (m.conflicts || []).map(function (c) { return '<div class="xr-rule" data-rule="conflict"><b>Brand colour and button colour differ.</b> ' + esc(c.message) + '</div>'; }).join('');
+    var unmatched = (g.unmatched || []).map(function (u) { return '<li>' + esc(u.surface) + ' / ' + esc(u.viewport) + ' / ' + esc(u.component) + ' ' + esc(u.token) + ': your site ' + esc(String(u.best_site_value)) + ', ours ' + esc(String(u.ours)) + '. ' + esc(u.reason) + '</li>'; }).join('');
+    var repairs = (g.repairs || []).map(function (x) { return '<li>' + esc(x.component) + ' ' + esc(x.token) + ' (' + esc(x.viewport) + '): ' + esc(String(x.from)) + ' &rarr; ' + esc(String(x.to)) + ', re-measured by ' + esc(x.strategy) + '</li>'; }).join('');
+    var gs = g.screenshots || {};
+    return '<div class="xr" data-read-method="rendered" data-render-score="' + esc(String(g.score == null ? '' : g.score)) + '" data-no-brand-swap>' +
+      '<h3>' + (rendered && rendered.reverted ? 'Rendered, then reverted' : 'Rendered in Chromium and applied to this brand') + '</h3>' +
+      '<p class="xr-note">Read at 1440px and 390px in ' + esc(rd.chromium ? 'Chromium ' + rd.chromium : 'Chromium') + ' (' + esc(String(Math.round((rd.wall_ms || 0) / 100) / 10)) + 's). Every value carries the page, the element and the viewport it was read from. The score is how close what this platform GENERATES for you - your landing page, mailer and ad - is to your own site, per component.</p>' +
+      '<div class="xr-row"><span class="xr-score" data-score>' + esc(String(g.score == null ? '-' : g.score)) + '%</span>' + surfRow +
+        (rendered && !rendered.reverted ? '<button type="button" class="btn" data-xrevert>Revert to before the read</button>' : '') + '</div>' +
+      '<div class="xr-pairs">' +
+        fig(shots.desktop && shots.desktop.fold && shots.desktop.fold.data, 'Your site, 1440px') + fig(gs.landing_desktop, 'Our landing page for you, 1440px') +
+        fig(shots.mobile && shots.mobile.fold && shots.mobile.fold.data, 'Your site, 390px') + fig(gs.landing_mobile, 'Our landing page for you, 390px') +
+        (gs.mailer ? fig(gs.mailer, 'Our mailer for you (scored on tokens, not pixels)') : '') + (gs.ad ? fig(gs.ad, 'Our ad creative for you') : '') +
+      '</div>' +
+      (comps ? '<div style="overflow-x:auto;margin-top:12px"><table class="xtable" data-components><thead><tr><th>Surface</th><th>Component</th><th>Score</th><th>Tokens</th><th>Pixels</th></tr></thead><tbody>' + comps + '</tbody></table></div>' : '') +
+      (appliedL ? '<div class="xr-note"><b>Applied</b><ul class="xr-list" data-applied>' + appliedL + '</ul></div>' : '') +
+      (keptL ? '<div class="xr-note"><b>Kept, because a person set them</b><ul class="xr-list" data-kept-list>' + keptL + '</ul></div>' : '') +
+      conf + rules +
+      (repairs ? '<div class="xr-note"><b>Repaired by re-measuring your site</b><ul class="xr-list">' + repairs + '</ul></div>' : '') +
+      (unmatched ? '<div class="xr-note"><b>Not matched, and not invented</b><ul class="xr-list" data-unmatched>' + unmatched + '</ul></div>' : '') +
+      ((m.markers || []).length ? '<div class="xr-note">' + m.markers.map(function (x) { return '<div class="marker">' + esc(x) + '</div>'; }).join('') + '</div>' : '') +
+      '</div>';
   }
 
   function pick(field, i) {
     var list = (field && field.candidates) || [];
     return list[i] || (i === 0 && field && field.value ? field : null);
+  }
+
+  /* Regions from a read: shared by Use and by the rendered apply. Returns the sentence. */
+  function applyRegionsFrom(f) {
+    var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
+    // The home the operator already confirmed on this record. It is USER
+    // data: a re-read of the site that proposes no home (no strong signal,
+    // or a conflict) must not clear it, and a row the site's candidates do
+    // not list must not be dropped. Only an explicit NEW proposal replaces
+    // the flag, and the replacement is recorded.
+    var existingRows = brand.regions.slice();
+    var existingHomeRow = existingRows.filter(function (r) { return r.home === true && r.code; })[0] || null;
+    var existingHome = existingHomeRow ? String(existingHomeRow.code).toUpperCase() : '';
+    var nextHome = proposedHome || existingHome;
+    var rows = f.regions.candidates.map(function (x) {
+      var existing = existingRows.filter(function (r) { return String(r.code || '').toUpperCase() === x.code; })[0] || {};
+      // Currency only when the site DECLARED it on its own offers (the home
+      // row carries it then); otherwise whatever the operator typed, else empty.
+      return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!nextHome && x.code === nextHome };
+    });
+    if (existingHomeRow && !rows.some(function (r) { return r.code === existingHome; })) {
+      rows.push({ code: existingHome, currency: existingHomeRow.currency || '', symbol: existingHomeRow.symbol || '', store_url: existingHomeRow.store_url || '', home: nextHome === existingHome });
+    }
+    brand.regions = rows;
+    if (proposedHome) {
+      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
+    } else if (existingHome) {
+      noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
+    }
+    return ('Set ' + brand.regions.length + ' region(s)' +
+      (proposedHome ? ', home market ' + proposedHome + (existingHome && existingHome !== proposedHome ? ' (was ' + existingHome + ')' : '')
+        : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
   }
 
   function applyExtract(act, i) {
@@ -1721,34 +2059,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       toast('Saved ' + f.social.candidates.length + ' social profile(s).');
     }
     else if (act === 'regions') {
-      var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
-      // The home the operator already confirmed on this record. It is USER
-      // data: a re-read of the site that proposes no home (no strong signal,
-      // or a conflict) must not clear it, and a row the site's candidates do
-      // not list must not be dropped. Only an explicit NEW proposal replaces
-      // the flag, and the replacement is recorded.
-      var existingRows = brand.regions.slice();
-      var existingHomeRow = existingRows.filter(function (r) { return r.home === true && r.code; })[0] || null;
-      var existingHome = existingHomeRow ? String(existingHomeRow.code).toUpperCase() : '';
-      var nextHome = proposedHome || existingHome;
-      var rows = f.regions.candidates.map(function (x) {
-        var existing = existingRows.filter(function (r) { return String(r.code || '').toUpperCase() === x.code; })[0] || {};
-        // Currency only when the site DECLARED it on its own offers (the home
-        // row carries it then); otherwise whatever the operator typed, else empty.
-        return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!nextHome && x.code === nextHome };
-      });
-      if (existingHomeRow && !rows.some(function (r) { return r.code === existingHome; })) {
-        rows.push({ code: existingHome, currency: existingHomeRow.currency || '', symbol: existingHomeRow.symbol || '', store_url: existingHomeRow.store_url || '', home: nextHome === existingHome });
-      }
-      brand.regions = rows;
-      if (proposedHome) {
-        noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
-      } else if (existingHome) {
-        noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
-      }
-      toast('Set ' + brand.regions.length + ' region(s)' +
-        (proposedHome ? ', home market ' + proposedHome + (existingHome && existingHome !== proposedHome ? ' (was ' + existingHome + ')' : '')
-          : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
+      toast(applyRegionsFrom(f));
     }
     render();
   }
@@ -1770,11 +2081,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         signal: 'operator resolved the brand-vs-action conflict in favour of the ' + side + ' colour (' + (pickSrc.signal || '') + ')',
         source_url: pickSrc.source_url || '',
         confidence: 'declared',
+        origin: 'user',
       });
       toast('Primary set to ' + hex + '. The other colour is still available as your accent.');
       render();
       return;
     }
+    var rv = e.target && e.target.closest ? e.target.closest('[data-xrevert]') : null;
+    if (rv) { revertRendered(); return; }
+    var acc = e.target && e.target.closest ? e.target.closest('[data-xaccept]') : null;
+    if (acc) { acceptRendered(acc.getAttribute('data-xaccept')); return; }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
     if (run) runExtract();
   });
@@ -1789,7 +2105,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var role = sel.value;
     if (!role) return;
     brand.palette[role] = sel.getAttribute('data-xrole');
-    noteSource('palette.' + role, { value: sel.getAttribute('data-xrole'), signal: 'operator assigned from an extracted candidate', source_url: extraction ? extraction.start : '', confidence: 'declared' });
+    noteSource('palette.' + role, { value: sel.getAttribute('data-xrole'), signal: 'operator assigned from an extracted candidate', source_url: extraction ? extraction.start : '', confidence: 'declared', origin: 'user' });
     render();
   });
 
@@ -2259,6 +2575,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('newBrand').addEventListener('click', function () {
       brand = JSON.parse(JSON.stringify(brand));
       brand.id = ''; brand.slug = ''; brand.name = ''; brand.website = ''; brand.logo_url = ''; brand.tagline = '';
+      // The cleared fields belong to nobody yet; the rest are copied with their origins.
+      if (brand.brand_data && brand.brand_data.field_origin) ['name', 'website', 'logo_url', 'tagline'].forEach(function (k) { delete brand.brand_data.field_origin[k]; });
       catalogCount = null; go(1);
     });
     $('activate').addEventListener('click', async function () {
@@ -2308,7 +2626,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var PENDING_ID = 'pending-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   var DOC = { busy: false, error: null, status: '', report: null, results: null, snapshot: null, added: [], logoPick: -1, imgUrls: [], conflicts: [], urlDraft: '', source: null };
   var ASSET = {};          // per control: { note, busy }
-  var legacyOrigins = false;
   var lastSeen = {};
   var TRACKED = ['name', 'tagline', 'website', 'logo_url', 'favicon_url',
     'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
@@ -2352,21 +2669,30 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return String(v);
   }
   function filled(v) { return Array.isArray(v) ? v.length > 0 : (v && typeof v === 'object' ? !!v.family : !!v); }
-  /** The origin of a field's CURRENT value. A brand saved before origins were
-      kept has none recorded: anything filled on it is the operator's. */
+  /** The origin of a field's CURRENT value: the guideline reader's record
+      (field_origins), else the plain map the rendered read and the site read
+      keep (field_origin, fieldOrigin()). A filled value with NEITHER is the
+      person's, exactly as ownedByPerson() reads it: every brand saved before
+      origins existed has that shape, and a document never overwrites it. */
   function originOf(f) {
     var r = origins()[f];
     if (r && r.origin) return r.origin;
-    // A rendered read of the brand's site records its fields in
-    // brand_data.field_origin (design-system.js); that is not the operator's.
-    var fo = brand && brand.brand_data && brand.brand_data.field_origin;
-    if (fo && typeof fo[f] === 'string' && fo[f]) return fo[f];
+    var plain = fieldOrigin(f);
+    if (plain) return plain;
     var v = getField(f);
     // An unticked "never use em dashes" is a choice too: the default is ticked.
-    return (legacyOrigins && (filled(v) || v === false)) ? 'user' : '';
+    return (filled(v) || v === false) ? 'user' : '';
   }
   function rankOf(o) { var p = window.BrandContext && window.BrandContext.provenance; return p ? p.rank(o) : ({ user: 50, document: 40, 'site-render': 30, 'site-parse': 20, preset: 10, default: 0 })[o]; }
-  function setOrigin(f, origin, extra) { origins()[f] = Object.assign({ origin: origin, at: new Date().toISOString() }, extra || {}); lastSeen[f] = normVal(getField(f)); }
+  /* One origin, two shapes: the record here, and the plain map the rendered
+     read, the site read and the server's claim check read. Both are written. */
+  function setOrigin(f, origin, extra) {
+    origins()[f] = Object.assign({ origin: origin, at: new Date().toISOString() }, extra || {});
+    var d = bd();
+    if (!d.field_origin || typeof d.field_origin !== 'object') d.field_origin = {};
+    d.field_origin[f] = origin;
+    lastSeen[f] = normVal(getField(f));
+  }
   function markOrigins(list, origin, extra) {
     list.forEach(function (f) {
       var o = originOf(f);
@@ -2385,7 +2711,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     snapshotSeen();
   })();
   function docLoaded() {
-    legacyOrigins = !(brand.brand_data && brand.brand_data.field_origins && Object.keys(brand.brand_data.field_origins).length);
     snapshotSeen();
     registerFontRefs();
   }
@@ -2436,6 +2761,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         DOC.conflicts = DOC.conflicts.filter(function (c) { return c.field !== f; });
         DOC.conflicts.push({ field: f, doc: r, other: other });
         setField(f, r.raw != null ? JSON.parse(JSON.stringify(r.raw)) : r.value);
+        if (bd().field_origin && typeof bd().field_origin === 'object') bd().field_origin[f] = 'document';
         toast('Kept the ' + (FIELD_LABEL[f] || f) + ' your brand guidelines state. The other value is shown beside it for you to choose.', 5200);
       } else if (lastSeen[f] !== undefined && now !== lastSeen[f] && (!r || (r.origin !== 'user' && r.origin !== 'document'))) {
         var ap2 = siteApplied(f);
@@ -3227,7 +3553,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // {} - and claims are what every generator is allowed to state as
           // fact, so the loss is invisible until an asset comes out with a
           // DATA REQUIRED marker where its proof line was.
-          if (r.brand.brand_data && typeof r.brand.brand_data === 'object') brand.brand_data = r.brand.brand_data;
+          // The saved record's own brand_data, or NONE: the placeholder origins
+          // of the empty form must never be laid over a saved brand's values.
+          var loadedPalette = (r.brand.palette && typeof r.brand.palette === 'object') ? r.brand.palette : {};
+          var loadedType = !!(r.brand.typography && r.brand.typography.heading);
+          brand.brand_data = (r.brand.brand_data && typeof r.brand.brand_data === 'object') ? r.brand.brand_data : {};
+          DEFAULT_FIELDS.forEach(function (f) {
+            var k = f.split('.')[1];
+            var absent = f.indexOf('palette.') === 0 ? !loadedPalette[k] : !loadedType;
+            if (absent && !fieldOrigin(f)) markOrigin(f, 'default');
+          });
           docLoaded();
           catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
           [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });

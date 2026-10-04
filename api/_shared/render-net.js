@@ -141,6 +141,50 @@ function pinnedLookup(addresses) {
   };
 }
 
+/**
+ * ONE byte budget for a whole read, charged CHUNK BY CHUNK as bytes arrive.
+ *
+ * Found in review (2026-10-04): the cap used to be checked per route BEFORE a
+ * fetch and charged only AFTER a response had been buffered whole, and route
+ * handlers run concurrently - so a hostile page firing ten large responses at
+ * once started ten 12 MB downloads while the counter still read zero. Now
+ * every chunk is TAKEN from the shared budget before it is kept (JavaScript
+ * runs one callback at a time, so the take is atomic), a chunk that would
+ * cross the cap is refused, and every download still in flight is aborted at
+ * that moment. Total bytes kept can never exceed the cap.
+ */
+function makeBudget(maxBytes, maxRequests) {
+  const live = new Set();
+  const b = {
+    max: maxBytes, used: 0, exhausted: false, aborted: 0,
+    // REQUESTS are charged per TRANSPORT HOP, not per browser request
+    // (review, 2026-10-04): one route follows up to 1 + maxRedirects hops, and
+    // robots.txt, the start document and the web app manifest are fetched
+    // outside any route. Every one of those is a connection, so every one is
+    // taken from the same count, atomically, before it is opened.
+    requests: 0, maxRequests: maxRequests || LIMITS.maxRequests, requestsSpent: false,
+    takeRequest() {
+      if (b.requests >= b.maxRequests) { b.requestsSpent = true; return false; }
+      b.requests += 1;
+      return true;
+    },
+    take(n) {
+      if (b.exhausted) return false;
+      if (b.used + n > b.max) {
+        b.exhausted = true;
+        for (const kill of [...live]) { b.aborted += 1; try { kill(); } catch (_) { /* gone */ } }
+        live.clear();
+        return false;
+      }
+      b.used += n;
+      return true;
+    },
+    remaining() { return Math.max(0, b.max - b.used); },
+    register(kill) { live.add(kill); return () => live.delete(kill); },
+  };
+  return b;
+}
+
 function decoder(encoding) {
   const e = String(encoding || '').toLowerCase().trim();
   if (e === 'gzip' || e === 'x-gzip') return zlib.createGunzip();
@@ -153,13 +197,15 @@ function decoder(encoding) {
  * One request, no redirects followed, the socket pinned. Resolves
  * { status, headers, body:Buffer, truncated } or { error }.
  */
-function transport(url, { addresses, method = 'GET', timeoutMs = LIMITS.perRequestMs, maxBytes = LIMITS.maxBytesPerResponse, headers = {} } = {}) {
+function transport(url, { addresses, method = 'GET', timeoutMs = LIMITS.perRequestMs, maxBytes = LIMITS.maxBytesPerResponse, headers = {}, budget = null } = {}) {
   return new Promise((resolve) => {
     let u;
     try { u = new URL(url); } catch (_) { resolve({ error: 'not a valid URL' }); return; }
+    if (budget && budget.exhausted) { resolve({ error: 'the byte budget for this read is spent', budget: true }); return; }
     const lib = u.protocol === 'https:' ? https : http;
     let settled = false;
-    const finish = (v) => { if (!settled) { settled = true; resolve(v); } };
+    let unregister = () => {};
+    const finish = (v) => { if (!settled) { settled = true; unregister(); resolve(v); } };
     const req = lib.request({
       protocol: u.protocol,
       hostname: u.hostname.replace(/^\[|\]$/g, ''),
@@ -183,14 +229,24 @@ function transport(url, { addresses, method = 'GET', timeoutMs = LIMITS.perReque
         finish({ error: `the response is ${declared} bytes, over the ${maxBytes}-byte cap` });
         return;
       }
+      if (declared && budget && declared > budget.remaining()) {
+        res.destroy();
+        budget.take(declared);   // marks the read's budget spent and aborts the rest
+        finish({ error: 'the byte budget for this read is spent', budget: true });
+        return;
+      }
       const chunks = [];
       let size = 0;
       let truncated = false;
       const dec = decoder(res.headers['content-encoding']);
       const src = dec ? res.pipe(dec) : res;
+      const kill = () => { res.destroy(); if (dec) dec.destroy(); finish({ error: 'the byte budget for this read is spent', budget: true }); };
+      if (budget) unregister = budget.register(kill);
       src.on('data', (c) => {
+        if (settled) return;
         size += c.length;
         if (size > maxBytes) { truncated = true; res.destroy(); if (dec) dec.destroy(); finish({ error: `the response exceeded the ${maxBytes}-byte cap` }); return; }
+        if (budget && !budget.take(c.length)) { kill(); return; }
         chunks.push(c);
       });
       src.on('end', () => finish({ status: res.statusCode || 0, headers: res.headers, body: Buffer.concat(chunks), truncated }));
@@ -235,14 +291,21 @@ async function fetchFollow(url, ctx, { kind = 'resource', method = 'GET' } = {})
     if (!verdict.ok) return { ok: false, reason: verdict.reason, url: cur, hops };
     if (kind === 'document') {
       if (!ctx.inScope(cur)) return { ok: false, reason: 'documents are only read from the brand\'s own site', url: cur, hops };
-      if (!robotsAllows(ctx.robots && ctx.robots(cur), cur)) return { ok: false, reason: 'robots.txt disallows this page', url: cur, hops };
+      // The origin's rules are READ before its first document; an origin with no
+      // way to read them supplies its own fetcher (robotsFor) or none at all.
+      const rules = ctx.robotsFor ? await ctx.robotsFor(cur) : (ctx.robots ? ctx.robots(cur) : null);
+      if (!Array.isArray(rules)) return { ok: false, reason: 'robots.txt for this origin was not read', url: cur, hops };
+      if (!robotsAllows(rules, cur)) return { ok: false, reason: 'robots.txt disallows this page', url: cur, hops };
     }
+    // Every hop is a connection: it is charged before it is opened.
+    if (ctx.budget && !ctx.budget.takeRequest()) return { ok: false, reason: 'the request budget for this read is spent', url: cur, hops, requestBudget: true };
     const r = await (ctx.transport || module.exports.transport)(cur, {
       addresses: verdict.addresses, method,
       timeoutMs: ctx.perRequestMs || LIMITS.perRequestMs,
-      maxBytes: LIMITS.maxBytesPerResponse,
+      maxBytes: (ctx.limits && ctx.limits.maxBytesPerResponse) || LIMITS.maxBytesPerResponse,
+      budget: ctx.budget || null,
     });
-    if (r.error) return { ok: false, reason: r.error, url: cur, hops };
+    if (r.error) return { ok: false, reason: r.error, url: cur, hops, budget: !!r.budget };
     if (r.status >= 300 && r.status < 400 && r.headers && r.headers.location) {
       let next;
       try { next = new URL(String(r.headers.location), cur).toString(); } catch (_) { return { ok: false, reason: 'a redirect pointed nowhere valid', url: cur, hops }; }
@@ -266,6 +329,8 @@ async function attach(context, ctx) {
     prefetched: new Map(),
   };
   ctx.ledger = ledger;
+  if (!ctx.budget) ctx.budget = makeBudget((ctx.limits && ctx.limits.maxBytesTotal) || LIMITS.maxBytesTotal, ctx.limits && ctx.limits.maxRequests);
+  const budget = ctx.budget;
   const block = (route, url, type, reason) => {
     ledger.blocked_count += 1;
     if (ledger.blocked.length < LIMITS.maxBlockedLogged) ledger.blocked.push({ url: String(url).slice(0, 300), type, reason });
@@ -292,15 +357,19 @@ async function attach(context, ctx) {
     if (ctx.closed) return block(route, url, type, 'the read has finished');
     if (method !== 'GET' && method !== 'HEAD') return block(route, url, type, `${method} requests are never sent: the reader only reads.`);
     if (NEVER[type]) return block(route, url, type, NEVER[type]);
-    if (ledger.requests >= LIMITS.maxRequests) { ledger.budget_hit = ledger.budget_hit || 'request count'; return block(route, url, type, 'the request budget for this read is spent'); }
-    if (ledger.bytes >= LIMITS.maxBytesTotal) { ledger.budget_hit = ledger.budget_hit || 'bytes'; return block(route, url, type, 'the byte budget for this read is spent'); }
+    if (budget.requestsSpent || budget.requests >= budget.maxRequests) { ledger.budget_hit = ledger.budget_hit || 'request count'; return block(route, url, type, 'the request budget for this read is spent'); }
+    if (budget.exhausted) { ledger.budget_hit = ledger.budget_hit || 'bytes'; return block(route, url, type, 'the byte budget for this read is spent'); }
     const kind = type === 'document' ? 'document' : 'resource';
-    ledger.requests += 1;
     let out = ledger.prefetched.get(url);
     if (out) ledger.prefetched.delete(url);
     else out = await fetchFollow(url, ctx, { kind, method });
-    if (!out.ok) return block(route, out.url || url, type, out.reason);
-    ledger.bytes += out.body.length;
+    ledger.bytes = budget.used;
+    ledger.requests = budget.requests;
+    if (!out.ok) {
+      if (out.budget) ledger.budget_hit = ledger.budget_hit || 'bytes';
+      if (out.requestBudget) ledger.budget_hit = ledger.budget_hit || 'request count';
+      return block(route, out.url || url, type, out.reason);
+    }
     if (type === 'document') ledger.documents.push({ url, final: out.finalUrl, status: out.status });
     if (type === 'stylesheet' && ledger.css.size < 40) ledger.css.set(out.finalUrl, out.body.toString('utf8').slice(0, LIMITS.keepCssChars));
     if (type === 'font') ledger.fonts.push({ url, final: out.finalUrl, status: out.status, bytes: out.body.length, type: String((out.headers || {})['content-type'] || '') });
@@ -311,5 +380,5 @@ async function attach(context, ctx) {
 
 module.exports = {
   LIMITS, NEVER, USER_AGENT,
-  checkUrl, pinnedLookup, transport, fetchFollow, attach, robotsAllows, browserHeaders,
+  checkUrl, pinnedLookup, transport, fetchFollow, attach, robotsAllows, browserHeaders, makeBudget,
 };

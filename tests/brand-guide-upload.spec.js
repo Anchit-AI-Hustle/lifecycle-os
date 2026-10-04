@@ -373,34 +373,35 @@ test('the applied document becomes the brand: saved with its origins, activated,
 });
 
 /* ═══ 3. a later "Read my site" never overwrites the document silently ═════ */
-test('a site value applied over a document value is held back and shown side by side for the operator', async ({ page }) => {
+test('an automatic value laid over a document value is held back and shown side by side for the operator', async ({ page }) => {
   await open(page, world);
   await readBook(page);
   await page.click('#docApply');
   await page.waitForSelector('#docRevert');
-  // Exactly what "Read my site" does when Use is pressed: set the field and record the site as its source.
+  // A template laid over the brand (the gallery's own handler, which writes
+  // every value the template carries): automatic, so below the document.
+  await page.route(/op=presets&slug=greenco/, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, preset: { slug: 'greenco', name: 'Greenco', palette: { primary: '#00a651' } } }) }));
   await page.evaluate(() => {
-    const st = document.querySelector('.step-pip[data-step="2"]');
-    st.click();
+    const b = document.createElement('button');
+    b.setAttribute('data-preset', 'greenco');
+    b.id = 'greencoPreset';
+    document.getElementById('stepCard').appendChild(b);
   });
-  await page.waitForSelector('input[type=text][data-path="palette.primary"]');
-  await page.evaluate(() => {
-    // The extraction panel's own "Use as primary" select, driven as the page drives it.
-    const sel = document.createElement('select');
-    sel.setAttribute('data-xrole', '#00a651');
-    sel.innerHTML = '<option value=""></option><option value="primary">primary</option>';
-    document.getElementById('stepCard').appendChild(sel);
-    sel.value = 'primary';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+  await page.click('#greencoPreset');
   const box = page.locator('[data-doc-conflict="palette.primary"]');
   await expect(box).toContainText('#1a6b3c');
   await expect(box).toContainText('#00a651');
+  await page.locator('.step-pip[data-step="2"]').click();
+  await page.waitForSelector('input[type=text][data-path="palette.primary"]');
   await expect(page.locator('input[type=text][data-path="palette.primary"]')).toHaveValue('#1a6b3c');
   // The operator's choice is THEIRS from here: it is saved as a typed value.
   await box.locator('[data-doc-which="other"]').click();
   await expect(page.locator('input[type=text][data-path="palette.primary"]')).toHaveValue('#00a651');
-  await expect(page.locator('[data-doc-conflict]')).toHaveCount(0);
+  await expect(page.locator('[data-doc-conflict="palette.primary"]')).toHaveCount(0);
+  // The template carried no other colour, so every other role the document
+  // stated is held back the same way (not blanked).
+  await expect(page.locator('[data-doc-conflict="palette.accent"]')).toHaveCount(1);
+  await expect(page.locator('input[type=text][data-path="palette.accent"]')).toHaveValue('#b8531f');
 });
 
 /* ═══ 4. the structured formats, with line provenance ═════════════════════ */
