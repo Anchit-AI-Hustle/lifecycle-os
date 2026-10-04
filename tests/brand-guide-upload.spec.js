@@ -245,6 +245,10 @@ test('a PDF brand book: every stated value with its page and verbatim line; a pr
   expect(comps).toContain('button-primary backgroundColor #1a6b3c');
   expect(comps).toContain('container width 1200px');
   expect(comps).toContain('Spacing base 8px');
+  // A component's colour ("Buttons: background #1A6B3C, text #FFFFFF") is the
+  // component's: it never becomes, or competes for, a palette role.
+  const alsoNamed = (await page.locator('[data-doc-field="palette.extra"]').allTextContents()).join(' | ');
+  expect(alsoNamed, 'a button rule was read as a palette colour').not.toMatch(/button|#ffffff/i);
   const rules = (await page.locator('[data-doc-field="logo-rule"]').allTextContents()).join(' | ');
   expect(rules).toContain('keep 24px clear');
   // Nothing applied yet: the form still holds the wizard's placeholder.
