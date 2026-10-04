@@ -55,6 +55,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 </script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
+<!-- The ONE catalogue resolver (2026-10-05). Without it this page fetched
+     tenant zero's shipped catalogue for every brand, and a momos brand's Google
+     ads were composed over another company's sneaker photos. -->
+<script src="/brand-catalog.js"></script>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -179,6 +183,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .cre-asset { width: 150px; }
   .cre-asset .cre-asset-label { font-size: 10px; color: #556059; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: block; }
   .cre-asset img { width: 100%; border-radius: 8px; border: 1px solid rgba(171,135,67,0.25); display: block; background: #ffffff; }
+  .cre-asset .cre-asset-gap { display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; color: var(--vh-ink, inherit); border-left: 3px solid var(--accent, var(--brand-accent, currentColor)); padding-left: 6px; }
   .cre-asset .cre-asset-dl { font-size: 10.5px; color: #6A33D8; text-decoration: none; display: inline-block; margin-top: 4px; }
   .cre-anim { position: relative; overflow: hidden; }
   .cre-anim img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; animation: creFade var(--cre-dur, 6s) infinite; }
@@ -669,7 +674,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return [
       'Ambient lifestyle backdrop for ' + brandName() + ' — an atmospheric scene with NO product and NO packaging in frame.',
       'Market: ' + market + '.',
-      'Show only: a freshly painted pair drying on a studio bench, taped panels and paint tools nearby, warm natural light, shallow depth of field.',
+      // The SUBJECT is the brand's, never tenant zero's ("a freshly painted
+      // pair drying on a studio bench" art-directed a momos brand's ads).
+      'Show only: a setting that fits ' + brandName() + ((activeBrand() && activeBrand().industry) ? ' (' + activeBrand().industry + ')' : '') + ', warm natural light, shallow depth of field.',
       'Brand palette accents: deep deep purple #D0473E, amber lava #6A33D8, chalk #FFFFFF.',
       orient + '. Photorealistic, premium, uncluttered. Absolutely NO product packaging, NO box, NO box, NO pouch, NO label, NO brand mark, NO text, NO words, NO logos, NO watermark.'
     ].join(' ');
@@ -710,8 +717,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   // Draw a base visual into the canvas: cover-fit the provided image, or paint
   // the brand gradient fallback. Then add a legibility scrim.
+  // The ground under an image-free creative is the ACTIVE brand's primary
+  // (its record, else the token brand-context painted), never a literal.
+  function brandGround() {
+    const b = activeBrand();
+    const p = b && b.palette && b.palette.primary;
+    if (typeof p === 'string' && /^#[0-9a-f]{3,8}$/i.test(p.trim())) return p.trim();
+    try { const t = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim(); if (t) return t; } catch (_) {}
+    return '#D0473E';
+  }
   function drawBase(x, W, H, baseImg) {
-    x.fillStyle = '#D0473E'; x.fillRect(0, 0, W, H);
+    x.fillStyle = brandGround(); x.fillRect(0, 0, W, H);
     if (baseImg) {
       const bw = baseImg.videoWidth || baseImg.width, bh = baseImg.videoHeight || baseImg.height;
       const ir = (bw && bh) ? bw / bh : (W / H), cr = W / H;
@@ -747,6 +763,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     x.fillStyle = '#6A33D8'; x.font = '600 ' + Math.round(base * 0.022) + "px 'Instrument Sans', Arial, sans-serif";
     var _strap = brandStrapline();
     if (_strap) x.fillText(_strap, W / 2, H * 0.14);
+    // No photograph of THIS brand's product exists: the creative says so on
+    // its face, so a downloaded file cannot ship as if one had been placed.
+    if (copy.marker) {
+      x.fillStyle = '#FFFFFF';
+      let mSize = Math.round(base * 0.026);
+      x.font = '600 ' + mSize + "px 'Instrument Sans', Arial, sans-serif";
+      wrapText(x, copy.marker, W * 0.86, 3).forEach((ln, i) => x.fillText(ln, W / 2, H * 0.21 + i * mSize * 1.3));
+    }
     // Offer pill (sits just above safe-zone floor) — ONLY drawn when a real
     // offer exists; with no verified offer, pillH=0 so no empty lava pill shows
     // and the headline block anchors to the safe floor.
@@ -783,35 +807,37 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     x.fillText(copy.market + ' · ' + copy.cur, W / 2, safeBottom + (tall ? H * 0.05 : 0) + base * 0.02);
     return c.toDataURL('image/png');
   }
-  // Real Shopify catalog images per region (cached). Ad branding + packaging must
-  // be REAL, so a genuine PDP product photo is the default base visual — never an
-  // AI-invented box. Catalog JSON is served with CORS from /data/catalog.
-  const _catalogCache = {};
-  // Return catalog PRODUCTS (with name/handle + real primary image), not a flat
-  // image list — so a creative can be matched to the RIGHT SKU, never a random
-  // real-but-wrong product.
+  // THE ACTIVE BRAND'S OWN catalogue photos, or none (2026-10-05). This page
+  // did not load brand-catalog.js and fell back to fetching tenant zero's
+  // shipped catalogue for EVERY brand: a momos restaurant's Google ads were
+  // composed over another company's hand-painted sneakers and captioned
+  // "composed from real Shopify catalog photos". There is no fallback now:
+  // the resolver answers with this brand's rows (on this device, or on its
+  // account), tenant zero's own rows for tenant zero, or nothing and a reason.
+  // Rows are PRODUCTS (name/handle + primary image), not a flat image list, so
+  // a creative can be matched to the RIGHT product.
   async function catalogProducts(market) {
-    const region = /uk/i.test(market) ? 'uk' : /us/i.test(market) ? 'us' : 'global';
-    if (_catalogCache[region]) return _catalogCache[region];
+    const empty = { prods: [], res: { products: [], source: 'none', reason: 'The catalogue resolver did not load, so no product photo can be used.', brand: null } };
+    if (!window.BrandCatalog) return empty;
     try {
-      if (window.BrandCatalog) { const br = await window.BrandCatalog.load(region); return br.products; }
-      const r = await fetch('/data/catalog/products_' + region + '.json', { cache: 'force-cache' });
-      const rows = r.ok ? await r.json() : [];
-      const prods = (Array.isArray(rows) ? rows : []).map((p) => ({
-        name: String((p && p.n) || ''), handle: String((p && p.h) || ''),
-        img: (p && typeof p.i === 'string' && /^https?:\/\//.test(p.i)) ? p.i
-          : (Array.isArray(p && p.imgs) && p.imgs[0] && /^https?:\/\//.test(p.imgs[0]) ? p.imgs[0] : ''),
-      })).filter((p) => p.img);
-      _catalogCache[region] = prods;
-      return prods;
-    } catch (_) { _catalogCache[region] = []; return []; }
+      const res = await window.BrandCatalog.load(String(market || '').toLowerCase());
+      const prods = (res.products || []).map((p) => ({ name: String(p.name || p.n || ''), handle: String(p.handle || p.h || ''), img: p.img || '' }))
+        .filter((p) => /^https?:\/\//i.test(p.img));
+      return { prods, res };
+    } catch (_) { return empty; }
   }
   // Pick a REAL catalog image for a channel — prefer the product whose name/handle
   // matches the configured product (so branding matches the SKU the ad is about);
   // only if there is no product reference at all do we deterministically rotate.
+  // Answers { url, res }: the photo and the catalogue it came from, so the
+  // caption can say whose catalogue that is.
   async function realCatalogImage(ch) {
     const cfg = CRE_CFG[ch];
-    const prods = await catalogProducts(v(cfg.market) || 'US');
+    const got = await catalogProducts(v(cfg.market) || 'US');
+    return { url: pickCatalogImage(ch, got.prods), res: got.res };
+  }
+  function pickCatalogImage(ch, prods) {
+    const cfg = CRE_CFG[ch];
     if (!prods.length) return '';
     const want = String(v(cfg.name) || '').trim().toLowerCase();
     if (want) {
@@ -836,22 +862,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     let h = 0; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
     return prods[h % prods.length].img;
   }
-  // Fetch ONE AI base visual at the given size (text-free). Returns dataURL or ''.
-  async function fetchAiVisual(prompt, size) {
-    try {
-      const geminiKey = (() => { try { return localStorage.getItem('knickgasm-gemini-key') || ''; } catch (_) { return ''; } })();
-      const r = await fetch('/api/ai/image', {
-        method: 'POST',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
-        // mode:'ambient' → server renders a product-free sneaker backdrop ONLY, never
-        // fabricated packaging (ad branding + packaging must be real).
-        body: JSON.stringify({ prompt, size, quality: 'high', mode: 'ambient' }),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (r.ok && d.image_data_url) return { url: d.image_data_url, provider: d.provider || 'ai' };
-    } catch (_) {}
-    return { url: '', provider: '' };
-  }
   // Render the per-channel multi-asset preview (grid + optional animated tile).
   function showCreatives(ch, assets, animFrames, provider, note) {
     const prev = document.getElementById(ch + '-cre-prev');
@@ -865,8 +875,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         animFrames.map((f) => '<img src="' + f + '" alt="frame">').join('') + '</div></div>';
     }
     html += '<div class="cre-assets">' + assets.map((a, i) =>
-      '<div class="cre-asset"><span class="cre-asset-label">' + esc(a.format) + '</span>' +
+      '<div class="cre-asset" data-visual-source="' + esc((a.visual_source && a.visual_source.kind) || 'none') + '"><span class="cre-asset-label">' + esc(a.format) + '</span>' +
       '<img src="' + a.url + '" alt="' + esc(a.format) + '">' +
+      ((a.data_gaps || []).length ? '<span class="cre-asset-gap" data-gap="1">' + esc(a.data_gaps.join(' ')) + '</span>' : '') +
       '<a class="cre-asset-dl" href="' + a.url + '" download="knickgasm-' + ch + '-' + a.size + '.png">⬇ Download</a></div>'
     ).join('') + '</div>';
     html += '<div class="cre-actions">' +
@@ -881,12 +892,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const btn  = document.getElementById(ch + '-cre');
     const cfg = CRE_CFG[ch];
     const copy = getCopy(ch);
-    const prompt = buildCreativePrompt(ch);
     const mediaUrl = v(ch + '-media');
     const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Generating…';
     if (note) note.innerHTML = '<span class="cre-spin">Building platform creatives…</span>';
     try {
-      let baseImg = null, provider = 'designed', animFrames = [];
+      let baseImg = null, provider = 'designed', catalog = null, gap = '';
       // ── Visual source cascade ──
       // Tier 1: a provided hosted media URL (image / GIF / MP4 still) — real.
       if (mediaUrl) {
@@ -894,44 +904,52 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (baseImg) provider = 'media-url';
         if (note) note.innerHTML = '<span class="cre-spin">Composing creatives from your media…</span>';
       }
-      // Tier 2 (real, default): a genuine Shopify catalog product photo — REAL
-      // packaging, never AI-invented. This is the default so ad branding is real.
+      // Tier 2: a photograph from THIS brand's own catalogue, never another's.
       if (!baseImg) {
-        const catUrl = await realCatalogImage(ch);
-        if (catUrl) {
-          baseImg = await loadImage(catUrl);
+        if (note) note.innerHTML = '<span class="cre-spin">Looking for a photo in this brand’s own catalogue…</span>';
+        const got = await realCatalogImage(ch);
+        catalog = got.res;
+        if (got.url) {
+          baseImg = await loadImage(got.url);
           if (baseImg) provider = 'catalog';
         }
-        if (note) note.innerHTML = '<span class="cre-spin">Composing creatives from real catalog photos…</span>';
       }
-      // Tier 3: no real photo available → AI fills a PRODUCT-FREE ambient backdrop
-      // (mode:'ambient'); it never renders packaging. Assemble an animated preview.
+      // Tier 3: no photograph of this brand's product → the brand's own ground
+      // and the DATA REQUIRED marker, on the creative and beside it. No AI
+      // backdrop: a picture a model invents for a product it has never seen is
+      // a fabricated product image (and the old prompt art-directed tenant
+      // zero's sneakers for every brand).
       if (!baseImg) {
-        const primarySize = cfg.formats[0].size;
-        const a1 = await fetchAiVisual(prompt, primarySize);
-        if (a1.url) { baseImg = await loadImage(a1.url); provider = a1.provider; }
-        // Build a 2-frame cross-fade animated preview (Tier 2). Second frame is
-        // a re-roll where available, else the brand-gradient composite.
-        const f1 = composeCreative(cfg.formats[0], copy, baseImg);
-        const a2 = baseImg ? await fetchAiVisual(prompt, primarySize) : { url: '' };
-        const img2 = a2.url ? await loadImage(a2.url) : null;
-        const f2 = composeCreative(cfg.formats[0], copy, img2 || null);
-        animFrames = [f1, f2];
+        gap = window.BrandCatalog
+          ? window.BrandCatalog.marker(copy.market, 'product image')
+          : '[DATA REQUIRED BEFORE LAUNCH: product image, ' + brandName() + ', ' + String(copy.market || '').toUpperCase() + ']';
+        copy.marker = gap;
       }
+      const described = (catalog && window.BrandCatalog) ? window.BrandCatalog.describe(catalog) : '';
       // Compose one platform-correct asset per format from the resolved base.
       const assets = cfg.formats.map((fmt) => ({
         format: fmt.format, size: fmt.size, ar: fmt.ar,
         url: composeCreative(fmt, copy, baseImg),
-        text_overlay: { headline: copy.headline, offer: copy.offer, sub: copy.sub, market: copy.market }
+        text_overlay: { headline: copy.headline, offer: copy.offer, sub: copy.sub, market: copy.market },
+        // Where the picture came from, and what is missing, travel with the asset.
+        visual_source: provider === 'catalog'
+          ? { kind: 'catalog', catalog_source: catalog && catalog.source, brand: catalog && catalog.brand, described: described }
+          : provider === 'media-url' ? { kind: 'media-url', url: mediaUrl } : { kind: 'none' },
+        data_gaps: gap ? [gap] : [],
       }));
+      let why = '';
+      if (gap && catalog) {
+        if (catalog.source === 'none') why = catalog.reason || '';
+        else if (catalog.source === 'offerings') why = described + '.';
+        else if ((catalog.products || []).length) why = 'No photo in ' + described + ' could be loaded.';
+      }
       const msg = provider === 'media-url'
-        ? assets.length + ' creatives composed from your media — attaches when you save.'
+        ? assets.length + ' creatives composed from your media. Attaches when you save.'
         : provider === 'catalog'
-          ? assets.length + ' creatives composed from real Shopify catalog photos — real packaging, no AI-invented product. Attaches when you save.'
-          : provider === 'designed'
-            ? assets.length + ' designed creatives ready (product-free brand backdrop) — animated preview included. Attaches when you save.'
-            : assets.length + ' creatives ready · product-free ambient backdrop (' + provider + ') — attaches when you save.';
-      showCreatives(ch, assets, animFrames, provider, msg);
+          ? assets.length + ' creatives composed from ' + described + '. Attaches when you save.'
+          : assets.length + ' creatives on ' + brandName() + '’s own colours, with no product photo: ' + gap + ' ' + why +
+            ' Paste a hosted image of the product above, or import ' + brandName() + '’s catalogue in the brand setup.';
+      showCreatives(ch, assets, [], provider, msg.replace(/\s+/g, ' ').trim());
     } catch (e) {
       if (note) window.LifecycleFailure.show(note, e, { title: 'No creatives were generated' });
     } finally {
@@ -968,12 +986,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // api/_shared/master-prompt.js (assetType:'ad', platform per channel).
   const CH_PLATFORM = { g: 'google', m: 'meta', t: 'tiktok' };
   const lastMasterPrompt = { g: '', m: '', t: '' };
+  // The store is the ACTIVE brand's (regions[].store_url, else its website),
+  // never a literal: every market here named tenant zero's store for every brand.
   const STORE_FACTS = {
-    US: { store: 'knickgasm.com', currency: '$' }, UK: { store: 'knickgasm.com', currency: '£' },
-    IN: { store: 'knickgasm.com', currency: '₹' }, EU: { store: 'knickgasm.com', currency: '€' },
-    AU: { store: 'knickgasm.com', currency: 'A$' }, ME: { store: 'knickgasm.com', currency: 'AED' },
-    Global: { store: 'knickgasm.com', currency: '$' },
+    US: { currency: '$' }, UK: { currency: '£' }, IN: { currency: '₹' }, EU: { currency: '€' },
+    AU: { currency: 'A$' }, ME: { currency: 'AED' }, Global: { currency: '$' },
   };
+  function storeFor(market) {
+    const base = window.BrandCatalog ? window.BrandCatalog.storeBase(market) : '';
+    return base || ('[DATA REQUIRED BEFORE LAUNCH: store URL, ' + brandName() + ', ' + String(market || '').toUpperCase() + ']');
+  }
   const AD_SPEC = {
     google: 'Google (Responsive Search + Performance Max): 15 headlines (≤30 chars), 4 descriptions (≤90 chars), long headline (≤90), business name. PRODUCED creatives are static images at 1.91:1 (1200×628) and 1:1 (1200×1200).',
     meta: 'Meta (Facebook/Instagram Feed + Reels + Stories): primary text (≤125 chars before truncation), headline (≤40), description. PRODUCED creatives are static images at 1:1 (1080×1080, Feed) and 9:16 (1080×1920, Story/Reel).',
@@ -996,7 +1018,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       "TYPOGRAPHY (strict): Headings = 'Montserrat'. Body = 'Instrument Sans'. Never introduce other fonts.",
       'BANNED phrases: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don\'t miss out", "last chance", "while supplies last".',
       '',
-      'MARKET: ' + market + ' · Store: https://' + f.store + ' · Currency: ' + f.currency,
+      'MARKET: ' + market + ' · Store: ' + storeFor(market) + ' · Currency: ' + f.currency,
       brief ? '\nCAMPAIGN BRIEF:\n' + brief : '',
       '',
       'ASSET: Paid ad creative for ' + platform.toUpperCase() + ' — a FULL ad, not just copy.',

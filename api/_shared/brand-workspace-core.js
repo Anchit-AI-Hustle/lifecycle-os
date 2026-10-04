@@ -1270,6 +1270,20 @@ async function productCount(auth, id) {
   } catch (_) { return 0; }
 }
 
+/**
+ * Does this workspace own tenant zero's SHIPPED material (the built catalogue,
+ * the 3D storefront, the audio beds)? The server's answer, stamped on every
+ * brand payload as `owns_shipped` so the browser never decides it from a slug:
+ * `brand_workspaces.slug` is unique per OWNER only, so any owner can save
+ * tenant zero's slug, and a slug was all brand-context.js and brand-catalog.js
+ * read (2026-10-05). Same helper that gates the bundled sales export - the
+ * oldest workspace - so the catalogue and the export cannot disagree.
+ */
+async function ownsShipped(wsId) {
+  if (!wsId) return false;
+  try { return !!(await require('./market-analytics.js').ownsBundledExport(wsId)); } catch (_) { return false; }
+}
+
 async function activeWorkspaceId(auth) {
   const rows = await restAs(auth.token, `brand_user_prefs?select=active_workspace_id&user_id=eq.${encodeURIComponent(auth.user_id)}&limit=1`);
   return (Array.isArray(rows) && rows[0] && rows[0].active_workspace_id) || null;
@@ -2378,7 +2392,8 @@ async function handle(req, res) {
       case 'list': {
         const rows = await listWorkspaces(auth);
         const active = await activeWorkspaceId(auth);
-        return res.status(200).json({ ok: true, workspaces: rows.map((w) => shellPayload(w)), active_id: active, user: { id: auth.user_id, email: auth.email } });
+        const owned = await Promise.all(rows.map((w) => ownsShipped(w.id)));
+        return res.status(200).json({ ok: true, workspaces: rows.map((w, i) => shellPayload(w, { owns_shipped: owned[i] })), active_id: active, user: { id: auth.user_id, email: auth.email } });
       }
       case 'active': {
         const id = await activeWorkspaceId(auth);
@@ -2393,7 +2408,7 @@ async function handle(req, res) {
         const products = await productCount(auth, id);
         return res.status(200).json({
           ok: true,
-          brand: shellPayload(ws, { readiness: readiness(ws, { products }), products }),
+          brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }),
           needs_onboarding: false,
           user: { id: auth.user_id, email: auth.email },
         });
@@ -2402,17 +2417,17 @@ async function handle(req, res) {
         const ws = await getWorkspace(auth, str(q.id || body.id));
         if (!ws) return res.status(404).json({ ok: false, error: 'workspace_not_found' });
         const products = await productCount(auth, ws.id);
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products }) });
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
       }
       case 'save': {
         const ws = await saveWorkspace(auth, body.brand || body);
         const products = ws && ws.id ? await productCount(auth, ws.id) : 0;
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products }) });
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws && ws.id) }) });
       }
       case 'activate': {
         const ws = await setActive(auth, str(body.id || q.id));
         const products = await productCount(auth, ws.id);
-        return res.status(200).json({ ok: true, brand: shellPayload(ws, { readiness: readiness(ws, { products }), products }) });
+        return res.status(200).json({ ok: true, brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
       }
       case 'delete': {
         return res.status(200).json(await deleteWorkspace(auth, str(body.id || q.id)));
@@ -2655,7 +2670,7 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
   listWorkspaces, getWorkspace, scoringBrandFor, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
+  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation, ownsShipped,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
   carriedFields, recordedOrigins, ORIGIN_RANK,

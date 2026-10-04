@@ -4,6 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A brand's product photos come from ITS catalogue, in every page (2026-10-05)
+A momos brand's Google ads were composed over tenant zero's sneaker photos: `ad-campaigns.html` did not
+load `brand-catalog.js` and fetched `/data/catalog/products_*` for every brand. Gated by
+`tests/catalog-provenance.spec.js` (executed, mutation-verified).
+- **`brand-catalog.js` is the only browser code that fetches `/data/catalog/`, and only for tenant zero.**
+  A device brand reads the catalogue kept beside it (`BrandContext.deviceCatalog`); before this the
+  resolver asked the server, which keeps no rows for a device brand, so an import never reached a page.
+  `describe()` is the caption, `marker()` the gap, `storeBase()`/`productUrl()` the brand's own store.
+- **Tenant zero is the SERVER's answer, never a slug.** `owns_shipped` is stamped on every brand payload
+  (`ownsShipped()` = `ownsBundledExport`, the oldest workspace). A slug is owner-writable and the KNICKGASM
+  preset hands it to anyone (it survives a rename): a device brand owns no shipped material, it owns what
+  it imports. Server side, a workspace record that only claims the slug is undecided (`null`).
+- No photo of the brand's product → its own ground + `[DATA REQUIRED BEFORE LAUNCH: product image, <brand>,
+  <region>]` on the creative, its label and its `data_gaps`; no AI backdrop (an invented product image).
+
 ## ⭐ A deterministic compliance gate runs before anything is published (2026-10-04)
 `api/_shared/compliance-lint.js`, gated by `tests/compliance-gate.spec.js` (23 tests, executed, 25
 mutations each caught). Rule PACKS keyed by jurisdiction x sector, selected from the ACTIVE brand's
