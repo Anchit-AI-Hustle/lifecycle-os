@@ -901,13 +901,42 @@ function scoringBrand(src) {
   };
 }
 
+/**
+ * The response waits this long for the browser and no longer (2026-10-04).
+ * The function has 120 s (vercel.json, api/public-config.js). readSite()'s own
+ * 100 s deadline covers the manifest and the regression, but not everything
+ * around them - waiting for another read on the instance, the launch itself,
+ * the parser running alongside - so a starved machine could run past the
+ * platform's limit and the person got no answer at all. Now the response is
+ * made at this cap whatever is still running: the browser read as the timeout
+ * it is, with the parser's fields, labelled. The browser's own deadline sits
+ * BROWSER_MARGIN_MS inside the cap, so a read normally ends PARTIAL (with what
+ * it measured) rather than being cut off. Same cap on both paths: the open
+ * path is already bounded by the per-address limiter, and a shorter read there
+ * would only make the visitor's result worse.
+ */
+const READ_HARD_MS = { open: 108000, account: 108000 };
+const BROWSER_MARGIN_MS = 8000;
+
+/** `p`, or `late()` if `p` has not settled `ms` after `t0`. */
+function capped(p, t0, ms, late) {
+  let timer = null;
+  return Promise.race([
+    p.finally(() => clearTimeout(timer)),
+    new Promise((resolve) => { timer = setTimeout(() => resolve(late()), Math.max(1, ms - (Date.now() - t0))); }),
+  ]);
+}
+
 async function extractWithRender(auth, args, opts) {
   const o = opts || {};
   const bx = require('./brand-extract.js');
   const t0 = Date.now();
+  const hardMs = o.hardMs || (o.open ? READ_HARD_MS.open : READ_HARD_MS.account);
+  const secs = Math.round(hardMs / 1000);
   let refusal = null;
   if (o.open && o.req) refusal = rateCheck(o.req);
-  const parserP = bx.runExtract(auth, args).then((r) => ({ ok: true, r }), (e) => ({ ok: false, e }));
+  const parserP = capped(bx.runExtract(auth, args).then((r) => ({ ok: true, r }), (e) => ({ ok: false, e })), t0, hardMs,
+    () => ({ ok: false, e: Object.assign(new Error(`The site's published HTML and CSS were not read within ${secs} s.`), { status: 504 }) }));
   const renderP = refusal || o.render === false
     ? Promise.resolve({ ok: false, renderer: 'unavailable', reason: refusal || 'The rendered read was not requested.' })
     : (async () => {
@@ -916,9 +945,12 @@ async function extractWithRender(auth, args, opts) {
       let url;
       try { url = await core().assertPublicUrl(/^https?:\/\//i.test(String(args.url || '')) ? args.url : `https://${args.url}`); }
       catch (e) { return { ok: false, renderer: 'unavailable', reason: e.message }; }
-      return (o.readSite || readSite)(url, { deadlineMs: o.deadlineMs || 100000, brand: o.brand || null });
+      return (o.readSite || readSite)(url, { deadlineMs: Math.max(1000, Math.min(o.deadlineMs || 100000, hardMs - BROWSER_MARGIN_MS)), brand: o.brand || null });
     })();
-  const [p, r] = await Promise.all([parserP, renderP]);
+  const [p, r] = await Promise.all([parserP, capped(renderP, t0, hardMs, () => ({
+    ok: false, renderer: 'timeout',
+    reason: `The browser read did not finish within ${secs} s on this server, so it was stopped waiting for; everything below was read from the site's published HTML and CSS.`,
+  }))]);
   if (!p.ok && !(r && r.ok)) throw p.e;
   const parsed = p.ok ? p.r : null;
   const rendered = r && r.ok ? r : null;
@@ -952,6 +984,6 @@ async function extractWithRender(auth, args, opts) {
 
 module.exports = {
   readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
-  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, PROBE_HTML,
+  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, READ_HARD_MS, BROWSER_MARGIN_MS, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };
