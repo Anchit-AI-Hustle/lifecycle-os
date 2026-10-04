@@ -15,21 +15,6 @@
     "typography_source": "verified",
     "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
-      "primary": {
-        "value": "#006341",
-        "exact": "#006341",
-        "derived": false,
-        "source": {
-          "page": "https://www.starbucks.com/",
-          "role": "theme-color",
-          "selector": "meta[name=theme-color]",
-          "viewport": "desktop",
-          "property": "content",
-          "signal": "computed"
-        },
-        "from_role": "identity",
-        "signal": "meta theme-color"
-      },
       "surface": {
         "value": "#ffffff",
         "exact": "#ffffff",
@@ -43,15 +28,31 @@
           "signal": "computed"
         }
       },
-      "ink": {
-        "value": "#333333",
-        "exact": "#ffffff",
-        "derived": true,
-        "note": "DERIVED from #ffffff: the body copy as rendered measures 1:1 on #ffffff, so it is darkened until it reads (12.63:1).",
+      "primary": {
+        "value": "#006341",
+        "exact": "#006341",
+        "derived": false,
+        "from_role": "identity",
+        "signal": "meta theme-color",
         "source": {
           "page": "https://www.starbucks.com/",
-          "role": "body copy",
-          "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > div.sm.rich-text_text__27o41",
+          "role": "theme-color",
+          "selector": "meta[name=theme-color]",
+          "viewport": "desktop",
+          "property": "content",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#006242",
+        "exact": "#ffffff",
+        "derived": true,
+        "from_role": "h1",
+        "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the h1 text the site renders (#006242) reads there, so it is the ink.",
+        "source": {
+          "page": "https://www.starbucks.com/",
+          "role": "h1",
+          "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > h1.sb-heading.mb4",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -85,18 +86,18 @@
         }
       },
       "accent": {
-        "value": "#008248",
+        "value": "#006341",
         "exact": "#008248",
-        "derived": false,
+        "derived": true,
+        "note": "The second colour the reader found (#008248) was measured on a consent or cookie banner, so the accent repeats the primary.",
         "source": {
           "page": "https://www.starbucks.com/",
-          "role": "primary call to action",
-          "selector": "button#truste-consent-button",
+          "role": "theme-color",
+          "selector": "meta[name=theme-color]",
           "viewport": "desktop",
-          "property": "background-color",
+          "property": "content",
           "signal": "computed"
-        },
-        "from_role": "action"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -172,7 +173,7 @@
         "role": "product"
       },
       {
-        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=HIumn0omrQaY0NbI3PabwRJjYOkMtdueUlH.OiGfPQ4-1791132748-1.0.1.1-FcrfnjRYx17nxyJ3Reo2O1kNvMsmSlJMKFe.U6EVPcE",
+        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=erisC.KT8TgvR27CvgRelbbkzeUV8Oy2PEf0oiFo48s-1791133808-1.0.1.1-nDBvNrTcxB4H1x41Wy0.qpLfHW.Upp9y6duXa9.IM54",
         "role": "about"
       }
     ],
@@ -235,8 +236,8 @@
   },
   "palette": {
     "primary": "#006341",
-    "accent": "#008248",
-    "ink": "#333333",
+    "accent": "#006341",
+    "ink": "#006242",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
     "muted": "#006242",

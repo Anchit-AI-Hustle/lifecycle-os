@@ -5,7 +5,7 @@
   "start": "https://timesofindia.indiatimes.com",
   "landed": "https://timesofindia.indiatimes.com/us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:50:06.614Z",
+  "read_at": "2026-10-04T17:07:49.005Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -101,21 +101,21 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134677173.jpg?photoid=134677173&imgsize=86362&width=600&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134677880.jpg?photoid=134677880&imgsize=122238&width=600&resizemode=4",
       "role": "hero",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134677880.jpg?photoid=134677880&imgsize=122238&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134677173.jpg?photoid=134677173&imgsize=86362&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134657109.jpg?photoid=134657109&imgsize=109960&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134653729.jpg?photoid=134653729&imgsize=142316&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
@@ -143,21 +143,6 @@
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#af2c2c",
-      "exact": "#af2c2c",
-      "derived": false,
-      "source": {
-        "page": "https://timesofindia.indiatimes.com/us",
-        "role": "theme-color",
-        "selector": "meta[name=theme-color]",
-        "viewport": "desktop",
-        "property": "content",
-        "signal": "computed"
-      },
-      "from_role": "identity",
-      "signal": "meta theme-color"
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -168,6 +153,21 @@
         "selector": "canvas (no background declared)",
         "viewport": "desktop",
         "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "#af2c2c",
+      "exact": "#af2c2c",
+      "derived": false,
+      "from_role": "identity",
+      "signal": "meta theme-color",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/us",
+        "role": "theme-color",
+        "selector": "meta[name=theme-color]",
+        "viewport": "desktop",
+        "property": "content",
         "signal": "computed"
       }
     },

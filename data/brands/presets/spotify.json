@@ -8,253 +8,43 @@
     "label": "Spotify",
     "sector": "Streaming",
     "blurb": "Audio streaming. Template for a free-to-paid upgrade and retention programme.",
-    "verified_at": "2026-10-04",
-    "source": "Rendered https://open.spotify.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #000000 from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#global-nav-bar). Headings SpotifyMixUI, body SpotifyMixUI, as rendered.",
-    "needs_extraction": false,
-    "palette_source": "verified",
-    "typography_source": "verified",
-    "logo_signal": "the icon the page declares (link rel=icon)",
-    "palette_evidence": {
-      "primary": {
-        "value": "#000000",
-        "exact": "#000000",
-        "derived": false,
-        "from_role": "identity",
-        "signal": "header background as rendered; the site renders no chromatic brand colour and no filled call to action",
-        "source": {
-          "page": "https://open.spotify.com/",
-          "role": "header",
-          "selector": "div#global-nav-bar",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
-        }
-      },
-      "surface": {
-        "value": "#ffffff",
-        "exact": "#121212",
-        "derived": true,
-        "note": "DERIVED: the site paints its page #121212, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
-        "source": {
-          "page": "https://open.spotify.com/",
-          "role": "page ground",
-          "selector": "html.encore-dark-theme.encore-layout-themes",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
-        }
-      },
-      "ink": {
-        "value": "#333333",
-        "exact": "#ffffff",
-        "derived": true,
-        "note": "DERIVED from #ffffff: the body copy as rendered measures 1:1 on #ffffff, so it is darkened until it reads (12.63:1).",
-        "source": {
-          "page": "https://open.spotify.com/",
-          "role": "body copy",
-          "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
-          "viewport": "desktop",
-          "property": "color",
-          "signal": "computed"
-        }
-      },
-      "surface_alt": {
-        "value": "#ffffff",
-        "exact": "",
-        "derived": true,
-        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
-        "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": ""
-        }
-      },
-      "muted": {
-        "value": "#333333",
-        "exact": "",
-        "derived": true,
-        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
-        "source": {
-          "page": "https://open.spotify.com/",
-          "role": "body copy",
-          "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
-          "viewport": "desktop",
-          "property": "color",
-          "signal": "computed"
-        }
-      },
-      "accent": {
-        "value": "#000000",
-        "exact": "",
-        "derived": true,
-        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-        "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": ""
-        }
-      },
-      "line": {
-        "value": "#e4e4e4",
-        "exact": "",
-        "derived": false,
-        "note": "functional token shared by every preset, not a colour read from this brand",
-        "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": "functional"
-        }
-      },
-      "ok": {
-        "value": "#1a7f37",
-        "exact": "",
-        "derived": false,
-        "note": "functional token shared by every preset, not a colour read from this brand",
-        "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": "functional"
-        }
-      },
-      "warn": {
-        "value": "#c9a227",
-        "exact": "",
-        "derived": false,
-        "note": "functional token shared by every preset, not a colour read from this brand",
-        "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": "functional"
-        }
-      },
-      "err": {
-        "value": "#c0392b",
-        "exact": "",
-        "derived": false,
-        "note": "functional token shared by every preset, not a colour read from this brand",
-        "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": "functional"
-        }
-      }
+    "verified_at": null,
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.spotify.com.",
+    "needs_extraction": true,
+    "palette_source": "default",
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "rendered",
+      "at": "2026-10-04",
+      "host": "open.spotify.com",
+      "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
     },
-    "renderer": "rendered",
-    "reader": {
-      "module": "api/_shared/brand-render.js",
-      "manifest_version": "design-manifest/1",
-      "browser": "env",
-      "chromium": "153.0.8010.12"
-    },
-    "read_pages": [
-      {
-        "url": "https://open.spotify.com/",
-        "role": "home"
-      },
-      {
-        "url": "https://www.spotify.com/us/about-us/contact/",
-        "role": "about"
-      }
-    ],
-    "regression": {
-      "ok": true,
-      "done": false,
-      "score": 59,
-      "mismatch": 0.41,
-      "surfaces": {
-        "landing page": {
-          "score": 62.7,
-          "mismatch": 0.3729,
-          "done": false,
-          "tokens_off": 5,
-          "regions_off": 4
-        },
-        "mailer": {
-          "score": 66.7,
-          "mismatch": 0.3333,
-          "done": false,
-          "tokens_off": 5,
-          "regions_off": 0
-        },
-        "ad creative": {
-          "score": 85.7,
-          "mismatch": 0.1429,
-          "done": false,
-          "tokens_off": 1,
-          "regions_off": 0
-        }
-      },
-      "iterations": 3,
-      "repairs": 4,
-      "mismatch_limit": 0.05
-    },
-    "typography_evidence": {
-      "heading": {
-        "page": "https://open.spotify.com/",
-        "role": "h1",
-        "selector": "div:nth-of-type(1) > header.zp4sQi3GjiBGds7TWwKc > div._G444vwwRlS1vfvzWvSD > div.YDTtS1uhCcuSKEndASSg:nth-of-type(1) > h1.e-10860-text.encore-text-body-medium-bold",
-        "viewport": "desktop",
-        "property": "font-family",
-        "signal": "computed"
-      },
-      "body": {
-        "page": "https://open.spotify.com/",
-        "role": "body copy",
-        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
-        "viewport": "desktop",
-        "property": "font-family",
-        "signal": "computed"
-      }
-    }
+    "logo_signal": "the icon the page declares (link rel=icon)"
   },
   "palette": {
-    "primary": "#000000",
-    "accent": "#000000",
-    "ink": "#333333",
-    "surface": "#ffffff",
-    "surface_alt": "#ffffff",
-    "muted": "#333333",
-    "line": "#e4e4e4",
+    "primary": "#2B2B2B",
+    "accent": "#5A5A5A",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F5F5",
+    "muted": "#6A6A6A",
+    "line": "#E4E4E4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "SpotifyMixUI",
-      "stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
-      "weights": "400;700",
-      "kind": "webfont",
-      "loadable": false,
-      "note": "SpotifyMixUI (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
+      "weights": "600;700"
     },
     "body": {
-      "family": "SpotifyMixUI",
-      "stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
-      "weights": "400;700",
-      "kind": "webfont",
-      "loadable": false,
-      "note": "SpotifyMixUI (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
+      "weights": "400;500;600"
     }
   },
   "voice": {
@@ -317,6 +107,8 @@
   ],
   "offerings": [],
   "data_gaps": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Spotify]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography, Spotify]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Spotify]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Spotify]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Spotify]"

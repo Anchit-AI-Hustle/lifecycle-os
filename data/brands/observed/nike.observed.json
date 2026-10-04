@@ -7,12 +7,12 @@
   "landed": "https://www.nike.com",
   "observed_at": "2026-10-04",
   "renderer": "blocked",
-  "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it.",
+  "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"NOTHING COMPLICATED ABOUT IT.\"). Nothing was read from it.",
   "read_attempt": {
     "renderer": "blocked",
     "at": "2026-10-04",
     "host": "www.nike.com",
-    "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
+    "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"NOTHING COMPLICATED ABOUT IT.\"). Nothing was read from it."
   },
   "reader": {
     "module": "api/_shared/brand-render.js",

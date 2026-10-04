@@ -5,7 +5,7 @@
   "start": "https://mamaearth.in",
   "landed": "https://mamaearth.in/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:51:33.815Z",
+  "read_at": "2026-10-04T17:09:15.028Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,15 +33,15 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 70.9,
-    "mismatch": 0.2906,
+    "score": 64.7,
+    "mismatch": 0.3533,
     "surfaces": {
       "landing page": {
-        "score": 70.7,
-        "mismatch": 0.2931,
+        "score": 64.9,
+        "mismatch": 0.3515,
         "done": false,
-        "tokens_off": 7,
-        "regions_off": 3
+        "tokens_off": 5,
+        "regions_off": 4
       },
       "mailer": {
         "score": 88.2,
@@ -140,21 +140,6 @@
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#00aeef",
-      "exact": "#00aeef",
-      "derived": false,
-      "source": {
-        "page": "https://mamaearth.in/",
-        "role": "primary call to action",
-        "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      },
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -163,6 +148,21 @@
         "page": "https://mamaearth.in/",
         "role": "page ground",
         "selector": "body.hdt-page-type-index.template-index",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "#00aeef",
+      "exact": "#00aeef",
+      "derived": false,
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "primary call to action",
+        "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"

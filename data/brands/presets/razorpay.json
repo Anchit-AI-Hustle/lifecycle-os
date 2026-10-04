@@ -15,21 +15,6 @@
     "typography_source": "verified",
     "logo_signal": "the icon the page declares (link rel=icon)",
     "palette_evidence": {
-      "primary": {
-        "value": "#305eff",
-        "exact": "#305eff",
-        "derived": false,
-        "source": {
-          "page": "https://razorpay.com/",
-          "role": "primary call to action",
-          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
-        },
-        "from_role": "action",
-        "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-      },
       "surface": {
         "value": "#ffffff",
         "exact": "#ffffff",
@@ -38,6 +23,21 @@
           "page": "https://razorpay.com/",
           "role": "page ground",
           "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "primary": {
+        "value": "#305eff",
+        "exact": "#305eff",
+        "derived": false,
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "primary call to action",
+          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"

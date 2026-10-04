@@ -5,7 +5,7 @@
   "start": "https://www.airbnb.com",
   "landed": "https://www.airbnb.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:52:44.290Z",
+  "read_at": "2026-10-04T17:10:22.913Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -85,31 +85,16 @@
   "palette": {
     "primary": "#ff385c",
     "accent": "#ff385c",
-    "ink": "#420e18",
+    "ink": "#222222",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#a6243c",
+    "muted": "#222222",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#ff385c",
-      "exact": "#ff385c",
-      "derived": false,
-      "source": {
-        "page": "https://www.airbnb.com/",
-        "role": "logo",
-        "selector": "header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg",
-        "viewport": "desktop",
-        "property": "fill",
-        "signal": "computed"
-      },
-      "from_role": "identity",
-      "signal": "logo mark fill as rendered"
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -123,18 +108,34 @@
         "signal": "computed"
       }
     },
+    "primary": {
+      "value": "#ff385c",
+      "exact": "#ff385c",
+      "derived": false,
+      "from_role": "identity",
+      "signal": "logo mark fill as rendered",
+      "source": {
+        "page": "https://www.airbnb.com/",
+        "role": "logo",
+        "selector": "header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg",
+        "viewport": "desktop",
+        "property": "fill",
+        "signal": "computed"
+      }
+    },
     "ink": {
-      "value": "#420e18",
+      "value": "#222222",
       "exact": "",
       "derived": true,
-      "note": "DERIVED from #a6243c: no text colour reached 4.5:1 on the primary #ff385c, so the ink is darkened until it does (still 16.06:1 on the page).",
+      "from_role": "display heading",
+      "note": "The read found no body copy; the display heading text the site renders (#222222) is the ink.",
       "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
+        "page": "https://www.airbnb.com/",
+        "role": "display heading",
+        "selector": "div > div.c1dbtjd2.atm_26_1qgma6g > div.cff48sj.atm_lb_fyhuej > div > h2.hifxi0b.atm_c8_21sjza",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
       }
     },
     "surface_alt": {
@@ -152,7 +153,7 @@
       }
     },
     "muted": {
-      "value": "#a6243c",
+      "value": "#222222",
       "exact": "",
       "derived": true,
       "note": "DERIVED: the read found no secondary text style, so it is the body ink.",

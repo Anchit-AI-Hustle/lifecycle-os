@@ -9,27 +9,12 @@
     "sector": "Software",
     "blurb": "Software and devices. Template for a seat-based subscription lifecycle.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #e6effd from the primary call to action, as rendered: the only brand colour this site renders (store-base-ui-shell > div.msstore-chatonpage > div.msstore-chatonpage__pills-container:nth-of-type(3) > div.msstore-chatonpage__pills-wrapper > button.msstore-chatonpage__prompt-pill:nth-of-type(3)). Headings segoeui, body segoeui, as rendered.",
+    "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #0078d4 from the primary call to action, as rendered (store-button#action-occ033 > a). Headings segoeui, body segoeui, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "verified",
     "logo_signal": "the logo element as rendered (uhf-brand.uhf-breakpoint--desktop > div > div > a.uhf-microsoft-logo > img)",
     "palette_evidence": {
-      "primary": {
-        "value": "#e6effd",
-        "exact": "#e6effd",
-        "derived": false,
-        "source": {
-          "page": "https://www.microsoft.com/en-us",
-          "role": "primary call to action",
-          "selector": "store-base-ui-shell > div.msstore-chatonpage > div.msstore-chatonpage__pills-container:nth-of-type(3) > div.msstore-chatonpage__pills-wrapper > button.msstore-chatonpage__prompt-pill:nth-of-type(3)",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
-        },
-        "from_role": "action",
-        "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-      },
       "surface": {
         "value": "#ffffff",
         "exact": "#ffffff",
@@ -42,6 +27,28 @@
           "property": "background-color",
           "signal": "computed"
         }
+      },
+      "primary": {
+        "value": "#0078d4",
+        "exact": "#0078d4",
+        "derived": false,
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered",
+        "source": {
+          "page": "https://www.microsoft.com/en-us",
+          "role": "secondary call to action",
+          "selector": "store-button#action-occ033 > a",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "passed_over": [
+          {
+            "value": "#e6effd",
+            "from": "the reader's primary",
+            "why": "1.16:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
       },
       "ink": {
         "value": "#17253d",
@@ -86,8 +93,9 @@
       },
       "accent": {
         "value": "#0078d4",
-        "exact": "#0078d4",
-        "derived": false,
+        "exact": "",
+        "derived": true,
+        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
         "source": {
           "page": "https://www.microsoft.com/en-us",
           "role": "secondary call to action",
@@ -95,8 +103,7 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
-        },
-        "from_role": "action"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -220,7 +227,7 @@
     }
   },
   "palette": {
-    "primary": "#e6effd",
+    "primary": "#0078d4",
     "accent": "#0078d4",
     "ink": "#17253d",
     "surface": "#ffffff",

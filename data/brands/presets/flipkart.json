@@ -15,21 +15,6 @@
     "typography_source": "verified",
     "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
-      "primary": {
-        "value": "#56adff",
-        "exact": "#56adff",
-        "derived": false,
-        "source": {
-          "page": "https://www.flipkart.com/",
-          "role": "theme-color",
-          "selector": "meta[name=theme-color]",
-          "viewport": "desktop",
-          "property": "content",
-          "signal": "computed"
-        },
-        "from_role": "identity",
-        "signal": "meta theme-color"
-      },
       "surface": {
         "value": "#ffffff",
         "exact": "#ffffff",
@@ -43,15 +28,31 @@
           "signal": "computed"
         }
       },
-      "ink": {
-        "value": "#333333",
-        "exact": "#ffffff",
-        "derived": true,
-        "note": "DERIVED from #ffffff: the body copy as rendered measures 1:1 on #ffffff, so it is darkened until it reads (12.63:1).",
+      "primary": {
+        "value": "#56adff",
+        "exact": "#56adff",
+        "derived": false,
+        "from_role": "identity",
+        "signal": "meta theme-color",
         "source": {
           "page": "https://www.flipkart.com/",
-          "role": "body copy",
-          "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
+          "role": "theme-color",
+          "selector": "meta[name=theme-color]",
+          "viewport": "desktop",
+          "property": "content",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#000000",
+        "exact": "#ffffff",
+        "derived": true,
+        "from_role": "h1",
+        "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the h1 text the site renders (#000000) reads there, so it is the ink.",
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "h1",
+          "selector": "div > a > div.css-g5y9jx > div.css-g5y9jx.r-1awozwy > h1.css-146c3p1.r-dnmrzs",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -59,19 +60,20 @@
       },
       "surface_alt": {
         "value": "#ffffff",
-        "exact": "#ffffff",
-        "derived": false,
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
         "source": {
-          "page": "https://www.flipkart.com/",
-          "role": "product card",
-          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(1) > div.css-g5y9jx > div > div",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
         }
       },
       "muted": {
-        "value": "#333333",
+        "value": "#000000",
         "exact": "",
         "derived": true,
         "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
@@ -171,28 +173,28 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 51.5,
-      "mismatch": 0.4853,
+      "score": 60.7,
+      "mismatch": 0.3933,
       "surfaces": {
         "landing page": {
-          "score": 54.3,
-          "mismatch": 0.4569,
+          "score": 60.7,
+          "mismatch": 0.3933,
           "done": false,
-          "tokens_off": 13,
-          "regions_off": 2
+          "tokens_off": 4,
+          "regions_off": 1
         },
         "mailer": {
-          "score": 57.1,
-          "mismatch": 0.4286,
-          "done": false,
-          "tokens_off": 3,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 33.3,
-          "mismatch": 0.6667,
-          "done": false,
-          "tokens_off": 2,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         }
       },
@@ -228,10 +230,10 @@
   "palette": {
     "primary": "#56adff",
     "accent": "#2a55e5",
-    "ink": "#333333",
+    "ink": "#000000",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#333333",
+    "muted": "#000000",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",

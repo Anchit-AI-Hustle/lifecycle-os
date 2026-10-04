@@ -5,7 +5,7 @@
   "start": "https://www.nykaa.com",
   "landed": "https://www.nykaa.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:51:03.344Z",
+  "read_at": "2026-10-04T17:08:48.378Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,12 +33,12 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 58.9,
-    "mismatch": 0.411,
+    "score": 58.6,
+    "mismatch": 0.4137,
     "surfaces": {
       "landing page": {
-        "score": 60.2,
-        "mismatch": 0.3982,
+        "score": 59.8,
+        "mismatch": 0.4018,
         "done": false,
         "tokens_off": 8,
         "regions_off": 4
@@ -133,28 +133,13 @@
     "ink": "#001325",
     "surface": "#f3f3f3",
     "surface_alt": "#f3f3f3",
-    "muted": "#666666",
+    "muted": "#3a4047",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#fc2779",
-      "exact": "#fc2779",
-      "derived": false,
-      "source": {
-        "page": "https://www.nykaa.com/",
-        "role": "logo",
-        "selector": "div#headerMenu > a.logo.css-kus7g9 > svg",
-        "viewport": "desktop",
-        "property": "fill",
-        "signal": "computed"
-      },
-      "from_role": "identity",
-      "signal": "logo mark fill as rendered"
-    },
     "surface": {
       "value": "#f3f3f3",
       "exact": "#f3f3f3",
@@ -165,6 +150,21 @@
         "selector": "body",
         "viewport": "desktop",
         "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "#fc2779",
+      "exact": "#fc2779",
+      "derived": false,
+      "from_role": "identity",
+      "signal": "logo mark fill as rendered",
+      "source": {
+        "page": "https://www.nykaa.com/",
+        "role": "logo",
+        "selector": "div#headerMenu > a.logo.css-kus7g9 > svg",
+        "viewport": "desktop",
+        "property": "fill",
         "signal": "computed"
       }
     },
@@ -196,14 +196,13 @@
       }
     },
     "muted": {
-      "value": "#666666",
-      "exact": "#ffffff",
-      "derived": true,
-      "note": "DERIVED from #ffffff: secondary text as rendered measures 1.11:1, adjusted to AA.",
+      "value": "#3a4047",
+      "exact": "#3a4047",
+      "derived": false,
       "source": {
         "page": "https://www.nykaa.com/",
         "role": "secondary text",
-        "selector": "div.css-1cihk68:nth-of-type(1) > div.css-1axfht6 > div.css-1h2xt5a:nth-of-type(1) > p.css-1dxws33 > span",
+        "selector": "div.css-1axfht6 > div.css-15u830z:nth-of-type(1) > div.css-fd2g8d:nth-of-type(1) > div > div.css-z7ry7e:nth-of-type(1)",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"

@@ -376,7 +376,7 @@
         "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.nike.com",
-        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
+        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"NOTHING COMPLICATED ABOUT IT.\"). Nothing was read from it."
       },
       "read_note": "www.nike.com blocked an automated read on 2026-10-04.",
       "renderer": null,
@@ -466,7 +466,7 @@
       "sector": "Sportswear",
       "blurb": "Sportswear. Template for sponsorship-led and event-led pushes.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)).",
+      "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)).",
       "palette_source": "verified",
       "typography_source": "default",
       "needs_extraction": false,
@@ -971,7 +971,7 @@
       "swatch": [
         "#56adff",
         "#2a55e5",
-        "#333333",
+        "#000000",
         "#ffffff"
       ],
       "swatches": [
@@ -992,7 +992,7 @@
         },
         {
           "role": "ink",
-          "value": "#333333",
+          "value": "#000000",
           "derived": true,
           "exact": "#ffffff"
         }
@@ -1011,28 +1011,28 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 51.5,
-        "mismatch": 0.4853,
+        "score": 60.7,
+        "mismatch": 0.3933,
         "surfaces": {
           "landing page": {
-            "score": 54.3,
-            "mismatch": 0.4569,
+            "score": 60.7,
+            "mismatch": 0.3933,
             "done": false,
-            "tokens_off": 13,
-            "regions_off": 2
+            "tokens_off": 4,
+            "regions_off": 1
           },
           "mailer": {
-            "score": 57.1,
-            "mismatch": 0.4286,
-            "done": false,
-            "tokens_off": 3,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 33.3,
-            "mismatch": 0.6667,
-            "done": false,
-            "tokens_off": 2,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
@@ -1173,12 +1173,12 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 58.9,
-        "mismatch": 0.411,
+        "score": 58.6,
+        "mismatch": 0.4137,
         "surfaces": {
           "landing page": {
-            "score": 60.2,
-            "mismatch": 0.3982,
+            "score": 59.8,
+            "mismatch": 0.4018,
             "done": false,
             "tokens_off": 8,
             "regions_off": 4
@@ -1402,15 +1402,15 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 70.9,
-        "mismatch": 0.2906,
+        "score": 64.7,
+        "mismatch": 0.3533,
         "surfaces": {
           "landing page": {
-            "score": 70.7,
-            "mismatch": 0.2931,
+            "score": 64.9,
+            "mismatch": 0.3515,
             "done": false,
-            "tokens_off": 7,
-            "regions_off": 3
+            "tokens_off": 5,
+            "regions_off": 4
           },
           "mailer": {
             "score": 88.2,
@@ -1448,83 +1448,56 @@
       "label": "boAt",
       "sector": "Consumer electronics",
       "blurb": "D2C audio and wearables. Template for a launch and accessory attach lifecycle.",
-      "verified_at": "2026-10-04",
-      "source": "Rendered https://www.boat-lifestyle.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ecf0f4 from the primary call to action, as rendered: the only brand colour this site renders (tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)). Headings Metropolis, body Metropolis, as rendered.",
-      "palette_source": "verified",
-      "typography_source": "verified",
-      "needs_extraction": false,
+      "verified_at": null,
+      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.boat-lifestyle.com.",
+      "palette_source": "default",
+      "typography_source": "default",
+      "needs_extraction": true,
       "swatch": [
-        "#ecf0f4",
-        "#ecf0f4",
-        "#4e5358",
-        "#ffffff"
+        "#2B2B2B",
+        "#5A5A5A",
+        "#111111",
+        "#FFFFFF"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#ecf0f4",
+          "value": "#2B2B2B",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#ecf0f4",
-          "derived": true,
-          "exact": ""
+          "value": "#5A5A5A",
+          "derived": false
         },
         {
           "role": "surface",
-          "value": "#ffffff",
+          "value": "#FFFFFF",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#4e5358",
+          "value": "#111111",
           "derived": false
         }
       ],
-      "heading_font": "Metropolis",
-      "body_font": "Metropolis",
-      "heading_stack": "'Metropolis',sans-serif",
-      "body_stack": "'Metropolis',sans-serif",
+      "heading_font": "system-ui",
+      "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "Metropolis (brand font, shown in fallback)",
-      "body_line": "Metropolis (brand font, shown in fallback)",
-      "read_attempt": null,
-      "read_note": "",
-      "renderer": "rendered",
-      "regression": {
-        "ok": true,
-        "done": false,
-        "score": 57.7,
-        "mismatch": 0.4227,
-        "surfaces": {
-          "landing page": {
-            "score": 58.3,
-            "mismatch": 0.4167,
-            "done": false,
-            "tokens_off": 12,
-            "regions_off": 4
-          },
-          "mailer": {
-            "score": 76.5,
-            "mismatch": 0.2353,
-            "done": false,
-            "tokens_off": 4,
-            "regions_off": 0
-          },
-          "ad creative": {
-            "score": 87.5,
-            "mismatch": 0.125,
-            "done": false,
-            "tokens_off": 1,
-            "regions_off": 0
-          }
-        },
-        "iterations": 2,
-        "repairs": 1,
-        "mismatch_limit": 0.05
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": {
+        "renderer": "rendered",
+        "at": "2026-10-04",
+        "host": "www.boat-lifestyle.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
+      "read_note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -1543,14 +1516,14 @@
       "sector": "Eyewear",
       "blurb": "Eyewear. Template for a prescription-led purchase with a long repeat cycle.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#header > nav.sc-d63abe48-1.lfbqwn).",
+      "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no other colour that reads on its page (div#header > nav.sc-d63abe48-1.lfbqwn).",
       "palette_source": "verified",
       "typography_source": "default",
       "needs_extraction": false,
       "swatch": [
         "#4d4d4d",
         "#4d4d4d",
-        "#4d4d4d",
+        "#000042",
         "#ffffff"
       ],
       "swatches": [
@@ -1572,7 +1545,7 @@
         },
         {
           "role": "ink",
-          "value": "#4d4d4d",
+          "value": "#000042",
           "derived": true,
           "exact": ""
         }
@@ -1638,83 +1611,56 @@
       "label": "Samsung",
       "sector": "Consumer technology",
       "blurb": "Consumer electronics. Template for a flagship launch plus trade-in programme.",
-      "verified_at": "2026-10-04",
-      "source": "Rendered https://www.samsung.com/us/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #1429a0 from the primary call to action, as rendered: the only brand colour this site renders (button#truste-consent-button). Headings SamsungOne, body SamsungOne, as rendered.",
-      "palette_source": "verified",
-      "typography_source": "verified",
-      "needs_extraction": false,
+      "verified_at": null,
+      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.samsung.com.",
+      "palette_source": "default",
+      "typography_source": "default",
+      "needs_extraction": true,
       "swatch": [
-        "#1429a0",
-        "#1429a0",
-        "#000000",
-        "#ffffff"
+        "#2B2B2B",
+        "#5A5A5A",
+        "#111111",
+        "#FFFFFF"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#1429a0",
+          "value": "#2B2B2B",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#1429a0",
-          "derived": true,
-          "exact": ""
+          "value": "#5A5A5A",
+          "derived": false
         },
         {
           "role": "surface",
-          "value": "#ffffff",
+          "value": "#FFFFFF",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#000000",
+          "value": "#111111",
           "derived": false
         }
       ],
-      "heading_font": "SamsungOne",
-      "body_font": "SamsungOne",
-      "heading_stack": "'SamsungOne','arial',sans-serif",
-      "body_stack": "'SamsungOne','arial',sans-serif",
+      "heading_font": "system-ui",
+      "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "SamsungOne (brand font, shown in fallback)",
-      "body_line": "SamsungOne (brand font, shown in fallback)",
-      "read_attempt": null,
-      "read_note": "",
-      "renderer": "rendered",
-      "regression": {
-        "ok": true,
-        "done": false,
-        "score": 70,
-        "mismatch": 0.3,
-        "surfaces": {
-          "landing page": {
-            "score": 70,
-            "mismatch": 0.3,
-            "done": false,
-            "tokens_off": 0,
-            "regions_off": 4
-          },
-          "mailer": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
-            "regions_off": 0
-          },
-          "ad creative": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
-            "regions_off": 0
-          }
-        },
-        "iterations": 1,
-        "repairs": 0,
-        "mismatch_limit": 0.05
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": {
+        "renderer": "rendered",
+        "at": "2026-10-04",
+        "host": "www.samsung.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)"
       },
+      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's).",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -1733,12 +1679,12 @@
       "sector": "Software",
       "blurb": "Software and devices. Template for a seat-based subscription lifecycle.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #e6effd from the primary call to action, as rendered: the only brand colour this site renders (store-base-ui-shell > div.msstore-chatonpage > div.msstore-chatonpage__pills-container:nth-of-type(3) > div.msstore-chatonpage__pills-wrapper > button.msstore-chatonpage__prompt-pill:nth-of-type(3)). Headings segoeui, body segoeui, as rendered.",
+      "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #0078d4 from the primary call to action, as rendered (store-button#action-occ033 > a). Headings segoeui, body segoeui, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
-        "#e6effd",
+        "#0078d4",
         "#0078d4",
         "#17253d",
         "#ffffff"
@@ -1746,13 +1692,14 @@
       "swatches": [
         {
           "role": "primary",
-          "value": "#e6effd",
+          "value": "#0078d4",
           "derived": false
         },
         {
           "role": "accent",
           "value": "#0078d4",
-          "derived": false
+          "derived": true,
+          "exact": ""
         },
         {
           "role": "surface",
@@ -2104,8 +2051,8 @@
       "needs_extraction": false,
       "swatch": [
         "#006341",
-        "#008248",
-        "#333333",
+        "#006341",
+        "#006242",
         "#ffffff"
       ],
       "swatches": [
@@ -2116,8 +2063,9 @@
         },
         {
           "role": "accent",
-          "value": "#008248",
-          "derived": false
+          "value": "#006341",
+          "derived": true,
+          "exact": "#008248"
         },
         {
           "role": "surface",
@@ -2126,7 +2074,7 @@
         },
         {
           "role": "ink",
-          "value": "#333333",
+          "value": "#006242",
           "derived": true,
           "exact": "#ffffff"
         }
@@ -2267,7 +2215,7 @@
       "needs_extraction": false,
       "swatch": [
         "#ea0000",
-        "#ffffff",
+        "#ea0000",
         "#000000",
         "#eeeeee"
       ],
@@ -2279,8 +2227,9 @@
         },
         {
           "role": "accent",
-          "value": "#ffffff",
-          "derived": false
+          "value": "#ea0000",
+          "derived": true,
+          "exact": "#ffffff"
         },
         {
           "role": "surface",
@@ -2488,85 +2437,56 @@
       "label": "Spotify",
       "sector": "Streaming",
       "blurb": "Audio streaming. Template for a free-to-paid upgrade and retention programme.",
-      "verified_at": "2026-10-04",
-      "source": "Rendered https://open.spotify.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #000000 from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#global-nav-bar). Headings SpotifyMixUI, body SpotifyMixUI, as rendered.",
-      "palette_source": "verified",
-      "typography_source": "verified",
-      "needs_extraction": false,
+      "verified_at": null,
+      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.spotify.com.",
+      "palette_source": "default",
+      "typography_source": "default",
+      "needs_extraction": true,
       "swatch": [
-        "#000000",
-        "#000000",
-        "#333333",
-        "#ffffff"
+        "#2B2B2B",
+        "#5A5A5A",
+        "#111111",
+        "#FFFFFF"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#000000",
+          "value": "#2B2B2B",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#000000",
-          "derived": true,
-          "exact": ""
+          "value": "#5A5A5A",
+          "derived": false
         },
         {
           "role": "surface",
-          "value": "#ffffff",
-          "derived": true,
-          "exact": "#121212"
+          "value": "#FFFFFF",
+          "derived": false
         },
         {
           "role": "ink",
-          "value": "#333333",
-          "derived": true,
-          "exact": "#ffffff"
+          "value": "#111111",
+          "derived": false
         }
       ],
-      "heading_font": "SpotifyMixUI",
-      "body_font": "SpotifyMixUI",
-      "heading_stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
-      "body_stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "heading_font": "system-ui",
+      "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "SpotifyMixUI (brand font, shown in fallback)",
-      "body_line": "SpotifyMixUI (brand font, shown in fallback)",
-      "read_attempt": null,
-      "read_note": "",
-      "renderer": "rendered",
-      "regression": {
-        "ok": true,
-        "done": false,
-        "score": 59,
-        "mismatch": 0.41,
-        "surfaces": {
-          "landing page": {
-            "score": 62.7,
-            "mismatch": 0.3729,
-            "done": false,
-            "tokens_off": 5,
-            "regions_off": 4
-          },
-          "mailer": {
-            "score": 66.7,
-            "mismatch": 0.3333,
-            "done": false,
-            "tokens_off": 5,
-            "regions_off": 0
-          },
-          "ad creative": {
-            "score": 85.7,
-            "mismatch": 0.1429,
-            "done": false,
-            "tokens_off": 1,
-            "regions_off": 0
-          }
-        },
-        "iterations": 3,
-        "repairs": 4,
-        "mismatch_limit": 0.05
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": {
+        "renderer": "rendered",
+        "at": "2026-10-04",
+        "host": "open.spotify.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
+      "read_note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 3,
@@ -2593,7 +2513,7 @@
       "swatch": [
         "#ff385c",
         "#ff385c",
-        "#420e18",
+        "#222222",
         "#ffffff"
       ],
       "swatches": [
@@ -2615,7 +2535,7 @@
         },
         {
           "role": "ink",
-          "value": "#420e18",
+          "value": "#222222",
           "derived": true,
           "exact": ""
         }
@@ -2749,26 +2669,27 @@
       "sector": "Fintech",
       "blurb": "Payments infrastructure. Template for a developer-led B2B activation lifecycle.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://stripe.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #f5f5ff from --hds-color-core-brand-25 as computed on :root (:root). Headings sohne-var, body sohne-var, as rendered.",
+      "source": "Rendered https://stripe.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #533afd from the primary call to action, as rendered (section.hds-color-mode.hero-section-container:nth-of-type(1) > div.section-container.hero-section__layout:nth-of-type(1) > div.hero-section__layout-grid > div.hds-button-group.hero-section__actions:nth-of-type(2) > a.hds-button.hds-button--primary:nth-of-type(1)). Headings sohne-var, body sohne-var, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
-        "#f5f5ff",
         "#533afd",
-        "#5f6e86",
+        "#533afd",
+        "#64748d",
         "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#f5f5ff",
+          "value": "#533afd",
           "derived": false
         },
         {
           "role": "accent",
           "value": "#533afd",
-          "derived": false
+          "derived": true,
+          "exact": ""
         },
         {
           "role": "surface",
@@ -2777,9 +2698,8 @@
         },
         {
           "role": "ink",
-          "value": "#5f6e86",
-          "derived": true,
-          "exact": "#64748d"
+          "value": "#64748d",
+          "derived": false
         }
       ],
       "heading_font": "sohne-var",
@@ -2796,14 +2716,14 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 69.1,
-        "mismatch": 0.3087,
+        "score": 68.3,
+        "mismatch": 0.3173,
         "surfaces": {
           "landing page": {
-            "score": 70,
-            "mismatch": 0.3,
+            "score": 68.8,
+            "mismatch": 0.3123,
             "done": false,
-            "tokens_off": 0,
+            "tokens_off": 1,
             "regions_off": 4
           },
           "mailer": {
@@ -2822,7 +2742,7 @@
           }
         },
         "iterations": 3,
-        "repairs": 6,
+        "repairs": 4,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -3012,7 +2932,7 @@
       "needs_extraction": false,
       "swatch": [
         "#d40000",
-        "#e3e5ff",
+        "#d40000",
         "#000000",
         "#ffffff"
       ],
@@ -3024,8 +2944,9 @@
         },
         {
           "role": "accent",
-          "value": "#e3e5ff",
-          "derived": false
+          "value": "#d40000",
+          "derived": true,
+          "exact": "#e3e5ff"
         },
         {
           "role": "surface",

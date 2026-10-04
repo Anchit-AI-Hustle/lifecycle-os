@@ -5,7 +5,7 @@
   "start": "https://www.boat-lifestyle.com",
   "landed": "https://www.boat-lifestyle.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:51:41.859Z",
+  "read_at": "2026-10-04T17:09:10.393Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,14 +33,14 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 57.7,
-    "mismatch": 0.4227,
+    "score": 56,
+    "mismatch": 0.44,
     "surfaces": {
       "landing page": {
-        "score": 58.3,
-        "mismatch": 0.4167,
+        "score": 56,
+        "mismatch": 0.44,
         "done": false,
-        "tokens_off": 12,
+        "tokens_off": 15,
         "regions_off": 4
       },
       "mailer": {
@@ -59,7 +59,7 @@
       }
     },
     "iterations": 2,
-    "repairs": 1,
+    "repairs": 2,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -124,35 +124,9 @@
       "signal": "image rendered on the page"
     }
   ],
-  "palette_ok": true,
-  "palette": {
-    "primary": "#ecf0f4",
-    "accent": "#ecf0f4",
-    "ink": "#4e5358",
-    "surface": "#ffffff",
-    "surface_alt": "#e3e3e3",
-    "muted": "#666666",
-    "line": "#e4e4e4",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
-  },
+  "palette_ok": false,
+  "palette": null,
   "palette_evidence": {
-    "primary": {
-      "value": "#ecf0f4",
-      "exact": "#ecf0f4",
-      "derived": false,
-      "source": {
-        "page": "https://www.boat-lifestyle.com/",
-        "role": "primary call to action",
-        "selector": "tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      },
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -166,121 +140,23 @@
         "signal": "computed"
       }
     },
-    "ink": {
-      "value": "#4e5358",
-      "exact": "#4e5358",
-      "derived": false,
-      "source": {
-        "page": "https://www.boat-lifestyle.com/",
-        "role": "body copy",
-        "selector": "div.article-list.article-layout--columns:nth-of-type(2) > div.article:nth-of-type(1) > div.article__inner > div.article--details:nth-of-type(2) > div.user-content:nth-of-type(2)",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "surface_alt": {
-      "value": "#e3e3e3",
-      "exact": "#e3e3e3",
-      "derived": false,
-      "source": {
-        "page": "https://www.boat-lifestyle.com/",
-        "role": "product card",
-        "selector": "product-list.product-list.product-list--center > div.small-grids > div.product-list__inner > product-item.product-item.two-point-o:nth-of-type(1) > div.product__wrapper",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
-    "muted": {
-      "value": "#666666",
-      "exact": "#666666",
-      "derived": false,
-      "source": {
-        "page": "https://www.boat-lifestyle.com/",
-        "role": "secondary text",
-        "selector": "div#MultiCarousel_press1 > div.custom_press_slider.MultiCarousel-inner > div.item.active:nth-of-type(1) > div.press-content:nth-of-type(1) > p",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "accent": {
-      "value": "#ecf0f4",
-      "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://www.boat-lifestyle.com/",
-        "role": "primary call to action",
-        "selector": "tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "warn": {
-      "value": "#c9a227",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "err": {
-      "value": "#c0392b",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#ecf0f4",
+          "from": "the reader's primary",
+          "why": "1.15:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
     }
   },
-  "palette_warnings": [
-    "Primary on the page surface is 1.15:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see.",
-    "Accent text on the surface is 1.15:1. Keep accent for fills and rules, not body copy.",
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
   "typography": {
     "heading": {
       "family": "Metropolis",
@@ -321,5 +197,11 @@
       }
     }
   },
-  "source": "Rendered https://www.boat-lifestyle.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ecf0f4 from the primary call to action, as rendered: the only brand colour this site renders (tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)). Headings Metropolis, body Metropolis, as rendered."
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "www.boat-lifestyle.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

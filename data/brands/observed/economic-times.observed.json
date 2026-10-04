@@ -5,7 +5,7 @@
   "start": "https://economictimes.indiatimes.com",
   "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:49:35.999Z",
+  "read_at": "2026-10-04T17:07:18.306Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -87,7 +87,25 @@
   ],
   "palette_ok": false,
   "palette": null,
-  "palette_evidence": {},
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
+        "role": "page ground",
+        "selector": "canvas (no background declared)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": []
+    }
+  },
   "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
   "typography": null,
   "read_attempt": {
