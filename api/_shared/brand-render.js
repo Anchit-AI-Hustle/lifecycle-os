@@ -127,6 +127,12 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     const shot = {};
     const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40 }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
     data.__viewport = label;
+    // The face the engine actually drew each role in (not the declared stack).
+    data.drawn = await drawnFaces(page, {
+      display: '[data-lcos-role="display"]', h1: '[data-lcos-role="h1"]', body: '[data-lcos-role="body"]',
+      'button-primary': '[data-lcos-role="button-primary"]', 'card-title': '[data-lcos-role="card-title"]',
+      logo: '[data-lcos-role="logo"]', 'nav-link': '[data-lcos-role="nav-link"]',
+    }).catch(() => ({}));
     data.status = resp ? resp.status() : 0;
     // Interaction states, read AFTER the state is applied, with transitions
     // switched off so the final state is what is read.
@@ -172,6 +178,52 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     await page.close().catch(() => {});
     throw e;
   }
+}
+
+/**
+ * The face that ACTUALLY DREW each element's text, from the engine itself
+ * (CDP CSS.getPlatformFontsForNode on the element's text-carrying node).
+ *
+ * Review finding (2026-10-04): comparing the DECLARED stack lets a family that
+ * is declared and never loaded pass - the ad named a Google family and never
+ * linked it, and the score was 100%. A declared family the engine fell back
+ * from now shows up as a different drawn face, on the site's side and ours.
+ * `selectors`: { key: cssSelector }. Returns { key: { family, custom } }.
+ */
+async function drawnFaces(page, selectors) {
+  const out = {};
+  const keys = Object.keys(selectors || {});
+  if (!keys.length) return out;
+  // Mark each element's text carrier: the platform-font query reports the
+  // fonts of a node's OWN text, so it is asked of the node that carries it.
+  await page.evaluate((sel) => {
+    const own = (n) => { let t = ''; for (const c of n.childNodes) if (c.nodeType === 3) t += c.nodeValue; return t.trim(); };
+    for (const [k, s] of Object.entries(sel)) {
+      const el = document.querySelector(s);
+      if (!el) continue;
+      let best = el, bl = own(el).length;
+      for (const d of el.querySelectorAll('*')) { const l = own(d).length; if (l > bl) { best = d; bl = l; } }
+      if (bl) best.setAttribute('data-lcos-carrier', k);
+    }
+  }, selectors).catch(() => {});
+  let cdp = null;
+  try {
+    cdp = await page.context().newCDPSession(page);
+    await cdp.send('DOM.enable');
+    await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    for (const k of keys) {
+      try {
+        const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-lcos-carrier="${k}"]` });
+        if (!nodeId) continue;
+        const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+        const top = (fonts || []).slice().sort((a, b) => (b.glyphCount || 0) - (a.glyphCount || 0))[0];
+        if (top) out[k] = { family: top.familyName || '', custom: !!top.isCustomFont };
+      } catch (_) { /* that node is not measurable */ }
+    }
+  } catch (_) { /* no CDP on this browser: the drawn face is simply not compared */ }
+  finally { if (cdp) await cdp.detach().catch(() => {}); }
+  return out;
 }
 
 function src(capt, role, viewport, property, selector) {
@@ -406,11 +458,24 @@ async function readRendered(url, opts) {
   const sc = siteCrawl();
   const hosts = sc.allowedHosts({ website: start });
   if (!hosts.size) hosts.add(new URL(start).hostname);
+  // robots.txt, PER ORIGIN, fetched before the first document from that
+  // origin and cached. Found in review (2026-10-04): an in-scope origin with no
+  // cached entry (the start URL redirecting to another of the brand's hosts, a
+  // link to another allowed subdomain) answered "no rules" - allow-all. An
+  // origin's rules are now always READ before one of its documents is, and the
+  // promise is cached so concurrent documents from one origin share one fetch.
   const disallowByOrigin = new Map();
+  const limits = o.limits || null;
   const ctx = {
-    policy, deadline, transport: o.transport, perRequestMs: o.perRequestMs,
+    policy, deadline, transport: o.transport, perRequestMs: o.perRequestMs, limits,
+    budget: net.makeBudget((limits && limits.maxBytesTotal) || net.LIMITS.maxBytesTotal, limits && limits.maxRequests),
     inScope: (u) => sc.inScope(u, hosts) || (policy.allowOrigins && (() => { try { return policy.allowOrigins.has(new URL(u).origin); } catch (_) { return false; } })()),
-    robots: (u) => { try { return disallowByOrigin.get(new URL(u).origin) || []; } catch (_) { return []; } },
+    robotsFor: (u) => {
+      let origin;
+      try { origin = new URL(u).origin; } catch (_) { return Promise.resolve(['/']); }
+      if (!disallowByOrigin.has(origin)) disallowByOrigin.set(origin, sc.robotsInfo(origin, robotsFetch, 6000).then((r) => r.disallow, () => []));
+      return disallowByOrigin.get(origin);
+    },
     ledger: null,
     screenshots: o.screenshots,
   };
@@ -419,13 +484,13 @@ async function readRendered(url, opts) {
     const r = await net.fetchFollow(u, ctx, { kind: 'resource' });
     return r.ok && r.status >= 200 && r.status < 300 ? { ok: true, status: r.status, body: r.body.toString('utf8') } : { ok: false, status: r.status || 0, body: '' };
   };
-  const rob = await sc.robotsInfo(startOrigin.replace(/\/$/, ''), robotsFetch, 6000);
-  disallowByOrigin.set(new URL(start).origin, rob.disallow);
+  await ctx.robotsFor(start);
   timings.robots_ms = Date.now() - t0;
   // Resolve the start document (redirects followed here, every hop checked).
   const first = await net.fetchFollow(start, ctx, { kind: 'document' });
   if (!first.ok) {
-    const e = new Error(/robots/.test(first.reason) ? `${new URL(start).hostname} disallows this page in its robots.txt, and this platform honours it.` : `The site could not be opened: ${first.reason}.`);
+    const at = (() => { try { return new URL(first.url || start).host; } catch (_) { return start; } })();
+    const e = new Error(/robots/.test(first.reason) ? `${at} disallows this page in its robots.txt, and this platform honours it.` : `The site could not be opened: ${first.reason}.`);
     e.code = /robots/.test(first.reason) ? 'blocked' : 'unavailable';
     throw e;
   }
@@ -435,8 +500,6 @@ async function readRendered(url, opts) {
   }
   if (first.status >= 400) { const e = new Error(`${new URL(first.finalUrl).hostname} answered HTTP ${first.status} for that address.`); e.code = 'unavailable'; throw e; }
   const home = first.finalUrl;
-  // The final page may be on another of the brand's hosts (www., a locale host): its robots too.
-  try { const ho = new URL(home).origin; if (!disallowByOrigin.has(ho)) disallowByOrigin.set(ho, (await sc.robotsInfo(ho, robotsFetch, 4000)).disallow); } catch (_) { /* keep start's */ }
 
   const ctxOpts = (vp, mobile) => ({
     viewport: vp, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile,
@@ -475,7 +538,9 @@ async function readRendered(url, opts) {
   const extra = [];
   const maxPages = o.maxPages == null ? DEFAULTS.keyPages : Math.max(0, Math.min(4, +o.maxPages || 0));
   if (maxPages) {
-    const links = (deskCap.data.links || []).filter((u) => ctx.inScope(u) && u.split('#')[0] !== home && net.robotsAllows(ctx.robots(u), u));
+    const inScopeLinks = (deskCap.data.links || []).filter((u) => ctx.inScope(u) && u.split('#')[0] !== home);
+    const links = [];
+    for (const u of inScopeLinks.slice(0, 200)) if (net.robotsAllows(await ctx.robotsFor(u), u)) links.push(u);
     const wanted = [
       ['collection', (u) => /\/collections?\//i.test(new URL(u).pathname)],
       ['product', (u) => /\/products?\//i.test(new URL(u).pathname)],
@@ -513,6 +578,18 @@ async function readRendered(url, opts) {
   }
 
   timings.total_ms = Date.now() - t0;
+  if (ctx.budget.exhausted) {
+    partial = true;
+    notes.push(`The byte budget for one read (${Math.round(ctx.budget.max / 1048576)} MB) was spent; ${ctx.budget.aborted} download(s) in flight were stopped. What was measured before that is below.`);
+  }
+  // Every hop counted, including the ones made outside a browser request.
+  ctx.ledger.requests = ctx.budget.requests;
+  ctx.ledger.bytes = ctx.budget.used;
+  if (ctx.budget.requestsSpent) {
+    partial = true;
+    ctx.ledger.budget_hit = ctx.ledger.budget_hit || 'request count';
+    notes.push(`The request budget for one read (${ctx.budget.maxRequests} connections, every redirect hop counted) was spent; later requests were refused. What was measured before that is below.`);
+  }
   const manifest = buildManifest({
     start, desk: deskCap.data, mob: mobCap && mobCap.data, extra,
     states: deskCap.states, ledger: ctx.ledger,
@@ -553,7 +630,7 @@ async function readSite(url, opts) {
     return await launcher.withBrowser(async (browser, info) => {
       const left = () => deadlineMs - (Date.now() - t0);
       const manifest = await withTimeout(readRendered(url, {
-        browser, policy: o.policy, transport: o.transport, keepPages: true,
+        browser, policy: o.policy, transport: o.transport, keepPages: true, limits: o.limits,
         deadlineMs: Math.max(15000, Math.min(o.manifestMs || 62000, left() - 25000)),
         maxPages: o.maxPages, renderer: info,
       }), Math.max(10000, left() - 5000), 'reading the site');
@@ -819,7 +896,7 @@ async function extractWithRender(auth, args, opts) {
 }
 
 module.exports = {
-  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom,
+  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces,
   extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };
