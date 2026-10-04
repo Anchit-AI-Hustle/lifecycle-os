@@ -4,6 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The starter brands are read from their own RENDERED sites, or say why not (2026-10-04)
+The operator, with a screenshot of `/onboarding`'s starter-brand gallery: *"styles need to be correct
+for these too"*. 22 of 40 presets wore the grey placeholder, and several that HAD been read were wrong
+(a red telecom as `#000000`, four type lines `system-ui`, a primary equal to its accent). Now every
+preset is read by the platform's ONE rendered reader, `api/_shared/brand-render.js` `readSite()`
+(headless Chromium, computed styles by element role, per-value page/role/selector/viewport, its own
+SSRF + robots rules, its honest user agent, the visual regression of our renderers against the site).
+`scripts/harvest-presets.js` only SCHEDULES reads (one browser per read in a child process, 3 at a
+time, a per-site deadline plus a hard stop) and `scripts/lib/preset-observation.js` only MAPS the
+manifest. `scripts/observe-preset-brands.js` - a second, older browser reader - is deleted: two
+readers drift. Gated by `tests/preset-harvest.spec.js` (executed: fixture sites on 127.0.0.1 through
+the real reader in Chromium, the real builder, the real gallery).
+- **Runs on GitHub, not here.** This container has no egress to brand hosts; GitHub's runners do.
+  `.github/workflows/harvest-presets.yml` runs on dispatch (`slugs`) and on any same-repo PR that
+  touches the harvester, the mapping, the builder, the reader or itself; it commits
+  `data/brands/observed/` + regenerated `data/brands/presets/` back to the PR (a `[skip harvest]`
+  head commit skips it; the bot's GITHUB_TOKEN push starts no run, so it cannot loop - and starts no
+  CI either, so push a commit after it to get CI on that head). Screenshots, our renderers' shots,
+  the manifest and a report per brand are the run's `preset-harvest-<run id>` artifact; the
+  before/after table is the run summary.
+- **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
+  unavailable` + the reason + `read_attempt`; no palette, type or logo. The preset keeps the neutral
+  default and the card says one sentence (`<host> blocked an automated read on <date>.`). No stealth,
+  no borrowed user agent, no colour from memory or a "brand colours" site. A failure of THIS
+  environment (no browser, reader missing) is not a fact about a brand: nothing is written, the run
+  fails. The builder refuses a palette from any read that did not render, even a file that carries one.
+- **Every hex is measured or DERIVED from a measured one, labelled, exact value kept.** A dark site
+  (`#121212` page) gets a white surface and a darkened ink, both `derived:true` with the exact
+  values; a monochrome site keeps its black call to action as the primary (`from_role:'action'`);
+  a site that renders no colour at all gets none. A brand's own web font is named and marked
+  `loadable:false` - the card reads `<family> (brand font, shown in fallback)` and sets the name in
+  the site's own fallback stack; only Google families are loaded.
+- **The card paints four NAMED roles** (primary/accent/surface/ink, `*` when derived) and its text is
+  measured at AA in Chromium through every ancestor's opacity - the step fades in, and a measurement
+  taken mid-fade reads 1:1.
+
 ## ⭐ Signing in with a phone never turns a feature off (2026-10-03)
 The operator's words, with a phone screenshot of production `/onboarding` after signing in with a
 mobile number and PIN: *"All features must work even with signin by number and pin"* (earlier: *"not
