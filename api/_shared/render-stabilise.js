@@ -131,7 +131,9 @@ function freezeInPage(cfg) {
   const hide = (el, why, vendor) => {
     if (!el || done.has(el)) return;
     done.add(el);
-    if (!vendor && structural(el)) return;
+    // A vendor class on an app wrapper (`<div class="cookie-consent">` around
+    // main/h1/nav) is still the page: hiding it blanked the whole read.
+    if (structural(el)) { out.consent_skipped = (out.consent_skipped || []).concat([{ tag: el.tagName.toLowerCase(), id: el.id || '', why: `${vendor ? 'matches a consent vendor selector' : why} but holds the page itself (main, h1 or nav), so it was left alone` }]); return; }
     const rec = { tag: el.tagName.toLowerCase(), id: el.id || '', why };
     try { el.setAttribute('data-lcos-hidden', 'consent'); el.style.setProperty('display', 'none', 'important'); } catch (_) { /* read-only */ }
     let ok = false, how = 'display:none (inline, important)';
