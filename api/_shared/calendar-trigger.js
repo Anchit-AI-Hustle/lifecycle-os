@@ -573,6 +573,33 @@ function _renderVariantBody(o) {
   // brand's palette. Softened from the ink only as far as AA allows.
   palette.mutedOnSurface = _core ? _core.readableAsText(palette.ink, palette.chalk, 4.5) : palette.ink;
 
+  // THE BRAND'S DESIGN SYSTEM, under EMAIL constraints (2026-10-04). When
+  // "Read my site" measured one, the call to action, the headline and the
+  // body copy take the brand's own tokens - at its PHONE values, because a
+  // 600px column is a phone - with the family followed by a declared fallback
+  // stack (web fonts load in a minority of clients), the label colour derived
+  // for AA where the site's own pair fails it, and nothing a client cannot
+  // render (no flex, no hover). Outlook drops border-radius; the button squares
+  // off there and holds everywhere else. No design system: unchanged.
+  const _E = (() => { try { const d = require('./design-system.js'); return d.emailTokens(d.resolve(_brand(o)), Object.assign({ primary: palette.green }, _bpal)); } catch (_) { return null; } })();
+  const _px = (v) => (v == null || !Number.isFinite(+v) ? '' : `${Math.round(+v * 100) / 100}px`);
+  const ctaStyle = _E && _E.button
+    ? `display:inline-block;background:${_E.button.background};color:${_E.button.color};text-decoration:none;`
+      + (Array.isArray(_E.button.padding) && _E.button.padding.every((v) => v != null) ? `padding:${_E.button.padding.map(_px).join(' ')};` : 'padding:14px 30px;')
+      + `font-family:${_E.button.stack};font-size:${_px(_E.button.size) || '14px'};font-weight:${_E.button.weight || 700};`
+      + `letter-spacing:${_px(_E.button.letter_spacing) || '0px'};text-transform:${_E.button.transform || 'none'};`
+      + (_E.button.radius != null ? `border-radius:${_px(_E.button.radius)};` : '')
+      + (_E.button.border ? `border:${_E.button.border};` : '')
+    : `display:inline-block;background:${palette.green};color:${palette.chalk};text-decoration:none;padding:14px 30px;font-family:'Instrument Sans',sans-serif;font-size:14px;letter-spacing:1.4px;text-transform:uppercase;`;
+  const h1Style = _E && _E.h1
+    ? `font-family:${_E.head};font-size:${_px(_E.h1.size) || '34px'};line-height:${_E.h1.line_height === 'normal' ? 'normal' : (_px(_E.h1.line_height) || '1.18')};color:${_E.h1.color || palette.green};margin:0 0 8px;font-weight:${_E.h1.weight || 500};letter-spacing:${_px(_E.h1.letter_spacing) || '0px'};text-transform:${_E.h1.transform || 'none'};`
+    : `font-family:'Montserrat','Raleway',Georgia,serif;font-size:34px;line-height:1.18;color:${palette.green};margin:0 0 8px;font-weight:500;letter-spacing:-0.3px;`;
+  const subStyle = _E && _E.text
+    ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '16px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.55')};color:${_E.text.color || palette.ink};margin:0 0 24px;`
+    : `font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;`;
+  const emailHead = _E && (_E.faces || _E.googleHref)
+    ? `<head>${_E.googleHref ? `<link rel="stylesheet" href="${esc(_E.googleHref)}">` : ''}${_E.faces ? `<style>${_E.faces}</style>` : ''}</head>` : '';
+
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
   // Brand header: KNICKGASM wordmark linking to the market store (the ONLY header
   // link, matching the flagship's logo→store rule).
@@ -683,7 +710,7 @@ function _renderVariantBody(o) {
       ${blocks}
       ${productGrid}
       <tr><td style="padding:26px 32px 8px;text-align:center;border-top:1px solid #ece4d2;">
-        <a href="${baseUrl}" style="display:inline-block;background:${palette.green};color:${palette.chalk};text-decoration:none;padding:14px 30px;font-family:'Instrument Sans',sans-serif;font-size:14px;letter-spacing:1.4px;text-transform:uppercase;">${esc(cta_text)}</a>
+        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
       </td></tr>
       ${secondaryCta}
       ${brandFooter}
@@ -736,7 +763,7 @@ function _renderVariantBody(o) {
       ${blocks}
       ${productGrid}
       <tr><td style="padding:26px 32px 8px;text-align:center;">
-        <a href="${baseUrl}" style="display:inline-block;background:${palette.green};color:${palette.chalk};text-decoration:none;padding:14px 30px;font-family:'Instrument Sans',sans-serif;font-size:14px;letter-spacing:1.4px;text-transform:uppercase;">${esc(cta_text)}</a>
+        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
       </td></tr>
       ${secondaryCta}
       ${brandFooter}
@@ -748,19 +775,19 @@ function _renderVariantBody(o) {
 
   // editorial style (default)
   return `<!doctype html>
-<html><body style="margin:0;padding:0;background:${palette.chalk};">
+<html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:36px 16px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
       ${offerBarRow}${brandHeader}
       <tr><td style="padding:20px 32px 0;border-bottom:1px solid #ece4d2;">
-        <h1 style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:34px;line-height:1.18;color:${palette.green};margin:0 0 8px;font-weight:500;letter-spacing:-0.3px;">${esc(hero_headline)}</h1>
-        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;">${esc(hero_subline)}</p>
+        <h1 data-ds="h1" style="${h1Style}">${esc(hero_headline)}</h1>
+        <p data-ds="body" style="${subStyle}">${esc(hero_subline)}</p>
       </td></tr>
       ${blocks}
       ${productGrid}
       <tr><td style="padding:26px 32px 8px;text-align:center;border-top:1px solid #ece4d2;">
-        <a href="${baseUrl}" style="display:inline-block;background:${palette.green};color:${palette.chalk};text-decoration:none;padding:14px 30px;font-family:'Instrument Sans',sans-serif;font-size:14px;letter-spacing:1.4px;text-transform:uppercase;">${esc(cta_text)}</a>
+        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
       </td></tr>
       ${secondaryCta}
       ${brandFooter}
