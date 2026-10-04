@@ -32,11 +32,11 @@
  * Each measurement first asserts it judged a non-trivial number of text runs
  * and grounds (kind `floor`): a check that inspects nothing passes everything.
  *
- * THE RATCHET. tests/brand-theme-baseline.json holds, per page (and per Studio
- * sequence), the count of findings of each kind summed over the five palettes,
+ * THE RATCHET. tests/brand-theme-baseline/<page>.json holds, per page (and per
+ * Studio sequence, one file each so parallel fixes never collide), the count of findings of each kind summed over the five palettes,
  * for the pages not fixed yet. A count that RISES fails; a page that reaches
- * zero must leave the file (the test says so); a page not in the file must be
- * clean. The file only shrinks - the same ratchet as check-executed-tests.js.
+ * zero must delete its file (the test says so); a page with no file must be
+ * clean. The set only shrinks - the same ratchet as check-executed-tests.js.
  *
  * ── HOW TO FIX A PAGE ──────────────────────────────────────────────────────
  * 1. See every finding on one page, under one palette, with no ratchet (scoped
@@ -60,8 +60,8 @@
  *                grounds dark) is deleted: the app is light-only.
  *    - text      color:var(--brand-primary|--brand-accent) -> the *-text
  *                token; faded text (opacity, a light grey) -> --vh-ink-dim.
- * 3. Re-run the page with all palettes, then lower (or delete) its entry in
- *    tests/brand-theme-baseline.json. `node tests/lib/brand-theme-baseline.js
+ * 3. Re-run the page with all palettes, then lower (or delete) its file in
+ *    tests/brand-theme-baseline/. `node tests/lib/brand-theme-baseline.js
  *    <inventory dir>` prints the counts an inventory run measured.
  *
  * Run: npx playwright test tests/brand-theme-every-page.spec.js --project=desktop-1280
@@ -77,8 +77,7 @@ const NAMES = process.env.BRAND_THEME_PALETTES ? process.env.BRAND_THEME_PALETTE
 const SCOPED = NAMES.length !== ALL_PALETTES.length;
 const INVENTORY = process.env.BRAND_THEME_INVENTORY || '';
 const ONLY = process.env.BRAND_THEME_PAGES ? new Set(process.env.BRAND_THEME_PAGES.split(',')) : null;
-const BASELINE_FILE = path.join(__dirname, 'brand-theme-baseline.json');
-const BASELINE = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8'));
+const BASELINE = H.readBaseline();
 const KINDS = ['unpainted', 'floor', 'text', 'ground', 'forbidden', 'foreign', 'button', 'font', 'pageerror'];
 
 // Every case opens its own browser contexts and shares nothing, so the pages
@@ -102,20 +101,33 @@ test('the page list is enumerated from the repo, and every exclusion has a reaso
     const page = fs.readFileSync(path.join(H.ROOT, ex.file), 'utf8');
     const loadsBrand = /<script[^>]+src=["'][^"']*\b(auth|brand-context)\.js/.test(page);
     const redirects = /<meta[^>]+http-equiv=["']refresh/i.test(page);
-    expect(ex.file.startsWith('_') || !loadsBrand || redirects, ex.file + ': ' + ex.why).toBe(true);
+    expect(ex.file.startsWith('_') || !loadsBrand || redirects || !!H.FROZEN[ex.file], ex.file + ': ' + ex.why).toBe(true);
   }
 });
 
-test('the baseline only names pages and kinds that exist', () => {
+test('the baseline only names pages and kinds that exist, one file each', () => {
   const keys = new Set(PAGES.concat(STUDIO_SEQUENCES.map(studioKey)));
   for (const [k, counts] of Object.entries(BASELINE)) {
-    if (k.startsWith('_')) continue;
-    expect(keys.has(k), `${k} is in tests/brand-theme-baseline.json but is not a page or Studio sequence`).toBe(true);
+    expect(keys.has(k), `${counts.__file} names ${k}, which is not a page or Studio sequence`).toBe(true);
+    // The file name is derived from the key, so fixes to two pages can never
+    // write the same file.
+    expect(path.basename(H.baselineFile(k)), `${k} must live in ${path.basename(H.baselineFile(k))}`).toBe(counts.__file);
     for (const [kind, n] of Object.entries(counts)) {
+      if (kind === '__file') continue;
       expect(KINDS, `${k}: unknown kind ${kind}`).toContain(kind);
       expect(Number.isInteger(n) && n > 0, `${k}.${kind} must be a positive count (delete a zero)`).toBe(true);
     }
   }
+});
+
+test('a frozen page is excluded for the reason the code gives', () => {
+  // diff-version is excluded because auth.js exempts it from theme.css as
+  // tenant zero's frozen snapshot. If that exemption goes, so does the reason
+  // for not measuring it.
+  expect(Object.keys(H.FROZEN)).toEqual(['diff-version.html']);
+  expect(EXCLUDED.map((e) => e.file)).toContain('diff-version.html');
+  const auth = fs.readFileSync(path.join(H.ROOT, 'auth.js'), 'utf8');
+  expect(auth.includes('var IS_FROZEN_DIFF = /(^|\\/)diff-version'), 'auth.js no longer exempts diff-version from the theme').toBe(true);
 });
 
 function summarise(list, fmt, n) { return list.slice(0, n || 10).map(fmt).join('\n'); }
@@ -187,17 +199,18 @@ function verdict(key, findings) {
   const all = findings.map((f) => f.message).join('\n');
   const base = BASELINE[key];
   if (SCOPED || !base) {
-    expect(findings, (base ? '' : `${key} is not in tests/brand-theme-baseline.json, so it must be clean.\n`) + all).toEqual([]);
+    expect(findings, (base ? '' : `${key} has no file in tests/brand-theme-baseline/, so it must be clean.\n`) + all).toEqual([]);
     return;
   }
+  const where = 'tests/brand-theme-baseline/' + base.__file;
   const rose = KINDS.filter((k) => (counts[k] || 0) > (base[k] || 0));
   const detail = rose.map((k) => `${k}: ${counts[k]} now, ${base[k] || 0} in the baseline`).join('; ');
   expect(rose, `${key} got worse (${detail}):\n` + findings.filter((f) => rose.includes(f.kind)).map((f) => f.message).join('\n')).toEqual([]);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  expect(total, `${key} is clean now: delete its entry from tests/brand-theme-baseline.json`).toBeGreaterThan(0);
+  expect(total, `${key} is clean now: delete ${where}`).toBeGreaterThan(0);
   const fell = KINDS.filter((k) => (counts[k] || 0) < (base[k] || 0));
   if (fell.length) {
-    test.info().annotations.push({ type: 'ratchet', description: `${key}: lower the baseline to ${JSON.stringify(counts)}` });
+    test.info().annotations.push({ type: 'ratchet', description: `${key}: lower ${where} to ${JSON.stringify(counts)}` });
   }
 }
 
