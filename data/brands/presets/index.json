@@ -116,13 +116,8 @@
       "body_google": true,
       "heading_line": "Montserrat",
       "body_line": "Faustina",
-      "read_attempt": {
-        "renderer": "rendered",
-        "at": "2026-10-04",
-        "host": "economictimes.indiatimes.com",
-        "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
-      },
-      "read_note": "economictimes.indiatimes.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+      "read_attempt": null,
+      "read_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -746,7 +741,7 @@
         "host": "www2.hm.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www2.hm.com did not finish rendering within the read's time limit on 2026-10-04.",
+      "read_note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -813,7 +808,7 @@
         "host": "www.uniqlo.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.uniqlo.com did not finish rendering within the read's time limit on 2026-10-04.",
+      "read_note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2013,7 +2008,7 @@
         "host": "www.bmw.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.bmw.com did not finish rendering within the read's time limit on 2026-10-04.",
+      "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2732,7 +2727,7 @@
         "host": "www.makemytrip.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.makemytrip.com did not finish rendering within the read's time limit on 2026-10-04.",
+      "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,

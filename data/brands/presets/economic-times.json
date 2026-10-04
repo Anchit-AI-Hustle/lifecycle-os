@@ -10,12 +10,6 @@
     "blurb": "Business and markets journalism. Subscription and newsletter lifecycle rather than a product catalogue.",
     "verified_at": "2026-08-10",
     "source": "economictimes.indiatimes.com homepage CSS (dominant #d51131/#ed193b, Montserrat + Faustina)",
-    "read_attempt": {
-      "renderer": "rendered",
-      "at": "2026-10-04",
-      "host": "economictimes.indiatimes.com",
-      "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
-    },
     "logo_signal": "the logo element as rendered (tr:nth-of-type(1) > td > div.header:nth-of-type(1) > a.et_logo:nth-of-type(1) > img)"
   },
   "palette": {

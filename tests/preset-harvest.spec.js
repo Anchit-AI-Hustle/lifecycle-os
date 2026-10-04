@@ -240,7 +240,7 @@ test('a blocked, timed-out or unavailable read carries its reason and no colour,
   const preset = { slug: 'adidas', name: 'Adidas', website: 'https://www.adidas.com' };
   for (const [renderer, reason, sentence] of [
     ['blocked', 'www.adidas.com answered HTTP 403 to the browser\'s request.', `www.adidas.com blocked an automated read on ${DAY}.`],
-    ['timeout', 'reading the site took longer than 62000ms', `www.adidas.com did not finish rendering within the read's time limit on ${DAY}.`],
+    ['timeout', 'reading the site took longer than 62000ms', `www.adidas.com did not answer an automated read within its time limit on ${DAY}.`],
     ['unavailable', 'The site could not be opened: DNS lookup failed.', `www.adidas.com could not be read on ${DAY}: The site could not be opened: DNS lookup failed.`],
   ]) {
     // A result that ALSO carries a manifest must not leak it through.
@@ -301,6 +301,59 @@ test('a site that renders nothing coloured gets no primary, and a monochrome one
   expect(mono.evidence.primary.source.selector).toBe('main > a.buy');
   expect(mono.evidence.accent.derived).toBe(true);
   expect(mono.evidence.accent.note).toMatch(/one brand colour/);
+});
+
+/* Found by the first real harvest (2026-10-04): the reader's "brand colour"
+   was, on three sites, a tint of the page - the palest step of a token scale
+   (`--hds-color-core-brand-25`, #f5f5ff), a pale tab and a pale chat pill -
+   and on another the accent came off a cookie-consent button. A preset whose
+   primary is #f5f5ff on a white page has invisible buttons. */
+test('a tint of the page is passed over for the next colour the site renders, and said', () => {
+  const src = (selector) => ({ page: 'https://brand.example/', role: 'x', selector, viewport: 'desktop', property: 'background-color', signal: 'computed' });
+  const tinted = obsLib.paletteFromManifest(manifest({ colors: {
+    primary: { value: '#f5f5ff', from_role: 'identity', signal: '--brand-25 as computed on :root', source: src(':root') },
+    accent: { value: '#533afd', from_role: 'action', source: src('main a.button--primary') },
+    surface: { value: '#ffffff' }, ink: { value: '#1a1a1a' },
+  } }));
+  expect(tinted.ok).toBe(true);
+  expect(tinted.palette.primary).toBe('#533afd');
+  expect(tinted.evidence.primary.from_role).toBe('action');
+  expect(tinted.evidence.primary.source.selector).toBe('main a.button--primary');
+  expect(tinted.evidence.primary.passed_over).toEqual([expect.objectContaining({ value: '#f5f5ff', why: expect.stringMatching(/tint of the page/) })]);
+
+  // A pale call to action and nothing else: no primary at all, and the reason.
+  const pale = obsLib.paletteFromManifest(manifest({ colors: {
+    primary: { value: '#ecf0f4', from_role: 'action', source: src('nav button.tab') },
+    surface: { value: '#ffffff' }, ink: { value: '#1a1a1a' },
+  } }));
+  expect(pale.ok).toBe(false);
+  expect(pale.reason).toMatch(/#ecf0f4 from the reader's primary: .*tint of the page/);
+
+  // A consent banner's button is the vendor's colour, and a white "accent"
+  // on a light page is no second colour at all.
+  for (const [accent, selector, why] of [['#008248', 'button#truste-consent-button', /consent or cookie banner/], ['#ffffff', 'div.hero a.action-link', /tint of the page/]]) {
+    const out = obsLib.paletteFromManifest(manifest({ colors: {
+      primary: { value: '#006341', from_role: 'identity', signal: 'meta theme-color', source: src('meta[name=theme-color]') },
+      accent: { value: accent, from_role: 'action', source: src(selector) },
+      surface: { value: '#f2f2f2' }, ink: { value: '#1a1a1a' },
+    } }));
+    expect(out.ok).toBe(true);
+    expect(out.palette.accent, `${accent} on ${selector}`).toBe('#006341');
+    expect(out.evidence.accent.derived).toBe(true);
+    expect(out.evidence.accent.exact).toBe(accent);
+    expect(out.evidence.accent.note).toMatch(why);
+  }
+});
+
+test('body copy that does not read on the page gives way to text the site renders that does', () => {
+  const out = obsLib.paletteFromManifest(manifest({
+    colors: { primary: { value: '#2a55e5', from_role: 'identity', signal: 'meta theme-color' }, surface: { value: '#ffffff' }, ink: { value: '#ffffff' } },
+    read: { desktop: { roles: { display: { selector: 'main h1', type: { color: '#212121' } } } } },
+  }));
+  expect(out.ok).toBe(true);
+  expect(out.palette.ink).toBe('#212121');
+  expect(out.evidence.ink).toEqual(expect.objectContaining({ derived: true, exact: '#ffffff', from_role: 'display heading' }));
+  expect(out.evidence.ink.source.selector).toBe('main h1');
 });
 
 test('a dark site keeps its exact colours beside the derived ones a preset can activate with', () => {

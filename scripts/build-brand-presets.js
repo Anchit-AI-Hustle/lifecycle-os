@@ -408,7 +408,7 @@ function absorbObservation(rec) {
 
   // A read that did not happen is still a fact about the read: which state,
   // when, and why. It carries no colour, so nothing below runs for it.
-  if (v2 && obs.read_attempt && (obs.renderer !== 'rendered' || !obs.palette_ok)) {
+  if (v2 && obs.read_attempt && (obs.renderer !== 'rendered' || !obs.palette_ok) && !HAND_VERIFIED.has(rec.slug)) {
     rec.preset.read_attempt = {
       renderer: obs.read_attempt.renderer, at: obs.read_attempt.at || obs.observed_at || null,
       host: obs.read_attempt.host || '', reason: String(obs.read_attempt.reason || '').slice(0, 400),
@@ -523,7 +523,7 @@ const index = PRESETS.map((p) => ({
   read_attempt: p.preset.read_attempt || null,
   // One sentence the gallery prints as it is: why this card is still on the
   // default ("<host> blocked an automated read on <date>.").
-  read_note: readSentence(p.preset.read_attempt),
+  read_note: p.preset.palette_source === 'default' ? readSentence(p.preset.read_attempt) : '',
   renderer: p.preset.renderer || null,
   regression: p.preset.regression || null,
   has_catalog: !!(p.catalog_source && p.catalog_source.kind !== 'none' && p.catalog_source.kind !== 'placeholder'),

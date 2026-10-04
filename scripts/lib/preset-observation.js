@@ -44,6 +44,8 @@ const RENDERERS = ['rendered', 'blocked', 'timeout', 'unavailable'];
 /** Functional tokens every preset shares. Not this brand's colours. */
 const SEMANTIC = { line: '#e4e4e4', ok: '#1a7f37', warn: '#c9a227', err: '#c0392b' };
 const SEMANTIC_NOTE = 'functional token shared by every preset, not a colour read from this brand';
+/** A consent or cookie banner is its vendor's design, not the brand's. */
+const CONSENT = /consent|cookie|onetrust|truste|gdpr|didomi|usercentrics|osano|cookiebot/i;
 const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-sans-serif|ui-serif|ui-monospace|ui-rounded|math|emoji|-apple-system|blinkmacsystemfont)$/i;
 
 function hostOf(url) {
@@ -83,7 +85,7 @@ function readSentence(attempt) {
   const host = attempt.host || 'The site';
   const at = attempt.at || 'an unrecorded date';
   if (attempt.renderer === 'blocked') return `${host} blocked an automated read on ${at}.`;
-  if (attempt.renderer === 'timeout') return `${host} did not finish rendering within the read's time limit on ${at}.`;
+  if (attempt.renderer === 'timeout') return `${host} did not answer an automated read within its time limit on ${at}.`;
   if (attempt.renderer === 'unavailable') return `${host} could not be read on ${at}${attempt.reason ? `: ${String(attempt.reason).replace(/\.$/, '')}` : ''}.`;
   if (attempt.renderer === 'rendered' && attempt.reason) return `${host} was read on ${at}, and ${String(attempt.reason).replace(/^[A-Z]/, (c) => c.toLowerCase()).replace(/\.$/, '')}.`;
   return '';
@@ -98,10 +100,21 @@ function rolesOf(manifest) {
 /**
  * The palette a preset can activate with, from the manifest's measured colours.
  * Returns { ok, palette, evidence, reason, gate }.
+ *
+ * The reader decides what each colour IS (identity, action, body copy). This
+ * decides only what a PRESET can use, and every refusal is recorded beside the
+ * value taken instead (`evidence.primary.passed_over`):
+ *  - a colour measured on a consent or cookie widget is that vendor's, not
+ *    the brand's;
+ *  - a "brand colour" that measures under 1.5:1 against the page is a tint of
+ *    the page (a pale header, the palest step of a token scale) and cannot
+ *    carry the app's primary role - buttons and bands in it would vanish. The
+ *    next colour the site renders is taken, in the reader's own order.
  */
 function paletteFromManifest(manifest) {
   const m = manifest || {};
   const colors = m.colors || {};
+  const rd = rolesOf(m);
   const page = m.url || m.start || '';
   const evidence = {};
   const take = (role, value, c, extra) => {
@@ -110,36 +123,9 @@ function paletteFromManifest(manifest) {
   const derive = (role, value, exact, note, c) => {
     evidence[role] = { value, exact: exact || '', derived: true, note, source: sourceOf(c) };
   };
+  const roleSource = (role, r, property) => ({ page, role, selector: (r && r.selector) || '', viewport: 'desktop', property, signal: 'computed' });
 
-  // primary: the reader's choice, or the monochrome call to action.
-  let primary = hex(colors.primary && colors.primary.value);
-  if (primary) {
-    take('primary', primary, colors.primary, { from_role: colors.primary.from_role || '', signal: colors.primary.signal || 'computed' });
-  } else {
-    const rd = rolesOf(m);
-    const btn = rd.button_primary && rd.button_primary.style ? hex(rd.button_primary.style.background) : '';
-    const hdr = rd.header && rd.header.style ? hex(rd.header.style.background) : '';
-    if (btn && btn !== hex(colors.surface && colors.surface.value)) {
-      primary = btn;
-      evidence.primary = {
-        value: btn, exact: btn, derived: false, from_role: 'action',
-        signal: 'the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome',
-        source: { page, role: 'primary call to action', selector: rd.button_primary.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' },
-      };
-    } else if (hdr && !lightSurface(hdr)) {
-      primary = hdr;
-      evidence.primary = {
-        value: hdr, exact: hdr, derived: false, from_role: 'identity',
-        signal: 'header background as rendered; the site renders no chromatic brand colour and no filled call to action',
-        source: { page, role: 'header', selector: rd.header.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' },
-      };
-    }
-  }
-  if (!primary) {
-    return { ok: false, palette: null, evidence, reason: 'The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.' };
-  }
-
-  // surface: what the page is painted, if the app can build text on it.
+  // surface first: whether a colour is a tint of the page depends on it.
   const surfaceExact = hex(colors.surface && colors.surface.value);
   let surface = surfaceExact;
   if (lightSurface(surfaceExact)) take('surface', surfaceExact, colors.surface);
@@ -152,18 +138,76 @@ function paletteFromManifest(manifest) {
       colors.surface);
   }
 
-  // ink: body copy as rendered, AA on the surface or derived to it.
+  // primary: the reader's choice first, then what else the site renders.
+  const passedOver = [];
+  const usable = (value, source, label) => {
+    const h = hex(value);
+    if (!h) return false;
+    if (CONSENT.test((source && source.selector) || '')) { passedOver.push({ value: h, from: label, why: 'measured on a consent or cookie banner, which is that vendor\'s design, not the brand\'s' }); return false; }
+    const vsPage = core.contrast(h, surface);
+    if (vsPage < 1.5 || (surfaceExact && core.contrast(h, surfaceExact) < 1.5)) { passedOver.push({ value: h, from: label, why: `${Math.min(vsPage, surfaceExact ? core.contrast(h, surfaceExact) : vsPage)}:1 against the page, a tint of the page that cannot carry buttons or bands` }); return false; }
+    return true;
+  };
+  const candidates = [];
+  if (colors.primary) candidates.push({ value: colors.primary.value, source: sourceOf(colors.primary), from_role: colors.primary.from_role || '', signal: colors.primary.signal || 'computed', label: 'the reader\'s primary' });
+  if (colors.accent && /action|identity/.test(colors.accent.from_role || '')) candidates.push({ value: colors.accent.value, source: sourceOf(colors.accent), from_role: colors.accent.from_role, signal: colors.accent.from_role === 'action' ? 'the primary call to action, as rendered' : 'identity colour, as rendered', label: 'the reader\'s accent' });
+  for (const c of ((m.identity && m.identity.candidates) || [])) {
+    if (c && !c.neutral) candidates.push({ value: c.value, source: sourceOf(c), from_role: 'identity', signal: c.signal || 'identity colour', label: c.signal || 'an identity candidate' });
+  }
+  const btn = rd.button_primary && rd.button_primary.style ? rd.button_primary.style.background : '';
+  if (btn) candidates.push({ value: btn, source: roleSource('primary call to action', rd.button_primary, 'background-color'), from_role: 'action', signal: 'the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome', label: 'the primary call to action' });
+  const hdr = rd.header && rd.header.style ? rd.header.style.background : '';
+  if (hdr) candidates.push({ value: hdr, source: roleSource('header', rd.header, 'background-color'), from_role: 'identity', signal: 'header background as rendered; the site renders no other colour that reads on its page', label: 'the header background' });
+  let primary = '';
+  for (const c of candidates) {
+    if (!usable(c.value, c.source, c.label)) continue;
+    primary = hex(c.value);
+    evidence.primary = { value: primary, exact: primary, derived: false, from_role: c.from_role, signal: c.signal, source: c.source };
+    break;
+  }
+  const seen = new Set();
+  const passed = passedOver.filter((p) => { const k = p.value + p.why; if (seen.has(k)) return false; seen.add(k); return true; });
+  if (!primary) {
+    return {
+      ok: false, palette: null, evidence: Object.assign(evidence, { primary: { value: '', passed_over: passed } }),
+      reason: passed.length
+        ? `the rendered site shows no brand colour a preset can use (${passed.map((p) => `${p.value} from ${p.from}: ${p.why}`).join('; ')})`
+        : 'The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.',
+    };
+  }
+  if (passed.length) evidence.primary.passed_over = passed;
+
+  // ink: body copy as rendered; if it does not read on the page, the heading
+  // or navigation text the site renders; only then a derivation.
   const inkExact = hex(colors.ink && colors.ink.value);
-  let ink = inkExact;
-  if (inkExact && core.contrast(inkExact, surface) >= 4.5) take('ink', inkExact, colors.ink);
-  else if (inkExact) {
-    // Light text from a dark page, now on a light one: taken well past AA, so
-    // body copy reads as body copy and not as a faded caption.
-    ink = core.readableAsText(inkExact, surface, 12);
-    derive('ink', ink, inkExact, `DERIVED from ${inkExact}: the body copy as rendered measures ${core.contrast(inkExact, surface)}:1 on ${surface}, so it is darkened until it reads (${core.contrast(ink, surface)}:1).`, colors.ink);
-  } else {
-    ink = core.readableAsText(primary, surface, 7);
-    derive('ink', ink, '', `DERIVED from ${primary}: the read measured no body copy colour, so the text colour is the primary taken to 7:1 on ${surface}.`, colors.primary);
+  let ink = '';
+  if (inkExact && core.contrast(inkExact, surface) >= 4.5) { ink = inkExact; take('ink', inkExact, colors.ink); }
+  else {
+    const textRoles = [
+      ['display heading', rd.display], ['h1', rd.headings && rd.headings.h1], ['navigation link', rd.nav_link], ['body link', rd.link],
+    ];
+    for (const [name, r] of textRoles) {
+      const c = hex(r && r.type && r.type.color);
+      if (!c || core.contrast(c, surface) < 4.5) continue;
+      ink = c;
+      evidence.ink = {
+        value: c, exact: inkExact, derived: true, from_role: name,
+        note: inkExact
+          ? `The body copy as rendered (${inkExact}) measures ${core.contrast(inkExact, surface)}:1 on ${surface}; the ${name} text the site renders (${c}) reads there, so it is the ink.`
+          : `The read found no body copy; the ${name} text the site renders (${c}) is the ink.`,
+        source: roleSource(name, r, 'color'),
+      };
+      break;
+    }
+    if (!ink && inkExact) {
+      // Light text from a dark page, now on a light one: taken well past AA,
+      // so body copy reads as body copy and not as a faded caption.
+      ink = core.readableAsText(inkExact, surface, 12);
+      derive('ink', ink, inkExact, `DERIVED from ${inkExact}: the body copy as rendered measures ${core.contrast(inkExact, surface)}:1 on ${surface}, and no other text the site renders reads there, so it is darkened until it does (${core.contrast(ink, surface)}:1).`, colors.ink);
+    } else if (!ink) {
+      ink = core.readableAsText(primary, surface, 12);
+      derive('ink', ink, '', `DERIVED from ${primary}: the read found no text colour that reads on ${surface}, so the primary is darkened until it does (${core.contrast(ink, surface)}:1).`, colors.primary);
+    }
   }
 
   // surface_alt: a light card colour the site renders, else the surface.
@@ -187,14 +231,23 @@ function paletteFromManifest(manifest) {
     derive('muted', muted, mutedExact, `DERIVED from ${mutedExact}: secondary text as rendered measures ${core.contrast(mutedExact, surface)}:1, adjusted to AA.`, colors.muted);
   } else derive('muted', muted, '', 'DERIVED: the read found no secondary text style, so it is the body ink.', colors.ink);
 
-  // accent: the reader's second colour, or the primary repeated (said).
+  // accent: the reader's second colour when it is a usable one, else the
+  // primary repeated (said) rather than a colour the site does not use.
   const accentExact = hex(colors.accent && colors.accent.value);
+  const accentConsent = !!accentExact && CONSENT.test((colors.accent.source && colors.accent.source.selector) || '');
   let accent = primary;
-  if (accentExact && accentExact !== primary) {
+  if (accentExact && accentExact !== primary && !accentConsent && core.contrast(accentExact, surface) >= 1.5) {
     accent = accentExact;
     take('accent', accentExact, colors.accent, { from_role: colors.accent.from_role || '' });
   } else {
-    evidence.accent = { value: primary, exact: '', derived: true, note: 'The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.', source: sourceOf(colors.primary) };
+    const other = accentExact && accentExact !== primary;
+    evidence.accent = {
+      value: primary, exact: other ? accentExact : '', derived: true,
+      note: other
+        ? `The second colour the reader found (${accentExact}) ${accentConsent ? 'was measured on a consent or cookie banner' : `is a tint of the page (${core.contrast(accentExact, surface)}:1)`}, so the accent repeats the primary.`
+        : 'The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.',
+      source: evidence.primary.source,
+    };
   }
 
   const palette = Object.assign({ primary, accent, ink, surface, surface_alt: surfaceAlt, muted }, SEMANTIC);
@@ -213,7 +266,7 @@ function paletteFromManifest(manifest) {
       const trial = Object.assign({}, palette, { ink: darker });
       const g2 = core.validatePalette(trial);
       if (g2.ok) {
-        derive('ink', darker, evidence.ink.exact || inkExact, `DERIVED from ${palette.ink}: no text colour reached 4.5:1 on the primary ${primary}, so the ink is darkened until it does (still ${core.contrast(darker, surface)}:1 on the page).`, colors.ink);
+        derive('ink', darker, (evidence.ink && evidence.ink.exact) || inkExact, `DERIVED from ${palette.ink}: no text colour reached 4.5:1 on the primary ${primary}, so the ink is darkened until it does (still ${core.contrast(darker, surface)}:1 on the page).`, colors.ink);
         palette.ink = darker;
         gate = g2;
       }

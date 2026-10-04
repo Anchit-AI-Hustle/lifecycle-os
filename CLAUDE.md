@@ -36,6 +36,12 @@ the real reader in Chromium, the real builder, the real gallery).
   a site that renders no colour at all gets none. A brand's own web font is named and marked
   `loadable:false` - the card reads `<family> (brand font, shown in fallback)` and sets the name in
   the site's own fallback stack; only Google families are loaded.
+- **Found by the first real harvest**: the reader's "brand colour" was, on three sites, a TINT of the
+  page (the palest step of a token scale, `--hds-color-core-brand-25` = #f5f5ff; a pale tab; a pale
+  chat pill), and one accent came off a cookie-consent button. The mapping passes over a colour under
+  1.5:1 against the page or measured on a consent banner, takes the next one the site renders in the
+  reader's own order, and records each `passed_over` with why; body copy measured white on a light
+  page gives way to the heading/nav text the site renders before anything is derived.
 - **The card paints four NAMED roles** (primary/accent/surface/ink, `*` when derived) and its text is
   measured at AA in Chromium through every ancestor's opacity - the step fades in, and a measurement
   taken mid-fade reads 1:1.
